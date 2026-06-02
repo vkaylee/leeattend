@@ -714,6 +714,21 @@ diesel::table! {
 }
 
 diesel::table! {
+    outbox_jobs (id) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        #[max_length = 50]
+        job_type -> Varchar,
+        payload -> Jsonb,
+        #[max_length = 20]
+        status -> Varchar,
+        error_message -> Nullable<Text>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     overtime_rules (id) {
         id -> Uuid,
         policy_id -> Uuid,
@@ -1540,6 +1555,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     leave_types,
     member_extra_roles,
     notifications,
+    outbox_jobs,
     overtime_policy_assignments,
     overtime_policy_definitions,
     overtime_rules,

@@ -208,6 +208,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             tracing::error!("Job worker task panicked: {:?}", e);
         }
     }
+    if let Some(handle) = workers.outbox_sweep_handle {
+        tracing::info!("Waiting for outbox sweep scheduler to complete...");
+        if let Err(e) = handle.await {
+            tracing::error!("Outbox sweep scheduler task panicked: {:?}", e);
+        }
+    }
 
     state.agents.manager.shutdown().await;
 

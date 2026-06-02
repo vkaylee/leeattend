@@ -187,25 +187,29 @@ export type CreateSalaryComponentRequest = components["schemas"]["CreateSalaryCo
 export type EmployeeSalaryComponent = components["schemas"]["EmployeeSalaryComponent"];
 
 export interface PayrollSegment {
-  actual_work_days: number;
-  amount: number;
-  applied_base_salary: number;
-  applied_hours_per_day: number;
-  applied_std_days: number;
-  department_id?: string;
+  actual_work_days: string | number;
+  amount: string | number;
+  applied_base_salary: string | number;
+  applied_hours_per_day: string | number;
+  applied_std_days: string | number;
+  department_id?: string | null;
   end_date: string;
   id: string;
-  paid_work_days: number;
+  paid_work_days: string | number;
   reason: string;
   start_date: string;
-  std_days_source?: "individual" | "department" | "workspace" | "system";
+  std_days_source?: string | null;
 }
 
 export type IncentiveEvaluationResult = components["schemas"]["IncentiveEvaluationResult"];
 export type SalaryComponentWithDefinition = components["schemas"]["SalaryComponentWithDefinition"];
 export type SalaryBaseGroup = components["schemas"]["SalaryBaseGroup"];
 export type SalaryBaseGroupMember = components["schemas"]["SalaryBaseGroupMember"];
-export type Payslip = components["schemas"]["Payslip"] & { incentives?: any[] };
+export type Payslip = components["schemas"]["Payslip"] & { 
+  incentives?: IncentiveEvaluationResult[];
+  segments?: PayrollSegment[];
+  salary_components?: SalaryComponentWithDefinition[];
+};
 
 export interface RuleCondition {
   metric: string;

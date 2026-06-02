@@ -13,21 +13,29 @@ export const workspaceConfigKeys = {
 
 export const useWorkspaceConfigs = (prefix?: string) => {
   const { workspace } = useWorkspace();
+  const workspaceId = workspace?.id;
   
   return useQuery({
-    queryKey: workspaceConfigKeys.list(workspace?.id || '', prefix),
-    queryFn: () => workspaceConfigApi.listConfigs(workspace!.id, prefix),
-    enabled: !!workspace?.id,
+    queryKey: workspaceConfigKeys.list(workspaceId ?? '', prefix),
+    queryFn: () => {
+      if (!workspaceId) throw new Error('No workspace ID');
+      return workspaceConfigApi.listConfigs(workspaceId, prefix);
+    },
+    enabled: !!workspaceId,
   });
 };
 
 export const useWorkspaceConfig = (key: string, date?: string) => {
   const { workspace } = useWorkspace();
+  const workspaceId = workspace?.id;
   
   return useQuery({
-    queryKey: workspaceConfigKeys.detail(workspace?.id || '', key, date),
-    queryFn: () => workspaceConfigApi.getConfig(workspace!.id, key, date),
-    enabled: !!workspace?.id && !!key,
+    queryKey: workspaceConfigKeys.detail(workspaceId ?? '', key, date),
+    queryFn: () => {
+      if (!workspaceId) throw new Error('No workspace ID');
+      return workspaceConfigApi.getConfig(workspaceId, key, date);
+    },
+    enabled: !!workspaceId && !!key,
   });
 };
 
@@ -36,10 +44,13 @@ export const useUpsertWorkspaceConfig = () => {
   const { workspace } = useWorkspace();
 
   return useMutation({
-    mutationFn: (payload: CreateConfigEntryRequest) => 
-      workspaceConfigApi.upsertConfig(workspace!.id, payload),
+    mutationFn: (payload: CreateConfigEntryRequest) => {
+      const workspaceId = workspace?.id;
+      if (!workspaceId) throw new Error('No workspace ID');
+      return workspaceConfigApi.upsertConfig(workspaceId, payload);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: workspaceConfigKeys.all });
+      void queryClient.invalidateQueries({ queryKey: workspaceConfigKeys.all });
     },
   });
 };
@@ -49,10 +60,13 @@ export const useDeleteWorkspaceConfig = () => {
   const { workspace } = useWorkspace();
 
   return useMutation({
-    mutationFn: (id: string) => 
-      workspaceConfigApi.deleteConfig(workspace!.id, id),
+    mutationFn: (id: string) => {
+      const workspaceId = workspace?.id;
+      if (!workspaceId) throw new Error('No workspace ID');
+      return workspaceConfigApi.deleteConfig(workspaceId, id);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: workspaceConfigKeys.all });
+      void queryClient.invalidateQueries({ queryKey: workspaceConfigKeys.all });
     },
   });
 };

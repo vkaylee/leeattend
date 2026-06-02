@@ -15,6 +15,7 @@ pub mod feature_flag;
 pub mod holiday;
 pub mod import_job;
 pub mod leave;
+pub mod outbox_job;
 pub mod overtime_policy;
 pub mod payroll;
 pub mod payroll_rule;

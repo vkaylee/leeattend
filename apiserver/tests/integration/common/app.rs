@@ -629,10 +629,13 @@ pub async fn spawn_app() -> (String, TestDatabase) {
                 > = Arc::new(
                     apiserver::repositories::queue_repository::RedisQueueRepository::new(redis),
                 );
+                let outbox_repo = Arc::new(apiserver::repositories::DieselOutboxJobRepository::new(diesel_pools.clone()));
+                let outbox_svc = Arc::new(apiserver::services::OutboxJobService::new(outbox_repo));
                 Arc::new(apiserver::services::ReportCoordinator::new(
                     queue_repo,
                     employee_repo.clone(),
                     workspace_repo.clone(),
+                    outbox_svc,
                 ))
             }),
             stats_repo: Arc::new(
@@ -1229,10 +1232,13 @@ pub async fn spawn_app_with_factory_extended(
                 > = Arc::new(
                     apiserver::repositories::queue_repository::RedisQueueRepository::new(redis),
                 );
+                let outbox_repo = Arc::new(apiserver::repositories::DieselOutboxJobRepository::new(diesel_pools.clone()));
+                let outbox_svc = Arc::new(apiserver::services::OutboxJobService::new(outbox_repo));
                 Arc::new(apiserver::services::ReportCoordinator::new(
                     queue_repo,
                     employee_repo.clone(),
                     workspace_repo.clone(),
+                    outbox_svc,
                 ))
             }),
             stats_repo: Arc::new(
@@ -1882,10 +1888,13 @@ pub async fn setup_app_tower_internal_extended(
                 > = Arc::new(
                     apiserver::repositories::queue_repository::RedisQueueRepository::new(redis),
                 );
+                let outbox_repo = Arc::new(apiserver::repositories::DieselOutboxJobRepository::new(diesel_pools.clone()));
+                let outbox_svc = Arc::new(apiserver::services::OutboxJobService::new(outbox_repo));
                 Arc::new(apiserver::services::ReportCoordinator::new(
                     queue_repo,
                     employee_repo.clone(),
                     workspace_repo.clone(),
+                    outbox_svc,
                 ))
             }),
             stats_repo: Arc::new(

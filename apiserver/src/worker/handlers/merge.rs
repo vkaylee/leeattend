@@ -38,9 +38,41 @@ impl MergeHandler {
         job: &Job,
         deps: &crate::worker::WorkerDeps,
     ) -> Result<(), String> {
+        let parent_job_id = job.parent_job_id;
         match Self::handle_inner(queue, publisher, job, deps).await {
-            Ok(()) => Ok(()),
-            Err(e) => Err(e.to_string()),
+            Ok(()) => {
+                let auth_token =
+                    crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id);
+                if let Err(e) = deps
+                    .outbox_repo
+                    .update_job_status(&auth_token, parent_job_id, "completed", None)
+                    .await
+                {
+                    tracing::error!(
+                        parent_job_id = %parent_job_id,
+                        error = ?e,
+                        "Failed to update outbox job status to completed"
+                    );
+                }
+                Ok(())
+            }
+            Err(e) => {
+                let err_str = e.to_string();
+                let auth_token =
+                    crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id);
+                if let Err(err) = deps
+                    .outbox_repo
+                    .update_job_status(&auth_token, parent_job_id, "failed", Some(err_str.clone()))
+                    .await
+                {
+                    tracing::error!(
+                        parent_job_id = %parent_job_id,
+                        error = ?err,
+                        "Failed to update outbox job status to failed"
+                    );
+                }
+                Err(err_str)
+            }
         }
     }
 

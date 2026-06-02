@@ -214,10 +214,15 @@ async fn test_force_reprocess_all_attendance_api() {
     let queue_repo: Arc<dyn apiserver::repositories::queue_repository::QueueRepository> = Arc::new(
         apiserver::repositories::queue_repository::RedisQueueRepository::new(redis.clone()),
     );
+    let outbox_repo = Arc::new(apiserver::repositories::DieselOutboxJobRepository::new(
+        diesel_pools.clone(),
+    ));
+    let outbox_service = Arc::new(apiserver::services::OutboxJobService::new(outbox_repo));
     let coordinator = apiserver::services::ReportCoordinator::new(
         queue_repo.clone(),
         _state.employees.repo.clone(),
         _state.core.workspace_repo.clone(),
+        outbox_service,
     );
     for (idx, emp_id) in [emp_id_1, emp_id_2].iter().enumerate() {
         let job = apiserver::queue::Job::with_priority(

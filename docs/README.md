@@ -16,6 +16,7 @@ Welcome to the project documentation. To maintain clarity, please follow this st
 
 ### Sub-folders:
 - **[/infrastructure](./infrastructure/)**: Documentation for agents, workers, and hardware integration.
+  - **[Background Worker Runner](./infrastructure/background-worker-runner.md)**: Main background job processing engine, outbox model, concurrency management, and deadlock prevention.
 - **[/research](./research/)**: Deep dives into technical issues (e.g., Redis TTL analysis).
 - **[/features](./features/)**: Technical specifications for specific feature implementations.
 - **[/archive](./archive/)**: Deprecated or old documentation for historical reference.

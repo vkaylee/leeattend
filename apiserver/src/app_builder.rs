@@ -14,6 +14,7 @@ pub struct AppWorkers {
     pub log_worker_handle: JoinHandle<()>,
     pub job_worker_handle: Option<JoinHandle<()>>,
     pub scheduler_handle: Option<JoinHandle<()>>,
+    pub outbox_sweep_handle: Option<JoinHandle<()>>,
     pub job_worker_token: CancellationToken,
 }
 
@@ -117,6 +118,12 @@ impl AppState {
         let shift_repo: Arc<dyn crate::repositories::shift_repository::ShiftRepository> = Arc::new(
             crate::repositories::DieselShiftRepository::new(diesel_pools.clone()),
         );
+
+        let outbox_repo: Arc<dyn crate::repositories::outbox_job_repository::OutboxJobRepository> =
+            Arc::new(crate::repositories::DieselOutboxJobRepository::new(
+                diesel_pools.clone(),
+            ));
+        let outbox_service = Arc::new(crate::services::OutboxJobService::new(outbox_repo.clone()));
 
         let time_tracking_service = Arc::new(crate::services::TimeTrackingService::new(
             Arc::clone(&time_entry_repo),
@@ -482,46 +489,56 @@ impl AppState {
 
         // Initialize job worker if Redis is available
         let worker_cancel_token = CancellationToken::new();
-        let (coordinator, worker_handle, scheduler_handle) = redis_pool.as_ref().map_or_else(
-            || (None, None, None),
-            |redis| {
-                let worker_config = WorkerConfig::from_env();
-                tracing::info!(
-                    max_concurrent = worker_config.max_concurrent_jobs,
-                    poll_timeout = worker_config.poll_timeout_secs,
-                    "Initializing job worker"
-                );
+        let (coordinator, worker_handle, scheduler_handle, outbox_sweep_handle) =
+            redis_pool.as_ref().map_or_else(
+                || (None, None, None, None),
+                |redis| {
+                    let worker_config = WorkerConfig::from_env();
+                    tracing::info!(
+                        max_concurrent = worker_config.max_concurrent_jobs,
+                        poll_timeout = worker_config.poll_timeout_secs,
+                        "Initializing job worker"
+                    );
 
-                let queue_repo: Arc<dyn crate::repositories::queue_repository::QueueRepository> =
-                    Arc::new(
+                    let queue_repo: Arc<
+                        dyn crate::repositories::queue_repository::QueueRepository,
+                    > = Arc::new(
                         crate::repositories::queue_repository::RedisQueueRepository::new(
                             redis.clone(),
                         ),
                     );
 
-                let coordinator = Arc::new(ReportCoordinator::new(
-                    queue_repo.clone(),
-                    Arc::clone(&employee_repo),
-                    Arc::clone(&workspace_repo),
-                ));
+                    let coordinator = Arc::new(ReportCoordinator::new(
+                        queue_repo.clone(),
+                        Arc::clone(&employee_repo),
+                        Arc::clone(&workspace_repo),
+                        outbox_service.clone(),
+                    ));
 
-                let worker = JobWorker::new(
-                    redis.clone(),
-                    &diesel_pools,
-                    worker_config,
-                    Arc::clone(&coordinator),
-                    roster_cache.clone(),
-                );
+                    let worker = JobWorker::new(
+                        redis.clone(),
+                        &diesel_pools,
+                        worker_config,
+                        Arc::clone(&coordinator),
+                        roster_cache.clone(),
+                    );
 
-                let scheduler = HousekeepingScheduler::new(redis.clone());
+                    let scheduler = HousekeepingScheduler::new(redis.clone());
 
-                (
-                    Some(coordinator),
-                    Some(worker.start(worker_cancel_token.clone())),
-                    Some(scheduler.start(worker_cancel_token.clone())),
-                )
-            },
-        );
+                    let outbox_sweep = crate::worker::OutboxSweepScheduler::new(
+                        Arc::clone(&workspace_repo),
+                        outbox_service.clone(),
+                        Arc::clone(&coordinator),
+                    );
+
+                    (
+                        Some(coordinator),
+                        Some(worker.start(worker_cancel_token.clone())),
+                        Some(scheduler.start(worker_cancel_token.clone())),
+                        Some(outbox_sweep.start(worker_cancel_token.clone())),
+                    )
+                },
+            );
 
         let session_repo_core = session_repo.clone();
         let user_repo_core = user_repo.clone();
@@ -646,6 +663,7 @@ impl AppState {
             log_worker_handle,
             job_worker_handle: worker_handle,
             scheduler_handle,
+            outbox_sweep_handle,
             job_worker_token: worker_cancel_token,
         };
 

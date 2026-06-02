@@ -182,6 +182,7 @@ pub struct MockWorkerDepsBuilder {
     pub leave_policy_repo: DummyLeavePolicyRepository,
     pub user_repo: MockUserRepository,
     pub system_repo: crate::repositories::system_repository::MockSystemRepository,
+    pub outbox_repo: crate::repositories::outbox_job_repository::MockOutboxJobRepository,
 }
 
 impl Default for MockWorkerDepsBuilder {
@@ -223,6 +224,7 @@ impl MockWorkerDepsBuilder {
             leave_policy_repo: DummyLeavePolicyRepository,
             user_repo: MockUserRepository::new(),
             system_repo: crate::repositories::system_repository::MockSystemRepository::new(),
+            outbox_repo: crate::repositories::outbox_job_repository::MockOutboxJobRepository::new(),
         }
     }
 
@@ -250,6 +252,7 @@ impl MockWorkerDepsBuilder {
             leave_policy_repo: Arc::new(self.leave_policy_repo),
             user_repo: Arc::new(self.user_repo),
             system_repo: Arc::new(self.system_repo),
+            outbox_repo: Arc::new(self.outbox_repo),
         }
     }
 }

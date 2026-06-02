@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type { TFunction } from "i18next";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -28,7 +27,7 @@ export function useDepartmentForm(wsId: string, editingDept: Department | null, 
   }
 
   const createMutation = useMutation({
-    mutationFn: (data: Record<string, unknown>) => createDepartment(wsId, data),
+    mutationFn: (data: Parameters<typeof createDepartment>[1]) => createDepartment(wsId, data),
     onSuccess: () => { 
       void queryClient.invalidateQueries({ queryKey: ["departments", wsId] }); 
       onClose(); 
@@ -37,7 +36,7 @@ export function useDepartmentForm(wsId: string, editingDept: Department | null, 
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: Record<string, unknown>) => {
+    mutationFn: (data: Parameters<typeof updateDepartment>[2]) => {
       if (!editingDept) throw new Error("Editing department is required for update");
       return updateDepartment(wsId, editingDept.id, data);
     },

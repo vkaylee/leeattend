@@ -38,6 +38,7 @@ mod tests {
         "salary_component_definitions",
         "overtime_policy_definitions",
         "overtime_policy_assignments",
+        "outbox_jobs",
         "leave_policy_definitions",
         "leave_policy_assignments",
         "working_patterns",

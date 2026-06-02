@@ -68,6 +68,8 @@ pub mod holiday_leave_service;
 
 pub use auth_service::AuthService;
 pub use holiday_leave_service::HolidayLeaveService;
+pub mod outbox_job_service;
+pub use outbox_job_service::OutboxJobService;
 
 #[cfg(test)]
 mod attendance_calculator_tests;

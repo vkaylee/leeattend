@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useQueryClient } from "@tanstack/react-query";
 import { Activity } from "lucide-react";
 import { useState } from "react";
@@ -83,7 +82,7 @@ export default function DeviceListItem({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const { data: deviceInfo } = useDeviceInfo(device.id, parentAgentActive && isVisible);
-  const displayInfo: DeviceInfo | null = deviceInfo ?? status?.info ?? null;
+  const displayInfo: DeviceInfo | null = (deviceInfo as DeviceInfo | null) ?? (status?.info as DeviceInfo | null) ?? null;
 
   async function handleRefresh() {
     if (!onRefresh) return;

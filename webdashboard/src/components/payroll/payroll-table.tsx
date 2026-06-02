@@ -1,4 +1,3 @@
-// @ts-nocheck
 import * as Popover from '@radix-ui/react-popover';
 import { 
   ChevronDown, 
@@ -90,7 +89,7 @@ function SegmentCard({ segment, index, canReadSensitive }: { segment: PayrollSeg
               <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-inner">
                 <Typography className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 opacity-70" variant="p">Base Salary</Typography>
                 <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-bold font-mono text-sm tracking-tighter">
-                  <Banknote className="text-primary-500 opacity-50" size={14} /> {!canReadSensitive ? "***" : new Intl.NumberFormat('vi-VN').format(segment.applied_base_salary)}
+                  <Banknote className="text-primary-500 opacity-50" size={14} /> {!canReadSensitive ? "***" : new Intl.NumberFormat('vi-VN').format(typeof segment.applied_base_salary === 'string' ? parseFloat(segment.applied_base_salary) : segment.applied_base_salary)}
                 </div>
               </div>
               <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-inner">
@@ -124,7 +123,7 @@ function SegmentCard({ segment, index, canReadSensitive }: { segment: PayrollSeg
                 <div className="h-10 w-px bg-white dark:bg-slate-900/10" />
                 <div className="text-right">
                   <Typography className="text-[9px] font-bold text-primary-200 uppercase tracking-widest mb-1 opacity-80" variant="p">Segment Net</Typography>
-                  <Typography className="text-xl font-bold font-mono tracking-tighter" variant="p">{!canReadSensitive ? "***" : new Intl.NumberFormat('vi-VN').format(segment.amount)}</Typography>
+                  <Typography className="text-xl font-bold font-mono tracking-tighter" variant="p">{!canReadSensitive ? "***" : new Intl.NumberFormat('vi-VN').format(typeof segment.amount === 'string' ? parseFloat(segment.amount) : segment.amount)}</Typography>
                 </div>
               </div>
               <Calculator className="absolute -right-4 -bottom-4 w-20 h-20 text-white opacity-5 -rotate-12 transition-transform group-hover/out:rotate-0 duration-700" />
@@ -347,6 +346,7 @@ export default function PayrollTable({
         const isExpanded = expandedId === slip.id;
         const slipAdjustments = adjustments.filter(adj => 
           adj.employee_id === slip.employee_id && 
+          adj.requested_date &&
           new Date(adj.requested_date) >= new Date(slip.period_start) &&
           new Date(adj.requested_date) <= new Date(slip.period_end)
         );

@@ -90,7 +90,7 @@ export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Prop
         />
       </div>
 
-      {!!isAssignModalOpen && (
+      {isAssignModalOpen ? (
         <AssignMilestoneModal
           contracts={contracts}
           definitions={definitions}
@@ -101,9 +101,9 @@ export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Prop
           }}
           wsId={wsId}
         />
-      )}
+      ) : null}
 
-      {!!isStatusModalOpen && !!selectedPhase && (
+      {isStatusModalOpen && selectedPhase ? (
         <UpdatePhaseStatusModal
           employeeId={employeeId}
           isOpen={isStatusModalOpen}
@@ -114,7 +114,7 @@ export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Prop
           selectedPhase={selectedPhase}
           wsId={wsId}
         />
-      )}
+      ) : null}
     </div>
   );
 }

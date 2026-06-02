@@ -1821,4 +1821,39 @@ mod tests {
             "Option B should not write roster overrides"
         );
     }
+
+    #[tokio::test]
+    async fn test_on_workflow_completed() {
+        use crate::services::approval_workflow_service::WorkflowCallbackHandler;
+
+        let (svc, _, req_repo, _, _) = build_service(Some(dummy_employee()), true);
+
+        let mock_req = LeaveRequest {
+            id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
+            leave_type_id: Uuid::new_v4(),
+            start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            end_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            reason: None,
+            status: LeaveStatus::Pending,
+            duration_type: LeaveDurationType::FullDay,
+            start_time: None,
+            end_time: None,
+            requested_by_user_id: None,
+            approved_by_user_id: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+        let request_id = mock_req.id;
+        *req_repo.leave_request.lock().unwrap() = Some(mock_req);
+
+        let ws_id = Uuid::new_v4();
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(ws_id);
+
+        svc.on_workflow_completed(&auth_token, request_id, "approved", Uuid::new_v4())
+            .await
+            .unwrap();
+
+        assert!(*req_repo.update_called.lock().unwrap());
+    }
 }

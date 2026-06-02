@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { 
   Building2, 
   CalendarDays, 
@@ -9,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from '@/hooks/use-datetime';
-import { Employee, Payslip, Workspace } from '@/lib/api/types';
+import { Employee, Payslip, Workspace, SalaryComponentWithDefinition, PayrollSegment, IncentiveEvaluationResult } from '@/lib/api/types';
 
 interface PayslipDocumentProps {
   employee: Employee;
@@ -117,10 +116,8 @@ function EarningsBreakdown({ payslip, formatAmount }: EarningsBreakdownProps) {
         </thead>
         <tbody className='divide-y divide-slate-50 dark:divide-slate-800'>
           {/* Salary Components Breakdown */}
-          {payslip.salary_components?.map((sc: any, index: number) => {
-            if (!sc.component || !sc.definition) return null;
-            
-            const amountString = sc.component.amount || "0";
+          {payslip.salary_components?.map((sc: SalaryComponentWithDefinition, index: number) => {
+            const amountString = sc.component?.amount || "0";
             const monthlyRate = parseFloat(amountString);
             const standardDays = parseFloat((payslip.segments?.[0]?.applied_std_days ?? 22).toString());
             const totalPaidDays = payslip.segments?.reduce((sum: number, seg) => sum + parseFloat(seg.paid_work_days.toString()), 0) ?? 0;
@@ -133,9 +130,9 @@ function EarningsBreakdown({ payslip, formatAmount }: EarningsBreakdownProps) {
                   <div className='flex items-center gap-3'>
                     <div className='w-1.5 h-1.5 bg-blue-600 rounded-full' />
                     <div>
-                      <Typography className='font-bold text-slate-700 dark:text-slate-200' variant="p">{sc.definition.name}</Typography>
+                      <Typography className='font-bold text-slate-700 dark:text-slate-200' variant="p">{sc.definition?.name ?? "Unknown Component"}</Typography>
                       <Typography className='text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase' variant="p">
-                        Code: {sc.definition.code} • Monthly: {formatAmount(monthlyRate)} • {totalPaidDays.toFixed(1)} Days @ {formatAmount(dailyRate)}/day
+                        Code: {sc.definition?.code ?? "N/A"} • Monthly: {formatAmount(monthlyRate)} • {totalPaidDays.toFixed(1)} Days @ {formatAmount(dailyRate)}/day
                       </Typography>
                     </div>
                   </div>
@@ -148,7 +145,7 @@ function EarningsBreakdown({ payslip, formatAmount }: EarningsBreakdownProps) {
           })}
 
           {/* Base Salary Segments */}
-          {(!payslip.salary_components || payslip.salary_components.length === 0) && payslip.segments?.map((seg: any, index: number) => (
+          {(!payslip.salary_components || payslip.salary_components.length === 0) && payslip.segments?.map((seg: PayrollSegment, index: number) => (
             <tr className='group' data-testid={`salary-segment-${index}`} key={index}>
               <td className='py-4'>
                 <div className='flex items-center gap-3'>
@@ -156,7 +153,7 @@ function EarningsBreakdown({ payslip, formatAmount }: EarningsBreakdownProps) {
                   <div>
                     <Typography className='font-bold text-slate-700 dark:text-slate-200' variant="p">Base Salary {index > 0 ? ` (Segment ${index + 1})` : ''}</Typography>
                     <Typography className='text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase' variant="p">
-                      {seg.start_date} - {seg.end_date} • {seg.paid_work_days.toFixed(1)} Days @ {formatAmount(seg.applied_base_salary)}
+                      {seg.start_date} - {seg.end_date} • {(typeof seg.paid_work_days === 'string' ? parseFloat(seg.paid_work_days) : seg.paid_work_days).toFixed(1)} Days @ {formatAmount(seg.applied_base_salary)}
                     </Typography>
                   </div>
                 </div>
@@ -186,7 +183,7 @@ function EarningsBreakdown({ payslip, formatAmount }: EarningsBreakdownProps) {
           )}
 
           {/* Incentives */}
-          {payslip.incentives?.map((inc: any, index: number) => (
+          {payslip.incentives?.map((inc: IncentiveEvaluationResult, index: number) => (
             <tr data-testid={`incentive-${index}`} key={index}>
               <td className='py-4'>
                 <div className='flex items-center gap-3'>
@@ -253,7 +250,7 @@ export default function PayslipDocument({ employee, payslip, workspace }: Paysli
     return currencyFormatter.format(typeof value === 'string' ? parseFloat(value) : value);
   };
 
-  const totalIncentives = payslip.incentives?.reduce((accumulator: any, index: any) => accumulator + parseFloat(index.amount), 0) ?? 0;
+  const totalIncentives = payslip.incentives?.reduce((accumulator: number, inc: IncentiveEvaluationResult) => accumulator + parseFloat(inc.amount), 0) ?? 0;
   const grossPay = parseFloat(payslip.base_pay_amount) + parseFloat(payslip.overtime_pay_amount) + totalIncentives;
 
   return (

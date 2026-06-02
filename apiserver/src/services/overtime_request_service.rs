@@ -278,4 +278,25 @@ mod tests {
             .update_request_called
             .load(std::sync::atomic::Ordering::SeqCst));
     }
+
+    #[tokio::test]
+    async fn test_on_workflow_completed() {
+        use crate::services::approval_workflow_service::WorkflowCallbackHandler;
+
+        let repo = Arc::new(MockOvertimeRequestRepository::new());
+        let service = OvertimeRequestService::new(repo.clone());
+        let ws_id = Uuid::new_v4();
+        let token = TenantAuthToken::system_override(ws_id);
+
+        let request_id = Uuid::new_v4();
+
+        service
+            .on_workflow_completed(&token, request_id, "approved", Uuid::new_v4())
+            .await
+            .unwrap();
+
+        assert!(repo
+            .update_request_called
+            .load(std::sync::atomic::Ordering::SeqCst));
+    }
 }

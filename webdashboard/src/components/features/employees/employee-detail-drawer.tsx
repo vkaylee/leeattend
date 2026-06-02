@@ -108,6 +108,230 @@ function DrawerHeader({
 
 
 
+function ProfileActions({
+    employee,
+    onEdit,
+    onTerminate,
+    onRehire,
+    t
+}: {
+    employee: Employee;
+    onEdit: (e: Employee) => void;
+    onRehire: (e: Employee) => void;
+    onTerminate: (e: Employee) => void;
+    t: (k: string) => string;
+}) {
+    return (
+        <div className="grid grid-cols-2 gap-6">
+            <PermissionGate permission="employees:update">
+                <Button className="flex items-center justify-center gap-3 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all text-xs uppercase tracking-widest shadow-sm active:scale-95 h-auto" data-testid="employees-btn-edit" onClick={() => { onEdit(employee); }} type="button" variant="outline"><Pencil size={18} /> {t("employees.details.edit_profile").toUpperCase()}</Button>
+            </PermissionGate>
+            <PermissionGate permission="employees:update">
+                {employee.is_active ? (
+                    <Button className="flex items-center justify-center gap-3 py-4 bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 font-bold rounded-2xl hover:bg-rose-100 dark:bg-rose-900 transition-all text-xs uppercase tracking-widest active:scale-95 shadow-sm shadow-rose-900/5 h-auto" data-testid="employees-btn-terminate" onClick={() => { onTerminate(employee); }} type="button" variant="destructive"><Trash2 size={18} /> {t("employees.details.terminate").toUpperCase()}</Button>
+                ) : (
+                    <Button className="flex items-center justify-center gap-3 py-4 bg-primary-600 text-white font-bold rounded-2xl hover:bg-primary-700 transition-all text-xs uppercase tracking-widest shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 h-auto" data-testid="employees-btn-rehire" onClick={() => { onRehire(employee); }} type="button" variant="primary"><UserPlus size={18} /> {t("employees.details.rehire").toUpperCase()}</Button>
+                )}
+            </PermissionGate>
+        </div>
+    );
+}
+
+function DepartmentSection({
+    deptHistory,
+    departments,
+    onTransfer,
+    formatDate,
+    t
+}: {
+    deptHistory?: DeptHistoryEntry[];
+    departments?: Department[];
+    onTransfer: (id: string) => void;
+    formatDate: (date: string) => string;
+    t: (k: string) => string;
+}) {
+    return (
+        <section className="space-y-5">
+            <div className="flex justify-between items-center px-2">
+                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 opacity-70"><Building2 className="text-primary-500" size={14} /> {t("employees.details.current_dept").toUpperCase()}</span>
+                <PermissionGate permission="employees:update">
+                    <Button className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:underline active:scale-90 h-auto shadow-none border-none p-0" onClick={() => { onTransfer(deptHistory?.[0]?.department_id ?? ""); }} type="button" variant="ghost">{t("employees.details.transfer").toUpperCase()}</Button>
+                </PermissionGate>
+            </div>
+            <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] group hover:bg-white dark:hover:bg-slate-900 hover:shadow-xl hover:shadow-primary-100/10 transition-all shadow-inner relative overflow-hidden">
+                {deptHistory && deptHistory.length > 0 ? (
+                    <div>
+                        <div className="font-bold text-slate-700 dark:text-slate-200 text-2xl tracking-tighter uppercase leading-none mb-3">{departments?.find(d => d.id === deptHistory[0].department_id)?.name}</div>
+                        <div className="flex items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest opacity-70"><Calendar className="text-primary-400" size={12} /> {t("employees.transfer.effective_date")}: {formatDate(deptHistory[0].effective_date)}</div>
+                    </div>
+                ) : (<div className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest italic opacity-60">{t("employees.details.not_assigned_dept")}</div>)}
+                <Building2 className="absolute -right-8 -bottom-8 w-32 h-32 text-slate-700 dark:text-slate-200 opacity-5 -rotate-12 group-hover:rotate-0 transition-transform duration-700" />
+            </div>
+        </section>
+    );
+}
+
+function LocationDisplay({
+    isEditingLocation,
+    selectedLocationId,
+    setSelectedLocationId,
+    locations,
+    currentLocation,
+    setIsEditingLocation,
+}: {
+    isEditingLocation: boolean;
+    selectedLocationId: string;
+    setSelectedLocationId: (v: string) => void;
+    locations?: WorkLocation[];
+    currentLocation?: WorkLocation;
+    setIsEditingLocation: (v: boolean) => void;
+}) {
+    if (isEditingLocation) {
+        return (
+            <div className="relative z-10">
+                <Combobox
+                    clearOnEscape
+                    data-testid="profile-location-combobox"
+                    onChange={setSelectedLocationId}
+                    options={(locations ?? []).map((loc) => ({
+                        value: loc.id,
+                        label: loc.name,
+                        description: loc.is_headquarters ? "Headquarters" : loc.timezone,
+                    }))}
+                    placeholder="Chọn địa điểm làm việc mới"
+                    value={selectedLocationId}
+                />
+                <div className="mt-3 flex gap-2">
+                    <Button className="text-xs uppercase tracking-widest rounded-lg px-4" onClick={() => { setIsEditingLocation(false); }} size="sm" type="button" variant="ghost">Cancel</Button>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div>
+            <div className="font-bold text-slate-700 dark:text-slate-200 text-2xl tracking-tighter uppercase leading-none mb-3 flex items-center gap-2">
+                {currentLocation?.name ?? "Unknown Location"}
+                {currentLocation?.is_headquarters ? (
+                    <span className="bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-300 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-widest border border-rose-200 dark:border-rose-800">HQ</span>
+                ) : null}
+            </div>
+            <div className="flex items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest opacity-70 group/tz cursor-help relative inline-flex">
+                <Clock className="text-rose-400" size={12} /> {currentLocation?.timezone ?? "No Timezone"}
+                <div className="absolute opacity-0 invisible group-hover/tz:opacity-100 group-hover/tz:visible transition-all bottom-full left-0 mb-2 whitespace-nowrap bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-800 px-3 py-1.5 rounded-lg text-xs font-mono shadow-lg border border-slate-700 dark:border-slate-300">
+                    Timezone set for {currentLocation?.name}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function LocationSection({
+    employee,
+    locations,
+    isEditingLocation,
+    setIsEditingLocation,
+    selectedLocationId,
+    setSelectedLocationId,
+    updateLocationMutation,
+    handleSaveLocation,
+    currentLocation,
+    t
+}: {
+    employee: Employee;
+    locations?: WorkLocation[];
+    isEditingLocation: boolean;
+    setIsEditingLocation: (v: boolean) => void;
+    selectedLocationId: string;
+    setSelectedLocationId: (v: string) => void;
+    updateLocationMutation: { isPending: boolean };
+    handleSaveLocation: () => void;
+    currentLocation?: WorkLocation;
+    t: (k: string) => string;
+}) {
+    return (
+        <section className="space-y-5">
+            <div className="flex justify-between items-center px-2">
+                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 opacity-70"><MapPin className="text-rose-500" size={14} /> WORK LOCATION</span>
+                <PermissionGate permission="employees:update">
+                    {!isEditingLocation ? (
+                        <Button className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:underline active:scale-90 h-auto shadow-none border-none p-0" onClick={() => { setIsEditingLocation(true); setSelectedLocationId(employee.primary_location_id); }} type="button" variant="ghost">{t("common.edit").toUpperCase()}</Button>
+                    ) : (
+                        <Button className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest hover:underline active:scale-90 h-auto shadow-none border-none p-0 flex items-center gap-1" disabled={updateLocationMutation.isPending} onClick={handleSaveLocation} type="button" variant="ghost"><Check size={12}/> SAVE</Button>
+                    )}
+                </PermissionGate>
+            </div>
+            <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] group hover:bg-white dark:hover:bg-slate-900 hover:shadow-xl hover:shadow-rose-100/10 transition-all shadow-inner relative overflow-hidden">
+                <LocationDisplay
+                    currentLocation={currentLocation}
+                    isEditingLocation={isEditingLocation}
+                    locations={locations}
+                    selectedLocationId={selectedLocationId}
+                    setIsEditingLocation={setIsEditingLocation}
+                    setSelectedLocationId={setSelectedLocationId}
+                />
+                <Globe className="absolute -right-8 -bottom-8 w-32 h-32 text-slate-700 dark:text-slate-200 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all duration-700" />
+            </div>
+        </section>
+    );
+}
+
+function UserSection({
+    linkedUser,
+    employee,
+    t
+}: {
+    linkedUser?: WorkspaceMember;
+    employee: Employee;
+    t: (k: string) => string;
+}) {
+    return (
+        <section className="space-y-5">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 px-2 opacity-70"><User className="text-primary-500" size={14} /> {t("common.user").toUpperCase()}</span>
+            <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] group hover:bg-white dark:hover:bg-slate-900 hover:shadow-xl hover:shadow-primary-100/10 transition-all shadow-inner relative overflow-hidden">
+                {linkedUser ? (
+                    <div>
+                        <div className="font-bold text-slate-700 dark:text-slate-200 text-lg tracking-tight uppercase leading-none mb-1">{linkedUser.full_name ?? linkedUser.email}</div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest opacity-70">{linkedUser.email}</div>
+                    </div>
+                ) : employee.user_id ? (
+                    <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                        <div className="text-xs text-amber-600 dark:text-amber-400 font-bold uppercase tracking-widest italic">{t("common.loading")}</div>
+                    </div>
+                ) : (
+                    <div className="text-slate-300 dark:text-slate-600 font-bold text-xl tracking-tighter uppercase font-mono">—</div>
+                )}
+            </div>
+        </section>
+    );
+}
+
+function HireDatesSection({
+    employee,
+    formatDate,
+    t
+}: {
+    employee: Employee;
+    formatDate: (date: string) => string;
+    t: (k: string) => string;
+}) {
+    return (
+        <section className="space-y-5">
+            <div className="grid grid-cols-2 gap-6">
+                <div>
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 px-2 mb-5 opacity-70"><Calendar className="text-emerald-500" size={14} /> {t("employees.details.original_hire_date").toUpperCase()}</span>
+                    <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] font-bold text-slate-800 dark:text-slate-100 text-2xl tracking-tighter shadow-inner uppercase font-mono">{employee.original_hire_date ? formatDate(employee.original_hire_date) : formatDate(employee.hire_date)}</div>
+                </div>
+                <div>
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 px-2 mb-5 opacity-70"><Calendar className="text-emerald-500" size={14} /> {t("employees.table.hire_date").toUpperCase()}</span>
+                    <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] font-bold text-slate-800 dark:text-slate-100 text-2xl tracking-tighter shadow-inner uppercase font-mono">{formatDate(employee.hire_date)}</div>
+                </div>
+            </div>
+        </section>
+    );
+}
+
 function ProfileTab({
     employee,
     linkedUser,
@@ -138,18 +362,18 @@ function ProfileTab({
     const queryClient = useQueryClient();
     const toast = useToast();
     const [isEditingLocation, setIsEditingLocation] = useState(false);
-    const [selectedLocationId, setSelectedLocationId] = useState(employee.primary_location_id ?? "");
+    const [selectedLocationId, setSelectedLocationId] = useState(employee.primary_location_id);
 
     const updateLocationMutation = useMutation({
         mutationFn: (locationId: string) => updateEmployee(wsId, employee.id, { primary_location_id: locationId }),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["employees", wsId] });
+            void queryClient.invalidateQueries({ queryKey: ["employees", wsId] });
             setIsEditingLocation(false);
             toast.success(t("common.success"));
         },
         onError: () => {
             toast.error("Failed to update location");
-            setSelectedLocationId(employee.primary_location_id ?? "");
+            setSelectedLocationId(employee.primary_location_id);
         }
     });
 
@@ -165,121 +389,130 @@ function ProfileTab({
 
     return (
         <div className="space-y-10">
-            <div className="grid grid-cols-2 gap-6">
-                <PermissionGate permission="employees:update">
-                    <Button className="flex items-center justify-center gap-3 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all text-xs uppercase tracking-widest shadow-sm active:scale-95 h-auto" data-testid="employees-btn-edit" onClick={() => { onEdit(employee); }} type="button" variant="outline"><Pencil size={18} /> {t("employees.details.edit_profile").toUpperCase()}</Button>
-                </PermissionGate>
-                <PermissionGate permission="employees:update">
-                    {employee.is_active ? (
-                        <Button className="flex items-center justify-center gap-3 py-4 bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 font-bold rounded-2xl hover:bg-rose-100 dark:bg-rose-900 transition-all text-xs uppercase tracking-widest active:scale-95 shadow-sm shadow-rose-900/5 h-auto" data-testid="employees-btn-terminate" onClick={() => { onTerminate(employee); }} type="button" variant="destructive"><Trash2 size={18} /> {t("employees.details.terminate").toUpperCase()}</Button>
-                    ) : (
-                        <Button className="flex items-center justify-center gap-3 py-4 bg-primary-600 text-white font-bold rounded-2xl hover:bg-primary-700 transition-all text-xs uppercase tracking-widest shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 h-auto" data-testid="employees-btn-rehire" onClick={() => { onRehire(employee); }} type="button" variant="primary"><UserPlus size={18} /> {t("employees.details.rehire").toUpperCase()}</Button>
-                    )}
-                </PermissionGate>
-            </div>
+            <ProfileActions
+                employee={employee}
+                onEdit={onEdit}
+                onRehire={onRehire}
+                onTerminate={onTerminate}
+                t={t}
+            />
 
-            <section className="space-y-5">
-                <div className="flex justify-between items-center px-2">
-                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 opacity-70"><Building2 className="text-primary-500" size={14} /> {t("employees.details.current_dept").toUpperCase()}</span>
-                    <PermissionGate permission="employees:update">
-                        <Button className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:underline active:scale-90 h-auto shadow-none border-none p-0" onClick={() => { onTransfer(deptHistory?.[0]?.department_id ?? ""); }} type="button" variant="ghost">{t("employees.details.transfer").toUpperCase()}</Button>
-                    </PermissionGate>
-                </div>
-                <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] group hover:bg-white dark:hover:bg-slate-900 hover:shadow-xl hover:shadow-primary-100/10 transition-all shadow-inner relative overflow-hidden">
-                    {deptHistory && deptHistory.length > 0 ? (
-                        <div>
-                            <div className="font-bold text-slate-700 dark:text-slate-200 text-2xl tracking-tighter uppercase leading-none mb-3">{departments?.find(d => d.id === deptHistory[0].department_id)?.name}</div>
-                            <div className="flex items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest opacity-70"><Calendar className="text-primary-400" size={12} /> {t("employees.transfer.effective_date")}: {formatDate(deptHistory[0].effective_date)}</div>
-                        </div>
-                    ) : (<div className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest italic opacity-60">{t("employees.details.not_assigned_dept")}</div>)}
-                    <Building2 className="absolute -right-8 -bottom-8 w-32 h-32 text-slate-700 dark:text-slate-200 opacity-5 -rotate-12 group-hover:rotate-0 transition-transform duration-700" />
-                </div>
-            </section>
+            <DepartmentSection
+                departments={departments}
+                deptHistory={deptHistory}
+                formatDate={formatDate}
+                onTransfer={onTransfer}
+                t={t}
+            />
 
-            <section className="space-y-5">
-                <div className="flex justify-between items-center px-2">
-                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 opacity-70"><MapPin className="text-rose-500" size={14} /> WORK LOCATION</span>
-                    <PermissionGate permission="employees:update">
-                        {!isEditingLocation ? (
-                            <Button className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:underline active:scale-90 h-auto shadow-none border-none p-0" onClick={() => { setIsEditingLocation(true); setSelectedLocationId(employee.primary_location_id ?? ""); }} type="button" variant="ghost">{t("common.edit").toUpperCase()}</Button>
-                        ) : (
-                            <Button className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest hover:underline active:scale-90 h-auto shadow-none border-none p-0 flex items-center gap-1" disabled={updateLocationMutation.isPending} onClick={handleSaveLocation} type="button" variant="ghost"><Check size={12}/> SAVE</Button>
-                        )}
-                    </PermissionGate>
-                </div>
-                <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] group hover:bg-white dark:hover:bg-slate-900 hover:shadow-xl hover:shadow-rose-100/10 transition-all shadow-inner relative overflow-hidden">
-                    {isEditingLocation ? (
-                        <div className="relative z-10">
-                            <Combobox
-                                clearOnEscape
-                                data-testid="profile-location-combobox"
-                                onChange={setSelectedLocationId}
-                                options={(locations || []).map((loc) => ({
-                                    value: loc.id,
-                                    label: loc.name,
-                                    description: loc.is_headquarters ? "Headquarters" : loc.timezone,
-                                }))}
-                                placeholder="Chọn địa điểm làm việc mới"
-                                value={selectedLocationId}
-                            />
-                            <div className="mt-3 flex gap-2">
-                                <Button className="text-xs uppercase tracking-widest rounded-lg px-4" onClick={() => { setIsEditingLocation(false); }} size="sm" type="button" variant="ghost">Cancel</Button>
-                            </div>
-                        </div>
-                    ) : (
-                        <div>
-                            <div className="font-bold text-slate-700 dark:text-slate-200 text-2xl tracking-tighter uppercase leading-none mb-3 flex items-center gap-2">
-                                {currentLocation?.name ?? "Unknown Location"}
-                                {!!currentLocation?.is_headquarters && <span className="bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-300 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-widest border border-rose-200 dark:border-rose-800">HQ</span>}
-                            </div>
-                            <div className="flex items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest opacity-70 group/tz cursor-help relative inline-flex">
-                                <Clock className="text-rose-400" size={12} /> {currentLocation?.timezone ?? "No Timezone"}
-                                <div className="absolute opacity-0 invisible group-hover/tz:opacity-100 group-hover/tz:visible transition-all bottom-full left-0 mb-2 whitespace-nowrap bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-800 px-3 py-1.5 rounded-lg text-xs font-mono shadow-lg border border-slate-700 dark:border-slate-300">
-                                    Timezone set for {currentLocation?.name}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                    <Globe className="absolute -right-8 -bottom-8 w-32 h-32 text-slate-700 dark:text-slate-200 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all duration-700" />
-                </div>
-            </section>
+            <LocationSection
+                currentLocation={currentLocation}
+                employee={employee}
+                handleSaveLocation={handleSaveLocation}
+                isEditingLocation={isEditingLocation}
+                locations={locations}
+                selectedLocationId={selectedLocationId}
+                setIsEditingLocation={setIsEditingLocation}
+                setSelectedLocationId={setSelectedLocationId}
+                t={t}
+                updateLocationMutation={updateLocationMutation}
+            />
 
-            <section className="space-y-5">
-                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 px-2 opacity-70"><User className="text-primary-500" size={14} /> {t("common.user").toUpperCase()}</span>
-                <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] group hover:bg-white dark:hover:bg-slate-900 hover:shadow-xl hover:shadow-primary-100/10 transition-all shadow-inner relative overflow-hidden">
-                    {linkedUser ? (
-                        <div>
-                            <div className="font-bold text-slate-700 dark:text-slate-200 text-lg tracking-tight uppercase leading-none mb-1">{linkedUser.full_name ?? linkedUser.email}</div>
-                            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest opacity-70">{linkedUser.email}</div>
-                        </div>
-                    ) : employee.user_id ? (
-                        <div className="flex items-center gap-3">
-                            <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                            <div className="text-xs text-amber-600 dark:text-amber-400 font-bold uppercase tracking-widest italic">{t("common.loading")}</div>
-                        </div>
-                    ) : (
-                        <div className="text-slate-300 dark:text-slate-600 font-bold text-xl tracking-tighter uppercase font-mono">—</div>
-                    )}
-                </div>
-            </section>
+            <UserSection
+                employee={employee}
+                linkedUser={linkedUser}
+                t={t}
+            />
 
-            <section className="space-y-5">
-                <div className="grid grid-cols-2 gap-6">
-                    <div>
-                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 px-2 mb-5 opacity-70"><Calendar className="text-emerald-500" size={14} /> {t("employees.details.original_hire_date").toUpperCase()}</span>
-                        <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] font-bold text-slate-800 dark:text-slate-100 text-2xl tracking-tighter shadow-inner uppercase font-mono">{employee.original_hire_date ? formatDate(employee.original_hire_date) : formatDate(employee.hire_date)}</div>
-                    </div>
-                    <div>
-                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 px-2 mb-5 opacity-70"><Calendar className="text-emerald-500" size={14} /> {t("employees.table.hire_date").toUpperCase()}</span>
-                        <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] font-bold text-slate-800 dark:text-slate-100 text-2xl tracking-tighter shadow-inner uppercase font-mono">{formatDate(employee.hire_date)}</div>
-                    </div>
-                </div>
-            </section>
+            <HireDatesSection
+                employee={employee}
+                formatDate={formatDate}
+                t={t}
+            />
         </div>
     );
 }
 
-// eslint-disable-next-line max-lines-per-function
+function DrawerTabContent({
+    activeDetailTab,
+    employee,
+    wsId,
+    departments,
+    deptHistory,
+    formatDate,
+    onEdit,
+    onRehire,
+    onTerminate,
+    onTransfer,
+    linkedUser,
+    locations,
+    t,
+}: {
+    activeDetailTab: DetailTabType;
+    employee: Employee;
+    wsId: string;
+    departments?: Department[];
+    deptHistory?: DeptHistoryEntry[];
+    formatDate: (date: string) => string;
+    onEdit: (e: Employee) => void;
+    onRehire: (e: Employee) => void;
+    onTerminate: (e: Employee) => void;
+    onTransfer: (id: string) => void;
+    linkedUser?: WorkspaceMember;
+    locations?: WorkLocation[];
+    t: (k: string) => string;
+}) {
+    switch (activeDetailTab) {
+        case "profile":
+            return (
+                <ProfileTab
+                    departments={departments}
+                    deptHistory={deptHistory}
+                    employee={employee}
+                    formatDate={formatDate}
+                    linkedUser={linkedUser}
+                    locations={locations}
+                    onEdit={onEdit}
+                    onRehire={onRehire}
+                    onTerminate={onTerminate}
+                    onTransfer={onTransfer}
+                    t={t}
+                    wsId={wsId}
+                />
+            );
+        case "contracts":
+            return (
+                <EmployeeContractsTab
+                    employeeId={employee.id}
+                    formatDate={formatDate}
+                    wsId={wsId}
+                />
+            );
+        case "phases":
+            return (
+                <EmployeePhasesTab
+                    employeeId={employee.id}
+                    formatDate={formatDate}
+                    wsId={wsId}
+                />
+            );
+        case "assignments":
+            return (
+                <EmployeeAssignmentsTab
+                    employeeId={employee.id}
+                    formatDate={formatDate}
+                    wsId={wsId}
+                />
+            );
+        case "salary":
+            return <EmployeeSalaryConfig employeeId={employee.id} wsId={wsId} />;
+        case "policies":
+            return <WorkingConditionConfig employeeId={employee.id} />;
+        default:
+            return null;
+    }
+}
+
 export default function EmployeeDetailDrawer({
     isOpen,
     onClose,
@@ -351,60 +584,21 @@ export default function EmployeeDetailDrawer({
             />
 
             <div className="p-10 pb-20 space-y-10" ref={scrollRef}>
-                {activeDetailTab === "profile" && (
-                    <ProfileTab
-                        departments={departments}
-                        deptHistory={deptHistory}
-                        employee={employee}
-                        formatDate={formatDate}
-                        linkedUser={linkedUser}
-                        locations={locations}
-                        onEdit={onEdit}
-                        onRehire={onRehire}
-                        onTerminate={onTerminate}
-                        onTransfer={onTransfer}
-                        t={t}
-                        wsId={wsId}
-                    />
-                )}
-
-                {activeDetailTab === "contracts" && (
-                    <EmployeeContractsTab
-                        employeeId={employee.id}
-                        formatDate={formatDate}
-                        wsId={wsId}
-                    />
-                )}
-
-                {activeDetailTab === "phases" && (
-                    <EmployeePhasesTab
-                        employeeId={employee.id}
-                        formatDate={formatDate}
-                        wsId={wsId}
-                    />
-                )}
-
-                {activeDetailTab === "assignments" && (
-                    <EmployeeAssignmentsTab
-                        employeeId={employee.id}
-                        formatDate={formatDate}
-                        wsId={wsId}
-                    />
-                )}
-
-                {activeDetailTab === "salary" && (
-                    <div>
-                        <EmployeeSalaryConfig employeeId={employee.id} wsId={wsId} />
-                    </div>
-                )}
-
-                {activeDetailTab === "policies" && (
-                    <div>
-                        <WorkingConditionConfig employeeId={employee.id} />
-                    </div>
-                )}
-
-
+                <DrawerTabContent
+                    activeDetailTab={activeDetailTab}
+                    departments={departments}
+                    deptHistory={deptHistory}
+                    employee={employee}
+                    formatDate={formatDate}
+                    linkedUser={linkedUser}
+                    locations={locations}
+                    onEdit={onEdit}
+                    onRehire={onRehire}
+                    onTerminate={onTerminate}
+                    onTransfer={onTransfer}
+                    t={t}
+                    wsId={wsId}
+                />
             </div>
         </Sheet>
     );

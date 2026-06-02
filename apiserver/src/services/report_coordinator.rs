@@ -17,6 +17,7 @@ use crate::repositories::{
     employee::EmployeeRepository, queue_repository::QueueRepository,
     workspace_repository::WorkspaceRepository,
 };
+use crate::services::outbox_job_service::OutboxJobService;
 use std::sync::Arc;
 
 // Configuration constants for batch processing
@@ -25,7 +26,7 @@ pub const JOB_TIMEOUT_SECS: u64 = 3600; // 1 hour max job duration
 pub const ESTIMATED_SECONDS_PER_BATCH: u64 = 1;
 
 /// Request to create a new distributed job.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct CreateJobRequest {
     pub report_type: ReportType,
     pub start_date: NaiveDate,
@@ -101,6 +102,7 @@ pub struct ReportCoordinator {
     queue: Arc<dyn QueueRepository>,
     employee_repo: Arc<dyn EmployeeRepository>,
     workspace_repo: Arc<dyn WorkspaceRepository>,
+    outbox_service: Arc<OutboxJobService>,
 }
 
 impl ReportCoordinator {
@@ -109,11 +111,13 @@ impl ReportCoordinator {
         queue: Arc<dyn QueueRepository>,
         employee_repo: Arc<dyn EmployeeRepository>,
         workspace_repo: Arc<dyn WorkspaceRepository>,
+        outbox_service: Arc<OutboxJobService>,
     ) -> Self {
         Self {
             queue,
             employee_repo,
             workspace_repo,
+            outbox_service,
         }
     }
 
@@ -136,6 +140,42 @@ impl ReportCoordinator {
         requester_id: Uuid,
         request: CreateJobRequest,
     ) -> Result<CreateJobResponse, ReportError> {
+        let parent_job_id = crate::utils::id::new_id();
+
+        #[derive(serde::Serialize)]
+        struct OutboxPayload {
+            request: CreateJobRequest,
+            requester_id: Uuid,
+        }
+
+        // Ghi job vào bảng `outbox_jobs` trong Postgres trước
+        let outbox_payload = serde_json::to_value(&OutboxPayload {
+            request: request.clone(),
+            requester_id,
+        })
+        .map_err(|e| ReportError::DatabaseError(format!("Failed to serialize job request: {e}")))?;
+        self.outbox_service
+            .create_job(
+                workspace_id,
+                parent_job_id,
+                "AttendanceReport",
+                outbox_payload,
+            )
+            .await
+            .map_err(|e| ReportError::DatabaseError(e.to_string()))?;
+
+        self.enqueue_report_job_internal(workspace_id, requester_id, parent_job_id, request)
+            .await
+    }
+
+    #[tracing::instrument(skip_all, err)]
+    pub async fn enqueue_report_job_internal(
+        &self,
+        workspace_id: Uuid,
+        requester_id: Uuid,
+        parent_job_id: Uuid,
+        request: CreateJobRequest,
+    ) -> Result<CreateJobResponse, ReportError> {
         // 1. Fetch employee list
         let employees = self
             .fetch_employees(workspace_id, request.employee_ids.as_ref())
@@ -144,9 +184,6 @@ impl ReportCoordinator {
         if employees.is_empty() {
             return Err(ReportError::NoEmployees);
         }
-
-        // 2. Generate parent job ID
-        let parent_job_id = crate::utils::id::new_id();
 
         // 3. Fetch workspace config for jobs
         let workspace = self.fetch_workspace_config(workspace_id).await?;
@@ -649,10 +686,37 @@ mod tests {
                 Ok(())
             });
 
+        let mut mock_outbox_repo =
+            crate::repositories::outbox_job_repository::MockOutboxJobRepository::new();
+        mock_outbox_repo
+            .expect_insert_job()
+            .with(
+                mockall::predicate::always(),
+                mockall::predicate::always(),
+                mockall::predicate::eq("AttendanceReport"),
+                mockall::predicate::always(),
+            )
+            .returning(|_, id, job_type, payload| {
+                Ok(crate::models::OutboxJob {
+                    id,
+                    workspace_id: Uuid::new_v4(),
+                    job_type: job_type.to_string(),
+                    payload,
+                    status: "pending".to_string(),
+                    error_message: None,
+                    created_at: chrono::Utc::now(),
+                    updated_at: chrono::Utc::now(),
+                })
+            });
+        let outbox_service = Arc::new(crate::services::OutboxJobService::new(Arc::new(
+            mock_outbox_repo,
+        )));
+
         let coordinator = ReportCoordinator::new(
             Arc::new(mock_queue_repo),
             Arc::new(mock_employee_repo),
             Arc::new(mock_workspace_repo),
+            outbox_service,
         );
 
         let result = coordinator
@@ -716,10 +780,37 @@ mod tests {
             .expect_get_active_employee_ids()
             .returning(|_, _| Box::pin(async { Ok(vec![]) }));
 
+        let mut mock_outbox_repo =
+            crate::repositories::outbox_job_repository::MockOutboxJobRepository::new();
+        mock_outbox_repo
+            .expect_insert_job()
+            .with(
+                mockall::predicate::always(),
+                mockall::predicate::always(),
+                mockall::predicate::eq("AttendanceReport"),
+                mockall::predicate::always(),
+            )
+            .returning(|_, id, job_type, payload| {
+                Ok(crate::models::OutboxJob {
+                    id,
+                    workspace_id: Uuid::new_v4(),
+                    job_type: job_type.to_string(),
+                    payload,
+                    status: "pending".to_string(),
+                    error_message: None,
+                    created_at: chrono::Utc::now(),
+                    updated_at: chrono::Utc::now(),
+                })
+            });
+        let outbox_service = Arc::new(crate::services::OutboxJobService::new(Arc::new(
+            mock_outbox_repo,
+        )));
+
         let coordinator = ReportCoordinator::new(
             Arc::new(mock_queue_repo),
             Arc::new(mock_employee_repo),
             Arc::new(mock_workspace_repo),
+            outbox_service,
         );
 
         let result = coordinator
@@ -763,10 +854,17 @@ mod tests {
                 Ok(Some(meta))
             });
 
+        let mock_outbox_repo =
+            crate::repositories::outbox_job_repository::MockOutboxJobRepository::new();
+        let outbox_service = Arc::new(crate::services::OutboxJobService::new(Arc::new(
+            mock_outbox_repo,
+        )));
+
         let coordinator = ReportCoordinator::new(
             Arc::new(mock_queue_repo),
             Arc::new(mock_employee_repo),
             Arc::new(mock_workspace_repo),
+            outbox_service,
         );
 
         let result = coordinator.get_job_status(job_id).await;
@@ -806,10 +904,17 @@ mod tests {
             .with(mockall::predicate::always())
             .returning(|_| Ok(()));
 
+        let mock_outbox_repo =
+            crate::repositories::outbox_job_repository::MockOutboxJobRepository::new();
+        let outbox_service = Arc::new(crate::services::OutboxJobService::new(Arc::new(
+            mock_outbox_repo,
+        )));
+
         let coordinator = ReportCoordinator::new(
             Arc::new(mock_queue_repo),
             Arc::new(mock_employee_repo),
             Arc::new(mock_workspace_repo),
+            outbox_service,
         );
 
         let result = coordinator.cancel_job(job_id).await;
@@ -839,10 +944,17 @@ mod tests {
                 Ok(Some(meta))
             });
 
+        let mock_outbox_repo =
+            crate::repositories::outbox_job_repository::MockOutboxJobRepository::new();
+        let outbox_service = Arc::new(crate::services::OutboxJobService::new(Arc::new(
+            mock_outbox_repo,
+        )));
+
         let coordinator = ReportCoordinator::new(
             Arc::new(mock_queue_repo),
             Arc::new(mock_employee_repo),
             Arc::new(mock_workspace_repo),
+            outbox_service,
         );
 
         let result = coordinator.cancel_job(job_id).await;

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type { TFunction } from "i18next";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -46,7 +45,11 @@ export function DepartmentConfigModal({ editingDept, isOpen, onClose, wsId, t }:
   const saveConfigMutation = useMutation({
     mutationFn: (data: { effective_date: string; hours_per_day: number; std_working_days: number }) => {
       if (!editingDept?.id) return Promise.reject(new Error("No department ID"));
-      return setDepartmentPayrollConfig(wsId, editingDept.id, data);
+      return setDepartmentPayrollConfig(wsId, editingDept.id, {
+        effective_date: data.effective_date,
+        hours_per_day: data.hours_per_day.toString(),
+        std_working_days: data.std_working_days.toString(),
+      });
     },
     onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["dept-payroll-configs", editingDept?.id] }); },
   });

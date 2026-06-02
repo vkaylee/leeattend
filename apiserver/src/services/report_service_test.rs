@@ -2076,7 +2076,7 @@ mod tests {
             _s: NaiveDate,
             _en: NaiveDate,
         ) -> Result<HashMap<Uuid, i64>, AppError> {
-            unimplemented!()
+            Ok(HashMap::new())
         }
         async fn get_approved_leave_dates(
             &self,
@@ -2217,5 +2217,212 @@ mod tests {
         assert_eq!(report_item.status.to_string(), "absent");
         assert_eq!(report_item.std_work_units, 0);
         assert_eq!(report_item.ot_work_units, 0);
+    }
+
+    struct PresentTimeEntryRepo;
+    #[async_trait]
+    impl crate::repositories::TimeEntryRepository for PresentTimeEntryRepo {
+        async fn create_time_entry(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _e: &TimeEntry,
+        ) -> Result<(), AppError> {
+            unimplemented!()
+        }
+        async fn get_time_entry_by_id(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _i: Uuid,
+        ) -> Result<Option<TimeEntry>, AppError> {
+            unimplemented!()
+        }
+        async fn get_active_time_entry(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _e: Uuid,
+        ) -> Result<Option<TimeEntry>, AppError> {
+            unimplemented!()
+        }
+        async fn get_latest_active_entry(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _e: Uuid,
+        ) -> Result<Option<TimeEntry>, AppError> {
+            unimplemented!()
+        }
+        async fn get_latest_entry_for_employee(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _e: Uuid,
+        ) -> Result<Option<TimeEntry>, AppError> {
+            unimplemented!()
+        }
+        async fn update_time_entry(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _e: &TimeEntry,
+        ) -> Result<(), AppError> {
+            unimplemented!()
+        }
+        async fn delete_time_entry(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _i: Uuid,
+        ) -> Result<(), AppError> {
+            unimplemented!()
+        }
+        async fn get_employee_time_entries(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _e: Uuid,
+            _f: DateTime<Utc>,
+            _t: DateTime<Utc>,
+        ) -> Result<Vec<TimeEntry>, AppError> {
+            unimplemented!()
+        }
+        async fn get_paginated_logs(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _f: crate::models::TimeEntryLogFilter,
+        ) -> Result<Vec<TimeEntryWithEmployee>, AppError> {
+            unimplemented!()
+        }
+        async fn count_logs(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _e: Option<Uuid>,
+            _f: Option<DateTime<Utc>>,
+            _t: Option<DateTime<Utc>>,
+        ) -> Result<i64, AppError> {
+            unimplemented!()
+        }
+        async fn get_workspace_time_entries_batch(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _e: &[Uuid],
+            _f: DateTime<Utc>,
+            _t: DateTime<Utc>,
+        ) -> Result<HashMap<Uuid, Vec<TimeEntry>>, AppError> {
+            use chrono::TimeZone;
+            let mut map = HashMap::new();
+            let entry = TimeEntry {
+                id: Uuid::new_v4(),
+                employee_id: Uuid::nil(),
+                workspace_id: Uuid::nil(),
+                punch_in_time: Utc.with_ymd_and_hms(2023, 1, 1, 9, 0, 0).unwrap(),
+                punch_out_time: Some(Utc.with_ymd_and_hms(2023, 1, 1, 17, 0, 0).unwrap()),
+                entry_type: "work".to_string(),
+                duration_minutes: Some(480),
+                shift_id: Some(Uuid::nil()),
+                is_break_overtime: false,
+                note: None,
+                generation_metadata: None,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            };
+            map.insert(Uuid::nil(), vec![entry]);
+            Ok(map)
+        }
+        async fn replace_time_entries(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _e: Uuid,
+            _s: DateTime<Utc>,
+            _en: DateTime<Utc>,
+            _ent: Vec<TimeEntry>,
+        ) -> Result<(), AppError> {
+            unimplemented!()
+        }
+        async fn get_distinct_work_days(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _e: Uuid,
+            _s: DateTime<Utc>,
+            _en: DateTime<Utc>,
+            _tz: &str,
+        ) -> Result<Vec<chrono::NaiveDate>, AppError> {
+            Ok(vec![NaiveDate::from_ymd_opt(2023, 1, 1).unwrap()])
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_daily_attendance_report_present_employee() {
+        let report_service = ReportService::new(ReportServiceArgs {
+            workspace_repo: Arc::new(MockWorkspaceRepo),
+            employee_repo: Arc::new(AbsentEmployeeRepo),
+            time_entry_repo: Arc::new(PresentTimeEntryRepo),
+            roster_repo: Arc::new(ScheduleRosterRepo),
+            policy_repo: Arc::new(EmptyPolicyRepo),
+            leave_repo: Arc::new(EmptyLeaveRepo),
+            attendance_daily_summary_repo: Arc::new(EmptyDailySummaryRepo),
+            holiday_repo: Arc::new(EmptyHolidayRepo),
+        });
+
+        let args = AttendanceReportArgs {
+            workspace_id: Uuid::new_v4(),
+            start_date: NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
+            end_date: NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
+            page: Some(1),
+            limit: Some(20),
+            employee_ids: None,
+            department_id: None,
+            sort: None,
+        };
+
+        let result = report_service
+            .get_daily_attendance_report(args)
+            .await
+            .unwrap();
+
+        assert_eq!(result.total, 1);
+        assert_eq!(result.data.len(), 1);
+        let report_item = &result.data[0];
+        assert_eq!(report_item.employee_id, Uuid::nil());
+        assert_eq!(report_item.employee_name, "Test User");
+        assert_eq!(report_item.employee_id_number, "EMP001");
+        assert_eq!(
+            report_item.date,
+            NaiveDate::from_ymd_opt(2023, 1, 1).unwrap()
+        );
+        assert_eq!(report_item.status.to_string(), "present");
+        assert!(report_item.std_work_units > 0);
+    }
+
+    #[tokio::test]
+    async fn test_get_workspace_attendance_summary() {
+        let report_service = ReportService::new(ReportServiceArgs {
+            workspace_repo: Arc::new(MockWorkspaceRepo),
+            employee_repo: Arc::new(AbsentEmployeeRepo),
+            time_entry_repo: Arc::new(PresentTimeEntryRepo),
+            roster_repo: Arc::new(ScheduleRosterRepo),
+            policy_repo: Arc::new(EmptyPolicyRepo),
+            leave_repo: Arc::new(EmptyLeaveRepo),
+            attendance_daily_summary_repo: Arc::new(EmptyDailySummaryRepo),
+            holiday_repo: Arc::new(EmptyHolidayRepo),
+        });
+
+        let args = AttendanceReportArgs {
+            workspace_id: Uuid::new_v4(),
+            start_date: NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
+            end_date: NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
+            page: Some(1),
+            limit: Some(20),
+            employee_ids: None,
+            department_id: None,
+            sort: None,
+        };
+
+        let result = report_service
+            .get_workspace_attendance_summary(args)
+            .await
+            .unwrap();
+
+        assert_eq!(result.total, 1);
+        assert_eq!(result.data.len(), 1);
+        let summary_item = &result.data[0];
+        assert_eq!(summary_item.employee_id, Uuid::nil());
+        assert_eq!(summary_item.employee_name, "Test User");
+        assert!(summary_item.total_std_units > 0);
+        assert_eq!(summary_item.total_leave_days, 0);
     }
 }

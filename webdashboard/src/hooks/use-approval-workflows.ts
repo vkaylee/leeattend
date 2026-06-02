@@ -15,21 +15,29 @@ export const approvalWorkflowKeys = {
 
 export const useApprovalWorkflows = (entityType?: string) => {
   const { workspace } = useWorkspace();
+  const workspaceId = workspace?.id;
   
   return useQuery({
-    queryKey: approvalWorkflowKeys.list(workspace?.id || '', entityType),
-    queryFn: () => approvalWorkflowsApi.listWorkflows(workspace!.id, entityType),
-    enabled: !!workspace?.id,
+    queryKey: approvalWorkflowKeys.list(workspaceId ?? '', entityType),
+    queryFn: () => {
+      if (!workspaceId) throw new Error('No workspace ID');
+      return approvalWorkflowsApi.listWorkflows(workspaceId, entityType);
+    },
+    enabled: !!workspaceId,
   });
 };
 
 export const useApprovalWorkflow = (id: string) => {
   const { workspace } = useWorkspace();
+  const workspaceId = workspace?.id;
   
   return useQuery({
-    queryKey: approvalWorkflowKeys.detail(workspace?.id || '', id),
-    queryFn: () => approvalWorkflowsApi.getWorkflow(workspace!.id, id),
-    enabled: !!workspace?.id && !!id,
+    queryKey: approvalWorkflowKeys.detail(workspaceId ?? '', id),
+    queryFn: () => {
+      if (!workspaceId) throw new Error('No workspace ID');
+      return approvalWorkflowsApi.getWorkflow(workspaceId, id);
+    },
+    enabled: !!workspaceId && !!id,
   });
 };
 
@@ -38,10 +46,13 @@ export const useCreateApprovalWorkflow = () => {
   const { workspace } = useWorkspace();
 
   return useMutation({
-    mutationFn: (payload: CreateWorkflowRequest) => 
-      approvalWorkflowsApi.createWorkflow(workspace!.id, payload),
+    mutationFn: (payload: CreateWorkflowRequest) => {
+      const workspaceId = workspace?.id;
+      if (!workspaceId) throw new Error('No workspace ID');
+      return approvalWorkflowsApi.createWorkflow(workspaceId, payload);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: approvalWorkflowKeys.all });
+      void queryClient.invalidateQueries({ queryKey: approvalWorkflowKeys.all });
     },
   });
 };
@@ -51,10 +62,13 @@ export const useUpdateApprovalWorkflow = (id: string) => {
   const { workspace } = useWorkspace();
 
   return useMutation({
-    mutationFn: (payload: UpdateWorkflowRequest) => 
-      approvalWorkflowsApi.updateWorkflow(workspace!.id, id, payload),
+    mutationFn: (payload: UpdateWorkflowRequest) => {
+      const workspaceId = workspace?.id;
+      if (!workspaceId) throw new Error('No workspace ID');
+      return approvalWorkflowsApi.updateWorkflow(workspaceId, id, payload);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: approvalWorkflowKeys.all });
+      void queryClient.invalidateQueries({ queryKey: approvalWorkflowKeys.all });
     },
   });
 };
@@ -64,21 +78,28 @@ export const useDeleteApprovalWorkflow = () => {
   const { workspace } = useWorkspace();
 
   return useMutation({
-    mutationFn: (id: string) => 
-      approvalWorkflowsApi.deleteWorkflow(workspace!.id, id),
+    mutationFn: (id: string) => {
+      const workspaceId = workspace?.id;
+      if (!workspaceId) throw new Error('No workspace ID');
+      return approvalWorkflowsApi.deleteWorkflow(workspaceId, id);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: approvalWorkflowKeys.all });
+      void queryClient.invalidateQueries({ queryKey: approvalWorkflowKeys.all });
     },
   });
 };
 
 export const useApprovalHistory = (entityType: string, entityId: string) => {
   const { workspace } = useWorkspace();
+  const workspaceId = workspace?.id;
   
   return useQuery({
-    queryKey: approvalWorkflowKeys.history(workspace?.id || '', entityType, entityId),
-    queryFn: () => approvalWorkflowsApi.getApprovalHistory(workspace!.id, entityType, entityId),
-    enabled: !!workspace?.id && !!entityType && !!entityId,
+    queryKey: approvalWorkflowKeys.history(workspaceId ?? '', entityType, entityId),
+    queryFn: () => {
+      if (!workspaceId) throw new Error('No workspace ID');
+      return approvalWorkflowsApi.getApprovalHistory(workspaceId, entityType, entityId);
+    },
+    enabled: !!workspaceId && !!entityType && !!entityId,
   });
 };
 
@@ -87,11 +108,16 @@ export const useProcessApproval = () => {
   const { workspace } = useWorkspace();
 
   return useMutation({
-    mutationFn: (payload: { entity_type: string; entity_id: string; action: string; note?: string }) => 
-      approvalWorkflowsApi.processApproval(workspace!.id, payload),
+    mutationFn: (payload: { entity_type: string; entity_id: string; action: string; note?: string }) => {
+      const workspaceId = workspace?.id;
+      if (!workspaceId) throw new Error('No workspace ID');
+      return approvalWorkflowsApi.processApproval(workspaceId, payload);
+    },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: approvalWorkflowKeys.history(workspace!.id, variables.entity_type, variables.entity_id) });
-      // We'll let the specific entity (like overtime requests) invalidate its own detail
+      const workspaceId = workspace?.id;
+      if (workspaceId) {
+        void queryClient.invalidateQueries({ queryKey: approvalWorkflowKeys.history(workspaceId, variables.entity_type, variables.entity_id) });
+      }
     },
   });
 };

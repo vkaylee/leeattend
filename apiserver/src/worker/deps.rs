@@ -6,6 +6,7 @@
 
 use std::sync::Arc;
 
+use crate::repositories::outbox_job_repository::OutboxJobRepository;
 use crate::repositories::roster::RosterRepository;
 use crate::repositories::AttendancePolicyRepository;
 use crate::repositories::TimeEntryRepository;
@@ -40,6 +41,7 @@ pub struct WorkerDeps {
     pub leave_policy_repo: Arc<dyn crate::repositories::leave_policy_repository::LeavePolicyRepository>,
     pub user_repo: Arc<dyn crate::repositories::UserRepository>,
     pub system_repo: Arc<dyn crate::repositories::SystemRepository>,
+    pub outbox_repo: Arc<dyn OutboxJobRepository>,
 }
 
 impl WorkerDeps {
@@ -111,6 +113,9 @@ impl WorkerDeps {
                 diesel.clone(),
             )),
             system_repo: Arc::new(crate::repositories::DieselSystemRepository::new(
+                diesel.clone(),
+            )),
+            outbox_repo: Arc::new(crate::repositories::DieselOutboxJobRepository::new(
                 diesel.clone(),
             )),
         }
