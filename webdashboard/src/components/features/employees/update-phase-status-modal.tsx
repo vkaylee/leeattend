@@ -81,7 +81,7 @@ export default function UpdatePhaseStatusModal({
                   ? "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
                   : "bg-white text-slate-400 border-slate-200 hover:border-emerald-200 hover:bg-slate-50"
               )}
-              onClick={() => setStatusData({ ...statusData, status: "completed" })}
+              onClick={() => { setStatusData({ ...statusData, status: "completed" }); }}
               type="button"
               variant="ghost"
             >
@@ -94,7 +94,7 @@ export default function UpdatePhaseStatusModal({
                   ? "bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-50"
                   : "bg-white text-slate-400 border-slate-200 hover:border-rose-200 hover:bg-slate-50"
               )}
-              onClick={() => setStatusData({ ...statusData, status: "terminated" })}
+              onClick={() => { setStatusData({ ...statusData, status: "terminated" }); }}
               type="button"
               variant="ghost"
             >
@@ -113,7 +113,7 @@ export default function UpdatePhaseStatusModal({
           <textarea
             className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all shadow-sm min-h-[120px] resize-none"
             id="evaluation_notes"
-            onChange={(e) => setStatusData({ ...statusData, evaluation_notes: e.target.value })}
+            onChange={(e) => { setStatusData({ ...statusData, evaluation_notes: e.target.value }); }}
             placeholder={t("employees.phases.evaluation_notes_placeholder")}
             value={statusData.evaluation_notes}
           />

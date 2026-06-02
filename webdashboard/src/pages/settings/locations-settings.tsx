@@ -156,6 +156,7 @@ export default function LocationsSettings() {
       <LocationFormDrawer 
         editingLocation={editingLocation} 
         isOpen={isDrawerOpen} 
+        key={isDrawerOpen ? (editingLocation?.id ?? 'new') : 'closed'}
         onClose={() => { setIsDrawerOpen(false); }}
         wsId={wsId}
       />

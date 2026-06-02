@@ -309,7 +309,7 @@ export async function fetchGenericJobStatus(
   const { data: resData } = await client.GET("/workspaces/{ws_id}/jobs/{job_id}", {
             params: { path: { ws_id: wsId, job_id: jobId } }
       });
-    return resData as unknown as GenericJobStatus;
+    return resData as GenericJobStatus;
 }
 
 // --- Admin Confirm Attendance ---

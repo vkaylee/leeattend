@@ -195,7 +195,7 @@ export default function AssignMilestoneModal({
             <input
               className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-mono font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all shadow-sm"
               id="end_date"
-              onChange={(e) => setAssignData({ ...assignData, end_date: e.target.value })}
+              onChange={(e) => { setAssignData({ ...assignData, end_date: e.target.value }); }}
               required
               type="date"
               value={assignData.end_date}

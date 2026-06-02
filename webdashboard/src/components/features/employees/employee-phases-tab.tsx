@@ -90,7 +90,7 @@ export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Prop
         />
       </div>
 
-      {isAssignModalOpen && (
+      {!!isAssignModalOpen && (
         <AssignMilestoneModal
           contracts={contracts}
           definitions={definitions}
@@ -103,7 +103,7 @@ export default function EmployeePhasesTab({ wsId, employeeId, formatDate }: Prop
         />
       )}
 
-      {isStatusModalOpen && selectedPhase && (
+      {!!isStatusModalOpen && !!selectedPhase && (
         <UpdatePhaseStatusModal
           employeeId={employeeId}
           isOpen={isStatusModalOpen}

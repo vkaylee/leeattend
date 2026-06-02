@@ -194,7 +194,7 @@ export async function createEmployee(
     body: employee as any,
   });
   if (!data) throw new Error("No response data");
-  return data as unknown as Employee;
+  return data;
 }
 
 export async function updateEmployee(
@@ -209,7 +209,7 @@ export async function updateEmployee(
     body: employee as any,
   });
   if (!data) throw new Error("No response data");
-  return data as unknown as Employee;
+  return data;
 }
 
 export async function deleteEmployee(wsId: string, id: string): Promise<void> {

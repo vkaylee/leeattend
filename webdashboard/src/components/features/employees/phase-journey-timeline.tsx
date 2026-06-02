@@ -86,7 +86,7 @@ function PhaseTimelineItem({
           <PermissionGate permission="employment_phases:manage">
             <Button
               className="p-2 text-slate-300 dark:text-slate-600 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all h-auto w-auto shadow-none"
-              onClick={() => onOpenStatusModal(phase)}
+              onClick={() => { onOpenStatusModal(phase); }}
               size="icon"
               title={t("employees.phases.update_status")}
               type="button"
