@@ -41,12 +41,12 @@ export function OtApprovalsHeader({
 
       <div className="flex items-center gap-4">
         <Button
-          className="h-auto px-6 py-3 rounded-[1.5rem] bg-amber-50 dark:bg-amber-950 text-white text-xs font-bold uppercase tracking-wider shadow-lg hover:bg-amber-600 flex items-center"
+          className="normal-case tracking-normal h-10 px-4 rounded-xl gap-2 font-bold text-sm shadow-sm transition-all duration-300 hover:shadow hover:-translate-y-0.5 border border-amber-200/80 dark:border-amber-900/50 bg-amber-50 hover:bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 dark:text-amber-200 flex items-center"
           icon={<FileText className="w-4 h-4" />}
           onClick={() => {
             setPaperOtDialogOpen(true);
           }}
-          variant="primary"
+          variant="ghost"
         >
           {t("approvals.paper_ot.btn_enter") || "Enter Paper Form"}
         </Button>
@@ -54,12 +54,12 @@ export function OtApprovalsHeader({
         <CreateOtRequestDialog />
 
         <Button
-          className="h-auto px-6 py-3 rounded-[1.5rem] bg-blue-50 dark:bg-blue-950 text-white text-xs font-bold uppercase tracking-wider shadow-lg hover:bg-blue-600 flex items-center"
+          className="normal-case tracking-normal h-10 px-4 rounded-xl gap-2 font-bold text-sm shadow-sm transition-all duration-300 hover:shadow hover:-translate-y-0.5 border border-blue-200/80 dark:border-blue-900/50 bg-blue-50 hover:bg-blue-100 text-blue-900 dark:bg-blue-950/40 dark:hover:bg-blue-900/60 dark:text-blue-200 flex items-center"
           icon={<Upload className="w-4 h-4" />}
           onClick={() => {
             setBulkUploadDialogOpen(true);
           }}
-          variant="primary"
+          variant="ghost"
         >
           {t("approvals.bulk_upload.btn") || "Bulk Upload"}
         </Button>
@@ -67,9 +67,10 @@ export function OtApprovalsHeader({
         <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-2.5 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-900/5">
           <div className="flex items-center bg-slate-100 dark:bg-slate-700/50 rounded-[1.5rem] p-1.5 shadow-inner border border-slate-200 dark:border-slate-700/50">
             <Button
-              className="w-12 h-12 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 hover:bg-white dark:hover:bg-slate-900 hover:shadow-md rounded-xl transition-all shadow-none h-auto"
+              className="w-12 h-12 flex items-center justify-center text-slate-700 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-white dark:hover:bg-slate-900 hover:shadow-md rounded-xl transition-all shadow-none"
               icon={<ChevronLeft size={24} />}
               onClick={handlePreviousMonth}
+              size="icon"
               variant="ghost"
             />
 
@@ -79,10 +80,10 @@ export function OtApprovalsHeader({
                   className="px-10 flex flex-col items-center min-w-[200px] cursor-pointer hover:bg-white dark:hover:bg-slate-900 hover:shadow-md rounded-xl transition-all py-2 group outline-none border border-transparent hover:border-slate-100 dark:border-slate-800 h-auto"
                   variant="ghost"
                 >
-                  <span className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] leading-none mb-1.5 group-hover:text-primary-500 dark:group-hover:text-primary-400 transition-colors">
+                  <span className="text-[9px] font-extrabold text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em] leading-none mb-1.5 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
                     {t("payroll.table.period").toUpperCase()}
                   </span>
-                  <span className="text-sm font-bold text-slate-700 dark:text-slate-200 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors uppercase tracking-tight">
+                  <span className="text-sm font-bold text-slate-800 dark:text-slate-100 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors uppercase tracking-tight">
                     {format(currentMonth, "MMMM yyyy")}
                   </span>
                 </Button>
@@ -103,9 +104,10 @@ export function OtApprovalsHeader({
             </Popover.Root>
 
             <Button
-              className="w-12 h-12 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 hover:bg-white dark:hover:bg-slate-900 hover:shadow-md rounded-xl transition-all shadow-none h-auto"
+              className="w-12 h-12 flex items-center justify-center text-slate-700 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-white dark:hover:bg-slate-900 hover:shadow-md rounded-xl transition-all shadow-none"
               icon={<ChevronRight size={24} />}
               onClick={handleNextMonth}
+              size="icon"
               variant="ghost"
             />
           </div>

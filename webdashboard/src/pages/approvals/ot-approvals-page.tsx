@@ -7,6 +7,7 @@ import { addMonths, endOfMonth, format, startOfMonth, subMonths } from "date-fns
 
 import { BulkUploadOtDialog } from "@/components/approvals/bulk-upload-ot-dialog";
 import { EnterPaperOtDialog } from "@/components/approvals/enter-paper-ot-dialog";
+import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useApproveOt, useAttendanceSummaries, useClaimOt } from "@/hooks/use-attendance";
@@ -125,43 +126,49 @@ export default function OtApprovalsPage() {
         open={bulkUploadDialogOpen}
       />
 
-      <div className="flex gap-4 border-b border-slate-100 dark:border-slate-800 pb-6 mb-8 overflow-x-auto custom-scrollbar">
-        {!!canApprove && (
-          <button
-            className={`px-6 py-3 rounded-2xl font-bold text-sm tracking-tight transition-all duration-300 whitespace-nowrap ${
+      <div className="flex bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 mb-8 overflow-x-auto custom-scrollbar">
+        {canApprove ? (
+          <Button
+            className={cn(
+              "flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold transition-all duration-300 whitespace-nowrap normal-case tracking-normal shadow-none",
               activeTab === "pre"
-                ? "bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-900 shadow-md scale-105"
-                : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-800 dark:hover:text-slate-200"
-            }`}
+                ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
+                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+            )}
             onClick={() => { setActiveTab("pre"); }}
+            variant="ghost"
           >
             {t("ot_approvals.tabs.pre_ot", { defaultValue: "Pre-OT Approvals (Requests)" })}
-          </button>
-        )}
-        {!!canApprove && (
-          <button
-            className={`px-6 py-3 rounded-2xl font-bold text-sm tracking-tight transition-all duration-300 whitespace-nowrap ${
+          </Button>
+        ) : null}
+        {canApprove ? (
+          <Button
+            className={cn(
+              "flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold transition-all duration-300 whitespace-nowrap normal-case tracking-normal shadow-none",
               activeTab === "post"
-                ? "bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-900 shadow-md scale-105"
-                : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-800 dark:hover:text-slate-200"
-            }`}
+                ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
+                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+            )}
             onClick={() => { setActiveTab("post"); }}
+            variant="ghost"
           >
             {t("ot_approvals.tabs.post_ot", { defaultValue: "Post-OT Approvals (Actuals)" })}
-          </button>
-        )}
-        {!!(canApprove || canClaimOnBehalf) && (
-          <button
-            className={`px-6 py-3 rounded-2xl font-bold text-sm tracking-tight transition-all duration-300 whitespace-nowrap ${
+          </Button>
+        ) : null}
+        {(canApprove || canClaimOnBehalf) ? (
+          <Button
+            className={cn(
+              "flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold transition-all duration-300 whitespace-nowrap normal-case tracking-normal shadow-none",
               activeTab === "delegated_claim"
-                ? "bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-900 shadow-md scale-105"
-                : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-800 dark:hover:text-slate-200"
-            }`}
+                ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
+                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+            )}
             onClick={() => { setActiveTab("delegated_claim"); }}
+            variant="ghost"
           >
             {t("ot_approvals.tabs.delegated_claim", { defaultValue: "Delegated Claims" })}
-          </button>
-        )}
+          </Button>
+        ) : null}
       </div>
 
       <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[3rem] overflow-hidden shadow-sm animate-in slide-in-from-bottom-8 duration-700 min-h-[400px]">
@@ -363,10 +370,11 @@ function DelegatedClaimsTab({ wsId, startDate, endDate }: { wsId: string; startD
           </Typography>
         </div>
         {selectedRows.size > 0 && (
-          <button
-            className="flex items-center gap-2 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-2xl font-bold text-sm shadow-md transition-all duration-300 transform active:scale-95 disabled:opacity-50"
+          <Button
+            className="normal-case tracking-normal gap-2 h-10 px-6 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold text-sm shadow-md transition-all duration-300 transform active:scale-95 disabled:opacity-50"
             disabled={isClaiming}
             onClick={handleBulkClaim}
+            variant="primary"
           >
             {isClaiming ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -377,7 +385,7 @@ function DelegatedClaimsTab({ wsId, startDate, endDate }: { wsId: string; startD
               count: selectedRows.size,
               defaultValue: `Claim ${selectedRows.size} Selected`
             })}
-          </button>
+          </Button>
         )}
       </div>
 
@@ -476,13 +484,15 @@ function DelegatedClaimsTab({ wsId, startDate, endDate }: { wsId: string; startD
                     />
                   </td>
                   <td className="p-4 pr-6 text-right">
-                    <button
-                      className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-primary-50 dark:hover:bg-primary-950/30 hover:text-primary-600 dark:hover:text-primary-400 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs transition-all duration-300 disabled:opacity-50"
+                    <Button
+                      className="normal-case tracking-normal bg-slate-100 dark:bg-slate-800 hover:bg-primary-50 dark:hover:bg-primary-950/30 hover:text-primary-600 dark:hover:text-primary-400 text-slate-700 dark:text-slate-300 font-bold text-xs transition-all duration-300 disabled:opacity-50 shadow-none border-none"
                       disabled={isClaiming}
                       onClick={() => { void handleClaim(row); }}
+                      size="sm"
+                      variant="ghost"
                     >
                       {t("ot_approvals.delegated_claim.actions.claim", { defaultValue: "Claim" })}
-                    </button>
+                    </Button>
                   </td>
                 </tr>
               );

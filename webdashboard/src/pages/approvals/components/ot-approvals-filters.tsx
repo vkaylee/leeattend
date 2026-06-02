@@ -24,15 +24,16 @@ export function OtApprovalsFilters({
         {(["all", "paper_form", "self_service"] as SourceFilter[]).map((filter) => (
           <Button
             className={cn(
-              "h-auto px-4 py-2 rounded-xl text-[10px] uppercase tracking-wider",
+              "uppercase tracking-wider text-[10px]",
               sourceFilter === filter
-                ? "bg-primary-600 text-white shadow-lg"
-                : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 border-transparent shadow-none"
+                ? "bg-primary-600 text-white shadow-md shadow-primary-100/40 dark:shadow-none"
+                : "bg-slate-100/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 border-transparent shadow-none"
             )}
             key={filter}
             onClick={() => {
               setSourceFilter(filter);
             }}
+            size="sm"
             variant={sourceFilter === filter ? "primary" : "outline"}
           >
             {filter === "all"
