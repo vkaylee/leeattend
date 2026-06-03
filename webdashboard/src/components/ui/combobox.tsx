@@ -90,6 +90,14 @@ function useComboboxKeyboardShortcut({
   }, [keyboardShortcut, onSearchChange, open, clearOnEscape, value, onChange, setOpen]);
 }
 
+function removeDiacritics(str: string): string {
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D");
+}
+
 function ComboboxOptionItem({
   option,
   isSelected,
@@ -101,7 +109,10 @@ function ComboboxOptionItem({
   option: ComboboxOption;
   testId?: string;
 }) {
-  const cmdkValue = `${option.label} ${typeof option.description === 'string' ? option.description : ""} ${option.value}`;
+  const labelWithDiacritics = option.label;
+  const labelWithoutDiacritics = removeDiacritics(option.label);
+  const desc = typeof option.description === 'string' ? option.description : "";
+  const cmdkValue = `${labelWithDiacritics} ${labelWithoutDiacritics} ${desc} ${option.value}`.toLowerCase();
 
   return (
     <Command.Item
@@ -204,8 +215,10 @@ export function Combobox({
   const getFirstItemValue = () => {
     if (options.length === 0) return "";
     const first = options[0];
+    const firstLabelWithDiacritics = first.label;
+    const firstLabelWithoutDiacritics = removeDiacritics(first.label);
     const desc = typeof first.description === 'string' ? first.description : "";
-    return `${first.label} ${desc} ${first.value}`;
+    return `${firstLabelWithDiacritics} ${firstLabelWithoutDiacritics} ${desc} ${first.value}`.toLowerCase();
   };
 
   const firstItemValue = getFirstItemValue();

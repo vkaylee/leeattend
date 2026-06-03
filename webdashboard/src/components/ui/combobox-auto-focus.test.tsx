@@ -234,7 +234,7 @@ describe("Combobox First Item Highlight", () => {
 
     const cmdkRoot = screen.getByTestId("cmdk-root");
     // The cmdk value should be constructed from the first option
-    expect(cmdkRoot.getAttribute("data-value")).toBe("Alice 1541 emp-1");
+    expect(cmdkRoot.getAttribute("data-value")).toBe("alice alice 1541 emp-1");
   });
 
   it("updates highlighted value when options change", () => {
@@ -248,12 +248,26 @@ describe("Combobox First Item Highlight", () => {
     const { rerender } = render(<Combobox onChange={() => { /* empty */ }} options={options1} />);
 
     let cmdkRoot = screen.getByTestId("cmdk-root");
-    expect(cmdkRoot.getAttribute("data-value")).toBe("Alice 1541 emp-1");
+    expect(cmdkRoot.getAttribute("data-value")).toBe("alice alice 1541 emp-1");
 
     // Re-render with new options (simulating server-side search returning different results)
     rerender(<Combobox onChange={() => { /* empty */ }} options={options2} />);
 
     cmdkRoot = screen.getByTestId("cmdk-root");
-    expect(cmdkRoot.getAttribute("data-value")).toBe("Charlie 9999 emp-3");
+    expect(cmdkRoot.getAttribute("data-value")).toBe("charlie charlie 9999 emp-3");
+  });
+
+  it("generates correct lowercase and accent-normalized values on Command.Item for search indexing", () => {
+    const options = [
+      { value: "emp-viet", label: "Nguyễn Văn A", description: "NV001" },
+    ];
+
+    render(<Combobox onChange={() => { /* empty */ }} options={options} />);
+
+    // Since option.label has accents, it should produce:
+    // "nguyễn văn a nguyen van a nv001 emp-viet"
+    const expectedValue = "nguyễn văn a nguyen van a nv001 emp-viet";
+    const item = screen.getByTestId(`cmdk-item-${expectedValue}`);
+    expect(item).toBeDefined();
   });
 });
