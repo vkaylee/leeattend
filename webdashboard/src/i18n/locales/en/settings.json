@@ -62,6 +62,7 @@
     "status_processing": "Processing",
     "status_pending": "Pending",
     "pagination_showing": "Showing {{start}}-{{end}} of {{total}} jobs",
+    "pagination_loaded": "Loaded {{count}} jobs",
     "pagination_rows_per_page": "Rows per page:",
     "pagination_prev": "Prev",
     "pagination_next": "Next",

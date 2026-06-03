@@ -325,6 +325,9 @@ use utoipa::OpenApi;
         crate::handlers::attendance::overtime::claim_ot,
         crate::handlers::attendance::overtime::approve_ot,
         crate::handlers::attendance::overtime::get_attendance_summaries,
+        crate::handlers::attendance::overtime::create_behalf_assignment,
+        crate::handlers::attendance::overtime::delete_behalf_assignment,
+        crate::handlers::attendance::overtime::list_behalf_assignments,
 
         // Attendance Logs Paths
         crate::handlers::attendance::logs::force_reprocess_attendance,
@@ -589,6 +592,8 @@ use utoipa::OpenApi;
             crate::handlers::overtime::CreatePolicyRequest,
             crate::handlers::overtime::CreateRuleRequest,
             crate::handlers::overtime::AssignPolicyRequest,
+            OtClaimBehalfAssignment,
+            CreateBehalfAssignmentRequest,
 
             // Phase 5: Compensation, Workflows & Webhooks Schemas
             Payslip,

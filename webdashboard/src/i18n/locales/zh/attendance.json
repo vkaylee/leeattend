@@ -583,7 +583,8 @@
     "tabs": {
       "post_ot": "加班申请 (后)",
       "pre_ot": "加班申请 (前)",
-      "delegated_claim": "代申报加班"
+      "delegated_claim": "代申报加班",
+      "behalf_assignments": "代申报分配"
     },
     "delegated_claim": {
       "title": "代申报加班",

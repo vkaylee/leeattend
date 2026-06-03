@@ -15,6 +15,7 @@ pub mod feature_flag;
 pub mod holiday;
 pub mod import_job;
 pub mod leave;
+pub mod ot_claim_behalf_assignment;
 pub mod outbox_job;
 pub mod overtime_policy;
 pub mod payroll;

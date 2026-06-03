@@ -1245,6 +1245,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/workspaces/{ws_id}/attendance/claim-ot/behalf-assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_behalf_assignments"];
+        put?: never;
+        post: operations["create_behalf_assignment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{ws_id}/attendance/claim-ot/behalf-assignments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["delete_behalf_assignment"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/workspaces/{ws_id}/attendance/claim-ot/{employee_id}": {
         parameters: {
             query?: never;
@@ -4038,6 +4070,14 @@ export interface components {
             name: string;
             slug: string;
         };
+        CreateBehalfAssignmentRequest: {
+            /** Format: uuid */
+            assignee_employee_id: string;
+            /** Format: uuid */
+            target_department_id?: string | null;
+            /** Format: uuid */
+            target_employee_id?: string | null;
+        };
         CreateContractRequest: {
             /** Format: uuid */
             assign_phase_id?: string | null;
@@ -5213,6 +5253,22 @@ export interface components {
             notifications: components["schemas"]["Notification"][];
             /** Format: int64 */
             unread_count: number;
+        };
+        OtClaimBehalfAssignment: {
+            /** Format: uuid */
+            assignee_employee_id: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            target_department_id?: string | null;
+            /** Format: uuid */
+            target_employee_id?: string | null;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: uuid */
+            workspace_id: string;
         };
         /** @enum {string} */
         OtRequestStatus: "draft" | "pending_approval" | "approved" | "partially_accepted" | "active" | "completed" | "cancelled" | "rejected";
@@ -8532,6 +8588,79 @@ export interface operations {
         };
         responses: {
             /** @description Overtime approved/rejected */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_behalf_assignments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of assignments */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OtClaimBehalfAssignment"][];
+                };
+            };
+        };
+    };
+    create_behalf_assignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateBehalfAssignmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Assignment created */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OtClaimBehalfAssignment"];
+                };
+            };
+        };
+    };
+    delete_behalf_assignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Assignment ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Assignment deleted */
             200: {
                 headers: {
                     [name: string]: unknown;

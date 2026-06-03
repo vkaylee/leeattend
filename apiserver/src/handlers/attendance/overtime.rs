@@ -53,33 +53,10 @@ pub async fn claim_ot(
 
     if let Some(uid) = employee.user_id {
         if uid != ctx.user_id {
-            // Not self → need OvertimeApprove or OvertimeClaimOnBehalf permission (scoped)
-            let dept_id = crate::handlers::common::current_department_id(
-                &state,
-                &ctx.auth_token,
-                employee_id,
-            )
-            .await;
-            ctx.require_any_scoped_permission(
-                &[
-                    Permission::OvertimeApprove,
-                    Permission::OvertimeClaimOnBehalf,
-                ],
-                dept_id,
-            )?;
+            check_claim_behalf_scope(&state, &ctx, employee_id).await?;
         }
     } else {
-        // Not linked to user → need OvertimeApprove or OvertimeClaimOnBehalf permission (scoped)
-        let dept_id =
-            crate::handlers::common::current_department_id(&state, &ctx.auth_token, employee_id)
-                .await;
-        ctx.require_any_scoped_permission(
-            &[
-                Permission::OvertimeApprove,
-                Permission::OvertimeClaimOnBehalf,
-            ],
-            dept_id,
-        )?;
+        check_claim_behalf_scope(&state, &ctx, employee_id).await?;
     }
 
     state
@@ -235,4 +212,167 @@ pub async fn get_attendance_summaries(
         .await?;
 
     Ok(Json(summaries))
+}
+
+async fn check_claim_behalf_scope(
+    state: &AppState,
+    ctx: &MemberContext,
+    target_employee_id: Uuid,
+) -> AppResult<()> {
+    let has_perm = ctx.has_permission(Permission::OvertimeApprove)
+        || ctx.has_permission(Permission::OvertimeClaimOnBehalf);
+    if !has_perm {
+        return Err(AppError::Forbidden(
+            "Missing permission: OvertimeApprove or OvertimeClaimOnBehalf".to_string(),
+        ));
+    }
+
+    if ctx.managed_department_ids.is_none() {
+        return Ok(());
+    }
+
+    let target_dept_id =
+        crate::handlers::common::current_department_id(state, &ctx.auth_token, target_employee_id)
+            .await;
+
+    let caller_employee_id = state
+        .employees
+        .repo
+        .get_employee_id_by_user_id(&ctx.auth_token, ctx.user_id)
+        .await?
+        .ok_or_else(|| AppError::Forbidden("Caller has no employee record".to_string()))?;
+
+    let is_assigned = state
+        .attendance
+        .ot_claim_behalf_assignment_repo
+        .check_behalf_permission(
+            ctx.workspace_id,
+            caller_employee_id,
+            target_employee_id,
+            target_dept_id,
+        )
+        .await?;
+
+    if is_assigned {
+        return Ok(());
+    }
+
+    let mut is_managed_dept = false;
+    if let Some(allowed_depts) = &ctx.managed_department_ids {
+        if let Some(dept_id) = target_dept_id {
+            if allowed_depts.contains(&dept_id) {
+                is_managed_dept = true;
+            }
+        }
+    }
+
+    if is_managed_dept {
+        return Ok(());
+    }
+
+    Err(AppError::Forbidden(
+        "Permission denied: Target is outside your claim on behalf scope.".to_string(),
+    ))
+}
+
+use crate::models::{CreateBehalfAssignmentRequest, OtClaimBehalfAssignment};
+
+#[utoipa::path(
+    post,
+    path = "/v1/workspaces/{ws_id}/attendance/claim-ot/behalf-assignments",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    request_body = CreateBehalfAssignmentRequest,
+    responses(
+        (status = 200, description = "Assignment created", body = OtClaimBehalfAssignment)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
+pub async fn create_behalf_assignment(
+    State(state): State<Arc<AppState>>,
+    Path(_ws_id): Path<Uuid>,
+    ctx: MemberContext,
+    Json(req): Json<CreateBehalfAssignmentRequest>,
+) -> AppResult<Json<OtClaimBehalfAssignment>> {
+    ctx.require_permission(Permission::OvertimePoliciesManage)?;
+
+    let result = state
+        .attendance
+        .ot_claim_behalf_assignment_repo
+        .create_assignment(
+            ctx.workspace_id,
+            req.assignee_employee_id,
+            req.target_employee_id,
+            req.target_department_id,
+        )
+        .await?;
+
+    Ok(Json(result))
+}
+
+#[utoipa::path(
+    delete,
+    path = "/v1/workspaces/{ws_id}/attendance/claim-ot/behalf-assignments/{id}",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Assignment ID")
+    ),
+    responses(
+        (status = 200, description = "Assignment deleted")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
+pub async fn delete_behalf_assignment(
+    State(state): State<Arc<AppState>>,
+    Path(params): Path<(Uuid, Uuid)>,
+    ctx: MemberContext,
+) -> AppResult<StatusCode> {
+    let (_ws_id, id) = params;
+    ctx.require_permission(Permission::OvertimePoliciesManage)?;
+
+    let affected = state
+        .attendance
+        .ot_claim_behalf_assignment_repo
+        .delete_assignment(ctx.workspace_id, id)
+        .await?;
+
+    if affected == 0 {
+        return Err(AppError::NotFound("Assignment not found".to_string()));
+    }
+
+    Ok(StatusCode::OK)
+}
+
+#[utoipa::path(
+    get,
+    path = "/v1/workspaces/{ws_id}/attendance/claim-ot/behalf-assignments",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    responses(
+        (status = 200, description = "List of assignments", body = Vec<OtClaimBehalfAssignment>)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
+pub async fn list_behalf_assignments(
+    State(state): State<Arc<AppState>>,
+    Path(_ws_id): Path<Uuid>,
+    ctx: MemberContext,
+) -> AppResult<Json<Vec<OtClaimBehalfAssignment>>> {
+    ctx.require_permission(Permission::OvertimePoliciesManage)?;
+
+    let result = state
+        .attendance
+        .ot_claim_behalf_assignment_repo
+        .list_all_assignments(ctx.workspace_id)
+        .await?;
+
+    Ok(Json(result))
 }

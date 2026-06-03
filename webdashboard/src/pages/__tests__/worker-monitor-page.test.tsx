@@ -4,7 +4,7 @@ import React from "react";
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import { useWorkerMonitor } from "@/hooks/use-worker-monitor";
+import { useWorkerMonitor, useWorkerJobs } from "@/hooks/use-worker-monitor";
 
 vi.mock("react-i18next", () => ({
     useTranslation: () => ({
@@ -51,6 +51,24 @@ const mockMonitorData = {
     idle_workers: 1,
     completed_today: 42,
     failed_today: 1,
+    job_type_stats: [
+        {
+            task_type: "attendance_report",
+            total: 2,
+            completed: 1,
+            processing: 1,
+            failed: 0,
+            pending: 0,
+        },
+        {
+            task_type: "payroll_report",
+            total: 1,
+            completed: 0,
+            processing: 0,
+            failed: 1,
+            pending: 0,
+        },
+    ],
     workers: [
         {
             id: "aabbccdd-1111-2222-3333-444455556666",
@@ -126,6 +144,14 @@ vi.mock("@/hooks/use-worker-monitor", () => ({
         isFetching: false,
         error: null,
         refetch: vi.fn(),
+    })),
+    useWorkerJobs: vi.fn(() => ({
+        data: { pages: [{ jobs: mockMonitorData.recent_jobs, next_cursor: null }] },
+        jobs: mockMonitorData.recent_jobs,
+        hasNextPage: false,
+        fetchNextPage: vi.fn(),
+        isFetchingNextPage: false,
+        isLoading: false,
     })),
 }));
 
@@ -262,10 +288,18 @@ describe("WorkerMonitorPage", () => {
             error: null,
             refetch: vi.fn(),
         });
+        vi.mocked(useWorkerJobs).mockReturnValue({
+            data: { pages: [{ jobs: [], next_cursor: null }] },
+            jobs: [],
+            hasNextPage: false,
+            fetchNextPage: vi.fn(),
+            isFetchingNextPage: false,
+            isLoading: false,
+        } as any);
 
         renderPage();
         expect(screen.getByText("monitor.no_workers")).toBeInTheDocument();
-        expect(screen.getByText("No recent jobs")).toBeInTheDocument();
+        expect(screen.getByText("No jobs match your search filters")).toBeInTheDocument();
     });
 
     // --- Loading State ---

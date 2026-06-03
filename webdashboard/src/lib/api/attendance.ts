@@ -662,3 +662,45 @@ export async function updateDefaultAttendanceRules(
           body: data });
     return resData!;
 }
+
+export interface OtClaimBehalfAssignment {
+  assignee_employee_id: string;
+  created_at: string;
+  id: string;
+  target_department_id?: string | null;
+  target_employee_id?: string | null;
+  updated_at: string;
+  workspace_id: string;
+}
+
+export async function fetchBehalfAssignments(
+  wsId: string
+): Promise<OtClaimBehalfAssignment[]> {
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/claim-ot/behalf-assignments", {
+    params: { path: { ws_id: wsId } }
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
+}
+
+export async function createBehalfAssignment(
+  wsId: string,
+  data: {
+    assignee_employee_id: string;
+    target_department_id?: string | null;
+    target_employee_id?: string | null;
+  }
+): Promise<OtClaimBehalfAssignment> {
+  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/attendance/claim-ot/behalf-assignments", {
+    params: { path: { ws_id: wsId } },
+    body: data
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
+}
+
+export async function deleteBehalfAssignment(wsId: string, id: string): Promise<void> {
+  await client.DELETE("/v1/workspaces/{ws_id}/attendance/claim-ot/behalf-assignments/{id}", {
+    params: { path: { ws_id: wsId, id } }
+  });
+}

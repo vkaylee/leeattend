@@ -16,6 +16,7 @@ import { useWorkspace } from "@/hooks/use-workspace";
 import { fetchAttendanceReport } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
+import { BehalfAssignmentsTab } from "./components/behalf-assignments-tab";
 import { OtApprovalsFilters, SourceFilter } from "./components/ot-approvals-filters";
 import { OtApprovalsHeader } from "./components/ot-approvals-header";
 import { OtApprovalsTable } from "./components/ot-approvals-table";
@@ -29,17 +30,20 @@ export default function OtApprovalsPage() {
 
   const canApprove = hasPermission("overtime:approve");
   const canClaimOnBehalf = hasPermission("overtime:claim_on_behalf");
+  const canManagePolicies = hasPermission("overtime:policies:manage");
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [paperOtDialogOpen, setPaperOtDialogOpen] = useState(false);
   const [bulkUploadDialogOpen, setBulkUploadDialogOpen] = useState(false);
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
-  const [activeTab, setActiveTab] = useState<"pre" | "post" | "delegated_claim">("pre");
+  const [activeTab, setActiveTab] = useState<"pre" | "post" | "delegated_claim" | "behalf_assignments">("pre");
   const [tabInitialized, setTabInitialized] = useState(false);
 
   if (!tabInitialized && !permissionsLoading) {
     if (!canApprove && canClaimOnBehalf) {
       setActiveTab("delegated_claim");
+    } else if (!canApprove && !canClaimOnBehalf && canManagePolicies) {
+      setActiveTab("behalf_assignments");
     }
     setTabInitialized(true);
   }
@@ -169,6 +173,20 @@ export default function OtApprovalsPage() {
             {t("ot_approvals.tabs.delegated_claim", { defaultValue: "Delegated Claims" })}
           </Button>
         ) : null}
+        {canManagePolicies ? (
+          <Button
+            className={cn(
+              "flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold transition-all duration-300 whitespace-nowrap normal-case tracking-normal shadow-none",
+              activeTab === "behalf_assignments"
+                ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
+                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+            )}
+            onClick={() => { setActiveTab("behalf_assignments"); }}
+            variant="ghost"
+          >
+            {t("ot_approvals.tabs.behalf_assignments", { defaultValue: "Behalf Assignments" })}
+          </Button>
+        ) : null}
       </div>
 
       <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[3rem] overflow-hidden shadow-sm animate-in slide-in-from-bottom-8 duration-700 min-h-[400px]">
@@ -194,6 +212,8 @@ export default function OtApprovalsPage() {
             startDate={startDate}
             wsId={workspace.id}
           />
+        ) : activeTab === "behalf_assignments" && workspace ? (
+          <BehalfAssignmentsTab wsId={workspace.id} />
         ) : null}
       </div>
     </div>

@@ -62,6 +62,7 @@
     "status_processing": "Đang xử lý",
     "status_pending": "Đang chờ",
     "pagination_showing": "Hiển thị {{start}} - {{end}} trong tổng số {{total}} công việc",
+    "pagination_loaded": "Đã tải {{count}} tác vụ",
     "pagination_rows_per_page": "Số dòng mỗi trang:",
     "pagination_prev": "Trước",
     "pagination_next": "Sau",

@@ -583,7 +583,8 @@
     "tabs": {
       "post_ot": "Sau ca (Post-OT)",
       "pre_ot": "Trước ca (Pre-OT)",
-      "delegated_claim": "Khai báo hộ OT"
+      "delegated_claim": "Khai báo hộ OT",
+      "behalf_assignments": "Phân Quyền Claim Hộ"
     },
     "delegated_claim": {
       "title": "Khai báo hộ OT",

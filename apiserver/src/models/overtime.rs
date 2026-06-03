@@ -38,3 +38,21 @@ pub struct OvertimePolicyAssignment {
     pub effective_to: Option<NaiveDate>,
     pub created_at: Option<DateTime<Utc>>,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+pub struct OtClaimBehalfAssignment {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub assignee_employee_id: Uuid,
+    pub target_employee_id: Option<Uuid>,
+    pub target_department_id: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Deserialize, Clone, ToSchema)]
+pub struct CreateBehalfAssignmentRequest {
+    pub assignee_employee_id: Uuid,
+    pub target_employee_id: Option<Uuid>,
+    pub target_department_id: Option<Uuid>,
+}

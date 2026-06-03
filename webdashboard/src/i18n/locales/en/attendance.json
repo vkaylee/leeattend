@@ -583,7 +583,8 @@
     "tabs": {
       "post_ot": "Post-OT",
       "pre_ot": "Pre-OT",
-      "delegated_claim": "Delegated Claims"
+      "delegated_claim": "Delegated Claims",
+      "behalf_assignments": "Behalf Assignments"
     },
     "delegated_claim": {
       "title": "Delegated Claims",

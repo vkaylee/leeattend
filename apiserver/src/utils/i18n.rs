@@ -22,6 +22,8 @@ pub const ALL_KEYS: &[&str] = &[
     "error.user_not_found",
     "error.database_error",
     "error.cannot_revoke_last_admin",
+    "error.behalf_assignment_missing_target",
+    "error.behalf_assignment_dual_target",
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -123,6 +125,12 @@ fn lookup_en(key: &str) -> Option<&'static str> {
         "error.cannot_revoke_last_admin" => {
             Some("Cannot revoke the last platform_admin. Assign another admin first.")
         }
+        "error.behalf_assignment_missing_target" => {
+            Some("Either target employee or target department must be specified")
+        }
+        "error.behalf_assignment_dual_target" => {
+            Some("Cannot specify both target employee and target department")
+        }
         _ => None,
     }
 }
@@ -144,6 +152,8 @@ fn lookup_vi(key: &str) -> Option<&'static str> {
         "error.user_not_found" => Some("Không tìm thấy người dùng"),
         "error.database_error" => Some("Lỗi cơ sở dữ liệu"),
         "error.cannot_revoke_last_admin" => Some("Không thể thu hồi platform_admin cuối cùng. Hãy gán quản trị viên khác trước."),
+        "error.behalf_assignment_missing_target" => Some("Phải chỉ định nhân viên đích hoặc phòng ban đích"),
+        "error.behalf_assignment_dual_target" => Some("Không thể chỉ định cả nhân viên đích và phòng ban đích"),
         _ => None,
     }
 }
@@ -169,6 +179,8 @@ fn lookup_zh(key: &str) -> Option<&'static str> {
         "error.cannot_revoke_last_admin" => {
             Some("无法撤销最后一个 platform_admin。请先分配另一个管理员。")
         }
+        "error.behalf_assignment_missing_target" => Some("必须指定目标员工或目标部门"),
+        "error.behalf_assignment_dual_target" => Some("不能同时指定目标员工和目标部门"),
         _ => None,
     }
 }

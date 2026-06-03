@@ -7,6 +7,7 @@ use std::sync::Arc;
 use crate::handlers;
 use crate::AppState;
 
+#[allow(clippy::too_many_lines)]
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route(
@@ -58,6 +59,14 @@ pub fn router() -> Router<Arc<AppState>> {
         .route(
             "/workspaces/:ws_id/attendance/staging-logs/:id",
             delete(handlers::attendance::dismiss_staging_log),
+        )
+        .route(
+            "/workspaces/:ws_id/attendance/claim-ot/behalf-assignments",
+            get(handlers::list_behalf_assignments).post(handlers::create_behalf_assignment),
+        )
+        .route(
+            "/workspaces/:ws_id/attendance/claim-ot/behalf-assignments/:id",
+            delete(handlers::delete_behalf_assignment),
         )
         .route(
             "/workspaces/:ws_id/attendance/claim-ot/:employee_id",
