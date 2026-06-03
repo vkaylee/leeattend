@@ -41,7 +41,7 @@ export function OtApprovalsHeader({
         <CreateOtRequestDialog />
 
         <Button
-          className="normal-case tracking-normal h-10 px-4 rounded-xl gap-2 font-bold text-sm shadow-sm transition-all duration-300 hover:shadow hover:-translate-y-0.5 border border-blue-200/80 dark:border-blue-900/50 bg-blue-50 hover:bg-blue-100 text-blue-900 dark:bg-blue-950/40 dark:hover:bg-blue-900/60 dark:text-blue-200 flex items-center"
+          className="normal-case tracking-normal h-10 px-5 rounded-xl gap-2 font-bold text-sm shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 border border-blue-250 dark:border-blue-900 bg-blue-50/50 hover:bg-blue-100 text-blue-900 dark:bg-blue-950/30 dark:hover:bg-blue-900/50 dark:text-blue-200 flex items-center justify-center active:scale-98"
           icon={<Upload className="w-4 h-4" />}
           onClick={() => {
             setBulkUploadDialogOpen(true);

@@ -436,7 +436,16 @@
       "error_details": "Error Details",
       "download_errors": "Download Errors",
       "line": "Line",
-      "success_message": "{{count}} OT claims entered successfully"
+      "success_message": "{{count}} OT claims entered successfully",
+      "instructions_title": "Data Preparation Guidelines",
+      "step1": "Download the CSV template using the button below.",
+      "step2": "Fill in the overtime information according to the required columns:",
+      "step2_col_id": "Employee ID number",
+      "step2_col_date": "YYYY-MM-DD format",
+      "step2_col_mins": "Overtime minutes (> 0)",
+      "step2_col_reason": "Overtime reason (required)",
+      "step3": "Drag and drop or click to choose the CSV file to upload.",
+      "step4": "The system will validate and display a detailed error report if any rows fail."
     },
     "filter": {
       "paper_forms": "Paper Forms",

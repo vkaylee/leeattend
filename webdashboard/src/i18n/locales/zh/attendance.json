@@ -436,7 +436,16 @@
       "error_details": "错误详情",
       "download_errors": "下载错误",
       "line": "行",
-      "success_message": "{{count}} 个加班申请已成功输入"
+      "success_message": "{{count}} 个加班申请已成功输入",
+      "instructions_title": "数据准备说明",
+      "step1": "通过下方按钮下载 CSV 模板。",
+      "step2": "根据必填列填写加班信息：",
+      "step2_col_id": "员工编号 (Employee ID)",
+      "step2_col_date": "YYYY-MM-DD 格式",
+      "step2_col_mins": "加班分钟数 (> 0)",
+      "step2_col_reason": "加班原因 (必填)",
+      "step3": "拖放或点击选择 CSV 文件以上传。",
+      "step4": "系统将进行校验，如果有行导入失败，将展示详细的错误报告。"
     },
     "filter": {
       "paper_forms": "纸质表单",

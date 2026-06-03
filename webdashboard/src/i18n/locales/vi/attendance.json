@@ -436,7 +436,16 @@
       "error_details": "Chi tiết lỗi",
       "download_errors": "Tải xuống lỗi",
       "line": "Dòng",
-      "success_message": "{{count}} yêu cầu OT đã được nhập thành công"
+      "success_message": "{{count}} yêu cầu OT đã được nhập thành công",
+      "instructions_title": "Hướng dẫn chuẩn bị dữ liệu",
+      "step1": "Tải xuống file CSV mẫu bằng nút phía dưới.",
+      "step2": "Điền thông tin tăng ca của nhân sự theo các cột bắt buộc:",
+      "step2_col_id": "Mã nhân viên (Employee ID)",
+      "step2_col_date": "Định dạng YYYY-MM-DD",
+      "step2_col_mins": "Số phút tăng ca (> 0)",
+      "step2_col_reason": "Lý do tăng ca (bắt buộc)",
+      "step3": "Kéo thả hoặc bấm chọn tệp CSV để tải lên hệ thống.",
+      "step4": "Hệ thống sẽ kiểm tra và hiển thị báo cáo chi tiết nếu có dòng lỗi."
     },
     "filter": {
       "paper_forms": "Đơn giấy",
