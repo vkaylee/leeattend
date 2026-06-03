@@ -324,16 +324,16 @@ export function BehalfAssignmentsTab({ wsId }: { wsId: string }) {
           <div className="space-y-2">
             <label
               className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest"
-              htmlFor="claimant-select"
+              htmlFor="submitter-select"
             >
-              Claimant (Employee)
+              Authorized Submitter (Employee)
             </label>
             <Combobox
               emptyText="No employees found"
-              id="claimant-select"
+              id="submitter-select"
               onChange={setAssigneeId}
               options={claimantOptions}
-              placeholder="Search and select claimant..."
+              placeholder="Search and select submitter..."
               value={assigneeId}
             />
             <Typography className="text-[10px] text-slate-400 mt-1" variant="p">
