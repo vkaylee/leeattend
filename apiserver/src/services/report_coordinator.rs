@@ -537,7 +537,7 @@ mod tests {
     #[test]
     fn test_estimated_time_calculation() {
         let total_batches = 140u32; // 7000 employees / 50
-        let estimated = (total_batches as u64) * ESTIMATED_SECONDS_PER_BATCH;
+        let estimated = u64::from(total_batches) * ESTIMATED_SECONDS_PER_BATCH;
         assert_eq!(estimated, 140); // 140 seconds
     }
 
@@ -656,7 +656,7 @@ mod tests {
                         date_format: "YYYY-MM-DD".into(),
                         time_format: "HH:mm:ss".into(),
                         timezone: "UTC".into(),
-                        theme_primary_color: "".into(),
+                        theme_primary_color: String::new(),
                         default_language: "en".into(),
                         holiday_overnight_strategy: "split".into(),
                         default_holiday_ot_multiplier: Default::default(),
@@ -771,7 +771,7 @@ mod tests {
                         date_format: "YYYY-MM-DD".into(),
                         time_format: "HH:mm:ss".into(),
                         timezone: "UTC".into(),
-                        theme_primary_color: "".into(),
+                        theme_primary_color: String::new(),
                         default_language: "en".into(),
                         holiday_overnight_strategy: "split".into(),
                         default_holiday_ot_multiplier: Default::default(),

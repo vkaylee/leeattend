@@ -176,7 +176,7 @@ mod tests {
                     rule_definition_id: *rule_id,
                     override_config: None,
                     code: "TEST_RULE".into(),
-                    calculation_method: method.clone(),
+                    calculation_method: *method,
                     default_config: config.clone(),
                     category: PayrollRuleCategory::Allowance,
                 })

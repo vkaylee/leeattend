@@ -129,7 +129,7 @@ mod tests {
             preferred_language: Some("en".to_string()),
         };
 
-        let debug_str = format!("{:?}", user);
+        let debug_str = format!("{user:?}");
         assert!(!debug_str.contains("john.doe@example.com"));
         assert!(
             debug_str.contains("jo***@example.com")
@@ -147,7 +147,7 @@ mod tests {
             password: "super_secret_password".to_string(),
         };
 
-        let debug_str = format!("{:?}", req);
+        let debug_str = format!("{req:?}");
         assert!(!debug_str.contains("jane.doe@example.com"));
         assert!(!debug_str.contains("super_secret_password"));
     }
@@ -160,7 +160,7 @@ mod tests {
             full_name: "Bob Smith".to_string(),
         };
 
-        let debug_str = format!("{:?}", req);
+        let debug_str = format!("{req:?}");
         assert!(!debug_str.contains("bob@example.com"));
         assert!(!debug_str.contains("my_password123"));
         assert!(debug_str.contains("Bob Smith"));
@@ -173,7 +173,7 @@ mod tests {
             new_password: "new_password_456".to_string(),
         };
 
-        let debug_str = format!("{:?}", req);
+        let debug_str = format!("{req:?}");
         assert!(!debug_str.contains("old_password_123"));
         assert!(!debug_str.contains("new_password_456"));
     }

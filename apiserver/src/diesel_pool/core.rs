@@ -189,8 +189,8 @@ mod tests {
 
         let config = DbPoolConfig {
             primary_url: "postgres://postgres:postgres@localhost:5432/test_db".to_string(),
-            pooler_tx_url: "".to_string(),
-            pooler_sess_url: "".to_string(),
+            pooler_tx_url: String::new(),
+            pooler_sess_url: String::new(),
             reader_url: None,
             api_max_conn: 1,
             worker_max_conn: 1,

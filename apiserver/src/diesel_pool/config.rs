@@ -106,7 +106,7 @@ mod tests {
             ("DB_TENANT_MAX_CONN", None),
         ];
 
-        for (k, v) in vars.iter() {
+        for (k, v) in &vars {
             if let Some(val) = v {
                 env::set_var(k, val);
             } else {

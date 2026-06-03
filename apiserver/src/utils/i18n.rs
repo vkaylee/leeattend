@@ -238,18 +238,15 @@ mod tests {
 
             assert!(
                 en_val.is_some(),
-                "Key '{}' is missing from English translations",
-                key
+                "Key '{key}' is missing from English translations"
             );
             assert!(
                 vi_val.is_some(),
-                "Key '{}' is missing from Vietnamese translations",
-                key
+                "Key '{key}' is missing from Vietnamese translations"
             );
             assert!(
                 zh_val.is_some(),
-                "Key '{}' is missing from Chinese translations",
-                key
+                "Key '{key}' is missing from Chinese translations"
             );
         }
     }
@@ -400,7 +397,7 @@ mod tests {
                         let rest = &trimmed[first_quote_idx + 1..];
                         if !rest.starts_with("error.")
                             && !rest.starts_with("dev.")
-                            && !rest.starts_with("x")
+                            && !rest.starts_with('x')
                         {
                             violations.push(format!(
                                 "  {}:{} -> Raw text message in UI error: {}",

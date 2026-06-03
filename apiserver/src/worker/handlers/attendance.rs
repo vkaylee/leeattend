@@ -990,9 +990,9 @@ mod tests {
         let t_total = std::time::Duration::from_millis(6_550);
 
         let schedules_ms = t_schedules.as_millis() as u64;
-        let entries_ms = (t_entries - t_schedules).as_millis() as u64;
-        let calc_ms = (t_store - t_entries).as_millis() as u64;
-        let store_publish_ms = (t_total - t_store).as_millis() as u64;
+        let entries_ms = t_entries.checked_sub(t_schedules).unwrap().as_millis() as u64;
+        let calc_ms = t_store.checked_sub(t_entries).unwrap().as_millis() as u64;
+        let store_publish_ms = t_total.checked_sub(t_store).unwrap().as_millis() as u64;
 
         assert_eq!(schedules_ms, 50);
         assert_eq!(entries_ms, 150);
@@ -1013,14 +1013,14 @@ mod tests {
         let t_store = std::time::Duration::from_millis(198_050);
         let t_total = std::time::Duration::from_millis(198_100);
 
-        let entries_ms = (t_entries - t_schedules).as_millis() as u64;
+        let entries_ms = t_entries.checked_sub(t_schedules).unwrap().as_millis() as u64;
         assert_eq!(
             entries_ms, 198_000,
             "Should identify entries fetch as the bottleneck"
         );
 
         // Calc phase should be small
-        let calc_ms = (t_store - t_entries).as_millis() as u64;
+        let calc_ms = t_store.checked_sub(t_entries).unwrap().as_millis() as u64;
         assert_eq!(calc_ms, 20);
 
         // Total should exceed the 5s threshold

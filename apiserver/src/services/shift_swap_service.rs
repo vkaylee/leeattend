@@ -690,19 +690,12 @@ mod tests {
         roster_repo
             .expect_get_effective_shift()
             .times(2)
-            .returning(move |_, e, _| {
+            .returning(move |_, _, _| {
                 Box::pin(async move {
-                    if e == req_id {
-                        Ok((
-                            Some(Uuid::new_v4()),
-                            Vec::<crate::models::attendance::ScheduleTrace>::new(),
-                        ))
-                    } else {
-                        Ok((
-                            Some(Uuid::new_v4()),
-                            Vec::<crate::models::attendance::ScheduleTrace>::new(),
-                        ))
-                    }
+                    Ok((
+                        Some(Uuid::new_v4()),
+                        Vec::<crate::models::attendance::ScheduleTrace>::new(),
+                    ))
                 })
             });
 

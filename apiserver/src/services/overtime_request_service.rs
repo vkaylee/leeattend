@@ -167,7 +167,7 @@ mod tests {
         ) -> Result<Option<OvertimeRequest>, AppError> {
             let req = OvertimeRequest {
                 id: Uuid::new_v4(),
-                workspace_id: workspace_id,
+                workspace_id,
                 requested_by_user_id: Uuid::new_v4(),
                 department_id: None,
                 planned_date: NaiveDate::from_ymd_opt(2023, 10, 10).unwrap(),

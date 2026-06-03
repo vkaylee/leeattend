@@ -317,16 +317,14 @@ mod tests {
                 if chars[i] == '"' {
                     in_string = false;
                 }
-            } else {
-                if i + 2 < chars.len()
-                    && chars[i] == 'r'
-                    && chars[i + 1] == '#'
-                    && chars[i + 2] == '"'
-                {
-                    in_raw_string = true;
-                } else if chars[i] == '"' {
-                    in_string = true;
-                }
+            } else if i + 2 < chars.len()
+                && chars[i] == 'r'
+                && chars[i + 1] == '#'
+                && chars[i + 2] == '"'
+            {
+                in_raw_string = true;
+            } else if chars[i] == '"' {
+                in_string = true;
             }
 
             res.push(chars[i]);
@@ -790,6 +788,6 @@ mod tests {
                  ════════════════════════════════════════════════════════════\n",
             violations.len(),
             violations.join("\n")
-        )
+        );
     }
 }

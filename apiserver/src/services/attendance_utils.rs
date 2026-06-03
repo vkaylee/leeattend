@@ -913,7 +913,7 @@ mod tests {
         entry3.id = Uuid::new_v4();
 
         // Pass out of order
-        let entries = vec![entry2.clone(), entry3.clone(), entry1.clone()];
+        let entries = vec![entry2, entry3, entry1];
 
         let grouped = super::group_entries_by_date(&entries, tz);
 

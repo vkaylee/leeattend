@@ -573,7 +573,7 @@ mod tests {
         let approx_mb_per_employee = 2.5;
 
         let estimated_memory_mb = (config.max_concurrent_jobs as f64)
-            * (employees_per_batch as f64)
+            * f64::from(employees_per_batch)
             * approx_mb_per_employee;
 
         assert!(estimated_memory_mb < 1024.0); // Must fit in 1GB

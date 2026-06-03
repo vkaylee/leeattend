@@ -701,7 +701,7 @@ mod tests {
     fn test_all_handlers_documented() {
         let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_string());
 
-        let openapi_file = format!("{}/src/openapi.rs", manifest_dir);
+        let openapi_file = format!("{manifest_dir}/src/openapi.rs");
         let openapi_content =
             std::fs::read_to_string(&openapi_file).expect("Failed to read openapi.rs");
 
@@ -721,7 +721,7 @@ mod tests {
             }
         }
 
-        let routes_dir = format!("{}/src/routes", manifest_dir);
+        let routes_dir = format!("{manifest_dir}/src/routes");
         let mut used_handlers = std::collections::HashSet::new();
 
         fn visit_dirs(dir: &std::path::Path, used: &mut std::collections::HashSet<String>) {
@@ -731,7 +731,7 @@ mod tests {
                     let path = entry.path();
                     if path.is_dir() {
                         visit_dirs(&path, used);
-                    } else if path.extension().map_or(false, |ext| ext == "rs") {
+                    } else if path.extension().is_some_and(|ext| ext == "rs") {
                         let content = std::fs::read_to_string(&path).unwrap();
                         let methods = ["get(", "post(", "put(", "delete(", "patch("];
                         for method in methods {
@@ -806,9 +806,8 @@ mod tests {
         if !missing_handlers.is_empty() {
             missing_handlers.sort();
             panic!(
-                "The following handlers are used in routes but missing from openapi.rs paths(...):\n{:#?}\n\n\
-                 Please add them to `apiserver/src/openapi.rs` to ensure the API contract is complete.",
-                missing_handlers
+                "The following handlers are used in routes but missing from openapi.rs paths(...):\n{missing_handlers:#?}\n\n\
+                 Please add them to `apiserver/src/openapi.rs` to ensure the API contract is complete."
             );
         }
     }
@@ -842,7 +841,7 @@ mod tests {
         }
 
         let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_string());
-        let routes_dir = format!("{}/src/routes", manifest_dir);
+        let routes_dir = format!("{manifest_dir}/src/routes");
 
         let mut axum_normalized_paths = std::collections::HashSet::new();
 
@@ -856,7 +855,7 @@ mod tests {
                     let path = entry.path();
                     if path.is_dir() {
                         visit_dirs_for_routes(&path, used);
-                    } else if path.extension().map_or(false, |ext| ext == "rs") {
+                    } else if path.extension().is_some_and(|ext| ext == "rs") {
                         let content = std::fs::read_to_string(&path).unwrap();
                         let mut start_idx = 0;
                         while let Some(idx) = content[start_idx..].find(".route(\"") {
@@ -926,8 +925,7 @@ mod tests {
         if !missing_in_openapi.is_empty() {
             missing_in_openapi.sort();
             panic!(
-                "The following Axum routes are defined but missing (or path structure mismatched) in OpenAPI:\n{:#?}",
-                missing_in_openapi
+                "The following Axum routes are defined but missing (or path structure mismatched) in OpenAPI:\n{missing_in_openapi:#?}"
             );
         }
     }
