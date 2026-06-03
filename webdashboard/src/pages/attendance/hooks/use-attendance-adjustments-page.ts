@@ -11,7 +11,7 @@ import {
   getCurrentWorkspaceId,
 } from "@/lib/api";
 
-export type TabType = "pending" | "approved" | "rejected";
+export type TabType = "pending" | "approved" | "rejected" | "behalf_assignments";
 
 export function useAttendanceAdjustmentsPage() {
   const { t } = useTranslation();

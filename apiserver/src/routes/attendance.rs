@@ -33,6 +33,15 @@ pub fn router() -> Router<Arc<AppState>> {
                 .get(handlers::get_workspace_attendance_adjustments),
         )
         .route(
+            "/workspaces/:ws_id/attendance/adjustments/behalf-assignments",
+            get(handlers::attendance::adjustments::list_adjustment_behalf_assignments)
+                .post(handlers::attendance::adjustments::create_adjustment_behalf_assignment),
+        )
+        .route(
+            "/workspaces/:ws_id/attendance/adjustments/behalf-assignments/:id",
+            delete(handlers::attendance::adjustments::delete_adjustment_behalf_assignment),
+        )
+        .route(
             "/workspaces/:ws_id/attendance/upload",
             post(handlers::upload_attendance_excel),
         )

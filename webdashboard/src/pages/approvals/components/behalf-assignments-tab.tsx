@@ -12,12 +12,13 @@ import { Typography } from "@/components/ui/typography";
 import { useBehalfAssignments } from "@/hooks/use-behalf-assignments";
 import { useAllEmployees } from "@/hooks/use-employees";
 import { useLeaveBehalfAssignments } from "@/hooks/use-leave-behalf-assignments";
+import { useAttendanceBehalfAssignments } from "@/hooks/use-attendance-behalf-assignments";
 import { fetchDepartments } from "@/lib/api";
 import { BehalfAssignment } from "@/lib/api/types";
 
 interface AddAssignmentFormProps {
   assigneeId: string;
-  assignmentType: "ot" | "leave";
+  assignmentType: "ot" | "leave" | "attendance_adjustment";
   departmentOptions: { description?: string | null; label: string; value: string }[];
   isCreating: boolean;
   onCancel: () => void;
@@ -34,7 +35,7 @@ interface AddAssignmentFormProps {
 
 interface AssignmentItemProps {
   assignment: BehalfAssignment;
-  assignmentType: "ot" | "leave";
+  assignmentType: "ot" | "leave" | "attendance_adjustment";
   departments: {
     description?: string | null;
     id: string;
@@ -56,11 +57,11 @@ interface BehalfAssignmentInput {
 }
 
 interface BehalfAssignmentsEmptyStateProps {
-  assignmentType: "ot" | "leave";
+  assignmentType: "ot" | "leave" | "attendance_adjustment";
 }
 
 interface BehalfAssignmentsHeaderProps {
-  assignmentType: "ot" | "leave";
+  assignmentType: "ot" | "leave" | "attendance_adjustment";
   onAddClick: () => void;
 }
 
@@ -335,15 +336,19 @@ function BehalfAssignmentsEmptyState({
       <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-xl border border-slate-100 dark:border-slate-800 mb-6">
         <ShieldAlert className="text-slate-300 dark:text-slate-600" size={32} />
       </div>
-      <Typography className="text-lg font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight" variant="h3">
+      <Typography className="text-slate-700 dark:text-slate-100 font-extrabold text-xl tracking-tight" variant="h3">
         {assignmentType === "ot"
           ? "No Behalf Assignments Configured"
-          : "No Behalf Leave Assignments Configured"}
+          : assignmentType === "leave"
+            ? "No Behalf Leave Assignments Configured"
+            : "No Behalf Adjustment Assignments Configured"}
       </Typography>
       <Typography className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-2 opacity-50 max-w-sm" variant="p">
         {assignmentType === "ot"
           ? "Users with Claim on Behalf permission will fall back to their managed departments. Assign specific employees or departments to scope their claim access."
-          : "Users with Submit on Behalf permission will fall back to their managed departments. Assign specific employees or departments to scope their leave request access."}
+          : assignmentType === "leave"
+            ? "Users with Submit on Behalf permission will fall back to their managed departments. Assign specific employees or departments to scope their leave request access."
+            : "Users with Submit on Behalf permission will fall back to their managed departments. Assign specific employees or departments to scope their adjustment access."}
       </Typography>
     </div>
   );
@@ -354,13 +359,16 @@ export function BehalfAssignmentsTab({
   assignmentType = "ot",
 }: {
   wsId: string;
-  assignmentType?: "ot" | "leave";
+  assignmentType?: "ot" | "leave" | "attendance_adjustment";
 }) {
   const { t } = useTranslation();
   const toast = useToast();
 
   const otHooks = useBehalfAssignments();
   const leaveHooks = useLeaveBehalfAssignments();
+  const adjustmentHooks = useAttendanceBehalfAssignments();
+
+  const hooksByType = { ot: otHooks, leave: leaveHooks, attendance_adjustment: adjustmentHooks };
 
   const {
     assignments,
@@ -369,7 +377,7 @@ export function BehalfAssignmentsTab({
     isCreating,
     deleteAssignment,
     isDeleting,
-  } = assignmentType === "ot" ? otHooks : leaveHooks;
+  } = hooksByType[assignmentType];
 
   const { employees: allEmployees, isLoading: allEmployeesLoading } = useAllEmployees(wsId);
   const employeesLoading = allEmployeesLoading;

@@ -323,6 +323,9 @@ use utoipa::OpenApi;
         crate::handlers::attendance::adjustments::approve_attendance_adjustment,
         crate::handlers::attendance::adjustments::get_my_attendance_adjustments,
         crate::handlers::attendance::adjustments::get_workspace_attendance_adjustments,
+        crate::handlers::attendance::adjustments::create_adjustment_behalf_assignment,
+        crate::handlers::attendance::adjustments::delete_adjustment_behalf_assignment,
+        crate::handlers::attendance::adjustments::list_adjustment_behalf_assignments,
 
         // Attendance Overtime Paths
         crate::handlers::attendance::overtime::claim_ot,

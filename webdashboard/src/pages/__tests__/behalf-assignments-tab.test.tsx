@@ -7,6 +7,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useBehalfAssignments } from "@/hooks/use-behalf-assignments";
 import { useAllEmployees } from "@/hooks/use-employees";
+import { useLeaveBehalfAssignments } from "@/hooks/use-leave-behalf-assignments";
+import { useAttendanceBehalfAssignments } from "@/hooks/use-attendance-behalf-assignments";
 import { fetchDepartments } from "@/lib/api";
 
 import { ToastProvider } from "../../components/ui/toast";
@@ -95,6 +97,14 @@ vi.mock("@/hooks/use-behalf-assignments", () => ({
   useBehalfAssignments: vi.fn(),
 }));
 
+vi.mock("@/hooks/use-leave-behalf-assignments", () => ({
+  useLeaveBehalfAssignments: vi.fn(),
+}));
+
+vi.mock("@/hooks/use-attendance-behalf-assignments", () => ({
+  useAttendanceBehalfAssignments: vi.fn(),
+}));
+
 vi.mock("@/hooks/use-employees", () => ({
   useAllEmployees: vi.fn(),
 }));
@@ -146,7 +156,7 @@ describe("BehalfAssignmentsTab", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    vi.mocked(useBehalfAssignments).mockReturnValue({
+    const defaultHookReturn = {
       assignments: [],
       isLoading: false,
       isError: false,
@@ -155,7 +165,11 @@ describe("BehalfAssignmentsTab", () => {
       isCreating: false,
       deleteAssignment: mockDeleteAssignment,
       isDeleting: false,
-    });
+    };
+
+    vi.mocked(useBehalfAssignments).mockReturnValue(defaultHookReturn);
+    vi.mocked(useLeaveBehalfAssignments).mockReturnValue(defaultHookReturn);
+    vi.mocked(useAttendanceBehalfAssignments).mockReturnValue(defaultHookReturn);
 
     vi.mocked(useAllEmployees).mockReturnValue({
       employees: mockEmployees,
@@ -338,6 +352,90 @@ describe("BehalfAssignmentsTab", () => {
     await waitFor(() => {
       expect(mockDeleteAssignment).toHaveBeenCalledWith("assign-1");
       expect(mockToastSuccess).toHaveBeenCalledWith("Assignment deleted successfully");
+    });
+  });
+
+  describe("assignmentType=attendance_adjustment", () => {
+    it("renders correct empty state text for attendance_adjustment type", () => {
+      render(<BehalfAssignmentsTab assignmentType="attendance_adjustment" wsId="ws-1" />, { wrapper });
+      expect(screen.getByText("No Behalf Adjustment Assignments Configured")).toBeDefined();
+    });
+
+    it("uses useAttendanceBehalfAssignments hook when type is attendance_adjustment", () => {
+      const adjustmentCreateMock = vi.fn();
+      vi.mocked(useAttendanceBehalfAssignments).mockReturnValue({
+        assignments: mockAssignments,
+        isLoading: false,
+        isError: false,
+        refetch: vi.fn(),
+        createAssignment: adjustmentCreateMock,
+        isCreating: false,
+        deleteAssignment: vi.fn(),
+        isDeleting: false,
+      });
+
+      render(<BehalfAssignmentsTab assignmentType="attendance_adjustment" wsId="ws-1" />, { wrapper });
+
+      // Should render assignments from the attendance hook
+      expect(screen.getAllByText("Alice Smith").length).toBe(2);
+    });
+
+    it("renders correct empty state description for attendance_adjustment type", () => {
+      render(<BehalfAssignmentsTab assignmentType="attendance_adjustment" wsId="ws-1" />, { wrapper });
+      expect(
+        screen.getByText(/scope their adjustment access/)
+      ).toBeDefined();
+    });
+
+    it("creates assignment via attendance hook", async () => {
+      const adjustmentCreateMock = vi.fn().mockResolvedValue({});
+      vi.mocked(useAttendanceBehalfAssignments).mockReturnValue({
+        assignments: [],
+        isLoading: false,
+        isError: false,
+        refetch: vi.fn(),
+        createAssignment: adjustmentCreateMock,
+        isCreating: false,
+        deleteAssignment: vi.fn(),
+        isDeleting: false,
+      });
+
+      const user = userEvent.setup();
+      render(<BehalfAssignmentsTab assignmentType="attendance_adjustment" wsId="ws-1" />, { wrapper });
+
+      await user.click(screen.getByText("Add Assignment"));
+
+      const submitterInput = screen.getByTestId("submitter-select");
+      fireEvent.change(submitterInput, { target: { value: "emp-1" } });
+
+      const targetEmpInput = screen.getByTestId("target-employee-select");
+      fireEvent.change(targetEmpInput, { target: { value: "emp-2" } });
+
+      const submitBtn = screen.getByText("Create Assignment");
+      await user.click(submitBtn);
+
+      await waitFor(() => {
+        expect(adjustmentCreateMock).toHaveBeenCalledWith({
+          assignee_employee_id: "emp-1",
+          target_employee_id: "emp-2",
+          target_department_id: null,
+        });
+        expect(mockToastSuccess).toHaveBeenCalledWith("Behalf assignment created successfully");
+      });
+    });
+  });
+
+  describe("assignmentType=leave", () => {
+    it("renders correct empty state text for leave type", () => {
+      render(<BehalfAssignmentsTab assignmentType="leave" wsId="ws-1" />, { wrapper });
+      expect(screen.getByText("No Behalf Leave Assignments Configured")).toBeDefined();
+    });
+
+    it("renders correct empty state description for leave type", () => {
+      render(<BehalfAssignmentsTab assignmentType="leave" wsId="ws-1" />, { wrapper });
+      expect(
+        screen.getByText(/scope their leave request access/)
+      ).toBeDefined();
     });
   });
 });

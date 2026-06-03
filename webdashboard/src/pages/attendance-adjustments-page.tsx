@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import AttendanceImportDialog from "@/components/features/attendance/attendance-import-dialog";
 
+import { BehalfAssignmentsTab } from "./approvals/components/behalf-assignments-tab";
 import { AdjustmentsHeader } from "./attendance/components/adjustments-header";
 import { AdjustmentsTable } from "./attendance/components/adjustments-table";
 import { AdjustmentsTabs } from "./attendance/components/adjustments-tabs";
@@ -45,16 +46,20 @@ export default function AttendanceAdjustmentsPage() {
         setActiveTab={setActiveTab}
       />
 
-      <AdjustmentsTable
-        activeTab={activeTab}
-        formatDate={formatDate}
-        formatTime={formatTime}
-        getEmployeeID={getEmployeeID}
-        getEmployeeName={getEmployeeName}
-        isLoading={isLoading}
-        onApprove={(id, status) => { approveMutation.mutate({ id, status: status as "approved" | "rejected" }); }}
-        requests={requests}
-      />
+      {activeTab === "behalf_assignments" ? (
+        <BehalfAssignmentsTab assignmentType="attendance_adjustment" wsId={wsId} />
+      ) : (
+        <AdjustmentsTable
+          activeTab={activeTab}
+          formatDate={formatDate}
+          formatTime={formatTime}
+          getEmployeeID={getEmployeeID}
+          getEmployeeName={getEmployeeName}
+          isLoading={isLoading}
+          onApprove={(id, status) => { approveMutation.mutate({ id, status: status as "approved" | "rejected" }); }}
+          requests={requests}
+        />
+      )}
 
       <AttendanceImportDialog
         endpoint="/attendance-adjustments/upload"

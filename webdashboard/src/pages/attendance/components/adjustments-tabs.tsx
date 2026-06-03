@@ -1,4 +1,4 @@
-import { CheckCircle, Clock, XCircle } from "lucide-react";
+import { CheckCircle, Clock, ShieldCheck, XCircle } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -53,6 +53,19 @@ export function AdjustmentsTabs({ activeTab, setActiveTab }: AdjustmentsTabsProp
       >
         <XCircle size={14} /> {t("common.status_rejected")}
       </Button>
+      <Button className={cn(
+          "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
+          activeTab === "behalf_assignments"
+            ? "bg-white dark:bg-slate-900 text-violet-600 dark:text-violet-300 shadow-sm border border-slate-100 dark:border-slate-800"
+            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+        )}
+        onClick={() => { setActiveTab("behalf_assignments"); }}
+        type="button"
+        variant="ghost"
+      >
+        <ShieldCheck size={14} /> {t("common.behalf_assignments", { defaultValue: "Behalf" })}
+      </Button>
     </div>
   );
 }
+

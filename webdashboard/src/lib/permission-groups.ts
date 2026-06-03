@@ -98,6 +98,8 @@ export const permissionGroups: PermissionGroup[] = [
       { id: "attendance:summaries:read", name: "View Summaries", desc: "Access attendance reports" },
       { id: "attendance:adjustments:submit", name: "Submit Adjustments", desc: "Request time corrections" },
       { id: "attendance:adjustments:approve", name: "Approve Adjustments", desc: "Review and approve corrections" },
+      { id: "attendance:adjustments:submit_on_behalf", name: "Submit Adjustments on Behalf", desc: "Submit time corrections on behalf of others" },
+      { id: "attendance:adjustments:manage_behalf", name: "Manage Behalf Assignments", desc: "Configure who can submit adjustments on behalf" },
       { id: "attendance:reprocess", name: "Reprocess Data", desc: "Recalculate attendance records" },
       { id: "attendance:staging:manage", name: "Manage Staging", desc: "Handle staged attendance data" },
       { id: "attendance:force_clock_out", name: "Force Clock Out", desc: "Emergency force clock-out action" },
@@ -126,6 +128,7 @@ export const permissionGroups: PermissionGroup[] = [
     permissions: [
       { id: "leave:requests:read", name: "View Requests", desc: "See leave request list" },
       { id: "leave:requests:submit", name: "Submit Requests", desc: "Create leave requests for employees" },
+      { id: "leave:requests:submit_on_behalf", name: "Submit on Behalf", desc: "Submit leave requests on behalf of others" },
       { id: "leave:requests:approve", name: "Approve Requests", desc: "Full approval authority" },
       { id: "leave:approve:l1", name: "Approve L1 (Team)", desc: "First-level approval (Team Lead)" },
       { id: "leave:approve:l2", name: "Approve L2 (HR)", desc: "Second-level approval (HR/Manager)" },

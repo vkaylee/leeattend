@@ -721,3 +721,36 @@ export async function adminConfirmAttendance(
   await approveAttendanceAdjustment(wsId, requestId, { status: "approved" });
 }
 
+// ── Attendance Adjustment Behalf Assignments ─────────────────────
+
+export async function fetchAdjustmentBehalfAssignments(
+  wsId: string
+): Promise<OtClaimBehalfAssignment[]> {
+  const res = await apiFetch(`/v1/workspaces/${wsId}/attendance/adjustments/behalf-assignments`);
+  if (!res.ok) throw new Error("Failed to fetch adjustment behalf assignments");
+  return res.json();
+}
+
+export async function createAdjustmentBehalfAssignment(
+  wsId: string,
+  data: {
+    assignee_employee_id: string;
+    target_department_id?: string | null;
+    target_employee_id?: string | null;
+  }
+): Promise<OtClaimBehalfAssignment> {
+  const res = await apiFetch(`/v1/workspaces/${wsId}/attendance/adjustments/behalf-assignments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to create adjustment behalf assignment");
+  return res.json();
+}
+
+export async function deleteAdjustmentBehalfAssignment(wsId: string, id: string): Promise<void> {
+  const res = await apiFetch(`/v1/workspaces/${wsId}/attendance/adjustments/behalf-assignments/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Failed to delete adjustment behalf assignment");
+}

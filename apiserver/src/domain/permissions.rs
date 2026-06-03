@@ -41,6 +41,8 @@ pub enum Permission {
     AttendanceSummariesRead,
     AttendanceAdjustmentsSubmit,
     AttendanceAdjustmentsApprove,
+    AttendanceAdjustmentsSubmitOnBehalf,
+    AttendanceAdjustmentsManageBehalf,
     AttendanceReprocess,
     AttendanceStagingManage,
 
@@ -189,6 +191,8 @@ impl Permission {
             "attendance:summaries:read" => Some(Self::AttendanceSummariesRead),
             "attendance:adjustments:submit" => Some(Self::AttendanceAdjustmentsSubmit),
             "attendance:adjustments:approve" => Some(Self::AttendanceAdjustmentsApprove),
+            "attendance:adjustments:submit_on_behalf" => Some(Self::AttendanceAdjustmentsSubmitOnBehalf),
+            "attendance:adjustments:manage_behalf" => Some(Self::AttendanceAdjustmentsManageBehalf),
             "attendance:reprocess" => Some(Self::AttendanceReprocess),
             "attendance:staging:manage" => Some(Self::AttendanceStagingManage),
             "overtime:claim" => Some(Self::OvertimeClaim),
@@ -296,6 +300,8 @@ impl Permission {
             Self::AttendanceSummariesRead => "attendance:summaries:read",
             Self::AttendanceAdjustmentsSubmit => "attendance:adjustments:submit",
             Self::AttendanceAdjustmentsApprove => "attendance:adjustments:approve",
+            Self::AttendanceAdjustmentsSubmitOnBehalf => "attendance:adjustments:submit_on_behalf",
+            Self::AttendanceAdjustmentsManageBehalf => "attendance:adjustments:manage_behalf",
             Self::AttendanceReprocess => "attendance:reprocess",
             Self::AttendanceStagingManage => "attendance:staging:manage",
             Self::OvertimeClaim => "overtime:claim",
@@ -402,6 +408,8 @@ impl Permission {
             "attendance:summaries:read",
             "attendance:adjustments:submit",
             "attendance:adjustments:approve",
+            "attendance:adjustments:submit_on_behalf",
+            "attendance:adjustments:manage_behalf",
             "attendance:reprocess",
             "attendance:staging:manage",
             "overtime:claim",
@@ -490,11 +498,11 @@ mod tests {
     /// If you add a new Permission variant, update this number,
     /// `all_permission_strings()`, AND the frontend PermissionSync.test.ts.
     #[test]
-    fn test_total_permission_count_is_99() {
+    fn test_total_permission_count_is_101() {
         let all = Permission::all_permission_strings();
         assert_eq!(
             all.len(),
-            99,
+            101,
             "Permission count changed! Update this test, the UI permissionGroups, AND PermissionSync.test.ts. Current count: {}",
             all.len()
         );
@@ -564,6 +572,8 @@ mod tests {
             Permission::AttendanceSummariesRead,
             Permission::AttendanceAdjustmentsSubmit,
             Permission::AttendanceAdjustmentsApprove,
+            Permission::AttendanceAdjustmentsSubmitOnBehalf,
+            Permission::AttendanceAdjustmentsManageBehalf,
             Permission::AttendanceReprocess,
             Permission::AttendanceStagingManage,
             Permission::OvertimeClaim,
@@ -643,8 +653,8 @@ mod tests {
 
         assert_eq!(
             all_variants.len(),
-            99,
-            "Variant list in test is stale — expected 99, got {}",
+            101,
+            "Variant list in test is stale — expected 101, got {}",
             all_variants.len()
         );
 

@@ -33,13 +33,15 @@ const BACKEND_PERMISSION_STRINGS: ReadonlySet<string> = new Set([
     "departments:read", "departments:create", "departments:update", "departments:delete", "departments:transfer",
     // Attendance
     "attendance:logs:read", "attendance:logs:import", "attendance:summaries:read",
-    "attendance:adjustments:submit", "attendance:adjustments:approve", "attendance:reprocess", "attendance:staging:manage",
+    "attendance:adjustments:submit", "attendance:adjustments:approve",
+    "attendance:adjustments:submit_on_behalf", "attendance:adjustments:manage_behalf",
+    "attendance:reprocess", "attendance:staging:manage",
     // Overtime
     "overtime:claim", "overtime:approve", "overtime:claim_on_behalf", "overtime:policies:manage", "overtime:paper:upload",
     "overtime:request:create", "overtime:request:read", "overtime:approve:workflow", "overtime:quota:read",
     "approval_workflows:read", "approval_workflows:manage",
     // Leave
-    "leave:requests:read", "leave:requests:submit", "leave:requests:approve", "leave:balances:read", "leave:balances:adjust",
+    "leave:requests:read", "leave:requests:submit", "leave:requests:submit_on_behalf", "leave:requests:approve", "leave:balances:read", "leave:balances:adjust",
     "leave:types:manage", "leave:policies:manage", "leave:accrual:run",
     // Shifts & Scheduling
     "shifts:read", "shifts:create", "shifts:update", "shifts:assign",
@@ -87,13 +89,13 @@ describe("Permission Sync: Backend ↔ Frontend", () => {
 
     // ─── Count Verification ────────────────────────────────────
 
-    it("backend defines exactly 98 permissions", () => {
-        expect(BACKEND_PERMISSION_STRINGS.size).toBe(98);
+    it("backend defines exactly 101 permissions", () => {
+        expect(BACKEND_PERMISSION_STRINGS.size).toBe(101);
     });
 
-    it("UI permissionGroups defines exactly 98 permissions", () => {
+    it("UI permissionGroups defines exactly 101 permissions", () => {
         const uiIds = extractUiPermissionIds();
-        expect(uiIds.length).toBe(98);
+        expect(uiIds.length).toBe(101);
     });
 
     it("backend count matches UI count", () => {
