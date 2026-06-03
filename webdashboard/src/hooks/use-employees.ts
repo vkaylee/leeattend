@@ -12,7 +12,7 @@ export const MAX_EMPLOYEE_FETCH = 3_000;
 
 export const employeeKeys = {
   all: ["employees"] as const,
-  list: (wsId: string | null | undefined) => [...employeeKeys.all, wsId] as const,
+  list: (wsId: string | null | undefined, permission?: string) => [...employeeKeys.all, wsId, { permission }] as const,
 };
 
 /**
@@ -27,15 +27,16 @@ export const employeeKeys = {
  */
 export function useAllEmployees(
   wsId: string | null | undefined,
-  options?: { enabled?: boolean },
+  options?: { enabled?: boolean; permission?: string },
 ) {
   const enabledOverride = options?.enabled ?? true;
+  const permission = options?.permission;
 
   const query = useQuery({
-    queryKey: employeeKeys.list(wsId),
+    queryKey: employeeKeys.list(wsId, permission),
     queryFn: () => {
       if (!wsId) throw new Error("Workspace ID is required");
-      return fetchEmployees(wsId, 1, MAX_EMPLOYEE_FETCH);
+      return fetchEmployees(wsId, 1, MAX_EMPLOYEE_FETCH, permission);
     },
     enabled: !!wsId && enabledOverride,
   });

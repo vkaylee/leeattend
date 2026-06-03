@@ -161,7 +161,11 @@ export function BehalfAssignmentsTab({ wsId }: { wsId: string }) {
     isDeleting,
   } = useBehalfAssignments();
 
-  const { employees, isLoading: employeesLoading } = useAllEmployees(wsId);
+  const { employees: allEmployees, isLoading: allEmployeesLoading } = useAllEmployees(wsId);
+  const { employees: claimantEmployees, isLoading: claimantEmployeesLoading } = useAllEmployees(wsId, {
+    permission: "overtime:claim_on_behalf",
+  });
+  const employeesLoading = allEmployeesLoading || claimantEmployeesLoading;
 
   const { data: departments = [], isLoading: deptsLoading } = useQuery({
     queryKey: ["departments", wsId],
@@ -241,7 +245,13 @@ export function BehalfAssignmentsTab({ wsId }: { wsId: string }) {
     );
   }
 
-  const employeeOptions = employees.map((emp) => ({
+  const claimantOptions = claimantEmployees.map((emp) => ({
+    description: emp.employee_id_number,
+    label: emp.full_name,
+    value: emp.id,
+  }));
+
+  const targetEmployeeOptions = allEmployees.map((emp) => ({
     description: emp.employee_id_number,
     label: emp.full_name,
     value: emp.id,
@@ -294,7 +304,7 @@ export function BehalfAssignmentsTab({ wsId }: { wsId: string }) {
             <AssignmentItem
               assignment={assignment}
               departments={departments}
-              employees={employees}
+              employees={allEmployees}
               isDeleting={isDeleting}
               key={assignment.id}
               onDelete={handleDelete}
@@ -322,7 +332,7 @@ export function BehalfAssignmentsTab({ wsId }: { wsId: string }) {
               emptyText="No employees found"
               id="claimant-select"
               onChange={setAssigneeId}
-              options={employeeOptions}
+              options={claimantOptions}
               placeholder="Search and select claimant..."
               value={assigneeId}
             />
@@ -373,7 +383,7 @@ export function BehalfAssignmentsTab({ wsId }: { wsId: string }) {
                 emptyText="No employees found"
                 id="target-employee-select"
                 onChange={setTargetEmployeeId}
-                options={employeeOptions}
+                options={targetEmployeeOptions}
                 placeholder="Search and select target employee..."
                 value={targetEmployeeId}
               />

@@ -587,6 +587,13 @@ mod tests {
         async fn is_any_role_global(&self, _r: &[Uuid]) -> Result<bool, AppError> {
             Ok(false)
         }
+        async fn get_users_with_permission(
+            &self,
+            _workspace_id: Uuid,
+            _permission: &str,
+        ) -> Result<Vec<Uuid>, AppError> {
+            Ok(vec![])
+        }
     }
 
     struct MockUserRepo {

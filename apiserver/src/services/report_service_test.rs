@@ -215,6 +215,13 @@ mod tests {
         ) -> Result<Vec<Uuid>, AppError> {
             unimplemented!()
         }
+        async fn get_users_with_permission(
+            &self,
+            _workspace_id: Uuid,
+            _permission: &str,
+        ) -> Result<Vec<Uuid>, AppError> {
+            Ok(vec![])
+        }
     }
 
     struct MockEmployeeRepo;

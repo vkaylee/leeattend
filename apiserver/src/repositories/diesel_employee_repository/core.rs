@@ -132,6 +132,20 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
     ) -> Result<(Vec<Employee>, i64), AppError> {
         let workspace_id = auth_token.workspace_id();
         use diesel::sql_types::{Array, BigInt, Nullable, Text};
+        use crate::repositories::workspace_repository::WorkspaceRepository;
+
+        let user_ids = if let Some(ref permission) = options.permission {
+            let workspace_repo = crate::repositories::diesel_workspace_repository::DieselWorkspaceRepository::new(
+                self.diesel_pools.clone(),
+            );
+            let ids = workspace_repo.get_users_with_permission(workspace_id, permission).await?;
+            if ids.is_empty() {
+                return Ok((vec![], 0));
+            }
+            Some(ids)
+        } else {
+            None
+        };
 
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -155,9 +169,16 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             ))"
         );
 
+        let perm_filter = if user_ids.is_some() {
+            let count_perm_param = if search_sql.has_search { "$4" } else { "$3" };
+            format!(" AND e.user_id = ANY({count_perm_param})")
+        } else {
+            "".to_string()
+        };
+
         let where_clause = &search_sql.where_clause;
         let count_sql = format!(
-            "SELECT COUNT(*)::bigint as count FROM employees e {where_clause}{dept_filter}"
+            "SELECT COUNT(*)::bigint as count FROM employees e {where_clause}{dept_filter}{perm_filter}"
         );
 
         let count_search_param = if search_sql.has_search {
@@ -174,21 +195,43 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
 
         let dept_ids = options.department_ids.clone();
 
-        let total_row: CountRow = if search_sql.has_search {
-            diesel::sql_query(&count_sql)
-                .bind::<UuidType, _>(workspace_id)
-                .bind::<Nullable<Text>, _>(count_search_param)
-                .bind::<Nullable<Array<UuidType>>, _>(dept_ids)
-                .get_result(&mut *conn)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?
-        } else {
-            diesel::sql_query(&count_sql)
-                .bind::<UuidType, _>(workspace_id)
-                .bind::<Nullable<Array<UuidType>>, _>(dept_ids)
-                .get_result(&mut *conn)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?
+        let total_row: CountRow = match (search_sql.has_search, &user_ids) {
+            (true, Some(ids)) => {
+                diesel::sql_query(&count_sql)
+                    .bind::<UuidType, _>(workspace_id)
+                    .bind::<Nullable<Text>, _>(count_search_param)
+                    .bind::<Nullable<Array<UuidType>>, _>(dept_ids)
+                    .bind::<Array<UuidType>, _>(ids)
+                    .get_result(&mut *conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db: {e}")))?
+            }
+            (true, None) => {
+                diesel::sql_query(&count_sql)
+                    .bind::<UuidType, _>(workspace_id)
+                    .bind::<Nullable<Text>, _>(count_search_param)
+                    .bind::<Nullable<Array<UuidType>>, _>(dept_ids)
+                    .get_result(&mut *conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db: {e}")))?
+            }
+            (false, Some(ids)) => {
+                diesel::sql_query(&count_sql)
+                    .bind::<UuidType, _>(workspace_id)
+                    .bind::<Nullable<Array<UuidType>>, _>(dept_ids)
+                    .bind::<Array<UuidType>, _>(ids)
+                    .get_result(&mut *conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db: {e}")))?
+            }
+            (false, None) => {
+                diesel::sql_query(&count_sql)
+                    .bind::<UuidType, _>(workspace_id)
+                    .bind::<Nullable<Array<UuidType>>, _>(dept_ids)
+                    .get_result(&mut *conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db: {e}")))?
+            }
         };
 
         let total = total_row.count;
@@ -197,6 +240,12 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             SELECT 1 FROM employee_department_history edh \
             WHERE edh.employee_id = e.id AND edh.department_id = ANY($6)\
         ))";
+
+        let data_perm_filter = if user_ids.is_some() {
+            " AND e.user_id = ANY($7)"
+        } else {
+            ""
+        };
 
         let dept_join = if search_sql.needs_dept_join {
             EMPLOYEE_DEPT_JOIN
@@ -207,7 +256,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         let where_clause = &search_sql.where_clause;
         let order_clause = &search_sql.order_clause;
         let sql = format!(
-            "{EMPLOYEE_SELECT_QUERY} {dept_join} {where_clause}{data_dept_filter} {order_clause} LIMIT $3 OFFSET $4"
+            "{EMPLOYEE_SELECT_QUERY} {dept_join} {where_clause}{data_dept_filter}{data_perm_filter} {order_clause} LIMIT $3 OFFSET $4"
         );
 
         let (search_str_1, search_str_2) = if search_sql.has_search {
@@ -224,16 +273,29 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
 
         let offset = (options.page - 1) * options.limit;
 
-        let employee_rows: Vec<EmployeeRow> = diesel::sql_query(&sql)
-            .bind::<UuidType, _>(workspace_id)
-            .bind::<Nullable<Text>, _>(search_str_1)
-            .bind::<BigInt, _>(options.limit)
-            .bind::<BigInt, _>(offset)
-            .bind::<Nullable<Text>, _>(search_str_2)
-            .bind::<Nullable<Array<UuidType>>, _>(options.department_ids)
-            .load(&mut *conn)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let employee_rows: Vec<EmployeeRow> = if let Some(ref ids) = user_ids {
+            diesel::sql_query(&sql)
+                .bind::<UuidType, _>(workspace_id)
+                .bind::<Nullable<Text>, _>(search_str_1)
+                .bind::<BigInt, _>(options.limit)
+                .bind::<BigInt, _>(offset)
+                .bind::<Nullable<Text>, _>(search_str_2)
+                .bind::<Nullable<Array<UuidType>>, _>(options.department_ids)
+                .bind::<Array<UuidType>, _>(ids)
+                .load(&mut *conn)
+                .await
+        } else {
+            diesel::sql_query(&sql)
+                .bind::<UuidType, _>(workspace_id)
+                .bind::<Nullable<Text>, _>(search_str_1)
+                .bind::<BigInt, _>(options.limit)
+                .bind::<BigInt, _>(offset)
+                .bind::<Nullable<Text>, _>(search_str_2)
+                .bind::<Nullable<Array<UuidType>>, _>(options.department_ids)
+                .load(&mut *conn)
+                .await
+        }
+        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         let employees: Vec<Employee> = employee_rows.into_iter().map(Into::into).collect();
 

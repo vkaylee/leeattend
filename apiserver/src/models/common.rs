@@ -89,6 +89,7 @@ pub struct PaginationParams {
     pub sort_by: Option<String>,
     pub sort_dir: Option<String>,
     pub department_id: Option<String>,
+    pub permission: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]

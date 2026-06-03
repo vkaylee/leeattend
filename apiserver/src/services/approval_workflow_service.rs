@@ -1642,6 +1642,13 @@ mod tests {
         ) -> Result<(), AppError> {
             Ok(())
         }
+        async fn get_users_with_permission(
+            &self,
+            _workspace_id: Uuid,
+            _permission: &str,
+        ) -> Result<Vec<Uuid>, AppError> {
+            Ok(vec![])
+        }
     }
 
     struct MockEmployeeRepo {

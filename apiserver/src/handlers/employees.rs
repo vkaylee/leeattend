@@ -151,6 +151,7 @@ pub async fn get_employees(
                 sort_by: query.sort_by,
                 sort_dir: query.sort_dir,
                 department_ids,
+                permission: query.permission,
             },
         )
         .await?;

@@ -24,12 +24,13 @@ export type {
 export async function fetchEmployees(
   wsId: string,
   page = 1,
-  limit = 50
+  limit = 50,
+  permission?: string
 ): Promise<PaginatedResponse<Employee>> {
   const { data } = await client.GET("/workspaces/{workspace_id}/employees", {
     params: {
       path: { workspace_id: wsId },
-      query: { page, limit },
+      query: { page, limit, permission },
     },
   });
   if (!data) throw new Error("No response data");

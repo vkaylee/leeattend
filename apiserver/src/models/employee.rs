@@ -15,6 +15,7 @@ pub struct EmployeeFilterOptions {
     pub sort_by: Option<String>,
     pub sort_dir: Option<String>,
     pub department_ids: Option<Vec<Uuid>>,
+    pub permission: Option<String>,
 }
 
 #[derive(Debug, Clone)]

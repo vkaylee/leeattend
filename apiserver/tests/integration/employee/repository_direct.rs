@@ -960,6 +960,7 @@ async fn test_get_all_employees_with_filters() {
         sort_by: Some("full_name".to_string()),
         sort_dir: Some("asc".to_string()),
         department_ids: None,
+        permission: None,
     };
     let (all, count) = repo.get_all_employees(&auth_token, opts_all).await.unwrap();
     assert_eq!(count, 3);
@@ -974,6 +975,7 @@ async fn test_get_all_employees_with_filters() {
         sort_by: None,
         sort_dir: None,
         department_ids: None,
+        permission: None,
     };
     let (search_res, count) = repo
         .get_all_employees(&auth_token, opts_search)
@@ -981,4 +983,91 @@ async fn test_get_all_employees_with_filters() {
         .unwrap();
     assert_eq!(count, 2);
     assert_eq!(search_res.len(), 2);
+}
+
+#[tokio::test]
+async fn test_get_all_employees_filtered_by_permission() {
+    use apiserver::repositories::diesel_workspace_repository::DieselWorkspaceRepository;
+    use apiserver::repositories::workspace_repository::WorkspaceRepository;
+
+    let (test_db, factory) = setup_db().await;
+
+    let user_1 = factory.user().create().await;
+    let user_2 = factory.user().create().await;
+    let user_3 = factory.user().create().await;
+
+    let ws_id = factory.workspace().create_with_owner(user_1).await;
+    let workspace_repo = DieselWorkspaceRepository::new(test_db.diesel_pools.clone());
+    let custom_role = workspace_repo
+        .create_workspace_role(
+            ws_id,
+            "Custom Scoped Role".to_string(),
+            None,
+            "#000000".to_string(),
+            "scoped".to_string(),
+        )
+        .await
+        .unwrap();
+
+    factory.add_member(ws_id, user_2, custom_role.id).await;
+    factory.add_member(ws_id, user_3, custom_role.id).await;
+
+    // Assign extra permission to user_2
+    workspace_repo
+        .assign_extra_permission(
+            ws_id,
+            user_2,
+            "overtime:claim_on_behalf".to_string(),
+            Utc::now() + chrono::Duration::days(1),
+            user_1,
+        )
+        .await
+        .unwrap();
+
+    // Create employees
+    let _emp_1 = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_user(user_1)
+        .with_full_name("Owner Emp")
+        .create()
+        .await;
+
+    let _emp_2 = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_user(user_2)
+        .with_full_name("Allowed Emp")
+        .create()
+        .await;
+
+    let _emp_3 = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_user(user_3)
+        .with_full_name("Forbidden Emp")
+        .create()
+        .await;
+
+    let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
+    let auth_token = apiserver::diesel_pool::TenantAuthToken::system_override(ws_id);
+
+    // Query with permission filter
+    let opts = apiserver::models::EmployeeFilterOptions {
+        limit: 10,
+        page: 1,
+        search_query: None,
+        sort_by: Some("full_name".to_string()),
+        sort_dir: Some("asc".to_string()),
+        department_ids: None,
+        permission: Some("overtime:claim_on_behalf".to_string()),
+    };
+
+    let (employees, count) = repo.get_all_employees(&auth_token, opts).await.unwrap();
+
+    assert_eq!(count, 2);
+    let names: Vec<String> = employees.into_iter().map(|e| e.full_name).collect();
+    assert!(names.contains(&"Owner Emp".to_string()));
+    assert!(names.contains(&"Allowed Emp".to_string()));
+    assert!(!names.contains(&"Forbidden Emp".to_string()));
 }

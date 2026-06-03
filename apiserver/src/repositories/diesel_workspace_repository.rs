@@ -1235,6 +1235,78 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
 
         Ok(())
     }
+
+    async fn get_users_with_permission(
+        &self,
+        workspace_id: Uuid,
+        permission: &str,
+    ) -> Result<Vec<Uuid>, AppError> {
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        // 1. Users whose primary role has the permission, or whose primary role is global
+        let primary_role_users = workspace_members::table
+            .inner_join(
+                workspace_roles::table.on(workspace_members::role_id.eq(workspace_roles::id)),
+            )
+            .left_join(
+                workspace_role_permissions::table
+                    .on(workspace_roles::id.eq(workspace_role_permissions::role_id)),
+            )
+            .filter(workspace_members::workspace_id.eq(workspace_id))
+            .filter(
+                workspace_roles::scope_type
+                    .eq("global")
+                    .or(workspace_role_permissions::permission_name.eq(permission)),
+            )
+            .select(workspace_members::user_id)
+            .load::<Uuid>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db error fetching primary role permissions: {e}")))?;
+
+        // 2. Users whose active extra role has the permission, or whose extra role is global
+        let extra_role_users = member_extra_roles::table
+            .inner_join(
+                workspace_roles::table.on(member_extra_roles::role_id.eq(workspace_roles::id)),
+            )
+            .left_join(
+                workspace_role_permissions::table
+                    .on(workspace_roles::id.eq(workspace_role_permissions::role_id)),
+            )
+            .filter(member_extra_roles::workspace_id.eq(workspace_id))
+            .filter(member_extra_roles::expires_at.gt(Utc::now()))
+            .filter(
+                workspace_roles::scope_type
+                    .eq("global")
+                    .or(workspace_role_permissions::permission_name.eq(permission)),
+            )
+            .select(member_extra_roles::user_id)
+            .load::<Uuid>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db error fetching extra role permissions: {e}")))?;
+
+        // 3. Users who have the permission assigned directly as an extra permission
+        let extra_perm_users = workspace_member_extra_permissions::table
+            .filter(workspace_member_extra_permissions::workspace_id.eq(workspace_id))
+            .filter(workspace_member_extra_permissions::expires_at.gt(Utc::now()))
+            .filter(workspace_member_extra_permissions::permission.eq(permission))
+            .select(workspace_member_extra_permissions::user_id)
+            .load::<Uuid>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db error fetching extra permissions: {e}")))?;
+
+        let mut user_ids = std::collections::HashSet::new();
+        user_ids.extend(primary_role_users);
+        user_ids.extend(extra_role_users);
+        user_ids.extend(extra_perm_users);
+        let result: Vec<Uuid> = user_ids.into_iter().collect();
+        Ok(result)
+    }
 }
 
 #[cfg(test)]

@@ -1305,6 +1305,7 @@ mod tests {
                     sort_by: None,
                     sort_dir: None,
                     department_id: None,
+                    permission: None,
                 },
             )
             .await

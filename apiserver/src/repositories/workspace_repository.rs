@@ -174,4 +174,10 @@ pub trait WorkspaceRepository: Send + Sync {
         workspace_id: Uuid,
         encrypted_url: Option<String>,
     ) -> Result<(), AppError>;
+
+    async fn get_users_with_permission(
+        &self,
+        workspace_id: Uuid,
+        permission: &str,
+    ) -> Result<Vec<Uuid>, AppError>;
 }
