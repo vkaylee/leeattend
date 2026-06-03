@@ -62,6 +62,7 @@ pub enum Permission {
     // ── Leave ──────────────────────────────────────────
     LeaveRequestsRead,
     LeaveRequestsSubmit,
+    LeaveRequestsSubmitOnBehalf,
     LeaveRequestsApprove,
     LeaveBalancesRead,
     LeaveBalancesAdjust,
@@ -203,6 +204,7 @@ impl Permission {
             "approval_workflows:manage" => Some(Self::ApprovalWorkflowsManage),
             "leave:requests:read" => Some(Self::LeaveRequestsRead),
             "leave:requests:submit" => Some(Self::LeaveRequestsSubmit),
+            "leave:requests:submit_on_behalf" => Some(Self::LeaveRequestsSubmitOnBehalf),
             "leave:requests:approve" => Some(Self::LeaveRequestsApprove),
             "leave:balances:read" => Some(Self::LeaveBalancesRead),
             "leave:balances:adjust" => Some(Self::LeaveBalancesAdjust),
@@ -267,6 +269,7 @@ impl Permission {
     }
 
     /// Convert this permission to its canonical string representation.
+    #[allow(clippy::too_many_lines)]
     pub fn to_str_permission(&self) -> &'static str {
         match self {
             Self::WorkspaceUpdate => "workspace:update",
@@ -308,6 +311,7 @@ impl Permission {
             Self::ApprovalWorkflowsManage => "approval_workflows:manage",
             Self::LeaveRequestsRead => "leave:requests:read",
             Self::LeaveRequestsSubmit => "leave:requests:submit",
+            Self::LeaveRequestsSubmitOnBehalf => "leave:requests:submit_on_behalf",
             Self::LeaveRequestsApprove => "leave:requests:approve",
             Self::LeaveBalancesRead => "leave:balances:read",
             Self::LeaveBalancesAdjust => "leave:balances:adjust",
@@ -371,6 +375,7 @@ impl Permission {
     }
 
     /// Return all available permission strings (for API listing).
+    #[allow(clippy::too_many_lines)]
     pub fn all_permission_strings() -> Vec<&'static str> {
         vec![
             "workspace:update",
@@ -412,6 +417,7 @@ impl Permission {
             "approval_workflows:manage",
             "leave:requests:read",
             "leave:requests:submit",
+            "leave:requests:submit_on_behalf",
             "leave:requests:approve",
             "leave:balances:read",
             "leave:balances:adjust",
@@ -484,11 +490,11 @@ mod tests {
     /// If you add a new Permission variant, update this number,
     /// `all_permission_strings()`, AND the frontend PermissionSync.test.ts.
     #[test]
-    fn test_total_permission_count_is_98() {
+    fn test_total_permission_count_is_99() {
         let all = Permission::all_permission_strings();
         assert_eq!(
             all.len(),
-            98,
+            99,
             "Permission count changed! Update this test, the UI permissionGroups, AND PermissionSync.test.ts. Current count: {}",
             all.len()
         );
@@ -573,6 +579,7 @@ mod tests {
             Permission::ApprovalWorkflowsManage,
             Permission::LeaveRequestsRead,
             Permission::LeaveRequestsSubmit,
+            Permission::LeaveRequestsSubmitOnBehalf,
             Permission::LeaveRequestsApprove,
             Permission::LeaveBalancesRead,
             Permission::LeaveBalancesAdjust,
@@ -636,8 +643,8 @@ mod tests {
 
         assert_eq!(
             all_variants.len(),
-            98,
-            "Variant list in test is stale — expected 98, got {}",
+            99,
+            "Variant list in test is stale — expected 99, got {}",
             all_variants.len()
         );
 

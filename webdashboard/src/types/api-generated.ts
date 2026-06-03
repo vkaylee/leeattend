@@ -1778,6 +1778,38 @@ export interface paths {
         patch: operations["update_feature_flag"];
         trace?: never;
     };
+    "/v1/workspaces/{ws_id}/leave/behalf-assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_leave_behalf_assignments"];
+        put?: never;
+        post: operations["create_leave_behalf_assignment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{ws_id}/leave/behalf-assignments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["delete_leave_behalf_assignment"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/workspaces/{ws_id}/locations": {
         parameters: {
             query?: never;
@@ -3976,6 +4008,23 @@ export interface components {
             payslip?: null | components["schemas"]["Payslip"];
             status: string;
         };
+        BehalfAssignment: {
+            /** Format: uuid */
+            assignee_employee_id: string;
+            assignment_type: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            target_department_id?: string | null;
+            /** Format: uuid */
+            target_employee_id?: string | null;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: uuid */
+            workspace_id: string;
+        };
         BulkAssignPatternRequest: {
             /** Format: date */
             anchor_date?: string | null;
@@ -5253,22 +5302,6 @@ export interface components {
             notifications: components["schemas"]["Notification"][];
             /** Format: int64 */
             unread_count: number;
-        };
-        OtClaimBehalfAssignment: {
-            /** Format: uuid */
-            assignee_employee_id: string;
-            /** Format: date-time */
-            created_at: string;
-            /** Format: uuid */
-            id: string;
-            /** Format: uuid */
-            target_department_id?: string | null;
-            /** Format: uuid */
-            target_employee_id?: string | null;
-            /** Format: date-time */
-            updated_at: string;
-            /** Format: uuid */
-            workspace_id: string;
         };
         /** @enum {string} */
         OtRequestStatus: "draft" | "pending_approval" | "approved" | "partially_accepted" | "active" | "completed" | "cancelled" | "rejected";
@@ -8614,7 +8647,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OtClaimBehalfAssignment"][];
+                    "application/json": components["schemas"]["BehalfAssignment"][];
                 };
             };
         };
@@ -8641,7 +8674,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OtClaimBehalfAssignment"];
+                    "application/json": components["schemas"]["BehalfAssignment"];
                 };
             };
         };
@@ -9918,6 +9951,79 @@ export interface operations {
             };
         };
     };
+    list_leave_behalf_assignments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of leave assignments */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BehalfAssignment"][];
+                };
+            };
+        };
+    };
+    create_leave_behalf_assignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateBehalfAssignmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Leave assignment created */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BehalfAssignment"];
+                };
+            };
+        };
+    };
+    delete_leave_behalf_assignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Assignment ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Leave assignment deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     list_locations: {
         parameters: {
             query?: never;
@@ -10947,6 +11053,7 @@ export interface operations {
                 sort_by?: string | null;
                 sort_dir?: string | null;
                 department_id?: string | null;
+                permission?: string | null;
             };
             header?: never;
             path: {
@@ -12792,6 +12899,7 @@ export interface operations {
                 sort_by?: string | null;
                 sort_dir?: string | null;
                 department_id?: string | null;
+                permission?: string | null;
             };
             header?: never;
             path: {

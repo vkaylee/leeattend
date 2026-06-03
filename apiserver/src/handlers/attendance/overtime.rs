@@ -244,12 +244,13 @@ async fn check_claim_behalf_scope(
 
     let is_assigned = state
         .attendance
-        .ot_claim_behalf_assignment_repo
+        .behalf_assignment_repo
         .check_behalf_permission(
             ctx.workspace_id,
             caller_employee_id,
             target_employee_id,
             target_dept_id,
+            "overtime_claim",
         )
         .await?;
 
@@ -275,7 +276,7 @@ async fn check_claim_behalf_scope(
     ))
 }
 
-use crate::models::{CreateBehalfAssignmentRequest, OtClaimBehalfAssignment};
+use crate::models::{BehalfAssignment, CreateBehalfAssignmentRequest};
 
 #[utoipa::path(
     post,
@@ -285,7 +286,7 @@ use crate::models::{CreateBehalfAssignmentRequest, OtClaimBehalfAssignment};
     ),
     request_body = CreateBehalfAssignmentRequest,
     responses(
-        (status = 200, description = "Assignment created", body = OtClaimBehalfAssignment)
+        (status = 200, description = "Assignment created", body = BehalfAssignment)
     ),
     security(
         ("bearer_auth" = [])
@@ -296,17 +297,18 @@ pub async fn create_behalf_assignment(
     Path(_ws_id): Path<Uuid>,
     ctx: MemberContext,
     Json(req): Json<CreateBehalfAssignmentRequest>,
-) -> AppResult<Json<OtClaimBehalfAssignment>> {
+) -> AppResult<Json<BehalfAssignment>> {
     ctx.require_permission(Permission::OvertimePoliciesManage)?;
 
     let result = state
         .attendance
-        .ot_claim_behalf_assignment_repo
+        .behalf_assignment_repo
         .create_assignment(
             ctx.workspace_id,
             req.assignee_employee_id,
             req.target_employee_id,
             req.target_department_id,
+            "overtime_claim",
         )
         .await?;
 
@@ -337,7 +339,7 @@ pub async fn delete_behalf_assignment(
 
     let affected = state
         .attendance
-        .ot_claim_behalf_assignment_repo
+        .behalf_assignment_repo
         .delete_assignment(ctx.workspace_id, id)
         .await?;
 
@@ -355,7 +357,7 @@ pub async fn delete_behalf_assignment(
         ("ws_id" = Uuid, Path, description = "Workspace ID")
     ),
     responses(
-        (status = 200, description = "List of assignments", body = Vec<OtClaimBehalfAssignment>)
+        (status = 200, description = "List of assignments", body = Vec<BehalfAssignment>)
     ),
     security(
         ("bearer_auth" = [])
@@ -365,13 +367,13 @@ pub async fn list_behalf_assignments(
     State(state): State<Arc<AppState>>,
     Path(_ws_id): Path<Uuid>,
     ctx: MemberContext,
-) -> AppResult<Json<Vec<OtClaimBehalfAssignment>>> {
+) -> AppResult<Json<Vec<BehalfAssignment>>> {
     ctx.require_permission(Permission::OvertimePoliciesManage)?;
 
     let result = state
         .attendance
-        .ot_claim_behalf_assignment_repo
-        .list_all_assignments(ctx.workspace_id)
+        .behalf_assignment_repo
+        .list_all_assignments(ctx.workspace_id, "overtime_claim")
         .await?;
 
     Ok(Json(result))

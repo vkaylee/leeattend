@@ -1,6 +1,6 @@
 import type { paths } from "@/types/api-generated";
 
-import type { LeavePolicyAssignmentDetail, LeaveRequest, EmployeeLeaveBalance, WorkspaceLeaveBalance, LeaveHistoryItem, LeavePolicy, LeaveType, LeaveTypeConfig, LeaveDurationType, PaginatedResponse } from './types';
+import type { LeavePolicyAssignmentDetail, LeaveRequest, EmployeeLeaveBalance, WorkspaceLeaveBalance, LeaveHistoryItem, LeavePolicy, LeaveType, LeaveTypeConfig, LeaveDurationType, PaginatedResponse, BehalfAssignment, CreateBehalfAssignmentRequest } from './types';
 
 import { client } from "./client";
 import { API_BASE_URL } from './config';
@@ -392,4 +392,32 @@ export async function downloadLeaveImportErrors(wsId: string, jobId: string): Pr
   a.click();
   document.body.removeChild(a);
   window.URL.revokeObjectURL(url);
+}
+
+export async function fetchLeaveBehalfAssignments(
+  wsId: string
+): Promise<BehalfAssignment[]> {
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/leave/behalf-assignments", {
+    params: { path: { ws_id: wsId } }
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
+}
+
+export async function createLeaveBehalfAssignment(
+  wsId: string,
+  data: CreateBehalfAssignmentRequest
+): Promise<BehalfAssignment> {
+  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/leave/behalf-assignments", {
+    params: { path: { ws_id: wsId } },
+    body: data
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
+}
+
+export async function deleteLeaveBehalfAssignment(wsId: string, id: string): Promise<void> {
+  await client.DELETE("/v1/workspaces/{ws_id}/leave/behalf-assignments/{id}", {
+    params: { path: { ws_id: wsId, id } }
+  });
 }

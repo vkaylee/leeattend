@@ -13,10 +13,10 @@ use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{
     enums::ImportTargetType, AdjustBalanceRequest, ApproveLeaveRequest, AssignLeavePolicyRequest,
-    CreateLeavePolicyRequest, EmployeeLeaveBalance, LeaveHistoryItem, LeavePolicyAssignment,
-    LeavePolicyAssignmentDetail, LeavePolicyDefinition, LeaveRequest, LeaveStatus,
-    PaginatedResponse, PaginationParams, SubmitLeaveRequest, UpdateLeavePolicyRequest,
-    WorkspaceLeaveBalance,
+    BehalfAssignment, CreateBehalfAssignmentRequest, CreateLeavePolicyRequest,
+    EmployeeLeaveBalance, LeaveHistoryItem, LeavePolicyAssignment, LeavePolicyAssignmentDetail,
+    LeavePolicyDefinition, LeaveRequest, LeaveStatus, PaginatedResponse, PaginationParams,
+    SubmitLeaveRequest, UpdateLeavePolicyRequest, WorkspaceLeaveBalance,
 };
 
 use crate::{AppState, UserId};
@@ -53,8 +53,23 @@ pub async fn submit_leave_request(
         crate::handlers::common::current_department_id(&state, &ctx.auth_token, req.employee_id)
             .await;
 
-    // Require submit permission scoped to the employee's department
-    ctx.require_scoped_permission(Permission::LeaveRequestsSubmit, target_dept_id)?;
+    let caller_employee_id = state
+        .employees
+        .repo
+        .get_employee_id_by_user_id(&ctx.auth_token, ctx.user_id)
+        .await?;
+
+    let is_on_behalf = match caller_employee_id {
+        Some(emp_id) => emp_id != req.employee_id,
+        None => true,
+    };
+
+    if is_on_behalf {
+        check_leave_behalf_scope(&state, &ctx, caller_employee_id, req.employee_id).await?;
+    } else {
+        // Require submit permission scoped to the employee's department
+        ctx.require_scoped_permission(Permission::LeaveRequestsSubmit, target_dept_id)?;
+    }
 
     // Auto-approve if submitter also has approve permission for this department
     let can_auto_approve = ctx
@@ -926,4 +941,166 @@ pub async fn download_leave_import_template(
         )
         .body(axum::body::Body::from(bytes))
         .map_err(|e| AppError::TemplateError(format!("Failed to build response: {e}")))
+}
+
+async fn check_leave_behalf_scope(
+    state: &AppState,
+    ctx: &MemberContext,
+    caller_employee_id: Option<Uuid>,
+    target_employee_id: Uuid,
+) -> AppResult<()> {
+    let has_perm = ctx.has_permission(Permission::LeaveRequestsApprove)
+        || ctx.has_permission(Permission::LeaveApproveL1)
+        || ctx.has_permission(Permission::LeaveApproveL2)
+        || ctx.has_permission(Permission::LeaveRequestsSubmitOnBehalf);
+    if !has_perm {
+        return Err(AppError::Forbidden(
+            "Missing permission: LeaveRequestsApprove or LeaveRequestsSubmitOnBehalf".to_string(),
+        ));
+    }
+
+    if ctx.managed_department_ids.is_none() {
+        return Ok(());
+    }
+
+    let caller_emp_id = caller_employee_id
+        .ok_or_else(|| AppError::Forbidden("Caller has no employee record".to_string()))?;
+
+    let target_dept_id =
+        crate::handlers::common::current_department_id(state, &ctx.auth_token, target_employee_id)
+            .await;
+
+    let is_assigned = state
+        .attendance
+        .behalf_assignment_repo
+        .check_behalf_permission(
+            ctx.workspace_id,
+            caller_emp_id,
+            target_employee_id,
+            target_dept_id,
+            "leave_request",
+        )
+        .await?;
+
+    if is_assigned {
+        return Ok(());
+    }
+
+    let mut is_managed_dept = false;
+    if let Some(allowed_depts) = &ctx.managed_department_ids {
+        if let Some(dept_id) = target_dept_id {
+            if allowed_depts.contains(&dept_id) {
+                is_managed_dept = true;
+            }
+        }
+    }
+
+    if is_managed_dept {
+        return Ok(());
+    }
+
+    Err(AppError::Forbidden(
+        "Permission denied: Target is outside your submit on behalf scope.".to_string(),
+    ))
+}
+
+#[utoipa::path(
+    post,
+    path = "/v1/workspaces/{ws_id}/leave/behalf-assignments",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    request_body = CreateBehalfAssignmentRequest,
+    responses(
+        (status = 200, description = "Leave assignment created", body = BehalfAssignment)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
+pub async fn create_leave_behalf_assignment(
+    State(state): State<Arc<AppState>>,
+    Path(_ws_id): Path<Uuid>,
+    ctx: MemberContext,
+    Json(req): Json<crate::models::CreateBehalfAssignmentRequest>,
+) -> AppResult<Json<crate::models::BehalfAssignment>> {
+    ctx.require_permission(Permission::LeavePoliciesManage)?;
+
+    let result = state
+        .attendance
+        .behalf_assignment_repo
+        .create_assignment(
+            ctx.workspace_id,
+            req.assignee_employee_id,
+            req.target_employee_id,
+            req.target_department_id,
+            "leave_request",
+        )
+        .await?;
+
+    Ok(Json(result))
+}
+
+#[utoipa::path(
+    delete,
+    path = "/v1/workspaces/{ws_id}/leave/behalf-assignments/{id}",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Assignment ID")
+    ),
+    responses(
+        (status = 200, description = "Leave assignment deleted")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
+pub async fn delete_leave_behalf_assignment(
+    State(state): State<Arc<AppState>>,
+    Path(params): Path<(Uuid, Uuid)>,
+    ctx: MemberContext,
+) -> AppResult<StatusCode> {
+    let (_ws_id, id) = params;
+    ctx.require_permission(Permission::LeavePoliciesManage)?;
+
+    let affected = state
+        .attendance
+        .behalf_assignment_repo
+        .delete_assignment(ctx.workspace_id, id)
+        .await?;
+
+    if affected == 0 {
+        return Err(AppError::NotFound("Assignment not found".to_string()));
+    }
+
+    Ok(StatusCode::OK)
+}
+
+#[utoipa::path(
+    get,
+    path = "/v1/workspaces/{ws_id}/leave/behalf-assignments",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    responses(
+        (status = 200, description = "List of leave assignments", body = Vec<BehalfAssignment>)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
+pub async fn list_leave_behalf_assignments(
+    State(state): State<Arc<AppState>>,
+    Path(_ws_id): Path<Uuid>,
+    ctx: MemberContext,
+) -> AppResult<Json<Vec<crate::models::BehalfAssignment>>> {
+    ctx.require_permission(Permission::LeavePoliciesManage)?;
+
+    let result = state
+        .attendance
+        .behalf_assignment_repo
+        .list_all_assignments(ctx.workspace_id, "leave_request")
+        .await?;
+
+    Ok(Json(result))
 }

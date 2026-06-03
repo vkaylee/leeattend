@@ -11,17 +11,30 @@ import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useBehalfAssignments } from "@/hooks/use-behalf-assignments";
 import { useAllEmployees } from "@/hooks/use-employees";
+import { useLeaveBehalfAssignments } from "@/hooks/use-leave-behalf-assignments";
 import { fetchDepartments } from "@/lib/api";
-import { OtClaimBehalfAssignment } from "@/lib/api/attendance";
+import { BehalfAssignment } from "@/lib/api/types";
 
-interface BehalfAssignmentInput {
-  assignee_employee_id: string;
-  target_department_id?: string | null;
-  target_employee_id?: string | null;
+interface AddAssignmentFormProps {
+  assigneeId: string;
+  assignmentType: "ot" | "leave";
+  departmentOptions: { description?: string | null; label: string; value: string }[];
+  isCreating: boolean;
+  onCancel: () => void;
+  onSubmit: (e: React.SyntheticEvent) => void;
+  setAssigneeId: (id: string) => void;
+  setTargetDepartmentId: (id: string) => void;
+  setTargetEmployeeId: (id: string) => void;
+  setTargetType: (type: "employee" | "department") => void;
+  targetDepartmentId: string;
+  targetEmployeeId: string;
+  targetType: "employee" | "department";
+  wsId: string;
 }
 
 interface AssignmentItemProps {
-  assignment: OtClaimBehalfAssignment;
+  assignment: BehalfAssignment;
+  assignmentType: "ot" | "leave";
   departments: {
     description?: string | null;
     id: string;
@@ -36,26 +49,19 @@ interface AssignmentItemProps {
   onDelete: (id: string) => Promise<void>;
 }
 
-function ClaimantDisplay({
-  assignee,
-}: {
-  assignee?: { employee_id_number?: string | null; full_name: string };
-}) {
-  return (
-    <div className="flex flex-col min-w-[200px]">
-      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-        Authorized Claimant
-      </span>
-      <span className="font-bold text-slate-800 dark:text-slate-200 text-sm mt-0.5">
-        {assignee?.full_name ?? "Unknown Employee"}
-      </span>
-      {assignee?.employee_id_number ? (
-        <span className="text-[10px] text-slate-400 font-mono mt-0.5">
-          {assignee.employee_id_number}
-        </span>
-      ) : null}
-    </div>
-  );
+interface BehalfAssignmentInput {
+  assignee_employee_id: string;
+  target_department_id?: string | null;
+  target_employee_id?: string | null;
+}
+
+interface BehalfAssignmentsEmptyStateProps {
+  assignmentType: "ot" | "leave";
+}
+
+interface BehalfAssignmentsHeaderProps {
+  assignmentType: "ot" | "leave";
+  onAddClick: () => void;
 }
 
 interface TargetScopeDisplayProps {
@@ -105,23 +111,32 @@ function TargetScopeDisplay({ targetEmp, targetDept }: TargetScopeDisplayProps) 
 
 function AssignmentItem({
   assignment,
+  assignmentType,
   departments,
   employees,
   isDeleting,
   onDelete,
 }: AssignmentItemProps) {
   const assignee = employees.find((e) => e.id === assignment.assignee_employee_id);
-  const targetEmp = assignment.target_employee_id
-    ? (employees.find((e) => e.id === assignment.target_employee_id) ?? null)
-    : null;
-  const targetDept = assignment.target_department_id
-    ? (departments.find((d) => d.id === assignment.target_department_id) ?? null)
-    : null;
+  const targetEmp = employees.find((e) => e.id === assignment.target_employee_id) ?? null;
+  const targetDept = departments.find((d) => d.id === assignment.target_department_id) ?? null;
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all duration-200">
       <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8 flex-1">
-        <ClaimantDisplay assignee={assignee} />
+        <div className="flex flex-col min-w-[200px]">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            {assignmentType === "ot" ? "Authorized Claimant" : "Authorized Requester"}
+          </span>
+          <span className="font-bold text-slate-800 dark:text-slate-200 text-sm mt-0.5">
+            {assignee?.full_name ?? "Unknown Employee"}
+          </span>
+          {assignee?.employee_id_number ? (
+            <span className="text-[10px] text-slate-400 font-mono mt-0.5">
+              {assignee.employee_id_number}
+            </span>
+          ) : null}
+        </div>
 
         <div className="flex items-center gap-2 text-slate-300 dark:text-slate-600 self-center hidden md:flex">
           <ArrowRight className="w-5 h-5" />
@@ -129,7 +144,7 @@ function AssignmentItem({
 
         <div className="flex flex-col">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-            Claim Target Scope
+            {assignmentType === "ot" ? "Claim Target Scope" : "Request Target Scope"}
           </span>
           <TargetScopeDisplay targetDept={targetDept} targetEmp={targetEmp} />
         </div>
@@ -149,9 +164,203 @@ function AssignmentItem({
   );
 }
 
-export function BehalfAssignmentsTab({ wsId }: { wsId: string }) {
+function AddAssignmentForm({
+  assigneeId,
+  assignmentType,
+  departmentOptions,
+  isCreating,
+  onCancel,
+  onSubmit,
+  setAssigneeId,
+  setTargetDepartmentId,
+  setTargetEmployeeId,
+  setTargetType,
+  targetDepartmentId,
+  targetEmployeeId,
+  targetType,
+  wsId,
+}: AddAssignmentFormProps) {
+  return (
+    <form className="space-y-6 animate-in fade-in zoom-in-95 duration-250" onSubmit={onSubmit}>
+      <div className="space-y-2">
+        <label
+          className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest"
+          htmlFor="submitter-select"
+        >
+          {assignmentType === "ot"
+            ? "Authorized Claimant (Employee)"
+            : "Authorized Requester (Employee)"}
+        </label>
+        <EmployeeSearch
+          clearOnEscape
+          emptyQueryBehavior="prompt-to-type"
+          id="submitter-select"
+          onChange={(val) => { setAssigneeId(typeof val === "string" ? val : val[0] ?? ""); }}
+          placeholder="Search and select submitter..."
+          value={assigneeId}
+          workspaceId={wsId}
+        />
+        <Typography className="text-[10px] text-slate-400 mt-1" variant="p">
+          {assignmentType === "ot"
+            ? "Select the workspace employee who is allowed to claim on behalf."
+            : "Select the workspace employee who is allowed to submit leave requests on behalf."}
+        </Typography>
+      </div>
+
+      <div className="space-y-3">
+        <span className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+          Target Scope Type
+        </span>
+        <div className="flex gap-4">
+          <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-700 dark:text-slate-300 font-bold">
+            <input
+              checked={targetType === "employee"}
+              className="text-primary-600 focus:ring-primary-500 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
+              onChange={() => {
+                setTargetType("employee");
+              }}
+              type="radio"
+            />
+            Employee
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-700 dark:text-slate-300 font-bold">
+            <input
+              checked={targetType === "department"}
+              className="text-primary-600 focus:ring-primary-500 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
+              onChange={() => {
+                setTargetType("department");
+              }}
+              type="radio"
+            />
+            Department
+          </label>
+        </div>
+      </div>
+
+      {targetType === "employee" ? (
+        <div className="space-y-2">
+          <label
+            className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest"
+            htmlFor="target-employee-select"
+          >
+            Target Employee
+          </label>
+          <EmployeeSearch
+            clearOnEscape
+            emptyQueryBehavior="prompt-to-type"
+            id="target-employee-select"
+            onChange={(val) => { setTargetEmployeeId(typeof val === "string" ? val : val[0] ?? ""); }}
+            placeholder="Search and select target employee..."
+            value={targetEmployeeId}
+            workspaceId={wsId}
+          />
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <label
+            className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest"
+            htmlFor="target-department-select"
+          >
+            Target Department
+          </label>
+          <Combobox
+            emptyText="No departments found"
+            id="target-department-select"
+            onChange={setTargetDepartmentId}
+            options={departmentOptions}
+            placeholder="Search and select target department..."
+            value={targetDepartmentId}
+          />
+        </div>
+      )}
+
+      <div className="flex justify-end gap-3 pt-4 border-t border-slate-50 dark:border-slate-800">
+        <Button
+          className="normal-case tracking-normal h-10 px-6 rounded-xl font-bold text-sm bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 shadow-none border-none"
+          onClick={onCancel}
+          type="button"
+          variant="ghost"
+        >
+          Cancel
+        </Button>
+        <Button
+          className="normal-case tracking-normal gap-2 h-10 px-6 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold text-sm shadow-md transition-all duration-300"
+          disabled={isCreating}
+          type="submit"
+          variant="primary"
+        >
+          {isCreating ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+          Create Assignment
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+function BehalfAssignmentsHeader({
+  assignmentType,
+  onAddClick,
+}: BehalfAssignmentsHeaderProps) {
+  return (
+    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-50 dark:border-slate-800 pb-6">
+      <div>
+        <Typography className="text-lg font-bold text-slate-800 dark:text-slate-200" variant="h3">
+          {assignmentType === "ot"
+            ? "Behalf Claim Assignments"
+            : "Behalf Leave Request Assignments"}
+        </Typography>
+        <Typography className="text-xs text-slate-500 mt-1" variant="p">
+          {assignmentType === "ot"
+            ? "Configure which employees are authorized to claim overtime on behalf of specific employees or entire departments."
+            : "Configure which employees are authorized to request leave on behalf of specific employees or entire departments."}
+        </Typography>
+      </div>
+      <Button
+        className="normal-case tracking-normal gap-2 h-10 px-6 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold text-sm shadow-md transition-all duration-300 transform active:scale-95"
+        onClick={onAddClick}
+        variant="primary"
+      >
+        <Plus className="w-4 h-4" />
+        Add Assignment
+      </Button>
+    </div>
+  );
+}
+
+function BehalfAssignmentsEmptyState({
+  assignmentType,
+}: BehalfAssignmentsEmptyStateProps) {
+  return (
+    <div className="py-24 text-center flex flex-col items-center border-4 border-dashed border-slate-50 dark:border-slate-800 rounded-[3rem] bg-slate-50 dark:bg-slate-800/30">
+      <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-xl border border-slate-100 dark:border-slate-800 mb-6">
+        <ShieldAlert className="text-slate-300 dark:text-slate-600" size={32} />
+      </div>
+      <Typography className="text-lg font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight" variant="h3">
+        {assignmentType === "ot"
+          ? "No Behalf Assignments Configured"
+          : "No Behalf Leave Assignments Configured"}
+      </Typography>
+      <Typography className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-2 opacity-50 max-w-sm" variant="p">
+        {assignmentType === "ot"
+          ? "Users with Claim on Behalf permission will fall back to their managed departments. Assign specific employees or departments to scope their claim access."
+          : "Users with Submit on Behalf permission will fall back to their managed departments. Assign specific employees or departments to scope their leave request access."}
+      </Typography>
+    </div>
+  );
+}
+
+export function BehalfAssignmentsTab({
+  wsId,
+  assignmentType = "ot",
+}: {
+  wsId: string;
+  assignmentType?: "ot" | "leave";
+}) {
   const { t } = useTranslation();
   const toast = useToast();
+
+  const otHooks = useBehalfAssignments();
+  const leaveHooks = useLeaveBehalfAssignments();
 
   const {
     assignments,
@@ -160,7 +369,7 @@ export function BehalfAssignmentsTab({ wsId }: { wsId: string }) {
     isCreating,
     deleteAssignment,
     isDeleting,
-  } = useBehalfAssignments();
+  } = assignmentType === "ot" ? otHooks : leaveHooks;
 
   const { employees: allEmployees, isLoading: allEmployeesLoading } = useAllEmployees(wsId);
   const employeesLoading = allEmployeesLoading;
@@ -251,44 +460,21 @@ export function BehalfAssignmentsTab({ wsId }: { wsId: string }) {
 
   return (
     <div className="p-8 space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-50 dark:border-slate-800 pb-6">
-        <div>
-          <Typography className="text-lg font-bold text-slate-800 dark:text-slate-200" variant="h3">
-            Behalf Claim Assignments
-          </Typography>
-          <Typography className="text-xs text-slate-500 mt-1" variant="p">
-            Configure which employees are authorized to claim overtime on behalf of specific employees or entire departments.
-          </Typography>
-        </div>
-        <Button
-          className="normal-case tracking-normal gap-2 h-10 px-6 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold text-sm shadow-md transition-all duration-300 transform active:scale-95"
-          onClick={() => {
-            setIsOpen(true);
-          }}
-          variant="primary"
-        >
-          <Plus className="w-4 h-4" />
-          Add Assignment
-        </Button>
-      </div>
+      <BehalfAssignmentsHeader
+        assignmentType={assignmentType}
+        onAddClick={() => {
+          setIsOpen(true);
+        }}
+      />
 
       {assignments.length === 0 ? (
-        <div className="py-24 text-center flex flex-col items-center border-4 border-dashed border-slate-50 dark:border-slate-800 rounded-[3rem] bg-slate-50 dark:bg-slate-800/30">
-          <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-xl border border-slate-100 dark:border-slate-800 mb-6">
-            <ShieldAlert className="text-slate-300 dark:text-slate-600" size={32} />
-          </div>
-          <Typography className="text-lg font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight" variant="h3">
-            No Behalf Assignments Configured
-          </Typography>
-          <Typography className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-2 opacity-50 max-w-sm" variant="p">
-            Users with Claim on Behalf permission will fall back to their managed departments. Assign specific employees or departments to scope their claim access.
-          </Typography>
-        </div>
+        <BehalfAssignmentsEmptyState assignmentType={assignmentType} />
       ) : (
         <div className="grid gap-4 animate-in fade-in duration-500">
           {assignments.map((assignment) => (
             <AssignmentItem
               assignment={assignment}
+              assignmentType={assignmentType}
               departments={departments}
               employees={allEmployees}
               isDeleting={isDeleting}
@@ -306,117 +492,24 @@ export function BehalfAssignmentsTab({ wsId }: { wsId: string }) {
         }}
         title="Add Behalf Assignment"
       >
-        <form className="space-y-6 animate-in fade-in zoom-in-95 duration-250" onSubmit={handleCreate}>
-          <div className="space-y-2">
-            <label
-              className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest"
-              htmlFor="submitter-select"
-            >
-              Authorized Submitter (Employee)
-            </label>
-            <EmployeeSearch
-              clearOnEscape
-              emptyQueryBehavior="prompt-to-type"
-              id="submitter-select"
-              onChange={(val) => { setAssigneeId(typeof val === "string" ? val : val[0] || ""); }}
-              placeholder="Search and select submitter..."
-              value={assigneeId}
-              workspaceId={wsId}
-            />
-            <Typography className="text-[10px] text-slate-400 mt-1" variant="p">
-              Select the workspace employee who is allowed to claim on behalf.
-            </Typography>
-          </div>
-
-          <div className="space-y-3">
-            <span className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-              Target Scope Type
-            </span>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-700 dark:text-slate-300 font-bold">
-                <input
-                  checked={targetType === "employee"}
-                  className="text-primary-600 focus:ring-primary-500 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
-                  onChange={() => {
-                    setTargetType("employee");
-                  }}
-                  type="radio"
-                />
-                Employee
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-700 dark:text-slate-300 font-bold">
-                <input
-                  checked={targetType === "department"}
-                  className="text-primary-600 focus:ring-primary-500 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
-                  onChange={() => {
-                    setTargetType("department");
-                  }}
-                  type="radio"
-                />
-                Department
-              </label>
-            </div>
-          </div>
-
-          {targetType === "employee" ? (
-            <div className="space-y-2">
-              <label
-                className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest"
-                htmlFor="target-employee-select"
-              >
-                Target Employee
-              </label>
-              <EmployeeSearch
-                clearOnEscape
-                emptyQueryBehavior="prompt-to-type"
-                id="target-employee-select"
-                onChange={(val) => { setTargetEmployeeId(typeof val === "string" ? val : val[0] || ""); }}
-                placeholder="Search and select target employee..."
-                value={targetEmployeeId}
-                workspaceId={wsId}
-              />
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <label
-                className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest"
-                htmlFor="target-department-select"
-              >
-                Target Department
-              </label>
-              <Combobox
-                emptyText="No departments found"
-                id="target-department-select"
-                onChange={setTargetDepartmentId}
-                options={departmentOptions}
-                placeholder="Search and select target department..."
-                value={targetDepartmentId}
-              />
-            </div>
-          )}
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-50 dark:border-slate-800">
-            <Button
-              className="normal-case tracking-normal h-10 px-6 rounded-xl font-bold text-sm bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 shadow-none border-none"
-              onClick={() => {
-                setIsOpen(false);
-              }}
-              type="button"
-              variant="ghost"
-            >
-              Cancel
-            </Button>
-            <Button
-              className="normal-case tracking-normal gap-2 h-10 px-6 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold text-sm shadow-md transition-all duration-300"
-              disabled={isCreating}
-              type="submit"
-              variant="primary"
-            >
-              {isCreating ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-              Create Assignment
-            </Button>
-          </div>
-        </form>
+        <AddAssignmentForm
+          assigneeId={assigneeId}
+          assignmentType={assignmentType}
+          departmentOptions={departmentOptions}
+          isCreating={isCreating}
+          onCancel={() => {
+            setIsOpen(false);
+          }}
+          onSubmit={handleCreate}
+          setAssigneeId={setAssigneeId}
+          setTargetDepartmentId={setTargetDepartmentId}
+          setTargetEmployeeId={setTargetEmployeeId}
+          setTargetType={setTargetType}
+          targetDepartmentId={targetDepartmentId}
+          targetEmployeeId={targetEmployeeId}
+          targetType={targetType}
+          wsId={wsId}
+        />
       </Modal>
     </div>
   );

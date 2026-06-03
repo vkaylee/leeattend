@@ -128,7 +128,7 @@ pub async fn get_employees(
     let _workspace_id = ctx.workspace_id;
 
     let page = query.page.unwrap_or(1).max(1);
-    let limit = query.limit.unwrap_or(50).clamp(1, 100);
+    let limit = query.limit.unwrap_or(50).clamp(1, 3000);
     let department_ids: Option<Vec<Uuid>> = query
         .department_id
         .as_deref()

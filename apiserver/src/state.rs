@@ -23,8 +23,8 @@ use crate::repositories::time_entry_repository::TimeEntryRepository;
 use crate::repositories::user_repository::UserRepository;
 use crate::repositories::workspace_stats_repository::WorkspaceStatsRepository;
 use crate::repositories::{
-    AgentRepository, DieselEmployeeContractRepository, EmployeeRepository,
-    OtClaimBehalfAssignmentRepository, WorkspaceRepository,
+    AgentRepository, BehalfAssignmentRepository, DieselEmployeeContractRepository,
+    EmployeeRepository, WorkspaceRepository,
 };
 use crate::services::attendance_adjustment_service::AttendanceAdjustmentService;
 use crate::services::attendance_import_service::AttendanceImportService;
@@ -72,7 +72,7 @@ pub struct AttendanceState {
         Arc<dyn crate::repositories::attendance_policy_repository::AttendancePolicyRepository>,
     pub attendance_daily_summary_repo:
         Arc<dyn crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository>,
-    pub ot_claim_behalf_assignment_repo: Arc<dyn OtClaimBehalfAssignmentRepository>,
+    pub behalf_assignment_repo: Arc<dyn BehalfAssignmentRepository>,
 }
 
 /// Shift management — shifts, rosters, swaps, patterns

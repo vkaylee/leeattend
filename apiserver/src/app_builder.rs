@@ -96,10 +96,10 @@ impl AppState {
                 diesel_pools.clone(),
             ),
         );
-        let ot_claim_behalf_assignment_repo: Arc<
-            dyn crate::repositories::ot_claim_behalf_assignment_repository::OtClaimBehalfAssignmentRepository,
+        let behalf_assignment_repo: Arc<
+            dyn crate::repositories::behalf_assignment_repository::BehalfAssignmentRepository,
         > = Arc::new(
-            crate::repositories::diesel_ot_claim_behalf_assignment_repository::DieselOtClaimBehalfAssignmentRepository::new(
+            crate::repositories::diesel_behalf_assignment_repository::DieselBehalfAssignmentRepository::new(
                 diesel_pools.clone(),
             ),
         );
@@ -584,7 +584,7 @@ impl AppState {
                 error_repo,
                 policy_repo,
                 attendance_daily_summary_repo,
-                ot_claim_behalf_assignment_repo,
+                behalf_assignment_repo,
             },
             shifts: crate::ShiftState {
                 service: shift_service,

@@ -504,3 +504,5 @@ export type OvertimeRequestEmployee = components["schemas"]["OvertimeRequestEmpl
 export type OvertimeRequest = components["schemas"]["OvertimeRequest"];
 export type OvertimeRequestDetail = components["schemas"]["OvertimeRequestDetail"];
 export type CreateOvertimeRequestPayload = components["schemas"]["CreateOvertimeRequestPayload"];
+export type BehalfAssignment = components["schemas"]["BehalfAssignment"];
+export type CreateBehalfAssignmentRequest = components["schemas"]["CreateBehalfAssignmentRequest"];

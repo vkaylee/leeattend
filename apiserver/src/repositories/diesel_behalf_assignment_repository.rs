@@ -5,30 +5,31 @@ use uuid::Uuid;
 
 use crate::diesel_pool::DieselPools;
 use crate::errors::{AppError, AppResult};
-use crate::models::diesel::ot_claim_behalf_assignment::OtClaimBehalfAssignmentEntity;
-use crate::models::OtClaimBehalfAssignment;
-use crate::repositories::ot_claim_behalf_assignment_repository::OtClaimBehalfAssignmentRepository;
-use crate::schema::ot_claim_behalf_assignments;
+use crate::models::diesel::behalf_assignment::BehalfAssignmentEntity;
+use crate::models::BehalfAssignment;
+use crate::repositories::behalf_assignment_repository::BehalfAssignmentRepository;
+use crate::schema::behalf_assignments;
 
-pub struct DieselOtClaimBehalfAssignmentRepository {
+pub struct DieselBehalfAssignmentRepository {
     pub diesel_pools: DieselPools,
 }
 
-impl DieselOtClaimBehalfAssignmentRepository {
+impl DieselBehalfAssignmentRepository {
     pub fn new(diesel_pools: DieselPools) -> Self {
         Self { diesel_pools }
     }
 }
 
 #[async_trait]
-impl OtClaimBehalfAssignmentRepository for DieselOtClaimBehalfAssignmentRepository {
+impl BehalfAssignmentRepository for DieselBehalfAssignmentRepository {
     async fn create_assignment(
         &self,
         workspace_id: Uuid,
         assignee_employee_id: Uuid,
         target_employee_id: Option<Uuid>,
         target_department_id: Option<Uuid>,
-    ) -> AppResult<OtClaimBehalfAssignment> {
+        assignment_type: &str,
+    ) -> AppResult<BehalfAssignment> {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .tenants_tx
@@ -48,14 +49,15 @@ impl OtClaimBehalfAssignmentRepository for DieselOtClaimBehalfAssignmentReposito
             ));
         }
 
-        diesel::insert_into(ot_claim_behalf_assignments::table)
+        diesel::insert_into(behalf_assignments::table)
             .values((
-                ot_claim_behalf_assignments::workspace_id.eq(workspace_id),
-                ot_claim_behalf_assignments::assignee_employee_id.eq(assignee_employee_id),
-                ot_claim_behalf_assignments::target_employee_id.eq(target_employee_id),
-                ot_claim_behalf_assignments::target_department_id.eq(target_department_id),
+                behalf_assignments::workspace_id.eq(workspace_id),
+                behalf_assignments::assignee_employee_id.eq(assignee_employee_id),
+                behalf_assignments::target_employee_id.eq(target_employee_id),
+                behalf_assignments::target_department_id.eq(target_department_id),
+                behalf_assignments::assignment_type.eq(assignment_type),
             ))
-            .returning(OtClaimBehalfAssignmentEntity::as_returning())
+            .returning(BehalfAssignmentEntity::as_returning())
             .get_result(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))
@@ -71,9 +73,9 @@ impl OtClaimBehalfAssignmentRepository for DieselOtClaimBehalfAssignmentReposito
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        let affected = diesel::delete(ot_claim_behalf_assignments::table)
-            .filter(ot_claim_behalf_assignments::id.eq(id))
-            .filter(ot_claim_behalf_assignments::workspace_id.eq(workspace_id))
+        let affected = diesel::delete(behalf_assignments::table)
+            .filter(behalf_assignments::id.eq(id))
+            .filter(behalf_assignments::workspace_id.eq(workspace_id))
             .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -84,7 +86,8 @@ impl OtClaimBehalfAssignmentRepository for DieselOtClaimBehalfAssignmentReposito
     async fn list_all_assignments(
         &self,
         workspace_id: Uuid,
-    ) -> AppResult<Vec<OtClaimBehalfAssignment>> {
+        assignment_type: &str,
+    ) -> AppResult<Vec<BehalfAssignment>> {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .tenants_tx
@@ -93,10 +96,11 @@ impl OtClaimBehalfAssignmentRepository for DieselOtClaimBehalfAssignmentReposito
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        ot_claim_behalf_assignments::table
-            .filter(ot_claim_behalf_assignments::workspace_id.eq(workspace_id))
-            .order(ot_claim_behalf_assignments::created_at.desc())
-            .select(OtClaimBehalfAssignmentEntity::as_select())
+        behalf_assignments::table
+            .filter(behalf_assignments::workspace_id.eq(workspace_id))
+            .filter(behalf_assignments::assignment_type.eq(assignment_type))
+            .order(behalf_assignments::created_at.desc())
+            .select(BehalfAssignmentEntity::as_select())
             .load(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))
@@ -109,6 +113,7 @@ impl OtClaimBehalfAssignmentRepository for DieselOtClaimBehalfAssignmentReposito
         assignee_employee_id: Uuid,
         target_employee_id: Uuid,
         target_department_id: Option<Uuid>,
+        assignment_type: &str,
     ) -> AppResult<bool> {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -118,20 +123,20 @@ impl OtClaimBehalfAssignmentRepository for DieselOtClaimBehalfAssignmentReposito
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        let mut query = ot_claim_behalf_assignments::table
-            .filter(ot_claim_behalf_assignments::workspace_id.eq(workspace_id))
-            .filter(ot_claim_behalf_assignments::assignee_employee_id.eq(assignee_employee_id))
+        let mut query = behalf_assignments::table
+            .filter(behalf_assignments::workspace_id.eq(workspace_id))
+            .filter(behalf_assignments::assignee_employee_id.eq(assignee_employee_id))
+            .filter(behalf_assignments::assignment_type.eq(assignment_type))
             .into_boxed();
 
         if let Some(dept_id) = target_department_id {
             query = query.filter(
-                ot_claim_behalf_assignments::target_employee_id
+                behalf_assignments::target_employee_id
                     .eq(target_employee_id)
-                    .or(ot_claim_behalf_assignments::target_department_id.eq(dept_id)),
+                    .or(behalf_assignments::target_department_id.eq(dept_id)),
             );
         } else {
-            query = query
-                .filter(ot_claim_behalf_assignments::target_employee_id.eq(target_employee_id));
+            query = query.filter(behalf_assignments::target_employee_id.eq(target_employee_id));
         }
 
         let count: i64 = query

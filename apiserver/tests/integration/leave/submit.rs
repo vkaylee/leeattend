@@ -346,3 +346,122 @@ async fn test_employee_submit_forbidden() {
     // Member does NOT have LeaveRequestsSubmit permission
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 }
+
+/// Test that a user with `LeaveRequestsSubmitOnBehalf` permission and a behalf assignment
+/// can submit a leave request on behalf of a target employee, while a user without the
+/// behalf assignment gets a 403 Forbidden.
+#[tokio::test]
+async fn test_submit_leave_on_behalf_with_assignment() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let owner_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(owner_id).await;
+
+    // Submitter user + employee record
+    let submitter_user_id = factory
+        .user()
+        .with_email("submitter@test.com")
+        .create()
+        .await;
+
+    // Assign the employee role to the submitter (role_id: a0000000-0000-0000-0000-000000000006)
+    let emp_role_id = uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap();
+    factory
+        .add_member(ws_id, submitter_user_id, emp_role_id)
+        .await;
+
+    let submitter_emp_id = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_user(submitter_user_id)
+        .create()
+        .await;
+
+    // Grant `leave:requests:submit_on_behalf` to the employee role in the database
+    crate::test_execute!(
+        &factory.diesel_pools.api,
+        "INSERT INTO workspace_role_permissions (role_id, permission_name) VALUES ($1, $2)",
+        diesel::sql_types::Uuid,
+        emp_role_id,
+        diesel::sql_types::Text,
+        "leave:requests:submit_on_behalf"
+    );
+
+    // Target employee
+    let target_emp_id = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_full_name("Target Employee")
+        .create()
+        .await;
+
+    let vacation_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
+        diesel::sql_types::Uuid,
+        ws_id
+    );
+
+    let submit_req = SubmitLeaveRequest {
+        employee_id: target_emp_id,
+        leave_type_id: vacation_id,
+        start_date: chrono::NaiveDate::from_ymd_opt(2026, 6, 10).unwrap(),
+        end_date: chrono::NaiveDate::from_ymd_opt(2026, 6, 12).unwrap(),
+        reason: Some("Leave on behalf by assignment".to_string()),
+        duration_type: apiserver::models::enums::LeaveDurationType::FullDay,
+        start_time: None,
+        end_time: None,
+    };
+
+    // 1. Without behalf assignment, it should fail with 403 Forbidden
+    let response = app
+        .clone()
+        .oneshot(req(
+            "POST",
+            &format!("/api/v1/workspaces/{ws_id}/leave/submit"),
+            ws_id,
+            submitter_user_id,
+            Some(serde_json::to_string(&submit_req).unwrap()),
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    // 2. Add the behalf assignment in the database
+    crate::test_execute!(
+        &factory.diesel_pools.api,
+        "INSERT INTO behalf_assignments (id, workspace_id, assignee_employee_id, target_employee_id, assignment_type, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, 'leave_request', NOW(), NOW())",
+        diesel::sql_types::Uuid,
+        uuid::Uuid::new_v4(),
+        diesel::sql_types::Uuid,
+        ws_id,
+        diesel::sql_types::Uuid,
+        submitter_emp_id,
+        diesel::sql_types::Uuid,
+        target_emp_id
+    );
+
+    // 3. With behalf assignment, it should succeed
+    let response = app
+        .clone()
+        .oneshot(req(
+            "POST",
+            &format!("/api/v1/workspaces/{ws_id}/leave/submit"),
+            ws_id,
+            submitter_user_id,
+            Some(serde_json::to_string(&submit_req).unwrap()),
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let leave_req: LeaveRequest = serde_json::from_slice(&body).unwrap();
+    assert_eq!(leave_req.employee_id, target_emp_id);
+    assert_eq!(leave_req.requested_by_user_id, Some(submitter_user_id));
+}

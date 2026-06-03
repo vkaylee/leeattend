@@ -143,6 +143,9 @@ use utoipa::OpenApi;
         crate::handlers::leaves::get_job_status,
         crate::handlers::leaves::upload_leave_excel,
         crate::handlers::leaves::get_latest_leave_import,
+        crate::handlers::leaves::list_leave_behalf_assignments,
+        crate::handlers::leaves::create_leave_behalf_assignment,
+        crate::handlers::leaves::delete_leave_behalf_assignment,
         crate::handlers::leaves::download_leave_import_errors,
         crate::handlers::leaves::download_leave_import_template,
         crate::handlers::leave_types::list_leave_types,
@@ -592,7 +595,7 @@ use utoipa::OpenApi;
             crate::handlers::overtime::CreatePolicyRequest,
             crate::handlers::overtime::CreateRuleRequest,
             crate::handlers::overtime::AssignPolicyRequest,
-            OtClaimBehalfAssignment,
+            BehalfAssignment,
             CreateBehalfAssignmentRequest,
 
             // Phase 5: Compensation, Workflows & Webhooks Schemas

@@ -1267,7 +1267,9 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             .select(workspace_members::user_id)
             .load::<Uuid>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db error fetching primary role permissions: {e}")))?;
+            .map_err(|e| {
+                AppError::Internal(format!("db error fetching primary role permissions: {e}"))
+            })?;
 
         // 2. Users whose active extra role has the permission, or whose extra role is global
         let extra_role_users = member_extra_roles::table
@@ -1288,7 +1290,9 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             .select(member_extra_roles::user_id)
             .load::<Uuid>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db error fetching extra role permissions: {e}")))?;
+            .map_err(|e| {
+                AppError::Internal(format!("db error fetching extra role permissions: {e}"))
+            })?;
 
         // 3. Users who have the permission assigned directly as an extra permission
         let extra_perm_users = workspace_member_extra_permissions::table

@@ -86,8 +86,8 @@ pub async fn get_attendance_report(
 
         let assignments = state
             .attendance
-            .ot_claim_behalf_assignment_repo
-            .list_all_assignments(workspace_id)
+            .behalf_assignment_repo
+            .list_all_assignments(workspace_id, "overtime_claim")
             .await?;
 
         let caller_assignments: Vec<_> = assignments

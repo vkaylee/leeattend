@@ -630,6 +630,7 @@ export async function updateDefaultAttendanceRules(
 
 export interface OtClaimBehalfAssignment {
   assignee_employee_id: string;
+  assignment_type: string;
   created_at: string;
   id: string;
   target_department_id?: string | null;

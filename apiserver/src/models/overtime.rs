@@ -40,12 +40,13 @@ pub struct OvertimePolicyAssignment {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
-pub struct OtClaimBehalfAssignment {
+pub struct BehalfAssignment {
     pub id: Uuid,
     pub workspace_id: Uuid,
     pub assignee_employee_id: Uuid,
     pub target_employee_id: Option<Uuid>,
     pub target_department_id: Option<Uuid>,
+    pub assignment_type: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

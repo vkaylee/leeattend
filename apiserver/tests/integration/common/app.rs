@@ -587,8 +587,8 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             error_repo: error_repo.clone(),
             policy_repo: policy_repo.clone(),
             attendance_daily_summary_repo: attendance_summary_repo.clone(),
-            ot_claim_behalf_assignment_repo: Arc::new(
-                apiserver::repositories::DieselOtClaimBehalfAssignmentRepository::new(diesel_pools.clone()),
+            behalf_assignment_repo: Arc::new(
+                apiserver::repositories::DieselBehalfAssignmentRepository::new(diesel_pools.clone()),
             ),
         },
         shifts: apiserver::ShiftState {
@@ -1193,8 +1193,8 @@ pub async fn spawn_app_with_factory_extended(
             error_repo: error_repo.clone(),
             policy_repo: policy_repo.clone(),
             attendance_daily_summary_repo: attendance_summary_repo.clone(),
-            ot_claim_behalf_assignment_repo: Arc::new(
-                apiserver::repositories::DieselOtClaimBehalfAssignmentRepository::new(diesel_pools.clone()),
+            behalf_assignment_repo: Arc::new(
+                apiserver::repositories::DieselBehalfAssignmentRepository::new(diesel_pools.clone()),
             ),
         },
         shifts: apiserver::ShiftState {
@@ -1852,8 +1852,8 @@ pub async fn setup_app_tower_internal_extended(
                     diesel_pools.clone(),
                 ),
             ),
-            ot_claim_behalf_assignment_repo: Arc::new(
-                apiserver::repositories::DieselOtClaimBehalfAssignmentRepository::new(diesel_pools.clone()),
+            behalf_assignment_repo: Arc::new(
+                apiserver::repositories::DieselBehalfAssignmentRepository::new(diesel_pools.clone()),
             ),
         },
         shifts: apiserver::ShiftState {

@@ -113,4 +113,13 @@ pub fn router() -> Router<Arc<AppState>> {
             "/workspaces/:ws_id/holidays/:id/process-leave",
             post(handlers::holidays::process_holiday_leave),
         )
+        .route(
+            "/workspaces/:ws_id/leave/behalf-assignments",
+            get(handlers::leaves::list_leave_behalf_assignments)
+                .post(handlers::leaves::create_leave_behalf_assignment),
+        )
+        .route(
+            "/workspaces/:ws_id/leave/behalf-assignments/:id",
+            delete(handlers::leaves::delete_leave_behalf_assignment),
+        )
 }

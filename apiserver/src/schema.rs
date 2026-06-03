@@ -1425,7 +1425,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    ot_claim_behalf_assignments (id) {
+    behalf_assignments (id) {
         id -> Uuid,
         workspace_id -> Uuid,
         assignee_employee_id -> Uuid,
@@ -1433,11 +1433,12 @@ diesel::table! {
         target_department_id -> Nullable<Uuid>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        assignment_type -> Text,
     }
 }
 
 diesel::joinable!(assignment_rules -> working_patterns (pattern_id));
-diesel::joinable!(ot_claim_behalf_assignments -> employees (assignee_employee_id));
+diesel::joinable!(behalf_assignments -> employees (assignee_employee_id));
 diesel::joinable!(attendance_adjustment_requests -> employees (employee_id));
 diesel::joinable!(attendance_adjustment_requests -> time_entries (time_entry_id));
 diesel::joinable!(attendance_daily_summaries -> employees (employee_id));
@@ -1520,7 +1521,7 @@ diesel::joinable!(approval_workflow_instances -> approval_workflows (workflow_id
 diesel::joinable!(approval_workflow_tasks -> approval_workflow_instances (instance_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
-    ot_claim_behalf_assignments,
+    behalf_assignments,
     approval_action_log,
     approval_workflow_instances,
     approval_workflow_tasks,
