@@ -19,7 +19,9 @@ export default tseslint.config(
       'coverage', 
       'node_modules', 
       'src/route-tree.gen.ts',
+      'src/routeTree.gen.ts',
       'src/types/api-generated.ts',
+      'src/lib/api-generated/**/*',
       'src/vite-env.d.ts',
       'src/components/shifts/__tests__/shift-modals.test.tsx',
       'scratch',
@@ -136,7 +138,7 @@ export default tseslint.config(
 
       // --- Option C: Enterprise Hardening ---
       'complexity': ['error', 10],
-      'max-lines-per-function': ['warn', { max: 100, skipBlankLines: true, skipComments: true }],
+      'max-lines-per-function': ['warn', { max: 150, skipBlankLines: true, skipComments: true }],
       'max-params': ['error', 4],
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       
@@ -174,6 +176,32 @@ export default tseslint.config(
         { element: 'p', message: 'Use <Typography variant="p"> instead.' },
         { element: 'button', message: 'Use <Button> instead.' }
       ] }],
+    },
+  },
+  {
+    files: ['src/**/*.ts'],
+    ignores: [
+      'src/components/ui/**/*',
+      'src/**/*.test.ts',
+      'src/**/__tests__/**/*',
+      'src/routeTree.gen.ts',
+      'src/route-tree.gen.ts',
+      'src/types/api-generated.ts',
+      'src/lib/api-generated/**/*',
+    ],
+    rules: {
+      'max-lines': ['error', { max: 100, skipBlankLines: true, skipComments: true }],
+    },
+  },
+  {
+    files: ['src/**/*.tsx'],
+    ignores: [
+      'src/components/ui/**/*',
+      'src/**/*.test.tsx',
+      'src/**/__tests__/**/*',
+    ],
+    rules: {
+      'max-lines': ['error', { max: 150, skipBlankLines: true, skipComments: true }],
     },
   },
   {
