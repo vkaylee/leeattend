@@ -1,6 +1,6 @@
 //! Report API integration tests
 
-use crate::common::app::spawn_app;
+use crate::common::app::{spawn_app, spawn_app_with_member};
 use chrono::{Datelike, NaiveTime, TimeZone, Utc};
 use reqwest::StatusCode;
 
@@ -235,4 +235,130 @@ async fn test_get_workspace_attendance_summary_computed_sorting() {
     let data_asc = body_asc["data"].as_array().unwrap();
     assert_eq!(data_asc.len(), 1);
     assert_eq!(data_asc[0]["employee_name"].as_str().unwrap(), "Employee A");
+}
+
+#[tokio::test]
+async fn test_get_daily_attendance_report_behalf_filtering() {
+    let (address, workspace_id, _owner_id, clerk_user_id, factory, test_db) =
+        spawn_app_with_member().await;
+    let pool = test_db.diesel_pools.clone();
+    let client = reqwest::Client::new();
+
+    let employee_role_id = uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap();
+
+    // 1. Grant 'overtime:claim_on_behalf' permission to employee role
+    crate::test_execute!(
+        &pool.api,
+        "INSERT INTO workspace_role_permissions (role_id, permission_name) VALUES ($1, 'overtime:claim_on_behalf') ON CONFLICT DO NOTHING",
+        diesel::sql_types::Uuid, employee_role_id
+    );
+
+    // 2. Create the clerk employee (assignee) linked to clerk_user_id
+    let clerk_emp_id = factory
+        .employee()
+        .with_workspace(workspace_id)
+        .with_user(clerk_user_id)
+        .with_full_name("Clerk Employee")
+        .with_employee_id_number("EMP_CLERK")
+        .create()
+        .await;
+
+    // 3. Create two target employees
+    let emp_assigned_id = factory
+        .employee()
+        .with_workspace(workspace_id)
+        .with_full_name("Assigned Employee")
+        .with_employee_id_number("EMP_ASSIGNED")
+        .create()
+        .await;
+
+    let _emp_unassigned_id = factory
+        .employee()
+        .with_workspace(workspace_id)
+        .with_full_name("Unassigned Employee")
+        .with_employee_id_number("EMP_UNASSIGNED")
+        .create()
+        .await;
+
+    // 4. Create department and transfer emp_assigned to it
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
+    let dept_repo = apiserver::repositories::DieselDepartmentRepository::new(diesel_pools.clone());
+    use apiserver::repositories::department_repository::DepartmentRepository;
+
+    let dept = dept_repo
+        .create_department(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id),
+            "Assigned Department".to_string(),
+            None,
+            None,
+            None,
+        )
+        .await
+        .unwrap();
+
+    dept_repo
+        .transfer_employee(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id),
+            emp_assigned_id,
+            dept.id,
+            chrono::Utc::now().date_naive(),
+            None,
+        )
+        .await
+        .unwrap();
+
+    // 5. Generate auth token for clerk user
+    let clerk_auth_token = factory.auth().create_token(clerk_user_id);
+    let today = chrono::Utc::now().date_naive().to_string();
+
+    // CASE A: Clerk has NO behalf assignments
+    // Querying report should return empty list (total = 0)
+    let response = client
+        .get(format!(
+            "{address}/api/v1/workspaces/{workspace_id}/reports/attendance?type=daily&start_date={today}&end_date={today}"
+        ))
+        .header("Authorization", format!("Bearer {clerk_auth_token}"))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), reqwest::StatusCode::OK);
+    let body: serde_json::Value = response.json().await.unwrap();
+    let data = body["data"].as_array().unwrap();
+    assert_eq!(data.len(), 0);
+    assert_eq!(body["total"].as_i64().unwrap(), 0);
+
+    // CASE B: Assign the department to the clerk
+    let assignment_id = uuid::Uuid::new_v4();
+    crate::test_execute!(
+        &pool.api,
+        "INSERT INTO ot_claim_behalf_assignments (id, workspace_id, assignee_employee_id, target_department_id, created_at, updated_at) VALUES ($1, $2, $3, $4, NOW(), NOW())",
+        diesel::sql_types::Uuid, assignment_id,
+        diesel::sql_types::Uuid, workspace_id,
+        diesel::sql_types::Uuid, clerk_emp_id,
+        diesel::sql_types::Uuid, dept.id
+    );
+
+    // Query report again. This time it should return exactly 1 row (EMP_ASSIGNED)
+    let response = client
+        .get(format!(
+            "{address}/api/v1/workspaces/{workspace_id}/reports/attendance?type=daily&start_date={today}&end_date={today}"
+        ))
+        .header("Authorization", format!("Bearer {clerk_auth_token}"))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), reqwest::StatusCode::OK);
+    let body: serde_json::Value = response.json().await.unwrap();
+    let data = body["data"].as_array().unwrap();
+
+    let names: Vec<String> = data
+        .iter()
+        .map(|row| row["employee_name"].as_str().unwrap().to_string())
+        .collect();
+
+    assert!(names.contains(&"Assigned Employee".to_string()));
+    assert!(!names.contains(&"Unassigned Employee".to_string()));
+    assert!(!names.contains(&"Clerk Employee".to_string()));
 }
