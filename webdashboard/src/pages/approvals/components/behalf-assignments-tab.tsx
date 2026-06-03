@@ -162,10 +162,7 @@ export function BehalfAssignmentsTab({ wsId }: { wsId: string }) {
   } = useBehalfAssignments();
 
   const { employees: allEmployees, isLoading: allEmployeesLoading } = useAllEmployees(wsId);
-  const { employees: claimantEmployees, isLoading: claimantEmployeesLoading } = useAllEmployees(wsId, {
-    permission: "overtime:claim_on_behalf",
-  });
-  const employeesLoading = allEmployeesLoading || claimantEmployeesLoading;
+  const employeesLoading = allEmployeesLoading;
 
   const { data: departments = [], isLoading: deptsLoading } = useQuery({
     queryKey: ["departments", wsId],
@@ -245,7 +242,7 @@ export function BehalfAssignmentsTab({ wsId }: { wsId: string }) {
     );
   }
 
-  const claimantOptions = claimantEmployees.map((emp) => ({
+  const claimantOptions = allEmployees.map((emp) => ({
     description: emp.employee_id_number,
     label: emp.full_name,
     value: emp.id,
