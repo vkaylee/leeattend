@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, ShieldCheck } from "lucide-react";
 import React, { useState } from "react";
@@ -55,7 +54,7 @@ export function LeavePolicyManager({ wsId }: LeavePolicyManagerProps) {
 
   const mutation = useMutation({
     mutationFn: (data: Partial<LeavePolicy>) => 
-      editingPolicy ? updateLeavePolicy(wsId, editingPolicy.id, data) : createLeavePolicy(wsId, data),
+      editingPolicy ? updateLeavePolicy(wsId, editingPolicy.id, data) : createLeavePolicy(wsId, data as unknown as Parameters<typeof createLeavePolicy>[1]),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["leave-policies"] });
       toast.success(editingPolicy ? "Policy updated" : "Policy created");
@@ -89,7 +88,7 @@ export function LeavePolicyManager({ wsId }: LeavePolicyManagerProps) {
           </div>
         ) : policies.map((policy) => (
           <PolicyCard 
-            bonusCount={policy.rule_config.seniority_bonus.length}
+            bonusCount={policy.rule_config.seniority_bonus?.length ?? 0}
             key={policy.id}
             onDelete={handleDelete}
             onEdit={setEditingPolicy}

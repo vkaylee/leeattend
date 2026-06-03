@@ -35,7 +35,7 @@ export default function RuleAssignmentManager({
   } = useRuleAssignments(wsId, ruleId);
 
   const handleCreate = (data: Partial<PayrollRuleAssignment>) => {
-    createMutation.mutate(data, {
+    createMutation.mutate(data as { assignee_type: string; effective_from: string; assignee_id?: string | null; effective_to?: string | null; override_config?: unknown }, {
       onSuccess: () => { setIsModalOpen(false); },
     });
   };

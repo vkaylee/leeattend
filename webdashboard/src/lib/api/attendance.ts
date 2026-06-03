@@ -1,5 +1,4 @@
 import { client } from "./client";
-// @ts-nocheck
 import { apiFetch, getCurrentWorkspaceId, TIMEOUT } from "./helpers";
 import {
   TimeEntry,
@@ -15,6 +14,13 @@ import {
   WorkerMonitorStats, AttendanceDailySummary, MonitorJobsResponse
 } from "./types";
 
+const httpClient = client as unknown as {
+  GET: (url: string, options?: Record<string, unknown>) => Promise<{ data?: unknown; error?: unknown }>;
+  POST: (url: string, options?: Record<string, unknown>) => Promise<{ data?: unknown; error?: unknown }>;
+  PUT: (url: string, options?: Record<string, unknown>) => Promise<{ data?: unknown; error?: unknown }>;
+  DELETE: (url: string, options?: Record<string, unknown>) => Promise<{ data?: unknown; error?: unknown }>;
+};
+
 export async function punchIn(
   wsId: string,
   data: { employee_id: string; entry_type?: string; note?: string },
@@ -25,23 +31,22 @@ export async function punchIn(
     },
     body: data,
   });
-  if (!resData) throw new Error("No response data");
+  if (!resData) throw new Error("Punch in failed");
   return resData;
 }
 
 export async function punchOut(
   wsId: string,
-  employeeId: string,
-  data: { note?: string },
+  data: { employee_id: string; note?: string },
 ): Promise<TimeEntry> {
-  const { data: resData } = await client.POST("/workspaces/{workspace_id}/time/punch-out/{employee_id}", {
+  const { data: resData } = await httpClient.POST("/workspaces/{workspace_id}/time/punch-out", {
     params: {
-      path: { workspace_id: wsId, employee_id: employeeId },
+      path: { workspace_id: wsId },
     },
     body: data,
   });
-  if (!resData) throw new Error("No response data");
-  return resData;
+  if (!resData) throw new Error("Punch out failed");
+  return resData as TimeEntry;
 }
 
 export async function fetchTimeHistory(
@@ -66,15 +71,17 @@ export async function updateTimeEntry(
   data: Partial<TimeEntry>,
 ): Promise<TimeEntry> {
   const { data: resData } = await client.PUT("/v1/workspaces/{ws_id}/attendance/time-tracking/{id}", {
-            params: { path: { ws_id: wsId, id } },
-          body: data });
-    return resData!;
+    params: { path: { ws_id: wsId, id } },
+    body: data
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function deleteTimeEntry(wsId: string, id: string): Promise<void> {
   await client.DELETE("/v1/workspaces/{ws_id}/attendance/time-tracking/{id}", {
-            params: { path: { ws_id: wsId, id } }
-      });
+    params: { path: { ws_id: wsId, id } }
+  });
 }
 
 export async function submitAttendanceAdjustment(
@@ -89,9 +96,11 @@ export async function submitAttendanceAdjustment(
   }
 ): Promise<AttendanceAdjustmentRequest> {
   const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/attendance/adjustments", {
-            params: { path: { ws_id: wsId } },
-          body: { is_break_overtime: false, ...data } });
-    return resData!;
+    params: { path: { ws_id: wsId } },
+    body: { is_break_overtime: false, ...data }
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function fetchWorkspaceAttendanceAdjustments(
@@ -101,25 +110,28 @@ export async function fetchWorkspaceAttendanceAdjustments(
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/adjustments", {
     params: {
       path: { ws_id: wsId },
-      query: { status: status as any }
+      query: { status: status as unknown as never }
     }
   });
-  return resData!;
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function fetchMyAttendanceAdjustments(
   employeeId: string
 ): Promise<AttendanceAdjustmentRequest[]> {
   const { data: resData } = await client.GET("/v1/employees/{id}/attendance/adjustments", {
-            params: { path: { id: employeeId } }
-      });
-    return resData!;
+    params: { path: { id: employeeId } }
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function approveAttendanceAdjustment(wsId: string, requestId: string, data: { status: "pending" | "approved" | "rejected" }): Promise<void> {
   await client.PUT("/v1/workspaces/{ws_id}/attendance/adjustments/{id}/approve", {
-            params: { path: { ws_id: wsId, id: requestId } },
-          body: data });
+    params: { path: { ws_id: wsId, id: requestId } },
+    body: data
+  });
 }
 
 export async function fetchAttendanceLogs(params: {
@@ -136,16 +148,16 @@ export async function fetchAttendanceLogs(params: {
     params: {
       path: { workspace_id: wsId },
       query: {
-        employee_id: params.employee_id || undefined,
-        from: params.from || undefined,
-        to: params.to || undefined,
-        page: params.page || undefined,
-        limit: params.limit || undefined,
+        employee_id: params.employee_id ?? undefined,
+        from: params.from ?? undefined,
+        to: params.to ?? undefined,
+        page: params.page ?? undefined,
+        limit: params.limit ?? undefined,
       },
     },
   });
   if (!resData) throw new Error("No response data");
-  return resData as { data: TimeEntry[]; total: number; page: number; limit: number };
+  return resData as unknown as { data: TimeEntry[]; total: number; page: number; limit: number };
 }
 
 export async function fetchRawAttendanceLogs(params: {
@@ -162,16 +174,16 @@ export async function fetchRawAttendanceLogs(params: {
     params: {
       path: { workspace_id: wsId },
       query: {
-        employee_id: params.employee_id || undefined,
-        from: params.from || undefined,
-        to: params.to || undefined,
-        page: params.page || undefined,
-        limit: params.limit || undefined,
+        employee_id: params.employee_id ?? undefined,
+        from: params.from ?? undefined,
+        to: params.to ?? undefined,
+        page: params.page ?? undefined,
+        limit: params.limit ?? undefined,
       },
     },
   });
   if (!resData) throw new Error("No response data");
-  return resData as { data: RawAttendanceLog[]; total: number; page: number; limit: number };
+  return resData as unknown as { data: RawAttendanceLog[]; total: number; page: number; limit: number };
 }
 
 export interface FetchAttendanceReportParams {
@@ -211,14 +223,13 @@ export async function fetchAttendanceReport(
         page: page,
         limit: limit,
         sort: sort,
-        employee_ids: employeeIds?.join(",") || undefined,
+        employee_ids: employeeIds?.join(",") ?? undefined,
         department_id: departmentId ?? undefined,
       },
     },
   });
 
-  if (!resData) throw new Error("No response data");
-  return resData;
+  return resData as unknown as PaginatedResponse<AttendanceSummary | DailyAttendanceReport>;
 }
 
 export async function uploadAttendance(
@@ -232,15 +243,17 @@ export async function uploadAttendance(
   if (endpoint === "/employees/upload") {
     const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/employees/upload", {
       params: { path: { ws_id: wsId } },
-      body: formData as any,
+      body: formData as unknown as never,
     });
-    return resData as any;
+    if (!resData) throw new Error("No response data");
+    return resData as unknown as { job_id: string };
   } else {
     const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/attendance/upload", {
       params: { path: { ws_id: wsId } },
-      body: formData as any,
+      body: formData as unknown as never,
     });
-    return resData as any;
+    if (!resData) throw new Error("No response data");
+    return resData as unknown as { job_id: string };
   }
 }
 
@@ -251,7 +264,8 @@ export async function fetchLatestImportJob(
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/import-jobs/latest", {
     params: { path: { ws_id: wsId }, query: { target_type: targetType } }
   });
-  return resData!;
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function fetchImportJobStatus(
@@ -259,9 +273,10 @@ export async function fetchImportJobStatus(
   jobId: string
 ): Promise<AttendanceImportJob> {
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/import-jobs/{id}", {
-            params: { path: { ws_id: wsId, id: jobId } }
-      });
-    return resData!;
+    params: { path: { ws_id: wsId, id: jobId } }
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function reprocessAttendance(
@@ -283,7 +298,8 @@ export async function reprocessAllAttendance(
   const { data: resData } = await client.POST("/workspaces/{workspace_id}/attendance/reprocess-all", {
     params: { path: { workspace_id: wsId }, query: { start_date: startDate, end_date: endDate } }
   });
-  return resData as any;
+  if (!resData) throw new Error("No response data");
+  return resData as unknown as { message: string; job_id: string };
 }
 
 export interface GenericJobProgress {
@@ -300,89 +316,34 @@ export interface GenericJobStatus {
   job_id: string;
   progress: GenericJobProgress;
   status: "pending" | "processing" | "completed" | "failed";
+  task_type: string;
 }
 
-export async function fetchGenericJobStatus(
-  wsId: string,
-  jobId: string
-): Promise<GenericJobStatus> {
-  const { data: resData } = await client.GET("/workspaces/{ws_id}/jobs/{job_id}", {
-            params: { path: { ws_id: wsId, job_id: jobId } }
-      });
-    return resData as GenericJobStatus;
+export async function checkReprocessStatus(wsId: string, jobId: string): Promise<GenericJobStatus> {
+  const { data: resData } = await httpClient.GET("/workspaces/{workspace_id}/attendance/reprocess/status/{job_id}", {
+    params: { path: { workspace_id: wsId, job_id: jobId } }
+  });
+  if (!resData) throw new Error("No response data");
+  return resData as GenericJobStatus;
 }
 
-// --- Admin Confirm Attendance ---
-
-/**
- * Admin shortcut: confirm attendance for a row in one action via the Confirm Modal.
- * 
- * - If an `existingRequestId` is provided (meaning the employee already submitted an adjustment),
- *   this function will bypass the creation step and directly approve that pending request.
- * - Otherwise, it submits a new adjustment using the times provided by the admin in the modal,
- *   and then immediately approves it in a subsequent API call.
- * 
- * @param wsId - The ID of the current workspace
- * @param row - The DailyAttendanceReport record being confirmed
- * @param existingRequestId - Optional ID of a pending adjustment request to approve
- * @param reason - The reason text entered by the admin in the confirmation modal
- */
-export async function adminConfirmAttendance(
-  wsId: string,
-  row: DailyAttendanceReport,
-  existingRequestId?: string,
-  reason?: string,
-): Promise<void> {
-  let requestId = existingRequestId;
-
-  if (!requestId) {
-    // Helper: Safely convert any time string (either full ISO or raw HH:mm:ss) into a UTC ISO string.
-    // This is crucial because `actual_punch_in` from the modal might be a full ISO string (Z-suffixed),
-    // but fallbacks like `scheduled_start` are just raw time strings.
-    const toDatetime = (date: string, time: string) => {
-      // If it's already a complete UTC ISO string (has 'T' and 'Z'), use it directly
-      if (time.includes('T') && time.includes('Z')) {
-        return time;
-      }
-
-      // Otherwise, it's a raw local time like "08:00:00" from scheduled_start or fallback.
-      // We parse it as a local time on the given date, then convert to UTC automatically 
-      // via `toISOString()` to avoid AM/PM timezone wrap-around bugs.
-      const [h, m, s] = time.substring(0, 8).split(':').map(Number);
-      const [Y, M, D] = date.split('-').map(Number);
-      return new Date(Y, M - 1, D, h, m, s || 0).toISOString();
-    };
-
-    // Use actual punch times if available; otherwise use scheduled times or midnight fallback
-    const punchIn = (row.actual_punch_in ?? row.scheduled_start) ?? "00:00:00";
-    const punchOut = (row.actual_punch_out ?? row.scheduled_end) ?? undefined;
-
-    const adjustment = await submitAttendanceAdjustment(wsId, {
-      employee_id: row.employee_id,
-      requested_punch_in_time: toDatetime(row.date, punchIn),
-      requested_punch_out_time: punchOut
-        ? toDatetime(row.date, punchOut)
-        : undefined,
-      reason: reason ?? "Admin confirmation",
-    });
-    requestId = adjustment.id;
-  }
-
-  await approveAttendanceAdjustment(wsId, requestId, { status: "approved" });
+export interface AttendanceStats {
+  early_out_count: number;
+  late_in_count: number;
+  missing_punch_count: number;
+  present_count: number;
+  total_count: number;
 }
 
-// --- OT Claim & Approval ---
-
-
-export async function claimOt(
-  wsId: string,
-  employeeId: string,
-  data: { date: string; claimed_minutes: number; reason?: string }
-): Promise<void> {
-  await client.POST("/v1/workspaces/{ws_id}/attendance/claim-ot/{employee_id}", {
-            params: { path: { ws_id: wsId, employee_id: employeeId } },
-          body: data });
+export async function fetchAttendanceStats(wsId: string, date: string): Promise<AttendanceStats> {
+  const { data: resData } = await httpClient.GET("/v1/workspaces/{ws_id}/attendance/stats", {
+    params: { path: { ws_id: wsId }, query: { date } }
+  });
+  if (!resData) throw new Error("No response data");
+  return resData as AttendanceStats;
 }
+
+// --- Overtime Approval System ---
 
 export async function approveOt(
   wsId: string,
@@ -390,8 +351,9 @@ export async function approveOt(
   data: { date: string; approved_minutes: number; manager_note?: string; status: "approved" | "rejected" }
 ): Promise<void> {
   await client.POST("/v1/workspaces/{ws_id}/attendance/approve-ot/{employee_id}", {
-            params: { path: { ws_id: wsId, employee_id: employeeId } },
-          body: data });
+    params: { path: { ws_id: wsId, employee_id: employeeId } },
+    body: data
+  });
 }
 
 export async function fetchAttendanceSummaries(
@@ -400,14 +362,14 @@ export async function fetchAttendanceSummaries(
   end: string,
   employeeId?: string
 ): Promise<AttendanceDailySummary[]> {
-  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/overtime/summaries" as any, {
+  const { data: resData } = await httpClient.GET("/v1/workspaces/{ws_id}/attendance/overtime/summaries", {
     params: {
       path: { ws_id: wsId },
       query: { start_date: start, end_date: end, employee_id: employeeId }
     }
   });
   if (!resData) throw new Error("No response data");
-  return resData;
+  return resData as AttendanceDailySummary[];
 }
 
 export async function enterPaperOt(
@@ -421,9 +383,11 @@ export async function enterPaperOt(
   }
 ): Promise<AttendanceDailySummary> {
   const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/attendance/paper-forms/overtime/{employee_id}", {
-            params: { path: { ws_id: wsId, employee_id: employeeId } },
-          body: data });
-    return resData!;
+    params: { path: { ws_id: wsId, employee_id: employeeId } },
+    body: data
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function bulkUploadPaperOt(
@@ -443,9 +407,11 @@ export async function bulkUploadPaperOt(
   formData.append("file", file);
 
   const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/attendance/paper-forms/overtime/bulk", {
-            params: { path: { ws_id: wsId } },
-          body: formData as any });
-    return resData!;
+    params: { path: { ws_id: wsId } },
+    body: formData as unknown as never
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 // --- Staging Logs (Unknown Users) ---
@@ -476,7 +442,7 @@ export async function fetchStagingLogs(
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/staging-logs", {
     params: {
       path: { ws_id: wsId },
-      query: { page, limit } as any
+      query: { page, limit } as unknown as never
     }
   });
   if (!resData) throw new Error("No response data");
@@ -489,8 +455,9 @@ export async function resolveStagingLog(
   employeeId: string
 ): Promise<void> {
   await client.POST("/v1/workspaces/{ws_id}/attendance/staging-logs/{id}/resolve", {
-            params: { path: { ws_id: wsId, id: logId } },
-          body: { employee_id: employeeId } });
+    params: { path: { ws_id: wsId, id: logId } },
+    body: { employee_id: employeeId }
+  });
 }
 
 export async function dismissStagingLog(
@@ -498,8 +465,8 @@ export async function dismissStagingLog(
   logId: string
 ): Promise<void> {
   await client.DELETE("/v1/workspaces/{ws_id}/attendance/staging-logs/{id}", {
-            params: { path: { ws_id: wsId, id: logId } }
-      });
+    params: { path: { ws_id: wsId, id: logId } }
+  });
 }
 
 // --- Report Export ---
@@ -509,9 +476,11 @@ export async function createReportExportJob(
   request: CreateReportExportRequest
 ): Promise<CreateReportExportResponse> {
   const { data: resData } = await client.POST("/workspaces/{ws_id}/reports/export", {
-            params: { path: { ws_id: wsId } },
-          body: request });
-    return resData!;
+    params: { path: { ws_id: wsId } },
+    body: request
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function fetchExportJobStatus(
@@ -519,9 +488,10 @@ export async function fetchExportJobStatus(
   jobId: string
 ) {
   const { data: resData } = await client.GET("/workspaces/{ws_id}/reports/jobs/{job_id}", {
-            params: { path: { ws_id: wsId, job_id: jobId } }
-      });
-    return resData!;
+    params: { path: { ws_id: wsId, job_id: jobId } }
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function cancelExportJob(
@@ -529,8 +499,8 @@ export async function cancelExportJob(
   jobId: string
 ): Promise<void> {
   await client.DELETE("/workspaces/{ws_id}/reports/jobs/{job_id}", {
-            params: { path: { ws_id: wsId, job_id: jobId } }
-      });
+    params: { path: { ws_id: wsId, job_id: jobId } }
+  });
 }
 
 export async function downloadExportReport(
@@ -548,7 +518,8 @@ export async function downloadExportReport(
 
 export async function fetchMonitorOverview(): Promise<WorkerMonitorStats> {
   const { data: resData } = await client.GET("/monitor/overview", {});
-    return resData!;
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export interface FetchMonitorJobsParams {
@@ -600,16 +571,18 @@ export interface UpdateAttendanceRulesRequest {
 
 export async function fetchDefaultAttendanceRules(wsId: string): Promise<AttendanceRules> {
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/rules", {
-            params: { path: { ws_id: wsId } }
-      });
-    return resData!;
+    params: { path: { ws_id: wsId } }
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function fetchAttendancePolicyVersions(wsId: string): Promise<AttendancePolicyVersion[]> {
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/rules/versions", {
-            params: { path: { ws_id: wsId } }
-      });
-    return resData!;
+    params: { path: { ws_id: wsId } }
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export interface PolicyAssignmentResponse {
@@ -632,9 +605,10 @@ export interface UpsertPolicyAssignmentRequest {
 
 export async function fetchPolicyAssignments(wsId: string): Promise<PolicyAssignmentResponse[]> {
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/policies/assignments", {
-            params: { path: { ws_id: wsId } }
-      });
-    return resData!;
+    params: { path: { ws_id: wsId } }
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function upsertPolicyAssignment(
@@ -642,15 +616,17 @@ export async function upsertPolicyAssignment(
   data: UpsertPolicyAssignmentRequest
 ): Promise<PolicyAssignmentResponse> {
   const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/attendance/policies/assignments", {
-            params: { path: { ws_id: wsId } },
-          body: data });
-    return resData!;
+    params: { path: { ws_id: wsId } },
+    body: data
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function deletePolicyAssignment(wsId: string, assignmentId: string): Promise<void> {
   await client.DELETE("/v1/workspaces/{ws_id}/attendance/policies/assignments/{assignment_id}", {
-            params: { path: { ws_id: wsId, assignment_id: assignmentId } }
-      });
+    params: { path: { ws_id: wsId, assignment_id: assignmentId } }
+  });
 }
 
 export async function updateDefaultAttendanceRules(
@@ -658,9 +634,11 @@ export async function updateDefaultAttendanceRules(
   data: UpdateAttendanceRulesRequest
 ): Promise<AttendancePolicyVersion> {
   const { data: resData } = await client.PATCH("/v1/workspaces/{ws_id}/attendance/rules", {
-            params: { path: { ws_id: wsId } },
-          body: data });
-    return resData!;
+    params: { path: { ws_id: wsId } },
+    body: data
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export interface OtClaimBehalfAssignment {
@@ -704,3 +682,54 @@ export async function deleteBehalfAssignment(wsId: string, id: string): Promise<
     params: { path: { ws_id: wsId, id } }
   });
 }
+
+export async function claimOt(
+  wsId: string,
+  employeeId: string,
+  data: {
+    date: string;
+    claimed_minutes: number;
+    reason?: string | null;
+  }
+): Promise<void> {
+  await client.POST("/v1/workspaces/{ws_id}/attendance/claim-ot/{employee_id}", {
+    params: { path: { ws_id: wsId, employee_id: employeeId } },
+    body: data
+  });
+}
+
+export async function adminConfirmAttendance(
+  wsId: string,
+  row: DailyAttendanceReport,
+  existingRequestId?: string,
+  reason?: string,
+): Promise<void> {
+  let requestId = existingRequestId;
+
+  if (!requestId) {
+    const toDatetime = (dateStr: string, timeStr: string) => {
+      if (timeStr.includes("T") && timeStr.includes("Z")) {
+        return timeStr;
+      }
+      const [h, m, s] = timeStr.substring(0, 8).split(":").map(Number);
+      const [Y, M, D] = dateStr.split("-").map(Number);
+      return new Date(Y, M - 1, D, h, m, s || 0).toISOString();
+    };
+
+    const punchIn = row.actual_punch_in ?? row.scheduled_start ?? "00:00:00";
+    const punchOut = row.actual_punch_out ?? row.scheduled_end ?? undefined;
+
+    const adjustment = await submitAttendanceAdjustment(wsId, {
+      employee_id: row.employee_id,
+      requested_punch_in_time: toDatetime(row.date, punchIn),
+      requested_punch_out_time: punchOut
+        ? toDatetime(row.date, punchOut)
+        : undefined,
+      reason: reason ?? "Admin confirmation",
+    });
+    requestId = adjustment.id;
+  }
+
+  await approveAttendanceAdjustment(wsId, requestId, { status: "approved" });
+}
+

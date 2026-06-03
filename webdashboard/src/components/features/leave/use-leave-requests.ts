@@ -29,7 +29,7 @@ export function useLeaveRequests(wsId: string | null) {
   const { data: leaveTypes = [] } = useQuery({ queryKey: ["leave-types", wsId], queryFn: () => fetchLeaveTypes(wsId ?? ""), enabled: !!wsId });
 
   const approveMutation = useMutation({
-    mutationFn: (data: { id: string; status: string }) => approveLeaveRequest(wsId ?? "", data.id, { status: data.status }),
+    mutationFn: (data: { id: string; status: "cancelled" | "pending" | "approved" | "rejected" | "pre_approved" }) => approveLeaveRequest(wsId ?? "", data.id, { status: data.status }),
     onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["leave-requests"] }); toast.success(t("common.success")); },
   });
 

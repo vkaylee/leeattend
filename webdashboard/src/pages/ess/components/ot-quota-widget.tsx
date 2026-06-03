@@ -3,8 +3,67 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import { Typography } from "@/components/ui/typography";
+import { QuotaSummary } from "@/lib/api/overtime-requests";
 
-export function OtQuotaWidget({ quota, isLoading }: { quota: any; isLoading: boolean }) {
+type ExtendedQuota = QuotaSummary & { monthly_exceeded?: boolean; yearly_exceeded?: boolean };
+
+function QuotaDetails({ quota }: { quota: ExtendedQuota }) {
+  const monthlyUsed = quota.monthly_used;
+  const monthlyLimit = quota.monthly_limit;
+  const yearlyUsed = quota.yearly_used;
+  const yearlyLimit = quota.yearly_limit;
+
+  const monthlyPercent = Math.min(100, (monthlyUsed / (monthlyLimit ?? 1)) * 100);
+  const yearlyPercent = Math.min(100, (yearlyUsed / (yearlyLimit ?? 1)) * 100);
+
+  const isExceeded = [quota.monthly_exceeded, quota.yearly_exceeded].some(Boolean);
+
+  return (
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <div className="flex justify-between items-center text-sm font-bold">
+          <span className="text-slate-600 dark:text-slate-400">Monthly Usage</span>
+          <span className="text-slate-800 dark:text-slate-200">{monthlyUsed} / {monthlyLimit ?? "∞"} hrs</span>
+        </div>
+        <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+            style={{ width: `${monthlyPercent}%` }}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex justify-between items-center text-sm font-bold">
+          <span className="text-slate-600 dark:text-slate-400">Yearly Usage</span>
+          <span className="text-slate-800 dark:text-slate-200">{yearlyUsed} / {yearlyLimit ?? "∞"} hrs</span>
+        </div>
+        <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+            style={{ width: `${yearlyPercent}%` }}
+          />
+        </div>
+      </div>
+
+      {isExceeded ? (
+        <div className="mt-4 p-4 bg-rose-50 dark:bg-rose-900/30 border border-rose-100 dark:border-rose-800 rounded-2xl flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <Typography className="text-sm font-bold text-rose-800 dark:text-rose-200">
+              Quota Exceeded
+            </Typography>
+            <Typography className="text-xs text-rose-600 dark:text-rose-400 font-medium">
+              You have exceeded your overtime limits. Further requests may require special approval.
+            </Typography>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export function OtQuotaWidget({ quota, isLoading }: { quota?: ExtendedQuota | null; isLoading: boolean }) {
   const { t } = useTranslation();
 
   return (
@@ -34,47 +93,7 @@ export function OtQuotaWidget({ quota, isLoading }: { quota: any; isLoading: boo
           </Typography>
         </div>
       ) : (
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <div className="flex justify-between items-center text-sm font-bold">
-              <span className="text-slate-600 dark:text-slate-400">Monthly Usage</span>
-              <span className="text-slate-800 dark:text-slate-200">{quota.monthly_used || 0} / {quota.monthly_limit || '∞'} hrs</span>
-            </div>
-            <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-indigo-500 rounded-full transition-all duration-500"
-                style={{ width: `${Math.min(100, ((quota.monthly_used || 0) / (quota.monthly_limit || 1)) * 100)}%` }}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex justify-between items-center text-sm font-bold">
-              <span className="text-slate-600 dark:text-slate-400">Yearly Usage</span>
-              <span className="text-slate-800 dark:text-slate-200">{quota.yearly_used || 0} / {quota.yearly_limit || '∞'} hrs</span>
-            </div>
-            <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                style={{ width: `${Math.min(100, ((quota.yearly_used || 0) / (quota.yearly_limit || 1)) * 100)}%` }}
-              />
-            </div>
-          </div>
-
-          {!!(quota.monthly_exceeded || quota.yearly_exceeded) && (
-            <div className="mt-4 p-4 bg-rose-50 dark:bg-rose-900/30 border border-rose-100 dark:border-rose-800 rounded-2xl flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <Typography className="text-sm font-bold text-rose-800 dark:text-rose-200">
-                  Quota Exceeded
-                </Typography>
-                <Typography className="text-xs text-rose-600 dark:text-rose-400 font-medium">
-                  You have exceeded your overtime limits. Further requests may require special approval.
-                </Typography>
-              </div>
-            </div>
-          )}
-        </div>
+        <QuotaDetails quota={quota} />
       )}
     </div>
   );

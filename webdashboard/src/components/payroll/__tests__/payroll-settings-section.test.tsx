@@ -78,7 +78,7 @@ describe("PayrollSettingsSection", () => {
 
     await waitFor(() => {
       expect(api.updatePayrollSettings).toHaveBeenCalledWith(mockWsId, expect.objectContaining({
-        fixed_std_days: 24
+        fixed_std_days: "24"
       }));
     });
   });

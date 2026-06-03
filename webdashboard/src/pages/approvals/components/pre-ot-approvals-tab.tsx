@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { CheckCircle, ArrowRight, Check, X } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -17,7 +16,7 @@ export function PreOtApprovalsTab({ wsId: _wsId }: { wsId: string }) {
   const { mutate: processApproval, isPending: isProcessing } = useProcessApproval();
 
   // Filter for pending status
-  const pendingRequests = (allRequests || []).filter(req => req.status === "pending_approval" || req.status === "draft");
+  const pendingRequests = (allRequests ?? []).filter(req => req.status === "pending_approval" || req.status === "draft");
 
   const handleAction = (id: string, action: "approve" | "reject") => {
     processApproval(
@@ -75,7 +74,7 @@ export function PreOtApprovalsTab({ wsId: _wsId }: { wsId: string }) {
                 Pending Approval
               </span>
               <Typography className="font-bold text-lg text-slate-800 dark:text-slate-100">
-                {(req).employee_names ? (req).employee_names.join(", ") : "Employees"}
+                {req.employees && req.employees.length > 0 ? req.employees.map(emp => emp.full_name ?? emp.employee_id).join(", ") : "Employees"}
               </Typography>
             </div>
  

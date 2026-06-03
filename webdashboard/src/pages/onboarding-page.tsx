@@ -269,7 +269,7 @@ function DatabaseConfig({
   );
 }
 
-// eslint-disable-next-line max-lines-per-function -- Page component needs to encompass form and timeline
+ 
 export default function OnboardingPage() {
   const { t } = useTranslation();
   const [name, setName] = useState("");

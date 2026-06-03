@@ -268,15 +268,14 @@ interface EditLeaveTypeModalProps {
   onSave: (config: LeaveTypeConfig) => void;
 }
 
-// eslint-disable-next-line max-lines-per-function
+ 
 function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: EditLeaveTypeModalProps) {
-  const [config, setConfig] = useState(
-    leaveType.policy_config ?? {
-      approval_required: true,
-      requires_document: false,
-      allow_negative_balance: false,
-    }
-  );
+  const [config, setConfig] = useState(() => ({
+    approval_required: true,
+    requires_document: false,
+    allow_negative_balance: false,
+    ...leaveType.policy_config,
+  }));
 
   return (
     <Modal

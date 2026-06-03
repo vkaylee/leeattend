@@ -1,5 +1,4 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-nocheck
+
 import { User, Workspace, AuthorizedAgent, WorkspaceMember, Device } from "@/lib/api";
 
 export const userFactory = (overrides: Partial<User> = {}): User => {
@@ -22,13 +21,13 @@ export const workspaceFactory = (
   return {
     id,
     name: `Workspace ${id.slice(0, 8)}`,
-    work_unit_minutes: 30, // Default value
-    rounding_policy: "none", // Default value
-    date_format: "DD/MM/YYYY", // Default value
-    time_format: "24h", // Default value
-    timezone: "Asia/Ho_Chi_Minh", // Default value
+    date_format: "DD/MM/YYYY",
+    time_format: "24h",
+    timezone: "Asia/Ho_Chi_Minh",
     theme_primary_color: "#10b981",
     default_language: "en",
+    default_holiday_ot_multiplier: "1.5",
+    holiday_overnight_strategy: "split",
     created_at: new Date().toISOString(),
     ...overrides,
   };
@@ -67,6 +66,7 @@ export const deviceFactory = (
     is_enabled: true,
     timezone: "UTC",
     last_status: "online",
+    max_concurrent_workers: 1,
     created_at: new Date().toISOString(),
     workspace_id: crypto.randomUUID(),
     ...overrides,

@@ -5,8 +5,10 @@ import { useTranslation } from "react-i18next";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
+import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
+import { Typography } from "@/components/ui/typography";
 import { useCreateOvertimeRequest } from "@/hooks/use-overtime-requests";
 
 const otRequestSchema = z.object({
@@ -22,7 +24,7 @@ type OtRequestFormValues = z.infer<typeof otRequestSchema>;
 export function CreateOtRequestModal({
   isOpen,
   onClose,
-  wsId,
+  wsId: _wsId,
   employeeId,
 }: {
   isOpen: boolean;
@@ -68,71 +70,68 @@ export function CreateOtRequestModal({
       <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Date</label>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2" htmlFor="planned_date">Date</label>
             <input
               {...form.register("planned_date")}
               className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+              id="planned_date"
               type="date"
             />
-            {!!form.formState.errors.planned_date && <p className="text-rose-500 text-xs mt-1">{form.formState.errors.planned_date.message}</p>}
+            {!!form.formState.errors.planned_date && <Typography className="text-rose-500 text-xs mt-1" variant="p">{form.formState.errors.planned_date.message}</Typography>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Start Time</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2" htmlFor="planned_start_time">Start Time</label>
               <input
                 {...form.register("planned_start_time")}
                 className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                id="planned_start_time"
                 type="time"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">End Time</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2" htmlFor="planned_end_time">End Time</label>
               <input
                 {...form.register("planned_end_time")}
                 className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                id="planned_end_time"
                 type="time"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Total Minutes</label>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2" htmlFor="planned_minutes">Total Minutes</label>
             <input
               {...form.register("planned_minutes", { valueAsNumber: true })}
               className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+              id="planned_minutes"
               type="number"
             />
-            {!!form.formState.errors.planned_minutes && <p className="text-rose-500 text-xs mt-1">{form.formState.errors.planned_minutes.message}</p>}
+            {!!form.formState.errors.planned_minutes && <Typography className="text-rose-500 text-xs mt-1" variant="p">{form.formState.errors.planned_minutes.message}</Typography>}
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Reason</label>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2" htmlFor="reason">Reason</label>
             <textarea
               {...form.register("reason")}
               className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+              id="reason"
               placeholder="Why do you need to work overtime?"
               rows={3}
             />
-            {!!form.formState.errors.reason && <p className="text-rose-500 text-xs mt-1">{form.formState.errors.reason.message}</p>}
+            {!!form.formState.errors.reason && <Typography className="text-rose-500 text-xs mt-1" variant="p">{form.formState.errors.reason.message}</Typography>}
           </div>
         </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-          <button
-            className="px-5 py-2.5 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            onClick={onClose}
-            type="button"
-          >
+          <Button onClick={onClose} type="button" variant="ghost">
             {t("common.cancel")}
-          </button>
-          <button
-            className="px-5 py-2.5 rounded-xl font-bold text-sm bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-all disabled:opacity-50"
-            disabled={isPending}
-            type="submit"
-          >
-            {isPending ? t("common.submitting") : t("common.submit")}
-          </button>
+          </Button>
+          <Button loading={isPending} type="submit" variant="primary">
+            {t("common.submit")}
+          </Button>
         </div>
       </form>
     </Modal>

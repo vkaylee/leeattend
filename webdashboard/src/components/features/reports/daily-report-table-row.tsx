@@ -3,7 +3,7 @@ import React from "react";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
-import { DailyAttendanceReport, AttendanceAdjustmentRequest } from "@/lib/api";
+import { DailyAttendanceReport, AttendanceAdjustmentRequest, ScheduleTrace } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { formatHours, getUnitTypeI18nKey, buildWorkUnitsTooltip } from "@/lib/utils/attendance";
 
@@ -43,6 +43,26 @@ function DailyReportTableRowExpanded({ row }: { row: DailyAttendanceReport }) {
   );
 }
 
+function getDerivedSource(appliedRule?: ScheduleTrace): string {
+  if (!appliedRule) return "system";
+  switch (appliedRule.priority) {
+    case 100:
+      return "roster";
+    case 80:
+      return "pattern";
+    case 60:
+      return "rules";
+    case 40:
+      return "department_pattern";
+    case 20:
+      return "fixed";
+    case 10:
+      return "department_fixed";
+    default:
+      return "system";
+  }
+}
+
 function ShiftCell({ row, t }: { row: DailyAttendanceReport; t: (k: string) => string }) {
   if (!row.scheduled_start) {
     return (
@@ -52,20 +72,12 @@ function ShiftCell({ row, t }: { row: DailyAttendanceReport; t: (k: string) => s
     );
   }
 
-  const metadata = row.generation_metadata as { schedule_traces?: any[] } | undefined;
-  const traces = metadata?.schedule_traces || [];
+  const metadata = row.generation_metadata as { schedule_traces?: ScheduleTrace[] } | undefined;
+  const traces = metadata?.schedule_traces ?? [];
   const hasTraces = traces.length > 0;
 
-  const appliedRule = traces.find(t => t.status === 'applied');
-  let derivedSource = "system";
-  if (appliedRule) {
-    if (appliedRule.priority === 100) derivedSource = "roster";
-    else if (appliedRule.priority === 80) derivedSource = "pattern";
-    else if (appliedRule.priority === 60) derivedSource = "rules";
-    else if (appliedRule.priority === 40) derivedSource = "department_pattern";
-    else if (appliedRule.priority === 20) derivedSource = "fixed";
-    else if (appliedRule.priority === 10) derivedSource = "department_fixed";
-  }
+  const appliedRule = traces.find((tr) => tr.status === "applied");
+  const derivedSource = getDerivedSource(appliedRule);
 
   return (
     <div className="flex flex-col">
@@ -77,10 +89,7 @@ function ShiftCell({ row, t }: { row: DailyAttendanceReport; t: (k: string) => s
           {row.scheduled_start.substring(0, 5)} — {row.scheduled_end?.substring(0, 5)}
         </span>
         {hasTraces ? (
-          <div 
-            className="absolute right-1 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center"
-            onClick={(e) => { e.stopPropagation(); }}
-          >
+          <div className="absolute right-1 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center">
             <ScheduleTracePopover
               endTime={row.scheduled_end}
               shiftName={row.shift_name}

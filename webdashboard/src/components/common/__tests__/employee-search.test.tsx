@@ -1,19 +1,20 @@
-import { QueryClient, QueryClientProvider, useQuery  } from "@tanstack/react-query";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider, useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import React from "react";
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EmployeeSearch } from "../employee-search";
 
-// Create a simpler mock for the query hook
+// Mock the query hooks from react-query
 vi.mock("@tanstack/react-query", async () => {
   const actual = await vi.importActual("@tanstack/react-query");
   return {
     ...actual,
     useQuery: vi.fn(),
+    useInfiniteQuery: vi.fn(),
   };
 });
-
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false } },
@@ -24,50 +25,62 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 );
 
 describe("EmployeeSearch Component", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   const mockEmployees = [
     { id: "1", full_name: "John Doe", employee_id_number: "E001" },
     { id: "2", full_name: "Jane Smith", employee_id_number: "E002" },
   ];
 
-  it("calls onChange when an employee is selected", () => {
- 
-    vi.mocked(useQuery).mockReturnValue({
-      data: { data: mockEmployees },
-      isLoading: false,
-    } as unknown as never);
+  beforeEach(() => {
+    vi.clearAllMocks();
 
+    // Default mock for useInfiniteQuery (fetching search results)
+    vi.mocked(useInfiniteQuery).mockReturnValue({
+      data: {
+        pages: [{ data: mockEmployees, total: mockEmployees.length, page: 1, limit: 50 }],
+        pageParams: [1]
+      },
+      isLoading: false,
+      fetchNextPage: vi.fn(),
+      hasNextPage: false,
+      isFetchingNextPage: false,
+    } as any);
+
+    // Default mock for useQuery (fetching selected employee details)
+    vi.mocked(useQuery).mockImplementation((options: any) => {
+      const queryKey = options.queryKey || [];
+      if (queryKey[0] === 'employee') {
+        const id = queryKey[2];
+        const emp = mockEmployees.find(e => e.id === id);
+        return {
+          data: emp,
+          isLoading: false,
+        } as any;
+      }
+      return {
+        data: undefined,
+        isLoading: false,
+      } as any;
+    });
+  });
+
+  it("calls onChange when an employee is selected", () => {
     const onChange = vi.fn();
-    // We test the internal handleSelect by bypassing the complex Radix UI
-    // and just checking if the component passes correct data to Combobox
     render(<EmployeeSearch onChange={onChange} workspaceId="ws-1" />, { wrapper });
 
-    // Fallback select is used when Radix trigger is not fully rendered in JSDOM
     expect(screen.getByRole("combobox")).toBeDefined();
   });
 
   it("renders chips in multiple mode", async () => {
-    vi.mocked(useQuery).mockReturnValue({
-      data: { data: mockEmployees },
-      isLoading: false,
-    } as unknown as never);
-
     const onChange = vi.fn();
     const value = ["1"];
     render(<EmployeeSearch multiple onChange={onChange} value={value} workspaceId="ws-1" />, { wrapper });
 
-    // With the new useEffect, it should find '1' in mockEmployees and show 'John Doe'
     await waitFor(() => {
       expect(screen.getAllByText("John Doe").length).toBeGreaterThanOrEqual(1);
     });
   });
 
   it("preserves server-side relevance order (exact match > prefix > contains)", () => {
-    // Simulate server returning results in relevance-ranked order:
-    // #16 (exact) > #161 (prefix) > #1649 (prefix) > #416 (contains)
     const rankedEmployees = [
       { id: "a", full_name: "Nguyen Van A", employee_id_number: "16" },
       { id: "b", full_name: "Tran Van B", employee_id_number: "161" },
@@ -75,52 +88,40 @@ describe("EmployeeSearch Component", () => {
       { id: "d", full_name: "Pham Van D", employee_id_number: "416" },
     ];
 
- 
-    vi.mocked(useQuery).mockReturnValue({
-      data: { data: rankedEmployees },
+    vi.mocked(useInfiniteQuery).mockReturnValue({
+      data: {
+        pages: [{ data: rankedEmployees, total: rankedEmployees.length, page: 1, limit: 50 }],
+        pageParams: [1]
+      },
       isLoading: false,
-    } as unknown as never);
+      fetchNextPage: vi.fn(),
+      hasNextPage: false,
+      isFetchingNextPage: false,
+    } as any);
 
     const onChange = vi.fn();
     render(<EmployeeSearch onChange={onChange} workspaceId="ws-1" />, { wrapper });
 
-    // The combobox should be rendered with options in the exact order from the API
     const combobox = screen.getByRole("combobox");
     expect(combobox).toBeDefined();
 
-    // Verify the component did NOT re-sort the data alphabetically
-    // by checking the first option is still the exact match employee
     const allOptions = screen.queryAllByText(/16|161|1649|416/);
     if (allOptions.length > 0) {
-      // First visible option should be the exact match "16", not "1649" or "416"
       expect(allOptions[0].textContent).toContain("16");
     }
   });
 
   it("passes keyboardShortcut prop to Combobox", () => {
- 
-    vi.mocked(useQuery).mockReturnValue({
-      data: { data: mockEmployees },
-      isLoading: false,
-    } as unknown as never);
-
     const onChange = vi.fn();
     render(
       <EmployeeSearch keyboardShortcut="/" onChange={onChange} workspaceId="ws-1" />,
       { wrapper }
     );
 
-    // Should render without crashing with the keyboardShortcut prop
     expect(screen.getByRole("combobox")).toBeDefined();
   });
 
   it("calls onSelectEmployee with the full Employee object when selected via hidden select", () => {
- 
-    vi.mocked(useQuery).mockReturnValue({
-      data: { data: mockEmployees },
-      isLoading: false,
-    } as unknown as never);
-
     const onChange = vi.fn();
     const onSelectEmployee = vi.fn();
 
@@ -133,14 +134,10 @@ describe("EmployeeSearch Component", () => {
       { wrapper }
     );
 
-    // Use the hidden select element (sr-only) to simulate selection
     const hiddenSelect = screen.getByRole("combobox");
     fireEvent.change(hiddenSelect, { target: { value: "1" } });
 
-    // onChange should have been called with just the id
     expect(onChange).toHaveBeenCalledWith("1");
-
-    // onSelectEmployee should have been called with the full employee object
     expect(onSelectEmployee).toHaveBeenCalledWith(
       expect.objectContaining({
         id: "1",
@@ -151,12 +148,6 @@ describe("EmployeeSearch Component", () => {
   });
 
   it("does NOT call onSelectEmployee when employee is not found in data", () => {
- 
-    vi.mocked(useQuery).mockReturnValue({
-      data: { data: mockEmployees },
-      isLoading: false,
-    } as unknown as never);
-
     const onChange = vi.fn();
     const onSelectEmployee = vi.fn();
 
@@ -169,14 +160,32 @@ describe("EmployeeSearch Component", () => {
       { wrapper }
     );
 
-    // Try selecting an ID that does not exist in mockEmployees
     const hiddenSelect = screen.getByRole("combobox");
     fireEvent.change(hiddenSelect, { target: { value: "non-existent-id" } });
 
-    // onChange is still called (to update the value), but with empty string since it's not found
     expect(onChange).toHaveBeenCalledWith("");
-
-    // But onSelectEmployee should NOT have been called since no Employee was found
     expect(onSelectEmployee).not.toHaveBeenCalled();
+  });
+
+  it("renders empty prompt when emptyQueryBehavior is prompt-to-type and search query is empty", async () => {
+    vi.mocked(useInfiniteQuery).mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      fetchNextPage: vi.fn(),
+      hasNextPage: false,
+      isFetchingNextPage: false,
+    } as any);
+
+    render(
+      <EmployeeSearch
+        emptyQueryBehavior="prompt-to-type"
+        onChange={vi.fn()}
+        workspaceId="ws-1"
+      />,
+      { wrapper }
+    );
+
+    const hiddenSelect = screen.getByRole("combobox");
+    expect(hiddenSelect).toBeDefined();
   });
 });

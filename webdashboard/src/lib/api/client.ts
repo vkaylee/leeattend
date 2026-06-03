@@ -6,35 +6,6 @@ import { API_BASE_URL } from "./config";
 import { ApiError, AppErrorResponse } from "./errors";
 import { apiFetch } from "./helpers";
 
-// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
-async function handleResponse<T>(res: Response): Promise<{ data: T }> {
-  if (!res.ok) {
-    let errorBody: AppErrorResponse | undefined;
-    let errorText = "";
-    
-    try {
-      errorText = await res.text();
-      if (errorText) {
-        errorBody = JSON.parse(errorText) as AppErrorResponse;
-      }
-    } catch {
-      // Ignore parsing errors, keep raw text or undefined body
-    }
-
-    throw new ApiError(
-      res.status,
-      res.statusText,
-      errorBody?.error_code,
-      errorBody ?? (errorText ? { message: errorText } : undefined)
-    );
-  }
-
-  const text = await res.text();
-  return { data: (text ? JSON.parse(text) : null) as T };
-}
-
-
-
 async function extractRequestInfo(
   url: Request,
   initOptions: RequestInit
@@ -68,22 +39,45 @@ async function extractRequestInfo(
   return { urlStr, options };
 }
 
+function cleanApiPath(urlStr: string): string {
+  if (urlStr.includes('/api/api/v1')) {
+    return urlStr.replace('/api/api/v1', '/api/v1');
+  }
+  if (urlStr.includes('/api/') && !urlStr.includes('/api/v1/')) {
+    return urlStr.replace('/api/', '/api/v1/');
+  }
+  return urlStr;
+}
+
+async function handleResponseError(res: Response): Promise<never> {
+  let errorBody: AppErrorResponse | undefined;
+  let errorText = "";
+  
+  try {
+    const clonedRes = res.clone();
+    errorText = await clonedRes.text();
+    if (errorText) {
+      errorBody = JSON.parse(errorText) as AppErrorResponse;
+    }
+  } catch {
+    // Ignore parsing errors
+  }
+
+  throw new ApiError(
+    res.status,
+    res.statusText,
+    errorBody?.error_code,
+    errorBody ?? (errorText ? { message: errorText } : undefined)
+  );
+}
+
 export async function customFetch(url: string | URL | Request, init?: RequestInit): Promise<Response> {
   let urlStr: string;
   let options: RequestInit = { ...init };
 
   if (url instanceof Request) {
     const extracted = await extractRequestInfo(url, options);
-    
-    // Cleanup paths due to inconsistent OpenAPI schema generation
-    let pathUrl = extracted.urlStr;
-    if (pathUrl.includes('/api/api/v1')) {
-      pathUrl = pathUrl.replace('/api/api/v1', '/api/v1');
-    } else if (pathUrl.includes('/api/') && !pathUrl.includes('/api/v1/')) {
-      pathUrl = pathUrl.replace('/api/', '/api/v1/');
-    }
-    urlStr = pathUrl;
-    
+    urlStr = cleanApiPath(extracted.urlStr);
     options = extracted.options;
   } else {
     urlStr = url.toString();
@@ -92,25 +86,7 @@ export async function customFetch(url: string | URL | Request, init?: RequestIni
   const res = await apiFetch(urlStr, options);
   
   if (!res.ok) {
-    let errorBody: AppErrorResponse | undefined;
-    let errorText = "";
-    
-    try {
-      const clonedRes = res.clone();
-      errorText = await clonedRes.text();
-      if (errorText) {
-        errorBody = JSON.parse(errorText) as AppErrorResponse;
-      }
-    } catch {
-      // Ignore parsing errors
-    }
-
-    throw new ApiError(
-      res.status,
-      res.statusText,
-      errorBody?.error_code,
-      errorBody ?? (errorText ? { message: errorText } : undefined)
-    );
+    await handleResponseError(res);
   }
   
   return res;

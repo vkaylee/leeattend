@@ -34,7 +34,7 @@ export function LanguageSwitcher({ compact = false, className }: LanguageSwitche
     setOpen(false);
   };
 
-  const CurrentFlag = flagMap[currentOption.code] || Globe;
+  const CurrentFlag = flagMap[currentOption.code];
 
   return (
     <Popover.Root onOpenChange={setOpen} open={open}>
@@ -104,7 +104,7 @@ export function LanguageSwitcher({ compact = false, className }: LanguageSwitche
                       {lang.name}
                     </span>
                   </div>
-                  {!!isSelected && <Check className="text-primary-500 dark:text-primary-400 flex-shrink-0" size={16} strokeWidth={2.5} />}
+                  {isSelected ? <Check className="text-primary-500 dark:text-primary-400 flex-shrink-0" size={16} strokeWidth={2.5} /> : null}
                 </button>
               );
             })}

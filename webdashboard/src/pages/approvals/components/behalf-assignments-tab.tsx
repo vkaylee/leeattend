@@ -3,6 +3,7 @@ import { ArrowRight, Loader2, Plus, ShieldAlert, Trash2 } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { EmployeeSearch } from "@/components/common/employee-search";
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import Modal from "@/components/ui/modal";
@@ -242,18 +243,6 @@ export function BehalfAssignmentsTab({ wsId }: { wsId: string }) {
     );
   }
 
-  const claimantOptions = allEmployees.map((emp) => ({
-    description: emp.employee_id_number,
-    label: emp.full_name,
-    value: emp.id,
-  }));
-
-  const targetEmployeeOptions = allEmployees.map((emp) => ({
-    description: emp.employee_id_number,
-    label: emp.full_name,
-    value: emp.id,
-  }));
-
   const departmentOptions = departments.map((dept) => ({
     description: dept.description,
     label: dept.name,
@@ -325,13 +314,14 @@ export function BehalfAssignmentsTab({ wsId }: { wsId: string }) {
             >
               Authorized Submitter (Employee)
             </label>
-            <Combobox
-              emptyText="No employees found"
+            <EmployeeSearch
+              clearOnEscape
+              emptyQueryBehavior="prompt-to-type"
               id="submitter-select"
-              onChange={setAssigneeId}
-              options={claimantOptions}
+              onChange={(val) => { setAssigneeId(typeof val === "string" ? val : val[0] || ""); }}
               placeholder="Search and select submitter..."
               value={assigneeId}
+              workspaceId={wsId}
             />
             <Typography className="text-[10px] text-slate-400 mt-1" variant="p">
               Select the workspace employee who is allowed to claim on behalf.
@@ -376,13 +366,14 @@ export function BehalfAssignmentsTab({ wsId }: { wsId: string }) {
               >
                 Target Employee
               </label>
-              <Combobox
-                emptyText="No employees found"
+              <EmployeeSearch
+                clearOnEscape
+                emptyQueryBehavior="prompt-to-type"
                 id="target-employee-select"
-                onChange={setTargetEmployeeId}
-                options={targetEmployeeOptions}
+                onChange={(val) => { setTargetEmployeeId(typeof val === "string" ? val : val[0] || ""); }}
                 placeholder="Search and select target employee..."
                 value={targetEmployeeId}
+                workspaceId={wsId}
               />
             </div>
           ) : (

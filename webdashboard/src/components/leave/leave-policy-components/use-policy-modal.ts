@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { LeavePolicy } from "@/lib/api/types";
+import { LeavePolicy, SeniorityBonus } from "@/lib/api/types";
 
 interface PolicyFormData {
   accrual_amount: number;
@@ -50,10 +50,10 @@ export function usePolicyModal(
   };
 
   const removeBonusMilestone = (index: number) => {
-    setSeniorityBonus(seniorityBonus.filter((_: any, i: any) => i !== index));
+    setSeniorityBonus(seniorityBonus.filter((_, i: number) => i !== index));
   };
 
-  const updateBonusMilestone = (index: number, field: "min_years" | "extra_days", value: number) => {
+  const updateBonusMilestone = (index: number, field: keyof SeniorityBonus, value: number) => {
     const next = [...seniorityBonus];
     next[index] = { ...next[index], [field]: value };
     setSeniorityBonus(next);

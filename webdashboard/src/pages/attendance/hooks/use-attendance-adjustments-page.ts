@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -32,7 +31,7 @@ export function useAttendanceAdjustmentsPage() {
   const { employees } = useAllEmployees(wsId);
 
   const approveMutation = useMutation({
-    mutationFn: (data: { id: string; status: string }) =>
+    mutationFn: (data: { id: string; status: "pending" | "approved" | "rejected" }) =>
       wsId ? approveAttendanceAdjustment(wsId, data.id, { status: data.status }) : Promise.reject(new Error("No workspace ID")),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["attendance-adjustments"] });

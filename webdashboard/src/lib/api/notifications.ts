@@ -1,5 +1,4 @@
 import { client } from "./client";
-// @ts-nocheck
 
 export type NotificationType = "leave_approved" | "leave_rejected" | "attendance_missing" | "system" | "message" | "info" | "alert" | (string & {});
 
@@ -39,7 +38,8 @@ export async function fetchNotifications(
 
 export async function fetchUnreadCount(): Promise<UnreadCountResponse> {
   const { data: resData } = await client.GET(`/v1/notifications/unread-count`, {});
-    return resData!;
+  if (!resData) throw new Error("Failed to fetch unread count");
+  return resData;
 }
 
 export async function markNotificationAsRead(id: string): Promise<void> {

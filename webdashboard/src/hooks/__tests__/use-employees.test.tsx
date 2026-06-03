@@ -47,7 +47,7 @@ describe("useAllEmployees", () => {
 
     await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
-    expect(fetchEmployees).toHaveBeenCalledWith("ws-123", 1, MAX_EMPLOYEE_FETCH);
+    expect(fetchEmployees).toHaveBeenCalledWith("ws-123", 1, MAX_EMPLOYEE_FETCH, undefined);
     expect(result.current.employees).toHaveLength(2);
     expect(result.current.employees[0].full_name).toBe("Alice");
   });
@@ -105,7 +105,7 @@ describe("useAllEmployees", () => {
 
   it("generates correct query keys", () => {
     expect(employeeKeys.all).toEqual(["employees"]);
-    expect(employeeKeys.list("ws-abc")).toEqual(["employees", "ws-abc"]);
-    expect(employeeKeys.list(null)).toEqual(["employees", null]);
+    expect(employeeKeys.list("ws-abc")).toEqual(["employees", "ws-abc", { permission: undefined }]);
+    expect(employeeKeys.list(null)).toEqual(["employees", null, { permission: undefined }]);
   });
 });

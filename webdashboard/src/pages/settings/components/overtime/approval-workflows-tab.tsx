@@ -3,7 +3,7 @@ import { Loader2, Plus, Edit2, Trash2, ArrowRight } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import type { ApprovalWorkflow } from "@/lib/api/approval-workflows";
+import type { ApprovalWorkflow, ApprovalWorkflowStep } from "@/lib/api/types";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
@@ -47,7 +47,7 @@ function WorkflowCard({ workflow, isDeleting, onEdit, onDelete }: WorkflowCardPr
         {/* Workflow Steps Preview */}
         {workflow.steps && workflow.steps.length > 0 ? (
           <div className="flex items-center gap-2 pt-2 overflow-x-auto custom-scrollbar pb-2">
-            {workflow.steps.map((step, idx, arr) => (
+            {workflow.steps.map((step: ApprovalWorkflowStep, idx: number, arr: ApprovalWorkflowStep[]) => (
               <React.Fragment key={step.id}>
                 <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 shrink-0">
                   <span className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-[10px] font-bold text-slate-500">

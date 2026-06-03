@@ -160,8 +160,18 @@ describe('apiFetch interceptor logic', () => {
 
   it('aborts request on timeout', async () => {
     const mockFetch = globalThis.fetch as Mock;
-    // Mock fetch that never resolves
-    mockFetch.mockImplementation(() => new Promise(() => {}));
+    // Mock fetch that respects the abort signal and rejects when aborted
+    mockFetch.mockImplementation((url, options) => new Promise((resolve, reject) => {
+      if (options?.signal) {
+        if (options.signal.aborted) {
+          reject(new DOMException('The user aborted a request.', 'AbortError'));
+        } else {
+          options.signal.addEventListener('abort', () => {
+            reject(new DOMException('The user aborted a request.', 'AbortError'));
+          });
+        }
+      }
+    }));
 
     const promise = apiFetch('/v1/slow', { timeout: 1000 });
     
@@ -172,6 +182,9 @@ describe('apiFetch interceptor logic', () => {
     expect(mockFetch).toHaveBeenCalledTimes(1);
     const [, options] = mockFetch.mock.calls[0];
     expect(options.signal.aborted).toBe(true);
+
+    // Await promise to prevent unhandled rejection and use the variable
+    await expect(promise).rejects.toThrow();
   });
 });
 

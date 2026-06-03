@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, Users, Clock, Infinity as InfinityIcon } from "lucide-react";
-/* eslint-disable max-lines-per-function */
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 

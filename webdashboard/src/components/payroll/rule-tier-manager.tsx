@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, LayoutList } from "lucide-react";
 import React, { useState } from "react";
@@ -8,8 +7,6 @@ import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { fetchPayrollRuleTiers, createPayrollRuleTier } from "@/lib/api/payroll";
-import { PayrollRuleTier } from "@/lib/api/types";
-
 
 interface Props {
   onClose?: () => void;
@@ -28,7 +25,12 @@ export default function RuleTierManager({ wsId, ruleId, onClose: _onClose }: Pro
     enabled: !!ruleId,
   });
 
-  const [newTier, setNewTier] = useState<Partial<PayrollRuleTier>>({
+  const [newTier, setNewTier] = useState<{
+    min_amount: number;
+    max_amount?: number;
+    rate: number;
+    fixed_amount: number;
+  }>({
     min_amount: 0,
     max_amount: undefined,
     rate: 0,
@@ -36,7 +38,14 @@ export default function RuleTierManager({ wsId, ruleId, onClose: _onClose }: Pro
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: Partial<PayrollRuleTier>) => createPayrollRuleTier(wsId, ruleId, { ...data, tier_order: (tiers?.length ?? 0) + 1 }),
+    mutationFn: (data: typeof newTier) =>
+      createPayrollRuleTier(wsId, ruleId, {
+        tier_order: (tiers?.length ?? 0) + 1,
+        min_amount: String(data.min_amount),
+        max_amount: data.max_amount !== undefined ? String(data.max_amount) : null,
+        rate: String(data.rate),
+        fixed_amount: String(data.fixed_amount),
+      }),
     onSuccess: () => {
       toast.success(t("common.success"));
       void queryClient.invalidateQueries({ queryKey: ["payroll-rule-tiers", ruleId] });
@@ -66,21 +75,27 @@ export default function RuleTierManager({ wsId, ruleId, onClose: _onClose }: Pro
           <div className="p-10 text-center text-slate-500">{t("payroll.rule_tiers.loading")}</div>
         ) : (
           <div className="space-y-2">
-            {tiers?.map((tier) => (
-              <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm" key={tier.id}>
-                <div className="flex items-center gap-4">
-                  <span className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-500">{tier.tier_order}</span>
-                  <div className="text-sm font-bold text-slate-700 dark:text-slate-200 font-mono">
-                    {tier.min_amount.toLocaleString()} ₫ - {tier.max_amount ? `${tier.max_amount.toLocaleString()} ₫` : '∞'}
+            {tiers?.map((tier) => {
+              const minVal = parseFloat(tier.min_amount);
+              const maxVal = tier.max_amount ? parseFloat(tier.max_amount) : null;
+              const rateVal = parseFloat(tier.rate);
+              const fixedVal = parseFloat(tier.fixed_amount);
+              return (
+                <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm" key={tier.id}>
+                  <div className="flex items-center gap-4">
+                    <span className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-500">{tier.tier_order}</span>
+                    <div className="text-sm font-bold text-slate-700 dark:text-slate-200 font-mono">
+                      {minVal.toLocaleString()} ₫ - {maxVal !== null ? `${maxVal.toLocaleString()} ₫` : '∞'}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    {rateVal > 0 && <span className="text-xs font-bold text-primary-600 bg-primary-50 px-2 py-1 rounded-md">{tier.rate}%</span>}
+                    {fixedVal > 0 && <span className="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md">-{fixedVal.toLocaleString()} ₫</span>}
+                    <Button className="text-slate-400 hover:text-rose-500 transition-colors" variant="ghost"><Trash2 size={16} /></Button>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  {tier.rate !== undefined && tier.rate > 0 && <span className="text-xs font-bold text-primary-600 bg-primary-50 px-2 py-1 rounded-md">{tier.rate}%</span>}
-                  {tier.fixed_amount !== undefined && tier.fixed_amount > 0 && <span className="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md">-{tier.fixed_amount.toLocaleString()} ₫</span>}
-                  <Button className="text-slate-400 hover:text-rose-500 transition-colors" variant="ghost"><Trash2 size={16} /></Button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
 
             {/* Add new tier form */}
             <form className="mt-4 p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-inner flex items-end gap-4" onSubmit={handleSubmit}>
@@ -94,11 +109,11 @@ export default function RuleTierManager({ wsId, ruleId, onClose: _onClose }: Pro
               </div>
               <div className="flex-1 space-y-2">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t("payroll.rule_tiers.fields.rate")}</label>
-                <input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold" onChange={e => { setNewTier({...newTier, rate: e.target.value ? parseFloat(e.target.value) : 0}); }} step="0.01" type="number" value={newTier.rate ?? ""} />
+                <input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold" onChange={e => { setNewTier({...newTier, rate: e.target.value ? parseFloat(e.target.value) : 0}); }} step="0.01" type="number" value={newTier.rate} />
               </div>
               <div className="flex-1 space-y-2">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t("payroll.rule_tiers.fields.fixed_deduction")}</label>
-                <input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold" onChange={e => { setNewTier({...newTier, fixed_amount: e.target.value ? parseFloat(e.target.value) : 0}); }} type="number" value={newTier.fixed_amount ?? ""} />
+                <input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold" onChange={e => { setNewTier({...newTier, fixed_amount: e.target.value ? parseFloat(e.target.value) : 0}); }} type="number" value={newTier.fixed_amount} />
               </div>
               <Button className="bg-primary-600 text-white p-2.5 rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50" disabled={createMutation.isPending} type="submit" variant="primary">
                 <Plus size={16} />

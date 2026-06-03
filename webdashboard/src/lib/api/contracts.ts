@@ -2,7 +2,6 @@ import type { EmployeeContract, CreateContractRequest, UpdateContractRequest } f
 
 import { client } from "./client";
 
-export type { EmployeeContract, CreateContractRequest, UpdateContractRequest };
 
 export async function fetchEmployeeContracts(wsId: string, employeeId: string): Promise<EmployeeContract[]> {
   const { data } = await client.GET("/api/v1/workspaces/{ws_id}/employees/{employee_id}/contracts", {

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   Sparkles, 
@@ -16,7 +15,7 @@ import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { fetchIncentivePolicies, createIncentivePolicy, deleteIncentivePolicy, cloneIncentivePolicy } from "@/lib/api/payroll";
-import { IncentiveTier, PayrollIncentivePolicy, RuleCondition } from "@/lib/api/types";
+import { IncentiveTier, PayrollIncentivePolicyResponse, RuleCondition } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 type TierInput = Omit<IncentiveTier, "id" | "policy_id" | "rule_config"> & {
@@ -238,7 +237,7 @@ function BonusPolicyForm({
         ...t,
         payout_amount: t.payout_amount,
         rule_config: t.rule_config
-      })) as Parameters<typeof createIncentivePolicy>[1]["tiers"]
+      }))
     });
   };
 
@@ -295,7 +294,7 @@ function BonusPolicyCard({
 }: {
   onClone: (id: string) => void;
   onDelete: (id: string) => void;
-  policy: PayrollIncentivePolicy;
+  policy: PayrollIncentivePolicyResponse;
 }) {
   const { t } = useTranslation();
   const renderRules = (tier: IncentiveTier) => {
@@ -351,7 +350,7 @@ function BonusPolicyCard({
         </div>
 
         <div className="flex flex-wrap gap-3">
-          {policy.tiers?.sort((a: IncentiveTier, b: IncentiveTier) => a.priority - b.priority).map((tier: IncentiveTier) => (
+          {[...policy.tiers].sort((a: IncentiveTier, b: IncentiveTier) => a.priority - b.priority).map((tier: IncentiveTier) => (
             <div className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 flex flex-col items-center min-w-[140px] shadow-inner" key={tier.id}>
               <span className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">Tier {tier.priority}</span>
               <span className="text-sm font-bold text-primary-600 dark:text-primary-400 font-mono tracking-tighter">

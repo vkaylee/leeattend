@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useToast } from "@/components/ui/toast";
@@ -12,68 +12,14 @@ import {
   getCurrentWorkspaceId,
   updateWorkingPattern,
 } from "@/lib/api";
-import { CreateWorkingPatternRequest, UpdateWorkingPatternRequest, WorkingPatternDetailRequest } from "@/lib/api/types";
+import { CreateWorkingPatternRequest, UpdateWorkingPatternRequest, WorkingPatternDetailRequest, WorkingPatternDetail } from "@/lib/api/types";
 
-export function useWorkingPatternForm(patternId?: string) {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const toast = useToast();
-  const queryClient = useQueryClient();
-  const wsId = getCurrentWorkspaceId();
-  const isEditMode = !!patternId;
-
-  // Form State
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+function usePatternGridState() {
   const [patternType, setPatternType] = useState<"weekly" | "rotation">("weekly");
-  const [cycleLengthDays, setCycleLengthDays] = useState(6);
+  const [cycleLengthDays, setCycleLengthDays] = useState(7);
   const [grid, setGrid] = useState<string[][]>(Array.from({ length: 7 }, () => []));
-  const [isInitialized, setIsInitialized] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
 
-  // Fetch queries
-  const { data: shifts = [] } = useQuery({
-    queryKey: ["shifts", wsId],
-    queryFn: () => fetchShifts(wsId ?? ""),
-    enabled: !!wsId,
-  });
-
-  const { data: patterns = [], isLoading: isLoadingPatterns } = useQuery({
-    queryKey: ["working-patterns", wsId],
-    queryFn: () => fetchWorkingPatterns(wsId ?? ""),
-    enabled: !!wsId && isEditMode,
-  });
-
-  const { data: patternDetails = [], isLoading: isLoadingDetails } = useQuery({
-    queryKey: ["pattern-details", wsId, patternId],
-    queryFn: () => (patternId ? fetchPatternDetails(wsId ?? "", patternId) : Promise.resolve([])),
-    enabled: !!wsId && isEditMode,
-  });
-
-  const currentPattern = patterns.find((p) => p.id === patternId);
-
-  // Initialize form state when editing
-  useEffect(() => {
-    if (isEditMode && currentPattern && !isLoadingDetails && !isInitialized) {
-      setName(currentPattern.name);
-      setDescription(currentPattern.description ?? "");
-      setPatternType(currentPattern.pattern_type as "weekly" | "rotation");
-      const len = currentPattern.cycle_length_days ?? 7;
-      setCycleLengthDays(len);
-
-      const newGrid = Array.from({ length: len }, () => [] as string[]);
-      patternDetails.forEach((detail) => {
-        if (detail.shift_id && detail.schedule_day >= 0 && detail.schedule_day < len) {
-          newGrid[detail.schedule_day].push(detail.shift_id);
-        }
-      });
-      setGrid(newGrid);
-      setIsInitialized(true);
-      setIsDirty(false);
-    }
-  }, [isEditMode, currentPattern, isLoadingDetails, patternDetails, isInitialized]);
-
-  // Resizing grid when type or cycle length changes
   const handlePatternTypeChange = (type: "weekly" | "rotation") => {
     setPatternType(type);
     setIsDirty(true);
@@ -106,34 +52,37 @@ export function useWorkingPatternForm(patternId?: string) {
     });
   };
 
-  // Grid actions
-  const addShiftToDay = (dayIndex: number, shiftId: string) => {
-    setIsDirty(true);
-    setGrid((prev) => prev.map((shiftsArr, idx) => (idx === dayIndex ? [...shiftsArr, shiftId] : shiftsArr)));
+  return {
+    patternType,
+    setPatternType,
+    cycleLengthDays,
+    setCycleLengthDays,
+    grid,
+    setGrid,
+    isDirty,
+    setIsDirty,
+    handlePatternTypeChange,
+    handleCycleLengthChange,
   };
+}
 
-  const removeShiftFromDay = (dayIndex: number, shiftId: string) => {
-    setIsDirty(true);
-    setGrid((prev) => prev.map((shiftsArr, idx) => (idx === dayIndex ? shiftsArr.filter((id) => id !== shiftId) : shiftsArr)));
-  };
+export function isCycleLengthInvalid(patternType: string, len: number): boolean {
+  return patternType === "rotation" && (len < 1 || len > 366);
+}
 
-  const clearAllDays = () => {
-    setIsDirty(true);
-    setGrid(Array.from({ length: grid.length }, () => []));
-  };
+interface MutationParams {
+  patternId?: string;
+  setIsDirty: (dirty: boolean) => void;
+  t: (key: string) => string;
+  wsId: string | null;
+}
 
-  const prefillStandard = () => {
-    setIsDirty(true);
-    const firstShift = shifts[0]?.id;
-    if (!firstShift) {
-      toast.error(t("patterns.messages.no_shifts_available") || "No shifts available to prefill.");
-      return;
-    }
-    setGrid((prev) => prev.map((_, idx) => (idx >= 1 && idx <= 5 ? [firstShift] : [])));
-  };
+function useCreatePatternMutation({ wsId, t, setIsDirty }: MutationParams) {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const toast = useToast();
 
-  // Mutations
-  const createMutation = useMutation({
+  return useMutation({
     mutationFn: (data: CreateWorkingPatternRequest) => createWorkingPattern(wsId ?? "", data),
     onSuccess: () => {
       toast.success(t("patterns.messages.create_success"));
@@ -145,8 +94,14 @@ export function useWorkingPatternForm(patternId?: string) {
       toast.error(t("patterns.messages.create_error"));
     },
   });
+}
 
-  const updateMutation = useMutation({
+function useUpdatePatternMutation({ wsId, patternId, t, setIsDirty }: MutationParams) {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const toast = useToast();
+
+  return useMutation({
     mutationFn: (data: UpdateWorkingPatternRequest) => updateWorkingPattern(wsId ?? "", patternId ?? "", data),
     onSuccess: () => {
       toast.success(t("patterns.messages.update_success"));
@@ -159,42 +114,126 @@ export function useWorkingPatternForm(patternId?: string) {
       toast.error(t("patterns.messages.update_error"));
     },
   });
+}
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) {
-      toast.error(t("patterns.validation_name_required"));
-      return;
-    }
-    if (patternType === "rotation" && (cycleLengthDays < 1 || cycleLengthDays > 366)) {
-      toast.error(t("patterns.validation_cycle_length_invalid"));
-      return;
-    }
+function addShiftHelper(grid: string[][], dayIndex: number, shiftId: string): string[][] {
+  return grid.map((shiftsArr, idx) => (idx === dayIndex ? [...shiftsArr, shiftId] : shiftsArr));
+}
 
-    const details = grid.flatMap((shiftIds, scheduleDay) => {
-      if (shiftIds.length === 0) {
-        return [{ schedule_day: scheduleDay, shift_id: null as string | null }];
-      }
-      return shiftIds.map((shiftId) => ({
-        schedule_day: scheduleDay,
-        shift_id: shiftId,
-      }));
-    }) as WorkingPatternDetailRequest[];
+function removeShiftHelper(grid: string[][], dayIndex: number, shiftId: string): string[][] {
+  return grid.map((shiftsArr, idx) => (idx === dayIndex ? shiftsArr.filter((id) => id !== shiftId) : shiftsArr));
+}
 
-    const payload = {
-      name: name.trim(),
-      description: description.trim() || undefined,
-      pattern_type: patternType,
-      cycle_length_days: patternType === "rotation" ? cycleLengthDays : undefined,
-      details,
-    };
+function prefillStandardHelper(gridLength: number, firstShift: string): string[][] {
+  return Array.from({ length: gridLength }, (_, idx) => (idx >= 1 && idx <= 5 ? [firstShift] : []));
+}
 
-    if (isEditMode) {
-      updateMutation.mutate(payload);
-    } else {
-      createMutation.mutate(payload);
-    }
+function shouldInit(isEditMode: boolean, pattern: unknown, loading: boolean, init: boolean): boolean {
+  return isEditMode && Boolean(pattern) && !loading && !init;
+}
+
+function getFirstShiftId(shiftsList: { id: string }[]): string | undefined {
+  return shiftsList[0]?.id;
+}
+
+function getShiftsQueryOptions(wsId: string | null) {
+  return {
+    queryKey: ["shifts", wsId],
+    queryFn: () => fetchShifts(wsId ?? ""),
+    enabled: Boolean(wsId),
   };
+}
+
+function getPatternsQueryOptions(wsId: string | null, isEditMode: boolean) {
+  return {
+    queryKey: ["working-patterns", wsId],
+    queryFn: () => fetchWorkingPatterns(wsId ?? ""),
+    enabled: Boolean(wsId) && isEditMode,
+  };
+}
+
+function getPatternDetailsQueryOptions(wsId: string | null, patternId: string | undefined, isEditMode: boolean) {
+  return {
+    queryKey: ["pattern-details", wsId, patternId],
+    queryFn: () => (patternId ? fetchPatternDetails(wsId ?? "", patternId) : Promise.resolve([])),
+    enabled: Boolean(wsId) && isEditMode,
+  };
+}
+
+export function useWorkingPatternForm(patternId?: string) {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const wsId = getCurrentWorkspaceId();
+  const isEditMode = !!patternId;
+
+  // Form State
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  const gridState = usePatternGridState();
+  const {
+    patternType,
+    setPatternType,
+    cycleLengthDays,
+    setCycleLengthDays,
+    grid,
+    setGrid,
+    isDirty,
+    setIsDirty,
+    handlePatternTypeChange,
+    handleCycleLengthChange,
+  } = gridState;
+
+  // Fetch queries
+  const { data: shifts = [] } = useQuery(getShiftsQueryOptions(wsId));
+
+  const { data: patterns = [], isLoading: isLoadingPatterns } = useQuery(getPatternsQueryOptions(wsId, isEditMode));
+
+  const { data: patternDetails = [], isLoading: isLoadingDetails } = useQuery(getPatternDetailsQueryOptions(wsId, patternId, isEditMode));
+
+  const currentPattern = patterns.find((p) => p.id === patternId);
+
+  // Initialize form state when editing inline during render (allowed for derived/resetting state to prevent effect set-state loops)
+  if (currentPattern && shouldInit(isEditMode, currentPattern, isLoadingDetails, isInitialized)) {
+    setIsInitialized(true);
+    setName(currentPattern.name);
+    setDescription(currentPattern.description ?? "");
+    setPatternType(currentPattern.pattern_type as "weekly" | "rotation");
+    const len = currentPattern.cycle_length_days ?? 7;
+    setCycleLengthDays(len);
+    setGrid(initializeGridFromDetails(len, patternDetails));
+  }
+
+  // Grid actions
+  const addShiftToDay = (dayIndex: number, shiftId: string) => {
+    setIsDirty(true);
+    setGrid((prev) => addShiftHelper(prev, dayIndex, shiftId));
+  };
+
+  const removeShiftFromDay = (dayIndex: number, shiftId: string) => {
+    setIsDirty(true);
+    setGrid((prev) => removeShiftHelper(prev, dayIndex, shiftId));
+  };
+
+  const clearAllDays = () => {
+    setIsDirty(true);
+    setGrid(Array.from({ length: grid.length }, () => []));
+  };
+
+  const prefillStandard = () => {
+    const firstShift = getFirstShiftId(shifts);
+    if (!firstShift) {
+      toast.error(t("patterns.messages.no_shifts_available"));
+      return;
+    }
+    setIsDirty(true);
+    setGrid(prefillStandardHelper(grid.length, firstShift));
+  };
+
+  // Mutations using extracted hooks
+  const createMutation = useCreatePatternMutation({ wsId, t, setIsDirty });
+  const updateMutation = useUpdatePatternMutation({ wsId, patternId, t, setIsDirty });
 
   return {
     wsId,
@@ -214,9 +253,32 @@ export function useWorkingPatternForm(patternId?: string) {
     removeShiftFromDay,
     clearAllDays,
     prefillStandard,
-    handleSubmit,
+    createPattern: createMutation.mutate,
+    updatePattern: updateMutation.mutate,
     isDirty,
     setIsDirty,
     isSaving: createMutation.isPending || updateMutation.isPending,
   };
+}
+
+function initializeGridFromDetails(len: number, details: WorkingPatternDetail[]): string[][] {
+  const grid = Array.from({ length: len }, () => [] as string[]);
+  details.forEach((detail) => {
+    if (detail.shift_id && detail.schedule_day >= 0 && detail.schedule_day < len) {
+      grid[detail.schedule_day].push(detail.shift_id);
+    }
+  });
+  return grid;
+}
+
+export function convertGridToDetails(grid: string[][]): WorkingPatternDetailRequest[] {
+  return grid.flatMap((shiftIds, scheduleDay) => {
+    if (shiftIds.length === 0) {
+      return [{ schedule_day: scheduleDay, shift_id: null as string | null }];
+    }
+    return shiftIds.map((shiftId) => ({
+      schedule_day: scheduleDay,
+      shift_id: shiftId,
+    }));
+  });
 }

@@ -2,11 +2,32 @@ import { Loader2, Plus, Edit2, Trash2 } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useWorkspaceConfigs, useDeleteWorkspaceConfig } from "@/hooks/use-workspace-config";
+import { type WorkspaceConfigEntry } from "@/lib/api/types";
 
 import { UpsertConfigModal } from "./upsert-config-modal";
+
+function formatConfigValue(cfg: WorkspaceConfigEntry): string | number {
+  if (typeof cfg.value_int === "number") {
+    return cfg.value_int;
+  }
+  if (typeof cfg.value_decimal === "number") {
+    return cfg.value_decimal;
+  }
+  if (typeof cfg.value_text === "string") {
+    return cfg.value_text;
+  }
+  if (typeof cfg.value_bool === "boolean") {
+    return cfg.value_bool ? "Yes" : "No";
+  }
+  if (cfg.value_json) {
+    return "{JSON}";
+  }
+  return "";
+}
 
 export function OvertimeQuotasTab({ wsId }: { wsId: string }) {
   const { t } = useTranslation();
@@ -15,12 +36,12 @@ export function OvertimeQuotasTab({ wsId }: { wsId: string }) {
   const { confirm } = useConfirm();
 
   const [upsertModalOpen, setUpsertModalOpen] = useState(false);
-  const [selectedConfig, setSelectedConfig] = useState<any | null>(null);
+  const [selectedConfig, setSelectedConfig] = useState<WorkspaceConfigEntry | null>(null);
 
   // Filter only overtime-related configs if we want to isolate them
-  const otConfigs = configs?.filter(c => c.config_key.startsWith("overtime.")) || [];
+  const otConfigs = configs?.filter(c => c.config_key.startsWith("overtime.")) ?? [];
 
-  const handleEdit = (config: any) => {
+  const handleEdit = (config: WorkspaceConfigEntry) => {
     setSelectedConfig(config);
     setUpsertModalOpen(true);
   };
@@ -55,13 +76,13 @@ export function OvertimeQuotasTab({ wsId }: { wsId: string }) {
             {t("settings.overtime.quotas_desc", { defaultValue: "Manage EAV properties for Overtime like monthly limits or warning enforcement." })}
           </Typography>
         </div>
-        <button
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-2xl font-bold text-sm tracking-tight transition-all shadow-sm"
+        <Button
+          icon={<Plus className="w-4 h-4" />}
           onClick={handleCreate}
+          variant="primary"
         >
-          <Plus className="w-4 h-4" />
           {t("common.add_new")}
-        </button>
+        </Button>
       </div>
 
       {isLoading ? (
@@ -99,28 +120,26 @@ export function OvertimeQuotasTab({ wsId }: { wsId: string }) {
                     {!!cfg.scope_id && <span className="ml-2 text-xs text-slate-400">({cfg.scope_id})</span>}
                   </td>
                   <td className="p-4">
-                    {cfg.value_int !== null && cfg.value_int !== undefined ? cfg.value_int : ""}
-                    {cfg.value_decimal !== null && cfg.value_decimal !== undefined ? cfg.value_decimal : ""}
-                    {cfg.value_text !== null && cfg.value_text !== undefined ? cfg.value_text : ""}
-                    {cfg.value_bool !== null && cfg.value_bool !== undefined ? (cfg.value_bool ? "Yes" : "No") : ""}
-                    {cfg.value_json !== null && cfg.value_json !== undefined ? "{JSON}" : ""}
+                    {formatConfigValue(cfg)}
                   </td>
                   <td className="p-4 text-slate-500">{new Date(cfg.effective_from).toLocaleDateString()}</td>
                   <td className="p-4 text-right">
                     <div className="flex justify-end gap-2">
-                      <button
-                        className="p-2 text-slate-400 hover:text-blue-600 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl transition-colors"
+                      <Button
                         onClick={() => { handleEdit(cfg); }}
+                        size="icon"
+                        variant="outline"
                       >
                         <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        className="p-2 text-slate-400 hover:text-rose-600 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl transition-colors"
+                      </Button>
+                      <Button
                         disabled={isDeleting}
                         onClick={() => handleDelete(cfg.id)}
+                        size="icon"
+                        variant="outline"
                       >
                         <Trash2 className="w-4 h-4" />
-                      </button>
+                      </Button>
                     </div>
                   </td>
                 </tr>
@@ -130,14 +149,14 @@ export function OvertimeQuotasTab({ wsId }: { wsId: string }) {
         </div>
       )}
 
-      {!!upsertModalOpen && (
+      {upsertModalOpen ? (
         <UpsertConfigModal
           config={selectedConfig}
           isOpen={upsertModalOpen}
           onClose={() => { setUpsertModalOpen(false); }}
           wsId={wsId}
         />
-      )}
+      ) : null}
     </div>
   );
 }

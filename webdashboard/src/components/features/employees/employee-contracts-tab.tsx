@@ -17,7 +17,7 @@ interface EmployeeContractsTabProps {
   wsId: string;
 }
 
-// eslint-disable-next-line max-lines-per-function
+ 
 export default function EmployeeContractsTab({ wsId, employeeId, formatDate }: EmployeeContractsTabProps) {
   const { contracts, isLoading, deleteContract } = useEmployeeContracts(wsId, employeeId);
   const [editingContract, setEditingContract] = useState<EmployeeContract | null>(null);

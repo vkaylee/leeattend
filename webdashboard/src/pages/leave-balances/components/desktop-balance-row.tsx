@@ -26,7 +26,7 @@ export const DesktopBalanceRow: React.FC<DesktopBalanceRowProps> = ({
       <td className="px-6 py-6">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-primary-50 dark:bg-primary-950 rounded-xl flex items-center justify-center text-primary-600 dark:text-primary-400 font-bold text-sm shadow-inner border border-primary-100 dark:border-primary-800/50 uppercase group-hover:scale-110 transition-transform flex-shrink-0">
-            {balance.employee_name.split(' ').map((n: any) => n[0]).join('').slice(0, 2)}
+            {balance.employee_name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
           </div>
           <div className="font-bold text-slate-800 dark:text-slate-100 text-base tracking-tight uppercase leading-tight">
             {balance.employee_name}

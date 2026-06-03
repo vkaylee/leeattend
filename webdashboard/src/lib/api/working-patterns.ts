@@ -11,16 +11,7 @@ import type {
 
 import { client } from "./client";
 
-export type {
-  AssignPatternRequest,
-  BulkAssignPatternRequest,
-  BulkAssignResponse,
-  CreateWorkingPatternRequest,
-  EmployeeWorkingPattern,
-  UpdateWorkingPatternRequest,
-  WorkingPattern, 
-  WorkingPatternDetail, 
-};
+
 
 export async function fetchWorkingPatterns(wsId: string): Promise<WorkingPattern[]> {
   const { data } = await client.GET("/workspaces/{workspace_id}/working-patterns", {

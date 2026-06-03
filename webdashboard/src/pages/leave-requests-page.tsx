@@ -94,7 +94,7 @@ export default function LeaveRequestsPage() {
           formatDate={formatDate}
           key={request.id}
           leaveTypes={leaveTypes}
-          onApprove={(id, status) => { approveMutation.mutate({ id, status }); }}
+          onApprove={(id, status) => { approveMutation.mutate({ id, status: status as "approved" | "rejected" | "pre_approved" | "pending" | "cancelled" }); }}
           request={request}
           t={t}
         />

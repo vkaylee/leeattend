@@ -1,7 +1,10 @@
+import type { paths } from "@/types/api-generated";
+
+import type { LeavePolicyAssignmentDetail, LeaveRequest, EmployeeLeaveBalance, WorkspaceLeaveBalance, LeaveHistoryItem, LeavePolicy, LeaveType, LeaveTypeConfig, LeaveDurationType, PaginatedResponse } from './types';
+
 import { client } from "./client";
 import { API_BASE_URL } from './config';
 import { apiFetch } from "./helpers";
-import { LeavePolicyAssignmentDetail, LeaveRequest, EmployeeLeaveBalance, WorkspaceLeaveBalance, LeaveHistoryItem, LeavePolicy, LeaveType, LeaveTypeConfig, LeaveDurationType, PaginatedResponse } from './types';
 
 export async function submitLeaveRequest(
   wsId: string,
@@ -55,7 +58,7 @@ export async function fetchMyLeaveRequests(
 export async function approveLeaveRequest(
   wsId: string,
   requestId: string,
-  data: { status: any }
+  data: paths["/workspaces/{ws_id}/leave/requests/{id}/approve"]["post"]["requestBody"]["content"]["application/json"]
 ): Promise<void> {
   await client.POST("/workspaces/{ws_id}/leave/requests/{id}/approve", {
     params: {
@@ -137,13 +140,13 @@ export async function fetchLeavePolicies(wsId: string): Promise<LeavePolicy[]> {
 
 export async function createLeavePolicy(
   wsId: string,
-  data: { description?: string | null; leave_type_id: string; name: string; rule_config: any }
+  data: { description?: string | null; leave_type_id: string; name: string; rule_config: Record<string, unknown> }
 ): Promise<LeavePolicy> {
   const { data: resData } = await client.POST("/workspaces/{ws_id}/leave/policies", {
     params: {
       path: { ws_id: wsId },
     },
-    body: data,
+    body: data as unknown as paths["/workspaces/{ws_id}/leave/policies"]["post"]["requestBody"]["content"]["application/json"],
   });
   if (!resData) throw new Error("No response data");
   return resData as unknown as LeavePolicy;
@@ -158,7 +161,7 @@ export async function updateLeavePolicy(
     params: {
       path: { ws_id: wsId, policy_id: policyId },
     },
-    body: data as any,
+    body: data as unknown as paths["/workspaces/{ws_id}/leave/policies/{policy_id}"]["patch"]["requestBody"]["content"]["application/json"],
   });
   if (!resData) throw new Error("No response data");
   return resData as unknown as LeavePolicy;
@@ -187,7 +190,7 @@ export async function fetchLeaveTypes(wsId: string): Promise<LeaveType[]> {
 
 export async function createLeaveType(
   wsId: string,
-  data: { code: string; is_paid: boolean; name: string; policy_config?: any }
+  data: { code: string; is_paid: boolean; name: string; policy_config?: Record<string, unknown> }
 ): Promise<LeaveType> {
   const { data: resData } = await client.POST("/workspaces/{workspace_id}/leave/types", {
     params: {
@@ -199,10 +202,10 @@ export async function createLeaveType(
   return resData;
 }
 
-export async function updateLeaveType(
-  wsId: string,
-  id: string,
-  data: Partial<LeaveType>
+export function updateLeaveType(
+  _wsId: string,
+  _id: string,
+  _data: Partial<LeaveType>
 ): Promise<LeaveType> {
   throw new Error("updateLeaveType is deprecated. Use updateLeaveTypeConfig instead.");
 }
@@ -289,7 +292,7 @@ export async function updateLeaveTypeConfig(
     params: {
       path: { workspace_id: wsId, id },
     },
-    body: { policy_config: config as any },
+    body: { policy_config: config },
   });
   if (!resData) throw new Error("No response data");
   return resData;
@@ -320,7 +323,7 @@ export async function uploadLeaveExcel(
     params: {
       path: { ws_id: wsId },
     },
-    body: formData as any,
+    body: formData as unknown as undefined,
   });
   if (!resData) throw new Error("No response data");
   return resData as unknown as { job_id: string; status: string };

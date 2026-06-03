@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -67,8 +66,8 @@ export function useAssignOvertimePolicy({
     }
 
     assignMutation.mutate({
-      employee_id: selectedType === 'employee' ? targetId : undefined,
-      department_id: selectedType === 'department' ? targetId : undefined,
+      assignee_type: selectedType,
+      assignee_id: selectedType === 'workspace' ? null : targetId,
       policy_id: policyId,
       effective_from: effectiveFrom
     });

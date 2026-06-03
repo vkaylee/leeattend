@@ -1,5 +1,5 @@
 import { client } from "./client";
-// @ts-nocheck
+import { apiFetch } from "./helpers";
 import { Workspace, WorkspaceMember, MemberRolesResponse, MemberExtraRole, MemberExtraPermission, WorkspaceRole } from "./types";
 
 export async function fetchWorkspaces(): Promise<Workspace[]> {
@@ -46,7 +46,7 @@ export async function fetchWorkspaceMembers(
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/members", {
     params: { path: { ws_id: wsId } }
   });
-  return resData || [];
+  return resData ?? [];
 }
 
 export async function addWorkspaceMember(
@@ -87,7 +87,7 @@ export async function fetchMemberRoles(
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/members/{user_id}/roles", {
     params: { path: { ws_id: wsId, user_id: userId } }
   });
-    return resData!;
+  return resData as unknown as MemberRolesResponse;
 }
 
 export async function assignExtraRole(
@@ -100,7 +100,8 @@ export async function assignExtraRole(
     params: { path: { ws_id: wsId, user_id: userId } },
     body: { role_id: roleId, expires_at: expiresAt }
   });
-    return resData!;
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function revokeExtraRole(
@@ -109,22 +110,23 @@ export async function revokeExtraRole(
   roleId: string,
 ): Promise<void> {
   await client.DELETE("/v1/workspaces/{ws_id}/members/{user_id}/roles/{role_id}", {
-            params: { path: { ws_id: wsId, user_id: userId, role_id: roleId } }
-      });
+    params: { path: { ws_id: wsId, user_id: userId, role_id: roleId } }
+  });
 }
 
 export async function fetchWorkspaceRoles(wsId: string): Promise<WorkspaceRole[]> {
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/roles", {
-            params: { path: { ws_id: wsId } }
-      });
-    return resData!;
+    params: { path: { ws_id: wsId } }
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function clearWorkspaceData(wsId: string, group: string): Promise<void> {
-  await client.DELETE("/v1/dev/workspaces/{ws_id}/clear" as any, {
-    params: { path: { ws_id: wsId }, query: { group } },
-    body: {}
+  const response = await apiFetch(`/v1/dev/workspaces/${wsId}/clear?group=${group}`, {
+    method: "DELETE",
   });
+  if (!response.ok) throw new Error("Failed to clear workspace data");
 }
 
 // --- Extra Permissions ---
@@ -134,9 +136,10 @@ export async function fetchMemberPermissions(
   userId: string,
 ): Promise<MemberExtraPermission[]> {
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/members/{user_id}/permissions", {
-            params: { path: { ws_id: wsId, user_id: userId } }
-      });
-    return resData!;
+    params: { path: { ws_id: wsId, user_id: userId } }
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function assignExtraPermission(
@@ -146,9 +149,11 @@ export async function assignExtraPermission(
   expiresAt: string,
 ): Promise<MemberExtraPermission> {
   const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/members/{user_id}/permissions", {
-            params: { path: { ws_id: wsId, user_id: userId } },
-          body: { permission, expires_at: expiresAt } });
-    return resData!;
+    params: { path: { ws_id: wsId, user_id: userId } },
+    body: { permission, expires_at: expiresAt }
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function revokeExtraPermission(
@@ -157,50 +162,57 @@ export async function revokeExtraPermission(
   permId: string,
 ): Promise<void> {
   await client.DELETE("/v1/workspaces/{ws_id}/members/{user_id}/permissions/{perm_id}", {
-            params: { path: { ws_id: wsId, user_id: userId, perm_id: permId } }
-      });
+    params: { path: { ws_id: wsId, user_id: userId, perm_id: permId } }
+  });
 }
 
 export async function fetchAvailablePermissions(
   wsId: string,
 ): Promise<string[]> {
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/permissions/available", {
-            params: { path: { ws_id: wsId } }
-      });
-    return resData!;
+    params: { path: { ws_id: wsId } }
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 // --- Roles & Matrix ---
 
 export async function createWorkspaceRole(wsId: string, data: { name: string; description?: string; color: string }): Promise<WorkspaceRole> {
   const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/roles", {
-            params: { path: { ws_id: wsId } },
-          body: data });
-    return resData!;
+    params: { path: { ws_id: wsId } },
+    body: data
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function updateWorkspaceRole(wsId: string, roleId: string, data: { name?: string; description?: string; color?: string }): Promise<WorkspaceRole> {
   const { data: resData } = await client.PUT("/v1/workspaces/{ws_id}/roles/{role_id}", {
-            params: { path: { ws_id: wsId, role_id: roleId } },
-          body: data });
-    return resData!;
+    params: { path: { ws_id: wsId, role_id: roleId } },
+    body: data
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function deleteWorkspaceRole(wsId: string, roleId: string): Promise<void> {
   await client.DELETE("/v1/workspaces/{ws_id}/roles/{role_id}", {
-            params: { path: { ws_id: wsId, role_id: roleId } }
-      });
+    params: { path: { ws_id: wsId, role_id: roleId } }
+  });
 }
 
 export async function fetchRolePermissions(wsId: string, roleId: string): Promise<string[]> {
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/roles/{role_id}/permissions", {
-            params: { path: { ws_id: wsId, role_id: roleId } }
-      });
-    return resData!;
+    params: { path: { ws_id: wsId, role_id: roleId } }
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function updateRolePermissions(wsId: string, roleId: string, permissions: string[]): Promise<void> {
   await client.PUT("/v1/workspaces/{ws_id}/roles/{role_id}/permissions", {
     params: { path: { ws_id: wsId, role_id: roleId } },
-    body: { permissions } });
+    body: { permissions }
+  });
 }

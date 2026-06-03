@@ -16,7 +16,7 @@ export class ApiError extends Error {
     public errorCode?: string,
     public errorBody?: AppErrorResponse,
   ) {
-    super(`[${status}] ${errorCode || statusText}${errorBody?.message ? `: ${errorBody.message}` : ''}`);
+    super(`[${status}] ${errorCode ?? statusText}${errorBody?.message ? `: ${errorBody.message}` : ''}`);
     this.name = "ApiError";
 
     // Set prototype explicitly for built-in Error subclassing in TS/JS

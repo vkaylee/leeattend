@@ -597,13 +597,27 @@
     "delegated_claim": {
       "title": "Delegated Claims",
       "subtitle": "Claim overtime hours on behalf of workshop/production personnel who lack system accounts",
+      "default_reason": "Delegated OT claim",
+      "confirm_title": "Confirm Delegated Claims",
+      "confirm_description": "Review and edit overtime claims on behalf of employees.",
+      "paper_warning": "requires paper upload permission",
+      "search_placeholder": "Search by employee name or ID...",
+      "no_search_results": "No matching entries found",
+      "warning": {
+        "title": "Verify Discrepancies",
+        "description": "Some claims differ from system-detected OT. Please verify before proceeding.",
+        "details": "The following employees have claim times that differ from system computed OT. Please confirm.",
+        "btn_edit": "Go Back & Edit",
+        "btn_confirm": "Confirm & Submit"
+      },
       "table": {
         "employee": "Employee",
         "date": "Date",
         "actual_hours": "Actual Work Hours",
         "computed_ot": "System OT",
         "claimed_ot": "Claimed OT",
-        "reason": "Claim Reason"
+        "reason": "Claim Reason",
+        "filtered_count": "Found {{count}} entries"
       },
       "actions": {
         "claim": "Claim",

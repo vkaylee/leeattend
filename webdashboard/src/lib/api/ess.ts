@@ -126,7 +126,7 @@ export async function punchMySelf(
   data?: { note?: string }
 ): Promise<TimeEntry> {
   const { data: resData } = await client.POST("/ess/punch", {
-    body: data || {},
+    body: data ?? {},
   });
   if (!resData) throw new Error("No response data");
   return resData;

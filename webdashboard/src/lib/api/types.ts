@@ -170,6 +170,7 @@ export type Shift = components["schemas"]["Shift"];
 export type CreateShiftRequest = components["schemas"]["CreateShiftRequest"];
 export type UpdateShiftRequest = components["schemas"]["UpdateShiftRequest"];
 export type PayrollSettings = components["schemas"]["PayrollSettings"];
+export type UpdatePayrollSettingsRequest = components["schemas"]["UpdatePayrollSettingsRequest"];
 
 export interface ConfigRecord {
   created_at?: string;
@@ -184,7 +185,12 @@ export interface ConfigRecord {
 
 export type SalaryComponentDefinition = components["schemas"]["SalaryComponentDefinition"];
 export type CreateSalaryComponentRequest = components["schemas"]["CreateSalaryComponentRequest"];
+export type CreatePayrollRuleDefinitionRequest = components["schemas"]["CreatePayrollRuleDefinitionRequest"];
 export type EmployeeSalaryComponent = components["schemas"]["EmployeeSalaryComponent"];
+export type EmployeeSalaryComponentDetail = EmployeeSalaryComponent & {
+  name: string;
+  code: string;
+};
 
 export interface PayrollSegment {
   actual_work_days: string | number;
@@ -219,6 +225,8 @@ export interface RuleCondition {
 
 export type IncentiveTier = components["schemas"]["IncentiveTier"];
 export type PayrollIncentivePolicy = components["schemas"]["PayrollIncentivePolicy"];
+export type PayrollIncentivePolicyResponse = components["schemas"]["PayrollIncentivePolicyResponse"];
+export type AssigneeType = components["schemas"]["AssigneeType"];
 export type BatchCalculatePayrollRequest = components["schemas"]["BatchCalculatePayrollRequest"];
 export type BatchCalculateResult = components["schemas"]["BatchCalculateResult"];
 export type BatchCalculatePayrollResponse = components["schemas"]["BatchCalculatePayrollResponse"];

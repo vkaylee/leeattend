@@ -211,7 +211,7 @@ function useSidebarMenuItems(): MenuItem[] {
   ];
 }
 
-// eslint-disable-next-line complexity, max-lines-per-function
+// eslint-disable-next-line complexity
 export default function Sidebar({ isOpen, onClose, openSections, toggleSection, isCollapsed }: SidebarProps) {
   const location = useLocation();
   const { hasAnyPermission } = useMyPermissions();

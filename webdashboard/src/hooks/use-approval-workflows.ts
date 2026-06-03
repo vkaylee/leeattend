@@ -1,7 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
+import type { UpdateWorkflowRequest } from '@/lib/api/approval-workflows';
+import type { CreateWorkflowRequest } from '@/lib/api/types';
+
 import { useWorkspace } from '@/hooks/use-workspace';
-import { approvalWorkflowsApi, CreateWorkflowRequest, UpdateWorkflowRequest } from '@/lib/api/approval-workflows';
+import { approvalWorkflowsApi } from '@/lib/api/approval-workflows';
+
+
 
 export const approvalWorkflowKeys = {
   all: ['approval-workflows'] as const,

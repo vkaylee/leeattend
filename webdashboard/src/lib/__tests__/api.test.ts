@@ -151,8 +151,8 @@ describe("api.ts comprehensive tests", () => {
 
     it("punchOut", async () => {
       mockSuccess({});
-      await api.punchOut("ws-1", "e1", { note: "N" });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/time/punch-out/e1"), expect.objectContaining({ method: "POST" }));
+      await api.punchOut("ws-1", { employee_id: "e1", note: "N" });
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/time/punch-out"), expect.objectContaining({ method: "POST" }));
     });
 
     it("fetchTimeHistory", async () => {

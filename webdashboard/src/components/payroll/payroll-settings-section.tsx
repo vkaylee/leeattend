@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ShieldAlert, Clock } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -28,10 +27,10 @@ export default function PayrollSettingsSection({ wsId }: Props) {
   const handleSavePolicy = async (data: { std_working_days: number; hours_per_day: number; max_ot_hours_per_day: number | null; max_ot_hours_per_month: number | null; effective_date: string }) => {
     try {
       await updatePayrollSettings(wsId, {
-        fixed_std_days: data.std_working_days,
-        hours_per_day: data.hours_per_day,
-        max_ot_hours_per_day: data.max_ot_hours_per_day,
-        max_ot_hours_per_month: data.max_ot_hours_per_month,
+        fixed_std_days: String(data.std_working_days),
+        hours_per_day: String(data.hours_per_day),
+        max_ot_hours_per_day: data.max_ot_hours_per_day !== null ? String(data.max_ot_hours_per_day) : null,
+        max_ot_hours_per_month: data.max_ot_hours_per_month !== null ? String(data.max_ot_hours_per_month) : null,
  
         effective_date: data.effective_date
       });
@@ -50,11 +49,11 @@ export default function PayrollSettingsSection({ wsId }: Props) {
         <TemporalConfigTable
           isLoading={isHistoryLoading}
           onSave={handleSavePolicy}
-          records={history.map(h => ({
-            std_working_days: h.fixed_std_days,
-            hours_per_day: h.hours_per_day,
-            max_ot_hours_per_day: h.max_ot_hours_per_day ?? null,
-            max_ot_hours_per_month: h.max_ot_hours_per_month ?? null,
+           records={history.map(h => ({
+            std_working_days: parseFloat(h.fixed_std_days),
+            hours_per_day: parseFloat(h.hours_per_day),
+            max_ot_hours_per_day: h.max_ot_hours_per_day ? parseFloat(h.max_ot_hours_per_day) : null,
+            max_ot_hours_per_month: h.max_ot_hours_per_month ? parseFloat(h.max_ot_hours_per_month) : null,
             effective_date: h.effective_date
           }))}
           title={t("common.payroll.settings.title")}

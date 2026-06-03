@@ -5,9 +5,12 @@ import { useTranslation } from "react-i18next";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
+import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
+import { Typography } from "@/components/ui/typography";
 import { useUpsertWorkspaceConfig } from "@/hooks/use-workspace-config";
+import { type WorkspaceConfigEntry, type CreateConfigEntryRequest } from "@/lib/api/types";
 
 const configSchema = z.object({
   config_key: z.string().min(1, "Key is required"),
@@ -20,18 +23,35 @@ const configSchema = z.object({
 
 type ConfigFormValues = z.infer<typeof configSchema>;
 
-export function UpsertConfigModal({
+function parseConfigValue(config: WorkspaceConfigEntry): {
+  vType: "int" | "decimal" | "text" | "bool" | "json";
+  vVal: string;
+} {
+  if (config.value_int !== null && config.value_int !== undefined) {
+    return { vType: "int", vVal: config.value_int.toString() };
+  }
+  if (config.value_decimal !== null && config.value_decimal !== undefined) {
+    return { vType: "decimal", vVal: config.value_decimal };
+  }
+  if (typeof config.value_bool === "boolean") {
+    return { vType: "bool", vVal: config.value_bool.toString() };
+  }
+  if (config.value_json !== null && config.value_json !== undefined) {
+    return { vType: "json", vVal: JSON.stringify(config.value_json) };
+  }
+  if (config.value_text !== null && config.value_text !== undefined) {
+    return { vType: "text", vVal: config.value_text };
+  }
+  return { vType: "text", vVal: "" };
+}
+
+function useUpsertConfigForm({
   config,
-  isOpen,
   onClose,
-  wsId,
 }: {
-  config: any | null;
-  isOpen: boolean;
+  config: WorkspaceConfigEntry | null;
   onClose: () => void;
-  wsId: string;
 }) {
-  const { t } = useTranslation();
   const toast = useToast();
   const { mutateAsync: upsertConfig, isPending } = useUpsertWorkspaceConfig();
 
@@ -49,30 +69,11 @@ export function UpsertConfigModal({
 
   useEffect(() => {
     if (config) {
-      let vType: "int" | "decimal" | "text" | "bool" | "json" = "text";
-      let vVal = "";
-
-      if (config.value_int !== null && config.value_int !== undefined) {
-        vType = "int";
-        vVal = config.value_int.toString();
-      } else if (config.value_decimal !== null && config.value_decimal !== undefined) {
-        vType = "decimal";
-        vVal = config.value_decimal.toString();
-      } else if (config.value_bool !== null && config.value_bool !== undefined) {
-        vType = "bool";
-        vVal = config.value_bool.toString();
-      } else if (config.value_json !== null && config.value_json !== undefined) {
-        vType = "json";
-        vVal = JSON.stringify(config.value_json);
-      } else if (config.value_text !== null && config.value_text !== undefined) {
-        vType = "text";
-        vVal = config.value_text;
-      }
-
+      const { vType, vVal } = parseConfigValue(config);
       form.reset({
         config_key: config.config_key,
-        scope_type: config.scope_type,
-        scope_id: config.scope_id || "",
+        scope_type: config.scope_type as "workspace" | "employer" | "department" | "employee",
+        scope_id: config.scope_id ?? "",
         value_type: vType,
         value: vVal,
         effective_from: config.effective_from.split("T")[0],
@@ -82,9 +83,9 @@ export function UpsertConfigModal({
 
   const onSubmit = async (data: ConfigFormValues) => {
     try {
-      const payload: any = {
+      const payload: CreateConfigEntryRequest = {
         config_key: data.config_key,
-        scope_type: data.scope_type,
+        scope_type: data.scope_type as "workspace" | "department" | "employee",
         effective_from: data.effective_from,
       };
 
@@ -94,7 +95,7 @@ export function UpsertConfigModal({
 
       switch (data.value_type) {
         case "int":
-          payload.value_int = parseInt(data.value);
+          payload.value_int = parseInt(data.value, 10);
           break;
         case "decimal":
           payload.value_decimal = parseFloat(data.value);
@@ -103,7 +104,7 @@ export function UpsertConfigModal({
           payload.value_bool = data.value === "true";
           break;
         case "json":
-          payload.value_json = JSON.parse(data.value);
+          payload.value_json = JSON.parse(data.value) as Record<string, unknown>;
           break;
         case "text":
           payload.value_text = data.value;
@@ -121,26 +122,50 @@ export function UpsertConfigModal({
 
   const valType = form.watch("value_type");
 
+  return {
+    form,
+    onSubmit,
+    isPending,
+    valType,
+  };
+}
+
+export function UpsertConfigModal({
+  config,
+  isOpen,
+  onClose,
+  wsId: _wsId,
+}: {
+  config: WorkspaceConfigEntry | null;
+  isOpen: boolean;
+  onClose: () => void;
+  wsId: string;
+}) {
+  const { t } = useTranslation();
+  const { form, onSubmit, isPending, valType } = useUpsertConfigForm({ config, onClose });
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={config ? "Edit Configuration" : "New Configuration"}>
       <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Key</label>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2" htmlFor="config_key">Key</label>
             <input
               {...form.register("config_key")}
               className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              id="config_key"
               placeholder="e.g. overtime.max_hours_per_month"
             />
-            {!!form.formState.errors.config_key && <p className="text-rose-500 text-xs mt-1">{form.formState.errors.config_key.message}</p>}
+            {!!form.formState.errors.config_key && <Typography className="text-rose-500 text-xs mt-1" variant="p">{form.formState.errors.config_key.message}</Typography>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Scope</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2" htmlFor="scope_type">Scope</label>
               <select
                 {...form.register("scope_type")}
                 className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                id="scope_type"
               >
                 <option value="workspace">Workspace</option>
                 <option value="employer">Employer</option>
@@ -150,10 +175,11 @@ export function UpsertConfigModal({
             </div>
             {form.watch("scope_type") !== "workspace" && (
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Scope ID</label>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2" htmlFor="scope_id">Scope ID</label>
                 <input
                   {...form.register("scope_id")}
                   className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                  id="scope_id"
                   placeholder="UUID"
                 />
               </div>
@@ -162,10 +188,11 @@ export function UpsertConfigModal({
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Value Type</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2" htmlFor="value_type">Value Type</label>
               <select
                 {...form.register("value_type")}
                 className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                id="value_type"
               >
                 <option value="text">Text</option>
                 <option value="int">Integer</option>
@@ -175,11 +202,12 @@ export function UpsertConfigModal({
               </select>
             </div>
             <div className="col-span-2">
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Value</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2" htmlFor="value">Value</label>
               {valType === "bool" ? (
                 <select
                   {...form.register("value")}
                   className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                  id="value"
                 >
                   <option value="true">True</option>
                   <option value="false">False</option>
@@ -188,6 +216,7 @@ export function UpsertConfigModal({
                 <input
                   {...form.register("value")}
                   className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                  id="value"
                   placeholder="Enter value"
                 />
               )}
@@ -195,30 +224,23 @@ export function UpsertConfigModal({
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Effective From</label>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2" htmlFor="effective_from">Effective From</label>
             <input
               {...form.register("effective_from")}
               className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              id="effective_from"
               type="date"
             />
           </div>
         </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-          <button
-            className="px-5 py-2.5 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            onClick={onClose}
-            type="button"
-          >
+          <Button onClick={onClose} type="button" variant="ghost">
             {t("common.cancel")}
-          </button>
-          <button
-            className="px-5 py-2.5 rounded-xl font-bold text-sm bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-all disabled:opacity-50"
-            disabled={isPending}
-            type="submit"
-          >
-            {isPending ? t("common.saving") : t("common.save")}
-          </button>
+          </Button>
+          <Button loading={isPending} type="submit" variant="primary">
+            {t("common.save")}
+          </Button>
         </div>
       </form>
     </Modal>

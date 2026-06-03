@@ -2,6 +2,7 @@ import { Plus, Clock } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useMyProfile } from "@/hooks/use-ess";
 import { useMyOtAssignments, useEmployeeQuota } from "@/hooks/use-overtime-requests";
@@ -21,7 +22,7 @@ export default function EssOtPage() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
   const { data: assignments, isLoading: loadingAssignments } = useMyOtAssignments(employeeId);
-  const { data: quota, isLoading: loadingQuota } = useEmployeeQuota(employeeId || "", new Date().toISOString().split('T')[0]);
+  const { data: quota, isLoading: loadingQuota } = useEmployeeQuota(employeeId ?? "", new Date().toISOString().split("T")[0]);
 
   if (!wsId || !employeeId) return null;
 
@@ -42,33 +43,33 @@ export default function EssOtPage() {
               </Typography>
             </div>
           </div>
-          <button
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-2xl font-bold text-sm tracking-tight transition-all shadow-sm"
+          <Button
+            icon={<Plus className="w-4 h-4" />}
             onClick={() => { setCreateModalOpen(true); }}
+            variant="primary"
           >
-            <Plus className="w-4 h-4" />
             {t("ess.ot.request", { defaultValue: "Request OT" })}
-          </button>
+          </Button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-          <MyOtAssignmentsList assignments={assignments || []} isLoading={loadingAssignments} wsId={wsId} />
+          <MyOtAssignmentsList assignments={assignments ?? []} isLoading={loadingAssignments} wsId={wsId} />
         </div>
         <div className="space-y-8">
           <OtQuotaWidget isLoading={loadingQuota} quota={quota} />
         </div>
       </div>
 
-      {!!createModalOpen && (
+      {createModalOpen ? (
         <CreateOtRequestModal
           employeeId={employeeId}
           isOpen={createModalOpen}
           onClose={() => { setCreateModalOpen(false); }}
           wsId={wsId}
         />
-      )}
+      ) : null}
     </div>
   );
 }

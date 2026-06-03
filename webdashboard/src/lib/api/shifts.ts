@@ -1,9 +1,7 @@
 import type { Shift, EmployeeSchedule, AssignmentHistory, ShiftRoster, CreateShiftRequest, UpdateShiftRequest } from "./types";
 
-// @ts-nocheck
 import { client } from "./client";
 
-export type { Shift, EmployeeSchedule, AssignmentHistory, ShiftRoster };
 
 export async function fetchShifts(wsId: string): Promise<Shift[]> {
   const { data } = await client.GET("/workspaces/{workspace_id}/shifts", {
@@ -84,8 +82,8 @@ export const fetchEmployeeRosters = async (
     params: {
       path: { workspace_id: wsId, id: employeeId },
       query: {
-        start_date: startDate || undefined,
-        end_date: endDate || undefined,
+        start_date: startDate ?? undefined,
+        end_date: endDate ?? undefined,
       },
     },
   });
@@ -93,12 +91,12 @@ export const fetchEmployeeRosters = async (
   return data;
 }
 
-export async function upsertRoster(wsId: string, employeeId: string, data: any): Promise<ShiftRoster> {
+export async function upsertRoster(wsId: string, employeeId: string, data: Record<string, unknown>): Promise<ShiftRoster> {
   const { data: result } = await client.POST("/workspaces/{workspace_id}/employees/{id}/rosters", {
     params: {
       path: { workspace_id: wsId, id: employeeId },
     },
-    body: data,
+    body: data as unknown as never,
   });
   if (!result) throw new Error("No response data");
   return result;

@@ -127,7 +127,7 @@ const computeCellData = (
   
   let shiftSymbol = "";
   if (hasShift) {
-    const shiftConfig = shifts?.find((s: any) => s.id === shiftId);
+    const shiftConfig = shifts?.find((s) => s.id === shiftId);
     shiftSymbol = getShiftSymbol(daySchedule.shift_name, shiftConfig?.report_symbol);
   }
 
@@ -136,7 +136,7 @@ const computeCellData = (
     ? "bg-teal-100/60 dark:bg-teal-950/60 text-teal-800 dark:text-teal-200"
     : "bg-slate-100/50 dark:bg-slate-800 text-slate-700 dark:text-slate-300";
 
-  const traces = daySchedule.traces || [];
+  const traces = daySchedule.traces ?? [];
   const hasTraces = traces.length > 0;
 
   return {
@@ -239,7 +239,7 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
       }
     });
     return list.map(emp => {
-      const existing = monthSchedules?.find((s: any) => s.employee_id === emp.id);
+      const existing = monthSchedules?.find((s) => s.employee_id === emp.id);
       if (existing) {
         return existing;
       }
@@ -299,8 +299,8 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
 
     const [startEmpId, startDateStr] = dragStartCell.split(":");
 
-    const startEmpIdx = filteredSchedules.findIndex((s: any) => s.employee_id === startEmpId);
-    const endEmpIdx = filteredSchedules.findIndex((s: any) => s.employee_id === employeeId);
+    const startEmpIdx = filteredSchedules.findIndex((s) => s.employee_id === startEmpId);
+    const endEmpIdx = filteredSchedules.findIndex((s) => s.employee_id === employeeId);
 
     if (startEmpIdx === -1 || endEmpIdx === -1) return;
 
@@ -571,7 +571,7 @@ interface RosterToolbarProps {
   workspaceId: string;
 }
 
-// eslint-disable-next-line max-lines-per-function
+ 
 const RosterToolbar = memo(function RosterToolbar({
   copyLabel,
   isCopying,
@@ -770,7 +770,7 @@ interface RosterGridTableProps {
   shifts?: Shift[];
 }
 
-// eslint-disable-next-line max-lines-per-function
+ 
 const RosterGridTable = memo(function RosterGridTable({
   containerRef,
   currentLocale,
@@ -848,7 +848,7 @@ const RosterGridTable = memo(function RosterGridTable({
                 const dateStr = format(day, "yyyy-MM-dd");
                 const cellKey = `${empSchedule.employee_id}:${dateStr}`;
                 const isSelected = selectedCells.has(cellKey);
-                const daySchedule = empSchedule.schedules.find((s: any) => s.date === dateStr);
+                const daySchedule = empSchedule.schedules.find((s) => s.date === dateStr);
                 const cellData = computeCellData(daySchedule, isSelected, shifts);
 
                 return (
@@ -930,10 +930,6 @@ const RosterCell = memo(function RosterCell({
     onMouseEnter(employeeId, dateStr);
   };
 
-  const handleTraceClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
-
   return (
     <td
       className={cellStyles}
@@ -958,9 +954,7 @@ const RosterCell = memo(function RosterCell({
         ) : null}
 
         {hasTraces && traces ? (
-          <div className="absolute top-0.5 right-0.5 z-30 opacity-0 hover:opacity-100 group-hover:opacity-60 transition-opacity" 
-            onClick={handleTraceClick}
-          >
+          <div className="absolute top-0.5 right-0.5 z-30 opacity-0 hover:opacity-100 group-hover:opacity-60 transition-opacity">
             <ScheduleTracePopover 
               endTime={endTime} 
               shiftName={shiftName} 

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, CheckCircle2, FileText, Trash2, Percent, Calculator } from "lucide-react";
 import React, { useState } from "react";
@@ -9,7 +8,7 @@ import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { fetchPayrollRules, createPayrollRule, fetchSalaryBaseGroups } from "@/lib/api/payroll";
-import { PayrollRuleDefinition, SalaryBaseGroup } from "@/lib/api/types";
+import { CreatePayrollRuleDefinitionRequest, PayrollRuleDefinition, SalaryBaseGroup } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 import RuleAssignmentManager from "./rule-assignment-manager";
@@ -76,11 +75,11 @@ function PercentageConfig({ formData, setFormData, bases }: { formData: Partial<
     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
       <div className="space-y-3">
         <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1" htmlFor="rule-rate"><Percent size={12}/> Rate (%)</label>
-        <input className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm" id="rule-rate" onChange={e => { setFormData({...formData, rule_config: {...formData.rule_config, rate: parseFloat(e.target.value)}}); }} required step="0.01" type="number" value={(formData.rule_config?.rate as number) || ""} />
+        <input className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm" id="rule-rate" onChange={e => { setFormData({...formData, rule_config: {...(formData.rule_config as Record<string, unknown>), rate: parseFloat(e.target.value)}}); }} required step="0.01" type="number" value={((formData.rule_config as { rate?: number } | undefined)?.rate) ?? ""} />
       </div>
       <div className="space-y-3">
         <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-calc-base">Calculation Base</label>
-        <select className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm uppercase tracking-tight" id="rule-calc-base" onChange={e => { setFormData({...formData, rule_config: {...formData.rule_config, base: e.target.value}}); }} required value={(formData.rule_config?.base as string) || "gross"}>
+        <select className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm uppercase tracking-tight" id="rule-calc-base" onChange={e => { setFormData({...formData, rule_config: {...(formData.rule_config as Record<string, unknown>), base: e.target.value}}); }} required value={((formData.rule_config as { base?: string } | undefined)?.base) ?? "gross"}>
           {bases.map(b => (
             <option key={b.slug} value={b.slug}>{b.name}</option>
           ))}
@@ -101,7 +100,7 @@ function FixedConfig({ formData, setFormData }: { formData: Partial<PayrollRuleD
     <div className="grid grid-cols-1 gap-8">
       <div className="space-y-3">
         <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-fixed">Fixed Amount (₫)</label>
-        <input className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm" id="rule-fixed" onChange={e => { setFormData({...formData, rule_config: {...formData.rule_config, amount: parseFloat(e.target.value)}}); }} required type="number" value={(formData.rule_config?.amount as number) || ""} />
+        <input className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm" id="rule-fixed" onChange={e => { setFormData({...formData, rule_config: {...(formData.rule_config as Record<string, unknown>), amount: parseFloat(e.target.value)}}); }} required type="number" value={((formData.rule_config as { amount?: number } | undefined)?.amount) ?? ""} />
       </div>
     </div>
   );
@@ -112,7 +111,7 @@ function TieredConfig({ formData, setFormData, bases }: { formData: Partial<Payr
     <div className="grid grid-cols-1 gap-8">
       <div className="space-y-3">
         <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-tier-base">Tier Base Amount</label>
-        <select className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm uppercase tracking-tight" id="rule-tier-base" onChange={e => { setFormData({...formData, rule_config: {...formData.rule_config, base: e.target.value}}); }} required value={(formData.rule_config?.base as string) || "taxable_income"}>
+        <select className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm uppercase tracking-tight" id="rule-tier-base" onChange={e => { setFormData({...formData, rule_config: {...(formData.rule_config as Record<string, unknown>), base: e.target.value}}); }} required value={((formData.rule_config as { base?: string } | undefined)?.base) ?? "taxable_income"}>
           {bases.map(b => (
             <option key={b.slug} value={b.slug}>{b.name}</option>
           ))}
@@ -175,11 +174,14 @@ function PayrollRuleForm({
   const [formData, setFormData] = useState<Partial<PayrollRuleDefinition>>({ name: "", description: "", code: "", category: "statutory_deduction", applies_to: "employee", calculation_method: "percentage", is_mandatory: true, display_order: 1, rule_config: { rate: 0, base: "gross" } });
 
   const createMutation = useMutation({
-    mutationFn: (data: Partial<PayrollRuleDefinition>) => createPayrollRule(wsId, data),
+    mutationFn: (data: CreatePayrollRuleDefinitionRequest) => createPayrollRule(wsId, data),
     onSuccess,
   });
 
-  const handleSubmit = (e: React.SyntheticEvent) => { e.preventDefault(); createMutation.mutate(formData); };
+  const handleSubmit = (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    createMutation.mutate(formData as CreatePayrollRuleDefinitionRequest);
+  };
 
   return (
     <form className="space-y-10 pt-4 animate-in fade-in duration-500" onSubmit={handleSubmit}>
@@ -210,6 +212,85 @@ function PayrollRuleForm({
         <Button className="flex-[1.5] bg-primary-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50" disabled={createMutation.isPending} type="submit" variant="primary">{createMutation.isPending ? t("common.saving").toUpperCase() : t("common.save").toUpperCase()}</Button>
       </div>
     </form>
+  );
+}
+
+interface RuleRowProps {
+  expandedRuleId: string | null;
+  rule: PayrollRuleDefinition;
+  setExpandedRuleId: (id: string | null) => void;
+  wsId: string;
+}
+
+function getRuleSubtitle(rule: PayrollRuleDefinition): string {
+  const parts: string[] = [rule.category, rule.calculation_method];
+  if (rule.calculation_method === "percentage" && rule.rule_config && typeof rule.rule_config === "object" && 'rate' in rule.rule_config) {
+    parts.push(`(${String((rule.rule_config as { rate: number }).rate)}%)`);
+  } else if (rule.calculation_method === "fixed") {
+    parts.push("(Fixed Amount)");
+  }
+  return parts.join(" • ");
+}
+
+function RuleStatusBadge({ isMandatory }: { isMandatory: boolean }) {
+  return (
+    <span className={cn("text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-full border shadow-sm", isMandatory ? 'bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 border-rose-100 dark:border-rose-800' : 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800 opacity-60')}>
+      {isMandatory ? "MANDATORY" : "OPTIONAL"}
+    </span>
+  );
+}
+
+function RuleRow({ rule, expandedRuleId, setExpandedRuleId, wsId }: RuleRowProps) {
+  const isExpanded = expandedRuleId === rule.id;
+  const toggleExpand = () => {
+    setExpandedRuleId(isExpanded ? null : rule.id);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      toggleExpand();
+    }
+  };
+
+  return (
+    <div className="border-b border-slate-50 dark:border-slate-800/50 last:border-0">
+      <div 
+        className={cn("p-8 px-10 flex items-center justify-between transition-all group relative m-2 rounded-3xl cursor-pointer", isExpanded ? "bg-slate-50 dark:bg-slate-800/80 shadow-inner" : "hover:bg-slate-50 dark:hover:bg-slate-800/50")}
+        onClick={toggleExpand}
+        onKeyDown={handleKeyDown}
+        role="button"
+        tabIndex={0}
+      >
+        <div className="flex items-center gap-6">
+          <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 font-bold text-lg shadow-sm group-hover:text-primary-600 dark:group-hover:text-primary-400 group-hover:border-primary-100 dark:border-primary-800 transition-all uppercase">{rule.code.slice(0, 2)}</div>
+          <div>
+            <Typography className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none" variant="p">{rule.name}</Typography>
+            <Typography className="text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-2 opacity-70" variant="p">
+              {getRuleSubtitle(rule)}
+            </Typography>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-10">
+          <div className="flex flex-col items-end gap-2">
+            <RuleStatusBadge isMandatory={rule.is_mandatory} />
+            <span className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-50 italic">{rule.applies_to.toUpperCase()}</span>
+          </div>
+          <Button className="p-2.5 bg-white dark:bg-slate-900 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all opacity-0 group-hover:opacity-100 active:scale-90" onClick={(e: React.MouseEvent) => { e.stopPropagation(); }} variant="ghost"><Trash2 size={18} /></Button>
+        </div>
+      </div>
+
+      {/* Expanded details section */}
+      {isExpanded ? (
+        <div className="px-12 pb-8 pt-2 animate-in slide-in-from-top-4 duration-300 space-y-6">
+          {rule.calculation_method === "tiered" ? (
+            <RuleTierManager ruleId={rule.id} wsId={wsId} />
+          ) : null}
+          <RuleAssignmentManager calculationMethod={rule.calculation_method} ruleId={rule.id} wsId={wsId} />
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -247,54 +328,13 @@ export default function PayrollRulesManager({ wsId }: Props) {
           </div>
         ) : (
           rules?.map((rule) => (
-            <div className="border-b border-slate-50 dark:border-slate-800/50 last:border-0" key={rule.id}>
-              { }
-              { }
-              <div 
-                className={cn("p-8 px-10 flex items-center justify-between transition-all group relative m-2 rounded-3xl cursor-pointer", expandedRuleId === rule.id ? "bg-slate-50 dark:bg-slate-800/80 shadow-inner" : "hover:bg-slate-50 dark:hover:bg-slate-800/50")}
-                onClick={() => { setExpandedRuleId(expandedRuleId === rule.id ? null : rule.id); }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    setExpandedRuleId(expandedRuleId === rule.id ? null : rule.id);
-                  }
-                }}
-                role="button"
-                tabIndex={0}
-              >
-                <div className="flex items-center gap-6">
-                  <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 font-bold text-lg shadow-sm group-hover:text-primary-600 dark:group-hover:text-primary-400 group-hover:border-primary-100 dark:border-primary-800 transition-all uppercase">{rule.code.slice(0, 2)}</div>
-                  <div>
-                    <Typography className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none" variant="p">{rule.name}</Typography>
-                    <Typography className="text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-2 opacity-70" variant="p">
-                      {rule.category} • {rule.calculation_method} 
-                      {rule.calculation_method === "percentage" && 'rate' in rule.rule_config ? ` (${String(rule.rule_config.rate)}%)` : null}
-                      {rule.calculation_method === "fixed" ? ` (Fixed Amount)` : null}
-                    </Typography>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-10">
-                  <div className="flex flex-col items-end gap-2">
-                    <span className={cn("text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-full border shadow-sm", rule.is_mandatory ? 'bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 border-rose-100 dark:border-rose-800' : 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800 opacity-60')}>
-                      {rule.is_mandatory ? "MANDATORY" : "OPTIONAL"}
-                    </span>
-                    <span className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-50 italic">{rule.applies_to.toUpperCase()}</span>
-                  </div>
-                  <Button className="p-2.5 bg-white dark:bg-slate-900 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all opacity-0 group-hover:opacity-100 active:scale-90" onClick={(e: React.MouseEvent) => { e.stopPropagation(); }} variant="ghost"><Trash2 size={18} /></Button>
-                </div>
-              </div>
-
-              {/* Expanded details section */}
-              {expandedRuleId === rule.id ? (
-                <div className="px-12 pb-8 pt-2 animate-in slide-in-from-top-4 duration-300 space-y-6">
-                  {rule.calculation_method === "tiered" ? (
-                    <RuleTierManager ruleId={rule.id} wsId={wsId} />
-                  ) : null}
-                  <RuleAssignmentManager calculationMethod={rule.calculation_method} ruleId={rule.id} wsId={wsId} />
-                </div>
-              ) : null}
-            </div>
+            <RuleRow
+              expandedRuleId={expandedRuleId}
+              key={rule.id}
+              rule={rule}
+              setExpandedRuleId={setExpandedRuleId}
+              wsId={wsId}
+            />
           ))
         )}
       </div>

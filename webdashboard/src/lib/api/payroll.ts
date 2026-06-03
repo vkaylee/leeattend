@@ -1,11 +1,16 @@
+import type { paths } from "@/types/api-generated";
+
 import { client } from "./client";
 import { 
   Payslip, 
   PayrollSettings,
+  UpdatePayrollSettingsRequest,
   SalaryComponentDefinition,
   EmployeeSalaryComponent, 
+  EmployeeSalaryComponentDetail,
   CreateSalaryComponentRequest,
-  PayrollIncentivePolicy,
+  CreatePayrollRuleDefinitionRequest,
+  PayrollIncentivePolicyResponse,
   PayrollRuleAssignment,
   SalaryBaseGroup,
   SalaryBaseGroupMember,
@@ -17,7 +22,7 @@ import {
   ConfigRecord
 } from "./types";
 
-export async function fetchIncentivePolicies(wsId: string): Promise<PayrollIncentivePolicy[]> {
+export async function fetchIncentivePolicies(wsId: string): Promise<PayrollIncentivePolicyResponse[]> {
   const { data: resData } = await client.GET("/workspaces/{ws_id}/payroll/incentive-policies", {
     params: { path: { ws_id: wsId } }
   });
@@ -25,10 +30,10 @@ export async function fetchIncentivePolicies(wsId: string): Promise<PayrollIncen
   return resData;
 }
 
-export async function createIncentivePolicy(wsId: string, data: { base_amount: number; effective_from: string; name: string; payout_type: string; tiers: any[] }): Promise<void> {
+export async function createIncentivePolicy(wsId: string, data: { base_amount: number; effective_from: string; name: string; payout_type: string; tiers: Record<string, unknown>[] }): Promise<void> {
   await client.POST("/workspaces/{ws_id}/payroll/incentive-policies", {
     params: { path: { ws_id: wsId } },
-    body: data
+    body: data as unknown as paths["/workspaces/{ws_id}/payroll/incentive-policies"]["post"]["requestBody"]["content"]["application/json"]
   });
 }
 
@@ -82,7 +87,7 @@ export async function fetchPayrollSettings(wsId: string): Promise<PayrollSetting
   return resData;
 }
 
-export async function updatePayrollSettings(wsId: string, data: { description?: string | null; name: string }): Promise<PayrollSettings> {
+export async function updatePayrollSettings(wsId: string, data: UpdatePayrollSettingsRequest): Promise<PayrollSettings> {
   const { data: resData } = await client.PATCH("/workspaces/{ws_id}/payroll-settings", {
     params: { path: { ws_id: wsId } },
     body: data
@@ -119,12 +124,12 @@ export async function createSalaryComponent(
   return resData;
 }
 
-export async function fetchEmployeeSalaryComponents(wsId: string, employeeId: string): Promise<EmployeeSalaryComponent[]> {
+export async function fetchEmployeeSalaryComponents(wsId: string, employeeId: string): Promise<EmployeeSalaryComponentDetail[]> {
   const { data: resData } = await client.GET("/workspaces/{ws_id}/employees/{employee_id}/salary-components", {
     params: { path: { ws_id: wsId, employee_id: employeeId } }
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as EmployeeSalaryComponent[];
+  return resData as unknown as EmployeeSalaryComponentDetail[];
 }
 
 export async function assignEmployeeSalaryComponent(
@@ -192,10 +197,10 @@ export async function fetchOvertimePolicy(wsId: string, policyId: string): Promi
   return resData as unknown as [OvertimePolicy, OvertimeRule[]];
 }
 
-export async function createOvertimePolicy(wsId: string, data: any): Promise<OvertimePolicy> {
+export async function createOvertimePolicy(wsId: string, data: Record<string, unknown>): Promise<OvertimePolicy> {
   const { data: resData } = await client.POST("/workspaces/{ws_id}/overtime/policies", {
     params: { path: { ws_id: wsId } },
-    body: data
+    body: data as unknown as paths["/workspaces/{ws_id}/overtime/policies"]["post"]["requestBody"]["content"]["application/json"]
   });
   if (!resData) throw new Error("No response data");
   return resData;
@@ -273,7 +278,7 @@ export async function fetchPayrollRules(wsId: string): Promise<PayrollRuleDefini
   return resData;
 }
 
-export async function createPayrollRule(wsId: string, data: { applies_to: any; calculation_method: any; category: any; code: string; name: string; description?: string | null; rule_config: unknown; priority: number; }): Promise<PayrollRuleDefinition> {
+export async function createPayrollRule(wsId: string, data: CreatePayrollRuleDefinitionRequest): Promise<PayrollRuleDefinition> {
   const { data: resData } = await client.POST("/workspaces/{ws_id}/payroll-rules", {
     params: { path: { ws_id: wsId } },
     body: data
@@ -309,10 +314,10 @@ export async function fetchPayrollRuleAssignments(wsId: string, ruleId: string):
   return resData;
 }
 
-export async function createPayrollRuleAssignment(wsId: string, ruleId: string, data: { assignee_id?: string | null; assignee_type: any; effective_from: string; effective_to?: string | null; override_config?: unknown }): Promise<PayrollRuleAssignment> {
+export async function createPayrollRuleAssignment(wsId: string, ruleId: string, data: { assignee_id?: string | null; assignee_type: string; effective_from: string; effective_to?: string | null; override_config?: unknown }): Promise<PayrollRuleAssignment> {
   const { data: resData } = await client.POST("/workspaces/{ws_id}/payroll-rules/{rule_id}/assignments", {
     params: { path: { ws_id: wsId, rule_id: ruleId } },
-    body: data
+    body: data as unknown as paths["/workspaces/{ws_id}/payroll-rules/{rule_id}/assignments"]["post"]["requestBody"]["content"]["application/json"]
   });
   if (!resData) throw new Error("No response data");
   return resData;

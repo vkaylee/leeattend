@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Plus, 
@@ -156,7 +155,7 @@ function OvertimeRuleForm({
             onClick={() => { 
               onSubmit({
                 priority,
-                multiplier,
+                multiplier: String(multiplier),
                 time_start: startTime || undefined,
                 time_end: endTime || undefined,
                 days_of_week: days,
@@ -180,7 +179,17 @@ export default function OvertimeRuleEditor({ wsId, policyId, rules }: OvertimeRu
   const [isAdding, setIsAdding] = useState(false);
 
   const addMutation = useMutation({
-    mutationFn: (data: Partial<OvertimeRule>) => addOvertimeRule(wsId, policyId, data),
+    mutationFn: (data: Partial<OvertimeRule>) => {
+      if (data.multiplier === undefined) throw new Error("Multiplier is required");
+      return addOvertimeRule(wsId, policyId, {
+        days_of_week: data.days_of_week ?? 127,
+        is_holiday: !!data.is_holiday,
+        multiplier: data.multiplier,
+        priority: data.priority ?? 0,
+        time_end: data.time_end,
+        time_start: data.time_start,
+      });
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['overtime-policies'] });
       setIsAdding(false);
@@ -209,7 +218,7 @@ export default function OvertimeRuleEditor({ wsId, policyId, rules }: OvertimeRu
       ) : null}
 
       <div className='space-y-2'>
-        {rules.sort((a, b) => b.priority - a.priority).map((rule: OvertimeRule) => (
+        {[...rules].sort((a, b) => b.priority - a.priority).map((rule: OvertimeRule) => (
           <div className='flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-slate-100 dark:border-slate-800/50 hover:bg-white dark:hover:bg-slate-900 transition-all' key={rule.id}>
             <div className='flex items-center gap-4'>
               <div className='px-2 py-1 bg-primary-50 dark:bg-primary-950 text-primary-700 dark:text-primary-300 rounded-lg text-[10px] font-bold'>

@@ -597,13 +597,27 @@
     "delegated_claim": {
       "title": "Khai báo hộ OT",
       "subtitle": "Khai báo giờ tăng ca thay cho nhân sự sản xuất / không có tài khoản",
+      "default_reason": "Khai báo hộ tăng ca",
+      "confirm_title": "Xác nhận khai báo hộ",
+      "confirm_description": "Xem xét và chỉnh sửa các yêu cầu tăng ca thay cho nhân viên.",
+      "paper_warning": "yêu cầu quyền tải lên đơn giấy",
+      "search_placeholder": "Tìm theo tên hoặc mã nhân viên...",
+      "no_search_results": "Không tìm thấy kết quả phù hợp",
+      "warning": {
+        "title": "Xác nhận chênh lệch",
+        "description": "Một số yêu cầu khai báo khác với giờ OT do hệ thống tính toán. Vui lòng xác nhận trước khi tiếp tục.",
+        "details": "Các nhân viên sau có thời gian khai báo khác với OT hệ thống tính toán. Vui lòng xác nhận.",
+        "btn_edit": "Quay lại chỉnh sửa",
+        "btn_confirm": "Xác nhận & Gửi"
+      },
       "table": {
         "employee": "Nhân viên",
         "date": "Ngày",
         "actual_hours": "Giờ làm thực tế",
         "computed_ot": "OT Hệ thống",
         "claimed_ot": "OT Khai báo",
-        "reason": "Lý do tăng ca"
+        "reason": "Lý do tăng ca",
+        "filtered_count": "Tìm thấy {{count}} bản ghi"
       },
       "actions": {
         "claim": "Khai báo",

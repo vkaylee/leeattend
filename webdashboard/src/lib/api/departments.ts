@@ -3,9 +3,10 @@ import { Department } from "./types";
 
 export async function fetchDepartments(wsId: string): Promise<Department[]> {
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/departments", {
-            params: { path: { ws_id: wsId } }
-      });
-    return resData!;
+    params: { path: { ws_id: wsId } }
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function createDepartment(
@@ -13,9 +14,11 @@ export async function createDepartment(
   data: { name: string; description?: string | null; parent_id?: string | null; manager_id?: string | null; default_working_pattern_id?: string | null }
 ): Promise<Department> {
   const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/departments", {
-            params: { path: { ws_id: wsId } },
-          body: data });
-    return resData!;
+    params: { path: { ws_id: wsId } },
+    body: data
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function updateDepartment(
@@ -24,9 +27,11 @@ export async function updateDepartment(
   data: { name?: string; description?: string | null; parent_id?: string | null; manager_id?: string | null; default_working_pattern_id?: string | null }
 ): Promise<Department> {
   const { data: resData } = await client.PUT("/v1/workspaces/{ws_id}/departments/{id}", {
-            params: { path: { ws_id: wsId, id } },
-          body: data });
-    return resData!;
+    params: { path: { ws_id: wsId, id } },
+    body: data
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function deleteDepartment(wsId: string, id: string): Promise<void> {

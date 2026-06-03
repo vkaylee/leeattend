@@ -1,5 +1,13 @@
+import type { ApprovalActionLog } from './types';
+
 import { client } from './client';
-import { ApprovalActionLog } from './types';
+
+const httpClient = client as unknown as {
+  GET: (url: string, options?: Record<string, unknown>) => Promise<{ data?: unknown; error?: unknown }>;
+  POST: (url: string, options?: Record<string, unknown>) => Promise<{ data?: unknown; error?: unknown }>;
+  PUT: (url: string, options?: Record<string, unknown>) => Promise<{ data?: unknown; error?: unknown }>;
+  DELETE: (url: string, options?: Record<string, unknown>) => Promise<{ data?: unknown; error?: unknown }>;
+};
 
 export type OtRequestStatus = 
   | 'draft' 
@@ -35,7 +43,7 @@ export interface OvertimeRequest {
   planned_end_time?: string;
   planned_minutes: number;
   planned_start_time?: string;
-  quota_warning?: any;
+  quota_warning?: Record<string, unknown> | null;
   reason: string;
   requested_by_user_id: string;
   status: OtRequestStatus;
@@ -46,6 +54,21 @@ export interface OvertimeRequest {
 
 export interface OvertimeRequestDetail extends OvertimeRequest {
   approval_history?: ApprovalActionLog[];
+}
+
+export interface MyOvertimeAssignment {
+  employee_statuses?: {
+    employee_id: string;
+    status: ConsentStatus;
+  }[];
+  id: string;
+  my_employee_id: string;
+  planned_date: string;
+  planned_end_time: string;
+  planned_start_time: string;
+  reason?: string | null;
+  source_type: 'employee_request' | 'manager_assignment';
+  status: OtRequestStatus;
 }
 
 export interface CreateOvertimeRequestPayload {
@@ -67,11 +90,11 @@ export interface QuotaSummary {
 }
 
 export const overtimeRequestsApi = {
-  listRequests: async (workspaceId: string, params?: any): Promise<OvertimeRequest[]> => {
+  listRequests: async (workspaceId: string, params?: Record<string, unknown>): Promise<OvertimeRequest[]> => {
     const { data } = await client.GET("/v1/workspaces/{ws_id}/overtime/requests", {
       params: {
         path: { ws_id: workspaceId },
-        query: params,
+        query: params as unknown as undefined,
       },
     });
     if (!data) throw new Error("No response data");
@@ -108,7 +131,7 @@ export const overtimeRequestsApi = {
   },
 
   cancelRequest: async (workspaceId: string, id: string): Promise<void> => {
-    await client.PUT("/v1/workspaces/{ws_id}/overtime/requests/{id}/cancel" as any, {
+    await httpClient.PUT("/v1/workspaces/{ws_id}/overtime/requests/{id}/cancel", {
       params: {
         path: { ws_id: workspaceId, id },
       },
@@ -131,35 +154,35 @@ export const overtimeRequestsApi = {
     });
   },
 
-  getMyAssignments: async (employeeId: string): Promise<OvertimeRequest[]> => {
-    const { data } = await client.GET("/v1/workspaces/{ws_id}/payroll/overtime/assignments" as any, {
+  getMyAssignments: async (employeeId: string): Promise<MyOvertimeAssignment[]> => {
+    const { data } = await httpClient.GET("/v1/workspaces/{ws_id}/payroll/overtime/assignments", {
       params: {
         path: { employeeId },
       },
     });
     if (!data) throw new Error("No response data");
-    return data;
+    return data as MyOvertimeAssignment[];
   },
 
   getWorkspaceQuotaSummary: async (workspaceId: string, month: string): Promise<QuotaSummary[]> => {
-    const { data } = await client.GET("/v1/workspaces/{ws_id}/overtime/quota/summary" as any, {
+    const { data } = await httpClient.GET("/v1/workspaces/{ws_id}/overtime/quota/summary", {
       params: {
         path: { ws_id: workspaceId },
         query: { month },
       },
     });
     if (!data) throw new Error("No response data");
-    return data;
+    return data as QuotaSummary[];
   },
 
   getEmployeeQuota: async (workspaceId: string, employeeId: string, date: string): Promise<QuotaSummary> => {
-    const { data } = await client.GET("/v1/workspaces/{ws_id}/overtime/quota/{employee_id}" as any, {
+    const { data } = await httpClient.GET("/v1/workspaces/{ws_id}/overtime/quota/{employee_id}", {
       params: {
-        path: { ws_id: workspaceId, employeeId },
+        path: { ws_id: workspaceId, employee_id: employeeId },
         query: { date },
       },
     });
     if (!data) throw new Error("No response data");
-    return data;
+    return data as QuotaSummary;
   }
 };

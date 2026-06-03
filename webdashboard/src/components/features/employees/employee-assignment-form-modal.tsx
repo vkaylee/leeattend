@@ -1,21 +1,21 @@
 import { Briefcase } from "lucide-react";
 import React, { useEffect } from "react";
-import { useForm, useWatch, Controller } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { z } from "zod";
-
-import type { EmployeeAssignment } from "@/lib/api";
 
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import FormField from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
+import { Typography } from "@/components/ui/typography";
 import {
   useCreateEmployeeAssignment,
   useUpdateEmployeeAssignment,
 } from "@/hooks/use-employee-assignments";
+import { type EmployeeAssignment } from "@/lib/api";
 import { useLocations } from "@/pages/settings/hooks/use-locations";
 
 const assignmentSchema = z
@@ -48,13 +48,19 @@ interface EmployeeAssignmentFormModalProps {
   wsId: string;
 }
 
-export default function EmployeeAssignmentFormModal({
+function useAssignmentForm({
   isOpen,
-  onClose,
-  editingAssignment,
   wsId,
   employeeId,
-}: EmployeeAssignmentFormModalProps) {
+  editingAssignment,
+  onClose,
+}: {
+  isOpen: boolean;
+  wsId: string;
+  employeeId: string;
+  editingAssignment: EmployeeAssignment | null;
+  onClose: () => void;
+}) {
   const toast = useToast();
   const createAssignment = useCreateEmployeeAssignment();
   const updateAssignment = useUpdateEmployeeAssignment();
@@ -77,8 +83,6 @@ export default function EmployeeAssignmentFormModal({
     },
   });
 
-  const startDateValue = useWatch({ control, name: "start_date" });
-
   useEffect(() => {
     if (isOpen) {
       if (editingAssignment) {
@@ -86,7 +90,7 @@ export default function EmployeeAssignmentFormModal({
           status: editingAssignment.status,
           start_date: editingAssignment.start_date,
           end_date: editingAssignment.end_date ?? "",
-          host_location_id: editingAssignment.host_location_id ?? "",
+          host_location_id: editingAssignment.host_location_id,
           reason: editingAssignment.reason ?? "",
         });
       } else {
@@ -103,8 +107,8 @@ export default function EmployeeAssignmentFormModal({
 
   const onSubmit = async (data: AssignmentFormValues) => {
     try {
-      const payloadDate = data.end_date ? data.end_date : null;
-      const payloadLocationId = data.host_location_id ? data.host_location_id : null;
+      const payloadDate = data.end_date ?? null;
+      const payloadLocationId = data.host_location_id ?? null;
 
       if (editingAssignment) {
         await updateAssignment.mutateAsync({
@@ -114,19 +118,22 @@ export default function EmployeeAssignmentFormModal({
           data: {
             end_date: payloadDate,
             reason: data.reason,
-            status: data.status as any,
+            status: data.status === "scheduled" ? undefined : data.status,
           },
         });
         toast.success("Đã cập nhật phái cử thành công");
         onClose();
       } else {
+        if (!payloadLocationId) {
+          throw new Error("Vui lòng chọn địa điểm phái cử");
+        }
         await createAssignment.mutateAsync({
           wsId,
           employeeId,
           data: {
             start_date: data.start_date,
             end_date: payloadDate,
-            host_location_id: payloadLocationId!,
+            host_location_id: payloadLocationId,
             reason: data.reason,
           },
         });
@@ -138,6 +145,40 @@ export default function EmployeeAssignmentFormModal({
       toast.error(error.message || "Có lỗi xảy ra");
     }
   };
+
+  return {
+    register,
+    handleSubmit,
+    control,
+    errors,
+    isSubmitting,
+    locations,
+    onSubmit,
+  };
+}
+
+export default function EmployeeAssignmentFormModal({
+  isOpen,
+  onClose,
+  editingAssignment,
+  wsId,
+  employeeId,
+}: EmployeeAssignmentFormModalProps) {
+  const {
+    register,
+    handleSubmit,
+    control,
+    errors,
+    isSubmitting,
+    locations,
+    onSubmit,
+  } = useAssignmentForm({
+    isOpen,
+    wsId,
+    employeeId,
+    editingAssignment,
+    onClose,
+  });
 
   return (
     <Modal
@@ -174,7 +215,10 @@ export default function EmployeeAssignmentFormModal({
           </div>
 
           <div className="space-y-2">
-            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+            <label
+              className="text-[11px] font-bold text-slate-500 uppercase tracking-widest"
+              htmlFor="assignment-location-combobox"
+            >
               Địa điểm đến (Tùy chọn)
             </label>
             <Controller
@@ -184,8 +228,9 @@ export default function EmployeeAssignmentFormModal({
                 <Combobox
                   clearOnEscape
                   data-testid="assignment-location-combobox"
+                  id="assignment-location-combobox"
                   onChange={field.onChange}
-                  options={(locations || []).map((loc) => ({
+                  options={(locations ?? []).map((loc) => ({
                     value: loc.id,
                     label: loc.name,
                     description: loc.is_headquarters ? "Headquarters" : loc.timezone,
@@ -196,9 +241,9 @@ export default function EmployeeAssignmentFormModal({
               )}
             />
             {!!errors.host_location_id?.message && (
-              <p className="text-sm font-semibold text-rose-500 mt-1">
+              <Typography className="text-sm font-semibold text-rose-500 mt-1" variant="p">
                 {errors.host_location_id.message}
-              </p>
+              </Typography>
             )}
           </div>
 

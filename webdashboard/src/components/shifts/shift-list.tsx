@@ -59,11 +59,11 @@ export function ShiftList({ shifts, onEdit, onDelete }: ShiftListProps) {
                       <span className="text-slate-300 dark:text-slate-600 font-bold">-</span>
                       <span className="text-[10px] text-slate-600 dark:text-slate-300 font-bold font-mono">{shift.break_end.substring(0, 5)}</span>
                     </div>
-                    {!!shift.is_break_auto_deduct && (
+                    {shift.is_break_auto_deduct ? (
                       <div className="text-[8px] font-bold text-blue-500 uppercase tracking-widest flex items-center gap-1 opacity-80">
                         <Zap className="fill-blue-500" size={10} /> {t("shifts.auto_deduct")}
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 ) : (
                   <div className="flex items-center justify-center gap-2 font-bold text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-widest">

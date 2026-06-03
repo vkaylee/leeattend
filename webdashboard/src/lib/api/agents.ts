@@ -7,12 +7,11 @@ export async function fetchAgents(): Promise<AgentStatus[]> {
   return resData;
 }
 
-export async function sendAgentCommand(agentId: string, command: unknown): Promise<unknown> {
-  const { data: resData } = await client.POST("/agent/{agent_id}/command", {
+export async function sendAgentCommand(agentId: string, command: unknown): Promise<void> {
+  await client.POST("/agent/{agent_id}/command", {
     params: { path: { agent_id: agentId } },
     body: command as never,
   });
-  return resData!;
 }
 
 export async function fetchDevices(): Promise<Device[]> {

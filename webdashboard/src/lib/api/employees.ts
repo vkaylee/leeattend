@@ -2,24 +2,13 @@ import type {
   Employee,
   EmploymentPeriod,
   EmployeeDepartmentHistory,
-  WorkingCondition,
   PaginatedResponse,
-  EmploymentPhaseDefinition,
-  EmployeePhase
 } from "./types";
 
-// @ts-nocheck
 import { client } from "./client";
 
-export type {
-  Employee,
-  EmploymentPeriod,
-  EmployeeDepartmentHistory,
-  WorkingCondition,
-  PaginatedResponse,
-  EmploymentPhaseDefinition,
-  EmployeePhase
-};
+export * from "./employee-phases";
+export * from "./employee-conditions";
 
 export async function fetchEmployees(
   wsId: string,
@@ -35,81 +24,6 @@ export async function fetchEmployees(
   });
   if (!data) throw new Error("No response data");
   return data;
-}
-
-// --- Employment Phases API ---
-
-export async function fetchEmploymentPhases(wsId: string): Promise<EmploymentPhaseDefinition[]> {
-  const { data } = await client.GET("/v1/workspaces/{ws_id}/employment-phases", {
-            params: { path: { ws_id: wsId } }
-      });
-  return data as unknown as EmploymentPhaseDefinition[];
-}
-
-export async function createEmploymentPhase(wsId: string, data: Partial<EmploymentPhaseDefinition>): Promise<EmploymentPhaseDefinition> {
-  const { data: result } = await client.POST("/v1/workspaces/{ws_id}/employment-phases", {
-            params: { path: { ws_id: wsId } },
-          body: data as any });
-  return result as unknown as EmploymentPhaseDefinition;
-}
-
-export async function fetchEmployeePhases(wsId: string, employeeId: string): Promise<EmployeePhase[]> {
-  const { data } = await client.GET("/v1/workspaces/{ws_id}/employees/{emp_id}/phases", { params: { path: { ws_id: wsId, emp_id: employeeId } } });
-  return data!;
-}
-
-export async function assignEmployeePhase(
-  wsId: string,
-  employeeId: string,
-  data: { phase_definition_id: string; start_date: string; end_date: string; override_config?: unknown }
-): Promise<EmployeePhase> {
-  const { data: result } = await client.POST("/v1/workspaces/{ws_id}/employees/{emp_id}/phases", { params: { path: { ws_id: wsId, emp_id: employeeId } }, body: data as any });
-  return result!;
-}
-
-export async function updateEmployeePhaseStatus(
-  wsId: string,
-  employeeId: string,
-  phaseId: string,
-  data: { status: string; evaluation_notes?: string }
-): Promise<EmployeePhase> {
-  const { data: result } = await client.PUT("/v1/workspaces/{ws_id}/employees/{emp_id}/phases/{phase_id}/status", {
-            params: { path: { ws_id: wsId, emp_id: employeeId, phase_id: phaseId } },
-          body: data });
-  return result!;
-}
-
-export async function fetchWorkingConditions(wsId: string, employeeId: string): Promise<WorkingCondition[]> {
-  const { data } = await client.GET("/workspaces/{workspace_id}/employees/{id}/conditions", {
-    params: {
-      path: { workspace_id: wsId, id: employeeId },
-    },
-  });
-  if (!data) throw new Error("No response data");
-  return data as unknown as WorkingCondition[];
-}
-
-export async function createWorkingCondition(
-  wsId: string,
-  employeeId: string,
-  condition: Partial<WorkingCondition>
-): Promise<WorkingCondition> {
-  const { data } = await client.POST("/workspaces/{workspace_id}/employees/{id}/conditions", {
-    params: {
-      path: { workspace_id: wsId, id: employeeId },
-    },
-    body: condition as any,
-  });
-  if (!data) throw new Error("No response data");
-  return data as unknown as WorkingCondition;
-}
-
-export async function deleteWorkingCondition(wsId: string, employeeId: string, conditionId: string): Promise<void> {
-  await client.DELETE("/workspaces/{workspace_id}/employees/{id}/conditions/{cond_id}", {
-    params: {
-      path: { workspace_id: wsId, id: employeeId, cond_id: conditionId },
-    },
-  });
 }
 
 export interface SearchEmployeesParams {
@@ -142,8 +56,8 @@ export async function searchEmployees(
         page,
         limit,
         q: query || undefined,
-        sort_by: sortBy || undefined,
-        sort_dir: sortDir || undefined,
+        sort_by: sortBy ?? undefined,
+        sort_dir: sortDir ?? undefined,
         department_id: (departmentIds && departmentIds.length > 0) ? departmentIds.join(",") : undefined,
       },
     },
@@ -192,7 +106,7 @@ export async function createEmployee(
     params: {
       path: { workspace_id: wsId },
     },
-    body: employee as any,
+    body: employee as unknown as never,
   });
   if (!data) throw new Error("No response data");
   return data;
@@ -207,7 +121,7 @@ export async function updateEmployee(
     params: {
       path: { workspace_id: wsId, id },
     },
-    body: employee as any,
+    body: employee as unknown as never,
   });
   if (!data) throw new Error("No response data");
   return data;

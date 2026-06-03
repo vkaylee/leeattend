@@ -15,7 +15,7 @@ import {
   getCurrentWorkspaceId,
   Workspace,
   reprocessAllAttendance,
-  fetchGenericJobStatus,
+  checkReprocessStatus,
   fetchDefaultAttendanceRules,
   updateDefaultAttendanceRules,
   fetchAttendancePolicyVersions,
@@ -224,7 +224,7 @@ function useBulkReprocess(wsId: string, t: TFunction) {
     queryKey: ["generic-job-status", wsId, pollingJobId],
     queryFn: () => {
       if (!pollingJobId) return Promise.reject(new Error("No job ID"));
-      return fetchGenericJobStatus(wsId, pollingJobId);
+      return checkReprocessStatus(wsId, pollingJobId);
     },
     enabled: !!pollingJobId,
     refetchInterval: (query: { state: { data?: { status: string } } }) => {

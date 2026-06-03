@@ -37,21 +37,24 @@ export async function fetchAssignmentRules(wsId: string): Promise<AssignmentRule
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/assignment-rules", {
             params: { path: { ws_id: wsId } }
       });
-    return resData as any;
+  if (!resData) throw new Error("No response data");
+  return resData as unknown as AssignmentRule[];
 }
 
 export async function createAssignmentRule(wsId: string, data: CreateAssignmentRuleRequest): Promise<AssignmentRule> {
   const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/assignment-rules", {
             params: { path: { ws_id: wsId } },
           body: data });
-    return resData as any;
+  if (!resData) throw new Error("No response data");
+  return resData as unknown as AssignmentRule;
 }
 
 export async function updateAssignmentRule(wsId: string, ruleId: string, data: UpdateAssignmentRuleRequest): Promise<AssignmentRule> {
   const { data: resData } = await client.PUT("/v1/workspaces/{ws_id}/assignment-rules/{rule_id}", {
             params: { path: { ws_id: wsId, rule_id: ruleId } },
           body: data });
-    return resData as any;
+  if (!resData) throw new Error("No response data");
+  return resData as unknown as AssignmentRule;
 }
 
 export async function deleteAssignmentRule(wsId: string, ruleId: string): Promise<void> {

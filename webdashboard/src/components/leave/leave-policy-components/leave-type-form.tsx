@@ -13,7 +13,7 @@ interface LeaveTypeFormProps {
   onSave: (data: { code: string; name: string; is_paid: boolean }) => void;
 }
 
-// eslint-disable-next-line max-lines-per-function
+ 
 export function LeaveTypeForm({
   initialData,
   isSaving,

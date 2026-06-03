@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -10,7 +9,7 @@ import {
   createPayrollRuleAssignment,
   deletePayrollRuleAssignment,
 } from "@/lib/api/payroll";
-import { PayrollRuleAssignment, Department } from "@/lib/api/types";
+import { PayrollRuleAssignment, Department, AssigneeType } from "@/lib/api/types";
 
 export function useRuleAssignments(wsId: string, ruleId: string) {
   const { t } = useTranslation();
@@ -30,7 +29,7 @@ export function useRuleAssignments(wsId: string, ruleId: string) {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: Partial<PayrollRuleAssignment>) =>
+    mutationFn: (data: Parameters<typeof createPayrollRuleAssignment>[2]) =>
       createPayrollRuleAssignment(wsId, ruleId, data),
     onSuccess: () => {
       toast.success(t("common.success", "Success"));
@@ -62,12 +61,14 @@ export function useRuleAssignments(wsId: string, ruleId: string) {
   }, [departmentsQuery.data]);
 
   const grouped = useMemo(() => {
-    const g = {
-      workspace: [] as PayrollRuleAssignment[],
-      department: [] as PayrollRuleAssignment[],
-      employee: [] as PayrollRuleAssignment[],
+    const g: Record<AssigneeType, PayrollRuleAssignment[]> = {
+      workspace: [],
+      department: [],
+      employee: [],
     };
-    assignmentsQuery.data?.forEach((a) => g[a.assignee_type].push(a));
+    assignmentsQuery.data?.forEach((a) => {
+      g[a.assignee_type].push(a);
+    });
     return g;
   }, [assignmentsQuery.data]);
 

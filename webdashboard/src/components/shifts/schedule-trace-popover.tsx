@@ -77,7 +77,7 @@ function AppliedShiftCard({
           </span>
           {startTime || endTime ? (
             <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-450 mt-0.5 font-mono">
-              {startTime?.substring(0, 5) || "—"} - {endTime?.substring(0, 5) || "—"}
+              {startTime?.substring(0, 5) ?? "—"} - {endTime?.substring(0, 5) ?? "—"}
             </span>
           ) : null}
         </div>

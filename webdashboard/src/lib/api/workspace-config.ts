@@ -1,7 +1,8 @@
-// @ts-nocheck
+import type { paths } from "@/types/api-generated";
+
+import type { WorkspaceConfigEntry, CreateConfigEntryRequest } from './types';
+
 import { client } from './client';
-import { WorkspaceConfigEntry, CreateConfigEntryRequest } from './types';
-export type { WorkspaceConfigEntry, CreateConfigEntryRequest };
 
 export type ScopeType = 'workspace' | 'department' | 'employee';
 
@@ -9,7 +10,7 @@ export interface ConfigValue {
   Bool?: boolean;
   Decimal?: number;
   Int?: number;
-  Json?: any;
+  Json?: Record<string, unknown> | null;
   Text?: string;
 }
 
@@ -36,7 +37,7 @@ export const workspaceConfigApi = {
         query: date ? { date } : undefined,
       },
     });
-    return (resData) || null;
+    return (resData as unknown as WorkspaceConfigEntry | null) ?? null;
   },
 
   upsertConfig: async (workspaceId: string, payload: CreateConfigEntryRequest): Promise<WorkspaceConfigEntry> => {
@@ -44,7 +45,7 @@ export const workspaceConfigApi = {
       params: {
         path: { workspace_id: workspaceId },
       },
-      body: payload,
+      body: payload as unknown as paths["/v1/workspaces/{workspace_id}/configs"]["put"]["requestBody"]["content"]["application/json"],
     });
     if (!resData) throw new Error("No response data");
     return resData;

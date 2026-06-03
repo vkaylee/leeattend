@@ -125,12 +125,17 @@ describe("ScheduleTracePopover", () => {
     const user = userEvent.setup();
 
     render(
-      <div onClick={parentClick}>
+      <div 
+        onClick={parentClick}
+        onKeyDown={() => { /* noop */ }}
+        role="button"
+        tabIndex={0}
+      >
         <ScheduleTracePopover source="roster" traces={mockTraces} />
       </div>
     );
 
-    const trigger = screen.getByRole("button");
+    const trigger = screen.getByTestId("schedule-trace-trigger");
     await user.click(trigger);
 
     expect(parentClick).not.toHaveBeenCalled();

@@ -1,24 +1,17 @@
-// @ts-nocheck
-import { client } from './client';
-import { 
+import type { paths } from '@/types/api-generated';
+
+import type { 
   ApproverType, 
-  ApprovalWorkflowStep, 
   ApprovalWorkflow, 
   CreateWorkflowRequest, 
   ApprovalActionLog 
 } from './types';
 
-export type {
-  ApproverType,
-  ApprovalWorkflowStep,
-  ApprovalWorkflow,
-  CreateWorkflowRequest,
-  ApprovalActionLog
-};
+import { client } from './client';
 
 export interface WorkflowStepRequest {
   action_required: string;
-  approver_config: any;
+  approver_config: Record<string, unknown>;
   approver_type: ApproverType;
   can_skip: boolean;
   step_name: string;
@@ -35,9 +28,9 @@ export const approvalWorkflowsApi = {
   listWorkflows: async (workspaceId: string, entityType?: string): Promise<ApprovalWorkflow[]> => {
     const { data: resData } = await client.GET("/workspaces/{ws_id}/approval-workflows", {
       params: {
-              path: { ws_id: workspaceId },
-              query: entityType ? { entity_type: entityType } : undefined
-            }
+        path: { ws_id: workspaceId },
+        query: (entityType ? { entity_type: entityType } : undefined) as unknown as paths["/workspaces/{ws_id}/approval-workflows"]["get"]["parameters"]["query"]
+      }
     });
     if (!resData) throw new Error("No response data");
     return resData;
@@ -69,7 +62,7 @@ export const approvalWorkflowsApi = {
       params: {
         path: { ws_id: workspaceId, id }
       },
-      body: payload
+      body: payload as unknown as paths["/workspaces/{ws_id}/approval-workflows/{id}"]["put"]["requestBody"]["content"]["application/json"]
     });
     if (!resData) throw new Error("No response data");
     return resData;

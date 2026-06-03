@@ -1,5 +1,4 @@
 import { client } from "./client";
-// @ts-nocheck
 import { Holiday } from './types';
 
 export async function fetchHolidays(

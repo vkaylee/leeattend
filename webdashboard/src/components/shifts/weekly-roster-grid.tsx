@@ -121,14 +121,14 @@ function DayCardSourceTags({ source, effectiveSchedule, t }: DayCardSourceTagsPr
         </span>
       )}
       {effectiveSchedule ? (
-        <div onClick={(e) => { e.stopPropagation(); }}>
+        <div>
           <ScheduleTracePopover 
             endTime={effectiveSchedule.end_time} 
             shiftName={effectiveSchedule.shift_name} 
             shiftSymbol={effectiveSchedule.shift_symbol}
             source={effectiveSchedule.source}
             startTime={effectiveSchedule.start_time}
-            traces={effectiveSchedule.traces || []}
+            traces={effectiveSchedule.traces ?? []}
           />
         </div>
       ) : null}
@@ -372,7 +372,7 @@ export function WeeklyRosterGrid({
           const dateString = format(day, 'yyyy-MM-dd');
           const isSelected = selectedDays.includes(dateString);
  
-          const effectiveSchedule = employeeSchedule?.schedules.find((s: any) => s.date === dateString);
+          const effectiveSchedule = employeeSchedule?.schedules.find((s) => s.date === dateString);
           const isToday = day.toDateString() === new Date().toDateString();
  
           const isHoliday = effectiveSchedule?.is_holiday === true;

@@ -1,5 +1,6 @@
+/* eslint-disable jsx-a11y/no-autofocus */
 import * as Popover from "@radix-ui/react-popover";
-import { Search, Check, ChevronDown } from "lucide-react";
+import { Search, Check, ChevronDown, Loader2 } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -23,9 +24,12 @@ interface ComboboxProps {
   "data-testid"?: string;
   disabled?: boolean;
   emptyText?: string;
+  hasMore?: boolean;
   id?: string;
+  isLoadingMore?: boolean;
   keyboardShortcut?: string | string[];
   onChange: (value: string) => void;
+  onLoadMore?: () => void;
   onSearchChange?: (value: string) => void;
   options: ComboboxOption[];
   placeholder?: string;
@@ -98,6 +102,15 @@ function removeDiacritics(str: string): string {
     .replace(/Đ/g, "D");
 }
 
+function getFirstItemValue(options: ComboboxOption[]): string {
+  if (options.length === 0) return "";
+  const first = options[0];
+  const firstLabelWithDiacritics = first.label;
+  const firstLabelWithoutDiacritics = removeDiacritics(first.label);
+  const desc = typeof first.description === "string" ? first.description : "";
+  return `${firstLabelWithDiacritics} ${firstLabelWithoutDiacritics} ${desc} ${first.value}`.toLowerCase();
+}
+
 function ComboboxOptionItem({
   option,
   isSelected,
@@ -161,7 +174,7 @@ function ComboboxTrigger({
   return (
     <Popover.Trigger asChild>
       <button
-        // eslint-disable-next-line jsx-a11y/no-autofocus
+         
         autoFocus={autoFocus}
         className={cn("flex h-[var(--ui-height-md)] w-full items-center justify-between rounded-2xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-6 text-sm font-bold text-primary-600 dark:text-primary-400 transition-all hover:border-primary-200 dark:hover:border-primary-800 hover:bg-white dark:hover:bg-slate-700 focus:outline-none focus:ring-4 focus:ring-primary-500/10 shadow-inner uppercase tracking-tight disabled:opacity-50 disabled:cursor-not-allowed", className)}
         data-testid={testId}
@@ -189,6 +202,88 @@ function ComboboxTrigger({
     </Popover.Trigger>
   );
 }
+interface ComboboxContentProps {
+  emptyText?: string;
+  hasMore?: boolean;
+  highlightedValue: string;
+  isLoadingMore?: boolean;
+  onChange: (value: string) => void;
+  onLoadMore?: () => void;
+  onSearchChange?: (value: string) => void;
+  options: ComboboxOption[];
+  searchPlaceholder?: string;
+  setHighlightedValue: (value: string) => void;
+  setOpen: (open: boolean) => void;
+  shouldFilter?: boolean;
+  testId?: string;
+  value?: string;
+}
+
+function ComboboxContent({
+  emptyText,
+  hasMore,
+  highlightedValue,
+  isLoadingMore,
+  onChange,
+  onLoadMore,
+  onSearchChange,
+  options,
+  searchPlaceholder,
+  setHighlightedValue,
+  setOpen,
+  shouldFilter,
+  testId,
+  value,
+}: ComboboxContentProps) {
+  const { t } = useTranslation();
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const canLoad = Boolean(onLoadMore) && Boolean(hasMore) && !isLoadingMore;
+    if (!canLoad) return;
+    const target = e.currentTarget;
+    if (target.scrollHeight - target.scrollTop <= target.clientHeight + 20) {
+      onLoadMore?.();
+    }
+  };
+
+  return (
+    <Popover.Portal>
+      <Popover.Content className="z-[10000] w-[var(--radix-popover-trigger-width)] min-w-[240px] overflow-hidden rounded-[2rem] border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 shadow-2xl dark:shadow-black/30 animate-in fade-in zoom-in-95 duration-300" sideOffset={8}>
+        <Command className="flex flex-col gap-3" onValueChange={setHighlightedValue} shouldFilter={shouldFilter ?? !onSearchChange} value={highlightedValue}>
+          <div className="flex items-center border-b border-slate-50 dark:border-slate-800 px-4 pb-3 pt-1">
+            <Search className="mr-3 h-4 w-4 shrink-0 text-slate-300 dark:text-slate-500" />
+            { }
+            <Command.Input autoFocus className="flex h-10 w-full rounded-md bg-transparent text-sm text-primary-700 dark:text-primary-300 outline-none placeholder:text-slate-300 dark:placeholder:text-slate-600 disabled:cursor-not-allowed disabled:opacity-50 font-bold" onValueChange={onSearchChange} placeholder={searchPlaceholder ?? t("common.combobox.search")} />
+          </div>
+
+          <Command.List
+            className="max-h-[320px] overflow-y-auto overflow-x-hidden p-1 custom-scrollbar"
+            onScroll={handleScroll}
+          >
+            <Command.Empty className="py-10 text-center text-[10px] text-primary-400 font-bold uppercase tracking-widest opacity-50">{emptyText ?? t("common.combobox.no_results")}</Command.Empty>
+            <Command.Group>
+              {options.map((option) => (
+                <ComboboxOptionItem
+                  isSelected={value === option.value}
+                  key={option.value}
+                  onSelect={() => { onChange(option.value); setOpen(false); }}
+                  option={option}
+                  testId={testId}
+                />
+              ))}
+            </Command.Group>
+            {!!isLoadingMore && (
+              <div className="py-3 flex justify-center items-center gap-2 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                <Loader2 className="w-4 h-4 animate-spin text-primary-500" />
+                <span>{t("common.loading")}</span>
+              </div>
+            )}
+          </Command.List>
+        </Command>
+      </Popover.Content>
+    </Popover.Portal>
+  );
+}
 
 export function Combobox({
   options,
@@ -206,22 +301,16 @@ export function Combobox({
   keyboardShortcut,
   clearOnEscape,
   disabled,
+  onLoadMore,
+  isLoadingMore,
+  hasMore,
 }: ComboboxProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(autoFocus ?? false);
 
   useComboboxKeyboardShortcut({ clearOnEscape, keyboardShortcut, open, value, onChange, onSearchChange, setOpen });
 
-  const getFirstItemValue = () => {
-    if (options.length === 0) return "";
-    const first = options[0];
-    const firstLabelWithDiacritics = first.label;
-    const firstLabelWithoutDiacritics = removeDiacritics(first.label);
-    const desc = typeof first.description === 'string' ? first.description : "";
-    return `${firstLabelWithDiacritics} ${firstLabelWithoutDiacritics} ${desc} ${first.value}`.toLowerCase();
-  };
-
-  const firstItemValue = getFirstItemValue();
+  const firstItemValue = getFirstItemValue(options);
   const [highlightedValue, setHighlightedValue] = useState(firstItemValue);
   const [prevFirst, setPrevFirst] = useState(firstItemValue);
 
@@ -230,61 +319,57 @@ export function Combobox({
     setHighlightedValue(firstItemValue);
   }
 
+  const handleOpenChange = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (!isOpen && onSearchChange) {
+      onSearchChange("");
+    }
+  };
+
+  const triggerPlaceholder = placeholder ?? t("common.combobox.placeholder");
+  const selectedOption = options.find((opt) => opt.value === value);
+
   return (
     <Popover.Root
-      onOpenChange={(isOpen) => {
-        setOpen(isOpen);
-        if (!isOpen && onSearchChange) {
-          onSearchChange("");
-        }
-      }}
+      onOpenChange={handleOpenChange}
       open={open}
     >
       <select aria-hidden="true" className="sr-only" data-testid={testId ? `${testId}-select` : undefined} id={id ? `${id}-select` : undefined} onChange={(e) => { onChange(e.target.value); }} tabIndex={-1} value={value}>
-        <option value="">{placeholder ?? t("common.combobox.placeholder")}</option>
+        <option value="">{triggerPlaceholder}</option>
         {options.map(opt => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
       </select>
 
       <ComboboxTrigger
-        // eslint-disable-next-line jsx-a11y/no-autofocus
+         
         autoFocus={autoFocus}
         className={className}
         disabled={disabled}
         id={id}
         keyboardShortcut={keyboardShortcut}
         open={open}
-        placeholder={placeholder ?? t("common.combobox.placeholder")}
-        selectedOption={options.find((opt) => opt.value === value)}
+        placeholder={triggerPlaceholder}
+        selectedOption={selectedOption}
         testId={testId}
       />
 
-      <Popover.Portal>
-        <Popover.Content className="z-[10000] w-[var(--radix-popover-trigger-width)] min-w-[240px] overflow-hidden rounded-[2rem] border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 shadow-2xl dark:shadow-black/30 animate-in fade-in zoom-in-95 duration-300" sideOffset={8}>
-          <Command className="flex flex-col gap-3" onValueChange={setHighlightedValue} shouldFilter={shouldFilter ?? !onSearchChange} value={highlightedValue}>
-            <div className="flex items-center border-b border-slate-50 dark:border-slate-800 px-4 pb-3 pt-1">
-              <Search className="mr-3 h-4 w-4 shrink-0 text-slate-300 dark:text-slate-500" />
-              {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
-              <Command.Input autoFocus className="flex h-10 w-full rounded-md bg-transparent text-sm text-primary-700 dark:text-primary-300 outline-none placeholder:text-slate-300 dark:placeholder:text-slate-600 disabled:cursor-not-allowed disabled:opacity-50 font-bold" onValueChange={onSearchChange} placeholder={searchPlaceholder ?? t("common.combobox.search")} />
-            </div>
-
-            <Command.List className="max-h-[320px] overflow-y-auto overflow-x-hidden p-1 custom-scrollbar">
-              <Command.Empty className="py-10 text-center text-[10px] text-primary-400 font-bold uppercase tracking-widest opacity-50">{emptyText ?? t("common.combobox.no_results")}</Command.Empty>
-              <Command.Group>
-                {options.map((option) => (
-                  <ComboboxOptionItem
-                    isSelected={value === option.value}
-                    key={option.value}
-                    onSelect={() => { onChange(option.value); setOpen(false); }}
-                    option={option}
-                    testId={testId}
-                  />
-                ))}
-              </Command.Group>
-            </Command.List>
-          </Command>
-        </Popover.Content>
-      </Popover.Portal>
+      <ComboboxContent
+        emptyText={emptyText}
+        hasMore={hasMore}
+        highlightedValue={highlightedValue}
+        isLoadingMore={isLoadingMore}
+        onChange={onChange}
+        onLoadMore={onLoadMore}
+        onSearchChange={onSearchChange}
+        options={options}
+        searchPlaceholder={searchPlaceholder}
+        setHighlightedValue={setHighlightedValue}
+        setOpen={setOpen}
+        shouldFilter={shouldFilter}
+        testId={testId}
+        value={value}
+      />
     </Popover.Root>
   );
 }
+
 

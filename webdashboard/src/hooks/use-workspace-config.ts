@@ -1,7 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
+import type { CreateConfigEntryRequest } from '@/lib/api/types';
+
 import { useWorkspace } from '@/hooks/use-workspace';
-import { workspaceConfigApi, CreateConfigEntryRequest } from '@/lib/api/workspace-config';
+import { workspaceConfigApi } from '@/lib/api/workspace-config';
+
 
 export const workspaceConfigKeys = {
   all: ['workspace-configs'] as const,

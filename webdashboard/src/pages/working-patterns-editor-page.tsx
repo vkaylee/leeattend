@@ -15,9 +15,10 @@ import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
 import FormField, { LABEL_BASE } from "@/components/ui/form-field";
+import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useCalendarPreview } from "@/hooks/use-calendar-preview";
-import { useWorkingPatternForm } from "@/hooks/use-working-pattern-form";
+import { useWorkingPatternForm, isCycleLengthInvalid, convertGridToDetails } from "@/hooks/use-working-pattern-form";
 import { cn } from "@/lib/utils";
 
 /* eslint-disable complexity, max-lines-per-function */
@@ -25,6 +26,7 @@ export default function WorkingPatternsEditorPage() {
   const { t, i18n } = useTranslation();
   const { patternId } = useParams({ strict: false });
   const navigate = useNavigate();
+  const toast = useToast();
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
 
   const {
@@ -45,11 +47,40 @@ export default function WorkingPatternsEditorPage() {
     removeShiftFromDay,
     clearAllDays,
     prefillStandard,
-    handleSubmit,
+    createPattern,
+    updatePattern,
     isDirty,
     setIsDirty,
     isSaving,
   } = useWorkingPatternForm(patternId);
+
+  const handleSubmit = (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    if (!name.trim()) {
+      toast.error(t("patterns.validation_name_required"));
+      return;
+    }
+    if (isCycleLengthInvalid(patternType, cycleLengthDays)) {
+      toast.error(t("patterns.validation_cycle_length_invalid"));
+      return;
+    }
+
+    const details = convertGridToDetails(grid);
+
+    const payload = {
+      name: name.trim(),
+      description: description.trim() || undefined,
+      pattern_type: patternType,
+      cycle_length_days: patternType === "rotation" ? cycleLengthDays : undefined,
+      details,
+    };
+
+    if (isEditMode) {
+      updatePattern(payload);
+    } else {
+      createPattern(payload);
+    }
+  };
 
   const {
     activeViewMode,

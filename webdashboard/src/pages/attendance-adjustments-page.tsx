@@ -52,7 +52,7 @@ export default function AttendanceAdjustmentsPage() {
         getEmployeeID={getEmployeeID}
         getEmployeeName={getEmployeeName}
         isLoading={isLoading}
-        onApprove={(id, status) => { approveMutation.mutate({ id, status }); }}
+        onApprove={(id, status) => { approveMutation.mutate({ id, status: status as "approved" | "rejected" }); }}
         requests={requests}
       />
 

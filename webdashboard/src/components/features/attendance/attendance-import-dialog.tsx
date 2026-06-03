@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-// @ts-nocheck
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Upload, FileText, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { useState } from "react";
@@ -27,7 +26,7 @@ interface AttendanceImportDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onDownloadTemplate?: () => void;
-  targetType: string; // "adjustment", "log", or "employee"
+  targetType: "log" | "adjustment" | "employee" | "leave_import";
   title: string;
 }
 

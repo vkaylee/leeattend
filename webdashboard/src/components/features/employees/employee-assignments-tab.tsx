@@ -17,6 +17,26 @@ interface EmployeeAssignmentsTabProps {
   wsId: string;
 }
 
+const getStatusColor = (status: AssignmentStatus) => {
+  switch (status) {
+    case "active":
+      return "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800";
+    case "completed":
+      return "bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700";
+    case "cancelled":
+      return "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-800";
+    case "scheduled":
+      return "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800";
+    default:
+      return "bg-slate-50 text-slate-500";
+  }
+};
+
+const getLocationName = (locationId: string | null) => {
+  if (!locationId) return "N/A";
+  return locationId; // Raw UUID for now
+};
+
 export default function EmployeeAssignmentsTab({ wsId, employeeId, formatDate }: EmployeeAssignmentsTabProps) {
   const { data: assignments = [], isLoading } = useEmployeeAssignments(wsId, employeeId);
   const deleteAssignment = useDeleteEmployeeAssignment();
@@ -32,26 +52,6 @@ export default function EmployeeAssignmentsTab({ wsId, employeeId, formatDate }:
       </div>
     );
   }
-
-  const getStatusColor = (status: AssignmentStatus) => {
-    switch (status) {
-      case "active":
-        return "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800";
-      case "completed":
-        return "bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700";
-      case "cancelled":
-        return "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-800";
-      case "scheduled":
-        return "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800";
-      default:
-        return "bg-slate-50 text-slate-500";
-    }
-  };
-
-  const getLocationName = (locationId: string | null) => {
-    if (!locationId) return "N/A";
-    return locationId; // Raw UUID for now
-  };
 
   return (
     <div className="space-y-6 pt-4">

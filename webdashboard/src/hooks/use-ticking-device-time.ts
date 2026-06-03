@@ -26,12 +26,10 @@ const listeners = new Set<() => void>();
 let intervalId: ReturnType<typeof setInterval> | null = null;
 
 function ensureIntervalStarted() {
-    if (!intervalId) {
-        intervalId = setInterval(() => {
-            currentTick = Date.now();
-            listeners.forEach((l) => { l(); });
-        }, 1000);
-    }
+    intervalId ??= setInterval(() => {
+        currentTick = Date.now();
+        listeners.forEach((l) => { l(); });
+    }, 1000);
 }
 
 function stopIntervalIfNoListeners() {

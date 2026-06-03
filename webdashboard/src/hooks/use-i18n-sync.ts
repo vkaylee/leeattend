@@ -20,7 +20,7 @@ function syncLanguage({ hasInitialized, userPreferredLang, currentWorkspaceDefau
     if (user) hasInitialized.current = true;
     return;
   }
-  const langToSet = userPreferredLang || currentWorkspaceDefaultLang || undefined;
+  const langToSet = userPreferredLang ?? currentWorkspaceDefaultLang ?? undefined;
   if (langToSet && i18n.language !== langToSet) {
     void i18n.changeLanguage(langToSet);
     localStorage.setItem('i18nextLng', langToSet);

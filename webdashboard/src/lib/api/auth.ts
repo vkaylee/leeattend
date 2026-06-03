@@ -1,5 +1,4 @@
 import { client } from "./client";
-// @ts-nocheck
 import { apiFetch, setAccessToken, setRefreshToken, setCurrentUserId, clearAuthSession } from "./helpers";
 import { AuthResponse, RegisterRequest, ChangePasswordRequest, User } from "./types";
 
@@ -32,10 +31,10 @@ export async function register(data: RegisterRequest): Promise<AuthResponse> {
 export async function changePassword(
   data: ChangePasswordRequest,
 ): Promise<string> {
-  const { data: resData, error } = await client.POST("/auth/change-password", {
+  const { error } = await client.POST("/auth/change-password", {
     body: data,
   });
-  if (error) throw new Error("Failed to change password");
+  if (error as unknown) throw new Error("Failed to change password");
   return "Password changed successfully";
 }
 
@@ -76,6 +75,9 @@ export async function fetchMyPermissions(): Promise<{
   managed_department_ids: string[] | null;
 }> {
   const { data } = await client.GET("/me/permissions");
-  if (!data) throw new Error("Failed to fetch my permissions");
-  return data;
+  return data as unknown as {
+    permissions: string[];
+    roles: string[];
+    managed_department_ids: string[] | null;
+  };
 }

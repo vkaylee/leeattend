@@ -25,7 +25,7 @@ export const MobileBalanceCard: React.FC<MobileBalanceCardProps> = ({
     <div className="p-5 space-y-5 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all">
       <div className="flex items-center gap-3">
         <div className="w-14 h-14 bg-primary-50 dark:bg-primary-950 rounded-2xl flex items-center justify-center text-primary-600 dark:text-primary-400 font-bold text-base shadow-inner border border-primary-100 dark:border-primary-800/50 uppercase flex-shrink-0">
-          {balance.employee_name.split(' ').map((n: any) => n[0]).join('').slice(0, 2)}
+          {balance.employee_name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
         </div>
         <div className="flex-1 min-w-0">
           <div className="font-bold text-slate-800 dark:text-slate-100 text-base tracking-tight uppercase leading-tight truncate">
