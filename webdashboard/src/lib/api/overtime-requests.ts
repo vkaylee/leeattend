@@ -1,13 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment */
 import type { ApprovalActionLog } from './types';
 
 import { client } from './client';
 
-const httpClient = client as unknown as {
-  GET: (url: string, options?: Record<string, unknown>) => Promise<{ data?: unknown; error?: unknown }>;
-  POST: (url: string, options?: Record<string, unknown>) => Promise<{ data?: unknown; error?: unknown }>;
-  PUT: (url: string, options?: Record<string, unknown>) => Promise<{ data?: unknown; error?: unknown }>;
-  DELETE: (url: string, options?: Record<string, unknown>) => Promise<{ data?: unknown; error?: unknown }>;
-};
+
 
 export type OtRequestStatus = 
   | 'draft' 
@@ -131,7 +127,7 @@ export const overtimeRequestsApi = {
   },
 
   cancelRequest: async (workspaceId: string, id: string): Promise<void> => {
-    await httpClient.PUT("/v1/workspaces/{ws_id}/overtime/requests/{id}/cancel", {
+    await (client.PUT as any)("/v1/workspaces/{ws_id}/overtime/requests/{id}/cancel", {
       params: {
         path: { ws_id: workspaceId, id },
       },
@@ -155,7 +151,7 @@ export const overtimeRequestsApi = {
   },
 
   getMyAssignments: async (employeeId: string): Promise<MyOvertimeAssignment[]> => {
-    const { data } = await httpClient.GET("/v1/workspaces/{ws_id}/payroll/overtime/assignments", {
+    const { data } = await (client.GET as any)("/v1/workspaces/{ws_id}/payroll/overtime/assignments", {
       params: {
         path: { employeeId },
       },
@@ -165,7 +161,7 @@ export const overtimeRequestsApi = {
   },
 
   getWorkspaceQuotaSummary: async (workspaceId: string, month: string): Promise<QuotaSummary[]> => {
-    const { data } = await httpClient.GET("/v1/workspaces/{ws_id}/overtime/quota/summary", {
+    const { data } = await (client.GET as any)("/v1/workspaces/{ws_id}/overtime/quota/summary", {
       params: {
         path: { ws_id: workspaceId },
         query: { month },
@@ -176,7 +172,7 @@ export const overtimeRequestsApi = {
   },
 
   getEmployeeQuota: async (workspaceId: string, employeeId: string, date: string): Promise<QuotaSummary> => {
-    const { data } = await httpClient.GET("/v1/workspaces/{ws_id}/overtime/quota/{employee_id}", {
+    const { data } = await (client.GET as any)("/v1/workspaces/{ws_id}/overtime/quota/{employee_id}", {
       params: {
         path: { ws_id: workspaceId, employee_id: employeeId },
         query: { date },

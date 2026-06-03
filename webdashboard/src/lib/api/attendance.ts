@@ -14,13 +14,6 @@ import {
   WorkerMonitorStats, AttendanceDailySummary, MonitorJobsResponse
 } from "./types";
 
-const httpClient = client as unknown as {
-  GET: (url: string, options?: Record<string, unknown>) => Promise<{ data?: unknown; error?: unknown }>;
-  POST: (url: string, options?: Record<string, unknown>) => Promise<{ data?: unknown; error?: unknown }>;
-  PUT: (url: string, options?: Record<string, unknown>) => Promise<{ data?: unknown; error?: unknown }>;
-  DELETE: (url: string, options?: Record<string, unknown>) => Promise<{ data?: unknown; error?: unknown }>;
-};
-
 export async function punchIn(
   wsId: string,
   data: { employee_id: string; entry_type?: string; note?: string },
@@ -39,14 +32,16 @@ export async function punchOut(
   wsId: string,
   data: { employee_id: string; note?: string },
 ): Promise<TimeEntry> {
-  const { data: resData } = await httpClient.POST("/workspaces/{workspace_id}/time/punch-out", {
+  const { data: resData } = await client.POST("/workspaces/{workspace_id}/time/punch-out/{employee_id}", {
     params: {
-      path: { workspace_id: wsId },
+      path: { workspace_id: wsId, employee_id: data.employee_id },
     },
-    body: data,
+    body: {
+      note: data.note,
+    },
   });
   if (!resData) throw new Error("Punch out failed");
-  return resData as TimeEntry;
+  return resData;
 }
 
 export async function fetchTimeHistory(
@@ -320,11 +315,11 @@ export interface GenericJobStatus {
 }
 
 export async function checkReprocessStatus(wsId: string, jobId: string): Promise<GenericJobStatus> {
-  const { data: resData } = await httpClient.GET("/workspaces/{workspace_id}/attendance/reprocess/status/{job_id}", {
-    params: { path: { workspace_id: wsId, job_id: jobId } }
+  const { data: resData } = await client.GET("/workspaces/{ws_id}/reports/jobs/{job_id}", {
+    params: { path: { ws_id: wsId, job_id: jobId } }
   });
   if (!resData) throw new Error("No response data");
-  return resData as GenericJobStatus;
+  return resData as unknown as GenericJobStatus;
 }
 
 export interface AttendanceStats {
@@ -333,14 +328,6 @@ export interface AttendanceStats {
   missing_punch_count: number;
   present_count: number;
   total_count: number;
-}
-
-export async function fetchAttendanceStats(wsId: string, date: string): Promise<AttendanceStats> {
-  const { data: resData } = await httpClient.GET("/v1/workspaces/{ws_id}/attendance/stats", {
-    params: { path: { ws_id: wsId }, query: { date } }
-  });
-  if (!resData) throw new Error("No response data");
-  return resData as AttendanceStats;
 }
 
 // --- Overtime Approval System ---
@@ -362,14 +349,14 @@ export async function fetchAttendanceSummaries(
   end: string,
   employeeId?: string
 ): Promise<AttendanceDailySummary[]> {
-  const { data: resData } = await httpClient.GET("/v1/workspaces/{ws_id}/attendance/overtime/summaries", {
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/summaries", {
     params: {
       path: { ws_id: wsId },
       query: { start_date: start, end_date: end, employee_id: employeeId }
     }
   });
   if (!resData) throw new Error("No response data");
-  return resData as AttendanceDailySummary[];
+  return resData;
 }
 
 export async function enterPaperOt(

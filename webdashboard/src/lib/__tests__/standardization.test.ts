@@ -91,4 +91,25 @@ describe("API Standardization Enforcement", () => {
       }
     }
   });
+
+  it("should not define or use a custom httpClient that bypasses types in API files", () => {
+    for (const file of sourceFiles) {
+      if (file.includes("api-generated") || file.includes("__tests__")) continue;
+
+      // Only check files in the api directory
+      if (!file.includes("lib/api")) continue;
+      // Skip the client and helpers files themselves
+      if (file.endsWith("client.ts") || file.endsWith("helpers.ts") || file.endsWith("config.ts")) continue;
+
+      const content = fs.readFileSync(file, "utf8");
+      
+      // Look for httpClient declaration or usage
+      const hasHttpClient = content.includes("httpClient");
+      expect(hasHttpClient, `File ${file} contains 'httpClient'. All API endpoints must be requested via the exported 'client' directly to ensure type safety.`).toBe(false);
+      
+      // Also ensure they don't do: client as unknown as ... or client as any globally
+      const hasClientBypass = /const\s+\w+\s*=\s*client\s+as\s+(unknown|any)/.test(content);
+      expect(hasClientBypass, `File ${file} casts client to unknown or any globally. Keep the client typed to enforce path validation.`).toBe(false);
+    }
+  });
 });
