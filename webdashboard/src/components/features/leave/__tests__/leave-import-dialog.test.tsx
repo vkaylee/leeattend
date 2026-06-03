@@ -79,11 +79,12 @@ describe("LeaveImportDialog", () => {
     it("renders instructions panel with all 6 column requirements", () => {
       renderDialog();
       expect(screen.getByText(/Yêu cầu file/i)).toBeDefined();
-      expect(screen.getByText(/Cột A: Mã nhân viên/i)).toBeDefined();
-      expect(screen.getByText(/Cột B: Mã loại nghỉ/i)).toBeDefined();
-      expect(screen.getByText(/Cột C-D/i)).toBeDefined();
-      expect(screen.getByText(/Cột E: Lý do/i)).toBeDefined();
-      expect(screen.getByText(/Cột F: Loại thời gian/i)).toBeDefined();
+      expect(screen.getByText(/Cột employee_code: Mã nhân viên/i)).toBeDefined();
+      expect(screen.getByText(/Cột leave_type_code: Mã loại nghỉ/i)).toBeDefined();
+      expect(screen.getByText(/Cột start_date: Ngày bắt đầu/i)).toBeDefined();
+      expect(screen.getByText(/Cột end_date: Ngày kết thúc/i)).toBeDefined();
+      expect(screen.getByText(/Cột reason: Lý do/i)).toBeDefined();
+      expect(screen.getByText(/Cột duration_type: Loại thời gian/i)).toBeDefined();
       expect(screen.getAllByText(/\.xlsx, \.xls, \.csv/i).length).toBeGreaterThanOrEqual(1);
     });
 

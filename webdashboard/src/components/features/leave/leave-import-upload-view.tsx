@@ -27,18 +27,25 @@ function RequirementsPanel({ t }: { t: TFunction }) {
       <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-sm border border-primary-200 dark:border-primary-800 shrink-0">
         <AlertCircle size={18} />
       </div>
-      <div className="text-xs text-primary-800 dark:text-primary-200 leading-relaxed font-medium pt-0.5">
-        <Typography className="font-bold uppercase tracking-[0.2em] mb-2 text-slate-700 dark:text-slate-300" variant="p">
+      <div className="text-xs text-primary-800 dark:text-primary-200 leading-relaxed font-medium pt-0.5 w-full">
+        <Typography className="font-bold uppercase tracking-[0.2em] mb-1.5 text-slate-700 dark:text-slate-300" variant="p">
           {t("leave_import.requirements_title", "Yêu cầu file")}
         </Typography>
-        <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1.5 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-tight">
-          <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary-500 dark:bg-primary-400 rounded-full" /> {t("leave_import.req_col_a", "Cột A: Mã nhân viên")}</li>
-          <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary-500 dark:bg-primary-400 rounded-full" /> {t("leave_import.req_col_b", "Cột B: Mã loại nghỉ")}</li>
-          <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary-500 dark:bg-primary-400 rounded-full" /> {t("leave_import.req_col_c", "Cột C-D: Ngày bắt đầu / kết thúc")}</li>
-          <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary-500 dark:bg-primary-400 rounded-full" /> {t("leave_import.req_col_e", "Cột E: Lý do (tùy chọn)")}</li>
-          <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary-500 dark:bg-primary-400 rounded-full" /> {t("leave_import.req_col_f", "Cột F: Loại thời gian")}</li>
-          <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary-500 dark:bg-primary-400 rounded-full" /> {t("leave_import.req_format", "Định dạng: .xlsx, .xls, .csv")}</li>
+        <Typography className="text-[11px] text-slate-500 dark:text-slate-400 mb-3 font-normal normal-case leading-normal" variant="p">
+          {t("leave_import.req_auto_detect", "💡 Hệ thống nhận diện cột tự động theo tiêu đề ở hàng đầu tiên (Header). Thứ tự các cột không quan trọng.")}
+        </Typography>
+        <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1.5 text-slate-600 dark:text-slate-400 font-medium tracking-normal">
+          <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary-500 dark:bg-primary-400 rounded-full" /> {t("leave_import.req_col_a", "Cột employee_code: Mã nhân viên")}</li>
+          <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary-500 dark:bg-primary-400 rounded-full" /> {t("leave_import.req_col_b", "Cột leave_type_code: Mã loại nghỉ")}</li>
+          <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary-500 dark:bg-primary-400 rounded-full" /> {t("leave_import.req_col_c", "Cột start_date: Ngày bắt đầu")}</li>
+          <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary-500 dark:bg-primary-400 rounded-full" /> {t("leave_import.req_col_d", "Cột end_date: Ngày kết thúc")}</li>
+          <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary-500 dark:bg-primary-400 rounded-full" /> {t("leave_import.req_col_e", "Cột reason: Lý do (tùy chọn)")}</li>
+          <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary-500 dark:bg-primary-400 rounded-full" /> {t("leave_import.req_col_f", "Cột duration_type: Loại thời gian")}</li>
         </ul>
+        <div className="mt-3 pt-3 border-t border-primary-100 dark:border-primary-900/50 text-[10px] text-slate-500 dark:text-slate-400 font-semibold tracking-wider flex items-center gap-2">
+          <div className="w-1.5 h-1.5 bg-primary-500 dark:bg-primary-400 rounded-full" />
+          {t("leave_import.req_format", "Định dạng: .xlsx, .xls, .csv")}
+        </div>
       </div>
     </div>
   );
