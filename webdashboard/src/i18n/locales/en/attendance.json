@@ -415,7 +415,8 @@
       "error_no_employee": "Please select an employee",
       "error_minutes": "Minutes must be greater than 0",
       "error_reason": "Reason is required",
-      "btn_enter": "Enter Paper Form"
+      "btn_enter": "Enter Paper Form",
+      "upload_prompt": "Click or drag photo to upload"
     },
     "bulk_upload": {
       "title": "Bulk Upload OT",
@@ -571,11 +572,18 @@
       "description": "No pending OT requests",
       "title": "All caught up!"
     },
+    "evidence": {
+      "add": "Add Photo",
+      "description": "Upload a photo of the signed paper form for this claim.",
+      "missing": "No Photo",
+      "view": "View Photo"
+    },
     "table": {
       "actions": "Actions",
       "claimed": "Claimed",
       "date": "Date",
       "employee": "Employee",
+      "evidence": "Evidence",
       "reason": "Reason",
       "source": "Source",
       "system": "System"

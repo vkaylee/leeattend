@@ -415,7 +415,8 @@
       "error_no_employee": "请选择一名员工",
       "error_minutes": "分钟数必须大于 0",
       "error_reason": "需要提供原因",
-      "btn_enter": "输入纸质表单"
+      "btn_enter": "输入纸质表单",
+      "upload_prompt": "点击或拖拽照片至此处上传"
     },
     "bulk_upload": {
       "title": "批量上传加班",
@@ -571,11 +572,18 @@
       "description": "暂无待审批的加班申请",
       "title": "全部处理完毕！"
     },
+    "evidence": {
+      "add": "添加照片",
+      "description": "上传此申请的已签字纸质表单照片。",
+      "missing": "无照片",
+      "view": "查看照片"
+    },
     "table": {
       "actions": "操作",
       "claimed": "申请时长",
       "date": "日期",
       "employee": "员工",
+      "evidence": "佐证材料",
       "reason": "原因",
       "source": "来源",
       "system": "系统"

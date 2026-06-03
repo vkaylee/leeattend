@@ -119,6 +119,18 @@ impl EmployeeService {
                 .get_user_by_id(user_id)
                 .await?
                 .ok_or(AppError::Validation("User not found".into()))?;
+
+            // Enforce 1-to-1 User/Employee link in this workspace
+            if self
+                .repo
+                .get_employee_id_by_user_id(auth_token, user_id)
+                .await?
+                .is_some()
+            {
+                return Err(AppError::Validation(
+                    "User is already linked to another employee in this workspace".into(),
+                ));
+            }
         }
 
         let employee = Employee {
@@ -229,6 +241,19 @@ impl EmployeeService {
                 .get_user_by_id(user_id)
                 .await?
                 .ok_or(AppError::Validation("User not found".into()))?;
+
+            // Enforce 1-to-1 User/Employee link in this workspace
+            if let Some(existing_emp_id) = self
+                .repo
+                .get_employee_id_by_user_id(auth_token, user_id)
+                .await?
+            {
+                if existing_emp_id != id {
+                    return Err(AppError::Validation(
+                        "User is already linked to another employee in this workspace".into(),
+                    ));
+                }
+            }
         }
 
         let employee = self

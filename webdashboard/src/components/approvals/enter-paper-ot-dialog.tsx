@@ -107,16 +107,62 @@ function ReasonInput({ t, reason, setReason }: { reason: string; setReason: (r: 
   );
 }
 
-function PhotoPlaceholder({ t }: { t: TFunction }) {
+function PhotoUploader({
+  t,
+  photoUrl,
+  setPhotoUrl,
+}: {
+  t: TFunction;
+  photoUrl: string | null;
+  setPhotoUrl: (url: string | null) => void;
+}) {
+  const [fileName, setFileName] = useState<string | null>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFileName(file.name);
+      setPhotoUrl(`/uploads/mock_${file.name}`);
+    }
+  };
+
   return (
     <div className="space-y-2">
-      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">
+      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
         {t("approvals.paper_ot.photo") || "Paper Form Photo (Optional)"}
       </label>
-      <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-4 text-center hover:border-primary-400 transition-colors cursor-not-allowed opacity-50">
-        <Upload className="w-8 h-8 text-slate-400 dark:text-slate-500 mx-auto mb-2" />
-        <Typography className="text-xs text-slate-500 dark:text-slate-400" variant="p">{t("approvals.paper_ot.photo_coming_soon") || "Photo upload coming soon"}</Typography>
-      </div>
+      {photoUrl ? (
+        <div className="border border-emerald-100 dark:border-emerald-800/50 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-xl p-4 text-center relative group">
+          <FileText className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+          <Typography className="text-xs font-semibold text-emerald-800 dark:text-emerald-300" variant="p">
+            {fileName ?? "paper_form_evidence.png"}
+          </Typography>
+          <Button
+            className="absolute top-2 right-2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full h-auto w-auto shadow-none"
+            onClick={() => {
+              setPhotoUrl(null);
+              setFileName(null);
+            }}
+            type="button"
+            variant="ghost"
+          >
+            <X size={14} />
+          </Button>
+        </div>
+      ) : (
+        <div className="relative border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-6 text-center hover:border-primary-400 dark:hover:border-primary-500 transition-colors group cursor-pointer">
+          <input
+            accept="image/*"
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            onChange={handleFileChange}
+            type="file"
+          />
+          <Upload className="w-8 h-8 text-slate-400 dark:text-slate-500 mx-auto mb-2 group-hover:text-primary-500 transition-colors" />
+          <Typography className="text-xs font-semibold text-slate-600 dark:text-slate-300" variant="p">
+            {t("approvals.paper_ot.upload_prompt") || "Click or drag photo to upload"}
+          </Typography>
+        </div>
+      )}
     </div>
   );
 }
@@ -145,6 +191,25 @@ function FormActions({ t, isSubmitting, onCancel }: { isSubmitting: boolean; onC
   );
 }
 
+interface EnterPaperOtFormProps {
+  date: string;
+  employeeId: string;
+  error: string | null;
+  handleSubmit: (e: React.SyntheticEvent) => void;
+  isSubmitting: boolean;
+  minutes: number;
+  onCancel: () => void;
+  photoUrl: string | null;
+  reason: string;
+  setDate: (date: string) => void;
+  setEmployeeId: (id: string) => void;
+  setMinutes: (minutes: number) => void;
+  setPhotoUrl: (url: string | null) => void;
+  setReason: (reason: string) => void;
+  t: TFunction;
+  wsId: string;
+}
+
 function EnterPaperOtForm({
   employeeId,
   setEmployeeId,
@@ -154,6 +219,8 @@ function EnterPaperOtForm({
   setMinutes,
   reason,
   setReason,
+  photoUrl,
+  setPhotoUrl,
   error,
   isSubmitting,
   handleSubmit,
@@ -167,7 +234,7 @@ function EnterPaperOtForm({
       <DatePicker date={date} setDate={setDate} t={t} />
       <MinutesInput minutes={minutes} setMinutes={setMinutes} t={t} />
       <ReasonInput reason={reason} setReason={setReason} t={t} />
-      <PhotoPlaceholder t={t} />
+      <PhotoUploader photoUrl={photoUrl} setPhotoUrl={setPhotoUrl} t={t} />
 
       {!!error && (
         <div className="p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-800 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
@@ -192,7 +259,7 @@ export function EnterPaperOtDialog({ open, onOpenChange, onSuccess }: Props) {
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [minutes, setMinutes] = useState(0);
   const [reason, setReason] = useState("");
-  const [photoUrl] = useState<string | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const resetForm = () => {
@@ -200,6 +267,7 @@ export function EnterPaperOtDialog({ open, onOpenChange, onSuccess }: Props) {
     setDate(format(new Date(), "yyyy-MM-dd"));
     setMinutes(0);
     setReason("");
+    setPhotoUrl(null);
     setError(null);
   };
 
@@ -271,10 +339,12 @@ export function EnterPaperOtDialog({ open, onOpenChange, onSuccess }: Props) {
             isSubmitting={isSubmitting}
             minutes={minutes}
             onCancel={() => { onOpenChange(false); }}
+            photoUrl={photoUrl}
             reason={reason}
             setDate={setDate}
             setEmployeeId={setEmployeeId}
             setMinutes={setMinutes}
+            setPhotoUrl={setPhotoUrl}
             setReason={setReason}
             t={t}
             wsId={wsId}

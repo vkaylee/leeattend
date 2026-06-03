@@ -1,26 +1,143 @@
+import * as Dialog from "@radix-ui/react-dialog";
 import { useQuery } from "@tanstack/react-query";
-import { Check, CheckCircle, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { Check, CheckCircle, FileText, Loader2, Upload, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { addMonths, endOfMonth, format, startOfMonth, subMonths } from "date-fns";
+
+import type { AttendanceDailySummary, DailyAttendanceReport } from "@/lib/api";
 
 import { BulkUploadOtDialog } from "@/components/approvals/bulk-upload-ot-dialog";
 import { EnterPaperOtDialog } from "@/components/approvals/enter-paper-ot-dialog";
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
-import { useApproveOt, useAttendanceSummaries, useClaimOt } from "@/hooks/use-attendance";
+import { useApproveOt, useAttendanceSummaries, useClaimOt, useEnterPaperOt } from "@/hooks/use-attendance";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { fetchAttendanceReport } from "@/lib/api";
 import { cn } from "@/lib/utils";
+
+import type { OtSummary } from "./components/ot-approvals-table";
 
 import { BehalfAssignmentsTab } from "./components/behalf-assignments-tab";
 import { OtApprovalsFilters, SourceFilter } from "./components/ot-approvals-filters";
 import { OtApprovalsHeader } from "./components/ot-approvals-header";
 import { OtApprovalsTable } from "./components/ot-approvals-table";
 import { PreOtApprovalsTab } from "./components/pre-ot-approvals-tab";
+
+type ReportRow = DailyAttendanceReport & { employee_id_number?: string };
+
+function getEmployeeMap(reportData: ReportRow[]): Map<string, { idNumber: string; name: string }> {
+  const map = new Map<string, { idNumber: string; name: string }>();
+  for (const r of reportData) {
+    if (r.employee_id) {
+      map.set(r.employee_id, {
+        name: r.employee_name || "",
+        idNumber: r.employee_id_number ?? "",
+      });
+    }
+  }
+  return map;
+}
+
+function getPendingSummaries(
+  summaries: AttendanceDailySummary[],
+  sourceFilter: SourceFilter,
+  employeeMap: Map<string, { idNumber: string; name: string }>
+): OtSummary[] {
+  return summaries
+    .filter((s) => s.ot_status === "pending_manager")
+    .filter((s) => sourceFilter === "all" || s.entered_via === sourceFilter)
+    .map((s) => {
+      const emp = employeeMap.get(s.employee_id);
+      return {
+        ...s,
+        employee_name: emp?.name ?? s.employee_id,
+        employee_id_number: emp?.idNumber ?? "",
+      };
+    });
+}
+
+interface TabButtonsProps {
+  activeTab: "pre" | "post" | "delegated_claim" | "behalf_assignments";
+  canApprove: boolean;
+  canClaimOnBehalf: boolean;
+  canManagePolicies: boolean;
+  setActiveTab: (tab: "pre" | "post" | "delegated_claim" | "behalf_assignments") => void;
+  t: (key: string, options?: { defaultValue: string }) => string;
+}
+
+function TabButtons({
+  activeTab,
+  setActiveTab,
+  canApprove,
+  canClaimOnBehalf,
+  canManagePolicies,
+  t,
+}: TabButtonsProps) {
+  return (
+    <div className="flex bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 mb-8 overflow-x-auto custom-scrollbar">
+      {canApprove ? (
+        <Button
+          className={cn(
+            "flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold transition-all duration-300 whitespace-nowrap normal-case tracking-normal shadow-none",
+            activeTab === "pre"
+              ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
+              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+          )}
+          onClick={() => { setActiveTab("pre"); }}
+          variant="ghost"
+        >
+          {t("ot_approvals.tabs.pre_ot", { defaultValue: "Pre-OT Approvals (Requests)" })}
+        </Button>
+      ) : null}
+      {canApprove ? (
+        <Button
+          className={cn(
+            "flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold transition-all duration-300 whitespace-nowrap normal-case tracking-normal shadow-none",
+            activeTab === "post"
+              ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
+              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+          )}
+          onClick={() => { setActiveTab("post"); }}
+          variant="ghost"
+        >
+          {t("ot_approvals.tabs.post_ot", { defaultValue: "Post-OT Approvals (Actuals)" })}
+        </Button>
+      ) : null}
+      {canApprove || canClaimOnBehalf ? (
+        <Button
+          className={cn(
+            "flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold transition-all duration-300 whitespace-nowrap normal-case tracking-normal shadow-none",
+            activeTab === "delegated_claim"
+              ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
+              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+          )}
+          onClick={() => { setActiveTab("delegated_claim"); }}
+          variant="ghost"
+        >
+          {t("ot_approvals.tabs.delegated_claim", { defaultValue: "Delegated Claims" })}
+        </Button>
+      ) : null}
+      {canManagePolicies ? (
+        <Button
+          className={cn(
+            "flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold transition-all duration-300 whitespace-nowrap normal-case tracking-normal shadow-none",
+            activeTab === "behalf_assignments"
+              ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
+              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+          )}
+          onClick={() => { setActiveTab("behalf_assignments"); }}
+          variant="ghost"
+        >
+          {t("ot_approvals.tabs.behalf_assignments", { defaultValue: "Behalf Assignments" })}
+        </Button>
+      ) : null}
+    </div>
+  );
+}
 
 export default function OtApprovalsPage() {
   const toast = useToast();
@@ -33,26 +150,49 @@ export default function OtApprovalsPage() {
   const canManagePolicies = hasPermission("overtime:policies:manage");
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [paperOtDialogOpen, setPaperOtDialogOpen] = useState(false);
   const [bulkUploadDialogOpen, setBulkUploadDialogOpen] = useState(false);
+  const [photoTargetSummary, setPhotoTargetSummary] = useState<OtSummary | null>(null);
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
   const [activeTab, setActiveTab] = useState<"pre" | "post" | "delegated_claim" | "behalf_assignments">("pre");
   const [tabInitialized, setTabInitialized] = useState(false);
 
-  if (!tabInitialized && !permissionsLoading) {
-    if (!canApprove && canClaimOnBehalf) {
-      setActiveTab("delegated_claim");
-    } else if (!canApprove && !canClaimOnBehalf && canManagePolicies) {
-      setActiveTab("behalf_assignments");
+  useEffect(() => {
+    if (!tabInitialized && !permissionsLoading) {
+      setTimeout(() => {
+        if (!canApprove && canClaimOnBehalf) {
+          setActiveTab("delegated_claim");
+        } else if (!canApprove && !canClaimOnBehalf && canManagePolicies) {
+          setActiveTab("behalf_assignments");
+        }
+        setTabInitialized(true);
+      }, 0);
     }
-    setTabInitialized(true);
-  }
+  }, [tabInitialized, permissionsLoading, canApprove, canClaimOnBehalf, canManagePolicies]);
 
   const startDate = format(startOfMonth(currentMonth), "yyyy-MM-dd");
   const endDate = format(endOfMonth(currentMonth), "yyyy-MM-dd");
 
   const { isLoading, refetch, summaries } = useAttendanceSummaries(startDate, endDate);
   const { approveOt, isProcessing } = useApproveOt();
+
+  const { data: reportResponse, isLoading: isReportLoading, refetch: refetchReport } = useQuery({
+    queryKey: ["attendance-report", workspace?.id, startDate, endDate, "daily"],
+    queryFn: () => {
+      if (!workspace?.id) throw new Error("No workspace ID");
+      return fetchAttendanceReport({
+        wsId: workspace.id,
+        start: startDate,
+        end: endDate,
+        type: "daily",
+        page: 1,
+        limit: 1000,
+      });
+    },
+    enabled: !!workspace?.id,
+  });
+
+  const reportData = useMemo(() => (reportResponse?.data ?? []) as ReportRow[], [reportResponse]);
+  const employeeMap = useMemo(() => getEmployeeMap(reportData), [reportData]);
 
   if (permissionsLoading) {
     return (
@@ -62,12 +202,7 @@ export default function OtApprovalsPage() {
     );
   }
 
-  const pendingSummaries = summaries
-    .filter((s) => s.ot_status === "pending_manager")
-    .filter((s) => {
-      if (sourceFilter === "all") return true;
-      return s.entered_via === sourceFilter;
-    });
+  const pendingSummaries = getPendingSummaries(summaries, sourceFilter, employeeMap);
 
   const handleApprove = async (
     summary: { claimed_ot_minutes: number; date: string; employee_id: string },
@@ -85,6 +220,7 @@ export default function OtApprovalsPage() {
         approved ? "Overtime approved successfully" : "Overtime rejected successfully"
       );
       void refetch();
+      void refetchReport();
     } catch (e) {
       console.error(e);
       toast.error("Action failed");
@@ -109,17 +245,18 @@ export default function OtApprovalsPage() {
         handleNextMonth={handleNextMonth}
         handlePreviousMonth={handlePreviousMonth}
         setBulkUploadDialogOpen={setBulkUploadDialogOpen}
-        setPaperOtDialogOpen={setPaperOtDialogOpen}
       />
 
       <OtApprovalsFilters setSourceFilter={setSourceFilter} sourceFilter={sourceFilter} />
 
-      <EnterPaperOtDialog
-        onOpenChange={setPaperOtDialogOpen}
+      <AddPhotoDialog
+        onOpenChange={(open) => { if (!open) setPhotoTargetSummary(null); }}
         onSuccess={() => {
           void refetch();
+          void refetchReport();
         }}
-        open={paperOtDialogOpen}
+        open={!!photoTargetSummary}
+        summary={photoTargetSummary}
       />
 
       <BulkUploadOtDialog
@@ -130,91 +267,30 @@ export default function OtApprovalsPage() {
         open={bulkUploadDialogOpen}
       />
 
-      <div className="flex bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 mb-8 overflow-x-auto custom-scrollbar">
-        {canApprove ? (
-          <Button
-            className={cn(
-              "flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold transition-all duration-300 whitespace-nowrap normal-case tracking-normal shadow-none",
-              activeTab === "pre"
-                ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-            )}
-            onClick={() => { setActiveTab("pre"); }}
-            variant="ghost"
-          >
-            {t("ot_approvals.tabs.pre_ot", { defaultValue: "Pre-OT Approvals (Requests)" })}
-          </Button>
-        ) : null}
-        {canApprove ? (
-          <Button
-            className={cn(
-              "flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold transition-all duration-300 whitespace-nowrap normal-case tracking-normal shadow-none",
-              activeTab === "post"
-                ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-            )}
-            onClick={() => { setActiveTab("post"); }}
-            variant="ghost"
-          >
-            {t("ot_approvals.tabs.post_ot", { defaultValue: "Post-OT Approvals (Actuals)" })}
-          </Button>
-        ) : null}
-        {(canApprove || canClaimOnBehalf) ? (
-          <Button
-            className={cn(
-              "flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold transition-all duration-300 whitespace-nowrap normal-case tracking-normal shadow-none",
-              activeTab === "delegated_claim"
-                ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-            )}
-            onClick={() => { setActiveTab("delegated_claim"); }}
-            variant="ghost"
-          >
-            {t("ot_approvals.tabs.delegated_claim", { defaultValue: "Delegated Claims" })}
-          </Button>
-        ) : null}
-        {canManagePolicies ? (
-          <Button
-            className={cn(
-              "flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold transition-all duration-300 whitespace-nowrap normal-case tracking-normal shadow-none",
-              activeTab === "behalf_assignments"
-                ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-            )}
-            onClick={() => { setActiveTab("behalf_assignments"); }}
-            variant="ghost"
-          >
-            {t("ot_approvals.tabs.behalf_assignments", { defaultValue: "Behalf Assignments" })}
-          </Button>
-        ) : null}
-      </div>
+      <TabButtons
+        activeTab={activeTab}
+        canApprove={canApprove}
+        canClaimOnBehalf={canClaimOnBehalf}
+        canManagePolicies={canManagePolicies}
+        setActiveTab={setActiveTab}
+        t={t}
+      />
 
       <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[3rem] overflow-hidden shadow-sm animate-in slide-in-from-bottom-8 duration-700 min-h-[400px]">
-        {activeTab === "pre" && workspace && canApprove ? (
-          <PreOtApprovalsTab wsId={workspace.id} />
-        ) : activeTab === "post" && canApprove ? (
-          <>
-            {isLoading ? (
-              <LoadingState />
-            ) : pendingSummaries.length === 0 ? (
-              <EmptyState />
-            ) : (
-              <OtApprovalsTable
-                handleApprove={handleApprove}
-                isProcessing={isProcessing}
-                pendingSummaries={pendingSummaries}
-              />
-            )}
-          </>
-        ) : activeTab === "delegated_claim" && workspace ? (
-          <DelegatedClaimsTab
-            endDate={endDate}
-            startDate={startDate}
-            wsId={workspace.id}
-          />
-        ) : activeTab === "behalf_assignments" && workspace ? (
-          <BehalfAssignmentsTab wsId={workspace.id} />
-        ) : null}
+        <TabContentRenderer
+          activeTab={activeTab}
+          canApprove={canApprove}
+          handleApprove={handleApprove}
+          isLoading={isLoading}
+          isProcessing={isProcessing}
+          isReportLoading={isReportLoading}
+          pendingSummaries={pendingSummaries}
+          refetch={refetch}
+          refetchReport={refetchReport}
+          reportData={reportData}
+          setPhotoTargetSummary={setPhotoTargetSummary}
+          workspace={workspace}
+        />
       </div>
     </div>
   );
@@ -249,28 +325,231 @@ function EmptyState() {
   );
 }
 
-function DelegatedClaimsTab({ wsId, startDate, endDate }: { wsId: string; startDate: string; endDate: string }) {
+interface TabContentRendererProps {
+  activeTab: "pre" | "post" | "delegated_claim" | "behalf_assignments";
+  canApprove: boolean;
+  handleApprove: (
+    summary: { claimed_ot_minutes: number; date: string; employee_id: string },
+    approved: boolean
+  ) => Promise<void>;
+  isLoading: boolean;
+  isProcessing: boolean;
+  isReportLoading: boolean;
+  pendingSummaries: OtSummary[];
+  refetch: () => Promise<unknown>;
+  refetchReport: () => Promise<unknown>;
+  reportData: ReportRow[];
+  setPhotoTargetSummary: (summary: OtSummary) => void;
+  workspace: { id: string } | null | undefined;
+}
+
+function TabContentRenderer({
+  activeTab,
+  workspace,
+  canApprove,
+  isLoading,
+  isReportLoading,
+  pendingSummaries,
+  reportData,
+  handleApprove,
+  isProcessing,
+  setPhotoTargetSummary,
+  refetch,
+  refetchReport,
+}: TabContentRendererProps) {
+  if (!workspace) return null;
+
+  switch (activeTab) {
+    case "pre":
+      return canApprove ? <PreOtApprovalsTab wsId={workspace.id} /> : null;
+    case "post":
+      if (!canApprove) return null;
+      if (isLoading) return <LoadingState />;
+      if (pendingSummaries.length === 0) return <EmptyState />;
+      return (
+        <OtApprovalsTable
+          handleApprove={handleApprove}
+          isProcessing={isProcessing}
+          onAddPhoto={setPhotoTargetSummary}
+          pendingSummaries={pendingSummaries}
+        />
+      );
+    case "delegated_claim":
+      return (
+        <DelegatedClaimsTab
+          isLoading={isReportLoading}
+          refetch={async () => {
+            await refetch();
+            await refetchReport();
+          }}
+          reportData={reportData}
+        />
+      );
+    case "behalf_assignments":
+      return <BehalfAssignmentsTab wsId={workspace.id} />;
+    default:
+      return null;
+  }
+}
+
+function AddPhotoDialog({
+  open,
+  onOpenChange,
+  summary,
+  onSuccess,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  summary: OtSummary | null;
+  onSuccess?: () => void;
+}) {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const { enterPaperOt, isSubmitting } = useEnterPaperOt();
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFileName(file.name);
+      setPhotoUrl(`/uploads/mock_${file.name}`);
+    }
+  };
+
+  const handleSubmit = async (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    if (!summary) return;
+    if (!photoUrl) {
+      setError("Please select a photo");
+      return;
+    }
+    setError(null);
+    try {
+      await enterPaperOt({
+        employeeId: summary.employee_id,
+        date: summary.date,
+        claimed_minutes: summary.claimed_ot_minutes,
+        reason: summary.ot_reason ?? "Paper OT Claim",
+        paper_form_photo_url: photoUrl,
+      });
+      setPhotoUrl(null);
+      setFileName(null);
+      onOpenChange(false);
+      onSuccess?.();
+      toast.success("Photo evidence attached successfully");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to upload photo");
+    }
+  };
+
+  return (
+    <Dialog.Root onOpenChange={(o) => { if (!o) { setPhotoUrl(null); setFileName(null); setError(null); } onOpenChange(o); }} open={open}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 bg-black/40 z-50 backdrop-blur-sm" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl rounded-[2rem]">
+          <Dialog.Title className="text-xl font-bold text-slate-800 dark:text-slate-100 uppercase tracking-tight flex items-center gap-2">
+            <Upload className="w-5 h-5" />
+            {t("ot_approvals.evidence.add", { defaultValue: "Add Photo Evidence" })}
+          </Dialog.Title>
+          <Dialog.Description className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            {t("ot_approvals.evidence.description", { defaultValue: "Upload a photo of the signed paper form for this claim." })}
+          </Dialog.Description>
+
+          <Button
+            className="absolute right-4 top-4 h-auto w-auto p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 shadow-none"
+            icon={<X className="h-4 w-4" />}
+            onClick={() => { onOpenChange(false); }}
+            size="icon"
+            variant="ghost"
+          />
+
+          <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
+                {t("approvals.paper_ot.photo") || "Paper Form Photo"}
+              </label>
+              {photoUrl ? (
+                <div className="border border-emerald-100 dark:border-emerald-800/50 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-xl p-4 text-center relative group">
+                  <FileText className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+                  <Typography className="text-xs font-semibold text-emerald-800 dark:text-emerald-300" variant="p">
+                    {fileName ?? "paper_form_evidence.png"}
+                  </Typography>
+                  <Button
+                    className="absolute top-2 right-2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full h-auto w-auto shadow-none"
+                    onClick={() => {
+                      setPhotoUrl(null);
+                      setFileName(null);
+                    }}
+                    type="button"
+                    variant="ghost"
+                  >
+                    <X size={14} />
+                  </Button>
+                </div>
+              ) : (
+                <div className="relative border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-6 text-center hover:border-primary-400 dark:hover:border-primary-500 transition-colors group cursor-pointer">
+                  <input
+                    accept="image/*"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    onChange={handleFileChange}
+                    type="file"
+                  />
+                  <Upload className="w-8 h-8 text-slate-400 dark:text-slate-500 mx-auto mb-2 group-hover:text-primary-500 transition-colors" />
+                  <Typography className="text-xs font-semibold text-slate-600 dark:text-slate-300" variant="p">
+                    {t("approvals.paper_ot.upload_prompt") || "Click or drag photo to upload"}
+                  </Typography>
+                </div>
+              )}
+            </div>
+
+            {!!error && (
+              <div className="p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-800 rounded-2xl flex items-center gap-3">
+                <Typography className="text-[10px] font-bold text-rose-600 dark:text-rose-300 uppercase tracking-widest" variant="p">{error}</Typography>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 pt-2">
+              <Button
+                className="h-auto px-4 py-2 rounded-xl text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-none"
+                onClick={() => { onOpenChange(false); }}
+                type="button"
+                variant="ghost"
+              >
+                {t("common.cancel") || "Cancel"}
+              </Button>
+              <Button
+                className="h-auto px-6 py-2 rounded-xl text-xs font-bold uppercase tracking-wider shadow-lg"
+                disabled={isSubmitting}
+                loading={isSubmitting}
+                type="submit"
+                variant="primary"
+              >
+                {t("common.submit") || "Submit"}
+              </Button>
+            </div>
+          </form>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
+function DelegatedClaimsTab({
+  reportData,
+  isLoading,
+  refetch,
+}: {
+  reportData: ReportRow[];
+  isLoading: boolean;
+  refetch: () => Promise<unknown>;
+}) {
   const { t } = useTranslation(["common", "attendance"]);
   const toast = useToast();
   const { claimOt, isSubmitting: isClaiming } = useClaimOt();
+  const [paperOtDialogOpen, setPaperOtDialogOpen] = useState(false);
 
-  const { data: reportResponse, isLoading, refetch } = useQuery({
-    queryKey: ["attendance-report", wsId, startDate, endDate, "daily"],
-    queryFn: () =>
-      fetchAttendanceReport({
-        wsId,
-        start: startDate,
-        end: endDate,
-        type: "daily",
-        page: 1,
-        limit: 1000,
-      }),
-    enabled: !!wsId,
-  });
-
-  const reportData = (reportResponse?.data ?? []) as any[];
-  
-  // Filter for records with pending employee OT claim and non-zero OT hours
   const claimableRows = reportData.filter(
     (r) => r.ot_claim_status === "pending_employee" && r.computed_ot_hours > 0
   );
@@ -300,7 +579,7 @@ function DelegatedClaimsTab({ wsId, startDate, endDate }: { wsId: string; startD
     setReasons({ ...reasons, [key]: val });
   };
 
-  const handleClaim = async (row: any) => {
+  const handleClaim = async (row: ReportRow) => {
     const key = `${row.employee_id}-${row.date}`;
     const reason = reasons[key] || "Delegated OT claim";
     const minutes = Math.round(row.computed_ot_hours * 60);
@@ -318,7 +597,7 @@ function DelegatedClaimsTab({ wsId, startDate, endDate }: { wsId: string; startD
         next.delete(key);
         return next;
       });
-      void refetch();
+      await refetch();
     } catch (e) {
       console.error(e);
       toast.error(t("ot_approvals.delegated_claim.messages.error", { defaultValue: "Failed to claim overtime" }));
@@ -351,7 +630,7 @@ function DelegatedClaimsTab({ wsId, startDate, endDate }: { wsId: string; startD
       await Promise.allSettled(promises);
       toast.success(t("ot_approvals.delegated_claim.messages.success", { defaultValue: "Overtime claimed successfully" }));
       setSelectedRows(new Set());
-      void refetch();
+      await refetch();
     } catch (e) {
       console.error(e);
       toast.error(t("ot_approvals.delegated_claim.messages.error", { defaultValue: "Failed to claim overtime" }));
@@ -374,13 +653,33 @@ function DelegatedClaimsTab({ wsId, startDate, endDate }: { wsId: string; startD
         <Typography className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-2 opacity-50 italic px-6 max-w-md" variant="p">
           {t("ot_approvals.delegated_claim.empty_state.description", { defaultValue: "All overtime has been claimed, or no overtime hours were computed for the selected period." })}
         </Typography>
+        <div className="mt-8 flex justify-center">
+          <Button
+            className="normal-case tracking-normal h-10 px-4 rounded-xl gap-2 font-bold text-sm shadow-sm transition-all duration-300 hover:shadow hover:-translate-y-0.5 border border-amber-200/80 dark:border-amber-900/50 bg-amber-50 hover:bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 dark:text-amber-200 flex items-center"
+            icon={<FileText className="w-4 h-4" />}
+            onClick={() => {
+              setPaperOtDialogOpen(true);
+            }}
+            variant="ghost"
+          >
+            {t("approvals.paper_ot.btn_enter", { defaultValue: "Enter Paper Form" })}
+          </Button>
+        </div>
+
+        <EnterPaperOtDialog
+          onOpenChange={setPaperOtDialogOpen}
+          onSuccess={() => {
+            refetch().catch(console.error);
+          }}
+          open={paperOtDialogOpen}
+        />
       </div>
     );
   }
 
   return (
     <div className="p-8 space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-50 dark:border-slate-800 pb-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-50 dark:border-slate-800 pb-6 w-full">
         <div>
           <Typography className="text-lg font-bold text-slate-800 dark:text-slate-200" variant="h3">
             {t("ot_approvals.delegated_claim.title", { defaultValue: "Delegated Claims" })}
@@ -389,24 +688,37 @@ function DelegatedClaimsTab({ wsId, startDate, endDate }: { wsId: string; startD
             {t("ot_approvals.delegated_claim.subtitle", { defaultValue: "Claim overtime hours on behalf of workshop/production personnel who lack system accounts" })}
           </Typography>
         </div>
-        {selectedRows.size > 0 && (
+        <div className="flex items-center gap-3">
           <Button
-            className="normal-case tracking-normal gap-2 h-10 px-6 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold text-sm shadow-md transition-all duration-300 transform active:scale-95 disabled:opacity-50"
-            disabled={isClaiming}
-            onClick={handleBulkClaim}
-            variant="primary"
+            className="normal-case tracking-normal h-10 px-4 rounded-xl gap-2 font-bold text-sm shadow-sm transition-all duration-300 hover:shadow hover:-translate-y-0.5 border border-amber-200/80 dark:border-amber-900/50 bg-amber-50 hover:bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 dark:text-amber-200 flex items-center animate-in fade-in"
+            icon={<FileText className="w-4 h-4" />}
+            onClick={() => {
+              setPaperOtDialogOpen(true);
+            }}
+            variant="ghost"
           >
-            {isClaiming ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Check className="w-4 h-4" />
-            )}
-            {t("ot_approvals.delegated_claim.actions.claim_selected", {
-              count: selectedRows.size,
-              defaultValue: `Claim ${selectedRows.size} Selected`
-            })}
+            {t("approvals.paper_ot.btn_enter", { defaultValue: "Enter Paper Form" })}
           </Button>
-        )}
+
+          {selectedRows.size > 0 && (
+            <Button
+              className="normal-case tracking-normal gap-2 h-10 px-6 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold text-sm shadow-md transition-all duration-300 transform active:scale-95 disabled:opacity-50"
+              disabled={isClaiming}
+              onClick={handleBulkClaim}
+              variant="primary"
+            >
+              {isClaiming ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Check className="w-4 h-4" />
+              )}
+              {t("ot_approvals.delegated_claim.actions.claim_selected", {
+                count: selectedRows.size,
+                defaultValue: `Claim ${selectedRows.size} Selected`
+              })}
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-3xl border border-slate-100 dark:border-slate-800">
@@ -507,7 +819,7 @@ function DelegatedClaimsTab({ wsId, startDate, endDate }: { wsId: string; startD
                     <Button
                       className="normal-case tracking-normal bg-slate-100 dark:bg-slate-800 hover:bg-primary-50 dark:hover:bg-primary-950/30 hover:text-primary-600 dark:hover:text-primary-400 text-slate-700 dark:text-slate-300 font-bold text-xs transition-all duration-300 disabled:opacity-50 shadow-none border-none"
                       disabled={isClaiming}
-                      onClick={() => { void handleClaim(row); }}
+                      onClick={() => { handleClaim(row).catch(console.error); }}
                       size="sm"
                       variant="ghost"
                     >
@@ -520,6 +832,14 @@ function DelegatedClaimsTab({ wsId, startDate, endDate }: { wsId: string; startD
           </tbody>
         </table>
       </div>
+
+      <EnterPaperOtDialog
+        onOpenChange={setPaperOtDialogOpen}
+        onSuccess={() => {
+          refetch().catch(console.error);
+        }}
+        open={paperOtDialogOpen}
+      />
     </div>
   );
 }

@@ -1,21 +1,25 @@
-import { CheckCircle, XCircle } from "lucide-react";
+import { CheckCircle, XCircle, Paperclip, Plus, AlertTriangle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 
-interface OtSummary {
+export interface OtSummary {
   claimed_ot_minutes: number;
   date: string;
   employee_id: string;
+  employee_id_number?: string;
+  employee_name?: string;
   entered_via?: string | null;
   id: string;
   ot_reason?: string | null;
+  paper_form_photo_url?: string | null;
   system_detected_ot_minutes: number;
 }
 
 interface OtApprovalsTableProps {
   handleApprove: (summary: OtSummary, approved: boolean) => Promise<void>;
   isProcessing: boolean;
+  onAddPhoto?: (summary: OtSummary) => void;
   pendingSummaries: OtSummary[];
 }
 
@@ -23,6 +27,7 @@ export function OtApprovalsTable({
   handleApprove,
   isProcessing,
   pendingSummaries,
+  onAddPhoto,
 }: OtApprovalsTableProps) {
   const { t } = useTranslation();
 
@@ -47,6 +52,9 @@ export function OtApprovalsTable({
               {t("ot_approvals.table.claimed")}
             </th>
             <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
+              {t("ot_approvals.table.evidence", { defaultValue: "Evidence" })}
+            </th>
+            <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
               {t("ot_approvals.table.reason")}
             </th>
             <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] text-right">
@@ -63,8 +71,17 @@ export function OtApprovalsTable({
               <td className="px-8 py-6 font-bold text-slate-700 dark:text-slate-200">
                 {summary.date}
               </td>
-              <td className="px-8 py-6 text-sm text-slate-600 dark:text-slate-300">
-                {summary.employee_id}
+              <td className="px-8 py-6">
+                <div className="flex flex-col">
+                  <span className="font-bold text-sm text-slate-800 dark:text-slate-200">
+                    {summary.employee_name ?? summary.employee_id}
+                  </span>
+                  {!!summary.employee_id_number && (
+                    <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 uppercase tracking-tight">
+                      {summary.employee_id_number}
+                    </span>
+                  )}
+                </div>
               </td>
               <td className="px-8 py-6">
                 <SourceBadge enteredVia={summary.entered_via} />
@@ -74,6 +91,9 @@ export function OtApprovalsTable({
               </td>
               <td className="px-8 py-6 text-center text-sm font-bold font-mono text-amber-600 dark:text-amber-300">
                 {summary.claimed_ot_minutes}m
+              </td>
+              <td className="px-8 py-6">
+                <EvidenceCell onAddPhoto={onAddPhoto} summary={summary} />
               </td>
               <td className="px-8 py-6 text-sm text-slate-600 dark:text-slate-300 italic">
                 &quot;{summary.ot_reason}&quot;
@@ -108,6 +128,53 @@ export function OtApprovalsTable({
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function EvidenceCell({
+  summary,
+  onAddPhoto,
+}: {
+  summary: OtSummary;
+  onAddPhoto?: (summary: OtSummary) => void;
+}) {
+  const { t } = useTranslation();
+
+  if (summary.entered_via !== "paper_form") {
+    return <span className="text-xs text-slate-400 dark:text-slate-500">—</span>;
+  }
+
+  if (summary.paper_form_photo_url) {
+    return (
+      <a
+        className="inline-flex items-center gap-1.5 text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline"
+        href={summary.paper_form_photo_url}
+        rel="noopener noreferrer"
+        target="_blank"
+      >
+        <Paperclip className="w-3.5 h-3.5" />
+        {t("ot_approvals.evidence.view", { defaultValue: "View Photo" })}
+      </a>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50">
+        <AlertTriangle className="w-3 h-3 text-amber-500" />
+        {t("ot_approvals.evidence.missing", { defaultValue: "No Photo" })}
+      </span>
+      {onAddPhoto ? (
+        <Button
+          className="h-auto px-2 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider bg-slate-100 hover:bg-primary-50 hover:text-primary-600 text-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-primary-950/30 dark:hover:text-primary-400 shadow-none border-none transition-all flex items-center gap-1 normal-case"
+          onClick={() => { onAddPhoto(summary); }}
+          variant="ghost"
+        >
+          <Plus className="w-3 h-3" strokeWidth={3} />
+          {t("ot_approvals.evidence.add", { defaultValue: "Add Photo" })}
+        </Button>
+      ) : null}
     </div>
   );
 }

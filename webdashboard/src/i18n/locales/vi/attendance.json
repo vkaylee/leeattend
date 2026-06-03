@@ -415,7 +415,8 @@
       "error_no_employee": "Vui lòng chọn nhân viên",
       "error_minutes": "Số phút phải lớn hơn 0",
       "error_reason": "Lý do là bắt buộc",
-      "btn_enter": "Nhập đơn giấy"
+      "btn_enter": "Nhập đơn giấy",
+      "upload_prompt": "Nhấp hoặc kéo ảnh vào đây để tải lên"
     },
     "bulk_upload": {
       "title": "Tải lên hàng loạt OT",
@@ -571,11 +572,18 @@
       "description": "Không có yêu cầu tăng ca nào đang chờ duyệt",
       "title": "Đã xử lý hết!"
     },
+    "evidence": {
+      "add": "Thêm ảnh",
+      "description": "Tải lên ảnh chụp của biểu mẫu giấy đã ký cho yêu cầu này.",
+      "missing": "Không có ảnh",
+      "view": "Xem ảnh"
+    },
     "table": {
       "actions": "Hành động",
       "claimed": "Yêu cầu",
       "date": "Ngày",
       "employee": "Nhân viên",
+      "evidence": "Minh chứng",
       "reason": "Lý do",
       "source": "Nguồn",
       "system": "Hệ thống"

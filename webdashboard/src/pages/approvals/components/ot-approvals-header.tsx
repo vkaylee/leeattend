@@ -1,5 +1,5 @@
 import * as Popover from "@radix-ui/react-popover";
-import { ChevronLeft, ChevronRight, FileText, Upload } from "lucide-react";
+import { ChevronLeft, ChevronRight, Upload } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { format } from "date-fns";
@@ -15,7 +15,6 @@ interface OtApprovalsHeaderProps {
   handleNextMonth: () => void;
   handlePreviousMonth: () => void;
   setBulkUploadDialogOpen: (open: boolean) => void;
-  setPaperOtDialogOpen: (open: boolean) => void;
 }
 
 export function OtApprovalsHeader({
@@ -24,7 +23,6 @@ export function OtApprovalsHeader({
   handleNextMonth,
   handlePreviousMonth,
   setBulkUploadDialogOpen,
-  setPaperOtDialogOpen,
 }: OtApprovalsHeaderProps) {
   const { t } = useTranslation();
 
@@ -40,17 +38,6 @@ export function OtApprovalsHeader({
       </div>
 
       <div className="flex items-center gap-4">
-        <Button
-          className="normal-case tracking-normal h-10 px-4 rounded-xl gap-2 font-bold text-sm shadow-sm transition-all duration-300 hover:shadow hover:-translate-y-0.5 border border-amber-200/80 dark:border-amber-900/50 bg-amber-50 hover:bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 dark:text-amber-200 flex items-center"
-          icon={<FileText className="w-4 h-4" />}
-          onClick={() => {
-            setPaperOtDialogOpen(true);
-          }}
-          variant="ghost"
-        >
-          {t("approvals.paper_ot.btn_enter") || "Enter Paper Form"}
-        </Button>
-
         <CreateOtRequestDialog />
 
         <Button
