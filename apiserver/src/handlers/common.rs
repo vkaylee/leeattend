@@ -476,6 +476,136 @@ pub async fn current_department_id(
         .map(|h| h.department_id)
 }
 
+// --- Behalf Scope Helpers ---
+
+/// Generic behalf scope check — replaces domain-specific copies
+/// in leaves.rs, attendance/overtime.rs, attendance/adjustments.rs.
+///
+/// Validates that the caller has permission to act on behalf of the target employee:
+/// 1. Caller must have at least one of `required_permissions`
+/// 2. If caller has global scope (managed_department_ids = None) → Ok
+/// 3. Check explicit behalf_assignment for the specific `domain_type`
+/// 4. Fallback: check if target is in caller's managed departments
+pub async fn check_behalf_scope(
+    state: &AppState,
+    ctx: &MemberContext,
+    required_permissions: &[Permission],
+    domain_type: &str,
+    caller_employee_id: Option<Uuid>,
+    target_employee_id: Uuid,
+) -> AppResult<()> {
+    let has_perm = required_permissions
+        .iter()
+        .any(|&p| ctx.has_permission(p));
+    if !has_perm {
+        return Err(AppError::Forbidden(format!(
+            "Missing permission: one of {required_permissions:?}"
+        )));
+    }
+
+    // Global scope — no department restriction
+    if ctx.managed_department_ids.is_none() {
+        return Ok(());
+    }
+
+    let caller_emp_id = caller_employee_id
+        .ok_or_else(|| AppError::Forbidden("Caller has no employee record".to_string()))?;
+
+    let target_dept_id =
+        current_department_id(state, &ctx.auth_token, target_employee_id).await;
+
+    // Check explicit behalf assignment
+    let is_assigned = state
+        .attendance
+        .behalf_assignment_repo
+        .check_behalf_permission(
+            ctx.workspace_id,
+            caller_emp_id,
+            target_employee_id,
+            target_dept_id,
+            domain_type,
+        )
+        .await?;
+
+    if is_assigned {
+        return Ok(());
+    }
+
+    // Fallback: managed department check
+    if let Some(allowed_depts) = &ctx.managed_department_ids {
+        if let Some(dept_id) = target_dept_id {
+            if allowed_depts.contains(&dept_id) {
+                return Ok(());
+            }
+        }
+    }
+
+    Err(AppError::Forbidden(
+        "Permission denied: Target is outside your on-behalf scope.".to_string(),
+    ))
+}
+
+/// Generic handler: create a behalf assignment for any domain type.
+pub async fn create_behalf_assignment_handler(
+    state: &AppState,
+    ctx: &MemberContext,
+    req: &crate::models::CreateBehalfAssignmentRequest,
+    required_permission: Permission,
+    domain_type: &str,
+) -> AppResult<crate::models::BehalfAssignment> {
+    ctx.require_permission(required_permission)?;
+
+    state
+        .attendance
+        .behalf_assignment_repo
+        .create_assignment(
+            ctx.workspace_id,
+            req.assignee_employee_id,
+            req.target_employee_id,
+            req.target_department_id,
+            domain_type,
+        )
+        .await
+}
+
+/// Generic handler: delete a behalf assignment for any domain type.
+pub async fn delete_behalf_assignment_handler(
+    state: &AppState,
+    ctx: &MemberContext,
+    assignment_id: Uuid,
+    required_permission: Permission,
+) -> AppResult<()> {
+    ctx.require_permission(required_permission)?;
+
+    let affected = state
+        .attendance
+        .behalf_assignment_repo
+        .delete_assignment(ctx.workspace_id, assignment_id)
+        .await?;
+
+    if affected == 0 {
+        return Err(AppError::NotFound("Assignment not found".to_string()));
+    }
+
+    Ok(())
+}
+
+/// Generic handler: list all behalf assignments for a domain type.
+pub async fn list_behalf_assignments_handler(
+    state: &AppState,
+    ctx: &MemberContext,
+    required_permission: Permission,
+    domain_type: &str,
+) -> AppResult<Vec<crate::models::BehalfAssignment>> {
+    ctx.require_permission(required_permission)?;
+
+    state
+        .attendance
+        .behalf_assignment_repo
+        .list_all_assignments(ctx.workspace_id, domain_type)
+        .await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

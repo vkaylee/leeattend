@@ -84,45 +84,15 @@ async fn check_adjustment_behalf_scope(
     caller_employee_id: Uuid,
     target_employee_id: Uuid,
 ) -> AppResult<()> {
-    if !ctx.has_permission(Permission::AttendanceAdjustmentsSubmitOnBehalf) {
-        return Err(AppError::Forbidden(
-            "Missing permission: attendance:adjustments:submit_on_behalf".to_string(),
-        ));
-    }
-
-    // Check for a specific behalf assignment
-    let target_dept_id =
-        crate::handlers::common::current_department_id(state, &ctx.auth_token, target_employee_id)
-            .await;
-
-    let is_assigned = state
-        .attendance
-        .behalf_assignment_repo
-        .check_behalf_permission(
-            ctx.workspace_id,
-            caller_employee_id,
-            target_employee_id,
-            target_dept_id,
-            "attendance_adjustment",
-        )
-        .await?;
-
-    if is_assigned {
-        return Ok(());
-    }
-
-    // Fall back to managed department check
-    if let Some(allowed_depts) = &ctx.managed_department_ids {
-        if let Some(dept_id) = target_dept_id {
-            if allowed_depts.contains(&dept_id) {
-                return Ok(());
-            }
-        }
-    }
-
-    Err(AppError::Forbidden(
-        "Permission denied: Target is outside your adjustment on behalf scope.".to_string(),
-    ))
+    crate::handlers::common::check_behalf_scope(
+        state,
+        ctx,
+        &[Permission::AttendanceAdjustmentsSubmitOnBehalf],
+        "attendance_adjustment",
+        Some(caller_employee_id),
+        target_employee_id,
+    )
+    .await
 }
 
 #[utoipa::path(
@@ -248,7 +218,6 @@ pub async fn get_workspace_attendance_adjustments(
 
 // ── Behalf Assignments for Attendance Adjustments ────────────────────
 
-use crate::errors::AppError;
 use crate::models::{BehalfAssignment, CreateBehalfAssignmentRequest};
 
 #[utoipa::path(
@@ -271,20 +240,14 @@ pub async fn create_adjustment_behalf_assignment(
     ctx: MemberContext,
     Json(req): Json<CreateBehalfAssignmentRequest>,
 ) -> AppResult<Json<BehalfAssignment>> {
-    ctx.require_permission(Permission::AttendanceAdjustmentsManageBehalf)?;
-
-    let result = state
-        .attendance
-        .behalf_assignment_repo
-        .create_assignment(
-            ctx.workspace_id,
-            req.assignee_employee_id,
-            req.target_employee_id,
-            req.target_department_id,
-            "attendance_adjustment",
-        )
-        .await?;
-
+    let result = crate::handlers::common::create_behalf_assignment_handler(
+        &state,
+        &ctx,
+        &req,
+        Permission::AttendanceAdjustmentsManageBehalf,
+        "attendance_adjustment",
+    )
+    .await?;
     Ok(Json(result))
 }
 
@@ -308,18 +271,13 @@ pub async fn delete_adjustment_behalf_assignment(
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
     let (_ws_id, id) = params;
-    ctx.require_permission(Permission::AttendanceAdjustmentsManageBehalf)?;
-
-    let affected = state
-        .attendance
-        .behalf_assignment_repo
-        .delete_assignment(ctx.workspace_id, id)
-        .await?;
-
-    if affected == 0 {
-        return Err(AppError::NotFound("Assignment not found".to_string()));
-    }
-
+    crate::handlers::common::delete_behalf_assignment_handler(
+        &state,
+        &ctx,
+        id,
+        Permission::AttendanceAdjustmentsManageBehalf,
+    )
+    .await?;
     Ok(StatusCode::OK)
 }
 
@@ -341,14 +299,13 @@ pub async fn list_adjustment_behalf_assignments(
     Path(_ws_id): Path<Uuid>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<BehalfAssignment>>> {
-    ctx.require_permission(Permission::AttendanceAdjustmentsManageBehalf)?;
-
-    let result = state
-        .attendance
-        .behalf_assignment_repo
-        .list_all_assignments(ctx.workspace_id, "attendance_adjustment")
-        .await?;
-
+    let result = crate::handlers::common::list_behalf_assignments_handler(
+        &state,
+        &ctx,
+        Permission::AttendanceAdjustmentsManageBehalf,
+        "attendance_adjustment",
+    )
+    .await?;
     Ok(Json(result))
 }
 

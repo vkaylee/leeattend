@@ -256,12 +256,7 @@ pub async fn get_job_status(
     let status = coordinator.get_job_status(job_id).await?;
 
     // Verify job belongs to this workspace
-    let redis = state
-        .infra
-        .redis
-        .as_ref()
-        .ok_or_else(|| AppError::ServiceUnavailable("Redis not available".to_string()))?;
-    let queue = crate::queue::JobQueue::new(redis.clone());
+    let queue = state.infra.job_queue()?;
     let metadata = queue
         .get_job_metadata(job_id)
         .await?
@@ -308,15 +303,7 @@ pub async fn download_report(
 
     let coordinator = get_coordinator(&state)?;
 
-    // Get Redis pool for workspace validation
-    let redis = state
-        .infra
-        .redis
-        .as_ref()
-        .ok_or_else(|| AppError::ServiceUnavailable("Redis not available".to_string()))?;
-
-    // Verify job belongs to this workspace
-    let queue = crate::queue::JobQueue::new(redis.clone());
+    let queue = state.infra.job_queue()?;
     let metadata = queue
         .get_job_metadata(job_id)
         .await?

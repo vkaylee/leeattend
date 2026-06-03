@@ -229,13 +229,7 @@ pub async fn force_reprocess_all_attendance(
         )));
     }
 
-    let redis = state.infra.redis.as_ref().ok_or_else(|| {
-        AppError::Internal("Redis is required for background processing".to_string())
-    })?;
-
-    tracing::info!("Using Redis for enqueuing jobs");
-
-    let queue = crate::queue::JobQueue::new(redis.clone());
+    let queue = state.infra.job_queue()?;
 
     // Fetch all active employees
     let employees = state

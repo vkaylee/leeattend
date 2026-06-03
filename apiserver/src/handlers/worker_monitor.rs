@@ -182,7 +182,7 @@ async fn fetch_overview_data(state: &Arc<AppState>) -> AppResult<MonitorOverview
     let total_workers = workers.len() as u64;
 
     // 5. Get recent job metadata and calculate type breakdown
-    let queue = crate::queue::JobQueue::new(redis.clone());
+    let queue = state.infra.job_queue()?;
     let all_recent_jobs = queue.list_recent_jobs(1000).await.unwrap_or_else(|e| {
         tracing::warn!(error = %e, "Failed to list recent jobs for stats");
         vec![]
@@ -269,14 +269,8 @@ pub async fn get_monitor_jobs(
 ) -> AppResult<Json<MonitorJobsResponse>> {
     ctx.require_any_role(&[SystemRoleType::PlatformAdmin, SystemRoleType::Support])?;
 
-    let redis = state
-        .infra
-        .redis
-        .as_ref()
-        .ok_or_else(|| AppError::ServiceUnavailable("Redis not available".to_string()))?;
-
     let limit = params.limit.unwrap_or(20);
-    let queue = crate::queue::JobQueue::new(redis.clone());
+    let queue = state.infra.job_queue()?;
 
     let (jobs, next_cursor) = queue
         .list_jobs_paginated(

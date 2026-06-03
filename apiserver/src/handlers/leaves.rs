@@ -527,17 +527,9 @@ pub async fn trigger_accrual_run(
     let date = NaiveDate::parse_from_str(&payload.date, "%Y-%m-%d")
         .map_err(|_e| AppError::Validation("Invalid date format YYYY-MM-DD".to_string()))?;
 
-    // Require Redis for background processing
-    let redis = state.infra.redis.as_ref().ok_or_else(|| {
-        AppError::ServiceUnavailable(
-            "Leave accrual requires Redis for background processing".to_string(),
-        )
-    })?;
-
-    use crate::queue::JobQueue;
     use crate::queue::{AccrualPayload, Job, JobMetadata, JobPayload, TaskType};
 
-    let queue = JobQueue::new(redis.clone());
+    let queue = state.infra.job_queue()?;
     let parent_id = crate::utils::id::new_id();
     let job = Job::new(
         parent_id,
@@ -607,14 +599,7 @@ pub async fn get_job_status(
     _ctx: MemberContext,
 ) -> AppResult<Json<JobStatusResponse>> {
     let (_, job_id) = params;
-    let redis = state
-        .infra
-        .redis
-        .as_ref()
-        .ok_or_else(|| AppError::ServiceUnavailable("Redis not available".to_string()))?;
-
-    use crate::queue::JobQueue;
-    let queue = JobQueue::new(redis.clone());
+    let queue = state.infra.job_queue()?;
 
     let meta = queue.get_job_metadata(job_id).await.map_err(|e| {
         AppError::BackgroundJobError(format!("Failed to get job job metadata/queue: {e}"))
@@ -681,38 +666,14 @@ pub async fn upload_leave_excel(
 ) -> AppResult<Json<serde_json::Value>> {
     ctx.require_permission(Permission::LeaveRequestsSubmit)?;
 
-    const MAX_FILE_SIZE: usize = 10 * 1024 * 1024; // 10MB
-
-    let mut file_path = None;
-    while let Some(field) = multipart
-        .next_field()
-        .await
-        .map_err(|e| AppError::Validation(format!("Multipart error: {e}")))?
-    {
-        let name = field.name().unwrap_or("").to_string();
-        if name == "file" {
-            let file_name = field.file_name().unwrap_or("upload.xlsx").to_string();
-            let data = field
-                .bytes()
-                .await
-                .map_err(|e| AppError::Validation(format!("Failed to read file bytes: {e}")))?;
-
-            if data.len() > MAX_FILE_SIZE {
-                return Err(AppError::Validation(
-                    "File too large (max 10MB)".to_string(),
-                ));
-            }
-
-            let base_dir = crate::utils::get_storage_dir();
-            let dir = format!("{base_dir}/imports");
-            tokio::fs::create_dir_all(&dir).await?;
-            let path = format!("{}/{}_{}", dir, crate::utils::id::new_id(), file_name);
-            tokio::fs::write(&path, data).await?;
-            file_path = Some(path);
-        }
-    }
-
-    let path = file_path.ok_or_else(|| AppError::Validation("No file uploaded".to_string()))?;
+    let path = crate::utils::upload::extract_uploaded_file(
+        &mut multipart,
+        "file",
+        crate::utils::upload::MAX_UPLOAD_FILE_SIZE,
+        "imports",
+    )
+    .await?;
+    let path = path.to_string_lossy().to_string();
 
     // Check auto-approve permission
     let auto_approve = ctx.has_permission(Permission::LeaveRequestsApprove)
@@ -735,28 +696,18 @@ pub async fn upload_leave_excel(
         updated_at: Utc::now(),
     };
 
-    {
-        use crate::repositories::import_job_repository::ImportJobRepository;
-        use crate::repositories::DieselImportJobRepository;
-        let import_repo = DieselImportJobRepository::new(state.infra.diesel.clone());
-        import_repo
-            .create_job(&ctx.auth_token, &import_job)
-            .await
-            .map_err(|e| {
-                AppError::BackgroundJobError(format!(
-                    "Failed to create import job metadata/queue: {e}"
-                ))
-            })?;
-    }
+    state
+        .attendance
+        .import_repo
+        .create_job(&ctx.auth_token, &import_job)
+        .await
+        .map_err(|e| {
+            AppError::BackgroundJobError(format!(
+                "Failed to create import job metadata/queue: {e}"
+            ))
+        })?;
 
-    // Require Redis for background processing
-    let redis = state.infra.redis.as_ref().ok_or_else(|| {
-        AppError::ServiceUnavailable(
-            "Leave import requires Redis for background processing".to_string(),
-        )
-    })?;
-
-    use crate::queue::{Job, JobPayload, JobQueue, LeaveImportPayload, TaskType};
+    use crate::queue::{Job, JobPayload, LeaveImportPayload, TaskType};
 
     let payload = LeaveImportPayload {
         file_path: path,
@@ -773,7 +724,7 @@ pub async fn upload_leave_excel(
         JobPayload::LeaveImport(payload),
     );
 
-    let queue = JobQueue::new(redis.clone());
+    let queue = state.infra.job_queue()?;
     queue.enqueue_jobs(vec![job]).await.map_err(|e| {
         AppError::BackgroundJobError(format!("Failed to enqueue leave import job: {e}"))
     })?;
@@ -802,9 +753,7 @@ pub async fn get_latest_leave_import(
 ) -> AppResult<Json<serde_json::Value>> {
     ctx.require_permission(Permission::LeaveRequestsSubmit)?;
 
-    use crate::repositories::import_job_repository::ImportJobRepository;
-    use crate::repositories::DieselImportJobRepository;
-    let repo = DieselImportJobRepository::new(state.infra.diesel.clone());
+    let repo = &state.attendance.import_repo;
 
     match repo
         .get_latest_job(&ctx.auth_token, Some(ImportTargetType::LeaveImport))
@@ -850,9 +799,7 @@ pub async fn download_leave_import_errors(
     let (_, job_id) = params;
     ctx.require_permission(Permission::LeaveRequestsSubmit)?;
 
-    use crate::repositories::import_job_repository::ImportJobRepository;
-    use crate::repositories::DieselImportJobRepository;
-    let repo = DieselImportJobRepository::new(state.infra.diesel.clone());
+    let repo = &state.attendance.import_repo;
 
     let job = repo
         .get_job_by_id(&ctx.auth_token, job_id)
@@ -949,59 +896,20 @@ async fn check_leave_behalf_scope(
     caller_employee_id: Option<Uuid>,
     target_employee_id: Uuid,
 ) -> AppResult<()> {
-    let has_perm = ctx.has_permission(Permission::LeaveRequestsApprove)
-        || ctx.has_permission(Permission::LeaveApproveL1)
-        || ctx.has_permission(Permission::LeaveApproveL2)
-        || ctx.has_permission(Permission::LeaveRequestsSubmitOnBehalf);
-    if !has_perm {
-        return Err(AppError::Forbidden(
-            "Missing permission: LeaveRequestsApprove or LeaveRequestsSubmitOnBehalf".to_string(),
-        ));
-    }
-
-    if ctx.managed_department_ids.is_none() {
-        return Ok(());
-    }
-
-    let caller_emp_id = caller_employee_id
-        .ok_or_else(|| AppError::Forbidden("Caller has no employee record".to_string()))?;
-
-    let target_dept_id =
-        crate::handlers::common::current_department_id(state, &ctx.auth_token, target_employee_id)
-            .await;
-
-    let is_assigned = state
-        .attendance
-        .behalf_assignment_repo
-        .check_behalf_permission(
-            ctx.workspace_id,
-            caller_emp_id,
-            target_employee_id,
-            target_dept_id,
-            "leave_request",
-        )
-        .await?;
-
-    if is_assigned {
-        return Ok(());
-    }
-
-    let mut is_managed_dept = false;
-    if let Some(allowed_depts) = &ctx.managed_department_ids {
-        if let Some(dept_id) = target_dept_id {
-            if allowed_depts.contains(&dept_id) {
-                is_managed_dept = true;
-            }
-        }
-    }
-
-    if is_managed_dept {
-        return Ok(());
-    }
-
-    Err(AppError::Forbidden(
-        "Permission denied: Target is outside your submit on behalf scope.".to_string(),
-    ))
+    crate::handlers::common::check_behalf_scope(
+        state,
+        ctx,
+        &[
+            Permission::LeaveRequestsApprove,
+            Permission::LeaveApproveL1,
+            Permission::LeaveApproveL2,
+            Permission::LeaveRequestsSubmitOnBehalf,
+        ],
+        "leave_request",
+        caller_employee_id,
+        target_employee_id,
+    )
+    .await
 }
 
 #[utoipa::path(
@@ -1024,20 +932,14 @@ pub async fn create_leave_behalf_assignment(
     ctx: MemberContext,
     Json(req): Json<crate::models::CreateBehalfAssignmentRequest>,
 ) -> AppResult<Json<crate::models::BehalfAssignment>> {
-    ctx.require_permission(Permission::LeavePoliciesManage)?;
-
-    let result = state
-        .attendance
-        .behalf_assignment_repo
-        .create_assignment(
-            ctx.workspace_id,
-            req.assignee_employee_id,
-            req.target_employee_id,
-            req.target_department_id,
-            "leave_request",
-        )
-        .await?;
-
+    let result = crate::handlers::common::create_behalf_assignment_handler(
+        &state,
+        &ctx,
+        &req,
+        Permission::LeavePoliciesManage,
+        "leave_request",
+    )
+    .await?;
     Ok(Json(result))
 }
 
@@ -1061,18 +963,13 @@ pub async fn delete_leave_behalf_assignment(
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
     let (_ws_id, id) = params;
-    ctx.require_permission(Permission::LeavePoliciesManage)?;
-
-    let affected = state
-        .attendance
-        .behalf_assignment_repo
-        .delete_assignment(ctx.workspace_id, id)
-        .await?;
-
-    if affected == 0 {
-        return Err(AppError::NotFound("Assignment not found".to_string()));
-    }
-
+    crate::handlers::common::delete_behalf_assignment_handler(
+        &state,
+        &ctx,
+        id,
+        Permission::LeavePoliciesManage,
+    )
+    .await?;
     Ok(StatusCode::OK)
 }
 
@@ -1094,13 +991,12 @@ pub async fn list_leave_behalf_assignments(
     Path(_ws_id): Path<Uuid>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<crate::models::BehalfAssignment>>> {
-    ctx.require_permission(Permission::LeavePoliciesManage)?;
-
-    let result = state
-        .attendance
-        .behalf_assignment_repo
-        .list_all_assignments(ctx.workspace_id, "leave_request")
-        .await?;
-
+    let result = crate::handlers::common::list_behalf_assignments_handler(
+        &state,
+        &ctx,
+        Permission::LeavePoliciesManage,
+        "leave_request",
+    )
+    .await?;
     Ok(Json(result))
 }

@@ -164,6 +164,30 @@ pub struct InfraState {
     pub system_db_cluster_repo: Arc<dyn crate::repositories::SystemDbClusterRepository>,
 }
 
+impl InfraState {
+    /// Get Redis pool, returning `ServiceUnavailable` if Redis is not configured.
+    ///
+    /// Replaces the duplicated pattern:
+    /// `state.infra.redis.as_ref().ok_or_else(|| AppError::ServiceUnavailable(...))?`
+    pub fn require_redis(&self) -> crate::errors::AppResult<&RedisPool> {
+        self.redis.as_ref().ok_or_else(|| {
+            crate::errors::AppError::ServiceUnavailable(
+                "This feature requires Redis for background processing".to_string(),
+            )
+        })
+    }
+
+    /// Create a `JobQueue` from the Redis pool.
+    ///
+    /// Replaces the duplicated pattern:
+    /// `let redis = state.infra.redis.as_ref().ok_or_else(...)?;`
+    /// `let queue = JobQueue::new(redis.clone());`
+    pub fn job_queue(&self) -> crate::errors::AppResult<crate::queue::JobQueue> {
+        let redis = self.require_redis()?;
+        Ok(crate::queue::JobQueue::new(redis.clone()))
+    }
+}
+
 // ── Composed AppState ──────────────────────────────────────────────
 
 pub struct AppState {

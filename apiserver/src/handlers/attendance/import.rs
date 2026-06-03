@@ -33,38 +33,14 @@ pub async fn upload_attendance_excel(
     // RBAC: Only Admin/Owner
     ctx.require_permission(Permission::AttendanceLogsImport)?;
 
-    const MAX_FILE_SIZE: usize = 10 * 1024 * 1024; // 10MB
-
-    let mut file_path = None;
-    while let Some(field) = multipart
-        .next_field()
-        .await
-        .map_err(|e| AppError::Validation(format!("Multipart error: {e}")))?
-    {
-        let name = field.name().unwrap_or("").to_string();
-        if name == "file" {
-            let file_name = field.file_name().unwrap_or("upload.xlsx").to_string();
-            let data = field
-                .bytes()
-                .await
-                .map_err(|e| AppError::Validation(format!("Failed to read file bytes: {e}")))?;
-
-            if data.len() > MAX_FILE_SIZE {
-                return Err(AppError::Validation(
-                    "File too large (max 10MB)".to_string(),
-                ));
-            }
-
-            let base_dir = crate::utils::get_storage_dir();
-            let dir = format!("{base_dir}/imports");
-            tokio::fs::create_dir_all(&dir).await?;
-            let path = format!("{}/{}_{}", dir, crate::utils::id::new_id(), file_name);
-            tokio::fs::write(&path, data).await?;
-            file_path = Some(path);
-        }
-    }
-
-    let path = file_path.ok_or_else(|| AppError::Validation("No file uploaded".to_string()))?;
+    let path = crate::utils::upload::extract_uploaded_file(
+        &mut multipart,
+        "file",
+        crate::utils::upload::MAX_UPLOAD_FILE_SIZE,
+        "imports",
+    )
+    .await?;
+    let path = path.to_string_lossy().to_string();
 
     let job_id = state
         .attendance
@@ -102,38 +78,14 @@ pub async fn upload_attendance_logs(
     // RBAC: Only Admin/Owner
     ctx.require_permission(Permission::AttendanceLogsImport)?;
 
-    const MAX_FILE_SIZE: usize = 10 * 1024 * 1024; // 10MB
-
-    let mut file_path = None;
-    while let Some(field) = multipart
-        .next_field()
-        .await
-        .map_err(|e| AppError::Validation(format!("Multipart error: {e}")))?
-    {
-        let name = field.name().unwrap_or("").to_string();
-        if name == "file" {
-            let file_name = field.file_name().unwrap_or("upload.xlsx").to_string();
-            let data = field
-                .bytes()
-                .await
-                .map_err(|e| AppError::Validation(format!("Failed to read file bytes: {e}")))?;
-
-            if data.len() > MAX_FILE_SIZE {
-                return Err(AppError::Validation(
-                    "File too large (max 10MB)".to_string(),
-                ));
-            }
-
-            let base_dir = crate::utils::get_storage_dir();
-            let dir = format!("{base_dir}/imports");
-            tokio::fs::create_dir_all(&dir).await?;
-            let path = format!("{}/{}_{}", dir, crate::utils::id::new_id(), file_name);
-            tokio::fs::write(&path, data).await?;
-            file_path = Some(path);
-        }
-    }
-
-    let path = file_path.ok_or_else(|| AppError::Validation("No file uploaded".to_string()))?;
+    let path = crate::utils::upload::extract_uploaded_file(
+        &mut multipart,
+        "file",
+        crate::utils::upload::MAX_UPLOAD_FILE_SIZE,
+        "imports",
+    )
+    .await?;
+    let path = path.to_string_lossy().to_string();
 
     let job_id = state
         .attendance
@@ -166,38 +118,14 @@ pub async fn upload_employee_excel(
     // RBAC: Only Admin/Owner
     ctx.require_permission(Permission::EmployeesUpload)?;
 
-    const MAX_FILE_SIZE: usize = 10 * 1024 * 1024; // 10MB
-
-    let mut file_path = None;
-    while let Some(field) = multipart
-        .next_field()
-        .await
-        .map_err(|e| AppError::Validation(format!("Multipart error: {e}")))?
-    {
-        let name = field.name().unwrap_or("").to_string();
-        if name == "file" {
-            let file_name = field.file_name().unwrap_or("upload.xlsx").to_string();
-            let data = field
-                .bytes()
-                .await
-                .map_err(|e| AppError::Validation(format!("Failed to read file bytes: {e}")))?;
-
-            if data.len() > MAX_FILE_SIZE {
-                return Err(AppError::Validation(
-                    "File too large (max 10MB)".to_string(),
-                ));
-            }
-
-            let base_dir = crate::utils::get_storage_dir();
-            let dir = format!("{base_dir}/imports");
-            tokio::fs::create_dir_all(&dir).await?;
-            let path = format!("{}/{}_{}", dir, crate::utils::id::new_id(), file_name);
-            tokio::fs::write(&path, data).await?;
-            file_path = Some(path);
-        }
-    }
-
-    let path = file_path.ok_or_else(|| AppError::Validation("No file uploaded".to_string()))?;
+    let path = crate::utils::upload::extract_uploaded_file(
+        &mut multipart,
+        "file",
+        crate::utils::upload::MAX_UPLOAD_FILE_SIZE,
+        "imports",
+    )
+    .await?;
+    let path = path.to_string_lossy().to_string();
 
     // Create import job record in DB
     let import_job_id = crate::utils::id::new_id();
@@ -222,14 +150,7 @@ pub async fn upload_employee_excel(
         .await
         .map_err(|e| AppError::Internal(format!("Failed to create import job: {e}")))?;
 
-    // Require Redis for background processing
-    let redis = state.infra.redis.as_ref().ok_or_else(|| {
-        AppError::ServiceUnavailable(
-            "Employee import requires Redis for background processing".to_string(),
-        )
-    })?;
-
-    use crate::queue::{EmployeeImportPayload, Job, JobPayload, JobQueue, TaskType};
+    use crate::queue::{EmployeeImportPayload, Job, JobPayload, TaskType};
 
     let payload = EmployeeImportPayload {
         import_job_id,
@@ -244,7 +165,7 @@ pub async fn upload_employee_excel(
         JobPayload::EmployeeImport(payload),
     );
 
-    let queue = JobQueue::new(redis.clone());
+    let queue = state.infra.job_queue()?;
     queue
         .enqueue_jobs(vec![job])
         .await

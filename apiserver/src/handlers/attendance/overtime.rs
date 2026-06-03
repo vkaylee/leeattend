@@ -219,61 +219,22 @@ async fn check_claim_behalf_scope(
     ctx: &MemberContext,
     target_employee_id: Uuid,
 ) -> AppResult<()> {
-    let has_perm = ctx.has_permission(Permission::OvertimeApprove)
-        || ctx.has_permission(Permission::OvertimeClaimOnBehalf);
-    if !has_perm {
-        return Err(AppError::Forbidden(
-            "Missing permission: OvertimeApprove or OvertimeClaimOnBehalf".to_string(),
-        ));
-    }
-
-    if ctx.managed_department_ids.is_none() {
-        return Ok(());
-    }
-
-    let target_dept_id =
-        crate::handlers::common::current_department_id(state, &ctx.auth_token, target_employee_id)
-            .await;
-
+    // Fetch caller's employee_id (overtime handler doesn't have it pre-fetched)
     let caller_employee_id = state
         .employees
         .repo
         .get_employee_id_by_user_id(&ctx.auth_token, ctx.user_id)
-        .await?
-        .ok_or_else(|| AppError::Forbidden("Caller has no employee record".to_string()))?;
-
-    let is_assigned = state
-        .attendance
-        .behalf_assignment_repo
-        .check_behalf_permission(
-            ctx.workspace_id,
-            caller_employee_id,
-            target_employee_id,
-            target_dept_id,
-            "overtime_claim",
-        )
         .await?;
 
-    if is_assigned {
-        return Ok(());
-    }
-
-    let mut is_managed_dept = false;
-    if let Some(allowed_depts) = &ctx.managed_department_ids {
-        if let Some(dept_id) = target_dept_id {
-            if allowed_depts.contains(&dept_id) {
-                is_managed_dept = true;
-            }
-        }
-    }
-
-    if is_managed_dept {
-        return Ok(());
-    }
-
-    Err(AppError::Forbidden(
-        "Permission denied: Target is outside your claim on behalf scope.".to_string(),
-    ))
+    crate::handlers::common::check_behalf_scope(
+        state,
+        ctx,
+        &[Permission::OvertimeApprove, Permission::OvertimeClaimOnBehalf],
+        "overtime_claim",
+        caller_employee_id,
+        target_employee_id,
+    )
+    .await
 }
 
 use crate::models::{BehalfAssignment, CreateBehalfAssignmentRequest};
@@ -298,20 +259,14 @@ pub async fn create_behalf_assignment(
     ctx: MemberContext,
     Json(req): Json<CreateBehalfAssignmentRequest>,
 ) -> AppResult<Json<BehalfAssignment>> {
-    ctx.require_permission(Permission::OvertimePoliciesManage)?;
-
-    let result = state
-        .attendance
-        .behalf_assignment_repo
-        .create_assignment(
-            ctx.workspace_id,
-            req.assignee_employee_id,
-            req.target_employee_id,
-            req.target_department_id,
-            "overtime_claim",
-        )
-        .await?;
-
+    let result = crate::handlers::common::create_behalf_assignment_handler(
+        &state,
+        &ctx,
+        &req,
+        Permission::OvertimePoliciesManage,
+        "overtime_claim",
+    )
+    .await?;
     Ok(Json(result))
 }
 
@@ -335,18 +290,13 @@ pub async fn delete_behalf_assignment(
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
     let (_ws_id, id) = params;
-    ctx.require_permission(Permission::OvertimePoliciesManage)?;
-
-    let affected = state
-        .attendance
-        .behalf_assignment_repo
-        .delete_assignment(ctx.workspace_id, id)
-        .await?;
-
-    if affected == 0 {
-        return Err(AppError::NotFound("Assignment not found".to_string()));
-    }
-
+    crate::handlers::common::delete_behalf_assignment_handler(
+        &state,
+        &ctx,
+        id,
+        Permission::OvertimePoliciesManage,
+    )
+    .await?;
     Ok(StatusCode::OK)
 }
 
@@ -368,13 +318,12 @@ pub async fn list_behalf_assignments(
     Path(_ws_id): Path<Uuid>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<BehalfAssignment>>> {
-    ctx.require_permission(Permission::OvertimePoliciesManage)?;
-
-    let result = state
-        .attendance
-        .behalf_assignment_repo
-        .list_all_assignments(ctx.workspace_id, "overtime_claim")
-        .await?;
-
+    let result = crate::handlers::common::list_behalf_assignments_handler(
+        &state,
+        &ctx,
+        Permission::OvertimePoliciesManage,
+        "overtime_claim",
+    )
+    .await?;
     Ok(Json(result))
 }

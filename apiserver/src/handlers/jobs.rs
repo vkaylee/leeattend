@@ -7,7 +7,6 @@ use uuid::Uuid;
 
 use crate::errors::AppError;
 use crate::handlers::common::MemberContext;
-use crate::queue::JobQueue;
 use crate::state::AppState;
 
 /// GET /workspaces/{ws_id}/jobs/{job_id}
@@ -28,11 +27,7 @@ pub async fn get_generic_job_status(
     Path(params): Path<(Uuid, Uuid)>,
 ) -> Result<Json<serde_json::Value>, AppError> {
     let (_ws_id, job_id) = params;
-    let redis = state.infra.redis.as_ref().ok_or_else(|| {
-        AppError::ServiceUnavailable("Redis is required for job tracking".to_string())
-    })?;
-
-    let queue = JobQueue::new(redis.clone());
+    let queue = state.infra.job_queue()?;
 
     let meta = queue
         .get_job_metadata(job_id)

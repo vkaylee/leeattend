@@ -11,7 +11,7 @@ use crate::{
     errors::AppResult,
     handlers::common::MemberContext,
     models::contract::{CreateContractRequest, EmployeeContract, UpdateContractRequest},
-    queue::{Job, JobPayload, JobQueue, SyncHireDatePayload, TaskType},
+    queue::{Job, JobPayload, SyncHireDatePayload, TaskType},
     repositories::employee_contract_repository::EmployeeContractRepository,
     AppState,
 };
@@ -22,26 +22,26 @@ async fn dispatch_sync_hire_date(
     employee_id: Uuid,
     contract_id: Uuid,
 ) {
-    if let Some(redis) = state.infra.redis.as_ref() {
-        let payload = SyncHireDatePayload {
-            employee_id,
-            triggered_by_contract_id: Some(contract_id),
-        };
-
-        let job = Job::new(
-            Uuid::new_v4(),
-            0,
-            TaskType::SyncEmployeeHireDate,
-            workspace_id,
-            JobPayload::SyncEmployeeHireDate(payload),
-        );
-
-        let queue = JobQueue::new(redis.clone());
-        if let Err(e) = queue.enqueue_jobs(vec![job]).await {
-            tracing::error!("Failed to enqueue SyncEmployeeHireDate job: {}", e);
-        }
-    } else {
+    let Ok(queue) = state.infra.job_queue() else {
         tracing::warn!("Redis not available, skipping SyncEmployeeHireDate job");
+        return;
+    };
+
+    let payload = SyncHireDatePayload {
+        employee_id,
+        triggered_by_contract_id: Some(contract_id),
+    };
+
+    let job = Job::new(
+        Uuid::new_v4(),
+        0,
+        TaskType::SyncEmployeeHireDate,
+        workspace_id,
+        JobPayload::SyncEmployeeHireDate(payload),
+    );
+
+    if let Err(e) = queue.enqueue_jobs(vec![job]).await {
+        tracing::error!("Failed to enqueue SyncEmployeeHireDate job: {}", e);
     }
 }
 
