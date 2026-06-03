@@ -9,7 +9,6 @@ import { addMonths, endOfMonth, format, startOfMonth, subMonths } from "date-fns
 import type { AttendanceDailySummary, DailyAttendanceReport } from "@/lib/api";
 
 import { BulkUploadOtDialog } from "@/components/approvals/bulk-upload-ot-dialog";
-import { EnterPaperOtDialog } from "@/components/approvals/enter-paper-ot-dialog";
 import { ConfirmClaimsDialog } from "@/components/approvals/confirm-claims-dialog";
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
@@ -548,7 +547,6 @@ function DelegatedClaimsTab({
 }) {
   const { t } = useTranslation(["common", "attendance"]);
   const toast = useToast();
-  const [paperOtDialogOpen, setPaperOtDialogOpen] = useState(false);
   const [confirmClaimsOpen, setConfirmClaimsOpen] = useState(false);
   const [activeRowsToClaim, setActiveRowsToClaim] = useState<ReportRow[]>([]);
 
@@ -637,26 +635,6 @@ function DelegatedClaimsTab({
         <Typography className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-2 opacity-50 italic px-6 max-w-md" variant="p">
           {t("ot_approvals.delegated_claim.empty_state.description", { defaultValue: "All overtime has been claimed, or no overtime hours were computed for the selected period." })}
         </Typography>
-        <div className="mt-8 flex justify-center">
-          <Button
-            className="normal-case tracking-normal h-10 px-4 rounded-xl gap-2 font-bold text-sm shadow-sm transition-all duration-300 hover:shadow hover:-translate-y-0.5 border border-amber-200/80 dark:border-amber-900/50 bg-amber-50 hover:bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 dark:text-amber-200 flex items-center"
-            icon={<FileText className="w-4 h-4" />}
-            onClick={() => {
-              setPaperOtDialogOpen(true);
-            }}
-            variant="ghost"
-          >
-            {t("approvals.paper_ot.btn_enter", { defaultValue: "Enter Paper Form" })}
-          </Button>
-        </div>
-
-        <EnterPaperOtDialog
-          onOpenChange={setPaperOtDialogOpen}
-          onSuccess={() => {
-            refetch().catch(console.error);
-          }}
-          open={paperOtDialogOpen}
-        />
       </div>
     );
   }
@@ -673,20 +651,9 @@ function DelegatedClaimsTab({
           </Typography>
         </div>
         <div className="flex items-center gap-3">
-          <Button
-            className="normal-case tracking-normal h-10 px-4 rounded-xl gap-2 font-bold text-sm shadow-sm transition-all duration-300 hover:shadow hover:-translate-y-0.5 border border-amber-200/80 dark:border-amber-900/50 bg-amber-50 hover:bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 dark:text-amber-200 flex items-center animate-in fade-in"
-            icon={<FileText className="w-4 h-4" />}
-            onClick={() => {
-              setPaperOtDialogOpen(true);
-            }}
-            variant="ghost"
-          >
-            {t("approvals.paper_ot.btn_enter", { defaultValue: "Enter Paper Form" })}
-          </Button>
-
           {selectedRows.size > 0 && (
             <Button
-              className="normal-case tracking-normal gap-2 h-10 px-6 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold text-sm shadow-md transition-all duration-300 transform active:scale-95 disabled:opacity-50"
+              className="normal-case tracking-normal gap-2 h-10 px-6 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold text-sm shadow-md transition-all duration-300 transform active:scale-95 disabled:opacity-50 animate-in fade-in"
               onClick={handleBulkClaim}
               variant="primary"
             >
@@ -840,14 +807,6 @@ function DelegatedClaimsTab({
           </tbody>
         </table>
       </div>
-
-      <EnterPaperOtDialog
-        onOpenChange={setPaperOtDialogOpen}
-        onSuccess={() => {
-          refetch().catch(console.error);
-        }}
-        open={paperOtDialogOpen}
-      />
 
       <ConfirmClaimsDialog
         initialReasons={reasons}
