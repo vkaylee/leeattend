@@ -1,6 +1,6 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { useQuery } from "@tanstack/react-query";
-import { Check, CheckCircle, FileText, Loader2, Upload, X } from "lucide-react";
+import { Check, CheckCircle, FileText, Loader2, Search, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -10,6 +10,7 @@ import type { AttendanceDailySummary, DailyAttendanceReport } from "@/lib/api";
 
 import { BulkUploadOtDialog } from "@/components/approvals/bulk-upload-ot-dialog";
 import { EnterPaperOtDialog } from "@/components/approvals/enter-paper-ot-dialog";
+import { ConfirmClaimsDialog } from "@/components/approvals/confirm-claims-dialog";
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
@@ -547,15 +548,27 @@ function DelegatedClaimsTab({
 }) {
   const { t } = useTranslation(["common", "attendance"]);
   const toast = useToast();
-  const { claimOt, isSubmitting: isClaiming } = useClaimOt();
   const [paperOtDialogOpen, setPaperOtDialogOpen] = useState(false);
+  const [confirmClaimsOpen, setConfirmClaimsOpen] = useState(false);
+  const [activeRowsToClaim, setActiveRowsToClaim] = useState<ReportRow[]>([]);
 
   const claimableRows = reportData.filter(
     (r) => r.ot_claim_status === "pending_employee" && r.computed_ot_hours > 0
   );
 
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [reasons, setReasons] = useState<Record<string, string>>({});
+
+  const filteredRows = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return claimableRows;
+    return claimableRows.filter((row) => {
+      const nameMatch = row.employee_name?.toLowerCase().includes(query);
+      const idMatch = row.employee_id_number?.toLowerCase().includes(query);
+      return nameMatch || idMatch;
+    });
+  }, [claimableRows, searchQuery]);
 
   const toggleSelectRow = (key: string) => {
     const next = new Set(selectedRows);
@@ -567,44 +580,35 @@ function DelegatedClaimsTab({
     setSelectedRows(next);
   };
 
+  const isAllFilteredSelected = useMemo(() => {
+    if (filteredRows.length === 0) return false;
+    return filteredRows.every((r) => selectedRows.has(`${r.employee_id}-${r.date}`));
+  }, [filteredRows, selectedRows]);
+
   const toggleSelectAll = () => {
-    if (selectedRows.size === claimableRows.length) {
-      setSelectedRows(new Set());
+    const next = new Set(selectedRows);
+    if (isAllFilteredSelected) {
+      for (const r of filteredRows) {
+        next.delete(`${r.employee_id}-${r.date}`);
+      }
     } else {
-      setSelectedRows(new Set(claimableRows.map((r) => `${r.employee_id}-${r.date}`)));
+      for (const r of filteredRows) {
+        next.add(`${r.employee_id}-${r.date}`);
+      }
     }
+    setSelectedRows(next);
   };
 
   const handleReasonChange = (key: string, val: string) => {
     setReasons({ ...reasons, [key]: val });
   };
 
-  const handleClaim = async (row: ReportRow) => {
-    const key = `${row.employee_id}-${row.date}`;
-    const reason = reasons[key] || "Delegated OT claim";
-    const minutes = Math.round(row.computed_ot_hours * 60);
-
-    try {
-      await claimOt({
-        employeeId: row.employee_id,
-        date: row.date,
-        claimed_minutes: minutes,
-        reason,
-      });
-      toast.success(t("ot_approvals.delegated_claim.messages.success", { defaultValue: "Overtime claimed successfully" }));
-      setSelectedRows((prev) => {
-        const next = new Set(prev);
-        next.delete(key);
-        return next;
-      });
-      await refetch();
-    } catch (e) {
-      console.error(e);
-      toast.error(t("ot_approvals.delegated_claim.messages.error", { defaultValue: "Failed to claim overtime" }));
-    }
+  const handleClaim = (row: ReportRow) => {
+    setActiveRowsToClaim([row]);
+    setConfirmClaimsOpen(true);
   };
 
-  const handleBulkClaim = async () => {
+  const handleBulkClaim = () => {
     if (selectedRows.size === 0) {
       toast.error(t("ot_approvals.delegated_claim.messages.select_at_least_one", { defaultValue: "Please select at least one entry" }));
       return;
@@ -613,28 +617,8 @@ function DelegatedClaimsTab({
     const selectedList = claimableRows.filter((r) =>
       selectedRows.has(`${r.employee_id}-${r.date}`)
     );
-
-    const promises = selectedList.map((row) => {
-      const key = `${row.employee_id}-${row.date}`;
-      const reason = reasons[key] || "Delegated OT claim";
-      const minutes = Math.round(row.computed_ot_hours * 60);
-      return claimOt({
-        employeeId: row.employee_id,
-        date: row.date,
-        claimed_minutes: minutes,
-        reason,
-      });
-    });
-
-    try {
-      await Promise.allSettled(promises);
-      toast.success(t("ot_approvals.delegated_claim.messages.success", { defaultValue: "Overtime claimed successfully" }));
-      setSelectedRows(new Set());
-      await refetch();
-    } catch (e) {
-      console.error(e);
-      toast.error(t("ot_approvals.delegated_claim.messages.error", { defaultValue: "Failed to claim overtime" }));
-    }
+    setActiveRowsToClaim(selectedList);
+    setConfirmClaimsOpen(true);
   };
 
   if (isLoading) {
@@ -703,15 +687,10 @@ function DelegatedClaimsTab({
           {selectedRows.size > 0 && (
             <Button
               className="normal-case tracking-normal gap-2 h-10 px-6 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold text-sm shadow-md transition-all duration-300 transform active:scale-95 disabled:opacity-50"
-              disabled={isClaiming}
               onClick={handleBulkClaim}
               variant="primary"
             >
-              {isClaiming ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Check className="w-4 h-4" />
-              )}
+              <Check className="w-4 h-4" />
               {t("ot_approvals.delegated_claim.actions.claim_selected", {
                 count: selectedRows.size,
                 defaultValue: `Claim ${selectedRows.size} Selected`
@@ -721,6 +700,28 @@ function DelegatedClaimsTab({
         </div>
       </div>
 
+      <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between">
+        <div className="relative group max-w-md w-full">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-450 dark:text-slate-500 w-4.5 h-4.5 group-focus-within:text-primary-500 dark:group-focus-within:text-primary-400 transition-colors" />
+          <input
+            aria-label={t("common.search", { defaultValue: "Search..." })}
+            className="w-full pl-11 pr-4 py-2.5 bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700/50 rounded-xl outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500/50 dark:focus:border-primary-400/50 transition-all text-xs font-semibold shadow-sm placeholder-slate-400"
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t("ot_approvals.delegated_claim.search_placeholder", { defaultValue: "Search by employee name or ID..." })}
+            type="text"
+            value={searchQuery}
+          />
+        </div>
+        {searchQuery && (
+          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-100/80 dark:bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-slate-800/50 w-fit">
+            {t("ot_approvals.delegated_claim.table.filtered_count", {
+              count: filteredRows.length,
+              defaultValue: `Found ${filteredRows.length} entries`
+            })}
+          </span>
+        )}
+      </div>
+
       <div className="overflow-x-auto rounded-3xl border border-slate-100 dark:border-slate-800">
         <table className="w-full border-collapse text-left">
           <thead>
@@ -728,12 +729,12 @@ function DelegatedClaimsTab({
               <th className="p-4 pl-6 w-12">
                 <label className={cn(
                   "relative inline-flex items-center justify-center w-5 h-5 rounded border-2 transition-all cursor-pointer hover:border-primary-400",
-                  selectedRows.size === claimableRows.length
+                  isAllFilteredSelected
                     ? "bg-primary-500 border-primary-500 text-white"
                     : "bg-transparent border-slate-200 dark:border-slate-700 text-transparent"
                 )}>
                   <input
-                    checked={selectedRows.size === claimableRows.length}
+                    checked={isAllFilteredSelected}
                     className="sr-only"
                     onChange={toggleSelectAll}
                     type="checkbox"
@@ -762,73 +763,80 @@ function DelegatedClaimsTab({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {claimableRows.map((row) => {
-              const key = `${row.employee_id}-${row.date}`;
-              const isChecked = selectedRows.has(key);
-              return (
-                <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors" key={key}>
-                  <td className="p-4 pl-6">
-                    <label className={cn(
-                      "relative inline-flex items-center justify-center w-5 h-5 rounded border-2 transition-all cursor-pointer hover:border-primary-400",
-                      isChecked
-                        ? "bg-primary-500 border-primary-500 text-white"
-                        : "bg-transparent border-slate-200 dark:border-slate-700 text-transparent"
-                    )}>
-                      <input
-                        checked={isChecked}
-                        className="sr-only"
-                        onChange={() => { toggleSelectRow(key); }}
-                        type="checkbox"
-                      />
-                      <Check className="w-3.5 h-3.5" strokeWidth={3} />
-                    </label>
-                  </td>
-                  <td className="p-4">
-                    <div className="flex flex-col">
-                      <span className="font-bold text-sm text-slate-800 dark:text-slate-200">
-                        {row.employee_name}
-                      </span>
-                      {!!row.employee_id_number && (
-                        <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 uppercase tracking-tight">
-                          {row.employee_id_number}
+            {filteredRows.length === 0 ? (
+              <tr>
+                <td className="p-8 text-center text-slate-450 dark:text-slate-500 text-xs font-semibold" colSpan={7}>
+                  {t("ot_approvals.delegated_claim.no_search_results", { defaultValue: "No matching entries found" })}
+                </td>
+              </tr>
+            ) : (
+              filteredRows.map((row) => {
+                const key = `${row.employee_id}-${row.date}`;
+                const isChecked = selectedRows.has(key);
+                return (
+                  <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors" key={key}>
+                    <td className="p-4 pl-6">
+                      <label className={cn(
+                        "relative inline-flex items-center justify-center w-5 h-5 rounded border-2 transition-all cursor-pointer hover:border-primary-400",
+                        isChecked
+                          ? "bg-primary-500 border-primary-500 text-white"
+                          : "bg-transparent border-slate-200 dark:border-slate-700 text-transparent"
+                      )}>
+                        <input
+                          checked={isChecked}
+                          className="sr-only"
+                          onChange={() => { toggleSelectRow(key); }}
+                          type="checkbox"
+                        />
+                        <Check className="w-3.5 h-3.5" strokeWidth={3} />
+                      </label>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-sm text-slate-800 dark:text-slate-200">
+                          {row.employee_name}
                         </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="p-4 text-sm text-slate-600 dark:text-slate-400">
-                    {row.date}
-                  </td>
-                  <td className="p-4 text-sm text-slate-600 dark:text-slate-400">
-                    {row.computed_std_hours ? `${row.computed_std_hours} hrs` : "-"}
-                  </td>
-                  <td className="p-4">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300">
-                      {row.computed_ot_hours} hrs
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <input
-                      className="w-full max-w-xs px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 transition-all"
-                      onChange={(e) => { handleReasonChange(key, e.target.value); }}
-                      placeholder={t("ot_approvals.delegated_claim.table.reason", { defaultValue: "Enter reason..." })}
-                      type="text"
-                      value={reasons[key] ?? ""}
-                    />
-                  </td>
-                  <td className="p-4 pr-6 text-right">
-                    <Button
-                      className="normal-case tracking-normal bg-slate-100 dark:bg-slate-800 hover:bg-primary-50 dark:hover:bg-primary-950/30 hover:text-primary-600 dark:hover:text-primary-400 text-slate-700 dark:text-slate-300 font-bold text-xs transition-all duration-300 disabled:opacity-50 shadow-none border-none"
-                      disabled={isClaiming}
-                      onClick={() => { handleClaim(row).catch(console.error); }}
-                      size="sm"
-                      variant="ghost"
-                    >
-                      {t("ot_approvals.delegated_claim.actions.claim", { defaultValue: "Claim" })}
-                    </Button>
-                  </td>
-                </tr>
-              );
-            })}
+                        {!!row.employee_id_number && (
+                          <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 uppercase tracking-tight">
+                            {row.employee_id_number}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="p-4 text-sm text-slate-600 dark:text-slate-400">
+                      {row.date}
+                    </td>
+                    <td className="p-4 text-sm text-slate-600 dark:text-slate-400">
+                      {row.computed_std_hours ? `${row.computed_std_hours} hrs` : "-"}
+                    </td>
+                    <td className="p-4">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300">
+                        {row.computed_ot_hours} hrs
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <input
+                        className="w-full max-w-xs px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                        onChange={(e) => { handleReasonChange(key, e.target.value); }}
+                        placeholder={t("ot_approvals.delegated_claim.table.reason", { defaultValue: "Enter reason..." })}
+                        type="text"
+                        value={reasons[key] ?? ""}
+                      />
+                    </td>
+                    <td className="p-4 pr-6 text-right">
+                      <Button
+                        className="normal-case tracking-normal bg-slate-100 dark:bg-slate-800 hover:bg-primary-50 dark:hover:bg-primary-950/30 hover:text-primary-600 dark:hover:text-primary-400 text-slate-700 dark:text-slate-300 font-bold text-xs transition-all duration-300 disabled:opacity-50 shadow-none border-none"
+                        onClick={() => { handleClaim(row); }}
+                        size="sm"
+                        variant="ghost"
+                      >
+                        {t("ot_approvals.delegated_claim.actions.claim", { defaultValue: "Claim" })}
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>
@@ -839,6 +847,24 @@ function DelegatedClaimsTab({
           refetch().catch(console.error);
         }}
         open={paperOtDialogOpen}
+      />
+
+      <ConfirmClaimsDialog
+        initialReasons={reasons}
+        onOpenChange={setConfirmClaimsOpen}
+        onSuccess={() => {
+          const claimedKeys = new Set(activeRowsToClaim.map((r) => `${r.employee_id}-${r.date}`));
+          setSelectedRows((prev) => {
+            const next = new Set(prev);
+            for (const key of claimedKeys) {
+              next.delete(key);
+            }
+            return next;
+          });
+          refetch().catch(console.error);
+        }}
+        open={confirmClaimsOpen}
+        selectedRows={activeRowsToClaim}
       />
     </div>
   );

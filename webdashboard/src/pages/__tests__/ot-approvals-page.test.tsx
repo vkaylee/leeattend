@@ -15,14 +15,25 @@ import OtApprovalsPage from "../approvals/ot-approvals-page";
 // Mock i18next
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string) => {
+    t: (key: string, options?: { defaultValue: string }) => {
       const translations: Record<string, string> = {
         "ot_approvals.title": "OT Approvals",
         "ot_approvals.subtitle": "Manage overtime",
         "ot_approvals.empty_state.title": "No pending OT",
         "ot_approvals.empty_state.description": "You are all caught up",
+        "ot_approvals.tabs.post_ot": "ot_approvals.tabs.post_ot",
+        "ot_approvals.tabs.pre_ot": "ot_approvals.tabs.pre_ot",
+        "ot_approvals.tabs.delegated_claim": "ot_approvals.tabs.delegated_claim",
+        "ot_approvals.delegated_claim.table.reason": "ot_approvals.delegated_claim.table.reason",
+        "ot_approvals.delegated_claim.actions.claim": "ot_approvals.delegated_claim.actions.claim",
+        "ot_approvals.delegated_claim.actions.claim_selected": "ot_approvals.delegated_claim.actions.claim_selected",
+        "ot_approvals.delegated_claim.confirm_title": "ot_approvals.delegated_claim.confirm_title",
+        "ot_approvals.delegated_claim.warning.title": "ot_approvals.delegated_claim.warning.title",
+        "ot_approvals.delegated_claim.warning.btn_confirm": "ot_approvals.delegated_claim.warning.btn_confirm",
+        "ot_approvals.delegated_claim.empty_state.title": "ot_approvals.delegated_claim.empty_state.title",
+        "common.submit": "common.submit",
       };
-      return translations[key] || key;
+      return translations[key] || options?.defaultValue || key;
     },
     i18n: { language: "en" },
   }),
@@ -308,6 +319,15 @@ describe("OtApprovalsPage", () => {
       const claimButtons = screen.getAllByText("ot_approvals.delegated_claim.actions.claim");
       await user.click(claimButtons[0]);
 
+      // Assert confirmation dialog is opened
+      await waitFor(() => {
+        expect(screen.getByText("ot_approvals.delegated_claim.confirm_title")).toBeInTheDocument();
+      });
+
+      // Submit from dialog
+      const submitBtn = screen.getByText("common.submit");
+      await user.click(submitBtn);
+
       await waitFor(() => {
         expect(claimOtMock).toHaveBeenCalledWith({
           employeeId: "EMP-101",
@@ -333,6 +353,15 @@ describe("OtApprovalsPage", () => {
       const bulkClaimBtn = screen.getByText("ot_approvals.delegated_claim.actions.claim_selected");
       await user.click(bulkClaimBtn);
 
+      // Assert confirmation dialog is opened
+      await waitFor(() => {
+        expect(screen.getByText("ot_approvals.delegated_claim.confirm_title")).toBeInTheDocument();
+      });
+
+      // Submit from dialog
+      const submitBtn = screen.getByText("common.submit");
+      await user.click(submitBtn);
+
       await waitFor(() => {
         expect(claimOtMock).toHaveBeenCalledTimes(2);
         expect(claimOtMock).toHaveBeenNthCalledWith(1, {
@@ -342,6 +371,108 @@ describe("OtApprovalsPage", () => {
           reason: "Delegated OT claim",
         });
         expect(claimOtMock).toHaveBeenNthCalledWith(2, {
+          employeeId: "EMP-102",
+          date: "2026-05-11",
+          claimed_minutes: 90,
+          reason: "Delegated OT claim",
+        });
+      });
+    });
+
+    it("shows discrepancy warning modal when claimed minutes differ from system OT, and submits when confirmed", async () => {
+      const user = userEvent.setup();
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText("John Doe")).toBeInTheDocument();
+      });
+
+      const claimButtons = screen.getAllByText("ot_approvals.delegated_claim.actions.claim");
+      await user.click(claimButtons[0]);
+
+      // Assert confirmation dialog is opened
+      await waitFor(() => {
+        expect(screen.getByText("ot_approvals.delegated_claim.confirm_title")).toBeInTheDocument();
+      });
+
+      // Change minutes input from 150 to 180
+      const minutesInput = screen.getByRole("spinbutton");
+      await user.clear(minutesInput);
+      await user.type(minutesInput, "180");
+
+      // Click submit
+      const submitBtn = screen.getByText("common.submit");
+      await user.click(submitBtn);
+
+      // Assert discrepancy warning screen is shown
+      await waitFor(() => {
+        expect(screen.getAllByText("ot_approvals.delegated_claim.warning.title").length).toBeGreaterThan(0);
+      });
+
+      // Confirm and submit
+      const confirmBtn = screen.getByText("ot_approvals.delegated_claim.warning.btn_confirm");
+      await user.click(confirmBtn);
+
+      await waitFor(() => {
+        expect(claimOtMock).toHaveBeenCalledWith({
+          employeeId: "EMP-101",
+          date: "2026-05-10",
+          claimed_minutes: 180,
+          reason: "Delegated OT claim",
+        });
+      });
+    });
+
+    it("filters list of claimable entries by employee name or ID search query", async () => {
+      const user = userEvent.setup();
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText("John Doe")).toBeInTheDocument();
+        expect(screen.getByText("Jane Smith")).toBeInTheDocument();
+      });
+
+      const searchInput = screen.getByPlaceholderText("Search by employee name or ID...");
+      await user.type(searchInput, "Jane");
+
+      expect(screen.queryByText("John Doe")).not.toBeInTheDocument();
+      expect(screen.getByText("Jane Smith")).toBeInTheDocument();
+
+      // Clear and search by ID number
+      await user.clear(searchInput);
+      await user.type(searchInput, "JD101");
+
+      expect(screen.getByText("John Doe")).toBeInTheDocument();
+      expect(screen.queryByText("Jane Smith")).not.toBeInTheDocument();
+    });
+
+    it("only selects filtered/visible rows when search filter is active and select-all is clicked", async () => {
+      const user = userEvent.setup();
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText("John Doe")).toBeInTheDocument();
+        expect(screen.getByText("Jane Smith")).toBeInTheDocument();
+      });
+
+      const searchInput = screen.getByPlaceholderText("Search by employee name or ID...");
+      await user.type(searchInput, "Jane");
+
+      // Select all (should only select Jane Smith, which is checkboxes[0] since John is filtered out)
+      const checkboxes = screen.getAllByRole("checkbox", { hidden: true });
+      const selectAllCheckbox = checkboxes[0];
+      await user.click(selectAllCheckbox);
+
+      const bulkClaimBtn = screen.getByText("ot_approvals.delegated_claim.actions.claim_selected");
+      await user.click(bulkClaimBtn);
+
+      // Submit from dialog
+      const submitBtn = screen.getByText("common.submit");
+      await user.click(submitBtn);
+
+      await waitFor(() => {
+        expect(claimOtMock).toHaveBeenCalledTimes(1);
+        expect(claimOtMock).toHaveBeenCalledWith({
           employeeId: "EMP-102",
           date: "2026-05-11",
           claimed_minutes: 90,
