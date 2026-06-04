@@ -684,7 +684,7 @@ mod tests {
         emp_repo
             .expect_get_employee_by_id()
             .times(2)
-            .returning(|_, _| Box::pin(async { Ok(Some(dummy_employee())) }));
+            .returning(|_, _| Ok(Some(dummy_employee())));
 
         let mut roster_repo = MockRosterRepository::new();
         roster_repo

@@ -1169,7 +1169,7 @@ mod tests {
 
         mock_emp_repo
             .expect_get_active_employees()
-            .returning(|_| Box::pin(std::future::ready(Ok(vec![]))));
+            .returning(|_| Ok(vec![]));
 
         let service = LeaveAccrualService {
             employee_repo: Arc::new(mock_emp_repo),

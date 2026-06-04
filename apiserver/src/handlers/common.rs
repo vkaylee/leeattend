@@ -494,9 +494,7 @@ pub async fn check_behalf_scope(
     caller_employee_id: Option<Uuid>,
     target_employee_id: Uuid,
 ) -> AppResult<()> {
-    let has_perm = required_permissions
-        .iter()
-        .any(|&p| ctx.has_permission(p));
+    let has_perm = required_permissions.iter().any(|&p| ctx.has_permission(p));
     if !has_perm {
         return Err(AppError::Forbidden(format!(
             "Missing permission: one of {required_permissions:?}"
@@ -511,8 +509,7 @@ pub async fn check_behalf_scope(
     let caller_emp_id = caller_employee_id
         .ok_or_else(|| AppError::Forbidden("Caller has no employee record".to_string()))?;
 
-    let target_dept_id =
-        current_department_id(state, &ctx.auth_token, target_employee_id).await;
+    let target_dept_id = current_department_id(state, &ctx.auth_token, target_employee_id).await;
 
     // Check explicit behalf assignment
     let is_assigned = state

@@ -3,10 +3,14 @@
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
 use apiserver::repositories::{
-    department_repository::DepartmentRepository, employee::EmployeeRepository,
-    holiday_repository::HolidayRepository, leave_request_repository::LeaveRequestRepository,
-    payroll_repository::PayrollRepository, roster::RosterRepository,
-    time_entry_repository::TimeEntryRepository, workspace_repository::WorkspaceRepository,
+    department_repository::DepartmentRepository,
+    employee::{EmployeePayrollConfigRepository, EmployeeRepository},
+    holiday_repository::HolidayRepository,
+    leave_request_repository::LeaveRequestRepository,
+    payroll_repository::PayrollRepository,
+    roster::RosterRepository,
+    time_entry_repository::TimeEntryRepository,
+    workspace_repository::WorkspaceRepository,
 };
 use apiserver::services::payroll_service::PayrollService;
 use chrono::NaiveDate;

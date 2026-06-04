@@ -59,6 +59,7 @@ interface SelectedEmployeeChipsProps {
 }
 
 function SelectedEmployeeChips({ onRemove, selectedIds, selectedMeta }: SelectedEmployeeChipsProps) {
+  const { t } = useTranslation();
   if (selectedIds.length === 0) return null;
   return (
     <div className='flex flex-wrap gap-2'>
@@ -67,7 +68,13 @@ function SelectedEmployeeChips({ onRemove, selectedIds, selectedMeta }: Selected
         return (
           <div className='flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-700' key={id}>
             <span>{meta?.full_name ?? id}</span>
-            <Button className='hover:text-rose-500 transition-colors' onClick={() => { onRemove(id); }} type='button' variant="destructive">
+            <Button
+              aria-label={t("common.remove", { defaultValue: "Remove" }) + " " + (meta?.full_name ?? id)}
+              className='hover:text-rose-500 transition-colors'
+              onClick={() => { onRemove(id); }}
+              type='button'
+              variant="destructive"
+            >
               <X size={14} />
             </Button>
           </div>

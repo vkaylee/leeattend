@@ -1097,7 +1097,7 @@ mod tests {
         builder
             .employee_repo
             .expect_get_working_conditions_batch()
-            .returning(|_, _, _, _| Box::pin(async move { Ok(Default::default()) }));
+            .returning(|_, _, _, _| Ok(Default::default()));
         builder
             .policy_repo
             .expect_get_employee_effective_policies_batch()
@@ -1281,7 +1281,7 @@ mod tests {
         builder
             .employee_repo
             .expect_get_working_conditions_batch()
-            .returning(|_, _, _, _| Box::pin(async move { Ok(Default::default()) }));
+            .returning(|_, _, _, _| Ok(Default::default()));
         builder
             .policy_repo
             .expect_get_employee_effective_policies_batch()
@@ -1471,7 +1471,7 @@ mod tests {
         builder
             .employee_repo
             .expect_get_working_conditions_batch()
-            .returning(|_, _, _, _| Box::pin(async move { Ok(Default::default()) }));
+            .returning(|_, _, _, _| Ok(Default::default()));
         builder
             .policy_repo
             .expect_get_employee_effective_policies_batch()

@@ -28,7 +28,7 @@ pub async fn extract_uploaded_file(
     while let Some(field) = multipart
         .next_field()
         .await
-        .map_err(|e| AppError::Validation(format!("Multipart error: {e}")))?
+        .map_err(|_e| AppError::Validation("error.upload_multipart".to_string()))?
     {
         let name = field.name().unwrap_or("").to_string();
         if name == field_name {
@@ -36,13 +36,12 @@ pub async fn extract_uploaded_file(
             let data = field
                 .bytes()
                 .await
-                .map_err(|e| AppError::Validation(format!("Failed to read file bytes: {e}")))?;
+                .map_err(|_e| AppError::Validation("error.upload_read_failed".to_string()))?;
 
             if data.len() > max_size {
-                let max_mb = max_size / (1024 * 1024);
-                return Err(AppError::Validation(format!(
-                    "File too large (max {max_mb}MB)"
-                )));
+                return Err(AppError::Validation(
+                    "error.upload_file_too_large".to_string(),
+                ));
             }
 
             let base_dir = crate::utils::get_storage_dir();
@@ -54,5 +53,5 @@ pub async fn extract_uploaded_file(
         }
     }
 
-    file_path.ok_or_else(|| AppError::Validation("No file uploaded".to_string()))
+    file_path.ok_or_else(|| AppError::Validation("error.upload_no_file".to_string()))
 }

@@ -501,7 +501,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
 
     let mut workflow_handlers: std::collections::HashMap<
         String,
-        Arc<dyn apiserver::services::approval_workflow_service::WorkflowCallbackHandler>,
+        Arc<dyn apiserver::services::approval_workflow::WorkflowCallbackHandler>,
     > = std::collections::HashMap::new();
     workflow_handlers.insert(
         "attendance_adjustment".to_string(),
@@ -1107,7 +1107,7 @@ pub async fn spawn_app_with_factory_extended(
 
     let mut workflow_handlers: std::collections::HashMap<
         String,
-        Arc<dyn apiserver::services::approval_workflow_service::WorkflowCallbackHandler>,
+        Arc<dyn apiserver::services::approval_workflow::WorkflowCallbackHandler>,
     > = std::collections::HashMap::new();
     workflow_handlers.insert(
         "attendance_adjustment".to_string(),
@@ -1762,7 +1762,7 @@ pub async fn setup_app_tower_internal_extended(
 
     let mut workflow_handlers: std::collections::HashMap<
         String,
-        Arc<dyn apiserver::services::approval_workflow_service::WorkflowCallbackHandler>,
+        Arc<dyn apiserver::services::approval_workflow::WorkflowCallbackHandler>,
     > = std::collections::HashMap::new();
     workflow_handlers.insert(
         "attendance_adjustment".to_string(),

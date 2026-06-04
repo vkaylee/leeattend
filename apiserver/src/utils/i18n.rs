@@ -24,6 +24,10 @@ pub const ALL_KEYS: &[&str] = &[
     "error.cannot_revoke_last_admin",
     "error.behalf_assignment_missing_target",
     "error.behalf_assignment_dual_target",
+    "error.upload_multipart",
+    "error.upload_read_failed",
+    "error.upload_file_too_large",
+    "error.upload_no_file",
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -131,6 +135,10 @@ fn lookup_en(key: &str) -> Option<&'static str> {
         "error.behalf_assignment_dual_target" => {
             Some("Cannot specify both target employee and target department")
         }
+        "error.upload_multipart" => Some("Multipart form upload error"),
+        "error.upload_read_failed" => Some("Failed to read uploaded file bytes"),
+        "error.upload_file_too_large" => Some("Uploaded file is too large"),
+        "error.upload_no_file" => Some("No file was uploaded"),
         _ => None,
     }
 }
@@ -154,6 +162,10 @@ fn lookup_vi(key: &str) -> Option<&'static str> {
         "error.cannot_revoke_last_admin" => Some("Không thể thu hồi platform_admin cuối cùng. Hãy gán quản trị viên khác trước."),
         "error.behalf_assignment_missing_target" => Some("Phải chỉ định nhân viên đích hoặc phòng ban đích"),
         "error.behalf_assignment_dual_target" => Some("Không thể chỉ định cả nhân viên đích và phòng ban đích"),
+        "error.upload_multipart" => Some("Lỗi tải lên dữ liệu dạng multipart"),
+        "error.upload_read_failed" => Some("Không thể đọc dữ liệu file tải lên"),
+        "error.upload_file_too_large" => Some("File tải lên vượt quá dung lượng cho phép"),
+        "error.upload_no_file" => Some("Không có file nào được tải lên"),
         _ => None,
     }
 }
@@ -181,6 +193,10 @@ fn lookup_zh(key: &str) -> Option<&'static str> {
         }
         "error.behalf_assignment_missing_target" => Some("必须指定目标员工或目标部门"),
         "error.behalf_assignment_dual_target" => Some("不能同时指定目标员工和目标部门"),
+        "error.upload_multipart" => Some("多部分表单上传错误"),
+        "error.upload_read_failed" => Some("无法读取上传的文件字节"),
+        "error.upload_file_too_large" => Some("上传的文件太大"),
+        "error.upload_no_file" => Some("未上传文件"),
         _ => None,
     }
 }
@@ -323,7 +339,10 @@ mod tests {
             "recruitment_service.rs",
             "attendance_summary_service.rs",
             "agent_service.rs",
-            "approval_workflow_service.rs",
+            "definition.rs",
+            "engine.rs",
+            "task_resolver.rs",
+            "tests.rs",
             "attendance_import_service.rs",
             "attendance_log_service.rs",
             "audit_service.rs",

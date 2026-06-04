@@ -134,15 +134,15 @@ mod tests {
                     primary_location_id: uuid::Uuid::new_v4(),
                     employer_id: None,
                 };
-                Box::pin(async move { Ok(Some(emp)) })
+                Ok(Some(emp))
             });
 
         emp_repo
             .expect_get_employee_timezone_fallback()
-            .returning(|_, _| Box::pin(async { Ok(chrono_tz::UTC) }));
+            .returning(|_, _| Ok(chrono_tz::UTC));
         emp_repo
             .expect_get_employee_timezone_at_date()
-            .returning(|_, _, _| Box::pin(async { Ok(chrono_tz::UTC) }));
+            .returning(|_, _, _| Ok(chrono_tz::UTC));
 
         // Mock Raw log repo to succeed on insert
         let mut raw_log_repo =

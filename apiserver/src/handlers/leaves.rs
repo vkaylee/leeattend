@@ -702,9 +702,7 @@ pub async fn upload_leave_excel(
         .create_job(&ctx.auth_token, &import_job)
         .await
         .map_err(|e| {
-            AppError::BackgroundJobError(format!(
-                "Failed to create import job metadata/queue: {e}"
-            ))
+            AppError::BackgroundJobError(format!("Failed to create import job metadata/queue: {e}"))
         })?;
 
     use crate::queue::{Job, JobPayload, LeaveImportPayload, TaskType};

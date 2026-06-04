@@ -676,6 +676,7 @@
     "info": "信息",
     "warning": "警告",
     "remove": "移除",
+    "remove_photo": "删除照片",
     "combobox": {
       "placeholder": "选择一个项目...",
       "search": "搜索...",

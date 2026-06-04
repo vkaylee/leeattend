@@ -92,9 +92,7 @@ impl OvertimeRequestService {
 }
 
 #[async_trait::async_trait]
-impl crate::services::approval_workflow_service::WorkflowCallbackHandler
-    for OvertimeRequestService
-{
+impl crate::services::approval_workflow::WorkflowCallbackHandler for OvertimeRequestService {
     async fn on_workflow_completed(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -281,7 +279,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_on_workflow_completed() {
-        use crate::services::approval_workflow_service::WorkflowCallbackHandler;
+        use crate::services::approval_workflow::WorkflowCallbackHandler;
 
         let repo = Arc::new(MockOvertimeRequestRepository::new());
         let service = OvertimeRequestService::new(repo.clone());

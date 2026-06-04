@@ -1,14 +1,14 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { X, Upload, FileText, AlertTriangle, ArrowRight } from "lucide-react";
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
+
+import { TFunction } from "i18next";
 
 import type { DailyAttendanceReport } from "@/lib/api";
 
 import Button from "@/components/ui/button";
-import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
-import { useClaimOt, useEnterPaperOt } from "@/hooks/use-attendance";
+import { useConfirmClaimsForm } from "@/hooks/use-confirm-claims-form";
 import { cn } from "@/lib/utils";
 
 type ReportRow = DailyAttendanceReport & { employee_id_number?: string };
@@ -38,129 +38,29 @@ export function ConfirmClaimsDialog({
   initialReasons = {},
   onSuccess,
 }: Props) {
-  const { t } = useTranslation(["common", "attendance"]);
-  const toast = useToast();
+  const { t } = useTranslation(["attendance", "common"]);
 
-  const { enterPaperOt, isSubmitting: isSubmittingPaper } = useEnterPaperOt();
-  const { claimOt, isSubmitting: isSubmittingClaim } = useClaimOt();
-
-  const isSubmitting = isSubmittingPaper || isSubmittingClaim;
-
-  // Form states
-  const [claims, setClaims] = useState<ClaimItem[]>([]);
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [showConfirmDiscrepancies, setShowConfirmDiscrepancies] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const [prevOpen, setPrevOpen] = useState(open);
-  if (open !== prevOpen) {
-    setPrevOpen(open);
-    if (open) {
-      setClaims(
-        selectedRows.map((r) => {
-          const key = `${r.employee_id}-${r.date}`;
-          const computed_minutes = Math.round((r.computed_ot_hours) * 60);
-          return {
-            employee_id: r.employee_id,
-            date: r.date,
-            employee_name: r.employee_name,
-            employee_id_number: r.employee_id_number ?? "",
-            computed_minutes,
-            claimed_minutes: computed_minutes,
-            reason: initialReasons[key] ?? t("ot_approvals.delegated_claim.default_reason", { defaultValue: "Delegated OT claim" }),
-          };
-        })
-      );
-      setPhotoUrl(null);
-      setFileName(null);
-      setShowConfirmDiscrepancies(false);
-      setError(null);
-    }
-  }
-
-  const handleMinutesChange = (index: number, val: number) => {
-    setClaims((prev) =>
-      prev.map((c, i) => (i === index ? { ...c, claimed_minutes: val } : c))
-    );
-  };
-
-  const handleReasonChange = (index: number, val: string) => {
-    setClaims((prev) =>
-      prev.map((c, i) => (i === index ? { ...c, reason: val } : c))
-    );
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFileName(file.name);
-      setPhotoUrl(`/uploads/mock_${file.name}`);
-    }
-  };
-
-  const validateForm = () => {
-    const hasInvalidMinutes = claims.some((c) => c.claimed_minutes <= 0);
-    if (hasInvalidMinutes) {
-      setError(t("approvals.paper_ot.error_minutes", { defaultValue: "Minutes must be > 0" }));
-      return false;
-    }
-
-    const hasEmptyReason = claims.some((c) => !c.reason.trim());
-    if (hasEmptyReason) {
-      setError(t("approvals.paper_ot.error_reason", { defaultValue: "Reason is required" }));
-      return false;
-    }
-
-    return true;
-  };
-
-  const handleSubmit = async (e?: React.SyntheticEvent) => {
-    e?.preventDefault();
-    setError(null);
-
-    if (!validateForm()) return;
-
-    // Check for discrepancies
-    const discrepanciesList = claims.filter(
-      (c) => c.claimed_minutes !== c.computed_minutes
-    );
-
-    if (discrepanciesList.length > 0 && !showConfirmDiscrepancies) {
-      setShowConfirmDiscrepancies(true);
-      return;
-    }
-
-    try {
-      const promises = claims.map((c) => {
-        if (photoUrl) {
-          return enterPaperOt({
-            employeeId: c.employee_id,
-            date: c.date,
-            claimed_minutes: c.claimed_minutes,
-            reason: c.reason,
-            paper_form_photo_url: photoUrl,
-          });
-        } else {
-          return claimOt({
-            employeeId: c.employee_id,
-            date: c.date,
-            claimed_minutes: c.claimed_minutes,
-            reason: c.reason,
-          });
-        }
-      });
-
-      await Promise.all(promises);
-
-      toast.success(t("ot_approvals.delegated_claim.messages.success", { defaultValue: "Overtime claimed successfully" }));
-      onOpenChange(false);
-      onSuccess?.();
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to claim overtime";
-      setError(message);
-    }
-  };
+  const {
+    claims,
+    photoUrl,
+    fileName,
+    showConfirmDiscrepancies,
+    setShowConfirmDiscrepancies,
+    error,
+    isSubmitting,
+    handleMinutesChange,
+    handleReasonChange,
+    handleFileChange,
+    handleSubmit,
+    setPhotoUrl,
+    setFileName,
+  } = useConfirmClaimsForm({
+    open,
+    onOpenChange,
+    selectedRows,
+    initialReasons,
+    onSuccess,
+  });
 
   const discrepancies = claims.filter((c) => c.claimed_minutes !== c.computed_minutes);
 
@@ -172,16 +72,17 @@ export function ConfirmClaimsDialog({
           <Dialog.Title className="text-xl font-bold text-slate-800 dark:text-slate-100 uppercase tracking-tight flex items-center gap-2">
             <FileText className="w-5 h-5" />
             {showConfirmDiscrepancies
-              ? t("ot_approvals.delegated_claim.warning.title", { defaultValue: "Verify Discrepancies" })
-              : t("ot_approvals.delegated_claim.confirm_title", { defaultValue: "Confirm Delegated Claims" })}
+              ? t("ot_approvals.delegated_claim.warning.title")
+              : t("ot_approvals.delegated_claim.confirm_title")}
           </Dialog.Title>
           <Dialog.Description className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             {showConfirmDiscrepancies
-              ? t("ot_approvals.delegated_claim.warning.description", { defaultValue: "Some claims differ from system-detected OT. Please verify before proceeding." })
-              : t("ot_approvals.delegated_claim.confirm_description", { defaultValue: "Review and edit overtime claims on behalf of employees." })}
+              ? t("ot_approvals.delegated_claim.warning.description")
+              : t("ot_approvals.delegated_claim.confirm_description")}
           </Dialog.Description>
 
           <Button
+            aria-label={t("common.close")}
             className="absolute right-4 top-4 h-auto w-auto p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 shadow-none"
             icon={<X className="h-4 w-4" />}
             onClick={() => { onOpenChange(false); }}
@@ -221,6 +122,63 @@ export function ConfirmClaimsDialog({
   );
 }
 
+interface ClaimRowProps {
+  claim: ClaimItem;
+  handleMinutesChange: (index: number, val: number) => void;
+  handleReasonChange: (index: number, val: string) => void;
+  idx: number;
+  t: TFunction;
+}
+
+function ClaimRow({
+  claim,
+  handleMinutesChange,
+  handleReasonChange,
+  idx,
+  t,
+}: ClaimRowProps) {
+  return (
+    <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors" key={`${claim.employee_id}-${claim.date}`}>
+      <td className="p-3 pl-4">
+        <div className="flex flex-col">
+          <span className="font-bold text-xs text-slate-800 dark:text-slate-200">
+            {claim.employee_name}
+          </span>
+          <span className="text-[9px] font-mono text-slate-400 dark:text-slate-500">
+            {claim.employee_id_number} • {claim.date}
+          </span>
+        </div>
+      </td>
+      <td className="p-3 text-xs text-slate-600 dark:text-slate-400">
+        {claim.computed_minutes} min ({(claim.computed_minutes / 60).toFixed(1)} hrs)
+      </td>
+      <td className="p-3">
+        <div className="flex items-center gap-1.5">
+          <input
+            className="w-[70px] px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            min={1}
+            onChange={(e) => { handleMinutesChange(idx, parseInt(e.target.value) || 0); }}
+            type="number"
+            value={claim.claimed_minutes}
+          />
+          <span className="text-[10px] text-slate-400 font-mono whitespace-nowrap">
+            {(claim.claimed_minutes / 60).toFixed(1)}h
+          </span>
+        </div>
+      </td>
+      <td className="p-3 pr-4">
+        <input
+          className="w-full px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary-500"
+          onChange={(e) => { handleReasonChange(idx, e.target.value); }}
+          placeholder={t("ot_approvals.delegated_claim.table.reason")}
+          type="text"
+          value={claim.reason}
+        />
+      </td>
+    </tr>
+  );
+}
+
 interface ClaimsFormViewProps {
   claims: ClaimItem[];
   error: string | null;
@@ -234,7 +192,7 @@ interface ClaimsFormViewProps {
   photoUrl: string | null;
   setFileName: (val: string | null) => void;
   setPhotoUrl: (val: string | null) => void;
-  t: (key: string, defaultValue?: { defaultValue: string }) => string;
+  t: TFunction;
 }
 
 function ClaimsFormView({
@@ -261,59 +219,29 @@ function ClaimsFormView({
             <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800/80 backdrop-blur border-b border-slate-100 dark:border-slate-800 z-10">
               <tr>
                 <th className="p-3 pl-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                  {t("ot_approvals.delegated_claim.table.employee", { defaultValue: "Employee" })}
+                  {t("ot_approvals.delegated_claim.table.employee")}
                 </th>
                 <th className="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[140px]">
-                  {t("ot_approvals.delegated_claim.table.computed_ot", { defaultValue: "System OT" })}
+                  {t("ot_approvals.delegated_claim.table.computed_ot")}
                 </th>
                 <th className="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[120px]">
-                  {t("approvals.paper_ot.minutes", { defaultValue: "Claimed Mins" })}
+                  {t("approvals.paper_ot.minutes")}
                 </th>
                 <th className="p-3 pr-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[200px]">
-                  {t("common.reason", { defaultValue: "Reason" })}
+                  {t("common.reason")}
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {claims.map((claim, idx) => (
-                <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors" key={`${claim.employee_id}-${claim.date}`}>
-                  <td className="p-3 pl-4">
-                    <div className="flex flex-col">
-                      <span className="font-bold text-xs text-slate-800 dark:text-slate-200">
-                        {claim.employee_name}
-                      </span>
-                      <span className="text-[9px] font-mono text-slate-400 dark:text-slate-500">
-                        {claim.employee_id_number} • {claim.date}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="p-3 text-xs text-slate-600 dark:text-slate-400">
-                    {claim.computed_minutes} min ({(claim.computed_minutes / 60).toFixed(1)} hrs)
-                  </td>
-                  <td className="p-3">
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        className="w-[70px] px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary-500"
-                        min={1}
-                        onChange={(e) => { handleMinutesChange(idx, parseInt(e.target.value) || 0); }}
-                        type="number"
-                        value={claim.claimed_minutes}
-                      />
-                      <span className="text-[10px] text-slate-400 font-mono whitespace-nowrap">
-                        {(claim.claimed_minutes / 60).toFixed(1)}h
-                      </span>
-                    </div>
-                  </td>
-                  <td className="p-3 pr-4">
-                    <input
-                      className="w-full px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary-500"
-                      onChange={(e) => { handleReasonChange(idx, e.target.value); }}
-                      placeholder={t("ot_approvals.delegated_claim.table.reason", { defaultValue: "Enter reason..." })}
-                      type="text"
-                      value={claim.reason}
-                    />
-                  </td>
-                </tr>
+                <ClaimRow
+                  claim={claim}
+                  handleMinutesChange={handleMinutesChange}
+                  handleReasonChange={handleReasonChange}
+                  idx={idx}
+                  key={`${claim.employee_id}-${claim.date}`}
+                  t={t}
+                />
               ))}
             </tbody>
           </table>
@@ -323,10 +251,10 @@ function ClaimsFormView({
       {/* Photo Evidence Uploader */}
       <div className="space-y-2">
         <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] flex items-center justify-between">
-          <span>{t("approvals.paper_ot.photo", { defaultValue: "Paper Form Photo (Optional)" })}</span>
+          <span>{t("approvals.paper_ot.photo")}</span>
           {!!photoUrl && (
             <span className="text-[9px] text-amber-600 dark:text-amber-400 font-normal lowercase tracking-normal">
-              *{t("ot_approvals.delegated_claim.paper_warning", { defaultValue: "requires paper upload permission" })}
+              *{t("ot_approvals.delegated_claim.paper_warning")}
             </span>
           )}
         </label>
@@ -337,6 +265,7 @@ function ClaimsFormView({
               {fileName ?? "paper_form_evidence.png"}
             </Typography>
             <Button
+              aria-label={t("common.remove_photo")}
               className="absolute top-2 right-2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full h-auto w-auto shadow-none"
               onClick={() => {
                 setPhotoUrl(null);
@@ -358,7 +287,7 @@ function ClaimsFormView({
             />
             <Upload className="w-6 h-6 text-slate-400 dark:text-slate-500 mx-auto mb-2 group-hover:text-primary-500 transition-colors" />
             <Typography className="text-xs font-semibold text-slate-600 dark:text-slate-300" variant="p">
-              {t("approvals.paper_ot.upload_prompt", { defaultValue: "Click or drag photo to upload" })}
+              {t("approvals.paper_ot.upload_prompt")}
             </Typography>
           </div>
         )}
@@ -380,7 +309,7 @@ function ClaimsFormView({
           type="button"
           variant="ghost"
         >
-          {t("common.cancel", { defaultValue: "Cancel" })}
+          {t("common.cancel")}
         </Button>
         <Button
           className="h-auto px-6 py-2 rounded-xl text-xs font-bold uppercase tracking-wider shadow-lg"
@@ -389,7 +318,7 @@ function ClaimsFormView({
           type="submit"
           variant="primary"
         >
-          {t("common.submit", { defaultValue: "Submit" })}
+          {t("common.submit")}
         </Button>
       </div>
     </form>
@@ -402,7 +331,7 @@ interface DiscrepancyWarningsViewProps {
   isSubmitting: boolean;
   onConfirm: () => void;
   onGoBack: () => void;
-  t: (key: string, defaultValue?: { defaultValue: string }) => string;
+  t: TFunction;
 }
 
 function DiscrepancyWarningsView({
@@ -419,10 +348,10 @@ function DiscrepancyWarningsView({
         <AlertTriangle className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" size={20} />
         <div className="space-y-1">
           <Typography className="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider" variant="p">
-            {t("ot_approvals.delegated_claim.warning.title", { defaultValue: "Time Discrepancies Detected" })}
+            {t("ot_approvals.delegated_claim.warning.title")}
           </Typography>
           <Typography className="text-xs text-amber-700 dark:text-amber-400" variant="p">
-            {t("ot_approvals.delegated_claim.warning.details", { defaultValue: "The following employees have claim times that differ from system computed OT. Please confirm." })}
+            {t("ot_approvals.delegated_claim.warning.details")}
           </Typography>
         </div>
       </div>
@@ -476,7 +405,7 @@ function DiscrepancyWarningsView({
           type="button"
           variant="ghost"
         >
-          {t("ot_approvals.delegated_claim.warning.btn_edit", { defaultValue: "Go Back & Edit" })}
+          {t("ot_approvals.delegated_claim.warning.btn_edit")}
         </Button>
         <Button
           className="h-auto px-6 py-2 rounded-xl text-xs font-bold uppercase tracking-wider shadow-lg bg-amber-600 hover:bg-amber-700 text-white border-amber-600"
@@ -486,7 +415,7 @@ function DiscrepancyWarningsView({
           type="button"
           variant="primary"
         >
-          {t("ot_approvals.delegated_claim.warning.btn_confirm", { defaultValue: "Confirm & Submit" })}
+          {t("ot_approvals.delegated_claim.warning.btn_confirm")}
         </Button>
       </div>
     </div>

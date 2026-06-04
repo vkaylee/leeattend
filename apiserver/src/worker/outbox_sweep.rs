@@ -269,7 +269,7 @@ mod tests {
         let mut mock_employee_repo = MockEmployeeRepository::new();
         mock_employee_repo
             .expect_get_active_employee_ids()
-            .returning(|_, _| Box::pin(async { Ok(vec![Uuid::new_v4()]) }));
+            .returning(|_, _| Ok(vec![Uuid::new_v4()]));
 
         let mut mock_queue_repo = MockQueueRepository::new();
         mock_queue_repo

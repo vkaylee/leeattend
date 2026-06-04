@@ -8,7 +8,12 @@ use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
 use apiserver::models::WorkingCondition;
 use apiserver::repositories::{
-    diesel_employee_repository::DieselEmployeeRepository, employee, EmployeeRepository,
+    diesel_employee_repository::DieselEmployeeRepository,
+    employee::{
+        EmployeeCoreRepository, EmployeePayrollConfigRepository, EmployeeRecruitmentRepository,
+        EmployeeWorkingConditionRepository,
+    },
+    EmployeeRepository,
 };
 use chrono::{NaiveDate, Utc};
 use rust_decimal::Decimal;

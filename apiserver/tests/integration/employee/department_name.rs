@@ -3,7 +3,8 @@
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
 use apiserver::repositories::{
-    diesel_employee_repository::DieselEmployeeRepository, EmployeeRepository,
+    diesel_employee_repository::DieselEmployeeRepository, employee::EmployeeCoreRepository,
+    EmployeeRepository,
 };
 use chrono::NaiveDate;
 use uuid::Uuid;

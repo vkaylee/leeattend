@@ -169,7 +169,7 @@ mod tests {
         let mut employee_repo = crate::repositories::employee::MockEmployeeRepository::new();
         employee_repo
             .expect_get_active_employees()
-            .returning(|_| Box::pin(async { Ok(vec![]) }));
+            .returning(|_| Ok(vec![]));
 
         let mut builder = MockWorkerDepsBuilder::new();
         builder.leave_accrual_log_repo = accrual_log_repo;

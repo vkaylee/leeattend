@@ -31,9 +31,11 @@ vi.mock("react-i18next", () => ({
         "ot_approvals.delegated_claim.warning.title": "ot_approvals.delegated_claim.warning.title",
         "ot_approvals.delegated_claim.warning.btn_confirm": "ot_approvals.delegated_claim.warning.btn_confirm",
         "ot_approvals.delegated_claim.empty_state.title": "ot_approvals.delegated_claim.empty_state.title",
+        "ot_approvals.delegated_claim.default_reason": "Delegated OT claim",
         "common.submit": "common.submit",
       };
-      return translations[key] || options?.defaultValue || key;
+      const normalizedKey = key.replace(":", ".");
+      return translations[normalizedKey] || translations[key] || options?.defaultValue || key;
     },
     i18n: { language: "en" },
   }),

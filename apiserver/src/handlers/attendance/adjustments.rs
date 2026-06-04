@@ -308,4 +308,3 @@ pub async fn list_adjustment_behalf_assignments(
     .await?;
     Ok(Json(result))
 }
-

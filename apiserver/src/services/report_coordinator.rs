@@ -677,7 +677,7 @@ mod tests {
             .with(mockall::predicate::always(), mockall::predicate::always())
             .returning(move |_, _| {
                 let ids = emp_ids.clone();
-                Box::pin(async move { Ok(ids) })
+                Ok(ids)
             });
 
         mock_queue_repo
@@ -785,7 +785,7 @@ mod tests {
         // Return empty employee list
         mock_employee_repo
             .expect_get_active_employee_ids()
-            .returning(|_, _| Box::pin(async { Ok(vec![]) }));
+            .returning(|_, _| Ok(vec![]));
 
         let mut mock_outbox_repo =
             crate::repositories::outbox_job_repository::MockOutboxJobRepository::new();

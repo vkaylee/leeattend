@@ -361,7 +361,7 @@ impl AppState {
 
         let mut workflow_handlers: std::collections::HashMap<
             String,
-            Arc<dyn crate::services::approval_workflow_service::WorkflowCallbackHandler>,
+            Arc<dyn crate::services::approval_workflow::WorkflowCallbackHandler>,
         > = std::collections::HashMap::new();
         workflow_handlers.insert(
             "attendance_adjustment".to_string(),

@@ -170,10 +170,10 @@ mod tests {
         let mut emp_repo = crate::repositories::employee::MockEmployeeRepository::new();
         emp_repo
             .expect_get_employee_timezone_fallback()
-            .returning(|_, _| Box::pin(async { Ok(chrono_tz::UTC) }));
+            .returning(|_, _| Ok(chrono_tz::UTC));
         emp_repo
             .expect_get_employee_timezone_at_date()
-            .returning(|_, _, _| Box::pin(async { Ok(chrono_tz::UTC) }));
+            .returning(|_, _, _| Ok(chrono_tz::UTC));
         builder.employee_repo = emp_repo;
         builder.roster_repo = roster_repo;
 

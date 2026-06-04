@@ -468,7 +468,7 @@ export interface CreateConfigEntryRequest {
   effective_from: string;
   effective_to?: string | null;
   scope_id?: string | null;
-  scope_type: "workspace" | "department" | "employee";
+  scope_type: "workspace" | "employer" | "department" | "employee";
   value_bool?: boolean | null;
   value_decimal?: number | null;
   value_int?: number | null;

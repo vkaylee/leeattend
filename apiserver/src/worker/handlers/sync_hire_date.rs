@@ -126,30 +126,28 @@ mod tests {
 
         let mut emp_repo = MockEmployeeRepository::new();
         emp_repo.expect_get_employee_by_id().returning(move |_, _| {
-            Box::pin(async move {
-                Ok(Some(Employee {
-                    id: emp_id,
-                    workspace_id: ws_id,
-                    user_id: None,
-                    full_name: "Test Employee".to_string(),
-                    employee_id_number: "EMP001".to_string(),
-                    original_hire_date: NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
-                    hire_date: NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
-                    termination_date: None,
-                    tags: vec![],
-                    is_active: true,
-                    created_at: Utc::now(),
-                    updated_at: Utc::now(),
-                    department_name: None,
-                    primary_location_id: uuid::Uuid::new_v4(),
-                    employer_id: None,
-                }))
-            })
+            Ok(Some(Employee {
+                id: emp_id,
+                workspace_id: ws_id,
+                user_id: None,
+                full_name: "Test Employee".to_string(),
+                employee_id_number: "EMP001".to_string(),
+                original_hire_date: NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
+                hire_date: NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
+                termination_date: None,
+                tags: vec![],
+                is_active: true,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+                department_name: None,
+                primary_location_id: uuid::Uuid::new_v4(),
+                employer_id: None,
+            }))
         });
 
         emp_repo
             .expect_update_employee()
-            .returning(|_, _, _| Box::pin(async { Ok(None) }));
+            .returning(|_, _, _| Ok(None));
 
         let mut contract_repo = MockEmployeeContractRepository::new();
         contract_repo

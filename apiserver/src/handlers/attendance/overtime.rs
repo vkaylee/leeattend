@@ -229,7 +229,10 @@ async fn check_claim_behalf_scope(
     crate::handlers::common::check_behalf_scope(
         state,
         ctx,
-        &[Permission::OvertimeApprove, Permission::OvertimeClaimOnBehalf],
+        &[
+            Permission::OvertimeApprove,
+            Permission::OvertimeClaimOnBehalf,
+        ],
         "overtime_claim",
         caller_employee_id,
         target_employee_id,

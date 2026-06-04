@@ -13,12 +13,12 @@ import { useUpsertWorkspaceConfig } from "@/hooks/use-workspace-config";
 import { type WorkspaceConfigEntry, type CreateConfigEntryRequest } from "@/lib/api/types";
 
 const configSchema = z.object({
-  config_key: z.string().min(1, "Key is required"),
+  config_key: z.string().min(1, "settings.overtime.config.errors.key_required"),
   scope_type: z.enum(["workspace", "employer", "department", "employee"]),
   scope_id: z.string().optional(),
   value_type: z.enum(["int", "decimal", "text", "bool", "json"]),
-  value: z.string().min(1, "Value is required"),
-  effective_from: z.string().min(1, "Effective date is required"),
+  value: z.string().min(1, "settings.overtime.config.errors.value_required"),
+  effective_from: z.string().min(1, "settings.overtime.config.errors.effective_from_required"),
 });
 
 type ConfigFormValues = z.infer<typeof configSchema>;
@@ -52,30 +52,39 @@ function useUpsertConfigForm({
   config: WorkspaceConfigEntry | null;
   onClose: () => void;
 }) {
+  const { t } = useTranslation(["settings", "common"]);
   const toast = useToast();
   const { mutateAsync: upsertConfig, isPending } = useUpsertWorkspaceConfig();
 
   const form = useForm<ConfigFormValues>({
     resolver: zodResolver(configSchema),
-    defaultValues: {
-      config_key: "",
-      scope_type: "workspace",
-      scope_id: "",
-      value_type: "text",
-      value: "",
-      effective_from: new Date().toISOString().split("T")[0],
-    },
+    defaultValues: config
+      ? {
+          config_key: config.config_key,
+          scope_type: config.scope_type as ConfigFormValues["scope_type"],
+          scope_id: config.scope_id ?? "",
+          value_type: parseConfigValue(config).vType,
+          value: parseConfigValue(config).vVal,
+          effective_from: config.effective_from.split("T")[0],
+        }
+      : {
+          config_key: "",
+          scope_type: "workspace",
+          scope_id: "",
+          value_type: "text",
+          value: "",
+          effective_from: new Date().toISOString().split("T")[0],
+        },
   });
 
   useEffect(() => {
     if (config) {
-      const { vType, vVal } = parseConfigValue(config);
       form.reset({
         config_key: config.config_key,
-        scope_type: config.scope_type as "workspace" | "employer" | "department" | "employee",
+        scope_type: config.scope_type as ConfigFormValues["scope_type"],
         scope_id: config.scope_id ?? "",
-        value_type: vType,
-        value: vVal,
+        value_type: parseConfigValue(config).vType,
+        value: parseConfigValue(config).vVal,
         effective_from: config.effective_from.split("T")[0],
       });
     }
@@ -83,15 +92,17 @@ function useUpsertConfigForm({
 
   const onSubmit = async (data: ConfigFormValues) => {
     try {
+      let scopeId: string | null = null;
+      if (data.scope_type !== "workspace" && data.scope_id) {
+        scopeId = data.scope_id;
+      }
+
       const payload: CreateConfigEntryRequest = {
         config_key: data.config_key,
-        scope_type: data.scope_type as "workspace" | "department" | "employee",
-        effective_from: data.effective_from,
+        scope_type: data.scope_type,
+        scope_id: scopeId,
+        effective_from: new Date(data.effective_from).toISOString(),
       };
-
-      if (data.scope_type !== "workspace" && data.scope_id) {
-        payload.scope_id = data.scope_id;
-      }
 
       switch (data.value_type) {
         case "int":
@@ -112,11 +123,11 @@ function useUpsertConfigForm({
       }
 
       await upsertConfig(payload);
-      toast.success(config ? "Configuration updated" : "Configuration created");
+      toast.success(config ? t("settings.overtime.config.success_updated") : t("settings.overtime.config.success_created"));
       onClose();
     } catch (error) {
       console.error(error);
-      toast.error("Failed to save configuration");
+      toast.error(t("settings.overtime.config.failed_save"));
     }
   };
 
@@ -141,46 +152,46 @@ export function UpsertConfigModal({
   onClose: () => void;
   wsId: string;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["settings", "common"]);
   const { form, onSubmit, isPending, valType } = useUpsertConfigForm({ config, onClose });
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={config ? "Edit Configuration" : "New Configuration"}>
+    <Modal isOpen={isOpen} onClose={onClose} title={config ? t("settings.overtime.config.edit_title") : t("settings.overtime.config.new_title")}>
       <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2" htmlFor="config_key">Key</label>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2" htmlFor="config_key">{t("settings.overtime.config.key")}</label>
             <input
               {...form.register("config_key")}
               className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
               id="config_key"
-              placeholder="e.g. overtime.max_hours_per_month"
+              placeholder={t("settings.overtime.config.key_placeholder")}
             />
-            {!!form.formState.errors.config_key && <Typography className="text-rose-500 text-xs mt-1" variant="p">{form.formState.errors.config_key.message}</Typography>}
+            {!!form.formState.errors.config_key && <Typography className="text-rose-500 text-xs mt-1" variant="p">{t(form.formState.errors.config_key.message ?? "")}</Typography>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2" htmlFor="scope_type">Scope</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2" htmlFor="scope_type">{t("settings.overtime.config.scope")}</label>
               <select
                 {...form.register("scope_type")}
                 className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                 id="scope_type"
               >
-                <option value="workspace">Workspace</option>
-                <option value="employer">Employer</option>
-                <option value="department">Department</option>
-                <option value="employee">Employee</option>
+                <option value="workspace">{t("settings.overtime.config.scopes.workspace")}</option>
+                <option value="employer">{t("settings.overtime.config.scopes.employer")}</option>
+                <option value="department">{t("settings.overtime.config.scopes.department")}</option>
+                <option value="employee">{t("settings.overtime.config.scopes.employee")}</option>
               </select>
             </div>
             {form.watch("scope_type") !== "workspace" && (
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2" htmlFor="scope_id">Scope ID</label>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2" htmlFor="scope_id">{t("settings.overtime.config.scope_id")}</label>
                 <input
                   {...form.register("scope_id")}
                   className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                   id="scope_id"
-                  placeholder="UUID"
+                  placeholder={t("settings.overtime.config.scope_id_placeholder")}
                 />
               </div>
             )}
@@ -188,43 +199,43 @@ export function UpsertConfigModal({
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2" htmlFor="value_type">Value Type</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2" htmlFor="value_type">{t("settings.overtime.config.value_type")}</label>
               <select
                 {...form.register("value_type")}
                 className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                 id="value_type"
               >
-                <option value="text">Text</option>
-                <option value="int">Integer</option>
-                <option value="decimal">Decimal</option>
-                <option value="bool">Boolean</option>
-                <option value="json">JSON</option>
+                <option value="text">{t("settings.overtime.config.types.text")}</option>
+                <option value="int">{t("settings.overtime.config.types.int")}</option>
+                <option value="decimal">{t("settings.overtime.config.types.decimal")}</option>
+                <option value="bool">{t("settings.overtime.config.types.bool")}</option>
+                <option value="json">{t("settings.overtime.config.types.json")}</option>
               </select>
             </div>
             <div className="col-span-2">
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2" htmlFor="value">Value</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2" htmlFor="value">{t("settings.overtime.config.value")}</label>
               {valType === "bool" ? (
                 <select
                   {...form.register("value")}
                   className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                   id="value"
                 >
-                  <option value="true">True</option>
-                  <option value="false">False</option>
+                  <option value="true">{t("settings.overtime.config.bool_true")}</option>
+                  <option value="false">{t("settings.overtime.config.bool_false")}</option>
                 </select>
               ) : (
                 <input
                   {...form.register("value")}
                   className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                   id="value"
-                  placeholder="Enter value"
+                  placeholder={t("settings.overtime.config.value_placeholder")}
                 />
               )}
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2" htmlFor="effective_from">Effective From</label>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2" htmlFor="effective_from">{t("settings.overtime.config.effective_from")}</label>
             <input
               {...form.register("effective_from")}
               className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"

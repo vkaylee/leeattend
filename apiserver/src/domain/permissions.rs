@@ -191,7 +191,9 @@ impl Permission {
             "attendance:summaries:read" => Some(Self::AttendanceSummariesRead),
             "attendance:adjustments:submit" => Some(Self::AttendanceAdjustmentsSubmit),
             "attendance:adjustments:approve" => Some(Self::AttendanceAdjustmentsApprove),
-            "attendance:adjustments:submit_on_behalf" => Some(Self::AttendanceAdjustmentsSubmitOnBehalf),
+            "attendance:adjustments:submit_on_behalf" => {
+                Some(Self::AttendanceAdjustmentsSubmitOnBehalf)
+            }
             "attendance:adjustments:manage_behalf" => Some(Self::AttendanceAdjustmentsManageBehalf),
             "attendance:reprocess" => Some(Self::AttendanceReprocess),
             "attendance:staging:manage" => Some(Self::AttendanceStagingManage),

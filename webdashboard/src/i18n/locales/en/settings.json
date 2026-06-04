@@ -329,8 +329,8 @@
       "hq": "HQ"
     },
     "overtime": {
-      "delete_config_desc": "Delete?",
-      "delete_workflow_desc": "Delete?",
+      "delete_config_desc": "Delete configuration?",
+      "delete_workflow_desc": "Delete workflow?",
       "quotas_desc": "Quotas",
       "tabs": {
         "quotas": "Quotas",
@@ -345,6 +345,42 @@
         "step_title": "Step",
         "steps_header": "Approval Steps",
         "add_step": "Add Step"
+      },
+      "config": {
+        "edit_title": "Edit Configuration",
+        "new_title": "New Configuration",
+        "key": "Config Key",
+        "key_placeholder": "e.g. overtime.max_hours_per_month",
+        "scope": "Scope",
+        "scope_id": "Scope ID",
+        "scope_id_placeholder": "Enter UUID",
+        "value_type": "Value Type",
+        "value": "Value",
+        "value_placeholder": "Enter value",
+        "effective_from": "Effective From",
+        "bool_true": "True",
+        "bool_false": "False",
+        "scopes": {
+          "workspace": "Workspace",
+          "employer": "Employer",
+          "department": "Department",
+          "employee": "Employee"
+        },
+        "types": {
+          "text": "Text",
+          "int": "Integer",
+          "decimal": "Decimal",
+          "bool": "Boolean",
+          "json": "JSON"
+        },
+        "errors": {
+          "key_required": "Key is required",
+          "value_required": "Value is required",
+          "effective_from_required": "Effective date is required"
+        },
+        "success_created": "Configuration created successfully",
+        "success_updated": "Configuration updated successfully",
+        "failed_save": "Failed to save configuration"
       },
       "title": "Overtime Settings"
     },

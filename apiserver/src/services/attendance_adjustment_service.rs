@@ -179,9 +179,7 @@ impl AttendanceAdjustmentService {
 }
 
 #[async_trait::async_trait]
-impl crate::services::approval_workflow_service::WorkflowCallbackHandler
-    for AttendanceAdjustmentService
-{
+impl crate::services::approval_workflow::WorkflowCallbackHandler for AttendanceAdjustmentService {
     async fn on_workflow_completed(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

@@ -676,6 +676,7 @@
     "info": "Information",
     "warning": "Warning",
     "remove": "Remove",
+    "remove_photo": "Remove photo",
     "combobox": {
       "placeholder": "Select an item...",
       "search": "Search...",

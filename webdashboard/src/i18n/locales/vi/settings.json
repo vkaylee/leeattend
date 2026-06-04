@@ -329,14 +329,14 @@
       "hq": "HQ"
     },
     "overtime": {
-      "delete_config_desc": "Delete?",
-      "delete_workflow_desc": "Delete?",
-      "quotas_desc": "Quotas",
+      "delete_config_desc": "Xóa cấu hình?",
+      "delete_workflow_desc": "Xóa quy trình?",
+      "quotas_desc": "Hạn ngạch",
       "tabs": {
-        "quotas": "Quotas",
-        "workflows": "Workflows"
+        "quotas": "Hạn ngạch",
+        "workflows": "Quy trình duyệt"
       },
-      "workflows_desc": "Workflows",
+      "workflows_desc": "Quy trình duyệt",
       "workflows": {
         "name_label": "Tên quy trình",
         "entity_label": "Loại yêu cầu",
@@ -345,6 +345,42 @@
         "step_title": "Bước",
         "steps_header": "Các bước phê duyệt",
         "add_step": "Thêm bước"
+      },
+      "config": {
+        "edit_title": "Chỉnh sửa cấu hình",
+        "new_title": "Cấu hình mới",
+        "key": "Khóa cấu hình",
+        "key_placeholder": "Ví dụ: overtime.max_hours_per_month",
+        "scope": "Phạm vi áp dụng",
+        "scope_id": "Mã phạm vi (Scope ID)",
+        "scope_id_placeholder": "Nhập mã UUID",
+        "value_type": "Loại giá trị",
+        "value": "Giá trị cấu hình",
+        "value_placeholder": "Nhập giá trị",
+        "effective_from": "Có hiệu lực từ",
+        "bool_true": "Đúng (True)",
+        "bool_false": "Sai (False)",
+        "scopes": {
+          "workspace": "Workspace",
+          "employer": "Đơn vị tuyển dụng",
+          "department": "Phòng ban",
+          "employee": "Nhân viên"
+        },
+        "types": {
+          "text": "Văn bản",
+          "int": "Số nguyên",
+          "decimal": "Số thập phân",
+          "bool": "Boolean",
+          "json": "JSON"
+        },
+        "errors": {
+          "key_required": "Khóa cấu hình là bắt buộc",
+          "value_required": "Giá trị cấu hình là bắt buộc",
+          "effective_from_required": "Ngày có hiệu lực là bắt buộc"
+        },
+        "success_created": "Đã tạo cấu hình thành công",
+        "success_updated": "Đã cập nhật cấu hình thành công",
+        "failed_save": "Không thể lưu cấu hình"
       },
       "title": "Cấu hình Tăng ca"
     },

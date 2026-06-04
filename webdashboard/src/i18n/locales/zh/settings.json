@@ -346,6 +346,42 @@
         "steps_header": "审批步骤",
         "add_step": "添加步骤"
       },
+      "config": {
+        "edit_title": "编辑配置",
+        "new_title": "新配置",
+        "key": "配置键",
+        "key_placeholder": "例如: overtime.max_hours_per_month",
+        "scope": "范围",
+        "scope_id": "范围 ID",
+        "scope_id_placeholder": "输入 UUID",
+        "value_type": "值类型",
+        "value": "值",
+        "value_placeholder": "输入值",
+        "effective_from": "生效日期",
+        "bool_true": "真 (True)",
+        "bool_false": "假 (False)",
+        "scopes": {
+          "workspace": "工作空间",
+          "employer": "雇主",
+          "department": "部门",
+          "employee": "员工"
+        },
+        "types": {
+          "text": "文本",
+          "int": "整数",
+          "decimal": "小数",
+          "bool": "布尔值",
+          "json": "JSON"
+        },
+        "errors": {
+          "key_required": "配置键是必填项",
+          "value_required": "值是必填项",
+          "effective_from_required": "生效日期是必填项"
+        },
+        "success_created": "已成功创建配置",
+        "success_updated": "已成功更新配置",
+        "failed_save": "无法保存配置"
+      },
       "title": "加班设置"
     },
     "title": "Settings Hub",
