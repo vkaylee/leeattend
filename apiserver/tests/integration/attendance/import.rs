@@ -188,7 +188,7 @@ async fn test_employee_import_chunking() {
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
     // Check if Redis is enabled
-    let redis_pool = match app_state.infra.redis.clone() {
+    let redis_pool = match app_state.infra().redis().cloned() {
         Some(r) => r,
         None => {
             println!("Skipping test: REDIS_URL not set");
@@ -299,7 +299,7 @@ async fn test_leave_import_chunking() {
     let pool = test_db.diesel_pools.clone().clone();
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
 
-    let redis_pool = match app_state.infra.redis.clone() {
+    let redis_pool = match app_state.infra().redis().cloned() {
         Some(r) => r,
         None => return,
     };

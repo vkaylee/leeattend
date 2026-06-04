@@ -22,7 +22,7 @@ async fn dispatch_sync_hire_date(
     employee_id: Uuid,
     contract_id: Uuid,
 ) {
-    let Ok(queue) = state.infra.job_queue() else {
+    let Ok(queue) = state.infra().job_queue() else {
         tracing::warn!("Redis not available, skipping SyncEmployeeHireDate job");
         return;
     };
@@ -66,8 +66,8 @@ pub async fn list_employee_contracts(
     let _workspace_id = ctx.workspace_id;
 
     let contracts = state
-        .employees
-        .contract_repo
+        .employees()
+        .contract_repo()
         .list_employee_contracts(&ctx.auth_token, employee_id)
         .await?;
 
@@ -96,8 +96,8 @@ pub async fn get_contract(
     let _workspace_id = ctx.workspace_id;
 
     let contract = state
-        .employees
-        .contract_repo
+        .employees()
+        .contract_repo()
         .get_contract_by_id(&ctx.auth_token, contract_id)
         .await?
         .ok_or_else(|| crate::errors::AppError::NotFound("Contract not found".to_string()))?;
@@ -128,8 +128,8 @@ pub async fn create_contract(
     let workspace_id = ctx.workspace_id;
 
     let contract = state
-        .employees
-        .contract_repo
+        .employees()
+        .contract_repo()
         .create_contract(&ctx.auth_token, &payload)
         .await?;
 
@@ -142,8 +142,8 @@ pub async fn create_contract(
                 .unwrap_or(contract.start_date)
         });
         let _ = state
-            .employees
-            .employment_phase_repo
+            .employees()
+            .employment_phase_repo()
             .assign_phase(
                 workspace_id,
                 contract.employee_id,
@@ -184,8 +184,8 @@ pub async fn update_contract(
     let workspace_id = ctx.workspace_id;
 
     let contract = state
-        .employees
-        .contract_repo
+        .employees()
+        .contract_repo()
         .update_contract(&ctx.auth_token, contract_id, &payload)
         .await?;
 
@@ -216,8 +216,8 @@ pub async fn delete_contract(
     let workspace_id = ctx.workspace_id;
 
     state
-        .employees
-        .contract_repo
+        .employees()
+        .contract_repo()
         .delete_contract(&ctx.auth_token, contract_id)
         .await?;
 

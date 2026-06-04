@@ -39,14 +39,14 @@ pub async fn get_workspace_members(
     let workspace_id = ctx.workspace_id;
 
     let members = state
-        .core
-        .workspace_repo
+        .core()
+        .workspace_repo()
         .get_workspace_members(workspace_id)
         .await?;
 
     let extra_roles = state
-        .core
-        .workspace_repo
+        .core()
+        .workspace_repo()
         .get_all_extra_roles(workspace_id)
         .await?;
 
@@ -90,8 +90,8 @@ pub async fn add_workspace_member(
     ctx.require_permission(Permission::MembersInvite)?;
 
     let user_id = state
-        .core
-        .user_repo
+        .core()
+        .user_repo()
         .get_user_by_email(&req.email)
         .await?
         .map(|u| u.id)
@@ -99,13 +99,13 @@ pub async fn add_workspace_member(
 
     // 3. Add to workspace
     state
-        .core
-        .workspace_repo
+        .core()
+        .workspace_repo()
         .add_member(ctx.workspace_id, user_id, req.role_id)
         .await?;
 
     AuditHelper::log(crate::services::audit_service::AuditLogArgs {
-        repo: &state.core.audit_repo,
+        repo: state.core().audit_repo(),
         workspace_id: ctx.workspace_id,
         actor_id: Some(ctx.user_id),
         actor_type: Some("user".to_string()),
@@ -119,7 +119,7 @@ pub async fn add_workspace_member(
     })
     .await;
 
-    if let Some(cache) = &state.infra.cache {
+    if let Some(cache) = state.infra().cache() {
         let _ = cache
             .delete(&format!(
                 "cache:auth:permissions:{}:{}",
@@ -158,20 +158,20 @@ pub async fn update_workspace_member_role(
     ctx.require_permission(Permission::MembersRolesManage)?;
 
     let old_role_id = state
-        .core
-        .workspace_repo
+        .core()
+        .workspace_repo()
         .find_primary_role(ctx.workspace_id, user_id)
         .await
         .unwrap_or(None);
 
     state
-        .core
-        .workspace_repo
+        .core()
+        .workspace_repo()
         .update_member_role(ctx.workspace_id, user_id, req.role_id)
         .await?;
 
     AuditHelper::log(crate::services::audit_service::AuditLogArgs {
-        repo: &state.core.audit_repo,
+        repo: state.core().audit_repo(),
         workspace_id: ctx.workspace_id,
         actor_id: Some(ctx.user_id),
         actor_type: Some("user".to_string()),
@@ -188,7 +188,7 @@ pub async fn update_workspace_member_role(
     })
     .await;
 
-    if let Some(cache) = &state.infra.cache {
+    if let Some(cache) = state.infra().cache() {
         let _ = cache
             .delete(&format!(
                 "cache:auth:permissions:{}:{}",
@@ -232,13 +232,13 @@ pub async fn remove_workspace_member(
     }
 
     state
-        .core
-        .workspace_repo
+        .core()
+        .workspace_repo()
         .remove_member(ctx.workspace_id, user_id)
         .await?;
 
     AuditHelper::log(crate::services::audit_service::AuditLogArgs {
-        repo: &state.core.audit_repo,
+        repo: state.core().audit_repo(),
         workspace_id: ctx.workspace_id,
         actor_id: Some(ctx.user_id),
         actor_type: Some("user".to_string()),
@@ -252,7 +252,7 @@ pub async fn remove_workspace_member(
     })
     .await;
 
-    if let Some(cache) = &state.infra.cache {
+    if let Some(cache) = state.infra().cache() {
         let _ = cache
             .delete(&format!(
                 "cache:auth:permissions:{}:{}",

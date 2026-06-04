@@ -151,7 +151,11 @@ pub async fn register(
     tracing::info!(email = %crate::utils::masking::mask_email(&req.email), "User attempting to register");
 
     // 2. Check if email exists
-    let existing_user = state.core.user_repo.get_user_by_email(&req.email).await?;
+    let existing_user = state
+        .core()
+        .user_repo()
+        .get_user_by_email(&req.email)
+        .await?;
 
     if existing_user.is_some() {
         return Err(AppError::Conflict("Email already exists".to_string()));
@@ -179,8 +183,8 @@ pub async fn register(
 
     // 4. Create User and auto-assign platform_admin atomically
     let is_first = state
-        .core
-        .user_repo
+        .core()
+        .user_repo()
         .create_user_with_admin_check(&user)
         .await?;
 
@@ -192,7 +196,7 @@ pub async fn register(
     }
 
     // 6. Create session (post-commit — session is ephemeral, safe outside tx)
-    let refresh_token = state.core.auth_service.create_session(user.id).await?;
+    let refresh_token = state.core().auth_service().create_session(user.id).await?;
 
     // Convert to UserResponse for the client
     let user_response = UserResponse {
@@ -207,7 +211,7 @@ pub async fn register(
     };
 
     // 7. Generate access token (stateless, no DB write needed)
-    let access_token = AuthService::generate_token(user.id, &state.core.jwt_secret, 60)?;
+    let access_token = AuthService::generate_token(user.id, state.core().jwt_secret(), 60)?;
 
     let headers = create_auth_cookies(&access_token, &refresh_token);
 
@@ -237,8 +241,8 @@ pub async fn login(
     tracing::info!(email = %masked_email, "User attempting to login");
 
     let user = state
-        .core
-        .user_repo
+        .core()
+        .user_repo()
         .get_user_by_email(&req.email)
         .await?
         .ok_or_else(|| {
@@ -272,9 +276,9 @@ pub async fn login(
         system_roles: vec![],
     };
 
-    let access_token = AuthService::generate_token(user.id, &state.core.jwt_secret, 60)?;
+    let access_token = AuthService::generate_token(user.id, state.core().jwt_secret(), 60)?;
 
-    let refresh_token = state.core.auth_service.create_session(user.id).await?;
+    let refresh_token = state.core().auth_service().create_session(user.id).await?;
 
     let headers = create_auth_cookies(&access_token, &refresh_token);
 
@@ -321,9 +325,9 @@ pub async fn refresh_token(
         token_to_refresh.ok_or_else(|| AppError::Auth("No refresh token provided".to_string()))?;
 
     let auth_response = state
-        .core
-        .auth_service
-        .refresh_session(&token, &state.core.jwt_secret)
+        .core()
+        .auth_service()
+        .refresh_session(&token, state.core().jwt_secret())
         .await?;
 
     let resp_headers =
@@ -347,8 +351,8 @@ pub async fn change_password(
 ) -> AppResult<impl IntoResponse> {
     // 1. Get current user to verify old password
     let user = state
-        .core
-        .user_repo
+        .core()
+        .user_repo()
         .get_user_by_id(user_id)
         .await?
         .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
@@ -376,15 +380,15 @@ pub async fn change_password(
 
     // 5. Update DB via repository
     state
-        .core
-        .user_repo
+        .core()
+        .user_repo()
         .update_password_hash(user_id, &new_hash)
         .await?;
 
     // 6. Revoke all sessions (Force re-login)
     if let Err(e) = state
-        .core
-        .auth_service
+        .core()
+        .auth_service()
         .revoke_all_sessions_for_user(user_id)
         .await
     {
@@ -427,7 +431,7 @@ pub async fn logout(
     }
 
     if let Some(token) = token_to_revoke {
-        let _ = state.core.auth_service.revoke_session(&token).await;
+        let _ = state.core().auth_service().revoke_session(&token).await;
     }
 
     Ok((clear_auth_cookies(), StatusCode::OK))
@@ -446,16 +450,16 @@ pub async fn get_me(
 ) -> AppResult<Json<UserResponse>> {
     tracing::debug!("Fetching profile for user: {}", user_id);
     let user = state
-        .core
-        .user_repo
+        .core()
+        .user_repo()
         .get_user_by_id(user_id)
         .await?
         .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 
     // Fetch system-level roles (platform_admin, support, etc.)
     let system_roles = state
-        .core
-        .user_repo
+        .core()
+        .user_repo()
         .get_system_roles_for_user(user_id)
         .await?;
 
@@ -512,8 +516,8 @@ pub async fn update_me(
     Json(req): Json<UpdateUserRequest>,
 ) -> AppResult<Json<UserResponse>> {
     let user = state
-        .core
-        .user_repo
+        .core()
+        .user_repo()
         .update_user_profile(user_id, req.full_name, req.avatar_url, req.bio)
         .await?;
 
@@ -542,8 +546,8 @@ pub async fn get_users(
 ) -> AppResult<Json<Vec<UserResponse>>> {
     // Scope to workspace members only to prevent cross-tenant data exposure
     let users = state
-        .core
-        .user_repo
+        .core()
+        .user_repo()
         .get_workspace_users(ctx.workspace_id)
         .await?;
 

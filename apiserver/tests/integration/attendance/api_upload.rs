@@ -76,8 +76,8 @@ async fn test_upload_attendance_csv_api() {
     for _ in 0..30 {
         sleep(Duration::from_secs(1)).await;
         let job_opt = _state
-            .attendance
-            .import_repo
+            .attendance()
+            .import_repo()
             .get_job_by_id(
                 &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
                 job_uuid,

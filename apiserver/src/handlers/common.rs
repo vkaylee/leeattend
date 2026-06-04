@@ -223,7 +223,7 @@ where
         let cache_key = format!("cache:auth:permissions:{workspace_id}:{user_id}");
         let ttl = Duration::from_secs(3600); // 1 hour TTL
 
-        let cached_data = if let Some(cache) = &app_state.infra.cache {
+        let cached_data = if let Some(cache) = app_state.infra().cache() {
             if let Some(d) = cache.get::<CachedMemberContext>(&cache_key).await {
                 d
             } else {
@@ -295,8 +295,8 @@ impl MemberContext {
         app_state: &Arc<AppState>,
     ) -> Result<CachedMemberContext, String> {
         let user = app_state
-            .core
-            .user_repo
+            .core()
+            .user_repo()
             .get_user_by_id(user_id)
             .await
             .map_err(|e| e.to_string())?
@@ -304,8 +304,8 @@ impl MemberContext {
 
         // 1. Fetch Primary Role
         let primary_role = app_state
-            .core
-            .workspace_repo
+            .core()
+            .workspace_repo()
             .find_primary_role(workspace_id, user_id)
             .await
             .map_err(|e| e.to_string())?
@@ -313,8 +313,8 @@ impl MemberContext {
 
         // 2. Fetch Active Extra Roles
         let all_extra_roles = app_state
-            .core
-            .workspace_repo
+            .core()
+            .workspace_repo()
             .find_extra_roles(workspace_id, user_id)
             .await
             .map_err(|e| e.to_string())?;
@@ -329,8 +329,8 @@ impl MemberContext {
 
         // Compute effective permissions from all roles via repository
         let db_perms = app_state
-            .core
-            .workspace_repo
+            .core()
+            .workspace_repo()
             .get_permissions_for_roles(&roles)
             .await
             .map_err(|e| e.to_string())?;
@@ -344,8 +344,8 @@ impl MemberContext {
 
         // 3. Fetch Active Extra Permissions (individual overrides)
         let extra_perms = app_state
-            .core
-            .workspace_repo
+            .core()
+            .workspace_repo()
             .find_extra_permissions(workspace_id, user_id)
             .await
             .unwrap_or_default();
@@ -362,8 +362,8 @@ impl MemberContext {
         // (owner, admin, hr_manager, shift_manager) AND any custom role a Workspace Admin
         // explicitly marks as global-scoped.
         let is_global_manager = app_state
-            .core
-            .workspace_repo
+            .core()
+            .workspace_repo()
             .is_any_role_global(&roles)
             .await
             .unwrap_or(false);
@@ -374,8 +374,8 @@ impl MemberContext {
             // For TeamLead or normal members with extra permissions,
             // restrict their scope to the departments they belong to.
             let depts = app_state
-                .employees
-                .repo
+                .employees()
+                .repo()
                 .get_managed_departments(
                     &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
                     user_id,
@@ -431,8 +431,8 @@ where
 
         // 2. Find employee linked to this user in this workspace
         let employee_id = app_state
-            .employees
-            .repo
+            .employees()
+            .repo()
             .get_employee_id_by_user_id(&member_ctx.auth_token, user_id)
             .await?
             .ok_or_else(|| AppError::Forbidden("error.no_employee_record".to_string()))?;
@@ -467,8 +467,8 @@ pub async fn current_department_id(
     employee_id: Uuid,
 ) -> Option<Uuid> {
     state
-        .payroll
-        .department_repo
+        .payroll()
+        .department_repo()
         .get_current_department(auth_token, employee_id)
         .await
         .ok()
@@ -509,8 +509,8 @@ pub async fn check_behalf_scope(
 
     // Check explicit behalf assignment
     let is_assigned = state
-        .attendance
-        .behalf_assignment_repo
+        .attendance()
+        .behalf_assignment_repo()
         .check_behalf_permission(
             ctx.workspace_id,
             ctx.user_id,
@@ -549,8 +549,8 @@ pub async fn create_behalf_assignment_handler(
     ctx.require_permission(required_permission)?;
 
     state
-        .attendance
-        .behalf_assignment_repo
+        .attendance()
+        .behalf_assignment_repo()
         .create_assignment(
             ctx.workspace_id,
             req.assignee_user_id,
@@ -571,8 +571,8 @@ pub async fn delete_behalf_assignment_handler(
     ctx.require_permission(required_permission)?;
 
     let affected = state
-        .attendance
-        .behalf_assignment_repo
+        .attendance()
+        .behalf_assignment_repo()
         .delete_assignment(ctx.workspace_id, assignment_id)
         .await?;
 
@@ -593,8 +593,8 @@ pub async fn list_behalf_assignments_handler(
     ctx.require_permission(required_permission)?;
 
     state
-        .attendance
-        .behalf_assignment_repo
+        .attendance()
+        .behalf_assignment_repo()
         .list_all_assignments(ctx.workspace_id, domain_type)
         .await
 }
@@ -613,8 +613,8 @@ pub async fn get_my_behalf_targets_handler(
     domain_type: &str,
 ) -> AppResult<Vec<crate::models::Employee>> {
     let assignments = state
-        .attendance
-        .behalf_assignment_repo
+        .attendance()
+        .behalf_assignment_repo()
         .list_assignments_for_assignee(ctx.workspace_id, ctx.user_id, domain_type)
         .await?;
 
@@ -628,8 +628,8 @@ pub async fn get_my_behalf_targets_handler(
     let dept_map = if has_dept {
         let today = chrono::Utc::now().date_naive();
         state
-            .employees
-            .repo
+            .employees()
+            .repo()
             .get_employee_departments_at(&ctx.auth_token, today)
             .await?
     } else {
@@ -644,8 +644,8 @@ pub async fn get_my_behalf_targets_handler(
 
     let ids_vec: Vec<Uuid> = all_employee_ids.into_iter().collect();
     let employees = state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .get_employees_by_ids(&ids_vec, &ctx.auth_token)
         .await?;
 

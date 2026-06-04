@@ -45,8 +45,8 @@ pub async fn list_leave_types(
     let _workspace_id = ctx.workspace_id;
 
     let types = state
-        .leaves
-        .policy_repo
+        .leaves()
+        .policy_repo()
         .get_leave_types(ctx.workspace_id)
         .await?;
     Ok(Json(types))
@@ -72,8 +72,8 @@ pub async fn create_leave_type(
 
     let config = req.policy_config.unwrap_or_default();
     let lt = state
-        .leaves
-        .policy_repo
+        .leaves()
+        .policy_repo()
         .create_leave_type(ctx.workspace_id, req.code, req.name, req.is_paid, config)
         .await?;
 
@@ -102,8 +102,8 @@ pub async fn update_leave_type_config(
     ctx.require_permission(Permission::LeaveTypesManage)?;
 
     let lt = state
-        .leaves
-        .policy_repo
+        .leaves()
+        .policy_repo()
         .update_leave_type_config(id, ctx.workspace_id, req.policy_config)
         .await?;
 
@@ -130,8 +130,8 @@ pub async fn delete_leave_type(
     ctx.require_permission(Permission::LeaveTypesManage)?;
 
     let affected = state
-        .leaves
-        .policy_repo
+        .leaves()
+        .policy_repo()
         .delete_leave_type(id, ctx.workspace_id)
         .await?;
 

@@ -32,16 +32,16 @@ pub async fn get_incentive_policies(
     let _workspace_id = ctx.workspace_id;
 
     let policies = state
-        .payroll
-        .repo
+        .payroll()
+        .repo()
         .get_active_incentive_policies(ctx.workspace_id)
         .await?;
 
     let mut response = Vec::new();
     for policy in policies {
         let tiers = state
-            .payroll
-            .repo
+            .payroll()
+            .repo()
             .get_policy_tiers(ctx.workspace_id, policy.id)
             .await?;
         response.push(PayrollIncentivePolicyResponse { policy, tiers });
@@ -67,8 +67,8 @@ pub async fn create_incentive_policy(
     Json(req): Json<CreatePayrollIncentivePolicyRequest>,
 ) -> AppResult<(StatusCode, Json<PayrollIncentivePolicy>)> {
     let policy = state
-        .payroll
-        .repo
+        .payroll()
+        .repo()
         .create_incentive_policy(ctx.workspace_id, &req)
         .await?;
     Ok((StatusCode::CREATED, Json(policy)))
@@ -93,8 +93,8 @@ pub async fn delete_incentive_policy(
 ) -> AppResult<StatusCode> {
     let (_, policy_id) = params;
     state
-        .payroll
-        .repo
+        .payroll()
+        .repo()
         .delete_incentive_policy(ctx.workspace_id, policy_id)
         .await?;
     Ok(StatusCode::NO_CONTENT)
@@ -119,8 +119,8 @@ pub async fn clone_incentive_policy(
 ) -> AppResult<(StatusCode, Json<PayrollIncentivePolicy>)> {
     let (_, policy_id) = params;
     let policy = state
-        .payroll
-        .repo
+        .payroll()
+        .repo()
         .clone_incentive_policy(ctx.workspace_id, policy_id)
         .await?;
     Ok((StatusCode::CREATED, Json(policy)))

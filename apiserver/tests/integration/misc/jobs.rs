@@ -47,7 +47,7 @@ async fn test_get_job_status_success() {
     let job_id = Uuid::new_v4();
 
     // Insert mock job metadata into Redis
-    let redis = state.infra.redis.clone().unwrap();
+    let redis = state.infra().redis().cloned().unwrap();
     let queue = JobQueue::new(redis);
 
     let meta = JobMetadata {
@@ -123,7 +123,7 @@ async fn test_get_job_status_forbidden_cross_workspace() {
     let job_id = Uuid::new_v4();
 
     // Create job belonging to ws_1
-    let redis = state.infra.redis.clone().unwrap();
+    let redis = state.infra().redis().cloned().unwrap();
     let queue = JobQueue::new(redis);
 
     let meta = JobMetadata {

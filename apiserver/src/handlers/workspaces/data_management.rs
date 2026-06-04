@@ -20,8 +20,8 @@ pub async fn clear_workspace_data(
     Query(query): Query<ClearWorkspaceDataQuery>,
 ) -> AppResult<StatusCode> {
     state
-        .core
-        .workspace_repo
+        .core()
+        .workspace_repo()
         .clear_workspace_data(&ctx.auth_token, &query.group)
         .await?;
     Ok(StatusCode::OK)

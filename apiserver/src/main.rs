@@ -1,5 +1,8 @@
 //! HRM Attendance API Server entry point.
 
+#![deny(clippy::unwrap_used)]
+#![deny(clippy::expect_used)]
+
 use apiserver::diesel_pool::{DbPoolConfig, DieselPools};
 use apiserver::openapi::ApiDoc;
 use apiserver::queue::RedisPool;
@@ -141,7 +144,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // ║  reader pool → dashboard analytics, ESS read-only queries     ║
     // ║                                                               ║
     // ║  ⚠  DO NOT pass worker_pool to API services                   ║
-    // ║  ⚠  DO NOT use state.infra.db.reader() for mutations (INSERT/etc)   ║
+    // ║  ⚠  DO NOT use state.infra().db.reader() for mutations (INSERT/etc)   ║
     // ╚═══════════════════════════════════════════════════════════════╝
 
     // Initialize Redis for distributed job processing and presence tracking (optional)
@@ -215,7 +218,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    state.agents.manager.shutdown().await;
+    state.agents().manager().shutdown().await;
 
     drop(state);
 

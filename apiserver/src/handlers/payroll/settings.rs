@@ -25,8 +25,8 @@ pub async fn get_payroll_settings(
     let workspace_id = ctx.workspace_id;
 
     let settings = state
-        .payroll
-        .repo
+        .payroll()
+        .repo()
         .get_payroll_settings(workspace_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Settings not found".to_string()))?;
@@ -52,8 +52,8 @@ pub async fn get_payroll_settings_history(
     let workspace_id = ctx.workspace_id;
 
     let history = state
-        .payroll
-        .repo
+        .payroll()
+        .repo()
         .get_payroll_settings_history(workspace_id)
         .await?;
 
@@ -84,8 +84,8 @@ pub async fn update_payroll_settings(
         .effective_date
         .unwrap_or_else(|| Utc::now().date_naive());
     let current = state
-        .payroll
-        .repo
+        .payroll()
+        .repo()
         .get_payroll_settings_at(workspace_id, effective_date)
         .await
         .unwrap_or(None);
@@ -120,8 +120,8 @@ pub async fn update_payroll_settings(
     };
 
     let settings = state
-        .payroll
-        .repo
+        .payroll()
+        .repo()
         .update_payroll_settings(
             workspace_id,
             &crate::models::SavePayrollSettings {

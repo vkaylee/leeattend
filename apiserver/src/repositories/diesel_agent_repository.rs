@@ -98,6 +98,7 @@ impl AgentRepository for DieselAgentRepository {
 
         let devices_result = devices::table
             .filter(devices::agent_id.eq(agent_id))
+            .filter(devices::workspace_id.eq(auth_token.workspace_id()))
             .order(devices::created_at.desc())
             .load::<DeviceEntity>(&mut *conn)
             .await

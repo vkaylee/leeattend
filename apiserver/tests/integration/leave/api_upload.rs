@@ -99,8 +99,8 @@ async fn test_upload_leave_csv_api() {
     );
 
     let job_opt = _state
-        .attendance
-        .import_repo
+        .attendance()
+        .import_repo()
         .get_job_by_id(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             job_uuid,
@@ -118,8 +118,8 @@ async fn test_upload_leave_csv_api() {
 
     if result.is_err() {
         let job_after = _state
-            .attendance
-            .import_repo
+            .attendance()
+            .import_repo()
             .get_job_by_id(
                 &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
                 job_uuid,
@@ -131,8 +131,8 @@ async fn test_upload_leave_csv_api() {
     }
 
     let job_opt = _state
-        .attendance
-        .import_repo
+        .attendance()
+        .import_repo()
         .get_job_by_id(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             job_uuid,

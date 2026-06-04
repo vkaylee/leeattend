@@ -36,8 +36,8 @@ async fn reprocess_after_roster_change(
     date: NaiveDate,
 ) {
     let tz_str = match state
-        .core
-        .workspace_repo
+        .core()
+        .workspace_repo()
         .get_workspace_by_id(workspace_id)
         .await
     {
@@ -47,8 +47,8 @@ async fn reprocess_after_roster_change(
     let tz = crate::utils::tz::parse_workspace_tz(&tz_str);
 
     if let Err(e) = state
-        .attendance
-        .pairing_service
+        .attendance()
+        .pairing_service()
         .reprocess_daily_attendance(workspace_id, employee_id, date, tz)
         .await
     {
@@ -79,8 +79,8 @@ pub async fn get_shifts(
     let workspace_id = ctx.workspace_id;
 
     let shifts = state
-        .shifts
-        .service
+        .shifts()
+        .service()
         .get_workspace_shifts(workspace_id)
         .await?;
 
@@ -107,12 +107,12 @@ pub async fn create_shift(
 
     let workspace_id = ctx.workspace_id;
     let shift = state
-        .shifts
-        .service
+        .shifts()
+        .service()
         .create_shift(workspace_id, &req)
         .await?;
 
-    if let Some(cache) = &state.infra.roster_cache {
+    if let Some(cache) = state.infra().roster_cache() {
         cache.invalidate(workspace_id).await;
     }
 
@@ -140,12 +140,12 @@ pub async fn update_shift(
     let (_workspace_id, shift_id) = params;
     ctx.require_permission(Permission::ShiftsUpdate)?;
     let shift = state
-        .shifts
-        .service
+        .shifts()
+        .service()
         .update_shift(ctx.workspace_id, shift_id, req)
         .await?;
 
-    if let Some(cache) = &state.infra.roster_cache {
+    if let Some(cache) = state.infra().roster_cache() {
         cache.invalidate(ctx.workspace_id).await;
     }
 
@@ -169,8 +169,8 @@ pub async fn assign_shift(
     Json(req): Json<AssignShiftRequest>,
 ) -> AppResult<StatusCode> {
     state
-        .shifts
-        .service
+        .shifts()
+        .service()
         .assign_shift(
             ctx.workspace_id,
             req.employee_id,
@@ -180,7 +180,7 @@ pub async fn assign_shift(
         )
         .await?;
 
-    if let Some(cache) = &state.infra.roster_cache {
+    if let Some(cache) = state.infra().roster_cache() {
         cache.invalidate(ctx.workspace_id).await;
     }
 
@@ -214,10 +214,10 @@ pub async fn get_workspace_schedules(
         .map_err(|_err| AppError::Validation("Invalid end_date format".to_string()))?;
 
     let schedules = state
-        .shifts
-        .roster_repo
+        .shifts()
+        .roster_repo()
         .get_workspace_schedules(
-            state.infra.roster_cache.as_deref(),
+            state.infra().roster_cache().map(|v| &**v),
             &ctx.auth_token,
             start_date,
             end_date,
@@ -245,8 +245,8 @@ pub async fn get_assignment_history(
     let _workspace_id = ctx.workspace_id;
 
     let history = state
-        .shifts
-        .roster_repo
+        .shifts()
+        .roster_repo()
         .get_assignment_history(
             &ctx.auth_token,
             50, // Limit to last 50 entries
@@ -288,8 +288,8 @@ pub async fn get_employee_rosters(
         .unwrap_or_else(|| start_date + chrono::Duration::days(30));
 
     let rosters = state
-        .shifts
-        .roster_repo
+        .shifts()
+        .roster_repo()
         .get_employee_rosters(&ctx.auth_token, employee_id, start_date, end_date)
         .await?;
 
@@ -328,12 +328,12 @@ pub async fn upsert_roster(
     };
 
     let saved = state
-        .shifts
-        .roster_repo
+        .shifts()
+        .roster_repo()
         .upsert_roster(&ctx.auth_token, &roster)
         .await?;
 
-    if let Some(cache) = &state.infra.roster_cache {
+    if let Some(cache) = state.infra().roster_cache() {
         cache.invalidate(ctx.workspace_id).await;
     }
 
@@ -364,12 +364,12 @@ pub async fn bulk_upsert_roster(
     ctx.require_permission(Permission::RostersManage)?;
     let dates: Vec<NaiveDate> = req.items.iter().map(|i| i.date).collect();
     state
-        .shifts
-        .roster_repo
+        .shifts()
+        .roster_repo()
         .bulk_upsert_roster(&ctx.auth_token, employee_id, req.items)
         .await?;
 
-    if let Some(cache) = &state.infra.roster_cache {
+    if let Some(cache) = state.infra().roster_cache() {
         cache.invalidate(ctx.workspace_id).await;
     }
 
@@ -400,12 +400,12 @@ pub async fn delete_roster(
     let (_workspace_id, employee_id, date) = params;
     ctx.require_permission(Permission::RostersManage)?;
     state
-        .shifts
-        .roster_repo
+        .shifts()
+        .roster_repo()
         .delete_roster(&ctx.auth_token, employee_id, date)
         .await?;
 
-    if let Some(cache) = &state.infra.roster_cache {
+    if let Some(cache) = state.infra().roster_cache() {
         cache.invalidate(ctx.workspace_id).await;
     }
 

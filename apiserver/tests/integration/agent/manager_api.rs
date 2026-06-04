@@ -62,7 +62,11 @@ async fn test_agent_commands_api() {
 
     // 3. Mock agent being online
     let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
-    state.agents.manager.add_agent(agent_id.clone(), tx).await;
+    state
+        .agents()
+        .manager()
+        .add_agent(agent_id.clone(), tx)
+        .await;
 
     // 4. Send command to online agent
     let response = app
@@ -178,7 +182,11 @@ async fn test_get_agents_device_status() {
 
     // 2. Mock agent being online
     let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
-    state.agents.manager.add_agent(agent_id.clone(), tx).await;
+    state
+        .agents()
+        .manager()
+        .add_agent(agent_id.clone(), tx)
+        .await;
 
     let response = app
         .clone()

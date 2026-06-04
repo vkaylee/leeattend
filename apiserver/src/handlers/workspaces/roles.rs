@@ -60,7 +60,7 @@ pub async fn get_member_roles(
 ) -> AppResult<Json<serde_json::Value>> {
     let (_, user_id) = __path_params;
     let (primary, extra) = WorkspaceService::get_member_roles(
-        state.core.workspace_repo.as_ref(),
+        state.core().workspace_repo().as_ref(),
         ctx.workspace_id,
         user_id,
     )
@@ -104,13 +104,13 @@ pub async fn assign_extra_role(
     }
 
     let extra_role = state
-        .core
-        .workspace_repo
+        .core()
+        .workspace_repo()
         .assign_extra_role(ctx.workspace_id, user_id, req.role_id, req.expires_at)
         .await?;
 
     AuditHelper::log(crate::services::audit_service::AuditLogArgs {
-        repo: &state.core.audit_repo,
+        repo: state.core().audit_repo(),
         workspace_id: ctx.workspace_id,
         actor_id: Some(ctx.user_id),
         actor_type: Some("user".to_string()),
@@ -124,7 +124,7 @@ pub async fn assign_extra_role(
     })
     .await;
 
-    if let Some(cache) = &state.infra.cache {
+    if let Some(cache) = state.infra().cache() {
         let _ = cache
             .delete(&format!(
                 "cache:auth:permissions:{}:{}",
@@ -163,14 +163,14 @@ pub async fn revoke_extra_role(
     ctx.require_permission(Permission::MembersRolesManage)?;
 
     let affected = state
-        .core
-        .workspace_repo
+        .core()
+        .workspace_repo()
         .revoke_extra_role(ctx.workspace_id, role_id)
         .await?;
 
     if affected > 0 {
         AuditHelper::log(crate::services::audit_service::AuditLogArgs {
-            repo: &state.core.audit_repo,
+            repo: state.core().audit_repo(),
             workspace_id: ctx.workspace_id,
             actor_id: Some(ctx.user_id),
             actor_type: Some("user".to_string()),
@@ -184,7 +184,7 @@ pub async fn revoke_extra_role(
         })
         .await;
 
-        if let Some(cache) = &state.infra.cache {
+        if let Some(cache) = state.infra().cache() {
             let _ = cache
                 .delete(&format!(
                     "cache:auth:permissions:{}:{}",
@@ -234,8 +234,8 @@ pub async fn get_workspace_roles(
     let limit = query.limit.unwrap_or(50).clamp(1, 3000);
 
     let (roles, total) = state
-        .core
-        .workspace_repo
+        .core()
+        .workspace_repo()
         .get_workspace_roles(ctx.workspace_id, page, limit)
         .await?;
 
@@ -269,8 +269,8 @@ pub async fn create_workspace_role(
     ctx.require_permission(Permission::MembersRolesManage)?;
 
     let role = state
-        .core
-        .workspace_repo
+        .core()
+        .workspace_repo()
         .create_workspace_role(
             ctx.workspace_id,
             req.name,
@@ -308,8 +308,8 @@ pub async fn update_workspace_role(
     ctx.require_permission(Permission::MembersRolesManage)?;
 
     let role = state
-        .core
-        .workspace_repo
+        .core()
+        .workspace_repo()
         .update_workspace_role(
             ctx.workspace_id,
             role_id,
@@ -347,13 +347,13 @@ pub async fn delete_workspace_role(
     ctx.require_permission(Permission::MembersRolesManage)?;
 
     let affected = state
-        .core
-        .workspace_repo
+        .core()
+        .workspace_repo()
         .delete_workspace_role(ctx.workspace_id, role_id)
         .await?;
 
     if affected > 0 {
-        if let Some(cache) = &state.infra.cache {
+        if let Some(cache) = state.infra().cache() {
             let _ = cache
                 .delete_pattern(&format!("cache:auth:permissions:{}:*", ctx.workspace_id))
                 .await;
@@ -389,8 +389,8 @@ pub async fn get_role_permissions(
     ctx.require_permission(Permission::MembersRolesManage)?;
 
     let permissions = state
-        .core
-        .workspace_repo
+        .core()
+        .workspace_repo()
         .get_role_permissions_by_role_id(ctx.workspace_id, role_id)
         .await?;
 
@@ -422,8 +422,8 @@ pub async fn update_role_permissions(
     ctx.require_permission(Permission::MembersRolesManage)?;
 
     let role_exists = state
-        .core
-        .workspace_repo
+        .core()
+        .workspace_repo()
         .role_exists_and_is_not_system(ctx.workspace_id, role_id)
         .await?;
 
@@ -434,12 +434,12 @@ pub async fn update_role_permissions(
     }
 
     state
-        .core
-        .workspace_repo
+        .core()
+        .workspace_repo()
         .set_role_permissions(role_id, req.permissions)
         .await?;
 
-    if let Some(cache) = &state.infra.cache {
+    if let Some(cache) = state.infra().cache() {
         let _ = cache
             .delete_pattern(&format!("cache:auth:permissions:{}:*", ctx.workspace_id))
             .await;

@@ -46,8 +46,8 @@ pub async fn list_policies(
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<OvertimePolicy>>> {
     let policies = state
-        .payroll
-        .overtime_policy_repo
+        .payroll()
+        .overtime_policy_repo()
         .get_policy_definitions(ctx.workspace_id)
         .await?;
     Ok(Json(policies))
@@ -71,8 +71,8 @@ pub async fn get_policy(
 ) -> AppResult<Json<(OvertimePolicy, Vec<OvertimeRule>)>> {
     let (_, policy_id) = params;
     let result = state
-        .payroll
-        .overtime_policy_repo
+        .payroll()
+        .overtime_policy_repo()
         .get_policy_with_rules(ctx.workspace_id, policy_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Policy not found".to_string()))?;
@@ -97,8 +97,8 @@ pub async fn create_policy(
 ) -> AppResult<Json<OvertimePolicy>> {
     ctx.require_permission(Permission::OvertimePoliciesManage)?;
     let policy = state
-        .payroll
-        .overtime_policy_repo
+        .payroll()
+        .overtime_policy_repo()
         .create_policy_definition(ctx.workspace_id, &req.name, req.description.as_deref())
         .await?;
     Ok(Json(policy))
@@ -138,8 +138,8 @@ pub async fn add_rule(
     };
 
     let created = state
-        .payroll
-        .overtime_policy_repo
+        .payroll()
+        .overtime_policy_repo()
         .add_rule(ctx.workspace_id, &rule)
         .await?;
     Ok(Json(created))
@@ -171,8 +171,8 @@ pub async fn assign_policy(
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::OvertimePoliciesManage)?;
     state
-        .payroll
-        .overtime_policy_repo
+        .payroll()
+        .overtime_policy_repo()
         .create_policy_assignment(
             ctx.workspace_id,
             &req.assignee_type,

@@ -68,7 +68,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                     {
                                         // Try async enqueue via Redis; fall back to sync processing
                                         let result =
-                                            if let Some(ref redis) = state_clone.infra.redis {
+                                            if let Some(redis) = state_clone.infra().redis() {
                                                 // Async path: enqueue to Redis for worker processing
                                                 use crate::queue::{
                                                     Job, JobPayload, JobPriority, JobQueue,
@@ -122,15 +122,15 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                 crate::agent_manager::CentralMessage,
                             >(v.clone())
                             {
-                                state_clone.agents.manager.handle_response(resp).await;
+                                state_clone.agents().manager().handle_response(resp).await;
                             }
                         } else if v["type"] == "heartbeat" {
                             if let Some(id) = v["agent_id"].as_str() {
                                 // Ensure agent updates only their own timestamp
                                 if id == agent_id {
                                     state_clone
-                                        .agents
-                                        .manager
+                                        .agents()
+                                        .manager()
                                         .record_heartbeat(id.to_string())
                                         .await;
 
@@ -150,15 +150,20 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                             if let (Some(id), Some(token)) =
                                 (v["agent_id"].as_str(), v["token"].as_str())
                             {
-                                match state_clone.agents.service.authorize_agent(id, token).await {
+                                match state_clone
+                                    .agents()
+                                    .service()
+                                    .authorize_agent(id, token)
+                                    .await
+                                {
                                     Ok(Some(agent)) => {
                                         agent_id = id.to_string();
                                         workspace_id = agent.workspace_id;
 
                                         // Fetch workspace config for timezone aware parsing
                                         if let Ok(Some(ws)) = state_clone
-                                            .core
-                                            .workspace_repo
+                                            .core()
+                                            .workspace_repo()
                                             .get_workspace_by_id(workspace_id)
                                             .await
                                         {
@@ -169,20 +174,20 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                         }
 
                                         state_clone
-                                            .agents
-                                            .manager
+                                            .agents()
+                                            .manager()
                                             .add_agent(agent_id.clone(), tx.clone())
                                             .await;
 
                                         let _ = state_clone
-                                            .agents
-                                            .service
+                                            .agents()
+                                            .service()
                                             .update_last_ip(&agent_id, "websocket_conn")
                                             .await;
 
                                         let _ = state_clone
-                                            .agents
-                                            .service
+                                            .agents()
+                                            .service()
                                             .notify_config_update(workspace_id, &agent_id)
                                             .await;
                                     }
@@ -236,7 +241,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
             }
         }
         if !agent_id.is_empty() {
-            state_clone.agents.manager.remove_agent(&agent_id).await;
+            state_clone.agents().manager().remove_agent(&agent_id).await;
         }
     });
 
@@ -266,13 +271,17 @@ pub async fn get_agents(
 
     // 1. Fetch workspace-scoped authorized agents from DB
     let db_agents = state
-        .agents
-        .repo
+        .agents()
+        .repo()
         .get_workspace_agents(&ctx.auth_token, false)
         .await?;
 
     // 2. Get status (online/offline) from AgentManager (Redis-backed)
-    let mut agents_status = state.agents.manager.get_all_agents_status(db_agents).await;
+    let mut agents_status = state
+        .agents()
+        .manager()
+        .get_all_agents_status(db_agents)
+        .await;
 
     if agents_status.is_empty() {
         return Ok(Json(Vec::new()));
@@ -281,8 +290,8 @@ pub async fn get_agents(
     // 3. Batch fetch all devices for these agents to avoid N+1
     let agent_ids: Vec<String> = agents_status.iter().map(|a| a.agent_id.clone()).collect();
     let devices = state
-        .agents
-        .repo
+        .agents()
+        .repo()
         .get_devices_by_agent_ids(&agent_ids, &ctx.auth_token)
         .await?;
 
@@ -339,8 +348,8 @@ pub async fn send_command(
 ) -> AppResult<impl IntoResponse> {
     // Verify that the agent belongs to this workspace
     let agent_exists = state
-        .agents
-        .repo
+        .agents()
+        .repo()
         .agent_exists_in_workspace(&agent_id, &ctx.auth_token)
         .await?;
 
@@ -364,8 +373,8 @@ pub async fn send_command(
     };
 
     state
-        .agents
-        .manager
+        .agents()
+        .manager()
         .send_command(&agent_id, command)
         .await
         .map_err(AppError::NotFound)?;
@@ -392,8 +401,8 @@ pub async fn get_devices(
     let _workspace_id = ctx.workspace_id;
 
     let devices = state
-        .agents
-        .repo
+        .agents()
+        .repo()
         .get_workspace_devices(&ctx.auth_token)
         .await?;
 
@@ -420,8 +429,8 @@ pub async fn create_device(
     let port = req.port.unwrap_or(4370);
 
     state
-        .agents
-        .repo
+        .agents()
+        .repo()
         .create_device(
             id,
             &req.agent_id,
@@ -436,8 +445,8 @@ pub async fn create_device(
         .await?;
 
     let _ = state
-        .agents
-        .service
+        .agents()
+        .service()
         .notify_config_update(workspace_id, &req.agent_id)
         .await;
 
@@ -465,8 +474,8 @@ pub async fn update_device(
     let workspace_id = ctx.workspace_id;
 
     let current_device = state
-        .agents
-        .repo
+        .agents()
+        .repo()
         .get_device_by_id(id, &ctx.auth_token)
         .await?
         .ok_or_else(|| AppError::NotFound("Device not found".to_string()))?;
@@ -484,8 +493,8 @@ pub async fn update_device(
     let timezone = req.timezone.unwrap_or(current_device.timezone);
 
     state
-        .agents
-        .repo
+        .agents()
+        .repo()
         .update_device(
             id,
             &ctx.auth_token,
@@ -500,8 +509,8 @@ pub async fn update_device(
         .await?;
 
     let _ = state
-        .agents
-        .service
+        .agents()
+        .service()
         .notify_config_update(workspace_id, &current_device.agent_id)
         .await;
 
@@ -527,18 +536,22 @@ pub async fn delete_device(
     let workspace_id = ctx.workspace_id;
 
     let agent_id = state
-        .agents
-        .repo
+        .agents()
+        .repo()
         .get_agent_id_for_device(id, &ctx.auth_token)
         .await?;
 
-    let rows_affected = state.agents.repo.delete_device(id, &ctx.auth_token).await?;
+    let rows_affected = state
+        .agents()
+        .repo()
+        .delete_device(id, &ctx.auth_token)
+        .await?;
 
     if rows_affected > 0 {
         if let Some(aid) = agent_id {
             let _ = state
-                .agents
-                .service
+                .agents()
+                .service()
                 .notify_config_update(workspace_id, &aid)
                 .await;
         }
@@ -575,8 +588,8 @@ pub async fn get_authorized_agents(
 
     let include_inactive = params.include_inactive.unwrap_or(false);
     let agents = state
-        .agents
-        .repo
+        .agents()
+        .repo()
         .get_workspace_agents(&ctx.auth_token, include_inactive)
         .await?;
 
@@ -600,8 +613,8 @@ pub async fn create_authorized_agent(
     let _workspace_id = ctx.workspace_id;
 
     state
-        .agents
-        .repo
+        .agents()
+        .repo()
         .create_authorized_agent(
             &req.id,
             &req.name,
@@ -640,14 +653,14 @@ pub async fn update_agent_trust(
     let _workspace_id = ctx.workspace_id;
 
     let rows_affected = state
-        .agents
-        .repo
+        .agents()
+        .repo()
         .update_agent_trust(&id, &ctx.auth_token, req.is_trusted)
         .await?;
 
     if rows_affected > 0 {
         if !req.is_trusted {
-            state.agents.manager.remove_agent(&id).await;
+            state.agents().manager().remove_agent(&id).await;
         }
         Ok(StatusCode::OK)
     } else {
@@ -674,8 +687,8 @@ pub async fn get_authorized_agent_by_id(
     let _workspace_id = ctx.workspace_id;
 
     let agent = state
-        .agents
-        .repo
+        .agents()
+        .repo()
         .get_agent_by_id_in_workspace(&id, &ctx.auth_token)
         .await?
         .ok_or_else(|| AppError::NotFound("Agent not found".to_string()))?;
@@ -718,15 +731,15 @@ pub async fn update_authorized_agent(
     // do not have named parameter skipping if we bind them in order.
     // Fetch existing
     let mut current_agent = state
-        .agents
-        .repo
+        .agents()
+        .repo()
         .get_agent_by_id_in_workspace(&id, &ctx.auth_token)
         .await?
         .ok_or_else(|| AppError::NotFound("Agent not found".to_string()))?;
 
     let mut conn = state
-        .infra
-        .diesel
+        .infra()
+        .diesel()
         .api
         .get()
         .await
@@ -784,13 +797,17 @@ pub async fn update_authorized_agent(
     .map_err(|e| AppError::Internal(e.to_string()))?;
 
     if (!current_agent.is_trusted || !current_agent.is_active)
-        && state.agents.manager.is_online(&current_agent.id).await
+        && state.agents().manager().is_online(&current_agent.id).await
     {
-        state.agents.manager.remove_agent(&current_agent.id).await;
+        state
+            .agents()
+            .manager()
+            .remove_agent(&current_agent.id)
+            .await;
     } else {
         let _ = state
-            .agents
-            .service
+            .agents()
+            .service()
             .notify_config_update(workspace_id, &current_agent.id)
             .await;
     }
@@ -816,15 +833,15 @@ pub async fn get_device_info_on_demand(
     let _workspace_id = ctx.workspace_id;
 
     let device = state
-        .agents
-        .repo
+        .agents()
+        .repo()
         .get_device_by_id(id, &ctx.auth_token)
         .await?
         .ok_or_else(|| AppError::NotFound("Device not found".to_string()))?;
 
     let info = state
-        .agents
-        .manager
+        .agents()
+        .manager()
         .get_device_info(&device.agent_id, &device.id.to_string())
         .await
         .map_err(AppError::Internal)?;
@@ -851,13 +868,13 @@ pub async fn delete_authorized_agent(
     let _workspace_id = ctx.workspace_id;
 
     let rows_affected = state
-        .agents
-        .repo
+        .agents()
+        .repo()
         .deactivate_agent(&id, &ctx.auth_token)
         .await?;
 
     if rows_affected > 0 {
-        state.agents.manager.remove_agent(&id).await;
+        state.agents().manager().remove_agent(&id).await;
         Ok(StatusCode::NO_CONTENT)
     } else {
         Err(AppError::NotFound("Agent not found".to_string()))

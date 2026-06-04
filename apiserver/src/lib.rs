@@ -18,10 +18,13 @@
     clippy::items_after_statements,
     // TECH_DEBT: Defer similar_names and significant_drop_tightening to build cleanly
     clippy::similar_names,
-    clippy::significant_drop_tightening
+    clippy::significant_drop_tightening,
+    clippy::too_many_arguments
 )]
 #![warn(clippy::too_many_lines)]
 #![deny(clippy::clone_on_ref_ptr)]
+#![deny(clippy::unwrap_used)]
+#![deny(clippy::expect_used)]
 #![deny(clippy::map_err_ignore)]
 #![deny(clippy::match_like_matches_macro)]
 #![deny(clippy::type_complexity)]
@@ -60,7 +63,6 @@
         clippy::too_many_lines,
         clippy::module_inception,
         clippy::used_underscore_binding,
-        clippy::too_many_arguments,
         clippy::default_trait_access
     )
 )]
@@ -143,7 +145,7 @@ mod ax_auth {
                         let app_state = Arc::<AppState>::from_ref(state);
 
                         if let Ok(user_id) =
-                            AuthService::verify_token(token, &app_state.core.jwt_secret)
+                            AuthService::verify_token(token, app_state.core().jwt_secret())
                         {
                             return Ok(Self(user_id));
                         }
@@ -159,7 +161,7 @@ mod ax_auth {
                         if let Some(token) = cookie.strip_prefix("access_token=") {
                             let app_state = Arc::<AppState>::from_ref(state);
                             if let Ok(user_id) =
-                                AuthService::verify_token(token, &app_state.core.jwt_secret)
+                                AuthService::verify_token(token, app_state.core().jwt_secret())
                             {
                                 return Ok(Self(user_id));
                             }
@@ -174,7 +176,7 @@ mod ax_auth {
                     if let Some(token) = param.strip_prefix("access_token=") {
                         let app_state = Arc::<AppState>::from_ref(state);
                         if let Ok(user_id) =
-                            AuthService::verify_token(token, &app_state.core.jwt_secret)
+                            AuthService::verify_token(token, app_state.core().jwt_secret())
                         {
                             return Ok(Self(user_id));
                         }
@@ -293,9 +295,9 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             crate::mw::i18n::locale_middleware,
         ))
         .layer(crate::mw::RateLimitLayer::new(
-            state.infra.redis.clone(),
+            state.infra().redis().cloned(),
             crate::mw::rate_limit::RateLimitConfig::default(),
-            state.core.jwt_secret.clone(),
+            state.core().jwt_secret().to_string(),
         ))
         .with_state(state)
 }

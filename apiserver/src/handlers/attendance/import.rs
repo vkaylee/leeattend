@@ -43,8 +43,8 @@ pub async fn upload_attendance_excel(
     let path = path.to_string_lossy().to_string();
 
     let job_id = state
-        .attendance
-        .import_service
+        .attendance()
+        .import_service()
         .batch_import_from_file(
             ctx.workspace_id,
             ctx.user_id,
@@ -88,8 +88,8 @@ pub async fn upload_attendance_logs(
     let path = path.to_string_lossy().to_string();
 
     let job_id = state
-        .attendance
-        .import_service
+        .attendance()
+        .import_service()
         .batch_import_from_file(ctx.workspace_id, ctx.user_id, path, ImportTargetType::Log)
         .await?;
 
@@ -144,8 +144,8 @@ pub async fn upload_employee_excel(
     };
 
     state
-        .attendance
-        .import_repo
+        .attendance()
+        .import_repo()
         .create_job(&ctx.auth_token, &import_job)
         .await
         .map_err(|e| AppError::Internal(format!("Failed to create import job: {e}")))?;
@@ -165,7 +165,7 @@ pub async fn upload_employee_excel(
         JobPayload::EmployeeImport(payload),
     );
 
-    let queue = state.infra.job_queue()?;
+    let queue = state.infra().job_queue()?;
     queue
         .enqueue_jobs(vec![job])
         .await
@@ -201,14 +201,14 @@ pub async fn get_latest_import_job(
     let _workspace_id = ctx.workspace_id;
 
     let mut job_opt = state
-        .attendance
-        .import_repo
+        .attendance()
+        .import_repo()
         .get_latest_job(&ctx.auth_token, query.target_type)
         .await?;
 
     if let Some(ref mut job) = job_opt {
         if job.status == crate::models::ImportJobStatus::Processing {
-            if let Some(ref redis) = state.infra.redis {
+            if let Some(redis) = state.infra().redis() {
                 let mut conn = redis.conn();
                 let key = format!("import_progress:{}", job.id);
                 if let Ok(Some(count)) = redis::cmd("GET")
@@ -248,14 +248,14 @@ pub async fn get_import_job_status(
     let _workspace_id = ctx.workspace_id;
 
     let mut job = state
-        .attendance
-        .import_repo
+        .attendance()
+        .import_repo()
         .get_job_by_id(&ctx.auth_token, job_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Job not found".to_string()))?;
 
     if job.status == crate::models::ImportJobStatus::Processing {
-        if let Some(ref redis) = state.infra.redis {
+        if let Some(redis) = state.infra().redis() {
             let mut conn = redis.conn();
             let key = format!("import_progress:{}", job.id);
             if let Ok(Some(count)) = redis::cmd("GET")
@@ -294,8 +294,8 @@ pub async fn download_import_error_file(
     let workspace_id = ctx.workspace_id;
 
     let job = state
-        .attendance
-        .import_repo
+        .attendance()
+        .import_repo()
         .get_job_by_id(&ctx.auth_token, job_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Job not found".to_string()))?;

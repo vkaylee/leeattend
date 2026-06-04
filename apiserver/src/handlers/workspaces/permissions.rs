@@ -38,8 +38,8 @@ pub async fn get_member_extra_permissions(
     ctx.require_permission(Permission::MembersRead)?;
 
     let perms = state
-        .core
-        .workspace_repo
+        .core()
+        .workspace_repo()
         .get_member_extra_permissions(ctx.workspace_id, user_id)
         .await?;
 
@@ -88,8 +88,8 @@ pub async fn assign_extra_permission(
     }
 
     let perm = state
-        .core
-        .workspace_repo
+        .core()
+        .workspace_repo()
         .assign_extra_permission(
             ctx.workspace_id,
             user_id,
@@ -100,7 +100,7 @@ pub async fn assign_extra_permission(
         .await?;
 
     AuditHelper::log(crate::services::audit_service::AuditLogArgs {
-        repo: &state.core.audit_repo,
+        repo: state.core().audit_repo(),
         workspace_id: ctx.workspace_id,
         actor_id: Some(ctx.user_id),
         actor_type: Some("user".to_string()),
@@ -116,7 +116,7 @@ pub async fn assign_extra_permission(
     })
     .await;
 
-    if let Some(cache) = &state.infra.cache {
+    if let Some(cache) = state.infra().cache() {
         let _ = cache
             .delete(&format!(
                 "cache:auth:permissions:{}:{}",
@@ -157,14 +157,14 @@ pub async fn revoke_extra_permission(
     ctx.require_permission(Permission::MembersRolesManage)?;
 
     let affected = state
-        .core
-        .workspace_repo
+        .core()
+        .workspace_repo()
         .revoke_extra_permission(ctx.workspace_id, user_id, perm_id)
         .await?;
 
     if affected > 0 {
         AuditHelper::log(crate::services::audit_service::AuditLogArgs {
-            repo: &state.core.audit_repo,
+            repo: state.core().audit_repo(),
             workspace_id: ctx.workspace_id,
             actor_id: Some(ctx.user_id),
             actor_type: Some("user".to_string()),
@@ -178,7 +178,7 @@ pub async fn revoke_extra_permission(
         })
         .await;
 
-        if let Some(cache) = &state.infra.cache {
+        if let Some(cache) = state.infra().cache() {
             let _ = cache
                 .delete(&format!(
                     "cache:auth:permissions:{}:{}",

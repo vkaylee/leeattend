@@ -33,8 +33,8 @@ pub async fn get_assignment_rules(
     ctx.require_permission(Permission::AssignmentRulesManage)?;
 
     let rules = state
-        .shifts
-        .assignment_rule_repo
+        .shifts()
+        .assignment_rule_repo()
         .get_rules(&ctx.auth_token)
         .await?;
     Ok(Json(rules))
@@ -62,12 +62,12 @@ pub async fn create_assignment_rule(
     ctx.require_permission(Permission::AssignmentRulesManage)?;
 
     let rule = state
-        .shifts
-        .assignment_rule_repo
+        .shifts()
+        .assignment_rule_repo()
         .create_rule(&ctx.auth_token, &req)
         .await?;
 
-    if let Some(cache) = &state.infra.roster_cache {
+    if let Some(cache) = state.infra().roster_cache() {
         cache.invalidate(ctx.workspace_id).await;
     }
 
@@ -99,12 +99,12 @@ pub async fn update_assignment_rule(
     ctx.require_permission(Permission::AssignmentRulesManage)?;
 
     let rule = state
-        .shifts
-        .assignment_rule_repo
+        .shifts()
+        .assignment_rule_repo()
         .update_rule(&ctx.auth_token, rule_id, &req)
         .await?;
 
-    if let Some(cache) = &state.infra.roster_cache {
+    if let Some(cache) = state.infra().roster_cache() {
         cache.invalidate(ctx.workspace_id).await;
     }
 
@@ -134,12 +134,12 @@ pub async fn delete_assignment_rule(
     ctx.require_permission(Permission::AssignmentRulesManage)?;
 
     state
-        .shifts
-        .assignment_rule_repo
+        .shifts()
+        .assignment_rule_repo()
         .delete_rule(&ctx.auth_token, rule_id)
         .await?;
 
-    if let Some(cache) = &state.infra.roster_cache {
+    if let Some(cache) = state.infra().roster_cache() {
         cache.invalidate(ctx.workspace_id).await;
     }
 

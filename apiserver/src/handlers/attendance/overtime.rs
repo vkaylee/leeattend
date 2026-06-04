@@ -45,8 +45,8 @@ pub async fn claim_ot(
     let (_, employee_id) = __path_params;
     // 1. Verify ownership (Employee can only claim for themselves) or has OvertimeClaim permission
     let employee = state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .get_employee_by_id(employee_id, &ctx.auth_token)
         .await?
         .ok_or_else(|| AppError::NotFound("Employee not found".to_string()))?;
@@ -60,8 +60,8 @@ pub async fn claim_ot(
     }
 
     state
-        .attendance
-        .summary_service
+        .attendance()
+        .summary_service()
         .claim_ot(
             ctx.workspace_id,
             employee_id,
@@ -72,15 +72,15 @@ pub async fn claim_ot(
         .await?;
 
     let summary = state
-        .attendance
-        .attendance_daily_summary_repo
+        .attendance()
+        .attendance_daily_summary_repo()
         .get_summary(&ctx.auth_token, employee_id, req.date)
         .await?
         .ok_or_else(|| AppError::NotFound("Attendance summary not found".to_string()))?;
 
     state
-        .core
-        .approval_workflow_service
+        .core()
+        .approval_workflow_service()
         .submit_to_workflow(
             &ctx.auth_token,
             "ot_claim".to_string(),
@@ -135,8 +135,8 @@ pub async fn approve_ot(
     };
 
     state
-        .attendance
-        .summary_service
+        .attendance()
+        .summary_service()
         .approve_ot(
             ctx.workspace_id,
             employee_id,
@@ -186,8 +186,8 @@ pub async fn get_attendance_summaries(
         query.employee_id
     } else {
         let my_id = state
-            .employees
-            .repo
+            .employees()
+            .repo()
             .get_employee_id_by_user_id(&ctx.auth_token, ctx.user_id)
             .await?
             .ok_or_else(|| AppError::Forbidden("Forbidden".to_string()))?;
@@ -201,8 +201,8 @@ pub async fn get_attendance_summaries(
     };
 
     let summaries = state
-        .attendance
-        .attendance_daily_summary_repo
+        .attendance()
+        .attendance_daily_summary_repo()
         .get_summaries(
             &ctx.auth_token,
             target_employee_id,

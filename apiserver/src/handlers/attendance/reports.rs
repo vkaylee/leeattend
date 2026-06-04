@@ -78,8 +78,8 @@ pub async fn get_attendance_report(
     // Apply behalf claim restrictions if not global
     if !is_global {
         let caller_assignments = state
-            .attendance
-            .behalf_assignment_repo
+            .attendance()
+            .behalf_assignment_repo()
             .list_assignments_for_assignee(workspace_id, ctx.user_id, "overtime_claim")
             .await?;
 
@@ -121,14 +121,14 @@ pub async fn get_attendance_report(
 
         if !assigned_dept_ids.is_empty() {
             let active_employees = state
-                .employees
-                .repo
+                .employees()
+                .repo()
                 .get_active_employees(&ctx.auth_token)
                 .await?;
 
             let dept_map = state
-                .employees
-                .repo
+                .employees()
+                .repo()
                 .get_employee_departments_at(&ctx.auth_token, chrono::Utc::now().date_naive())
                 .await?;
 
@@ -184,8 +184,8 @@ pub async fn get_attendance_report(
 
     if report_type == "daily" {
         let report = state
-            .reports
-            .service
+            .reports()
+            .service()
             .get_daily_attendance_report(crate::services::report_service::AttendanceReportArgs {
                 workspace_id,
                 start_date,
@@ -203,8 +203,8 @@ pub async fn get_attendance_report(
         ))
     } else {
         let summary = state
-            .reports
-            .service
+            .reports()
+            .service()
             .get_workspace_attendance_summary(
                 crate::services::report_service::AttendanceReportArgs {
                     workspace_id,

@@ -106,8 +106,8 @@ pub async fn list_tenants(
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
     let mut conn = state
-        .infra
-        .diesel
+        .infra()
+        .diesel()
         .api
         .get()
         .await
@@ -200,7 +200,7 @@ pub async fn create_tenant(
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
     // 1. Provision the database (run migrations on BYOD URL)
-    let provisioner = std::sync::Arc::clone(&state.infra.tenant_provisioner);
+    let provisioner = std::sync::Arc::clone(state.infra().tenant_provisioner());
     let workspace_id = req.workspace_id;
     let new_db_url = provisioner
         .provision_tenant_db(&workspace_id, &req.database_url)
@@ -228,13 +228,13 @@ pub async fn create_tenant(
 
     // 3. Register in Supavisor
     state
-        .infra
-        .tenant_manager
+        .infra()
+        .tenant_manager()
         .register_tenant_dynamic(&tenant_id, &payload)
         .await?;
 
     // 4. Encrypt and save database_url
-    let encrypted_url = if let Some(crypto) = &state.infra.crypto_service {
+    let encrypted_url = if let Some(crypto) = state.infra().crypto_service() {
         crypto.encrypt(&req.database_url).map_err(|e| {
             tracing::error!("Failed to encrypt DB URL: {}", e);
             AppError::Internal("Encryption failed".into())
@@ -245,8 +245,8 @@ pub async fn create_tenant(
     };
 
     state
-        .core
-        .workspace_repo
+        .core()
+        .workspace_repo()
         .update_workspace_byod_url(workspace_id, Some(encrypted_url))
         .await?;
 
@@ -257,8 +257,8 @@ pub async fn create_tenant(
     });
 
     let mut conn = state
-        .infra
-        .diesel
+        .infra()
+        .diesel()
         .api
         .get()
         .await
@@ -301,15 +301,19 @@ pub async fn delete_tenant_handler(
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
     let mut conn = state
-        .infra
-        .diesel
+        .infra()
+        .diesel()
         .api
         .get()
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?;
 
     // 1. Delete from Supavisor
-    state.infra.tenant_manager.delete_tenant(&tenant_id).await?;
+    state
+        .infra()
+        .tenant_manager()
+        .delete_tenant(&tenant_id)
+        .await?;
 
     // 2. Audit Log
     let details = serde_json::json!({
@@ -378,13 +382,13 @@ pub async fn update_tenant_database(
 
     // Update in Supavisor
     state
-        .infra
-        .tenant_manager
+        .infra()
+        .tenant_manager()
         .register_tenant_dynamic(&tenant_id, &payload)
         .await?;
 
     // Encrypt and save database_url
-    let encrypted_url = if let Some(crypto) = &state.infra.crypto_service {
+    let encrypted_url = if let Some(crypto) = state.infra().crypto_service() {
         crypto.encrypt(&req.database_url).map_err(|e| {
             tracing::error!("Failed to encrypt DB URL: {}", e);
             AppError::Internal("Encryption failed".into())
@@ -395,8 +399,8 @@ pub async fn update_tenant_database(
     };
 
     state
-        .core
-        .workspace_repo
+        .core()
+        .workspace_repo()
         .update_workspace_byod_url(workspace_id, Some(encrypted_url))
         .await?;
 
@@ -408,8 +412,8 @@ pub async fn update_tenant_database(
     });
 
     let mut conn = state
-        .infra
-        .diesel
+        .infra()
+        .diesel()
         .api
         .get()
         .await
@@ -451,18 +455,22 @@ pub async fn get_tenant_stats(
 ) -> AppResult<Json<serde_json::Value>> {
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
-    let tenant_info = state.infra.tenant_manager.get_tenant(&tenant_id).await?;
+    let tenant_info = state
+        .infra()
+        .tenant_manager()
+        .get_tenant(&tenant_id)
+        .await?;
 
     let uuid_str = tenant_id.strip_prefix("tenant_").unwrap_or(&tenant_id);
     let masked_url = if let Ok(workspace_id) = uuid::Uuid::parse_str(uuid_str) {
         if let Ok(Some(ws)) = state
-            .core
-            .workspace_repo
+            .core()
+            .workspace_repo()
             .get_workspace_by_id(workspace_id)
             .await
         {
             if let Some(encrypted) = ws.custom_db_url_encrypted {
-                let decrypted = if let Some(crypto) = &state.infra.crypto_service {
+                let decrypted = if let Some(crypto) = state.infra().crypto_service() {
                     crypto.decrypt(&encrypted).unwrap_or(encrypted)
                 } else {
                     encrypted
@@ -512,8 +520,8 @@ pub async fn list_stale_tenants(
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
     let mut conn = state
-        .infra
-        .diesel
+        .infra()
+        .diesel()
         .api
         .get()
         .await

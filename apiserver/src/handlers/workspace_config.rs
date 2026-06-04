@@ -42,8 +42,8 @@ pub async fn list_configs(
 ) -> AppResult<Json<Vec<WorkspaceConfigEntry>>> {
     ctx.require_permission(Permission::WorkspaceSettingsRead)?;
     let configs = state
-        .core
-        .workspace_config_service
+        .core()
+        .workspace_config_service()
         .list_entries(&ctx.auth_token, None)
         .await?;
     // Actually list_entries expects `&str` for scope_type maybe? Let's check signature.
@@ -71,8 +71,8 @@ pub async fn get_config(
     let (_workspace_id, key) = params;
     let date = chrono::Utc::now().naive_utc().date();
     let _entry = state
-        .core
-        .workspace_config_service
+        .core()
+        .workspace_config_service()
         .get_effective_config(&ctx.auth_token, "workspace", &key, None, date)
         .await?;
 
@@ -131,8 +131,8 @@ pub async fn upsert_config(
     };
 
     let created = state
-        .core
-        .workspace_config_service
+        .core()
+        .workspace_config_service()
         .create_entry(&ctx.auth_token, entry)
         .await?;
 
@@ -159,8 +159,8 @@ pub async fn delete_config(
     ctx.require_permission(Permission::WorkspaceSettingsWrite)?;
 
     state
-        .core
-        .workspace_config_service
+        .core()
+        .workspace_config_service()
         .delete_entry(&ctx.auth_token, id)
         .await?;
 

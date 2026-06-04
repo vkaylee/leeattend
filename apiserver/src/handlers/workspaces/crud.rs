@@ -34,8 +34,8 @@ pub async fn get_attendance_trend(
     let _workspace_id = ctx.workspace_id;
 
     let result = state
-        .reports
-        .stats_repo
+        .reports()
+        .stats_repo()
         .fetch_attendance_trend(&ctx.auth_token)
         .await?;
     Ok(Json(result))
@@ -65,8 +65,8 @@ pub async fn get_department_attendance(
 
     let range = params.range.unwrap_or_else(|| "today".to_string());
     let result = state
-        .reports
-        .stats_repo
+        .reports()
+        .stats_repo()
         .fetch_department_attendance(&ctx.auth_token, &range)
         .await?;
     Ok(Json(result))
@@ -122,8 +122,8 @@ pub async fn get_unexcused_absences(
 
     // 1. Get workspace timezone
     let workspace = state
-        .core
-        .workspace_repo
+        .core()
+        .workspace_repo()
         .get_workspace_by_id(workspace_id)
         .await
         .map_err(|e| AppError::Internal(format!("Error fetching workspace: {e}")))?
@@ -133,10 +133,10 @@ pub async fn get_unexcused_absences(
 
     // 2. Get schedules for ALL active employees (reuses 6-priority chain logic)
     let schedules = state
-        .shifts
-        .roster_repo
+        .shifts()
+        .roster_repo()
         .get_workspace_schedules(
-            state.infra.roster_cache.as_deref(),
+            state.infra().roster_cache().map(|v| &**v),
             &ctx.auth_token,
             start_date,
             end_date,
@@ -151,8 +151,8 @@ pub async fn get_unexcused_absences(
         .map_err(|e| AppError::Validation(format!("Invalid date range: {e}")))?;
 
     let entries_map = state
-        .attendance
-        .time_entry_repo
+        .attendance()
+        .time_entry_repo()
         .get_workspace_time_entries_batch(&ctx.auth_token, &emp_ids, start_dt, end_dt)
         .await
         .map_err(|e| AppError::Internal(format!("Error fetching time entries: {e}")))?;
@@ -161,8 +161,8 @@ pub async fn get_unexcused_absences(
 
     // 5. Batch-fetch approved leave requests (using shared build_leave_date_set)
     let mut conn = state
-        .infra
-        .diesel
+        .infra()
+        .diesel()
         .api
         .get()
         .await
@@ -179,8 +179,8 @@ pub async fn get_unexcused_absences(
 
     // 6. Batch-fetch department info for each employee
     let dept_map = state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .get_employee_departments_at(&ctx.auth_token, end_date)
         .await?;
 
@@ -337,8 +337,8 @@ pub async fn get_overtime_trend(
     let _workspace_id = ctx.workspace_id;
 
     let result = state
-        .reports
-        .stats_repo
+        .reports()
+        .stats_repo()
         .fetch_overtime_trend(&ctx.auth_token)
         .await?;
     Ok(Json(result))
@@ -358,8 +358,8 @@ pub async fn get_workspace_stats(
     let _workspace_id = ctx.workspace_id;
 
     let result = state
-        .reports
-        .stats_repo
+        .reports()
+        .stats_repo()
         .fetch_workspace_stats(&ctx.auth_token)
         .await?;
     Ok(Json(result))
@@ -381,8 +381,8 @@ pub async fn get_peak_times(
     let _workspace_id = ctx.workspace_id;
 
     let result = state
-        .reports
-        .stats_repo
+        .reports()
+        .stats_repo()
         .fetch_peak_times(&ctx.auth_token)
         .await?;
     Ok(Json(result))
@@ -404,8 +404,8 @@ pub async fn get_leave_types_breakdown(
     let _workspace_id = ctx.workspace_id;
 
     let result = state
-        .reports
-        .stats_repo
+        .reports()
+        .stats_repo()
         .fetch_leave_types_breakdown(&ctx.auth_token)
         .await?;
     Ok(Json(result))
@@ -427,8 +427,8 @@ pub async fn get_lateness_by_day(
     let _workspace_id = ctx.workspace_id;
 
     let result = state
-        .reports
-        .stats_repo
+        .reports()
+        .stats_repo()
         .fetch_lateness_by_day(&ctx.auth_token)
         .await?;
     Ok(Json(result))
@@ -446,8 +446,8 @@ pub async fn get_workspaces(
     UserId(user_id): UserId,
 ) -> AppResult<Json<Vec<Workspace>>> {
     let workspaces = state
-        .core
-        .workspace_repo
+        .core()
+        .workspace_repo()
         .get_user_workspaces(user_id)
         .await?;
 
@@ -470,8 +470,8 @@ pub async fn get_workspace_by_id(
     UserId(_user_id): UserId,
 ) -> AppResult<Json<Workspace>> {
     let workspace = state
-        .core
-        .workspace_repo
+        .core()
+        .workspace_repo()
         .get_workspace_by_id(ws_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Workspace not found".to_string()))?;
@@ -501,7 +501,7 @@ pub async fn create_workspace(
 
     // Encrypt database_url as custom_db_url_encrypted for BYOD support across restarts
     let encrypted_url = if let Some(url) = &req.database_url {
-        if let Some(crypto) = &state.infra.crypto_service {
+        if let Some(crypto) = state.infra().crypto_service() {
             Some(crypto.encrypt(url).map_err(|e| {
                 tracing::error!("Failed to encrypt DB URL: {}", e);
                 AppError::Internal("Encryption failed".into())
@@ -515,8 +515,8 @@ pub async fn create_workspace(
     };
 
     let ws = state
-        .core
-        .workspace_service
+        .core()
+        .workspace_service()
         .create_workspace(
             ws_id,
             &req.name,
@@ -547,8 +547,8 @@ pub async fn update_workspace(
 ) -> AppResult<Json<Workspace>> {
     ctx.require_permission(Permission::WorkspaceSettingsWrite)?;
     state
-        .core
-        .workspace_service
+        .core()
+        .workspace_service()
         .update_workspace(crate::services::workspace_service::UpdateWorkspaceArgs {
             ws_id: ctx.auth_token.workspace_id(),
             name: req.name,

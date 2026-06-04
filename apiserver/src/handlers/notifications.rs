@@ -31,8 +31,8 @@ pub async fn get_notifications(
     let limit = params.limit.unwrap_or(20).clamp(1, 100);
 
     let mut notifications = state
-        .core
-        .user_repo
+        .core()
+        .user_repo()
         .get_notifications(user_id, limit + 1, params.cursor)
         .await?;
 
@@ -44,8 +44,8 @@ pub async fn get_notifications(
     };
 
     let unread_count = state
-        .core
-        .user_repo
+        .core()
+        .user_repo()
         .get_unread_notification_count(user_id)
         .await?;
 
@@ -71,8 +71,8 @@ pub async fn get_unread_count(
     UserId(user_id): UserId,
 ) -> Result<Json<UnreadCountResponse>, AppError> {
     let count = state
-        .core
-        .user_repo
+        .core()
+        .user_repo()
         .get_unread_notification_count(user_id)
         .await?;
     Ok(Json(UnreadCountResponse { count }))
@@ -97,8 +97,8 @@ pub async fn mark_as_read(
     Path(notification_id): Path<Uuid>,
 ) -> Result<Json<()>, AppError> {
     state
-        .core
-        .user_repo
+        .core()
+        .user_repo()
         .mark_notification_as_read(user_id, notification_id)
         .await?;
     Ok(Json(()))
@@ -119,8 +119,8 @@ pub async fn mark_all_as_read(
     UserId(user_id): UserId,
 ) -> Result<Json<()>, AppError> {
     state
-        .core
-        .user_repo
+        .core()
+        .user_repo()
         .mark_all_notifications_as_read(user_id)
         .await?;
     Ok(Json(()))

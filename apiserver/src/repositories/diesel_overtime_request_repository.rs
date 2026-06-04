@@ -25,6 +25,10 @@ impl OvertimeRequestRepository for DieselOvertimeRequestRepository {
         request: OvertimeRequest,
         employees: Vec<OvertimeRequestEmployee>,
     ) -> Result<OvertimeRequest, AppError> {
+        if request.workspace_id != auth_token.workspace_id() {
+            return Err(AppError::Forbidden("error.tenant_mismatch".into()));
+        }
+
         let mut conn = self
             .diesel_pools
             .tenant_transaction_conn(auth_token)
@@ -112,6 +116,13 @@ impl OvertimeRequestRepository for DieselOvertimeRequestRepository {
 
         let emps = overtime_request_employees::table
             .filter(overtime_request_employees::overtime_request_id.eq(request_id))
+            .filter(
+                overtime_request_employees::overtime_request_id.eq_any(
+                    overtime_requests::table
+                        .select(overtime_requests::id)
+                        .filter(overtime_requests::workspace_id.eq(auth_token.workspace_id())),
+                ),
+            )
             .load::<OvertimeRequestEmployee>(&mut *conn)
             .await
             .map_err(|e| {
@@ -137,7 +148,14 @@ impl OvertimeRequestRepository for DieselOvertimeRequestRepository {
         let updated = diesel::update(
             overtime_request_employees::table
                 .filter(overtime_request_employees::overtime_request_id.eq(request_id))
-                .filter(overtime_request_employees::employee_id.eq(employee_id)),
+                .filter(overtime_request_employees::employee_id.eq(employee_id))
+                .filter(
+                    overtime_request_employees::overtime_request_id.eq_any(
+                        overtime_requests::table
+                            .select(overtime_requests::id)
+                            .filter(overtime_requests::workspace_id.eq(auth_token.workspace_id())),
+                    ),
+                ),
         )
         .set((
             overtime_request_employees::consent_status.eq(consent_status),

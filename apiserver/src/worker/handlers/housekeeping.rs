@@ -24,55 +24,68 @@ impl NightlyHousekeepingHandler {
             .await
             .map_err(|e| e.to_string())?;
 
-        for workspace in workspaces {
-            let tenant_id = workspace.id;
-            let mut queries = Vec::new();
+        use futures_util::StreamExt;
 
-            // Ensure partitions for current month + next 3 months
-            let mut target_date = NaiveDate::from_ymd_opt(ref_date.year(), ref_date.month(), 1)
-                .ok_or("Invalid reference date")?;
+        let results = futures_util::stream::iter(workspaces.into_iter().map(|workspace| {
+            async move {
+                let tenant_id = workspace.id;
+                let mut queries = Vec::new();
 
-            for _ in 0..4 {
-                let year = target_date.year();
-                let month = target_date.month();
+                // Ensure partitions for current month + next 3 months
+                let Some(mut target_date) = NaiveDate::from_ymd_opt(ref_date.year(), ref_date.month(), 1) else {
+                    return Err((tenant_id, "Invalid reference date".to_string()));
+                };
 
-                let next_month = if month == 12 { 1 } else { month + 1 };
-                let next_year = if month == 12 { year + 1 } else { year };
+                for _ in 0..4 {
+                    let year = target_date.year();
+                    let month = target_date.month();
 
-                let from_date_str = format!("{year:04}-{month:02}-01");
-                let to_date_str = format!("{next_year:04}-{next_month:02}-01");
+                    let next_month = if month == 12 { 1 } else { month + 1 };
+                    let next_year = if month == 12 { year + 1 } else { year };
 
-                let audit_table = format!("audit_logs_y{year:04}m{month:02}");
-                let staging_table = format!("attendance_staging_logs_y{year:04}m{month:02}");
+                    let from_date_str = format!("{year:04}-{month:02}-01");
+                    let to_date_str = format!("{next_year:04}-{next_month:02}-01");
 
-                queries.push(format!("CREATE TABLE IF NOT EXISTS {audit_table} PARTITION OF audit_logs FOR VALUES FROM ('{from_date_str}') TO ('{to_date_str}')"));
-                queries.push(format!("CREATE TABLE IF NOT EXISTS {staging_table} PARTITION OF attendance_staging_logs FOR VALUES FROM ('{from_date_str}') TO ('{to_date_str}')"));
+                    let audit_table = format!("audit_logs_y{year:04}m{month:02}");
+                    let staging_table = format!("attendance_staging_logs_y{year:04}m{month:02}");
 
-                target_date = NaiveDate::from_ymd_opt(next_year, next_month, 1)
-                    .ok_or("Invalid next target date")?;
+                    queries.push(format!("CREATE TABLE IF NOT EXISTS {audit_table} PARTITION OF audit_logs FOR VALUES FROM ('{from_date_str}') TO ('{to_date_str}')"));
+                    queries.push(format!("CREATE TABLE IF NOT EXISTS {staging_table} PARTITION OF attendance_staging_logs FOR VALUES FROM ('{from_date_str}') TO ('{to_date_str}')"));
+
+                    target_date = match NaiveDate::from_ymd_opt(next_year, next_month, 1) {
+                        Some(date) => date,
+                        None => return Err((tenant_id, "Invalid next target date".to_string())),
+                    };
+                }
+
+                // Retention Policy: Drop partitions older than 2 years (24 months).
+                // We drop partitions for the 25th, 26th, and 27th months ago to provide a safety buffer.
+                for i in 25..=27 {
+                    let mut total_months = ref_date.year() * 12 + (ref_date.month() as i32) - 1;
+                    total_months -= i;
+                    let drop_year = total_months / 12;
+                    let drop_month = (total_months % 12) as u32 + 1;
+
+                    let audit_table = format!("audit_logs_y{drop_year:04}m{drop_month:02}");
+                    let staging_table =
+                        format!("attendance_staging_logs_y{drop_year:04}m{drop_month:02}");
+
+                    queries.push(format!("DROP TABLE IF EXISTS {audit_table}"));
+                    queries.push(format!("DROP TABLE IF EXISTS {staging_table}"));
+                }
+
+                deps.system_repo
+                    .execute_tenant_partition_queries_batch(tenant_id, &queries)
+                    .await
+                    .map_err(|e| (tenant_id, e.to_string()))
             }
+        }))
+        .buffer_unordered(5)
+        .collect::<Vec<_>>()
+        .await;
 
-            // Retention Policy: Drop partitions older than 2 years (24 months).
-            // We drop partitions for the 25th, 26th, and 27th months ago to provide a safety buffer.
-            for i in 25..=27 {
-                let mut total_months = ref_date.year() * 12 + (ref_date.month() as i32) - 1;
-                total_months -= i;
-                let drop_year = total_months / 12;
-                let drop_month = (total_months % 12) as u32 + 1;
-
-                let audit_table = format!("audit_logs_y{drop_year:04}m{drop_month:02}");
-                let staging_table =
-                    format!("attendance_staging_logs_y{drop_year:04}m{drop_month:02}");
-
-                queries.push(format!("DROP TABLE IF EXISTS {audit_table}"));
-                queries.push(format!("DROP TABLE IF EXISTS {staging_table}"));
-            }
-
-            if let Err(e) = deps
-                .system_repo
-                .execute_tenant_partition_queries_batch(tenant_id, &queries)
-                .await
-            {
+        for res in results {
+            if let Err((tenant_id, e)) = res {
                 error!(error = %e, tenant_id = %tenant_id, "Failed to execute batch partition queries for workspace");
             }
         }

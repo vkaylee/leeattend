@@ -31,7 +31,10 @@
     clippy::unreadable_literal,
     clippy::map_unwrap_or,
     clippy::too_many_arguments,
-    clippy::too_many_lines
+    clippy::too_many_lines,
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::disallowed_types
 )]
 
 pub mod adaptive_polling;

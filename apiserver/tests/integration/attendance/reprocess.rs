@@ -196,7 +196,7 @@ async fn test_force_reprocess_all_attendance_api() {
         .unwrap();
 
     // 4. Verify job metadata was created correctly
-    let redis = _state.infra.redis.as_ref().unwrap();
+    let redis = _state.infra().redis().unwrap();
     let queue = apiserver::queue::JobQueue::new(redis.clone());
 
     let meta = queue
@@ -220,8 +220,8 @@ async fn test_force_reprocess_all_attendance_api() {
     let outbox_service = Arc::new(apiserver::services::OutboxJobService::new(outbox_repo));
     let coordinator = apiserver::services::ReportCoordinator::new(
         queue_repo.clone(),
-        _state.employees.repo.clone(),
-        _state.core.workspace_repo.clone(),
+        _state.employees().repo().clone(),
+        _state.core().workspace_repo().clone(),
         outbox_service,
     );
     for (idx, emp_id) in [emp_id_1, emp_id_2].iter().enumerate() {

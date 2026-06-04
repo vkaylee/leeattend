@@ -46,8 +46,8 @@ pub async fn get_recruitment_sources(
     let limit = query.limit.unwrap_or(50).clamp(1, 3000);
 
     let (sources, total) = state
-        .employees
-        .recruitment_service
+        .employees()
+        .recruitment_service()
         .get_recruitment_sources(&ctx.auth_token, page, limit)
         .await?;
     Ok(Json(PaginatedResponse {
@@ -79,8 +79,8 @@ pub async fn create_recruitment_source(
 ) -> AppResult<impl IntoResponse> {
     ctx.require_permission(Permission::RecruitmentManage)?;
     let source = state
-        .employees
-        .recruitment_service
+        .employees()
+        .recruitment_service()
         .create_recruitment_source(&ctx.auth_token, req)
         .await?;
     Ok((StatusCode::CREATED, Json(source)))
@@ -110,8 +110,8 @@ pub async fn update_recruitment_source(
     let (_, id) = __path_params;
     ctx.require_permission(Permission::RecruitmentManage)?;
     let source = state
-        .employees
-        .recruitment_service
+        .employees()
+        .recruitment_service()
         .update_recruitment_source(id, &ctx.auth_token, req)
         .await?;
     Ok(Json(source))
@@ -139,8 +139,8 @@ pub async fn delete_recruitment_source(
     let (_, id) = __path_params;
     ctx.require_permission(Permission::RecruitmentManage)?;
     state
-        .employees
-        .recruitment_service
+        .employees()
+        .recruitment_service()
         .delete_recruitment_source(id, &ctx.auth_token)
         .await?;
     Ok(StatusCode::NO_CONTENT)
@@ -164,8 +164,8 @@ pub async fn get_recruitment_source_breakdown(
     let _workspace_id = ctx.workspace_id;
 
     let breakdown = state
-        .employees
-        .recruitment_service
+        .employees()
+        .recruitment_service()
         .get_recruitment_source_breakdown(&ctx.auth_token)
         .await?;
     Ok(Json(breakdown))
@@ -204,8 +204,8 @@ pub async fn get_turnover_analytics(
         .unwrap_or(today);
 
     let analytics = state
-        .employees
-        .recruitment_service
+        .employees()
+        .recruitment_service()
         .get_turnover_analytics(&ctx.auth_token, start, end)
         .await?;
     Ok(Json(analytics))

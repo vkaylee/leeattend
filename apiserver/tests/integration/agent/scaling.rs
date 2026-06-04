@@ -55,8 +55,8 @@ async fn test_agent_scaling_config() {
 
     // Verify DB default
     let agent = state
-        .agents
-        .repo
+        .agents()
+        .repo()
         .get_agent_by_id_in_workspace(
             agent_id,
             &apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id),
@@ -85,8 +85,8 @@ async fn test_agent_scaling_config() {
 
     // Verify DB update
     let agent = state
-        .agents
-        .repo
+        .agents()
+        .repo()
         .get_agent_by_id_in_workspace(
             agent_id,
             &apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id),
@@ -115,8 +115,8 @@ async fn test_agent_scaling_config() {
 
     // Verify DB update
     let agent = state
-        .agents
-        .repo
+        .agents()
+        .repo()
         .get_agent_by_id_in_workspace(
             agent_id,
             &apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id),

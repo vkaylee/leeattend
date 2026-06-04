@@ -65,8 +65,8 @@ pub async fn list_system_roles(
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
     let mut conn = state
-        .infra
-        .diesel
+        .infra()
+        .diesel()
         .api
         .get()
         .await
@@ -174,8 +174,8 @@ pub async fn get_user_system_roles(
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
     let mut conn = state
-        .infra
-        .diesel
+        .infra()
+        .diesel()
         .api
         .get()
         .await
@@ -230,8 +230,8 @@ pub async fn assign_system_role(
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
     let mut conn = state
-        .infra
-        .diesel
+        .infra()
+        .diesel()
         .api
         .get()
         .await
@@ -311,8 +311,8 @@ pub async fn revoke_system_role(
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
     let mut conn = state
-        .infra
-        .diesel
+        .infra()
+        .diesel()
         .api
         .get()
         .await

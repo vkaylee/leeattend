@@ -37,14 +37,14 @@ pub async fn create_pattern(
 ) -> AppResult<impl IntoResponse> {
     ctx.require_permission(Permission::PatternsCreate)?;
     let pattern = service::create_working_pattern(
-        Arc::clone(&state.shifts.working_pattern_repo),
-        Arc::clone(&state.shifts.shift_repo),
+        Arc::clone(state.shifts().working_pattern_repo()),
+        Arc::clone(state.shifts().shift_repo()),
         ctx.workspace_id,
         req,
     )
     .await?;
 
-    if let Some(cache) = &state.infra.roster_cache {
+    if let Some(cache) = state.infra().roster_cache() {
         cache.invalidate(ctx.workspace_id).await;
     }
 
@@ -66,7 +66,7 @@ pub async fn list_patterns(
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<WorkingPattern>>> {
     let patterns = service::list_patterns(
-        Arc::clone(&state.shifts.working_pattern_repo),
+        Arc::clone(state.shifts().working_pattern_repo()),
         ctx.workspace_id,
     )
     .await?;
@@ -91,7 +91,7 @@ pub async fn get_pattern_details(
 ) -> AppResult<Json<Vec<WorkingPatternDetail>>> {
     let (_ws_id, pattern_id) = params;
     let details = service::get_pattern_details(
-        Arc::clone(&state.shifts.working_pattern_repo),
+        Arc::clone(state.shifts().working_pattern_repo()),
         ctx.workspace_id,
         pattern_id,
     )
@@ -120,14 +120,14 @@ pub async fn assign_pattern(
     let (_ws_id, employee_id) = params;
     ctx.require_permission(Permission::PatternsAssign)?;
     let assignment = service::assign_pattern(
-        Arc::clone(&state.shifts.working_pattern_repo),
+        Arc::clone(state.shifts().working_pattern_repo()),
         ctx.workspace_id,
         employee_id,
         req,
     )
     .await?;
 
-    if let Some(cache) = &state.infra.roster_cache {
+    if let Some(cache) = state.infra().roster_cache() {
         cache.invalidate(ctx.workspace_id).await;
     }
 
@@ -152,13 +152,13 @@ pub async fn bulk_assign_pattern(
 ) -> AppResult<Json<BulkAssignResponse>> {
     ctx.require_permission(Permission::PatternsAssign)?;
     let result = service::bulk_assign_pattern(
-        Arc::clone(&state.shifts.working_pattern_repo),
+        Arc::clone(state.shifts().working_pattern_repo()),
         ctx.workspace_id,
         req,
     )
     .await?;
 
-    if let Some(cache) = &state.infra.roster_cache {
+    if let Some(cache) = state.infra().roster_cache() {
         cache.invalidate(ctx.workspace_id).await;
     }
 
@@ -183,7 +183,7 @@ pub async fn get_employee_pattern_history(
 ) -> AppResult<Json<Vec<EmployeeWorkingPattern>>> {
     let (_ws_id, employee_id) = params;
     let history = service::get_employee_pattern_history(
-        Arc::clone(&state.shifts.working_pattern_repo),
+        Arc::clone(state.shifts().working_pattern_repo()),
         ctx.workspace_id,
         employee_id,
     )
@@ -210,13 +210,13 @@ pub async fn delete_pattern(
     let (_ws_id, pattern_id) = params;
     ctx.require_permission(Permission::PatternsDelete)?;
     service::delete_working_pattern(
-        Arc::clone(&state.shifts.working_pattern_repo),
+        Arc::clone(state.shifts().working_pattern_repo()),
         ctx.workspace_id,
         pattern_id,
     )
     .await?;
 
-    if let Some(cache) = &state.infra.roster_cache {
+    if let Some(cache) = state.infra().roster_cache() {
         cache.invalidate(ctx.workspace_id).await;
     }
 
@@ -244,15 +244,15 @@ pub async fn update_pattern(
     let (_ws_id, pattern_id) = params;
     ctx.require_permission(Permission::PatternsCreate)?;
     let pattern = service::update_working_pattern(
-        Arc::clone(&state.shifts.working_pattern_repo),
-        Arc::clone(&state.shifts.shift_repo),
+        Arc::clone(state.shifts().working_pattern_repo()),
+        Arc::clone(state.shifts().shift_repo()),
         ctx.workspace_id,
         pattern_id,
         req,
     )
     .await?;
 
-    if let Some(cache) = &state.infra.roster_cache {
+    if let Some(cache) = state.infra().roster_cache() {
         cache.invalidate(ctx.workspace_id).await;
     }
 

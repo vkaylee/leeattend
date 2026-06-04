@@ -93,8 +93,8 @@ pub async fn get_dashboard_preferences(
     let user_id = ctx.user_id;
 
     let prefs = state
-        .core
-        .user_repo
+        .core()
+        .user_repo()
         .get_dashboard_preferences(user_id, &ctx.auth_token)
         .await?;
 
@@ -137,8 +137,8 @@ pub async fn update_dashboard_preferences(
     let user_id = ctx.user_id;
 
     let result = state
-        .core
-        .user_repo
+        .core()
+        .user_repo()
         .update_dashboard_preferences(user_id, &ctx.auth_token, body)
         .await?;
     Ok(Json(result))

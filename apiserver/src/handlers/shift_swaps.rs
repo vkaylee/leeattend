@@ -46,8 +46,8 @@ pub async fn create_shift_swap(
     ctx.require_permission(Permission::ShiftSwapsManage)?;
 
     let swap = state
-        .shifts
-        .swap_service
+        .shifts()
+        .swap_service()
         .create_swap(ctx.workspace_id, user_id, req)
         .await?;
 
@@ -82,8 +82,8 @@ pub async fn list_shift_swaps(
     ctx.require_permission(Permission::ShiftSwapsManage)?;
 
     let swaps = state
-        .shifts
-        .swap_service
+        .shifts()
+        .swap_service()
         .get_workspace_swaps(ctx.workspace_id, query.status)
         .await?;
 
@@ -117,8 +117,8 @@ pub async fn approve_shift_swap(
     ctx.require_permission(Permission::ShiftSwapsApprove)?;
 
     state
-        .shifts
-        .swap_service
+        .shifts()
+        .swap_service()
         .approve_swap(ctx.workspace_id, user_id, id, req.status)
         .await?;
 
@@ -146,8 +146,8 @@ pub async fn get_shift_swap_stats(
     ctx.require_permission(Permission::ShiftSwapsManage)?;
 
     let swap_stats = state
-        .shifts
-        .swap_repo
+        .shifts()
+        .swap_repo()
         .get_workspace_swap_stats(&ctx.auth_token)
         .await
         .map_err(|e| {

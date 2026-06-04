@@ -25,6 +25,10 @@ impl WorkspaceConfigRepository for DieselWorkspaceConfigRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         entry: WorkspaceConfigEntry,
     ) -> Result<WorkspaceConfigEntry, AppError> {
+        if entry.workspace_id != auth_token.workspace_id() {
+            return Err(AppError::Forbidden("error.tenant_mismatch".into()));
+        }
+
         let mut conn = self
             .diesel_pools
             .tenant_transaction_conn(auth_token)

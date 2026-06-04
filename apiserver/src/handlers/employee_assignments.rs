@@ -34,7 +34,7 @@ pub async fn list_employee_assignments(
     Path(params): Path<(Uuid, Uuid)>,
 ) -> Result<Json<Vec<EmployeeAssignment>>, AppError> {
     let (_ws_id, employee_id) = params;
-    let repo = &state.employees.repo;
+    let repo = state.employees().repo();
     let assignments = repo
         .list_employee_assignments(&ctx.auth_token, employee_id)
         .await?;
@@ -62,7 +62,7 @@ pub async fn get_employee_assignment(
     Path(params): Path<(Uuid, Uuid, Uuid)>,
 ) -> Result<Json<EmployeeAssignment>, AppError> {
     let (_ws_id, employee_id, assignment_id) = params;
-    let repo = &state.employees.repo;
+    let repo = state.employees().repo();
     let assignment = repo
         .get_employee_assignment(&ctx.auth_token, employee_id, assignment_id)
         .await?
@@ -91,7 +91,7 @@ pub async fn create_employee_assignment(
     Json(payload): Json<CreateEmployeeAssignmentRequest>,
 ) -> Result<Json<EmployeeAssignment>, AppError> {
     let (_ws_id, employee_id) = params;
-    let repo = &state.employees.repo;
+    let repo = state.employees().repo();
 
     // Ensure the employee exists and fetch their current primary_location_id.
     let employee = repo
@@ -150,7 +150,7 @@ pub async fn update_employee_assignment(
     Json(payload): Json<UpdateEmployeeAssignmentRequest>,
 ) -> Result<Json<EmployeeAssignment>, AppError> {
     let (_ws_id, employee_id, assignment_id) = params;
-    let repo = &state.employees.repo;
+    let repo = state.employees().repo();
 
     // Ensure it exists
     repo.get_employee_assignment(&ctx.auth_token, employee_id, assignment_id)
@@ -183,7 +183,7 @@ pub async fn delete_employee_assignment(
     Path(params): Path<(Uuid, Uuid, Uuid)>,
 ) -> Result<Json<()>, AppError> {
     let (_ws_id, employee_id, assignment_id) = params;
-    let repo = &state.employees.repo;
+    let repo = state.employees().repo();
 
     let deleted_count = repo
         .delete_employee_assignment(&ctx.auth_token, employee_id, assignment_id)

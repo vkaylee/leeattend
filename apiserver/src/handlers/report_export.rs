@@ -118,10 +118,9 @@ impl From<ReportError> for AppError {
 /// Get coordinator from state or return 503 Service Unavailable.
 fn get_coordinator(state: &AppState) -> AppResult<&ReportCoordinator> {
     state
-        .reports
-        .coordinator
-        .as_ref()
-        .map(std::convert::AsRef::as_ref)
+        .reports()
+        .coordinator()
+        .map(|arc| &**arc)
         .ok_or_else(|| {
             AppError::ServiceUnavailable(
                 "Async export not available. Redis is required for distributed processing."
@@ -256,7 +255,7 @@ pub async fn get_job_status(
     let status = coordinator.get_job_status(job_id).await?;
 
     // Verify job belongs to this workspace
-    let queue = state.infra.job_queue()?;
+    let queue = state.infra().job_queue()?;
     let metadata = queue
         .get_job_metadata(job_id)
         .await?
@@ -303,7 +302,7 @@ pub async fn download_report(
 
     let coordinator = get_coordinator(&state)?;
 
-    let queue = state.infra.job_queue()?;
+    let queue = state.infra().job_queue()?;
     let metadata = queue
         .get_job_metadata(job_id)
         .await?
@@ -384,14 +383,7 @@ pub async fn cancel_job(
     let coordinator = get_coordinator(&state)?;
 
     // Verify job belongs to this workspace
-    let queue = crate::queue::JobQueue::new(
-        state
-            .infra
-            .redis
-            .as_ref()
-            .ok_or_else(|| AppError::ServiceUnavailable("Redis not available".to_string()))?
-            .clone(),
-    );
+    let queue = state.infra().job_queue()?;
     let metadata = queue
         .get_job_metadata(job_id)
         .await?

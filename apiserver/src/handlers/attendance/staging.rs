@@ -81,14 +81,14 @@ pub async fn get_staging_logs(
     let limit = query.limit.unwrap_or(50).clamp(1, 100);
 
     let logs = state
-        .attendance
-        .staging_repo
+        .attendance()
+        .staging_repo()
         .get_pending_staging_logs(ctx.workspace_id, limit)
         .await?;
 
     let total = state
-        .attendance
-        .staging_repo
+        .attendance()
+        .staging_repo()
         .count_pending_staging_logs(ctx.workspace_id)
         .await?;
 
@@ -135,15 +135,15 @@ pub async fn resolve_staging_log(
     ctx.require_permission(Permission::AttendanceStagingManage)?;
 
     let raw_log = state
-        .attendance
-        .staging_repo
+        .attendance()
+        .staging_repo()
         .resolve_staging_log(log_id, ctx.workspace_id, req.employee_id)
         .await?;
 
     // 6. Trigger pairing (post-commit side effect, log errors but don't fail the response)
     if let Err(e) = state
-        .attendance
-        .pairing_service
+        .attendance()
+        .pairing_service()
         .process_new_raw_log(&raw_log)
         .await
     {
@@ -178,8 +178,8 @@ pub async fn dismiss_staging_log(
     ctx.require_permission(Permission::AttendanceStagingManage)?;
 
     let updated = state
-        .attendance
-        .staging_repo
+        .attendance()
+        .staging_repo()
         .update_staging_status(log_id, ctx.workspace_id, "dismissed")
         .await?;
 

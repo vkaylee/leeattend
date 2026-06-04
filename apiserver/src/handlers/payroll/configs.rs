@@ -35,8 +35,8 @@ pub async fn set_department_payroll_config(
 ) -> AppResult<(StatusCode, Json<DepartmentPayrollConfig>)> {
     let (_, department_id) = params;
     let config = state
-        .payroll
-        .department_repo
+        .payroll()
+        .department_repo()
         .upsert_department_payroll_config(
             &ctx.auth_token,
             department_id,
@@ -70,8 +70,8 @@ pub async fn set_employee_payroll_config(
 ) -> AppResult<(StatusCode, Json<EmployeePayrollConfig>)> {
     let (_, employee_id) = params;
     let config = state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .upsert_employee_payroll_config(
             &ctx.auth_token,
             employee_id,
@@ -103,8 +103,8 @@ pub async fn get_department_payroll_configs(
 ) -> AppResult<Json<Vec<DepartmentPayrollConfig>>> {
     let (_, department_id) = params;
     let configs = state
-        .payroll
-        .department_repo
+        .payroll()
+        .department_repo()
         .get_department_payroll_configs(&ctx.auth_token, department_id)
         .await?;
 
@@ -130,8 +130,8 @@ pub async fn get_employee_payroll_configs(
 ) -> AppResult<Json<Vec<EmployeePayrollConfig>>> {
     let (_, employee_id) = params;
     let configs = state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .get_employee_payroll_configs(&ctx.auth_token, employee_id)
         .await?;
 

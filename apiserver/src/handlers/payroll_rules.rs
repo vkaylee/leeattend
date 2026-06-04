@@ -67,8 +67,8 @@ pub async fn create_payroll_rule_definition(
     Json(payload): Json<CreatePayrollRuleDefinitionRequest>,
 ) -> Result<Json<PayrollRuleDefinition>, AppError> {
     let def = state
-        .payroll
-        .rule_repo
+        .payroll()
+        .rule_repo()
         .create_definition(
             crate::repositories::payroll_rule_repository::CreatePayrollRuleDefinitionArgs {
                 workspace_id: ctx.workspace_id,
@@ -104,8 +104,8 @@ pub async fn get_payroll_rule_definitions(
     ctx: MemberContext,
 ) -> Result<Json<Vec<PayrollRuleDefinition>>, AppError> {
     let defs = state
-        .payroll
-        .rule_repo
+        .payroll()
+        .rule_repo()
         .get_definitions(ctx.workspace_id)
         .await?;
     Ok(Json(defs))
@@ -132,8 +132,8 @@ pub async fn create_payroll_rule_tier(
 ) -> Result<Json<PayrollRuleTier>, AppError> {
     let (_ws_id, rule_id) = params;
     let tier = state
-        .payroll
-        .rule_repo
+        .payroll()
+        .rule_repo()
         .create_tier(
             ctx.workspace_id,
             rule_id,
@@ -167,8 +167,8 @@ pub async fn get_payroll_rule_tiers(
 ) -> Result<Json<Vec<PayrollRuleTier>>, AppError> {
     let (_ws_id, rule_id) = params;
     let tiers = state
-        .payroll
-        .rule_repo
+        .payroll()
+        .rule_repo()
         .get_tiers_for_rule(ctx.workspace_id, rule_id)
         .await?;
     Ok(Json(tiers))
@@ -195,8 +195,8 @@ pub async fn assign_payroll_rule(
 ) -> Result<Json<PayrollRuleAssignment>, AppError> {
     let (_ws_id, rule_id) = params;
     let assignment = state
-        .payroll
-        .rule_repo
+        .payroll()
+        .rule_repo()
         .assign_rule(
             crate::repositories::payroll_rule_repository::AssignPayrollRuleArgs {
                 workspace_id: ctx.workspace_id,
@@ -232,8 +232,8 @@ pub async fn get_payroll_rule_assignments(
 ) -> Result<Json<Vec<PayrollRuleAssignment>>, AppError> {
     let (_ws_id, rule_id) = params;
     let assignments = state
-        .payroll
-        .rule_repo
+        .payroll()
+        .rule_repo()
         .get_assignments_for_rule(ctx.workspace_id, rule_id)
         .await?;
     Ok(Json(assignments))
@@ -259,8 +259,8 @@ pub async fn delete_payroll_rule_assignment(
 ) -> Result<Json<()>, AppError> {
     let (_ws_id, rule_id, assignment_id) = params;
     state
-        .payroll
-        .rule_repo
+        .payroll()
+        .rule_repo()
         .delete_assignment(ctx.workspace_id, rule_id, assignment_id)
         .await?;
     Ok(Json(()))
@@ -286,8 +286,8 @@ pub async fn delete_payroll_rule_tier(
 ) -> Result<Json<()>, AppError> {
     let (_ws_id, rule_id, tier_id) = params;
     state
-        .payroll
-        .rule_repo
+        .payroll()
+        .rule_repo()
         .delete_tier(ctx.workspace_id, rule_id, tier_id)
         .await?;
     Ok(Json(()))

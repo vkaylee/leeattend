@@ -27,7 +27,7 @@ pub async fn get_generic_job_status(
     Path(params): Path<(Uuid, Uuid)>,
 ) -> Result<Json<serde_json::Value>, AppError> {
     let (_ws_id, job_id) = params;
-    let queue = state.infra.job_queue()?;
+    let queue = state.infra().job_queue()?;
 
     let meta = queue
         .get_job_metadata(job_id)

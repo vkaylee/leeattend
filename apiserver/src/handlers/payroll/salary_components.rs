@@ -32,8 +32,8 @@ pub async fn get_salary_components(
     let _workspace_id = ctx.workspace_id;
 
     let components = state
-        .payroll
-        .repo
+        .payroll()
+        .repo()
         .get_salary_component_definitions(ctx.workspace_id)
         .await?;
 
@@ -60,8 +60,8 @@ pub async fn create_salary_component(
     let _workspace_id = ctx.workspace_id;
 
     let component = state
-        .payroll
-        .repo
+        .payroll()
+        .repo()
         .create_salary_component_definition(
             ctx.workspace_id,
             req.name,
@@ -96,8 +96,8 @@ pub async fn get_employee_salary_components(
     // Note: This returns latest components for effective_date = now
     let now = chrono::Utc::now().date_naive();
     let components = state
-        .payroll
-        .repo
+        .payroll()
+        .repo()
         .get_employee_salary_components(ctx.workspace_id, employee_id, now)
         .await?;
 
@@ -143,8 +143,8 @@ pub async fn assign_employee_salary_component(
     let workspace_id = ctx.workspace_id;
 
     let component = state
-        .payroll
-        .repo
+        .payroll()
+        .repo()
         .assign_employee_salary_component(
             workspace_id,
             employee_id,

@@ -51,8 +51,8 @@ pub async fn list_policy_assignments(
     ctx.require_permission(Permission::WorkspaceSettingsRead)?;
 
     let assignments = state
-        .attendance
-        .policy_repo
+        .attendance()
+        .policy_repo()
         .list_policy_assignments(&ctx.auth_token)
         .await?;
 
@@ -82,8 +82,8 @@ pub async fn upsert_policy_assignment(
     ctx.require_permission(Permission::WorkspaceSettingsWrite)?;
 
     let res = state
-        .attendance
-        .policy_repo
+        .attendance()
+        .policy_repo()
         .upsert_policy_assignment(&ctx.auth_token, ctx.user_id, req)
         .await?;
 
@@ -113,8 +113,8 @@ pub async fn delete_policy_assignment(
     ctx.require_permission(Permission::WorkspaceSettingsWrite)?;
 
     state
-        .attendance
-        .policy_repo
+        .attendance()
+        .policy_repo()
         .delete_policy_assignment(&ctx.auth_token, assignment_id)
         .await?;
 

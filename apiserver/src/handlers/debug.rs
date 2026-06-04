@@ -30,8 +30,8 @@ pub async fn get_debug_users(
     #[cfg(debug_assertions)]
     {
         let mut conn = state
-            .infra
-            .diesel
+            .infra()
+            .diesel()
             .api
             .get()
             .await
@@ -93,8 +93,8 @@ pub async fn clear_debug_db(
     #[cfg(debug_assertions)]
     {
         let mut conn = state
-            .infra
-            .diesel
+            .infra()
+            .diesel()
             .tenant_transaction_conn(&crate::diesel_pool::TenantAuthToken::system_override(ws_id))
             .await?;
 

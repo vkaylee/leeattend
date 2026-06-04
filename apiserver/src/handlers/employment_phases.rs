@@ -61,8 +61,8 @@ pub async fn create_employment_phase_definition(
     ctx.require_permission(Permission::EmploymentPhasesManage)?;
 
     let def = state
-        .employees
-        .employment_phase_repo
+        .employees()
+        .employment_phase_repo()
         .create_definition(
             ctx.workspace_id,
             &payload.name,
@@ -94,8 +94,8 @@ pub async fn get_employment_phase_definitions(
     ctx: MemberContext,
 ) -> Result<Json<Vec<EmploymentPhaseDefinition>>, AppError> {
     let defs = state
-        .employees
-        .employment_phase_repo
+        .employees()
+        .employment_phase_repo()
         .get_definitions(ctx.workspace_id)
         .await?;
     Ok(Json(defs))
@@ -126,8 +126,8 @@ pub async fn assign_employee_phase(
     ctx.require_permission(Permission::EmploymentPhasesManage)?;
 
     let phase = state
-        .employees
-        .employment_phase_repo
+        .employees()
+        .employment_phase_repo()
         .assign_phase(
             ctx.workspace_id,
             emp_id,
@@ -167,8 +167,8 @@ pub async fn update_employee_phase_status(
     ctx.require_permission(Permission::EmploymentPhasesManage)?;
 
     let phase = state
-        .employees
-        .employment_phase_repo
+        .employees()
+        .employment_phase_repo()
         .update_phase_status(
             ctx.workspace_id,
             emp_id,
@@ -203,8 +203,8 @@ pub async fn get_employee_phases(
 ) -> Result<Json<Vec<EmployeePhase>>, AppError> {
     let (_ws_id, emp_id) = __path_params;
     let phases = state
-        .employees
-        .employment_phase_repo
+        .employees()
+        .employment_phase_repo()
         .get_employee_phases(ctx.workspace_id, emp_id)
         .await?;
 

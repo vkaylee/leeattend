@@ -44,8 +44,8 @@ pub async fn list_employers(
     let limit = query.limit.unwrap_or(50).clamp(1, 3000);
 
     let (employers, total) = state
-        .core
-        .employer_service
+        .core()
+        .employer_service()
         .list_employers(ctx.workspace_id, page, limit)
         .await?;
     Ok(Json(PaginatedResponse {
@@ -76,8 +76,8 @@ pub async fn get_employer(
     ctx: MemberContext,
 ) -> Result<impl IntoResponse, AppError> {
     let employer = state
-        .core
-        .employer_service
+        .core()
+        .employer_service()
         .get_employer(ctx.workspace_id, id)
         .await?;
     Ok(Json(employer))
@@ -105,8 +105,8 @@ pub async fn create_employer(
 ) -> Result<impl IntoResponse, AppError> {
     let actor_id = ctx.user_id;
     let employer = state
-        .core
-        .employer_service
+        .core()
+        .employer_service()
         .create_employer(ctx.workspace_id, actor_id, payload)
         .await?;
     Ok((StatusCode::CREATED, Json(employer)))
@@ -135,8 +135,8 @@ pub async fn update_employer(
 ) -> Result<impl IntoResponse, AppError> {
     let actor_id = ctx.user_id;
     let employer = state
-        .core
-        .employer_service
+        .core()
+        .employer_service()
         .update_employer(ctx.workspace_id, id, actor_id, payload)
         .await?;
     Ok(Json(employer))
@@ -163,8 +163,8 @@ pub async fn delete_employer(
 ) -> Result<impl IntoResponse, AppError> {
     let actor_id = ctx.user_id;
     state
-        .core
-        .employer_service
+        .core()
+        .employer_service()
         .delete_employer(ctx.workspace_id, id, actor_id)
         .await?;
     Ok(StatusCode::NO_CONTENT)

@@ -36,8 +36,8 @@ pub async fn list_holidays(
     Query(query): Query<ListHolidaysQuery>,
 ) -> AppResult<Json<Vec<Holiday>>> {
     let holidays = state
-        .leaves
-        .holiday_repo
+        .leaves()
+        .holiday_repo()
         .list(&ctx.auth_token, query.year)
         .await?;
 
@@ -62,8 +62,8 @@ pub async fn get_holiday(
 ) -> AppResult<Json<Holiday>> {
     let (_ws_id, id) = params;
     let holiday = state
-        .leaves
-        .holiday_repo
+        .leaves()
+        .holiday_repo()
         .get_by_id(&ctx.auth_token, id)
         .await?
         .ok_or_else(|| AppError::NotFound("Holiday not found".to_string()))?;
@@ -90,8 +90,8 @@ pub async fn create_holiday(
     ctx.require_permission(Permission::HolidaysManage)?;
 
     let holiday = state
-        .leaves
-        .holiday_repo
+        .leaves()
+        .holiday_repo()
         .create_holiday(&ctx.auth_token, &req)
         .await
         .map_err(|e| {
@@ -127,8 +127,8 @@ pub async fn update_holiday(
     ctx.require_permission(Permission::HolidaysManage)?;
 
     let holiday = state
-        .leaves
-        .holiday_repo
+        .leaves()
+        .holiday_repo()
         .update_holiday(&ctx.auth_token, id, &req)
         .await?
         .ok_or_else(|| AppError::NotFound("Holiday not found".to_string()))?;
@@ -156,8 +156,8 @@ pub async fn delete_holiday(
     ctx.require_permission(Permission::HolidaysManage)?;
 
     let deleted = state
-        .leaves
-        .holiday_repo
+        .leaves()
+        .holiday_repo()
         .delete(&ctx.auth_token, id)
         .await?;
 
@@ -188,15 +188,15 @@ pub async fn process_holiday_leave(
     ctx.require_permission(Permission::HolidaysManage)?;
 
     let holiday = state
-        .leaves
-        .holiday_repo
+        .leaves()
+        .holiday_repo()
         .get_by_id(&ctx.auth_token, id)
         .await?
         .ok_or_else(|| AppError::NotFound("Holiday not found".to_string()))?;
 
     let results = state
-        .leaves
-        .holiday_leave_service
+        .leaves()
+        .holiday_leave_service()
         .process_holiday_leave(ctx.workspace_id, &holiday)
         .await?;
 

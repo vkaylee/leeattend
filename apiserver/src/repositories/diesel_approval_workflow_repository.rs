@@ -30,6 +30,10 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         workflow: ApprovalWorkflow,
     ) -> Result<ApprovalWorkflow, AppError> {
+        if workflow.workspace_id != auth_token.workspace_id() {
+            return Err(AppError::Forbidden("error.tenant_mismatch".into()));
+        }
+
         let mut conn = self
             .diesel_pools
             .tenant_transaction_conn(auth_token)
@@ -53,6 +57,20 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
             .diesel_pools
             .tenant_transaction_conn(auth_token)
             .await?;
+
+        // Verify steps belong to a workflow in this workspace
+        if let Some(first_step) = steps.as_slice().first() {
+            let count: i64 = approval_workflows::table
+                .filter(approval_workflows::id.eq(first_step.workflow_id))
+                .filter(approval_workflows::workspace_id.eq(auth_token.workspace_id()))
+                .count()
+                .get_result(&mut *conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            if count == 0 {
+                return Err(AppError::Forbidden("Workflow tenant mismatch".into()));
+            }
+        }
 
         let result = diesel::insert_into(approval_workflow_steps::table)
             .values(&steps)
@@ -118,6 +136,10 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         log: ApprovalActionLog,
     ) -> Result<ApprovalActionLog, AppError> {
+        if log.workspace_id != auth_token.workspace_id() {
+            return Err(AppError::Forbidden("error.tenant_mismatch".into()));
+        }
+
         let mut conn = self
             .diesel_pools
             .tenant_transaction_conn(auth_token)
@@ -158,6 +180,10 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         instance: ApprovalWorkflowInstance,
     ) -> Result<ApprovalWorkflowInstance, AppError> {
+        if instance.workspace_id != auth_token.workspace_id() {
+            return Err(AppError::Forbidden("error.tenant_mismatch".into()));
+        }
+
         let mut conn = self
             .diesel_pools
             .tenant_transaction_conn(auth_token)
@@ -417,6 +443,13 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
 
         let result = approval_workflow_steps::table
             .filter(approval_workflow_steps::workflow_id.eq_any(workflow_ids))
+            .filter(
+                approval_workflow_steps::workflow_id.eq_any(
+                    approval_workflows::table
+                        .select(approval_workflows::id)
+                        .filter(approval_workflows::workspace_id.eq(auth_token.workspace_id())),
+                ),
+            )
             .order((
                 approval_workflow_steps::workflow_id,
                 approval_workflow_steps::step_order.asc(),
@@ -437,6 +470,22 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
             .diesel_pools
             .tenant_transaction_conn(auth_token)
             .await?;
+
+        // Verify tasks are for an instance belonging to this workspace
+        if let Some(first_task) = tasks.as_slice().first() {
+            let count: i64 = approval_workflow_instances::table
+                .filter(approval_workflow_instances::id.eq(first_task.instance_id()))
+                .filter(approval_workflow_instances::workspace_id.eq(auth_token.workspace_id()))
+                .count()
+                .get_result(&mut *conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            if count == 0 {
+                return Err(AppError::Forbidden(
+                    "Workflow instance tenant mismatch".into(),
+                ));
+            }
+        }
 
         let result = diesel::insert_into(approval_workflow_tasks::table)
             .values(&tasks)

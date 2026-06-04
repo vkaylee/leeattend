@@ -70,8 +70,8 @@ async fn test_upload_employee_csv_api() {
     tokio::time::timeout(
         std::time::Duration::from_secs(10),
         _state
-            .attendance
-            .import_service
+            .attendance()
+            .import_service()
             .process_job(ws_id, job_uuid),
     )
     .await
@@ -82,8 +82,8 @@ async fn test_upload_employee_csv_api() {
     for _ in 0..30 {
         sleep(Duration::from_millis(200)).await;
         let job_opt = _state
-            .attendance
-            .import_repo
+            .attendance()
+            .import_repo()
             .get_job_by_id(
                 &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
                 job_uuid,
@@ -103,8 +103,8 @@ async fn test_upload_employee_csv_api() {
 
     // Verify employees created
     let emp1 = _state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .find_by_number(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             "EMP001",
@@ -116,8 +116,8 @@ async fn test_upload_employee_csv_api() {
     assert_eq!(emp1.full_name, "John Doe");
 
     let emp2 = _state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .find_by_number(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             "EMP002",
@@ -173,8 +173,8 @@ async fn test_upload_employee_duplicate_id_skips() {
     tokio::time::timeout(
         std::time::Duration::from_secs(10),
         _state
-            .attendance
-            .import_service
+            .attendance()
+            .import_service()
             .process_job(ws_id, job_uuid),
     )
     .await
@@ -186,8 +186,8 @@ async fn test_upload_employee_duplicate_id_skips() {
     for _ in 0..30 {
         sleep(Duration::from_millis(200)).await;
         let job = _state
-            .attendance
-            .import_repo
+            .attendance()
+            .import_repo()
             .get_job_by_id(
                 &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
                 job_uuid,
@@ -208,8 +208,8 @@ async fn test_upload_employee_duplicate_id_skips() {
 
     // Check error_log for DL_LINK
     let job = _state
-        .attendance
-        .import_repo
+        .attendance()
+        .import_repo()
         .get_job_by_id(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             job_uuid,
@@ -234,8 +234,8 @@ async fn test_upload_employee_duplicate_id_skips() {
 
     // Verify "DUP001" is NOT updated
     let emp_dup = _state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .find_by_number(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             "DUP001",
@@ -247,8 +247,8 @@ async fn test_upload_employee_duplicate_id_skips() {
 
     // Verify "NEW002" IS created
     let emp_new = _state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .find_by_number(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             "NEW002",
@@ -297,8 +297,8 @@ async fn test_upload_employee_csv_with_department() {
     tokio::time::timeout(
         std::time::Duration::from_secs(10),
         _state
-            .attendance
-            .import_service
+            .attendance()
+            .import_service()
             .process_job(ws_id, job_uuid),
     )
     .await
@@ -310,8 +310,8 @@ async fn test_upload_employee_csv_with_department() {
     for _ in 0..30 {
         sleep(Duration::from_millis(200)).await;
         let job = _state
-            .attendance
-            .import_repo
+            .attendance()
+            .import_repo()
             .get_job_by_id(
                 &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
                 job_uuid,
@@ -331,8 +331,8 @@ async fn test_upload_employee_csv_with_department() {
 
     // Verify departments were created
     let departments = _state
-        .payroll
-        .department_repo
+        .payroll()
+        .department_repo()
         .get_departments(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             1,
@@ -352,8 +352,8 @@ async fn test_upload_employee_csv_with_department() {
 
     // Verify employee DEPT001 is assigned to Engineering
     let emp1 = _state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .find_by_number(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             "DEPT001",
@@ -363,8 +363,8 @@ async fn test_upload_employee_csv_with_department() {
         .expect("Employee DEPT001 should exist");
 
     let current_dept = _state
-        .payroll
-        .department_repo
+        .payroll()
+        .department_repo()
         .get_current_department(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             emp1.id,
@@ -389,8 +389,8 @@ async fn test_upload_employee_csv_with_department() {
 
     // Verify employee DEPT003 is assigned to Marketing
     let emp3 = _state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .find_by_number(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             "DEPT003",
@@ -400,8 +400,8 @@ async fn test_upload_employee_csv_with_department() {
         .expect("Employee DEPT003 should exist");
 
     let current_dept3 = _state
-        .payroll
-        .department_repo
+        .payroll()
+        .department_repo()
         .get_current_department(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             emp3.id,
@@ -467,8 +467,8 @@ async fn test_upload_employee_csv_reuses_existing_department() {
     tokio::time::timeout(
         std::time::Duration::from_secs(10),
         _state
-            .attendance
-            .import_service
+            .attendance()
+            .import_service()
             .process_job(ws_id, job_uuid),
     )
     .await
@@ -479,8 +479,8 @@ async fn test_upload_employee_csv_reuses_existing_department() {
     for _ in 0..30 {
         sleep(Duration::from_millis(200)).await;
         let job = _state
-            .attendance
-            .import_repo
+            .attendance()
+            .import_repo()
             .get_job_by_id(
                 &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
                 job_uuid,
@@ -499,8 +499,8 @@ async fn test_upload_employee_csv_reuses_existing_department() {
 
     // Verify NO duplicate department was created — should still be only 1 "Sales"
     let departments = _state
-        .payroll
-        .department_repo
+        .payroll()
+        .department_repo()
         .get_departments(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             1,
@@ -525,8 +525,8 @@ async fn test_upload_employee_csv_reuses_existing_department() {
 
     // Verify employee is assigned to it
     let emp = _state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .find_by_number(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             "RE001",
@@ -536,8 +536,8 @@ async fn test_upload_employee_csv_reuses_existing_department() {
         .expect("Employee RE001 should exist");
 
     let current_dept = _state
-        .payroll
-        .department_repo
+        .payroll()
+        .department_repo()
         .get_current_department(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             emp.id,
@@ -633,8 +633,8 @@ async fn test_upload_employee_xlsx_with_department() {
     tokio::time::timeout(
         std::time::Duration::from_secs(10),
         _state
-            .attendance
-            .import_service
+            .attendance()
+            .import_service()
             .process_job(ws_id, job_uuid),
     )
     .await
@@ -646,8 +646,8 @@ async fn test_upload_employee_xlsx_with_department() {
     for _ in 0..30 {
         sleep(Duration::from_millis(200)).await;
         let job = _state
-            .attendance
-            .import_repo
+            .attendance()
+            .import_repo()
             .get_job_by_id(
                 &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
                 job_uuid,
@@ -667,8 +667,8 @@ async fn test_upload_employee_xlsx_with_department() {
 
     // Verify departments were created
     let departments = _state
-        .payroll
-        .department_repo
+        .payroll()
+        .department_repo()
         .get_departments(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             1,
@@ -688,8 +688,8 @@ async fn test_upload_employee_xlsx_with_department() {
 
     // Verify employee XLS001 is assigned to Engineering
     let emp1 = _state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .find_by_number(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             "XLS001",
@@ -699,8 +699,8 @@ async fn test_upload_employee_xlsx_with_department() {
         .expect("Employee XLS001 should exist");
 
     let current_dept = _state
-        .payroll
-        .department_repo
+        .payroll()
+        .department_repo()
         .get_current_department(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             emp1.id,
@@ -725,8 +725,8 @@ async fn test_upload_employee_xlsx_with_department() {
 
     // Verify employee XLS003 is assigned to Marketing
     let emp3 = _state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .find_by_number(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             "XLS003",
@@ -736,8 +736,8 @@ async fn test_upload_employee_xlsx_with_department() {
         .expect("Employee XLS003 should exist");
 
     let current_dept3 = _state
-        .payroll
-        .department_repo
+        .payroll()
+        .department_repo()
         .get_current_department(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             emp3.id,
@@ -802,8 +802,8 @@ async fn test_upload_employee_xlsx_reuses_existing_department() {
     tokio::time::timeout(
         std::time::Duration::from_secs(10),
         _state
-            .attendance
-            .import_service
+            .attendance()
+            .import_service()
             .process_job(ws_id, job_uuid),
     )
     .await
@@ -814,8 +814,8 @@ async fn test_upload_employee_xlsx_reuses_existing_department() {
     for _ in 0..30 {
         sleep(Duration::from_millis(200)).await;
         let job = _state
-            .attendance
-            .import_repo
+            .attendance()
+            .import_repo()
             .get_job_by_id(
                 &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
                 job_uuid,
@@ -834,8 +834,8 @@ async fn test_upload_employee_xlsx_reuses_existing_department() {
 
     // Verify NO duplicate department was created — should still be only 1 "Sales"
     let departments = _state
-        .payroll
-        .department_repo
+        .payroll()
+        .department_repo()
         .get_departments(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             1,
@@ -860,8 +860,8 @@ async fn test_upload_employee_xlsx_reuses_existing_department() {
 
     // Verify employee is assigned to it
     let emp = _state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .find_by_number(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             "XLSRE001",
@@ -871,8 +871,8 @@ async fn test_upload_employee_xlsx_reuses_existing_department() {
         .expect("Employee XLSRE001 should exist");
 
     let current_dept = _state
-        .payroll
-        .department_repo
+        .payroll()
+        .department_repo()
         .get_current_department(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             emp.id,
@@ -937,8 +937,8 @@ async fn test_upload_csv_existing_employee_new_department() {
     tokio::time::timeout(
         std::time::Duration::from_secs(10),
         _state
-            .attendance
-            .import_service
+            .attendance()
+            .import_service()
             .process_job(ws_id, job_uuid),
     )
     .await
@@ -949,8 +949,8 @@ async fn test_upload_csv_existing_employee_new_department() {
     for _ in 0..30 {
         sleep(Duration::from_millis(200)).await;
         let job = _state
-            .attendance
-            .import_repo
+            .attendance()
+            .import_repo()
             .get_job_by_id(
                 &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
                 job_uuid,
@@ -969,8 +969,8 @@ async fn test_upload_csv_existing_employee_new_department() {
 
     // Verify "R&D" department was created
     let departments = _state
-        .payroll
-        .department_repo
+        .payroll()
+        .department_repo()
         .get_departments(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             1,
@@ -986,8 +986,8 @@ async fn test_upload_csv_existing_employee_new_department() {
 
     // Verify existing employee is assigned to the new department
     let emp = _state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .find_by_number(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             "EXIST001",
@@ -997,8 +997,8 @@ async fn test_upload_csv_existing_employee_new_department() {
         .expect("Employee EXIST001 should exist");
 
     let current_dept = _state
-        .payroll
-        .department_repo
+        .payroll()
+        .department_repo()
         .get_current_department(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             emp.id,
@@ -1070,8 +1070,8 @@ async fn test_upload_csv_existing_employee_existing_department() {
     tokio::time::timeout(
         std::time::Duration::from_secs(10),
         _state
-            .attendance
-            .import_service
+            .attendance()
+            .import_service()
             .process_job(ws_id, job_uuid),
     )
     .await
@@ -1082,8 +1082,8 @@ async fn test_upload_csv_existing_employee_existing_department() {
     for _ in 0..30 {
         sleep(Duration::from_millis(200)).await;
         let job = _state
-            .attendance
-            .import_repo
+            .attendance()
+            .import_repo()
             .get_job_by_id(
                 &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
                 job_uuid,
@@ -1102,8 +1102,8 @@ async fn test_upload_csv_existing_employee_existing_department() {
 
     // Verify no duplicate department
     let departments = _state
-        .payroll
-        .department_repo
+        .payroll()
+        .department_repo()
         .get_departments(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             1,
@@ -1124,8 +1124,8 @@ async fn test_upload_csv_existing_employee_existing_department() {
 
     // Verify existing employee is assigned to existing department
     let emp = _state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .find_by_number(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             "EXIST002",
@@ -1135,8 +1135,8 @@ async fn test_upload_csv_existing_employee_existing_department() {
         .expect("Employee EXIST002 should exist");
 
     let current_dept = _state
-        .payroll
-        .department_repo
+        .payroll()
+        .department_repo()
         .get_current_department(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             emp.id,
@@ -1201,8 +1201,8 @@ async fn test_upload_xlsx_existing_employee_new_department() {
     tokio::time::timeout(
         std::time::Duration::from_secs(10),
         _state
-            .attendance
-            .import_service
+            .attendance()
+            .import_service()
             .process_job(ws_id, job_uuid),
     )
     .await
@@ -1213,8 +1213,8 @@ async fn test_upload_xlsx_existing_employee_new_department() {
     for _ in 0..30 {
         sleep(Duration::from_millis(200)).await;
         let job = _state
-            .attendance
-            .import_repo
+            .attendance()
+            .import_repo()
             .get_job_by_id(
                 &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
                 job_uuid,
@@ -1233,8 +1233,8 @@ async fn test_upload_xlsx_existing_employee_new_department() {
 
     // Verify DevOps department was created
     let departments = _state
-        .payroll
-        .department_repo
+        .payroll()
+        .department_repo()
         .get_departments(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             1,
@@ -1250,8 +1250,8 @@ async fn test_upload_xlsx_existing_employee_new_department() {
 
     // Verify existing employee is assigned
     let emp = _state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .find_by_number(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             "XLSEX001",
@@ -1261,8 +1261,8 @@ async fn test_upload_xlsx_existing_employee_new_department() {
         .expect("Employee XLSEX001 should exist");
 
     let current_dept = _state
-        .payroll
-        .department_repo
+        .payroll()
+        .department_repo()
         .get_current_department(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             emp.id,
@@ -1330,8 +1330,8 @@ async fn test_upload_xlsx_existing_employee_existing_department() {
     tokio::time::timeout(
         std::time::Duration::from_secs(10),
         _state
-            .attendance
-            .import_service
+            .attendance()
+            .import_service()
             .process_job(ws_id, job_uuid),
     )
     .await
@@ -1342,8 +1342,8 @@ async fn test_upload_xlsx_existing_employee_existing_department() {
     for _ in 0..30 {
         sleep(Duration::from_millis(200)).await;
         let job = _state
-            .attendance
-            .import_repo
+            .attendance()
+            .import_repo()
             .get_job_by_id(
                 &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
                 job_uuid,
@@ -1362,8 +1362,8 @@ async fn test_upload_xlsx_existing_employee_existing_department() {
 
     // Verify no duplicate
     let departments = _state
-        .payroll
-        .department_repo
+        .payroll()
+        .department_repo()
         .get_departments(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             1,
@@ -1381,8 +1381,8 @@ async fn test_upload_xlsx_existing_employee_existing_department() {
 
     // Verify existing employee is assigned
     let emp = _state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .find_by_number(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             "XLSEX002",
@@ -1392,8 +1392,8 @@ async fn test_upload_xlsx_existing_employee_existing_department() {
         .expect("Employee XLSEX002 should exist");
 
     let current_dept = _state
-        .payroll
-        .department_repo
+        .payroll()
+        .department_repo()
         .get_current_department(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             emp.id,

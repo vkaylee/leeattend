@@ -201,8 +201,8 @@ async fn test_rbac_audit_log_on_permissions_grant_revoke() {
 
     // 3. Verify audit log for grant
     let (audit_logs, _) = state
-        .core
-        .audit_repo
+        .core()
+        .audit_repo()
         .find_by_workspace(ws_id, 1, 0, None, None, None)
         .await
         .unwrap();
@@ -236,8 +236,8 @@ async fn test_rbac_audit_log_on_permissions_grant_revoke() {
 
     // 5. Verify audit log for revoke
     let (audit_logs_after, _) = state
-        .core
-        .audit_repo
+        .core()
+        .audit_repo()
         .find_by_workspace(ws_id, 1, 0, None, None, None)
         .await
         .unwrap();

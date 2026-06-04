@@ -87,8 +87,8 @@ impl SystemContext {
         state: &Arc<AppState>,
     ) -> AppResult<HashSet<SystemRoleType>> {
         let mut conn = state
-            .infra
-            .diesel
+            .infra()
+            .diesel()
             .api
             .get()
             .await
@@ -137,7 +137,7 @@ impl SystemContext {
     /// Invalidate the system role cache for a specific user.
     /// Call after assigning or revoking a system role.
     pub async fn invalidate_cache(user_id: Uuid, state: &Arc<AppState>) {
-        if let Some(cache) = &state.infra.cache {
+        if let Some(cache) = state.infra().cache() {
             let _ = cache.delete(&Self::cache_key(user_id)).await;
         }
     }
@@ -159,7 +159,7 @@ where
         let app_state = Arc::<AppState>::from_ref(state);
         let cache_key = Self::cache_key(user_id);
 
-        let roles: HashSet<SystemRoleType> = if let Some(cache) = &app_state.infra.cache {
+        let roles: HashSet<SystemRoleType> = if let Some(cache) = app_state.infra().cache() {
             if let Some(cached) = cache.get::<CachedSystemRoles>(&cache_key).await {
                 // Deserialize from cached string names
                 cached

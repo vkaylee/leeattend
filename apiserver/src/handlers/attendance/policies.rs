@@ -53,8 +53,8 @@ pub async fn get_default_attendance_rules(
     let _workspace_id = ctx.workspace_id;
 
     let rules = state
-        .attendance
-        .policy_repo
+        .attendance()
+        .policy_repo()
         .get_default_policy_rules(&ctx.auth_token)
         .await?;
 
@@ -90,8 +90,8 @@ pub async fn list_default_attendance_policy_versions(
     let _workspace_id = ctx.workspace_id;
 
     let versions = state
-        .attendance
-        .policy_repo
+        .attendance()
+        .policy_repo()
         .get_default_policy_versions(&ctx.auth_token)
         .await?;
 
@@ -136,8 +136,8 @@ pub async fn update_default_attendance_rules(
     ctx.require_permission(Permission::WorkspaceSettingsWrite)?;
 
     let v = state
-        .attendance
-        .policy_repo
+        .attendance()
+        .policy_repo()
         .update_default_policy_rules(&ctx.auth_token, ctx.user_id, req)
         .await?;
 

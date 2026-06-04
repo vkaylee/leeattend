@@ -523,6 +523,7 @@ class Orchestrator:
             str(SCRIPTS_DIR / "tests" / "test_docker_ops.py"),
             str(SCRIPTS_DIR / "tests" / "test_test_modules.py"),
             str(SCRIPTS_DIR / "tests" / "test_run_inline.py"),
+            str(SCRIPTS_DIR / "tests" / "test_lint_tenant_isolation.py"),
         ]
         venv_pytest = PROJECT_ROOT / ".venv" / "bin" / "pytest"
         cmd = [

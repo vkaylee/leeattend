@@ -58,8 +58,8 @@ pub async fn calculate_batch_payroll(
 ) -> AppResult<Json<BatchCalculatePayrollResponse>> {
     ctx.require_permission(Permission::PayrollCalculate)?;
     let response = state
-        .payroll
-        .service
+        .payroll()
+        .service()
         .calculate_batch_payslips(req.employee_ids, ctx.workspace_id, req.year, req.month)
         .await;
     Ok(Json(response))
@@ -98,8 +98,8 @@ pub async fn get_workspace_payslips(
         .ok_or_else(|| AppError::Validation("Invalid date range".to_string()))?;
 
     let payslips = state
-        .payroll
-        .repo
+        .payroll()
+        .repo()
         .get_payslips_by_workspace_period(ctx.workspace_id, start_date, end_date)
         .await?;
 
@@ -132,32 +132,32 @@ pub async fn calculate_payroll(
     let (_, employee_id) = params;
     ctx.require_permission(Permission::PayrollCalculate)?;
     let payslip = state
-        .payroll
-        .service
+        .payroll()
+        .service()
         .calculate_monthly_payslip(employee_id, ctx.workspace_id, query.year, query.month)
         .await?;
 
     // Fetch segments and incentives
     let segments = state
-        .payroll
-        .repo
+        .payroll()
+        .repo()
         .get_payslip_segments(ctx.workspace_id, payslip.id)
         .await?;
     let incentives = state
-        .payroll
-        .repo
+        .payroll()
+        .repo()
         .get_payslip_incentives(ctx.workspace_id, payslip.id)
         .await?;
     let rule_evaluations = state
-        .payroll
-        .repo
+        .payroll()
+        .repo()
         .get_payslip_rule_evaluations(ctx.workspace_id, payslip.id)
         .await?;
 
     // Fetch salary components at the period start date
     let salary_components = state
-        .payroll
-        .repo
+        .payroll()
+        .repo()
         .get_employee_salary_components(ctx.workspace_id, employee_id, payslip.period_start)
         .await?
         .into_iter()
@@ -211,33 +211,33 @@ pub async fn get_employee_payslips(
     let (_, employee_id) = params;
     ctx.require_permission(Permission::PayrollRead)?;
     let payslips = state
-        .payroll
-        .repo
+        .payroll()
+        .repo()
         .get_payslips_by_employee(ctx.workspace_id, employee_id)
         .await?;
 
     let mut responses = Vec::new();
     for p in payslips {
         let segments = state
-            .payroll
-            .repo
+            .payroll()
+            .repo()
             .get_payslip_segments(ctx.workspace_id, p.id)
             .await?;
         let incentives = state
-            .payroll
-            .repo
+            .payroll()
+            .repo()
             .get_payslip_incentives(ctx.workspace_id, p.id)
             .await?;
         let rule_evaluations = state
-            .payroll
-            .repo
+            .payroll()
+            .repo()
             .get_payslip_rule_evaluations(ctx.workspace_id, p.id)
             .await?;
 
         // Fetch salary components at the period start date
         let salary_components = state
-            .payroll
-            .repo
+            .payroll()
+            .repo()
             .get_employee_salary_components(ctx.workspace_id, employee_id, p.period_start)
             .await?
             .into_iter()

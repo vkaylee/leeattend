@@ -32,8 +32,8 @@ pub async fn list_feature_flags(
 ) -> AppResult<impl IntoResponse> {
     ctx.require_permission(Permission::FeatureFlagsRead)?;
     let flags = state
-        .payroll
-        .feature_flag_repo
+        .payroll()
+        .feature_flag_repo()
         .list_flags(&ctx.auth_token)
         .await
         .map_err(|e| {
@@ -73,8 +73,8 @@ pub async fn create_feature_flag(
     }
 
     let flag = state
-        .payroll
-        .feature_flag_repo
+        .payroll()
+        .feature_flag_repo()
         .create_flag(
             &ctx.auth_token,
             &body.flag_key,
@@ -115,8 +115,8 @@ pub async fn get_feature_flag(
     let (_, id) = __path_params;
     ctx.require_permission(Permission::FeatureFlagsRead)?;
     let flag = state
-        .payroll
-        .feature_flag_repo
+        .payroll()
+        .feature_flag_repo()
         .get_flag_by_id(&ctx.auth_token, id)
         .await
         .map_err(|e| {
@@ -153,8 +153,8 @@ pub async fn check_feature_flag(
     let (_, key) = __path_params;
     ctx.require_permission(Permission::FeatureFlagsRead)?;
     let enabled = state
-        .payroll
-        .feature_flag_repo
+        .payroll()
+        .feature_flag_repo()
         .is_enabled_flag(&ctx.auth_token, &key)
         .await
         .map_err(|e| {
@@ -191,8 +191,8 @@ pub async fn update_feature_flag(
     let (_, id) = __path_params;
     ctx.require_permission(Permission::FeatureFlagsManage)?;
     let flag = state
-        .payroll
-        .feature_flag_repo
+        .payroll()
+        .feature_flag_repo()
         .update_flag(
             &ctx.auth_token,
             id,
@@ -241,8 +241,8 @@ pub async fn upsert_feature_flag(
     }
 
     let flag = state
-        .payroll
-        .feature_flag_repo
+        .payroll()
+        .feature_flag_repo()
         .upsert_flag(
             &ctx.auth_token,
             &body.flag_key,
@@ -283,8 +283,8 @@ pub async fn delete_feature_flag(
     let (_, id) = __path_params;
     ctx.require_permission(Permission::FeatureFlagsManage)?;
     let deleted = state
-        .payroll
-        .feature_flag_repo
+        .payroll()
+        .feature_flag_repo()
         .delete_flag(&ctx.auth_token, id)
         .await
         .map_err(|e| {

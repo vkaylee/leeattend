@@ -13,9 +13,9 @@ pub fn router(state: &Arc<AppState>) -> Router<Arc<AppState>> {
         .route("/auth/login", post(handlers::login))
         .route("/auth/register", post(handlers::register))
         .route_layer(mw::RateLimitLayer::new(
-            state.infra.redis.clone(),
+            state.infra().redis().cloned(),
             mw::rate_limit::RateLimitConfig::default(),
-            state.core.jwt_secret.clone(),
+            state.core().jwt_secret().to_string(),
         ))
         .route("/health", get(handlers::health_check))
         .route("/auth/refresh", post(handlers::refresh_token))

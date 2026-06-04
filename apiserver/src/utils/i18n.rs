@@ -28,6 +28,7 @@ pub const ALL_KEYS: &[&str] = &[
     "error.upload_read_failed",
     "error.upload_file_too_large",
     "error.upload_no_file",
+    "error.tenant_mismatch",
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -139,6 +140,7 @@ fn lookup_en(key: &str) -> Option<&'static str> {
         "error.upload_read_failed" => Some("Failed to read uploaded file bytes"),
         "error.upload_file_too_large" => Some("Uploaded file is too large"),
         "error.upload_no_file" => Some("No file was uploaded"),
+        "error.tenant_mismatch" => Some("Tenant mismatch"),
         _ => None,
     }
 }
@@ -166,6 +168,7 @@ fn lookup_vi(key: &str) -> Option<&'static str> {
         "error.upload_read_failed" => Some("Không thể đọc dữ liệu file tải lên"),
         "error.upload_file_too_large" => Some("File tải lên vượt quá dung lượng cho phép"),
         "error.upload_no_file" => Some("Không có file nào được tải lên"),
+        "error.tenant_mismatch" => Some("Không khớp tenant"),
         _ => None,
     }
 }
@@ -197,6 +200,7 @@ fn lookup_zh(key: &str) -> Option<&'static str> {
         "error.upload_read_failed" => Some("无法读取上传的文件字节"),
         "error.upload_file_too_large" => Some("上传的文件太大"),
         "error.upload_no_file" => Some("未上传文件"),
+        "error.tenant_mismatch" => Some("租户不匹配"),
         _ => None,
     }
 }

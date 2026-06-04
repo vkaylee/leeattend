@@ -50,7 +50,11 @@ pub async fn list_db_clusters(
 ) -> AppResult<Json<Vec<SystemDbCluster>>> {
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
-    let clusters = state.infra.system_db_cluster_repo.list_clusters().await?;
+    let clusters = state
+        .infra()
+        .system_db_cluster_repo()
+        .list_clusters()
+        .await?;
 
     Ok(Json(clusters))
 }
@@ -86,8 +90,8 @@ pub async fn create_db_cluster(
     };
 
     let cluster = state
-        .infra
-        .system_db_cluster_repo
+        .infra()
+        .system_db_cluster_repo()
         .create_cluster(&new_cluster)
         .await?;
 
@@ -115,8 +119,8 @@ pub async fn delete_db_cluster(
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
     state
-        .infra
-        .system_db_cluster_repo
+        .infra()
+        .system_db_cluster_repo()
         .delete_cluster(id)
         .await?;
 
@@ -146,8 +150,8 @@ pub async fn update_db_cluster_status(
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
     let cluster = state
-        .infra
-        .system_db_cluster_repo
+        .infra()
+        .system_db_cluster_repo()
         .update_cluster_status(id, req.is_active)
         .await?;
 

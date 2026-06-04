@@ -53,8 +53,8 @@ pub async fn enter_paper_ot(
 
     // 2. Validate employee exists in workspace
     let _employee = state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .get_employee_by_id(employee_id, &ctx.auth_token)
         .await?
         .ok_or_else(|| AppError::NotFound("Employee not found".to_string()))?;
@@ -68,8 +68,8 @@ pub async fn enter_paper_ot(
 
     // 4. Call service
     let result = state
-        .attendance
-        .summary_service
+        .attendance()
+        .summary_service()
         .enter_paper_ot(
             crate::services::attendance_summary_service::EnterPaperOtArgs {
                 workspace_id: ctx.workspace_id,
@@ -248,8 +248,8 @@ pub async fn bulk_upload_paper_ot(
 
         // Find employee by employee_id_number
         let Some(employee) = (match state
-            .employees
-            .repo
+            .employees()
+            .repo()
             .get_employee_by_id_number(&employee_id_str, &ctx.auth_token)
             .await
         {
@@ -276,8 +276,8 @@ pub async fn bulk_upload_paper_ot(
 
         // Validate against system_detected_ot_minutes
         let existing_summary = state
-            .attendance
-            .attendance_daily_summary_repo
+            .attendance()
+            .attendance_daily_summary_repo()
             .get_summary(&ctx.auth_token, employee.id, date)
             .await;
 
@@ -297,8 +297,8 @@ pub async fn bulk_upload_paper_ot(
 
         // Call enter_paper_ot service
         match state
-            .attendance
-            .summary_service
+            .attendance()
+            .summary_service()
             .enter_paper_ot(
                 crate::services::attendance_summary_service::EnterPaperOtArgs {
                     workspace_id: ctx.workspace_id,

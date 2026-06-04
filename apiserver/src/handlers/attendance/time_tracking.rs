@@ -38,10 +38,10 @@ pub async fn punch_in(
     let workspace_id = ctx.workspace_id;
 
     let entry = state
-        .attendance
-        .time_tracking_service
+        .attendance()
+        .time_tracking_service()
         .punch(
-            state.attendance.log_service.as_ref(),
+            state.attendance().log_service().as_ref(),
             workspace_id,
             req.employee_id,
             req.note,
@@ -73,10 +73,10 @@ pub async fn punch_out(
     let workspace_id = ctx.workspace_id;
 
     let entry = state
-        .attendance
-        .time_tracking_service
+        .attendance()
+        .time_tracking_service()
         .punch(
-            state.attendance.log_service.as_ref(),
+            state.attendance().log_service().as_ref(),
             workspace_id,
             employee_id,
             req.note,
@@ -108,8 +108,8 @@ pub async fn get_time_history(
     let workspace_id = ctx.workspace_id;
 
     let entries = state
-        .attendance
-        .time_tracking_service
+        .attendance()
+        .time_tracking_service()
         .get_employee_history(workspace_id, employee_id, query.start, query.end)
         .await?;
 
@@ -141,8 +141,8 @@ pub async fn update_time_entry(
     let _workspace_id = ctx.workspace_id;
 
     let entry = state
-        .attendance
-        .time_tracking_service
+        .attendance()
+        .time_tracking_service()
         .update_time_entry(ctx.workspace_id, id, req)
         .await?;
 
@@ -172,8 +172,8 @@ pub async fn delete_time_entry(
     let workspace_id = ctx.workspace_id;
 
     state
-        .attendance
-        .time_tracking_service
+        .attendance()
+        .time_tracking_service()
         .delete_time_entry(workspace_id, id)
         .await?;
 

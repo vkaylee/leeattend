@@ -22,7 +22,7 @@ async fn test_app_state_build_works() {
 
     let (state, _workers) = build_result.unwrap();
     // Verify that JWT secret has a fallback or is correctly populated in state
-    assert!(!state.core.jwt_secret.is_empty());
+    assert!(!state.core().jwt_secret().is_empty());
 }
 
 #[tokio::test]

@@ -54,8 +54,8 @@ pub async fn list_workflows(
     let limit = query.limit.unwrap_or(50).clamp(1, 3000);
 
     let (workflows, total) = state
-        .core
-        .approval_workflow_service
+        .core()
+        .approval_workflow_service()
         .list_workflows(
             &ctx.auth_token,
             ctx.workspace_id,
@@ -123,8 +123,8 @@ pub async fn create_workflow(
         .collect();
 
     let (created_wf, created_steps) = state
-        .core
-        .approval_workflow_service
+        .core()
+        .approval_workflow_service()
         .create_workflow(&ctx.auth_token, workflow, steps)
         .await?;
 
@@ -162,8 +162,8 @@ pub async fn get_workflow(
     ctx.require_permission(Permission::ApprovalWorkflowsRead)?;
 
     let (workflow, steps) = state
-        .core
-        .approval_workflow_service
+        .core()
+        .approval_workflow_service()
         .get_workflow(&ctx.auth_token, id)
         .await?
         .ok_or_else(|| crate::errors::AppError::NotFound("Workflow not found".into()))?;
@@ -233,8 +233,8 @@ pub async fn update_workflow(
         .collect();
 
     let (updated_wf, created_steps) = state
-        .core
-        .approval_workflow_service
+        .core()
+        .approval_workflow_service()
         .update_workflow_definition(&ctx.auth_token, workflow, steps)
         .await?;
 
@@ -272,8 +272,8 @@ pub async fn delete_workflow(
     ctx.require_permission(Permission::ApprovalWorkflowsManage)?;
 
     state
-        .core
-        .approval_workflow_service
+        .core()
+        .approval_workflow_service()
         .delete_workflow(&ctx.auth_token, id)
         .await?;
 
@@ -311,8 +311,8 @@ pub async fn process_approval(
     }
 
     let instance = state
-        .core
-        .approval_workflow_service
+        .core()
+        .approval_workflow_service()
         .get_workflow_instance_by_entity(&ctx.auth_token, &req.entity_type, req.entity_id)
         .await?
         .ok_or_else(|| {
@@ -320,8 +320,8 @@ pub async fn process_approval(
         })?;
 
     state
-        .core
-        .approval_workflow_service
+        .core()
+        .approval_workflow_service()
         .process_approval_action(
             &ctx.auth_token,
             ctx.user_id,
@@ -359,8 +359,8 @@ pub async fn get_approval_history(
     }
 
     let history = state
-        .core
-        .approval_workflow_service
+        .core()
+        .approval_workflow_service()
         .get_action_logs(&ctx.auth_token, entity_id)
         .await?;
 
@@ -384,8 +384,8 @@ pub async fn get_pending_tasks(
 ) -> AppResult<Json<Vec<crate::models::ApprovalWorkflowTask>>> {
     ctx.require_permission(Permission::ApprovalWorkflowsRead)?;
     let tasks = state
-        .core
-        .approval_workflow_service
+        .core()
+        .approval_workflow_service()
         .get_pending_tasks_for_user(&ctx.auth_token, ctx.user_id)
         .await?;
 

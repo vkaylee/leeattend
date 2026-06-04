@@ -158,16 +158,16 @@ async fn test_refresh_session_includes_system_roles() {
 
     // Create session and refresh
     let refresh_token = state
-        .core
-        .auth_service
+        .core()
+        .auth_service()
         .create_session(user_id)
         .await
         .unwrap();
 
     let auth_res = state
-        .core
-        .auth_service
-        .refresh_session(&refresh_token, &state.core.jwt_secret)
+        .core()
+        .auth_service()
+        .refresh_session(&refresh_token, &state.core().jwt_secret())
         .await
         .unwrap();
 
@@ -190,16 +190,16 @@ async fn test_refresh_session_empty_system_roles_for_regular_user() {
     let user_id: Uuid = factory.user().create().await;
 
     let refresh_token = state
-        .core
-        .auth_service
+        .core()
+        .auth_service()
         .create_session(user_id)
         .await
         .unwrap();
 
     let auth_res = state
-        .core
-        .auth_service
-        .refresh_session(&refresh_token, &state.core.jwt_secret)
+        .core()
+        .auth_service()
+        .refresh_session(&refresh_token, &state.core().jwt_secret())
         .await
         .unwrap();
 

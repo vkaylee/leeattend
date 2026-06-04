@@ -543,24 +543,24 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         recruitment_repo,
     ));
 
-    let state = Arc::new(AppState {
-        employees: apiserver::EmployeeState {
-            service: employee_service,
-            recruitment_service: recruitment_service.clone(),
-            repo: employee_repo.clone(),
-            contract_repo: Arc::new(
+    let state = Arc::new(AppState::new(
+        apiserver::EmployeeState::new(
+            employee_service,
+            recruitment_service.clone(),
+            employee_repo.clone(),
+            Arc::new(
                 apiserver::repositories::DieselEmployeeContractRepository::new(
                     diesel_pools.clone(),
                 ),
             ),
-            employment_phase_repo: Arc::new(
+            Arc::new(
                 apiserver::repositories::DieselEmploymentPhaseRepository::new(diesel_pools.clone()),
             ),
-        },
-        attendance: apiserver::AttendanceState {
+        ),
+        apiserver::AttendanceState::new(
             time_tracking_service,
-            summary_service: attendance_summary_service,
-            log_service: Arc::new(
+            attendance_summary_service,
+            Arc::new(
                 AttendanceLogService::new(
                     pairing_service.clone(),
                     apiserver::services::attendance_log_service::AttendanceLogServiceConfig {
@@ -580,53 +580,53 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             pairing_service,
             adjustment_service,
             import_service,
-            time_entry_repo: time_entry_repo.clone(),
-            staging_repo: staging_repo.clone(),
-            raw_log_repo: raw_log_repo.clone(),
-            import_repo: import_repo.clone(),
-            error_repo: error_repo.clone(),
-            policy_repo: policy_repo.clone(),
-            attendance_daily_summary_repo: attendance_summary_repo.clone(),
-            behalf_assignment_repo: Arc::new(
+            time_entry_repo.clone(),
+            staging_repo.clone(),
+            raw_log_repo.clone(),
+            import_repo.clone(),
+            error_repo.clone(),
+            policy_repo.clone(),
+            attendance_summary_repo.clone(),
+            Arc::new(
                 apiserver::repositories::DieselBehalfAssignmentRepository::new(diesel_pools.clone()),
             ),
-        },
-        shifts: apiserver::ShiftState {
-            service: shift_service,
-            swap_service: shift_swap_service,
-            roster_repo: roster_repo.clone(),
-            shift_repo: shift_repo.clone(),
-            swap_repo: shift_swap_repo.clone(),
-            assignment_rule_repo: assignment_rule_repo.clone(),
-            working_pattern_repo: working_pattern_repo.clone(),
-        },
-        leaves: apiserver::LeaveState {
-            service: leave_service,
+        ),
+        apiserver::ShiftState::new(
+            shift_service,
+            shift_swap_service,
+            roster_repo.clone(),
+            shift_repo.clone(),
+            shift_swap_repo.clone(),
+            assignment_rule_repo.clone(),
+            working_pattern_repo.clone(),
+        ),
+        apiserver::LeaveState::new(
+            leave_service,
             holiday_leave_service,
-            accrual_service: leave_accrual_service,
-            request_repo: leave_request_repo.clone(),
-            policy_repo: leave_policy_repo.clone(),
-            holiday_repo: holiday_repo.clone(),
-            balance_repo: leave_balance_repo.clone(),
-        },
-        payroll: apiserver::PayrollState {
-            service: payroll_service,
-            repo: payroll_repo.clone(),
-            rule_repo: payroll_rule_repo.clone(),
-            department_repo: department_repo.clone(),
-            feature_flag_repo: feature_flag_repo.clone(),
-            overtime_policy_repo: Arc::new(
+            leave_accrual_service,
+            leave_request_repo.clone(),
+            leave_balance_repo.clone(),
+            leave_policy_repo.clone(),
+            holiday_repo.clone(),
+        ),
+        apiserver::PayrollState::new(
+            payroll_service,
+            payroll_repo.clone(),
+            payroll_rule_repo.clone(),
+            department_repo.clone(),
+            feature_flag_repo.clone(),
+            Arc::new(
                 apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
             ),
-            salary_base_repo: std::sync::Arc::new(
+            std::sync::Arc::new(
                 apiserver::repositories::DieselSalaryBaseRepository::new(diesel_pools.clone()),
             ),
-            overtime_request_repo: overtime_request_repo.clone(),
-            overtime_request_service: overtime_request_service.clone(),
-        },
-        reports: apiserver::ReportState {
-            service: report_service,
-            coordinator: shared_redis_pool.clone().map(|redis| {
+            overtime_request_repo.clone(),
+            overtime_request_service.clone(),
+        ),
+        apiserver::ReportState::new(
+            report_service,
+            shared_redis_pool.clone().map(|redis| {
                 let queue_repo: Arc<
                     dyn apiserver::repositories::queue_repository::QueueRepository,
                 > = Arc::new(
@@ -641,59 +641,59 @@ pub async fn spawn_app() -> (String, TestDatabase) {
                     outbox_svc,
                 ))
             }),
-            stats_repo: Arc::new(
+            Arc::new(
                 apiserver::repositories::DieselWorkspaceStatsRepository::new(diesel_pools.clone()),
             ),
-        },
-        core: apiserver::CoreState {
-            location_repo: Arc::new(apiserver::repositories::DieselLocationRepository::new(diesel_pools.clone())),
-            location_service: Arc::new(apiserver::services::LocationService::new(
+        ),
+        apiserver::CoreState::new(
+            auth_service,
+            workspace_service,
+            workspace_repo.clone(),
+            audit_repo.clone(),
+            user_repo.clone(),
+            session_repo.clone(),
+            "test_secret_tower".to_string(),
+            workspace_config_repo.clone(),
+            approval_workflow_repo.clone(),
+            workspace_config_service.clone(),
+            approval_workflow_service.clone(),
+            Arc::new(apiserver::services::LocationService::new(
                 Arc::new(apiserver::repositories::DieselLocationRepository::new(diesel_pools.clone())),
                 audit_repo.clone(),
             )),
-            auth_service,
-            workspace_service,
-            workspace_repo: workspace_repo.clone(),
-            audit_repo: audit_repo.clone(),
-            user_repo: user_repo.clone(),
-            session_repo: session_repo.clone(),
-            jwt_secret: "test_secret_tower".to_string(),
-            workspace_config_repo: workspace_config_repo.clone(),
-            workspace_config_service: workspace_config_service.clone(),
-            approval_workflow_repo: approval_workflow_repo.clone(),
-            approval_workflow_service: approval_workflow_service.clone(),
-            employer_repo: employer_repo.clone(),
-            employer_service: employer_service.clone(),
-        },
-        agents: apiserver::AgentState {
-            manager: agent_manager,
-            service: agent_service,
-            repo: agent_repo.clone(),
-        },
-        infra: apiserver::InfraState {
-            diesel: diesel_pools.clone(),
-            redis: shared_redis_pool.clone(),
-            cache: shared_redis_pool.clone().map(|r| {
+            Arc::new(apiserver::repositories::DieselLocationRepository::new(diesel_pools.clone())),
+            employer_service.clone(),
+            employer_repo.clone(),
+        ),
+        apiserver::AgentState::new(
+            agent_manager,
+            agent_service,
+            agent_repo.clone(),
+        ),
+        apiserver::InfraState::new(
+            diesel_pools.clone(),
+            shared_redis_pool.clone(),
+            shared_redis_pool.clone().map(|r| {
                 Arc::new(apiserver::cache::RedisCache::new(r))
                     as Arc<dyn apiserver::repositories::CacheRepository>
             }),
-            roster_cache: None,
-            queue: shared_redis_pool.map(|r| {
+            None,
+            shared_redis_pool.map(|r| {
                 Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(r))
                     as Arc<dyn apiserver::repositories::queue_repository::QueueRepository>
             }),
-            tenant_manager: Arc::new(apiserver::supavisor::NoopTenantManager),
-            tenant_provisioner: std::sync::Arc::new(DummyTenantProvisioner),
-            crypto_service: std::env::var("ENCRYPTION_KEYS_JSON")
+            Arc::new(apiserver::supavisor::NoopTenantManager),
+            std::sync::Arc::new(DummyTenantProvisioner),
+            std::env::var("ENCRYPTION_KEYS_JSON")
                 .ok()
                 .and_then(|keys_json| {
                     apiserver::crypto::CryptoService::from_json(&keys_json)
                         .ok()
                         .map(std::sync::Arc::new)
                 }),
-            system_db_cluster_repo: Arc::new(apiserver::repositories::diesel_system_db_cluster_repository::DieselSystemDbClusterRepository::new(diesel_pools.clone())),
-        },
-    });
+            Arc::new(apiserver::repositories::diesel_system_db_cluster_repository::DieselSystemDbClusterRepository::new(diesel_pools.clone())),
+        ),
+    ));
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
         .await
@@ -1149,24 +1149,24 @@ pub async fn spawn_app_with_factory_extended(
         recruitment_repo,
     ));
 
-    let state = Arc::new(AppState {
-        employees: apiserver::EmployeeState {
-            service: employee_service,
-            recruitment_service: recruitment_service.clone(),
-            repo: employee_repo.clone(),
-            contract_repo: Arc::new(
+    let state = Arc::new(AppState::new(
+        apiserver::EmployeeState::new(
+            employee_service,
+            recruitment_service.clone(),
+            employee_repo.clone(),
+            Arc::new(
                 apiserver::repositories::DieselEmployeeContractRepository::new(
                     diesel_pools.clone(),
                 ),
             ),
-            employment_phase_repo: Arc::new(
+            Arc::new(
                 apiserver::repositories::DieselEmploymentPhaseRepository::new(diesel_pools.clone()),
             ),
-        },
-        attendance: apiserver::AttendanceState {
+        ),
+        apiserver::AttendanceState::new(
             time_tracking_service,
-            summary_service: attendance_summary_service,
-            log_service: Arc::new(
+            attendance_summary_service,
+            Arc::new(
                 AttendanceLogService::new(
                     pairing_service.clone(),
                     apiserver::services::attendance_log_service::AttendanceLogServiceConfig {
@@ -1186,53 +1186,53 @@ pub async fn spawn_app_with_factory_extended(
             pairing_service,
             adjustment_service,
             import_service,
-            time_entry_repo: time_entry_repo.clone(),
-            staging_repo: staging_repo.clone(),
-            raw_log_repo: raw_log_repo.clone(),
-            import_repo: import_repo.clone(),
-            error_repo: error_repo.clone(),
-            policy_repo: policy_repo.clone(),
-            attendance_daily_summary_repo: attendance_summary_repo.clone(),
-            behalf_assignment_repo: Arc::new(
+            time_entry_repo.clone(),
+            staging_repo.clone(),
+            raw_log_repo.clone(),
+            import_repo.clone(),
+            error_repo.clone(),
+            policy_repo.clone(),
+            attendance_summary_repo.clone(),
+            Arc::new(
                 apiserver::repositories::DieselBehalfAssignmentRepository::new(diesel_pools.clone()),
             ),
-        },
-        shifts: apiserver::ShiftState {
-            service: shift_service,
-            swap_service: shift_swap_service,
-            roster_repo: roster_repo.clone(),
-            shift_repo: shift_repo.clone(),
-            swap_repo: shift_swap_repo.clone(),
-            assignment_rule_repo: assignment_rule_repo.clone(),
-            working_pattern_repo: working_pattern_repo.clone(),
-        },
-        leaves: apiserver::LeaveState {
-            service: leave_service,
+        ),
+        apiserver::ShiftState::new(
+            shift_service,
+            shift_swap_service,
+            roster_repo.clone(),
+            shift_repo.clone(),
+            shift_swap_repo.clone(),
+            assignment_rule_repo.clone(),
+            working_pattern_repo.clone(),
+        ),
+        apiserver::LeaveState::new(
+            leave_service,
             holiday_leave_service,
-            accrual_service: leave_accrual_service,
-            request_repo: leave_request_repo.clone(),
-            policy_repo: leave_policy_repo.clone(),
-            holiday_repo: holiday_repo.clone(),
-            balance_repo: leave_balance_repo.clone(),
-        },
-        payroll: apiserver::PayrollState {
-            service: payroll_service,
-            repo: payroll_repo.clone(),
-            rule_repo: payroll_rule_repo.clone(),
-            department_repo: department_repo.clone(),
-            feature_flag_repo: feature_flag_repo.clone(),
-            overtime_policy_repo: Arc::new(
+            leave_accrual_service,
+            leave_request_repo.clone(),
+            leave_balance_repo.clone(),
+            leave_policy_repo.clone(),
+            holiday_repo.clone(),
+        ),
+        apiserver::PayrollState::new(
+            payroll_service,
+            payroll_repo.clone(),
+            payroll_rule_repo.clone(),
+            department_repo.clone(),
+            feature_flag_repo.clone(),
+            Arc::new(
                 apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
             ),
-            salary_base_repo: std::sync::Arc::new(
+            std::sync::Arc::new(
                 apiserver::repositories::DieselSalaryBaseRepository::new(diesel_pools.clone()),
             ),
-            overtime_request_repo: overtime_request_repo.clone(),
-            overtime_request_service: overtime_request_service.clone(),
-        },
-        reports: apiserver::ReportState {
-            service: report_service,
-            coordinator: shared_redis_pool.clone().map(|redis| {
+            overtime_request_repo.clone(),
+            overtime_request_service.clone(),
+        ),
+        apiserver::ReportState::new(
+            report_service,
+            shared_redis_pool.clone().map(|redis| {
                 let queue_repo: Arc<
                     dyn apiserver::repositories::queue_repository::QueueRepository,
                 > = Arc::new(
@@ -1247,59 +1247,59 @@ pub async fn spawn_app_with_factory_extended(
                     outbox_svc,
                 ))
             }),
-            stats_repo: Arc::new(
+            Arc::new(
                 apiserver::repositories::DieselWorkspaceStatsRepository::new(diesel_pools.clone()),
             ),
-        },
-        core: apiserver::CoreState {
-            location_repo: Arc::new(apiserver::repositories::DieselLocationRepository::new(diesel_pools.clone())),
-            location_service: Arc::new(apiserver::services::LocationService::new(
+        ),
+        apiserver::CoreState::new(
+            auth_service,
+            workspace_service,
+            workspace_repo.clone(),
+            audit_repo.clone(),
+            user_repo.clone(),
+            session_repo.clone(),
+            "test_secret_tower".to_string(),
+            workspace_config_repo.clone(),
+            approval_workflow_repo.clone(),
+            workspace_config_service.clone(),
+            approval_workflow_service.clone(),
+            Arc::new(apiserver::services::LocationService::new(
                 Arc::new(apiserver::repositories::DieselLocationRepository::new(diesel_pools.clone())),
                 audit_repo.clone(),
             )),
-            auth_service,
-            workspace_service,
-            workspace_repo: workspace_repo.clone(),
-            audit_repo: audit_repo.clone(),
-            user_repo: user_repo.clone(),
-            session_repo: session_repo.clone(),
-            jwt_secret: "test_secret_tower".to_string(),
-            workspace_config_repo: workspace_config_repo.clone(),
-            workspace_config_service: workspace_config_service.clone(),
-            approval_workflow_repo: approval_workflow_repo.clone(),
-            approval_workflow_service: approval_workflow_service.clone(),
-            employer_repo: employer_repo.clone(),
-            employer_service: employer_service.clone(),
-        },
-        agents: apiserver::AgentState {
-            manager: agent_manager,
-            service: agent_service,
-            repo: agent_repo.clone(),
-        },
-        infra: apiserver::InfraState {
-            diesel: diesel_pools.clone(),
-            redis: shared_redis_pool.clone(),
-            cache: shared_redis_pool.clone().map(|r| {
+            Arc::new(apiserver::repositories::DieselLocationRepository::new(diesel_pools.clone())),
+            employer_service.clone(),
+            employer_repo.clone(),
+        ),
+        apiserver::AgentState::new(
+            agent_manager,
+            agent_service,
+            agent_repo.clone(),
+        ),
+        apiserver::InfraState::new(
+            diesel_pools.clone(),
+            shared_redis_pool.clone(),
+            shared_redis_pool.clone().map(|r| {
                 Arc::new(apiserver::cache::RedisCache::new(r))
                     as Arc<dyn apiserver::repositories::CacheRepository>
             }),
-            roster_cache: None,
-            queue: shared_redis_pool.clone().map(|r| {
+            None,
+            shared_redis_pool.clone().map(|r| {
                 Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(r))
                     as Arc<dyn apiserver::repositories::queue_repository::QueueRepository>
             }),
             tenant_manager,
-            tenant_provisioner: std::sync::Arc::new(DummyTenantProvisioner),
-            crypto_service: std::env::var("ENCRYPTION_KEYS_JSON")
+            std::sync::Arc::new(DummyTenantProvisioner),
+            std::env::var("ENCRYPTION_KEYS_JSON")
                 .ok()
                 .and_then(|keys_json| {
                     apiserver::crypto::CryptoService::from_json(&keys_json)
                         .ok()
                         .map(std::sync::Arc::new)
                 }),
-            system_db_cluster_repo: Arc::new(apiserver::repositories::diesel_system_db_cluster_repository::DieselSystemDbClusterRepository::new(diesel_pools.clone())),
-        },
-    });
+            Arc::new(apiserver::repositories::diesel_system_db_cluster_repository::DieselSystemDbClusterRepository::new(diesel_pools.clone())),
+        ),
+    ));
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
         .await
@@ -1804,24 +1804,24 @@ pub async fn setup_app_tower_internal_extended(
         recruitment_repo,
     ));
 
-    let app_state = Arc::new(AppState {
-        employees: apiserver::EmployeeState {
-            service: employee_service,
-            recruitment_service: recruitment_service.clone(),
-            repo: employee_repo.clone(),
-            contract_repo: Arc::new(
+    let app_state = Arc::new(AppState::new(
+        apiserver::EmployeeState::new(
+            employee_service,
+            recruitment_service.clone(),
+            employee_repo.clone(),
+            Arc::new(
                 apiserver::repositories::DieselEmployeeContractRepository::new(
                     diesel_pools.clone(),
                 ),
             ),
-            employment_phase_repo: Arc::new(
+            Arc::new(
                 apiserver::repositories::DieselEmploymentPhaseRepository::new(diesel_pools.clone()),
             ),
-        },
-        attendance: apiserver::AttendanceState {
+        ),
+        apiserver::AttendanceState::new(
             time_tracking_service,
-            summary_service: attendance_summary_service,
-            log_service: Arc::new(
+            attendance_summary_service,
+            Arc::new(
                 AttendanceLogService::new(
                     pairing_service.clone(),
                     apiserver::services::attendance_log_service::AttendanceLogServiceConfig {
@@ -1841,57 +1841,57 @@ pub async fn setup_app_tower_internal_extended(
             pairing_service,
             adjustment_service,
             import_service,
-            time_entry_repo: time_entry_repo.clone(),
-            staging_repo: staging_repo.clone(),
-            raw_log_repo: raw_log_repo.clone(),
-            import_repo: import_repo.clone(),
-            error_repo: error_repo.clone(),
-            policy_repo: policy_repo.clone(),
-            attendance_daily_summary_repo: Arc::new(
+            time_entry_repo.clone(),
+            staging_repo.clone(),
+            raw_log_repo.clone(),
+            import_repo.clone(),
+            error_repo.clone(),
+            policy_repo.clone(),
+            Arc::new(
                 apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
                     diesel_pools.clone(),
                 ),
             ),
-            behalf_assignment_repo: Arc::new(
+            Arc::new(
                 apiserver::repositories::DieselBehalfAssignmentRepository::new(diesel_pools.clone()),
             ),
-        },
-        shifts: apiserver::ShiftState {
-            service: shift_service,
-            swap_service: shift_swap_service,
-            roster_repo: roster_repo.clone(),
-            shift_repo: shift_repo.clone(),
-            swap_repo: shift_swap_repo.clone(),
-            assignment_rule_repo: assignment_rule_repo.clone(),
-            working_pattern_repo: working_pattern_repo.clone(),
-        },
-        leaves: apiserver::LeaveState {
-            service: leave_service,
+        ),
+        apiserver::ShiftState::new(
+            shift_service,
+            shift_swap_service,
+            roster_repo.clone(),
+            shift_repo.clone(),
+            shift_swap_repo.clone(),
+            assignment_rule_repo.clone(),
+            working_pattern_repo.clone(),
+        ),
+        apiserver::LeaveState::new(
+            leave_service,
             holiday_leave_service,
-            accrual_service: leave_accrual_service,
-            request_repo: leave_request_repo.clone(),
-            policy_repo: leave_policy_repo.clone(),
-            holiday_repo: holiday_repo.clone(),
-            balance_repo: leave_balance_repo.clone(),
-        },
-        payroll: apiserver::PayrollState {
-            service: payroll_service,
-            repo: payroll_repo.clone(),
-            rule_repo: payroll_rule_repo.clone(),
-            department_repo: department_repo.clone(),
-            feature_flag_repo: feature_flag_repo.clone(),
-            overtime_policy_repo: Arc::new(
+            leave_accrual_service,
+            leave_request_repo.clone(),
+            leave_balance_repo.clone(),
+            leave_policy_repo.clone(),
+            holiday_repo.clone(),
+        ),
+        apiserver::PayrollState::new(
+            payroll_service,
+            payroll_repo.clone(),
+            payroll_rule_repo.clone(),
+            department_repo.clone(),
+            feature_flag_repo.clone(),
+            Arc::new(
                 apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
             ),
-            salary_base_repo: std::sync::Arc::new(
+            std::sync::Arc::new(
                 apiserver::repositories::DieselSalaryBaseRepository::new(diesel_pools.clone()),
             ),
-            overtime_request_repo: overtime_request_repo.clone(),
-            overtime_request_service: overtime_request_service.clone(),
-        },
-        reports: apiserver::ReportState {
-            service: report_service,
-            coordinator: shared_redis_pool.clone().map(|redis| {
+            overtime_request_repo.clone(),
+            overtime_request_service.clone(),
+        ),
+        apiserver::ReportState::new(
+            report_service,
+            shared_redis_pool.clone().map(|redis| {
                 let queue_repo: Arc<
                     dyn apiserver::repositories::queue_repository::QueueRepository,
                 > = Arc::new(
@@ -1906,59 +1906,59 @@ pub async fn setup_app_tower_internal_extended(
                     outbox_svc,
                 ))
             }),
-            stats_repo: Arc::new(
+            Arc::new(
                 apiserver::repositories::DieselWorkspaceStatsRepository::new(diesel_pools.clone()),
             ),
-        },
-        core: apiserver::CoreState {
-            location_repo: Arc::new(apiserver::repositories::DieselLocationRepository::new(diesel_pools.clone())),
-            location_service: Arc::new(apiserver::services::LocationService::new(
+        ),
+        apiserver::CoreState::new(
+            auth_service,
+            workspace_service,
+            workspace_repo.clone(),
+            audit_repo.clone(),
+            user_repo,
+            session_repo,
+            "test_secret_tower".to_string(),
+            workspace_config_repo.clone(),
+            approval_workflow_repo.clone(),
+            workspace_config_service.clone(),
+            approval_workflow_service.clone(),
+            Arc::new(apiserver::services::LocationService::new(
                 Arc::new(apiserver::repositories::DieselLocationRepository::new(diesel_pools.clone())),
                 audit_repo.clone(),
             )),
-            auth_service,
-            workspace_service,
-            workspace_repo: workspace_repo.clone(),
-            audit_repo: audit_repo.clone(),
-            user_repo,
-            session_repo,
-            jwt_secret: "test_secret_tower".to_string(),
-            workspace_config_repo: workspace_config_repo.clone(),
-            workspace_config_service: workspace_config_service.clone(),
-            approval_workflow_repo: approval_workflow_repo.clone(),
-            approval_workflow_service: approval_workflow_service.clone(),
-            employer_repo: employer_repo.clone(),
-            employer_service: employer_service.clone(),
-        },
-        agents: apiserver::AgentState {
-            manager: agent_manager,
-            service: agent_service.clone(),
-            repo: agent_repo.clone(),
-        },
-        infra: apiserver::InfraState {
-            diesel: diesel_pools.clone(),
-            redis: shared_redis_pool.clone(),
-            cache: shared_redis_pool.clone().map(|r| {
+            Arc::new(apiserver::repositories::DieselLocationRepository::new(diesel_pools.clone())),
+            employer_service.clone(),
+            employer_repo.clone(),
+        ),
+        apiserver::AgentState::new(
+            agent_manager,
+            agent_service.clone(),
+            agent_repo.clone(),
+        ),
+        apiserver::InfraState::new(
+            diesel_pools.clone(),
+            shared_redis_pool.clone(),
+            shared_redis_pool.clone().map(|r| {
                 Arc::new(apiserver::cache::RedisCache::new(r))
                     as Arc<dyn apiserver::repositories::CacheRepository>
             }),
-            roster_cache: None,
-            queue: shared_redis_pool.clone().map(|r| {
+            None,
+            shared_redis_pool.clone().map(|r| {
                 Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(r))
                     as Arc<dyn apiserver::repositories::queue_repository::QueueRepository>
             }),
             tenant_manager,
-            tenant_provisioner: std::sync::Arc::new(DummyTenantProvisioner),
-            crypto_service: std::env::var("ENCRYPTION_KEYS_JSON")
+            std::sync::Arc::new(DummyTenantProvisioner),
+            std::env::var("ENCRYPTION_KEYS_JSON")
                 .ok()
                 .and_then(|keys_json| {
                     apiserver::crypto::CryptoService::from_json(&keys_json)
                         .ok()
                         .map(std::sync::Arc::new)
                 }),
-            system_db_cluster_repo: Arc::new(apiserver::repositories::diesel_system_db_cluster_repository::DieselSystemDbClusterRepository::new(diesel_pools.clone())),
-        },
-    });
+            Arc::new(apiserver::repositories::diesel_system_db_cluster_repository::DieselSystemDbClusterRepository::new(diesel_pools.clone())),
+        ),
+    ));
 
     let app = apiserver::create_app(app_state.clone());
     (test_db, factory, app_state, app)

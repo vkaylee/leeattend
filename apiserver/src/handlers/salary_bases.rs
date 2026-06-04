@@ -33,13 +33,13 @@ pub async fn get_salary_bases(
     ctx: MemberContext,
 ) -> Result<impl IntoResponse, AppError> {
     let groups = state
-        .payroll
-        .salary_base_repo
+        .payroll()
+        .salary_base_repo()
         .get_groups(ctx.workspace_id)
         .await?;
     let members = state
-        .payroll
-        .salary_base_repo
+        .payroll()
+        .salary_base_repo()
         .get_group_members(ctx.workspace_id)
         .await?;
 
@@ -71,8 +71,8 @@ pub async fn create_salary_base(
     Json(payload): Json<CreateBaseRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     let group = state
-        .payroll
-        .salary_base_repo
+        .payroll()
+        .salary_base_repo()
         .create_group(
             ctx.workspace_id,
             &payload.name,
@@ -110,8 +110,8 @@ pub async fn assign_component_to_base(
 ) -> Result<impl IntoResponse, AppError> {
     let (_workspace_id, base_id) = params;
     state
-        .payroll
-        .salary_base_repo
+        .payroll()
+        .salary_base_repo()
         .assign_component_to_group(ctx.workspace_id, payload.component_definition_id, base_id)
         .await?;
     Ok(Json(serde_json::json!({ "success": true })))
@@ -137,8 +137,8 @@ pub async fn unassign_component_from_base(
 ) -> Result<impl IntoResponse, AppError> {
     let (_workspace_id, base_id, component_id) = params;
     state
-        .payroll
-        .salary_base_repo
+        .payroll()
+        .salary_base_repo()
         .unassign_component_from_group(ctx.workspace_id, component_id, base_id)
         .await?;
     Ok(Json(serde_json::json!({ "success": true })))

@@ -82,12 +82,17 @@ async fn test_get_employee_payslips_api() {
         created_at: Utc::now(),
         updated_at: Utc::now(),
     };
-    _state.payroll.repo.create_payslip(&payslip).await.unwrap();
+    _state
+        .payroll()
+        .repo()
+        .create_payslip(&payslip)
+        .await
+        .unwrap();
 
     // Create a 'BASE' salary component
     let component_def = _state
-        .payroll
-        .repo
+        .payroll()
+        .repo()
         .create_salary_component_definition(
             ws_id,
             "Lương cơ bản".to_string(),
@@ -99,8 +104,8 @@ async fn test_get_employee_payslips_api() {
 
     // Assign it to employee
     _state
-        .payroll
-        .repo
+        .payroll()
+        .repo()
         .assign_employee_salary_component(
             ws_id,
             emp_id,

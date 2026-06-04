@@ -31,8 +31,8 @@ pub async fn get_my_profile(
 ) -> AppResult<Json<MyProfileResponse>> {
     // Get employee record
     let emp = state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .get_employee_by_id(
             employee.employee_id,
             &crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id),
@@ -42,8 +42,8 @@ pub async fn get_my_profile(
 
     // Get profile (may not exist yet)
     let profile = state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .get_employee_profile(
             &crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id),
             employee.employee_id,
@@ -52,8 +52,8 @@ pub async fn get_my_profile(
 
     // Get emergency contacts
     let contacts = state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .get_emergency_contacts(
             &crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id),
             employee.employee_id,
@@ -83,8 +83,8 @@ pub async fn update_my_profile(
 ) -> AppResult<Json<EmployeeProfile>> {
     // Upsert profile
     let profile = state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .upsert_employee_profile(
             &crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id),
             employee.employee_id,
@@ -110,8 +110,8 @@ pub async fn get_my_emergency_contacts(
     employee: EmployeeContext,
 ) -> AppResult<Json<Vec<EmployeeEmergencyContact>>> {
     let contacts = state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .get_emergency_contacts(
             &crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id),
             employee.employee_id,
@@ -136,8 +136,8 @@ pub async fn add_emergency_contact(
     Json(req): Json<CreateEmergencyContactRequest>,
 ) -> AppResult<impl IntoResponse> {
     let contact = state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .upsert_emergency_contact(
             &crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id),
             employee.employee_id,
@@ -166,8 +166,8 @@ pub async fn delete_emergency_contact(
 ) -> AppResult<StatusCode> {
     // Verify ownership and delete
     let affected = state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .delete_emergency_contact(
             &crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id),
             employee.employee_id,
@@ -197,8 +197,8 @@ pub async fn get_my_documents(
     employee: EmployeeContext,
 ) -> AppResult<Json<Vec<EmployeeDocument>>> {
     let docs = state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .get_employee_documents(
             &crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id),
             employee.employee_id,
@@ -223,8 +223,8 @@ pub async fn get_my_payslips(
     employee: EmployeeContext,
 ) -> AppResult<Json<Vec<crate::models::Payslip>>> {
     let payslips = state
-        .payroll
-        .repo
+        .payroll()
+        .repo()
         .get_payslips_by_employee(employee.workspace_id, employee.employee_id)
         .await?;
 
@@ -273,8 +273,8 @@ pub async fn get_my_attendance(
         .ok_or_else(|| AppError::Internal("Invalid end date".to_string()))?;
 
     let entries = state
-        .attendance
-        .time_entry_repo
+        .attendance()
+        .time_entry_repo()
         .get_employee_time_entries(
             &crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id),
             employee.employee_id,
@@ -307,10 +307,10 @@ pub async fn ess_punch(
     Json(req): Json<EssPunchRequest>,
 ) -> AppResult<(StatusCode, Json<TimeEntry>)> {
     let entry = state
-        .attendance
-        .time_tracking_service
+        .attendance()
+        .time_tracking_service()
         .punch(
-            state.attendance.log_service.as_ref(),
+            state.attendance().log_service().as_ref(),
             employee.workspace_id,
             employee.employee_id,
             req.note,
@@ -348,8 +348,8 @@ pub async fn get_my_time_entries(
     let end = query.end_date.unwrap_or_else(chrono::Utc::now);
 
     let entries = state
-        .attendance
-        .time_tracking_service
+        .attendance()
+        .time_tracking_service()
         .get_employee_history(employee.workspace_id, employee.employee_id, start, end)
         .await?;
 
@@ -384,8 +384,8 @@ pub async fn get_my_leave_balances(
     let year = chrono::Utc::now().year();
 
     let balances = state
-        .leaves
-        .balance_repo
+        .leaves()
+        .balance_repo()
         .get_employee_balances(
             &crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id),
             employee.employee_id,
@@ -421,8 +421,8 @@ pub async fn ess_get_my_leave_requests(
     employee: EmployeeContext,
 ) -> AppResult<Json<Vec<crate::models::LeaveRequest>>> {
     let requests = state
-        .leaves
-        .request_repo
+        .leaves()
+        .request_repo()
         .get_employee_leave_requests(
             &crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id),
             employee.employee_id,
@@ -451,8 +451,8 @@ pub async fn ess_get_my_shift_swaps(
     employee: EmployeeContext,
 ) -> AppResult<Json<Vec<ShiftSwapRequestWithNames>>> {
     let swaps = state
-        .shifts
-        .swap_service
+        .shifts()
+        .swap_service()
         .get_employee_swaps(employee.employee_id, employee.workspace_id)
         .await?;
 
@@ -474,8 +474,8 @@ pub async fn ess_create_shift_swap(
     Json(req): Json<EssCreateShiftSwapRequest>,
 ) -> AppResult<(StatusCode, Json<ShiftSwapRequest>)> {
     let swap = state
-        .shifts
-        .swap_service
+        .shifts()
+        .swap_service()
         .create_ess_swap(
             employee.workspace_id,
             employee.employee_id,
@@ -506,8 +506,8 @@ pub async fn ess_respond_to_swap(
     Json(req): Json<RespondShiftSwapRequest>,
 ) -> AppResult<StatusCode> {
     state
-        .shifts
-        .swap_service
+        .shifts()
+        .swap_service()
         .respond_to_swap(employee.workspace_id, employee.employee_id, id, req.accept)
         .await?;
 
@@ -531,8 +531,8 @@ pub async fn ess_cancel_swap(
     Path(id): Path<Uuid>,
 ) -> AppResult<StatusCode> {
     state
-        .shifts
-        .swap_service
+        .shifts()
+        .swap_service()
         .cancel_swap(employee.workspace_id, employee.employee_id, id)
         .await?;
 

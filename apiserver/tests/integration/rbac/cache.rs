@@ -107,7 +107,7 @@ async fn test_cache_invalidation_on_member_role_update() {
     );
 
     // Verify the cache key was deleted (if Redis is available)
-    if let Some(redis_pool) = state.infra.redis.clone() {
+    if let Some(redis_pool) = state.infra().redis().cloned() {
         let cache = apiserver::cache::RedisCache::new(redis_pool);
         let cache_key = format!("cache:auth:permissions:{ws_id}:{member_id}");
         let cached: Option<serde_json::Value> = cache.get(&cache_key).await;
@@ -181,7 +181,7 @@ async fn test_cache_invalidation_on_extra_permission_grant() {
     );
 
     // Verify cache invalidation
-    if let Some(redis_pool) = state.infra.redis.clone() {
+    if let Some(redis_pool) = state.infra().redis().cloned() {
         let cache = apiserver::cache::RedisCache::new(redis_pool);
         let cache_key = format!("cache:auth:permissions:{ws_id}:{member_id}");
         let cached: Option<serde_json::Value> = cache.get(&cache_key).await;
@@ -267,7 +267,7 @@ async fn test_cache_invalidation_on_extra_permission_revoke() {
     );
 
     // Verify cache invalidation
-    if let Some(redis_pool) = state.infra.redis.clone() {
+    if let Some(redis_pool) = state.infra().redis().cloned() {
         let cache = apiserver::cache::RedisCache::new(redis_pool);
         let cache_key = format!("cache:auth:permissions:{ws_id}:{member_id}");
         let cached: Option<serde_json::Value> = cache.get(&cache_key).await;
@@ -352,7 +352,7 @@ async fn test_cache_invalidation_on_role_permissions_update() {
     );
 
     // Verify cache invalidation for the entire workspace
-    if let Some(redis_pool) = state.infra.redis.clone() {
+    if let Some(redis_pool) = state.infra().redis().cloned() {
         let cache = apiserver::cache::RedisCache::new(redis_pool);
         let owner_cache_key = format!("cache:auth:permissions:{ws_id}:{owner_id}");
         let cached: Option<serde_json::Value> = cache.get(&owner_cache_key).await;
@@ -404,7 +404,7 @@ async fn test_cache_invalidation_on_member_removal() {
     );
 
     // Verify cache invalidation
-    if let Some(redis_pool) = state.infra.redis.clone() {
+    if let Some(redis_pool) = state.infra().redis().cloned() {
         let cache = apiserver::cache::RedisCache::new(redis_pool);
         let cache_key = format!("cache:auth:permissions:{ws_id}:{member_id}");
         let cached: Option<serde_json::Value> = cache.get(&cache_key).await;

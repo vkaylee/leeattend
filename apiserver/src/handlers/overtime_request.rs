@@ -54,8 +54,8 @@ pub async fn create_ot_request(
     ctx.require_permission(Permission::OvertimeRequestCreate)?;
 
     let caller_employee_id = state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .get_employee_id_by_user_id(&ctx.auth_token, ctx.user_id)
         .await?;
 
@@ -106,8 +106,8 @@ pub async fn create_ot_request(
     }
 
     let created = state
-        .payroll
-        .overtime_request_service
+        .payroll()
+        .overtime_request_service()
         .create_request(&ctx.auth_token, request, employees)
         .await?;
 
@@ -154,15 +154,15 @@ pub async fn get_ot_request(
     ctx.require_permission(Permission::OvertimeRequestRead)?;
 
     let request = state
-        .payroll
-        .overtime_request_service
+        .payroll()
+        .overtime_request_service()
         .get_request(&ctx.auth_token, id)
         .await?
         .ok_or_else(|| AppError::NotFound("Request not found".into()))?;
 
     let employees = state
-        .payroll
-        .overtime_request_service
+        .payroll()
+        .overtime_request_service()
         .get_request_employees(&ctx.auth_token, id)
         .await?;
 
@@ -189,8 +189,8 @@ pub async fn submit_for_approval(
     ctx.require_permission(Permission::OvertimeRequestCreate)?;
 
     state
-        .payroll
-        .overtime_request_service
+        .payroll()
+        .overtime_request_service()
         .update_request_status(
             &ctx.auth_token,
             id,
@@ -200,8 +200,8 @@ pub async fn submit_for_approval(
         .await?;
 
     let employees = state
-        .payroll
-        .overtime_request_service
+        .payroll()
+        .overtime_request_service()
         .get_request_employees(&ctx.auth_token, id)
         .await?;
     let beneficiary_employee_id = employees.first().map(|e| e.employee_id).ok_or_else(|| {
@@ -209,8 +209,8 @@ pub async fn submit_for_approval(
     })?;
 
     state
-        .core
-        .approval_workflow_service
+        .core()
+        .approval_workflow_service()
         .submit_to_workflow(
             &ctx.auth_token,
             "ot_request".to_string(),
@@ -249,8 +249,8 @@ pub async fn employee_consent(
 ) -> AppResult<StatusCode> {
     let (_, id, emp_id) = params;
     state
-        .payroll
-        .overtime_request_service
+        .payroll()
+        .overtime_request_service()
         .update_employee_consent(&ctx.auth_token, id, emp_id, &req.status, req.decline_reason)
         .await?;
 

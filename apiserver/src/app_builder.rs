@@ -562,18 +562,18 @@ impl AppState {
             &recruitment_repo,
         )));
 
-        let state = Arc::new(AppState {
-            employees: crate::EmployeeState {
-                service: employee_service,
+        let state = Arc::new(AppState::new(
+            crate::EmployeeState::new(
+                employee_service,
                 recruitment_service,
-                repo: employee_repo,
+                employee_repo,
                 contract_repo,
                 employment_phase_repo,
-            },
-            attendance: crate::AttendanceState {
+            ),
+            crate::AttendanceState::new(
                 time_tracking_service,
-                summary_service: attendance_summary_service,
-                log_service: attendance_service,
+                attendance_summary_service,
+                attendance_service,
                 pairing_service,
                 adjustment_service,
                 import_service,
@@ -585,87 +585,79 @@ impl AppState {
                 policy_repo,
                 attendance_daily_summary_repo,
                 behalf_assignment_repo,
-            },
-            shifts: crate::ShiftState {
-                service: shift_service,
-                swap_service: shift_swap_service,
+            ),
+            crate::ShiftState::new(
+                shift_service,
+                shift_swap_service,
                 roster_repo,
                 shift_repo,
-                swap_repo: shift_swap_repo,
-                assignment_rule_repo: assignment_rule_repo.clone(),
+                shift_swap_repo,
+                assignment_rule_repo.clone(),
                 working_pattern_repo,
-            },
-            leaves: crate::LeaveState {
-                service: leave_service,
+            ),
+            crate::LeaveState::new(
+                leave_service,
                 holiday_leave_service,
-                accrual_service: leave_accrual_service,
-                request_repo: leave_request_repo,
-                balance_repo: leave_balance_repo,
-                policy_repo: leave_policy_repo,
-                holiday_repo: holiday_repo.clone(),
-            },
-            payroll: crate::PayrollState {
-                service: payroll_service,
-                repo: payroll_repo,
-                rule_repo: payroll_rule_repo,
+                leave_accrual_service,
+                leave_request_repo,
+                leave_balance_repo,
+                leave_policy_repo,
+                holiday_repo.clone(),
+            ),
+            crate::PayrollState::new(
+                payroll_service,
+                payroll_repo,
+                payroll_rule_repo,
                 department_repo,
-                feature_flag_repo: feature_flag_repo.clone(),
+                feature_flag_repo.clone(),
                 overtime_policy_repo,
                 salary_base_repo,
                 overtime_request_repo,
                 overtime_request_service,
-            },
-            reports: crate::ReportState {
-                service: report_service,
-                coordinator,
-                stats_repo,
-            },
-            core: crate::CoreState {
+            ),
+            crate::ReportState::new(report_service, coordinator, stats_repo),
+            crate::CoreState::new(
                 auth_service,
                 workspace_service,
                 workspace_repo,
                 audit_repo,
-                user_repo: user_repo_core,
-                session_repo: session_repo_core,
+                user_repo_core,
+                session_repo_core,
                 jwt_secret,
                 workspace_config_repo,
                 approval_workflow_repo,
                 workspace_config_service,
                 approval_workflow_service,
-                location_repo,
                 location_service,
-                employer_repo,
+                location_repo,
                 employer_service,
-            },
-            agents: crate::AgentState {
-                manager: agent_manager,
-                service: agent_service,
-                repo: agent_repo,
-            },
-            infra: crate::InfraState {
-                diesel: diesel_pools,
-                redis: redis_pool.clone(),
-                cache: redis_pool.clone().map(|r| {
+                employer_repo,
+            ),
+            crate::AgentState::new(agent_manager, agent_service, agent_repo),
+            crate::InfraState::new(
+                diesel_pools,
+                redis_pool.clone(),
+                redis_pool.clone().map(|r| {
                     Arc::new(crate::cache::RedisCache::new(r))
                         as Arc<dyn crate::repositories::CacheRepository>
                 }),
                 roster_cache,
-                queue: redis_pool.map(|r| {
+                redis_pool.map(|r| {
                     Arc::new(crate::repositories::queue_repository::RedisQueueRepository::new(r))
                         as Arc<dyn crate::repositories::queue_repository::QueueRepository>
                 }),
                 tenant_manager,
-                tenant_provisioner: tenant_provisioner.clone(),
-                crypto_service: std::env::var("ENCRYPTION_KEYS_JSON")
+                tenant_provisioner.clone(),
+                std::env::var("ENCRYPTION_KEYS_JSON")
                     .ok()
                     .and_then(|keys_json| {
                         crate::crypto::CryptoService::from_json(&keys_json)
                             .ok()
                             .map(Arc::new)
                     }),
-                system_db_cluster_repo: system_db_cluster_repo.clone(),
-            },
-        });
+                system_db_cluster_repo.clone(),
+            ),
+        ));
 
         let workers = AppWorkers {
             log_worker_handle,

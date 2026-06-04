@@ -42,8 +42,8 @@ pub async fn submit_attendance_adjustment(
 
     // Behalf scope enforcement: check if caller is submitting for another employee
     let caller_employee_id = state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .get_employee_id_by_user_id(&ctx.auth_token, ctx.user_id)
         .await?;
 
@@ -55,14 +55,14 @@ pub async fn submit_attendance_adjustment(
     }
 
     let adjustment = state
-        .attendance
-        .adjustment_service
+        .attendance()
+        .adjustment_service()
         .submit_request(workspace_id, user_id, req)
         .await?;
 
     state
-        .core
-        .approval_workflow_service
+        .core()
+        .approval_workflow_service()
         .submit_to_workflow(
             &ctx.auth_token,
             "attendance_adjustment".to_string(),
@@ -120,8 +120,8 @@ pub async fn approve_attendance_adjustment(
     ctx.require_permission(Permission::AttendanceAdjustmentsApprove)?;
 
     let opt_instance = state
-        .core
-        .approval_workflow_service
+        .core()
+        .approval_workflow_service()
         .get_workflow_instance_by_entity(&ctx.auth_token, "attendance_adjustment", id)
         .await?;
 
@@ -137,14 +137,14 @@ pub async fn approve_attendance_adjustment(
         };
 
         state
-            .core
-            .approval_workflow_service
+            .core()
+            .approval_workflow_service()
             .process_approval_action(&ctx.auth_token, user_id, instance.id, action, None, None)
             .await?;
     } else {
         state
-            .attendance
-            .adjustment_service
+            .attendance()
+            .adjustment_service()
             .approve_request(ctx.workspace_id, user_id, id, req.status)
             .await?;
     }
@@ -172,8 +172,8 @@ pub async fn get_my_attendance_adjustments(
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<AttendanceAdjustmentRequest>>> {
     let requests = state
-        .attendance
-        .adjustment_service
+        .attendance()
+        .adjustment_service()
         .get_my_requests(ctx.workspace_id, id)
         .await?;
 
@@ -207,8 +207,8 @@ pub async fn get_workspace_attendance_adjustments(
     let workspace_id = ctx.workspace_id;
 
     let requests = state
-        .attendance
-        .adjustment_service
+        .attendance()
+        .adjustment_service()
         .get_workspace_requests(workspace_id, query.status)
         .await?;
 

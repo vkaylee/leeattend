@@ -54,8 +54,8 @@ pub async fn submit_leave_request(
             .await;
 
     let caller_employee_id = state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .get_employee_id_by_user_id(&ctx.auth_token, ctx.user_id)
         .await?;
 
@@ -84,15 +84,15 @@ pub async fn submit_leave_request(
         .is_ok();
 
     let request = state
-        .leaves
-        .service
+        .leaves()
+        .service()
         .submit_leave_request(ctx.workspace_id, user_id, req, can_auto_approve)
         .await?;
 
     if !can_auto_approve {
         state
-            .core
-            .approval_workflow_service
+            .core()
+            .approval_workflow_service()
             .submit_to_workflow(
                 &ctx.auth_token,
                 "leave_request".to_string(),
@@ -126,8 +126,8 @@ pub async fn approve_leave_request(
 ) -> AppResult<StatusCode> {
     let (_, id) = params;
     let target_dept_id = state
-        .leaves
-        .request_repo
+        .leaves()
+        .request_repo()
         .get_employee_department_for_request(id, &ctx.auth_token)
         .await?;
 
@@ -140,8 +140,8 @@ pub async fn approve_leave_request(
         target_dept_id,
     )?;
     state
-        .leaves
-        .service
+        .leaves()
+        .service()
         .approve_leave_request(ctx.workspace_id, user_id, id, req)
         .await?;
 
@@ -165,8 +165,8 @@ pub async fn get_my_leave_requests(
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<LeaveRequest>>> {
     let requests = state
-        .leaves
-        .request_repo
+        .leaves()
+        .request_repo()
         .get_employee_leave_requests(&ctx.auth_token, id)
         .await?;
     Ok(Json(requests))
@@ -191,8 +191,8 @@ pub async fn get_workspace_leave_balances(
     ctx.require_permission(Permission::LeaveBalancesRead)?;
     let year = params.year.unwrap_or_else(|| Utc::now().year());
     let balances = state
-        .leaves
-        .service
+        .leaves()
+        .service()
         .get_workspace_balances(ctx.workspace_id, year, params)
         .await?;
 
@@ -218,8 +218,8 @@ pub async fn get_employee_leave_balances(
     let (_, emp_id) = params;
     let year = Utc::now().year();
     let balances = state
-        .leaves
-        .service
+        .leaves()
+        .service()
         .get_employee_balances(ctx.workspace_id, emp_id, year)
         .await?;
 
@@ -249,16 +249,16 @@ pub async fn get_workspace_leave_requests(
 ) -> AppResult<Json<Vec<LeaveRequest>>> {
     ctx.require_permission(Permission::LeaveRequestsRead)?;
     let mut requests = state
-        .leaves
-        .service
+        .leaves()
+        .service()
         .get_workspace_leave_requests(ctx.workspace_id, query.status)
         .await?;
 
     // When filtering by Approved, also include PreApproved requests
     if query.status == Some(LeaveStatus::Approved) {
         let pre_approved = state
-            .leaves
-            .service
+            .leaves()
+            .service()
             .get_workspace_leave_requests(ctx.workspace_id, Some(LeaveStatus::PreApproved))
             .await?;
         requests.extend(pre_approved);
@@ -296,8 +296,8 @@ pub async fn get_employee_leave_history(
     ctx.require_permission(Permission::LeaveBalancesRead)?;
     let year = Utc::now().year();
     let history = state
-        .leaves
-        .service
+        .leaves()
+        .service()
         .get_employee_leave_history(ctx.workspace_id, emp_id, year, query.leave_type_id)
         .await?;
 
@@ -325,8 +325,8 @@ pub async fn adjust_leave_balance(
     let (_, emp_id) = params;
     ctx.require_permission(Permission::LeaveBalancesAdjust)?;
     state
-        .leaves
-        .service
+        .leaves()
+        .service()
         .adjust_balance(ctx.workspace_id, emp_id, req)
         .await?;
 
@@ -352,8 +352,8 @@ pub async fn create_leave_policy(
     ctx.require_permission(Permission::LeavePoliciesManage)?;
 
     let policy = state
-        .leaves
-        .policy_repo
+        .leaves()
+        .policy_repo()
         .create_policy_definition(
             ctx.workspace_id,
             &req.name,
@@ -388,8 +388,8 @@ pub async fn update_leave_policy(
     ctx.require_permission(Permission::LeavePoliciesManage)?;
 
     let policy = state
-        .leaves
-        .policy_repo
+        .leaves()
+        .policy_repo()
         .update_policy_definition(
             policy_id,
             ctx.workspace_id,
@@ -423,8 +423,8 @@ pub async fn delete_leave_policy(
     ctx.require_permission(Permission::LeavePoliciesManage)?;
 
     let rows = state
-        .leaves
-        .policy_repo
+        .leaves()
+        .policy_repo()
         .delete_policy_definition(policy_id, ctx.workspace_id)
         .await?;
 
@@ -450,8 +450,8 @@ pub async fn get_leave_policies(
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<LeavePolicyDefinition>>> {
     let policies = state
-        .leaves
-        .policy_repo
+        .leaves()
+        .policy_repo()
         .get_policy_definitions(ctx.workspace_id)
         .await?;
     Ok(Json(policies))
@@ -487,8 +487,8 @@ pub async fn assign_leave_policy(
     };
 
     let saved = state
-        .leaves
-        .policy_repo
+        .leaves()
+        .policy_repo()
         .create_policy_assignment(ctx.workspace_id, &assignment)
         .await?;
     Ok((StatusCode::CREATED, Json(saved)))
@@ -529,7 +529,7 @@ pub async fn trigger_accrual_run(
 
     use crate::queue::{AccrualPayload, Job, JobMetadata, JobPayload, TaskType};
 
-    let queue = state.infra.job_queue()?;
+    let queue = state.infra().job_queue()?;
     let parent_id = crate::utils::id::new_id();
     let job = Job::new(
         parent_id,
@@ -599,7 +599,7 @@ pub async fn get_job_status(
     _ctx: MemberContext,
 ) -> AppResult<Json<JobStatusResponse>> {
     let (_, job_id) = params;
-    let queue = state.infra.job_queue()?;
+    let queue = state.infra().job_queue()?;
 
     let meta = queue.get_job_metadata(job_id).await.map_err(|e| {
         AppError::BackgroundJobError(format!("Failed to get job job metadata/queue: {e}"))
@@ -635,8 +635,8 @@ pub async fn get_leave_policy_assignments(
 ) -> AppResult<Json<Vec<crate::models::LeavePolicyAssignmentDetail>>> {
     ctx.require_permission(Permission::LeavePoliciesManage)?;
     let assignments = state
-        .leaves
-        .policy_repo
+        .leaves()
+        .policy_repo()
         .get_policy_assignments(ctx.workspace_id)
         .await?;
     Ok(Json(assignments))
@@ -697,8 +697,8 @@ pub async fn upload_leave_excel(
     };
 
     state
-        .attendance
-        .import_repo
+        .attendance()
+        .import_repo()
         .create_job(&ctx.auth_token, &import_job)
         .await
         .map_err(|e| {
@@ -722,7 +722,7 @@ pub async fn upload_leave_excel(
         JobPayload::LeaveImport(payload),
     );
 
-    let queue = state.infra.job_queue()?;
+    let queue = state.infra().job_queue()?;
     queue.enqueue_jobs(vec![job]).await.map_err(|e| {
         AppError::BackgroundJobError(format!("Failed to enqueue leave import job: {e}"))
     })?;
@@ -751,7 +751,7 @@ pub async fn get_latest_leave_import(
 ) -> AppResult<Json<serde_json::Value>> {
     ctx.require_permission(Permission::LeaveRequestsSubmit)?;
 
-    let repo = &state.attendance.import_repo;
+    let repo = state.attendance().import_repo();
 
     match repo
         .get_latest_job(&ctx.auth_token, Some(ImportTargetType::LeaveImport))
@@ -797,7 +797,7 @@ pub async fn download_leave_import_errors(
     let (_, job_id) = params;
     ctx.require_permission(Permission::LeaveRequestsSubmit)?;
 
-    let repo = &state.attendance.import_repo;
+    let repo = state.attendance().import_repo();
 
     let job = repo
         .get_job_by_id(&ctx.auth_token, job_id)
@@ -861,8 +861,8 @@ pub async fn download_leave_import_template(
     ctx.require_permission(Permission::LeaveRequestsSubmit)?;
 
     let leave_types = state
-        .leaves
-        .request_repo
+        .leaves()
+        .request_repo()
         .get_leave_types(&ctx.auth_token)
         .await?;
 

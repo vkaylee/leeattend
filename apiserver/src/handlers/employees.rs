@@ -55,8 +55,8 @@ pub async fn get_working_conditions(
     let limit = query.limit.unwrap_or(50).clamp(1, 3000);
 
     let (conditions, total) = state
-        .employees
-        .service
+        .employees()
+        .service()
         .get_working_conditions(id, &ctx.auth_token, page, limit)
         .await?;
     Ok(Json(PaginatedResponse {
@@ -89,8 +89,8 @@ pub async fn create_working_condition(
     let target_dept_id = common::current_department_id(&state, &ctx.auth_token, id).await;
     ctx.require_scoped_permission(Permission::EmployeesUpdate, target_dept_id)?;
     let cond = state
-        .employees
-        .service
+        .employees()
+        .service()
         .create_working_condition(id, &ctx.auth_token, req)
         .await?;
     Ok((StatusCode::CREATED, Json(cond)))
@@ -117,8 +117,8 @@ pub async fn delete_working_condition(
     let target_dept_id = common::current_department_id(&state, &ctx.auth_token, id).await;
     ctx.require_scoped_permission(Permission::EmployeesUpdate, target_dept_id)?;
     state
-        .employees
-        .service
+        .employees()
+        .service()
         .delete_working_condition(id, &ctx.auth_token, cond_id)
         .await?;
     Ok(StatusCode::NO_CONTENT)
@@ -157,8 +157,8 @@ pub async fn get_employees(
         })
         .filter(|v: &Vec<Uuid>| !v.is_empty());
     let (data, total) = state
-        .employees
-        .service
+        .employees()
+        .service()
         .get_all_employees(
             &ctx.auth_token,
             crate::models::EmployeeFilterOptions {
@@ -201,8 +201,8 @@ pub async fn get_employee(
     let _workspace_id = ctx.workspace_id;
 
     let employee = state
-        .employees
-        .service
+        .employees()
+        .service()
         .get_employee_by_id(id, &ctx.auth_token)
         .await
         .map_err(|_e| AppError::NotFound("Employee not found".to_string()))?;
@@ -228,8 +228,8 @@ pub async fn create_employee(
     // Since a new employee has no department yet, a scoped-only user cannot create employees.
     ctx.require_scoped_permission(Permission::EmployeesCreate, None)?;
     let employee = state
-        .employees
-        .service
+        .employees()
+        .service()
         .create_employee(&ctx.auth_token, req)
         .await?;
     Ok((StatusCode::CREATED, Json(employee)))
@@ -257,8 +257,8 @@ pub async fn update_employee(
     let target_dept_id = common::current_department_id(&state, &ctx.auth_token, id).await;
     ctx.require_scoped_permission(Permission::EmployeesUpdate, target_dept_id)?;
     let employee = state
-        .employees
-        .service
+        .employees()
+        .service()
         .update_employee(id, &ctx.auth_token, req)
         .await?;
     Ok(Json(employee))
@@ -285,8 +285,8 @@ pub async fn delete_employee(
     ctx.require_scoped_permission(Permission::EmployeesDelete, target_dept_id)?;
     let _workspace_id = ctx.workspace_id;
     state
-        .employees
-        .service
+        .employees()
+        .service()
         .delete_employee(id, &ctx.auth_token)
         .await
         .map_err(|_e| AppError::NotFound("Employee not found".to_string()))?;
@@ -315,8 +315,8 @@ pub async fn rehire_employee(
     let target_dept_id = common::current_department_id(&state, &ctx.auth_token, id).await;
     ctx.require_scoped_permission(Permission::EmployeesRehire, target_dept_id)?;
     let employee = state
-        .employees
-        .service
+        .employees()
+        .service()
         .rehire_employee(id, &ctx.auth_token, req)
         .await?;
     Ok(Json(employee))
@@ -340,8 +340,8 @@ pub async fn get_employee_department_history(
 ) -> AppResult<Json<Vec<EmployeeDepartmentHistory>>> {
     let (_workspace_id, id) = params;
     let history = state
-        .employees
-        .service
+        .employees()
+        .service()
         .get_department_history(id, &ctx.auth_token)
         .await?;
     Ok(Json(history))
@@ -369,8 +369,8 @@ pub async fn transfer_employee(
     let target_dept_id = common::current_department_id(&state, &ctx.auth_token, id).await;
     ctx.require_scoped_permission(Permission::DepartmentsTransfer, target_dept_id)?;
     let history = state
-        .employees
-        .service
+        .employees()
+        .service()
         .transfer_employee(id, &ctx.auth_token, req)
         .await?;
     Ok(Json(history))

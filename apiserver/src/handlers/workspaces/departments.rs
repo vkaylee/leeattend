@@ -46,8 +46,8 @@ pub async fn get_departments(
     let limit = query.limit.unwrap_or(50).clamp(1, 3000);
 
     let (departments, total) = state
-        .payroll
-        .department_repo
+        .payroll()
+        .department_repo()
         .get_departments(&ctx.auth_token, page, limit)
         .await?;
     Ok(Json(PaginatedResponse {
@@ -79,8 +79,8 @@ pub async fn create_department(
 ) -> AppResult<impl IntoResponse> {
     ctx.require_permission(Permission::DepartmentsCreate)?;
     let dept = state
-        .payroll
-        .department_repo
+        .payroll()
+        .department_repo()
         .create_department(
             &ctx.auth_token,
             req.name,
@@ -117,8 +117,8 @@ pub async fn update_department(
     let (_, id) = __path_params;
     ctx.require_permission(Permission::DepartmentsUpdate)?;
     let dept = state
-        .payroll
-        .department_repo
+        .payroll()
+        .department_repo()
         .update_department(&ctx.auth_token, id, req)
         .await?;
 
@@ -147,8 +147,8 @@ pub async fn delete_department(
     let (_, id) = __path_params;
     ctx.require_permission(Permission::DepartmentsDelete)?;
     state
-        .payroll
-        .department_repo
+        .payroll()
+        .department_repo()
         .delete_department(&ctx.auth_token, id)
         .await?;
 

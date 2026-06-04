@@ -46,8 +46,8 @@ pub async fn get_attendance_logs(
     let offset = (page - 1) * limit;
 
     let logs = state
-        .attendance
-        .time_entry_repo
+        .attendance()
+        .time_entry_repo()
         .get_paginated_logs(
             &ctx.auth_token,
             crate::models::TimeEntryLogFilter {
@@ -61,8 +61,8 @@ pub async fn get_attendance_logs(
         .await?;
 
     let total = state
-        .attendance
-        .time_entry_repo
+        .attendance()
+        .time_entry_repo()
         .count_logs(&ctx.auth_token, query.employee_id, query.from, query.to)
         .await?;
 
@@ -97,8 +97,8 @@ pub async fn get_raw_attendance_logs(
     let offset = (page - 1) * limit;
 
     let logs = state
-        .attendance
-        .raw_log_repo
+        .attendance()
+        .raw_log_repo()
         .get_paginated_raw_logs(
             workspace_id,
             query.employee_id,
@@ -110,8 +110,8 @@ pub async fn get_raw_attendance_logs(
         .await?;
 
     let total = state
-        .attendance
-        .raw_log_repo
+        .attendance()
+        .raw_log_repo()
         .count_raw_logs(ctx.workspace_id, query.employee_id, query.from, query.to)
         .await?;
 
@@ -169,16 +169,16 @@ pub async fn force_reprocess_attendance(
     }
 
     let tz: chrono_tz::Tz = state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .get_employee_timezone_fallback(&ctx.auth_token, employee_id)
         .await?;
 
     let mut curr_date = query.start_date;
     while curr_date <= query.end_date {
         state
-            .attendance
-            .pairing_service
+            .attendance()
+            .pairing_service()
             .reprocess_daily_attendance(ctx.workspace_id, employee_id, curr_date, tz)
             .await
             .map_err(|e| AppError::from(format!("Processing failed for {curr_date}: {e}")))?;
@@ -229,12 +229,12 @@ pub async fn force_reprocess_all_attendance(
         )));
     }
 
-    let queue = state.infra.job_queue()?;
+    let queue = state.infra().job_queue()?;
 
     // Fetch all active employees
     let employees = state
-        .employees
-        .repo
+        .employees()
+        .repo()
         .get_active_employees(&ctx.auth_token)
         .await?;
 
