@@ -34,6 +34,8 @@ vi.mock("react-i18next", () => ({
         "ot_approvals.delegated_claim.empty_state.title": "ot_approvals.delegated_claim.empty_state.title",
         "ot_approvals.delegated_claim.default_reason": "Delegated OT claim",
         "common.submit": "common.submit",
+        "approvals.pre_ot_dialog.new_request_btn": "New Pre-OT Request",
+        "approvals.bulk_upload.btn": "Bulk Upload",
       };
       const normalizedKey = key.replace(":", ".");
       return translations[normalizedKey] || translations[key] || options?.defaultValue || key;
@@ -535,7 +537,65 @@ describe("OtApprovalsPage", () => {
 
       await user.click(behalfTab);
 
-      expect(screen.getByTestId("behalf-assignments-tab")).toBeInTheDocument();
+      expect(screen.getAllByTestId("behalf-assignments-tab").length).toBe(2);
+    });
+  });
+
+  describe("Header & Filter Controls Visibility", () => {
+    it("shows only New Pre-OT Request and no filters on pre tab, and only Bulk Upload and filters on post tab", async () => {
+      vi.mocked(useMyPermissions).mockReturnValue({
+        hasPermission: (perm: string) =>
+          perm === "overtime:approve" || perm === "overtime:claim_on_behalf",
+        hasAnyPermission: () => true,
+        hasScopedPermission: () => true,
+        hasRole: () => true,
+        isLoading: false,
+        permissions: ["overtime:approve", "overtime:claim_on_behalf"],
+        roles: ["admin"],
+        managedDepartmentIds: null,
+      });
+
+      const user = userEvent.setup();
+      renderPage();
+
+      // 1. Initially on "pre" tab: should see "New Pre-OT Request" but NOT "Bulk Upload" or filter
+      expect(screen.getByText("New Pre-OT Request")).toBeInTheDocument();
+      expect(screen.queryByText("Bulk Upload")).not.toBeInTheDocument();
+      expect(screen.queryByText("approvals.filter.paper_forms")).not.toBeInTheDocument();
+
+      // 2. Switch to "post" tab: should see "Bulk Upload" and source filter, but NOT "New Pre-OT Request"
+      await user.click(screen.getByText("ot_approvals.tabs.post_ot"));
+      expect(screen.queryByText("New Pre-OT Request")).not.toBeInTheDocument();
+      expect(screen.getByText("Bulk Upload")).toBeInTheDocument();
+      expect(screen.getByText("approvals.filter.paper_forms")).toBeInTheDocument();
+
+      // 3. Switch to "delegated_claim" tab: should see "Bulk Upload" but NOT "New Pre-OT Request" or filter
+      await user.click(screen.getByText("ot_approvals.tabs.delegated_claim"));
+      expect(screen.queryByText("New Pre-OT Request")).not.toBeInTheDocument();
+      expect(screen.getByText("Bulk Upload")).toBeInTheDocument();
+      expect(screen.queryByText("approvals.filter.paper_forms")).not.toBeInTheDocument();
+    });
+
+    it("shows no action buttons or filters on behalf_assignments tab", async () => {
+      vi.mocked(useMyPermissions).mockReturnValue({
+        hasPermission: (perm: string) => perm === "overtime:policies:manage",
+        hasAnyPermission: () => true,
+        hasScopedPermission: () => true,
+        hasRole: () => true,
+        isLoading: false,
+        permissions: ["overtime:policies:manage"],
+        roles: ["admin"],
+        managedDepartmentIds: null,
+      });
+
+      const user = userEvent.setup();
+      renderPage();
+
+      // Switch to behalf tab
+      await user.click(screen.getByText("ot_approvals.tabs.behalf_assignments"));
+      expect(screen.queryByText("New Pre-OT Request")).not.toBeInTheDocument();
+      expect(screen.queryByText("Bulk Upload")).not.toBeInTheDocument();
+      expect(screen.queryByText("approvals.filter.paper_forms")).not.toBeInTheDocument();
     });
   });
 });

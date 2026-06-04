@@ -453,4 +453,23 @@ describe("BehalfAssignmentsTab", () => {
       ).toBeDefined();
     });
   });
+
+  describe("assignmentType=overtime_request", () => {
+    it("renders correct empty state text for overtime_request type", () => {
+      render(<BehalfAssignmentsTab assignmentType="overtime_request" wsId="ws-1" />, { wrapper });
+      expect(screen.getByText("No Behalf Pre-OT Assignments Configured")).toBeDefined();
+    });
+
+    it("renders correct empty state description for overtime_request type", () => {
+      render(<BehalfAssignmentsTab assignmentType="overtime_request" wsId="ws-1" />, { wrapper });
+      expect(
+        screen.getByText(/scope their Pre-OT request access/)
+      ).toBeDefined();
+    });
+
+    it("uses useBehalfAssignments hook with 'overtime_request'", () => {
+      render(<BehalfAssignmentsTab assignmentType="overtime_request" wsId="ws-1" />, { wrapper });
+      expect(useBehalfAssignments).toHaveBeenCalledWith("overtime_request");
+    });
+  });
 });

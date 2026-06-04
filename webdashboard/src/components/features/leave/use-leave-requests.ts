@@ -29,7 +29,7 @@ export function useLeaveRequests(wsId: string | null) {
     queryKey: ["leave-requests", wsId, activeTab],
     queryFn: () => {
       if (activeTab === "behalf_assignments") return [];
-      return fetchWorkspaceLeaveRequests(wsId ?? "", activeTab as "pending" | "approved" | "rejected");
+      return fetchWorkspaceLeaveRequests(wsId ?? "", activeTab);
     },
     enabled: !!wsId && activeTab !== "behalf_assignments"
   });

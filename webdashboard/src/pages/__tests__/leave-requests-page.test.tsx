@@ -8,7 +8,6 @@ import "@testing-library/jest-dom";
 import { ToastProvider } from "../../components/ui/toast";
 import * as api from "../../lib/api";
 import { LeaveRequest, EmployeeLeaveBalance } from "../../lib/api/types";
-import { useMyPermissions } from "../../hooks/use-permissions";
 import LeaveRequestsPage from "../leave-requests-page";
 
 (globalThis as any).__mockPermissions = ["leave:requests:submit_on_behalf"];

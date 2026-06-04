@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment */
-import type { ApprovalActionLog } from './types';
+import type { ApprovalActionLog, BehalfAssignment, CreateBehalfAssignmentRequest } from './types';
 
 import { client } from './client';
 
@@ -180,5 +180,34 @@ export const overtimeRequestsApi = {
     });
     if (!data) throw new Error("No response data");
     return data as QuotaSummary;
+  },
+
+  listRequestBehalfAssignments: async (workspaceId: string): Promise<BehalfAssignment[]> => {
+    const { data } = await client.GET("/v1/workspaces/{ws_id}/overtime/requests/behalf-assignments", {
+      params: {
+        path: { ws_id: workspaceId },
+      },
+    });
+    if (!data) throw new Error("No response data");
+    return data;
+  },
+
+  createRequestBehalfAssignment: async (workspaceId: string, payload: CreateBehalfAssignmentRequest): Promise<BehalfAssignment> => {
+    const { data } = await client.POST("/v1/workspaces/{ws_id}/overtime/requests/behalf-assignments", {
+      params: {
+        path: { ws_id: workspaceId },
+      },
+      body: payload,
+    });
+    if (!data) throw new Error("No response data");
+    return data;
+  },
+
+  deleteRequestBehalfAssignment: async (workspaceId: string, id: string): Promise<void> => {
+    await client.DELETE("/v1/workspaces/{ws_id}/overtime/requests/behalf-assignments/{id}", {
+      params: {
+        path: { ws_id: workspaceId, id },
+      },
+    });
   }
 };

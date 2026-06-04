@@ -53,6 +53,7 @@ pub enum Permission {
     OvertimePoliciesManage,
     OvertimePaperUpload,
     OvertimeRequestCreate,
+    OvertimeRequestCreateOnBehalf,
     OvertimeRequestRead,
     OvertimeApproveWorkflow,
     OvertimeQuotaRead,
@@ -203,6 +204,7 @@ impl Permission {
             "overtime:policies:manage" => Some(Self::OvertimePoliciesManage),
             "overtime:paper:upload" => Some(Self::OvertimePaperUpload),
             "overtime:request:create" => Some(Self::OvertimeRequestCreate),
+            "overtime:request:create_on_behalf" => Some(Self::OvertimeRequestCreateOnBehalf),
             "overtime:request:read" => Some(Self::OvertimeRequestRead),
             "overtime:approve:workflow" => Some(Self::OvertimeApproveWorkflow),
             "overtime:quota:read" => Some(Self::OvertimeQuotaRead),
@@ -312,6 +314,7 @@ impl Permission {
             Self::OvertimePoliciesManage => "overtime:policies:manage",
             Self::OvertimePaperUpload => "overtime:paper:upload",
             Self::OvertimeRequestCreate => "overtime:request:create",
+            Self::OvertimeRequestCreateOnBehalf => "overtime:request:create_on_behalf",
             Self::OvertimeRequestRead => "overtime:request:read",
             Self::OvertimeApproveWorkflow => "overtime:approve:workflow",
             Self::OvertimeQuotaRead => "overtime:quota:read",
@@ -420,6 +423,7 @@ impl Permission {
             "overtime:policies:manage",
             "overtime:paper:upload",
             "overtime:request:create",
+            "overtime:request:create_on_behalf",
             "overtime:request:read",
             "overtime:approve:workflow",
             "overtime:quota:read",
@@ -496,15 +500,15 @@ mod tests {
     use super::*;
     use std::collections::HashSet;
 
-    /// Lock the total permission count at 97.
+    /// Lock the total permission count at 102.
     /// If you add a new Permission variant, update this number,
     /// `all_permission_strings()`, AND the frontend PermissionSync.test.ts.
     #[test]
-    fn test_total_permission_count_is_101() {
+    fn test_total_permission_count_is_102() {
         let all = Permission::all_permission_strings();
         assert_eq!(
             all.len(),
-            101,
+            102,
             "Permission count changed! Update this test, the UI permissionGroups, AND PermissionSync.test.ts. Current count: {}",
             all.len()
         );
@@ -584,6 +588,7 @@ mod tests {
             Permission::OvertimePoliciesManage,
             Permission::OvertimePaperUpload,
             Permission::OvertimeRequestCreate,
+            Permission::OvertimeRequestCreateOnBehalf,
             Permission::OvertimeRequestRead,
             Permission::OvertimeApproveWorkflow,
             Permission::OvertimeQuotaRead,
@@ -655,8 +660,8 @@ mod tests {
 
         assert_eq!(
             all_variants.len(),
-            101,
-            "Variant list in test is stale — expected 101, got {}",
+            102,
+            "Variant list in test is stale — expected 102, got {}",
             all_variants.len()
         );
 

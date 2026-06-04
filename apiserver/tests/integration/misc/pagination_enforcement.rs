@@ -37,6 +37,7 @@ const GET_LIST_WHITELIST: &[&str] = &[
     "get_leave_policies",
     "get_leave_policy_assignments",
     "list_leave_behalf_assignments",
+    "list_request_behalf_assignments",
     "list_ot_requests",
     "list_policies",
     "get_employee_payslips",

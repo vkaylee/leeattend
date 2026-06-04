@@ -2,7 +2,7 @@ use crate::{
     domain::permissions::Permission,
     errors::{AppError, AppResult},
     handlers::common::MemberContext,
-    models::{OtRequestStatus, OvertimeRequest, OvertimeRequestEmployee},
+    models::{BehalfAssignment, CreateBehalfAssignmentRequest, OtRequestStatus, OvertimeRequest, OvertimeRequestEmployee},
     AppState,
 };
 use axum::{
@@ -49,6 +49,23 @@ pub async fn create_ot_request(
     Json(req): Json<CreateOvertimeRequestPayload>,
 ) -> AppResult<Json<OvertimeRequest>> {
     ctx.require_permission(Permission::OvertimeRequestCreate)?;
+
+    let caller_employee_id = state
+        .employees
+        .repo
+        .get_employee_id_by_user_id(&ctx.auth_token, ctx.user_id)
+        .await?;
+
+    for &emp_id in &req.employees {
+        let is_on_behalf = match caller_employee_id {
+            Some(caller_id) => caller_id != emp_id,
+            None => true,
+        };
+
+        if is_on_behalf {
+            check_request_behalf_scope(&state, &ctx, caller_employee_id, emp_id).await?;
+        }
+    }
 
     let request = OvertimeRequest {
         id: crate::utils::id::new_id(),
@@ -236,3 +253,110 @@ pub async fn employee_consent(
 
     Ok(StatusCode::OK)
 }
+
+async fn check_request_behalf_scope(
+    state: &AppState,
+    ctx: &MemberContext,
+    caller_employee_id: Option<Uuid>,
+    target_employee_id: Uuid,
+) -> AppResult<()> {
+    crate::handlers::common::check_behalf_scope(
+        state,
+        ctx,
+        &[Permission::OvertimeRequestCreateOnBehalf],
+        "overtime_request",
+        caller_employee_id,
+        target_employee_id,
+    )
+    .await
+}
+
+#[utoipa::path(
+    post,
+    path = "/v1/workspaces/{ws_id}/overtime/requests/behalf-assignments",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    request_body = CreateBehalfAssignmentRequest,
+    responses(
+        (status = 200, description = "Assignment created", body = BehalfAssignment)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
+pub async fn create_request_behalf_assignment(
+    State(state): State<Arc<AppState>>,
+    Path(_ws_id): Path<Uuid>,
+    ctx: MemberContext,
+    Json(req): Json<CreateBehalfAssignmentRequest>,
+) -> AppResult<Json<BehalfAssignment>> {
+    let result = crate::handlers::common::create_behalf_assignment_handler(
+        &state,
+        &ctx,
+        &req,
+        Permission::OvertimePoliciesManage,
+        "overtime_request",
+    )
+    .await?;
+    Ok(Json(result))
+}
+
+#[utoipa::path(
+    delete,
+    path = "/v1/workspaces/{ws_id}/overtime/requests/behalf-assignments/{id}",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Assignment ID")
+    ),
+    responses(
+        (status = 200, description = "Assignment deleted")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
+pub async fn delete_request_behalf_assignment(
+    State(state): State<Arc<AppState>>,
+    Path(params): Path<(Uuid, Uuid)>,
+    ctx: MemberContext,
+) -> AppResult<StatusCode> {
+    let (_ws_id, id) = params;
+    crate::handlers::common::delete_behalf_assignment_handler(
+        &state,
+        &ctx,
+        id,
+        Permission::OvertimePoliciesManage,
+    )
+    .await?;
+    Ok(StatusCode::OK)
+}
+
+#[utoipa::path(
+    get,
+    path = "/v1/workspaces/{ws_id}/overtime/requests/behalf-assignments",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    responses(
+        (status = 200, description = "List of assignments", body = [BehalfAssignment])
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
+pub async fn list_request_behalf_assignments(
+    State(state): State<Arc<AppState>>,
+    Path(_ws_id): Path<Uuid>,
+    ctx: MemberContext,
+) -> AppResult<Json<Vec<BehalfAssignment>>> {
+    let result = crate::handlers::common::list_behalf_assignments_handler(
+        &state,
+        &ctx,
+        Permission::OvertimePoliciesManage,
+        "overtime_request",
+    )
+    .await?;
+    Ok(Json(result))
+}
+

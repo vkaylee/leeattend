@@ -134,6 +134,31 @@ async fn test_overtime_request_full_flow() {
 
     assert_eq!(res.status(), StatusCode::OK);
 
+    // Setup behalf assignment: Manager -> Employee
+    crate::test_execute!(
+        &factory.diesel_pools.api,
+        "INSERT INTO workspace_role_permissions (role_id, permission_name) VALUES
+        ('a0000000-0000-0000-0000-000000000005', 'overtime:request:create_on_behalf')
+        ON CONFLICT DO NOTHING"
+    );
+
+    let behalf_payload = serde_json::json!({
+        "assignee_employee_id": manager_emp_id,
+        "target_employee_id": employee_emp_id,
+        "target_department_id": null
+    });
+    let behalf_res = admin_client
+        .post(&format!(
+            "{}/api/v1/workspaces/{}/overtime/requests/behalf-assignments",
+            app_addr, admin_ws_id
+        ))
+        .header("X-Workspace-Id", admin_ws_id.to_string())
+        .json(&behalf_payload)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(behalf_res.status(), StatusCode::OK);
+
     // 4. Create OT Request
     let ot_payload = serde_json::json!({
         "department_id": null,
@@ -297,4 +322,208 @@ async fn test_overtime_request_status_serialization() {
 
         assert_eq!(queried.status, status);
     }
+}
+
+#[tokio::test]
+async fn test_overtime_request_behalf_assignments() {
+    let (app_addr, admin_ws_id, admin_user_id, factory, _db) = spawn_app_with_factory().await;
+
+    let team_lead_user_id = factory.user().create().await;
+    let emp1_user_id = factory.user().create().await;
+    let emp2_user_id = factory.user().create().await;
+
+    // Assign roles to users
+    // Team Lead role ID is a0000000-0000-0000-0000-000000000005
+    factory
+        .add_member(
+            admin_ws_id,
+            team_lead_user_id,
+            Uuid::parse_str("a0000000-0000-0000-0000-000000000005").unwrap(),
+        )
+        .await;
+    factory
+        .add_member(
+            admin_ws_id,
+            emp1_user_id,
+            Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+        )
+        .await;
+    factory
+        .add_member(
+            admin_ws_id,
+            emp2_user_id,
+            Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+        )
+        .await;
+
+    let team_lead_emp_id = factory
+        .employee()
+        .with_user(team_lead_user_id)
+        .with_workspace(admin_ws_id)
+        .create()
+        .await;
+    let emp1_emp_id = factory
+        .employee()
+        .with_user(emp1_user_id)
+        .with_workspace(admin_ws_id)
+        .create()
+        .await;
+    let emp2_emp_id = factory
+        .employee()
+        .with_user(emp2_user_id)
+        .with_workspace(admin_ws_id)
+        .create()
+        .await;
+
+    let admin_client = Client::builder()
+        .default_headers({
+            let mut headers = reqwest::header::HeaderMap::new();
+            let token = factory.auth().create_token(admin_user_id);
+            headers.insert(
+                reqwest::header::AUTHORIZATION,
+                reqwest::header::HeaderValue::from_str(&format!("Bearer {}", token)).unwrap(),
+            );
+            headers
+        })
+        .build()
+        .unwrap();
+
+    let team_lead_client = Client::builder()
+        .default_headers({
+            let mut headers = reqwest::header::HeaderMap::new();
+            let token = factory.auth().create_token(team_lead_user_id);
+            headers.insert(
+                reqwest::header::AUTHORIZATION,
+                reqwest::header::HeaderValue::from_str(&format!("Bearer {}", token)).unwrap(),
+            );
+            headers
+        })
+        .build()
+        .unwrap();
+
+    // 1. Initially, Team Lead should not be able to create a Pre-OT request for emp1
+    let ot_payload_emp1 = serde_json::json!({
+        "department_id": null,
+        "planned_date": "2024-05-15",
+        "planned_start_time": "18:00:00",
+        "planned_end_time": "20:00:00",
+        "planned_minutes": 120,
+        "reason": "Project deadline",
+        "employees": [emp1_emp_id]
+    });
+
+    let res = team_lead_client
+        .post(&format!("{}/api/v1/workspaces/{}/overtime/requests", app_addr, admin_ws_id))
+        .header("X-Workspace-Id", admin_ws_id.to_string())
+        .json(&ot_payload_emp1)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), StatusCode::FORBIDDEN);
+
+    // 2. Admin creates behalf assignment: Team Lead -> emp1
+    let behalf_payload = serde_json::json!({
+        "assignee_employee_id": team_lead_emp_id,
+        "target_employee_id": emp1_emp_id,
+        "target_department_id": null
+    });
+
+    let res = admin_client
+        .post(&format!("{}/api/v1/workspaces/{}/overtime/requests/behalf-assignments", app_addr, admin_ws_id))
+        .header("X-Workspace-Id", admin_ws_id.to_string())
+        .json(&behalf_payload)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), StatusCode::OK);
+    let assignment: serde_json::Value = res.json().await.unwrap();
+    let assignment_id = assignment["id"].as_str().unwrap();
+
+    // 3. Team Lead lists behalf assignments
+    let res = admin_client
+        .get(&format!("{}/api/v1/workspaces/{}/overtime/requests/behalf-assignments", app_addr, admin_ws_id))
+        .header("X-Workspace-Id", admin_ws_id.to_string())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), StatusCode::OK);
+    let list: Vec<serde_json::Value> = res.json().await.unwrap();
+    assert!(list.iter().any(|item| item["id"].as_str().unwrap() == assignment_id));
+
+    // 4. Team Lead can now create Pre-OT request for emp1
+    let res = team_lead_client
+        .post(&format!("{}/api/v1/workspaces/{}/overtime/requests", app_addr, admin_ws_id))
+        .header("X-Workspace-Id", admin_ws_id.to_string())
+        .json(&ot_payload_emp1)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), StatusCode::OK);
+
+    // 5. Team Lead still cannot create Pre-OT request for emp2
+    let ot_payload_emp2 = serde_json::json!({
+        "department_id": null,
+        "planned_date": "2024-05-15",
+        "planned_start_time": "18:00:00",
+        "planned_end_time": "20:00:00",
+        "planned_minutes": 120,
+        "reason": "Project deadline",
+        "employees": [emp2_emp_id]
+    });
+
+    let res = team_lead_client
+        .post(&format!("{}/api/v1/workspaces/{}/overtime/requests", app_addr, admin_ws_id))
+        .header("X-Workspace-Id", admin_ws_id.to_string())
+        .json(&ot_payload_emp2)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), StatusCode::FORBIDDEN);
+
+    // 6. Team Lead cannot create Pre-OT request for both emp1 and emp2 (all-or-nothing validation)
+    let ot_payload_both = serde_json::json!({
+        "department_id": null,
+        "planned_date": "2024-05-15",
+        "planned_start_time": "18:00:00",
+        "planned_end_time": "20:00:00",
+        "planned_minutes": 120,
+        "reason": "Project deadline",
+        "employees": [emp1_emp_id, emp2_emp_id]
+    });
+
+    let res = team_lead_client
+        .post(&format!("{}/api/v1/workspaces/{}/overtime/requests", app_addr, admin_ws_id))
+        .header("X-Workspace-Id", admin_ws_id.to_string())
+        .json(&ot_payload_both)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), StatusCode::FORBIDDEN);
+
+    // 7. Admin deletes behalf assignment
+    let res = admin_client
+        .delete(&format!("{}/api/v1/workspaces/{}/overtime/requests/behalf-assignments/{}", app_addr, admin_ws_id, assignment_id))
+        .header("X-Workspace-Id", admin_ws_id.to_string())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), StatusCode::OK);
+
+    // 8. Team Lead can no longer create Pre-OT request for emp1
+    let res = team_lead_client
+        .post(&format!("{}/api/v1/workspaces/{}/overtime/requests", app_addr, admin_ws_id))
+        .header("X-Workspace-Id", admin_ws_id.to_string())
+        .json(&ot_payload_emp1)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), StatusCode::FORBIDDEN);
 }

@@ -16,7 +16,7 @@ import { BehalfAssignment } from "@/lib/api/types";
 
 interface AddAssignmentFormProps {
   assigneeId: string;
-  assignmentType: "ot" | "leave" | "attendance_adjustment";
+  assignmentType: "ot" | "leave" | "attendance_adjustment" | "overtime_request";
   departmentOptions: { description?: string | null; label: string; value: string }[];
   isCreating: boolean;
   onCancel: () => void;
@@ -33,7 +33,7 @@ interface AddAssignmentFormProps {
 
 interface AssignmentItemProps {
   assignment: BehalfAssignment;
-  assignmentType: "ot" | "leave" | "attendance_adjustment";
+  assignmentType: "ot" | "leave" | "attendance_adjustment" | "overtime_request";
   departments: {
     description?: string | null;
     id: string;
@@ -55,11 +55,11 @@ interface BehalfAssignmentInput {
 }
 
 interface BehalfAssignmentsEmptyStateProps {
-  assignmentType: "ot" | "leave" | "attendance_adjustment";
+  assignmentType: "ot" | "leave" | "attendance_adjustment" | "overtime_request";
 }
 
 interface BehalfAssignmentsHeaderProps {
-  assignmentType: "ot" | "leave" | "attendance_adjustment";
+  assignmentType: "ot" | "leave" | "attendance_adjustment" | "overtime_request";
   onAddClick: () => void;
 }
 
@@ -108,6 +108,20 @@ function TargetScopeDisplay({ targetEmp, targetDept }: TargetScopeDisplayProps) 
   return <span className="text-slate-400 text-sm mt-0.5 italic">None</span>;
 }
 
+const ASSIGNEE_LABELS = {
+  ot: "Authorized Claimant",
+  overtime_request: "Authorized Submitter",
+  leave: "Authorized Requester",
+  attendance_adjustment: "Authorized Requester",
+} as const;
+
+const TARGET_LABELS = {
+  ot: "Claim Target Scope",
+  overtime_request: "Pre-OT Target Scope",
+  leave: "Request Target Scope",
+  attendance_adjustment: "Request Target Scope",
+} as const;
+
 function AssignmentItem({
   assignment,
   assignmentType,
@@ -120,12 +134,15 @@ function AssignmentItem({
   const targetEmp = employees.find((e) => e.id === assignment.target_employee_id) ?? null;
   const targetDept = departments.find((d) => d.id === assignment.target_department_id) ?? null;
 
+  const assigneeLabel = ASSIGNEE_LABELS[assignmentType];
+  const targetLabel = TARGET_LABELS[assignmentType];
+
   return (
     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all duration-200">
       <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8 flex-1">
         <div className="flex flex-col min-w-[200px]">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-            {assignmentType === "ot" ? "Authorized Claimant" : "Authorized Requester"}
+            {assigneeLabel}
           </span>
           <span className="font-bold text-slate-800 dark:text-slate-200 text-sm mt-0.5">
             {assignee?.full_name ?? "Unknown Employee"}
@@ -143,7 +160,7 @@ function AssignmentItem({
 
         <div className="flex flex-col">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-            {assignmentType === "ot" ? "Claim Target Scope" : "Request Target Scope"}
+            {targetLabel}
           </span>
           <TargetScopeDisplay targetDept={targetDept} targetEmp={targetEmp} />
         </div>
@@ -188,7 +205,9 @@ function AddAssignmentForm({
         >
           {assignmentType === "ot"
             ? "Authorized Claimant (Employee)"
-            : "Authorized Requester (Employee)"}
+            : assignmentType === "overtime_request"
+              ? "Authorized Submitter (Employee)"
+              : "Authorized Requester (Employee)"}
         </label>
         <EmployeeSearch
           clearOnEscape
@@ -202,7 +221,9 @@ function AddAssignmentForm({
         <Typography className="text-[10px] text-slate-400 mt-1" variant="p">
           {assignmentType === "ot"
             ? "Select the workspace employee who is allowed to claim on behalf."
-            : "Select the workspace employee who is allowed to submit leave requests on behalf."}
+            : assignmentType === "overtime_request"
+              ? "Select the workspace employee who is allowed to submit Pre-OT requests on behalf."
+              : "Select the workspace employee who is allowed to submit leave requests on behalf."}
         </Typography>
       </div>
 
@@ -306,12 +327,16 @@ function BehalfAssignmentsHeader({
         <Typography className="text-lg font-bold text-slate-800 dark:text-slate-200" variant="h3">
           {assignmentType === "ot"
             ? "Behalf Claim Assignments"
-            : "Behalf Leave Request Assignments"}
+            : assignmentType === "overtime_request"
+              ? "Behalf Pre-OT Request Assignments"
+              : "Behalf Leave Request Assignments"}
         </Typography>
         <Typography className="text-xs text-slate-500 mt-1" variant="p">
           {assignmentType === "ot"
             ? "Configure which employees are authorized to claim overtime on behalf of specific employees or entire departments."
-            : "Configure which employees are authorized to request leave on behalf of specific employees or entire departments."}
+            : assignmentType === "overtime_request"
+              ? "Configure which employees are authorized to request Pre-OT on behalf of specific employees or entire departments."
+              : "Configure which employees are authorized to request leave on behalf of specific employees or entire departments."}
         </Typography>
       </div>
       <Button
@@ -339,14 +364,18 @@ function BehalfAssignmentsEmptyState({
           ? "No Behalf Assignments Configured"
           : assignmentType === "leave"
             ? "No Behalf Leave Assignments Configured"
-            : "No Behalf Adjustment Assignments Configured"}
+            : assignmentType === "overtime_request"
+              ? "No Behalf Pre-OT Assignments Configured"
+              : "No Behalf Adjustment Assignments Configured"}
       </Typography>
       <Typography className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-2 opacity-50 max-w-sm" variant="p">
         {assignmentType === "ot"
           ? "Users with Claim on Behalf permission will fall back to their managed departments. Assign specific employees or departments to scope their claim access."
           : assignmentType === "leave"
             ? "Users with Submit on Behalf permission will fall back to their managed departments. Assign specific employees or departments to scope their leave request access."
-            : "Users with Submit on Behalf permission will fall back to their managed departments. Assign specific employees or departments to scope their adjustment access."}
+            : assignmentType === "overtime_request"
+              ? "Users with Pre-OT Create on Behalf permission will fall back to their managed departments. Assign specific employees or departments to scope their Pre-OT request access."
+              : "Users with Submit on Behalf permission will fall back to their managed departments. Assign specific employees or departments to scope their adjustment access."}
       </Typography>
     </div>
   );
@@ -357,7 +386,7 @@ export function BehalfAssignmentsTab({
   assignmentType = "ot",
 }: {
   wsId: string;
-  assignmentType?: "ot" | "leave" | "attendance_adjustment";
+  assignmentType?: "ot" | "leave" | "attendance_adjustment" | "overtime_request";
 }) {
   const { t } = useTranslation();
   const toast = useToast();

@@ -1,7 +1,6 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { useQuery } from "@tanstack/react-query";
 import { Check, CheckCircle, Clock, FileText, Search, ShieldCheck, Upload, X } from "lucide-react";
-import { PageTabs, PageTab } from "@/components/ui/page-tabs";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -12,6 +11,7 @@ import type { AttendanceDailySummary, DailyAttendanceReport } from "@/lib/api";
 import { BulkUploadOtDialog } from "@/components/approvals/bulk-upload-ot-dialog";
 import { ConfirmClaimsDialog } from "@/components/approvals/confirm-claims-dialog";
 import Button from "@/components/ui/button";
+import { PageTabs, PageTab } from "@/components/ui/page-tabs";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useApproveOt, useAttendanceSummaries, useEnterPaperOt } from "@/hooks/use-attendance";
@@ -195,14 +195,13 @@ export default function OtApprovalsPage() {
   return (
     <div className="space-y-10 animate-in fade-in duration-700 pb-20 p-8">
       <OtApprovalsHeader
+        activeTab={activeTab}
         currentMonth={currentMonth}
         handleMonthYearChange={handleMonthYearChange}
         handleNextMonth={handleNextMonth}
         handlePreviousMonth={handlePreviousMonth}
         setBulkUploadDialogOpen={setBulkUploadDialogOpen}
       />
-
-      <OtApprovalsFilters setSourceFilter={setSourceFilter} sourceFilter={sourceFilter} />
 
       <AddPhotoDialog
         onOpenChange={(open) => { if (!open) setPhotoTargetSummary(null); }}
@@ -244,6 +243,8 @@ export default function OtApprovalsPage() {
           refetchReport={refetchReport}
           reportData={reportData}
           setPhotoTargetSummary={setPhotoTargetSummary}
+          setSourceFilter={setSourceFilter}
+          sourceFilter={sourceFilter}
           workspace={workspace}
         />
       </div>
@@ -295,6 +296,8 @@ interface TabContentRendererProps {
   refetchReport: () => Promise<unknown>;
   reportData: ReportRow[];
   setPhotoTargetSummary: (summary: OtSummary) => void;
+  setSourceFilter: (filter: SourceFilter) => void;
+  sourceFilter: SourceFilter;
   workspace: { id: string } | null | undefined;
 }
 
@@ -309,6 +312,8 @@ function TabContentRenderer({
   handleApprove,
   isProcessing,
   setPhotoTargetSummary,
+  setSourceFilter,
+  sourceFilter,
   refetch,
   refetchReport,
 }: TabContentRendererProps) {
@@ -320,14 +325,22 @@ function TabContentRenderer({
     case "post":
       if (!canApprove) return null;
       if (isLoading) return <LoadingState />;
-      if (pendingSummaries.length === 0) return <EmptyState />;
       return (
-        <OtApprovalsTable
-          handleApprove={handleApprove}
-          isProcessing={isProcessing}
-          onAddPhoto={setPhotoTargetSummary}
-          pendingSummaries={pendingSummaries}
-        />
+        <div className="flex flex-col">
+          <div className="px-8 pt-8 pb-4 border-b border-slate-50 dark:border-slate-800/60">
+            <OtApprovalsFilters setSourceFilter={setSourceFilter} sourceFilter={sourceFilter} />
+          </div>
+          {pendingSummaries.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <OtApprovalsTable
+              handleApprove={handleApprove}
+              isProcessing={isProcessing}
+              onAddPhoto={setPhotoTargetSummary}
+              pendingSummaries={pendingSummaries}
+            />
+          )}
+        </div>
       );
     case "delegated_claim":
       return (
@@ -341,7 +354,12 @@ function TabContentRenderer({
         />
       );
     case "behalf_assignments":
-      return <BehalfAssignmentsTab wsId={workspace.id} />;
+      return (
+        <div className="divide-y divide-slate-100 dark:divide-slate-800">
+          <BehalfAssignmentsTab assignmentType="ot" wsId={workspace.id} />
+          <BehalfAssignmentsTab assignmentType="overtime_request" wsId={workspace.id} />
+        </div>
+      );
     default:
       return null;
   }

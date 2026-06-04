@@ -8,11 +8,11 @@ import type { TabType } from "../hooks/use-attendance-adjustments-page";
 
 interface AdjustmentsTabsProps {
   activeTab: TabType;
-  setActiveTab: (tab: TabType) => void;
   canManageBehalf?: boolean;
+  setActiveTab: (tab: TabType) => void;
 }
 
-export function AdjustmentsTabs({ activeTab, setActiveTab, canManageBehalf = false }: AdjustmentsTabsProps) {
+export function AdjustmentsTabs({ activeTab, setActiveTab, canManageBehalf }: AdjustmentsTabsProps) {
   const { t } = useTranslation();
 
   const tabs: PageTab[] = [

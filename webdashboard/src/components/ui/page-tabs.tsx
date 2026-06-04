@@ -4,18 +4,18 @@ import Button from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export interface PageTab {
-  id: string;
-  label: string;
-  icon?: React.ReactNode;
   colorScheme?: "amber" | "emerald" | "rose" | "violet" | "blue" | "primary";
   hidden?: boolean;
+  icon?: React.ReactNode;
+  id: string;
+  label: string;
 }
 
 export interface PageTabsProps {
-  tabs: PageTab[];
   activeTab: string;
-  onTabChange: (tabId: string) => void;
   className?: string;
+  onTabChange: (tabId: string) => void;
+  tabs: PageTab[];
 }
 
 export function PageTabs({ tabs, activeTab, onTabChange, className }: PageTabsProps) {

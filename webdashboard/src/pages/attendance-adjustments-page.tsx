@@ -47,8 +47,8 @@ export default function AttendanceAdjustmentsPage() {
 
       <AdjustmentsTabs
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
         canManageBehalf={canManageBehalf}
+        setActiveTab={setActiveTab}
       />
 
       {activeTab === "behalf_assignments" && canManageBehalf ? (

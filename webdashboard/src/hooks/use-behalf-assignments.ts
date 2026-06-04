@@ -12,10 +12,11 @@ import {
   fetchAdjustmentBehalfAssignments,
   createAdjustmentBehalfAssignment,
   deleteAdjustmentBehalfAssignment,
+  overtimeRequestsApi,
 } from "@/lib/api";
 import { getCurrentWorkspaceId } from "@/lib/api/helpers";
 
-export type BehalfAssignmentType = "ot" | "leave" | "attendance_adjustment";
+export type BehalfAssignmentType = "ot" | "leave" | "attendance_adjustment" | "overtime_request";
 
 export const behalfKeys = {
   all: ["behalf-assignments"] as const,
@@ -37,6 +38,8 @@ export function useBehalfAssignments(type: BehalfAssignmentType = "ot") {
           return fetchLeaveBehalfAssignments(wsId);
         case "attendance_adjustment":
           return fetchAdjustmentBehalfAssignments(wsId);
+        case "overtime_request":
+          return overtimeRequestsApi.listRequestBehalfAssignments(wsId);
       }
     },
     enabled: !!wsId,
@@ -56,6 +59,8 @@ export function useBehalfAssignments(type: BehalfAssignmentType = "ot") {
           return createLeaveBehalfAssignment(wsId, data);
         case "attendance_adjustment":
           return createAdjustmentBehalfAssignment(wsId, data);
+        case "overtime_request":
+          return overtimeRequestsApi.createRequestBehalfAssignment(wsId, data);
       }
     },
     onSuccess: () => {
@@ -75,6 +80,8 @@ export function useBehalfAssignments(type: BehalfAssignmentType = "ot") {
           return deleteLeaveBehalfAssignment(wsId, id);
         case "attendance_adjustment":
           return deleteAdjustmentBehalfAssignment(wsId, id);
+        case "overtime_request":
+          return overtimeRequestsApi.deleteRequestBehalfAssignment(wsId, id);
       }
     },
     onSuccess: () => {

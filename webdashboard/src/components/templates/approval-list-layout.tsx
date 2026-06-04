@@ -64,6 +64,8 @@ interface ApprovalListLayoutProps {
   children?: React.ReactNode;
   emptyMessage?: string;
   headerActions?: React.ReactNode;
+  hideHeader?: boolean;
+  hideTabs?: boolean;
   isEmpty?: boolean;
   isLoading?: boolean;
   modals?: React.ReactNode;
@@ -72,8 +74,6 @@ interface ApprovalListLayoutProps {
   tableHeaders: React.ReactNode[];
   tabs?: TabConfig[];
   title?: string;
-  hideHeader?: boolean;
-  hideTabs?: boolean;
 }
 
 export default function ApprovalListLayout({
@@ -90,8 +90,8 @@ export default function ApprovalListLayout({
   emptyMessage,
   children,
   modals,
-  hideHeader = false,
-  hideTabs = false,
+  hideHeader,
+  hideTabs,
 }: ApprovalListLayoutProps) {
   const { t } = useTranslation();
 
@@ -116,9 +116,7 @@ export default function ApprovalListLayout({
 
       {banner}
 
-      {!hideTabs && tabs && (
-        <ApprovalListTabs activeTab={activeTab} onTabChange={onTabChange} tabs={tabs} />
-      )}
+      {!hideTabs && !!tabs && <ApprovalListTabs activeTab={activeTab} onTabChange={onTabChange} tabs={tabs} />}
 
       <div className="bg-white dark:bg-slate-900 border border-primary-100 dark:border-primary-800/50 rounded-[3rem] overflow-hidden shadow-sm animate-in slide-in-from-bottom-8 duration-700">
         <table className="w-full text-left border-collapse">
