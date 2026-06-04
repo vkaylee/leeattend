@@ -8,7 +8,7 @@ import { Typography } from "@/components/ui/typography";
 import { useProcessApproval } from "@/hooks/use-approval-workflows";
 import { useOvertimeRequests } from "@/hooks/use-overtime-requests";
 
-export function PreOtApprovalsTab({ wsId: _wsId }: { wsId: string }) {
+export function PreOtApprovalsTab({ wsId: _wsId, canApprove }: { wsId: string; canApprove: boolean }) {
   const { t } = useTranslation();
   const toast = useToast();
   // Fetch pending requests specifically for Pre-OT approval
@@ -101,26 +101,28 @@ export function PreOtApprovalsTab({ wsId: _wsId }: { wsId: string }) {
           </div>
           
           <div className="flex flex-col items-end justify-center gap-2 shrink-0">
-            <div className="flex gap-2">
-              <Button
-                className="normal-case tracking-normal px-4 py-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-300 dark:hover:bg-emerald-900/40 dark:hover:text-emerald-200 border-none flex items-center gap-1.5 rounded-xl font-bold text-xs shadow-none h-auto transition-colors"
-                disabled={isProcessing}
-                onClick={() => { handleAction(req.id, "approve"); }}
-                variant="ghost"
-              >
-                <Check className="w-3.5 h-3.5" />
-                {t("common.approve") || "Approve"}
-              </Button>
-              <Button
-                className="normal-case tracking-normal px-4 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 dark:bg-rose-950/20 dark:text-rose-300 dark:hover:bg-rose-900/40 dark:hover:text-rose-200 border-none flex items-center gap-1.5 rounded-xl font-bold text-xs shadow-none h-auto transition-colors"
-                disabled={isProcessing}
-                onClick={() => { handleAction(req.id, "reject"); }}
-                variant="ghost"
-              >
-                <X className="w-3.5 h-3.5" />
-                {t("common.reject") || "Reject"}
-              </Button>
-            </div>
+            {canApprove ? (
+              <div className="flex gap-2">
+                <Button
+                  className="normal-case tracking-normal px-4 py-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-300 dark:hover:bg-emerald-900/40 dark:hover:text-emerald-200 border-none flex items-center gap-1.5 rounded-xl font-bold text-xs shadow-none h-auto transition-colors"
+                  disabled={isProcessing}
+                  onClick={() => { handleAction(req.id, "approve"); }}
+                  variant="ghost"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  {t("common.approve") || "Approve"}
+                </Button>
+                <Button
+                  className="normal-case tracking-normal px-4 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 dark:bg-rose-950/20 dark:text-rose-300 dark:hover:bg-rose-900/40 dark:hover:text-rose-200 border-none flex items-center gap-1.5 rounded-xl font-bold text-xs shadow-none h-auto transition-colors"
+                  disabled={isProcessing}
+                  onClick={() => { handleAction(req.id, "reject"); }}
+                  variant="ghost"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  {t("common.reject") || "Reject"}
+                </Button>
+              </div>
+            ) : null}
             {!!req.workflow_id && (
               <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
                 Workflow Configured <ArrowRight className="w-3 h-3" />

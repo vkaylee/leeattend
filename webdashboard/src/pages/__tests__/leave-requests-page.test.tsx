@@ -68,10 +68,10 @@ vi.mock("@/components/common/employee-search", () => ({
   EmployeeSearch: ({ id, value, onChange, permission }: { id?: string; value: string; onChange: (value_: string) => void; permission?: string }) => (
     <select 
       aria-label="Nhân viên"
+      data-permission={permission}
       id={id}
       onChange={(e) => { onChange(e.target.value); }} 
       value={value}
-      data-permission={permission}
     >
       <option value="">Chọn...</option>
       <option value="emp-1">John Doe</option>

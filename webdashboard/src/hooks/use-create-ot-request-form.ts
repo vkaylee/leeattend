@@ -20,7 +20,9 @@ export function useCreateOtRequestForm(onSuccess?: () => void) {
   const [plannedEndTime, setPlannedEndTime] = useState("19:00");
   const [reason, setReason] = useState("");
 
-  const { employees } = useAllEmployees(workspace?.id ?? "");
+  const { employees } = useAllEmployees(workspace?.id ?? "", {
+    permission: "overtime:request:create_on_behalf",
+  });
   const { mutate: createRequest, isPending } = useCreateOvertimeRequest();
 
   const sampleEmployeeId = selectedEmployees.length > 0 ? selectedEmployees[0] : "";

@@ -11,6 +11,8 @@ import { Typography } from "@/components/ui/typography";
 
 interface OtApprovalsHeaderProps {
   activeTab: "pre" | "post" | "delegated_claim" | "behalf_assignments";
+  canApprove: boolean;
+  canCreateOnBehalf: boolean;
   currentMonth: Date;
   handleMonthYearChange: (month: number, year: number) => void;
   handleNextMonth: () => void;
@@ -25,6 +27,8 @@ export function OtApprovalsHeader({
   handlePreviousMonth,
   setBulkUploadDialogOpen,
   activeTab,
+  canApprove,
+  canCreateOnBehalf,
 }: OtApprovalsHeaderProps) {
   const { t } = useTranslation();
 
@@ -40,9 +44,9 @@ export function OtApprovalsHeader({
       </div>
 
       <div className="flex items-center gap-4">
-        {activeTab === "pre" && <CreateOtRequestDialog />}
+        {activeTab === "pre" && canCreateOnBehalf ? <CreateOtRequestDialog /> : null}
 
-        {(activeTab === "post" || activeTab === "delegated_claim") && (
+        {(activeTab === "post" || activeTab === "delegated_claim") && canApprove ? (
           <Button
             className="normal-case tracking-normal h-10 px-5 rounded-xl gap-2 font-bold text-sm shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 border border-blue-250 dark:border-blue-900 bg-blue-50/50 hover:bg-blue-100 text-blue-900 dark:bg-blue-950/30 dark:hover:bg-blue-900/50 dark:text-blue-200 flex items-center justify-center active:scale-98"
             icon={<Upload className="w-4 h-4" />}
@@ -53,7 +57,7 @@ export function OtApprovalsHeader({
           >
             {t("approvals.bulk_upload.btn") || "Bulk Upload"}
           </Button>
-        )}
+        ) : null}
 
         <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-2.5 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-900/5">
           <div className="flex items-center bg-slate-100 dark:bg-slate-700/50 rounded-[1.5rem] p-1.5 shadow-inner border border-slate-200 dark:border-slate-700/50">

@@ -73,6 +73,30 @@ vi.mock("@/hooks/use-attendance", () => ({
   useClaimOt: vi.fn(() => ({ claimOt: vi.fn(), isSubmitting: false })),
 }));
 
+vi.mock("@/hooks/use-overtime-requests", () => ({
+  useOvertimeRequests: vi.fn(() => ({
+    data: [
+      {
+        id: "req-123",
+        status: "pending_approval",
+        planned_date: "2026-06-04",
+        planned_start_time: "17:00:00",
+        planned_end_time: "19:00:00",
+        planned_minutes: 120,
+        reason: "Late night deploy",
+        employees: [{ employee_id: "EMP-001", full_name: "Test Employee" }],
+      }
+    ],
+    isLoading: false,
+  })),
+  useCreateOvertimeRequest: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
+  useEmployeeQuota: vi.fn(() => ({ data: null })),
+}));
+
+vi.mock("@/hooks/use-approval-workflows", () => ({
+  useProcessApproval: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
+}));
+
 vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api")>();
   return {
@@ -545,12 +569,12 @@ describe("OtApprovalsPage", () => {
     it("shows only New Pre-OT Request and no filters on pre tab, and only Bulk Upload and filters on post tab", async () => {
       vi.mocked(useMyPermissions).mockReturnValue({
         hasPermission: (perm: string) =>
-          perm === "overtime:approve" || perm === "overtime:claim_on_behalf",
+          perm === "overtime:approve" || perm === "overtime:claim_on_behalf" || perm === "overtime:request:create_on_behalf",
         hasAnyPermission: () => true,
         hasScopedPermission: () => true,
         hasRole: () => true,
         isLoading: false,
-        permissions: ["overtime:approve", "overtime:claim_on_behalf"],
+        permissions: ["overtime:approve", "overtime:claim_on_behalf", "overtime:request:create_on_behalf"],
         roles: ["admin"],
         managedDepartmentIds: null,
       });
@@ -596,6 +620,58 @@ describe("OtApprovalsPage", () => {
       expect(screen.queryByText("New Pre-OT Request")).not.toBeInTheDocument();
       expect(screen.queryByText("Bulk Upload")).not.toBeInTheDocument();
       expect(screen.queryByText("approvals.filter.paper_forms")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Pre-OT Tab Permissions", () => {
+    it("shows Pre-OT tab and creation button for create_on_behalf only user, but hides approve/reject buttons and bulk upload", async () => {
+      vi.mocked(useMyPermissions).mockReturnValue({
+        hasPermission: (perm: string) => perm === "overtime:request:create_on_behalf",
+        hasAnyPermission: () => true,
+        hasScopedPermission: () => true,
+        hasRole: () => true,
+        isLoading: false,
+        permissions: ["overtime:request:create_on_behalf"],
+        roles: ["clerk"],
+        managedDepartmentIds: null,
+      });
+
+      renderPage();
+
+      // Should see Pre-OT tab
+      expect(screen.getByText("ot_approvals.tabs.pre_ot")).toBeInTheDocument();
+      // Should NOT see Post-OT tab
+      expect(screen.queryByText("ot_approvals.tabs.post_ot")).not.toBeInTheDocument();
+
+      // Should see "New Pre-OT Request"
+      expect(screen.getByText("New Pre-OT Request")).toBeInTheDocument();
+      // Should NOT see "Bulk Upload"
+      expect(screen.queryByText("Bulk Upload")).not.toBeInTheDocument();
+
+      // Should see the pending requests but action buttons (Approve/Reject) should be hidden
+      expect(screen.getByText("Test Employee")).toBeInTheDocument();
+      expect(screen.queryByText("common.approve")).not.toBeInTheDocument();
+      expect(screen.queryByText("common.reject")).not.toBeInTheDocument();
+    });
+
+    it("shows Approve/Reject buttons in Pre-OT tab for users with overtime:approve", async () => {
+      vi.mocked(useMyPermissions).mockReturnValue({
+        hasPermission: (perm: string) => perm === "overtime:approve" || perm === "overtime:request:create_on_behalf",
+        hasAnyPermission: () => true,
+        hasScopedPermission: () => true,
+        hasRole: () => true,
+        isLoading: false,
+        permissions: ["overtime:approve", "overtime:request:create_on_behalf"],
+        roles: ["admin"],
+        managedDepartmentIds: null,
+      });
+
+      renderPage();
+
+      // Should see the pending requests and action buttons (Approve/Reject)
+      expect(screen.getByText("Test Employee")).toBeInTheDocument();
+      expect(screen.getByText("common.approve")).toBeInTheDocument();
+      expect(screen.getByText("common.reject")).toBeInTheDocument();
     });
   });
 });

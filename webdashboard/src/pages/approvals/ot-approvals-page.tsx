@@ -72,6 +72,7 @@ export default function OtApprovalsPage() {
   const canApprove = hasPermission("overtime:approve");
   const canClaimOnBehalf = hasPermission("overtime:claim_on_behalf");
   const canManagePolicies = hasPermission("overtime:policies:manage");
+  const canCreateOnBehalf = hasPermission("overtime:request:create_on_behalf");
 
   const tabs: PageTab[] = [
     {
@@ -79,7 +80,7 @@ export default function OtApprovalsPage() {
       label: t("ot_approvals.tabs.pre_ot", { defaultValue: "Pre-OT Approvals (Requests)" }),
       icon: <Clock size={14} />,
       colorScheme: "primary",
-      hidden: !canApprove,
+      hidden: !(canApprove || canCreateOnBehalf),
     },
     {
       id: "post",
@@ -114,15 +115,15 @@ export default function OtApprovalsPage() {
   useEffect(() => {
     if (!tabInitialized && !permissionsLoading) {
       setTimeout(() => {
-        if (!canApprove && canClaimOnBehalf) {
+        if (!canApprove && !canCreateOnBehalf && canClaimOnBehalf) {
           setActiveTab("delegated_claim");
-        } else if (!canApprove && !canClaimOnBehalf && canManagePolicies) {
+        } else if (!canApprove && !canCreateOnBehalf && !canClaimOnBehalf && canManagePolicies) {
           setActiveTab("behalf_assignments");
         }
         setTabInitialized(true);
       }, 0);
     }
-  }, [tabInitialized, permissionsLoading, canApprove, canClaimOnBehalf, canManagePolicies]);
+  }, [tabInitialized, permissionsLoading, canApprove, canCreateOnBehalf, canClaimOnBehalf, canManagePolicies]);
 
   const startDate = format(startOfMonth(currentMonth), "yyyy-MM-dd");
   const endDate = format(endOfMonth(currentMonth), "yyyy-MM-dd");
@@ -196,6 +197,8 @@ export default function OtApprovalsPage() {
     <div className="space-y-10 animate-in fade-in duration-700 pb-20 p-8">
       <OtApprovalsHeader
         activeTab={activeTab}
+        canApprove={canApprove}
+        canCreateOnBehalf={canCreateOnBehalf}
         currentMonth={currentMonth}
         handleMonthYearChange={handleMonthYearChange}
         handleNextMonth={handleNextMonth}
@@ -234,6 +237,7 @@ export default function OtApprovalsPage() {
         <TabContentRenderer
           activeTab={activeTab}
           canApprove={canApprove}
+          canCreateOnBehalf={canCreateOnBehalf}
           handleApprove={handleApprove}
           isLoading={isLoading}
           isProcessing={isProcessing}
@@ -284,6 +288,7 @@ function EmptyState() {
 interface TabContentRendererProps {
   activeTab: "pre" | "post" | "delegated_claim" | "behalf_assignments";
   canApprove: boolean;
+  canCreateOnBehalf: boolean;
   handleApprove: (
     summary: { claimed_ot_minutes: number; date: string; employee_id: string },
     approved: boolean
@@ -301,10 +306,56 @@ interface TabContentRendererProps {
   workspace: { id: string } | null | undefined;
 }
 
+interface PostOtTabContentProps {
+  canApprove: boolean;
+  handleApprove: (
+    summary: { claimed_ot_minutes: number; date: string; employee_id: string },
+    approved: boolean
+  ) => Promise<void>;
+  isLoading: boolean;
+  isProcessing: boolean;
+  pendingSummaries: OtSummary[];
+  setPhotoTargetSummary: (summary: OtSummary) => void;
+  setSourceFilter: (filter: SourceFilter) => void;
+  sourceFilter: SourceFilter;
+}
+
+function PostOtTabContent({
+  canApprove,
+  isLoading,
+  pendingSummaries,
+  sourceFilter,
+  setSourceFilter,
+  handleApprove,
+  isProcessing,
+  setPhotoTargetSummary,
+}: PostOtTabContentProps) {
+  if (!canApprove) return null;
+  if (isLoading) return <LoadingState />;
+  return (
+    <div className="flex flex-col">
+      <div className="px-8 pt-8 pb-4 border-b border-slate-50 dark:border-slate-800/60">
+        <OtApprovalsFilters setSourceFilter={setSourceFilter} sourceFilter={sourceFilter} />
+      </div>
+      {pendingSummaries.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <OtApprovalsTable
+          handleApprove={handleApprove}
+          isProcessing={isProcessing}
+          onAddPhoto={setPhotoTargetSummary}
+          pendingSummaries={pendingSummaries}
+        />
+      )}
+    </div>
+  );
+}
+
 function TabContentRenderer({
   activeTab,
   workspace,
   canApprove,
+  canCreateOnBehalf,
   isLoading,
   isReportLoading,
   pendingSummaries,
@@ -321,26 +372,21 @@ function TabContentRenderer({
 
   switch (activeTab) {
     case "pre":
-      return canApprove ? <PreOtApprovalsTab wsId={workspace.id} /> : null;
+      return (canApprove || canCreateOnBehalf) ? (
+        <PreOtApprovalsTab canApprove={canApprove} wsId={workspace.id} />
+      ) : null;
     case "post":
-      if (!canApprove) return null;
-      if (isLoading) return <LoadingState />;
       return (
-        <div className="flex flex-col">
-          <div className="px-8 pt-8 pb-4 border-b border-slate-50 dark:border-slate-800/60">
-            <OtApprovalsFilters setSourceFilter={setSourceFilter} sourceFilter={sourceFilter} />
-          </div>
-          {pendingSummaries.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <OtApprovalsTable
-              handleApprove={handleApprove}
-              isProcessing={isProcessing}
-              onAddPhoto={setPhotoTargetSummary}
-              pendingSummaries={pendingSummaries}
-            />
-          )}
-        </div>
+        <PostOtTabContent
+          canApprove={canApprove}
+          handleApprove={handleApprove}
+          isLoading={isLoading}
+          isProcessing={isProcessing}
+          pendingSummaries={pendingSummaries}
+          setPhotoTargetSummary={setPhotoTargetSummary}
+          setSourceFilter={setSourceFilter}
+          sourceFilter={sourceFilter}
+        />
       );
     case "delegated_claim":
       return (
