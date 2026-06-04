@@ -65,12 +65,13 @@ vi.mock("../../lib/api", () => ({
 // Mock EmployeeSearch
  
 vi.mock("@/components/common/employee-search", () => ({
-  EmployeeSearch: ({ id, value, onChange }: { id?: string; value: string; onChange: (value_: string) => void }) => (
+  EmployeeSearch: ({ id, value, onChange, permission }: { id?: string; value: string; onChange: (value_: string) => void; permission?: string }) => (
     <select 
       aria-label="Nhân viên"
       id={id}
       onChange={(e) => { onChange(e.target.value); }} 
       value={value}
+      data-permission={permission}
     >
       <option value="">Chọn...</option>
       <option value="emp-1">John Doe</option>
@@ -176,6 +177,7 @@ describe("LeaveRequestsPage", () => {
 
     // Select employee
     const empSelect = await screen.findByLabelText(/Nhân viên/i);
+    expect(empSelect).toHaveAttribute("data-permission", "leave:requests:submit_on_behalf");
     fireEvent.change(empSelect, { target: { value: "emp-1" } });
 
     // Wait for the balances to appear.

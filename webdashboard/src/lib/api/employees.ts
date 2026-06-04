@@ -30,6 +30,7 @@ export interface SearchEmployeesParams {
   departmentIds?: string[];
   limit?: number;
   page?: number;
+  permission?: string;
   query: string;
   sortBy?: string;
   sortDir?: string;
@@ -47,6 +48,7 @@ export async function searchEmployees(
     sortBy,
     sortDir,
     departmentIds,
+    permission,
   } = params;
 
   const { data } = await client.GET("/workspaces/{workspace_id}/employees", {
@@ -59,6 +61,7 @@ export async function searchEmployees(
         sort_by: sortBy ?? undefined,
         sort_dir: sortDir ?? undefined,
         department_id: (departmentIds && departmentIds.length > 0) ? departmentIds.join(",") : undefined,
+        permission: permission ?? undefined,
       },
     },
   });

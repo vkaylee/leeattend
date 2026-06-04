@@ -31,9 +31,23 @@ vi.mock("../../hooks/use-permissions", () => ({
 // Mock TanStack Router
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn(),
- 
   useLocation: () => ({ pathname: "/", search: "", hash: "" }),
   Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
+}));
+
+// Mock EmployeeSearch
+vi.mock("@/components/common/employee-search", () => ({
+  EmployeeSearch: ({ id, value, onChange }: any) => (
+    <select
+      data-testid="mock-employee-search"
+      id={id}
+      onChange={(e) => onChange(e.target.value)}
+      value={value}
+    >
+      <option value="">Select...</option>
+      <option value="emp-1">John Doe (EMP001)</option>
+    </select>
+  ),
 }));
 
 // Mock the API library
@@ -42,6 +56,8 @@ vi.mock("../../lib/api", () => ({
   fetchEmployees: vi.fn(),
   approveAttendanceAdjustment: vi.fn(),
   getCurrentWorkspaceId: vi.fn(),
+  submitAttendanceAdjustment: vi.fn(),
+  fetchWorkspace: vi.fn(),
 }));
 
 // Override i18n
@@ -68,9 +84,8 @@ describe("AttendanceAdjustmentsPage", () => {
           staleTime: 0,
         },
       },
- 
     });
- 
+
     vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("test-ws-id");
     vi.mocked(api.fetchEmployees).mockResolvedValue({
       data: [
@@ -79,7 +94,11 @@ describe("AttendanceAdjustmentsPage", () => {
       total: 1,
       page: 1,
       limit: 50,
- 
+    });
+    vi.mocked(api.fetchWorkspace).mockResolvedValue({
+      id: "test-ws-id",
+      name: "Test Workspace",
+      timezone: "Asia/Ho_Chi_Minh",
     });
     vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([
       { 
@@ -111,7 +130,10 @@ describe("AttendanceAdjustmentsPage", () => {
   });
 
   it("handles approve action", async () => {
- 
+    (globalThis as any).__mockPermissions = [
+      "attendance:adjustments:manage_behalf",
+      "attendance:adjustments:approve"
+    ];
     const user = userEvent.setup();
     vi.mocked(api.approveAttendanceAdjustment).mockResolvedValue(undefined);
 
@@ -122,6 +144,46 @@ describe("AttendanceAdjustmentsPage", () => {
 
     await waitFor(() => {
       expect(api.approveAttendanceAdjustment).toHaveBeenCalledWith("test-ws-id", "adj-1", { status: "approved" });
+    });
+  });
+
+  it("handles request on behalf action", async () => {
+    (globalThis as any).__mockPermissions = [
+      "attendance:adjustments:manage_behalf",
+      "attendance:adjustments:submit_on_behalf"
+    ];
+    const user = userEvent.setup();
+    vi.mocked(api.submitAttendanceAdjustment).mockResolvedValue({} as any);
+
+    renderWithProviders(<AttendanceAdjustmentsPage />);
+
+    // 1. Verify "Request Adjustment" button is visible
+    const requestButton = await screen.findByRole("button", { name: /time_tracking.modal.new_title/i });
+    expect(requestButton).toBeDefined();
+
+    // 2. Click to open modal
+    await user.click(requestButton);
+
+    // 3. Verify modal title is displayed
+    expect(await screen.findByText("time_tracking.modal.new_title")).toBeDefined();
+
+    // 4. Fill form
+    const selectElement = screen.getByTestId("mock-employee-search");
+    await user.selectOptions(selectElement, "emp-1");
+
+    const dateInput = screen.getByLabelText(/common.work_day/i);
+    await user.clear(dateInput);
+    await user.type(dateInput, "2026-06-05");
+
+    const reasonInput = screen.getByPlaceholderText("time_tracking.modal.reason_placeholder");
+    await user.type(reasonInput, "On behalf test reason");
+
+    // Submit form
+    const submitButton = screen.getByRole("button", { name: /common.submit_request/i });
+    await user.click(submitButton);
+
+    await waitFor(() => {
+      expect(api.submitAttendanceAdjustment).toHaveBeenCalled();
     });
   });
 });

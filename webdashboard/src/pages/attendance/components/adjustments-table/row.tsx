@@ -9,6 +9,7 @@ import { AttendanceAdjustmentRequest } from "@/lib/api/types";
 
 interface AdjustmentsTableRowProps {
   activeTab: string;
+  canApprove?: boolean;
   formatDate: (date: string) => string;
   formatTime: (date: string) => string;
   getEmployeeID: (id: string) => string;
@@ -25,6 +26,7 @@ export function AdjustmentsTableRow({
   getEmployeeName,
   onApprove,
   request,
+  canApprove,
 }: AdjustmentsTableRowProps) {
   const { t } = useTranslation();
 
@@ -71,7 +73,7 @@ export function AdjustmentsTableRow({
         </StatusBadge>
       </td>
       <td className="px-10 py-6 text-right">
-        {request.status === "pending" && activeTab === "pending" && (
+        {!!canApprove && request.status === "pending" && activeTab === "pending" && (
           <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300">
             <Button className="p-3 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl shadow-lg shadow-emerald-100 transition-all active:scale-90"
               onClick={() => { onApprove(request.id, "approved"); }}

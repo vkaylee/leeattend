@@ -188,4 +188,29 @@ describe("EmployeeSearch Component", () => {
     const hiddenSelect = screen.getByRole("combobox");
     expect(hiddenSelect).toBeDefined();
   });
+
+  it("passes permission parameter to useInfiniteQuery hook", () => {
+    const onChange = vi.fn();
+    render(
+      <EmployeeSearch
+        onChange={onChange}
+        permission="attendance:adjustments:submit_on_behalf"
+        workspaceId="ws-1"
+      />,
+      { wrapper }
+    );
+
+    expect(useInfiniteQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        queryKey: expect.arrayContaining([
+          "employees",
+          "ws-1",
+          "search",
+          "",
+          "all",
+          "attendance:adjustments:submit_on_behalf",
+        ]),
+      })
+    );
+  });
 });

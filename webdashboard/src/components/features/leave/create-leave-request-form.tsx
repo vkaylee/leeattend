@@ -163,7 +163,14 @@ export function CreateLeaveRequestForm({
       <div className="space-y-3 px-1">
         <label className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest ml-1" htmlFor="leave-emp">{t("common.employee")}</label>
         {canSubmitOnBehalf ? (
-          <EmployeeSearch className="h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 border-primary-100 dark:border-primary-800/50 shadow-sm" id="leave-emp" onChange={(value) => { setSelectedEmpId(Array.isArray(value) ? value[0] || "" : value); }} value={selectedEmpId} workspaceId={wsId} />
+          <EmployeeSearch
+            className="h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 border-primary-100 dark:border-primary-800/50 shadow-sm"
+            id="leave-emp"
+            onChange={(value) => { setSelectedEmpId(Array.isArray(value) ? value[0] || "" : value); }}
+            permission="leave:requests:submit_on_behalf"
+            value={selectedEmpId}
+            workspaceId={wsId}
+          />
         ) : (
           <div className="h-14 rounded-2xl bg-slate-100 dark:bg-slate-800/50 border border-primary-100 dark:border-primary-800/50 px-5 flex items-center text-primary-700 dark:text-primary-350 font-semibold text-sm">
             {employee?.full_name ?? "Loading..."}

@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import AttendanceImportDialog from "@/components/features/attendance/attendance-import-dialog";
+import { CreateAdjustmentModal } from "@/components/features/attendance/create-adjustment-modal";
 import { useMyPermissions } from "@/hooks/use-permissions";
+import { useWorkspace } from "@/hooks/use-workspace";
 
 import { BehalfAssignmentsTab } from "./approvals/components/behalf-assignments-tab";
 import { AdjustmentsHeader } from "./attendance/components/adjustments-header";
@@ -29,6 +31,9 @@ export default function AttendanceAdjustmentsPage() {
     getEmployeeID,
   } = useAttendanceAdjustmentsPage();
 
+  const { workspace } = useWorkspace(wsId ?? undefined);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
   if (!wsId) {
     return (
       <div className="p-12 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">
@@ -38,11 +43,15 @@ export default function AttendanceAdjustmentsPage() {
   }
 
   const canManageBehalf = hasPermission("attendance:adjustments:manage_behalf");
+  const canApprove = hasPermission("attendance:adjustments:approve");
+  const canSubmit = hasPermission("attendance:adjustments:submit_on_behalf");
 
   return (
     <div className="space-y-10 animate-in fade-in duration-700 pb-20">
       <AdjustmentsHeader
+        canSubmit={canSubmit}
         onImportClick={() => { setIsImportDialogOpen(true); }}
+        onRequestClick={() => { setIsCreateModalOpen(true); }}
       />
 
       <AdjustmentsTabs
@@ -56,6 +65,7 @@ export default function AttendanceAdjustmentsPage() {
       ) : (
         <AdjustmentsTable
           activeTab={activeTab}
+          canApprove={canApprove}
           formatDate={formatDate}
           formatTime={formatTime}
           getEmployeeID={getEmployeeID}
@@ -65,6 +75,13 @@ export default function AttendanceAdjustmentsPage() {
           requests={requests}
         />
       )}
+
+      <CreateAdjustmentModal
+        isOpen={isCreateModalOpen}
+        onClose={() => { setIsCreateModalOpen(false); }}
+        timezone={workspace?.timezone ?? "UTC"}
+        wsId={wsId}
+      />
 
       <AttendanceImportDialog
         endpoint="/attendance-adjustments/upload"

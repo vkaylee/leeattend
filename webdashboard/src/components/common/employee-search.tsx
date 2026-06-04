@@ -21,6 +21,7 @@ interface EmployeeSearchProps {
   multiple?: boolean;
   onChange: (value: string | string[]) => void;
   onSelectEmployee?: (employee: Employee) => void;
+  permission?: string;
   placeholder?: string;
   value?: string | string[];
   workspaceId: string;
@@ -98,6 +99,7 @@ export function EmployeeSearch({
   clearOnEscape,
   onSelectEmployee,
   emptyQueryBehavior = 'all',
+  permission,
 }: EmployeeSearchProps) {
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
@@ -112,7 +114,13 @@ export function EmployeeSearch({
     employees,
     selectedMeta,
     setSelectedMeta,
-  } = useEmployeeSearch(workspaceId, debouncedSearchTerm, selectedIds, emptyQueryBehavior);
+  } = useEmployeeSearch({
+    workspaceId,
+    debouncedSearchTerm,
+    selectedIds,
+    emptyQueryBehavior,
+    permission,
+  });
 
   const { selectedValue, handleSelect } = useEmployeeSelection({
     value,

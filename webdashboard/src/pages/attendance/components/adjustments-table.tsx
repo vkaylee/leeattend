@@ -9,6 +9,7 @@ import { AdjustmentsTableRow } from "./adjustments-table/row";
 
 interface AdjustmentsTableProps {
   activeTab: string;
+  canApprove?: boolean;
   formatDate: (date: string) => string;
   formatTime: (date: string) => string;
   getEmployeeID: (id: string) => string;
@@ -28,6 +29,7 @@ export function AdjustmentsTable(props: AdjustmentsTableProps) {
     isLoading,
     onApprove,
     requests,
+    canApprove,
   } = props;
 
   return (
@@ -44,6 +46,7 @@ export function AdjustmentsTable(props: AdjustmentsTableProps) {
               requests.map((request) => (
                 <AdjustmentsTableRow
                   activeTab={activeTab}
+                  canApprove={canApprove}
                   formatDate={formatDate}
                   formatTime={formatTime}
                   getEmployeeID={getEmployeeID}

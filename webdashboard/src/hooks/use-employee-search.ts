@@ -4,12 +4,21 @@ import { useState, useMemo, useEffect } from 'react';
 import { searchEmployees, fetchEmployee } from '../lib/api';
 import { Employee, PaginatedResponse } from '../lib/api/types';
 
-export function useEmployeeSearch(
-  workspaceId: string,
-  debouncedSearchTerm: string,
-  selectedIds: string[],
-  emptyQueryBehavior: 'prompt-to-type' | 'all' = 'all'
-) {
+export interface UseEmployeeSearchOptions {
+  debouncedSearchTerm: string;
+  emptyQueryBehavior?: 'prompt-to-type' | 'all';
+  permission?: string;
+  selectedIds: string[];
+  workspaceId: string;
+}
+
+export function useEmployeeSearch({
+  workspaceId,
+  debouncedSearchTerm,
+  selectedIds,
+  emptyQueryBehavior = 'all',
+  permission,
+}: UseEmployeeSearchOptions) {
   const isQueryEmpty = debouncedSearchTerm.trim() === '';
   const isEnabled = workspaceId !== '' && (emptyQueryBehavior === 'all' || !isQueryEmpty);
 
@@ -20,13 +29,14 @@ export function useEmployeeSearch(
     isFetchingNextPage,
     isLoading,
   } = useInfiniteQuery({
-    queryKey: ['employees', workspaceId, 'search', debouncedSearchTerm, emptyQueryBehavior],
+    queryKey: ['employees', workspaceId, 'search', debouncedSearchTerm, emptyQueryBehavior, permission],
     queryFn: async ({ pageParam }) => {
       const res = (await searchEmployees({
         wsId: workspaceId,
         query: debouncedSearchTerm,
         page: pageParam,
         limit: 50,
+        permission,
       })) as PaginatedResponse<Employee> | undefined;
       return res ?? { data: [], limit: 50, page: pageParam, total: 0 };
     },

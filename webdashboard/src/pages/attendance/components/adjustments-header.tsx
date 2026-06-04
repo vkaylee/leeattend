@@ -1,4 +1,4 @@
-import { Upload } from "lucide-react";
+import { Plus, Upload } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -6,11 +6,13 @@ import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 
 interface AdjustmentsHeaderProps {
+  canSubmit?: boolean;
   onImportClick: () => void;
+  onRequestClick?: () => void;
 }
 
-export function AdjustmentsHeader({ onImportClick }: AdjustmentsHeaderProps) {
-  const { t } = useTranslation();
+export function AdjustmentsHeader({ canSubmit, onImportClick, onRequestClick }: AdjustmentsHeaderProps) {
+  const { t } = useTranslation(["common", "attendance"]);
 
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-2">
@@ -22,7 +24,12 @@ export function AdjustmentsHeader({ onImportClick }: AdjustmentsHeaderProps) {
           {t("attendance_confirm.subtitle")}
         </Typography>
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 flex-wrap">
+        {!!canSubmit && !!onRequestClick && (
+          <Button icon={<Plus size={18} />} onClick={onRequestClick} variant="primary">
+            {t("time_tracking.modal.new_title").toUpperCase()}
+          </Button>
+        )}
         <Button icon={<Upload size={18} />} onClick={onImportClick} variant="outline">
           {t("attendance_confirm.import_excel").toUpperCase()}
         </Button>
