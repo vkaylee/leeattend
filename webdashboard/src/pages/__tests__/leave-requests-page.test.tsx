@@ -32,6 +32,8 @@ vi.mock("../../lib/api", () => ({
   assignLeavePolicy: vi.fn(),
   triggerAccrualRun: vi.fn(),
   getCurrentWorkspaceId: vi.fn(),
+  fetchMyPermissions: vi.fn(),
+  fetchMyProfile: vi.fn(),
   // LeaveImportDialog mocks
   uploadLeaveExcel: vi.fn(),
   fetchLatestLeaveImport: vi.fn().mockResolvedValue(null),
@@ -44,9 +46,10 @@ vi.mock("../../lib/api", () => ({
 // Mock EmployeeSearch
  
 vi.mock("@/components/common/employee-search", () => ({
-  EmployeeSearch: ({ value, onChange }: { value: string; onChange: (value_: string) => void }) => (
+  EmployeeSearch: ({ id, value, onChange }: { id?: string; value: string; onChange: (value_: string) => void }) => (
     <select 
       aria-label="Nhân viên"
+      id={id}
       onChange={(e) => { onChange(e.target.value); }} 
       value={value}
     >
@@ -82,6 +85,16 @@ describe("LeaveRequestsPage", () => {
     });
  
     vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("test-ws-id");
+    vi.mocked(api.fetchMyProfile).mockResolvedValue({
+      employee: { id: "emp-1", full_name: "John Doe" },
+      profile: { id: "prof-1" },
+      emergency_contacts: [],
+    } as any);
+    vi.mocked(api.fetchMyPermissions).mockResolvedValue({
+      permissions: ["leave:requests:submit_on_behalf"],
+      roles: [],
+      managed_department_ids: [],
+    } as any);
     vi.mocked(api.fetchEmployees).mockResolvedValue({
       data: [
         { id: "emp-1", full_name: "John Doe", original_hire_date: "2020-01-01", hire_date: "2025-01-01", employee_id_number: "EMP001", workspace_id: "ws-1", is_active: true, created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z" }

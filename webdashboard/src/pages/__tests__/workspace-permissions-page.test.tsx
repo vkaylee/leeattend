@@ -165,8 +165,8 @@ describe("WorkspacePermissionsPage", () => {
         it("renders checkboxes for every permission × role combination", () => {
             renderPage();
             const checkboxes = screen.getAllByRole("checkbox").filter(c => c.tagName === "INPUT");
-            // Total = 98 permissions × 2 roles = 196
-            expect(checkboxes.length).toBe(98 * 2);
+            // Total = 101 permissions × 2 roles = 202
+            expect(checkboxes.length).toBe(101 * 2);
         });
 
         it("marks system role with 'System' badge", () => {

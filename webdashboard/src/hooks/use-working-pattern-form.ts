@@ -3,6 +3,8 @@ import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import type { CreateWorkingPatternRequest, UpdateWorkingPatternRequest, WorkingPatternDetailRequest, WorkingPatternDetail } from "@/lib/api/types";
+
 import { useToast } from "@/components/ui/toast";
 import {
   createWorkingPattern,
@@ -12,13 +14,25 @@ import {
   getCurrentWorkspaceId,
   updateWorkingPattern,
 } from "@/lib/api";
-import { CreateWorkingPatternRequest, UpdateWorkingPatternRequest, WorkingPatternDetailRequest, WorkingPatternDetail } from "@/lib/api/types";
+
+import { useWorkingPatternGrid } from "./use-working-pattern-grid";
 
 function usePatternGridState() {
   const [patternType, setPatternType] = useState<"weekly" | "rotation">("weekly");
   const [cycleLengthDays, setCycleLengthDays] = useState(7);
-  const [grid, setGrid] = useState<string[][]>(Array.from({ length: 7 }, () => []));
   const [isDirty, setIsDirty] = useState(false);
+
+  const {
+    grid,
+    setGrid,
+    addShiftToDay,
+    removeShiftFromDay,
+    clearAllDays,
+    prefillStandard,
+  } = useWorkingPatternGrid({
+    initialLength: 7,
+    onDirty: () => { setIsDirty(true); },
+  });
 
   const handlePatternTypeChange = (type: "weekly" | "rotation") => {
     setPatternType(type);
@@ -63,6 +77,10 @@ function usePatternGridState() {
     setIsDirty,
     handlePatternTypeChange,
     handleCycleLengthChange,
+    addShiftToDay,
+    removeShiftFromDay,
+    clearAllDays,
+    prefillStandard,
   };
 }
 
@@ -116,17 +134,7 @@ function useUpdatePatternMutation({ wsId, patternId, t, setIsDirty }: MutationPa
   });
 }
 
-function addShiftHelper(grid: string[][], dayIndex: number, shiftId: string): string[][] {
-  return grid.map((shiftsArr, idx) => (idx === dayIndex ? [...shiftsArr, shiftId] : shiftsArr));
-}
 
-function removeShiftHelper(grid: string[][], dayIndex: number, shiftId: string): string[][] {
-  return grid.map((shiftsArr, idx) => (idx === dayIndex ? shiftsArr.filter((id) => id !== shiftId) : shiftsArr));
-}
-
-function prefillStandardHelper(gridLength: number, firstShift: string): string[][] {
-  return Array.from({ length: gridLength }, (_, idx) => (idx >= 1 && idx <= 5 ? [firstShift] : []));
-}
 
 function shouldInit(isEditMode: boolean, pattern: unknown, loading: boolean, init: boolean): boolean {
   return isEditMode && Boolean(pattern) && !loading && !init;
@@ -207,18 +215,15 @@ export function useWorkingPatternForm(patternId?: string) {
 
   // Grid actions
   const addShiftToDay = (dayIndex: number, shiftId: string) => {
-    setIsDirty(true);
-    setGrid((prev) => addShiftHelper(prev, dayIndex, shiftId));
+    gridState.addShiftToDay(dayIndex, shiftId);
   };
 
   const removeShiftFromDay = (dayIndex: number, shiftId: string) => {
-    setIsDirty(true);
-    setGrid((prev) => removeShiftHelper(prev, dayIndex, shiftId));
+    gridState.removeShiftFromDay(dayIndex, shiftId);
   };
 
   const clearAllDays = () => {
-    setIsDirty(true);
-    setGrid(Array.from({ length: grid.length }, () => []));
+    gridState.clearAllDays();
   };
 
   const prefillStandard = () => {
@@ -227,8 +232,7 @@ export function useWorkingPatternForm(patternId?: string) {
       toast.error(t("patterns.messages.no_shifts_available"));
       return;
     }
-    setIsDirty(true);
-    setGrid(prefillStandardHelper(grid.length, firstShift));
+    gridState.prefillStandard(firstShift);
   };
 
   // Mutations using extracted hooks

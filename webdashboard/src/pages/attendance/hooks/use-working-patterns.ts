@@ -6,6 +6,7 @@ import { format, startOfToday } from "date-fns";
 
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/hooks/use-confirm";
+import { useWorkingPatternGrid } from "@/hooks/use-working-pattern-grid";
 import {
   BulkAssignResponse,
   CreateWorkingPatternRequest,
@@ -144,7 +145,16 @@ export function useWorkingPatterns(): UseWorkingPatternsReturn {
   const [newPatternName, setNewPatternName] = useState("");
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
   const [selectedPatternId, setSelectedPatternId] = useState("");
-  const [weeklyGrid, setWeeklyGrid] = useState<string[][]>(Array.from({ length: 7 }, () => []));
+
+  const {
+    grid: weeklyGrid,
+    setGrid: setWeeklyGrid,
+    addShiftToDay,
+    removeShiftFromDay,
+    prefillStandard: prefillStandardBase,
+  } = useWorkingPatternGrid({
+    initialLength: 7,
+  });
 
   const [patternType, setPatternType] = useState<"weekly" | "rotation">("weekly");
   const [cycleLengthDays, setCycleLengthDays] = useState<number>(6);
@@ -161,7 +171,7 @@ export function useWorkingPatterns(): UseWorkingPatternsReturn {
         return prev.slice(0, targetLength);
       }
     });
-  }, [cycleLengthDays]);
+  }, [cycleLengthDays, setWeeklyGrid]);
 
   const handleSetCycleLengthDays = useCallback((days: number) => {
     setCycleLengthDays(days);
@@ -176,7 +186,7 @@ export function useWorkingPatterns(): UseWorkingPatternsReturn {
         }
       });
     }
-  }, [patternType]);
+  }, [patternType, setWeeklyGrid]);
 
   const { patterns, shifts, patternDetails, isLoading } = useWorkingPatternQueries(wsId, expandedPatternId);
   const { createMutation, bulkAssignMutation, deleteMutation } = useWorkingPatternMutations(wsId, {
@@ -190,25 +200,7 @@ export function useWorkingPatterns(): UseWorkingPatternsReturn {
     setCycleLengthDays: handleSetCycleLengthDays,
   });
 
-  const addShiftToDay = useCallback((dayIndex: number, shiftId: string) => {
-    setWeeklyGrid((prev) => {
-      const newGrid = prev.map((a) => [...a]);
-      if (newGrid[dayIndex] && !newGrid[dayIndex].includes(shiftId)) {
-        newGrid[dayIndex] = [...newGrid[dayIndex], shiftId];
-      }
-      return newGrid;
-    });
-  }, []);
-
-  const removeShiftFromDay = useCallback((dayIndex: number, shiftId: string) => {
-    setWeeklyGrid((prev) => {
-      const newGrid = prev.map((a) => [...a]);
-      if (newGrid[dayIndex]) {
-        newGrid[dayIndex] = newGrid[dayIndex].filter((id) => id !== shiftId);
-      }
-      return newGrid;
-    });
-  }, []);
+  // addShiftToDay and removeShiftFromDay are provided by useWorkingPatternGrid
 
   const handleDelete = async (pattern: WorkingPattern) => {
     if (await confirm({ message: t("patterns.confirm_delete", { name: pattern.name }), title: t("common.warning"), variant: "danger" })) {
@@ -258,14 +250,7 @@ export function useWorkingPatterns(): UseWorkingPatternsReturn {
 
   const prefillStandard = () => {
     if (!shifts.length) return;
-    const defaultShiftId = shifts[0].id;
-    setWeeklyGrid((prev) => {
-      const newGrid = prev.map((a) => [...a]);
-      for (let i = 1; i <= 5; i++) {
-        if (newGrid[i]) newGrid[i] = [defaultShiftId];
-      }
-      return newGrid;
-    });
+    prefillStandardBase(shifts[0].id);
   };
 
   return {

@@ -5,13 +5,10 @@ import React from "react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useBehalfAssignments } from "@/hooks/use-behalf-assignments";
-import { useAllEmployees } from "@/hooks/use-employees";
-import { useLeaveBehalfAssignments } from "@/hooks/use-leave-behalf-assignments";
-import { useAttendanceBehalfAssignments } from "@/hooks/use-attendance-behalf-assignments";
-import { fetchDepartments } from "@/lib/api";
-
 import { ToastProvider } from "../../components/ui/toast";
+import { useBehalfAssignments } from "../../hooks/use-behalf-assignments";
+import { useAllEmployees } from "../../hooks/use-employees";
+import { fetchDepartments } from "../../lib/api";
 import { BehalfAssignmentsTab } from "../approvals/components/behalf-assignments-tab";
 
 // Mock toast
@@ -97,14 +94,6 @@ vi.mock("@/hooks/use-behalf-assignments", () => ({
   useBehalfAssignments: vi.fn(),
 }));
 
-vi.mock("@/hooks/use-leave-behalf-assignments", () => ({
-  useLeaveBehalfAssignments: vi.fn(),
-}));
-
-vi.mock("@/hooks/use-attendance-behalf-assignments", () => ({
-  useAttendanceBehalfAssignments: vi.fn(),
-}));
-
 vi.mock("@/hooks/use-employees", () => ({
   useAllEmployees: vi.fn(),
 }));
@@ -168,8 +157,6 @@ describe("BehalfAssignmentsTab", () => {
     };
 
     vi.mocked(useBehalfAssignments).mockReturnValue(defaultHookReturn);
-    vi.mocked(useLeaveBehalfAssignments).mockReturnValue(defaultHookReturn);
-    vi.mocked(useAttendanceBehalfAssignments).mockReturnValue(defaultHookReturn);
 
     vi.mocked(useAllEmployees).mockReturnValue({
       employees: mockEmployees,
@@ -361,22 +348,36 @@ describe("BehalfAssignmentsTab", () => {
       expect(screen.getByText("No Behalf Adjustment Assignments Configured")).toBeDefined();
     });
 
-    it("uses useAttendanceBehalfAssignments hook when type is attendance_adjustment", () => {
+    it("uses useBehalfAssignments hook with 'attendance_adjustment' when type is attendance_adjustment", () => {
       const adjustmentCreateMock = vi.fn();
-      vi.mocked(useAttendanceBehalfAssignments).mockReturnValue({
-        assignments: mockAssignments,
-        isLoading: false,
-        isError: false,
-        refetch: vi.fn(),
-        createAssignment: adjustmentCreateMock,
-        isCreating: false,
-        deleteAssignment: vi.fn(),
-        isDeleting: false,
+      vi.mocked(useBehalfAssignments).mockImplementation((type?: any) => {
+        if (type === "attendance_adjustment") {
+          return {
+            assignments: mockAssignments,
+            isLoading: false,
+            isError: false,
+            refetch: vi.fn(),
+            createAssignment: adjustmentCreateMock,
+            isCreating: false,
+            deleteAssignment: vi.fn(),
+            isDeleting: false,
+          };
+        }
+        return {
+          assignments: [],
+          isLoading: false,
+          isError: false,
+          refetch: vi.fn(),
+          createAssignment: vi.fn(),
+          isCreating: false,
+          deleteAssignment: vi.fn(),
+          isDeleting: false,
+        };
       });
 
       render(<BehalfAssignmentsTab assignmentType="attendance_adjustment" wsId="ws-1" />, { wrapper });
 
-      // Should render assignments from the attendance hook
+      expect(useBehalfAssignments).toHaveBeenCalledWith("attendance_adjustment");
       expect(screen.getAllByText("Alice Smith").length).toBe(2);
     });
 
@@ -387,17 +388,31 @@ describe("BehalfAssignmentsTab", () => {
       ).toBeDefined();
     });
 
-    it("creates assignment via attendance hook", async () => {
+    it("creates assignment via useBehalfAssignments with 'attendance_adjustment'", async () => {
       const adjustmentCreateMock = vi.fn().mockResolvedValue({});
-      vi.mocked(useAttendanceBehalfAssignments).mockReturnValue({
-        assignments: [],
-        isLoading: false,
-        isError: false,
-        refetch: vi.fn(),
-        createAssignment: adjustmentCreateMock,
-        isCreating: false,
-        deleteAssignment: vi.fn(),
-        isDeleting: false,
+      vi.mocked(useBehalfAssignments).mockImplementation((type?: any) => {
+        if (type === "attendance_adjustment") {
+          return {
+            assignments: [],
+            isLoading: false,
+            isError: false,
+            refetch: vi.fn(),
+            createAssignment: adjustmentCreateMock,
+            isCreating: false,
+            deleteAssignment: vi.fn(),
+            isDeleting: false,
+          };
+        }
+        return {
+          assignments: [],
+          isLoading: false,
+          isError: false,
+          refetch: vi.fn(),
+          createAssignment: vi.fn(),
+          isCreating: false,
+          deleteAssignment: vi.fn(),
+          isDeleting: false,
+        };
       });
 
       const user = userEvent.setup();

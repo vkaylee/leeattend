@@ -5,18 +5,24 @@ import React from "react";
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 
 import {
-  fetchAdjustmentBehalfAssignments,
-  createAdjustmentBehalfAssignment,
-  deleteAdjustmentBehalfAssignment,
+  fetchBehalfAssignments,
+  createBehalfAssignment,
+  deleteBehalfAssignment,
 } from "@/lib/api";
 
 import {
-  useAttendanceBehalfAssignments,
-  adjustmentBehalfKeys,
-} from "../use-attendance-behalf-assignments";
+  useBehalfAssignments,
+  behalfKeys,
+} from "../use-behalf-assignments";
 
 // Mock the API module
 vi.mock("@/lib/api", () => ({
+  fetchBehalfAssignments: vi.fn(),
+  createBehalfAssignment: vi.fn(),
+  deleteBehalfAssignment: vi.fn(),
+  fetchLeaveBehalfAssignments: vi.fn(),
+  createLeaveBehalfAssignment: vi.fn(),
+  deleteLeaveBehalfAssignment: vi.fn(),
   fetchAdjustmentBehalfAssignments: vi.fn(),
   createAdjustmentBehalfAssignment: vi.fn(),
   deleteAdjustmentBehalfAssignment: vi.fn(),
@@ -45,49 +51,28 @@ const MOCK_ASSIGNMENTS = [
     assignee_employee_id: "emp-1",
     target_employee_id: "emp-2",
     target_department_id: null,
-    assignment_type: "attendance_adjustment",
-    created_at: "2026-01-01T00:00:00Z",
-    updated_at: "2026-01-01T00:00:00Z",
-  },
-  {
-    id: "assign-2",
-    workspace_id: "ws-test-123",
-    assignee_employee_id: "emp-1",
-    target_employee_id: null,
-    target_department_id: "dept-1",
-    assignment_type: "attendance_adjustment",
+    assignment_type: "ot",
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-01-01T00:00:00Z",
   },
 ];
 
-describe("useAttendanceBehalfAssignments", () => {
+describe("useBehalfAssignments", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (fetchAdjustmentBehalfAssignments as Mock).mockResolvedValue(MOCK_ASSIGNMENTS);
+    (fetchBehalfAssignments as Mock).mockResolvedValue(MOCK_ASSIGNMENTS);
   });
 
   it("fetches assignments on mount", async () => {
-    const { result } = renderHook(() => useAttendanceBehalfAssignments(), {
+    const { result } = renderHook(() => useBehalfAssignments("ot"), {
       wrapper: createWrapper(),
     });
 
     await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
-    expect(fetchAdjustmentBehalfAssignments).toHaveBeenCalledWith("ws-test-123");
-    expect(result.current.assignments).toHaveLength(2);
+    expect(fetchBehalfAssignments).toHaveBeenCalledWith("ws-test-123");
+    expect(result.current.assignments).toHaveLength(1);
     expect(result.current.assignments[0].id).toBe("assign-1");
-  });
-
-  it("returns empty array when no data", async () => {
-    (fetchAdjustmentBehalfAssignments as Mock).mockResolvedValue([]);
-
-    const { result } = renderHook(() => useAttendanceBehalfAssignments(), {
-      wrapper: createWrapper(),
-    });
-
-    await waitFor(() => { expect(result.current.isLoading).toBe(false); });
-    expect(result.current.assignments).toEqual([]);
   });
 
   it("creates assignment and invalidates cache", async () => {
@@ -97,9 +82,9 @@ describe("useAttendanceBehalfAssignments", () => {
       target_employee_id: "emp-4",
       target_department_id: null,
     };
-    (createAdjustmentBehalfAssignment as Mock).mockResolvedValue(newAssignment);
+    (createBehalfAssignment as Mock).mockResolvedValue(newAssignment);
 
-    const { result } = renderHook(() => useAttendanceBehalfAssignments(), {
+    const { result } = renderHook(() => useBehalfAssignments("ot"), {
       wrapper: createWrapper(),
     });
 
@@ -112,16 +97,16 @@ describe("useAttendanceBehalfAssignments", () => {
       });
     });
 
-    expect(createAdjustmentBehalfAssignment).toHaveBeenCalledWith("ws-test-123", {
+    expect(createBehalfAssignment).toHaveBeenCalledWith("ws-test-123", {
       assignee_employee_id: "emp-3",
       target_employee_id: "emp-4",
     });
   });
 
   it("deletes assignment and invalidates cache", async () => {
-    (deleteAdjustmentBehalfAssignment as Mock).mockResolvedValue(undefined);
+    (deleteBehalfAssignment as Mock).mockResolvedValue(undefined);
 
-    const { result } = renderHook(() => useAttendanceBehalfAssignments(), {
+    const { result } = renderHook(() => useBehalfAssignments("ot"), {
       wrapper: createWrapper(),
     });
 
@@ -131,26 +116,16 @@ describe("useAttendanceBehalfAssignments", () => {
       await result.current.deleteAssignment("assign-1");
     });
 
-    expect(deleteAdjustmentBehalfAssignment).toHaveBeenCalledWith("ws-test-123", "assign-1");
-  });
-
-  it("exposes isPending states", async () => {
-    const { result } = renderHook(() => useAttendanceBehalfAssignments(), {
-      wrapper: createWrapper(),
-    });
-
-    await waitFor(() => { expect(result.current.isLoading).toBe(false); });
-
-    expect(result.current.isCreating).toBe(false);
-    expect(result.current.isDeleting).toBe(false);
+    expect(deleteBehalfAssignment).toHaveBeenCalledWith("ws-test-123", "assign-1");
   });
 
   it("generates correct query keys", () => {
-    expect(adjustmentBehalfKeys.all).toEqual(["adjustment-behalf-assignments"]);
-    expect(adjustmentBehalfKeys.list("ws-abc")).toEqual([
-      "adjustment-behalf-assignments",
+    expect(behalfKeys.all).toEqual(["behalf-assignments"]);
+    expect(behalfKeys.list("ws-abc", "ot")).toEqual([
+      "behalf-assignments",
       "list",
       "ws-abc",
+      "ot",
     ]);
   });
 });

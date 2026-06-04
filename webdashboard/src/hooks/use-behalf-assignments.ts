@@ -1,26 +1,43 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
+import type { BehalfAssignment } from "@/lib/api/types";
+
 import {
   fetchBehalfAssignments,
   createBehalfAssignment,
   deleteBehalfAssignment,
+  fetchLeaveBehalfAssignments,
+  createLeaveBehalfAssignment,
+  deleteLeaveBehalfAssignment,
+  fetchAdjustmentBehalfAssignments,
+  createAdjustmentBehalfAssignment,
+  deleteAdjustmentBehalfAssignment,
 } from "@/lib/api";
 import { getCurrentWorkspaceId } from "@/lib/api/helpers";
 
+export type BehalfAssignmentType = "ot" | "leave" | "attendance_adjustment";
+
 export const behalfKeys = {
   all: ["behalf-assignments"] as const,
-  list: (wsId: string) => [...behalfKeys.all, "list", wsId] as const,
+  list: (wsId: string, type: BehalfAssignmentType) => [...behalfKeys.all, "list", wsId, type] as const,
 };
 
-export function useBehalfAssignments() {
+export function useBehalfAssignments(type: BehalfAssignmentType = "ot") {
   const wsId = getCurrentWorkspaceId();
   const queryClient = useQueryClient();
 
   const listQuery = useQuery({
-    queryKey: wsId ? behalfKeys.list(wsId) : [],
-    queryFn: () => {
+    queryKey: wsId ? behalfKeys.list(wsId, type) : [],
+    queryFn: async (): Promise<BehalfAssignment[]> => {
       if (!wsId) throw new Error("No workspace");
-      return fetchBehalfAssignments(wsId);
+      switch (type) {
+        case "ot":
+          return fetchBehalfAssignments(wsId);
+        case "leave":
+          return fetchLeaveBehalfAssignments(wsId);
+        case "attendance_adjustment":
+          return fetchAdjustmentBehalfAssignments(wsId);
+      }
     },
     enabled: !!wsId,
   });
@@ -28,15 +45,22 @@ export function useBehalfAssignments() {
   const createMutation = useMutation({
     mutationFn: (data: {
       assignee_employee_id: string;
-      target_employee_id?: string | null;
       target_department_id?: string | null;
+      target_employee_id?: string | null;
     }) => {
       if (!wsId) throw new Error("No workspace");
-      return createBehalfAssignment(wsId, data);
+      switch (type) {
+        case "ot":
+          return createBehalfAssignment(wsId, data);
+        case "leave":
+          return createLeaveBehalfAssignment(wsId, data);
+        case "attendance_adjustment":
+          return createAdjustmentBehalfAssignment(wsId, data);
+      }
     },
     onSuccess: () => {
       if (wsId) {
-        void queryClient.invalidateQueries({ queryKey: behalfKeys.list(wsId) });
+        void queryClient.invalidateQueries({ queryKey: behalfKeys.list(wsId, type) });
       }
     },
   });
@@ -44,11 +68,18 @@ export function useBehalfAssignments() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => {
       if (!wsId) throw new Error("No workspace");
-      return deleteBehalfAssignment(wsId, id);
+      switch (type) {
+        case "ot":
+          return deleteBehalfAssignment(wsId, id);
+        case "leave":
+          return deleteLeaveBehalfAssignment(wsId, id);
+        case "attendance_adjustment":
+          return deleteAdjustmentBehalfAssignment(wsId, id);
+      }
     },
     onSuccess: () => {
       if (wsId) {
-        void queryClient.invalidateQueries({ queryKey: behalfKeys.list(wsId) });
+        void queryClient.invalidateQueries({ queryKey: behalfKeys.list(wsId, type) });
       }
     },
   });

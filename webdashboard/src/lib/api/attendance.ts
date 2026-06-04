@@ -726,9 +726,11 @@ export async function adminConfirmAttendance(
 export async function fetchAdjustmentBehalfAssignments(
   wsId: string
 ): Promise<OtClaimBehalfAssignment[]> {
-  const res = await apiFetch(`/v1/workspaces/${wsId}/attendance/adjustments/behalf-assignments`);
-  if (!res.ok) throw new Error("Failed to fetch adjustment behalf assignments");
-  return res.json();
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/adjustments/behalf-assignments", {
+    params: { path: { ws_id: wsId } }
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function createAdjustmentBehalfAssignment(
@@ -739,18 +741,16 @@ export async function createAdjustmentBehalfAssignment(
     target_employee_id?: string | null;
   }
 ): Promise<OtClaimBehalfAssignment> {
-  const res = await apiFetch(`/v1/workspaces/${wsId}/attendance/adjustments/behalf-assignments`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/attendance/adjustments/behalf-assignments", {
+    params: { path: { ws_id: wsId } },
+    body: data
   });
-  if (!res.ok) throw new Error("Failed to create adjustment behalf assignment");
-  return res.json();
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function deleteAdjustmentBehalfAssignment(wsId: string, id: string): Promise<void> {
-  const res = await apiFetch(`/v1/workspaces/${wsId}/attendance/adjustments/behalf-assignments/${id}`, {
-    method: "DELETE",
+  await client.DELETE("/v1/workspaces/{ws_id}/attendance/adjustments/behalf-assignments/{id}", {
+    params: { path: { ws_id: wsId, id } }
   });
-  if (!res.ok) throw new Error("Failed to delete adjustment behalf assignment");
 }

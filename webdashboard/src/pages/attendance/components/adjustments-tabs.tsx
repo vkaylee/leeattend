@@ -63,7 +63,7 @@ export function AdjustmentsTabs({ activeTab, setActiveTab }: AdjustmentsTabsProp
         type="button"
         variant="ghost"
       >
-        <ShieldCheck size={14} /> {t("common.behalf_assignments", { defaultValue: "Behalf" })}
+        <ShieldCheck size={14} /> {t("ot_approvals.tabs.behalf_assignments", { defaultValue: "Behalf" })}
       </Button>
     </div>
   );

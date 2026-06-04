@@ -11,8 +11,6 @@ import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useBehalfAssignments } from "@/hooks/use-behalf-assignments";
 import { useAllEmployees } from "@/hooks/use-employees";
-import { useLeaveBehalfAssignments } from "@/hooks/use-leave-behalf-assignments";
-import { useAttendanceBehalfAssignments } from "@/hooks/use-attendance-behalf-assignments";
 import { fetchDepartments } from "@/lib/api";
 import { BehalfAssignment } from "@/lib/api/types";
 
@@ -364,12 +362,6 @@ export function BehalfAssignmentsTab({
   const { t } = useTranslation();
   const toast = useToast();
 
-  const otHooks = useBehalfAssignments();
-  const leaveHooks = useLeaveBehalfAssignments();
-  const adjustmentHooks = useAttendanceBehalfAssignments();
-
-  const hooksByType = { ot: otHooks, leave: leaveHooks, attendance_adjustment: adjustmentHooks };
-
   const {
     assignments,
     isLoading: assignmentsLoading,
@@ -377,7 +369,7 @@ export function BehalfAssignmentsTab({
     isCreating,
     deleteAssignment,
     isDeleting,
-  } = hooksByType[assignmentType];
+  } = useBehalfAssignments(assignmentType);
 
   const { employees: allEmployees, isLoading: allEmployeesLoading } = useAllEmployees(wsId);
   const employeesLoading = allEmployeesLoading;
@@ -479,7 +471,7 @@ export function BehalfAssignmentsTab({
         <BehalfAssignmentsEmptyState assignmentType={assignmentType} />
       ) : (
         <div className="grid gap-4 animate-in fade-in duration-500">
-          {assignments.map((assignment) => (
+          {assignments.map((assignment: BehalfAssignment) => (
             <AssignmentItem
               assignment={assignment}
               assignmentType={assignmentType}
