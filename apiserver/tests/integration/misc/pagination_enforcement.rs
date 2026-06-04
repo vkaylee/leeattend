@@ -105,6 +105,9 @@ const GET_LIST_WHITELIST: &[&str] = &[
     "get_lateness_by_day",
     "get_workspaces",
     "get_member_extra_permissions",
+    "get_my_leave_behalf_targets",
+    "get_my_adjustment_behalf_targets",
+    "get_my_request_behalf_targets",
 ];
 
 fn visit_dirs(dir: &Path, files: &mut Vec<PathBuf>) -> std::io::Result<()> {

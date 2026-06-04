@@ -11,6 +11,12 @@
 Before writing API or backend code, you MUST load:
 - `@[.agent/rules/coding-standards.md]`
 - `@[.agent/rules/database-rules.md]` (if interacting with the DB)
+- `@[.agent/rules/access-control.md]` (if touching auth, permissions, or RBAC)
+- `@[.agent/rules/data-governance.md]` (if handling PII or user data)
+- `@[.agent/rules/observability-rules.md]` (if adding logging, tracing, or error handling)
+- `@[.agent/rules/incident-response.md]` (if implementing security event handling)
+- `@[.agent/rules/encryption-rules.md]` (if handling secrets, tokens, or encryption)
+- `@[.agent/rules/configuration-management.md]` (if adding env vars or feature flags)
 
 ## 🔌 External Skills (Tier 2 - Supplementary)
 Load these external skills if the task requires them. 

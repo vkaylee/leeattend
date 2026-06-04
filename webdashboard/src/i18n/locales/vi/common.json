@@ -1636,7 +1636,8 @@
       "select_target_employee": "Vui lòng chọn nhân viên mục tiêu",
       "select_target_department": "Vui lòng chọn bộ phận mục tiêu",
       "create_success": "Tạo phân quyền gửi hộ thành công",
-      "delete_success": "Xóa phân quyền thành công"
+      "delete_success": "Xóa phân quyền thành công",
+      "no_linked_user": "Nhân viên được chọn chưa được liên kết với tài khoản người dùng"
     }
   },
   "behalf": {

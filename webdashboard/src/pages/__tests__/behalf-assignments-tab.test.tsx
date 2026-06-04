@@ -195,9 +195,9 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 
 describe("BehalfAssignmentsTab", () => {
   const mockEmployees = [
-    { id: "emp-1", full_name: "Alice Smith", employee_id_number: "E001" },
-    { id: "emp-2", full_name: "Bob Jones", employee_id_number: "E002" },
-    { id: "emp-3", full_name: "Charlie Brown", employee_id_number: "E003" },
+    { id: "emp-1", full_name: "Alice Smith", employee_id_number: "E001", user_id: "user-1" },
+    { id: "emp-2", full_name: "Bob Jones", employee_id_number: "E002", user_id: "user-2" },
+    { id: "emp-3", full_name: "Charlie Brown", employee_id_number: "E003", user_id: "user-3" },
   ];
 
   const mockDepartments = [
@@ -208,13 +208,13 @@ describe("BehalfAssignmentsTab", () => {
   const mockAssignments = [
     {
       id: "assign-1",
-      assignee_employee_id: "emp-1",
+      assignee_user_id: "user-1",
       target_employee_id: "emp-2",
       target_department_id: null,
     },
     {
       id: "assign-2",
-      assignee_employee_id: "emp-1",
+      assignee_user_id: "user-1",
       target_employee_id: null,
       target_department_id: "dept-1",
     },
@@ -354,7 +354,7 @@ describe("BehalfAssignmentsTab", () => {
 
     await waitFor(() => {
       expect(mockCreateAssignment).toHaveBeenCalledWith({
-        assignee_employee_id: "emp-1",
+        assignee_user_id: "user-1",
         target_employee_id: "emp-2",
         target_department_id: null,
       });
@@ -385,7 +385,7 @@ describe("BehalfAssignmentsTab", () => {
 
     await waitFor(() => {
       expect(mockCreateAssignment).toHaveBeenCalledWith({
-        assignee_employee_id: "emp-1",
+        assignee_user_id: "user-1",
         target_employee_id: null,
         target_department_id: "dept-1",
       });
@@ -512,7 +512,7 @@ describe("BehalfAssignmentsTab", () => {
 
       await waitFor(() => {
         expect(adjustmentCreateMock).toHaveBeenCalledWith({
-          assignee_employee_id: "emp-1",
+          assignee_user_id: "user-1",
           target_employee_id: "emp-2",
           target_department_id: null,
         });

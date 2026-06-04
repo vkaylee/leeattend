@@ -64,9 +64,22 @@ trigger: always_on
 - **Database:** `@[.agent/rules/database-rules.md]` (Diesel, migrations, indexing)
 - **Project Structure:** `@[.agent/rules/project-structure.md]`
 - **Execution Wrappers:** `@[.agent/rules/execution-wrappers.md]` (cargo, npm, diesel, python scripts)
+- **Change Management:** `@[.agent/rules/change-management.md]` (Code review, branch protection, deployment gates, feature flags)
+- **Configuration Management:** `@[.agent/rules/configuration-management.md]` (Env vars, fail-fast validation, environment parity)
 
 ### 🎨 Design
 - **UI/UX Design:** `@[.agent/rules/design-rules.md]` (Design system, a11y, responsive)
+
+### 🔒 Security & Compliance
+- **Data Governance:** `@[.agent/rules/data-governance.md]` (Data classification, retention, GDPR, PII handling)
+- **Access Control:** `@[.agent/rules/access-control.md]` (RBAC enforcement, JWT, password policy, MFA)
+- **Encryption:** `@[.agent/rules/encryption-rules.md]` (TLS, encryption at rest, key management, security headers)
+- **Incident Response:** `@[.agent/rules/incident-response.md]` (Security events, breach notification, post-mortems)
+- **Supply Chain:** `@[.agent/rules/supply-chain-security.md]` (Dependency audit, license policy, Docker image security, SBOM)
+
+### 🏗️ Operations & Infrastructure
+- **Observability:** `@[.agent/rules/observability-rules.md]` (Structured logging, monitoring, alerting, tracing)
+- **Business Continuity:** `@[.agent/rules/business-continuity.md]` (RPO/RTO, backup policy, failover, DR testing)
 
 ## 🔌 External Skill Integration (Plugin Protocol)
 To prevent capability limitations, this workspace supports external AI skills:
@@ -76,6 +89,7 @@ To prevent capability limitations, this workspace supports external AI skills:
 ## 🤖 Layer 5: AGENTS & SKILLS (Concurrent Pre-fetching)
 To activate an agent, use the `view_file` tool to load their profile AND their dependencies IN PARALLEL:
 - **Frontend / React / UI:** `@[.agent/agents/frontend-specialist.md]` (Dependencies: `design-rules.md`, `coding-standards.md`)
-- **Backend / Rust / API:** `@[.agent/agents/backend-specialist.md]` (Dependencies: `coding-standards.md`, `database-rules.md`)
-- **Database / Postgres:** `@[.agent/agents/database-expert.md]` (Dependencies: `database-rules.md`)
-- **DevOps / Infra:** `@[.agent/agents/devops-engineer.md]` (Dependencies: `execution-pty-safety.md`, `testing-standards.md`)
+- **Backend / Rust / API:** `@[.agent/agents/backend-specialist.md]` (Dependencies: `coding-standards.md`, `database-rules.md`, `access-control.md`, `data-governance.md`)
+- **Database / Postgres:** `@[.agent/agents/database-expert.md]` (Dependencies: `database-rules.md`, `data-governance.md`, `encryption-rules.md`)
+- **DevOps / Infra:** `@[.agent/agents/devops-engineer.md]` (Dependencies: `execution-pty-safety.md`, `testing-standards.md`, `observability-rules.md`, `business-continuity.md`, `supply-chain-security.md`)
+- **Security / Audit:** `@[.agent/agents/security-auditor.md]` (Dependencies: `access-control.md`, `encryption-rules.md`, `incident-response.md`, `data-governance.md`)

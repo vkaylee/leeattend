@@ -2,7 +2,10 @@ use crate::{
     domain::permissions::Permission,
     errors::{AppError, AppResult},
     handlers::common::MemberContext,
-    models::{BehalfAssignment, CreateBehalfAssignmentRequest, Employee, OtRequestStatus, OvertimeRequest, OvertimeRequestEmployee},
+    models::{
+        BehalfAssignment, CreateBehalfAssignmentRequest, Employee, OtRequestStatus,
+        OvertimeRequest, OvertimeRequestEmployee,
+    },
     AppState,
 };
 use axum::{
@@ -63,7 +66,7 @@ pub async fn create_ot_request(
         };
 
         if is_on_behalf {
-            check_request_behalf_scope(&state, &ctx, caller_employee_id, emp_id).await?;
+            check_request_behalf_scope(&state, &ctx, emp_id).await?;
         }
     }
 
@@ -257,7 +260,6 @@ pub async fn employee_consent(
 async fn check_request_behalf_scope(
     state: &AppState,
     ctx: &MemberContext,
-    caller_employee_id: Option<Uuid>,
     target_employee_id: Uuid,
 ) -> AppResult<()> {
     crate::handlers::common::check_behalf_scope(
@@ -265,7 +267,6 @@ async fn check_request_behalf_scope(
         ctx,
         &[Permission::OvertimeRequestCreateOnBehalf],
         "overtime_request",
-        caller_employee_id,
         target_employee_id,
     )
     .await
@@ -378,11 +379,8 @@ pub async fn get_my_request_behalf_targets(
     Path(_ws_id): Path<Uuid>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<crate::models::Employee>>> {
-    let result = crate::handlers::common::get_my_behalf_targets_handler(
-        &state,
-        &ctx,
-        "overtime_request",
-    )
-    .await?;
+    let result =
+        crate::handlers::common::get_my_behalf_targets_handler(&state, &ctx, "overtime_request")
+            .await?;
     Ok(Json(result))
 }

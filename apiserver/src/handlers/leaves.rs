@@ -65,7 +65,7 @@ pub async fn submit_leave_request(
     };
 
     if is_on_behalf {
-        check_leave_behalf_scope(&state, &ctx, caller_employee_id, req.employee_id).await?;
+        check_leave_behalf_scope(&state, &ctx, req.employee_id).await?;
     } else {
         // Require submit permission scoped to the employee's department
         ctx.require_scoped_permission(Permission::LeaveRequestsSubmit, target_dept_id)?;
@@ -891,7 +891,6 @@ pub async fn download_leave_import_template(
 async fn check_leave_behalf_scope(
     state: &AppState,
     ctx: &MemberContext,
-    caller_employee_id: Option<Uuid>,
     target_employee_id: Uuid,
 ) -> AppResult<()> {
     crate::handlers::common::check_behalf_scope(
@@ -904,7 +903,6 @@ async fn check_leave_behalf_scope(
             Permission::LeaveRequestsSubmitOnBehalf,
         ],
         "leave_request",
-        caller_employee_id,
         target_employee_id,
     )
     .await
@@ -1017,11 +1015,8 @@ pub async fn get_my_leave_behalf_targets(
     Path(_ws_id): Path<Uuid>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<crate::models::Employee>>> {
-    let result = crate::handlers::common::get_my_behalf_targets_handler(
-        &state,
-        &ctx,
-        "leave_request",
-    )
-    .await?;
+    let result =
+        crate::handlers::common::get_my_behalf_targets_handler(&state, &ctx, "leave_request")
+            .await?;
     Ok(Json(result))
 }

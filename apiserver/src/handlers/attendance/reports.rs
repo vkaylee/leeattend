@@ -77,23 +77,11 @@ pub async fn get_attendance_report(
 
     // Apply behalf claim restrictions if not global
     if !is_global {
-        let caller_employee_id = state
-            .employees
-            .repo
-            .get_employee_id_by_user_id(&ctx.auth_token, ctx.user_id)
-            .await?
-            .ok_or_else(|| AppError::Forbidden("Caller has no employee record".to_string()))?;
-
-        let assignments = state
+        let caller_assignments = state
             .attendance
             .behalf_assignment_repo
-            .list_all_assignments(workspace_id, "overtime_claim")
+            .list_assignments_for_assignee(workspace_id, ctx.user_id, "overtime_claim")
             .await?;
-
-        let caller_assignments: Vec<_> = assignments
-            .into_iter()
-            .filter(|a| a.assignee_employee_id == caller_employee_id)
-            .collect();
 
         if caller_assignments.is_empty() {
             if report_type == "daily" {

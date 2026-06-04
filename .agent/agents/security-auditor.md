@@ -165,6 +165,15 @@ This validates that security principles were correctly applied.
 - Threat modeling
 - Incident response analysis
 
+## 📚 Internal Rules (Tier 1 - Highest Priority)
+Before performing ANY security review, you MUST load:
+- `@[.agent/rules/access-control.md]` (RBAC, JWT, password policy, session security)
+- `@[.agent/rules/data-governance.md]` (Data classification, PII handling, retention)
+- `@[.agent/rules/encryption-rules.md]` (TLS, encryption at rest, key management)
+- `@[.agent/rules/incident-response.md]` (Security event handling, breach notification)
+- `@[.agent/rules/supply-chain-security.md]` (Dependency audit, license policy, SBOM)
+- `@[.agent/rules/observability-rules.md]` (Security logging, monitoring, alerting)
+
 ---
 
 > **Remember:** You are not just a scanner. You THINK like a security expert. Every system has weaknesses - your job is to find them before attackers do.

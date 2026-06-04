@@ -12,7 +12,7 @@ import { Typography } from "@/components/ui/typography";
 import { useBehalfAssignments } from "@/hooks/use-behalf-assignments";
 import { useAllEmployees } from "@/hooks/use-employees";
 import { fetchDepartments } from "@/lib/api";
-import { BehalfAssignment } from "@/lib/api/types";
+import { BehalfAssignment, Employee } from "@/lib/api/types";
 
 interface AddAssignmentFormProps {
   assigneeId: string;
@@ -39,17 +39,13 @@ interface AssignmentItemProps {
     id: string;
     name: string;
   }[];
-  employees: {
-    employee_id_number?: string | null;
-    full_name: string;
-    id: string;
-  }[];
+  employees: Employee[];
   isDeleting: boolean;
   onDelete: (id: string) => Promise<void>;
 }
 
 interface BehalfAssignmentInput {
-  assignee_employee_id: string;
+  assignee_user_id: string;
   target_department_id?: string | null;
   target_employee_id?: string | null;
 }
@@ -119,7 +115,7 @@ function AssignmentItem({
   onDelete,
 }: AssignmentItemProps) {
   const { t } = useTranslation();
-  const assignee = employees.find((e) => e.id === assignment.assignee_employee_id);
+  const assignee = employees.find((e) => e.user_id === assignment.assignee_user_id);
   const targetEmp = employees.find((e) => e.id === assignment.target_employee_id) ?? null;
   const targetDept = departments.find((d) => d.id === assignment.target_department_id) ?? null;
 
@@ -217,6 +213,15 @@ function AddAssignmentForm({
           emptyQueryBehavior="prompt-to-type"
           id="submitter-select"
           onChange={(val) => { setAssigneeId(typeof val === "string" ? val : val[0] ?? ""); }}
+          permission={
+            assignmentType === "ot"
+              ? "overtime:claim_on_behalf"
+              : assignmentType === "leave"
+                ? "leave:requests:submit_on_behalf"
+                : assignmentType === "attendance_adjustment"
+                  ? "attendance:adjustments:submit_on_behalf"
+                  : "overtime:request:create_on_behalf"
+          }
           placeholder={t("behalf_assignments.form.assignee_placeholder")}
           value={assigneeId}
           workspaceId={wsId}
@@ -457,9 +462,15 @@ export function BehalfAssignmentsTab({
     e.preventDefault();
     if (!validateForm()) return;
 
+    const selectedEmployee = allEmployees.find((emp) => emp.id === assigneeId);
+    if (!selectedEmployee?.user_id) {
+      toast.error(t("behalf_assignments.toasts.no_linked_user"));
+      return;
+    }
+
     try {
       const payload: BehalfAssignmentInput = {
-        assignee_employee_id: assigneeId,
+        assignee_user_id: selectedEmployee.user_id,
         target_department_id: targetType === "department" ? targetDepartmentId : null,
         target_employee_id: targetType === "employee" ? targetEmployeeId : null,
       };

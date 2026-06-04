@@ -9,7 +9,7 @@ use uuid::Uuid;
 pub struct BehalfAssignmentEntity {
     pub id: Uuid,
     pub workspace_id: Uuid,
-    pub assignee_employee_id: Uuid,
+    pub assignee_user_id: Uuid,
     pub target_employee_id: Option<Uuid>,
     pub target_department_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
@@ -22,7 +22,7 @@ impl From<BehalfAssignmentEntity> for BehalfAssignment {
         Self {
             id: entity.id,
             workspace_id: entity.workspace_id,
-            assignee_employee_id: entity.assignee_employee_id,
+            assignee_user_id: entity.assignee_user_id,
             target_employee_id: entity.target_employee_id,
             target_department_id: entity.target_department_id,
             assignment_type: entity.assignment_type,

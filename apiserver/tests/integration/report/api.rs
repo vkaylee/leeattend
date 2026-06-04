@@ -332,10 +332,10 @@ async fn test_get_daily_attendance_report_behalf_filtering() {
     let assignment_id = uuid::Uuid::new_v4();
     crate::test_execute!(
         &pool.api,
-        "INSERT INTO behalf_assignments (id, workspace_id, assignee_employee_id, target_department_id, assignment_type, created_at, updated_at) VALUES ($1, $2, $3, $4, 'overtime_claim', NOW(), NOW())",
+        "INSERT INTO behalf_assignments (id, workspace_id, assignee_user_id, target_department_id, assignment_type, created_at, updated_at) VALUES ($1, $2, $3, $4, 'overtime_claim', NOW(), NOW())",
         diesel::sql_types::Uuid, assignment_id,
         diesel::sql_types::Uuid, workspace_id,
-        diesel::sql_types::Uuid, clerk_emp_id,
+        diesel::sql_types::Uuid, clerk_user_id,
         diesel::sql_types::Uuid, dept.id
     );
 

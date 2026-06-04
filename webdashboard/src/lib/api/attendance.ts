@@ -629,7 +629,7 @@ export async function updateDefaultAttendanceRules(
 }
 
 export interface OtClaimBehalfAssignment {
-  assignee_employee_id: string;
+  assignee_user_id: string;
   assignment_type: string;
   created_at: string;
   id: string;
@@ -652,7 +652,7 @@ export async function fetchBehalfAssignments(
 export async function createBehalfAssignment(
   wsId: string,
   data: {
-    assignee_employee_id: string;
+    assignee_user_id: string;
     target_department_id?: string | null;
     target_employee_id?: string | null;
   }
@@ -736,7 +736,7 @@ export async function fetchAdjustmentBehalfAssignments(
 export async function createAdjustmentBehalfAssignment(
   wsId: string,
   data: {
-    assignee_employee_id: string;
+    assignee_user_id: string;
     target_department_id?: string | null;
     target_employee_id?: string | null;
   }

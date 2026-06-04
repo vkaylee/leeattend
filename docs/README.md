@@ -11,6 +11,7 @@ Welcome to the project documentation. To maintain clarity, please follow this st
 - **[System Architecture](./system-architecture.md)**: Diagrams and descriptions of the backend/frontend interaction.
 - **[API Reference](./api-reference.md)**: Documentation for REST and WebSocket endpoints.
 - **[Code Standards](./code-standards.md)**: Mandatory coding patterns and naming conventions.
+- **[Compliance Architecture](./compliance-architecture.md)**: SOC 2 & ISO 27001 compliance coding rules and control mapping.
 - **[Deployment Guide](./deployment-guide.md)**: Instructions for production and staging environments.
 - **[UI/UX Standards](./ui-ux-standards.md)**: Design system and styling rules.
 

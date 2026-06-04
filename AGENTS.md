@@ -29,6 +29,19 @@ If your task touches any of these domains, use the `view_file` or `cat` tool to 
 - **Database Rules:** `@[.agent/rules/database-rules.md]` (Diesel, migrations, indexing)
 - **Project Structure:** `@[.agent/rules/project-structure.md]`
 - **Execution Wrappers:** `@[.agent/rules/execution-wrappers.md]` (cargo, npm, diesel, python scripts)
+- **Change Management:** `@[.agent/rules/change-management.md]` (Code review, branch protection, deployment gates, feature flags)
+- **Configuration Management:** `@[.agent/rules/configuration-management.md]` (Env vars, fail-fast validation, environment parity)
 
 ### 🎨 Design
 - **UI/UX Design:** `@[.agent/rules/design-rules.md]` (Design system, a11y, responsive)
+
+### 🔒 Security & Compliance
+- **Data Governance:** `@[.agent/rules/data-governance.md]` (Data classification, retention, GDPR, PII handling)
+- **Access Control:** `@[.agent/rules/access-control.md]` (RBAC enforcement, JWT, password policy, MFA)
+- **Encryption:** `@[.agent/rules/encryption-rules.md]` (TLS, encryption at rest, key management, security headers)
+- **Incident Response:** `@[.agent/rules/incident-response.md]` (Security events, breach notification, post-mortems)
+- **Supply Chain:** `@[.agent/rules/supply-chain-security.md]` (Dependency audit, license policy, Docker image security, SBOM)
+
+### 🏗️ Operations & Infrastructure
+- **Observability:** `@[.agent/rules/observability-rules.md]` (Structured logging, monitoring, alerting, tracing)
+- **Business Continuity:** `@[.agent/rules/business-continuity.md]` (RPO/RTO, backup policy, failover, DR testing)

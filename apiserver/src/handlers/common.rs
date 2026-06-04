@@ -491,7 +491,6 @@ pub async fn check_behalf_scope(
     ctx: &MemberContext,
     required_permissions: &[Permission],
     domain_type: &str,
-    caller_employee_id: Option<Uuid>,
     target_employee_id: Uuid,
 ) -> AppResult<()> {
     let has_perm = required_permissions.iter().any(|&p| ctx.has_permission(p));
@@ -506,9 +505,6 @@ pub async fn check_behalf_scope(
         return Ok(());
     }
 
-    let caller_emp_id = caller_employee_id
-        .ok_or_else(|| AppError::Forbidden("Caller has no employee record".to_string()))?;
-
     let target_dept_id = current_department_id(state, &ctx.auth_token, target_employee_id).await;
 
     // Check explicit behalf assignment
@@ -517,7 +513,7 @@ pub async fn check_behalf_scope(
         .behalf_assignment_repo
         .check_behalf_permission(
             ctx.workspace_id,
-            caller_emp_id,
+            ctx.user_id,
             target_employee_id,
             target_dept_id,
             domain_type,
@@ -557,7 +553,7 @@ pub async fn create_behalf_assignment_handler(
         .behalf_assignment_repo
         .create_assignment(
             ctx.workspace_id,
-            req.assignee_employee_id,
+            req.assignee_user_id,
             req.target_employee_id,
             req.target_department_id,
             domain_type,
@@ -616,30 +612,20 @@ pub async fn get_my_behalf_targets_handler(
     ctx: &MemberContext,
     domain_type: &str,
 ) -> AppResult<Vec<crate::models::Employee>> {
-    let caller_employee_id = state
-        .employees
-        .repo
-        .get_employee_id_by_user_id(&ctx.auth_token, ctx.user_id)
-        .await?
-        .ok_or_else(|| AppError::Forbidden("error.no_employee_record".to_string()))?;
-
     let assignments = state
         .attendance
         .behalf_assignment_repo
-        .list_assignments_for_assignee(ctx.workspace_id, caller_employee_id, domain_type)
+        .list_assignments_for_assignee(ctx.workspace_id, ctx.user_id, domain_type)
         .await?;
 
     if assignments.is_empty() {
         return Ok(vec![]);
     }
 
-    // Resolve department → employee IDs
-    let dept_ids: Vec<Uuid> = assignments
-        .iter()
-        .filter_map(|a| a.target_department_id)
-        .collect();
+    // Resolve department → employee IDs if any exist
+    let has_dept = assignments.iter().any(|a| a.target_department_id.is_some());
 
-    let dept_map = if !dept_ids.is_empty() {
+    let dept_map = if has_dept {
         let today = chrono::Utc::now().date_naive();
         state
             .employees
@@ -679,18 +665,15 @@ pub(crate) fn resolve_behalf_target_ids(
     assignments: &[crate::models::BehalfAssignment],
     dept_map: &std::collections::HashMap<Uuid, (Option<Uuid>, String)>,
 ) -> std::collections::HashSet<Uuid> {
-    let direct_employee_ids: Vec<Uuid> = assignments
+    let mut all_employee_ids: std::collections::HashSet<Uuid> = assignments
         .iter()
         .filter_map(|a| a.target_employee_id)
         .collect();
 
-    let dept_ids: Vec<Uuid> = assignments
+    let dept_ids: std::collections::HashSet<Uuid> = assignments
         .iter()
         .filter_map(|a| a.target_department_id)
         .collect();
-
-    let mut all_employee_ids: std::collections::HashSet<Uuid> =
-        direct_employee_ids.into_iter().collect();
 
     if !dept_ids.is_empty() {
         for (emp_id, (dept_id_opt, _dept_name)) in dept_map {
@@ -949,7 +932,7 @@ mod tests {
         crate::models::BehalfAssignment {
             id: Uuid::new_v4(),
             workspace_id: Uuid::new_v4(),
-            assignee_employee_id: Uuid::new_v4(),
+            assignee_user_id: Uuid::new_v4(),
             target_employee_id,
             target_department_id,
             assignment_type: "leave_request".to_string(),
@@ -1078,10 +1061,7 @@ mod tests {
         let mut dept_map = std::collections::HashMap::new();
         dept_map.insert(emp_in_a, (Some(dept_a), "Sales".to_string()));
         dept_map.insert(emp_in_b, (Some(dept_b), "Engineering".to_string()));
-        dept_map.insert(
-            emp_in_c,
-            (Some(Uuid::new_v4()), "Marketing".to_string()),
-        );
+        dept_map.insert(emp_in_c, (Some(Uuid::new_v4()), "Marketing".to_string()));
 
         let result = resolve_behalf_target_ids(&assignments, &dept_map);
 

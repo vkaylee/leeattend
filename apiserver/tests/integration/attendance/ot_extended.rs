@@ -425,7 +425,7 @@ async fn test_behalf_assignments_crud_and_claims() {
 
     // 2. Admin creates behalf assignment (Clerk -> Target Employee)
     let assign_body = serde_json::json!({
-        "assignee_employee_id": clerk_emp_id.to_string(),
+        "assignee_user_id": clerk_user_id.to_string(),
         "target_employee_id": target_emp_id.to_string(),
     });
 
@@ -569,7 +569,7 @@ async fn test_behalf_assignments_department_claims() {
 
     // 2. Admin creates behalf assignment (Clerk -> Target Department)
     let assign_body = serde_json::json!({
-        "assignee_employee_id": clerk_emp_id.to_string(),
+        "assignee_user_id": clerk_user_id.to_string(),
         "target_department_id": dept_id.to_string(),
     });
 

@@ -143,7 +143,7 @@ async fn test_overtime_request_full_flow() {
     );
 
     let behalf_payload = serde_json::json!({
-        "assignee_employee_id": manager_emp_id,
+        "assignee_user_id": manager_user_id,
         "target_employee_id": employee_emp_id,
         "target_department_id": null
     });
@@ -413,7 +413,10 @@ async fn test_overtime_request_behalf_assignments() {
     });
 
     let res = team_lead_client
-        .post(&format!("{}/api/v1/workspaces/{}/overtime/requests", app_addr, admin_ws_id))
+        .post(&format!(
+            "{}/api/v1/workspaces/{}/overtime/requests",
+            app_addr, admin_ws_id
+        ))
         .header("X-Workspace-Id", admin_ws_id.to_string())
         .json(&ot_payload_emp1)
         .send()
@@ -424,13 +427,16 @@ async fn test_overtime_request_behalf_assignments() {
 
     // 2. Admin creates behalf assignment: Team Lead -> emp1
     let behalf_payload = serde_json::json!({
-        "assignee_employee_id": team_lead_emp_id,
+        "assignee_user_id": team_lead_user_id,
         "target_employee_id": emp1_emp_id,
         "target_department_id": null
     });
 
     let res = admin_client
-        .post(&format!("{}/api/v1/workspaces/{}/overtime/requests/behalf-assignments", app_addr, admin_ws_id))
+        .post(&format!(
+            "{}/api/v1/workspaces/{}/overtime/requests/behalf-assignments",
+            app_addr, admin_ws_id
+        ))
         .header("X-Workspace-Id", admin_ws_id.to_string())
         .json(&behalf_payload)
         .send()
@@ -443,7 +449,10 @@ async fn test_overtime_request_behalf_assignments() {
 
     // 3. Team Lead lists behalf assignments
     let res = admin_client
-        .get(&format!("{}/api/v1/workspaces/{}/overtime/requests/behalf-assignments", app_addr, admin_ws_id))
+        .get(&format!(
+            "{}/api/v1/workspaces/{}/overtime/requests/behalf-assignments",
+            app_addr, admin_ws_id
+        ))
         .header("X-Workspace-Id", admin_ws_id.to_string())
         .send()
         .await
@@ -451,11 +460,16 @@ async fn test_overtime_request_behalf_assignments() {
 
     assert_eq!(res.status(), StatusCode::OK);
     let list: Vec<serde_json::Value> = res.json().await.unwrap();
-    assert!(list.iter().any(|item| item["id"].as_str().unwrap() == assignment_id));
+    assert!(list
+        .iter()
+        .any(|item| item["id"].as_str().unwrap() == assignment_id));
 
     // 4. Team Lead can now create Pre-OT request for emp1
     let res = team_lead_client
-        .post(&format!("{}/api/v1/workspaces/{}/overtime/requests", app_addr, admin_ws_id))
+        .post(&format!(
+            "{}/api/v1/workspaces/{}/overtime/requests",
+            app_addr, admin_ws_id
+        ))
         .header("X-Workspace-Id", admin_ws_id.to_string())
         .json(&ot_payload_emp1)
         .send()
@@ -476,7 +490,10 @@ async fn test_overtime_request_behalf_assignments() {
     });
 
     let res = team_lead_client
-        .post(&format!("{}/api/v1/workspaces/{}/overtime/requests", app_addr, admin_ws_id))
+        .post(&format!(
+            "{}/api/v1/workspaces/{}/overtime/requests",
+            app_addr, admin_ws_id
+        ))
         .header("X-Workspace-Id", admin_ws_id.to_string())
         .json(&ot_payload_emp2)
         .send()
@@ -497,7 +514,10 @@ async fn test_overtime_request_behalf_assignments() {
     });
 
     let res = team_lead_client
-        .post(&format!("{}/api/v1/workspaces/{}/overtime/requests", app_addr, admin_ws_id))
+        .post(&format!(
+            "{}/api/v1/workspaces/{}/overtime/requests",
+            app_addr, admin_ws_id
+        ))
         .header("X-Workspace-Id", admin_ws_id.to_string())
         .json(&ot_payload_both)
         .send()
@@ -508,7 +528,10 @@ async fn test_overtime_request_behalf_assignments() {
 
     // 7. Admin deletes behalf assignment
     let res = admin_client
-        .delete(&format!("{}/api/v1/workspaces/{}/overtime/requests/behalf-assignments/{}", app_addr, admin_ws_id, assignment_id))
+        .delete(&format!(
+            "{}/api/v1/workspaces/{}/overtime/requests/behalf-assignments/{}",
+            app_addr, admin_ws_id, assignment_id
+        ))
         .header("X-Workspace-Id", admin_ws_id.to_string())
         .send()
         .await
@@ -518,7 +541,10 @@ async fn test_overtime_request_behalf_assignments() {
 
     // 8. Team Lead can no longer create Pre-OT request for emp1
     let res = team_lead_client
-        .post(&format!("{}/api/v1/workspaces/{}/overtime/requests", app_addr, admin_ws_id))
+        .post(&format!(
+            "{}/api/v1/workspaces/{}/overtime/requests",
+            app_addr, admin_ws_id
+        ))
         .header("X-Workspace-Id", admin_ws_id.to_string())
         .json(&ot_payload_emp1)
         .send()

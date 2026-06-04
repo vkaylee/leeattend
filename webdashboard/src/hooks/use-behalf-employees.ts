@@ -12,8 +12,8 @@
 
 import { useQuery } from "@tanstack/react-query";
 
-import type { Employee } from "@/lib/api/types";
 import type { BehalfDomain } from "@/lib/api/behalf-targets";
+import type { Employee } from "@/lib/api/types";
 
 import { fetchMyBehalfTargets } from "@/lib/api/behalf-targets";
 import { getCurrentWorkspaceId } from "@/lib/api/helpers";
@@ -24,9 +24,10 @@ export interface UseBehalfEmployeesReturn {
   /** Whether the user has any behalf assignments configured */
   hasAssignments: boolean;
   /** Whether the data is still loading */
-  isLoading: boolean;
   /** Whether there was an error fetching */
   isError: boolean;
+  /** Whether the data is still loading */
+  isLoading: boolean;
 }
 
 const behalfEmployeesKeys = {

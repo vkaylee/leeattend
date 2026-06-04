@@ -54,7 +54,7 @@ const MOCK_OT_ASSIGNMENTS = [
   {
     id: "assign-1",
     workspace_id: "ws-test-123",
-    assignee_employee_id: "emp-1",
+    assignee_user_id: "user-1",
     target_employee_id: "emp-2",
     target_department_id: null,
     assignment_type: "ot",
@@ -67,7 +67,7 @@ const MOCK_LEAVE_ASSIGNMENTS = [
   {
     id: "assign-leave-1",
     workspace_id: "ws-test-123",
-    assignee_employee_id: "emp-1",
+    assignee_user_id: "user-1",
     target_employee_id: "emp-2",
     target_department_id: null,
     assignment_type: "leave",
@@ -80,7 +80,7 @@ const MOCK_ADJUSTMENT_ASSIGNMENTS = [
   {
     id: "assign-adj-1",
     workspace_id: "ws-test-123",
-    assignee_employee_id: "emp-1",
+    assignee_user_id: "user-1",
     target_employee_id: "emp-2",
     target_department_id: null,
     assignment_type: "attendance_adjustment",
@@ -114,7 +114,7 @@ describe("useBehalfAssignments", () => {
     it("creates OT assignment and invalidates cache", async () => {
       const newAssignment = {
         id: "assign-ot-new",
-        assignee_employee_id: "emp-3",
+        assignee_user_id: "user-3",
         target_employee_id: "emp-4",
         target_department_id: null,
       };
@@ -128,13 +128,13 @@ describe("useBehalfAssignments", () => {
 
       await act(async () => {
         await result.current.createAssignment({
-          assignee_employee_id: "emp-3",
+          assignee_user_id: "user-3",
           target_employee_id: "emp-4",
         });
       });
 
       expect(createBehalfAssignment).toHaveBeenCalledWith("ws-test-123", {
-        assignee_employee_id: "emp-3",
+        assignee_user_id: "user-3",
         target_employee_id: "emp-4",
       });
     });
@@ -176,7 +176,7 @@ describe("useBehalfAssignments", () => {
     it("creates Leave assignment and invalidates cache", async () => {
       const newAssignment = {
         id: "assign-leave-new",
-        assignee_employee_id: "emp-3",
+        assignee_user_id: "user-3",
         target_employee_id: "emp-4",
         target_department_id: null,
       };
@@ -190,13 +190,13 @@ describe("useBehalfAssignments", () => {
 
       await act(async () => {
         await result.current.createAssignment({
-          assignee_employee_id: "emp-3",
+          assignee_user_id: "user-3",
           target_employee_id: "emp-4",
         });
       });
 
       expect(createLeaveBehalfAssignment).toHaveBeenCalledWith("ws-test-123", {
-        assignee_employee_id: "emp-3",
+        assignee_user_id: "user-3",
         target_employee_id: "emp-4",
       });
     });
@@ -238,7 +238,7 @@ describe("useBehalfAssignments", () => {
     it("creates Attendance Adjustment assignment and invalidates cache", async () => {
       const newAssignment = {
         id: "assign-adj-new",
-        assignee_employee_id: "emp-3",
+        assignee_user_id: "user-3",
         target_employee_id: "emp-4",
         target_department_id: null,
       };
@@ -252,13 +252,13 @@ describe("useBehalfAssignments", () => {
 
       await act(async () => {
         await result.current.createAssignment({
-          assignee_employee_id: "emp-3",
+          assignee_user_id: "user-3",
           target_employee_id: "emp-4",
         });
       });
 
       expect(createAdjustmentBehalfAssignment).toHaveBeenCalledWith("ws-test-123", {
-        assignee_employee_id: "emp-3",
+        assignee_user_id: "user-3",
         target_employee_id: "emp-4",
       });
     });

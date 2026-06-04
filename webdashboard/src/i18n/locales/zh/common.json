@@ -1636,7 +1636,8 @@
       "select_target_employee": "请选择目标员工",
       "select_target_department": "请选择目标部门",
       "create_success": "代办分配创建成功",
-      "delete_success": "分配删除成功"
+      "delete_success": "分配删除成功",
+      "no_linked_user": "所选员工尚未关联用户账户"
     }
   },
   "behalf": {

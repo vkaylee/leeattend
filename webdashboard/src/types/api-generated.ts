@@ -1229,6 +1229,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/workspaces/{ws_id}/attendance/adjustments/behalf-assignments/my-targets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_my_adjustment_behalf_targets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/workspaces/{ws_id}/attendance/adjustments/behalf-assignments/{id}": {
         parameters: {
             query?: never;
@@ -1826,6 +1842,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/workspaces/{ws_id}/leave/behalf-assignments/my-targets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_my_leave_behalf_targets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/workspaces/{ws_id}/leave/behalf-assignments/{id}": {
         parameters: {
             query?: never;
@@ -2008,6 +2040,22 @@ export interface paths {
         get: operations["list_request_behalf_assignments"];
         put?: never;
         post: operations["create_request_behalf_assignment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{ws_id}/overtime/requests/behalf-assignments/my-targets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_my_request_behalf_targets"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4074,7 +4122,7 @@ export interface components {
         };
         BehalfAssignment: {
             /** Format: uuid */
-            assignee_employee_id: string;
+            assignee_user_id: string;
             assignment_type: string;
             /** Format: date-time */
             created_at: string;
@@ -4185,7 +4233,7 @@ export interface components {
         };
         CreateBehalfAssignmentRequest: {
             /** Format: uuid */
-            assignee_employee_id: string;
+            assignee_user_id: string;
             /** Format: uuid */
             target_department_id?: string | null;
             /** Format: uuid */
@@ -8745,6 +8793,29 @@ export interface operations {
             };
         };
     };
+    get_my_adjustment_behalf_targets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Target employees for adjustment behalf */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Employee"][];
+                };
+            };
+        };
+    };
     delete_adjustment_behalf_assignment: {
         parameters: {
             query?: never;
@@ -10212,6 +10283,29 @@ export interface operations {
             };
         };
     };
+    get_my_leave_behalf_targets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Target employees the current user can act on behalf of */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Employee"][];
+                };
+            };
+        };
+    };
     delete_leave_behalf_assignment: {
         parameters: {
             query?: never;
@@ -10735,6 +10829,29 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BehalfAssignment"];
+                };
+            };
+        };
+    };
+    get_my_request_behalf_targets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Target employees for OT request behalf */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Employee"][];
                 };
             };
         };

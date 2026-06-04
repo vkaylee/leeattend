@@ -104,6 +104,60 @@ function CustomHoursFields({
   );
 }
 
+function EmployeeSelectorField({
+  canSubmitOnBehalf,
+  hasPermission,
+  behalfLoading,
+  selectedEmpId,
+  setSelectedEmpId,
+  behalfOptions,
+  employee,
+  t
+}: {
+  canSubmitOnBehalf: boolean;
+  hasPermission: boolean;
+  behalfLoading: boolean;
+  selectedEmpId: string;
+  setSelectedEmpId: (id: string) => void;
+  behalfOptions: { value: string; label: string }[];
+  employee: Employee | undefined;
+  t: TFunction;
+}) {
+  if (canSubmitOnBehalf) {
+    return (
+      <Combobox
+        className="h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 border-primary-100 dark:border-primary-800/50 shadow-sm"
+        id="leave-emp"
+        onChange={setSelectedEmpId}
+        options={behalfOptions}
+        placeholder={t("common.select_employee")}
+        value={selectedEmpId}
+      />
+    );
+  }
+  if (hasPermission && behalfLoading) {
+    return (
+      <div className="h-14 rounded-2xl bg-slate-100 dark:bg-slate-800/50 border border-primary-100 dark:border-primary-800/50 px-5 flex items-center gap-2 text-primary-400 text-sm">
+        <Loader2 className="animate-spin" size={14} />
+        {t("common.loading")}
+      </div>
+    );
+  }
+  if (hasPermission) {
+    return (
+      <div className="h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 px-5 flex items-center gap-2 text-amber-700 dark:text-amber-400 text-sm">
+        <Info size={14} />
+        {t("behalf.no_assignments_configured", "Chưa có cấu hình behalf assignment")}
+      </div>
+    );
+  }
+  return (
+    <div className="h-14 rounded-2xl bg-slate-100 dark:bg-slate-800/50 border border-primary-100 dark:border-primary-800/50 px-5 flex items-center text-primary-700 dark:text-primary-350 font-semibold text-sm">
+      {employee?.full_name ?? "Loading..."}
+    </div>
+  );
+}
+
 export interface CreateLeaveRequestFormProps {
   balances: EmployeeLeaveBalance[];
   behalfEmployees: Employee[];
@@ -171,30 +225,16 @@ export function CreateLeaveRequestForm({
     <form className="space-y-8 pt-4" onSubmit={onSubmit}>
       <div className="space-y-3 px-1">
         <label className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest ml-1" htmlFor="leave-emp">{t("common.employee")}</label>
-        {canSubmitOnBehalf ? (
-          <Combobox
-            className="h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 border-primary-100 dark:border-primary-800/50 shadow-sm"
-            id="leave-emp"
-            onChange={setSelectedEmpId}
-            options={behalfOptions}
-            placeholder={t("common.select_employee")}
-            value={selectedEmpId}
-          />
-        ) : hasPermission && behalfLoading ? (
-          <div className="h-14 rounded-2xl bg-slate-100 dark:bg-slate-800/50 border border-primary-100 dark:border-primary-800/50 px-5 flex items-center gap-2 text-primary-400 text-sm">
-            <Loader2 className="animate-spin" size={14} />
-            {t("common.loading")}
-          </div>
-        ) : hasPermission ? (
-          <div className="h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 px-5 flex items-center gap-2 text-amber-700 dark:text-amber-400 text-sm">
-            <Info size={14} />
-            {t("behalf.no_assignments_configured", "Chưa có cấu hình behalf assignment")}
-          </div>
-        ) : (
-          <div className="h-14 rounded-2xl bg-slate-100 dark:bg-slate-800/50 border border-primary-100 dark:border-primary-800/50 px-5 flex items-center text-primary-700 dark:text-primary-350 font-semibold text-sm">
-            {employee?.full_name ?? "Loading..."}
-          </div>
-        )}
+        <EmployeeSelectorField
+          behalfLoading={behalfLoading}
+          behalfOptions={behalfOptions}
+          canSubmitOnBehalf={canSubmitOnBehalf}
+          employee={employee}
+          hasPermission={hasPermission}
+          selectedEmpId={selectedEmpId}
+          setSelectedEmpId={setSelectedEmpId}
+          t={t}
+        />
       </div>
       <LeaveBalancesPanel balances={balances} selectedEmpId={empIdToUse} t={t} />
       <div className="space-y-3 px-1">

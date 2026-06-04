@@ -47,10 +47,11 @@ pub async fn submit_attendance_adjustment(
         .get_employee_id_by_user_id(&ctx.auth_token, ctx.user_id)
         .await?;
 
-    if let Some(caller_id) = caller_employee_id {
-        if caller_id != target_employee_id {
-            check_adjustment_behalf_scope(&state, &ctx, caller_id, target_employee_id).await?;
-        }
+    let is_self = caller_employee_id
+        .map(|cid| cid == target_employee_id)
+        .unwrap_or(false);
+    if !is_self {
+        check_adjustment_behalf_scope(&state, &ctx, target_employee_id).await?;
     }
 
     let adjustment = state
@@ -81,7 +82,6 @@ pub async fn submit_attendance_adjustment(
 async fn check_adjustment_behalf_scope(
     state: &AppState,
     ctx: &MemberContext,
-    caller_employee_id: Uuid,
     target_employee_id: Uuid,
 ) -> AppResult<()> {
     crate::handlers::common::check_behalf_scope(
@@ -89,7 +89,6 @@ async fn check_adjustment_behalf_scope(
         ctx,
         &[Permission::AttendanceAdjustmentsSubmitOnBehalf],
         "attendance_adjustment",
-        Some(caller_employee_id),
         target_employee_id,
     )
     .await

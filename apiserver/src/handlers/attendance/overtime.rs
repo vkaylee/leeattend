@@ -219,13 +219,6 @@ async fn check_claim_behalf_scope(
     ctx: &MemberContext,
     target_employee_id: Uuid,
 ) -> AppResult<()> {
-    // Fetch caller's employee_id (overtime handler doesn't have it pre-fetched)
-    let caller_employee_id = state
-        .employees
-        .repo
-        .get_employee_id_by_user_id(&ctx.auth_token, ctx.user_id)
-        .await?;
-
     crate::handlers::common::check_behalf_scope(
         state,
         ctx,
@@ -234,7 +227,6 @@ async fn check_claim_behalf_scope(
             Permission::OvertimeClaimOnBehalf,
         ],
         "overtime_claim",
-        caller_employee_id,
         target_employee_id,
     )
     .await

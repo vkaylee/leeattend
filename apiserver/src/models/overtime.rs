@@ -43,7 +43,7 @@ pub struct OvertimePolicyAssignment {
 pub struct BehalfAssignment {
     pub id: Uuid,
     pub workspace_id: Uuid,
-    pub assignee_employee_id: Uuid,
+    pub assignee_user_id: Uuid,
     pub target_employee_id: Option<Uuid>,
     pub target_department_id: Option<Uuid>,
     pub assignment_type: String,
@@ -53,7 +53,7 @@ pub struct BehalfAssignment {
 
 #[derive(Debug, Deserialize, Clone, ToSchema)]
 pub struct CreateBehalfAssignmentRequest {
-    pub assignee_employee_id: Uuid,
+    pub assignee_user_id: Uuid,
     pub target_employee_id: Option<Uuid>,
     pub target_department_id: Option<Uuid>,
 }

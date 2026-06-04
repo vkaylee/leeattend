@@ -47,7 +47,7 @@ export function useBehalfAssignments(type: BehalfAssignmentType = "ot") {
 
   const createMutation = useMutation({
     mutationFn: (data: {
-      assignee_employee_id: string;
+      assignee_user_id: string;
       target_department_id?: string | null;
       target_employee_id?: string | null;
     }) => {

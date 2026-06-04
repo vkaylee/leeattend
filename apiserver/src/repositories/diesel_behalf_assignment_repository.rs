@@ -25,7 +25,7 @@ impl BehalfAssignmentRepository for DieselBehalfAssignmentRepository {
     async fn create_assignment(
         &self,
         workspace_id: Uuid,
-        assignee_employee_id: Uuid,
+        assignee_user_id: Uuid,
         target_employee_id: Option<Uuid>,
         target_department_id: Option<Uuid>,
         assignment_type: &str,
@@ -52,7 +52,7 @@ impl BehalfAssignmentRepository for DieselBehalfAssignmentRepository {
         diesel::insert_into(behalf_assignments::table)
             .values((
                 behalf_assignments::workspace_id.eq(workspace_id),
-                behalf_assignments::assignee_employee_id.eq(assignee_employee_id),
+                behalf_assignments::assignee_user_id.eq(assignee_user_id),
                 behalf_assignments::target_employee_id.eq(target_employee_id),
                 behalf_assignments::target_department_id.eq(target_department_id),
                 behalf_assignments::assignment_type.eq(assignment_type),
@@ -110,7 +110,7 @@ impl BehalfAssignmentRepository for DieselBehalfAssignmentRepository {
     async fn check_behalf_permission(
         &self,
         workspace_id: Uuid,
-        assignee_employee_id: Uuid,
+        assignee_user_id: Uuid,
         target_employee_id: Uuid,
         target_department_id: Option<Uuid>,
         assignment_type: &str,
@@ -125,7 +125,7 @@ impl BehalfAssignmentRepository for DieselBehalfAssignmentRepository {
 
         let mut query = behalf_assignments::table
             .filter(behalf_assignments::workspace_id.eq(workspace_id))
-            .filter(behalf_assignments::assignee_employee_id.eq(assignee_employee_id))
+            .filter(behalf_assignments::assignee_user_id.eq(assignee_user_id))
             .filter(behalf_assignments::assignment_type.eq(assignment_type))
             .into_boxed();
 
@@ -151,7 +151,7 @@ impl BehalfAssignmentRepository for DieselBehalfAssignmentRepository {
     async fn list_assignments_for_assignee(
         &self,
         workspace_id: Uuid,
-        assignee_employee_id: Uuid,
+        assignee_user_id: Uuid,
         assignment_type: &str,
     ) -> AppResult<Vec<BehalfAssignment>> {
         let mut conn = crate::diesel_pool::TransactionConn(
@@ -164,7 +164,7 @@ impl BehalfAssignmentRepository for DieselBehalfAssignmentRepository {
 
         behalf_assignments::table
             .filter(behalf_assignments::workspace_id.eq(workspace_id))
-            .filter(behalf_assignments::assignee_employee_id.eq(assignee_employee_id))
+            .filter(behalf_assignments::assignee_user_id.eq(assignee_user_id))
             .filter(behalf_assignments::assignment_type.eq(assignment_type))
             .order(behalf_assignments::created_at.desc())
             .select(BehalfAssignmentEntity::as_select())

@@ -432,14 +432,14 @@ async fn test_submit_leave_on_behalf_with_assignment() {
     // 2. Add the behalf assignment in the database
     crate::test_execute!(
         &factory.diesel_pools.api,
-        "INSERT INTO behalf_assignments (id, workspace_id, assignee_employee_id, target_employee_id, assignment_type, created_at, updated_at)
+        "INSERT INTO behalf_assignments (id, workspace_id, assignee_user_id, target_employee_id, assignment_type, created_at, updated_at)
          VALUES ($1, $2, $3, $4, 'leave_request', NOW(), NOW())",
         diesel::sql_types::Uuid,
         uuid::Uuid::new_v4(),
         diesel::sql_types::Uuid,
         ws_id,
         diesel::sql_types::Uuid,
-        submitter_emp_id,
+        submitter_user_id,
         diesel::sql_types::Uuid,
         target_emp_id
     );

@@ -1636,7 +1636,8 @@
       "select_target_employee": "Please select a target employee",
       "select_target_department": "Please select a target department",
       "create_success": "Behalf assignment created successfully",
-      "delete_success": "Assignment deleted successfully"
+      "delete_success": "Assignment deleted successfully",
+      "no_linked_user": "Selected employee does not have a linked user account"
     }
   },
   "behalf": {

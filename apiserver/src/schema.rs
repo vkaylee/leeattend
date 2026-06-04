@@ -1428,7 +1428,7 @@ diesel::table! {
     behalf_assignments (id) {
         id -> Uuid,
         workspace_id -> Uuid,
-        assignee_employee_id -> Uuid,
+        assignee_user_id -> Uuid,
         target_employee_id -> Nullable<Uuid>,
         target_department_id -> Nullable<Uuid>,
         created_at -> Timestamptz,
@@ -1438,7 +1438,7 @@ diesel::table! {
 }
 
 diesel::joinable!(assignment_rules -> working_patterns (pattern_id));
-diesel::joinable!(behalf_assignments -> employees (assignee_employee_id));
+diesel::joinable!(behalf_assignments -> users (assignee_user_id));
 diesel::joinable!(attendance_adjustment_requests -> employees (employee_id));
 diesel::joinable!(attendance_adjustment_requests -> time_entries (time_entry_id));
 diesel::joinable!(attendance_daily_summaries -> employees (employee_id));
