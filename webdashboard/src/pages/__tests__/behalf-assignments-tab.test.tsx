@@ -23,17 +23,98 @@ vi.mock("@/components/ui/toast", () => ({
 }));
 
 // Mock react-i18next
-vi.mock("react-i18next", () => ({
-  useTranslation: () => ({
-    t: (key: string, options?: { defaultValue: string }) => {
-      const translations: Record<string, string> = {
-        "common.loading": "Loading...",
-      };
-      return translations[key] || options?.defaultValue || key;
+const { enCommon } = vi.hoisted(() => ({
+  enCommon: {
+    cancel: "Cancel",
+    behalf_assignments: {
+      scope_type_employee: "Employee",
+      scope_type_department: "Department",
+      scope_type_none: "None",
+      unknown_employee: "Unknown Employee",
+      assignee_labels: {
+        ot: "Authorized Claimant",
+        overtime_request: "Authorized Submitter",
+        leave: "Authorized Requester",
+        attendance_adjustment: "Authorized Requester",
+      },
+      target_labels: {
+        ot: "Claim Target Scope",
+        overtime_request: "Pre-OT Target Scope",
+        leave: "Request Target Scope",
+        attendance_adjustment: "Request Target Scope",
+      },
+      form: {
+        assignee_label_ot: "Authorized Claimant (Employee)",
+        assignee_label_overtime_request: "Authorized Submitter (Employee)",
+        assignee_label_other: "Authorized Requester (Employee)",
+        assignee_placeholder: "Search and select submitter...",
+        assignee_help_ot: "Select the workspace employee who is allowed to claim on behalf.",
+        assignee_help_overtime_request: "Select the workspace employee who is allowed to submit Pre-OT requests on behalf.",
+        assignee_help_leave: "Select the workspace employee who is allowed to submit leave requests on behalf.",
+        target_type_label: "Target Scope Type",
+        target_type_employee: "Employee",
+        target_type_department: "Department",
+        target_employee_label: "Target Employee",
+        target_employee_placeholder: "Search and select target employee...",
+        target_department_label: "Target Department",
+        no_departments: "No departments found",
+        target_department_placeholder: "Search and select target department...",
+        submit_btn: "Create Assignment",
+      },
+      header: {
+        title_ot: "Behalf Claim Assignments",
+        title_overtime_request: "Behalf Pre-OT Request Assignments",
+        title_leave: "Behalf Leave Request Assignments",
+        desc_ot: "Configure which employees are authorized to claim overtime on behalf of specific employees or entire departments.",
+        desc_overtime_request: "Configure which employees are authorized to request Pre-OT on behalf of specific employees or entire departments.",
+        desc_leave: "Configure which employees are authorized to request leave on behalf of specific employees or entire departments.",
+        add_btn: "Add Assignment",
+      },
+      empty: {
+        title_ot: "No Behalf Assignments Configured",
+        title_leave: "No Behalf Leave Assignments Configured",
+        title_overtime_request: "No Behalf Pre-OT Assignments Configured",
+        title_adjustment: "No Behalf Adjustment Assignments Configured",
+        desc_ot: "Users with Claim on Behalf permission will fall back to their managed departments. Assign specific employees or departments to scope their claim access.",
+        desc_leave: "Users with Submit on Behalf permission will fall back to their managed departments. Assign specific employees or departments to scope their leave request access.",
+        desc_overtime_request: "Users with Pre-OT Create on Behalf permission will fall back to their managed departments. Assign specific employees or departments to scope their Pre-OT request access.",
+        desc_adjustment: "Users with Submit on Behalf permission will fall back to their managed departments. Assign specific employees or departments to scope their adjustment access.",
+      },
+      modal: {
+        add_title: "Add Behalf Assignment",
+      },
+      toasts: {
+        select_assignee: "Please select an assignee employee",
+        select_target_employee: "Please select a target employee",
+        select_target_department: "Please select a target department",
+        create_success: "Behalf assignment created successfully",
+        delete_success: "Assignment deleted successfully",
+      },
     },
-    i18n: { language: "en" },
-  }),
+  },
 }));
+
+vi.mock("react-i18next", () => {
+  const resolveKey = (key: string, object: Record<string, any>): string => {
+    let result = key.split('.').reduce((o: any, index) => o?.[index], object) as string | undefined;
+    if (!result && key.startsWith('common.')) {
+      const fallbackKey = key.substring(7);
+      result = fallbackKey.split('.').reduce((o: any, index) => o?.[index], object) as string | undefined;
+    }
+    return result || key;
+  };
+
+  return {
+    useTranslation: () => ({
+      t: (key: string) => {
+        if (key === "common.loading") return "Loading...";
+        return resolveKey(key, enCommon);
+      },
+      i18n: { language: "en" },
+    }),
+  };
+});
+
 
 // Mock EmployeeSearch
 vi.mock("@/components/common/employee-search", () => ({

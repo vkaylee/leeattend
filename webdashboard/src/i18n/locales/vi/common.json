@@ -1572,5 +1572,71 @@
     "no_notifications": "Không có thông báo nào",
     "empty_state": "Bạn chưa có thông báo nào. Các cập nhật quan trọng sẽ xuất hiện ở đây.",
     "mark_as_read": "Đánh dấu đã đọc"
+  },
+  "behalf_assignments": {
+    "scope_type_employee": "Nhân viên",
+    "scope_type_department": "Bộ phận",
+    "scope_type_none": "Không",
+    "unknown_employee": "Nhân viên không xác định",
+    "assignee_labels": {
+      "ot": "Người được ủy quyền Claim",
+      "overtime_request": "Người được ủy quyền Yêu cầu Pre-OT",
+      "leave": "Người được ủy quyền Yêu cầu Nghỉ phép",
+      "attendance_adjustment": "Người được ủy quyền Yêu cầu Điều chỉnh"
+    },
+    "target_labels": {
+      "ot": "Phạm vi Claim Hộ",
+      "overtime_request": "Phạm vi Pre-OT Hộ",
+      "leave": "Phạm vi Nghỉ Phép Hộ",
+      "attendance_adjustment": "Phạm vi Điều Chỉnh Hộ"
+    },
+    "form": {
+      "assignee_label_ot": "Người được ủy quyền Claim (Nhân viên)",
+      "assignee_label_overtime_request": "Người được ủy quyền Yêu cầu Pre-OT (Nhân viên)",
+      "assignee_label_other": "Người được ủy quyền Yêu cầu (Nhân viên)",
+      "assignee_placeholder": "Tìm và chọn người được ủy quyền...",
+      "assignee_help_ot": "Chọn nhân viên được phép gửi yêu cầu Claim hộ trong không gian làm việc.",
+      "assignee_help_overtime_request": "Chọn nhân viên được phép gửi yêu cầu Pre-OT hộ trong không gian làm việc.",
+      "assignee_help_leave": "Chọn nhân viên được phép gửi yêu cầu nghỉ phép hộ trong không gian làm việc.",
+      "target_type_label": "Loại phạm vi mục tiêu",
+      "target_type_employee": "Nhân viên",
+      "target_type_department": "Bộ phận",
+      "target_employee_label": "Nhân viên mục tiêu",
+      "target_employee_placeholder": "Tìm và chọn nhân viên mục tiêu...",
+      "target_department_label": "Bộ phận mục tiêu",
+      "no_departments": "Không tìm thấy bộ phận",
+      "target_department_placeholder": "Tìm và chọn bộ phận mục tiêu...",
+      "submit_btn": "Tạo phân quyền"
+    },
+    "header": {
+      "title_ot": "Phân quyền Gửi Claim Hộ",
+      "title_overtime_request": "Phân quyền Gửi Pre-OT Hộ",
+      "title_leave": "Phân quyền Gửi Yêu Cầu Nghỉ Hộ",
+      "title_adjustment": "Phân quyền Gửi Điều Chỉnh Hộ",
+      "desc_ot": "Cấu hình những nhân viên được ủy quyền gửi claim ngoài giờ thay cho nhân viên cụ thể hoặc toàn bộ bộ phận.",
+      "desc_overtime_request": "Cấu hình những nhân viên được ủy quyền yêu cầu Pre-OT thay cho nhân viên cụ thể hoặc toàn bộ bộ phận.",
+      "desc_leave": "Cấu hình những nhân viên được ủy quyền yêu cầu nghỉ phép thay cho nhân viên cụ thể hoặc toàn bộ bộ phận.",
+      "add_btn": "Thêm phân quyền"
+    },
+    "empty": {
+      "title_ot": "Chưa cấu hình phân quyền gửi hộ",
+      "title_leave": "Chưa cấu hình phân quyền nghỉ hộ",
+      "title_overtime_request": "Chưa cấu hình phân quyền Pre-OT hộ",
+      "title_adjustment": "Chưa cấu hình phân quyền điều chỉnh hộ",
+      "desc_ot": "Người dùng có quyền Claim hộ sẽ mặc định quản lý theo bộ phận. Phân quyền cụ thể cho nhân viên hoặc bộ phận để giới hạn phạm vi truy cập.",
+      "desc_leave": "Người dùng có quyền Gửi yêu cầu hộ sẽ mặc định quản lý theo bộ phận. Phân quyền cụ thể cho nhân viên hoặc bộ phận để giới hạn phạm vi truy cập nghỉ phép.",
+      "desc_overtime_request": "Người dùng có quyền Tạo Pre-OT hộ sẽ mặc định quản lý theo bộ phận. Phân quyền cụ thể cho nhân viên hoặc bộ phận để giới hạn phạm vi truy cập Pre-OT.",
+      "desc_adjustment": "Người dùng có quyền Gửi yêu cầu hộ sẽ mặc định quản lý theo bộ phận. Phân quyền cụ thể cho nhân viên hoặc bộ phận để giới hạn phạm vi truy cập điều chỉnh."
+    },
+    "modal": {
+      "add_title": "Thêm phân quyền gửi hộ"
+    },
+    "toasts": {
+      "select_assignee": "Vui lòng chọn nhân viên được ủy quyền",
+      "select_target_employee": "Vui lòng chọn nhân viên mục tiêu",
+      "select_target_department": "Vui lòng chọn bộ phận mục tiêu",
+      "create_success": "Tạo phân quyền gửi hộ thành công",
+      "delete_success": "Xóa phân quyền thành công"
+    }
   }
 }

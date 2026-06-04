@@ -69,11 +69,13 @@ interface TargetScopeDisplayProps {
 }
 
 function TargetScopeDisplay({ targetEmp, targetDept }: TargetScopeDisplayProps) {
+  const { t } = useTranslation();
+
   if (targetEmp) {
     return (
       <div className="mt-0.5">
         <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 mr-2">
-          Employee
+          {t("behalf_assignments.scope_type_employee")}
         </span>
         <span className="font-bold text-slate-700 dark:text-slate-300 text-sm">
           {targetEmp.full_name}
@@ -91,7 +93,7 @@ function TargetScopeDisplay({ targetEmp, targetDept }: TargetScopeDisplayProps) 
     return (
       <div className="mt-0.5">
         <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-indigo-400 mr-2">
-          Department
+          {t("behalf_assignments.scope_type_department")}
         </span>
         <span className="font-bold text-slate-700 dark:text-slate-300 text-sm">
           {targetDept.name}
@@ -105,22 +107,8 @@ function TargetScopeDisplay({ targetEmp, targetDept }: TargetScopeDisplayProps) 
     );
   }
 
-  return <span className="text-slate-400 text-sm mt-0.5 italic">None</span>;
+  return <span className="text-slate-400 text-sm mt-0.5 italic">{t("behalf_assignments.scope_type_none")}</span>;
 }
-
-const ASSIGNEE_LABELS = {
-  ot: "Authorized Claimant",
-  overtime_request: "Authorized Submitter",
-  leave: "Authorized Requester",
-  attendance_adjustment: "Authorized Requester",
-} as const;
-
-const TARGET_LABELS = {
-  ot: "Claim Target Scope",
-  overtime_request: "Pre-OT Target Scope",
-  leave: "Request Target Scope",
-  attendance_adjustment: "Request Target Scope",
-} as const;
 
 function AssignmentItem({
   assignment,
@@ -130,12 +118,13 @@ function AssignmentItem({
   isDeleting,
   onDelete,
 }: AssignmentItemProps) {
+  const { t } = useTranslation();
   const assignee = employees.find((e) => e.id === assignment.assignee_employee_id);
   const targetEmp = employees.find((e) => e.id === assignment.target_employee_id) ?? null;
   const targetDept = departments.find((d) => d.id === assignment.target_department_id) ?? null;
 
-  const assigneeLabel = ASSIGNEE_LABELS[assignmentType];
-  const targetLabel = TARGET_LABELS[assignmentType];
+  const assigneeLabel = t(`behalf_assignments.assignee_labels.${assignmentType}`);
+  const targetLabel = t(`behalf_assignments.target_labels.${assignmentType}`);
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all duration-200">
@@ -145,7 +134,7 @@ function AssignmentItem({
             {assigneeLabel}
           </span>
           <span className="font-bold text-slate-800 dark:text-slate-200 text-sm mt-0.5">
-            {assignee?.full_name ?? "Unknown Employee"}
+            {assignee?.full_name ?? t("behalf_assignments.unknown_employee")}
           </span>
           {assignee?.employee_id_number ? (
             <span className="text-[10px] text-slate-400 font-mono mt-0.5">
@@ -196,6 +185,24 @@ function AddAssignmentForm({
   targetType,
   wsId,
 }: AddAssignmentFormProps) {
+  const { t } = useTranslation();
+
+  const submitterLabel = t(
+    assignmentType === "ot"
+      ? "behalf_assignments.form.assignee_label_ot"
+      : assignmentType === "overtime_request"
+        ? "behalf_assignments.form.assignee_label_overtime_request"
+        : "behalf_assignments.form.assignee_label_other"
+  );
+
+  const submitterHelpText = t(
+    assignmentType === "ot"
+      ? "behalf_assignments.form.assignee_help_ot"
+      : assignmentType === "overtime_request"
+        ? "behalf_assignments.form.assignee_help_overtime_request"
+        : "behalf_assignments.form.assignee_help_leave"
+  );
+
   return (
     <form className="space-y-6 animate-in fade-in zoom-in-95 duration-250" onSubmit={onSubmit}>
       <div className="space-y-2">
@@ -203,33 +210,25 @@ function AddAssignmentForm({
           className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest"
           htmlFor="submitter-select"
         >
-          {assignmentType === "ot"
-            ? "Authorized Claimant (Employee)"
-            : assignmentType === "overtime_request"
-              ? "Authorized Submitter (Employee)"
-              : "Authorized Requester (Employee)"}
+          {submitterLabel}
         </label>
         <EmployeeSearch
           clearOnEscape
           emptyQueryBehavior="prompt-to-type"
           id="submitter-select"
           onChange={(val) => { setAssigneeId(typeof val === "string" ? val : val[0] ?? ""); }}
-          placeholder="Search and select submitter..."
+          placeholder={t("behalf_assignments.form.assignee_placeholder")}
           value={assigneeId}
           workspaceId={wsId}
         />
         <Typography className="text-[10px] text-slate-400 mt-1" variant="p">
-          {assignmentType === "ot"
-            ? "Select the workspace employee who is allowed to claim on behalf."
-            : assignmentType === "overtime_request"
-              ? "Select the workspace employee who is allowed to submit Pre-OT requests on behalf."
-              : "Select the workspace employee who is allowed to submit leave requests on behalf."}
+          {submitterHelpText}
         </Typography>
       </div>
 
       <div className="space-y-3">
         <span className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-          Target Scope Type
+          {t("behalf_assignments.form.target_type_label")}
         </span>
         <div className="flex gap-4">
           <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-700 dark:text-slate-300 font-bold">
@@ -241,7 +240,7 @@ function AddAssignmentForm({
               }}
               type="radio"
             />
-            Employee
+            {t("behalf_assignments.form.target_type_employee")}
           </label>
           <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-700 dark:text-slate-300 font-bold">
             <input
@@ -252,7 +251,7 @@ function AddAssignmentForm({
               }}
               type="radio"
             />
-            Department
+            {t("behalf_assignments.form.target_type_department")}
           </label>
         </div>
       </div>
@@ -263,14 +262,14 @@ function AddAssignmentForm({
             className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest"
             htmlFor="target-employee-select"
           >
-            Target Employee
+            {t("behalf_assignments.form.target_employee_label")}
           </label>
           <EmployeeSearch
             clearOnEscape
             emptyQueryBehavior="prompt-to-type"
             id="target-employee-select"
             onChange={(val) => { setTargetEmployeeId(typeof val === "string" ? val : val[0] ?? ""); }}
-            placeholder="Search and select target employee..."
+            placeholder={t("behalf_assignments.form.target_employee_placeholder")}
             value={targetEmployeeId}
             workspaceId={wsId}
           />
@@ -281,14 +280,14 @@ function AddAssignmentForm({
             className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest"
             htmlFor="target-department-select"
           >
-            Target Department
+            {t("behalf_assignments.form.target_department_label")}
           </label>
           <Combobox
-            emptyText="No departments found"
+            emptyText={t("behalf_assignments.form.no_departments")}
             id="target-department-select"
             onChange={setTargetDepartmentId}
             options={departmentOptions}
-            placeholder="Search and select target department..."
+            placeholder={t("behalf_assignments.form.target_department_placeholder")}
             value={targetDepartmentId}
           />
         </div>
@@ -301,7 +300,7 @@ function AddAssignmentForm({
           type="button"
           variant="ghost"
         >
-          Cancel
+          {t("common.cancel")}
         </Button>
         <Button
           className="normal-case tracking-normal gap-2 h-10 px-6 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold text-sm shadow-md transition-all duration-300"
@@ -310,7 +309,7 @@ function AddAssignmentForm({
           variant="primary"
         >
           {isCreating ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-          Create Assignment
+          {t("behalf_assignments.form.submit_btn")}
         </Button>
       </div>
     </form>
@@ -321,22 +320,32 @@ function BehalfAssignmentsHeader({
   assignmentType,
   onAddClick,
 }: BehalfAssignmentsHeaderProps) {
+  const { t } = useTranslation();
+
+  const title = t(
+    assignmentType === "ot"
+      ? "behalf_assignments.header.title_ot"
+      : assignmentType === "overtime_request"
+        ? "behalf_assignments.header.title_overtime_request"
+        : "behalf_assignments.header.title_leave"
+  );
+
+  const description = t(
+    assignmentType === "ot"
+      ? "behalf_assignments.header.desc_ot"
+      : assignmentType === "overtime_request"
+        ? "behalf_assignments.header.desc_overtime_request"
+        : "behalf_assignments.header.desc_leave"
+  );
+
   return (
     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-50 dark:border-slate-800 pb-6">
       <div>
         <Typography className="text-lg font-bold text-slate-800 dark:text-slate-200" variant="h3">
-          {assignmentType === "ot"
-            ? "Behalf Claim Assignments"
-            : assignmentType === "overtime_request"
-              ? "Behalf Pre-OT Request Assignments"
-              : "Behalf Leave Request Assignments"}
+          {title}
         </Typography>
         <Typography className="text-xs text-slate-500 mt-1" variant="p">
-          {assignmentType === "ot"
-            ? "Configure which employees are authorized to claim overtime on behalf of specific employees or entire departments."
-            : assignmentType === "overtime_request"
-              ? "Configure which employees are authorized to request Pre-OT on behalf of specific employees or entire departments."
-              : "Configure which employees are authorized to request leave on behalf of specific employees or entire departments."}
+          {description}
         </Typography>
       </div>
       <Button
@@ -345,7 +354,7 @@ function BehalfAssignmentsHeader({
         variant="primary"
       >
         <Plus className="w-4 h-4" />
-        Add Assignment
+        {t("behalf_assignments.header.add_btn")}
       </Button>
     </div>
   );
@@ -354,28 +363,38 @@ function BehalfAssignmentsHeader({
 function BehalfAssignmentsEmptyState({
   assignmentType,
 }: BehalfAssignmentsEmptyStateProps) {
+  const { t } = useTranslation();
+
+  const title = t(
+    assignmentType === "ot"
+      ? "behalf_assignments.empty.title_ot"
+      : assignmentType === "leave"
+        ? "behalf_assignments.empty.title_leave"
+        : assignmentType === "overtime_request"
+          ? "behalf_assignments.empty.title_overtime_request"
+          : "behalf_assignments.empty.title_adjustment"
+  );
+
+  const description = t(
+    assignmentType === "ot"
+      ? "behalf_assignments.empty.desc_ot"
+      : assignmentType === "leave"
+        ? "behalf_assignments.empty.desc_leave"
+        : assignmentType === "overtime_request"
+          ? "behalf_assignments.empty.desc_overtime_request"
+          : "behalf_assignments.empty.desc_adjustment"
+  );
+
   return (
     <div className="py-24 text-center flex flex-col items-center border-4 border-dashed border-slate-50 dark:border-slate-800 rounded-[3rem] bg-slate-50 dark:bg-slate-800/30">
       <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-xl border border-slate-100 dark:border-slate-800 mb-6">
         <ShieldAlert className="text-slate-300 dark:text-slate-600" size={32} />
       </div>
       <Typography className="text-slate-700 dark:text-slate-100 font-extrabold text-xl tracking-tight" variant="h3">
-        {assignmentType === "ot"
-          ? "No Behalf Assignments Configured"
-          : assignmentType === "leave"
-            ? "No Behalf Leave Assignments Configured"
-            : assignmentType === "overtime_request"
-              ? "No Behalf Pre-OT Assignments Configured"
-              : "No Behalf Adjustment Assignments Configured"}
+        {title}
       </Typography>
       <Typography className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-2 opacity-50 max-w-sm" variant="p">
-        {assignmentType === "ot"
-          ? "Users with Claim on Behalf permission will fall back to their managed departments. Assign specific employees or departments to scope their claim access."
-          : assignmentType === "leave"
-            ? "Users with Submit on Behalf permission will fall back to their managed departments. Assign specific employees or departments to scope their leave request access."
-            : assignmentType === "overtime_request"
-              ? "Users with Pre-OT Create on Behalf permission will fall back to their managed departments. Assign specific employees or departments to scope their Pre-OT request access."
-              : "Users with Submit on Behalf permission will fall back to their managed departments. Assign specific employees or departments to scope their adjustment access."}
+        {description}
       </Typography>
     </div>
   );
@@ -417,17 +436,17 @@ export function BehalfAssignmentsTab({
 
   const validateForm = (): boolean => {
     if (!assigneeId) {
-      toast.error("Please select an assignee employee");
+      toast.error(t("behalf_assignments.toasts.select_assignee"));
       return false;
     }
 
     if (targetType === "employee" && !targetEmployeeId) {
-      toast.error("Please select a target employee");
+      toast.error(t("behalf_assignments.toasts.select_target_employee"));
       return false;
     }
 
     if (targetType === "department" && !targetDepartmentId) {
-      toast.error("Please select a target department");
+      toast.error(t("behalf_assignments.toasts.select_target_department"));
       return false;
     }
 
@@ -445,7 +464,7 @@ export function BehalfAssignmentsTab({
         target_employee_id: targetType === "employee" ? targetEmployeeId : null,
       };
       await createAssignment(payload);
-      toast.success("Behalf assignment created successfully");
+      toast.success(t("behalf_assignments.toasts.create_success"));
       setIsOpen(false);
       setAssigneeId("");
       setTargetEmployeeId("");
@@ -460,7 +479,7 @@ export function BehalfAssignmentsTab({
   const handleDelete = async (id: string) => {
     try {
       await deleteAssignment(id);
-      toast.success("Assignment deleted successfully");
+      toast.success(t("behalf_assignments.toasts.delete_success"));
     } catch (err: unknown) {
       console.error(err);
       const msg = err instanceof Error ? err.message : "Failed to delete assignment";
@@ -519,7 +538,7 @@ export function BehalfAssignmentsTab({
         onClose={() => {
           setIsOpen(false);
         }}
-        title="Add Behalf Assignment"
+        title={t("behalf_assignments.modal.add_title")}
       >
         <AddAssignmentForm
           assigneeId={assigneeId}

@@ -1572,5 +1572,71 @@
     "no_notifications": "没有通知",
     "empty_state": "您目前没有任何通知。重要的更新将显示在这里。",
     "mark_as_read": "标记为已读"
+  },
+  "behalf_assignments": {
+    "scope_type_employee": "员工",
+    "scope_type_department": "部门",
+    "scope_type_none": "无",
+    "unknown_employee": "未知员工",
+    "assignee_labels": {
+      "ot": "被授权申报人",
+      "overtime_request": "被授权加班申请人",
+      "leave": "被授权请假申请人",
+      "attendance_adjustment": "被授权考勤调整申请人"
+    },
+    "target_labels": {
+      "ot": "申报代办目标范围",
+      "overtime_request": "加班代办目标范围",
+      "leave": "请假代办目标范围",
+      "attendance_adjustment": "考勤调整代办目标范围"
+    },
+    "form": {
+      "assignee_label_ot": "被授权申报人 (员工)",
+      "assignee_label_overtime_request": "被授权加班申请人 (员工)",
+      "assignee_label_other": "被授权申请人 (员工)",
+      "assignee_placeholder": "搜索并选择代办人...",
+      "assignee_help_ot": "选择被允许代为申报加班的员工。",
+      "assignee_help_overtime_request": "选择被允许代为提交 Pre-OT 申请的员工。",
+      "assignee_help_leave": "选择被允许代为提交请假申请的员工。",
+      "target_type_label": "目标范围类型",
+      "target_type_employee": "员工",
+      "target_type_department": "部门",
+      "target_employee_label": "目标员工",
+      "target_employee_placeholder": "搜索并选择目标员工...",
+      "target_department_label": "目标部门",
+      "no_departments": "未找到部门",
+      "target_department_placeholder": "搜索并选择目标部门...",
+      "submit_btn": "创建分配"
+    },
+    "header": {
+      "title_ot": "代办申报分配",
+      "title_overtime_request": "代办 Pre-OT 申请分配",
+      "title_leave": "代办请假申请分配",
+      "title_adjustment": "代办考勤调整分配",
+      "desc_ot": "配置哪些员工有权代表特定员工或整个部门申报加班。",
+      "desc_overtime_request": "配置哪些员工有权代表特定员工或整个部门申请 Pre-OT。",
+      "desc_leave": "配置哪些员工有权代表特定员工或整个部门申请请假。",
+      "add_btn": "添加分配"
+    },
+    "empty": {
+      "title_ot": "未配置代办分配",
+      "title_leave": "未配置代办请假分配",
+      "title_overtime_request": "未配置代办 Pre-OT 分配",
+      "title_adjustment": "未配置代办考勤调整分配",
+      "desc_ot": "拥有代申报权限的用户将默认使用其管理的部门。分配特定员工或部门以限制其申报访问范围。",
+      "desc_leave": "拥有代提交权限的用户将默认使用其管理的部门。分配特定员工或部门以限制其请假申请访问范围。",
+      "desc_overtime_request": "拥有代创建 Pre-OT 权限的用户将默认使用其管理的部门。分配特定员工或部门以限制其 Pre-OT 申请访问范围。",
+      "desc_adjustment": "拥有代提交权限的用户将默认使用其管理的部门。分配特定员工或部门以限制其考勤调整访问范围。"
+    },
+    "modal": {
+      "add_title": "添加代办分配"
+    },
+    "toasts": {
+      "select_assignee": "请选择被授权的员工",
+      "select_target_employee": "请选择目标员工",
+      "select_target_department": "请选择目标部门",
+      "create_success": "代办分配创建成功",
+      "delete_success": "分配删除成功"
+    }
   }
 }
