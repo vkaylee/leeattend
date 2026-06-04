@@ -62,22 +62,40 @@ vi.mock("../../lib/api", () => ({
   downloadLeaveImportErrors: vi.fn().mockResolvedValue(undefined),
 }));
 
-// Mock EmployeeSearch
- 
-vi.mock("@/components/common/employee-search", () => ({
-  EmployeeSearch: ({ id, value, onChange, permission }: { id?: string; value: string; onChange: (value_: string) => void; permission?: string }) => (
-    <select 
-      aria-label="Nhân viên"
-      data-permission={permission}
+// Mock useBehalfEmployees
+vi.mock("@/hooks/use-behalf-employees", () => {
+  console.log("Mocked useBehalfEmployees factory executed");
+  return {
+    useBehalfEmployees: vi.fn(() => {
+      console.log("Mocked useBehalfEmployees hook called");
+      return {
+        employees: [
+          { id: "emp-1", full_name: "John Doe", employee_id_number: "EMP001", is_active: true }
+        ],
+        hasAssignments: true,
+        isLoading: false,
+        isError: false,
+      };
+    }),
+  };
+});
+
+// Mock Combobox
+vi.mock("@/components/ui/combobox", () => ({
+  Combobox: ({ id, value, onChange, options }: any) => (
+    <select
       id={id}
-      onChange={(e) => { onChange(e.target.value); }} 
+      onChange={(e) => onChange(e.target.value)}
       value={value}
     >
       <option value="">Chọn...</option>
-      <option value="emp-1">John Doe</option>
+      {options.map((opt: any) => (
+        <option key={opt.value} value={opt.value}>{opt.label}</option>
+      ))}
     </select>
-  )
+  ),
 }));
+
 
 const renderPage = (queryClient: QueryClient) =>
   render(
@@ -177,7 +195,6 @@ describe("LeaveRequestsPage", () => {
 
     // Select employee
     const empSelect = await screen.findByLabelText(/Nhân viên/i);
-    expect(empSelect).toHaveAttribute("data-permission", "leave:requests:submit_on_behalf");
     fireEvent.change(empSelect, { target: { value: "emp-1" } });
 
     // Wait for the balances to appear.

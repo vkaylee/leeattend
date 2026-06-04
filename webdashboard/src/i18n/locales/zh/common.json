@@ -1638,5 +1638,8 @@
       "create_success": "代办分配创建成功",
       "delete_success": "分配删除成功"
     }
+  },
+  "behalf": {
+    "no_assignments_configured": "未配置代表分配"
   }
 }

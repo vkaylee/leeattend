@@ -35,9 +35,21 @@ vi.mock("@tanstack/react-router", () => ({
   Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
 }));
 
-// Mock EmployeeSearch
-vi.mock("@/components/common/employee-search", () => ({
-  EmployeeSearch: ({ id, value, onChange }: any) => (
+// Mock useBehalfEmployees
+vi.mock("@/hooks/use-behalf-employees", () => ({
+  useBehalfEmployees: vi.fn(() => ({
+    employees: [
+      { id: "emp-1", full_name: "John Doe", employee_id_number: "EMP001", is_active: true }
+    ],
+    hasAssignments: true,
+    isLoading: false,
+    isError: false,
+  })),
+}));
+
+// Mock Combobox
+vi.mock("@/components/ui/combobox", () => ({
+  Combobox: ({ id, value, onChange, options }: any) => (
     <select
       data-testid="mock-employee-search"
       id={id}
@@ -45,10 +57,13 @@ vi.mock("@/components/common/employee-search", () => ({
       value={value}
     >
       <option value="">Select...</option>
-      <option value="emp-1">John Doe (EMP001)</option>
+      {options.map((opt: any) => (
+        <option key={opt.value} value={opt.value}>{opt.label}</option>
+      ))}
     </select>
   ),
 }));
+
 
 // Mock the API library
 vi.mock("../../lib/api", () => ({

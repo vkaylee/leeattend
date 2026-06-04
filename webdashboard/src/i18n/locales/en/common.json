@@ -1638,5 +1638,8 @@
       "create_success": "Behalf assignment created successfully",
       "delete_success": "Assignment deleted successfully"
     }
+  },
+  "behalf": {
+    "no_assignments_configured": "No behalf assignments configured"
   }
 }

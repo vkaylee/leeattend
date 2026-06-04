@@ -1638,5 +1638,8 @@
       "create_success": "Tạo phân quyền gửi hộ thành công",
       "delete_success": "Xóa phân quyền thành công"
     }
+  },
+  "behalf": {
+    "no_assignments_configured": "Chưa có cấu hình behalf assignment"
   }
 }
