@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock TanStack Router
 vi.mock("@tanstack/react-router", () => ({
@@ -19,11 +19,16 @@ vi.mock('react-i18next', () => ({
 }));
 
 // Mock hooks
+const activePermissions = new Set<string>();
+const mockHasAnyPermission = vi.fn((...perms: string[]) => 
+  perms.length === 0 || perms.some(p => activePermissions.has(p))
+);
+
 vi.mock('@/hooks/use-permissions', () => ({
   useMyPermissions: () => ({
     roles: ['Admin'],
     managedDepartmentIds: null,
-    hasAnyPermission: () => true,
+    hasAnyPermission: mockHasAnyPermission,
   }),
 }));
 
@@ -89,6 +94,22 @@ const renderWithProviders = (ui: React.ReactElement) => {
 };
 
 describe('Navigation Layout Consistency', () => {
+  beforeEach(() => {
+    activePermissions.clear();
+    activePermissions.add("employees:read");
+    activePermissions.add("members:read");
+    activePermissions.add("departments:read");
+    activePermissions.add("attendance:logs:read");
+    activePermissions.add("leave:requests:read");
+    activePermissions.add("leave:balances:read");
+    activePermissions.add("attendance:adjustments:approve");
+    activePermissions.add("shift_swaps:manage");
+    activePermissions.add("reports:read");
+    activePermissions.add("overtime:approve");
+    activePermissions.add("shifts:read");
+    activePermissions.add("payroll:read");
+  });
+
   describe('Sidebar', () => {
     it('should not contain the logout button anymore', () => {
       renderWithProviders(
@@ -141,6 +162,47 @@ describe('Navigation Layout Consistency', () => {
       expect(await screen.findByTestId('user-menu-logout-btn')).toBeInTheDocument();
       expect(screen.getByTestId('user-menu-profile-btn')).toBeInTheDocument();
       expect(screen.getByTestId('user-menu-settings-btn')).toBeInTheDocument();
+    });
+  });
+
+  describe('Sidebar Permissions Gating', () => {
+    const renderSidebar = () =>
+      renderWithProviders(
+        <Sidebar
+          isCollapsed={false}
+          isOpen={true}
+          onClose={vi.fn()}
+          onShowSwitcher={vi.fn()}
+          openSections={{ time: true }}
+          toggleSection={vi.fn()}
+        />
+      );
+
+    it('shows Leave Requests menu item when user has leave:requests:read', () => {
+      activePermissions.clear();
+      activePermissions.add("leave:requests:read");
+      renderSidebar();
+      expect(screen.getByTestId('sidebar-link-leave-requests')).toBeInTheDocument();
+    });
+
+    it('shows Leave Requests menu item when user has leave:requests:submit_on_behalf', () => {
+      activePermissions.clear();
+      activePermissions.add("leave:requests:submit_on_behalf");
+      renderSidebar();
+      expect(screen.getByTestId('sidebar-link-leave-requests')).toBeInTheDocument();
+    });
+
+    it('shows Leave Requests menu item when user has leave:requests:approve', () => {
+      activePermissions.clear();
+      activePermissions.add("leave:requests:approve");
+      renderSidebar();
+      expect(screen.getByTestId('sidebar-link-leave-requests')).toBeInTheDocument();
+    });
+
+    it('hides Leave Requests menu item when user has none of these permissions', () => {
+      activePermissions.clear();
+      renderSidebar();
+      expect(screen.queryByTestId('sidebar-link-leave-requests')).not.toBeInTheDocument();
     });
   });
 });
