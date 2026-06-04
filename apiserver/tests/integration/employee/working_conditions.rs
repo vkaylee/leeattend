@@ -97,7 +97,8 @@ async fn test_working_conditions_crud_lifecycle() {
     let body = axum::body::to_bytes(response.into_body(), usize::MAX)
         .await
         .unwrap();
-    let conditions: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
+    let paginated: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    let conditions = paginated["data"].as_array().unwrap().clone();
     assert_eq!(conditions.len(), 1, "Should have exactly one condition");
     assert_eq!(conditions[0]["id"], cond_id);
 
@@ -137,7 +138,8 @@ async fn test_working_conditions_crud_lifecycle() {
     let body = axum::body::to_bytes(response.into_body(), usize::MAX)
         .await
         .unwrap();
-    let conditions: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
+    let paginated: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    let conditions = paginated["data"].as_array().unwrap().clone();
     assert_eq!(
         conditions.len(),
         0,

@@ -285,13 +285,13 @@ impl AttendanceHandler {
 
                     // Override with shift-specific settings
                     if let Some(gp) = daily.early_punch_in_grace_period_minutes {
-                        rules.grace_period_minutes = gp;
+                        rules.set_grace_period_minutes(gp);
                     }
                     if let Some(bad) = daily.is_break_auto_deduct {
-                        rules.is_break_auto_deduct = bad;
+                        rules.set_is_break_auto_deduct(bad);
                     }
                     if let Some(aeo) = daily.allow_early_ot {
-                        rules.allow_early_ot = aeo;
+                        rules.set_allow_early_ot(aeo);
                     }
 
                     // Handle shift times
@@ -481,16 +481,16 @@ impl AttendanceHandler {
                         );
 
                         if let Some(gp) = daily.early_punch_in_grace_period_minutes {
-                            rules.grace_period_minutes = gp;
+                            rules.set_grace_period_minutes(gp);
                         }
                         if let Some(bad) = daily.is_break_auto_deduct {
-                            rules.is_break_auto_deduct = bad;
+                            rules.set_is_break_auto_deduct(bad);
                         }
                         if let Some(aeo) = daily.allow_early_ot {
-                            rules.allow_early_ot = aeo;
+                            rules.set_allow_early_ot(aeo);
                         }
                         if let Some(bio) = daily.break_is_overtime {
-                            rules.is_break_overtime = bio;
+                            rules.set_is_break_overtime(bio);
                         }
 
                         let (shift_start, shift_end) =

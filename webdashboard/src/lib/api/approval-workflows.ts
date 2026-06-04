@@ -29,11 +29,11 @@ export const approvalWorkflowsApi = {
     const { data: resData } = await client.GET("/workspaces/{ws_id}/approval-workflows", {
       params: {
         path: { ws_id: workspaceId },
-        query: (entityType ? { entity_type: entityType } : undefined) as unknown as paths["/workspaces/{ws_id}/approval-workflows"]["get"]["parameters"]["query"]
+        query: entityType ? { entity_type: entityType } : undefined
       }
     });
     if (!resData) throw new Error("No response data");
-    return resData;
+    return resData.data;
   },
 
   getWorkflow: async (workspaceId: string, id: string): Promise<ApprovalWorkflow> => {

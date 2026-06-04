@@ -80,7 +80,10 @@ pub trait ApprovalWorkflowRepository: Send + Sync {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         workspace_id: Uuid,
-    ) -> Result<Vec<ApprovalWorkflow>, AppError>;
+        entity_type: Option<String>,
+        page: i64,
+        limit: i64,
+    ) -> Result<(Vec<ApprovalWorkflow>, i64), AppError>;
 
     async fn update_workflow(
         &self,

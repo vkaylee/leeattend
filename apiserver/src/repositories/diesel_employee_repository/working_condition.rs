@@ -38,7 +38,9 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
-    ) -> Result<Vec<WorkingCondition>, AppError> {
+        page: i64,
+        limit: i64,
+    ) -> Result<(Vec<WorkingCondition>, i64), AppError> {
         let workspace_id = auth_token.workspace_id();
         use crate::schema::{employees, working_conditions};
 
@@ -49,6 +51,15 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
                 .await
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
+
+        let total: i64 = working_conditions::table
+            .inner_join(employees::table)
+            .filter(working_conditions::employee_id.eq(employee_id))
+            .filter(employees::workspace_id.eq(workspace_id))
+            .count()
+            .get_result(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db count: {e}")))?;
 
         let result = working_conditions::table
             .inner_join(employees::table)
@@ -64,6 +75,8 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
             .filter(working_conditions::employee_id.eq(employee_id))
             .filter(employees::workspace_id.eq(workspace_id))
             .order(working_conditions::start_date.desc())
+            .limit(limit)
+            .offset((page - 1) * limit)
             .load::<(
                 Uuid,
                 Uuid,
@@ -76,7 +89,7 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        Ok(result
+        let data = result
             .into_iter()
             .map(
                 |(id, emp_id, type_, min, paid, start, end)| WorkingCondition {
@@ -89,7 +102,9 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
                     end_date: end,
                 },
             )
-            .collect())
+            .collect();
+
+        Ok((data, total))
     }
 
     async fn create_working_condition(

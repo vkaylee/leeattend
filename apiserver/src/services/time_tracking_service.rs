@@ -138,7 +138,7 @@ impl TimeTrackingService {
                 )
                 .await?;
 
-                if rules.early_arrival_strategy == crate::models::EarlyArrivalStrategy::Block
+                if rules.early_arrival_strategy() == crate::models::EarlyArrivalStrategy::Block
                     && local_now.naive_local() < earliest_punch
                 {
                     return Err(AppError::Validation("Too early to punch in".into()));

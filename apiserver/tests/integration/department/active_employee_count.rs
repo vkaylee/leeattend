@@ -65,14 +65,16 @@ async fn test_department_with_no_employees_has_zero_count() {
         .await;
 
     let depts = repo
-        .get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(
-            ws_id,
-        ))
+        .get_departments(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            1,
+            50,
+        )
         .await
         .unwrap();
-    assert_eq!(depts.len(), 1);
+    assert_eq!(depts.0.len(), 1);
     assert_eq!(
-        depts[0].active_employee_count, 0,
+        depts.0[0].active_employee_count, 0,
         "Department with no employees should have count = 0"
     );
 }
@@ -100,14 +102,16 @@ async fn test_department_counts_active_employees() {
     }
 
     let depts = repo
-        .get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(
-            ws_id,
-        ))
+        .get_departments(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            1,
+            50,
+        )
         .await
         .unwrap();
-    assert_eq!(depts.len(), 1);
+    assert_eq!(depts.0.len(), 1);
     assert_eq!(
-        depts[0].active_employee_count, 3,
+        depts.0[0].active_employee_count, 3,
         "Should count 3 active employees"
     );
 }
@@ -142,14 +146,16 @@ async fn test_department_excludes_inactive_employees() {
     deactivate_employee(&pool, emp3).await;
 
     let depts = repo
-        .get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(
-            ws_id,
-        ))
+        .get_departments(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            1,
+            50,
+        )
         .await
         .unwrap();
-    assert_eq!(depts.len(), 1);
+    assert_eq!(depts.0.len(), 1);
     assert_eq!(
-        depts[0].active_employee_count, 2,
+        depts.0[0].active_employee_count, 2,
         "Should only count active employees (excluding the deactivated one)"
     );
 }
@@ -194,14 +200,16 @@ async fn test_department_uses_latest_transfer_only() {
     .await;
 
     let depts = repo
-        .get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(
-            ws_id,
-        ))
+        .get_departments(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            1,
+            50,
+        )
         .await
         .unwrap();
 
-    let dept_a_row = depts.iter().find(|d| d.id == dept_a).unwrap();
-    let dept_b_row = depts.iter().find(|d| d.id == dept_b).unwrap();
+    let dept_a_row = depts.0.iter().find(|d| d.id == dept_a).unwrap();
+    let dept_b_row = depts.0.iter().find(|d| d.id == dept_b).unwrap();
 
     assert_eq!(
         dept_a_row.active_employee_count, 0,
@@ -319,15 +327,17 @@ async fn test_multiple_departments_independent_counts() {
     // Empty department has no employees
 
     let depts = repo
-        .get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(
-            ws_id,
-        ))
+        .get_departments(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            1,
+            50,
+        )
         .await
         .unwrap();
 
-    let eng = depts.iter().find(|d| d.id == dept_eng).unwrap();
-    let hr = depts.iter().find(|d| d.id == dept_hr).unwrap();
-    let empty = depts.iter().find(|d| d.id == dept_empty).unwrap();
+    let eng = depts.0.iter().find(|d| d.id == dept_eng).unwrap();
+    let hr = depts.0.iter().find(|d| d.id == dept_hr).unwrap();
+    let empty = depts.0.iter().find(|d| d.id == dept_empty).unwrap();
 
     assert_eq!(eng.active_employee_count, 3);
     assert_eq!(hr.active_employee_count, 1);

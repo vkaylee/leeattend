@@ -75,21 +75,35 @@ impl EmployerRepository for DieselEmployerRepository {
         Ok(result.map(Into::into))
     }
 
-    async fn get_employers(&self, auth_token: &TenantAuthToken) -> Result<Vec<Employer>, AppError> {
+    async fn get_employers(
+        &self,
+        auth_token: &TenantAuthToken,
+        page: i64,
+        limit: i64,
+    ) -> Result<(Vec<Employer>, i64), AppError> {
         let mut conn = self
             .diesel_pools
             .tenant_transaction_conn(auth_token)
             .await?;
         let workspace_id = auth_token.workspace_id();
 
+        let total: i64 = employers::table
+            .filter(employers::workspace_id.eq(workspace_id))
+            .count()
+            .get_result(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db count: {e}")))?;
+
         let results = employers::table
             .filter(employers::workspace_id.eq(workspace_id))
             .order(employers::name.asc())
+            .limit(limit)
+            .offset((page - 1) * limit)
             .load::<EmployerEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        Ok(results.into_iter().map(Into::into).collect())
+        Ok((results.into_iter().map(Into::into).collect(), total))
     }
 
     async fn update_employer(

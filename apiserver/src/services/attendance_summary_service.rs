@@ -325,7 +325,7 @@ impl AttendanceSummaryService {
                 grace_period_minutes: daily_schedule.early_punch_in_grace_period_minutes,
                 is_break_auto_deduct: daily_schedule.is_break_auto_deduct,
                 allow_early_ot: daily_schedule.allow_early_ot,
-                early_arrival_strategy: rules.early_arrival_strategy,
+                early_arrival_strategy: rules.early_arrival_strategy(),
                 is_break_overtime: daily_schedule.break_is_overtime.unwrap_or(false),
             },
         )

@@ -9,7 +9,7 @@ export async function fetchWorkingConditions(wsId: string, employeeId: string): 
     },
   });
   if (!data) throw new Error("No response data");
-  return data as unknown as WorkingCondition[];
+  return data.data as unknown as WorkingCondition[];
 }
 
 export async function createWorkingCondition(

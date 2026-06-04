@@ -117,12 +117,14 @@ impl ImportStrategy for EmployeeImportStrategy {
     ) -> Result<(), AppError> {
         if let Ok(existing_depts) = self
             .department_repo
-            .get_departments(&crate::diesel_pool::TenantAuthToken::system_override(
-                job.workspace_id,
-            ))
+            .get_departments(
+                &crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
+                1,
+                3000,
+            )
             .await
         {
-            for dept in existing_depts {
+            for dept in existing_depts.0 {
                 self.dept_cache.insert(dept.name.to_lowercase(), dept.id);
             }
         }

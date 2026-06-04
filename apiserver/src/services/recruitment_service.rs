@@ -57,9 +57,13 @@ impl RecruitmentService {
     pub async fn get_recruitment_sources(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-    ) -> Result<Vec<RecruitmentSource>, AppError> {
+        page: i64,
+        limit: i64,
+    ) -> Result<(Vec<RecruitmentSource>, i64), AppError> {
         let _workspace_id = auth_token.workspace_id();
-        self.repo.get_recruitment_sources(auth_token).await
+        self.repo
+            .get_recruitment_sources(auth_token, page, limit)
+            .await
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -173,8 +177,19 @@ mod tests {
         async fn get_recruitment_sources(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-        ) -> Result<Vec<RecruitmentSource>, AppError> {
-            Ok(self.recruitment_sources.lock().expect("lock").clone())
+            page: i64,
+            limit: i64,
+        ) -> Result<(Vec<RecruitmentSource>, i64), AppError> {
+            let list = self.recruitment_sources.lock().expect("lock").clone();
+            let total = list.len() as i64;
+            let start = ((page - 1) * limit) as usize;
+            let end = (start + limit as usize).min(list.len());
+            let paginated = if start < list.len() {
+                list[start..end].to_vec()
+            } else {
+                vec![]
+            };
+            Ok((paginated, total))
         }
 
         async fn get_recruitment_source_by_id(
@@ -270,11 +285,15 @@ mod tests {
 
         let svc = make_service(mock);
         let result = svc
-            .get_recruitment_sources(&crate::diesel_pool::TenantAuthToken::system_override(ws))
+            .get_recruitment_sources(
+                &crate::diesel_pool::TenantAuthToken::system_override(ws),
+                1,
+                50,
+            )
             .await
             .expect("ok");
-        assert_eq!(result.len(), 1);
-        assert_eq!(result[0].name, "LinkedIn");
+        assert_eq!(result.0.len(), 1);
+        assert_eq!(result.0[0].name, "LinkedIn");
     }
 
     // ── Tests: create_recruitment_source ─────────────────────────────

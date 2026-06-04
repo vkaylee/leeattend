@@ -1,6 +1,9 @@
 use crate::errors::AppError;
 use crate::handlers::common::MemberContext;
-use crate::models::{CreateWorkLocationRequest, UpdateWorkLocationRequest, WorkLocation};
+use crate::models::{
+    CreateWorkLocationRequest, PaginatedResponse, PaginationParams, UpdateWorkLocationRequest,
+    WorkLocation,
+};
 use crate::state::AppState;
 use axum::{
     extract::{Path, State},
@@ -11,14 +14,23 @@ use axum::{
 use std::sync::Arc;
 use uuid::Uuid;
 
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct PaginatedLocations {
+    pub data: Vec<WorkLocation>,
+    pub total: usize,
+    pub page: i64,
+    pub limit: i64,
+}
+
 #[utoipa::path(
     get,
     path = "/v1/workspaces/{ws_id}/locations",
     params(
-        ("ws_id" = Uuid, Path, description = "Workspace ID")
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        PaginationParams
     ),
     responses(
-        (status = 200, description = "List of locations", body = Vec<WorkLocation>)
+        (status = 200, description = "List of locations", body = PaginatedLocations)
     ),
     security(
         ("bearer_auth" = [])
@@ -27,13 +39,22 @@ use uuid::Uuid;
 pub async fn list_locations(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
+    axum::extract::Query(query): axum::extract::Query<PaginationParams>,
 ) -> Result<impl IntoResponse, AppError> {
-    let locations = state
+    let page = query.page.unwrap_or(1).max(1);
+    let limit = query.limit.unwrap_or(50).clamp(1, 3000);
+
+    let (locations, total) = state
         .core
         .location_service
-        .list_locations(ctx.workspace_id)
+        .list_locations(ctx.workspace_id, page, limit)
         .await?;
-    Ok(Json(locations))
+    Ok(Json(PaginatedResponse {
+        data: locations,
+        total: total as usize,
+        page,
+        limit,
+    }))
 }
 
 #[utoipa::path(

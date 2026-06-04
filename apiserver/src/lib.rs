@@ -292,6 +292,11 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .layer(axum::middleware::from_fn(
             crate::mw::i18n::locale_middleware,
         ))
+        .layer(crate::mw::RateLimitLayer::new(
+            state.infra.redis.clone(),
+            crate::mw::rate_limit::RateLimitConfig::default(),
+            state.core.jwt_secret.clone(),
+        ))
         .with_state(state)
 }
 

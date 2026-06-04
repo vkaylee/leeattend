@@ -242,11 +242,13 @@ impl PayrollService {
             daily_entries_map.entry(local_date).or_default().push(entry);
         }
 
-        let working_conditions = self
+        let (working_conditions, _) = self
             .employee_repo
             .get_working_conditions(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
                 employee_id,
+                1,
+                3000,
             )
             .await?;
 

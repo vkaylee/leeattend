@@ -8,13 +8,92 @@ use crate::models::enums::{EarlyArrivalStrategy, RoleScopeType};
 #[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct PolicyRules {
-    pub grace_period_minutes: i32,
-    pub authorized_early_leave_minutes: i32,
-    pub is_early_leave_paid: bool,
-    pub early_arrival_strategy: EarlyArrivalStrategy,
-    pub is_break_auto_deduct: bool,
-    pub is_break_overtime: bool,
-    pub allow_early_ot: bool,
+    grace_period_minutes: i32,
+    authorized_early_leave_minutes: i32,
+    is_early_leave_paid: bool,
+    early_arrival_strategy: EarlyArrivalStrategy,
+    is_break_auto_deduct: bool,
+    is_break_overtime: bool,
+    allow_early_ot: bool,
+}
+
+impl PolicyRules {
+    #[allow(clippy::fn_params_excessive_bools)]
+    pub fn new(
+        grace_period_minutes: i32,
+        authorized_early_leave_minutes: i32,
+        is_early_leave_paid: bool,
+        early_arrival_strategy: EarlyArrivalStrategy,
+        is_break_auto_deduct: bool,
+        is_break_overtime: bool,
+        allow_early_ot: bool,
+    ) -> Self {
+        Self {
+            grace_period_minutes,
+            authorized_early_leave_minutes,
+            is_early_leave_paid,
+            early_arrival_strategy,
+            is_break_auto_deduct,
+            is_break_overtime,
+            allow_early_ot,
+        }
+    }
+
+    pub fn grace_period_minutes(&self) -> i32 {
+        self.grace_period_minutes
+    }
+
+    pub fn set_grace_period_minutes(&mut self, val: i32) {
+        self.grace_period_minutes = val;
+    }
+
+    pub fn authorized_early_leave_minutes(&self) -> i32 {
+        self.authorized_early_leave_minutes
+    }
+
+    pub fn set_authorized_early_leave_minutes(&mut self, val: i32) {
+        self.authorized_early_leave_minutes = val;
+    }
+
+    pub fn is_early_leave_paid(&self) -> bool {
+        self.is_early_leave_paid
+    }
+
+    pub fn set_is_early_leave_paid(&mut self, val: bool) {
+        self.is_early_leave_paid = val;
+    }
+
+    pub fn early_arrival_strategy(&self) -> EarlyArrivalStrategy {
+        self.early_arrival_strategy
+    }
+
+    pub fn set_early_arrival_strategy(&mut self, val: EarlyArrivalStrategy) {
+        self.early_arrival_strategy = val;
+    }
+
+    pub fn is_break_auto_deduct(&self) -> bool {
+        self.is_break_auto_deduct
+    }
+
+    pub fn set_is_break_auto_deduct(&mut self, val: bool) {
+        self.is_break_auto_deduct = val;
+    }
+
+    pub fn is_break_overtime(&self) -> bool {
+        self.is_break_overtime
+    }
+
+    pub fn set_is_break_overtime(&mut self, val: bool) {
+        self.is_break_overtime = val;
+    }
+
+    pub fn allow_early_ot(&self) -> bool {
+        self.allow_early_ot
+    }
+
+    pub fn set_allow_early_ot(&mut self, val: bool) {
+        self.allow_early_ot = val;
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]

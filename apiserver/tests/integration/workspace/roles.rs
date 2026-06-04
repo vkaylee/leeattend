@@ -64,7 +64,7 @@ async fn test_system_roles_are_seeded_with_permissions() {
     let roles = body_json(resp).await;
 
     // Find owner role
-    let owner_role = roles
+    let owner_role = roles["data"]
         .as_array()
         .unwrap()
         .iter()
@@ -497,7 +497,7 @@ async fn test_regular_member_can_list_workspace_roles() {
     );
 
     let roles = body_json(resp).await;
-    let roles_array = roles.as_array().unwrap();
+    let roles_array = roles["data"].as_array().unwrap();
 
     // Should include all system roles
     assert!(
@@ -541,7 +541,7 @@ async fn test_workspace_roles_response_includes_scope_type() {
 
     assert_eq!(resp.status(), StatusCode::OK);
     let roles = body_json(resp).await;
-    let roles_array = roles.as_array().unwrap();
+    let roles_array = roles["data"].as_array().unwrap();
 
     for role in roles_array {
         let scope = role["scope_type"].as_str();
@@ -720,7 +720,7 @@ async fn test_cannot_delete_system_role() {
         .await
         .unwrap();
     let roles = body_json(resp).await;
-    let owner_role = roles
+    let owner_role = roles["data"]
         .as_array()
         .unwrap()
         .iter()

@@ -193,9 +193,24 @@ mod tests {
             &self,
             _auth_token: &TenantAuthToken,
             _workspace_id: Uuid,
-        ) -> Result<Vec<ApprovalWorkflow>, AppError> {
+            entity_type: Option<String>,
+            page: i64,
+            limit: i64,
+        ) -> Result<(Vec<ApprovalWorkflow>, i64), AppError> {
             let state = self.state.lock().unwrap();
-            Ok(state.workflows.values().cloned().collect())
+            let mut list: Vec<ApprovalWorkflow> = state.workflows.values().cloned().collect();
+            if let Some(et) = entity_type {
+                list.retain(|w| w.entity_type == et);
+            }
+            let total = list.len() as i64;
+            let start = ((page - 1) * limit) as usize;
+            let end = (start + limit as usize).min(list.len());
+            let paginated = if start < list.len() {
+                list[start..end].to_vec()
+            } else {
+                vec![]
+            };
+            Ok((paginated, total))
         }
 
         async fn update_workflow(
@@ -507,8 +522,10 @@ mod tests {
         async fn get_workspace_roles(
             &self,
             _w: Uuid,
-        ) -> Result<Vec<crate::models::WorkspaceRole>, AppError> {
-            Ok(vec![])
+            _page: i64,
+            _limit: i64,
+        ) -> Result<(Vec<crate::models::WorkspaceRole>, i64), AppError> {
+            Ok((vec![], 0))
         }
         async fn create_workspace_role(
             &self,
@@ -753,8 +770,10 @@ mod tests {
             &self,
             _a: &TenantAuthToken,
             _id: Uuid,
-        ) -> Result<Vec<crate::models::WorkingCondition>, AppError> {
-            Ok(vec![])
+            _page: i64,
+            _limit: i64,
+        ) -> Result<(Vec<crate::models::WorkingCondition>, i64), AppError> {
+            Ok((vec![], 0))
         }
         async fn create_working_condition(
             &self,
@@ -839,8 +858,10 @@ mod tests {
         async fn get_recruitment_sources(
             &self,
             _a: &TenantAuthToken,
-        ) -> Result<Vec<crate::models::RecruitmentSource>, AppError> {
-            Ok(vec![])
+            _page: i64,
+            _limit: i64,
+        ) -> Result<(Vec<crate::models::RecruitmentSource>, i64), AppError> {
+            Ok((vec![], 0))
         }
         async fn get_recruitment_source_by_id(
             &self,
@@ -1058,8 +1079,10 @@ mod tests {
         async fn get_departments(
             &self,
             _a: &TenantAuthToken,
-        ) -> Result<Vec<crate::models::Department>, AppError> {
-            Ok(vec![])
+            _page: i64,
+            _limit: i64,
+        ) -> Result<(Vec<crate::models::Department>, i64), AppError> {
+            Ok((vec![], 0))
         }
         async fn transfer_employee(
             &self,

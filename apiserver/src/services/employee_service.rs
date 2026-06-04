@@ -39,7 +39,9 @@ impl EmployeeService {
         &self,
         employee_id: Uuid,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-    ) -> Result<Vec<WorkingCondition>, AppError> {
+        page: i64,
+        limit: i64,
+    ) -> Result<(Vec<WorkingCondition>, i64), AppError> {
         let _workspace_id = auth_token.workspace_id();
         let emp = self
             .repo
@@ -47,7 +49,9 @@ impl EmployeeService {
             .await?
             .ok_or(AppError::NotFound("Employee not found".into()))?;
 
-        self.repo.get_working_conditions(auth_token, emp.id).await
+        self.repo
+            .get_working_conditions(auth_token, emp.id, page, limit)
+            .await
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -637,8 +641,19 @@ mod tests {
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _emp: Uuid,
-        ) -> Result<Vec<WorkingCondition>, AppError> {
-            Ok(self.working_conditions.lock().expect("lock").clone())
+            page: i64,
+            limit: i64,
+        ) -> Result<(Vec<WorkingCondition>, i64), AppError> {
+            let list = self.working_conditions.lock().expect("lock").clone();
+            let total = list.len() as i64;
+            let start = ((page - 1) * limit) as usize;
+            let end = (start + limit as usize).min(list.len());
+            let paginated = if start < list.len() {
+                list[start..end].to_vec()
+            } else {
+                vec![]
+            };
+            Ok((paginated, total))
         }
 
         async fn create_working_condition(
@@ -737,8 +752,19 @@ mod tests {
         async fn get_recruitment_sources(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-        ) -> Result<Vec<RecruitmentSource>, AppError> {
-            Ok(self.recruitment_sources.lock().expect("lock").clone())
+            page: i64,
+            limit: i64,
+        ) -> Result<(Vec<RecruitmentSource>, i64), AppError> {
+            let list = self.recruitment_sources.lock().expect("lock").clone();
+            let total = list.len() as i64;
+            let start = ((page - 1) * limit) as usize;
+            let end = (start + limit as usize).min(list.len());
+            let paginated = if start < list.len() {
+                list[start..end].to_vec()
+            } else {
+                vec![]
+            };
+            Ok((paginated, total))
         }
 
         async fn get_recruitment_source_by_id(
@@ -1012,7 +1038,9 @@ mod tests {
         async fn get_departments(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-        ) -> Result<Vec<crate::models::Department>, AppError> {
+            _page: i64,
+            _limit: i64,
+        ) -> Result<(Vec<crate::models::Department>, i64), AppError> {
             unimplemented!()
         }
         async fn transfer_employee(
@@ -1396,13 +1424,15 @@ mod tests {
             .get_working_conditions(
                 emp.id,
                 &crate::diesel_pool::TenantAuthToken::system_override(ws),
+                1,
+                50,
             )
             .await
             .expect("ok");
 
-        assert_eq!(result.len(), 1);
-        assert_eq!(result[0].type_, "late_allowance");
-        assert_eq!(result[0].minute_allowance, 15);
+        assert_eq!(result.0.len(), 1);
+        assert_eq!(result.0[0].type_, "late_allowance");
+        assert_eq!(result.0[0].minute_allowance, 15);
     }
 
     #[tokio::test]
@@ -1412,6 +1442,8 @@ mod tests {
             .get_working_conditions(
                 Uuid::new_v4(),
                 &crate::diesel_pool::TenantAuthToken::system_override(Uuid::new_v4()),
+                1,
+                50,
             )
             .await;
         assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));

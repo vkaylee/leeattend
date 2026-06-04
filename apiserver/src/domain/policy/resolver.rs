@@ -61,30 +61,30 @@ impl PolicyResolver {
         _date: NaiveDate,
     ) -> PolicyRules {
         // Merge logic
-        let mut rules = PolicyRules {
-            grace_period_minutes: DEFAULT_GRACE_PERIOD_MINUTES,
-            authorized_early_leave_minutes: 0,
-            is_early_leave_paid: false,
-            early_arrival_strategy: attendance_rules.early_arrival_strategy,
-            is_break_auto_deduct: true, // Default
-            is_break_overtime: false,
-            allow_early_ot: false,
-        };
+        let mut rules = PolicyRules::new(
+            DEFAULT_GRACE_PERIOD_MINUTES,
+            0,
+            false,
+            attendance_rules.early_arrival_strategy,
+            true, // Default
+            false,
+            false,
+        );
 
         for cond in conditions {
             match cond.type_.as_str() {
                 "EARLY_LEAVE" => {
                     // Take the most generous allowance
-                    if cond.minute_allowance > rules.authorized_early_leave_minutes {
-                        rules.authorized_early_leave_minutes = cond.minute_allowance;
-                        rules.is_early_leave_paid = cond.is_paid;
+                    if cond.minute_allowance > rules.authorized_early_leave_minutes() {
+                        rules.set_authorized_early_leave_minutes(cond.minute_allowance);
+                        rules.set_is_early_leave_paid(cond.is_paid);
                     }
                 }
                 "BREASTFEEDING" => {
                     // Example: breastfeeding might also be 60m paid early leave
-                    if cond.minute_allowance > rules.authorized_early_leave_minutes {
-                        rules.authorized_early_leave_minutes = cond.minute_allowance;
-                        rules.is_early_leave_paid = true;
+                    if cond.minute_allowance > rules.authorized_early_leave_minutes() {
+                        rules.set_authorized_early_leave_minutes(cond.minute_allowance);
+                        rules.set_is_early_leave_paid(true);
                     }
                 }
                 _ => {}
@@ -101,15 +101,15 @@ impl PolicyResolver {
         date: NaiveDate,
         early_arrival_strategy: EarlyArrivalStrategy,
     ) -> PolicyRules {
-        let mut rules = PolicyRules {
-            grace_period_minutes: DEFAULT_GRACE_PERIOD_MINUTES,
-            authorized_early_leave_minutes: 0,
-            is_early_leave_paid: false,
+        let mut rules = PolicyRules::new(
+            DEFAULT_GRACE_PERIOD_MINUTES,
+            0,
+            false,
             early_arrival_strategy,
-            is_break_auto_deduct: true,
-            is_break_overtime: false,
-            allow_early_ot: false,
-        };
+            true,
+            false,
+            false,
+        );
 
         // Filter conditions active on this specific date
         for cond in conditions
@@ -118,15 +118,15 @@ impl PolicyResolver {
         {
             match cond.type_.as_str() {
                 "EARLY_LEAVE" => {
-                    if cond.minute_allowance > rules.authorized_early_leave_minutes {
-                        rules.authorized_early_leave_minutes = cond.minute_allowance;
-                        rules.is_early_leave_paid = cond.is_paid;
+                    if cond.minute_allowance > rules.authorized_early_leave_minutes() {
+                        rules.set_authorized_early_leave_minutes(cond.minute_allowance);
+                        rules.set_is_early_leave_paid(cond.is_paid);
                     }
                 }
                 "BREASTFEEDING" => {
-                    if cond.minute_allowance > rules.authorized_early_leave_minutes {
-                        rules.authorized_early_leave_minutes = cond.minute_allowance;
-                        rules.is_early_leave_paid = true;
+                    if cond.minute_allowance > rules.authorized_early_leave_minutes() {
+                        rules.set_authorized_early_leave_minutes(cond.minute_allowance);
+                        rules.set_is_early_leave_paid(true);
                     }
                 }
                 _ => {}
@@ -142,16 +142,16 @@ impl PolicyResolver {
     ) -> PolicyRules {
         if let Some(gp) = overrides.grace_period_minutes {
             if gp > 0 {
-                rules.grace_period_minutes = gp;
+                rules.set_grace_period_minutes(gp);
             }
         }
         if let Some(bad) = overrides.is_break_auto_deduct {
-            rules.is_break_auto_deduct = bad;
+            rules.set_is_break_auto_deduct(bad);
         }
         if let Some(aeo) = overrides.allow_early_ot {
-            rules.allow_early_ot = aeo;
+            rules.set_allow_early_ot(aeo);
         }
-        rules.is_break_overtime = overrides.is_break_overtime;
+        rules.set_is_break_overtime(overrides.is_break_overtime);
 
         rules
     }
@@ -166,15 +166,15 @@ impl PolicyResolver {
         let base_rules = if let Some(ar) = attendance_rules {
             Self::resolve_attendance_rules_pure(&ar, conditions, date)
         } else {
-            PolicyRules {
-                grace_period_minutes: overrides.grace_period_minutes.unwrap_or(0),
-                authorized_early_leave_minutes: 0,
-                is_early_leave_paid: false,
-                early_arrival_strategy: overrides.early_arrival_strategy,
-                is_break_auto_deduct: overrides.is_break_auto_deduct.unwrap_or(false),
-                is_break_overtime: overrides.is_break_overtime,
-                allow_early_ot: overrides.allow_early_ot.unwrap_or(false),
-            }
+            PolicyRules::new(
+                overrides.grace_period_minutes.unwrap_or(0),
+                0,
+                false,
+                overrides.early_arrival_strategy,
+                overrides.is_break_auto_deduct.unwrap_or(false),
+                overrides.is_break_overtime,
+                overrides.allow_early_ot.unwrap_or(false),
+            )
         };
 
         Self::apply_shift_overrides(base_rules, overrides)
@@ -230,10 +230,10 @@ mod tests {
             d(2026, 3, 1),
             EarlyArrivalStrategy::Allow,
         );
-        assert_eq!(rules.grace_period_minutes, 15);
-        assert_eq!(rules.authorized_early_leave_minutes, 0);
-        assert!(rules.is_break_auto_deduct);
-        assert!(!rules.allow_early_ot);
+        assert_eq!(rules.grace_period_minutes(), 15);
+        assert_eq!(rules.authorized_early_leave_minutes(), 0);
+        assert!(rules.is_break_auto_deduct());
+        assert!(!rules.allow_early_ot());
     }
 
     #[test]
@@ -244,8 +244,8 @@ mod tests {
             d(2026, 3, 1),
             EarlyArrivalStrategy::Allow,
         );
-        assert_eq!(rules.authorized_early_leave_minutes, 60);
-        assert!(rules.is_early_leave_paid);
+        assert_eq!(rules.authorized_early_leave_minutes(), 60);
+        assert!(rules.is_early_leave_paid());
     }
 
     #[test]
@@ -255,7 +255,7 @@ mod tests {
             d(2026, 3, 1),
             EarlyArrivalStrategy::Clamp,
         );
-        assert_eq!(rules.early_arrival_strategy, EarlyArrivalStrategy::Clamp);
+        assert_eq!(rules.early_arrival_strategy(), EarlyArrivalStrategy::Clamp);
 
         let rules_block = PolicyResolver::build_rules_from_conditions(
             &[],
@@ -263,7 +263,7 @@ mod tests {
             EarlyArrivalStrategy::Block,
         );
         assert_eq!(
-            rules_block.early_arrival_strategy,
+            rules_block.early_arrival_strategy(),
             EarlyArrivalStrategy::Block
         );
     }
@@ -282,8 +282,8 @@ mod tests {
             d(2026, 3, 1),
             EarlyArrivalStrategy::Allow,
         );
-        assert_eq!(rules.authorized_early_leave_minutes, 45);
-        assert!(rules.is_early_leave_paid); // always true for BREASTFEEDING
+        assert_eq!(rules.authorized_early_leave_minutes(), 45);
+        assert!(rules.is_early_leave_paid()); // always true for BREASTFEEDING
     }
 
     #[test]
@@ -297,7 +297,7 @@ mod tests {
             d(2026, 3, 1),
             EarlyArrivalStrategy::Allow,
         );
-        assert_eq!(rules.authorized_early_leave_minutes, 60);
+        assert_eq!(rules.authorized_early_leave_minutes(), 60);
     }
 
     #[test]
@@ -315,7 +315,7 @@ mod tests {
             d(2026, 3, 1),
             EarlyArrivalStrategy::Allow,
         );
-        assert_eq!(rules.authorized_early_leave_minutes, 0); // expired, not applied
+        assert_eq!(rules.authorized_early_leave_minutes(), 0); // expired, not applied
     }
 
     #[test]
@@ -326,22 +326,22 @@ mod tests {
             d(2026, 3, 1),
             EarlyArrivalStrategy::Allow,
         );
-        assert_eq!(rules.authorized_early_leave_minutes, 0); // not yet active
+        assert_eq!(rules.authorized_early_leave_minutes(), 0); // not yet active
     }
 
     // --- ShiftPolicyOverrides application tests ---
 
     #[test]
     fn test_shift_overrides_applied_to_base_rules() {
-        let mut rules = PolicyRules {
-            grace_period_minutes: 15,
-            authorized_early_leave_minutes: 0,
-            is_early_leave_paid: false,
-            early_arrival_strategy: EarlyArrivalStrategy::Allow,
-            is_break_auto_deduct: true,
-            is_break_overtime: false,
-            allow_early_ot: false,
-        };
+        let mut rules = PolicyRules::new(
+            15,
+            0,
+            false,
+            EarlyArrivalStrategy::Allow,
+            true,
+            false,
+            false,
+        );
 
         let ov = ShiftPolicyOverrides {
             grace_period_minutes: Some(30),
@@ -354,34 +354,34 @@ mod tests {
         // Simulate the override logic from resolve_with_shift_overrides
         if let Some(gp) = ov.grace_period_minutes {
             if gp > 0 {
-                rules.grace_period_minutes = gp;
+                rules.set_grace_period_minutes(gp);
             }
         }
         if let Some(bad) = ov.is_break_auto_deduct {
-            rules.is_break_auto_deduct = bad;
+            rules.set_is_break_auto_deduct(bad);
         }
         if let Some(aeo) = ov.allow_early_ot {
-            rules.allow_early_ot = aeo;
+            rules.set_allow_early_ot(aeo);
         }
-        rules.is_break_overtime = ov.is_break_overtime;
+        rules.set_is_break_overtime(ov.is_break_overtime);
 
-        assert_eq!(rules.grace_period_minutes, 30);
-        assert!(!rules.is_break_auto_deduct);
-        assert!(rules.allow_early_ot);
-        assert!(rules.is_break_overtime);
+        assert_eq!(rules.grace_period_minutes(), 30);
+        assert!(!rules.is_break_auto_deduct());
+        assert!(rules.allow_early_ot());
+        assert!(rules.is_break_overtime());
     }
 
     #[test]
     fn test_shift_overrides_none_preserves_defaults() {
-        let mut rules = PolicyRules {
-            grace_period_minutes: 15,
-            authorized_early_leave_minutes: 0,
-            is_early_leave_paid: false,
-            early_arrival_strategy: EarlyArrivalStrategy::Allow,
-            is_break_auto_deduct: true,
-            is_break_overtime: false,
-            allow_early_ot: false,
-        };
+        let mut rules = PolicyRules::new(
+            15,
+            0,
+            false,
+            EarlyArrivalStrategy::Allow,
+            true,
+            false,
+            false,
+        );
 
         let ov = ShiftPolicyOverrides {
             grace_period_minutes: None,
@@ -393,33 +393,33 @@ mod tests {
 
         if let Some(gp) = ov.grace_period_minutes {
             if gp > 0 {
-                rules.grace_period_minutes = gp;
+                rules.set_grace_period_minutes(gp);
             }
         }
         if let Some(bad) = ov.is_break_auto_deduct {
-            rules.is_break_auto_deduct = bad;
+            rules.set_is_break_auto_deduct(bad);
         }
         if let Some(aeo) = ov.allow_early_ot {
-            rules.allow_early_ot = aeo;
+            rules.set_allow_early_ot(aeo);
         }
-        rules.is_break_overtime = ov.is_break_overtime;
+        rules.set_is_break_overtime(ov.is_break_overtime);
 
-        assert_eq!(rules.grace_period_minutes, 15); // unchanged
-        assert!(rules.is_break_auto_deduct); // unchanged
-        assert!(!rules.allow_early_ot); // unchanged
+        assert_eq!(rules.grace_period_minutes(), 15); // unchanged
+        assert!(rules.is_break_auto_deduct()); // unchanged
+        assert!(!rules.allow_early_ot()); // unchanged
     }
 
     #[test]
     fn test_shift_overrides_zero_grace_not_applied() {
-        let mut rules = PolicyRules {
-            grace_period_minutes: 15,
-            authorized_early_leave_minutes: 0,
-            is_early_leave_paid: false,
-            early_arrival_strategy: EarlyArrivalStrategy::Allow,
-            is_break_auto_deduct: true,
-            is_break_overtime: false,
-            allow_early_ot: false,
-        };
+        let mut rules = PolicyRules::new(
+            15,
+            0,
+            false,
+            EarlyArrivalStrategy::Allow,
+            true,
+            false,
+            false,
+        );
 
         let ov = ShiftPolicyOverrides {
             grace_period_minutes: Some(0),
@@ -431,10 +431,10 @@ mod tests {
 
         if let Some(gp) = ov.grace_period_minutes {
             if gp > 0 {
-                rules.grace_period_minutes = gp;
+                rules.set_grace_period_minutes(gp);
             }
         }
 
-        assert_eq!(rules.grace_period_minutes, 15); // zero not applied
+        assert_eq!(rules.grace_period_minutes(), 15); // zero not applied
     }
 }

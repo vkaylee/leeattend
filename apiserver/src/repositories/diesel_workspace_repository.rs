@@ -831,7 +831,9 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
     async fn get_workspace_roles(
         &self,
         workspace_id: Uuid,
-    ) -> Result<Vec<crate::models::WorkspaceRole>, AppError> {
+        page: i64,
+        limit: i64,
+    ) -> Result<(Vec<crate::models::WorkspaceRole>, i64), AppError> {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .api
@@ -843,6 +845,17 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         use crate::models::diesel::core::WorkspaceRoleEntity;
         use crate::schema::workspace_roles;
 
+        let total: i64 = workspace_roles::table
+            .filter(
+                workspace_roles::dsl::workspace_id
+                    .eq(workspace_id)
+                    .or(workspace_roles::dsl::is_system.eq(true)),
+            )
+            .count()
+            .get_result(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db count: {e}")))?;
+
         let results: Vec<WorkspaceRoleEntity> = workspace_roles::dsl::workspace_roles
             .filter(
                 workspace_roles::dsl::workspace_id
@@ -853,11 +866,13 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                 workspace_roles::dsl::is_system.desc(),
                 workspace_roles::dsl::created_at.asc(),
             ))
+            .limit(limit)
+            .offset((page - 1) * limit)
             .load(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        Ok(results.into_iter().map(Into::into).collect())
+        Ok((results.into_iter().map(Into::into).collect(), total))
     }
 
     async fn create_workspace_role(

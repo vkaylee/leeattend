@@ -8,6 +8,7 @@ mod health;
 pub mod housekeeping;
 mod i18n;
 mod jobs;
+mod pagination_enforcement;
 mod repo_pagination;
 mod schema_isolation;
 pub mod system_tenants;

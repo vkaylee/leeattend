@@ -512,8 +512,10 @@ mod tests {
         async fn get_workspace_roles(
             &self,
             _w: Uuid,
-        ) -> Result<Vec<crate::models::WorkspaceRole>, AppError> {
-            Ok(vec![])
+            _page: i64,
+            _limit: i64,
+        ) -> Result<(Vec<crate::models::WorkspaceRole>, i64), AppError> {
+            Ok((vec![], 0))
         }
         async fn create_workspace_role(
             &self,

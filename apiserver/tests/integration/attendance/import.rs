@@ -506,17 +506,19 @@ async fn test_employee_import_duplicate_department_prevention() {
 
     // Verify exactly one department exists in the database
     let departments = department_repo
-        .get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(
-            ws_id,
-        ))
+        .get_departments(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            1,
+            50,
+        )
         .await
         .unwrap();
 
     assert_eq!(
-        departments.len(),
+        departments.0.len(),
         1,
         "Should only create 1 department, found {}",
-        departments.len()
+        departments.0.len()
     );
-    assert_eq!(departments[0].name, dept_name);
+    assert_eq!(departments.0[0].name, dept_name);
 }

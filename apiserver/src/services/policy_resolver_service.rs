@@ -173,14 +173,16 @@ impl PolicyResolverService {
         )
         .await;
 
-        let rules = rules_res.unwrap_or_else(|_| PolicyRules {
-            grace_period_minutes: overrides.grace_period_minutes.unwrap_or(0),
-            authorized_early_leave_minutes: 0,
-            is_early_leave_paid: false,
-            early_arrival_strategy: overrides.early_arrival_strategy,
-            is_break_auto_deduct: overrides.is_break_auto_deduct.unwrap_or(false),
-            is_break_overtime: overrides.is_break_overtime,
-            allow_early_ot: overrides.allow_early_ot.unwrap_or(false),
+        let rules = rules_res.unwrap_or_else(|_| {
+            PolicyRules::new(
+                overrides.grace_period_minutes.unwrap_or(0),
+                0,
+                false,
+                overrides.early_arrival_strategy,
+                overrides.is_break_auto_deduct.unwrap_or(false),
+                overrides.is_break_overtime,
+                overrides.allow_early_ot.unwrap_or(false),
+            )
         });
 
         PolicyResolver::apply_shift_overrides(rules, overrides)

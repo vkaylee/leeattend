@@ -95,14 +95,14 @@ impl AttendanceCalculator {
         shift_start: &DateTime<T>,
         rules: &PolicyRules,
     ) -> DateTime<T> {
-        if rules.grace_period_minutes <= 0 {
+        if rules.grace_period_minutes() <= 0 {
             return punch_in.clone();
         }
 
         let grace_threshold =
-            shift_start.clone() - Duration::minutes(i64::from(rules.grace_period_minutes));
+            shift_start.clone() - Duration::minutes(i64::from(rules.grace_period_minutes()));
 
-        match rules.early_arrival_strategy {
+        match rules.early_arrival_strategy() {
             EarlyArrivalStrategy::Block | EarlyArrivalStrategy::Allow => {
                 if punch_in >= &grace_threshold && punch_in < shift_start {
                     shift_start.clone()
@@ -129,13 +129,13 @@ impl AttendanceCalculator {
         let mut standard_out = DateTime::min(punch_out.clone(), shift_end.clone());
 
         // Apply Authorized Early Leave (Paid)
-        if rules.is_early_leave_paid && rules.authorized_early_leave_minutes > 0 {
+        if rules.is_early_leave_paid() && rules.authorized_early_leave_minutes() > 0 {
             let missing_minutes = shift_end
                 .clone()
                 .signed_duration_since(standard_out.clone())
                 .num_minutes();
             if missing_minutes > 0
-                && missing_minutes <= i64::from(rules.authorized_early_leave_minutes)
+                && missing_minutes <= i64::from(rules.authorized_early_leave_minutes())
             {
                 standard_out = shift_end.clone();
             }
@@ -151,7 +151,7 @@ impl AttendanceCalculator {
             .num_minutes() as i32;
 
         // Calculate break deduction and break OT
-        let (break_to_deduct, break_ot_minutes) = if rules.is_break_overtime {
+        let (break_to_deduct, break_ot_minutes) = if rules.is_break_overtime() {
             let break_overlap = if let (Some(bs), Some(be)) =
                 (input.break_start.clone(), input.break_end.clone())
             {
@@ -175,8 +175,8 @@ impl AttendanceCalculator {
             let deduct = Self::calculate_break_deduction(&BreakDeductionInput {
                 actual_break_minutes: input.actual_break_minutes,
                 scheduled_break_minutes: input.scheduled_break_minutes,
-                is_break_auto_deduct: rules.is_break_auto_deduct,
-                is_break_overtime: rules.is_break_overtime,
+                is_break_auto_deduct: rules.is_break_auto_deduct(),
+                is_break_overtime: rules.is_break_overtime(),
                 break_start: input.break_start.as_ref(),
                 break_end: input.break_end.as_ref(),
                 punch_in,
@@ -197,7 +197,7 @@ impl AttendanceCalculator {
         effective_ot_start: &DateTime<T>,
         buckets: &mut WorkBuckets,
     ) {
-        if !input.rules.allow_early_ot || &input.punch_in >= shift_start {
+        if !input.rules.allow_early_ot() || &input.punch_in >= shift_start {
             return;
         }
 

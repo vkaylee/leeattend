@@ -145,6 +145,10 @@ where
 
             let method = req.method().clone();
             let path = req.uri().path().to_string();
+            // Bypass rate limiting for health checks to prevent false negatives in load balancers
+            if path.ends_with("/health") {
+                return inner.call(req).await;
+            }
             let tier = RateLimitConfig::tier_label(&method);
             let max_requests = config.limit_for_method(&method);
 

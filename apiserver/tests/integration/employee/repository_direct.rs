@@ -65,13 +65,15 @@ async fn test_working_condition_crud() {
         .get_working_conditions(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             emp_id,
+            1,
+            50,
         )
         .await
         .unwrap();
-    assert_eq!(conditions.len(), 1);
-    assert_eq!(conditions[0].type_, "late_arrival");
-    assert_eq!(conditions[0].minute_allowance, 15);
-    assert!(conditions[0].is_paid);
+    assert_eq!(conditions.0.len(), 1);
+    assert_eq!(conditions.0[0].type_, "late_arrival");
+    assert_eq!(conditions.0[0].minute_allowance, 15);
+    assert!(conditions.0[0].is_paid);
 
     // Delete
     let deleted = repo
@@ -89,10 +91,12 @@ async fn test_working_condition_crud() {
         .get_working_conditions(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             emp_id,
+            1,
+            50,
         )
         .await
         .unwrap();
-    assert!(conditions.is_empty());
+    assert!(conditions.0.is_empty());
 }
 
 #[tokio::test]
@@ -513,9 +517,12 @@ async fn test_recruitment_source_breakdown_direct() {
 
     // 1. Verify get_recruitment_sources
     let auth_token = apiserver::diesel_pool::TenantAuthToken::system_override(ws_id);
-    let list = repo.get_recruitment_sources(&auth_token).await.unwrap();
-    assert_eq!(list.len(), 1);
-    assert_eq!(list[0].id, source_id);
+    let list = repo
+        .get_recruitment_sources(&auth_token, 1, 50)
+        .await
+        .unwrap();
+    assert_eq!(list.0.len(), 1);
+    assert_eq!(list.0[0].id, source_id);
 
     // 2. Verify get_recruitment_source_by_id
     let fetched = repo

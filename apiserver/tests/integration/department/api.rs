@@ -69,7 +69,9 @@ async fn test_department_management() {
     let body = axum::body::to_bytes(response.into_body(), usize::MAX)
         .await
         .unwrap();
-    let depts: Vec<Department> = serde_json::from_slice(&body).unwrap();
+    let paginated: apiserver::models::PaginatedResponse<Department> =
+        serde_json::from_slice(&body).unwrap();
+    let depts = paginated.data;
     assert!(!depts.is_empty());
 
     // 4. Transfer Employee to Department

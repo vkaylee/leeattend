@@ -2,8 +2,8 @@ use crate::domain::permissions::Permission;
 use crate::errors::AppResult;
 use crate::handlers::common::MemberContext;
 use crate::models::{
-    CreateRecruitmentSourceRequest, RecruitmentSource, RecruitmentSourceBreakdown,
-    TurnoverAnalytics, UpdateRecruitmentSourceRequest,
+    CreateRecruitmentSourceRequest, PaginatedResponse, PaginationParams, RecruitmentSource,
+    RecruitmentSourceBreakdown, TurnoverAnalytics, UpdateRecruitmentSourceRequest,
 };
 use crate::AppState;
 use axum::{
@@ -14,14 +14,23 @@ use axum::{
 use std::sync::Arc;
 use uuid::Uuid;
 
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct PaginatedRecruitmentSources {
+    pub data: Vec<RecruitmentSource>,
+    pub total: usize,
+    pub page: i64,
+    pub limit: i64,
+}
+
 #[utoipa::path(
     get,
     path = "/v1/workspaces/{ws_id}/recruitment-sources",
     params(
-        ("ws_id" = Uuid, Path, description = "Workspace ID")
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        PaginationParams
     ),
     responses(
-        (status = 200, description = "List of recruitment sources", body = Vec<RecruitmentSource>)
+        (status = 200, description = "List of recruitment sources", body = PaginatedRecruitmentSources)
     ),
     security(
         ("bearer_auth" = [])
@@ -30,15 +39,23 @@ use uuid::Uuid;
 pub async fn get_recruitment_sources(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-) -> AppResult<Json<Vec<RecruitmentSource>>> {
+    axum::extract::Query(query): axum::extract::Query<PaginationParams>,
+) -> AppResult<Json<PaginatedResponse<RecruitmentSource>>> {
     let _workspace_id = ctx.workspace_id;
+    let page = query.page.unwrap_or(1).max(1);
+    let limit = query.limit.unwrap_or(50).clamp(1, 3000);
 
-    let sources = state
+    let (sources, total) = state
         .employees
         .recruitment_service
-        .get_recruitment_sources(&ctx.auth_token)
+        .get_recruitment_sources(&ctx.auth_token, page, limit)
         .await?;
-    Ok(Json(sources))
+    Ok(Json(PaginatedResponse {
+        data: sources,
+        total: total as usize,
+        page,
+        limit,
+    }))
 }
 
 #[utoipa::path(

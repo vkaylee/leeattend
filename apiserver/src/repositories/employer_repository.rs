@@ -19,7 +19,12 @@ pub trait EmployerRepository: Send + Sync {
         id: Uuid,
     ) -> Result<Option<Employer>, AppError>;
 
-    async fn get_employers(&self, auth_token: &TenantAuthToken) -> Result<Vec<Employer>, AppError>;
+    async fn get_employers(
+        &self,
+        auth_token: &TenantAuthToken,
+        page: i64,
+        limit: i64,
+    ) -> Result<(Vec<Employer>, i64), AppError>;
 
     async fn update_employer(
         &self,

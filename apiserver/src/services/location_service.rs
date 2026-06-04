@@ -19,9 +19,14 @@ impl LocationService {
         Self { repo, audit_repo }
     }
 
-    pub async fn list_locations(&self, workspace_id: Uuid) -> Result<Vec<WorkLocation>, AppError> {
+    pub async fn list_locations(
+        &self,
+        workspace_id: Uuid,
+        page: i64,
+        limit: i64,
+    ) -> Result<(Vec<WorkLocation>, i64), AppError> {
         self.repo
-            .find_all_by_workspace(workspace_id)
+            .find_all_by_workspace(workspace_id, page, limit)
             .await
             .map_err(|e| AppError::Internal(format!("Failed to list locations: {e}")))
     }

@@ -5,9 +5,35 @@ use rust_decimal::Decimal;
 
 #[derive(Debug, Clone)]
 pub struct OvertimeSegment {
-    pub start: NaiveTime,
-    pub end: NaiveTime,
-    pub multiplier: Decimal,
+    start: NaiveTime,
+    end: NaiveTime,
+    multiplier: Decimal,
+}
+
+impl OvertimeSegment {
+    pub fn new(start: NaiveTime, end: NaiveTime, multiplier: Decimal) -> Self {
+        Self {
+            start,
+            end,
+            multiplier,
+        }
+    }
+
+    pub fn start(&self) -> NaiveTime {
+        self.start
+    }
+
+    pub fn end(&self) -> NaiveTime {
+        self.end
+    }
+
+    pub fn set_end(&mut self, end: NaiveTime) {
+        self.end = end;
+    }
+
+    pub fn multiplier(&self) -> Decimal {
+        self.multiplier
+    }
 }
 
 pub struct OvertimeEngine;
@@ -78,11 +104,7 @@ impl OvertimeEngine {
                 .max_by_key(|r| r.priority);
 
             if let Some(rule) = best_rule {
-                segments.push(OvertimeSegment {
-                    start,
-                    end,
-                    multiplier: rule.multiplier,
-                });
+                segments.push(OvertimeSegment::new(start, end, rule.multiplier));
             }
         }
 
@@ -94,8 +116,8 @@ impl OvertimeEngine {
         let mut current = segments[0].clone();
 
         for next in segments.into_iter().skip(1) {
-            if next.multiplier == current.multiplier {
-                current.end = next.end;
+            if next.multiplier() == current.multiplier() {
+                current.set_end(next.end());
             } else {
                 merged.push(current);
                 current = next;
@@ -122,15 +144,15 @@ impl OvertimeEngine {
 
         for (ot_start, ot_end) in ot_intervals {
             for segment in &segments {
-                let inter_start = NaiveTime::max(*ot_start, segment.start);
-                let inter_end = NaiveTime::min(*ot_end, segment.end);
+                let inter_start = NaiveTime::max(*ot_start, segment.start());
+                let inter_end = NaiveTime::min(*ot_end, segment.end());
 
                 if inter_end > inter_start {
                     let duration_mins = (inter_end.num_seconds_from_midnight()
                         - inter_start.num_seconds_from_midnight())
                         / 60;
                     let duration_hours = Decimal::from(duration_mins) / Decimal::from(60);
-                    total_pay += duration_hours * hourly_rate * segment.multiplier;
+                    total_pay += duration_hours * hourly_rate * segment.multiplier();
                 }
             }
         }
@@ -260,9 +282,9 @@ mod tests {
         let segments = OvertimeEngine::calculate_segments(&rules, date, false);
 
         assert_eq!(segments.len(), 3);
-        assert_eq!(segments[0].multiplier, Decimal::new(20, 1));
-        assert_eq!(segments[1].multiplier, Decimal::new(15, 1));
-        assert_eq!(segments[2].multiplier, Decimal::new(20, 1));
+        assert_eq!(segments[0].multiplier(), Decimal::new(20, 1));
+        assert_eq!(segments[1].multiplier(), Decimal::new(15, 1));
+        assert_eq!(segments[2].multiplier(), Decimal::new(20, 1));
     }
 
     #[test]
@@ -356,7 +378,7 @@ mod tests {
         assert!(!segments_normal.is_empty());
         for seg in &segments_normal {
             assert_eq!(
-                seg.multiplier,
+                seg.multiplier(),
                 Decimal::new(15, 1),
                 "Non-holiday should use 1.5x"
             );
@@ -367,7 +389,7 @@ mod tests {
         assert!(!segments_holiday.is_empty());
         for seg in &segments_holiday {
             assert_eq!(
-                seg.multiplier,
+                seg.multiplier(),
                 Decimal::new(30, 1),
                 "Holiday should use 3.0x"
             );
@@ -618,6 +640,6 @@ mod tests {
         let segments = OvertimeEngine::calculate_segments(&rules, date, false);
         // Should merge into one segment since multiplier is the same
         assert_eq!(segments.len(), 1);
-        assert_eq!(segments[0].multiplier, Decimal::new(15, 1));
+        assert_eq!(segments[0].multiplier(), Decimal::new(15, 1));
     }
 }

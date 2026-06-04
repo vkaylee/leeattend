@@ -23,31 +23,48 @@ pub struct PaginatedEmployees {
     pub limit: i64,
 }
 
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct PaginatedWorkingConditions {
+    pub data: Vec<WorkingCondition>,
+    pub total: usize,
+    pub page: i64,
+    pub limit: i64,
+}
+
 #[utoipa::path(
     get,
     path = "/workspaces/{workspace_id}/employees/{id}/conditions",
     responses(
-        (status = 200, description = "Successfully retrieved working conditions", body = [WorkingCondition])
+        (status = 200, description = "Successfully retrieved working conditions", body = PaginatedWorkingConditions)
     ),
     params(
         ("workspace_id" = Uuid, Path, description = "Workspace ID"),
         ("id" = Uuid, Path, description = "Employee ID"),
+        PaginationParams
     )
 )]
 pub async fn get_working_conditions(
     Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-) -> AppResult<Json<Vec<WorkingCondition>>> {
+    Query(query): Query<PaginationParams>,
+) -> AppResult<Json<PaginatedResponse<WorkingCondition>>> {
     let (_workspace_id, id) = params;
     let _workspace_id = ctx.workspace_id;
+    let page = query.page.unwrap_or(1).max(1);
+    let limit = query.limit.unwrap_or(50).clamp(1, 3000);
 
-    let conditions = state
+    let (conditions, total) = state
         .employees
         .service
-        .get_working_conditions(id, &ctx.auth_token)
+        .get_working_conditions(id, &ctx.auth_token, page, limit)
         .await?;
-    Ok(Json(conditions))
+    Ok(Json(PaginatedResponse {
+        data: conditions,
+        total: total as usize,
+        page,
+        limit,
+    }))
 }
 
 #[utoipa::path(

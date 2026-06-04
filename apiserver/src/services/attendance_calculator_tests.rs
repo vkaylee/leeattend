@@ -31,15 +31,15 @@ mod tests {
     }
 
     fn mock_rules() -> PolicyRules {
-        PolicyRules {
-            grace_period_minutes: 0,
-            authorized_early_leave_minutes: 0,
-            is_early_leave_paid: false,
-            early_arrival_strategy: EarlyArrivalStrategy::Allow,
-            is_break_auto_deduct: false,
-            is_break_overtime: false,
-            allow_early_ot: false,
-        }
+        PolicyRules::new(
+            0,
+            0,
+            false,
+            EarlyArrivalStrategy::Allow,
+            false,
+            false,
+            false,
+        )
     }
 
     // =========================================================================
@@ -199,7 +199,7 @@ mod tests {
                 .punch(7, 30, 17, 0)
                 .shift(7, 30, 17, 0)
                 .scheduled_break(60)
-                .rules_mut(|r| r.is_break_auto_deduct = true)
+                .rules_mut(|r| r.set_is_break_auto_deduct(true))
                 .buckets();
             assert_eq!(b.standard_minutes, 510); // 8.5 hours
         }
@@ -282,7 +282,7 @@ mod tests {
             let (std, ot) = TestInputBuilder::new()
                 .no_shift()
                 .scheduled_break(60)
-                .rules_mut(|r| r.is_break_auto_deduct = true)
+                .rules_mut(|r| r.set_is_break_auto_deduct(true))
                 .work_unit_cfg(30, "floor")
                 .daily_units();
             assert_eq!(std, 18);
@@ -331,8 +331,8 @@ mod tests {
                 .punch(7, 15, 17, 0)
                 .shift(7, 30, 17, 0)
                 .rules_mut(|r| {
-                    r.grace_period_minutes = 30;
-                    r.allow_early_ot = true;
+                    r.set_grace_period_minutes(30);
+                    r.set_allow_early_ot(true);
                 })
                 .buckets();
             assert_eq!(b.early_ot_minutes, 0);
@@ -344,8 +344,8 @@ mod tests {
                 .punch(6, 45, 17, 0)
                 .shift(7, 30, 17, 0)
                 .rules_mut(|r| {
-                    r.grace_period_minutes = 30;
-                    r.allow_early_ot = true;
+                    r.set_grace_period_minutes(30);
+                    r.set_allow_early_ot(true);
                 })
                 .buckets();
             assert_eq!(b.early_ot_minutes, 45);
@@ -357,9 +357,9 @@ mod tests {
                 .punch(6, 45, 17, 0)
                 .shift(7, 30, 17, 0)
                 .rules_mut(|r| {
-                    r.grace_period_minutes = 30;
-                    r.allow_early_ot = true;
-                    r.early_arrival_strategy = EarlyArrivalStrategy::Clamp;
+                    r.set_grace_period_minutes(30);
+                    r.set_allow_early_ot(true);
+                    r.set_early_arrival_strategy(EarlyArrivalStrategy::Clamp);
                 })
                 .buckets();
             assert_eq!(b.early_ot_minutes, 30);
@@ -370,9 +370,9 @@ mod tests {
             let b = TestInputBuilder::new()
                 .punch(7, 30, 17, 0)
                 .rules_mut(|r| {
-                    r.grace_period_minutes = 30;
-                    r.allow_early_ot = true;
-                    r.early_arrival_strategy = EarlyArrivalStrategy::Allow;
+                    r.set_grace_period_minutes(30);
+                    r.set_allow_early_ot(true);
+                    r.set_early_arrival_strategy(EarlyArrivalStrategy::Allow);
                 })
                 .buckets();
             assert_eq!(b.early_ot_minutes, 0);
@@ -383,9 +383,9 @@ mod tests {
             let b = TestInputBuilder::new()
                 .punch(7, 29, 17, 0)
                 .rules_mut(|r| {
-                    r.grace_period_minutes = 30;
-                    r.allow_early_ot = true;
-                    r.early_arrival_strategy = EarlyArrivalStrategy::Allow;
+                    r.set_grace_period_minutes(30);
+                    r.set_allow_early_ot(true);
+                    r.set_early_arrival_strategy(EarlyArrivalStrategy::Allow);
                 })
                 .buckets();
             assert_eq!(b.early_ot_minutes, 31);
@@ -396,9 +396,9 @@ mod tests {
             let b = TestInputBuilder::new()
                 .punch(7, 31, 17, 0)
                 .rules_mut(|r| {
-                    r.grace_period_minutes = 30;
-                    r.allow_early_ot = true;
-                    r.early_arrival_strategy = EarlyArrivalStrategy::Allow;
+                    r.set_grace_period_minutes(30);
+                    r.set_allow_early_ot(true);
+                    r.set_early_arrival_strategy(EarlyArrivalStrategy::Allow);
                 })
                 .buckets();
             assert_eq!(b.early_ot_minutes, 0);
@@ -409,9 +409,9 @@ mod tests {
             let b = TestInputBuilder::new()
                 .punch(7, 30, 17, 0)
                 .rules_mut(|r| {
-                    r.grace_period_minutes = 30;
-                    r.allow_early_ot = true;
-                    r.early_arrival_strategy = EarlyArrivalStrategy::Block;
+                    r.set_grace_period_minutes(30);
+                    r.set_allow_early_ot(true);
+                    r.set_early_arrival_strategy(EarlyArrivalStrategy::Block);
                 })
                 .buckets();
             assert_eq!(b.early_ot_minutes, 0);
@@ -422,9 +422,9 @@ mod tests {
             let b = TestInputBuilder::new()
                 .punch(7, 29, 17, 0)
                 .rules_mut(|r| {
-                    r.grace_period_minutes = 30;
-                    r.allow_early_ot = true;
-                    r.early_arrival_strategy = EarlyArrivalStrategy::Block;
+                    r.set_grace_period_minutes(30);
+                    r.set_allow_early_ot(true);
+                    r.set_early_arrival_strategy(EarlyArrivalStrategy::Block);
                 })
                 .buckets();
             assert_eq!(b.early_ot_minutes, 31);
@@ -435,9 +435,9 @@ mod tests {
             let b = TestInputBuilder::new()
                 .punch(7, 30, 17, 0)
                 .rules_mut(|r| {
-                    r.grace_period_minutes = 30;
-                    r.allow_early_ot = true;
-                    r.early_arrival_strategy = EarlyArrivalStrategy::Clamp;
+                    r.set_grace_period_minutes(30);
+                    r.set_allow_early_ot(true);
+                    r.set_early_arrival_strategy(EarlyArrivalStrategy::Clamp);
                 })
                 .buckets();
             assert_eq!(b.early_ot_minutes, 30);
@@ -448,9 +448,9 @@ mod tests {
             let b = TestInputBuilder::new()
                 .punch(7, 29, 17, 0)
                 .rules_mut(|r| {
-                    r.grace_period_minutes = 30;
-                    r.allow_early_ot = true;
-                    r.early_arrival_strategy = EarlyArrivalStrategy::Clamp;
+                    r.set_grace_period_minutes(30);
+                    r.set_allow_early_ot(true);
+                    r.set_early_arrival_strategy(EarlyArrivalStrategy::Clamp);
                 })
                 .buckets();
             assert_eq!(b.early_ot_minutes, 30);
@@ -461,9 +461,9 @@ mod tests {
             let b = TestInputBuilder::new()
                 .punch(7, 31, 17, 0)
                 .rules_mut(|r| {
-                    r.grace_period_minutes = 30;
-                    r.allow_early_ot = true;
-                    r.early_arrival_strategy = EarlyArrivalStrategy::Clamp;
+                    r.set_grace_period_minutes(30);
+                    r.set_allow_early_ot(true);
+                    r.set_early_arrival_strategy(EarlyArrivalStrategy::Clamp);
                 })
                 .buckets();
             assert_eq!(b.early_ot_minutes, 29);
@@ -482,8 +482,8 @@ mod tests {
             let b = TestInputBuilder::new()
                 .punch(8, 0, 16, 30)
                 .rules_mut(|r| {
-                    r.authorized_early_leave_minutes = 60;
-                    r.is_early_leave_paid = true;
+                    r.set_authorized_early_leave_minutes(60);
+                    r.set_is_early_leave_paid(true);
                 })
                 .buckets();
             assert_eq!(b.standard_minutes, 540);
@@ -494,8 +494,8 @@ mod tests {
             let b = TestInputBuilder::new()
                 .punch(8, 0, 15, 30)
                 .rules_mut(|r| {
-                    r.authorized_early_leave_minutes = 60;
-                    r.is_early_leave_paid = true;
+                    r.set_authorized_early_leave_minutes(60);
+                    r.set_is_early_leave_paid(true);
                 })
                 .buckets();
             assert_eq!(b.standard_minutes, 450);
@@ -506,8 +506,8 @@ mod tests {
             let b = TestInputBuilder::new()
                 .punch(8, 0, 16, 0)
                 .rules_mut(|r| {
-                    r.authorized_early_leave_minutes = 60;
-                    r.is_early_leave_paid = true;
+                    r.set_authorized_early_leave_minutes(60);
+                    r.set_is_early_leave_paid(true);
                 })
                 .buckets();
             assert_eq!(b.standard_minutes, 540);
@@ -518,8 +518,8 @@ mod tests {
             let b = TestInputBuilder::new()
                 .punch(8, 0, 15, 59)
                 .rules_mut(|r| {
-                    r.authorized_early_leave_minutes = 60;
-                    r.is_early_leave_paid = true;
+                    r.set_authorized_early_leave_minutes(60);
+                    r.set_is_early_leave_paid(true);
                 })
                 .buckets();
             assert_eq!(b.standard_minutes, 479);
@@ -530,8 +530,8 @@ mod tests {
             let b = TestInputBuilder::new()
                 .punch(8, 0, 16, 1)
                 .rules_mut(|r| {
-                    r.authorized_early_leave_minutes = 60;
-                    r.is_early_leave_paid = true;
+                    r.set_authorized_early_leave_minutes(60);
+                    r.set_is_early_leave_paid(true);
                 })
                 .buckets();
             assert_eq!(b.standard_minutes, 540);
@@ -542,8 +542,8 @@ mod tests {
             let b = TestInputBuilder::new()
                 .punch(8, 0, 16, 0)
                 .rules_mut(|r| {
-                    r.authorized_early_leave_minutes = 60;
-                    r.is_early_leave_paid = false;
+                    r.set_authorized_early_leave_minutes(60);
+                    r.set_is_early_leave_paid(false);
                 })
                 .buckets();
             assert_eq!(b.standard_minutes, 480);
@@ -575,7 +575,7 @@ mod tests {
         fn early_and_late_combined() {
             let b = TestInputBuilder::new()
                 .punch(6, 0, 20, 0)
-                .rules_mut(|r| r.allow_early_ot = true)
+                .rules_mut(|r| r.set_allow_early_ot(true))
                 .buckets();
             assert_eq!(b.early_ot_minutes, 120);
             assert_eq!(b.standard_minutes, 540);
@@ -587,7 +587,7 @@ mod tests {
             let (std, ot) = TestInputBuilder::new()
                 .punch(7, 0, 19, 0)
                 .scheduled_break(60)
-                .rules_mut(|r| r.allow_early_ot = true)
+                .rules_mut(|r| r.set_allow_early_ot(true))
                 .work_unit_cfg(30, "floor")
                 .daily_units();
             assert_eq!(std, 18);
@@ -600,8 +600,8 @@ mod tests {
                 .punch(7, 0, 19, 0)
                 .scheduled_break(60)
                 .rules_mut(|r| {
-                    r.allow_early_ot = true;
-                    r.is_break_auto_deduct = true;
+                    r.set_allow_early_ot(true);
+                    r.set_is_break_auto_deduct(true);
                 })
                 .work_unit_cfg(30, "floor")
                 .daily_units();
@@ -679,7 +679,7 @@ mod tests {
         fn early_ot_capped() {
             let b = TestInputBuilder::new()
                 .punch(5, 0, 17, 0)
-                .rules_mut(|r| r.allow_early_ot = true)
+                .rules_mut(|r| r.set_allow_early_ot(true))
                 .max_early_ot(120)
                 .buckets();
             assert_eq!(b.early_ot_minutes, 120);
@@ -689,7 +689,7 @@ mod tests {
         fn early_ot_uncapped() {
             let b = TestInputBuilder::new()
                 .punch(5, 0, 17, 0)
-                .rules_mut(|r| r.allow_early_ot = true)
+                .rules_mut(|r| r.set_allow_early_ot(true))
                 .buckets();
             assert_eq!(b.early_ot_minutes, 180);
         }
@@ -698,7 +698,7 @@ mod tests {
         fn early_ot_under_cap() {
             let b = TestInputBuilder::new()
                 .punch(5, 0, 17, 0)
-                .rules_mut(|r| r.allow_early_ot = true)
+                .rules_mut(|r| r.set_allow_early_ot(true))
                 .max_early_ot(240)
                 .buckets();
             assert_eq!(b.early_ot_minutes, 180);
@@ -708,7 +708,7 @@ mod tests {
         fn early_ot_cap_zero() {
             let b = TestInputBuilder::new()
                 .punch(5, 0, 17, 0)
-                .rules_mut(|r| r.allow_early_ot = true)
+                .rules_mut(|r| r.set_allow_early_ot(true))
                 .max_early_ot(0)
                 .buckets();
             assert_eq!(b.early_ot_minutes, 0);
@@ -719,9 +719,9 @@ mod tests {
             let b = TestInputBuilder::new()
                 .punch(7, 15, 17, 0)
                 .rules_mut(|r| {
-                    r.allow_early_ot = true;
-                    r.grace_period_minutes = 30;
-                    r.early_arrival_strategy = EarlyArrivalStrategy::Clamp;
+                    r.set_allow_early_ot(true);
+                    r.set_grace_period_minutes(30);
+                    r.set_early_arrival_strategy(EarlyArrivalStrategy::Clamp);
                 })
                 .max_early_ot(15)
                 .buckets();
@@ -733,9 +733,9 @@ mod tests {
             let b = TestInputBuilder::new()
                 .punch(7, 15, 17, 0)
                 .rules_mut(|r| {
-                    r.allow_early_ot = true;
-                    r.grace_period_minutes = 30;
-                    r.early_arrival_strategy = EarlyArrivalStrategy::Clamp;
+                    r.set_allow_early_ot(true);
+                    r.set_grace_period_minutes(30);
+                    r.set_early_arrival_strategy(EarlyArrivalStrategy::Clamp);
                 })
                 .max_early_ot(60)
                 .buckets();
@@ -747,9 +747,9 @@ mod tests {
             let b = TestInputBuilder::new()
                 .punch(7, 45, 17, 0)
                 .rules_mut(|r| {
-                    r.allow_early_ot = true;
-                    r.grace_period_minutes = 30;
-                    r.early_arrival_strategy = EarlyArrivalStrategy::Block;
+                    r.set_allow_early_ot(true);
+                    r.set_grace_period_minutes(30);
+                    r.set_early_arrival_strategy(EarlyArrivalStrategy::Block);
                 })
                 .max_early_ot(15)
                 .buckets();
@@ -761,7 +761,7 @@ mod tests {
             let b = TestInputBuilder::new()
                 .punch_raw(dt(20, 0), dt(6, 0) + chrono::Duration::days(1))
                 .shift_raw(dt(22, 0), dt(6, 0) + chrono::Duration::days(1))
-                .rules_mut(|r| r.allow_early_ot = true)
+                .rules_mut(|r| r.set_allow_early_ot(true))
                 .max_early_ot(45)
                 .buckets();
             assert_eq!(b.early_ot_minutes, 45);
@@ -911,7 +911,7 @@ mod tests {
                 .punch(8, 0, 12, 0)
                 .scheduled_break(60)
                 .fixed_break(11, 30, 12, 30)
-                .rules_mut(|r| r.is_break_auto_deduct = true)
+                .rules_mut(|r| r.set_is_break_auto_deduct(true))
                 .buckets();
             assert_eq!(b.standard_minutes, 210);
         }
@@ -922,7 +922,7 @@ mod tests {
                 .punch(8, 0, 11, 0)
                 .scheduled_break(60)
                 .fixed_break(11, 30, 12, 30)
-                .rules_mut(|r| r.is_break_auto_deduct = true)
+                .rules_mut(|r| r.set_is_break_auto_deduct(true))
                 .buckets();
             assert_eq!(b.standard_minutes, 180);
         }
@@ -932,7 +932,7 @@ mod tests {
             let b = TestInputBuilder::new()
                 .scheduled_break(60)
                 .fixed_break(11, 30, 12, 30)
-                .rules_mut(|r| r.is_break_auto_deduct = true)
+                .rules_mut(|r| r.set_is_break_auto_deduct(true))
                 .buckets();
             assert_eq!(b.standard_minutes, 480);
         }
@@ -950,7 +950,7 @@ mod tests {
             let b = TestInputBuilder::new()
                 .scheduled_break(60)
                 .fixed_break(12, 0, 13, 0)
-                .rules_mut(|r| r.is_break_overtime = true)
+                .rules_mut(|r| r.set_is_break_overtime(true))
                 .buckets();
             assert_eq!(b.standard_minutes, 480);
             assert_eq!(b.break_ot_minutes, 60);
@@ -962,7 +962,7 @@ mod tests {
                 .scheduled_break(60)
                 .actual_break(60)
                 .fixed_break(12, 0, 13, 0)
-                .rules_mut(|r| r.is_break_overtime = true)
+                .rules_mut(|r| r.set_is_break_overtime(true))
                 .buckets();
             assert_eq!(b.standard_minutes, 480);
             assert_eq!(b.break_ot_minutes, 0);
@@ -972,7 +972,7 @@ mod tests {
         fn flexible_worked() {
             let b = TestInputBuilder::new()
                 .scheduled_break(60)
-                .rules_mut(|r| r.is_break_overtime = true)
+                .rules_mut(|r| r.set_is_break_overtime(true))
                 .buckets();
             assert_eq!(b.standard_minutes, 480);
             assert_eq!(b.break_ot_minutes, 60);
@@ -984,7 +984,7 @@ mod tests {
                 .punch(8, 0, 12, 30)
                 .scheduled_break(60)
                 .fixed_break(12, 0, 13, 0)
-                .rules_mut(|r| r.is_break_overtime = true)
+                .rules_mut(|r| r.set_is_break_overtime(true))
                 .buckets();
             assert_eq!(b.standard_minutes, 240);
             assert_eq!(b.break_ot_minutes, 30);
@@ -996,7 +996,7 @@ mod tests {
                 .punch(8, 0, 11, 30)
                 .scheduled_break(60)
                 .fixed_break(12, 0, 13, 0)
-                .rules_mut(|r| r.is_break_overtime = true)
+                .rules_mut(|r| r.set_is_break_overtime(true))
                 .buckets();
             assert_eq!(b.standard_minutes, 210);
             assert_eq!(b.break_ot_minutes, 0);
@@ -1008,7 +1008,7 @@ mod tests {
                 .scheduled_break(60)
                 .actual_break(30)
                 .fixed_break(12, 0, 13, 0)
-                .rules_mut(|r| r.is_break_overtime = true)
+                .rules_mut(|r| r.set_is_break_overtime(true))
                 .buckets();
             assert_eq!(b.standard_minutes, 480);
             assert_eq!(b.break_ot_minutes, 30);
@@ -1020,7 +1020,7 @@ mod tests {
                 .scheduled_break(60)
                 .actual_break(90)
                 .fixed_break(12, 0, 13, 0)
-                .rules_mut(|r| r.is_break_overtime = true)
+                .rules_mut(|r| r.set_is_break_overtime(true))
                 .buckets();
             assert_eq!(b.standard_minutes, 450);
             assert_eq!(b.break_ot_minutes, 0);
@@ -1032,7 +1032,7 @@ mod tests {
                 .punch_raw(dt(22, 0), dt_day2(6, 0))
                 .shift_raw(dt(22, 0), dt_day2(6, 0))
                 .scheduled_break(60)
-                .rules_mut(|r| r.is_break_overtime = true)
+                .rules_mut(|r| r.set_is_break_overtime(true))
                 .build();
 
             // Rebuild with break frame on day 2
@@ -1133,7 +1133,7 @@ mod tests {
         fn daily_calc_with_auto_deduct() {
             let (std, _) = TestInputBuilder::new()
                 .scheduled_break(60)
-                .rules_mut(|r| r.is_break_auto_deduct = true)
+                .rules_mut(|r| r.set_is_break_auto_deduct(true))
                 .work_unit_cfg(30, "floor")
                 .daily_units();
             assert_eq!(std, 16);
@@ -1151,7 +1151,7 @@ mod tests {
             let (std2, _) = TestInputBuilder::new()
                 .punch(8, 0, 16, 55)
                 .scheduled_break(60)
-                .rules_mut(|r| r.is_break_auto_deduct = true)
+                .rules_mut(|r| r.set_is_break_auto_deduct(true))
                 .work_unit_cfg(30, "floor")
                 .daily_units();
             assert_eq!(std2, 15);

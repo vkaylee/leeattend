@@ -22,11 +22,24 @@ impl DieselLocationRepository {
 
 #[async_trait]
 impl LocationRepository for DieselLocationRepository {
-    async fn find_all_by_workspace(&self, workspace_id: Uuid) -> Result<Vec<WorkLocation>, String> {
+    async fn find_all_by_workspace(
+        &self,
+        workspace_id: Uuid,
+        page: i64,
+        limit: i64,
+    ) -> Result<(Vec<WorkLocation>, i64), String> {
         let auth_token = TenantAuthToken::system_override(workspace_id);
         let mut conn = self
             .pools
             .tenant_transaction_conn(&auth_token)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        let total: i64 = work_locations::table
+            .filter(work_locations::workspace_id.eq(workspace_id))
+            .filter(work_locations::status.eq("active"))
+            .count()
+            .get_result::<i64>(&mut *conn)
             .await
             .map_err(|e| e.to_string())?;
 
@@ -37,11 +50,13 @@ impl LocationRepository for DieselLocationRepository {
                 work_locations::is_headquarters.desc(),
                 work_locations::name.asc(),
             ))
+            .limit(limit)
+            .offset((page - 1) * limit)
             .load::<WorkLocationEntity>(&mut *conn)
             .await
             .map_err(|e| e.to_string())?;
 
-        Ok(results.into_iter().map(Into::into).collect())
+        Ok((results.into_iter().map(Into::into).collect(), total))
     }
 
     async fn find_by_id(

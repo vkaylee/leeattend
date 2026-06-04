@@ -278,19 +278,45 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         workspace_id: Uuid,
-    ) -> Result<Vec<ApprovalWorkflow>, AppError> {
+        entity_type: Option<String>,
+        page: i64,
+        limit: i64,
+    ) -> Result<(Vec<ApprovalWorkflow>, i64), AppError> {
         let mut conn = self
             .diesel_pools
             .tenant_transaction_conn(auth_token)
             .await?;
 
-        let result = approval_workflows::table
+        let mut count_query = approval_workflows::table
             .filter(approval_workflows::workspace_id.eq(workspace_id))
+            .into_boxed();
+
+        if let Some(ref et) = entity_type {
+            count_query = count_query.filter(approval_workflows::entity_type.eq(et.clone()));
+        }
+
+        let total: i64 = count_query
+            .count()
+            .get_result(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to count approval workflows: {e}")))?;
+
+        let mut select_query = approval_workflows::table
+            .filter(approval_workflows::workspace_id.eq(workspace_id))
+            .into_boxed();
+
+        if let Some(et) = entity_type {
+            select_query = select_query.filter(approval_workflows::entity_type.eq(et));
+        }
+
+        let result = select_query
+            .limit(limit)
+            .offset((page - 1) * limit)
             .load::<ApprovalWorkflow>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("Failed to list approval workflows: {e}")))?;
 
-        Ok(result)
+        Ok((result, total))
     }
 
     async fn update_workflow(

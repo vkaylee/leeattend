@@ -87,7 +87,9 @@ impl EmployeeRecruitmentRepository for DieselEmployeeRepository {
     async fn get_recruitment_sources(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-    ) -> Result<Vec<RecruitmentSource>, AppError> {
+        page: i64,
+        limit: i64,
+    ) -> Result<(Vec<RecruitmentSource>, i64), AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -97,14 +99,23 @@ impl EmployeeRecruitmentRepository for DieselEmployeeRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
+        let total: i64 = recruitment_sources::table
+            .filter(recruitment_sources::workspace_id.eq(workspace_id))
+            .count()
+            .get_result(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db count: {e}")))?;
+
         let results: Vec<RecruitmentSourceEntity> = recruitment_sources::table
             .filter(recruitment_sources::workspace_id.eq(workspace_id))
             .order(recruitment_sources::created_at.desc())
+            .limit(limit)
+            .offset((page - 1) * limit)
             .load(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        Ok(results.into_iter().map(Into::into).collect())
+        Ok((results.into_iter().map(Into::into).collect(), total))
     }
 
     async fn get_recruitment_source_by_id(

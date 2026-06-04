@@ -20,9 +20,14 @@ impl EmployerService {
         Self { repo, audit_repo }
     }
 
-    pub async fn list_employers(&self, workspace_id: Uuid) -> Result<Vec<Employer>, AppError> {
+    pub async fn list_employers(
+        &self,
+        workspace_id: Uuid,
+        page: i64,
+        limit: i64,
+    ) -> Result<(Vec<Employer>, i64), AppError> {
         let auth_token = TenantAuthToken::system_override(workspace_id);
-        self.repo.get_employers(&auth_token).await
+        self.repo.get_employers(&auth_token, page, limit).await
     }
 
     pub async fn get_employer(&self, workspace_id: Uuid, id: Uuid) -> Result<Employer, AppError> {

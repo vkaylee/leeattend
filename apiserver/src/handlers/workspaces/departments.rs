@@ -9,17 +9,29 @@ use uuid::Uuid;
 use crate::domain::permissions::Permission;
 use crate::errors::AppResult;
 use crate::handlers::common::MemberContext;
-use crate::models::{CreateDepartmentRequest, Department, UpdateDepartmentRequest};
+use crate::models::{
+    CreateDepartmentRequest, Department, PaginatedResponse, PaginationParams,
+    UpdateDepartmentRequest,
+};
 use crate::AppState;
+
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct PaginatedDepartments {
+    pub data: Vec<Department>,
+    pub total: usize,
+    pub page: i64,
+    pub limit: i64,
+}
 
 #[utoipa::path(
     get,
     path = "/v1/workspaces/{ws_id}/departments",
     params(
-        ("ws_id" = Uuid, Path, description = "Workspace ID")
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        PaginationParams
     ),
     responses(
-        (status = 200, description = "List of departments", body = Vec<Department>)
+        (status = 200, description = "List of departments", body = PaginatedDepartments)
     ),
     security(
         ("bearer_auth" = [])
@@ -28,13 +40,22 @@ use crate::AppState;
 pub async fn get_departments(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-) -> AppResult<Json<Vec<Department>>> {
-    let departments = state
+    axum::extract::Query(query): axum::extract::Query<PaginationParams>,
+) -> AppResult<Json<PaginatedResponse<Department>>> {
+    let page = query.page.unwrap_or(1).max(1);
+    let limit = query.limit.unwrap_or(50).clamp(1, 3000);
+
+    let (departments, total) = state
         .payroll
         .department_repo
-        .get_departments(&ctx.auth_token)
+        .get_departments(&ctx.auth_token, page, limit)
         .await?;
-    Ok(Json(departments))
+    Ok(Json(PaginatedResponse {
+        data: departments,
+        total: total as usize,
+        page,
+        limit,
+    }))
 }
 
 #[utoipa::path(

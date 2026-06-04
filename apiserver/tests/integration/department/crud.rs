@@ -49,7 +49,8 @@ async fn test_department_crud_smoke() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
-    let depts: Vec<serde_json::Value> = response.json().await.unwrap();
+    let paginated: serde_json::Value = response.json().await.unwrap();
+    let depts = paginated["data"].as_array().unwrap().clone();
     assert!(depts.iter().any(|d| d["id"] == dept_id));
 
     // 3. Update department
@@ -94,7 +95,8 @@ async fn test_department_crud_smoke() {
         .await
         .unwrap();
 
-    let depts: Vec<serde_json::Value> = response.json().await.unwrap();
+    let paginated: serde_json::Value = response.json().await.unwrap();
+    let depts = paginated["data"].as_array().unwrap().clone();
     assert!(!depts.iter().any(|d| d["id"] == dept_id));
 
     // 6. Verify recreation with same name (Soft Delete uniqueness test)

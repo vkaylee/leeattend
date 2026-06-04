@@ -333,12 +333,14 @@ async fn test_upload_employee_csv_with_department() {
     let departments = _state
         .payroll
         .department_repo
-        .get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(
-            ws_id,
-        ))
+        .get_departments(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            1,
+            50,
+        )
         .await
         .unwrap();
-    let dept_names: Vec<&str> = departments.iter().map(|d| d.name.as_str()).collect();
+    let dept_names: Vec<&str> = departments.0.iter().map(|d| d.name.as_str()).collect();
     assert!(
         dept_names.contains(&"Engineering"),
         "Engineering department should be created"
@@ -375,6 +377,7 @@ async fn test_upload_employee_csv_with_department() {
     );
 
     let eng_dept = departments
+        .0
         .iter()
         .find(|d| d.name == "Engineering")
         .unwrap();
@@ -407,7 +410,11 @@ async fn test_upload_employee_csv_with_department() {
         .unwrap();
     assert!(current_dept3.is_some());
 
-    let mkt_dept = departments.iter().find(|d| d.name == "Marketing").unwrap();
+    let mkt_dept = departments
+        .0
+        .iter()
+        .find(|d| d.name == "Marketing")
+        .unwrap();
     assert_eq!(
         current_dept3.unwrap().department_id,
         mkt_dept.id,
@@ -494,12 +501,15 @@ async fn test_upload_employee_csv_reuses_existing_department() {
     let departments = _state
         .payroll
         .department_repo
-        .get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(
-            ws_id,
-        ))
+        .get_departments(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            1,
+            50,
+        )
         .await
         .unwrap();
     let sales_depts: Vec<_> = departments
+        .0
         .iter()
         .filter(|d| d.name.to_lowercase() == "sales")
         .collect();
@@ -659,12 +669,14 @@ async fn test_upload_employee_xlsx_with_department() {
     let departments = _state
         .payroll
         .department_repo
-        .get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(
-            ws_id,
-        ))
+        .get_departments(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            1,
+            50,
+        )
         .await
         .unwrap();
-    let dept_names: Vec<&str> = departments.iter().map(|d| d.name.as_str()).collect();
+    let dept_names: Vec<&str> = departments.0.iter().map(|d| d.name.as_str()).collect();
     assert!(
         dept_names.contains(&"Engineering"),
         "Engineering department should be created from xlsx"
@@ -701,6 +713,7 @@ async fn test_upload_employee_xlsx_with_department() {
     );
 
     let eng_dept = departments
+        .0
         .iter()
         .find(|d| d.name == "Engineering")
         .unwrap();
@@ -733,7 +746,11 @@ async fn test_upload_employee_xlsx_with_department() {
         .unwrap();
     assert!(current_dept3.is_some());
 
-    let mkt_dept = departments.iter().find(|d| d.name == "Marketing").unwrap();
+    let mkt_dept = departments
+        .0
+        .iter()
+        .find(|d| d.name == "Marketing")
+        .unwrap();
     assert_eq!(
         current_dept3.unwrap().department_id,
         mkt_dept.id,
@@ -819,12 +836,15 @@ async fn test_upload_employee_xlsx_reuses_existing_department() {
     let departments = _state
         .payroll
         .department_repo
-        .get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(
-            ws_id,
-        ))
+        .get_departments(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            1,
+            50,
+        )
         .await
         .unwrap();
     let sales_depts: Vec<_> = departments
+        .0
         .iter()
         .filter(|d| d.name.to_lowercase() == "sales")
         .collect();
@@ -951,12 +971,15 @@ async fn test_upload_csv_existing_employee_new_department() {
     let departments = _state
         .payroll
         .department_repo
-        .get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(
-            ws_id,
-        ))
+        .get_departments(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            1,
+            50,
+        )
         .await
         .unwrap();
     let rd_dept = departments
+        .0
         .iter()
         .find(|d| d.name == "R&D")
         .expect("R&D department should be created");
@@ -1081,12 +1104,18 @@ async fn test_upload_csv_existing_employee_existing_department() {
     let departments = _state
         .payroll
         .department_repo
-        .get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(
-            ws_id,
-        ))
+        .get_departments(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            1,
+            50,
+        )
         .await
         .unwrap();
-    let finance_depts: Vec<_> = departments.iter().filter(|d| d.name == "Finance").collect();
+    let finance_depts: Vec<_> = departments
+        .0
+        .iter()
+        .filter(|d| d.name == "Finance")
+        .collect();
     assert_eq!(
         finance_depts.len(),
         1,
@@ -1206,12 +1235,15 @@ async fn test_upload_xlsx_existing_employee_new_department() {
     let departments = _state
         .payroll
         .department_repo
-        .get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(
-            ws_id,
-        ))
+        .get_departments(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            1,
+            50,
+        )
         .await
         .unwrap();
     let devops_dept = departments
+        .0
         .iter()
         .find(|d| d.name == "DevOps")
         .expect("DevOps department should be created");
@@ -1332,12 +1364,15 @@ async fn test_upload_xlsx_existing_employee_existing_department() {
     let departments = _state
         .payroll
         .department_repo
-        .get_departments(&apiserver::diesel_pool::TenantAuthToken::system_override(
-            ws_id,
-        ))
+        .get_departments(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            1,
+            50,
+        )
         .await
         .unwrap();
     let hr_depts: Vec<_> = departments
+        .0
         .iter()
         .filter(|d| d.name.to_lowercase() == "hr")
         .collect();

@@ -4,7 +4,12 @@ use uuid::Uuid;
 
 #[async_trait]
 pub trait LocationRepository: Send + Sync {
-    async fn find_all_by_workspace(&self, workspace_id: Uuid) -> Result<Vec<WorkLocation>, String>;
+    async fn find_all_by_workspace(
+        &self,
+        workspace_id: Uuid,
+        page: i64,
+        limit: i64,
+    ) -> Result<(Vec<WorkLocation>, i64), String>;
     async fn find_by_id(
         &self,
         workspace_id: Uuid,

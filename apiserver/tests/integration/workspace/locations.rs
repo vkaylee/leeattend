@@ -24,7 +24,8 @@ async fn test_work_locations_crud() {
         .expect("Failed to execute request");
 
     assert_eq!(res.status(), StatusCode::OK);
-    let locations: Vec<Value> = res.json().await.unwrap();
+    let paginated: Value = res.json().await.unwrap();
+    let locations = paginated["data"].as_array().unwrap().clone();
     assert!(!locations.is_empty());
 
     // We should have at least the Headquarters (created on workspace init)

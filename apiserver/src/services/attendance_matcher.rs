@@ -320,7 +320,7 @@ impl AttendanceMatcher {
                                     let is_late = punch_in
                                         > start
                                             + chrono::Duration::minutes(i64::from(
-                                                rules.grace_period_minutes,
+                                                rules.grace_period_minutes(),
                                             ));
                                     let is_early = punch_out < end;
                                     if is_late || is_early {

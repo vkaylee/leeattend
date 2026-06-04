@@ -46,13 +46,16 @@ impl ApprovalWorkflowService {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         workspace_id: Uuid,
-    ) -> AppResult<Vec<serde_json::Value>> {
-        let workflows = self
+        entity_type: Option<String>,
+        page: i64,
+        limit: i64,
+    ) -> AppResult<(Vec<serde_json::Value>, i64)> {
+        let (workflows, total) = self
             .approval_workflow_repo
-            .list_workflows(auth_token, workspace_id)
+            .list_workflows(auth_token, workspace_id, entity_type, page, limit)
             .await?;
         if workflows.is_empty() {
-            return Ok(vec![]);
+            return Ok((vec![], 0));
         }
 
         let workflow_ids: Vec<Uuid> = workflows.iter().map(|w| w.id).collect();
@@ -78,7 +81,7 @@ impl ApprovalWorkflowService {
             result.push(wf_val);
         }
 
-        Ok(result)
+        Ok((result, total))
     }
 
     pub async fn get_workflow(

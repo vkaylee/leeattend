@@ -107,7 +107,9 @@ pub trait WorkspaceRepository: Send + Sync {
     async fn get_workspace_roles(
         &self,
         workspace_id: Uuid,
-    ) -> Result<Vec<crate::models::WorkspaceRole>, AppError>;
+        page: i64,
+        limit: i64,
+    ) -> Result<(Vec<crate::models::WorkspaceRole>, i64), AppError>;
 
     async fn create_workspace_role(
         &self,

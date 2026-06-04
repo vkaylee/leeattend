@@ -1,6 +1,8 @@
 use crate::errors::AppError;
 use crate::handlers::common::MemberContext;
-use crate::models::{CreateEmployerRequest, Employer, UpdateEmployerRequest};
+use crate::models::{
+    CreateEmployerRequest, Employer, PaginatedResponse, PaginationParams, UpdateEmployerRequest,
+};
 use crate::state::AppState;
 use axum::{
     extract::{Path, State},
@@ -11,14 +13,23 @@ use axum::{
 use std::sync::Arc;
 use uuid::Uuid;
 
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct PaginatedEmployers {
+    pub data: Vec<Employer>,
+    pub total: usize,
+    pub page: i64,
+    pub limit: i64,
+}
+
 #[utoipa::path(
     get,
     path = "/v1/workspaces/{ws_id}/employers",
     params(
-        ("ws_id" = Uuid, Path, description = "Workspace ID")
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        PaginationParams
     ),
     responses(
-        (status = 200, description = "List of employers", body = Vec<Employer>)
+        (status = 200, description = "List of employers", body = PaginatedEmployers)
     ),
     security(
         ("bearer_auth" = [])
@@ -27,13 +38,22 @@ use uuid::Uuid;
 pub async fn list_employers(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
+    axum::extract::Query(query): axum::extract::Query<PaginationParams>,
 ) -> Result<impl IntoResponse, AppError> {
-    let employers = state
+    let page = query.page.unwrap_or(1).max(1);
+    let limit = query.limit.unwrap_or(50).clamp(1, 3000);
+
+    let (employers, total) = state
         .core
         .employer_service
-        .list_employers(ctx.workspace_id)
+        .list_employers(ctx.workspace_id, page, limit)
         .await?;
-    Ok(Json(employers))
+    Ok(Json(PaginatedResponse {
+        data: employers,
+        total: total as usize,
+        page,
+        limit,
+    }))
 }
 
 #[utoipa::path(

@@ -32,7 +32,7 @@ export async function fetchLocations(wsId: string): Promise<WorkLocation[]> {
   const { data } = await client.GET("/v1/workspaces/{ws_id}/locations", {
             params: { path: { ws_id: wsId } }
       });
-  return data as WorkLocation[];
+  return (data?.data ?? []) as WorkLocation[];
 }
 
 export async function createLocation(wsId: string, payload: CreateWorkLocationRequest): Promise<WorkLocation> {

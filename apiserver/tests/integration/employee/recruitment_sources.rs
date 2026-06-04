@@ -82,10 +82,9 @@ async fn test_recruitment_source_crud_lifecycle() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let list = body_json(resp).await;
+    let paginated = body_json(resp).await;
+    let list = paginated["data"].as_array().unwrap().clone();
     assert!(list
-        .as_array()
-        .unwrap()
         .iter()
         .any(|s| s["name"].as_str().unwrap() == "LinkedIn"));
 

@@ -168,7 +168,9 @@ pub trait EmployeeWorkingConditionRepository: Send + Sync {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
-    ) -> Result<Vec<WorkingCondition>, AppError>;
+        page: i64,
+        limit: i64,
+    ) -> Result<(Vec<WorkingCondition>, i64), AppError>;
 
     async fn create_working_condition(
         &self,
@@ -246,7 +248,9 @@ pub trait EmployeeRecruitmentRepository: Send + Sync {
     async fn get_recruitment_sources(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-    ) -> Result<Vec<RecruitmentSource>, AppError>;
+        page: i64,
+        limit: i64,
+    ) -> Result<(Vec<RecruitmentSource>, i64), AppError>;
 
     async fn get_recruitment_source_by_id(
         &self,
@@ -494,7 +498,9 @@ mockall::mock! {
             &self,
             auth_token: &crate::diesel_pool::TenantAuthToken,
             employee_id: Uuid,
-        ) -> Result<Vec<WorkingCondition>, AppError>;
+            page: i64,
+            limit: i64,
+        ) -> Result<(Vec<WorkingCondition>, i64), AppError>;
         async fn create_working_condition(
             &self,
             auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -556,7 +562,9 @@ mockall::mock! {
         async fn get_recruitment_sources(
             &self,
             auth_token: &crate::diesel_pool::TenantAuthToken,
-        ) -> Result<Vec<RecruitmentSource>, AppError>;
+            page: i64,
+            limit: i64,
+        ) -> Result<(Vec<RecruitmentSource>, i64), AppError>;
         async fn get_recruitment_source_by_id(
             &self,
             id: Uuid,

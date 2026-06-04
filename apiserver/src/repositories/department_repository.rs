@@ -55,7 +55,9 @@ pub trait DepartmentRepository: Send + Sync {
     async fn get_departments(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-    ) -> Result<Vec<Department>, AppError>;
+        page: i64,
+        limit: i64,
+    ) -> Result<(Vec<Department>, i64), AppError>;
     async fn transfer_employee(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

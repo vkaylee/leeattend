@@ -10,7 +10,7 @@ use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::enums::RoleScopeType;
-use crate::models::{AssignRoleRequest, MemberExtraRole, WorkspaceRole};
+use crate::models::{AssignRoleRequest, MemberExtraRole, PaginationParams, WorkspaceRole};
 use crate::services::audit_service::AuditHelper;
 use crate::services::WorkspaceService;
 use crate::AppState;
@@ -200,16 +200,23 @@ pub async fn revoke_extra_role(
     }
 }
 
-// --- Workspace Role Management (CRUD) ---
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct PaginatedWorkspaceRoles {
+    pub data: Vec<WorkspaceRole>,
+    pub total: usize,
+    pub page: i64,
+    pub limit: i64,
+}
 
 #[utoipa::path(
     get,
     path = "/v1/workspaces/{ws_id}/roles",
     params(
-        ("ws_id" = Uuid, Path, description = "Workspace ID")
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        PaginationParams
     ),
     responses(
-        (status = 200, description = "List of workspace roles", body = Vec<WorkspaceRole>)
+        (status = 200, description = "List of workspace roles", body = PaginatedWorkspaceRoles)
     ),
     security(
         ("bearer_auth" = [])
@@ -218,17 +225,26 @@ pub async fn revoke_extra_role(
 pub async fn get_workspace_roles(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-) -> AppResult<Json<Vec<WorkspaceRole>>> {
+    axum::extract::Query(query): axum::extract::Query<crate::models::PaginationParams>,
+) -> AppResult<Json<crate::models::PaginatedResponse<WorkspaceRole>>> {
     // No permission gate — role list is non-sensitive metadata that every
     // workspace member needs in order to resolve role names on the People page.
 
-    let roles = state
+    let page = query.page.unwrap_or(1).max(1);
+    let limit = query.limit.unwrap_or(50).clamp(1, 3000);
+
+    let (roles, total) = state
         .core
         .workspace_repo
-        .get_workspace_roles(ctx.workspace_id)
+        .get_workspace_roles(ctx.workspace_id, page, limit)
         .await?;
 
-    Ok(Json(roles))
+    Ok(Json(crate::models::PaginatedResponse {
+        data: roles,
+        total: total as usize,
+        page,
+        limit,
+    }))
 }
 
 #[utoipa::path(

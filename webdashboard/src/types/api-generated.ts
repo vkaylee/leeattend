@@ -5447,6 +5447,14 @@ export interface components {
             /** Format: double */
             system_ot_hours: number;
         };
+        PaginatedApprovalWorkflows: {
+            data: components["schemas"]["ApprovalWorkflow"][];
+            /** Format: int64 */
+            limit: number;
+            /** Format: int64 */
+            page: number;
+            total: number;
+        };
         PaginatedAuditLogs: {
             data: components["schemas"]["AuditLog"][];
             /** Format: int64 */
@@ -5454,6 +5462,14 @@ export interface components {
             /** Format: int64 */
             page: number;
             /** Format: int64 */
+            total: number;
+        };
+        PaginatedDepartments: {
+            data: components["schemas"]["Department"][];
+            /** Format: int64 */
+            limit: number;
+            /** Format: int64 */
+            page: number;
             total: number;
         };
         PaginatedEmployees: {
@@ -5464,8 +5480,48 @@ export interface components {
             page: number;
             total: number;
         };
+        PaginatedEmployers: {
+            data: components["schemas"]["Employer"][];
+            /** Format: int64 */
+            limit: number;
+            /** Format: int64 */
+            page: number;
+            total: number;
+        };
+        PaginatedLocations: {
+            data: components["schemas"]["WorkLocation"][];
+            /** Format: int64 */
+            limit: number;
+            /** Format: int64 */
+            page: number;
+            total: number;
+        };
+        PaginatedRecruitmentSources: {
+            data: components["schemas"]["RecruitmentSource"][];
+            /** Format: int64 */
+            limit: number;
+            /** Format: int64 */
+            page: number;
+            total: number;
+        };
+        PaginatedWorkingConditions: {
+            data: components["schemas"]["WorkingCondition"][];
+            /** Format: int64 */
+            limit: number;
+            /** Format: int64 */
+            page: number;
+            total: number;
+        };
         PaginatedWorkspaceLeaveBalances: {
             data: components["schemas"]["WorkspaceLeaveBalance"][];
+            /** Format: int64 */
+            limit: number;
+            /** Format: int64 */
+            page: number;
+            total: number;
+        };
+        PaginatedWorkspaceRoles: {
+            data: components["schemas"]["WorkspaceRole"][];
             /** Format: int64 */
             limit: number;
             /** Format: int64 */
@@ -9323,7 +9379,16 @@ export interface operations {
     };
     get_departments: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number | null;
+                limit?: number | null;
+                q?: string | null;
+                year?: number | null;
+                sort_by?: string | null;
+                sort_dir?: string | null;
+                department_id?: string | null;
+                permission?: string | null;
+            };
             header?: never;
             path: {
                 /** @description Workspace ID */
@@ -9339,7 +9404,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Department"][];
+                    "application/json": components["schemas"]["PaginatedDepartments"];
                 };
             };
         };
@@ -9681,7 +9746,16 @@ export interface operations {
     };
     list_employers: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number | null;
+                limit?: number | null;
+                q?: string | null;
+                year?: number | null;
+                sort_by?: string | null;
+                sort_dir?: string | null;
+                department_id?: string | null;
+                permission?: string | null;
+            };
             header?: never;
             path: {
                 /** @description Workspace ID */
@@ -9697,7 +9771,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Employer"][];
+                    "application/json": components["schemas"]["PaginatedEmployers"];
                 };
             };
         };
@@ -10131,7 +10205,16 @@ export interface operations {
     };
     list_locations: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number | null;
+                limit?: number | null;
+                q?: string | null;
+                year?: number | null;
+                sort_by?: string | null;
+                sort_dir?: string | null;
+                department_id?: string | null;
+                permission?: string | null;
+            };
             header?: never;
             path: {
                 /** @description Workspace ID */
@@ -10147,7 +10230,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["WorkLocation"][];
+                    "application/json": components["schemas"]["PaginatedLocations"];
                 };
             };
         };
@@ -10676,7 +10759,16 @@ export interface operations {
     };
     get_recruitment_sources: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number | null;
+                limit?: number | null;
+                q?: string | null;
+                year?: number | null;
+                sort_by?: string | null;
+                sort_dir?: string | null;
+                department_id?: string | null;
+                permission?: string | null;
+            };
             header?: never;
             path: {
                 /** @description Workspace ID */
@@ -10692,7 +10784,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RecruitmentSource"][];
+                    "application/json": components["schemas"]["PaginatedRecruitmentSources"];
                 };
             };
         };
@@ -10813,6 +10905,14 @@ export interface operations {
             path: {
                 /** @description Workspace ID */
                 ws_id: string;
+                page: number | null;
+                limit: number | null;
+                q: string | null;
+                year: number | null;
+                sort_by: string | null;
+                sort_dir: string | null;
+                department_id: string | null;
+                permission: string | null;
             };
             cookie?: never;
         };
@@ -10824,7 +10924,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["WorkspaceRole"][];
+                    "application/json": components["schemas"]["PaginatedWorkspaceRoles"];
                 };
             };
         };
@@ -11286,7 +11386,16 @@ export interface operations {
     };
     get_working_conditions: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number | null;
+                limit?: number | null;
+                q?: string | null;
+                year?: number | null;
+                sort_by?: string | null;
+                sort_dir?: string | null;
+                department_id?: string | null;
+                permission?: string | null;
+            };
             header?: never;
             path: {
                 /** @description Workspace ID */
@@ -11304,7 +11413,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["WorkingCondition"][];
+                    "application/json": components["schemas"]["PaginatedWorkingConditions"];
                 };
             };
         };
@@ -12387,7 +12496,11 @@ export interface operations {
     };
     list_workflows: {
         parameters: {
-            query?: never;
+            query?: {
+                entity_type?: string | null;
+                page?: number | null;
+                limit?: number | null;
+            };
             header?: never;
             path: {
                 /** @description Workspace ID */
@@ -12403,7 +12516,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApprovalWorkflow"][];
+                    "application/json": components["schemas"]["PaginatedApprovalWorkflows"];
                 };
             };
         };

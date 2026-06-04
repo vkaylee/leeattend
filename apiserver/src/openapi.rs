@@ -412,6 +412,7 @@ use utoipa::OpenApi;
             crate::handlers::workspaces::roles::CreateWorkspaceRoleRequest,
             crate::handlers::workspaces::roles::UpdateWorkspaceRoleRequest,
             crate::handlers::workspaces::roles::UpdateRolePermissionsRequest,
+            crate::handlers::workspaces::roles::PaginatedWorkspaceRoles,
             WorkspaceRole,
             AssignRoleRequest,
             MemberExtraRole,
@@ -420,6 +421,7 @@ use utoipa::OpenApi;
             Department,
             CreateDepartmentRequest,
             UpdateDepartmentRequest,
+            crate::handlers::workspaces::departments::PaginatedDepartments,
 
             // Feature Flags Schemas
             crate::models::feature_flag::FeatureFlag,
@@ -440,6 +442,7 @@ use utoipa::OpenApi;
 
             // Recruitment Sources Schemas
             crate::models::RecruitmentSource,
+            crate::handlers::recruitment_sources::PaginatedRecruitmentSources,
             crate::models::CreateRecruitmentSourceRequest,
             crate::models::UpdateRecruitmentSourceRequest,
             crate::models::RecruitmentSourceBreakdown,
@@ -511,12 +514,15 @@ use utoipa::OpenApi;
             WorkLocation,
             CreateWorkLocationRequest,
             UpdateWorkLocationRequest,
+            crate::handlers::workspaces::locations::PaginatedLocations,
             Employer,
             CreateEmployerRequest,
             UpdateEmployerRequest,
+            crate::handlers::workspaces::employers::PaginatedEmployers,
 
             // Phase 3: Staff Management & Rosters
             WorkingCondition,
+            crate::handlers::employees::PaginatedWorkingConditions,
             CreateWorkingConditionRequest,
             crate::handlers::employees::PaginatedEmployees,
             Employee,
@@ -631,6 +637,7 @@ use utoipa::OpenApi;
             crate::handlers::salary_bases::CreateBaseRequest,
             crate::handlers::salary_bases::AssignMemberRequest,
             ApprovalWorkflow,
+            crate::handlers::approval_workflow::PaginatedApprovalWorkflows,
             CreateWorkflowRequest,
             crate::handlers::approval_workflow::ProcessApprovalRequest,
             ApprovalActionLog,

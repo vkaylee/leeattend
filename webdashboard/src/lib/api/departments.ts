@@ -6,7 +6,7 @@ export async function fetchDepartments(wsId: string): Promise<Department[]> {
     params: { path: { ws_id: wsId } }
   });
   if (!resData) throw new Error("No response data");
-  return resData;
+  return resData.data;
 }
 
 export async function createDepartment(

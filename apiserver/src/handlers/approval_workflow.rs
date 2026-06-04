@@ -2,7 +2,10 @@ use crate::{
     domain::permissions::Permission,
     errors::AppResult,
     handlers::common::MemberContext,
-    models::{ApprovalActionLog, ApprovalWorkflow, ApprovalWorkflowTask, CreateWorkflowRequest},
+    models::{
+        ApprovalActionLog, ApprovalWorkflow, ApprovalWorkflowTask, CreateWorkflowRequest,
+        PaginatedResponse,
+    },
     AppState,
 };
 use axum::{
@@ -14,39 +17,60 @@ use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct PaginatedApprovalWorkflows {
+    pub data: Vec<ApprovalWorkflow>,
+    pub total: usize,
+    pub page: i64,
+    pub limit: i64,
+}
+
+#[derive(Deserialize, utoipa::IntoParams)]
+pub struct ListWorkflowsQuery {
+    pub entity_type: Option<String>,
+    pub page: Option<i64>,
+    pub limit: Option<i64>,
+}
+
 /// GET /workspaces/{ws_id}/approval-workflows
 #[utoipa::path(
     get,
     path = "/workspaces/{ws_id}/approval-workflows",
     params(
-        ("ws_id" = Uuid, Path, description = "Workspace ID")
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ListWorkflowsQuery
     ),
     responses(
-        (status = 200, description = "Approval workflows list", body = [ApprovalWorkflow])
+        (status = 200, description = "Approval workflows list", body = PaginatedApprovalWorkflows)
     )
 )]
 pub async fn list_workflows(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     axum::extract::Query(query): axum::extract::Query<ListWorkflowsQuery>,
-) -> AppResult<Json<serde_json::Value>> {
+) -> AppResult<Json<PaginatedResponse<serde_json::Value>>> {
     ctx.require_permission(Permission::ApprovalWorkflowsRead)?;
-    let mut workflows = state
+    let page = query.page.unwrap_or(1).max(1);
+    let limit = query.limit.unwrap_or(50).clamp(1, 3000);
+
+    let (workflows, total) = state
         .core
         .approval_workflow_service
-        .list_workflows(&ctx.auth_token, ctx.workspace_id)
+        .list_workflows(
+            &ctx.auth_token,
+            ctx.workspace_id,
+            query.entity_type,
+            page,
+            limit,
+        )
         .await?;
 
-    if let Some(entity_type) = query.entity_type {
-        workflows.retain(|w| w.get("entity_type").and_then(|v| v.as_str()) == Some(&entity_type));
-    }
-
-    Ok(Json(serde_json::Value::Array(workflows)))
-}
-
-#[derive(Deserialize)]
-pub struct ListWorkflowsQuery {
-    pub entity_type: Option<String>,
+    Ok(Json(PaginatedResponse {
+        data: workflows,
+        total: total as usize,
+        page,
+        limit,
+    }))
 }
 
 /// POST /workspaces/{ws_id}/approval-workflows

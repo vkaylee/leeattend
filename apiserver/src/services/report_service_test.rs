@@ -134,7 +134,9 @@ mod tests {
         async fn get_workspace_roles(
             &self,
             _w: Uuid,
-        ) -> Result<Vec<crate::models::WorkspaceRole>, AppError> {
+            _page: i64,
+            _limit: i64,
+        ) -> Result<(Vec<crate::models::WorkspaceRole>, i64), AppError> {
             unimplemented!()
         }
         async fn create_workspace_role(
@@ -393,7 +395,9 @@ mod tests {
             &self,
             _a: &crate::diesel_pool::TenantAuthToken,
             _id: Uuid,
-        ) -> Result<Vec<WorkingCondition>, AppError> {
+            _page: i64,
+            _limit: i64,
+        ) -> Result<(Vec<WorkingCondition>, i64), AppError> {
             unimplemented!()
         }
         async fn create_working_condition(
@@ -475,7 +479,9 @@ mod tests {
         async fn get_recruitment_sources(
             &self,
             _a: &crate::diesel_pool::TenantAuthToken,
-        ) -> Result<Vec<RecruitmentSource>, AppError> {
+            _page: i64,
+            _limit: i64,
+        ) -> Result<(Vec<RecruitmentSource>, i64), AppError> {
             unimplemented!()
         }
         async fn get_recruitment_source_by_id(
@@ -1391,7 +1397,9 @@ mod tests {
             &self,
             _a: &crate::diesel_pool::TenantAuthToken,
             _id: Uuid,
-        ) -> Result<Vec<WorkingCondition>, AppError> {
+            _page: i64,
+            _limit: i64,
+        ) -> Result<(Vec<WorkingCondition>, i64), AppError> {
             unimplemented!()
         }
         async fn create_working_condition(
@@ -1473,7 +1481,9 @@ mod tests {
         async fn get_recruitment_sources(
             &self,
             _a: &crate::diesel_pool::TenantAuthToken,
-        ) -> Result<Vec<RecruitmentSource>, AppError> {
+            _page: i64,
+            _limit: i64,
+        ) -> Result<(Vec<RecruitmentSource>, i64), AppError> {
             unimplemented!()
         }
         async fn get_recruitment_source_by_id(

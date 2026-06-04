@@ -424,12 +424,22 @@ impl DepartmentRepository for DieselDepartmentRepository {
     async fn get_departments(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-    ) -> Result<Vec<Department>, AppError> {
+        page: i64,
+        limit: i64,
+    ) -> Result<(Vec<Department>, i64), AppError> {
         let mut conn = self
             .diesel_pools
             .tenant_transaction_conn(auth_token)
             .await?;
         let workspace_id = auth_token.workspace_id();
+
+        let total: i64 = departments::table
+            .filter(departments::workspace_id.eq(workspace_id))
+            .filter(departments::deleted_at.is_null())
+            .count()
+            .get_result(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db count: {e}")))?;
 
         let results = departments::table
             .filter(departments::workspace_id.eq(workspace_id))
@@ -438,16 +448,18 @@ impl DepartmentRepository for DieselDepartmentRepository {
                 departments::all_columns,
                 diesel::dsl::sql::<diesel::sql_types::BigInt>(
                     r"COALESCE((SELECT COUNT(DISTINCT e.id) FROM employees e
-                 JOIN (SELECT DISTINCT ON (employee_id) employee_id, department_id FROM employee_department_history ORDER BY employee_id, effective_date DESC) edh ON e.id = edh.employee_id
-                 WHERE edh.department_id = departments.id AND e.is_active = true AND e.workspace_id = departments.workspace_id), 0)",
+                  JOIN (SELECT DISTINCT ON (employee_id) employee_id, department_id FROM employee_department_history ORDER BY employee_id, effective_date DESC) edh ON e.id = edh.employee_id
+                  WHERE edh.department_id = departments.id AND e.is_active = true AND e.workspace_id = departments.workspace_id), 0)",
                 ),
             ))
             .order(departments::name)
+            .limit(limit)
+            .offset((page - 1) * limit)
             .load::<(DieselDepartment, i64)>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        Ok(results
+        let data = results
             .into_iter()
             .map(|(d, count)| DepartmentWithCountEntity {
                 id: d.id,
@@ -461,7 +473,9 @@ impl DepartmentRepository for DieselDepartmentRepository {
                 active_employee_count: count,
             })
             .map(Into::into)
-            .collect())
+            .collect();
+
+        Ok((data, total))
     }
 
     async fn transfer_employee(
@@ -813,7 +827,7 @@ mod tests {
         let err = repo.delete_department(&auth_token, Uuid::new_v4()).await;
         assert!(err.is_err());
 
-        let err = repo.get_departments(&auth_token).await;
+        let err = repo.get_departments(&auth_token, 1, 10).await;
         assert!(err.is_err());
 
         let err = repo

@@ -20,7 +20,8 @@ async fn test_employers_crud() {
         .expect("Failed to execute list request");
 
     assert_eq!(res.status(), StatusCode::OK);
-    let employers: Vec<Value> = res.json().await.unwrap();
+    let paginated: Value = res.json().await.unwrap();
+    let employers = paginated["data"].as_array().unwrap().clone();
     assert!(
         employers.is_empty(),
         "Employers list should be empty initially"
@@ -159,6 +160,7 @@ async fn test_employers_crud() {
         .await
         .expect("Failed to fetch list");
 
-    let list: Vec<Value> = res.json().await.unwrap();
+    let paginated: Value = res.json().await.unwrap();
+    let list = paginated["data"].as_array().unwrap().clone();
     assert!(list.is_empty(), "Employers list should be empty again");
 }
