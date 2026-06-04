@@ -147,4 +147,30 @@ impl BehalfAssignmentRepository for DieselBehalfAssignmentRepository {
 
         Ok(count > 0)
     }
+
+    async fn list_assignments_for_assignee(
+        &self,
+        workspace_id: Uuid,
+        assignee_employee_id: Uuid,
+        assignment_type: &str,
+    ) -> AppResult<Vec<BehalfAssignment>> {
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        behalf_assignments::table
+            .filter(behalf_assignments::workspace_id.eq(workspace_id))
+            .filter(behalf_assignments::assignee_employee_id.eq(assignee_employee_id))
+            .filter(behalf_assignments::assignment_type.eq(assignment_type))
+            .order(behalf_assignments::created_at.desc())
+            .select(BehalfAssignmentEntity::as_select())
+            .load(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))
+            .map(|rows| rows.into_iter().map(Into::into).collect())
+    }
 }

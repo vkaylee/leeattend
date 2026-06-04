@@ -2,7 +2,7 @@ use crate::{
     domain::permissions::Permission,
     errors::{AppError, AppResult},
     handlers::common::MemberContext,
-    models::{BehalfAssignment, CreateBehalfAssignmentRequest, OtRequestStatus, OvertimeRequest, OvertimeRequestEmployee},
+    models::{BehalfAssignment, CreateBehalfAssignmentRequest, Employee, OtRequestStatus, OvertimeRequest, OvertimeRequestEmployee},
     AppState,
 };
 use axum::{
@@ -360,3 +360,29 @@ pub async fn list_request_behalf_assignments(
     Ok(Json(result))
 }
 
+#[utoipa::path(
+    get,
+    path = "/v1/workspaces/{ws_id}/overtime/requests/behalf-assignments/my-targets",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    responses(
+        (status = 200, description = "Target employees for OT request behalf", body = Vec<Employee>)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
+pub async fn get_my_request_behalf_targets(
+    State(state): State<Arc<AppState>>,
+    Path(_ws_id): Path<Uuid>,
+    ctx: MemberContext,
+) -> AppResult<Json<Vec<crate::models::Employee>>> {
+    let result = crate::handlers::common::get_my_behalf_targets_handler(
+        &state,
+        &ctx,
+        "overtime_request",
+    )
+    .await?;
+    Ok(Json(result))
+}

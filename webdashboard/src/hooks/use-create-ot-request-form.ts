@@ -4,14 +4,12 @@ import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 
 import { useToast } from "@/components/ui/toast";
-import { useAllEmployees } from "@/hooks/use-employees";
+import { useBehalfEmployees } from "@/hooks/use-behalf-employees";
 import { useCreateOvertimeRequest, useEmployeeQuota } from "@/hooks/use-overtime-requests";
-import { useWorkspace } from "@/hooks/use-workspace";
 
 export function useCreateOtRequestForm(onSuccess?: () => void) {
   const { t } = useTranslation();
   const toast = useToast();
-  const { workspace } = useWorkspace();
   
   const [open, setOpen] = useState(false);
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
@@ -20,9 +18,7 @@ export function useCreateOtRequestForm(onSuccess?: () => void) {
   const [plannedEndTime, setPlannedEndTime] = useState("19:00");
   const [reason, setReason] = useState("");
 
-  const { employees } = useAllEmployees(workspace?.id ?? "", {
-    permission: "overtime:request:create_on_behalf",
-  });
+  const { employees, hasAssignments, isLoading: behalfLoading } = useBehalfEmployees("overtime_request");
   const { mutate: createRequest, isPending } = useCreateOvertimeRequest();
 
   const sampleEmployeeId = selectedEmployees.length > 0 ? selectedEmployees[0] : "";
@@ -86,23 +82,25 @@ export function useCreateOtRequestForm(onSuccess?: () => void) {
   };
 
   return {
-    open,
-    setOpen,
-    selectedEmployees,
-    setSelectedEmployees,
-    plannedDate,
-    setPlannedDate,
-    plannedStartTime,
-    setPlannedStartTime,
-    plannedEndTime,
-    setPlannedEndTime,
-    reason,
-    setReason,
-    employees,
-    quotaWarning,
-    isPending,
+    behalfLoading,
     calculateMinutes,
+    employees,
     handleCreate,
+    hasAssignments,
+    isPending,
+    open,
+    plannedDate,
+    plannedEndTime,
+    plannedStartTime,
+    quotaWarning,
+    reason,
+    selectedEmployees,
+    setOpen,
+    setPlannedDate,
+    setPlannedEndTime,
+    setPlannedStartTime,
+    setReason,
+    setSelectedEmployees,
     toggleEmployee,
   };
 }

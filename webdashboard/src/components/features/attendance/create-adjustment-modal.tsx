@@ -1,14 +1,15 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { History } from "lucide-react";
+import { History, Info, Loader2 } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { format } from "date-fns";
 
-import { EmployeeSearch } from "@/components/common/employee-search";
 import Button from "@/components/ui/button";
+import { Combobox } from "@/components/ui/combobox";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
+import { useBehalfEmployees } from "@/hooks/use-behalf-employees";
 import { submitAttendanceAdjustment } from "@/lib/api";
 import { toUTCISO } from "@/lib/datetime";
 
@@ -117,6 +118,7 @@ export function CreateAdjustmentModal({
   wsId,
 }: CreateAdjustmentModalProps) {
   const { t } = useTranslation(["common", "attendance"]);
+  const { employees: behalfEmployees, isLoading: behalfLoading, hasAssignments } = useBehalfEmployees("attendance_adjustment");
   const {
     date,
     handleClose,
@@ -135,6 +137,11 @@ export function CreateAdjustmentModal({
     setSelectedEmpId,
   } = useCreateAdjustmentForm({ onClose, timezone, wsId });
 
+  const behalfOptions = behalfEmployees.map(emp => ({
+    value: emp.id,
+    label: `${emp.full_name} (${emp.employee_id_number})`,
+  }));
+
   return (
     <Modal
       icon={<History size={24} />}
@@ -149,17 +156,26 @@ export function CreateAdjustmentModal({
           <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="adj-emp">
             {t("common.employee")}
           </label>
-          <EmployeeSearch
-            className="h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 shadow-sm"
-            id="adj-emp"
-            onChange={(value) => {
-              setSelectedEmpId(Array.isArray(value) ? value[0] || "" : value);
-            }}
-            permission="attendance:adjustments:submit_on_behalf"
-            placeholder={t("attendance_logs.select_employee")}
-            value={selectedEmpId}
-            workspaceId={wsId}
-          />
+          {behalfLoading ? (
+            <div className="h-14 rounded-2xl bg-slate-100 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 px-5 flex items-center gap-2 text-slate-400 text-sm">
+              <Loader2 className="animate-spin" size={14} />
+              {t("common.loading")}
+            </div>
+          ) : hasAssignments ? (
+            <Combobox
+              className="h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 shadow-sm"
+              id="adj-emp"
+              onChange={setSelectedEmpId}
+              options={behalfOptions}
+              placeholder={t("attendance_logs.select_employee")}
+              value={selectedEmpId}
+            />
+          ) : (
+            <div className="h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 px-5 flex items-center gap-2 text-amber-700 dark:text-amber-400 text-sm">
+              <Info size={14} />
+              {t("behalf.no_assignments_configured", "Chưa có cấu hình behalf assignment")}
+            </div>
+          )}
         </div>
 
         <div className="space-y-2">

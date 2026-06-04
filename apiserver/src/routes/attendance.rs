@@ -38,6 +38,10 @@ pub fn router() -> Router<Arc<AppState>> {
                 .post(handlers::attendance::adjustments::create_adjustment_behalf_assignment),
         )
         .route(
+            "/workspaces/:ws_id/attendance/adjustments/behalf-assignments/my-targets",
+            get(handlers::attendance::adjustments::get_my_adjustment_behalf_targets),
+        )
+        .route(
             "/workspaces/:ws_id/attendance/adjustments/behalf-assignments/:id",
             delete(handlers::attendance::adjustments::delete_adjustment_behalf_assignment),
         )

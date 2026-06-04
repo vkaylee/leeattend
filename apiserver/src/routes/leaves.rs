@@ -119,6 +119,10 @@ pub fn router() -> Router<Arc<AppState>> {
                 .post(handlers::leaves::create_leave_behalf_assignment),
         )
         .route(
+            "/workspaces/:ws_id/leave/behalf-assignments/my-targets",
+            get(handlers::leaves::get_my_leave_behalf_targets),
+        )
+        .route(
             "/workspaces/:ws_id/leave/behalf-assignments/:id",
             delete(handlers::leaves::delete_leave_behalf_assignment),
         )

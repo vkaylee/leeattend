@@ -1,4 +1,4 @@
-import { Clock, Plus, Users, AlertTriangle } from "lucide-react";
+import { AlertTriangle, Clock, Info, Loader2, Plus, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { TFunction } from "i18next";
@@ -12,22 +12,24 @@ export function CreateOtRequestDialog({ onSuccess }: { onSuccess?: () => void })
   const { t } = useTranslation();
 
   const {
-    open,
-    setOpen,
-    selectedEmployees,
-    plannedDate,
-    setPlannedDate,
-    plannedStartTime,
-    setPlannedStartTime,
-    plannedEndTime,
-    setPlannedEndTime,
-    reason,
-    setReason,
-    employees,
-    quotaWarning,
-    isPending,
+    behalfLoading,
     calculateMinutes,
+    employees,
     handleCreate,
+    hasAssignments,
+    isPending,
+    open,
+    plannedDate,
+    plannedEndTime,
+    plannedStartTime,
+    quotaWarning,
+    reason,
+    selectedEmployees,
+    setOpen,
+    setPlannedDate,
+    setPlannedEndTime,
+    setPlannedStartTime,
+    setReason,
     toggleEmployee,
   } = useCreateOtRequestForm(onSuccess);
 
@@ -51,12 +53,24 @@ export function CreateOtRequestDialog({ onSuccess }: { onSuccess?: () => void })
         title={t("approvals.pre_ot_dialog.modal_title")}
       >
         <div className="space-y-6">
-          <EmployeeSelectionList
-            employees={employees}
-            selectedEmployees={selectedEmployees}
-            t={t}
-            toggleEmployee={toggleEmployee}
-          />
+          {behalfLoading ? (
+            <div className="h-14 rounded-xl bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 px-5 flex items-center gap-2 text-slate-400 text-sm">
+              <Loader2 className="animate-spin" size={14} />
+              {t("common.loading")}
+            </div>
+          ) : hasAssignments ? (
+            <EmployeeSelectionList
+              employees={employees}
+              selectedEmployees={selectedEmployees}
+              t={t}
+              toggleEmployee={toggleEmployee}
+            />
+          ) : (
+            <div className="h-14 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 px-5 flex items-center gap-2 text-amber-700 dark:text-amber-400 text-sm">
+              <Info size={14} />
+              {t("behalf.no_assignments_configured", "Chưa có cấu hình behalf assignment")}
+            </div>
+          )}
 
           {/* Quota Warning Banner */}
           {selectedEmployees.length > 0 && !!quotaWarning && quotaWarning.monthly_limit !== null && (

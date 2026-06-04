@@ -603,6 +603,108 @@ pub async fn list_behalf_assignments_handler(
         .await
 }
 
+/// Generic handler: resolve the list of **target employees** that the current
+/// user is allowed to act on behalf of, for a given domain type.
+///
+/// 1. Find the caller's employee_id from user_id
+/// 2. Fetch behalf assignments where assignee = caller
+/// 3. Resolve `target_employee_id` → Employee records
+/// 4. Resolve `target_department_id` → all employees currently in that department
+/// 5. Deduplicate and return
+pub async fn get_my_behalf_targets_handler(
+    state: &AppState,
+    ctx: &MemberContext,
+    domain_type: &str,
+) -> AppResult<Vec<crate::models::Employee>> {
+    let caller_employee_id = state
+        .employees
+        .repo
+        .get_employee_id_by_user_id(&ctx.auth_token, ctx.user_id)
+        .await?
+        .ok_or_else(|| AppError::Forbidden("error.no_employee_record".to_string()))?;
+
+    let assignments = state
+        .attendance
+        .behalf_assignment_repo
+        .list_assignments_for_assignee(ctx.workspace_id, caller_employee_id, domain_type)
+        .await?;
+
+    if assignments.is_empty() {
+        return Ok(vec![]);
+    }
+
+    // Resolve department → employee IDs
+    let dept_ids: Vec<Uuid> = assignments
+        .iter()
+        .filter_map(|a| a.target_department_id)
+        .collect();
+
+    let dept_map = if !dept_ids.is_empty() {
+        let today = chrono::Utc::now().date_naive();
+        state
+            .employees
+            .repo
+            .get_employee_departments_at(&ctx.auth_token, today)
+            .await?
+    } else {
+        std::collections::HashMap::new()
+    };
+
+    let all_employee_ids = resolve_behalf_target_ids(&assignments, &dept_map);
+
+    if all_employee_ids.is_empty() {
+        return Ok(vec![]);
+    }
+
+    let ids_vec: Vec<Uuid> = all_employee_ids.into_iter().collect();
+    let employees = state
+        .employees
+        .repo
+        .get_employees_by_ids(&ids_vec, &ctx.auth_token)
+        .await?;
+
+    // Filter out inactive employees
+    let active: Vec<crate::models::Employee> =
+        employees.into_iter().filter(|e| e.is_active).collect();
+
+    Ok(active)
+}
+
+/// Pure function: resolve behalf assignments into a deduplicated set of employee IDs.
+///
+/// - Collects `target_employee_id` from direct employee assignments
+/// - Resolves `target_department_id` via the `dept_map` (employee → (dept_id, dept_name))
+/// - Deduplicates using `HashSet`
+pub(crate) fn resolve_behalf_target_ids(
+    assignments: &[crate::models::BehalfAssignment],
+    dept_map: &std::collections::HashMap<Uuid, (Option<Uuid>, String)>,
+) -> std::collections::HashSet<Uuid> {
+    let direct_employee_ids: Vec<Uuid> = assignments
+        .iter()
+        .filter_map(|a| a.target_employee_id)
+        .collect();
+
+    let dept_ids: Vec<Uuid> = assignments
+        .iter()
+        .filter_map(|a| a.target_department_id)
+        .collect();
+
+    let mut all_employee_ids: std::collections::HashSet<Uuid> =
+        direct_employee_ids.into_iter().collect();
+
+    if !dept_ids.is_empty() {
+        for (emp_id, (dept_id_opt, _dept_name)) in dept_map {
+            if let Some(dept_id) = dept_id_opt {
+                if dept_ids.contains(dept_id) {
+                    all_employee_ids.insert(*emp_id);
+                }
+            }
+        }
+    }
+
+    all_employee_ids
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -836,5 +938,156 @@ mod tests {
 
         let res = ApiContext::from_request_parts(&mut parts, &()).await;
         assert!(res.is_err());
+    }
+
+    // ── resolve_behalf_target_ids tests ──────────────────────────────────
+
+    fn make_assignment(
+        target_employee_id: Option<Uuid>,
+        target_department_id: Option<Uuid>,
+    ) -> crate::models::BehalfAssignment {
+        crate::models::BehalfAssignment {
+            id: Uuid::new_v4(),
+            workspace_id: Uuid::new_v4(),
+            assignee_employee_id: Uuid::new_v4(),
+            target_employee_id,
+            target_department_id,
+            assignment_type: "leave_request".to_string(),
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        }
+    }
+
+    #[test]
+    fn test_resolve_empty_assignments() {
+        let dept_map = std::collections::HashMap::new();
+        let result = resolve_behalf_target_ids(&[], &dept_map);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_resolve_direct_employee_targets() {
+        let emp_a = Uuid::new_v4();
+        let emp_b = Uuid::new_v4();
+        let assignments = vec![
+            make_assignment(Some(emp_a), None),
+            make_assignment(Some(emp_b), None),
+        ];
+        let dept_map = std::collections::HashMap::new();
+
+        let result = resolve_behalf_target_ids(&assignments, &dept_map);
+
+        assert_eq!(result.len(), 2);
+        assert!(result.contains(&emp_a));
+        assert!(result.contains(&emp_b));
+    }
+
+    #[test]
+    fn test_resolve_department_targets() {
+        let dept_x = Uuid::new_v4();
+        let emp_in_dept = Uuid::new_v4();
+        let emp_not_in_dept = Uuid::new_v4();
+
+        let assignments = vec![make_assignment(None, Some(dept_x))];
+
+        let mut dept_map = std::collections::HashMap::new();
+        dept_map.insert(emp_in_dept, (Some(dept_x), "Sales".to_string()));
+        dept_map.insert(
+            emp_not_in_dept,
+            (Some(Uuid::new_v4()), "Engineering".to_string()),
+        );
+
+        let result = resolve_behalf_target_ids(&assignments, &dept_map);
+
+        assert_eq!(result.len(), 1);
+        assert!(result.contains(&emp_in_dept));
+        assert!(!result.contains(&emp_not_in_dept));
+    }
+
+    #[test]
+    fn test_resolve_mixed_direct_and_department() {
+        let emp_direct = Uuid::new_v4();
+        let dept_x = Uuid::new_v4();
+        let emp_in_dept = Uuid::new_v4();
+
+        let assignments = vec![
+            make_assignment(Some(emp_direct), None),
+            make_assignment(None, Some(dept_x)),
+        ];
+
+        let mut dept_map = std::collections::HashMap::new();
+        dept_map.insert(emp_in_dept, (Some(dept_x), "HR".to_string()));
+
+        let result = resolve_behalf_target_ids(&assignments, &dept_map);
+
+        assert_eq!(result.len(), 2);
+        assert!(result.contains(&emp_direct));
+        assert!(result.contains(&emp_in_dept));
+    }
+
+    #[test]
+    fn test_resolve_deduplicates_overlapping_targets() {
+        let emp_overlap = Uuid::new_v4();
+        let dept_x = Uuid::new_v4();
+
+        // Same employee is both a direct target AND in the target department
+        let assignments = vec![
+            make_assignment(Some(emp_overlap), None),
+            make_assignment(None, Some(dept_x)),
+        ];
+
+        let mut dept_map = std::collections::HashMap::new();
+        dept_map.insert(emp_overlap, (Some(dept_x), "Sales".to_string()));
+
+        let result = resolve_behalf_target_ids(&assignments, &dept_map);
+
+        // Should be 1, not 2 (deduplicated)
+        assert_eq!(result.len(), 1);
+        assert!(result.contains(&emp_overlap));
+    }
+
+    #[test]
+    fn test_resolve_dept_target_skips_employees_without_department() {
+        let dept_x = Uuid::new_v4();
+        let emp_no_dept = Uuid::new_v4();
+
+        let assignments = vec![make_assignment(None, Some(dept_x))];
+
+        let mut dept_map = std::collections::HashMap::new();
+        // Employee has no department (None)
+        dept_map.insert(emp_no_dept, (None, "Unassigned".to_string()));
+
+        let result = resolve_behalf_target_ids(&assignments, &dept_map);
+
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_resolve_multiple_departments() {
+        let dept_a = Uuid::new_v4();
+        let dept_b = Uuid::new_v4();
+        let emp_in_a = Uuid::new_v4();
+        let emp_in_b = Uuid::new_v4();
+        let emp_in_c = Uuid::new_v4();
+
+        let assignments = vec![
+            make_assignment(None, Some(dept_a)),
+            make_assignment(None, Some(dept_b)),
+        ];
+
+        let mut dept_map = std::collections::HashMap::new();
+        dept_map.insert(emp_in_a, (Some(dept_a), "Sales".to_string()));
+        dept_map.insert(emp_in_b, (Some(dept_b), "Engineering".to_string()));
+        dept_map.insert(
+            emp_in_c,
+            (Some(Uuid::new_v4()), "Marketing".to_string()),
+        );
+
+        let result = resolve_behalf_target_ids(&assignments, &dept_map);
+
+        assert_eq!(result.len(), 2);
+        assert!(result.contains(&emp_in_a));
+        assert!(result.contains(&emp_in_b));
+        assert!(!result.contains(&emp_in_c));
     }
 }

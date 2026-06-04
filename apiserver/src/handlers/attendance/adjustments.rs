@@ -11,7 +11,7 @@ use crate::errors::AppResult;
 use crate::handlers::common::MemberContext;
 use crate::models::{
     AdjustmentStatus, ApproveAttendanceAdjustmentRequest, AttendanceAdjustmentRequest,
-    CreateAttendanceAdjustmentRequest,
+    CreateAttendanceAdjustmentRequest, Employee,
 };
 use crate::AppState;
 use crate::UserId;
@@ -303,6 +303,33 @@ pub async fn list_adjustment_behalf_assignments(
         &state,
         &ctx,
         Permission::AttendanceAdjustmentsManageBehalf,
+        "attendance_adjustment",
+    )
+    .await?;
+    Ok(Json(result))
+}
+
+#[utoipa::path(
+    get,
+    path = "/v1/workspaces/{ws_id}/attendance/adjustments/behalf-assignments/my-targets",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID")
+    ),
+    responses(
+        (status = 200, description = "Target employees for adjustment behalf", body = Vec<Employee>)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
+pub async fn get_my_adjustment_behalf_targets(
+    State(state): State<Arc<AppState>>,
+    Path(_ws_id): Path<Uuid>,
+    ctx: MemberContext,
+) -> AppResult<Json<Vec<crate::models::Employee>>> {
+    let result = crate::handlers::common::get_my_behalf_targets_handler(
+        &state,
+        &ctx,
         "attendance_adjustment",
     )
     .await?;

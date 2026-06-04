@@ -22,4 +22,6 @@ export * from "./workspace-config";
 export * from "./approval-workflows";
 export * from "./employers";
 export { overtimeRequestsApi } from "./overtime-requests";
+export { fetchMyBehalfTargets } from "./behalf-targets";
+export type { BehalfDomain } from "./behalf-targets";
 

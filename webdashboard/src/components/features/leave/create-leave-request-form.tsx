@@ -1,11 +1,10 @@
 import type { TFunction } from "i18next";
 
-import { Calendar, CalendarDays, FileText, Info, Moon, PlayCircle, Sun, Timer } from "lucide-react";
+import { Calendar, CalendarDays, FileText, Info, Loader2, Moon, PlayCircle, Sun, Timer } from "lucide-react";
 import React from "react";
 
 import type { Employee, EmployeeLeaveBalance, LeaveDurationType, LeaveType } from "@/lib/api/types";
 
-import { EmployeeSearch } from "@/components/common/employee-search";
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import FormField from "@/components/ui/form-field";
@@ -107,11 +106,15 @@ function CustomHoursFields({
 
 export interface CreateLeaveRequestFormProps {
   balances: EmployeeLeaveBalance[];
+  behalfEmployees: Employee[];
+  behalfLoading: boolean;
   canSubmitOnBehalf: boolean;
   durationType: LeaveDurationType;
   employee: Employee | undefined;
   endDate: string;
   endTime: string;
+  /** Whether user has RBAC permission (but maybe no behalf config) */
+  hasPermission: boolean;
   isSubmitting: boolean;
   leaveTypeId: string;
   leaveTypes: LeaveType[];
@@ -128,16 +131,18 @@ export interface CreateLeaveRequestFormProps {
   startDate: string;
   startTime: string;
   t: TFunction;
-  wsId: string;
 }
 
 export function CreateLeaveRequestForm({
   balances,
+  behalfEmployees,
+  behalfLoading,
   canSubmitOnBehalf,
   durationType,
   employee,
   endDate,
   endTime,
+  hasPermission,
   isSubmitting,
   leaveTypeId,
   leaveTypes,
@@ -154,23 +159,37 @@ export function CreateLeaveRequestForm({
   startDate,
   startTime,
   t,
-  wsId,
 }: CreateLeaveRequestFormProps) {
   const empIdToUse = canSubmitOnBehalf ? selectedEmpId : (employee?.id ?? "");
+
+  const behalfOptions = behalfEmployees.map(emp => ({
+    value: emp.id,
+    label: `${emp.full_name} (${emp.employee_id_number})`,
+  }));
 
   return (
     <form className="space-y-8 pt-4" onSubmit={onSubmit}>
       <div className="space-y-3 px-1">
         <label className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest ml-1" htmlFor="leave-emp">{t("common.employee")}</label>
         {canSubmitOnBehalf ? (
-          <EmployeeSearch
+          <Combobox
             className="h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 border-primary-100 dark:border-primary-800/50 shadow-sm"
             id="leave-emp"
-            onChange={(value) => { setSelectedEmpId(Array.isArray(value) ? value[0] || "" : value); }}
-            permission="leave:requests:submit_on_behalf"
+            onChange={setSelectedEmpId}
+            options={behalfOptions}
+            placeholder={t("common.select_employee")}
             value={selectedEmpId}
-            workspaceId={wsId}
           />
+        ) : hasPermission && behalfLoading ? (
+          <div className="h-14 rounded-2xl bg-slate-100 dark:bg-slate-800/50 border border-primary-100 dark:border-primary-800/50 px-5 flex items-center gap-2 text-primary-400 text-sm">
+            <Loader2 className="animate-spin" size={14} />
+            {t("common.loading")}
+          </div>
+        ) : hasPermission ? (
+          <div className="h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 px-5 flex items-center gap-2 text-amber-700 dark:text-amber-400 text-sm">
+            <Info size={14} />
+            {t("behalf.no_assignments_configured", "Chưa có cấu hình behalf assignment")}
+          </div>
         ) : (
           <div className="h-14 rounded-2xl bg-slate-100 dark:bg-slate-800/50 border border-primary-100 dark:border-primary-800/50 px-5 flex items-center text-primary-700 dark:text-primary-350 font-semibold text-sm">
             {employee?.full_name ?? "Loading..."}

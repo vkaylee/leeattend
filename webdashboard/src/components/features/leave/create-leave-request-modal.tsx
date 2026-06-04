@@ -8,6 +8,7 @@ import type { LeaveDurationType, LeaveType } from "@/lib/api/types";
 
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
+import { useBehalfEmployees } from "@/hooks/use-behalf-employees";
 import { useMyProfile } from "@/hooks/use-ess";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { fetchEmployeeLeaveBalances, submitLeaveRequest } from "@/lib/api";
@@ -27,13 +28,16 @@ export function CreateLeaveRequestModal({ isOpen, onClose, wsId, leaveTypes, t }
   const queryClient = useQueryClient();
   const { hasAnyPermission } = useMyPermissions();
   const { employee } = useMyProfile();
+  const { employees: behalfEmployees, hasAssignments: hasBehalfAssignments, isLoading: behalfLoading } = useBehalfEmployees("leave");
 
-  const canSubmitOnBehalf = hasAnyPermission(
+  const hasPermission = hasAnyPermission(
     "leave:requests:submit_on_behalf",
     "leave:requests:approve",
     "leave:approve:l1",
     "leave:approve:l2"
   );
+  // Must have RBAC permission AND behalf assignments
+  const canSubmitOnBehalf = hasPermission && hasBehalfAssignments;
 
   const [selectedEmpId, setSelectedEmpId] = useState<string>("");
   const [leaveTypeId, setLeaveTypeId] = useState<string>("");
@@ -94,11 +98,14 @@ export function CreateLeaveRequestModal({ isOpen, onClose, wsId, leaveTypes, t }
     <Modal icon={<CalendarDays size={24} />} isOpen={isOpen} maxWidth="md" onClose={handleClose} subtitle={t("leave_requests.modal.submit_subtitle")} title={t("leave_requests.modal.submit_title")}>
       <CreateLeaveRequestForm
         balances={balances}
+        behalfEmployees={behalfEmployees}
+        behalfLoading={behalfLoading}
         canSubmitOnBehalf={canSubmitOnBehalf}
         durationType={durationType}
         employee={employee}
         endDate={endDate}
         endTime={endTime}
+        hasPermission={hasPermission}
         isSubmitting={submitMutation.isPending}
         leaveTypeId={leaveTypeId}
         leaveTypes={leaveTypes}
@@ -115,7 +122,6 @@ export function CreateLeaveRequestModal({ isOpen, onClose, wsId, leaveTypes, t }
         startDate={startDate}
         startTime={startTime}
         t={t}
-        wsId={wsId}
       />
     </Modal>
   );

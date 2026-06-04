@@ -30,4 +30,13 @@ pub trait BehalfAssignmentRepository: Send + Sync {
         target_department_id: Option<Uuid>,
         assignment_type: &str,
     ) -> AppResult<bool>;
+
+    /// List assignments where the given employee is the **assignee** (i.e. the person
+    /// who is allowed to act on behalf of others).
+    async fn list_assignments_for_assignee(
+        &self,
+        workspace_id: Uuid,
+        assignee_employee_id: Uuid,
+        assignment_type: &str,
+    ) -> AppResult<Vec<BehalfAssignment>>;
 }

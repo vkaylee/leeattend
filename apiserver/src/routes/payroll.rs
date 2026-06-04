@@ -99,6 +99,10 @@ pub fn router() -> Router<Arc<AppState>> {
                 .post(handlers::overtime_request::create_request_behalf_assignment),
         )
         .route(
+            "/workspaces/:ws_id/overtime/requests/behalf-assignments/my-targets",
+            get(handlers::overtime_request::get_my_request_behalf_targets),
+        )
+        .route(
             "/workspaces/:ws_id/overtime/requests/behalf-assignments/:id",
             delete(handlers::overtime_request::delete_request_behalf_assignment),
         )

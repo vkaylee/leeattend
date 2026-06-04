@@ -146,6 +146,7 @@ use utoipa::OpenApi;
         crate::handlers::leaves::list_leave_behalf_assignments,
         crate::handlers::leaves::create_leave_behalf_assignment,
         crate::handlers::leaves::delete_leave_behalf_assignment,
+        crate::handlers::leaves::get_my_leave_behalf_targets,
         crate::handlers::leaves::download_leave_import_errors,
         crate::handlers::leaves::download_leave_import_template,
         crate::handlers::leave_types::list_leave_types,
@@ -166,6 +167,7 @@ use utoipa::OpenApi;
         crate::handlers::overtime_request::list_request_behalf_assignments,
         crate::handlers::overtime_request::create_request_behalf_assignment,
         crate::handlers::overtime_request::delete_request_behalf_assignment,
+        crate::handlers::overtime_request::get_my_request_behalf_targets,
         crate::handlers::overtime::list_policies,
         crate::handlers::overtime::get_policy,
         crate::handlers::overtime::create_policy,
@@ -329,6 +331,7 @@ use utoipa::OpenApi;
         crate::handlers::attendance::adjustments::create_adjustment_behalf_assignment,
         crate::handlers::attendance::adjustments::delete_adjustment_behalf_assignment,
         crate::handlers::attendance::adjustments::list_adjustment_behalf_assignments,
+        crate::handlers::attendance::adjustments::get_my_adjustment_behalf_targets,
 
         // Attendance Overtime Paths
         crate::handlers::attendance::overtime::claim_ot,
