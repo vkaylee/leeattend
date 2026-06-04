@@ -13,7 +13,7 @@ import {
   fetchLatestLeaveImport,
 } from "@/lib/api";
 
-type TabType = "pending" | "approved" | "rejected";
+export type TabType = "pending" | "approved" | "rejected" | "behalf_assignments";
 
 export function useLeaveRequests(wsId: string | null) {
   const { t } = useTranslation();
@@ -25,7 +25,14 @@ export function useLeaveRequests(wsId: string | null) {
   const [activeTab, setActiveTab] = useState<TabType>("pending");
 
   const { employees } = useAllEmployees(wsId);
-  const { data: requests = [], isLoading: requestsLoading } = useQuery({ queryKey: ["leave-requests", wsId, activeTab], queryFn: () => fetchWorkspaceLeaveRequests(wsId ?? "", activeTab), enabled: !!wsId });
+  const { data: requests = [], isLoading: requestsLoading } = useQuery({
+    queryKey: ["leave-requests", wsId, activeTab],
+    queryFn: () => {
+      if (activeTab === "behalf_assignments") return [];
+      return fetchWorkspaceLeaveRequests(wsId ?? "", activeTab as "pending" | "approved" | "rejected");
+    },
+    enabled: !!wsId && activeTab !== "behalf_assignments"
+  });
   const { data: leaveTypes = [] } = useQuery({ queryKey: ["leave-types", wsId], queryFn: () => fetchLeaveTypes(wsId ?? ""), enabled: !!wsId });
 
   const approveMutation = useMutation({

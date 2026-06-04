@@ -1,6 +1,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { useQuery } from "@tanstack/react-query";
-import { Check, CheckCircle, FileText, Search, Upload, X } from "lucide-react";
+import { Check, CheckCircle, Clock, FileText, Search, ShieldCheck, Upload, X } from "lucide-react";
+import { PageTabs, PageTab } from "@/components/ui/page-tabs";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -60,84 +61,7 @@ function getPendingSummaries(
     });
 }
 
-interface TabButtonsProps {
-  activeTab: "pre" | "post" | "delegated_claim" | "behalf_assignments";
-  canApprove: boolean;
-  canClaimOnBehalf: boolean;
-  canManagePolicies: boolean;
-  setActiveTab: (tab: "pre" | "post" | "delegated_claim" | "behalf_assignments") => void;
-  t: (key: string, options?: { defaultValue: string }) => string;
-}
 
-function TabButtons({
-  activeTab,
-  setActiveTab,
-  canApprove,
-  canClaimOnBehalf,
-  canManagePolicies,
-  t,
-}: TabButtonsProps) {
-  return (
-    <div className="flex bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 mb-8 overflow-x-auto custom-scrollbar">
-      {canApprove ? (
-        <Button
-          className={cn(
-            "flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold transition-all duration-300 whitespace-nowrap normal-case tracking-normal shadow-none",
-            activeTab === "pre"
-              ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
-              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-          )}
-          onClick={() => { setActiveTab("pre"); }}
-          variant="ghost"
-        >
-          {t("ot_approvals.tabs.pre_ot", { defaultValue: "Pre-OT Approvals (Requests)" })}
-        </Button>
-      ) : null}
-      {canApprove ? (
-        <Button
-          className={cn(
-            "flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold transition-all duration-300 whitespace-nowrap normal-case tracking-normal shadow-none",
-            activeTab === "post"
-              ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
-              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-          )}
-          onClick={() => { setActiveTab("post"); }}
-          variant="ghost"
-        >
-          {t("ot_approvals.tabs.post_ot", { defaultValue: "Post-OT Approvals (Actuals)" })}
-        </Button>
-      ) : null}
-      {canApprove || canClaimOnBehalf ? (
-        <Button
-          className={cn(
-            "flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold transition-all duration-300 whitespace-nowrap normal-case tracking-normal shadow-none",
-            activeTab === "delegated_claim"
-              ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
-              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-          )}
-          onClick={() => { setActiveTab("delegated_claim"); }}
-          variant="ghost"
-        >
-          {t("ot_approvals.tabs.delegated_claim", { defaultValue: "Delegated Claims" })}
-        </Button>
-      ) : null}
-      {canManagePolicies ? (
-        <Button
-          className={cn(
-            "flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold transition-all duration-300 whitespace-nowrap normal-case tracking-normal shadow-none",
-            activeTab === "behalf_assignments"
-              ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
-              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-          )}
-          onClick={() => { setActiveTab("behalf_assignments"); }}
-          variant="ghost"
-        >
-          {t("ot_approvals.tabs.behalf_assignments", { defaultValue: "Behalf Assignments" })}
-        </Button>
-      ) : null}
-    </div>
-  );
-}
 
 export default function OtApprovalsPage() {
   const toast = useToast();
@@ -148,6 +72,37 @@ export default function OtApprovalsPage() {
   const canApprove = hasPermission("overtime:approve");
   const canClaimOnBehalf = hasPermission("overtime:claim_on_behalf");
   const canManagePolicies = hasPermission("overtime:policies:manage");
+
+  const tabs: PageTab[] = [
+    {
+      id: "pre",
+      label: t("ot_approvals.tabs.pre_ot", { defaultValue: "Pre-OT Approvals (Requests)" }),
+      icon: <Clock size={14} />,
+      colorScheme: "primary",
+      hidden: !canApprove,
+    },
+    {
+      id: "post",
+      label: t("ot_approvals.tabs.post_ot", { defaultValue: "Post-OT Approvals (Actuals)" }),
+      icon: <CheckCircle size={14} />,
+      colorScheme: "amber",
+      hidden: !canApprove,
+    },
+    {
+      id: "delegated_claim",
+      label: t("ot_approvals.tabs.delegated_claim", { defaultValue: "Delegated Claims" }),
+      icon: <FileText size={14} />,
+      colorScheme: "blue",
+      hidden: !(canApprove || canClaimOnBehalf),
+    },
+    {
+      id: "behalf_assignments",
+      label: t("ot_approvals.tabs.behalf_assignments", { defaultValue: "Behalf Assignments" }),
+      icon: <ShieldCheck size={14} />,
+      colorScheme: "violet",
+      hidden: !canManagePolicies,
+    },
+  ];
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [bulkUploadDialogOpen, setBulkUploadDialogOpen] = useState(false);
@@ -267,13 +222,13 @@ export default function OtApprovalsPage() {
         open={bulkUploadDialogOpen}
       />
 
-      <TabButtons
+      <PageTabs
         activeTab={activeTab}
-        canApprove={canApprove}
-        canClaimOnBehalf={canClaimOnBehalf}
-        canManagePolicies={canManagePolicies}
-        setActiveTab={setActiveTab}
-        t={t}
+        className="mb-8"
+        onTabChange={(tabId) => {
+          setActiveTab(tabId as "pre" | "post" | "delegated_claim" | "behalf_assignments");
+        }}
+        tabs={tabs}
       />
 
       <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[3rem] overflow-hidden shadow-sm animate-in slide-in-from-bottom-8 duration-700 min-h-[400px]">

@@ -10,6 +10,23 @@ import * as api from "../../lib/api";
 import { AttendanceAdjustmentRequest } from "../../lib/api/types";
 import AttendanceAdjustmentsPage from "../attendance-adjustments-page";
 
+(globalThis as any).__mockPermissions = ["attendance:adjustments:manage_behalf"];
+
+vi.mock("../../hooks/use-permissions", () => ({
+  useMyPermissions: vi.fn(() => {
+    const perms = (globalThis as any).__mockPermissions || [];
+    return {
+      hasPermission: (perm: string) => perms.includes(perm),
+      hasAnyPermission: (...p: string[]) => p.some((x) => perms.includes(x)),
+      hasScopedPermission: () => true,
+      hasRole: () => true,
+      isLoading: false,
+      permissions: perms,
+      roles: [],
+      managedDepartmentIds: null,
+    };
+  }),
+}));
 
 // Mock TanStack Router
 vi.mock("@tanstack/react-router", () => ({

@@ -3,11 +3,31 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import "@testing-library/jest-dom";
 
 import { ToastProvider } from "../../components/ui/toast";
 import * as api from "../../lib/api";
 import { LeaveRequest, EmployeeLeaveBalance } from "../../lib/api/types";
+import { useMyPermissions } from "../../hooks/use-permissions";
 import LeaveRequestsPage from "../leave-requests-page";
+
+(globalThis as any).__mockPermissions = ["leave:requests:submit_on_behalf"];
+
+vi.mock("../../hooks/use-permissions", () => ({
+  useMyPermissions: vi.fn(() => {
+    const perms = (globalThis as any).__mockPermissions || [];
+    return {
+      hasPermission: (perm: string) => perms.includes(perm),
+      hasAnyPermission: (...p: string[]) => p.some((x) => perms.includes(x)),
+      hasScopedPermission: () => true,
+      hasRole: () => true,
+      isLoading: false,
+      permissions: perms,
+      roles: [],
+      managedDepartmentIds: null,
+    };
+  }),
+}));
 
 // Mock TanStack Router
 vi.mock("@tanstack/react-router", () => ({
@@ -128,6 +148,7 @@ describe("LeaveRequestsPage", () => {
     vi.mocked(api.fetchWorkspaceLeaveRequests).mockResolvedValue([
       { id: "req-1", employee_id: "emp-1", leave_type_id: "lt-vacation", start_date: "2026-01-01", end_date: "2026-01-02", status: "pending", reason: "Test reason", duration_type: "full_day" }
     ] as unknown as LeaveRequest[]);
+    (globalThis as any).__mockPermissions = ["leave:requests:submit_on_behalf"];
 
     renderPage(queryClient);
 
@@ -484,6 +505,35 @@ describe("LeaveRequestsPage", () => {
 
       // end_date should be enabled again (reset to full_day)
       expect(screen.getByLabelText(/Đến ngày/i)).not.toBeDisabled();
+    });
+  });
+
+  describe("Behalf Assignments Tab Integration", () => {
+    it("hides Behalf tab by default (without leave:policies:manage permission)", async () => {
+      (globalThis as any).__mockPermissions = ["leave:requests:submit_on_behalf"];
+
+      renderPage(queryClient);
+      
+      await waitFor(() => {
+        expect(screen.queryByText(/Phân Quyền/i)).toBeNull();
+      });
+    });
+
+    it("shows Behalf tab and navigates when user has permission", async () => {
+      (globalThis as any).__mockPermissions = ["leave:policies:manage"];
+
+      const user = userEvent.setup();
+      renderPage(queryClient);
+
+      // Verify Behalf tab is visible
+      const behalfTab = await screen.findByText(/Phân Quyền/i);
+      expect(behalfTab).toBeDefined();
+
+      // Click Behalf tab
+      await user.click(behalfTab);
+
+      // Verify that Behalf assignments content renders or header actions hide
+      expect(screen.queryByText(/Tải lên Excel/i)).toBeNull();
     });
   });
 });

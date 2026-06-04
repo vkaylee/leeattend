@@ -68,10 +68,12 @@ interface ApprovalListLayoutProps {
   isLoading?: boolean;
   modals?: React.ReactNode;
   onTabChange: (tabId: string) => void;
-  subtitle: string;
+  subtitle?: string;
   tableHeaders: React.ReactNode[];
-  tabs: TabConfig[];
-  title: string;
+  tabs?: TabConfig[];
+  title?: string;
+  hideHeader?: boolean;
+  hideTabs?: boolean;
 }
 
 export default function ApprovalListLayout({
@@ -88,29 +90,35 @@ export default function ApprovalListLayout({
   emptyMessage,
   children,
   modals,
+  hideHeader = false,
+  hideTabs = false,
 }: ApprovalListLayoutProps) {
   const { t } = useTranslation();
 
   return (
     <ErrorBoundary>
       <div className="space-y-10 animate-in fade-in duration-700 pb-20">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-8 px-2">
-        <div className="space-y-1">
-          <Typography className="text-5xl font-bold tracking-tighter text-primary-700 dark:text-primary-300 uppercase leading-none" variant="h1">
-            {title}
-          </Typography>
-          <Typography className="text-[10px] font-bold text-primary-400 uppercase tracking-[0.25em] opacity-60" variant="p">
-            {subtitle}
-          </Typography>
+      {!hideHeader && (
+        <div className="flex flex-col md:flex-row justify-between items-center gap-8 px-2">
+          <div className="space-y-1">
+            <Typography className="text-5xl font-bold tracking-tighter text-primary-700 dark:text-primary-300 uppercase leading-none" variant="h1">
+              {title}
+            </Typography>
+            <Typography className="text-[10px] font-bold text-primary-400 uppercase tracking-[0.25em] opacity-60" variant="p">
+              {subtitle}
+            </Typography>
+          </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            {headerActions}
+          </div>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          {headerActions}
-        </div>
-      </div>
+      )}
 
       {banner}
 
-      <ApprovalListTabs activeTab={activeTab} onTabChange={onTabChange} tabs={tabs} />
+      {!hideTabs && tabs && (
+        <ApprovalListTabs activeTab={activeTab} onTabChange={onTabChange} tabs={tabs} />
+      )}
 
       <div className="bg-white dark:bg-slate-900 border border-primary-100 dark:border-primary-800/50 rounded-[3rem] overflow-hidden shadow-sm animate-in slide-in-from-bottom-8 duration-700">
         <table className="w-full text-left border-collapse">

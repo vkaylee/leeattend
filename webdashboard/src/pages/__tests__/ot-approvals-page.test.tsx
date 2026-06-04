@@ -24,6 +24,7 @@ vi.mock("react-i18next", () => ({
         "ot_approvals.tabs.post_ot": "ot_approvals.tabs.post_ot",
         "ot_approvals.tabs.pre_ot": "ot_approvals.tabs.pre_ot",
         "ot_approvals.tabs.delegated_claim": "ot_approvals.tabs.delegated_claim",
+        "ot_approvals.tabs.behalf_assignments": "ot_approvals.tabs.behalf_assignments",
         "ot_approvals.delegated_claim.table.reason": "ot_approvals.delegated_claim.table.reason",
         "ot_approvals.delegated_claim.actions.claim": "ot_approvals.delegated_claim.actions.claim",
         "ot_approvals.delegated_claim.actions.claim_selected": "ot_approvals.delegated_claim.actions.claim_selected",
@@ -77,6 +78,10 @@ vi.mock("@/lib/api", async (importOriginal) => {
     fetchAttendanceReport: vi.fn(),
   };
 });
+
+vi.mock("../approvals/components/behalf-assignments-tab", () => ({
+  BehalfAssignmentsTab: () => <div data-testid="behalf-assignments-tab">Mocked Behalf Assignments</div>,
+}));
 
 const mockSummaries = [
   {
@@ -490,6 +495,47 @@ describe("OtApprovalsPage", () => {
       await waitFor(() => {
         expect(screen.getByText("ot_approvals.delegated_claim.empty_state.title")).toBeInTheDocument();
       });
+    });
+  });
+
+  describe("Behalf Assignments Tab Integration", () => {
+    it("hides Behalf tab by default", () => {
+      vi.mocked(useMyPermissions).mockReturnValue({
+        hasPermission: (perm: string) => perm === "overtime:approve",
+        hasAnyPermission: () => true,
+        hasScopedPermission: () => true,
+        hasRole: () => true,
+        isLoading: false,
+        permissions: ["overtime:approve"],
+        roles: ["admin"],
+        managedDepartmentIds: null,
+      });
+
+      renderPage();
+      expect(screen.queryByText("ot_approvals.tabs.behalf_assignments")).not.toBeInTheDocument();
+    });
+
+    it("shows Behalf tab and switches content when user has permission", async () => {
+      vi.mocked(useMyPermissions).mockReturnValue({
+        hasPermission: (perm: string) => perm === "overtime:policies:manage",
+        hasAnyPermission: () => true,
+        hasScopedPermission: () => true,
+        hasRole: () => true,
+        isLoading: false,
+        permissions: ["overtime:policies:manage"],
+        roles: ["admin"],
+        managedDepartmentIds: null,
+      });
+
+      const user = userEvent.setup();
+      renderPage();
+
+      const behalfTab = screen.getByText("ot_approvals.tabs.behalf_assignments");
+      expect(behalfTab).toBeInTheDocument();
+
+      await user.click(behalfTab);
+
+      expect(screen.getByTestId("behalf-assignments-tab")).toBeInTheDocument();
     });
   });
 });

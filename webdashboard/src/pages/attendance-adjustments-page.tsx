@@ -2,6 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import AttendanceImportDialog from "@/components/features/attendance/attendance-import-dialog";
+import { useMyPermissions } from "@/hooks/use-permissions";
 
 import { BehalfAssignmentsTab } from "./approvals/components/behalf-assignments-tab";
 import { AdjustmentsHeader } from "./attendance/components/adjustments-header";
@@ -11,6 +12,7 @@ import { useAttendanceAdjustmentsPage } from "./attendance/hooks/use-attendance-
 
 export default function AttendanceAdjustmentsPage() {
   const { t } = useTranslation();
+  const { hasPermission } = useMyPermissions();
   const {
     wsId,
     formatDate,
@@ -35,6 +37,8 @@ export default function AttendanceAdjustmentsPage() {
     );
   }
 
+  const canManageBehalf = hasPermission("attendance:adjustments:manage_behalf");
+
   return (
     <div className="space-y-10 animate-in fade-in duration-700 pb-20">
       <AdjustmentsHeader
@@ -44,9 +48,10 @@ export default function AttendanceAdjustmentsPage() {
       <AdjustmentsTabs
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        canManageBehalf={canManageBehalf}
       />
 
-      {activeTab === "behalf_assignments" ? (
+      {activeTab === "behalf_assignments" && canManageBehalf ? (
         <BehalfAssignmentsTab assignmentType="attendance_adjustment" wsId={wsId} />
       ) : (
         <AdjustmentsTable

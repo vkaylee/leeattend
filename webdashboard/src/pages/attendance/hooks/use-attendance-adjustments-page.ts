@@ -24,8 +24,11 @@ export function useAttendanceAdjustmentsPage() {
 
   const { data: requests = [], isLoading } = useQuery({
     queryKey: ["attendance-adjustments", wsId, activeTab],
-    queryFn: () => wsId ? fetchWorkspaceAttendanceAdjustments(wsId, activeTab) : Promise.reject(new Error("No workspace ID")),
-    enabled: !!wsId,
+    queryFn: () => {
+      if (activeTab === "behalf_assignments") return [];
+      return wsId ? fetchWorkspaceAttendanceAdjustments(wsId, activeTab) : Promise.reject(new Error("No workspace ID"));
+    },
+    enabled: !!wsId && activeTab !== "behalf_assignments",
   });
 
   const { employees } = useAllEmployees(wsId);

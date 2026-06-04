@@ -245,3 +245,52 @@ async fn test_rbac_audit_log_on_permissions_grant_revoke() {
 
     assert_eq!(audit_log_after.action, "revoke_permission");
 }
+
+#[tokio::test]
+async fn test_behalf_permissions_seeding() {
+    use apiserver::repositories::workspace_repository::WorkspaceRepository;
+
+    let (test_db, factory, _state, _app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    // 1. Setup global workspace and owner
+    let owner_user_id: Uuid = factory.user().create().await;
+    let ws_id: Uuid = factory.workspace().create_with_owner(owner_user_id).await;
+
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
+    let ws_repo = apiserver::repositories::DieselWorkspaceRepository::new(diesel_pools);
+
+    let roles_to_test = vec![
+        // Owner role
+        Uuid::parse_str("a0000000-0000-0000-0000-000000000001").unwrap(),
+        // Admin role
+        Uuid::parse_str("a0000000-0000-0000-0000-000000000002").unwrap(),
+        // HR Manager role
+        Uuid::parse_str("a0000000-0000-0000-0000-000000000003").unwrap(),
+    ];
+
+    let expected_permissions = vec![
+        "attendance:adjustments:manage_behalf".to_string(),
+        "attendance:adjustments:submit_on_behalf".to_string(),
+        "leave:requests:submit_on_behalf".to_string(),
+        "overtime:claim_on_behalf".to_string(),
+    ];
+
+    for role_id in roles_to_test {
+        let permissions = ws_repo
+            .get_role_permissions_by_role_id(ws_id, role_id)
+            .await
+            .unwrap();
+
+        for expected in &expected_permissions {
+            assert!(
+                permissions.contains(expected),
+                "Role {} must have permission '{}' seeded in database, but got {:?}",
+                role_id,
+                expected,
+                permissions
+            );
+        }
+    }
+}
+

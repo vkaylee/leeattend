@@ -1,21 +1,20 @@
-import { CheckCircle2, Clock, Plus, Upload, XCircle } from "lucide-react";
-import React, { useMemo, useState } from "react";
+import { CheckCircle2, Clock, Plus, ShieldCheck, Upload, XCircle } from "lucide-react";
+import React, { useMemo } from "react";
 
 import { CreateLeaveRequestModal } from "@/components/features/leave/create-leave-request-modal";
 import { LeaveImportBanner } from "@/components/features/leave/leave-import-banner";
 import LeaveImportDialog from "@/components/features/leave/leave-import-dialog";
 import { LeaveRequestRow } from "@/components/features/leave/leave-request-row";
-import { useLeaveRequests } from "@/components/features/leave/use-leave-requests";
-import ApprovalListLayout, { TabConfig } from "@/components/templates/approval-list-layout";
+import { useLeaveRequests, TabType } from "@/components/features/leave/use-leave-requests";
+import ApprovalListLayout from "@/components/templates/approval-list-layout";
 import Button from "@/components/ui/button";
+import { PageTabs, PageTab } from "@/components/ui/page-tabs";
+import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { getCurrentWorkspaceId } from "@/lib/api";
-import { cn } from "@/lib/utils";
 
 import { BehalfAssignmentsTab } from "./approvals/components/behalf-assignments-tab";
-
-type TabType = "pending" | "approved" | "rejected";
 
 export default function LeaveRequestsPage() {
   const wsId = getCurrentWorkspaceId();
@@ -34,8 +33,6 @@ export default function LeaveRequestsPage() {
     t
   } = useLeaveRequests(wsId);
 
-  const [viewMode, setViewMode] = useState<"requests" | "behalf">("requests");
-
   const employeeMap = useMemo(
     () => new Map(employees.map(e => [e.id, e])),
     [employees]
@@ -45,10 +42,11 @@ export default function LeaveRequestsPage() {
 
   const canManageBehalf = hasPermission("leave:policies:manage");
 
-  const tabs: TabConfig[] = [
+  const tabs: PageTab[] = [
     { id: "pending", label: t("common.status_pending"), icon: <Clock size={14} />, colorScheme: "amber" },
     { id: "approved", label: t("common.status_approved"), icon: <CheckCircle2 size={14} />, colorScheme: "emerald" },
     { id: "rejected", label: t("common.status_rejected"), icon: <XCircle size={14} />, colorScheme: "rose" },
+    { id: "behalf_assignments", label: t("ot_approvals.tabs.behalf_assignments", { defaultValue: "Behalf" }), icon: <ShieldCheck size={14} />, colorScheme: "violet", hidden: !canManageBehalf },
   ];
 
   const tableHeaders = [
@@ -61,41 +59,17 @@ export default function LeaveRequestsPage() {
 
   return (
     <div className="space-y-6">
-      {canManageBehalf ? (
-        <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-primary-200 dark:border-primary-800/50 shadow-inner">
-          <Button
-            className={cn(
-              "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold transition-all shadow-none normal-case tracking-normal",
-              viewMode === "requests"
-                ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-primary-100 dark:border-primary-800/50"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-            )}
-            onClick={() => { setViewMode("requests"); }}
-            variant="ghost"
-          >
-            Leave Requests
-          </Button>
-          <Button
-            className={cn(
-              "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold transition-all shadow-none normal-case tracking-normal",
-              viewMode === "behalf"
-                ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-primary-100 dark:border-primary-800/50"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-            )}
-            onClick={() => { setViewMode("behalf"); }}
-            variant="ghost"
-          >
-            Behalf Assignments
-          </Button>
+      <div className="flex flex-col md:flex-row justify-between items-center gap-8 px-2">
+        <div className="space-y-1">
+          <Typography className="text-5xl font-bold tracking-tighter text-primary-700 dark:text-primary-300 uppercase leading-none" variant="h1">
+            {t("leave_requests.title")}
+          </Typography>
+          <Typography className="text-[10px] font-bold text-primary-400 uppercase tracking-[0.25em] opacity-60" variant="p">
+            {t("leave_requests.subtitle")}
+          </Typography>
         </div>
-      ) : null}
-
-      {viewMode === "requests" ? (
-        <ApprovalListLayout
-          activeTab={activeTab}
-          banner={<LeaveImportBanner importBannerDismissed={importBannerDismissed} importJob={importJob} setImportBannerDismissed={setImportBannerDismissed} t={t} wsId={wsId} />}
-          emptyMessage={t("leave_requests.messages.no_requests")}
-          headerActions={
+        <div className="flex items-center gap-3 flex-wrap">
+          {activeTab !== "behalf_assignments" && (
             <>
               <Button className="bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100 dark:shadow-black/30 text-[10px] px-5 py-3"
                 disabled={importJob?.status === "processing"}
@@ -109,7 +83,25 @@ export default function LeaveRequestsPage() {
                 <Plus size={18} /> {t("leave_requests.create_btn").toUpperCase()}
               </Button>
             </>
-          }
+          )}
+        </div>
+      </div>
+
+      <PageTabs
+        activeTab={activeTab}
+        onTabChange={(id) => { setActiveTab(id as TabType); }}
+        tabs={tabs}
+      />
+
+      {activeTab === "behalf_assignments" && canManageBehalf ? (
+        <BehalfAssignmentsTab assignmentType="leave" wsId={wsId} />
+      ) : (
+        <ApprovalListLayout
+          activeTab={activeTab}
+          banner={<LeaveImportBanner importBannerDismissed={importBannerDismissed} importJob={importJob} setImportBannerDismissed={setImportBannerDismissed} t={t} wsId={wsId} />}
+          emptyMessage={t("leave_requests.messages.no_requests")}
+          hideHeader
+          hideTabs
           isEmpty={requests.length === 0}
           isLoading={requestsLoading}
           modals={
@@ -123,10 +115,7 @@ export default function LeaveRequestsPage() {
             </>
           }
           onTabChange={(id) => { setActiveTab(id as TabType); }}
-          subtitle={t("leave_requests.subtitle")}
           tableHeaders={tableHeaders}
-          tabs={tabs}
-          title={t("leave_requests.title")}
         >
           {requests.map((request) => (
             <LeaveRequestRow
@@ -140,8 +129,6 @@ export default function LeaveRequestsPage() {
             />
           ))}
         </ApprovalListLayout>
-      ) : (
-        <BehalfAssignmentsTab assignmentType="leave" wsId={wsId} />
       )}
     </div>
   );
