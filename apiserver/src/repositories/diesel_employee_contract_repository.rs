@@ -48,6 +48,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
                         .filter(status.eq(ContractStatus::Active))
                         .filter(start_date.le(req.start_date))
                         .filter(end_date.is_null().or(end_date.ge(req.start_date)))
+                        .filter(deleted_at.is_null())
                         .select((id, notes))
                         .load(conn)
                         .await?;
@@ -109,6 +110,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
                         notes: req.notes.clone(),
                         created_at: Utc::now(),
                         updated_at: Utc::now(),
+                        deleted_at: None,
                     };
 
                     let inserted = diesel::insert_into(employee_contracts)
@@ -146,6 +148,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
         let contract = employee_contracts
             .filter(id.eq(contract_id))
             .filter(workspace_id.eq(auth_token.workspace_id()))
+            .filter(deleted_at.is_null())
             .first::<EmployeeContractEntity>(&mut *conn)
             .await
             .optional()?;
@@ -169,6 +172,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
         let contracts = employee_contracts
             .filter(employee_id.eq(employee_id_val))
             .filter(workspace_id.eq(auth_token.workspace_id()))
+            .filter(deleted_at.is_null())
             .order(start_date.desc())
             .load::<EmployeeContractEntity>(&mut *conn)
             .await?;
@@ -192,6 +196,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
         let contracts = employee_contracts
             .filter(employee_id.eq_any(employee_ids))
             .filter(workspace_id.eq(auth_token.workspace_id()))
+            .filter(deleted_at.is_null())
             .order((employee_id.asc(), start_date.desc()))
             .load::<EmployeeContractEntity>(&mut *conn)
             .await?;
@@ -236,7 +241,8 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
         let updated_contract = diesel::update(
             employee_contracts
                 .filter(id.eq(contract_id))
-                .filter(workspace_id.eq(auth_token.workspace_id())),
+                .filter(workspace_id.eq(auth_token.workspace_id()))
+                .filter(deleted_at.is_null()),
         )
         .set(&update_model)
         .get_result::<EmployeeContractEntity>(&mut *conn)
@@ -258,11 +264,12 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
                 .get_connection(&auth_token.workspace_id())
                 .await?,
         );
-        diesel::delete(
+        diesel::update(
             employee_contracts
                 .filter(id.eq(contract_id))
                 .filter(workspace_id.eq(auth_token.workspace_id())),
         )
+        .set(deleted_at.eq(Some(Utc::now())))
         .execute(&mut *conn)
         .await?;
 
@@ -292,6 +299,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
             .filter(status.eq(ContractStatus::Active))
             .filter(end_date.is_not_null())
             .filter(end_date.le(target_date))
+            .filter(deleted_at.is_null())
             .load::<EmployeeContractEntity>(&mut *conn)
             .await?;
 
@@ -320,6 +328,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
             .filter(status.eq(ContractStatus::Active))
             .filter(start_date.le(date_val))
             .filter(end_date.is_null().or(end_date.ge(date_val)))
+            .filter(deleted_at.is_null())
             .order(start_date.desc())
             .first::<EmployeeContractEntity>(&mut *conn)
             .await

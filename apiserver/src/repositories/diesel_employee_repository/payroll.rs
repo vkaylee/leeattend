@@ -203,4 +203,66 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
             })
             .collect())
     }
+
+    async fn get_employee_payroll_configs_batch(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_ids: &[Uuid],
+    ) -> Result<std::collections::HashMap<Uuid, Vec<crate::models::EmployeePayrollConfig>>, AppError>
+    {
+        let workspace_id = auth_token.workspace_id();
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        use crate::schema::{employee_payroll_configs, employees};
+
+        let results = employee_payroll_configs::table
+            .inner_join(employees::table)
+            .filter(employee_payroll_configs::employee_id.eq_any(employee_ids))
+            .filter(employees::workspace_id.eq(workspace_id))
+            .filter(employees::deleted_at.is_null())
+            .order((
+                employee_payroll_configs::employee_id.asc(),
+                employee_payroll_configs::effective_date.desc(),
+            ))
+            .select((
+                employee_payroll_configs::id,
+                employee_payroll_configs::employee_id,
+                employee_payroll_configs::std_working_days,
+                employee_payroll_configs::hours_per_day,
+                employee_payroll_configs::effective_date,
+                employee_payroll_configs::created_at,
+            ))
+            .load::<(
+                Uuid,
+                Uuid,
+                rust_decimal::Decimal,
+                rust_decimal::Decimal,
+                chrono::NaiveDate,
+                Option<chrono::DateTime<chrono::Utc>>,
+            )>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let mut map: std::collections::HashMap<Uuid, Vec<crate::models::EmployeePayrollConfig>> =
+            std::collections::HashMap::new();
+        for t in results {
+            let config = crate::models::EmployeePayrollConfig {
+                id: t.0,
+                employee_id: t.1,
+                std_working_days: t.2,
+                hours_per_day: t.3,
+                effective_date: t.4,
+                created_at: t.5.unwrap_or_else(chrono::Utc::now),
+            };
+            map.entry(config.employee_id).or_default().push(config);
+        }
+
+        Ok(map)
+    }
 }

@@ -729,6 +729,16 @@ mod tests {
         ) -> Result<Vec<crate::models::EmployeePayrollConfig>, AppError> {
             Ok(vec![])
         }
+        async fn get_employee_payroll_configs_batch(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee_ids: &[Uuid],
+        ) -> Result<
+            std::collections::HashMap<Uuid, Vec<crate::models::EmployeePayrollConfig>>,
+            AppError,
+        > {
+            Ok(std::collections::HashMap::new())
+        }
     }
 
     #[async_trait]

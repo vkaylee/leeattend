@@ -23,6 +23,27 @@ pub fn mask_email(email: &str) -> String {
     format!("{masked_local}{domain_part}")
 }
 
+pub fn mask_phone(phone: &str) -> String {
+    let len = phone.len();
+    if len <= 6 {
+        return "***".to_string();
+    }
+    let first = &phone[..3];
+    let last = &phone[len - 3..];
+    let stars = "*".repeat(len - 6);
+    format!("{first}{stars}{last}")
+}
+
+pub fn mask_bank_account(account: &str) -> String {
+    let len = account.len();
+    if len <= 4 {
+        return "****".to_string();
+    }
+    let last = &account[len - 4..];
+    let stars = "*".repeat(len - 4);
+    format!("{stars}{last}")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -34,5 +55,19 @@ mod tests {
         assert_eq!(mask_email("me@test.com"), "***@test.com");
         assert_eq!(mask_email("a@b.com"), "***@b.com");
         assert_eq!(mask_email("longemailaddress@corp.com"), "lon***@corp.com");
+    }
+
+    #[test]
+    fn test_mask_phone() {
+        assert_eq!(mask_phone("0987654321"), "098****321");
+        assert_eq!(mask_phone("12345"), "***");
+        assert_eq!(mask_phone("1234567"), "123*567");
+    }
+
+    #[test]
+    fn test_mask_bank_account() {
+        assert_eq!(mask_bank_account("1234567890"), "******7890");
+        assert_eq!(mask_bank_account("123"), "****");
+        assert_eq!(mask_bank_account("12345"), "*2345");
     }
 }

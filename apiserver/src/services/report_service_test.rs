@@ -461,6 +461,13 @@ mod tests {
         ) -> Result<Vec<EmployeePayrollConfig>, AppError> {
             unimplemented!()
         }
+        async fn get_employee_payroll_configs_batch(
+            &self,
+            _a: &crate::diesel_pool::TenantAuthToken,
+            _employee_ids: &[Uuid],
+        ) -> Result<std::collections::HashMap<Uuid, Vec<EmployeePayrollConfig>>, AppError> {
+            Ok(std::collections::HashMap::new())
+        }
     }
 
     #[async_trait]
@@ -1462,6 +1469,13 @@ mod tests {
             _id: Uuid,
         ) -> Result<Vec<EmployeePayrollConfig>, AppError> {
             unimplemented!()
+        }
+        async fn get_employee_payroll_configs_batch(
+            &self,
+            _a: &crate::diesel_pool::TenantAuthToken,
+            _employee_ids: &[Uuid],
+        ) -> Result<std::collections::HashMap<Uuid, Vec<EmployeePayrollConfig>>, AppError> {
+            Ok(std::collections::HashMap::new())
         }
     }
 

@@ -74,6 +74,7 @@ pub struct EmployeeContractEntity {
     pub notes: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 impl From<EmployeeContractEntity> for EmployeeContract {

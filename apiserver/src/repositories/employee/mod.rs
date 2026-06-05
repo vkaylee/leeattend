@@ -228,6 +228,12 @@ pub trait EmployeePayrollConfigRepository: Send + Sync {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
     ) -> Result<Vec<EmployeePayrollConfig>, AppError>;
+
+    async fn get_employee_payroll_configs_batch(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_ids: &[Uuid],
+    ) -> Result<std::collections::HashMap<Uuid, Vec<EmployeePayrollConfig>>, AppError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -548,6 +554,11 @@ mockall::mock! {
             auth_token: &crate::diesel_pool::TenantAuthToken,
             employee_id: Uuid,
         ) -> Result<Vec<EmployeePayrollConfig>, AppError>;
+        async fn get_employee_payroll_configs_batch(
+            &self,
+            auth_token: &crate::diesel_pool::TenantAuthToken,
+            employee_ids: &[Uuid],
+        ) -> Result<std::collections::HashMap<Uuid, Vec<EmployeePayrollConfig>>, AppError>;
     }
 
     #[async_trait]

@@ -42,6 +42,7 @@ impl EmployerRepository for DieselEmployerRepository {
             legal_address: data.legal_address,
             created_at: Utc::now(),
             updated_at: Utc::now(),
+            deleted_at: None,
         };
 
         let result = diesel::insert_into(employers::table)
@@ -67,6 +68,7 @@ impl EmployerRepository for DieselEmployerRepository {
         let result = employers::table
             .filter(employers::id.eq(id))
             .filter(employers::workspace_id.eq(workspace_id))
+            .filter(employers::deleted_at.is_null())
             .first::<EmployerEntity>(&mut *conn)
             .await
             .optional()
@@ -89,6 +91,7 @@ impl EmployerRepository for DieselEmployerRepository {
 
         let total: i64 = employers::table
             .filter(employers::workspace_id.eq(workspace_id))
+            .filter(employers::deleted_at.is_null())
             .count()
             .get_result(&mut *conn)
             .await
@@ -96,6 +99,7 @@ impl EmployerRepository for DieselEmployerRepository {
 
         let results = employers::table
             .filter(employers::workspace_id.eq(workspace_id))
+            .filter(employers::deleted_at.is_null())
             .order(employers::name.asc())
             .limit(limit)
             .offset((page - 1) * limit)
@@ -121,6 +125,7 @@ impl EmployerRepository for DieselEmployerRepository {
         let mut existing = employers::table
             .filter(employers::id.eq(id))
             .filter(employers::workspace_id.eq(workspace_id))
+            .filter(employers::deleted_at.is_null())
             .first::<EmployerEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -160,11 +165,12 @@ impl EmployerRepository for DieselEmployerRepository {
             .await?;
         let workspace_id = auth_token.workspace_id();
 
-        diesel::delete(
+        diesel::update(
             employers::table
                 .filter(employers::id.eq(id))
                 .filter(employers::workspace_id.eq(workspace_id)),
         )
+        .set(employers::deleted_at.eq(Some(Utc::now())))
         .execute(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -186,6 +192,7 @@ impl EmployerRepository for DieselEmployerRepository {
         let count = employees::table
             .filter(employees::workspace_id.eq(workspace_id))
             .filter(employees::employer_id.eq(id))
+            .filter(employees::deleted_at.is_null())
             .count()
             .get_result::<i64>(&mut *conn)
             .await

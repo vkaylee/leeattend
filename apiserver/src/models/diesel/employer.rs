@@ -25,6 +25,7 @@ pub struct EmployerEntity {
     pub legal_address: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 impl From<EmployerEntity> for Employer {
@@ -58,6 +59,7 @@ mod tests {
             legal_address: Some("123 Address Rd".to_string()),
             created_at: now,
             updated_at: now,
+            deleted_at: None,
         };
 
         let employer: Employer = entity.into();

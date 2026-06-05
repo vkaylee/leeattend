@@ -821,22 +821,11 @@ impl PayrollService {
                 .await
                 .unwrap_or_default();
 
-            let config_futures = chunk_ids.iter().map(|&emp_id| {
-                let token_clone = *token;
-                let employee_repo = std::sync::Arc::clone(&self.employee_repo);
-                async move {
-                    let configs = employee_repo
-                        .get_employee_payroll_configs(&token_clone, emp_id)
-                        .await
-                        .unwrap_or_default();
-                    (emp_id, configs)
-                }
-            });
             let mut emp_configs_map: HashMap<Uuid, Vec<crate::models::EmployeePayrollConfig>> =
-                futures_util::future::join_all(config_futures)
+                self.employee_repo
+                    .get_employee_payroll_configs_batch(token, &chunk_ids)
                     .await
-                    .into_iter()
-                    .collect();
+                    .unwrap_or_default();
 
             let mut contexts = Vec::new();
             for emp_id in chunk_ids {
