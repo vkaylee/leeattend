@@ -1,31 +1,12 @@
-#![allow(unused_imports)]
-use crate::errors::AppError;
-use async_trait::async_trait;
-use chrono::NaiveDate;
-use diesel::prelude::*;
-use diesel_async::AsyncConnection;
-use diesel_async::RunQueryDsl;
-use rust_decimal::Decimal;
-use uuid::Uuid;
+// Submodules
+pub mod assignments;
+mod core;
+mod ess;
+mod payroll;
+mod recruitment;
+pub mod working_condition;
 
-use crate::models::diesel::employee::{
-    CountRow, DeptRow, EmployeeDocumentEntity, EmployeeEmergencyContactEntity, EmployeeEntity,
-    EmployeeProfileEntity, EmployeeRow, RecruitmentSourceBreakdownRow, RecruitmentSourceEntity,
-    TenureRow, UpdateDieselEmployee,
-};
-use crate::models::{
-    CreateEmergencyContactRequest, Employee, EmployeeDocument, EmployeeEmergencyContact,
-    EmployeeFilterOptions, EmployeePaginationArgs, EmployeePayrollConfig, EmployeeProfile,
-    RecruitmentSource, RecruitmentSourceBreakdown, TurnoverAnalytics, TurnoverByDepartment,
-    TurnoverBySource, TurnoverTenureBucket, UpdateEmployeeProfileRequest, UpdateEmployeeRequest,
-    WorkingCondition,
-};
-use crate::repositories::employee::*;
-use crate::schema::{
-    employee_documents, employee_emergency_contacts, employee_profiles, employees,
-    recruitment_sources,
-};
-use diesel::sql_types::{Date, Uuid as UuidType};
+pub use assignments::*;
 
 pub struct DieselEmployeeRepository {
     pub diesel_pools: crate::diesel_pool::DieselPools,
@@ -116,21 +97,6 @@ fn build_employee_search_sql(
         needs_dept_join,
     }
 }
-
-mod core;
-mod ess;
-mod payroll;
-mod recruitment;
-pub mod working_condition;
-
-pub use core::*;
-pub use ess::*;
-pub use payroll::*;
-pub use recruitment::*;
-pub use working_condition::*;
-
-pub mod assignments;
-pub use assignments::*;
 
 // EmployeeRepository is now a supertrait with a blanket impl.
 // DieselEmployeeRepository automatically implements EmployeeRepository because

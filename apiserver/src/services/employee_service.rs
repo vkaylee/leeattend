@@ -68,15 +68,15 @@ impl EmployeeService {
             .await?
             .ok_or(AppError::NotFound("Employee not found".into()))?;
 
-        let condition = WorkingCondition {
-            id: new_id(),
-            employee_id: emp.id(),
-            type_: req.type_,
-            minute_allowance: req.minute_allowance,
-            is_paid: req.is_paid,
-            start_date: req.start_date,
-            end_date: req.end_date,
-        };
+        let condition = WorkingCondition::new(
+            new_id(),
+            emp.id(),
+            req.type_,
+            req.minute_allowance,
+            req.is_paid,
+            req.start_date,
+            req.end_date,
+        );
 
         self.repo
             .create_working_condition(auth_token, &condition)
@@ -393,15 +393,15 @@ mod tests {
     }
 
     fn make_working_condition(emp_id: Uuid) -> WorkingCondition {
-        WorkingCondition {
-            id: Uuid::new_v4(),
-            employee_id: emp_id,
-            type_: "late_allowance".into(),
-            minute_allowance: 15,
-            is_paid: true,
-            start_date: NaiveDate::from_ymd_opt(2026, 1, 1).expect("valid date"),
-            end_date: None,
-        }
+        WorkingCondition::new(
+            Uuid::new_v4(),
+            emp_id,
+            "late_allowance".into(),
+            15,
+            true,
+            NaiveDate::from_ymd_opt(2026, 1, 1).expect("valid date"),
+            None,
+        )
     }
 
     // ── Mock Repository ──────────────────────────────────────────────
@@ -1451,8 +1451,8 @@ mod tests {
             .expect("ok");
 
         assert_eq!(result.0.len(), 1);
-        assert_eq!(result.0[0].type_, "late_allowance");
-        assert_eq!(result.0[0].minute_allowance, 15);
+        assert_eq!(result.0[0].type_(), "late_allowance");
+        assert_eq!(result.0[0].minute_allowance(), 15);
     }
 
     #[tokio::test]
@@ -1494,10 +1494,10 @@ mod tests {
             .await;
         assert!(result.is_ok());
         let wc = result.expect("ok");
-        assert_eq!(wc.type_, "early_leave");
-        assert_eq!(wc.minute_allowance, 30);
-        assert!(!wc.is_paid);
-        assert_eq!(wc.employee_id, emp.id());
+        assert_eq!(wc.type_(), "early_leave");
+        assert_eq!(wc.minute_allowance(), 30);
+        assert!(!wc.is_paid());
+        assert_eq!(wc.employee_id(), emp.id());
     }
 
     // ── Tests: delete_working_condition ──────────────────────────────

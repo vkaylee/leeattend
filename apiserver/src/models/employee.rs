@@ -344,9 +344,35 @@ impl Employee {
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct AssignmentRuleConditions {
-    pub department_id: Option<Uuid>,
-    pub employee_id_numbers: Option<Vec<String>>,
-    pub tags: Option<Vec<String>>,
+    department_id: Option<Uuid>,
+    employee_id_numbers: Option<Vec<String>>,
+    tags: Option<Vec<String>>,
+}
+
+impl AssignmentRuleConditions {
+    pub fn new(
+        department_id: Option<Uuid>,
+        employee_id_numbers: Option<Vec<String>>,
+        tags: Option<Vec<String>>,
+    ) -> Self {
+        Self {
+            department_id,
+            employee_id_numbers,
+            tags,
+        }
+    }
+
+    pub fn department_id(&self) -> Option<Uuid> {
+        self.department_id
+    }
+
+    pub fn employee_id_numbers(&self) -> Option<&[String]> {
+        self.employee_id_numbers.as_deref()
+    }
+
+    pub fn tags(&self) -> Option<&[String]> {
+        self.tags.as_deref()
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]

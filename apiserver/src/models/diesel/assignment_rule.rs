@@ -21,11 +21,8 @@ pub struct AssignmentRuleEntity {
 
 impl From<AssignmentRuleEntity> for AssignmentRule {
     fn from(e: AssignmentRuleEntity) -> Self {
-        let conditions = serde_json::from_value(e.conditions).unwrap_or(AssignmentRuleConditions {
-            department_id: None,
-            employee_id_numbers: None,
-            tags: None,
-        });
+        let conditions = serde_json::from_value(e.conditions)
+            .unwrap_or_else(|_| AssignmentRuleConditions::new(None, None, None));
         Self::new(
             e.id,
             e.workspace_id,

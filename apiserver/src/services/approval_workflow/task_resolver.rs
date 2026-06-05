@@ -32,7 +32,7 @@ impl ApprovalWorkflowService {
             .find_extra_roles(workspace_id, user_id)
             .await?;
         for r in extra_roles {
-            role_ids.push(r.role_id);
+            role_ids.push(r.role_id());
         }
         role_ids.sort();
         role_ids.dedup();

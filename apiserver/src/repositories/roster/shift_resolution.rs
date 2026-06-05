@@ -398,11 +398,7 @@ mod tests {
             pattern_id,
             "Split shift rule".to_string(),
             10,
-            crate::models::AssignmentRuleConditions {
-                department_id: None,
-                employee_id_numbers: None,
-                tags: None,
-            },
+            crate::models::AssignmentRuleConditions::new(None, None, None),
             true,
             chrono::Utc::now(),
             chrono::Utc::now(),

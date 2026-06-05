@@ -532,13 +532,15 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
 
         Ok(results
             .into_iter()
-            .map(|(wm, u)| crate::models::WorkspaceMemberDetail {
-                workspace_id: wm.workspace_id,
-                user_id: wm.user_id,
-                role_id: wm.role_id,
-                email: u.email,
-                full_name: u.full_name,
-                avatar_url: u.avatar_url,
+            .map(|(wm, u)| {
+                crate::models::WorkspaceMemberDetail::new(
+                    wm.workspace_id,
+                    wm.user_id,
+                    wm.role_id,
+                    u.email,
+                    u.full_name,
+                    u.avatar_url,
+                )
             })
             .collect())
     }
@@ -686,14 +688,16 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
 
         Ok(results
             .into_iter()
-            .map(|e| crate::models::MemberExtraPermission {
-                id: e.id,
-                workspace_id: e.workspace_id,
-                user_id: e.user_id,
-                permission: e.permission,
-                expires_at: e.expires_at,
-                assigned_by: e.assigned_by,
-                assigned_at: e.assigned_at,
+            .map(|e| {
+                crate::models::MemberExtraPermission::new(
+                    e.id,
+                    e.workspace_id,
+                    e.user_id,
+                    e.permission,
+                    e.assigned_at,
+                    e.expires_at,
+                    e.assigned_by,
+                )
             })
             .collect())
     }
@@ -730,15 +734,15 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                 .await
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        Ok(crate::models::MemberExtraPermission {
-            id: entity.id,
-            workspace_id: entity.workspace_id,
-            user_id: entity.user_id,
-            permission: entity.permission,
-            expires_at: entity.expires_at,
-            assigned_by: entity.assigned_by,
-            assigned_at: entity.assigned_at,
-        })
+        Ok(crate::models::MemberExtraPermission::new(
+            entity.id,
+            entity.workspace_id,
+            entity.user_id,
+            entity.permission,
+            entity.assigned_at,
+            entity.expires_at,
+            entity.assigned_by,
+        ))
     }
 
     async fn revoke_extra_permission(

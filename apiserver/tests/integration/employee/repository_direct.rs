@@ -43,15 +43,15 @@ async fn test_working_condition_crud() {
         .await;
 
     // Create a working condition
-    let wc = WorkingCondition {
-        id: Uuid::new_v4(),
-        employee_id: emp_id,
-        type_: "late_arrival".to_string(),
-        minute_allowance: 15,
-        is_paid: true,
-        start_date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-        end_date: None,
-    };
+    let wc = WorkingCondition::new(
+        Uuid::new_v4(),
+        emp_id,
+        "late_arrival".to_string(),
+        15,
+        true,
+        NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+        None,
+    );
     let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
     repo.create_working_condition(
         &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
@@ -71,15 +71,15 @@ async fn test_working_condition_crud() {
         .await
         .unwrap();
     assert_eq!(conditions.0.len(), 1);
-    assert_eq!(conditions.0[0].type_, "late_arrival");
-    assert_eq!(conditions.0[0].minute_allowance, 15);
-    assert!(conditions.0[0].is_paid);
+    assert_eq!(conditions.0[0].type_(), "late_arrival");
+    assert_eq!(conditions.0[0].minute_allowance(), 15);
+    assert!(conditions.0[0].is_paid());
 
     // Delete
     let deleted = repo
         .delete_working_condition(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            wc.id,
+            wc.id(),
             emp_id,
         )
         .await
@@ -1024,8 +1024,8 @@ async fn test_get_all_employees_filtered_by_permission() {
         .await
         .unwrap();
 
-    factory.add_member(ws_id, user_2, custom_role.id).await;
-    factory.add_member(ws_id, user_3, custom_role.id).await;
+    factory.add_member(ws_id, user_2, custom_role.id()).await;
+    factory.add_member(ws_id, user_3, custom_role.id()).await;
 
     // Assign extra permission to user_2
     workspace_repo

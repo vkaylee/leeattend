@@ -321,8 +321,8 @@ impl MemberContext {
 
         let mut roles: Vec<Uuid> = all_extra_roles
             .into_iter()
-            .filter(|r| r.expires_at > chrono::Utc::now())
-            .map(|r| r.role_id)
+            .filter(|r| r.expires_at() > chrono::Utc::now())
+            .map(|r| r.role_id())
             .collect();
 
         roles.push(primary_role);

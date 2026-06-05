@@ -1,4 +1,3 @@
-#![allow(unused_imports)]
 use crate::errors::AppError;
 use async_trait::async_trait;
 use chrono::{NaiveDate, Utc};
@@ -321,7 +320,7 @@ impl RosterRepository for DieselRosterRepository {
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<Vec<ShiftRoster>, AppError> {
-        let _workspace_id = auth_token.workspace_id();
+        let workspace_id = auth_token.workspace_id();
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .tenants_tx
@@ -331,9 +330,12 @@ impl RosterRepository for DieselRosterRepository {
         );
 
         let rosters = crate::schema::shift_rosters::table
+            .inner_join(crate::schema::employees::table)
+            .filter(crate::schema::employees::workspace_id.eq(workspace_id))
             .filter(crate::schema::shift_rosters::employee_id.eq(employee_id))
             .filter(crate::schema::shift_rosters::date.ge(start_date))
             .filter(crate::schema::shift_rosters::date.le(end_date))
+            .select(crate::schema::shift_rosters::all_columns)
             .load::<crate::models::diesel::roster::ShiftRosterEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -348,7 +350,7 @@ impl RosterRepository for DieselRosterRepository {
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<std::collections::HashMap<Uuid, Vec<ShiftRoster>>, AppError> {
-        let _workspace_id = auth_token.workspace_id();
+        let workspace_id = auth_token.workspace_id();
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .tenants_tx
@@ -358,9 +360,12 @@ impl RosterRepository for DieselRosterRepository {
         );
 
         let rosters = crate::schema::shift_rosters::table
+            .inner_join(crate::schema::employees::table)
+            .filter(crate::schema::employees::workspace_id.eq(workspace_id))
             .filter(crate::schema::shift_rosters::employee_id.eq_any(employee_ids))
             .filter(crate::schema::shift_rosters::date.ge(start_date))
             .filter(crate::schema::shift_rosters::date.le(end_date))
+            .select(crate::schema::shift_rosters::all_columns)
             .load::<crate::models::diesel::roster::ShiftRosterEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;

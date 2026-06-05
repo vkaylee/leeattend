@@ -1058,11 +1058,7 @@ impl AssignmentRuleBuilder {
             pattern_id: None,
             name: "Test Rule".to_string(),
             priority: 0,
-            conditions: apiserver::models::AssignmentRuleConditions {
-                department_id: None,
-                employee_id_numbers: None,
-                tags: None,
-            },
+            conditions: apiserver::models::AssignmentRuleConditions::new(None, None, None),
         }
     }
 

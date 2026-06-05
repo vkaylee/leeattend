@@ -39,11 +39,7 @@ async fn test_assignment_rule_crud() {
         pattern_id,
         name: "Test Rule".to_string(),
         priority: 10,
-        conditions: AssignmentRuleConditions {
-            department_id: None,
-            employee_id_numbers: Some(vec!["E123".to_string()]),
-            tags: None,
-        },
+        conditions: AssignmentRuleConditions::new(None, Some(vec!["E123".to_string()]), None),
     };
 
     let rule = repo

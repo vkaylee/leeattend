@@ -14,21 +14,21 @@ impl RuleEvaluator {
         let conditions = rule.conditions();
 
         // 1. Department match (Strict)
-        if let Some(dept_id) = conditions.department_id {
+        if let Some(dept_id) = conditions.department_id() {
             if ctx.department_id != Some(dept_id) {
                 return false;
             }
         }
 
         // 2. Employee ID Numbers match (Whitelist)
-        if let Some(ids) = &conditions.employee_id_numbers {
+        if let Some(ids) = conditions.employee_id_numbers() {
             if !ids.contains(&ctx.employee_id_number) {
                 return false;
             }
         }
 
         // 3. Tags match (Intersection - AT LEAST ONE)
-        if let Some(rule_tags) = &conditions.tags {
+        if let Some(rule_tags) = conditions.tags() {
             if !rule_tags.is_empty() {
                 let has_tag_match = ctx.tags.iter().any(|t| rule_tags.contains(t));
                 if !has_tag_match {
@@ -102,11 +102,7 @@ mod tests {
             Uuid::new_v4(),
             name.to_string(),
             priority,
-            AssignmentRuleConditions {
-                department_id: dept,
-                employee_id_numbers: ids,
-                tags,
-            },
+            AssignmentRuleConditions::new(dept, ids, tags),
             true,
             Utc::now(),
             Utc::now(),

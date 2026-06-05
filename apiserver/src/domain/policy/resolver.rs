@@ -94,18 +94,18 @@ impl PolicyResolver {
         );
 
         for cond in conditions {
-            match cond.type_.as_str() {
+            match cond.type_() {
                 "EARLY_LEAVE" => {
                     // Take the most generous allowance
-                    if cond.minute_allowance > rules.authorized_early_leave_minutes() {
-                        rules.set_authorized_early_leave_minutes(cond.minute_allowance);
-                        rules.set_is_early_leave_paid(cond.is_paid);
+                    if cond.minute_allowance() > rules.authorized_early_leave_minutes() {
+                        rules.set_authorized_early_leave_minutes(cond.minute_allowance());
+                        rules.set_is_early_leave_paid(cond.is_paid());
                     }
                 }
                 "BREASTFEEDING" => {
                     // Example: breastfeeding might also be 60m paid early leave
-                    if cond.minute_allowance > rules.authorized_early_leave_minutes() {
-                        rules.set_authorized_early_leave_minutes(cond.minute_allowance);
+                    if cond.minute_allowance() > rules.authorized_early_leave_minutes() {
+                        rules.set_authorized_early_leave_minutes(cond.minute_allowance());
                         rules.set_is_early_leave_paid(true);
                     }
                 }
@@ -136,18 +136,18 @@ impl PolicyResolver {
         // Filter conditions active on this specific date
         for cond in conditions
             .iter()
-            .filter(|c| c.start_date <= date && c.end_date.is_none_or(|end| end >= date))
+            .filter(|c| c.start_date() <= date && c.end_date().is_none_or(|end| end >= date))
         {
-            match cond.type_.as_str() {
+            match cond.type_() {
                 "EARLY_LEAVE" => {
-                    if cond.minute_allowance > rules.authorized_early_leave_minutes() {
-                        rules.set_authorized_early_leave_minutes(cond.minute_allowance);
-                        rules.set_is_early_leave_paid(cond.is_paid);
+                    if cond.minute_allowance() > rules.authorized_early_leave_minutes() {
+                        rules.set_authorized_early_leave_minutes(cond.minute_allowance());
+                        rules.set_is_early_leave_paid(cond.is_paid());
                     }
                 }
                 "BREASTFEEDING" => {
-                    if cond.minute_allowance > rules.authorized_early_leave_minutes() {
-                        rules.set_authorized_early_leave_minutes(cond.minute_allowance);
+                    if cond.minute_allowance() > rules.authorized_early_leave_minutes() {
+                        rules.set_authorized_early_leave_minutes(cond.minute_allowance());
                         rules.set_is_early_leave_paid(true);
                     }
                 }
@@ -266,15 +266,15 @@ mod tests {
         start: NaiveDate,
         end: Option<NaiveDate>,
     ) -> WorkingCondition {
-        WorkingCondition {
-            id: Uuid::new_v4(),
-            employee_id: Uuid::new_v4(),
-            type_: type_.to_string(),
+        WorkingCondition::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            type_.to_string(),
             minute_allowance,
             is_paid,
-            start_date: start,
-            end_date: end,
-        }
+            start,
+            end,
+        )
     }
 
     fn d(y: i32, m: u32, d: u32) -> NaiveDate {

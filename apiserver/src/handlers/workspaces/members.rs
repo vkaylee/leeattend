@@ -54,8 +54,8 @@ pub async fn get_workspace_members(
     for member in members {
         let extra_role_ids = extra_roles
             .iter()
-            .filter(|r| r.user_id == member.user_id)
-            .map(|r| r.role_id)
+            .filter(|r| r.user_id() == member.user_id())
+            .map(crate::models::workspace::MemberExtraRole::role_id)
             .collect();
 
         response.push(WorkspaceMemberDetailResponse {

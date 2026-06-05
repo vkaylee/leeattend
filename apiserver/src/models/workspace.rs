@@ -98,13 +98,63 @@ impl PolicyRules {
 
 #[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct WorkingCondition {
-    pub id: Uuid,
-    pub employee_id: Uuid,
-    pub type_: String,
-    pub minute_allowance: i32,
-    pub is_paid: bool,
-    pub start_date: NaiveDate,
-    pub end_date: Option<NaiveDate>,
+    id: Uuid,
+    employee_id: Uuid,
+    type_: String,
+    minute_allowance: i32,
+    is_paid: bool,
+    start_date: NaiveDate,
+    end_date: Option<NaiveDate>,
+}
+
+impl WorkingCondition {
+    pub fn new(
+        id: Uuid,
+        employee_id: Uuid,
+        type_: String,
+        minute_allowance: i32,
+        is_paid: bool,
+        start_date: NaiveDate,
+        end_date: Option<NaiveDate>,
+    ) -> Self {
+        Self {
+            id,
+            employee_id,
+            type_,
+            minute_allowance,
+            is_paid,
+            start_date,
+            end_date,
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn employee_id(&self) -> Uuid {
+        self.employee_id
+    }
+
+    pub fn type_(&self) -> &str {
+        &self.type_
+    }
+
+    pub fn minute_allowance(&self) -> i32 {
+        self.minute_allowance
+    }
+
+    pub fn is_paid(&self) -> bool {
+        self.is_paid
+    }
+
+    pub fn start_date(&self) -> NaiveDate {
+        self.start_date
+    }
+
+    pub fn end_date(&self) -> Option<NaiveDate> {
+        self.end_date
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
@@ -253,9 +303,31 @@ pub struct UpdateWorkspaceRequest {
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct WorkspaceMember {
-    pub workspace_id: Uuid,
-    pub user_id: Uuid,
-    pub role_id: Uuid,
+    workspace_id: Uuid,
+    user_id: Uuid,
+    role_id: Uuid,
+}
+
+impl WorkspaceMember {
+    pub fn new(workspace_id: Uuid, user_id: Uuid, role_id: Uuid) -> Self {
+        Self {
+            workspace_id,
+            user_id,
+            role_id,
+        }
+    }
+
+    pub fn workspace_id(&self) -> Uuid {
+        self.workspace_id
+    }
+
+    pub fn user_id(&self) -> Uuid {
+        self.user_id
+    }
+
+    pub fn role_id(&self) -> Uuid {
+        self.role_id
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
@@ -266,12 +338,56 @@ pub struct AddMemberRequest {
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct MemberExtraRole {
-    pub id: Uuid,
-    pub workspace_id: Uuid,
-    pub user_id: Uuid,
-    pub role_id: Uuid,
-    pub assigned_at: DateTime<Utc>,
-    pub expires_at: DateTime<Utc>,
+    id: Uuid,
+    workspace_id: Uuid,
+    user_id: Uuid,
+    role_id: Uuid,
+    assigned_at: DateTime<Utc>,
+    expires_at: DateTime<Utc>,
+}
+
+impl MemberExtraRole {
+    pub fn new(
+        id: Uuid,
+        workspace_id: Uuid,
+        user_id: Uuid,
+        role_id: Uuid,
+        assigned_at: DateTime<Utc>,
+        expires_at: DateTime<Utc>,
+    ) -> Self {
+        Self {
+            id,
+            workspace_id,
+            user_id,
+            role_id,
+            assigned_at,
+            expires_at,
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn workspace_id(&self) -> Uuid {
+        self.workspace_id
+    }
+
+    pub fn user_id(&self) -> Uuid {
+        self.user_id
+    }
+
+    pub fn role_id(&self) -> Uuid {
+        self.role_id
+    }
+
+    pub fn assigned_at(&self) -> DateTime<Utc> {
+        self.assigned_at
+    }
+
+    pub fn expires_at(&self) -> DateTime<Utc> {
+        self.expires_at
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
@@ -282,12 +398,56 @@ pub struct AssignRoleRequest {
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct WorkspaceMemberDetail {
-    pub workspace_id: Uuid,
-    pub user_id: Uuid,
-    pub role_id: Uuid,
-    pub email: String,
-    pub full_name: Option<String>,
-    pub avatar_url: Option<String>,
+    workspace_id: Uuid,
+    user_id: Uuid,
+    role_id: Uuid,
+    email: String,
+    full_name: Option<String>,
+    avatar_url: Option<String>,
+}
+
+impl WorkspaceMemberDetail {
+    pub fn new(
+        workspace_id: Uuid,
+        user_id: Uuid,
+        role_id: Uuid,
+        email: String,
+        full_name: Option<String>,
+        avatar_url: Option<String>,
+    ) -> Self {
+        Self {
+            workspace_id,
+            user_id,
+            role_id,
+            email,
+            full_name,
+            avatar_url,
+        }
+    }
+
+    pub fn workspace_id(&self) -> Uuid {
+        self.workspace_id
+    }
+
+    pub fn user_id(&self) -> Uuid {
+        self.user_id
+    }
+
+    pub fn role_id(&self) -> Uuid {
+        self.role_id
+    }
+
+    pub fn email(&self) -> &str {
+        &self.email
+    }
+
+    pub fn full_name(&self) -> Option<&str> {
+        self.full_name.as_deref()
+    }
+
+    pub fn avatar_url(&self) -> Option<&str> {
+        self.avatar_url.as_deref()
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
@@ -299,13 +459,63 @@ pub struct WorkspaceMemberDetailResponse {
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct MemberExtraPermission {
-    pub id: Uuid,
-    pub workspace_id: Uuid,
-    pub user_id: Uuid,
-    pub permission: String,
-    pub assigned_at: Option<DateTime<Utc>>,
-    pub expires_at: DateTime<Utc>,
-    pub assigned_by: Option<Uuid>,
+    id: Uuid,
+    workspace_id: Uuid,
+    user_id: Uuid,
+    permission: String,
+    assigned_at: Option<DateTime<Utc>>,
+    expires_at: DateTime<Utc>,
+    assigned_by: Option<Uuid>,
+}
+
+impl MemberExtraPermission {
+    pub fn new(
+        id: Uuid,
+        workspace_id: Uuid,
+        user_id: Uuid,
+        permission: String,
+        assigned_at: Option<DateTime<Utc>>,
+        expires_at: DateTime<Utc>,
+        assigned_by: Option<Uuid>,
+    ) -> Self {
+        Self {
+            id,
+            workspace_id,
+            user_id,
+            permission,
+            assigned_at,
+            expires_at,
+            assigned_by,
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn workspace_id(&self) -> Uuid {
+        self.workspace_id
+    }
+
+    pub fn user_id(&self) -> Uuid {
+        self.user_id
+    }
+
+    pub fn permission(&self) -> &str {
+        &self.permission
+    }
+
+    pub fn assigned_at(&self) -> Option<DateTime<Utc>> {
+        self.assigned_at
+    }
+
+    pub fn expires_at(&self) -> DateTime<Utc> {
+        self.expires_at
+    }
+
+    pub fn assigned_by(&self) -> Option<Uuid> {
+        self.assigned_by
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
@@ -316,19 +526,99 @@ pub struct AssignPermissionRequest {
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct WorkspaceRole {
-    pub id: Uuid,
-    pub workspace_id: Option<Uuid>,
-    pub name: String,
-    pub description: Option<String>,
-    pub color: String,
-    pub is_system: bool,
-    pub scope_type: RoleScopeType,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    id: Uuid,
+    workspace_id: Option<Uuid>,
+    name: String,
+    description: Option<String>,
+    color: String,
+    is_system: bool,
+    scope_type: RoleScopeType,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+impl WorkspaceRole {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        id: Uuid,
+        workspace_id: Option<Uuid>,
+        name: String,
+        description: Option<String>,
+        color: String,
+        is_system: bool,
+        scope_type: RoleScopeType,
+        created_at: DateTime<Utc>,
+        updated_at: DateTime<Utc>,
+    ) -> Self {
+        Self {
+            id,
+            workspace_id,
+            name,
+            description,
+            color,
+            is_system,
+            scope_type,
+            created_at,
+            updated_at,
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn workspace_id(&self) -> Option<Uuid> {
+        self.workspace_id
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn description(&self) -> Option<&str> {
+        self.description.as_deref()
+    }
+
+    pub fn color(&self) -> &str {
+        &self.color
+    }
+
+    pub fn is_system(&self) -> bool {
+        self.is_system
+    }
+
+    pub fn scope_type(&self) -> RoleScopeType {
+        self.scope_type
+    }
+
+    pub fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+
+    pub fn updated_at(&self) -> DateTime<Utc> {
+        self.updated_at
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct WorkspaceRolePermission {
-    pub role_id: Uuid,
-    pub permission_name: String,
+    role_id: Uuid,
+    permission_name: String,
+}
+
+impl WorkspaceRolePermission {
+    pub fn new(role_id: Uuid, permission_name: String) -> Self {
+        Self {
+            role_id,
+            permission_name,
+        }
+    }
+
+    pub fn role_id(&self) -> Uuid {
+        self.role_id
+    }
+
+    pub fn permission_name(&self) -> &str {
+        &self.permission_name
+    }
 }

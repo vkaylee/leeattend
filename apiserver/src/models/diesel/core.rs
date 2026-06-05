@@ -144,11 +144,7 @@ pub struct WorkspaceMemberEntity {
 
 impl From<WorkspaceMemberEntity> for WorkspaceMember {
     fn from(entity: WorkspaceMemberEntity) -> Self {
-        Self {
-            workspace_id: entity.workspace_id,
-            user_id: entity.user_id,
-            role_id: entity.role_id,
-        }
+        WorkspaceMember::new(entity.workspace_id, entity.user_id, entity.role_id)
     }
 }
 
@@ -165,14 +161,14 @@ pub struct MemberExtraRoleEntity {
 
 impl From<MemberExtraRoleEntity> for MemberExtraRole {
     fn from(entity: MemberExtraRoleEntity) -> Self {
-        Self {
-            id: entity.id,
-            workspace_id: entity.workspace_id,
-            user_id: entity.user_id,
-            role_id: entity.role_id,
-            assigned_at: entity.assigned_at.unwrap_or_else(Utc::now),
-            expires_at: entity.expires_at,
-        }
+        MemberExtraRole::new(
+            entity.id,
+            entity.workspace_id,
+            entity.user_id,
+            entity.role_id,
+            entity.assigned_at.unwrap_or_else(Utc::now),
+            entity.expires_at,
+        )
     }
 }
 
@@ -193,18 +189,18 @@ pub struct WorkspaceRoleEntity {
 impl From<WorkspaceRoleEntity> for WorkspaceRole {
     fn from(entity: WorkspaceRoleEntity) -> Self {
         use std::str::FromStr;
-        Self {
-            id: entity.id,
-            workspace_id: entity.workspace_id,
-            name: entity.name,
-            description: entity.description,
-            color: entity.color.unwrap_or_else(|| "#000000".to_string()),
-            is_system: entity.is_system.unwrap_or(false),
-            scope_type: crate::models::enums::RoleScopeType::from_str(&entity.scope_type)
+        WorkspaceRole::new(
+            entity.id,
+            entity.workspace_id,
+            entity.name,
+            entity.description,
+            entity.color.unwrap_or_else(|| "#000000".to_string()),
+            entity.is_system.unwrap_or(false),
+            crate::models::enums::RoleScopeType::from_str(&entity.scope_type)
                 .unwrap_or(crate::models::enums::RoleScopeType::Scoped),
-            created_at: entity.created_at.unwrap_or_else(Utc::now),
-            updated_at: entity.updated_at.unwrap_or_else(Utc::now),
-        }
+            entity.created_at.unwrap_or_else(Utc::now),
+            entity.updated_at.unwrap_or_else(Utc::now),
+        )
     }
 }
 

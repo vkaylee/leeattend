@@ -117,7 +117,7 @@ pub async fn assign_extra_role(
         actor_name: ctx.user_name.clone(),
         actor_email: Some(crate::utils::masking::mask_email(&ctx.user_email)),
         target_user_id: Some(user_id),
-        target_resource_id: Some(extra_role.id),
+        target_resource_id: Some(extra_role.id()),
         action: "assign_extra_role",
         details: Some(serde_json::json!({ "role_id": req.role_id, "expires_at": req.expires_at })),
         headers: &headers,

@@ -1,35 +1,14 @@
-#![allow(unused_imports)]
 use crate::errors::AppError;
 use async_trait::async_trait;
 use chrono::NaiveDate;
 use diesel::prelude::*;
-use diesel_async::AsyncConnection;
 use diesel_async::RunQueryDsl;
-use rust_decimal::Decimal;
 use uuid::Uuid;
 
-use crate::models::diesel::employee::{
-    CountRow, DeptRow, EmployeeDocumentEntity, EmployeeEmergencyContactEntity, EmployeeEntity,
-    EmployeeProfileEntity, EmployeeRow, RecruitmentSourceBreakdownRow, RecruitmentSourceEntity,
-    TenureRow, UpdateDieselEmployee,
-};
-use crate::models::{
-    CreateEmergencyContactRequest, Employee, EmployeeDocument, EmployeeEmergencyContact,
-    EmployeeFilterOptions, EmployeePaginationArgs, EmployeeProfile, RecruitmentSource,
-    RecruitmentSourceBreakdown, TurnoverAnalytics, TurnoverByDepartment, TurnoverBySource,
-    TurnoverTenureBucket, UpdateEmployeeProfileRequest, UpdateEmployeeRequest, WorkingCondition,
-};
+use crate::models::WorkingCondition;
 use crate::repositories::employee::*;
-use crate::schema::{
-    employee_documents, employee_emergency_contacts, employee_profiles, employees,
-    recruitment_sources,
-};
-use diesel::sql_types::{Date, Uuid as UuidType};
 
-use super::{
-    build_employee_search_sql, DieselEmployeeRepository, EmployeeSearchSql, EMPLOYEE_DEPT_JOIN,
-    EMPLOYEE_SELECT_QUERY,
-};
+use super::DieselEmployeeRepository;
 
 #[allow(clippy::too_many_lines)]
 #[async_trait]
@@ -93,17 +72,9 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
 
         let data = result
             .into_iter()
-            .map(
-                |(id, emp_id, type_, min, paid, start, end)| WorkingCondition {
-                    id,
-                    employee_id: emp_id,
-                    type_,
-                    minute_allowance: min,
-                    is_paid: paid,
-                    start_date: start,
-                    end_date: end,
-                },
-            )
+            .map(|(id, emp_id, type_, min, paid, start, end)| {
+                WorkingCondition::new(id, emp_id, type_, min, paid, start, end)
+            })
             .collect();
 
         Ok((data, total))
@@ -127,13 +98,13 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
 
         diesel::insert_into(working_conditions::table)
             .values((
-                working_conditions::id.eq(condition.id),
-                working_conditions::employee_id.eq(condition.employee_id),
-                working_conditions::type_.eq(&condition.type_),
-                working_conditions::minute_allowance.eq(condition.minute_allowance),
-                working_conditions::is_paid.eq(condition.is_paid),
-                working_conditions::start_date.eq(condition.start_date),
-                working_conditions::end_date.eq(condition.end_date),
+                working_conditions::id.eq(condition.id()),
+                working_conditions::employee_id.eq(condition.employee_id()),
+                working_conditions::type_.eq(condition.type_()),
+                working_conditions::minute_allowance.eq(condition.minute_allowance()),
+                working_conditions::is_paid.eq(condition.is_paid()),
+                working_conditions::start_date.eq(condition.start_date()),
+                working_conditions::end_date.eq(condition.end_date()),
             ))
             .execute(&mut *conn)
             .await
@@ -220,17 +191,9 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
 
         Ok(result
             .into_iter()
-            .map(
-                |(id, emp_id, type_, min, paid, start, end)| WorkingCondition {
-                    id,
-                    employee_id: emp_id,
-                    type_,
-                    minute_allowance: min,
-                    is_paid: paid,
-                    start_date: start,
-                    end_date: end,
-                },
-            )
+            .map(|(id, emp_id, type_, min, paid, start, end)| {
+                WorkingCondition::new(id, emp_id, type_, min, paid, start, end)
+            })
             .collect())
     }
 
@@ -296,15 +259,9 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
         for (id, emp_id, type_, min, paid, start, end) in result {
             map.entry(emp_id)
                 .or_insert_with(Vec::new)
-                .push(WorkingCondition {
-                    id,
-                    employee_id: emp_id,
-                    type_,
-                    minute_allowance: min,
-                    is_paid: paid,
-                    start_date: start,
-                    end_date: end,
-                });
+                .push(WorkingCondition::new(
+                    id, emp_id, type_, min, paid, start, end,
+                ));
         }
         Ok(map)
     }
