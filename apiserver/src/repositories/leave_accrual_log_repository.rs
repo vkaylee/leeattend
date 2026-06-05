@@ -1,7 +1,6 @@
 use async_trait::async_trait;
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
-
 use uuid::Uuid;
 
 use crate::errors::AppError;
@@ -88,19 +87,38 @@ pub trait LeaveAccrualLogRepository: Send + Sync {
         amount: f64,
         force: bool,
     ) -> Result<Option<LeaveAccrualLog>, AppError>;
+
+    /// Batch persist multiple accrual entries in a single transaction.
+    /// Eliminates N+1 writes by processing all entries atomically.
+    async fn persist_accruals_batch(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        workspace_id: Uuid,
+        entries: &[AccrualBatchEntry],
+        force: bool,
+    ) -> Result<Vec<LeaveAccrualLog>, AppError>;
 }
 
 /// Minimal view of an existing accrual log (only the fields the orchestrator needs).
 pub struct ExistingAccrualLog {
     pub id: Uuid,
-    pub amount: Decimal,
+    pub amount: rust_decimal::Decimal,
+}
+
+/// Entry for batch accrual persistence.
+pub struct AccrualBatchEntry {
+    pub employee_id: Uuid,
+    pub assignment_id: Uuid,
+    pub leave_type_id: Uuid,
+    pub accrual_date: NaiveDate,
+    pub amount: f64,
 }
 
 #[derive(Clone)]
 pub struct LeaveHistoryLogItem {
     pub id: Uuid,
     pub accrual_date: NaiveDate,
-    pub amount: Decimal,
+    pub amount: rust_decimal::Decimal,
     pub leave_type_name: String,
     pub notes: Option<String>,
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,

@@ -1,6 +1,7 @@
 use crate::errors::{AppError, AppResult};
 use crate::models::{AuthResponse, UserResponse};
-use bcrypt::{hash, verify};
+use argon2::password_hash::{rand_core::OsRng, SaltString};
+use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
@@ -9,7 +10,8 @@ use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
-    pub sub: String, // user_id
+    pub sub: String,                // user_id
+    pub workspace_id: Option<Uuid>, // per access-control.md §3
     pub exp: i64,
     pub iat: i64,
 }
@@ -44,6 +46,7 @@ impl AuthService {
 
         let claims = Claims {
             sub: user_id.to_string(),
+            workspace_id: None,
             exp: expiration,
             iat: Utc::now().timestamp(),
         };
@@ -68,18 +71,36 @@ impl AuthService {
             .map_err(|e| AppError::Auth(format!("Invalid token subject: {e}")))
     }
 
+    /// Hash a password using argon2id (per access-control.md §3).
     pub fn hash_password(password: &str) -> AppResult<String> {
-        #[cfg(debug_assertions)]
-        let cost = 4;
-        #[cfg(not(debug_assertions))]
-        let cost = bcrypt::DEFAULT_COST;
-
-        hash(password, cost)
+        let salt = SaltString::generate(&mut OsRng);
+        let argon2 = Argon2::default(); // argon2id v19, standard OWASP params
+        argon2
+            .hash_password(password.as_bytes(), &salt)
+            .map(|h| h.to_string())
             .map_err(|e| AppError::Internal(format!("Failed to hash password: {e}")))
     }
 
-    pub fn verify_password(password: &str, hash: &str) -> bool {
-        verify(password, hash).unwrap_or(false)
+    /// Verify a password against any supported hash format.
+    /// Returns `(is_valid, needs_rehash)`.
+    /// - argon2id hashes: verified natively, `needs_rehash = false`.
+    /// - bcrypt hashes (legacy): verified via bcrypt, `needs_rehash = true` if valid.
+    pub fn verify_password(password: &str, hash: &str) -> (bool, bool) {
+        // Try argon2id first (new format starts with "$argon2")
+        if hash.starts_with("$argon2") {
+            let valid = PasswordHash::new(hash)
+                .ok()
+                .map(|parsed| {
+                    Argon2::default()
+                        .verify_password(password.as_bytes(), &parsed)
+                        .is_ok()
+                })
+                .unwrap_or(false);
+            return (valid, false);
+        }
+        // Fallback: bcrypt (legacy — starts with "$2b$" or "$2a$")
+        let valid = bcrypt::verify(password, hash).unwrap_or(false);
+        (valid, valid) // If valid bcrypt, needs rehash to argon2id
     }
 
     // --- DB methods (use self.pool) ---

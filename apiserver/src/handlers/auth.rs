@@ -256,7 +256,7 @@ pub async fn login(
 
     let password = req.password.clone();
     let hash = user.password_hash().to_string();
-    let is_valid =
+    let (is_valid, needs_rehash) =
         tokio::task::spawn_blocking(move || AuthService::verify_password(&password, &hash))
             .await
             .map_err(|e| AppError::Internal(format!("Failed to spawn blocking task: {e}")))?;
@@ -264,6 +264,27 @@ pub async fn login(
     if !is_valid {
         tracing::warn!(user_id = %user.id(), "Login failed: Invalid password");
         return Err(AppError::Auth("Invalid email or password".to_string()));
+    }
+
+    // Transparent rehash: migrate legacy bcrypt hash to argon2id
+    if needs_rehash {
+        let pw_for_rehash = req.password.clone();
+        let new_hash =
+            tokio::task::spawn_blocking(move || AuthService::hash_password(&pw_for_rehash))
+                .await
+                .map_err(|e| AppError::Internal(format!("Failed to spawn blocking task: {e}")))?;
+        if let Ok(h) = new_hash {
+            if let Err(e) = state
+                .core()
+                .user_repo()
+                .update_password_hash(user.id(), &h)
+                .await
+            {
+                tracing::warn!(user_id = %user.id(), error = %e, "Failed to rehash password");
+            } else {
+                tracing::info!(user_id = %user.id(), "Password rehashed from bcrypt to argon2id");
+            }
+        }
     }
 
     tracing::info!(user_id = %user.id(), "User logged in successfully");
@@ -368,7 +389,7 @@ pub async fn change_password(
     // 2. Verify old password
     let old_password = req.old_password.clone();
     let old_hash = user.password_hash().to_string();
-    let is_valid =
+    let (is_valid, _needs_rehash) =
         tokio::task::spawn_blocking(move || AuthService::verify_password(&old_password, &old_hash))
             .await
             .map_err(|e| AppError::Internal(format!("Failed to spawn blocking task: {e}")))?;

@@ -2,9 +2,9 @@
 //!
 //! Claims orphan attendance staging logs for a newly created or imported employee.
 //! Moves matching logs from `attendance_staging_logs` into `raw_attendance_logs`
-//! and triggers pairing/reprocessing for affected dates.
+//! (atomically via repo transaction) and triggers pairing/reprocessing for affected dates.
 
-use tracing::info;
+use tracing::{error, info};
 
 use crate::queue::Job;
 
@@ -16,13 +16,25 @@ impl ClaimStagedLogsHandler {
             .claim_staged_logs_payload()
             .ok_or("Invalid payload for ClaimStagedLogs job")?;
 
-        let (log_svc, _handle) = deps.log_service();
+        // 1. Fetch punch times BEFORE claiming (for pairing reprocessing)
+        let staged_logs = deps
+            .staging_repo
+            .get_pending_staged_logs(payload.workspace_id, &payload.employee_id_number)
+            .await
+            .map_err(|e| format!("Failed to fetch staged logs: {e}"))?;
 
-        let claimed = log_svc
+        let dates_to_reprocess: std::collections::HashSet<chrono::NaiveDate> = staged_logs
+            .iter()
+            .map(|log| log.punch_time.date_naive())
+            .collect();
+
+        // 2. Atomic claim: INSERT raw logs + UPDATE staging status in one transaction
+        let claimed = deps
+            .staging_repo
             .claim_staged_logs(
                 payload.workspace_id,
-                payload.employee_id,
                 &payload.employee_id_number,
+                payload.employee_id,
             )
             .await
             .map_err(|e| e.to_string())?;
@@ -32,6 +44,26 @@ impl ClaimStagedLogsHandler {
             claimed_count = claimed,
             "ClaimStagedLogs job completed"
         );
+
+        // 3. Trigger pairing reprocessing for affected dates (best-effort, non-fatal)
+        if claimed > 0 {
+            let pairing_svc = deps.pairing_service();
+            let tz = chrono_tz::UTC;
+
+            for date in dates_to_reprocess {
+                if let Err(e) = pairing_svc
+                    .reprocess_daily_attendance(payload.workspace_id, payload.employee_id, date, tz)
+                    .await
+                {
+                    error!(
+                        employee_id = %payload.employee_id,
+                        date = %date,
+                        error = %e,
+                        "Pairing reprocessing failed after claim"
+                    );
+                }
+            }
+        }
 
         Ok(())
     }
@@ -89,7 +121,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_claim_staged_logs_handler_success() {
-        use crate::repositories::raw_attendance_log_repository::MockRawAttendanceLogRepository;
         use crate::repositories::roster::MockRosterRepository;
         use crate::repositories::staging_log_repository::MockStagingLogRepository;
         use crate::repositories::staging_log_repository::StagingLog;
@@ -100,6 +131,8 @@ mod tests {
         let emp_id = Uuid::new_v4();
 
         let mut staging_repo = MockStagingLogRepository::new();
+
+        // Mock get_pending_staged_logs — returns one staged log
         staging_repo
             .expect_get_pending_staged_logs()
             .with(
@@ -120,18 +153,17 @@ mod tests {
                 }])
             });
 
+        // Mock claim_staged_logs — atomic repo call returns 1 claimed
         staging_repo
-            .expect_update_staging_status()
-            .returning(|_, _, _| Ok(true));
+            .expect_claim_staged_logs()
+            .with(
+                mockall::predicate::eq(ws_id),
+                mockall::predicate::eq("EMP001"),
+                mockall::predicate::eq(emp_id),
+            )
+            .returning(|_, _, _| Ok(1));
 
-        let mut raw_log_repo = MockRawAttendanceLogRepository::new();
-        raw_log_repo
-            .expect_create_raw_log()
-            .returning(|_, _| Box::pin(async { Ok(true) }));
-        raw_log_repo
-            .expect_get_employee_logs_in_time_range()
-            .returning(|_, _, _, _| Box::pin(async { Ok(vec![]) }));
-
+        // Pairing service deps (for reprocessing after claim)
         let mut roster_repo = MockRosterRepository::new();
         roster_repo
             .expect_get_effective_shift()
@@ -139,6 +171,13 @@ mod tests {
         roster_repo
             .expect_get_workspace_schedules()
             .returning(|_, _, _, _, _| Box::pin(async { Ok(vec![]) }));
+
+        let mut raw_log_repo =
+            crate::repositories::raw_attendance_log_repository::MockRawAttendanceLogRepository::new(
+            );
+        raw_log_repo
+            .expect_get_employee_logs_in_time_range()
+            .returning(|_, _, _, _| Box::pin(async { Ok(vec![]) }));
 
         let mut time_entry_repo =
             crate::repositories::time_entry_repository::MockTimeEntryRepository::new();

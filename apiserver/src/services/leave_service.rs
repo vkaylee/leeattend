@@ -834,6 +834,15 @@ mod tests {
         ) -> Result<(), AppError> {
             unimplemented!()
         }
+        async fn persist_accruals_batch(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _workspace_id: Uuid,
+            _entries: &[crate::repositories::leave_accrual_log_repository::AccrualBatchEntry],
+            _force: bool,
+        ) -> Result<Vec<crate::models::LeaveAccrualLog>, AppError> {
+            Ok(vec![])
+        }
     }
 
     fn build_service(

@@ -215,56 +215,65 @@ impl StagingLogRepository for DieselStagingLogRepository {
                 .await?,
         );
 
-        let staged_logs = attendance_staging_logs::table
-            .filter(attendance_staging_logs::workspace_id.eq(workspace_id))
-            .filter(attendance_staging_logs::raw_user_id.eq(raw_user_id))
-            .filter(attendance_staging_logs::status.eq("pending"))
-            .order(attendance_staging_logs::punch_time.asc())
-            .load::<AttendanceStagingLogEntity>(&mut *conn)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        // Wrap in transaction: if INSERT succeeds but UPDATE fails, everything rolls back.
+        // This prevents orphaned staging logs stuck in "pending" state.
+        let raw_user_id_owned = raw_user_id.to_string();
+        conn.transaction(|conn| {
+            Box::pin(async move {
+                let staged_logs = attendance_staging_logs::table
+                    .filter(attendance_staging_logs::workspace_id.eq(workspace_id))
+                    .filter(attendance_staging_logs::raw_user_id.eq(&raw_user_id_owned))
+                    .filter(attendance_staging_logs::status.eq("pending"))
+                    .order(attendance_staging_logs::punch_time.asc())
+                    .load::<AttendanceStagingLogEntity>(&mut *conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        if staged_logs.is_empty() {
-            return Ok(0);
-        }
+                if staged_logs.is_empty() {
+                    return Ok(0);
+                }
 
-        let now = chrono::Utc::now();
-        let raw_log_entities: Vec<_> = staged_logs
-            .iter()
-            .map(
-                |staged| crate::models::diesel::attendance_log::RawAttendanceLogEntity {
-                    id: crate::utils::id::new_id(),
-                    workspace_id,
-                    employee_id,
-                    punch_time: staged.punch_time,
-                    source: crate::models::LogSource::Device,
-                    device_id: staged.device_id.clone(),
-                    raw_data: staged.raw_data.clone(),
-                    punch: -1,
-                    status: -1,
-                    created_at: Some(now),
-                },
-            )
-            .collect();
+                let now = chrono::Utc::now();
+                let raw_log_entities: Vec<_> = staged_logs
+                    .iter()
+                    .map(
+                        |staged| crate::models::diesel::attendance_log::RawAttendanceLogEntity {
+                            id: crate::utils::id::new_id(),
+                            workspace_id,
+                            employee_id,
+                            punch_time: staged.punch_time,
+                            source: crate::models::LogSource::Device,
+                            device_id: staged.device_id.clone(),
+                            raw_data: staged.raw_data.clone(),
+                            punch: -1,
+                            status: -1,
+                            created_at: Some(now),
+                        },
+                    )
+                    .collect();
 
-        let inserted_rows = diesel::insert_into(crate::schema::raw_attendance_logs::table)
-            .values(&raw_log_entities)
-            .on_conflict_do_nothing()
-            .execute(&mut *conn)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                let inserted_rows = diesel::insert_into(crate::schema::raw_attendance_logs::table)
+                    .values(&raw_log_entities)
+                    .on_conflict_do_nothing()
+                    .execute(&mut *conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let staged_ids: Vec<_> = staged_logs.iter().map(|staged| staged.id).collect();
+                let staged_ids: Vec<_> = staged_logs.iter().map(|staged| staged.id).collect();
 
-        diesel::update(
-            attendance_staging_logs::table.filter(attendance_staging_logs::id.eq_any(&staged_ids)),
-        )
-        .set(attendance_staging_logs::status.eq("processed"))
-        .execute(&mut *conn)
+                diesel::update(
+                    attendance_staging_logs::table
+                        .filter(attendance_staging_logs::id.eq_any(&staged_ids)),
+                )
+                .set(attendance_staging_logs::status.eq("processed"))
+                .execute(&mut *conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                Ok(inserted_rows as u64)
+            })
+        })
         .await
-        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
-
-        Ok(inserted_rows as u64)
     }
 
     async fn resolve_staging_log(

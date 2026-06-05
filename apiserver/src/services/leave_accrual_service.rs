@@ -16,14 +16,6 @@ use uuid::Uuid;
 /// threshold check when no policy threshold is configured.
 const DEFAULT_QUALIFYING_DAYS_BYPASS: f64 = 20.0;
 
-/// Context IDs that flow together through the accrual pipeline.
-struct AccrualContext {
-    workspace_id: Uuid,
-    employee_id: Uuid,
-    assignment_id: Uuid,
-    leave_type_id: Uuid,
-}
-
 pub struct LeaveAccrualService {
     employee_repo: Arc<dyn EmployeeRepository>,
     department_repo: Arc<dyn DepartmentRepository>,
@@ -580,9 +572,9 @@ impl LeaveAccrualService {
             )
             .await?;
 
-        let mut all_logs = Vec::new();
+        let mut batch_entries = Vec::new();
 
-        // 5. Process each employee using strictly memory-cached references
+        // 5. Collect accrual entries in memory (no DB calls)
         for emp in employees {
             let Some(dates) = accrual_plan.get(&emp.id()) else {
                 continue;
@@ -600,13 +592,6 @@ impl LeaveAccrualService {
             let empty_q_map = HashMap::new();
             let q_map = qualifying_days_map.get(&emp.id()).unwrap_or(&empty_q_map);
 
-            let ctx = AccrualContext {
-                workspace_id,
-                employee_id: emp.id(),
-                assignment_id: *assignment_id,
-                leave_type_id,
-            };
-
             for accrual_date in dates {
                 let months_service =
                     Self::calculate_total_months_seniority(contracts, *accrual_date);
@@ -614,11 +599,24 @@ impl LeaveAccrualService {
                 let amount = Self::calculate_accrual_amount(config, months_service, work_days);
 
                 if amount > 0.0 {
-                    self.persist_accrual(&ctx, *accrual_date, amount, force, &mut all_logs)
-                        .await?;
+                    batch_entries.push(
+                        crate::repositories::leave_accrual_log_repository::AccrualBatchEntry {
+                            employee_id: emp.id(),
+                            assignment_id: *assignment_id,
+                            leave_type_id,
+                            accrual_date: *accrual_date,
+                            amount,
+                        },
+                    );
                 }
             }
         }
+
+        // 6. Single batch DB call — all entries persisted in one transaction
+        let all_logs = self
+            .accrual_log_repo
+            .persist_accruals_batch(&auth_token, workspace_id, &batch_entries, force)
+            .await?;
 
         Ok(all_logs)
     }
@@ -665,38 +663,6 @@ impl LeaveAccrualService {
         } else {
             DEFAULT_QUALIFYING_DAYS_BYPASS
         }
-    }
-
-    /// Persist an accrual log and update the leave balance via the repository.
-    async fn persist_accrual(
-        &self,
-        ctx: &AccrualContext,
-        accrual_date: NaiveDate,
-        amount: f64,
-        force: bool,
-        all_logs: &mut Vec<LeaveAccrualLog>,
-    ) -> Result<(), AppError> {
-        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(ctx.workspace_id);
-
-        let result = self
-            .accrual_log_repo
-            .persist_accrual(
-                &auth_token,
-                ctx.workspace_id,
-                ctx.employee_id,
-                ctx.assignment_id,
-                ctx.leave_type_id,
-                accrual_date,
-                amount,
-                force,
-            )
-            .await?;
-
-        if let Some(log) = result {
-            all_logs.push(log);
-        }
-
-        Ok(())
     }
 }
 

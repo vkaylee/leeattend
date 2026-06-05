@@ -113,6 +113,7 @@ impl AuthHelper {
         let now = chrono::Utc::now();
         let claims = apiserver::services::auth_service::Claims {
             sub: user_id.to_string(),
+            workspace_id: None,
             exp: (now + chrono::Duration::hours(1)).timestamp(),
             iat: now.timestamp(),
         };

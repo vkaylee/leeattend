@@ -279,11 +279,8 @@ impl AttendanceLogService {
         {
             Ok(true) => {
                 info!(
-                    "Successfully saved log for {} ({}) at {} (UTC) from {:?}",
-                    employee.full_name(),
-                    normalized_emp_id,
-                    punch_time,
-                    raw_log.source
+                    "Successfully saved log for employee {} at {} (UTC) from {:?}",
+                    normalized_emp_id, punch_time, raw_log.source
                 );
 
                 // 5. Trigger Pairing Logic
@@ -348,110 +345,6 @@ impl AttendanceLogService {
             Ok(false) => Ok(false),
             Err(e) => Err(crate::errors::AppError::Internal(e.to_string())),
         }
-    }
-
-    /// Claim staged logs for a newly created/updated employee.
-    /// Finds all pending staging logs matching the employee_id_number and moves them to raw_attendance_logs.
-    /// Returns the number of logs claimed.
-    #[tracing::instrument(skip_all, err)]
-    pub async fn claim_staged_logs(
-        &self,
-        workspace_id: Uuid,
-        employee_id: Uuid,
-        employee_id_number: &str,
-    ) -> Result<u32, crate::errors::AppError> {
-        // 1. Find all pending staging logs for this employee_id_number
-        let staged_logs = self
-            .staging_repo
-            .get_pending_staged_logs(workspace_id, employee_id_number)
-            .await
-            .map_err(|e| {
-                crate::errors::AppError::Internal(format!("Failed to fetch staged logs: {e}"))
-            })?;
-
-        if staged_logs.is_empty() {
-            return Ok(0);
-        }
-
-        let mut claimed_count = 0u32;
-        let mut dates_to_reprocess = std::collections::HashSet::new();
-
-        // 2. We skip true transactions for now and do best-effort, or we rely on the repos
-        // Since we are decoupling from raw SQLx transactions, we'll iterate and update sequentially
-        for staged in &staged_logs {
-            let (punch, status) = Self::extract_punch_status(staged.raw_data.as_ref());
-
-            let raw_log = RawAttendanceLog {
-                id: new_id(),
-                workspace_id,
-                employee_id,
-                punch_time: staged.punch_time,
-                source: LogSource::Device,
-                device_id: staged.device_id.clone(),
-                raw_data: staged.raw_data.clone(),
-                punch,
-                status,
-                created_at: Utc::now(),
-            };
-
-            // 3. Insert to raw_attendance_logs using repo
-            match self
-                .raw_log_repo
-                .create_raw_log(workspace_id, &raw_log)
-                .await
-            {
-                Ok(true) => {
-                    claimed_count += 1;
-                    dates_to_reprocess.insert(staged.punch_time.date_naive());
-
-                    // Mark staging log as processed
-                    let _ = self
-                        .staging_repo
-                        .update_staging_status(staged.id, workspace_id, "processed")
-                        .await;
-                }
-                Ok(false) => {
-                    // Duplicate - still mark as processed
-                    let _ = self
-                        .staging_repo
-                        .update_staging_status(staged.id, workspace_id, "processed")
-                        .await;
-                }
-                Err(e) => {
-                    error!("Failed to claim staged log {}: {}", staged.id, e);
-                    return Err(crate::errors::AppError::Internal(format!(
-                        "Aborted due to DB error: {e}"
-                    )));
-                }
-            }
-        }
-
-        // 4. Trigger pairing for all affected dates
-        // Ideally we'd get tz from workspace repo, default to UTC for now
-        let tz = chrono_tz::UTC;
-
-        for date in dates_to_reprocess {
-            info!(
-                "Reprocessing attendance for employee {} on {}",
-                employee_id, date
-            );
-            if let Err(e) = self
-                .pairing_service
-                .reprocess_daily_attendance(workspace_id, employee_id, date, tz)
-                .await
-            {
-                error!(
-                    "Pairing error for employee {} on {}: {:?}",
-                    employee_id, date, e
-                );
-            }
-        }
-
-        info!(
-            "Claimed {} staged logs for employee {}",
-            claimed_count, employee_id_number
-        );
-        Ok(claimed_count)
     }
 }
 
