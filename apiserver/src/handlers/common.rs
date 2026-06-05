@@ -387,8 +387,8 @@ impl MemberContext {
         };
 
         Ok(CachedMemberContext {
-            user_name: user.full_name,
-            user_email: user.email,
+            user_name: user.full_name().map(String::from),
+            user_email: user.email().to_string(),
             roles,
             permissions: permissions
                 .into_iter()
@@ -650,8 +650,10 @@ pub async fn get_my_behalf_targets_handler(
         .await?;
 
     // Filter out inactive employees
-    let active: Vec<crate::models::Employee> =
-        employees.into_iter().filter(|e| e.is_active).collect();
+    let active: Vec<crate::models::Employee> = employees
+        .into_iter()
+        .filter(crate::models::Employee::is_active)
+        .collect();
 
     Ok(active)
 }

@@ -114,7 +114,7 @@ impl AuthService {
             .await?
             .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 
-        let access_token = Self::generate_token(user.id, secret, 60)?; // 1 hour access
+        let access_token = Self::generate_token(user.id(), secret, 60)?; // 1 hour access
 
         // Rotate refresh token
         let new_refresh_token = Uuid::new_v4().to_string();
@@ -123,19 +123,19 @@ impl AuthService {
             .await?;
 
         // Fetch system-level roles for this user
-        let system_roles = self.user_repo.get_system_roles_for_user(user.id).await?;
+        let system_roles = self.user_repo.get_system_roles_for_user(user.id()).await?;
 
         Ok(AuthResponse {
             access_token,
             refresh_token: new_refresh_token,
             user: UserResponse {
-                id: user.id,
-                email: user.email,
-                full_name: user.full_name,
-                avatar_url: user.avatar_url,
-                bio: user.bio,
-                preferred_language: user.preferred_language,
-                created_at: user.created_at,
+                id: user.id(),
+                email: user.email().to_string(),
+                full_name: user.full_name().map(String::from),
+                avatar_url: user.avatar_url().map(String::from),
+                bio: user.bio().map(String::from),
+                preferred_language: user.preferred_language().map(String::from),
+                created_at: user.created_at(),
                 system_roles,
             },
         })

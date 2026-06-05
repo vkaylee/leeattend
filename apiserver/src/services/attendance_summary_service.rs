@@ -182,7 +182,7 @@ impl AttendanceSummaryService {
             .await?
             .ok_or_else(|| AppError::NotFound("Workspace not found".to_string()))?;
 
-        let tz: Tz = crate::utils::tz::parse_workspace_tz(&workspace.timezone);
+        let tz: Tz = crate::utils::tz::parse_workspace_tz(workspace.timezone());
 
         let schedules = self
             .roster_repo
@@ -375,22 +375,30 @@ impl AttendanceSummaryService {
         let holiday = self
             .holiday_repo
             .is_holiday(&TenantAuthToken::system_override(workspace_id), date)
-            .await
-            .unwrap_or(None);
+            .await?;
         let is_holiday = holiday.is_some();
         let holiday_name = holiday.as_ref().map(|h| h.name.clone());
 
         if is_holiday && actual_work_minutes > 0 {
             if let Some(ref hol) = holiday {
-                self.maybe_reverse_holiday_leave(
-                    workspace_id,
-                    employee_id,
-                    date,
-                    actual_work_minutes,
-                    daily_schedule,
-                    hol,
-                )
-                .await;
+                if let Err(e) = self
+                    .maybe_reverse_holiday_leave(
+                        workspace_id,
+                        employee_id,
+                        date,
+                        actual_work_minutes,
+                        daily_schedule,
+                        hol,
+                    )
+                    .await
+                {
+                    tracing::warn!(
+                        error = %e,
+                        employee_id = %employee_id,
+                        date = %date,
+                        "Failed to reverse holiday leave — continuing with summary calculation"
+                    );
+                }
             }
         }
 
@@ -406,7 +414,7 @@ impl AttendanceSummaryService {
         actual_work_minutes: i32,
         daily_schedule: &crate::models::EffectiveSchedule,
         holiday: &crate::models::Holiday,
-    ) {
+    ) -> AppResult<()> {
         let system_leave = self
             .leave_request_repo
             .get_system_generated_holiday_leave(
@@ -414,11 +422,10 @@ impl AttendanceSummaryService {
                 employee_id,
                 date,
             )
-            .await
-            .unwrap_or(None);
+            .await?;
 
         let Some((leave_request_id, _leave_type_id, _leave_code)) = system_leave else {
-            return;
+            return Ok(());
         };
 
         let shift_minutes = daily_schedule
@@ -444,21 +451,12 @@ impl AttendanceSummaryService {
         };
 
         if work_percent >= threshold {
-            if let Err(e) = self
-                .leave_request_repo
+            self.leave_request_repo
                 .cancel_leave_request(
                     &TenantAuthToken::system_override(workspace_id),
                     leave_request_id,
                 )
-                .await
-            {
-                tracing::warn!(
-                    error = %e,
-                    employee_id = %employee_id,
-                    date = %date,
-                    "Failed to reverse holiday leave request"
-                );
-            }
+                .await?;
 
             tracing::info!(
                 employee_id = %employee_id,
@@ -478,6 +476,7 @@ impl AttendanceSummaryService {
                 work_percent, threshold
             );
         }
+        Ok(())
     }
 
     /// Determine the OT status based on existing summary and detected OT.
@@ -974,6 +973,24 @@ mod tests {
             }
         }
 
+        fn test_workspace(workspace_id: Uuid) -> Workspace {
+            Workspace::new(
+                workspace_id,
+                "Test".to_string(),
+                "YYYY-MM-DD".to_string(),
+                "HH:mm".to_string(),
+                "UTC".to_string(),
+                "indigo".to_string(),
+                "vi".to_string(),
+                None,
+                None,
+                "std".to_string(),
+                rust_decimal::Decimal::ONE,
+                Utc::now(),
+                None,
+            )
+        }
+
         #[tokio::test]
         async fn test_leave_conflict_auto_cancel_single_day() {
             let employee_id = Uuid::new_v4();
@@ -994,23 +1011,7 @@ mod tests {
             workspace_repo
                 .expect_get_workspace_by_id()
                 .returning(move |_| {
-                    Box::pin(async move {
-                        Ok(Some(Workspace {
-                            id: workspace_id,
-                            name: "Test".to_string(),
-                            date_format: "YYYY-MM-DD".to_string(),
-                            time_format: "HH:mm".to_string(),
-                            timezone: "UTC".to_string(),
-                            theme_primary_color: "indigo".to_string(),
-                            default_language: "vi".to_string(),
-                            logo_url: None,
-                            tagline: None,
-                            holiday_overnight_strategy: "std".to_string(),
-                            default_holiday_ot_multiplier: rust_decimal::Decimal::ONE,
-                            created_at: Utc::now(),
-                            custom_db_url_encrypted: None,
-                        }))
-                    })
+                    Box::pin(async move { Ok(Some(test_workspace(workspace_id))) })
                 });
 
             // Mock is_holiday
@@ -1157,23 +1158,7 @@ mod tests {
             workspace_repo
                 .expect_get_workspace_by_id()
                 .returning(move |_| {
-                    Box::pin(async move {
-                        Ok(Some(Workspace {
-                            id: workspace_id,
-                            name: "Test".to_string(),
-                            date_format: "YYYY-MM-DD".to_string(),
-                            time_format: "HH:mm".to_string(),
-                            timezone: "UTC".to_string(),
-                            theme_primary_color: "indigo".to_string(),
-                            default_language: "vi".to_string(),
-                            logo_url: None,
-                            tagline: None,
-                            holiday_overnight_strategy: "std".to_string(),
-                            default_holiday_ot_multiplier: rust_decimal::Decimal::ONE,
-                            created_at: Utc::now(),
-                            custom_db_url_encrypted: None,
-                        }))
-                    })
+                    Box::pin(async move { Ok(Some(test_workspace(workspace_id))) })
                 });
 
             // Mock is_holiday
@@ -1314,23 +1299,7 @@ mod tests {
             workspace_repo
                 .expect_get_workspace_by_id()
                 .returning(move |_| {
-                    Box::pin(async move {
-                        Ok(Some(Workspace {
-                            id: workspace_id,
-                            name: "Test".to_string(),
-                            date_format: "YYYY-MM-DD".to_string(),
-                            time_format: "HH:mm".to_string(),
-                            timezone: "UTC".to_string(),
-                            theme_primary_color: "indigo".to_string(),
-                            default_language: "vi".to_string(),
-                            logo_url: None,
-                            tagline: None,
-                            holiday_overnight_strategy: "std".to_string(),
-                            default_holiday_ot_multiplier: rust_decimal::Decimal::ONE,
-                            created_at: Utc::now(),
-                            custom_db_url_encrypted: None,
-                        }))
-                    })
+                    Box::pin(async move { Ok(Some(test_workspace(workspace_id))) })
                 });
 
             // Mock is_holiday
@@ -1457,23 +1426,7 @@ mod tests {
             workspace_repo
                 .expect_get_workspace_by_id()
                 .returning(move |_| {
-                    Box::pin(async move {
-                        Ok(Some(Workspace {
-                            id: workspace_id,
-                            name: "Test".to_string(),
-                            date_format: "YYYY-MM-DD".to_string(),
-                            time_format: "HH:mm".to_string(),
-                            timezone: "UTC".to_string(),
-                            theme_primary_color: "indigo".to_string(),
-                            default_language: "vi".to_string(),
-                            logo_url: None,
-                            tagline: None,
-                            holiday_overnight_strategy: "std".to_string(),
-                            default_holiday_ot_multiplier: rust_decimal::Decimal::ONE,
-                            created_at: Utc::now(),
-                            custom_db_url_encrypted: None,
-                        }))
-                    })
+                    Box::pin(async move { Ok(Some(test_workspace(workspace_id))) })
                 });
 
             // Mock is_holiday
@@ -1570,23 +1523,7 @@ mod tests {
             workspace_repo
                 .expect_get_workspace_by_id()
                 .returning(move |_| {
-                    Box::pin(async move {
-                        Ok(Some(Workspace {
-                            id: workspace_id,
-                            name: "Test".to_string(),
-                            date_format: "YYYY-MM-DD".to_string(),
-                            time_format: "HH:mm".to_string(),
-                            timezone: "UTC".to_string(),
-                            theme_primary_color: "indigo".to_string(),
-                            default_language: "vi".to_string(),
-                            logo_url: None,
-                            tagline: None,
-                            holiday_overnight_strategy: "std".to_string(),
-                            default_holiday_ot_multiplier: rust_decimal::Decimal::ONE,
-                            created_at: Utc::now(),
-                            custom_db_url_encrypted: None,
-                        }))
-                    })
+                    Box::pin(async move { Ok(Some(test_workspace(workspace_id))) })
                 });
 
             // Mock is_holiday for the holiday check inside handle_holiday_leave_conflict

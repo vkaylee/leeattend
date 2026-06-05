@@ -120,9 +120,16 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
     assert_eq!(pending_count_after, 0, "Staged log should be processed");
 
     // 5. Verify raw log exists for this employee
-    let raw_logs =
-        helpers::get_paginated_raw_logs(&diesel_pools, ws_id, Some(employee.id), None, None, 10, 0)
-            .await?;
+    let raw_logs = helpers::get_paginated_raw_logs(
+        &diesel_pools,
+        ws_id,
+        Some(employee.id()),
+        None,
+        None,
+        10,
+        0,
+    )
+    .await?;
     assert_eq!(
         raw_logs.len(),
         1,

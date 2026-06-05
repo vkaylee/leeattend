@@ -137,7 +137,7 @@ impl ImportStrategy for EmployeeImportStrategy {
         {
             for e in existing_emps {
                 self.emp_cache
-                    .insert(e.employee_id_number.to_lowercase(), e.id);
+                    .insert(e.employee_id_number().to_lowercase(), e.id());
             }
         }
         Ok(())
@@ -236,23 +236,23 @@ impl ImportStrategy for EmployeeImportStrategy {
             let key = row.id_number.to_lowercase();
             if !self.emp_cache.contains_key(&key) && unique_emp_ids.insert(key.clone()) {
                 let emp_id = Uuid::new_v4();
-                new_emps.push(crate::models::Employee {
-                    id: emp_id,
-                    workspace_id: job.workspace_id,
-                    user_id: None,
-                    full_name: row.full_name.clone(),
-                    employee_id_number: row.id_number.clone(),
-                    original_hire_date: row.hire_date,
-                    hire_date: row.hire_date,
-                    termination_date: None,
-                    tags: Vec::new(),
-                    is_active: true,
-                    created_at: Utc::now(),
-                    updated_at: Utc::now(),
-                    department_name: None,
-                    primary_location_id: hq_id,
-                    employer_id: None,
-                });
+                new_emps.push(crate::models::Employee::new(
+                    emp_id,
+                    job.workspace_id,
+                    None,
+                    row.full_name.clone(),
+                    row.id_number.clone(),
+                    row.hire_date,
+                    row.hire_date,
+                    None,
+                    Vec::new(),
+                    true,
+                    Utc::now(),
+                    Utc::now(),
+                    None,
+                    hq_id,
+                    None,
+                ));
                 self.emp_cache.insert(key.clone(), emp_id);
                 self.newly_added_emps.insert(key);
             }
@@ -262,8 +262,10 @@ impl ImportStrategy for EmployeeImportStrategy {
                 .employee_repo
                 .bulk_create_employees_skip_duplicates(&auth_token, &new_emps)
                 .await;
-            let newly_inserted_ids: Vec<String> =
-                new_emps.into_iter().map(|e| e.employee_id_number).collect();
+            let newly_inserted_ids: Vec<String> = new_emps
+                .into_iter()
+                .map(|e| e.employee_id_number().to_string())
+                .collect();
             if let Ok(existing_emps) = self
                 .employee_repo
                 .get_employee_ids_by_numbers(&auth_token, &newly_inserted_ids)
@@ -460,7 +462,7 @@ impl ImportStrategy for PunchImportStrategy {
             match log_svc
                 .process_parsed_log(
                     job.workspace_id,
-                    employee.id,
+                    employee.id(),
                     row.punch_time,
                     LogSource::Import,
                     None,
@@ -483,7 +485,7 @@ impl ImportStrategy for PunchImportStrategy {
             }
         } else {
             let req = CreateAttendanceAdjustmentRequest {
-                employee_id: employee.id,
+                employee_id: employee.id(),
                 time_entry_id: None,
                 requested_punch_in_time: row.punch_time,
                 requested_punch_out_time: None,
@@ -631,7 +633,7 @@ impl AttendanceImportService {
             let Ok(jobs) = self
                 .import_repo
                 .get_pending_jobs(&crate::diesel_pool::TenantAuthToken::system_override(
-                    workspace.id,
+                    workspace.id(),
                 ))
                 .await
             else {
@@ -671,7 +673,7 @@ impl AttendanceImportService {
                     job.target_type.to_string()
                 );
                 let svc = self.clone();
-                let ws_id = workspace.id;
+                let ws_id = workspace.id();
                 tokio::spawn(async move {
                     let _ = svc.process_job(ws_id, job.id).await;
                 });
@@ -681,7 +683,7 @@ impl AttendanceImportService {
                 let _ = self
                     .import_repo
                     .batch_update_job_progress(
-                        &crate::diesel_pool::TenantAuthToken::system_override(workspace.id),
+                        &crate::diesel_pool::TenantAuthToken::system_override(workspace.id()),
                         failed_jobs,
                     )
                     .await;
@@ -721,10 +723,10 @@ impl AttendanceImportService {
             return Err(());
         };
 
-        let date_format = workspace.date_format.clone();
-        let time_format = workspace.time_format.clone();
-        let timezone = workspace.timezone.clone();
-        let lang = &workspace.default_language;
+        let date_format = workspace.date_format().to_string();
+        let time_format = workspace.time_format().to_string();
+        let timezone = workspace.timezone().to_string();
+        let lang = workspace.default_language();
         let msgs = AttendanceImportMessages::for_lang(lang);
 
         if job.target_type == ImportTargetType::Employee {
@@ -793,7 +795,7 @@ impl AttendanceImportService {
             .get_workspace_by_id(job.workspace_id)
             .await
         {
-            Ok(Some(ws)) => ws.timezone.parse::<Tz>().unwrap_or(Tz::UTC),
+            Ok(Some(ws)) => ws.timezone().parse::<Tz>().unwrap_or(Tz::UTC),
             _ => Tz::UTC,
         };
 

@@ -119,21 +119,135 @@ pub struct TurnoverAnalytics {
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct Employee {
-    pub id: Uuid,
-    pub workspace_id: Uuid,
-    pub user_id: Option<Uuid>,
-    pub full_name: String,
-    pub employee_id_number: String,
-    pub original_hire_date: NaiveDate,
-    pub hire_date: NaiveDate,
-    pub termination_date: Option<NaiveDate>,
-    pub tags: Vec<String>,
-    pub is_active: bool,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub department_name: Option<String>,
-    pub primary_location_id: Uuid,
-    pub employer_id: Option<Uuid>,
+    id: Uuid,
+    workspace_id: Uuid,
+    user_id: Option<Uuid>,
+    full_name: String,
+    employee_id_number: String,
+    original_hire_date: NaiveDate,
+    hire_date: NaiveDate,
+    termination_date: Option<NaiveDate>,
+    tags: Vec<String>,
+    is_active: bool,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+    department_name: Option<String>,
+    primary_location_id: Uuid,
+    employer_id: Option<Uuid>,
+}
+
+impl Employee {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        id: Uuid,
+        workspace_id: Uuid,
+        user_id: Option<Uuid>,
+        full_name: String,
+        employee_id_number: String,
+        original_hire_date: NaiveDate,
+        hire_date: NaiveDate,
+        termination_date: Option<NaiveDate>,
+        tags: Vec<String>,
+        is_active: bool,
+        created_at: DateTime<Utc>,
+        updated_at: DateTime<Utc>,
+        department_name: Option<String>,
+        primary_location_id: Uuid,
+        employer_id: Option<Uuid>,
+    ) -> Self {
+        Self {
+            id,
+            workspace_id,
+            user_id,
+            full_name,
+            employee_id_number,
+            original_hire_date,
+            hire_date,
+            termination_date,
+            tags,
+            is_active,
+            created_at,
+            updated_at,
+            department_name,
+            primary_location_id,
+            employer_id,
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn workspace_id(&self) -> Uuid {
+        self.workspace_id
+    }
+
+    pub fn user_id(&self) -> Option<Uuid> {
+        self.user_id
+    }
+
+    pub fn full_name(&self) -> &str {
+        &self.full_name
+    }
+
+    pub fn employee_id_number(&self) -> &str {
+        &self.employee_id_number
+    }
+
+    pub fn original_hire_date(&self) -> NaiveDate {
+        self.original_hire_date
+    }
+
+    pub fn hire_date(&self) -> NaiveDate {
+        self.hire_date
+    }
+
+    pub fn termination_date(&self) -> Option<NaiveDate> {
+        self.termination_date
+    }
+
+    pub fn tags(&self) -> &[String] {
+        &self.tags
+    }
+
+    pub fn is_active(&self) -> bool {
+        self.is_active
+    }
+
+    pub fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+
+    pub fn updated_at(&self) -> DateTime<Utc> {
+        self.updated_at
+    }
+
+    pub fn department_name(&self) -> Option<&str> {
+        self.department_name.as_deref()
+    }
+
+    pub fn primary_location_id(&self) -> Uuid {
+        self.primary_location_id
+    }
+
+    pub fn employer_id(&self) -> Option<Uuid> {
+        self.employer_id
+    }
+
+    #[cfg(test)]
+    pub fn set_is_active(&mut self, is_active: bool) {
+        self.is_active = is_active;
+    }
+
+    #[cfg(test)]
+    pub fn set_termination_date(&mut self, termination_date: Option<NaiveDate>) {
+        self.termination_date = termination_date;
+    }
+
+    #[cfg(test)]
+    pub fn set_full_name(&mut self, full_name: String) {
+        self.full_name = full_name;
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]

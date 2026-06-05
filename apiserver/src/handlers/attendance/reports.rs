@@ -133,9 +133,9 @@ pub async fn get_attendance_report(
                 .await?;
 
             for emp in active_employees {
-                if let Some((Some(dept_id), _)) = dept_map.get(&emp.id) {
+                if let Some((Some(dept_id), _)) = dept_map.get(&emp.id()) {
                     if assigned_dept_ids.contains(dept_id) {
-                        allowed_employee_ids.insert(emp.id);
+                        allowed_employee_ids.insert(emp.id());
                     }
                 }
             }

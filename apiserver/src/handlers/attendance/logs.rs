@@ -241,7 +241,7 @@ pub async fn force_reprocess_all_attendance(
     tracing::info!(
         employee_count = employees.len(),
         workspace_id = %ctx.workspace_id,
-        employee_ids = ?employees.iter().map(|e| e.id).collect::<Vec<_>>(),
+        employee_ids = ?employees.iter().map(crate::models::Employee::id).collect::<Vec<_>>(),
         "Found employees for bulk reprocess"
     );
 
@@ -294,7 +294,7 @@ pub async fn force_reprocess_all_attendance(
                 crate::queue::TaskType::ReprocessAttendance,
                 ctx.workspace_id,
                 crate::queue::JobPayload::ReprocessAttendance(crate::queue::ReprocessPayload {
-                    employee_id: emp.id,
+                    employee_id: emp.id(),
                     date_range: crate::queue::DateRange {
                         start: query.start_date,
                         end: query.end_date,

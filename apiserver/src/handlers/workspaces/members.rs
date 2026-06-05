@@ -94,7 +94,7 @@ pub async fn add_workspace_member(
         .user_repo()
         .get_user_by_email(&req.email)
         .await?
-        .map(|u| u.id)
+        .map(|u| u.id())
         .ok_or_else(|| AppError::NotFound("User with this email not found".to_string()))?;
 
     // 3. Add to workspace

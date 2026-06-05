@@ -24,7 +24,7 @@ impl ExpiringContractsHandler {
             .map_err(|e| format!("Failed to fetch workspaces: {e}"))?;
 
         for ws in workspaces {
-            let ws_id = ws.id;
+            let ws_id = ws.id();
 
             // 2. Get expiring contracts in next 30 days
             // Note: We use purely PostgreSQL to find contracts that expire in <= 30 days
@@ -75,14 +75,14 @@ impl ExpiringContractsHandler {
                     continue;
                 };
 
-                let emp_code = emp.employee_id_number.clone();
+                let emp_code = emp.employee_id_number().to_string();
 
                 for admin_id in &admins {
                     let notif_id = crate::utils::id::new_id();
                     let title = "Hợp đồng sắp hết hạn".to_string();
                     let content = format!(
                         "Hợp đồng của nhân viên {} ({}) sẽ hết hạn vào ngày {}. Vui lòng kiểm tra và gia hạn.",
-                        emp.full_name,
+                        emp.full_name(),
                         emp_code,
                         end_date.format("%d/%m/%Y")
                     );
@@ -184,21 +184,21 @@ mod tests {
             .expect_get_all_workspaces()
             .returning(move || {
                 Box::pin(async move {
-                    Ok(vec![Workspace {
-                        id: ws_id,
-                        name: "Test Workspace".to_string(),
-                        date_format: "YYYY-MM-DD".to_string(),
-                        time_format: "HH:mm".to_string(),
-                        timezone: "UTC".to_string(),
-                        theme_primary_color: "#000000".to_string(),
-                        default_language: "en".to_string(),
-                        logo_url: None,
-                        tagline: None,
-                        custom_db_url_encrypted: None,
-                        holiday_overnight_strategy: "split".to_string(),
-                        default_holiday_ot_multiplier: rust_decimal::Decimal::new(15, 1),
-                        created_at: chrono::Utc::now(),
-                    }])
+                    Ok(vec![Workspace::new(
+                        ws_id,
+                        "Test Workspace".to_string(),
+                        "YYYY-MM-DD".to_string(),
+                        "HH:mm".to_string(),
+                        "UTC".to_string(),
+                        "#000000".to_string(),
+                        "en".to_string(),
+                        None,
+                        None,
+                        "split".to_string(),
+                        rust_decimal::Decimal::new(15, 1),
+                        chrono::Utc::now(),
+                        None,
+                    )])
                 })
             });
 
@@ -228,23 +228,23 @@ mod tests {
 
         let mut emp_repo = MockEmployeeRepository::new();
         emp_repo.expect_get_employee_by_id().returning(move |_, _| {
-            Ok(Some(Employee {
-                id: emp_id,
-                workspace_id: ws_id,
-                user_id: None,
-                full_name: "Test Employee".to_string(),
-                employee_id_number: "EMP001".to_string(),
-                original_hire_date: NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
-                hire_date: NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
-                termination_date: None,
-                tags: vec![],
-                is_active: true,
-                created_at: chrono::Utc::now(),
-                updated_at: chrono::Utc::now(),
-                department_name: None,
-                primary_location_id: uuid::Uuid::new_v4(),
-                employer_id: None,
-            }))
+            Ok(Some(Employee::new(
+                emp_id,
+                ws_id,
+                None,
+                "Test Employee".to_string(),
+                "EMP001".to_string(),
+                NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                vec![],
+                true,
+                chrono::Utc::now(),
+                chrono::Utc::now(),
+                None,
+                uuid::Uuid::new_v4(),
+                None,
+            )))
         });
 
         let mut user_repo = MockUserRepository::new();

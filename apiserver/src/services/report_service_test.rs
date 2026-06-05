@@ -21,21 +21,21 @@ mod tests {
     #[async_trait]
     impl crate::repositories::workspace_repository::WorkspaceRepository for MockWorkspaceRepo {
         async fn get_workspace_by_id(&self, id: Uuid) -> Result<Option<Workspace>, AppError> {
-            Ok(Some(Workspace {
+            Ok(Some(Workspace::new(
                 id,
-                name: "Mocked Workspace".into(),
-                created_at: Utc::now(),
-                date_format: "YYYY-MM-DD".into(),
-                time_format: "HH:mm:ss".into(),
-                timezone: "UTC".into(),
-                theme_primary_color: "#000000".into(),
-                default_language: "en".into(),
-                holiday_overnight_strategy: "split".into(),
-                default_holiday_ot_multiplier: rust_decimal::Decimal::new(15, 1),
-                logo_url: None,
-                tagline: None,
-                custom_db_url_encrypted: None,
-            }))
+                "Mocked Workspace".into(),
+                "YYYY-MM-DD".into(),
+                "HH:mm:ss".into(),
+                "UTC".into(),
+                "#000000".into(),
+                "en".into(),
+                None,
+                None,
+                "split".into(),
+                rust_decimal::Decimal::new(15, 1),
+                Utc::now(),
+                None,
+            )))
         }
         async fn create_workspace_with_owner(
             &self,

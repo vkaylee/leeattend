@@ -103,7 +103,7 @@ impl HolidayLeaveService {
             return Ok(vec![]);
         }
 
-        let employee_ids: Vec<Uuid> = employees.iter().map(|e| e.id).collect();
+        let employee_ids: Vec<Uuid> = employees.iter().map(crate::models::Employee::id).collect();
         let year = holiday.date.year();
 
         // 1. Batch fetch existing leaves for this date
@@ -130,12 +130,12 @@ impl HolidayLeaveService {
 
         for emp in employees {
             // Check existing leave
-            if existing_leaves.contains(&(emp.id, holiday.date)) {
+            if existing_leaves.contains(&(emp.id(), holiday.date)) {
                 continue;
             }
 
             let remaining = balance_map
-                .get(&(emp.id, leave_type_id))
+                .get(&(emp.id(), leave_type_id))
                 .copied()
                 .unwrap_or(0.0);
 
@@ -145,7 +145,7 @@ impl HolidayLeaveService {
 
                 new_requests.push(LeaveRequest {
                     id: req_id,
-                    employee_id: emp.id,
+                    employee_id: emp.id(),
                     leave_type_id,
                     start_date: holiday.date,
                     end_date: holiday.date,
@@ -162,7 +162,7 @@ impl HolidayLeaveService {
 
                 new_rosters.push(ShiftRoster {
                     id: crate::utils::id::new_id(),
-                    employee_id: emp.id,
+                    employee_id: emp.id(),
                     shift_id: None,
                     date: holiday.date,
                     status: "on_leave".to_string(),
@@ -172,7 +172,7 @@ impl HolidayLeaveService {
                 });
 
                 new_logs.push((
-                    emp.id,
+                    emp.id(),
                     leave_type_id,
                     rust_decimal::Decimal::ZERO,
                     holiday.date,
@@ -180,13 +180,13 @@ impl HolidayLeaveService {
                 ));
 
                 results.push(HolidayLeaveResult::LeaveDeducted {
-                    employee_id: emp.id,
+                    employee_id: emp.id(),
                     leave_request_id: req_id,
                     leave_type_name: leave_type_name.clone(),
                 });
             } else {
                 results.push(HolidayLeaveResult::Unpaid {
-                    employee_id: emp.id,
+                    employee_id: emp.id(),
                 });
             }
         }

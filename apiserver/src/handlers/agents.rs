@@ -167,9 +167,9 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                             .get_workspace_by_id(workspace_id)
                                             .await
                                         {
-                                            ws_tz = ws.timezone;
-                                            ws_date_fmt = ws.date_format;
-                                            ws_time_fmt = ws.time_format;
+                                            ws_tz = ws.timezone().to_string();
+                                            ws_date_fmt = ws.date_format().to_string();
+                                            ws_time_fmt = ws.time_format().to_string();
                                             info!("Agent {} authorized for workspace {} (Timezone: {})", agent_id, workspace_id, ws_tz);
                                         }
 

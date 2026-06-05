@@ -208,8 +208,8 @@ impl LeaveImportChunkHandler {
             .await
         {
             Ok(Some(ws)) => (
-                ws.timezone.parse::<Tz>().unwrap_or(Tz::UTC),
-                LeaveImportMessages::for_lang(&ws.default_language),
+                ws.timezone().parse::<Tz>().unwrap_or(Tz::UTC),
+                LeaveImportMessages::for_lang(ws.default_language()),
             ),
             _ => (Tz::UTC, LeaveImportMessages::for_lang("vi")),
         };

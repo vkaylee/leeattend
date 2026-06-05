@@ -299,7 +299,7 @@ async fn parse_log_entry(
     let raw_log = RawAttendanceLog {
         id: new_id(),
         workspace_id: entry.workspace_id,
-        employee_id: employee.id,
+        employee_id: employee.id(),
         punch_time,
         source: LogSource::Device,
         device_id: entry.device_id.clone(),

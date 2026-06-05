@@ -240,7 +240,7 @@ async fn test_create_tenant_with_byod() {
         .unwrap()
         .unwrap();
     let encrypted_url = ws
-        .custom_db_url_encrypted
+        .custom_db_url_encrypted()
         .expect("Encrypted URL should be saved");
 
     // Decrypt and verify
@@ -422,7 +422,7 @@ async fn test_update_tenant_database() {
         .unwrap()
         .unwrap();
     let encrypted_url = ws
-        .custom_db_url_encrypted
+        .custom_db_url_encrypted()
         .expect("Encrypted URL must be saved after update");
 
     // Decrypt and verify

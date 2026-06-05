@@ -29,16 +29,16 @@ async fn test_concurrent_registration_platform_admin_assignment() {
         let repo_clone = Arc::clone(&repo);
         let handle = tokio::spawn(async move {
             let password_hash = "fake_hash".to_string();
-            let user = User {
-                id: Uuid::new_v4(),
-                email: format!("concurrent_user_{i}@test.com"),
-                created_at: Utc::now(),
-                full_name: Some(format!("User {i}")),
-                avatar_url: None,
-                bio: None,
-                preferred_language: None,
+            let user = User::new(
+                Uuid::new_v4(),
+                format!("concurrent_user_{i}@test.com"),
                 password_hash,
-            };
+                Utc::now(),
+                Some(format!("User {i}")),
+                None,
+                None,
+                None,
+            );
 
             // Call the atomic transaction method
             repo_clone.create_user_with_admin_check(&user).await

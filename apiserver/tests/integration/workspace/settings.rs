@@ -163,7 +163,7 @@ async fn test_update_workspace_time_format() {
         .await
         .unwrap()
         .unwrap();
-    assert_eq!(ws.time_format, "24h");
+    assert_eq!(ws.time_format(), "24h");
 
     // 2. Update to 12h
     let updated_ws = WorkspaceService::new(
@@ -192,7 +192,7 @@ async fn test_update_workspace_time_format() {
     .await
     .expect("Failed to update workspace");
 
-    assert_eq!(updated_ws.time_format, "12h");
+    assert_eq!(updated_ws.time_format(), "12h");
 
     // 3. Verify persistence via repository
     let persisted_ws = workspace_repo
@@ -200,7 +200,7 @@ async fn test_update_workspace_time_format() {
         .await
         .unwrap()
         .unwrap();
-    assert_eq!(persisted_ws.time_format, "12h");
+    assert_eq!(persisted_ws.time_format(), "12h");
 }
 
 #[tokio::test]
@@ -245,10 +245,10 @@ async fn test_update_workspace_all_fields() {
     .await
     .expect("Failed to update workspace");
 
-    assert_eq!(updated_ws.name, "New Name");
-    assert_eq!(updated_ws.date_format, "YYYY-MM-DD");
-    assert_eq!(updated_ws.timezone, "Asia/Ho_Chi_Minh");
-    assert_eq!(updated_ws.default_language, "vi");
+    assert_eq!(updated_ws.name(), "New Name");
+    assert_eq!(updated_ws.date_format(), "YYYY-MM-DD");
+    assert_eq!(updated_ws.timezone(), "Asia/Ho_Chi_Minh");
+    assert_eq!(updated_ws.default_language(), "vi");
 }
 
 #[tokio::test]

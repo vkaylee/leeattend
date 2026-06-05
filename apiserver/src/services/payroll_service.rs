@@ -47,6 +47,8 @@ pub struct PayrollContext {
     pub(crate) payroll_roster_map: HashMap<(Uuid, NaiveDate), Option<Uuid>>,
     pub(crate) working_conditions: Vec<crate::models::WorkingCondition>,
     pub(crate) attendance_policy: crate::models::AttendanceRules,
+    pub(crate) emp_payroll_configs: Vec<crate::models::EmployeePayrollConfig>,
+    pub(crate) ws_payroll_settings_history: Vec<crate::models::PayrollSettings>,
 }
 
 /// Named record for a payroll segment snapshot.
@@ -158,7 +160,7 @@ impl PayrollService {
             })?
             .ok_or(AppError::NotFound("Not found".into()))?;
 
-        let tz: Tz = crate::utils::tz::parse_workspace_tz(&workspace.timezone);
+        let tz: Tz = crate::utils::tz::parse_workspace_tz(workspace.timezone());
 
         let start_date = NaiveDate::from_ymd_opt(year, month, 1)
             .ok_or(AppError::Validation("Invalid request".into()))?;
@@ -218,8 +220,8 @@ impl PayrollService {
             .await?
             .ok_or(AppError::NotFound("Employee not found".into()))?;
 
-        let emp_id_number = employee.employee_id_number;
-        let emp_tags = Some(employee.tags);
+        let emp_id_number = employee.employee_id_number().to_string();
+        let emp_tags = Some(employee.tags().to_vec());
 
         let rosters = self
             .roster_repo
@@ -275,6 +277,19 @@ impl PayrollService {
             }
         };
 
+        let emp_payroll_configs = self
+            .employee_repo
+            .get_employee_payroll_configs(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                employee_id,
+            )
+            .await?;
+
+        let ws_payroll_settings_history = self
+            .payroll_repo
+            .get_payroll_settings_history(workspace_id)
+            .await?;
+
         Ok(PayrollContext {
             employee_id,
             workspace,
@@ -291,6 +306,8 @@ impl PayrollService {
             payroll_roster_map,
             working_conditions,
             attendance_policy,
+            emp_payroll_configs,
+            ws_payroll_settings_history,
         })
     }
 
@@ -349,7 +366,7 @@ impl PayrollService {
         ctx: PayrollContext,
     ) -> Result<Payslip, AppError> {
         let employee_id = ctx.employee_id;
-        let workspace_id = ctx.workspace.id;
+        let workspace_id = ctx.workspace.id();
 
         // Phase 2: Build segments
         let segments = Self::build_segments(&ctx);
@@ -393,14 +410,12 @@ impl PayrollService {
                 &crate::domain::policy::resolver::ShiftPolicyOverrides::default(),
             );
 
-            let emp_payroll_config = self
-                .employee_repo
-                .get_employee_payroll_config_at(
-                    &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                    employee_id,
-                    seg_start,
-                )
-                .await?;
+            let emp_payroll_config = ctx
+                .emp_payroll_configs
+                .iter()
+                .filter(|c| c.effective_date <= seg_start)
+                .max_by_key(|c| c.effective_date)
+                .cloned();
 
             let dept_payroll_config = if let Some(d_id) = dept_id {
                 self.payroll_repo
@@ -410,10 +425,12 @@ impl PayrollService {
                 None
             };
 
-            let ws_payroll_settings = self
-                .payroll_repo
-                .get_payroll_settings_at(workspace_id, seg_start)
-                .await?;
+            let ws_payroll_settings = ctx
+                .ws_payroll_settings_history
+                .iter()
+                .filter(|s| s.effective_date <= seg_start)
+                .max_by_key(|s| s.effective_date)
+                .cloned();
 
             let std_config = PolicyResolver::resolve_standard_month_pure(
                 emp_payroll_config,
@@ -476,8 +493,7 @@ impl PayrollService {
         let payroll_settings = self
             .payroll_repo
             .get_payroll_settings_at(workspace_id, ctx.end_date)
-            .await
-            .unwrap_or(None);
+            .await?;
         if let Some(ref ps) = payroll_settings {
             if let Some(max_monthly_hours) = ps.max_ot_hours_per_month {
                 let month_end_policy = PolicyResolverService::resolve_attendance_policy(
@@ -642,7 +658,7 @@ impl PayrollService {
         else {
             return crate::models::BatchCalculatePayrollResponse { results: vec![] };
         };
-        let tz: Tz = crate::utils::tz::parse_workspace_tz(&workspace.timezone);
+        let tz: Tz = crate::utils::tz::parse_workspace_tz(workspace.timezone());
 
         let start_date = NaiveDate::from_ymd_opt(year, month, 1).unwrap_or_default();
         let next_month_date = if month == 12 {
@@ -658,13 +674,31 @@ impl PayrollService {
 
         let token = &crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
 
-        let holidays_map = self
+        let holidays_map = match self
             .holiday_repo
             .get_holidays_in_range(token, start_date, end_date)
             .await
-            .unwrap_or_default();
+        {
+            Ok(map) => map,
+            Err(e) => {
+                tracing::error!(
+                    workspace_id = %workspace_id,
+                    error = %e,
+                    "Failed to fetch holidays for batch payroll — proceeding without holidays"
+                );
+                std::collections::HashMap::new()
+            }
+        };
 
         let Ok(roster_data) = self.roster_provider.get_roster_data(workspace_id).await else {
+            return crate::models::BatchCalculatePayrollResponse { results: vec![] };
+        };
+
+        let Ok(ws_payroll_settings_history) = self
+            .payroll_repo
+            .get_payroll_settings_history(workspace_id)
+            .await
+        else {
             return crate::models::BatchCalculatePayrollResponse { results: vec![] };
         };
 
@@ -710,7 +744,7 @@ impl PayrollService {
             let mut employees = match employees_res {
                 Ok(emps) => emps
                     .into_iter()
-                    .map(|e| (e.id, e))
+                    .map(|e| (e.id(), e))
                     .collect::<HashMap<_, _>>(),
                 Err(_) => continue,
             };
@@ -721,6 +755,23 @@ impl PayrollService {
             let mut roster_map = rosters.unwrap_or_default();
             let mut conditions_map = conditions_res.unwrap_or_default();
             let mut policies_map = policies_res.unwrap_or_default();
+
+            let config_futures = chunk_ids.iter().map(|&emp_id| {
+                let token_clone = *token;
+                let employee_repo = std::sync::Arc::clone(&self.employee_repo);
+                async move {
+                    let configs = employee_repo
+                        .get_employee_payroll_configs(&token_clone, emp_id)
+                        .await
+                        .unwrap_or_default();
+                    (emp_id, configs)
+                }
+            });
+            let mut emp_configs_map: HashMap<Uuid, Vec<crate::models::EmployeePayrollConfig>> =
+                futures_util::future::join_all(config_futures)
+                    .await
+                    .into_iter()
+                    .collect();
 
             let mut contexts = Vec::new();
             for emp_id in chunk_ids {
@@ -750,6 +801,8 @@ impl PayrollService {
                         },
                     };
 
+                    let emp_payroll_configs = emp_configs_map.remove(&emp_id).unwrap_or_default();
+
                     contexts.push(PayrollContext {
                         employee_id: emp_id,
                         workspace: workspace.clone(),
@@ -761,11 +814,13 @@ impl PayrollService {
                         daily_entries_map,
                         holidays_map: holidays_map.clone(),
                         roster_data: Arc::clone(&roster_data),
-                        emp_id_number: employee.employee_id_number,
-                        emp_tags: Some(employee.tags),
+                        emp_id_number: employee.employee_id_number().to_string(),
+                        emp_tags: Some(employee.tags().to_vec()),
                         payroll_roster_map,
                         working_conditions,
                         attendance_policy,
+                        emp_payroll_configs,
+                        ws_payroll_settings_history: ws_payroll_settings_history.clone(),
                     });
                 }
             }
@@ -875,21 +930,21 @@ mod tests {
     ) -> PayrollContext {
         PayrollContext {
             employee_id: Uuid::new_v4(),
-            workspace: crate::models::Workspace {
-                id: Uuid::new_v4(),
-                name: "Test".into(),
-                date_format: "YYYY-MM-DD".into(),
-                time_format: "HH:mm".into(),
-                timezone: "UTC".into(),
-                theme_primary_color: "#000".into(),
-                default_language: "en".into(),
-                holiday_overnight_strategy: "split".into(),
-                default_holiday_ot_multiplier: Decimal::from(2),
-                logo_url: None,
-                tagline: None,
-                custom_db_url_encrypted: None,
-                created_at: Utc::now(),
-            },
+            workspace: crate::models::Workspace::new(
+                Uuid::new_v4(),
+                "Test".into(),
+                "YYYY-MM-DD".into(),
+                "HH:mm".into(),
+                "UTC".into(),
+                "#000".into(),
+                "en".into(),
+                None,
+                None,
+                "split".into(),
+                Decimal::from(2),
+                Utc::now(),
+                None,
+            ),
             tz: chrono_tz::UTC,
             start_date,
             end_date,
@@ -916,6 +971,8 @@ mod tests {
                 rounding_policy: "floor".to_string(),
                 early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
             },
+            emp_payroll_configs: Vec::new(),
+            ws_payroll_settings_history: Vec::new(),
         }
     }
 

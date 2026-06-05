@@ -41,7 +41,7 @@ async fn reprocess_after_roster_change(
         .get_workspace_by_id(workspace_id)
         .await
     {
-        Ok(Some(ws)) => ws.timezone,
+        Ok(Some(ws)) => ws.timezone().to_string(),
         _ => "UTC".to_string(),
     };
     let tz = crate::utils::tz::parse_workspace_tz(&tz_str);

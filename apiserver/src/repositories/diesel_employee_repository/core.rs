@@ -543,7 +543,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
     }
 
     async fn create_employee(&self, employee: &Employee) -> Result<(), AppError> {
-        let workspace_id = employee.workspace_id;
+        let workspace_id = employee.workspace_id();
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .tenants_tx
@@ -593,7 +593,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
     }
 
     async fn create_employee_skip_duplicates(&self, employee: &Employee) -> Result<bool, AppError> {
-        let workspace_id = employee.workspace_id;
+        let workspace_id = employee.workspace_id();
         use crate::schema::employees;
 
         let mut conn = crate::diesel_pool::TransactionConn(

@@ -261,7 +261,7 @@ impl AttendanceLogService {
         let raw_log = RawAttendanceLog {
             id: new_id(),
             workspace_id: args.workspace_id,
-            employee_id: employee.id,
+            employee_id: employee.id(),
             punch_time,
             source: args.source,
             device_id: args.device_id,
@@ -280,7 +280,10 @@ impl AttendanceLogService {
             Ok(true) => {
                 info!(
                     "Successfully saved log for {} ({}) at {} (UTC) from {:?}",
-                    employee.full_name, normalized_emp_id, punch_time, raw_log.source
+                    employee.full_name(),
+                    normalized_emp_id,
+                    punch_time,
+                    raw_log.source
                 );
 
                 // 5. Trigger Pairing Logic

@@ -113,7 +113,7 @@ async fn test_upload_employee_csv_api() {
         .unwrap();
     assert!(emp1.is_some());
     let emp1 = emp1.unwrap();
-    assert_eq!(emp1.full_name, "John Doe");
+    assert_eq!(emp1.full_name(), "John Doe");
 
     let emp2 = _state
         .employees()
@@ -243,7 +243,7 @@ async fn test_upload_employee_duplicate_id_skips() {
         .await
         .unwrap()
         .unwrap();
-    assert_eq!(emp_dup.full_name, "Old Name");
+    assert_eq!(emp_dup.full_name(), "Old Name");
 
     // Verify "NEW002" IS created
     let emp_new = _state
@@ -367,7 +367,7 @@ async fn test_upload_employee_csv_with_department() {
         .department_repo()
         .get_current_department(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp1.id,
+            emp1.id(),
         )
         .await
         .unwrap();
@@ -404,7 +404,7 @@ async fn test_upload_employee_csv_with_department() {
         .department_repo()
         .get_current_department(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp3.id,
+            emp3.id(),
         )
         .await
         .unwrap();
@@ -540,7 +540,7 @@ async fn test_upload_employee_csv_reuses_existing_department() {
         .department_repo()
         .get_current_department(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp.id,
+            emp.id(),
         )
         .await
         .unwrap();
@@ -703,7 +703,7 @@ async fn test_upload_employee_xlsx_with_department() {
         .department_repo()
         .get_current_department(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp1.id,
+            emp1.id(),
         )
         .await
         .unwrap();
@@ -740,7 +740,7 @@ async fn test_upload_employee_xlsx_with_department() {
         .department_repo()
         .get_current_department(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp3.id,
+            emp3.id(),
         )
         .await
         .unwrap();
@@ -875,7 +875,7 @@ async fn test_upload_employee_xlsx_reuses_existing_department() {
         .department_repo()
         .get_current_department(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp.id,
+            emp.id(),
         )
         .await
         .unwrap();
@@ -1001,7 +1001,7 @@ async fn test_upload_csv_existing_employee_new_department() {
         .department_repo()
         .get_current_department(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp.id,
+            emp.id(),
         )
         .await
         .unwrap();
@@ -1139,7 +1139,7 @@ async fn test_upload_csv_existing_employee_existing_department() {
         .department_repo()
         .get_current_department(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp.id,
+            emp.id(),
         )
         .await
         .unwrap();
@@ -1265,7 +1265,7 @@ async fn test_upload_xlsx_existing_employee_new_department() {
         .department_repo()
         .get_current_department(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp.id,
+            emp.id(),
         )
         .await
         .unwrap();
@@ -1396,7 +1396,7 @@ async fn test_upload_xlsx_existing_employee_existing_department() {
         .department_repo()
         .get_current_department(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp.id,
+            emp.id(),
         )
         .await
         .unwrap();

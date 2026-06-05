@@ -117,23 +117,23 @@ mod tests {
                 *ws == crate::diesel_pool::TenantAuthToken::system_override(ws_id) && id == "1"
             })
             .returning(move |_, _| {
-                let emp = Employee {
-                    id: emp_id,
-                    workspace_id: ws_id,
-                    user_id: None,
-                    full_name: "Test User".to_string(),
-                    employee_id_number: "EMP001".to_string(),
-                    original_hire_date: chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
-                    hire_date: chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
-                    termination_date: None,
-                    tags: vec![],
-                    is_active: true,
-                    created_at: chrono::Utc::now(),
-                    updated_at: chrono::Utc::now(),
-                    department_name: None,
-                    primary_location_id: uuid::Uuid::new_v4(),
-                    employer_id: None,
-                };
+                let emp = Employee::new(
+                    emp_id,
+                    ws_id,
+                    None,
+                    "Test User".to_string(),
+                    "EMP001".to_string(),
+                    chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+                    chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+                    None,
+                    vec![],
+                    true,
+                    chrono::Utc::now(),
+                    chrono::Utc::now(),
+                    None,
+                    uuid::Uuid::new_v4(),
+                    None,
+                );
                 Ok(Some(emp))
             });
 
@@ -171,21 +171,21 @@ mod tests {
             .returning(move |_| {
                 use rust_decimal::Decimal;
                 Box::pin(async move {
-                    Ok(Some(crate::models::Workspace {
-                        id: ws_id,
-                        name: "Test Workspace".to_string(),
-                        date_format: "YYYY-MM-DD".to_string(),
-                        time_format: "HH:mm".to_string(),
-                        timezone: "UTC".to_string(),
-                        theme_primary_color: "#000000".to_string(),
-                        default_language: "en".to_string(),
-                        logo_url: None,
-                        tagline: None,
-                        custom_db_url_encrypted: None,
-                        holiday_overnight_strategy: "NextDay".to_string(),
-                        default_holiday_ot_multiplier: Decimal::new(100, 2),
-                        created_at: chrono::Utc::now(),
-                    }))
+                    Ok(Some(crate::models::Workspace::new(
+                        ws_id,
+                        "Test Workspace".to_string(),
+                        "YYYY-MM-DD".to_string(),
+                        "HH:mm".to_string(),
+                        "UTC".to_string(),
+                        "#000000".to_string(),
+                        "en".to_string(),
+                        None,
+                        None,
+                        "NextDay".to_string(),
+                        Decimal::new(100, 2),
+                        chrono::Utc::now(),
+                        None,
+                    )))
                 })
             });
 

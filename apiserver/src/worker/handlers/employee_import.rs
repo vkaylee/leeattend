@@ -216,8 +216,8 @@ impl EmployeeImportChunkHandler {
             .await
         {
             Ok(Some(ws)) => (
-                ws.timezone.parse::<Tz>().unwrap_or(Tz::UTC),
-                AttendanceImportMessages::for_lang(&ws.default_language),
+                ws.timezone().parse::<Tz>().unwrap_or(Tz::UTC),
+                AttendanceImportMessages::for_lang(ws.default_language()),
             ),
             _ => (Tz::UTC, AttendanceImportMessages::for_lang("vi")),
         };

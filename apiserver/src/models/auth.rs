@@ -4,15 +4,72 @@ use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct User {
-    pub id: Uuid,
-    pub email: String,
+    id: Uuid,
+    email: String,
     #[serde(skip_serializing)]
-    pub password_hash: String,
-    pub created_at: DateTime<Utc>,
-    pub full_name: Option<String>,
-    pub avatar_url: Option<String>,
-    pub bio: Option<String>,
-    pub preferred_language: Option<String>,
+    password_hash: String,
+    created_at: DateTime<Utc>,
+    full_name: Option<String>,
+    avatar_url: Option<String>,
+    bio: Option<String>,
+    preferred_language: Option<String>,
+}
+
+impl User {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        id: Uuid,
+        email: String,
+        password_hash: String,
+        created_at: DateTime<Utc>,
+        full_name: Option<String>,
+        avatar_url: Option<String>,
+        bio: Option<String>,
+        preferred_language: Option<String>,
+    ) -> Self {
+        Self {
+            id,
+            email,
+            password_hash,
+            created_at,
+            full_name,
+            avatar_url,
+            bio,
+            preferred_language,
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn email(&self) -> &str {
+        &self.email
+    }
+
+    pub fn password_hash(&self) -> &str {
+        &self.password_hash
+    }
+
+    pub fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+
+    pub fn full_name(&self) -> Option<&str> {
+        self.full_name.as_deref()
+    }
+
+    pub fn avatar_url(&self) -> Option<&str> {
+        self.avatar_url.as_deref()
+    }
+
+    pub fn bio(&self) -> Option<&str> {
+        self.bio.as_deref()
+    }
+
+    pub fn preferred_language(&self) -> Option<&str> {
+        self.preferred_language.as_deref()
+    }
 }
 
 impl std::fmt::Debug for User {
@@ -118,16 +175,16 @@ mod tests {
 
     #[test]
     fn test_user_debug_masks_pii() {
-        let user = User {
-            id: Uuid::new_v4(),
-            email: "john.doe@example.com".to_string(),
-            password_hash: "secret_hash".to_string(),
-            created_at: Utc::now(),
-            full_name: Some("John Doe".to_string()),
-            avatar_url: None,
-            bio: None,
-            preferred_language: Some("en".to_string()),
-        };
+        let user = User::new(
+            Uuid::new_v4(),
+            "john.doe@example.com".to_string(),
+            "secret_hash".to_string(),
+            Utc::now(),
+            Some("John Doe".to_string()),
+            None,
+            None,
+            Some("en".to_string()),
+        );
 
         let debug_str = format!("{user:?}");
         assert!(!debug_str.contains("john.doe@example.com"));

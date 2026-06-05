@@ -228,7 +228,7 @@ async fn test_workspace_repository_directly() {
         .unwrap();
 
     // Owner should have role ...0001 (Owner)
-    let role = repo.find_primary_role(ws.id, user_id).await.unwrap();
+    let role = repo.find_primary_role(ws.id(), user_id).await.unwrap();
     assert_eq!(
         role.unwrap(),
         uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000001").unwrap()
@@ -237,14 +237,14 @@ async fn test_workspace_repository_directly() {
     // Add another member
     let member_id: Uuid = factory.user().create().await;
     repo.add_member(
-        ws.id,
+        ws.id(),
         member_id,
         uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000002").unwrap(),
     )
     .await
     .unwrap();
 
-    let role = repo.find_primary_role(ws.id, member_id).await.unwrap();
+    let role = repo.find_primary_role(ws.id(), member_id).await.unwrap();
     assert_eq!(
         role.unwrap(),
         uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000002").unwrap()
@@ -252,20 +252,20 @@ async fn test_workspace_repository_directly() {
 
     // Update member role
     repo.update_member_role(
-        ws.id,
+        ws.id(),
         member_id,
         uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
     )
     .await
     .unwrap();
-    let role = repo.find_primary_role(ws.id, member_id).await.unwrap();
+    let role = repo.find_primary_role(ws.id(), member_id).await.unwrap();
     assert_eq!(
         role.unwrap(),
         uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()
     );
 
     // Remove member
-    repo.remove_member(ws.id, member_id).await.unwrap();
-    let role = repo.find_primary_role(ws.id, member_id).await.unwrap();
+    repo.remove_member(ws.id(), member_id).await.unwrap();
+    let role = repo.find_primary_role(ws.id(), member_id).await.unwrap();
     assert!(role.is_none());
 }

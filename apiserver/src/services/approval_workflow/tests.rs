@@ -412,21 +412,21 @@ mod tests {
             _owner_id: Uuid,
             _custom_db_url_encrypted: Option<String>,
         ) -> Result<crate::models::Workspace, AppError> {
-            Ok(crate::models::Workspace {
-                id: _id,
-                name: name.to_string(),
-                created_at: Utc::now(),
-                theme_primary_color: "#000000".to_string(),
-                logo_url: None,
-                tagline: None,
-                date_format: "YYYY-MM-DD".to_string(),
-                time_format: "HH:mm:ss".to_string(),
-                timezone: "UTC".to_string(),
-                default_language: "en".to_string(),
-                holiday_overnight_strategy: "standard".to_string(),
-                default_holiday_ot_multiplier: rust_decimal::Decimal::from(1),
-                custom_db_url_encrypted: None,
-            })
+            Ok(crate::models::Workspace::new(
+                _id,
+                name.to_string(),
+                "YYYY-MM-DD".to_string(),
+                "HH:mm:ss".to_string(),
+                "UTC".to_string(),
+                "#000000".to_string(),
+                "en".to_string(),
+                None,
+                None,
+                "standard".to_string(),
+                rust_decimal::Decimal::from(1),
+                Utc::now(),
+                None,
+            ))
         }
         async fn get_workspace_by_id(
             &self,
@@ -1529,23 +1529,23 @@ mod tests {
     }
 
     fn mock_employee(id: Uuid, workspace_id: Uuid, user_id: Option<Uuid>, name: &str) -> Employee {
-        Employee {
+        Employee::new(
             id,
             workspace_id,
             user_id,
-            full_name: name.to_string(),
-            employee_id_number: format!("EMP_{name}"),
-            original_hire_date: NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
-            hire_date: NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
-            termination_date: None,
-            tags: vec![],
-            is_active: true,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-            department_name: None,
-            primary_location_id: Uuid::new_v4(),
-            employer_id: None,
-        }
+            name.to_string(),
+            format!("EMP_{name}"),
+            NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+            NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+            None,
+            vec![],
+            true,
+            Utc::now(),
+            Utc::now(),
+            None,
+            Uuid::new_v4(),
+            None,
+        )
     }
 
     fn mock_delegation_config(

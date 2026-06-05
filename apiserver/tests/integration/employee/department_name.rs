@@ -57,7 +57,7 @@ async fn test_employee_without_department_has_null_department_name() {
         .unwrap()
         .unwrap();
     assert!(
-        emp.department_name.is_none(),
+        emp.department_name().is_none(),
         "Employee with no department should have department_name = None"
     );
 }
@@ -90,7 +90,7 @@ async fn test_employee_with_department_returns_department_name() {
         .unwrap()
         .unwrap();
     assert_eq!(
-        emp.department_name.as_deref(),
+        emp.department_name().as_deref(),
         Some("Engineering"),
         "Should return the current department name"
     );
@@ -151,15 +151,15 @@ async fn test_get_all_employees_includes_department_name() {
 
     let alice = employees
         .iter()
-        .find(|e| e.id == emp1)
+        .find(|e| e.id() == emp1)
         .expect("Alice should be in the results");
     let bob = employees
         .iter()
-        .find(|e| e.id == emp2)
+        .find(|e| e.id() == emp2)
         .expect("Bob should be in the results");
 
-    assert_eq!(alice.department_name.as_deref(), Some("Sales"));
-    assert!(bob.department_name.is_none());
+    assert_eq!(alice.department_name().as_deref(), Some("Sales"));
+    assert!(bob.department_name().is_none());
 }
 
 // ── Latest department wins ──────────────────────────────────────────
@@ -211,7 +211,7 @@ async fn test_department_name_uses_latest_transfer() {
         .unwrap()
         .unwrap();
     assert_eq!(
-        emp.department_name.as_deref(),
+        emp.department_name().as_deref(),
         Some("NewDept"),
         "Should use the most recent transfer (by effective_date DESC)"
     );
@@ -252,7 +252,7 @@ async fn test_find_by_number_includes_department_name() {
         .await
         .unwrap()
         .unwrap();
-    assert_eq!(emp.department_name.as_deref(), Some("R&D"));
+    assert_eq!(emp.department_name().as_deref(), Some("R&D"));
 }
 
 // ── get_active_employees ────────────────────────────────────────────
@@ -289,5 +289,5 @@ async fn test_get_active_employees_includes_department_name() {
         .await
         .unwrap();
     assert_eq!(actives.len(), 1);
-    assert_eq!(actives[0].department_name.as_deref(), Some("Operations"));
+    assert_eq!(actives[0].department_name().as_deref(), Some("Operations"));
 }

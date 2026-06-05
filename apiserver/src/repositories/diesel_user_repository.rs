@@ -31,14 +31,14 @@ impl UserRepository for DieselUserRepository {
         );
 
         let entity = UserEntity {
-            id: user.id,
-            email: user.email.clone(),
-            password_hash: user.password_hash.clone(),
-            created_at: Some(user.created_at),
-            full_name: user.full_name.clone(),
-            avatar_url: user.avatar_url.clone(),
-            bio: user.bio.clone(),
-            preferred_language: user.preferred_language.clone(),
+            id: user.id(),
+            email: user.email().to_string(),
+            password_hash: user.password_hash().to_string(),
+            created_at: Some(user.created_at()),
+            full_name: user.full_name().map(String::from),
+            avatar_url: user.avatar_url().map(String::from),
+            bio: user.bio().map(String::from),
+            preferred_language: user.preferred_language().map(String::from),
         };
 
         diesel::insert_into(users::table)
@@ -60,14 +60,14 @@ impl UserRepository for DieselUserRepository {
         );
 
         let entity = UserEntity {
-            id: user.id,
-            email: user.email.clone(),
-            password_hash: user.password_hash.clone(),
-            created_at: Some(user.created_at),
-            full_name: user.full_name.clone(),
-            avatar_url: user.avatar_url.clone(),
-            bio: user.bio.clone(),
-            preferred_language: user.preferred_language.clone(),
+            id: user.id(),
+            email: user.email().to_string(),
+            password_hash: user.password_hash().to_string(),
+            created_at: Some(user.created_at()),
+            full_name: user.full_name().map(String::from),
+            avatar_url: user.avatar_url().map(String::from),
+            bio: user.bio().map(String::from),
+            preferred_language: user.preferred_language().map(String::from),
         };
 
         let is_first = conn

@@ -71,14 +71,14 @@ async fn test_create_employee_id_normalization() {
     let created_emp: Employee = serde_json::from_slice(&body).unwrap();
 
     // Verify response has normalized ID
-    assert_eq!(created_emp.employee_id_number, "123");
+    assert_eq!(created_emp.employee_id_number(), "123");
 
     // Verify in DB
     let db_emp: String = crate::test_query_scalar_string!(
         &factory.diesel_pools.api,
         "SELECT employee_id_number AS val FROM employees WHERE id = $1",
         diesel::sql_types::Uuid,
-        created_emp.id
+        created_emp.id()
     );
 
     assert_eq!(db_emp, "123");
@@ -154,7 +154,7 @@ async fn test_update_employee_id_normalization() {
     let updated_emp: Employee = serde_json::from_slice(&body).unwrap();
 
     // Verify response has normalized ID
-    assert_eq!(updated_emp.employee_id_number, "200");
+    assert_eq!(updated_emp.employee_id_number(), "200");
 
     // Verify in DB
     let db_emp: String = crate::test_query_scalar_string!(

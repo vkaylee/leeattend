@@ -33,7 +33,7 @@ async fn test_workspace_creation_no_default_leave_types() {
         &factory.diesel_pools.api,
         "SELECT count(*) AS count FROM leave_types WHERE workspace_id = $1",
         diesel::sql_types::Uuid,
-        workspace.id
+        workspace.id()
     ); // expect("Failed to count leave types");
 
     assert_eq!(

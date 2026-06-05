@@ -186,7 +186,7 @@ impl ReportService {
             })?
             .ok_or(AppError::NotFound("Not found".into()))?;
 
-        let tz: Tz = crate::utils::tz::parse_workspace_tz(&workspace.timezone);
+        let tz: Tz = crate::utils::tz::parse_workspace_tz(workspace.timezone());
 
         // 1. PAGINATION AT DATABASE LEVEL
         let page = args.page.unwrap_or(1);
@@ -370,7 +370,7 @@ impl ReportService {
                         date,
                         tz,
                         employee_id: emp_sched.employee_id,
-                        workspace_id: workspace.id,
+                        workspace_id: workspace.id(),
                         rules,
                         work_unit_minutes: emp_attendance_rules.work_unit_minutes,
                         rounding_policy: &emp_attendance_rules.rounding_policy,
@@ -501,7 +501,7 @@ impl ReportService {
             })?
             .ok_or(AppError::NotFound("Not found".into()))?;
 
-        let tz: Tz = crate::utils::tz::parse_workspace_tz(&workspace.timezone);
+        let tz: Tz = crate::utils::tz::parse_workspace_tz(workspace.timezone());
 
         // 1. PAGINATION AT DATABASE LEVEL (Conditional for computed sorts)
         let page = args.page.unwrap_or(1);
@@ -645,7 +645,7 @@ impl ReportService {
         let attendance_rules_map = PolicyResolverService::resolve_attendance_policy_batch(
             &*self.policy_repo,
             &emp_ids,
-            workspace.id,
+            workspace.id(),
             args.start_date, // proxy date for the report period
         )
         .await?;
@@ -654,7 +654,7 @@ impl ReportService {
         let working_conditions_map = PolicyResolverService::resolve_attendance_rules_batch(
             &*self.employee_repo,
             &emp_ids,
-            workspace.id,
+            workspace.id(),
             args.start_date,
             args.end_date,
         )
@@ -716,7 +716,7 @@ impl ReportService {
                     date,
                     tz,
                     employee_id: emp_sched.employee_id,
-                    workspace_id: workspace.id,
+                    workspace_id: workspace.id(),
                     rules,
                     work_unit_minutes: emp_attendance_rules.work_unit_minutes,
                     rounding_policy: &emp_attendance_rules.rounding_policy,

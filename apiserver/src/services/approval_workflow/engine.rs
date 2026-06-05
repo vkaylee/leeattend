@@ -38,7 +38,7 @@ impl ApprovalWorkflowService {
                         .get_employee_by_id(req.employee_id, auth_token)
                         .await
                     {
-                        info.user_id = emp.user_id;
+                        info.user_id = emp.user_id();
                     }
                 }
             }
@@ -70,7 +70,7 @@ impl ApprovalWorkflowService {
                         .get_employee_by_id(summary.employee_id, auth_token)
                         .await
                     {
-                        info.user_id = emp.user_id;
+                        info.user_id = emp.user_id();
                     }
                 }
             }

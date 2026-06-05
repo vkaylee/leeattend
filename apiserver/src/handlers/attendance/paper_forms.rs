@@ -278,7 +278,7 @@ pub async fn bulk_upload_paper_ot(
         let existing_summary = state
             .attendance()
             .attendance_daily_summary_repo()
-            .get_summary(&ctx.auth_token, employee.id, date)
+            .get_summary(&ctx.auth_token, employee.id(), date)
             .await;
 
         if let Ok(Some(summary)) = existing_summary {
@@ -302,7 +302,7 @@ pub async fn bulk_upload_paper_ot(
             .enter_paper_ot(
                 crate::services::attendance_summary_service::EnterPaperOtArgs {
                     workspace_id: ctx.workspace_id,
-                    employee_id: employee.id,
+                    employee_id: employee.id(),
                     date,
                     claimed_minutes: minutes,
                     reason,

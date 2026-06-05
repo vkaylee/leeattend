@@ -99,7 +99,7 @@ pub async fn create_employee_assignment(
         .await?
         .ok_or_else(|| AppError::NotFound("Employee not found".to_string()))?;
 
-    let home_location_id = employee.primary_location_id;
+    let home_location_id = employee.primary_location_id();
 
     // Validate that home and host locations are not the same
     if home_location_id == payload.host_location_id {

@@ -50,7 +50,7 @@ impl EmployeeService {
             .ok_or(AppError::NotFound("Employee not found".into()))?;
 
         self.repo
-            .get_working_conditions(auth_token, emp.id, page, limit)
+            .get_working_conditions(auth_token, emp.id(), page, limit)
             .await
     }
 
@@ -70,7 +70,7 @@ impl EmployeeService {
 
         let condition = WorkingCondition {
             id: new_id(),
-            employee_id: emp.id,
+            employee_id: emp.id(),
             type_: req.type_,
             minute_allowance: req.minute_allowance,
             is_paid: req.is_paid,
@@ -101,7 +101,7 @@ impl EmployeeService {
 
         let deleted = self
             .repo
-            .delete_working_condition(auth_token, condition_id, emp.id)
+            .delete_working_condition(auth_token, condition_id, emp.id())
             .await?;
 
         if !deleted {
@@ -137,23 +137,23 @@ impl EmployeeService {
             }
         }
 
-        let employee = Employee {
-            id: new_id(),
+        let employee = Employee::new(
+            new_id(),
             workspace_id,
-            user_id: req.user_id,
-            full_name: req.full_name,
-            employee_id_number: req.employee_id_number.into_inner(),
-            original_hire_date: req.hire_date,
-            hire_date: req.hire_date,
-            termination_date: None,
-            tags: req.tags.unwrap_or_default(),
-            is_active: true,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-            department_name: None,
-            primary_location_id: req.primary_location_id,
-            employer_id: req.employer_id,
-        };
+            req.user_id,
+            req.full_name,
+            req.employee_id_number.into_inner(),
+            req.hire_date,
+            req.hire_date,
+            None,
+            req.tags.unwrap_or_default(),
+            true,
+            Utc::now(),
+            Utc::now(),
+            None,
+            req.primary_location_id,
+            req.employer_id,
+        );
 
         // Use repository to create employee and set recruitment source transactionally
         self.repo
@@ -163,12 +163,12 @@ impl EmployeeService {
         // Claim staged logs asynchronously (best-effort, non-fatal if fails)
         if let Err(e) = self
             .staging_repo
-            .claim_staged_logs(workspace_id, &employee.employee_id_number, employee.id)
+            .claim_staged_logs(workspace_id, employee.employee_id_number(), employee.id())
             .await
         {
             tracing::warn!(
                 "Failed to claim staged logs for newly created employee {}: {}",
-                employee.id,
+                employee.id(),
                 e
             );
         }
@@ -190,11 +190,11 @@ impl EmployeeService {
             .await?
             .ok_or(AppError::NotFound("Employee not found".into()))?;
 
-        if employee.is_active {
+        if employee.is_active() {
             return Err(AppError::Validation("Employee is already active".into()));
         }
 
-        if let Some(term_date) = employee.termination_date {
+        if let Some(term_date) = employee.termination_date() {
             if req.hire_date <= term_date {
                 return Err(AppError::Validation(
                     "Rehire date must be after termination date".into(),
@@ -373,23 +373,23 @@ mod tests {
     // ── Test Helpers ─────────────────────────────────────────────────
 
     fn make_employee(ws: Uuid) -> Employee {
-        Employee {
-            id: Uuid::new_v4(),
-            workspace_id: ws,
-            user_id: None,
-            full_name: "Test Employee".into(),
-            employee_id_number: "EMP001".into(),
-            original_hire_date: NaiveDate::from_ymd_opt(2026, 1, 1).expect("valid date"),
-            hire_date: NaiveDate::from_ymd_opt(2026, 1, 1).expect("valid date"),
-            termination_date: None,
-            tags: vec![],
-            is_active: true,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-            department_name: None,
-            primary_location_id: Uuid::new_v4(),
-            employer_id: None,
-        }
+        Employee::new(
+            Uuid::new_v4(),
+            ws,
+            None,
+            "Test Employee".into(),
+            "EMP001".into(),
+            NaiveDate::from_ymd_opt(2026, 1, 1).expect("valid date"),
+            NaiveDate::from_ymd_opt(2026, 1, 1).expect("valid date"),
+            None,
+            vec![],
+            true,
+            Utc::now(),
+            Utc::now(),
+            None,
+            Uuid::new_v4(),
+            None,
+        )
     }
 
     fn make_working_condition(emp_id: Uuid) -> WorkingCondition {
@@ -1296,7 +1296,7 @@ mod tests {
     async fn get_employee_by_id_found() {
         let ws = Uuid::new_v4();
         let emp = make_employee(ws);
-        let emp_id = emp.id;
+        let emp_id = emp.id();
         let svc = make_service(MockEmployeeRepo::with_employee(emp.clone()));
 
         let result = svc
@@ -1306,7 +1306,7 @@ mod tests {
             )
             .await;
         assert!(result.is_ok());
-        assert_eq!(result.expect("ok").id, emp_id);
+        assert_eq!(result.expect("ok").id(), emp_id);
     }
 
     #[tokio::test]
@@ -1343,7 +1343,7 @@ mod tests {
 
         assert_eq!(list.len(), 1);
         assert_eq!(total, 1);
-        assert_eq!(list[0].full_name, "Test Employee");
+        assert_eq!(list[0].full_name(), "Test Employee");
     }
 
     #[tokio::test]
@@ -1388,7 +1388,7 @@ mod tests {
     async fn transfer_employee_success() {
         let ws = Uuid::new_v4();
         let emp = make_employee(ws);
-        let emp_id = emp.id;
+        let emp_id = emp.id();
         let mock = MockEmployeeRepo::empty();
         *mock.employee.lock().expect("lock") = Some(emp.clone());
         let svc = make_service(mock);
@@ -1414,7 +1414,7 @@ mod tests {
     async fn get_working_conditions_returns_conditions() {
         let ws = Uuid::new_v4();
         let emp = make_employee(ws);
-        let cond = make_working_condition(emp.id);
+        let cond = make_working_condition(emp.id());
 
         let mock = MockEmployeeRepo::with_employee(emp.clone());
         *mock.working_conditions.lock().expect("lock") = vec![cond.clone()];
@@ -1422,7 +1422,7 @@ mod tests {
         let svc = make_service(mock);
         let result = svc
             .get_working_conditions(
-                emp.id,
+                emp.id(),
                 &crate::diesel_pool::TenantAuthToken::system_override(ws),
                 1,
                 50,
@@ -1467,7 +1467,7 @@ mod tests {
 
         let result = svc
             .create_working_condition(
-                emp.id,
+                emp.id(),
                 &crate::diesel_pool::TenantAuthToken::system_override(ws),
                 req,
             )
@@ -1477,7 +1477,7 @@ mod tests {
         assert_eq!(wc.type_, "early_leave");
         assert_eq!(wc.minute_allowance, 30);
         assert!(!wc.is_paid);
-        assert_eq!(wc.employee_id, emp.id);
+        assert_eq!(wc.employee_id, emp.id());
     }
 
     // ── Tests: delete_working_condition ──────────────────────────────
@@ -1492,7 +1492,7 @@ mod tests {
         let svc = make_service(mock);
         let result = svc
             .delete_working_condition(
-                emp.id,
+                emp.id(),
                 &crate::diesel_pool::TenantAuthToken::system_override(ws),
                 Uuid::new_v4(),
             )
@@ -1510,7 +1510,7 @@ mod tests {
         let svc = make_service(mock);
         let result = svc
             .delete_working_condition(
-                emp.id,
+                emp.id(),
                 &crate::diesel_pool::TenantAuthToken::system_override(ws),
                 Uuid::new_v4(),
             )
@@ -1608,7 +1608,7 @@ mod tests {
         };
         let result = svc
             .rehire_employee(
-                emp.id,
+                emp.id(),
                 &crate::diesel_pool::TenantAuthToken::system_override(ws),
                 req,
             )
@@ -1622,15 +1622,15 @@ mod tests {
     async fn rehire_employee_invalid_date() {
         let ws = Uuid::new_v4();
         let mut emp = make_employee(ws);
-        emp.is_active = false;
-        emp.termination_date = Some(NaiveDate::from_ymd_opt(2026, 5, 1).unwrap());
+        emp.set_is_active(false);
+        emp.set_termination_date(Some(NaiveDate::from_ymd_opt(2026, 5, 1).unwrap()));
         let svc = make_service(MockEmployeeRepo::with_employee(emp.clone()));
         let req = crate::models::RehireEmployeeRequest {
             hire_date: NaiveDate::from_ymd_opt(2026, 4, 1).unwrap(), // Before termination
         };
         let result = svc
             .rehire_employee(
-                emp.id,
+                emp.id(),
                 &crate::diesel_pool::TenantAuthToken::system_override(ws),
                 req,
             )
@@ -1671,7 +1671,7 @@ mod tests {
         let ws = Uuid::new_v4();
         let mock = MockEmployeeRepo::empty();
         let updated = make_employee(ws);
-        let updated_id = updated.id;
+        let updated_id = updated.id();
         *mock.updated_employee.lock().unwrap() = Some(updated.clone());
         let svc = make_service(mock);
         let req = crate::models::UpdateEmployeeRequest {

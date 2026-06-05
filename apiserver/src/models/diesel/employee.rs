@@ -48,23 +48,23 @@ pub struct EmployeeRow {
 
 impl From<EmployeeRow> for Employee {
     fn from(row: EmployeeRow) -> Self {
-        Self {
-            id: row.id,
-            workspace_id: row.workspace_id,
-            user_id: row.user_id,
-            full_name: row.full_name,
-            employee_id_number: row.employee_id_number,
-            original_hire_date: row.original_hire_date,
-            hire_date: row.hire_date,
-            termination_date: row.termination_date,
-            tags: row.tags,
-            is_active: row.is_active,
-            created_at: row.created_at,
-            updated_at: row.updated_at,
-            department_name: row.department_name,
-            primary_location_id: row.primary_location_id,
-            employer_id: row.employer_id,
-        }
+        Self::new(
+            row.id,
+            row.workspace_id,
+            row.user_id,
+            row.full_name,
+            row.employee_id_number,
+            row.original_hire_date,
+            row.hire_date,
+            row.termination_date,
+            row.tags,
+            row.is_active,
+            row.created_at,
+            row.updated_at,
+            row.department_name,
+            row.primary_location_id,
+            row.employer_id,
+        )
     }
 }
 
@@ -91,44 +91,44 @@ pub struct EmployeeEntity {
 impl From<Employee> for EmployeeEntity {
     fn from(val: Employee) -> Self {
         EmployeeEntity {
-            id: val.id,
-            workspace_id: val.workspace_id,
-            user_id: val.user_id,
-            employee_id_number: val.employee_id_number,
-            is_active: val.is_active,
-            created_at: Some(val.created_at),
-            updated_at: Some(val.updated_at),
-            tags: Some(val.tags.into_iter().map(Some).collect()),
-            full_name: val.full_name,
+            id: val.id(),
+            workspace_id: val.workspace_id(),
+            user_id: val.user_id(),
+            employee_id_number: val.employee_id_number().to_string(),
+            is_active: val.is_active(),
+            created_at: Some(val.created_at()),
+            updated_at: Some(val.updated_at()),
+            tags: Some(val.tags().to_vec().into_iter().map(Some).collect()),
+            full_name: val.full_name().to_string(),
             recruitment_source_id: None,
-            hire_date: val.hire_date,
-            termination_date: val.termination_date,
-            original_hire_date: val.original_hire_date,
-            primary_location_id: val.primary_location_id,
-            employer_id: val.employer_id,
+            hire_date: val.hire_date(),
+            termination_date: val.termination_date(),
+            original_hire_date: val.original_hire_date(),
+            primary_location_id: val.primary_location_id(),
+            employer_id: val.employer_id(),
         }
     }
 }
 
 impl From<EmployeeEntity> for Employee {
     fn from(val: EmployeeEntity) -> Self {
-        Employee {
-            id: val.id,
-            workspace_id: val.workspace_id,
-            user_id: val.user_id,
-            full_name: val.full_name,
-            employee_id_number: val.employee_id_number,
-            original_hire_date: val.original_hire_date,
-            hire_date: val.hire_date,
-            termination_date: val.termination_date,
-            tags: val.tags.unwrap_or_default().into_iter().flatten().collect(),
-            is_active: val.is_active,
-            created_at: val.created_at.unwrap_or_else(Utc::now),
-            updated_at: val.updated_at.unwrap_or_else(Utc::now),
-            department_name: None,
-            primary_location_id: val.primary_location_id,
-            employer_id: val.employer_id,
-        }
+        Employee::new(
+            val.id,
+            val.workspace_id,
+            val.user_id,
+            val.full_name,
+            val.employee_id_number,
+            val.original_hire_date,
+            val.hire_date,
+            val.termination_date,
+            val.tags.unwrap_or_default().into_iter().flatten().collect(),
+            val.is_active,
+            val.created_at.unwrap_or_else(Utc::now),
+            val.updated_at.unwrap_or_else(Utc::now),
+            None,
+            val.primary_location_id,
+            val.employer_id,
+        )
     }
 }
 

@@ -290,7 +290,7 @@ async fn test_get_active_employees_excludes_inactive() {
         .await
         .unwrap();
     assert_eq!(active.len(), 1);
-    assert_eq!(active[0].full_name, "Active One");
+    assert_eq!(active[0].full_name(), "Active One");
 }
 
 #[tokio::test]
@@ -373,7 +373,7 @@ async fn test_find_by_number_normalizes_input() {
         .await
         .unwrap();
     assert!(found.is_some());
-    assert_eq!(found.unwrap().full_name, "Number Test");
+    assert_eq!(found.unwrap().full_name(), "Number Test");
 
     // Search non-existent
     let not_found = repo
@@ -843,37 +843,37 @@ async fn test_employee_core_crud() {
     };
 
     // Create
-    let new_emp = apiserver::models::Employee {
-        id: Uuid::new_v4(),
-        workspace_id: ws_id,
-        user_id: None,
-        full_name: "Core Employee".to_string(),
-        employee_id_number: "CORE1".to_string(),
-        tags: vec!["Test".to_string()],
-        is_active: true,
-        hire_date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-        termination_date: None,
-        primary_location_id: hq_loc_id,
-        original_hire_date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-        department_name: None,
-        created_at: Utc::now(),
-        updated_at: Utc::now(),
-        employer_id: None,
-    };
+    let new_emp = apiserver::models::Employee::new(
+        Uuid::new_v4(),
+        ws_id,
+        None,
+        "Core Employee".to_string(),
+        "CORE1".to_string(),
+        NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+        NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+        None,
+        vec!["Test".to_string()],
+        true,
+        Utc::now(),
+        Utc::now(),
+        None,
+        hq_loc_id,
+        None,
+    );
     repo.create_employee(&new_emp).await.unwrap();
 
     // Read by ID
     let found = repo
-        .get_employee_by_id(new_emp.id, &auth_token)
+        .get_employee_by_id(new_emp.id(), &auth_token)
         .await
         .unwrap();
     assert!(found.is_some());
     let found = found.unwrap();
-    assert_eq!(found.full_name, "Core Employee");
+    assert_eq!(found.full_name(), "Core Employee");
 
     // Read by IDs
     let multi = repo
-        .get_employees_by_ids(&[new_emp.id], &auth_token)
+        .get_employees_by_ids(&[new_emp.id()], &auth_token)
         .await
         .unwrap();
     assert_eq!(multi.len(), 1);
@@ -893,38 +893,41 @@ async fn test_employee_core_crud() {
         employer_id: None,
     };
     let updated = repo
-        .update_employee(new_emp.id, &auth_token, &update_req)
+        .update_employee(new_emp.id(), &auth_token, &update_req)
         .await
         .unwrap();
     assert!(updated.is_some());
     let updated = updated.unwrap();
-    assert_eq!(updated.full_name, "Core Updated");
-    assert_eq!(updated.is_active, false);
+    assert_eq!(updated.full_name(), "Core Updated");
+    assert_eq!(updated.is_active(), false);
 
     // Rehire
     let rehired = repo
         .rehire_employee(
             &auth_token,
-            new_emp.id,
+            new_emp.id(),
             NaiveDate::from_ymd_opt(2026, 4, 1).unwrap(),
         )
         .await
         .unwrap();
     assert!(rehired.is_some());
     let rehired = rehired.unwrap();
-    assert_eq!(rehired.is_active, true);
+    assert_eq!(rehired.is_active(), true);
     assert_eq!(
-        rehired.hire_date,
+        rehired.hire_date(),
         NaiveDate::from_ymd_opt(2026, 4, 1).unwrap()
     );
-    assert!(rehired.termination_date.is_none());
+    assert!(rehired.termination_date().is_none());
 
     // Delete
-    let deleted = repo.delete_employee(new_emp.id, &auth_token).await.unwrap();
+    let deleted = repo
+        .delete_employee(new_emp.id(), &auth_token)
+        .await
+        .unwrap();
     assert_eq!(deleted, 1);
 
     let not_found = repo
-        .get_employee_by_id(new_emp.id, &auth_token)
+        .get_employee_by_id(new_emp.id(), &auth_token)
         .await
         .unwrap();
     assert!(not_found.is_none());
@@ -977,7 +980,7 @@ async fn test_get_all_employees_with_filters() {
     let (all, count) = repo.get_all_employees(&auth_token, opts_all).await.unwrap();
     assert_eq!(count, 3);
     assert_eq!(all.len(), 3);
-    assert_eq!(all[0].full_name, "Alice Alpha"); // sorted ascending
+    assert_eq!(all[0].full_name(), "Alice Alpha"); // sorted ascending
 
     // Filter by search
     let opts_search = apiserver::models::EmployeeFilterOptions {
@@ -1078,7 +1081,10 @@ async fn test_get_all_employees_filtered_by_permission() {
     let (employees, count) = repo.get_all_employees(&auth_token, opts).await.unwrap();
 
     assert_eq!(count, 2);
-    let names: Vec<String> = employees.into_iter().map(|e| e.full_name).collect();
+    let names: Vec<String> = employees
+        .into_iter()
+        .map(|e| e.full_name().to_string())
+        .collect();
     assert!(names.contains(&"Owner Emp".to_string()));
     assert!(names.contains(&"Allowed Emp".to_string()));
     assert!(!names.contains(&"Forbidden Emp".to_string()));

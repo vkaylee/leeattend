@@ -28,7 +28,7 @@ impl NightlyHousekeepingHandler {
 
         let results = futures_util::stream::iter(workspaces.into_iter().map(|workspace| {
             async move {
-                let tenant_id = workspace.id;
+                let tenant_id = workspace.id();
                 let mut queries = Vec::new();
 
                 // Ensure partitions for current month + next 3 months
@@ -134,21 +134,21 @@ mod tests {
             .expect_get_all_workspaces()
             .returning(|| {
                 Box::pin(async move {
-                    Ok(vec![crate::models::workspace::Workspace {
-                        id: Uuid::new_v4(),
-                        name: "Test Workspace".to_string(),
-                        date_format: "YYYY-MM-DD".to_string(),
-                        time_format: "24h".to_string(),
-                        timezone: "UTC".to_string(),
-                        theme_primary_color: "#000000".to_string(),
-                        default_language: "en".to_string(),
-                        logo_url: None,
-                        tagline: None,
-                        holiday_overnight_strategy: "split".to_string(),
-                        default_holiday_ot_multiplier: rust_decimal::Decimal::new(15, 1),
-                        created_at: chrono::Utc::now(),
-                        custom_db_url_encrypted: None,
-                    }])
+                    Ok(vec![crate::models::workspace::Workspace::new(
+                        Uuid::new_v4(),
+                        "Test Workspace".to_string(),
+                        "YYYY-MM-DD".to_string(),
+                        "24h".to_string(),
+                        "UTC".to_string(),
+                        "#000000".to_string(),
+                        "en".to_string(),
+                        None,
+                        None,
+                        "split".to_string(),
+                        rust_decimal::Decimal::new(15, 1),
+                        chrono::Utc::now(),
+                        None,
+                    )])
                 })
             });
 

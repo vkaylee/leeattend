@@ -72,7 +72,7 @@ impl TimeTrackingService {
             .await?
             .ok_or(AppError::NotFound("Employee not found".into()))?;
 
-        if !employee.is_active {
+        if !employee.is_active() {
             return Err(AppError::Forbidden("Employee is inactive".into()));
         }
 
@@ -98,7 +98,7 @@ impl TimeTrackingService {
                 .await?
                 .ok_or(AppError::Internal("Workspace not found".into()))?;
 
-            let tz: chrono_tz::Tz = crate::utils::tz::parse_workspace_tz(&workspace.timezone);
+            let tz: chrono_tz::Tz = crate::utils::tz::parse_workspace_tz(workspace.timezone());
             let local_now = now.with_timezone(&tz);
             let today = local_now.date_naive();
 
@@ -259,7 +259,7 @@ impl TimeTrackingService {
 
         // Recalculate summary
         if let Ok(Some(ws)) = self.workspace_repo.get_workspace_by_id(workspace_id).await {
-            let tz: Tz = crate::utils::tz::parse_workspace_tz(&ws.timezone);
+            let tz: Tz = crate::utils::tz::parse_workspace_tz(ws.timezone());
             let local_date = entry.punch_in_time.with_timezone(&tz).date_naive();
             let summary_svc = crate::services::AttendanceSummaryService::new(
                 crate::services::attendance_summary_service::AttendanceSummaryServiceArgs {

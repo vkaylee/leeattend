@@ -501,7 +501,7 @@ impl LeaveAccrualService {
         if employees.is_empty() {
             return Ok(vec![]);
         }
-        let employee_ids: Vec<Uuid> = employees.iter().map(|e| e.id).collect();
+        let employee_ids: Vec<Uuid> = employees.iter().map(crate::models::Employee::id).collect();
 
         // 2. Batch fetch all necessary data
         let dept_map = self
@@ -525,11 +525,11 @@ impl LeaveAccrualService {
         let mut global_qualifying_start = date;
 
         for emp in &employees {
-            let dept_id = dept_map.get(&emp.id).map(|h| h.department_id);
+            let dept_id = dept_map.get(&emp.id()).map(|h| h.department_id);
 
             let mut matched = all_assignments
                 .iter()
-                .find(|(a, _, _)| a.assignee_type == "employee" && a.assignee_id == Some(emp.id));
+                .find(|(a, _, _)| a.assignee_type == "employee" && a.assignee_id == Some(emp.id()));
             if matched.is_none() {
                 if let Some(d_id) = dept_id {
                     matched = all_assignments.iter().find(|(a, _, _)| {
@@ -554,8 +554,8 @@ impl LeaveAccrualService {
                 );
 
                 if !dates.is_empty() {
-                    emp_policy_map.insert(emp.id, (def.clone(), assignment.id));
-                    accrual_plan.insert(emp.id, dates);
+                    emp_policy_map.insert(emp.id(), (def.clone(), assignment.id));
+                    accrual_plan.insert(emp.id(), dates);
 
                     let q_start = Self::compute_qualifying_range_start(config, effective_from);
                     if q_start < global_qualifying_start {
@@ -584,25 +584,25 @@ impl LeaveAccrualService {
 
         // 5. Process each employee using strictly memory-cached references
         for emp in employees {
-            let Some(dates) = accrual_plan.get(&emp.id) else {
+            let Some(dates) = accrual_plan.get(&emp.id()) else {
                 continue;
             };
-            let Some((def, assignment_id)) = emp_policy_map.get(&emp.id) else {
-                tracing::error!("policy must exist for accrued employee {}", emp.id);
+            let Some((def, assignment_id)) = emp_policy_map.get(&emp.id()) else {
+                tracing::error!("policy must exist for accrued employee {}", emp.id());
                 continue;
             };
             let config = &def.rule_config;
             let leave_type_id = def.leave_type_id;
 
             let empty_contracts = vec![];
-            let contracts = contract_map.get(&emp.id).unwrap_or(&empty_contracts);
+            let contracts = contract_map.get(&emp.id()).unwrap_or(&empty_contracts);
 
             let empty_q_map = HashMap::new();
-            let q_map = qualifying_days_map.get(&emp.id).unwrap_or(&empty_q_map);
+            let q_map = qualifying_days_map.get(&emp.id()).unwrap_or(&empty_q_map);
 
             let ctx = AccrualContext {
                 workspace_id,
-                employee_id: emp.id,
+                employee_id: emp.id(),
                 assignment_id: *assignment_id,
                 leave_type_id,
             };

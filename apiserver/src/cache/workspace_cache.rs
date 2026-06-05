@@ -52,8 +52,8 @@ impl WorkspaceCache {
                     .ok_or_else(|| "Workspace not found".to_string())?;
 
                 Ok(CachedWorkspaceConfig {
-                    id: ws.id,
-                    timezone: ws.timezone,
+                    id: ws.id(),
+                    timezone: ws.timezone().to_string(),
                 })
             })
             .await

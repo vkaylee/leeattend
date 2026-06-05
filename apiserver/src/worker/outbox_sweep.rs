@@ -59,13 +59,13 @@ impl OutboxSweepScheduler {
             // 2. Fetch stuck pending/running jobs
             let stuck_jobs = self
                 .outbox_service
-                .get_stuck_jobs(ws.id, older_than, 10)
+                .get_stuck_jobs(ws.id(), older_than, 10)
                 .await?;
 
             for job in stuck_jobs {
                 info!(
                     job_id = %job.id,
-                    workspace_id = %ws.id,
+                    workspace_id = %ws.id(),
                     job_type = %job.job_type,
                     status = %job.status,
                     "Found stuck background job, re-enqueuing..."
@@ -84,7 +84,7 @@ impl OutboxSweepScheduler {
                             // Update job updated_at so it doesn't get swept again immediately
                             if let Err(e) = self
                                 .outbox_service
-                                .update_job_status(ws.id, job.id, "running", None)
+                                .update_job_status(ws.id(), job.id, "running", None)
                                 .await
                             {
                                 error!(
@@ -99,7 +99,7 @@ impl OutboxSweepScheduler {
                             if let Err(e) = self
                                 .coordinator
                                 .enqueue_report_job_internal(
-                                    ws.id,
+                                    ws.id(),
                                     outbox_payload.requester_id,
                                     job.id,
                                     outbox_payload.request,
@@ -115,7 +115,7 @@ impl OutboxSweepScheduler {
                                 let _ = self
                                     .outbox_service
                                     .update_job_status(
-                                        ws.id,
+                                        ws.id(),
                                         job.id,
                                         "failed",
                                         Some(format!("Re-enqueue failed: {e}")),
@@ -134,7 +134,7 @@ impl OutboxSweepScheduler {
                             let _ = self
                                 .outbox_service
                                 .update_job_status(
-                                    ws.id,
+                                    ws.id(),
                                     job.id,
                                     "failed",
                                     Some("Invalid job payload".to_string()),
@@ -171,21 +171,21 @@ mod tests {
             .with(mockall::predicate::eq(ws_id))
             .returning(move |id| {
                 Box::pin(async move {
-                    Ok(Some(Workspace {
+                    Ok(Some(Workspace::new(
                         id,
-                        name: "Test Workspace".to_string(),
-                        created_at: chrono::Utc::now(),
-                        date_format: "YYYY-MM-DD".to_string(),
-                        time_format: "HH:mm:ss".to_string(),
-                        timezone: "UTC".to_string(),
-                        theme_primary_color: String::new(),
-                        default_language: "en".to_string(),
-                        holiday_overnight_strategy: "split".to_string(),
-                        default_holiday_ot_multiplier: Default::default(),
-                        logo_url: None,
-                        tagline: None,
-                        custom_db_url_encrypted: None,
-                    }))
+                        "Test Workspace".to_string(),
+                        "YYYY-MM-DD".to_string(),
+                        "HH:mm:ss".to_string(),
+                        "UTC".to_string(),
+                        String::new(),
+                        "en".to_string(),
+                        None,
+                        None,
+                        "split".to_string(),
+                        Default::default(),
+                        chrono::Utc::now(),
+                        None,
+                    )))
                 })
             });
         let workspace_repo = Arc::new(mock_workspace_repo);
@@ -195,21 +195,21 @@ mod tests {
             .returning(move || {
                 let ws_id_val = ws_id;
                 Box::pin(async move {
-                    Ok(vec![Workspace {
-                        id: ws_id_val,
-                        name: "Test Workspace".to_string(),
-                        created_at: chrono::Utc::now(),
-                        date_format: "YYYY-MM-DD".to_string(),
-                        time_format: "HH:mm:ss".to_string(),
-                        timezone: "UTC".to_string(),
-                        theme_primary_color: String::new(),
-                        default_language: "en".to_string(),
-                        holiday_overnight_strategy: "split".to_string(),
-                        default_holiday_ot_multiplier: Default::default(),
-                        logo_url: None,
-                        tagline: None,
-                        custom_db_url_encrypted: None,
-                    }])
+                    Ok(vec![Workspace::new(
+                        ws_id_val,
+                        "Test Workspace".to_string(),
+                        "YYYY-MM-DD".to_string(),
+                        "HH:mm:ss".to_string(),
+                        "UTC".to_string(),
+                        String::new(),
+                        "en".to_string(),
+                        None,
+                        None,
+                        "split".to_string(),
+                        Default::default(),
+                        chrono::Utc::now(),
+                        None,
+                    )])
                 })
             });
         let workspace_repo_for_sweep = Arc::new(mock_workspace_repo_for_get);

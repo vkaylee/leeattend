@@ -83,16 +83,16 @@ pub struct UserEntity {
 
 impl From<UserEntity> for User {
     fn from(entity: UserEntity) -> Self {
-        Self {
-            id: entity.id,
-            email: entity.email,
-            password_hash: entity.password_hash,
-            created_at: entity.created_at.unwrap_or_else(Utc::now),
-            full_name: entity.full_name,
-            avatar_url: entity.avatar_url,
-            bio: entity.bio,
-            preferred_language: entity.preferred_language,
-        }
+        User::new(
+            entity.id,
+            entity.email,
+            entity.password_hash,
+            entity.created_at.unwrap_or_else(Utc::now),
+            entity.full_name,
+            entity.avatar_url,
+            entity.bio,
+            entity.preferred_language,
+        )
     }
 }
 
@@ -114,23 +114,23 @@ pub struct WorkspaceEntity {
 
 impl From<WorkspaceEntity> for Workspace {
     fn from(entity: WorkspaceEntity) -> Self {
-        Self {
-            id: entity.id,
-            name: entity.name,
-            date_format: entity.date_format,
-            time_format: entity.time_format,
-            timezone: entity.timezone,
-            theme_primary_color: entity
+        Workspace::new(
+            entity.id,
+            entity.name,
+            entity.date_format,
+            entity.time_format,
+            entity.timezone,
+            entity
                 .theme_primary_color
                 .unwrap_or_else(|| "#1890ff".to_string()),
-            default_language: entity.default_language,
-            logo_url: entity.logo_url,
-            tagline: entity.tagline,
-            holiday_overnight_strategy: "split_at_midnight".to_string(),
-            default_holiday_ot_multiplier: rust_decimal::Decimal::new(30, 1), // 3.0
-            created_at: entity.created_at.unwrap_or_else(Utc::now),
-            custom_db_url_encrypted: entity.custom_db_url_encrypted,
-        }
+            entity.default_language,
+            entity.logo_url,
+            entity.tagline,
+            "split_at_midnight".to_string(),
+            rust_decimal::Decimal::new(30, 1), // 3.0
+            entity.created_at.unwrap_or_else(Utc::now),
+            entity.custom_db_url_encrypted,
+        )
     }
 }
 

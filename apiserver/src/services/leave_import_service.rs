@@ -152,11 +152,11 @@ impl ImportStrategy for LeaveImportStrategy {
         for emp in emps {
             tracing::info!(
                 "Loaded employee into cache: id_number = '{}'",
-                emp.employee_id_number
+                emp.employee_id_number()
             );
-            if !emp.employee_id_number.is_empty() {
+            if !emp.employee_id_number().is_empty() {
                 self.employees_cache
-                    .insert(emp.employee_id_number.to_uppercase(), emp.id);
+                    .insert(emp.employee_id_number().to_uppercase(), emp.id());
             }
         }
 
@@ -265,8 +265,8 @@ impl LeaveImportService {
             .map_err(|_err| ())?
             .ok_or(())?;
 
-        let lang = workspace.default_language;
-        let tz_str = workspace.timezone;
+        let lang = workspace.default_language().to_string();
+        let tz_str = workspace.timezone().to_string();
 
         let workspace_tz: chrono_tz::Tz = tz_str.parse().unwrap_or(chrono_tz::UTC);
 

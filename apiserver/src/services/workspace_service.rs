@@ -223,26 +223,23 @@ impl WorkspaceService {
                             .get_workspace_by_id(args.ws_id)
                             .await
                             .unwrap_or_else(|_| {
-                                Some(crate::models::Workspace {
-                                    id: args.ws_id,
-                                    name: args
-                                        .name
+                                Some(crate::models::Workspace::new(
+                                    args.ws_id,
+                                    args.name
                                         .clone()
                                         .unwrap_or_else(|| "Test Workspace".to_string()),
-                                    timezone: "UTC".to_string(),
-                                    date_format: "YYYY-MM-DD".to_string(),
-                                    time_format: "24h".to_string(),
-                                    theme_primary_color: "#1890ff".to_string(),
-                                    default_language: "en".to_string(),
-                                    logo_url: None,
-                                    tagline: None,
-                                    holiday_overnight_strategy: "split_at_midnight".to_string(),
-                                    default_holiday_ot_multiplier: rust_decimal::Decimal::new(
-                                        30, 1,
-                                    ),
-                                    created_at: chrono::Utc::now(),
-                                    custom_db_url_encrypted: None,
-                                })
+                                    "YYYY-MM-DD".to_string(),
+                                    "24h".to_string(),
+                                    "UTC".to_string(),
+                                    "#1890ff".to_string(),
+                                    "en".to_string(),
+                                    None,
+                                    None,
+                                    "split_at_midnight".to_string(),
+                                    rust_decimal::Decimal::new(30, 1),
+                                    chrono::Utc::now(),
+                                    None,
+                                ))
                             })
                             .unwrap();
                         return Ok(ws);
@@ -376,21 +373,21 @@ mod tests {
 
     fn dummy_workspace() -> Workspace {
         use rust_decimal::Decimal;
-        Workspace {
-            id: Uuid::new_v4(),
-            name: "Acme Corp".into(),
-            created_at: Utc::now(),
-            date_format: "DD/MM/YYYY".into(),
-            time_format: "HH:mm".into(),
-            timezone: "Asia/Ho_Chi_Minh".into(),
-            theme_primary_color: "#000".into(),
-            default_language: "vi".into(),
-            logo_url: None,
-            tagline: None,
-            custom_db_url_encrypted: None,
-            holiday_overnight_strategy: "split".into(),
-            default_holiday_ot_multiplier: Decimal::new(15, 1),
-        }
+        Workspace::new(
+            Uuid::new_v4(),
+            "Acme Corp".into(),
+            "DD/MM/YYYY".into(),
+            "HH:mm".into(),
+            "Asia/Ho_Chi_Minh".into(),
+            "#000".into(),
+            "vi".into(),
+            None,
+            None,
+            "split".into(),
+            Decimal::new(15, 1),
+            Utc::now(),
+            None,
+        )
     }
 
     // ── NopWorkspaceRepo ────────────────────────────────────────────────────
@@ -410,8 +407,8 @@ mod tests {
             _custom_db_url_encrypted: Option<String>,
         ) -> Result<Workspace, AppError> {
             let mut ws = dummy_workspace();
-            ws.id = id;
-            ws.name = name.to_string();
+            ws.set_id(id);
+            ws.set_name(name.to_string());
             Ok(ws)
         }
         async fn get_workspace_by_id(&self, _id: Uuid) -> Result<Option<Workspace>, AppError> {
@@ -575,7 +572,7 @@ mod tests {
         ) -> Result<Workspace, AppError> {
             let mut ws = dummy_workspace();
             if let Some(n) = name {
-                ws.name = n;
+                ws.set_name(n);
             }
             Ok(ws)
         }
@@ -605,16 +602,16 @@ mod tests {
     impl crate::repositories::user_repository::UserRepository for MockUserRepo {
         async fn get_user_by_id(&self, id: Uuid) -> Result<Option<crate::models::User>, AppError> {
             if self.user_exists {
-                Ok(Some(crate::models::User {
+                Ok(Some(crate::models::User::new(
                     id,
-                    email: "test@example.com".into(),
-                    password_hash: "hash".into(),
-                    created_at: Utc::now(),
-                    full_name: Some("Test User".into()),
-                    avatar_url: None,
-                    bio: None,
-                    preferred_language: None,
-                }))
+                    "test@example.com".into(),
+                    "hash".into(),
+                    Utc::now(),
+                    Some("Test User".into()),
+                    None,
+                    None,
+                    None,
+                )))
             } else {
                 Ok(None)
             }
@@ -653,16 +650,16 @@ mod tests {
             _a: Option<String>,
             _b: Option<String>,
         ) -> Result<crate::models::User, AppError> {
-            Ok(crate::models::User {
+            Ok(crate::models::User::new(
                 id,
-                email: "test@example.com".into(),
-                password_hash: "hash".into(),
-                created_at: Utc::now(),
+                "test@example.com".into(),
+                "hash".into(),
+                Utc::now(),
                 full_name,
-                avatar_url: None,
-                bio: None,
-                preferred_language: None,
-            })
+                None,
+                None,
+                None,
+            ))
         }
         async fn get_workspace_users(
             &self,
@@ -922,7 +919,7 @@ mod tests {
             )
             .await
             .unwrap();
-        assert_eq!(ws.name, "Acme Corp");
+        assert_eq!(ws.name(), "Acme Corp");
     }
 
     #[tokio::test]
@@ -950,7 +947,7 @@ mod tests {
         let (tenant_id, payload) = &registered[0];
         // Tenant ID must match the format produced by diesel_pool::get_tenant_url() —
         // tenant_<uuid-without-hyphens> — not the raw UUID.
-        let expected_tenant_id = format!("tenant_{}", ws.id.to_string().replace('-', ""));
+        let expected_tenant_id = format!("tenant_{}", ws.id().to_string().replace('-', ""));
         assert_eq!(
             tenant_id, &expected_tenant_id,
             "tenant_id must use the same format as diesel_pool::get_tenant_url()"
@@ -1035,7 +1032,7 @@ mod tests {
             default_holiday_ot_multiplier: None,
         };
         let ws = svc.update_workspace(args).await.unwrap();
-        assert_eq!(ws.name, "Updated Corp");
+        assert_eq!(ws.name(), "Updated Corp");
     }
 
     #[tokio::test]
@@ -1056,6 +1053,6 @@ mod tests {
             default_holiday_ot_multiplier: Some(Decimal::new(15, 1)), // 1.5
         };
         let ws = svc.update_workspace(args).await.unwrap();
-        assert!(!ws.name.is_empty());
+        assert!(!ws.name().is_empty());
     }
 }

@@ -892,23 +892,23 @@ mod tests {
     }
 
     fn dummy_employee() -> Employee {
-        Employee {
-            id: Uuid::new_v4(),
-            workspace_id: Uuid::new_v4(),
-            employee_id_number: "EMP001".into(),
-            full_name: "Test".into(),
-            original_hire_date: NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
-            hire_date: NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
-            termination_date: None,
-            user_id: None,
-            is_active: true,
-            tags: vec![],
-            department_name: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-            primary_location_id: uuid::Uuid::new_v4(),
-            employer_id: None,
-        }
+        Employee::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            None,
+            "Test".into(),
+            "EMP001".into(),
+            NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+            NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+            None,
+            vec![],
+            true,
+            Utc::now(),
+            Utc::now(),
+            None,
+            uuid::Uuid::new_v4(),
+            None,
+        )
     }
 
     #[tokio::test]

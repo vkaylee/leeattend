@@ -469,11 +469,13 @@ pub async fn get_tenant_stats(
             .get_workspace_by_id(workspace_id)
             .await
         {
-            if let Some(encrypted) = ws.custom_db_url_encrypted {
+            if let Some(encrypted) = ws.custom_db_url_encrypted() {
                 let decrypted = if let Some(crypto) = state.infra().crypto_service() {
-                    crypto.decrypt(&encrypted).unwrap_or(encrypted)
+                    crypto
+                        .decrypt(encrypted)
+                        .unwrap_or_else(|_| encrypted.to_string())
                 } else {
-                    encrypted
+                    encrypted.to_string()
                 };
                 Some(mask_db_url(&decrypted))
             } else {

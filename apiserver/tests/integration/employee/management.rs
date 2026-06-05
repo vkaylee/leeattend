@@ -61,7 +61,7 @@ async fn test_employee_crud_lifecycle_smoke() {
         .await
         .unwrap();
     let emp: Employee = serde_json::from_slice(&body).unwrap();
-    assert_eq!(emp.full_name, "Test Employee");
+    assert_eq!(emp.full_name(), "Test Employee");
 
     // 2. Get Employee
     let response = app
@@ -69,7 +69,11 @@ async fn test_employee_crud_lifecycle_smoke() {
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri(format!("/api/v1/workspaces/{}/employees/{}", ws_id, emp.id))
+                .uri(format!(
+                    "/api/v1/workspaces/{}/employees/{}",
+                    ws_id,
+                    emp.id()
+                ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
@@ -90,7 +94,11 @@ async fn test_employee_crud_lifecycle_smoke() {
         .oneshot(
             axum::http::Request::builder()
                 .method("PUT")
-                .uri(format!("/api/v1/workspaces/{}/employees/{}", ws_id, emp.id))
+                .uri(format!(
+                    "/api/v1/workspaces/{}/employees/{}",
+                    ws_id,
+                    emp.id()
+                ))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
@@ -105,7 +113,7 @@ async fn test_employee_crud_lifecycle_smoke() {
         .await
         .unwrap();
     let updated_emp: Employee = serde_json::from_slice(&body).unwrap();
-    assert_eq!(updated_emp.full_name, "Updated Name");
+    assert_eq!(updated_emp.full_name(), "Updated Name");
 
     // 4. Delete Employee
     let response = app
@@ -113,7 +121,11 @@ async fn test_employee_crud_lifecycle_smoke() {
         .oneshot(
             axum::http::Request::builder()
                 .method("DELETE")
-                .uri(format!("/api/v1/workspaces/{}/employees/{}", ws_id, emp.id))
+                .uri(format!(
+                    "/api/v1/workspaces/{}/employees/{}",
+                    ws_id,
+                    emp.id()
+                ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
@@ -238,7 +250,7 @@ async fn test_employee_user_id_uniqueness() {
         .await
         .unwrap();
     let emp1: Employee = serde_json::from_slice(&body).unwrap();
-    assert_eq!(emp1.user_id, Some(target_user_id));
+    assert_eq!(emp1.user_id(), Some(target_user_id));
 
     // 2. Create second employee linked to target_user_id -> Should FAIL with BAD_REQUEST
     let create_req2 = serde_json::json!({
@@ -295,7 +307,7 @@ async fn test_employee_user_id_uniqueness() {
         .await
         .unwrap();
     let emp3: Employee = serde_json::from_slice(&body).unwrap();
-    assert_eq!(emp3.user_id, None);
+    assert_eq!(emp3.user_id(), None);
 
     // 4. Update the third employee to link to target_user_id -> Should FAIL with BAD_REQUEST
     let update_req = serde_json::json!({
@@ -309,7 +321,8 @@ async fn test_employee_user_id_uniqueness() {
                 .method("PUT")
                 .uri(format!(
                     "/api/v1/workspaces/{}/employees/{}",
-                    ws_id, emp3.id
+                    ws_id,
+                    emp3.id()
                 ))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())

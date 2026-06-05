@@ -394,7 +394,7 @@ impl ShiftSwapService {
             )
             .await?;
 
-        if target_emp.is_none_or(|e| !e.is_active) {
+        if target_emp.is_none_or(|e| !e.is_active()) {
             return Err(AppError::Validation("Invalid request".into()));
         }
 
@@ -635,23 +635,23 @@ mod tests {
     }
 
     fn dummy_employee() -> Employee {
-        Employee {
-            id: Uuid::new_v4(),
-            workspace_id: Uuid::new_v4(),
-            user_id: Some(Uuid::new_v4()),
-            full_name: "Test Emp".to_string(),
-            employee_id_number: "EMP".to_string(),
-            original_hire_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-            hire_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-            termination_date: None,
-            tags: vec![],
-            is_active: true,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-            department_name: None,
-            primary_location_id: uuid::Uuid::new_v4(),
-            employer_id: None,
-        }
+        Employee::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            Some(Uuid::new_v4()),
+            "Test Emp".to_string(),
+            "EMP".to_string(),
+            NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            None,
+            vec![],
+            true,
+            Utc::now(),
+            Utc::now(),
+            None,
+            uuid::Uuid::new_v4(),
+            None,
+        )
     }
 
     fn dummy_swap_request() -> ShiftSwapRequest {

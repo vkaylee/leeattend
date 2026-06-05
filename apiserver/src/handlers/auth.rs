@@ -170,16 +170,16 @@ pub async fn register(
     // 4. Create User
     let user_id = crate::utils::id::new_id();
     let created_at = Utc::now();
-    let user = User {
-        id: user_id,
-        email: req.email.clone(),
-        created_at,
-        full_name: Some(req.full_name.clone()),
-        avatar_url: None,
-        bio: None,
-        preferred_language: None,
+    let user = User::new(
+        user_id,
+        req.email.clone(),
         password_hash,
-    };
+        created_at,
+        Some(req.full_name.clone()),
+        None,
+        None,
+        None,
+    );
 
     // 4. Create User and auto-assign platform_admin atomically
     let is_first = state
@@ -190,28 +190,32 @@ pub async fn register(
 
     if is_first {
         tracing::info!(
-            user_id = %user.id,
+            user_id = %user.id(),
             "First user registered — auto-assigned platform_admin role"
         );
     }
 
     // 6. Create session (post-commit — session is ephemeral, safe outside tx)
-    let refresh_token = state.core().auth_service().create_session(user.id).await?;
+    let refresh_token = state
+        .core()
+        .auth_service()
+        .create_session(user.id())
+        .await?;
 
     // Convert to UserResponse for the client
     let user_response = UserResponse {
-        id: user.id,
-        email: user.email,
-        full_name: user.full_name,
-        avatar_url: user.avatar_url,
-        bio: user.bio,
-        preferred_language: user.preferred_language,
-        created_at: user.created_at,
+        id: user.id(),
+        email: user.email().to_string(),
+        full_name: user.full_name().map(String::from),
+        avatar_url: user.avatar_url().map(String::from),
+        bio: user.bio().map(String::from),
+        preferred_language: user.preferred_language().map(String::from),
+        created_at: user.created_at(),
         system_roles: vec![],
     };
 
     // 7. Generate access token (stateless, no DB write needed)
-    let access_token = AuthService::generate_token(user.id, state.core().jwt_secret(), 60)?;
+    let access_token = AuthService::generate_token(user.id(), state.core().jwt_secret(), 60)?;
 
     let headers = create_auth_cookies(&access_token, &refresh_token);
 
@@ -251,34 +255,38 @@ pub async fn login(
         })?;
 
     let password = req.password.clone();
-    let hash = user.password_hash.clone();
+    let hash = user.password_hash().to_string();
     let is_valid =
         tokio::task::spawn_blocking(move || AuthService::verify_password(&password, &hash))
             .await
             .map_err(|e| AppError::Internal(format!("Failed to spawn blocking task: {e}")))?;
 
     if !is_valid {
-        tracing::warn!(user_id = %user.id, "Login failed: Invalid password");
+        tracing::warn!(user_id = %user.id(), "Login failed: Invalid password");
         return Err(AppError::Auth("Invalid email or password".to_string()));
     }
 
-    tracing::info!(user_id = %user.id, "User logged in successfully");
+    tracing::info!(user_id = %user.id(), "User logged in successfully");
 
     // Convert to UserResponse for the client
     let user_response = UserResponse {
-        id: user.id,
-        email: user.email,
-        full_name: user.full_name,
-        avatar_url: user.avatar_url,
-        bio: user.bio,
-        preferred_language: user.preferred_language,
-        created_at: user.created_at,
+        id: user.id(),
+        email: user.email().to_string(),
+        full_name: user.full_name().map(String::from),
+        avatar_url: user.avatar_url().map(String::from),
+        bio: user.bio().map(String::from),
+        preferred_language: user.preferred_language().map(String::from),
+        created_at: user.created_at(),
         system_roles: vec![],
     };
 
-    let access_token = AuthService::generate_token(user.id, state.core().jwt_secret(), 60)?;
+    let access_token = AuthService::generate_token(user.id(), state.core().jwt_secret(), 60)?;
 
-    let refresh_token = state.core().auth_service().create_session(user.id).await?;
+    let refresh_token = state
+        .core()
+        .auth_service()
+        .create_session(user.id())
+        .await?;
 
     let headers = create_auth_cookies(&access_token, &refresh_token);
 
@@ -359,7 +367,7 @@ pub async fn change_password(
 
     // 2. Verify old password
     let old_password = req.old_password.clone();
-    let old_hash = user.password_hash.clone();
+    let old_hash = user.password_hash().to_string();
     let is_valid =
         tokio::task::spawn_blocking(move || AuthService::verify_password(&old_password, &old_hash))
             .await
@@ -464,13 +472,13 @@ pub async fn get_me(
         .await?;
 
     Ok(Json(UserResponse {
-        id: user.id,
-        email: user.email,
-        full_name: user.full_name,
-        avatar_url: user.avatar_url,
-        bio: user.bio,
-        preferred_language: user.preferred_language,
-        created_at: user.created_at,
+        id: user.id(),
+        email: user.email().to_string(),
+        full_name: user.full_name().map(String::from),
+        avatar_url: user.avatar_url().map(String::from),
+        bio: user.bio().map(String::from),
+        preferred_language: user.preferred_language().map(String::from),
+        created_at: user.created_at(),
         system_roles,
     }))
 }
@@ -522,13 +530,13 @@ pub async fn update_me(
         .await?;
 
     Ok(Json(UserResponse {
-        id: user.id,
-        email: user.email,
-        full_name: user.full_name,
-        avatar_url: user.avatar_url,
-        bio: user.bio,
-        preferred_language: user.preferred_language,
-        created_at: user.created_at,
+        id: user.id(),
+        email: user.email().to_string(),
+        full_name: user.full_name().map(String::from),
+        avatar_url: user.avatar_url().map(String::from),
+        bio: user.bio().map(String::from),
+        preferred_language: user.preferred_language().map(String::from),
+        created_at: user.created_at(),
         system_roles: vec![],
     }))
 }
@@ -554,13 +562,13 @@ pub async fn get_users(
     let user_responses: Vec<UserResponse> = users
         .into_iter()
         .map(|u| UserResponse {
-            id: u.id,
-            email: u.email,
-            full_name: u.full_name,
-            avatar_url: u.avatar_url,
-            bio: u.bio,
-            preferred_language: u.preferred_language,
-            created_at: u.created_at,
+            id: u.id(),
+            email: u.email().to_string(),
+            full_name: u.full_name().map(String::from),
+            avatar_url: u.avatar_url().map(String::from),
+            bio: u.bio().map(String::from),
+            preferred_language: u.preferred_language().map(String::from),
+            created_at: u.created_at(),
             system_roles: vec![],
         })
         .collect();

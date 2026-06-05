@@ -55,7 +55,7 @@ impl AttendanceMatcher {
         args: ProcessSegmentAttendanceArgs<'_>,
     ) -> SegmentAttendanceResult {
         let employee_id = args.ctx.employee_id;
-        let workspace_id = args.ctx.workspace.id;
+        let workspace_id = args.ctx.workspace.id();
 
         let mut segment_std_units = 0i32;
         let mut segment_ot_units = 0i32;
@@ -528,26 +528,30 @@ mod tests {
         }
     }
 
+    fn test_workspace(ws_id: Uuid) -> Workspace {
+        Workspace::new(
+            ws_id,
+            "Test Workspace".to_string(),
+            "YYYY-MM-DD".to_string(),
+            "HH:mm:ss".to_string(),
+            "UTC".to_string(),
+            "#000".to_string(),
+            "en".to_string(),
+            None,
+            None,
+            "SplitAtMidnight".to_string(),
+            Decimal::new(30, 1),
+            Utc::now(),
+            None,
+        )
+    }
+
     #[tokio::test]
     async fn test_process_segment_attendance_no_shift_fallback() {
         let employee_id = Uuid::new_v4();
         let ws_id = Uuid::new_v4();
 
-        let workspace = Workspace {
-            id: ws_id,
-            name: "Test Workspace".to_string(),
-            date_format: "YYYY-MM-DD".to_string(),
-            time_format: "HH:mm:ss".to_string(),
-            timezone: "UTC".to_string(),
-            theme_primary_color: "#000".to_string(),
-            default_language: "en".to_string(),
-            logo_url: None,
-            tagline: None,
-            holiday_overnight_strategy: "SplitAtMidnight".to_string(),
-            default_holiday_ot_multiplier: Decimal::new(30, 1),
-            created_at: Utc::now(),
-            custom_db_url_encrypted: None,
-        };
+        let workspace = test_workspace(ws_id);
 
         // Create time entry (punch-in: 08:00, punch-out: 12:00) => 4 hours (8 units of 30 mins)
         let punch_in = Utc::now()
@@ -602,6 +606,8 @@ mod tests {
             payroll_roster_map: HashMap::new(),
             working_conditions: vec![],
             attendance_policy: attendance_rules.clone(),
+            emp_payroll_configs: vec![],
+            ws_payroll_settings_history: vec![],
         };
 
         let std_config = crate::domain::policy::resolver::StandardMonthConfig {
@@ -639,21 +645,7 @@ mod tests {
         let ws_id = Uuid::new_v4();
         let shift_id = Uuid::new_v4();
 
-        let workspace = Workspace {
-            id: ws_id,
-            name: "Test Workspace".to_string(),
-            date_format: "YYYY-MM-DD".to_string(),
-            time_format: "HH:mm:ss".to_string(),
-            timezone: "UTC".to_string(),
-            theme_primary_color: "#000".to_string(),
-            default_language: "en".to_string(),
-            logo_url: None,
-            tagline: None,
-            holiday_overnight_strategy: "SplitAtMidnight".to_string(),
-            default_holiday_ot_multiplier: Decimal::new(30, 1),
-            created_at: Utc::now(),
-            custom_db_url_encrypted: None,
-        };
+        let workspace = test_workspace(ws_id);
 
         let date = Utc::now().date_naive();
         // Time entry: 09:00 to 18:00 (matching 9-18 shift)
@@ -728,6 +720,8 @@ mod tests {
             payroll_roster_map,
             working_conditions: vec![],
             attendance_policy: attendance_rules.clone(),
+            emp_payroll_configs: vec![],
+            ws_payroll_settings_history: vec![],
         };
 
         let std_config = crate::domain::policy::resolver::StandardMonthConfig {
@@ -762,21 +756,7 @@ mod tests {
         let employee_id = Uuid::new_v4();
         let ws_id = Uuid::new_v4();
 
-        let workspace = Workspace {
-            id: ws_id,
-            name: "Test Workspace".to_string(),
-            date_format: "YYYY-MM-DD".to_string(),
-            time_format: "HH:mm:ss".to_string(),
-            timezone: "UTC".to_string(),
-            theme_primary_color: "#000".to_string(),
-            default_language: "en".to_string(),
-            logo_url: None,
-            tagline: None,
-            holiday_overnight_strategy: "SplitAtMidnight".to_string(),
-            default_holiday_ot_multiplier: Decimal::new(30, 1),
-            created_at: Utc::now(),
-            custom_db_url_encrypted: None,
-        };
+        let workspace = test_workspace(ws_id);
 
         let date = Utc::now().date_naive();
 
@@ -823,6 +803,8 @@ mod tests {
             payroll_roster_map: HashMap::new(),
             working_conditions: vec![],
             attendance_policy: attendance_rules.clone(),
+            emp_payroll_configs: vec![],
+            ws_payroll_settings_history: vec![],
         };
 
         let std_config = crate::domain::policy::resolver::StandardMonthConfig {
@@ -858,21 +840,7 @@ mod tests {
         let ws_id = Uuid::new_v4();
         let shift_id = Uuid::new_v4();
 
-        let workspace = Workspace {
-            id: ws_id,
-            name: "Test Workspace".to_string(),
-            date_format: "YYYY-MM-DD".to_string(),
-            time_format: "HH:mm:ss".to_string(),
-            timezone: "UTC".to_string(),
-            theme_primary_color: "#000".to_string(),
-            default_language: "en".to_string(),
-            logo_url: None,
-            tagline: None,
-            holiday_overnight_strategy: "SplitAtMidnight".to_string(),
-            default_holiday_ot_multiplier: Decimal::new(30, 1),
-            created_at: Utc::now(),
-            custom_db_url_encrypted: None,
-        };
+        let workspace = test_workspace(ws_id);
 
         let date = Utc::now().date_naive();
         // Time entry: 09:00 to 18:00 (matching 9-18 shift)
@@ -967,6 +935,8 @@ mod tests {
             payroll_roster_map,
             working_conditions: vec![],
             attendance_policy: attendance_rules.clone(),
+            emp_payroll_configs: vec![],
+            ws_payroll_settings_history: vec![],
         };
 
         let std_config = crate::domain::policy::resolver::StandardMonthConfig {
@@ -1010,21 +980,7 @@ mod tests {
         let shift_id = Uuid::new_v4();
         let policy_id = Uuid::new_v4();
 
-        let workspace = Workspace {
-            id: ws_id,
-            name: "Test Workspace".to_string(),
-            date_format: "YYYY-MM-DD".to_string(),
-            time_format: "HH:mm:ss".to_string(),
-            timezone: "UTC".to_string(),
-            theme_primary_color: "#000".to_string(),
-            default_language: "en".to_string(),
-            logo_url: None,
-            tagline: None,
-            holiday_overnight_strategy: "SplitAtMidnight".to_string(),
-            default_holiday_ot_multiplier: Decimal::new(30, 1),
-            created_at: Utc::now(),
-            custom_db_url_encrypted: None,
-        };
+        let workspace = test_workspace(ws_id);
 
         let date = NaiveDate::from_ymd_opt(2026, 1, 26).unwrap(); // Monday
                                                                   // Time entry: 09:00 to 20:00 (matching 9-18 shift) -> 2 hours late OT
@@ -1099,6 +1055,8 @@ mod tests {
             payroll_roster_map,
             working_conditions: vec![],
             attendance_policy: attendance_rules.clone(),
+            emp_payroll_configs: vec![],
+            ws_payroll_settings_history: vec![],
         };
 
         let std_config = crate::domain::policy::resolver::StandardMonthConfig {

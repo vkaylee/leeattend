@@ -118,20 +118,117 @@ pub struct CreateWorkingConditionRequest {
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct Workspace {
-    pub id: Uuid,
-    pub name: String,
-    pub date_format: String,
-    pub time_format: String,
-    pub timezone: String,
-    pub theme_primary_color: String,
-    pub default_language: String,
-    pub logo_url: Option<String>,
-    pub tagline: Option<String>,
-    pub holiday_overnight_strategy: String,
-    pub default_holiday_ot_multiplier: Decimal,
-    pub created_at: DateTime<Utc>,
+    id: Uuid,
+    name: String,
+    date_format: String,
+    time_format: String,
+    timezone: String,
+    theme_primary_color: String,
+    default_language: String,
+    logo_url: Option<String>,
+    tagline: Option<String>,
+    holiday_overnight_strategy: String,
+    default_holiday_ot_multiplier: Decimal,
+    created_at: DateTime<Utc>,
     #[serde(skip_serializing)]
-    pub custom_db_url_encrypted: Option<String>,
+    custom_db_url_encrypted: Option<String>,
+}
+
+impl Workspace {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        id: Uuid,
+        name: String,
+        date_format: String,
+        time_format: String,
+        timezone: String,
+        theme_primary_color: String,
+        default_language: String,
+        logo_url: Option<String>,
+        tagline: Option<String>,
+        holiday_overnight_strategy: String,
+        default_holiday_ot_multiplier: Decimal,
+        created_at: DateTime<Utc>,
+        custom_db_url_encrypted: Option<String>,
+    ) -> Self {
+        Self {
+            id,
+            name,
+            date_format,
+            time_format,
+            timezone,
+            theme_primary_color,
+            default_language,
+            logo_url,
+            tagline,
+            holiday_overnight_strategy,
+            default_holiday_ot_multiplier,
+            created_at,
+            custom_db_url_encrypted,
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn date_format(&self) -> &str {
+        &self.date_format
+    }
+
+    pub fn time_format(&self) -> &str {
+        &self.time_format
+    }
+
+    pub fn timezone(&self) -> &str {
+        &self.timezone
+    }
+
+    pub fn theme_primary_color(&self) -> &str {
+        &self.theme_primary_color
+    }
+
+    pub fn default_language(&self) -> &str {
+        &self.default_language
+    }
+
+    pub fn logo_url(&self) -> Option<&str> {
+        self.logo_url.as_deref()
+    }
+
+    pub fn tagline(&self) -> Option<&str> {
+        self.tagline.as_deref()
+    }
+
+    pub fn holiday_overnight_strategy(&self) -> &str {
+        &self.holiday_overnight_strategy
+    }
+
+    pub fn default_holiday_ot_multiplier(&self) -> Decimal {
+        self.default_holiday_ot_multiplier
+    }
+
+    pub fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+
+    pub fn custom_db_url_encrypted(&self) -> Option<&str> {
+        self.custom_db_url_encrypted.as_deref()
+    }
+
+    #[cfg(test)]
+    pub fn set_id(&mut self, id: Uuid) {
+        self.id = id;
+    }
+
+    #[cfg(test)]
+    pub fn set_name(&mut self, name: String) {
+        self.name = name;
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]

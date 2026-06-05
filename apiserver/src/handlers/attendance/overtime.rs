@@ -51,7 +51,7 @@ pub async fn claim_ot(
         .await?
         .ok_or_else(|| AppError::NotFound("Employee not found".to_string()))?;
 
-    if let Some(uid) = employee.user_id {
+    if let Some(uid) = employee.user_id() {
         if uid != ctx.user_id {
             check_claim_behalf_scope(&state, &ctx, employee_id).await?;
         }

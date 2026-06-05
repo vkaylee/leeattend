@@ -25,7 +25,7 @@ impl SyncHireDateHandler {
             )
             .await
         {
-            Ok(Some(emp)) => Some(emp.hire_date),
+            Ok(Some(emp)) => Some(emp.hire_date()),
             Ok(None) => {
                 warn!(
                     employee_id = %payload.employee_id,
@@ -126,23 +126,23 @@ mod tests {
 
         let mut emp_repo = MockEmployeeRepository::new();
         emp_repo.expect_get_employee_by_id().returning(move |_, _| {
-            Ok(Some(Employee {
-                id: emp_id,
-                workspace_id: ws_id,
-                user_id: None,
-                full_name: "Test Employee".to_string(),
-                employee_id_number: "EMP001".to_string(),
-                original_hire_date: NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
-                hire_date: NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
-                termination_date: None,
-                tags: vec![],
-                is_active: true,
-                created_at: Utc::now(),
-                updated_at: Utc::now(),
-                department_name: None,
-                primary_location_id: uuid::Uuid::new_v4(),
-                employer_id: None,
-            }))
+            Ok(Some(Employee::new(
+                emp_id,
+                ws_id,
+                None,
+                "Test Employee".to_string(),
+                "EMP001".to_string(),
+                NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
+                NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
+                None,
+                vec![],
+                true,
+                Utc::now(),
+                Utc::now(),
+                None,
+                uuid::Uuid::new_v4(),
+                None,
+            )))
         });
 
         emp_repo
