@@ -208,8 +208,8 @@ async fn test_rbac_audit_log_on_permissions_grant_revoke() {
         .unwrap();
     let audit_log = audit_logs.into_iter().next().unwrap();
 
-    assert_eq!(audit_log.action, "assign_permission");
-    assert!(audit_log.details.is_some());
+    assert_eq!(audit_log.action(), "assign_permission");
+    assert!(audit_log.details().is_some());
 
     // 4. Revoke the permission
     let response_revoke = app
@@ -243,7 +243,7 @@ async fn test_rbac_audit_log_on_permissions_grant_revoke() {
         .unwrap();
     let audit_log_after = audit_logs_after.into_iter().next().unwrap();
 
-    assert_eq!(audit_log_after.action, "revoke_permission");
+    assert_eq!(audit_log_after.action(), "revoke_permission");
 }
 
 #[tokio::test]

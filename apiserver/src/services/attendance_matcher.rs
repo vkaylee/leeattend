@@ -151,17 +151,13 @@ impl AttendanceMatcher {
                                     Some(args.attendance_rules.clone()),
                                     args.ctx.working_conditions.clone(),
                                     current_date,
-                                    &crate::domain::policy::resolver::ShiftPolicyOverrides {
-                                        grace_period_minutes: Some(
-                                            s.early_punch_in_grace_period_minutes,
-                                        ),
-                                        is_break_auto_deduct: Some(s.is_break_auto_deduct),
-                                        allow_early_ot: Some(s.allow_early_ot),
-                                        early_arrival_strategy: args
-                                            .attendance_rules
-                                            .early_arrival_strategy,
-                                        is_break_overtime: entry.is_break_overtime,
-                                    },
+                                    &crate::domain::policy::resolver::ShiftPolicyOverrides::new(
+                                        Some(s.early_punch_in_grace_period_minutes),
+                                        Some(s.is_break_auto_deduct),
+                                        Some(s.allow_early_ot),
+                                        args.attendance_rules.early_arrival_strategy,
+                                        entry.is_break_overtime,
+                                    ),
                                 );
 
                                 let (std_u, ot_u) = AttendanceCalculator::calculate_daily_units(
@@ -206,7 +202,7 @@ impl AttendanceMatcher {
                                 if let Some(holiday) = args.ctx.holidays_map.get(&current_date) {
                                     let daily_rate = FinancialCalculator::calculate_daily_rate(
                                         args.segment_total_base,
-                                        args.std_config.std_working_days,
+                                        args.std_config.std_working_days(),
                                     );
                                     if holiday.is_credit_on_work {
                                         segment_std_units +=
@@ -249,8 +245,8 @@ impl AttendanceMatcher {
                                         let hourly_rate =
                                             FinancialCalculator::calculate_hourly_rate(
                                                 args.segment_ot_base,
-                                                args.std_config.std_working_days,
-                                                args.std_config.hours_per_day,
+                                                args.std_config.std_working_days(),
+                                                args.std_config.hours_per_day(),
                                             );
 
                                         let mut total_ot_pay = Decimal::ZERO;
@@ -291,8 +287,8 @@ impl AttendanceMatcher {
                                         let hourly_rate =
                                             FinancialCalculator::calculate_hourly_rate(
                                                 args.segment_ot_base,
-                                                args.std_config.std_working_days,
-                                                args.std_config.hours_per_day,
+                                                args.std_config.std_working_days(),
+                                                args.std_config.hours_per_day(),
                                             );
                                         segment_ot_pay += (Decimal::from(ot_u)
                                             * Decimal::from(
@@ -633,11 +629,11 @@ mod tests {
                 crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default(),
         };
 
-        let std_config = crate::domain::policy::resolver::StandardMonthConfig {
-            std_working_days: Decimal::new(22, 0),
-            hours_per_day: Decimal::new(8, 0),
-            source: "workspace".to_string(),
-        };
+        let std_config = crate::domain::policy::resolver::StandardMonthConfig::new(
+            Decimal::new(22, 0),
+            Decimal::new(8, 0),
+            "workspace".to_string(),
+        );
 
         let mut policy_cache = HashMap::new();
         let overtime_policy_repo = MockOvertimePolicyRepository;
@@ -750,11 +746,11 @@ mod tests {
                 crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default(),
         };
 
-        let std_config = crate::domain::policy::resolver::StandardMonthConfig {
-            std_working_days: Decimal::new(22, 0),
-            hours_per_day: Decimal::new(8, 0),
-            source: "workspace".to_string(),
-        };
+        let std_config = crate::domain::policy::resolver::StandardMonthConfig::new(
+            Decimal::new(22, 0),
+            Decimal::new(8, 0),
+            "workspace".to_string(),
+        );
 
         let mut policy_cache = HashMap::new();
         let overtime_policy_repo = MockOvertimePolicyRepository;
@@ -836,11 +832,11 @@ mod tests {
                 crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default(),
         };
 
-        let std_config = crate::domain::policy::resolver::StandardMonthConfig {
-            std_working_days: Decimal::new(22, 0),
-            hours_per_day: Decimal::new(8, 0),
-            source: "workspace".to_string(),
-        };
+        let std_config = crate::domain::policy::resolver::StandardMonthConfig::new(
+            Decimal::new(22, 0),
+            Decimal::new(8, 0),
+            "workspace".to_string(),
+        );
 
         let mut policy_cache = HashMap::new();
         let overtime_policy_repo = MockOvertimePolicyRepository;
@@ -971,11 +967,11 @@ mod tests {
                 crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default(),
         };
 
-        let std_config = crate::domain::policy::resolver::StandardMonthConfig {
-            std_working_days: Decimal::new(22, 0),
-            hours_per_day: Decimal::new(8, 0),
-            source: "workspace".to_string(),
-        };
+        let std_config = crate::domain::policy::resolver::StandardMonthConfig::new(
+            Decimal::new(22, 0),
+            Decimal::new(8, 0),
+            "workspace".to_string(),
+        );
 
         let mut policy_cache = HashMap::new();
         let overtime_policy_repo = MockOvertimePolicyRepository;
@@ -1134,11 +1130,11 @@ mod tests {
             overtime_data,
         };
 
-        let std_config = crate::domain::policy::resolver::StandardMonthConfig {
-            std_working_days: Decimal::new(22, 0),
-            hours_per_day: Decimal::new(8, 0),
-            source: "workspace".to_string(),
-        };
+        let std_config = crate::domain::policy::resolver::StandardMonthConfig::new(
+            Decimal::new(22, 0),
+            Decimal::new(8, 0),
+            "workspace".to_string(),
+        );
 
         let overtime_policy_repo = MockOvertimePolicyWithRulesRepository {
             policy_id,

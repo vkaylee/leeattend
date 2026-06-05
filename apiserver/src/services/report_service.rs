@@ -354,13 +354,13 @@ impl ReportService {
                     emp_attendance_rules.early_arrival_strategy,
                 );
 
-                let overrides = ShiftPolicyOverrides {
-                    grace_period_minutes: daily.early_punch_in_grace_period_minutes,
-                    is_break_auto_deduct: daily.is_break_auto_deduct,
-                    allow_early_ot: daily.allow_early_ot,
-                    early_arrival_strategy: emp_attendance_rules.early_arrival_strategy,
-                    is_break_overtime: daily.break_is_overtime.unwrap_or(false),
-                };
+                let overrides = ShiftPolicyOverrides::new(
+                    daily.early_punch_in_grace_period_minutes,
+                    daily.is_break_auto_deduct,
+                    daily.allow_early_ot,
+                    emp_attendance_rules.early_arrival_strategy,
+                    daily.break_is_overtime.unwrap_or(false),
+                );
                 let rules = PolicyResolver::apply_shift_overrides(base_rules, &overrides);
 
                 let (std_work_units, ot_work_units) =
@@ -702,13 +702,13 @@ impl ReportService {
                     emp_attendance_rules.early_arrival_strategy,
                 );
 
-                let overrides = ShiftPolicyOverrides {
-                    grace_period_minutes: daily.early_punch_in_grace_period_minutes,
-                    is_break_auto_deduct: daily.is_break_auto_deduct,
-                    allow_early_ot: daily.allow_early_ot,
-                    early_arrival_strategy: emp_attendance_rules.early_arrival_strategy,
-                    is_break_overtime: daily.break_is_overtime.unwrap_or(false),
-                };
+                let overrides = ShiftPolicyOverrides::new(
+                    daily.early_punch_in_grace_period_minutes,
+                    daily.is_break_auto_deduct,
+                    daily.allow_early_ot,
+                    emp_attendance_rules.early_arrival_strategy,
+                    daily.break_is_overtime.unwrap_or(false),
+                );
                 let rules = PolicyResolver::apply_shift_overrides(base_rules, &overrides);
                 let (std_units, ot_units) = Self::calculate_day_units(CalculateDayUnitsArgs {
                     day_entries,

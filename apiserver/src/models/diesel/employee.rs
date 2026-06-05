@@ -86,6 +86,7 @@ pub struct EmployeeEntity {
     pub original_hire_date: NaiveDate,
     pub primary_location_id: Uuid,
     pub employer_id: Option<Uuid>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 impl From<Employee> for EmployeeEntity {
@@ -106,6 +107,7 @@ impl From<Employee> for EmployeeEntity {
             original_hire_date: val.original_hire_date(),
             primary_location_id: val.primary_location_id(),
             employer_id: val.employer_id(),
+            deleted_at: None,
         }
     }
 }

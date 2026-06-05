@@ -285,6 +285,13 @@ mod tests {
         ) -> Result<u64, crate::errors::AppError> {
             Ok(1)
         }
+
+        async fn update_authorized_agent(
+            &self,
+            _agent: &AuthorizedAgent,
+        ) -> Result<(), crate::errors::AppError> {
+            Ok(())
+        }
     }
 
     #[tokio::test]

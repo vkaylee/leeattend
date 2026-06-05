@@ -175,13 +175,13 @@ impl PolicyResolverService {
 
         let rules = rules_res.unwrap_or_else(|_| {
             PolicyRules::new(
-                overrides.grace_period_minutes.unwrap_or(0),
+                overrides.grace_period_minutes().unwrap_or(0),
                 0,
                 false,
-                overrides.early_arrival_strategy,
-                overrides.is_break_auto_deduct.unwrap_or(false),
-                overrides.is_break_overtime,
-                overrides.allow_early_ot.unwrap_or(false),
+                overrides.early_arrival_strategy(),
+                overrides.is_break_auto_deduct().unwrap_or(false),
+                overrides.is_break_overtime(),
+                overrides.allow_early_ot().unwrap_or(false),
             )
         });
 

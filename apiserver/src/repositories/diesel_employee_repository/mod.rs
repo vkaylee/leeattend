@@ -75,7 +75,7 @@ fn build_employee_search_sql(
 ) -> EmployeeSearchSql {
     let has_search = search_query.is_some_and(|q| !q.trim().is_empty());
 
-    let mut where_clause = "WHERE e.workspace_id = $1".to_string();
+    let mut where_clause = "WHERE e.workspace_id = $1 AND e.deleted_at IS NULL".to_string();
     if has_search {
         where_clause.push_str(" AND (e.full_name ILIKE $2 OR e.employee_id_number ILIKE $2)");
     }

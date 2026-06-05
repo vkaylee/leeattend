@@ -56,6 +56,7 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
             .inner_join(employees::table)
             .filter(working_conditions::employee_id.eq(employee_id))
             .filter(employees::workspace_id.eq(workspace_id))
+            .filter(employees::deleted_at.is_null())
             .count()
             .get_result(&mut *conn)
             .await
@@ -74,6 +75,7 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
             ))
             .filter(working_conditions::employee_id.eq(employee_id))
             .filter(employees::workspace_id.eq(workspace_id))
+            .filter(employees::deleted_at.is_null())
             .order(working_conditions::start_date.desc())
             .limit(limit)
             .offset((page - 1) * limit)
@@ -197,6 +199,7 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
             ))
             .filter(working_conditions::employee_id.eq(employee_id))
             .filter(employees::workspace_id.eq(workspace_id))
+            .filter(employees::deleted_at.is_null())
             .filter(working_conditions::start_date.le(date))
             .filter(
                 working_conditions::end_date
@@ -266,6 +269,7 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
             ))
             .filter(working_conditions::employee_id.eq_any(employee_ids))
             .filter(employees::workspace_id.eq(workspace_id))
+            .filter(employees::deleted_at.is_null())
             .filter(working_conditions::start_date.le(end_date))
             .filter(
                 working_conditions::end_date

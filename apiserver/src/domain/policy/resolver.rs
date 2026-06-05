@@ -7,9 +7,31 @@ use rust_decimal::Decimal;
 
 #[derive(Debug, Clone)]
 pub struct StandardMonthConfig {
-    pub std_working_days: Decimal,
-    pub hours_per_day: Decimal,
-    pub source: String,
+    std_working_days: Decimal,
+    hours_per_day: Decimal,
+    source: String,
+}
+
+impl StandardMonthConfig {
+    pub fn new(std_working_days: Decimal, hours_per_day: Decimal, source: String) -> Self {
+        Self {
+            std_working_days,
+            hours_per_day,
+            source,
+        }
+    }
+
+    pub fn std_working_days(&self) -> Decimal {
+        self.std_working_days
+    }
+
+    pub fn hours_per_day(&self) -> Decimal {
+        self.hours_per_day
+    }
+
+    pub fn source(&self) -> &str {
+        &self.source
+    }
 }
 
 pub struct PolicyResolver;
@@ -22,37 +44,37 @@ impl PolicyResolver {
     ) -> StandardMonthConfig {
         // 1. Check Individual Override (Highest Priority)
         if let Some(config) = emp_config {
-            return StandardMonthConfig {
-                std_working_days: config.std_working_days,
-                hours_per_day: config.hours_per_day,
-                source: "individual".to_string(),
-            };
+            return StandardMonthConfig::new(
+                config.std_working_days,
+                config.hours_per_day,
+                "individual".to_string(),
+            );
         }
 
         // 2. Check Department Override
         if let Some(config) = dept_config {
-            return StandardMonthConfig {
-                std_working_days: config.std_working_days,
-                hours_per_day: config.hours_per_day,
-                source: "department".to_string(),
-            };
+            return StandardMonthConfig::new(
+                config.std_working_days,
+                config.hours_per_day,
+                "department".to_string(),
+            );
         }
 
         // 3. Fallback to Workspace Settings (Temporal)
         if let Some(settings) = ws_settings {
-            return StandardMonthConfig {
-                std_working_days: settings.fixed_std_days,
-                hours_per_day: settings.hours_per_day,
-                source: "workspace".to_string(),
-            };
+            return StandardMonthConfig::new(
+                settings.fixed_std_days,
+                settings.hours_per_day,
+                "workspace".to_string(),
+            );
         }
 
         // 4. System Default fallback
-        StandardMonthConfig {
-            std_working_days: Decimal::from(DEFAULT_STD_WORKING_DAYS),
-            hours_per_day: Decimal::from(DEFAULT_HOURS_PER_DAY),
-            source: "system".to_string(),
-        }
+        StandardMonthConfig::new(
+            Decimal::from(DEFAULT_STD_WORKING_DAYS),
+            Decimal::from(DEFAULT_HOURS_PER_DAY),
+            "system".to_string(),
+        )
     }
 
     pub fn resolve_attendance_rules_pure(
@@ -140,18 +162,18 @@ impl PolicyResolver {
         mut rules: PolicyRules,
         overrides: &ShiftPolicyOverrides,
     ) -> PolicyRules {
-        if let Some(gp) = overrides.grace_period_minutes {
+        if let Some(gp) = overrides.grace_period_minutes() {
             if gp > 0 {
                 rules.set_grace_period_minutes(gp);
             }
         }
-        if let Some(bad) = overrides.is_break_auto_deduct {
+        if let Some(bad) = overrides.is_break_auto_deduct() {
             rules.set_is_break_auto_deduct(bad);
         }
-        if let Some(aeo) = overrides.allow_early_ot {
+        if let Some(aeo) = overrides.allow_early_ot() {
             rules.set_allow_early_ot(aeo);
         }
-        rules.set_is_break_overtime(overrides.is_break_overtime);
+        rules.set_is_break_overtime(overrides.is_break_overtime());
 
         rules
     }
@@ -167,13 +189,13 @@ impl PolicyResolver {
             Self::resolve_attendance_rules_pure(&ar, conditions, date)
         } else {
             PolicyRules::new(
-                overrides.grace_period_minutes.unwrap_or(0),
+                overrides.grace_period_minutes().unwrap_or(0),
                 0,
                 false,
-                overrides.early_arrival_strategy,
-                overrides.is_break_auto_deduct.unwrap_or(false),
-                overrides.is_break_overtime,
-                overrides.allow_early_ot.unwrap_or(false),
+                overrides.early_arrival_strategy(),
+                overrides.is_break_auto_deduct().unwrap_or(false),
+                overrides.is_break_overtime(),
+                overrides.allow_early_ot().unwrap_or(false),
             )
         };
 
@@ -187,11 +209,49 @@ impl PolicyResolver {
 /// the workspace-level or working-condition-level PolicyRules.
 #[derive(Debug, Clone, Default)]
 pub struct ShiftPolicyOverrides {
-    pub grace_period_minutes: Option<i32>,
-    pub is_break_auto_deduct: Option<bool>,
-    pub allow_early_ot: Option<bool>,
-    pub early_arrival_strategy: EarlyArrivalStrategy,
-    pub is_break_overtime: bool,
+    grace_period_minutes: Option<i32>,
+    is_break_auto_deduct: Option<bool>,
+    allow_early_ot: Option<bool>,
+    early_arrival_strategy: EarlyArrivalStrategy,
+    is_break_overtime: bool,
+}
+
+impl ShiftPolicyOverrides {
+    pub fn new(
+        grace_period_minutes: Option<i32>,
+        is_break_auto_deduct: Option<bool>,
+        allow_early_ot: Option<bool>,
+        early_arrival_strategy: EarlyArrivalStrategy,
+        is_break_overtime: bool,
+    ) -> Self {
+        Self {
+            grace_period_minutes,
+            is_break_auto_deduct,
+            allow_early_ot,
+            early_arrival_strategy,
+            is_break_overtime,
+        }
+    }
+
+    pub fn grace_period_minutes(&self) -> Option<i32> {
+        self.grace_period_minutes
+    }
+
+    pub fn is_break_auto_deduct(&self) -> Option<bool> {
+        self.is_break_auto_deduct
+    }
+
+    pub fn allow_early_ot(&self) -> Option<bool> {
+        self.allow_early_ot
+    }
+
+    pub fn early_arrival_strategy(&self) -> EarlyArrivalStrategy {
+        self.early_arrival_strategy
+    }
+
+    pub fn is_break_overtime(&self) -> bool {
+        self.is_break_overtime
+    }
 }
 
 #[cfg(test)]
@@ -343,27 +403,27 @@ mod tests {
             false,
         );
 
-        let ov = ShiftPolicyOverrides {
-            grace_period_minutes: Some(30),
-            is_break_auto_deduct: Some(false),
-            allow_early_ot: Some(true),
-            early_arrival_strategy: EarlyArrivalStrategy::Clamp,
-            is_break_overtime: true,
-        };
+        let ov = ShiftPolicyOverrides::new(
+            Some(30),
+            Some(false),
+            Some(true),
+            EarlyArrivalStrategy::Clamp,
+            true,
+        );
 
         // Simulate the override logic from resolve_with_shift_overrides
-        if let Some(gp) = ov.grace_period_minutes {
+        if let Some(gp) = ov.grace_period_minutes() {
             if gp > 0 {
                 rules.set_grace_period_minutes(gp);
             }
         }
-        if let Some(bad) = ov.is_break_auto_deduct {
+        if let Some(bad) = ov.is_break_auto_deduct() {
             rules.set_is_break_auto_deduct(bad);
         }
-        if let Some(aeo) = ov.allow_early_ot {
+        if let Some(aeo) = ov.allow_early_ot() {
             rules.set_allow_early_ot(aeo);
         }
-        rules.set_is_break_overtime(ov.is_break_overtime);
+        rules.set_is_break_overtime(ov.is_break_overtime());
 
         assert_eq!(rules.grace_period_minutes(), 30);
         assert!(!rules.is_break_auto_deduct());
@@ -383,26 +443,20 @@ mod tests {
             false,
         );
 
-        let ov = ShiftPolicyOverrides {
-            grace_period_minutes: None,
-            is_break_auto_deduct: None,
-            allow_early_ot: None,
-            early_arrival_strategy: EarlyArrivalStrategy::Allow,
-            is_break_overtime: false,
-        };
+        let ov = ShiftPolicyOverrides::new(None, None, None, EarlyArrivalStrategy::Allow, false);
 
-        if let Some(gp) = ov.grace_period_minutes {
+        if let Some(gp) = ov.grace_period_minutes() {
             if gp > 0 {
                 rules.set_grace_period_minutes(gp);
             }
         }
-        if let Some(bad) = ov.is_break_auto_deduct {
+        if let Some(bad) = ov.is_break_auto_deduct() {
             rules.set_is_break_auto_deduct(bad);
         }
-        if let Some(aeo) = ov.allow_early_ot {
+        if let Some(aeo) = ov.allow_early_ot() {
             rules.set_allow_early_ot(aeo);
         }
-        rules.set_is_break_overtime(ov.is_break_overtime);
+        rules.set_is_break_overtime(ov.is_break_overtime());
 
         assert_eq!(rules.grace_period_minutes(), 15); // unchanged
         assert!(rules.is_break_auto_deduct()); // unchanged
@@ -421,15 +475,9 @@ mod tests {
             false,
         );
 
-        let ov = ShiftPolicyOverrides {
-            grace_period_minutes: Some(0),
-            is_break_auto_deduct: None,
-            allow_early_ot: None,
-            early_arrival_strategy: EarlyArrivalStrategy::Allow,
-            is_break_overtime: false,
-        };
+        let ov = ShiftPolicyOverrides::new(Some(0), None, None, EarlyArrivalStrategy::Allow, false);
 
-        if let Some(gp) = ov.grace_period_minutes {
+        if let Some(gp) = ov.grace_period_minutes() {
             if gp > 0 {
                 rules.set_grace_period_minutes(gp);
             }

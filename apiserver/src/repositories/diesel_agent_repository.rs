@@ -480,6 +480,36 @@ impl AgentRepository for DieselAgentRepository {
 
         Ok(affected as u64)
     }
+
+    async fn update_authorized_agent(&self, agent: &AuthorizedAgent) -> Result<(), AppError> {
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(e.to_string()))?,
+        );
+
+        diesel::update(
+            authorized_agents::table
+                .filter(authorized_agents::id.eq(&agent.id))
+                .filter(authorized_agents::workspace_id.eq(agent.workspace_id)),
+        )
+        .set((
+            authorized_agents::name.eq(&agent.name),
+            authorized_agents::token.eq(&agent.token),
+            authorized_agents::is_trusted.eq(Some(agent.is_trusted)),
+            authorized_agents::is_active.eq(agent.is_active),
+            authorized_agents::max_concurrent_workers.eq(agent.max_concurrent_workers),
+            authorized_agents::success_cooldown_secs.eq(agent.success_cooldown_secs),
+            authorized_agents::retention_days.eq(agent.retention_days),
+        ))
+        .execute(&mut *conn)
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]

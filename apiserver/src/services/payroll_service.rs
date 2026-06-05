@@ -472,7 +472,7 @@ impl PayrollService {
 
             let attendance_policy = ctx.attendance_policy.clone();
 
-            let seg_units_per_day = (std_config.hours_per_day * Decimal::from(60))
+            let seg_units_per_day = (std_config.hours_per_day() * Decimal::from(60))
                 / Decimal::from(attendance_policy.work_unit_minutes);
 
             // B. Attendance — delegated to AttendanceMatcher
@@ -496,7 +496,7 @@ impl PayrollService {
             let worked_days_dec = Decimal::from(att.std_units) / seg_units_per_day;
             let daily_rate = FinancialCalculator::calculate_daily_rate(
                 segment_total_base,
-                std_config.std_working_days,
+                std_config.std_working_days(),
             );
             let segment_amount = daily_rate * worked_days_dec;
 
@@ -512,12 +512,12 @@ impl PayrollService {
                 seg_end,
                 department_id: dept_id,
                 total_base: segment_total_base,
-                std_working_days: std_config.std_working_days,
-                hours_per_day: std_config.hours_per_day,
+                std_working_days: std_config.std_working_days(),
+                hours_per_day: std_config.hours_per_day(),
                 actual_worked_days: worked_days_dec,
                 paid_days: worked_days_dec,
                 amount: segment_amount,
-                source: std_config.source,
+                source: std_config.source().to_string(),
             });
         }
 

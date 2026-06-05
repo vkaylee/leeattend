@@ -86,43 +86,16 @@ impl SystemContext {
         user_id: Uuid,
         state: &Arc<AppState>,
     ) -> AppResult<HashSet<SystemRoleType>> {
-        let mut conn = state
-            .infra()
-            .diesel()
-            .api
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(e.to_string()))?;
-
-        #[derive(diesel::QueryableByName)]
-        struct RoleRow {
-            #[diesel(sql_type = diesel::sql_types::Text)]
-            name: String,
-        }
-
-        use diesel_async::RunQueryDsl;
-
-        let rows: Vec<RoleRow> = diesel::sql_query(
-            r"
-            SELECT sr.name
-              FROM user_system_roles usr
-              JOIN system_roles sr ON sr.id = usr.role_id
-             WHERE usr.user_id = $1
-            ",
-        )
-        .bind::<diesel::sql_types::Uuid, _>(user_id)
-        .load(&mut *conn)
-        .await
-        .map_err(|e| {
-            tracing::error!(user_id = %user_id, error = %e, "Failed to fetch system roles");
-            AppError::Internal("Database error fetching system roles".to_string())
-        })?;
-
-        let roles = rows
+        let roles_vec = state
+            .core()
+            .user_repo()
+            .get_system_roles_for_user(user_id)
+            .await?;
+        let roles = roles_vec
             .into_iter()
-            .filter_map(|r| {
+            .filter_map(|name| {
                 use std::str::FromStr;
-                SystemRoleType::from_str(&r.name).ok()
+                SystemRoleType::from_str(&name).ok()
             })
             .collect();
 

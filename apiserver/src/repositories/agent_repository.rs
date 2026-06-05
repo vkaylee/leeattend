@@ -101,4 +101,5 @@ pub trait AgentRepository: Send + Sync {
         agent_id: &str,
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<u64, AppError>;
+    async fn update_authorized_agent(&self, agent: &AuthorizedAgent) -> Result<(), AppError>;
 }

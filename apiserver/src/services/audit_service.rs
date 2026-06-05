@@ -40,21 +40,21 @@ impl AuditHelper {
                     .map(std::string::ToString::to_string)
             });
 
-        let log = AuditLog {
-            id: crate::utils::id::new_id(),
-            workspace_id: args.workspace_id,
-            actor_id: args.actor_id,
-            actor_type: args.actor_type,
-            actor_name: args.actor_name,
-            actor_email: args.actor_email,
-            target_user_id: args.target_user_id,
-            target_resource_id: args.target_resource_id,
-            action: args.action.to_string(),
-            details: args.details,
+        let log = AuditLog::new(
+            crate::utils::id::new_id(),
+            args.workspace_id,
+            args.actor_id,
+            args.actor_type,
+            args.actor_name,
+            args.actor_email,
+            args.target_user_id,
+            args.target_resource_id,
+            args.action.to_string(),
+            args.details,
             ip_address,
             user_agent,
-            created_at: chrono::Utc::now(),
-        };
+            chrono::Utc::now(),
+        );
 
         if let Err(e) = args.repo.create_log(&log).await {
             tracing::error!("Failed to create audit log: {}", e);

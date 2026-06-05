@@ -26,7 +26,7 @@ impl AuditLogRepository for DieselAuditLogRepository {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .tenants_tx
-                .get_connection(&log.workspace_id)
+                .get_connection(&log.workspace_id())
                 .await
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );

@@ -170,6 +170,7 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
             .inner_join(employees::table)
             .filter(employee_payroll_configs::employee_id.eq(employee_id))
             .filter(employees::workspace_id.eq(workspace_id))
+            .filter(employees::deleted_at.is_null())
             .order(employee_payroll_configs::effective_date.desc())
             .select((
                 employee_payroll_configs::id,

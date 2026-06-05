@@ -501,6 +501,7 @@ diesel::table! {
         original_hire_date -> Date,
         primary_location_id -> Uuid,
         employer_id -> Nullable<Uuid>,
+        deleted_at -> Nullable<Timestamptz>,
     }
 }
 

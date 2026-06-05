@@ -50,7 +50,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
 
         let normalized_id = crate::utils::normalize_employee_id(employee_id_number);
         let query = format!(
-            "{EMPLOYEE_SELECT_QUERY} WHERE e.workspace_id = $1 AND e.employee_id_number = $2"
+            "{EMPLOYEE_SELECT_QUERY} WHERE e.workspace_id = $1 AND e.employee_id_number = $2 AND e.deleted_at IS NULL"
         );
         let emp: Option<EmployeeRow> = diesel::sql_query(&query)
             .bind::<UuidType, _>(workspace_id)
@@ -77,7 +77,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        let query = format!("{EMPLOYEE_SELECT_QUERY} WHERE e.id = $1 AND e.workspace_id = $2");
+        let query = format!("{EMPLOYEE_SELECT_QUERY} WHERE e.id = $1 AND e.workspace_id = $2 AND e.deleted_at IS NULL");
         let emp: Option<EmployeeRow> = diesel::sql_query(&query)
             .bind::<UuidType, _>(id)
             .bind::<UuidType, _>(workspace_id)
@@ -114,7 +114,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        let query = format!("{EMPLOYEE_SELECT_QUERY} WHERE e.workspace_id = $1 AND e.id = ANY($2)");
+        let query = format!("{EMPLOYEE_SELECT_QUERY} WHERE e.workspace_id = $1 AND e.id = ANY($2) AND e.deleted_at IS NULL");
         let emps: Vec<EmployeeRow> = diesel::sql_query(&query)
             .bind::<UuidType, _>(workspace_id)
             .bind::<diesel::sql_types::Array<UuidType>, _>(ids)
@@ -311,7 +311,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         );
 
         let query = format!(
-            "{EMPLOYEE_SELECT_QUERY} WHERE e.workspace_id = $1 AND e.is_active = true ORDER BY e.full_name ASC"
+            "{EMPLOYEE_SELECT_QUERY} WHERE e.workspace_id = $1 AND e.is_active = true AND e.deleted_at IS NULL ORDER BY e.full_name ASC"
         );
         let emps: Vec<EmployeeRow> = diesel::sql_query(&query)
             .bind::<UuidType, _>(workspace_id)
@@ -340,6 +340,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             .select(employees::id)
             .filter(employees::workspace_id.eq(workspace_id))
             .filter(employees::is_active.eq(true))
+            .filter(employees::deleted_at.is_null())
             .into_boxed();
 
         if let Some(ids) = filter_ids {
@@ -373,6 +374,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
 
         let mut count_query = employees::table
             .filter(employees::workspace_id.eq(workspace_id))
+            .filter(employees::deleted_at.is_null())
             .into_boxed();
 
         if let Some(dept_id) = args.department_id {
@@ -399,6 +401,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
 
         let mut data_query = employees::table
             .filter(employees::workspace_id.eq(workspace_id))
+            .filter(employees::deleted_at.is_null())
             .into_boxed();
 
         if let Some(dept_id) = args.department_id {
@@ -473,7 +476,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                 LIMIT 1
             ) edh ON TRUE
             LEFT JOIN departments d ON d.id = edh.department_id
-            WHERE e.is_active = TRUE AND e.workspace_id = $1
+            WHERE e.is_active = TRUE AND e.workspace_id = $1 AND e.deleted_at IS NULL
         ";
 
         let rows: Vec<DeptRow> = diesel::sql_query(query)
@@ -596,6 +599,15 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         let workspace_id = employee.workspace_id();
         use crate::schema::employees;
 
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
+        if self
+            .get_employee_by_id_number(employee.employee_id_number(), &auth_token)
+            .await?
+            .is_some()
+        {
+            return Ok(false);
+        }
+
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .tenants_tx
@@ -606,15 +618,13 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
 
         let new_entity: EmployeeEntity = employee.clone().into();
 
-        let affected = diesel::insert_into(employees::table)
+        diesel::insert_into(employees::table)
             .values(&new_entity)
-            .on_conflict((employees::workspace_id, employees::employee_id_number))
-            .do_nothing()
             .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        Ok(affected > 0)
+        Ok(true)
     }
 
     async fn rehire_employee(
@@ -663,9 +673,10 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        let affected = diesel::delete(employees::table)
+        let affected = diesel::update(employees::table)
             .filter(employees::id.eq(id))
             .filter(employees::workspace_id.eq(workspace_id))
+            .set(employees::deleted_at.eq(Some(chrono::Utc::now())))
             .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -694,6 +705,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         let result: Vec<String> = employees::table
             .select(employees::employee_id_number)
             .filter(employees::workspace_id.eq(workspace_id))
+            .filter(employees::deleted_at.is_null())
             .filter(employees::employee_id_number.eq_any(id_numbers))
             .load(&mut *conn)
             .await
@@ -723,6 +735,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         let results: Vec<(String, Uuid)> = employees::table
             .select((employees::employee_id_number, employees::id))
             .filter(employees::workspace_id.eq(workspace_id))
+            .filter(employees::deleted_at.is_null())
             .filter(employees::employee_id_number.eq_any(id_numbers))
             .load(&mut *conn)
             .await
@@ -753,17 +766,38 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        let new_entities: Vec<EmployeeEntity> =
-            new_employees.iter().map(|e| e.clone().into()).collect();
+        // 1. Get unique input numbers (case-insensitive deduplication)
+        let mut unique_emps = std::collections::HashMap::new();
+        for emp in new_employees {
+            let key = emp.employee_id_number().to_lowercase();
+            unique_emps.entry(key).or_insert(emp);
+        }
 
-        for chunk in new_entities.chunks(1000) {
-            diesel::insert_into(employees::table)
-                .values(chunk)
-                .on_conflict((employees::workspace_id, employees::employee_id_number))
-                .do_nothing()
-                .execute(&mut *conn)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let numbers: Vec<String> = unique_emps.keys().cloned().collect();
+
+        // 2. Find which ones already exist in the DB
+        let existing = self
+            .get_employee_ids_by_numbers(auth_token, &numbers)
+            .await?;
+
+        // 3. Filter out those that already exist
+        let mut to_insert = Vec::new();
+        for (key, emp) in unique_emps {
+            if !existing.contains_key(&key) {
+                let entity: EmployeeEntity = (*emp).clone().into();
+                to_insert.push(entity);
+            }
+        }
+
+        // 4. Perform chunked insertion
+        if !to_insert.is_empty() {
+            for chunk in to_insert.chunks(1000) {
+                diesel::insert_into(employees::table)
+                    .values(chunk)
+                    .execute(&mut *conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            }
         }
 
         Ok(())
@@ -789,6 +823,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             .inner_join(employee_department_history::table)
             .select(employee_department_history::department_id)
             .filter(employees::workspace_id.eq(workspace_id))
+            .filter(employees::deleted_at.is_null())
             .filter(employees::user_id.eq(user_id))
             .distinct()
             .load(&mut *conn)
@@ -815,6 +850,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         let result: Option<Uuid> = employees::table
             .select(employees::id)
             .filter(employees::workspace_id.eq(workspace_id))
+            .filter(employees::deleted_at.is_null())
             .filter(employees::user_id.eq(user_id))
             .filter(employees::is_active.eq(true))
             .order(employees::updated_at.desc())

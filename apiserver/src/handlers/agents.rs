@@ -727,8 +727,6 @@ pub async fn update_authorized_agent(
         return Err(AppError::Validation("No fields to update".to_string()));
     }
 
-    // We fetch current agent first to use as fallback for bounds since diesel raw queries
-    // do not have named parameter skipping if we bind them in order.
     // Fetch existing
     let mut current_agent = state
         .agents()
@@ -736,14 +734,6 @@ pub async fn update_authorized_agent(
         .get_agent_by_id_in_workspace(&id, &ctx.auth_token)
         .await?
         .ok_or_else(|| AppError::NotFound("Agent not found".to_string()))?;
-
-    let mut conn = state
-        .infra()
-        .diesel()
-        .api
-        .get()
-        .await
-        .map_err(|e| AppError::Internal(e.to_string()))?;
 
     // Apply updates
     if let Some(name) = req.name {
@@ -768,33 +758,11 @@ pub async fn update_authorized_agent(
         current_agent.retention_days = retention_days;
     }
 
-    use diesel_async::RunQueryDsl;
-
-    diesel::sql_query(
-        r"
-        UPDATE authorized_agents
-        SET name = $1,
-            token = $2,
-            is_trusted = $3,
-            is_active = $4,
-            max_concurrent_workers = $5,
-            success_cooldown_secs = $6,
-            retention_days = $7
-        WHERE id = $8 AND workspace_id = $9
-        ",
-    )
-    .bind::<diesel::sql_types::Text, _>(&current_agent.name)
-    .bind::<diesel::sql_types::Text, _>(&current_agent.token)
-    .bind::<diesel::sql_types::Bool, _>(current_agent.is_trusted)
-    .bind::<diesel::sql_types::Bool, _>(current_agent.is_active)
-    .bind::<diesel::sql_types::Integer, _>(current_agent.max_concurrent_workers)
-    .bind::<diesel::sql_types::Integer, _>(current_agent.success_cooldown_secs)
-    .bind::<diesel::sql_types::Integer, _>(current_agent.retention_days)
-    .bind::<diesel::sql_types::Text, _>(&current_agent.id)
-    .bind::<diesel::sql_types::Uuid, _>(current_agent.workspace_id)
-    .execute(&mut *conn)
-    .await
-    .map_err(|e| AppError::Internal(e.to_string()))?;
+    state
+        .agents()
+        .repo()
+        .update_authorized_agent(&current_agent)
+        .await?;
 
     if (!current_agent.is_trusted || !current_agent.is_active)
         && state.agents().manager().is_online(&current_agent.id).await
