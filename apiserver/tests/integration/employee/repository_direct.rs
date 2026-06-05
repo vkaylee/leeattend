@@ -496,22 +496,22 @@ async fn test_recruitment_source_breakdown_direct() {
 
     // Create a recruitment source
     let source_id = Uuid::new_v4();
-    let source = apiserver::models::RecruitmentSource {
-        id: source_id,
-        workspace_id: ws_id,
-        source_type: apiserver::models::enums::RecruitmentSourceType::Agency,
-        name: "Top Recruiting".to_string(),
-        referrer_employee_id: None,
-        referral_bonus_amount: None,
-        referral_bonus_paid: false,
-        agency_contact_name: None,
-        agency_contact_email: None,
-        agency_fee_amount: None,
-        agency_fee_paid: false,
-        notes: None,
-        created_at: chrono::Utc::now(),
-        updated_at: chrono::Utc::now(),
-    };
+    let source = apiserver::models::RecruitmentSource::new(
+        source_id,
+        ws_id,
+        apiserver::models::enums::RecruitmentSourceType::Agency,
+        "Top Recruiting".to_string(),
+        None,
+        None,
+        false,
+        None,
+        None,
+        None,
+        false,
+        None,
+        chrono::Utc::now(),
+        chrono::Utc::now(),
+    );
     let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
     repo.create_recruitment_source(&source).await.unwrap();
 
@@ -522,7 +522,7 @@ async fn test_recruitment_source_breakdown_direct() {
         .await
         .unwrap();
     assert_eq!(list.0.len(), 1);
-    assert_eq!(list.0[0].id, source_id);
+    assert_eq!(list.0[0].id(), source_id);
 
     // 2. Verify get_recruitment_source_by_id
     let fetched = repo
@@ -530,7 +530,7 @@ async fn test_recruitment_source_breakdown_direct() {
         .await
         .unwrap();
     assert!(fetched.is_some());
-    assert_eq!(fetched.unwrap().name, "Top Recruiting");
+    assert_eq!(fetched.unwrap().name(), "Top Recruiting");
 
     // 3. Verify update_recruitment_source
     let update_req = apiserver::models::UpdateRecruitmentSourceRequest {
@@ -550,14 +550,14 @@ async fn test_recruitment_source_breakdown_direct() {
         .unwrap();
     assert!(updated.is_some());
     let u = updated.unwrap();
-    assert_eq!(u.name, "Premium Agency");
-    assert_eq!(u.referral_bonus_amount, Some(Decimal::from(100)));
-    assert_eq!(u.referral_bonus_paid, true);
-    assert_eq!(u.agency_contact_name.as_deref(), Some("Alice"));
-    assert_eq!(u.agency_contact_email.as_deref(), Some("alice@agency.com"));
-    assert_eq!(u.agency_fee_amount, Some(Decimal::from(500)));
-    assert_eq!(u.agency_fee_paid, true);
-    assert_eq!(u.notes.as_deref(), Some("High tier agency"));
+    assert_eq!(u.name(), "Premium Agency");
+    assert_eq!(u.referral_bonus_amount(), Some(Decimal::from(100)));
+    assert_eq!(u.referral_bonus_paid(), true);
+    assert_eq!(u.agency_contact_name(), Some("Alice"));
+    assert_eq!(u.agency_contact_email(), Some("alice@agency.com"));
+    assert_eq!(u.agency_fee_amount(), Some(Decimal::from(500)));
+    assert_eq!(u.agency_fee_paid(), true);
+    assert_eq!(u.notes(), Some("High tier agency"));
 
     // Create an employee and set recruitment source
     let emp_id = factory

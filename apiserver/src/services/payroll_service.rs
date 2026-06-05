@@ -49,6 +49,10 @@ pub struct PayrollContext {
     pub(crate) attendance_policy: crate::models::AttendanceRules,
     pub(crate) emp_payroll_configs: Vec<crate::models::EmployeePayrollConfig>,
     pub(crate) ws_payroll_settings_history: Vec<crate::models::PayrollSettings>,
+    pub(crate) department_payroll_configs:
+        HashMap<Uuid, Vec<crate::models::DepartmentPayrollConfig>>,
+    pub(crate) overtime_data:
+        crate::repositories::overtime_policy_repository::WorkspaceOvertimeData,
 }
 
 /// Named record for a payroll segment snapshot.
@@ -290,6 +294,26 @@ impl PayrollService {
             .get_payroll_settings_history(workspace_id)
             .await?;
 
+        let department_ids: Vec<Uuid> = all_dept_history
+            .iter()
+            .map(|d| d.department_id)
+            .collect::<std::collections::BTreeSet<_>>()
+            .into_iter()
+            .collect();
+
+        let department_payroll_configs = self
+            .department_repo
+            .get_department_payroll_configs_batch(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                &department_ids,
+            )
+            .await?;
+
+        let overtime_data = self
+            .overtime_policy_repo
+            .get_workspace_overtime_data(workspace_id)
+            .await?;
+
         Ok(PayrollContext {
             employee_id,
             workspace,
@@ -308,6 +332,8 @@ impl PayrollService {
             attendance_policy,
             emp_payroll_configs,
             ws_payroll_settings_history,
+            department_payroll_configs,
+            overtime_data,
         })
     }
 
@@ -418,9 +444,15 @@ impl PayrollService {
                 .cloned();
 
             let dept_payroll_config = if let Some(d_id) = dept_id {
-                self.payroll_repo
-                    .get_department_payroll_config_at(workspace_id, d_id, seg_start)
-                    .await?
+                ctx.department_payroll_configs
+                    .get(&d_id)
+                    .and_then(|configs| {
+                        configs
+                            .iter()
+                            .filter(|c| c.effective_date <= seg_start)
+                            .max_by_key(|c| c.effective_date)
+                            .cloned()
+                    })
             } else {
                 None
             };
@@ -674,6 +706,25 @@ impl PayrollService {
 
         let token = &crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
 
+        let overtime_data = match self
+            .overtime_policy_repo
+            .get_workspace_overtime_data(workspace_id)
+            .await
+        {
+            Ok(data) => data,
+            Err(e) => {
+                tracing::error!(
+                    workspace_id = %workspace_id,
+                    error = %e,
+                    "Failed to fetch overtime data for batch payroll — proceeding with empty overtime data"
+                );
+                crate::repositories::overtime_policy_repository::WorkspaceOvertimeData {
+                    policies: std::collections::HashMap::new(),
+                    assignments: Vec::new(),
+                }
+            }
+        };
+
         let holidays_map = match self
             .holiday_repo
             .get_holidays_in_range(token, start_date, end_date)
@@ -756,6 +807,20 @@ impl PayrollService {
             let mut conditions_map = conditions_res.unwrap_or_default();
             let mut policies_map = policies_res.unwrap_or_default();
 
+            let batch_dept_ids: Vec<Uuid> = dept_map
+                .values()
+                .flatten()
+                .map(|dh| dh.department_id)
+                .collect::<BTreeSet<_>>()
+                .into_iter()
+                .collect();
+
+            let batch_dept_payroll_configs = self
+                .department_repo
+                .get_department_payroll_configs_batch(token, &batch_dept_ids)
+                .await
+                .unwrap_or_default();
+
             let config_futures = chunk_ids.iter().map(|&emp_id| {
                 let token_clone = *token;
                 let employee_repo = std::sync::Arc::clone(&self.employee_repo);
@@ -802,6 +867,13 @@ impl PayrollService {
                     };
 
                     let emp_payroll_configs = emp_configs_map.remove(&emp_id).unwrap_or_default();
+                    let all_dept_history = dept_map.remove(&emp_id).unwrap_or_default();
+                    let mut emp_dept_payroll_configs = HashMap::new();
+                    for dh in &all_dept_history {
+                        if let Some(configs) = batch_dept_payroll_configs.get(&dh.department_id) {
+                            emp_dept_payroll_configs.insert(dh.department_id, configs.clone());
+                        }
+                    }
 
                     contexts.push(PayrollContext {
                         employee_id: emp_id,
@@ -810,7 +882,7 @@ impl PayrollService {
                         start_date,
                         end_date,
                         salary_history: salary_map.remove(&emp_id).unwrap_or_default(),
-                        all_dept_history: dept_map.remove(&emp_id).unwrap_or_default(),
+                        all_dept_history,
                         daily_entries_map,
                         holidays_map: holidays_map.clone(),
                         roster_data: Arc::clone(&roster_data),
@@ -821,6 +893,8 @@ impl PayrollService {
                         attendance_policy,
                         emp_payroll_configs,
                         ws_payroll_settings_history: ws_payroll_settings_history.clone(),
+                        department_payroll_configs: emp_dept_payroll_configs,
+                        overtime_data: overtime_data.clone(),
                     });
                 }
             }
@@ -973,6 +1047,11 @@ mod tests {
             },
             emp_payroll_configs: Vec::new(),
             ws_payroll_settings_history: Vec::new(),
+            department_payroll_configs: HashMap::new(),
+            overtime_data: crate::repositories::overtime_policy_repository::WorkspaceOvertimeData {
+                policies: HashMap::new(),
+                assignments: Vec::new(),
+            },
         }
     }
 

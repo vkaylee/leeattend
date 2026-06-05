@@ -299,6 +299,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             crate::mw::rate_limit::RateLimitConfig::default(),
             state.core().jwt_secret().to_string(),
         ))
+        .layer(axum::middleware::from_fn(crate::mw::request_id_middleware))
         .with_state(state)
 }
 

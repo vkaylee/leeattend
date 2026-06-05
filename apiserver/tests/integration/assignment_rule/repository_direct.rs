@@ -50,10 +50,10 @@ async fn test_assignment_rule_crud() {
         .create_rule(&auth_token, &create_req)
         .await
         .expect("Failed to create rule");
-    assert_eq!(rule.name, "Test Rule");
-    assert_eq!(rule.priority, 10);
-    assert_eq!(rule.pattern_id, pattern_id);
-    assert!(rule.is_active);
+    assert_eq!(rule.name(), "Test Rule");
+    assert_eq!(rule.priority(), 10);
+    assert_eq!(rule.pattern_id(), pattern_id);
+    assert!(rule.is_active());
 
     // Read - get_rules
     let rules = repo
@@ -61,7 +61,7 @@ async fn test_assignment_rule_crud() {
         .await
         .expect("Failed to get rules");
     assert_eq!(rules.len(), 1);
-    assert_eq!(rules[0].id, rule.id);
+    assert_eq!(rules[0].id(), rule.id());
 
     // Read - get_active_rules
     let active_rules = repo
@@ -80,12 +80,12 @@ async fn test_assignment_rule_crud() {
         max_concurrent_workers: None,
     };
     let updated_rule = repo
-        .update_rule(&auth_token, rule.id, &update_req)
+        .update_rule(&auth_token, rule.id(), &update_req)
         .await
         .expect("Failed to update rule");
-    assert_eq!(updated_rule.name, "Updated Rule");
-    assert_eq!(updated_rule.priority, 20);
-    assert!(!updated_rule.is_active);
+    assert_eq!(updated_rule.name(), "Updated Rule");
+    assert_eq!(updated_rule.priority(), 20);
+    assert!(!updated_rule.is_active());
 
     // Read active again
     let active_rules_after = repo
@@ -95,7 +95,7 @@ async fn test_assignment_rule_crud() {
     assert_eq!(active_rules_after.len(), 0);
 
     // Delete
-    repo.delete_rule(&auth_token, rule.id)
+    repo.delete_rule(&auth_token, rule.id())
         .await
         .expect("Failed to delete rule");
     let rules_after_delete = repo

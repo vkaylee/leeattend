@@ -31,20 +31,112 @@ pub struct EmployeePaginationArgs<'a> {
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct RecruitmentSource {
-    pub id: Uuid,
-    pub workspace_id: Uuid,
-    pub source_type: RecruitmentSourceType,
-    pub name: String,
-    pub referrer_employee_id: Option<Uuid>,
-    pub referral_bonus_amount: Option<Decimal>,
-    pub referral_bonus_paid: bool,
-    pub agency_contact_name: Option<String>,
-    pub agency_contact_email: Option<String>,
-    pub agency_fee_amount: Option<Decimal>,
-    pub agency_fee_paid: bool,
-    pub notes: Option<String>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    id: Uuid,
+    workspace_id: Uuid,
+    source_type: RecruitmentSourceType,
+    name: String,
+    referrer_employee_id: Option<Uuid>,
+    referral_bonus_amount: Option<Decimal>,
+    referral_bonus_paid: bool,
+    agency_contact_name: Option<String>,
+    agency_contact_email: Option<String>,
+    agency_fee_amount: Option<Decimal>,
+    agency_fee_paid: bool,
+    notes: Option<String>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+impl RecruitmentSource {
+    pub fn new(
+        id: Uuid,
+        workspace_id: Uuid,
+        source_type: RecruitmentSourceType,
+        name: String,
+        referrer_employee_id: Option<Uuid>,
+        referral_bonus_amount: Option<Decimal>,
+        referral_bonus_paid: bool,
+        agency_contact_name: Option<String>,
+        agency_contact_email: Option<String>,
+        agency_fee_amount: Option<Decimal>,
+        agency_fee_paid: bool,
+        notes: Option<String>,
+        created_at: DateTime<Utc>,
+        updated_at: DateTime<Utc>,
+    ) -> Self {
+        Self {
+            id,
+            workspace_id,
+            source_type,
+            name,
+            referrer_employee_id,
+            referral_bonus_amount,
+            referral_bonus_paid,
+            agency_contact_name,
+            agency_contact_email,
+            agency_fee_amount,
+            agency_fee_paid,
+            notes,
+            created_at,
+            updated_at,
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn workspace_id(&self) -> Uuid {
+        self.workspace_id
+    }
+
+    pub fn source_type(&self) -> &RecruitmentSourceType {
+        &self.source_type
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn referrer_employee_id(&self) -> Option<Uuid> {
+        self.referrer_employee_id
+    }
+
+    pub fn referral_bonus_amount(&self) -> Option<Decimal> {
+        self.referral_bonus_amount
+    }
+
+    pub fn referral_bonus_paid(&self) -> bool {
+        self.referral_bonus_paid
+    }
+
+    pub fn agency_contact_name(&self) -> Option<&str> {
+        self.agency_contact_name.as_deref()
+    }
+
+    pub fn agency_contact_email(&self) -> Option<&str> {
+        self.agency_contact_email.as_deref()
+    }
+
+    pub fn agency_fee_amount(&self) -> Option<Decimal> {
+        self.agency_fee_amount
+    }
+
+    pub fn agency_fee_paid(&self) -> bool {
+        self.agency_fee_paid
+    }
+
+    pub fn notes(&self) -> Option<&str> {
+        self.notes.as_deref()
+    }
+
+    pub fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+
+    pub fn updated_at(&self) -> DateTime<Utc> {
+        self.updated_at
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
@@ -259,15 +351,77 @@ pub struct AssignmentRuleConditions {
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct AssignmentRule {
-    pub id: Uuid,
-    pub workspace_id: Uuid,
-    pub pattern_id: Uuid,
-    pub name: String,
-    pub priority: i32,
-    pub conditions: AssignmentRuleConditions,
-    pub is_active: bool,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    id: Uuid,
+    workspace_id: Uuid,
+    pattern_id: Uuid,
+    name: String,
+    priority: i32,
+    conditions: AssignmentRuleConditions,
+    is_active: bool,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+impl AssignmentRule {
+    pub fn new(
+        id: Uuid,
+        workspace_id: Uuid,
+        pattern_id: Uuid,
+        name: String,
+        priority: i32,
+        conditions: AssignmentRuleConditions,
+        is_active: bool,
+        created_at: DateTime<Utc>,
+        updated_at: DateTime<Utc>,
+    ) -> Self {
+        Self {
+            id,
+            workspace_id,
+            pattern_id,
+            name,
+            priority,
+            conditions,
+            is_active,
+            created_at,
+            updated_at,
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn workspace_id(&self) -> Uuid {
+        self.workspace_id
+    }
+
+    pub fn pattern_id(&self) -> Uuid {
+        self.pattern_id
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn priority(&self) -> i32 {
+        self.priority
+    }
+
+    pub fn conditions(&self) -> &AssignmentRuleConditions {
+        &self.conditions
+    }
+
+    pub fn is_active(&self) -> bool {
+        self.is_active
+    }
+
+    pub fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+
+    pub fn updated_at(&self) -> DateTime<Utc> {
+        self.updated_at
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]

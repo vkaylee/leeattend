@@ -246,9 +246,9 @@ async fn test_assignment_rules_and_rule_patterns() {
 
     // Active rules
     assert_eq!(data.active_rules.len(), 1);
-    assert_eq!(data.active_rules[0].name, "Office Rule");
-    assert_eq!(data.active_rules[0].priority, 10);
-    assert_eq!(data.active_rules[0].pattern_id, pattern_id);
+    assert_eq!(data.active_rules[0].name(), "Office Rule");
+    assert_eq!(data.active_rules[0].priority(), 10);
+    assert_eq!(data.active_rules[0].pattern_id(), pattern_id);
 
     // Rule patterns (pattern_id, day_of_week) -> shift_id
     assert_eq!(data.rule_patterns.len(), 2);

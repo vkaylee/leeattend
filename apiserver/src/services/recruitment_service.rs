@@ -33,22 +33,22 @@ impl RecruitmentService {
         req: CreateRecruitmentSourceRequest,
     ) -> Result<RecruitmentSource, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let source = RecruitmentSource {
-            id: new_id(),
+        let source = RecruitmentSource::new(
+            new_id(),
             workspace_id,
-            source_type: req.source_type,
-            name: req.name,
-            referrer_employee_id: req.referrer_employee_id,
-            referral_bonus_amount: req.referral_bonus_amount,
-            referral_bonus_paid: false,
-            agency_contact_name: req.agency_contact_name,
-            agency_contact_email: req.agency_contact_email,
-            agency_fee_amount: req.agency_fee_amount,
-            agency_fee_paid: false,
-            notes: req.notes,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        };
+            req.source_type,
+            req.name,
+            req.referrer_employee_id,
+            req.referral_bonus_amount,
+            false,
+            req.agency_contact_name,
+            req.agency_contact_email,
+            req.agency_fee_amount,
+            false,
+            req.notes,
+            Utc::now(),
+            Utc::now(),
+        );
         self.repo.create_recruitment_source(&source).await?;
         Ok(source)
     }
@@ -263,22 +263,22 @@ mod tests {
     #[tokio::test]
     async fn get_recruitment_sources_returns_list() {
         let ws = Uuid::new_v4();
-        let source = RecruitmentSource {
-            id: Uuid::new_v4(),
-            workspace_id: ws,
-            source_type: crate::models::enums::RecruitmentSourceType::Direct,
-            name: "LinkedIn".into(),
-            referrer_employee_id: None,
-            referral_bonus_amount: None,
-            referral_bonus_paid: false,
-            agency_contact_name: None,
-            agency_contact_email: None,
-            agency_fee_amount: None,
-            agency_fee_paid: false,
-            notes: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        };
+        let source = RecruitmentSource::new(
+            Uuid::new_v4(),
+            ws,
+            crate::models::enums::RecruitmentSourceType::Direct,
+            "LinkedIn".into(),
+            None,
+            None,
+            false,
+            None,
+            None,
+            None,
+            false,
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
 
         let mock = MockRecruitmentRepo::empty();
         *mock.recruitment_sources.lock().expect("lock") = vec![source];
@@ -293,7 +293,7 @@ mod tests {
             .await
             .expect("ok");
         assert_eq!(result.0.len(), 1);
-        assert_eq!(result.0[0].name, "LinkedIn");
+        assert_eq!(result.0[0].name(), "LinkedIn");
     }
 
     // ── Tests: create_recruitment_source ─────────────────────────────
@@ -320,8 +320,8 @@ mod tests {
             .await;
         assert!(result.is_ok());
         let src = result.unwrap();
-        assert_eq!(src.name, "Indeed");
-        assert_eq!(src.workspace_id, ws);
+        assert_eq!(src.name(), "Indeed");
+        assert_eq!(src.workspace_id(), ws);
     }
 
     // ── Tests: update_recruitment_source ─────────────────────────────
@@ -355,22 +355,22 @@ mod tests {
         let ws = Uuid::new_v4();
         let id = Uuid::new_v4();
         let mock = MockRecruitmentRepo::empty();
-        let updated = RecruitmentSource {
+        let updated = RecruitmentSource::new(
             id,
-            workspace_id: ws,
-            source_type: crate::models::enums::RecruitmentSourceType::Direct,
-            name: "Updated Name".into(),
-            referrer_employee_id: None,
-            referral_bonus_amount: None,
-            referral_bonus_paid: false,
-            agency_contact_name: None,
-            agency_contact_email: None,
-            agency_fee_amount: None,
-            agency_fee_paid: false,
-            notes: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        };
+            ws,
+            crate::models::enums::RecruitmentSourceType::Direct,
+            "Updated Name".into(),
+            None,
+            None,
+            false,
+            None,
+            None,
+            None,
+            false,
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
         *mock.updated_recruitment_source.lock().expect("lock") = Some(updated.clone());
         let svc = make_service(mock);
         let req = UpdateRecruitmentSourceRequest {
@@ -392,7 +392,7 @@ mod tests {
             )
             .await;
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().name, "Updated Name");
+        assert_eq!(result.unwrap().name(), "Updated Name");
     }
 
     // ── Tests: delete_recruitment_source ─────────────────────────────

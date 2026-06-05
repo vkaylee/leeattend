@@ -1146,6 +1146,16 @@ mod tests {
         ) -> Result<Vec<crate::models::DepartmentPayrollConfig>, AppError> {
             Ok(vec![])
         }
+        async fn get_department_payroll_configs_batch(
+            &self,
+            _a: &TenantAuthToken,
+            _ids: &[Uuid],
+        ) -> Result<
+            std::collections::HashMap<Uuid, Vec<crate::models::DepartmentPayrollConfig>>,
+            AppError,
+        > {
+            Ok(std::collections::HashMap::new())
+        }
     }
 
     struct MockLeaveRequestRepo {

@@ -73,3 +73,18 @@ pub struct OvertimePolicyAssignmentEntity {
     pub effective_to: Option<NaiveDate>,
     pub created_at: Option<DateTime<Utc>>,
 }
+
+impl From<OvertimePolicyAssignmentEntity> for crate::models::OvertimePolicyAssignment {
+    fn from(entity: OvertimePolicyAssignmentEntity) -> Self {
+        Self {
+            id: entity.id,
+            workspace_id: entity.workspace_id,
+            assignee_type: entity.assignee_type,
+            assignee_id: entity.assignee_id,
+            policy_id: entity.policy_id,
+            effective_from: entity.effective_from,
+            effective_to: entity.effective_to,
+            created_at: entity.created_at,
+        }
+    }
+}

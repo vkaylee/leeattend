@@ -109,7 +109,7 @@ pub fn resolve_effective_shift_from_data<S: ::std::hash::BuildHasher>(
     traces.extend(rule_traces);
 
     if let Some(rule) = matched_rule {
-        if let Some(shift_opts) = roster_data.rule_patterns.get(&(rule.pattern_id, dow)) {
+        if let Some(shift_opts) = roster_data.rule_patterns.get(&(rule.pattern_id(), dow)) {
             return (shift_opts.clone(), "assignment_rule".to_string(), traces);
         }
     }
@@ -392,21 +392,21 @@ mod tests {
         let dow = chrono::Datelike::weekday(&target_date).num_days_from_sunday() as i32;
 
         let mut data = (*empty_roster_data()).clone();
-        data.active_rules.push(crate::models::AssignmentRule {
-            id: rule_id,
-            workspace_id: Uuid::new_v4(),
-            name: "Split shift rule".to_string(),
+        data.active_rules.push(crate::models::AssignmentRule::new(
+            rule_id,
+            Uuid::new_v4(),
             pattern_id,
-            priority: 10,
-            is_active: true,
-            conditions: crate::models::AssignmentRuleConditions {
+            "Split shift rule".to_string(),
+            10,
+            crate::models::AssignmentRuleConditions {
                 department_id: None,
                 employee_id_numbers: None,
                 tags: None,
             },
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-        });
+            true,
+            chrono::Utc::now(),
+            chrono::Utc::now(),
+        ));
         // Two shifts for the same (pattern, day)
         data.rule_patterns.insert(
             (pattern_id, dow),

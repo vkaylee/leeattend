@@ -750,6 +750,50 @@ impl DepartmentRepository for DieselDepartmentRepository {
 
         Ok(results.into_iter().map(Into::into).collect())
     }
+
+    async fn get_department_payroll_configs_batch(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        department_ids: &[Uuid],
+    ) -> Result<std::collections::HashMap<Uuid, Vec<DepartmentPayrollConfig>>, AppError> {
+        if department_ids.is_empty() {
+            return Ok(std::collections::HashMap::new());
+        }
+
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+        let workspace_id = auth_token.workspace_id();
+
+        use crate::schema::department_payroll_configs;
+
+        let results: Vec<DepartmentPayrollConfigEntity> = department_payroll_configs::table
+            .inner_join(
+                departments::table
+                    .on(departments::id.eq(department_payroll_configs::department_id)),
+            )
+            .filter(department_payroll_configs::department_id.eq_any(department_ids))
+            .filter(departments::workspace_id.eq(workspace_id))
+            .select(department_payroll_configs::all_columns)
+            .order((
+                department_payroll_configs::department_id.asc(),
+                department_payroll_configs::effective_date.desc(),
+            ))
+            .load(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let mut map: std::collections::HashMap<Uuid, Vec<DepartmentPayrollConfig>> =
+            std::collections::HashMap::new();
+        for entity in results {
+            map.entry(entity.department_id)
+                .or_default()
+                .push(entity.into());
+        }
+
+        Ok(map)
+    }
 }
 
 #[cfg(test)]

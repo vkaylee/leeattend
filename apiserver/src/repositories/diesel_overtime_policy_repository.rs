@@ -6,7 +6,9 @@ use uuid::Uuid;
 
 use crate::diesel_pool::DieselPools;
 use crate::errors::AppError;
-use crate::models::diesel::overtime_policy::{OvertimePolicyEntity, OvertimeRuleEntity};
+use crate::models::diesel::overtime_policy::{
+    OvertimePolicyAssignmentEntity, OvertimePolicyEntity, OvertimeRuleEntity,
+};
 use crate::models::{OvertimePolicy, OvertimeRule};
 use crate::repositories::overtime_policy_repository::OvertimePolicyRepositoryTrait;
 use crate::schema::{
@@ -263,6 +265,60 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(())
+    }
+
+    async fn get_workspace_overtime_data(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<crate::repositories::overtime_policy_repository::WorkspaceOvertimeData, AppError>
+    {
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        let policies_entities: Vec<OvertimePolicyEntity> = overtime_policy_definitions::table
+            .filter(overtime_policy_definitions::workspace_id.eq(workspace_id))
+            .select(OvertimePolicyEntity::as_select())
+            .load(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let mut policies_map = std::collections::HashMap::new();
+        for p in policies_entities {
+            let rules: Vec<OvertimeRuleEntity> = overtime_rules::table
+                .filter(overtime_rules::policy_id.eq(p.id))
+                .order(overtime_rules::priority.desc())
+                .select(OvertimeRuleEntity::as_select())
+                .load(&mut *conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+            policies_map.insert(
+                p.id,
+                (p.into(), rules.into_iter().map(Into::into).collect()),
+            );
+        }
+
+        let assignments_entities: Vec<OvertimePolicyAssignmentEntity> =
+            overtime_policy_assignments::table
+                .filter(overtime_policy_assignments::workspace_id.eq(workspace_id))
+                .select(OvertimePolicyAssignmentEntity::as_select())
+                .load(&mut *conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let assignments = assignments_entities.into_iter().map(Into::into).collect();
+
+        Ok(
+            crate::repositories::overtime_policy_repository::WorkspaceOvertimeData {
+                policies: policies_map,
+                assignments,
+            },
+        )
     }
 }
 

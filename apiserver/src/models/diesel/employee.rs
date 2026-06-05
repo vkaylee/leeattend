@@ -202,42 +202,42 @@ pub struct RecruitmentSourceEntity {
 impl From<RecruitmentSource> for RecruitmentSourceEntity {
     fn from(val: RecruitmentSource) -> Self {
         Self {
-            id: val.id,
-            workspace_id: val.workspace_id,
-            source_type: val.source_type,
-            name: val.name,
-            referrer_employee_id: val.referrer_employee_id,
-            referral_bonus_amount: val.referral_bonus_amount,
-            referral_bonus_paid: val.referral_bonus_paid,
-            agency_contact_name: val.agency_contact_name,
-            agency_contact_email: val.agency_contact_email,
-            agency_fee_amount: val.agency_fee_amount,
-            agency_fee_paid: val.agency_fee_paid,
-            notes: val.notes,
-            created_at: val.created_at,
-            updated_at: val.updated_at,
+            id: val.id(),
+            workspace_id: val.workspace_id(),
+            source_type: *val.source_type(),
+            name: val.name().to_string(),
+            referrer_employee_id: val.referrer_employee_id(),
+            referral_bonus_amount: val.referral_bonus_amount(),
+            referral_bonus_paid: val.referral_bonus_paid(),
+            agency_contact_name: val.agency_contact_name().map(String::from),
+            agency_contact_email: val.agency_contact_email().map(String::from),
+            agency_fee_amount: val.agency_fee_amount(),
+            agency_fee_paid: val.agency_fee_paid(),
+            notes: val.notes().map(String::from),
+            created_at: val.created_at(),
+            updated_at: val.updated_at(),
         }
     }
 }
 
 impl From<RecruitmentSourceEntity> for RecruitmentSource {
     fn from(val: RecruitmentSourceEntity) -> Self {
-        Self {
-            id: val.id,
-            workspace_id: val.workspace_id,
-            source_type: val.source_type,
-            name: val.name,
-            referrer_employee_id: val.referrer_employee_id,
-            referral_bonus_amount: val.referral_bonus_amount,
-            referral_bonus_paid: val.referral_bonus_paid,
-            agency_contact_name: val.agency_contact_name,
-            agency_contact_email: val.agency_contact_email,
-            agency_fee_amount: val.agency_fee_amount,
-            agency_fee_paid: val.agency_fee_paid,
-            notes: val.notes,
-            created_at: val.created_at,
-            updated_at: val.updated_at,
-        }
+        Self::new(
+            val.id,
+            val.workspace_id,
+            val.source_type,
+            val.name,
+            val.referrer_employee_id,
+            val.referral_bonus_amount,
+            val.referral_bonus_paid,
+            val.agency_contact_name,
+            val.agency_contact_email,
+            val.agency_fee_amount,
+            val.agency_fee_paid,
+            val.notes,
+            val.created_at,
+            val.updated_at,
+        )
     }
 }
 

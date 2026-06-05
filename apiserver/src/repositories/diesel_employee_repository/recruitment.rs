@@ -64,7 +64,7 @@ impl EmployeeRecruitmentRepository for DieselEmployeeRepository {
     }
 
     async fn create_recruitment_source(&self, source: &RecruitmentSource) -> Result<(), AppError> {
-        let workspace_id = source.workspace_id;
+        let workspace_id = source.workspace_id();
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .tenants_tx

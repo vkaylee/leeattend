@@ -55,7 +55,6 @@ impl AttendanceMatcher {
         args: ProcessSegmentAttendanceArgs<'_>,
     ) -> SegmentAttendanceResult {
         let employee_id = args.ctx.employee_id;
-        let workspace_id = args.ctx.workspace.id();
 
         let mut segment_std_units = 0i32;
         let mut segment_ot_units = 0i32;
@@ -225,36 +224,27 @@ impl AttendanceMatcher {
                                 }
 
                                 if ot_u > 0 {
-                                    if let Some(policy_id) = args
-                                        .overtime_policy_repo
-                                        .resolve_policy_for_employee(
+                                    if let Some(policy_id) =
+                                        args.ctx.overtime_data.resolve_policy_for_employee(
                                             employee_id,
-                                            workspace_id,
                                             current_date,
+                                            &args.ctx.all_dept_history,
                                         )
-                                        .await
-                                        .unwrap_or(None)
                                     {
-                                        let rules = if let Some(r) =
-                                            args.policy_cache.get(&policy_id)
-                                        {
-                                            r.clone()
-                                        } else {
-                                            let r = match args
-                                                .overtime_policy_repo
-                                                .get_policy_with_rules(workspace_id, policy_id)
-                                                .await
-                                            {
-                                                Ok(Some((_, rules))) => rules,
-                                                Ok(None) => Vec::new(),
-                                                Err(e) => {
-                                                    tracing::warn!(policy_id = %policy_id, error = %e, "Failed to fetch OT policy rules, using empty rules");
-                                                    Vec::new()
-                                                }
+                                        let rules =
+                                            if let Some(r) = args.policy_cache.get(&policy_id) {
+                                                r.clone()
+                                            } else {
+                                                let r = args
+                                                    .ctx
+                                                    .overtime_data
+                                                    .policies
+                                                    .get(&policy_id)
+                                                    .map(|(_, rules)| rules.clone())
+                                                    .unwrap_or_default();
+                                                args.policy_cache.insert(policy_id, r.clone());
+                                                r
                                             };
-                                            args.policy_cache.insert(policy_id, r.clone());
-                                            r
-                                        };
 
                                         let hourly_rate =
                                             FinancialCalculator::calculate_hourly_rate(
@@ -448,6 +438,21 @@ mod tests {
         ) -> Result<(), crate::errors::AppError> {
             unimplemented!()
         }
+
+        async fn get_workspace_overtime_data(
+            &self,
+            _workspace_id: Uuid,
+        ) -> Result<
+            crate::repositories::overtime_policy_repository::WorkspaceOvertimeData,
+            crate::errors::AppError,
+        > {
+            Ok(
+                crate::repositories::overtime_policy_repository::WorkspaceOvertimeData {
+                    policies: std::collections::HashMap::new(),
+                    assignments: Vec::new(),
+                },
+            )
+        }
     }
 
     struct MockOvertimePolicyWithRulesRepository {
@@ -525,6 +530,21 @@ mod tests {
             _effective_from: NaiveDate,
         ) -> Result<(), crate::errors::AppError> {
             unimplemented!()
+        }
+
+        async fn get_workspace_overtime_data(
+            &self,
+            _workspace_id: Uuid,
+        ) -> Result<
+            crate::repositories::overtime_policy_repository::WorkspaceOvertimeData,
+            crate::errors::AppError,
+        > {
+            Ok(
+                crate::repositories::overtime_policy_repository::WorkspaceOvertimeData {
+                    policies: std::collections::HashMap::new(),
+                    assignments: Vec::new(),
+                },
+            )
         }
     }
 
@@ -608,6 +628,9 @@ mod tests {
             attendance_policy: attendance_rules.clone(),
             emp_payroll_configs: vec![],
             ws_payroll_settings_history: vec![],
+            department_payroll_configs: HashMap::new(),
+            overtime_data:
+                crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default(),
         };
 
         let std_config = crate::domain::policy::resolver::StandardMonthConfig {
@@ -722,6 +745,9 @@ mod tests {
             attendance_policy: attendance_rules.clone(),
             emp_payroll_configs: vec![],
             ws_payroll_settings_history: vec![],
+            department_payroll_configs: HashMap::new(),
+            overtime_data:
+                crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default(),
         };
 
         let std_config = crate::domain::policy::resolver::StandardMonthConfig {
@@ -805,6 +831,9 @@ mod tests {
             attendance_policy: attendance_rules.clone(),
             emp_payroll_configs: vec![],
             ws_payroll_settings_history: vec![],
+            department_payroll_configs: HashMap::new(),
+            overtime_data:
+                crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default(),
         };
 
         let std_config = crate::domain::policy::resolver::StandardMonthConfig {
@@ -937,6 +966,9 @@ mod tests {
             attendance_policy: attendance_rules.clone(),
             emp_payroll_configs: vec![],
             ws_payroll_settings_history: vec![],
+            department_payroll_configs: HashMap::new(),
+            overtime_data:
+                crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default(),
         };
 
         let std_config = crate::domain::policy::resolver::StandardMonthConfig {
@@ -1039,6 +1071,47 @@ mod tests {
             early_arrival_strategy: EarlyArrivalStrategy::Block,
         };
 
+        let rules = vec![crate::models::OvertimeRule {
+            id: Uuid::new_v4(),
+            policy_id,
+            priority: 1,
+            multiplier: Decimal::new(20, 1), // 2.0x
+            time_start: Some(NaiveTime::from_hms_opt(18, 0, 0).unwrap()),
+            time_end: Some(NaiveTime::from_hms_opt(22, 0, 0).unwrap()),
+            days_of_week: 127,
+            is_holiday: false,
+            created_at: None,
+            updated_at: None,
+        }];
+
+        let mut policies = HashMap::new();
+        let overtime_policy = crate::models::OvertimePolicy {
+            id: policy_id,
+            workspace_id: Uuid::new_v4(),
+            name: "Test Policy".to_string(),
+            description: None,
+            created_at: None,
+            updated_at: None,
+        };
+        policies.insert(policy_id, (overtime_policy, rules.clone()));
+
+        let assignments = vec![crate::models::OvertimePolicyAssignment {
+            id: Uuid::new_v4(),
+            workspace_id: Uuid::new_v4(),
+            policy_id,
+            assignee_type: "employee".to_string(),
+            assignee_id: Some(employee_id),
+            effective_from: date,
+            effective_to: None,
+            created_at: Some(chrono::Utc::now()),
+        }];
+
+        let overtime_data =
+            crate::repositories::overtime_policy_repository::WorkspaceOvertimeData {
+                policies,
+                assignments,
+            };
+
         let ctx = PayrollContext {
             employee_id,
             workspace,
@@ -1057,6 +1130,8 @@ mod tests {
             attendance_policy: attendance_rules.clone(),
             emp_payroll_configs: vec![],
             ws_payroll_settings_history: vec![],
+            department_payroll_configs: HashMap::new(),
+            overtime_data,
         };
 
         let std_config = crate::domain::policy::resolver::StandardMonthConfig {
@@ -1065,20 +1140,10 @@ mod tests {
             source: "workspace".to_string(),
         };
 
-        let rules = vec![crate::models::OvertimeRule {
-            id: Uuid::new_v4(),
+        let overtime_policy_repo = MockOvertimePolicyWithRulesRepository {
             policy_id,
-            priority: 1,
-            multiplier: Decimal::new(20, 1), // 2.0x
-            time_start: Some(NaiveTime::from_hms_opt(18, 0, 0).unwrap()),
-            time_end: Some(NaiveTime::from_hms_opt(22, 0, 0).unwrap()),
-            days_of_week: 127,
-            is_holiday: false,
-            created_at: None,
-            updated_at: None,
-        }];
-
-        let overtime_policy_repo = MockOvertimePolicyWithRulesRepository { policy_id, rules };
+            rules: rules.clone(),
+        };
 
         let mut policy_cache = HashMap::new();
         let args = ProcessSegmentAttendanceArgs {

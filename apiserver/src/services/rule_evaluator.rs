@@ -11,7 +11,7 @@ pub struct RuleEvaluator;
 
 impl RuleEvaluator {
     pub fn matches(ctx: &EmployeeMatchContext, rule: &AssignmentRule) -> bool {
-        let conditions = &rule.conditions;
+        let conditions = rule.conditions();
 
         // 1. Department match (Strict)
         if let Some(dept_id) = conditions.department_id {
@@ -61,17 +61,17 @@ impl RuleEvaluator {
                 if winner.is_none() {
                     winner = Some(rule);
                     traces.push(ScheduleTrace {
-                        rule_id: Some(rule.id),
-                        rule_name: rule.name.clone(),
-                        priority: rule.priority,
+                        rule_id: Some(rule.id()),
+                        rule_name: rule.name().to_string(),
+                        priority: rule.priority(),
                         status: "applied".to_string(),
                         reason: Some("Highest priority matching rule".to_string()),
                     });
                 } else {
                     traces.push(ScheduleTrace {
-                        rule_id: Some(rule.id),
-                        rule_name: rule.name.clone(),
-                        priority: rule.priority,
+                        rule_id: Some(rule.id()),
+                        rule_name: rule.name().to_string(),
+                        priority: rule.priority(),
                         status: "overridden".to_string(),
                         reason: Some("Overridden by higher priority rule".to_string()),
                     });
@@ -96,21 +96,21 @@ mod tests {
         ids: Option<Vec<String>>,
         tags: Option<Vec<String>>,
     ) -> AssignmentRule {
-        AssignmentRule {
-            id: Uuid::new_v4(),
-            workspace_id: Uuid::new_v4(),
-            pattern_id: Uuid::new_v4(),
-            name: name.to_string(),
+        AssignmentRule::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            name.to_string(),
             priority,
-            conditions: AssignmentRuleConditions {
+            AssignmentRuleConditions {
                 department_id: dept,
                 employee_id_numbers: ids,
                 tags,
             },
-            is_active: true,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        }
+            true,
+            Utc::now(),
+            Utc::now(),
+        )
     }
 
     fn make_ctx(dept: Option<Uuid>, id_number: &str, tags: Vec<&str>) -> EmployeeMatchContext {
@@ -257,7 +257,7 @@ mod tests {
         ];
         let ctx = make_ctx(None, "EMP001", vec!["day"]);
         let result = RuleEvaluator::resolve_rule(&ctx, &rules);
-        assert_eq!(result.unwrap().name, "Catch-all");
+        assert_eq!(result.unwrap().name(), "Catch-all");
     }
 
     #[test]
@@ -285,7 +285,7 @@ mod tests {
         let ctx = make_ctx(None, "EMP001", vec![]);
         let (winner, traces) = RuleEvaluator::resolve_with_trace(&ctx, &rules);
 
-        assert_eq!(winner.unwrap().name, "First");
+        assert_eq!(winner.unwrap().name(), "First");
         assert_eq!(traces.len(), 2);
         assert_eq!(traces[0].status, "applied");
         assert_eq!(traces[1].status, "overridden");
@@ -320,7 +320,7 @@ mod tests {
         let ctx = make_ctx(None, "EMP001", vec![]);
         let (winner, traces) = RuleEvaluator::resolve_with_trace(&ctx, &rules);
 
-        assert_eq!(winner.unwrap().name, "Only Rule");
+        assert_eq!(winner.unwrap().name(), "Only Rule");
         assert_eq!(traces.len(), 1);
         assert_eq!(traces[0].status, "applied");
         assert!(traces[0]
@@ -355,7 +355,7 @@ mod tests {
         ];
         let ctx = make_ctx(Some(dept_id), "EMP001", vec![]);
         let result = RuleEvaluator::resolve_rule(&ctx, &rules);
-        assert_eq!(result.unwrap().name, "Specific"); // First match wins
+        assert_eq!(result.unwrap().name(), "Specific"); // First match wins
     }
 
     #[test]
@@ -373,7 +373,7 @@ mod tests {
         ];
         let ctx = make_ctx(Some(dept_id), "EMP001", vec![]);
         let result = RuleEvaluator::resolve_rule(&ctx, &rules);
-        assert_eq!(result.unwrap().name, "General"); // Falls back to catch-all
+        assert_eq!(result.unwrap().name(), "General"); // Falls back to catch-all
     }
 
     #[test]
@@ -386,7 +386,7 @@ mod tests {
         let ctx = make_ctx(None, "EMP001", vec![]);
         let (winner, traces) = RuleEvaluator::resolve_with_trace(&ctx, &rules);
 
-        assert_eq!(winner.unwrap().name, "First");
+        assert_eq!(winner.unwrap().name(), "First");
         assert_eq!(traces.len(), 3);
         assert_eq!(traces[0].status, "applied");
         assert_eq!(traces[1].status, "overridden");

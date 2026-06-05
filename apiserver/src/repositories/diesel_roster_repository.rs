@@ -601,7 +601,7 @@ impl RosterRepository for DieselRosterRepository {
                         crate::schema::working_pattern_details::table
                             .filter(
                                 crate::schema::working_pattern_details::pattern_id
-                                    .eq(rule.pattern_id),
+                                    .eq(rule.pattern_id()),
                             )
                             .filter(crate::schema::working_pattern_details::schedule_day.eq(dow))
                             .select(crate::schema::working_pattern_details::shift_id)

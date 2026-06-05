@@ -1111,6 +1111,16 @@ mod tests {
         ) -> Result<Vec<crate::models::DepartmentPayrollConfig>, AppError> {
             unimplemented!()
         }
+        async fn get_department_payroll_configs_batch(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _department_ids: &[Uuid],
+        ) -> Result<
+            std::collections::HashMap<Uuid, Vec<crate::models::DepartmentPayrollConfig>>,
+            AppError,
+        > {
+            Ok(std::collections::HashMap::new())
+        }
     }
 
     struct NopUserRepo;

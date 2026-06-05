@@ -21,20 +21,21 @@ pub struct AssignmentRuleEntity {
 
 impl From<AssignmentRuleEntity> for AssignmentRule {
     fn from(e: AssignmentRuleEntity) -> Self {
-        Self {
-            id: e.id,
-            workspace_id: e.workspace_id,
-            pattern_id: e.pattern_id,
-            name: e.name,
-            priority: e.priority,
-            conditions: serde_json::from_value(e.conditions).unwrap_or(AssignmentRuleConditions {
-                department_id: None,
-                employee_id_numbers: None,
-                tags: None,
-            }),
-            is_active: e.is_active,
-            created_at: e.created_at.unwrap_or_else(Utc::now),
-            updated_at: e.updated_at.unwrap_or_else(Utc::now),
-        }
+        let conditions = serde_json::from_value(e.conditions).unwrap_or(AssignmentRuleConditions {
+            department_id: None,
+            employee_id_numbers: None,
+            tags: None,
+        });
+        Self::new(
+            e.id,
+            e.workspace_id,
+            e.pattern_id,
+            e.name,
+            e.priority,
+            conditions,
+            e.is_active,
+            e.created_at.unwrap_or_else(Utc::now),
+            e.updated_at.unwrap_or_else(Utc::now),
+        )
     }
 }

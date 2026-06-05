@@ -105,4 +105,9 @@ pub trait DepartmentRepository: Send + Sync {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         department_id: Uuid,
     ) -> Result<Vec<DepartmentPayrollConfig>, AppError>;
+    async fn get_department_payroll_configs_batch(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        department_ids: &[Uuid],
+    ) -> Result<HashMap<Uuid, Vec<DepartmentPayrollConfig>>, AppError>;
 }
