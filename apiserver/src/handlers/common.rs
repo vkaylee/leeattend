@@ -448,11 +448,73 @@ where
 
 // --- Basic Handlers ---
 
+static START_TIME: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
+
 pub async fn health_check() -> AppResult<Json<GenericResponse>> {
     let response = GenericResponse {
         message: "API Server is running!".to_string(),
     };
     Ok(Json(response))
+}
+
+pub async fn readiness_check(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+) -> impl axum::response::IntoResponse {
+    use diesel_async::RunQueryDsl;
+
+    let mut db_status = "ok";
+    let mut redis_status = "ok";
+    let mut has_error = false;
+
+    // Check DB
+    match state.infra().diesel().api.get().await {
+        Ok(mut conn) => {
+            if let Err(e) = diesel::sql_query("SELECT 1").execute(&mut *conn).await {
+                tracing::error!("Readiness DB ping failed: {:?}", e);
+                db_status = "error";
+                has_error = true;
+            }
+        }
+        Err(e) => {
+            tracing::error!("Readiness DB connection failed: {:?}", e);
+            db_status = "error";
+            has_error = true;
+        }
+    }
+
+    // Check Redis (if enabled)
+    if let Some(redis) = state.infra().redis() {
+        if let Err(e) = redis.health_check().await {
+            tracing::error!("Readiness Redis health check failed: {:?}", e);
+            redis_status = "error";
+            has_error = true;
+        }
+    } else {
+        redis_status = "disabled";
+    }
+
+    let status = if has_error { "unhealthy" } else { "healthy" };
+    let start = *START_TIME.get_or_init(std::time::Instant::now);
+    let uptime_seconds = start.elapsed().as_secs();
+    let version = env!("CARGO_PKG_VERSION");
+
+    let body = serde_json::json!({
+        "status": status,
+        "version": version,
+        "uptime_seconds": uptime_seconds,
+        "checks": {
+            "database": db_status,
+            "redis": redis_status,
+        }
+    });
+
+    let status_code = if has_error {
+        axum::http::StatusCode::INTERNAL_SERVER_ERROR
+    } else {
+        axum::http::StatusCode::OK
+    };
+
+    (status_code, Json(body))
 }
 
 // --- Department Scope Helpers ---

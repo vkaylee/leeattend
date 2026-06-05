@@ -18,6 +18,7 @@ pub fn router(state: &Arc<AppState>) -> Router<Arc<AppState>> {
             state.core().jwt_secret().to_string(),
         ))
         .route("/health", get(handlers::health_check))
+        .route("/health/ready", get(handlers::readiness_check))
         .route("/auth/refresh", post(handlers::refresh_token))
         .route("/auth/logout", post(handlers::logout))
         .route("/auth/change-password", post(handlers::change_password))

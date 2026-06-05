@@ -26,11 +26,16 @@ pub struct SupavisorTenantManager {
 }
 
 impl SupavisorTenantManager {
-    pub fn new() -> Option<Self> {
-        let api_url = std::env::var("SUPAVISOR_API_URL").ok()?;
-        let jwt_secret = std::env::var("API_JWT_SECRET").ok()?;
+    pub fn new() -> Result<Self, AppError> {
+        let api_url = std::env::var("SUPAVISOR_API_URL")
+            .map_err(|_err| AppError::Validation("error.supavisor_api_url_required".to_string()))?;
+
+        let jwt_secret = std::env::var("API_JWT_SECRET")
+            .or_else(|_err| std::env::var("SUPAVISOR_API_JWT"))
+            .map_err(|_err| AppError::Validation("error.api_jwt_secret_required".to_string()))?;
+
         let master_db_url = std::env::var("DATABASE_URL").unwrap_or_default();
-        Some(Self {
+        Ok(Self {
             client: reqwest::Client::builder()
                 .timeout(std::time::Duration::from_secs(30))
                 .build()

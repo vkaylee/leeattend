@@ -20,6 +20,20 @@ pub trait ApprovalWorkflowRepository: Send + Sync {
         steps: Vec<ApprovalWorkflowStep>,
     ) -> Result<Vec<ApprovalWorkflowStep>, AppError>;
 
+    async fn create_workflow_transactional(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        workflow: ApprovalWorkflow,
+        steps: Vec<ApprovalWorkflowStep>,
+    ) -> Result<(ApprovalWorkflow, Vec<ApprovalWorkflowStep>), AppError>;
+
+    async fn update_workflow_definition_transactional(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        workflow: ApprovalWorkflow,
+        steps: Vec<ApprovalWorkflowStep>,
+    ) -> Result<(ApprovalWorkflow, Vec<ApprovalWorkflowStep>), AppError>;
+
     async fn get_active_workflow(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

@@ -800,6 +800,7 @@ mod tests {
             "report_stream_ws",
             "monitor_stream_sse",
             "health_check",
+            "readiness_check",
         ];
 
         for h in used_handlers {
@@ -924,6 +925,8 @@ mod tests {
             "/debug/users",
             "/debug/workspaces/{}/clear",
             "/dev/workspaces/{}/clear",
+            "/health",
+            "/health/ready",
         ];
 
         let mut missing_in_openapi = Vec::new();

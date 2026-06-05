@@ -14,22 +14,9 @@ impl ApprovalWorkflowService {
     ) -> AppResult<(ApprovalWorkflow, Vec<ApprovalWorkflowStep>)> {
         workflow.workspace_id = auth_token.workspace_id();
 
-        let created_workflow = self
-            .approval_workflow_repo
-            .create_workflow(auth_token, workflow)
-            .await?;
-
-        let mut steps_to_create = steps;
-        for step in &mut steps_to_create {
-            step.workflow_id = created_workflow.id;
-        }
-
-        let created_steps = self
-            .approval_workflow_repo
-            .create_steps(auth_token, steps_to_create)
-            .await?;
-
-        Ok((created_workflow, created_steps))
+        self.approval_workflow_repo
+            .create_workflow_transactional(auth_token, workflow, steps)
+            .await
     }
 
     pub async fn get_active_workflow(
@@ -113,28 +100,9 @@ impl ApprovalWorkflowService {
         workflow.workspace_id = auth_token.workspace_id();
         workflow.total_steps = steps.len() as i32;
 
-        let updated_wf = self
-            .approval_workflow_repo
-            .update_workflow(auth_token, workflow)
-            .await?;
-
-        // Delete old steps
         self.approval_workflow_repo
-            .delete_steps_by_workflow_id(auth_token, updated_wf.id)
-            .await?;
-
-        // Create new steps
-        let mut steps_to_create = steps;
-        for step in &mut steps_to_create {
-            step.workflow_id = updated_wf.id;
-        }
-
-        let created_steps = self
-            .approval_workflow_repo
-            .create_steps(auth_token, steps_to_create)
-            .await?;
-
-        Ok((updated_wf, created_steps))
+            .update_workflow_definition_transactional(auth_token, workflow, steps)
+            .await
     }
 
     pub async fn delete_workflow(

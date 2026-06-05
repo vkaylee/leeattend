@@ -10,7 +10,7 @@ use crate::schema::{
 };
 use async_trait::async_trait;
 use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
+use diesel_async::{AsyncConnection, RunQueryDsl};
 use uuid::Uuid;
 
 pub struct DieselApprovalWorkflowRepository {
@@ -79,6 +79,125 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
             .map_err(|e| AppError::Internal(format!("Failed to create workflow steps: {e}")))?;
 
         Ok(result)
+    }
+
+    async fn create_workflow_transactional(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        workflow: ApprovalWorkflow,
+        steps: Vec<ApprovalWorkflowStep>,
+    ) -> Result<(ApprovalWorkflow, Vec<ApprovalWorkflowStep>), AppError> {
+        if workflow.workspace_id != auth_token.workspace_id() {
+            return Err(AppError::Forbidden("error.tenant_mismatch".into()));
+        }
+
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+
+        conn.transaction::<_, AppError, _>(|conn| {
+            Box::pin(async move {
+                let result = diesel::insert_into(approval_workflows::table)
+                    .values(&workflow)
+                    .get_result::<ApprovalWorkflow>(&mut *conn)
+                    .await
+                    .map_err(|e| {
+                        AppError::Internal(format!("Failed to create approval workflow: {e}"))
+                    })?;
+
+                let mut steps_to_create = steps;
+                for step in &mut steps_to_create {
+                    step.workflow_id = result.id;
+                }
+
+                let created_steps = if steps_to_create.is_empty() {
+                    Vec::new()
+                } else {
+                    diesel::insert_into(approval_workflow_steps::table)
+                        .values(&steps_to_create)
+                        .get_results(&mut *conn)
+                        .await
+                        .map_err(|e| {
+                            AppError::Internal(format!("Failed to create workflow steps: {e}"))
+                        })?
+                };
+
+                Ok((result, created_steps))
+            })
+        })
+        .await
+    }
+
+    async fn update_workflow_definition_transactional(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        workflow: ApprovalWorkflow,
+        steps: Vec<ApprovalWorkflowStep>,
+    ) -> Result<(ApprovalWorkflow, Vec<ApprovalWorkflowStep>), AppError> {
+        if workflow.workspace_id != auth_token.workspace_id() {
+            return Err(AppError::Forbidden("error.tenant_mismatch".into()));
+        }
+
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+
+        conn.transaction::<_, AppError, _>(|conn| {
+            Box::pin(async move {
+                let updated_wf = diesel::update(
+                    approval_workflows::table
+                        .filter(approval_workflows::id.eq(workflow.id))
+                        .filter(approval_workflows::workspace_id.eq(auth_token.workspace_id())),
+                )
+                .set((
+                    approval_workflows::name.eq(workflow.name),
+                    approval_workflows::description.eq(workflow.description),
+                    approval_workflows::total_steps.eq(workflow.total_steps),
+                    approval_workflows::is_active.eq(workflow.is_active),
+                    approval_workflows::updated_at.eq(chrono::Utc::now()),
+                ))
+                .get_result::<ApprovalWorkflow>(&mut *conn)
+                .await
+                .map_err(|e| match e {
+                    diesel::result::Error::NotFound => {
+                        AppError::NotFound("Workflow not found".to_string())
+                    }
+                    _ => AppError::Internal(format!("Failed to update approval workflow: {e}")),
+                })?;
+
+                diesel::delete(
+                    approval_workflow_steps::table
+                        .filter(approval_workflow_steps::workflow_id.eq(updated_wf.id)),
+                )
+                .execute(&mut *conn)
+                .await
+                .map_err(|e| {
+                    AppError::Internal(format!("Failed to delete old workflow steps: {e}"))
+                })?;
+
+                let mut steps_to_create = steps;
+                for step in &mut steps_to_create {
+                    step.workflow_id = updated_wf.id;
+                }
+
+                let created_steps = if steps_to_create.is_empty() {
+                    Vec::new()
+                } else {
+                    diesel::insert_into(approval_workflow_steps::table)
+                        .values(&steps_to_create)
+                        .get_results(&mut *conn)
+                        .await
+                        .map_err(|e| {
+                            AppError::Internal(format!("Failed to create workflow steps: {e}"))
+                        })?
+                };
+
+                Ok((updated_wf, created_steps))
+            })
+        })
+        .await
     }
 
     async fn get_active_workflow(

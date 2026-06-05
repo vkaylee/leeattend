@@ -68,6 +68,34 @@ mod tests {
 
     #[async_trait]
     impl ApprovalWorkflowRepository for MockApprovalWorkflowRepository {
+        async fn create_workflow_transactional(
+            &self,
+            auth_token: &TenantAuthToken,
+            workflow: ApprovalWorkflow,
+            mut steps: Vec<ApprovalWorkflowStep>,
+        ) -> Result<(ApprovalWorkflow, Vec<ApprovalWorkflowStep>), AppError> {
+            let wf = self.create_workflow(auth_token, workflow).await?;
+            for step in &mut steps {
+                step.workflow_id = wf.id;
+            }
+            let created_steps = self.create_steps(auth_token, steps).await?;
+            Ok((wf, created_steps))
+        }
+
+        async fn update_workflow_definition_transactional(
+            &self,
+            auth_token: &TenantAuthToken,
+            workflow: ApprovalWorkflow,
+            mut steps: Vec<ApprovalWorkflowStep>,
+        ) -> Result<(ApprovalWorkflow, Vec<ApprovalWorkflowStep>), AppError> {
+            let wf = self.update_workflow(auth_token, workflow).await?;
+            self.delete_steps_by_workflow_id(auth_token, wf.id).await?;
+            for step in &mut steps {
+                step.workflow_id = wf.id;
+            }
+            let created_steps = self.create_steps(auth_token, steps).await?;
+            Ok((wf, created_steps))
+        }
         async fn create_workflow(
             &self,
             _auth_token: &TenantAuthToken,

@@ -117,10 +117,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 2. Initialize Supavisor pooler — system tenant must be registered before pools connect
     let tenant_manager: std::sync::Arc<dyn apiserver::supavisor::TenantManager> =
-        if let Some(mgr) = apiserver::supavisor::SupavisorTenantManager::new() {
-            std::sync::Arc::new(mgr)
-        } else {
-            std::sync::Arc::new(apiserver::supavisor::NoopTenantManager)
+        match apiserver::supavisor::SupavisorTenantManager::new() {
+            Ok(mgr) => std::sync::Arc::new(mgr),
+            Err(e) => {
+                if cfg!(debug_assertions) {
+                    tracing::warn!("⚠️ Supavisor variables not fully set ({:?}) — falling back to NoopTenantManager for development.", e);
+                    std::sync::Arc::new(apiserver::supavisor::NoopTenantManager)
+                } else {
+                    return Err(Box::<dyn std::error::Error>::from(e));
+                }
+            }
         };
     tenant_manager.init_tenant().await;
 

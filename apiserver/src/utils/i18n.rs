@@ -29,6 +29,8 @@ pub const ALL_KEYS: &[&str] = &[
     "error.upload_file_too_large",
     "error.upload_no_file",
     "error.tenant_mismatch",
+    "error.supavisor_api_url_required",
+    "error.api_jwt_secret_required",
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -141,6 +143,12 @@ fn lookup_en(key: &str) -> Option<&'static str> {
         "error.upload_file_too_large" => Some("Uploaded file is too large"),
         "error.upload_no_file" => Some("No file was uploaded"),
         "error.tenant_mismatch" => Some("Tenant mismatch"),
+        "error.supavisor_api_url_required" => {
+            Some("SUPAVISOR_API_URL environment variable is required")
+        }
+        "error.api_jwt_secret_required" => {
+            Some("API_JWT_SECRET (or SUPAVISOR_API_JWT) environment variable is required")
+        }
         _ => None,
     }
 }
@@ -169,6 +177,8 @@ fn lookup_vi(key: &str) -> Option<&'static str> {
         "error.upload_file_too_large" => Some("File tải lên vượt quá dung lượng cho phép"),
         "error.upload_no_file" => Some("Không có file nào được tải lên"),
         "error.tenant_mismatch" => Some("Không khớp tenant"),
+        "error.supavisor_api_url_required" => Some("Yêu cầu biến môi trường SUPAVISOR_API_URL"),
+        "error.api_jwt_secret_required" => Some("Yêu cầu biến môi trường API_JWT_SECRET (hoặc SUPAVISOR_API_JWT)"),
         _ => None,
     }
 }
@@ -201,6 +211,10 @@ fn lookup_zh(key: &str) -> Option<&'static str> {
         "error.upload_file_too_large" => Some("上传的文件太大"),
         "error.upload_no_file" => Some("未上传文件"),
         "error.tenant_mismatch" => Some("租户不匹配"),
+        "error.supavisor_api_url_required" => Some("需要 SUPAVISOR_API_URL 环境变量"),
+        "error.api_jwt_secret_required" => {
+            Some("需要 API_JWT_SECRET (或 SUPAVISOR_API_JWT) 环境变量")
+        }
         _ => None,
     }
 }
