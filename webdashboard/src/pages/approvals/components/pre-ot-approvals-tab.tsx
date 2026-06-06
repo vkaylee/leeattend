@@ -16,7 +16,7 @@ export function PreOtApprovalsTab({ wsId: _wsId, canApprove }: { wsId: string; c
   const { mutate: processApproval, isPending: isProcessing } = useProcessApproval();
 
   // Filter for pending status
-  const pendingRequests = (allRequests ?? []).filter(req => req.status === "pending_approval" || req.status === "draft");
+  const pendingRequests = (allRequests?.data ?? []).filter(req => req.status === "pending_approval" || req.status === "draft");
 
   const handleAction = (id: string, action: "approve" | "reject") => {
     processApproval(

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment */
-import type { ApprovalActionLog, BehalfAssignment, CreateBehalfAssignmentRequest } from './types';
+import type { ApprovalActionLog, BehalfAssignment, CreateBehalfAssignmentRequest, PaginatedResponse } from './types';
 
 import { client } from './client';
 
@@ -86,7 +86,7 @@ export interface QuotaSummary {
 }
 
 export const overtimeRequestsApi = {
-  listRequests: async (workspaceId: string, params?: Record<string, unknown>): Promise<OvertimeRequest[]> => {
+  listRequests: async (workspaceId: string, params?: Record<string, unknown>): Promise<PaginatedResponse<OvertimeRequest>> => {
     const { data } = await client.GET("/v1/workspaces/{ws_id}/overtime/requests", {
       params: {
         path: { ws_id: workspaceId },
@@ -94,7 +94,7 @@ export const overtimeRequestsApi = {
       },
     });
     if (!data) throw new Error("No response data");
-    return data as unknown as OvertimeRequest[];
+    return data as unknown as PaginatedResponse<OvertimeRequest>;
   },
 
   getRequest: async (workspaceId: string, id: string): Promise<OvertimeRequestDetail> => {

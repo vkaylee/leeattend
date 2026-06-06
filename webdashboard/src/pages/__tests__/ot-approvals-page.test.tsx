@@ -75,18 +75,23 @@ vi.mock("@/hooks/use-attendance", () => ({
 
 vi.mock("@/hooks/use-overtime-requests", () => ({
   useOvertimeRequests: vi.fn(() => ({
-    data: [
-      {
-        id: "req-123",
-        status: "pending_approval",
-        planned_date: "2026-06-04",
-        planned_start_time: "17:00:00",
-        planned_end_time: "19:00:00",
-        planned_minutes: 120,
-        reason: "Late night deploy",
-        employees: [{ employee_id: "EMP-001", full_name: "Test Employee" }],
-      }
-    ],
+    data: {
+      data: [
+        {
+          id: "req-123",
+          status: "pending_approval",
+          planned_date: "2026-06-04",
+          planned_start_time: "17:00:00",
+          planned_end_time: "19:00:00",
+          planned_minutes: 120,
+          reason: "Late night deploy",
+          employees: [{ employee_id: "EMP-001", full_name: "Test Employee" }],
+        }
+      ],
+      total: 1,
+      page: 1,
+      limit: 20,
+    },
     isLoading: false,
   })),
   useCreateOvertimeRequest: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
