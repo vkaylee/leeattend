@@ -4,7 +4,7 @@ use crate::repositories::OvertimeRequestRepository;
 use crate::schema::{overtime_request_employees, overtime_requests};
 use async_trait::async_trait;
 use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
+use diesel_async::{AsyncConnection, RunQueryDsl};
 use uuid::Uuid;
 
 pub struct DieselOvertimeRequestRepository {
@@ -34,23 +34,32 @@ impl OvertimeRequestRepository for DieselOvertimeRequestRepository {
             .tenant_transaction_conn(auth_token)
             .await?;
 
-        let req: OvertimeRequest = diesel::insert_into(overtime_requests::table)
-            .values(&request)
-            .get_result(&mut *conn)
-            .await
-            .map_err(|e| AppError::Internal(format!("Failed to create overtime request: {e}")))?;
+        conn.transaction::<_, AppError, _>(|conn| {
+            Box::pin(async move {
+                let req: OvertimeRequest = diesel::insert_into(overtime_requests::table)
+                    .values(&request)
+                    .get_result(&mut *conn)
+                    .await
+                    .map_err(|e| {
+                        AppError::Internal(format!("Failed to create overtime request: {e}"))
+                    })?;
 
-        if !employees.is_empty() {
-            diesel::insert_into(overtime_request_employees::table)
-                .values(&employees)
-                .execute(&mut *conn)
-                .await
-                .map_err(|e| {
-                    AppError::Internal(format!("Failed to create overtime request employees: {e}"))
-                })?;
-        }
+                if !employees.is_empty() {
+                    diesel::insert_into(overtime_request_employees::table)
+                        .values(&employees)
+                        .execute(&mut *conn)
+                        .await
+                        .map_err(|e| {
+                            AppError::Internal(format!(
+                                "Failed to create overtime request employees: {e}"
+                            ))
+                        })?;
+                }
 
-        Ok(req)
+                Ok(req)
+            })
+        })
+        .await
     }
 
     async fn update_request(
@@ -168,6 +177,38 @@ impl OvertimeRequestRepository for DieselOvertimeRequestRepository {
 
         Ok(updated)
     }
+
+    async fn list_requests(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        page: i64,
+        limit: i64,
+    ) -> Result<(Vec<OvertimeRequest>, i64), AppError> {
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+
+        let workspace_id = auth_token.workspace_id();
+
+        let total: i64 = overtime_requests::table
+            .filter(overtime_requests::workspace_id.eq(workspace_id))
+            .count()
+            .get_result(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to count overtime requests: {e}")))?;
+
+        let results = overtime_requests::table
+            .filter(overtime_requests::workspace_id.eq(workspace_id))
+            .order(overtime_requests::created_at.desc())
+            .limit(limit)
+            .offset((page - 1) * limit)
+            .load::<OvertimeRequest>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to list overtime requests: {e}")))?;
+
+        Ok((results, total))
+    }
 }
 
 #[cfg(test)]
@@ -183,5 +224,48 @@ mod tests {
 
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselOvertimeRequestRepository::new(pools);
+    }
+
+    #[tokio::test]
+    async fn test_overtime_request_repository_methods() {
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
+        let pools = DieselPools::for_test(&test_db_url);
+        let repo = DieselOvertimeRequestRepository::new(pools);
+        let ws_id = Uuid::new_v4();
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(ws_id);
+
+        let request = OvertimeRequest::new(
+            Uuid::new_v4(),
+            ws_id,
+            Uuid::new_v4(),
+            None,
+            chrono::NaiveDate::from_ymd_opt(2023, 10, 10).unwrap(),
+            None,
+            None,
+            120,
+            "test".to_string(),
+            crate::models::OtRequestStatus::PendingApproval,
+            None,
+            1,
+            None,
+            None,
+            None,
+            chrono::Utc::now(),
+            chrono::Utc::now(),
+        );
+
+        let _ = repo
+            .create_request(&auth_token, request.clone(), vec![])
+            .await;
+        let _ = repo.update_request(&auth_token, request.clone()).await;
+        let _ = repo.get_request(&auth_token, ws_id, request.id()).await;
+        let _ = repo.get_request_employees(&auth_token, request.id()).await;
+        let _ = repo
+            .update_employee_consent(&auth_token, request.id(), Uuid::new_v4(), "approved", None)
+            .await;
+        let _ = repo.list_requests(&auth_token, 1, 10).await;
     }
 }

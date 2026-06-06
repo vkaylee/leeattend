@@ -89,6 +89,17 @@ impl OvertimeRequestService {
             .update_employee_consent(auth_token, request_id, employee_id, consent_status, reason)
             .await
     }
+
+    pub async fn list_requests(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        page: i64,
+        limit: i64,
+    ) -> AppResult<(Vec<OvertimeRequest>, i64)> {
+        self.overtime_request_repo
+            .list_requests(auth_token, page, limit)
+            .await
+    }
 }
 
 #[async_trait::async_trait]
@@ -202,6 +213,15 @@ mod tests {
             _reason: Option<String>,
         ) -> Result<OvertimeRequestEmployee, AppError> {
             unimplemented!()
+        }
+
+        async fn list_requests(
+            &self,
+            _auth_token: &TenantAuthToken,
+            _page: i64,
+            _limit: i64,
+        ) -> Result<(Vec<OvertimeRequest>, i64), AppError> {
+            Ok((vec![], 0))
         }
     }
 

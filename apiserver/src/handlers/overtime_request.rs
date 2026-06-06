@@ -4,7 +4,7 @@ use crate::{
     handlers::common::MemberContext,
     models::{
         BehalfAssignment, CreateBehalfAssignmentRequest, Employee, OtRequestStatus,
-        OvertimeRequest, OvertimeRequestEmployee,
+        OvertimeRequest, OvertimeRequestEmployee, PaginatedResponse,
     },
     AppState,
 };
@@ -17,6 +17,22 @@ use chrono::{NaiveDate, NaiveTime};
 use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
+
+#[derive(serde::Serialize, utoipa::ToSchema)]
+pub struct PaginatedOvertimeRequests {
+    pub data: Vec<OvertimeRequest>,
+    pub total: usize,
+    pub page: i64,
+    pub limit: i64,
+}
+
+#[derive(serde::Serialize, utoipa::ToSchema)]
+pub struct PaginatedBehalfAssignments {
+    pub data: Vec<BehalfAssignment>,
+    pub total: usize,
+    pub page: i64,
+    pub limit: i64,
+}
 
 #[derive(Deserialize, utoipa::ToSchema)]
 pub struct CreateOvertimeRequestPayload {
@@ -114,24 +130,45 @@ pub async fn create_ot_request(
     Ok(Json(created))
 }
 
+#[derive(Deserialize, utoipa::IntoParams)]
+pub struct ListOtRequestsQuery {
+    pub page: Option<i64>,
+    pub limit: Option<i64>,
+}
+
 #[utoipa::path(
     get,
     path = "/v1/workspaces/{ws_id}/overtime/requests",
     responses(
-        (status = 200, description = "List overtime requests", body = [OvertimeRequest])
+        (status = 200, description = "List overtime requests", body = PaginatedOvertimeRequests)
     ),
     params(
-        ("ws_id" = Uuid, Path, description = "Workspace ID")
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ListOtRequestsQuery
     )
 )]
 pub async fn list_ot_requests(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-) -> AppResult<Json<Vec<OvertimeRequest>>> {
+    axum::extract::Query(query): axum::extract::Query<ListOtRequestsQuery>,
+) -> AppResult<Json<PaginatedResponse<OvertimeRequest>>> {
     ctx.require_permission(Permission::OvertimeRequestRead)?;
 
-    // We haven't implemented list_requests yet in repo
-    Ok(Json(vec![]))
+    let page = query.page.unwrap_or(1).max(1);
+    let limit = query.limit.unwrap_or(50).clamp(1, 3000);
+
+    let (requests, total) = state
+        .payroll()
+        .overtime_request_service()
+        .list_requests(&ctx.auth_token, page, limit)
+        .await?;
+
+    Ok(Json(PaginatedResponse {
+        data: requests,
+        total: total as usize,
+        page,
+        limit,
+    }))
 }
 
 #[utoipa::path(
@@ -336,14 +373,21 @@ pub async fn delete_request_behalf_assignment(
     Ok(StatusCode::OK)
 }
 
+#[derive(Deserialize, utoipa::IntoParams)]
+pub struct ListBehalfAssignmentsQuery {
+    pub page: Option<i64>,
+    pub limit: Option<i64>,
+}
+
 #[utoipa::path(
     get,
     path = "/v1/workspaces/{ws_id}/overtime/requests/behalf-assignments",
     params(
-        ("ws_id" = Uuid, Path, description = "Workspace ID")
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ListBehalfAssignmentsQuery
     ),
     responses(
-        (status = 200, description = "List of assignments", body = [BehalfAssignment])
+        (status = 200, description = "List of assignments", body = PaginatedBehalfAssignments)
     ),
     security(
         ("bearer_auth" = [])
@@ -353,15 +397,35 @@ pub async fn list_request_behalf_assignments(
     State(state): State<Arc<AppState>>,
     Path(_ws_id): Path<Uuid>,
     ctx: MemberContext,
-) -> AppResult<Json<Vec<BehalfAssignment>>> {
-    let result = crate::handlers::common::list_behalf_assignments_handler(
+    axum::extract::Query(query): axum::extract::Query<ListBehalfAssignmentsQuery>,
+) -> AppResult<Json<PaginatedResponse<BehalfAssignment>>> {
+    let page = query.page.unwrap_or(1).max(1);
+    let limit = query.limit.unwrap_or(50).clamp(1, 3000);
+
+    let mut result = crate::handlers::common::list_behalf_assignments_handler(
         &state,
         &ctx,
         Permission::OvertimePoliciesManage,
         "overtime_request",
     )
     .await?;
-    Ok(Json(result))
+
+    let total = result.len();
+    let offset = ((page - 1) * limit) as usize;
+    let paginated_results = if offset >= total {
+        Vec::new()
+    } else {
+        result
+            .drain(offset..std::cmp::min(offset + limit as usize, total))
+            .collect()
+    };
+
+    Ok(Json(PaginatedResponse {
+        data: paginated_results,
+        total,
+        page,
+        limit,
+    }))
 }
 
 #[utoipa::path(

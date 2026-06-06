@@ -25,6 +25,14 @@ pub struct PaginatedApprovalWorkflows {
     pub limit: i64,
 }
 
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct PaginatedApprovalWorkflowTasks {
+    pub data: Vec<ApprovalWorkflowTask>,
+    pub total: usize,
+    pub page: i64,
+    pub limit: i64,
+}
+
 #[derive(Deserialize, utoipa::IntoParams)]
 pub struct ListWorkflowsQuery {
     pub entity_type: Option<String>,
@@ -367,27 +375,54 @@ pub async fn get_approval_history(
     Ok(Json(history))
 }
 
+#[derive(Deserialize, utoipa::IntoParams)]
+pub struct ListPendingTasksQuery {
+    pub page: Option<i64>,
+    pub limit: Option<i64>,
+}
+
 /// GET /workspaces/{ws_id}/approval-workflows/pending-tasks
 #[utoipa::path(
     get,
     path = "/workspaces/{ws_id}/approval-workflows/pending-tasks",
     params(
-        ("ws_id" = Uuid, Path, description = "Workspace ID")
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ListPendingTasksQuery
     ),
     responses(
-        (status = 200, description = "Pending approval tasks for the current user", body = [ApprovalWorkflowTask])
+        (status = 200, description = "Pending approval tasks for the current user", body = PaginatedApprovalWorkflowTasks)
     )
 )]
 pub async fn get_pending_tasks(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-) -> AppResult<Json<Vec<crate::models::ApprovalWorkflowTask>>> {
+    axum::extract::Query(query): axum::extract::Query<ListPendingTasksQuery>,
+) -> AppResult<Json<PaginatedResponse<crate::models::ApprovalWorkflowTask>>> {
     ctx.require_permission(Permission::ApprovalWorkflowsRead)?;
-    let tasks = state
+
+    let page = query.page.unwrap_or(1).max(1);
+    let limit = query.limit.unwrap_or(50).clamp(1, 3000);
+
+    let mut tasks = state
         .core()
         .approval_workflow_service()
         .get_pending_tasks_for_user(&ctx.auth_token, ctx.user_id)
         .await?;
 
-    Ok(Json(tasks))
+    let total = tasks.len();
+    let offset = ((page - 1) * limit) as usize;
+    let paginated_tasks = if offset >= total {
+        Vec::new()
+    } else {
+        tasks
+            .drain(offset..std::cmp::min(offset + limit as usize, total))
+            .collect()
+    };
+
+    Ok(Json(PaginatedResponse {
+        data: paginated_tasks,
+        total,
+        page,
+        limit,
+    }))
 }

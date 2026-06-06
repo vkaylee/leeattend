@@ -459,7 +459,8 @@ async fn test_overtime_request_behalf_assignments() {
         .unwrap();
 
     assert_eq!(res.status(), StatusCode::OK);
-    let list: Vec<serde_json::Value> = res.json().await.unwrap();
+    let paginated: serde_json::Value = res.json().await.unwrap();
+    let list = paginated["data"].as_array().unwrap();
     assert!(list
         .iter()
         .any(|item| item["id"].as_str().unwrap() == assignment_id));

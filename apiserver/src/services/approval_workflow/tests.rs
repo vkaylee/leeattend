@@ -1414,6 +1414,18 @@ mod tests {
         ) -> Result<crate::models::OvertimeRequestEmployee, AppError> {
             unimplemented!()
         }
+        async fn list_requests(
+            &self,
+            _a: &TenantAuthToken,
+            _page: i64,
+            _limit: i64,
+        ) -> Result<(Vec<crate::models::OvertimeRequest>, i64), AppError> {
+            let state = self.state.lock().unwrap();
+            let list: Vec<crate::models::OvertimeRequest> =
+                state.ot_requests.values().cloned().collect();
+            let total = list.len() as i64;
+            Ok((list, total))
+        }
     }
 
     struct MockDailySummaryRepository;

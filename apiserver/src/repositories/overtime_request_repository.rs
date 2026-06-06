@@ -39,4 +39,11 @@ pub trait OvertimeRequestRepository: Send + Sync {
         consent_status: &str,
         reason: Option<String>,
     ) -> Result<OvertimeRequestEmployee, AppError>;
+
+    async fn list_requests(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        page: i64,
+        limit: i64,
+    ) -> Result<(Vec<OvertimeRequest>, i64), AppError>;
 }
