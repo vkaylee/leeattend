@@ -22,7 +22,7 @@ import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useWorkingConditions } from "@/hooks/use-employees";
-import { apiFetch } from "@/lib/api/helpers";
+import { createWorkingCondition, deleteWorkingCondition, getCurrentWorkspaceId } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 enum EmployeeWorkingConditionType {
@@ -159,23 +159,20 @@ function useWorkingConditionActions({
   setIsAdding: (val: boolean) => void;
   t: TFunction;
 }) {
+  const wsId = getCurrentWorkspaceId();
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await apiFetch(`/v1/employees/${employeeId}/working-conditions/${id}`, { method: "DELETE" });
-      if (!response.ok) throw new Error("Failed to delete");
+      if (!wsId) throw new Error("Workspace ID is required");
+      await deleteWorkingCondition(wsId, employeeId, id);
     },
     onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["working-conditions", employeeId] }); },
   });
 
   const createMutation = useMutation({
     mutationFn: async (data: CreateWorkingConditionData) => {
-      const response = await apiFetch(`/v1/employees/${employeeId}/working-conditions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) throw new Error("Failed to create");
-      return response.json() as Promise<WorkingCondition>;
+      if (!wsId) throw new Error("Workspace ID is required");
+      return createWorkingCondition(wsId, employeeId, data);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["working-conditions", employeeId] });

@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { fetchEmployees } from "@/lib/api";
-import { apiFetch } from "@/lib/api/helpers";
+import { fetchEmployees, fetchWorkingConditions, getCurrentWorkspaceId } from "@/lib/api";
 import { WorkingCondition } from "@/lib/api/types";
 
 /**
@@ -52,13 +51,13 @@ export function useAllEmployees(
 }
 
 export function useWorkingConditions(employeeId: string) {
+  const wsId = getCurrentWorkspaceId();
   return useQuery({
     queryKey: ["working-conditions", employeeId],
-    queryFn: async () => {
-      const response = await apiFetch(`/v1/employees/${employeeId}/working-conditions`);
-      if (!response.ok) throw new Error("Failed to fetch");
-      return response.json() as Promise<WorkingCondition[]>;
+    queryFn: () => {
+      if (!wsId) throw new Error("Workspace ID is required");
+      return fetchWorkingConditions(wsId, employeeId);
     },
-    enabled: !!employeeId,
+    enabled: !!employeeId && !!wsId,
   });
 }

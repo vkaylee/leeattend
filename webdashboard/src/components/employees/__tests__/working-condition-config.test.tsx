@@ -14,27 +14,37 @@ import WorkingConditionConfig from "../working-condition-config";
 // Mock API
 const mockDelete = vi.fn().mockResolvedValue(undefined);
 vi.stubGlobal("fetch", vi.fn((url: string, options?: RequestInit) => {
+  let responseData: any = null;
   if (options?.method === "DELETE") {
     mockDelete("ws-1", "emp-1", "cond-1");
-    return Promise.resolve({ ok: true });
+    responseData = null;
+  } else if (options?.method === "POST") {
+    responseData = { id: "cond-2", type: "EARLY_LEAVE", start_date: "2026-01-01", is_paid: true };
+  } else {
+    // GET
+    responseData = {
+      data: [
+        {
+          id: "cond-1",
+          type: "EARLY_LEAVE",
+          minute_allowance: 60,
+          is_paid: true,
+          start_date: "2026-01-01"
+        }
+      ]
+    };
   }
-  if (options?.method === "POST") {
-    return Promise.resolve({ ok: true, json: () => Promise.resolve({ id: "cond-2", type: "EARLY_LEAVE", start_date: "2026-01-01", is_paid: true }) });
-  }
-  // GET
+
   return Promise.resolve({
     ok: true,
-    json: () => Promise.resolve([
-      {
-        id: "cond-1",
-        type: "EARLY_LEAVE",
-        minute_allowance: 60,
-        is_paid: true,
-        start_date: "2026-01-01"
-      }
-    ])
-  });
+    status: 200,
+    headers: new Headers({ "content-type": "application/json" }),
+    json: () => Promise.resolve(responseData),
+    text: () => Promise.resolve(responseData ? JSON.stringify(responseData) : ""),
+    clone: function() { return this; }
+  } as unknown as Response);
 }));
+
 
 // Mock translation
 vi.mock("react-i18next", () => ({
@@ -66,10 +76,12 @@ const renderComponent = (props: { wsId: string; employeeId: string }) => {
 describe("WorkingConditionConfig", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.setItem("active_workspace_id", "ws-1");
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    localStorage.clear();
   });
 
   it("should show useConfirm dialog when deleting a condition", async () => {
