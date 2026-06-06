@@ -256,7 +256,12 @@ export async function setupApiMocks(page: Page) {
 
     if (pathname.includes('/overtime/requests')) {
       if (method === 'GET') {
-        return fulfill([]);
+        return fulfill({
+          data: [],
+          total: 0,
+          page: 1,
+          limit: 20,
+        });
       }
       if (method === 'POST') {
         return fulfill({
