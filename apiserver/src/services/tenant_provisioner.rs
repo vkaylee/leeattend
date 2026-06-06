@@ -66,10 +66,9 @@ impl TenantProvisionerTrait for TenantMigrator {
                         timezone: String,
                     }
                     use diesel::RunQueryDsl;
-                    if let Ok(rows) = diesel::sql_query(format!(
-                        "SELECT timezone FROM workspaces WHERE id = '{ws_id}'"
-                    ))
-                    .load::<TimezoneRow>(&mut system_conn)
+                    if let Ok(rows) = diesel::sql_query("SELECT timezone FROM workspaces WHERE id = $1")
+                        .bind::<diesel::sql_types::Uuid, _>(ws_id)
+                        .load::<TimezoneRow>(&mut system_conn)
                     {
                         if let Some(row) = rows.first() {
                             timezone.clone_from(&row.timezone);
@@ -78,16 +77,16 @@ impl TenantProvisionerTrait for TenantMigrator {
                 }
             }
 
-            let insert_hq_sql = format!(
-                "INSERT INTO work_locations (id, workspace_id, name, timezone, is_headquarters)
-                 VALUES ('11111111-1111-1111-1111-111111111111'::uuid, '{ws_id}', 'Headquarters', '{timezone}', true)
-                 ON CONFLICT (id) DO NOTHING"
-            );
-
             use diesel::RunQueryDsl;
-            diesel::sql_query(insert_hq_sql)
-                .execute(&mut sync_conn)
-                .map_err(|e| AppError::Internal(format!("Failed to seed Headquarters location: {e}")))?;
+            diesel::sql_query(
+                "INSERT INTO work_locations (id, workspace_id, name, timezone, is_headquarters) \
+                 VALUES ('11111111-1111-1111-1111-111111111111'::uuid, $1, 'Headquarters', $2, true) \
+                 ON CONFLICT (id) DO NOTHING"
+            )
+            .bind::<diesel::sql_types::Uuid, _>(ws_id)
+            .bind::<diesel::sql_types::Text, _>(&timezone)
+            .execute(&mut sync_conn)
+            .map_err(|e| AppError::Internal(format!("Failed to seed Headquarters location: {e}")))?;
 
             Ok::<(), AppError>(())
         })

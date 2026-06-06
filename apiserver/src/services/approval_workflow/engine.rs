@@ -48,10 +48,10 @@ impl ApprovalWorkflowService {
                     .get_request(auth_token, auth_token.workspace_id(), entity_id)
                     .await
                 {
-                    info.user_id = Some(req.requested_by_user_id);
+                    info.user_id = Some(req.requested_by_user_id());
                     if let Ok(Some(emp_id)) = self
                         .employee_repo
-                        .get_employee_id_by_user_id(auth_token, req.requested_by_user_id)
+                        .get_employee_id_by_user_id(auth_token, req.requested_by_user_id())
                         .await
                     {
                         info.employee_id = Some(emp_id);

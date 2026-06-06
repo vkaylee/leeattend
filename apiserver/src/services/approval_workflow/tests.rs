@@ -1376,7 +1376,7 @@ mod tests {
             _e: Vec<crate::models::OvertimeRequestEmployee>,
         ) -> Result<crate::models::OvertimeRequest, AppError> {
             let mut state = self.state.lock().unwrap();
-            state.ot_requests.insert(r.id, r.clone());
+            state.ot_requests.insert(r.id(), r.clone());
             Ok(r)
         }
         async fn update_request(
@@ -1385,7 +1385,7 @@ mod tests {
             r: crate::models::OvertimeRequest,
         ) -> Result<crate::models::OvertimeRequest, AppError> {
             let mut state = self.state.lock().unwrap();
-            state.ot_requests.insert(r.id, r.clone());
+            state.ot_requests.insert(r.id(), r.clone());
             Ok(r)
         }
         async fn get_request(

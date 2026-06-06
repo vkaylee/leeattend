@@ -122,8 +122,7 @@ pub struct PayrollService {
     policy_repo: Arc<dyn crate::repositories::AttendancePolicyRepository>,
     employee_repo: Arc<dyn crate::repositories::EmployeeRepository>,
     overtime_policy_repo: Arc<dyn OvertimePolicyRepositoryTrait>,
-    salary_base_repo:
-        Arc<dyn crate::repositories::salary_base_repository::SalaryBaseRepository>,
+    salary_base_repo: Arc<dyn crate::repositories::salary_base_repository::SalaryBaseRepository>,
     roster_provider: Arc<dyn RosterDataProvider>,
 }
 impl PayrollService {
@@ -761,32 +760,40 @@ impl PayrollService {
                 .and_hms_opt(0, 0, 0)
                 .unwrap_or_default()
                 .and_utc();
-            let salary_histories = self.payroll_repo.get_salary_components_history_batch(
-                workspace_id,
-                &chunk_ids,
-                start_date,
-                end_date,
-            ).await;
+            let salary_histories = self
+                .payroll_repo
+                .get_salary_components_history_batch(workspace_id, &chunk_ids, start_date, end_date)
+                .await;
 
-            let dept_histories = self.department_repo
-                .get_employee_department_history_batch(token, &chunk_ids).await;
+            let dept_histories = self
+                .department_repo
+                .get_employee_department_history_batch(token, &chunk_ids)
+                .await;
 
-            let time_entries = self.time_entry_repo
-                .get_workspace_time_entries_batch(token, &chunk_ids, start_dt, end_dt).await;
+            let time_entries = self
+                .time_entry_repo
+                .get_workspace_time_entries_batch(token, &chunk_ids, start_dt, end_dt)
+                .await;
 
-            let employees_res = self.employee_repo.get_employees_by_ids(&chunk_ids, token).await;
+            let employees_res = self
+                .employee_repo
+                .get_employees_by_ids(&chunk_ids, token)
+                .await;
 
-            let rosters = self.roster_repo
-                .get_employee_rosters_batch(token, &chunk_ids, start_date, end_date).await;
+            let rosters = self
+                .roster_repo
+                .get_employee_rosters_batch(token, &chunk_ids, start_date, end_date)
+                .await;
 
-            let conditions_res = self.employee_repo
-                .get_working_conditions_batch(token, &chunk_ids, start_date, end_date).await;
+            let conditions_res = self
+                .employee_repo
+                .get_working_conditions_batch(token, &chunk_ids, start_date, end_date)
+                .await;
 
-            let policies_res = self.policy_repo.get_employee_effective_policies_batch(
-                token,
-                &chunk_ids,
-                effective_time
-            ).await;
+            let policies_res = self
+                .policy_repo
+                .get_employee_effective_policies_batch(token, &chunk_ids, effective_time)
+                .await;
 
             let mut employees = match employees_res {
                 Ok(emps) => emps

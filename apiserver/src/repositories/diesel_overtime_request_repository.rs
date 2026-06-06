@@ -25,7 +25,7 @@ impl OvertimeRequestRepository for DieselOvertimeRequestRepository {
         request: OvertimeRequest,
         employees: Vec<OvertimeRequestEmployee>,
     ) -> Result<OvertimeRequest, AppError> {
-        if request.workspace_id != auth_token.workspace_id() {
+        if request.workspace_id() != auth_token.workspace_id() {
             return Err(AppError::Forbidden("error.tenant_mismatch".into()));
         }
 
@@ -65,14 +65,14 @@ impl OvertimeRequestRepository for DieselOvertimeRequestRepository {
 
         let updated = diesel::update(
             overtime_requests::table
-                .filter(overtime_requests::id.eq(request.id))
-                .filter(overtime_requests::workspace_id.eq(request.workspace_id)),
+                .filter(overtime_requests::id.eq(request.id()))
+                .filter(overtime_requests::workspace_id.eq(request.workspace_id())),
         )
         .set((
-            overtime_requests::status.eq(&request.status),
-            overtime_requests::current_step.eq(request.current_step),
-            overtime_requests::reconciled_at.eq(request.reconciled_at),
-            overtime_requests::reconciled_by.eq(request.reconciled_by),
+            overtime_requests::status.eq(request.status()),
+            overtime_requests::current_step.eq(request.current_step()),
+            overtime_requests::reconciled_at.eq(request.reconciled_at()),
+            overtime_requests::reconciled_by.eq(request.reconciled_by()),
             overtime_requests::updated_at.eq(chrono::Utc::now()),
         ))
         .get_result(&mut *conn)

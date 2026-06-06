@@ -285,7 +285,8 @@ async fn test_ot_request_workflow_flow() {
             "POST",
             &format!(
                 "/api/v1/workspaces/{ws_id}/overtime/requests/{}/consent/{}",
-                created.id, emp_id
+                created.id(),
+                emp_id
             ),
             ws_id,
             &admin_token,
@@ -302,7 +303,7 @@ async fn test_ot_request_workflow_flow() {
             "POST",
             &format!(
                 "/api/v1/workspaces/{ws_id}/overtime/requests/{}/submit",
-                created.id
+                created.id()
             ),
             ws_id,
             &admin_token,
@@ -315,7 +316,7 @@ async fn test_ot_request_workflow_flow() {
     // Approve workflow step
     let approve_payload = serde_json::json!({
         "entity_type": "ot_request",
-        "entity_id": created.id,
+        "entity_id": created.id(),
         "action": "approve",
         "note": "approved!"
     });
@@ -338,7 +339,7 @@ async fn test_ot_request_workflow_flow() {
         &factory.diesel_pools.api,
         "SELECT status::text AS val FROM overtime_requests WHERE id = $1",
         diesel::sql_types::Uuid,
-        created.id
+        created.id()
     );
     assert_eq!(status_str, "approved");
 }

@@ -600,7 +600,6 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         .await
     }
 
-
     async fn create_employee(&self, employee: &Employee) -> Result<(), AppError> {
         let workspace_id = employee.workspace_id();
         let mut conn = crate::diesel_pool::TransactionConn(

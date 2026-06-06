@@ -33,7 +33,7 @@ async fn test_device_logs_never_cleared() {
     let fetch_count_clone = fetch_count.clone();
 
     // Simulate device polling loop (simplified)
-    tokio::spawn(async move {
+    let handle = tokio::spawn(async move {
         for _ in 0..5 {
             // Fetch logs (this is OK)
             fetch_count_clone.fetch_add(1, Ordering::SeqCst);
@@ -46,7 +46,7 @@ async fn test_device_logs_never_cleared() {
     });
 
     // Wait for polling cycles to complete
-    sleep(Duration::from_millis(100)).await;
+    let _ = handle.await;
 
     // Assert: Logs were fetched multiple times
     let fetches = fetch_count.load(Ordering::SeqCst);

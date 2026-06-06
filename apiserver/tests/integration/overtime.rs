@@ -284,25 +284,25 @@ async fn test_overtime_request_status_serialization() {
 
     for status in statuses {
         let req_id = Uuid::new_v4();
-        let overtime_req = OvertimeRequest {
-            id: req_id,
-            workspace_id: admin_ws_id,
-            requested_by_user_id: admin_user_id,
-            department_id: None,
-            planned_date: NaiveDate::from_ymd_opt(2026, 6, 1).unwrap(),
-            planned_start_time: None,
-            planned_end_time: None,
-            planned_minutes: 120,
-            reason: format!("Test status {:?}", status),
-            status: status.clone(),
-            workflow_id: None,
-            current_step: 0,
-            quota_warning: None,
-            reconciled_at: None,
-            reconciled_by: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        };
+        let overtime_req = OvertimeRequest::new(
+            req_id,
+            admin_ws_id,
+            admin_user_id,
+            None,
+            NaiveDate::from_ymd_opt(2026, 6, 1).unwrap(),
+            None,
+            None,
+            120,
+            format!("Test status {:?}", status),
+            status.clone(),
+            None,
+            0,
+            None,
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
 
         // Insert
         let inserted: OvertimeRequest = diesel::insert_into(overtime_requests::table)
@@ -311,7 +311,7 @@ async fn test_overtime_request_status_serialization() {
             .await
             .unwrap();
 
-        assert_eq!(inserted.status, status);
+        assert_eq!(inserted.status(), status);
 
         // Query back
         let queried: OvertimeRequest = overtime_requests::table
@@ -320,7 +320,7 @@ async fn test_overtime_request_status_serialization() {
             .await
             .unwrap();
 
-        assert_eq!(queried.status, status);
+        assert_eq!(queried.status(), status);
     }
 }
 

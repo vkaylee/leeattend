@@ -120,7 +120,7 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
         employee_id: Uuid,
     ) -> Result<bool, AppError> {
         let workspace_id = auth_token.workspace_id();
-        use crate::schema::working_conditions;
+        use crate::schema::{employees, working_conditions};
 
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -133,6 +133,13 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
         let affected = diesel::delete(working_conditions::table)
             .filter(working_conditions::id.eq(id))
             .filter(working_conditions::employee_id.eq(employee_id))
+            .filter(
+                working_conditions::employee_id.eq_any(
+                    employees::table
+                        .select(employees::id)
+                        .filter(employees::workspace_id.eq(workspace_id)),
+                ),
+            )
             .execute(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;

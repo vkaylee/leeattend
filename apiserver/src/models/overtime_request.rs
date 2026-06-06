@@ -16,38 +16,228 @@ use uuid::Uuid;
 #[diesel(table_name = overtime_requests)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct OvertimeRequest {
-    pub id: Uuid,
-    pub workspace_id: Uuid,
-    pub requested_by_user_id: Uuid,
-    pub department_id: Option<Uuid>,
-    pub planned_date: NaiveDate,
-    pub planned_start_time: Option<NaiveTime>,
-    pub planned_end_time: Option<NaiveTime>,
-    pub planned_minutes: i32,
-    pub reason: String,
-    pub status: OtRequestStatus,
-    pub workflow_id: Option<Uuid>,
-    pub current_step: i32,
-    pub quota_warning: Option<serde_json::Value>,
-    pub reconciled_at: Option<DateTime<Utc>>,
-    pub reconciled_by: Option<Uuid>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    id: Uuid,
+    workspace_id: Uuid,
+    requested_by_user_id: Uuid,
+    department_id: Option<Uuid>,
+    planned_date: NaiveDate,
+    planned_start_time: Option<NaiveTime>,
+    planned_end_time: Option<NaiveTime>,
+    planned_minutes: i32,
+    reason: String,
+    status: OtRequestStatus,
+    workflow_id: Option<Uuid>,
+    current_step: i32,
+    quota_warning: Option<serde_json::Value>,
+    reconciled_at: Option<DateTime<Utc>>,
+    reconciled_by: Option<Uuid>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+impl OvertimeRequest {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        id: Uuid,
+        workspace_id: Uuid,
+        requested_by_user_id: Uuid,
+        department_id: Option<Uuid>,
+        planned_date: NaiveDate,
+        planned_start_time: Option<NaiveTime>,
+        planned_end_time: Option<NaiveTime>,
+        planned_minutes: i32,
+        reason: String,
+        status: OtRequestStatus,
+        workflow_id: Option<Uuid>,
+        current_step: i32,
+        quota_warning: Option<serde_json::Value>,
+        reconciled_at: Option<DateTime<Utc>>,
+        reconciled_by: Option<Uuid>,
+        created_at: DateTime<Utc>,
+        updated_at: DateTime<Utc>,
+    ) -> Self {
+        Self {
+            id,
+            workspace_id,
+            requested_by_user_id,
+            department_id,
+            planned_date,
+            planned_start_time,
+            planned_end_time,
+            planned_minutes,
+            reason,
+            status,
+            workflow_id,
+            current_step,
+            quota_warning,
+            reconciled_at,
+            reconciled_by,
+            created_at,
+            updated_at,
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn workspace_id(&self) -> Uuid {
+        self.workspace_id
+    }
+
+    pub fn set_workspace_id(&mut self, val: Uuid) {
+        self.workspace_id = val;
+    }
+
+    pub fn requested_by_user_id(&self) -> Uuid {
+        self.requested_by_user_id
+    }
+
+    pub fn department_id(&self) -> Option<Uuid> {
+        self.department_id
+    }
+
+    pub fn planned_date(&self) -> NaiveDate {
+        self.planned_date
+    }
+
+    pub fn planned_start_time(&self) -> Option<NaiveTime> {
+        self.planned_start_time
+    }
+
+    pub fn planned_end_time(&self) -> Option<NaiveTime> {
+        self.planned_end_time
+    }
+
+    pub fn planned_minutes(&self) -> i32 {
+        self.planned_minutes
+    }
+
+    pub fn reason(&self) -> &str {
+        &self.reason
+    }
+
+    pub fn status(&self) -> OtRequestStatus {
+        self.status
+    }
+
+    pub fn set_status(&mut self, val: OtRequestStatus) {
+        self.status = val;
+    }
+
+    pub fn workflow_id(&self) -> Option<Uuid> {
+        self.workflow_id
+    }
+
+    pub fn current_step(&self) -> i32 {
+        self.current_step
+    }
+
+    pub fn set_current_step(&mut self, val: i32) {
+        self.current_step = val;
+    }
+
+    pub fn quota_warning(&self) -> Option<&serde_json::Value> {
+        self.quota_warning.as_ref()
+    }
+
+    pub fn reconciled_at(&self) -> Option<DateTime<Utc>> {
+        self.reconciled_at
+    }
+
+    pub fn reconciled_by(&self) -> Option<Uuid> {
+        self.reconciled_by
+    }
+
+    pub fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+
+    pub fn updated_at(&self) -> DateTime<Utc> {
+        self.updated_at
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Insertable, ToSchema)]
 #[diesel(table_name = overtime_request_employees)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct OvertimeRequestEmployee {
-    pub id: Uuid,
-    pub overtime_request_id: Uuid,
-    pub employee_id: Uuid,
-    pub consent_status: String,
-    pub consent_at: Option<DateTime<Utc>>,
-    pub decline_reason: Option<String>,
-    pub actual_ot_minutes: Option<i32>,
-    pub matched_summary_id: Option<Uuid>,
-    pub created_at: DateTime<Utc>,
+    id: Uuid,
+    overtime_request_id: Uuid,
+    employee_id: Uuid,
+    consent_status: String,
+    consent_at: Option<DateTime<Utc>>,
+    decline_reason: Option<String>,
+    actual_ot_minutes: Option<i32>,
+    matched_summary_id: Option<Uuid>,
+    created_at: DateTime<Utc>,
+}
+
+impl OvertimeRequestEmployee {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        id: Uuid,
+        overtime_request_id: Uuid,
+        employee_id: Uuid,
+        consent_status: String,
+        consent_at: Option<DateTime<Utc>>,
+        decline_reason: Option<String>,
+        actual_ot_minutes: Option<i32>,
+        matched_summary_id: Option<Uuid>,
+        created_at: DateTime<Utc>,
+    ) -> Self {
+        Self {
+            id,
+            overtime_request_id,
+            employee_id,
+            consent_status,
+            consent_at,
+            decline_reason,
+            actual_ot_minutes,
+            matched_summary_id,
+            created_at,
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn overtime_request_id(&self) -> Uuid {
+        self.overtime_request_id
+    }
+
+    pub fn set_overtime_request_id(&mut self, val: Uuid) {
+        self.overtime_request_id = val;
+    }
+
+    pub fn employee_id(&self) -> Uuid {
+        self.employee_id
+    }
+
+    pub fn consent_status(&self) -> &str {
+        &self.consent_status
+    }
+
+    pub fn consent_at(&self) -> Option<DateTime<Utc>> {
+        self.consent_at
+    }
+
+    pub fn decline_reason(&self) -> Option<&str> {
+        self.decline_reason.as_deref()
+    }
+
+    pub fn actual_ot_minutes(&self) -> Option<i32> {
+        self.actual_ot_minutes
+    }
+
+    pub fn matched_summary_id(&self) -> Option<Uuid> {
+        self.matched_summary_id
+    }
+
+    pub fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
 }
 
 impl ToSql<crate::schema::sql_types::OtRequestStatusType, Pg> for OtRequestStatus {

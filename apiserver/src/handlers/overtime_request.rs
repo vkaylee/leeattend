@@ -70,39 +70,39 @@ pub async fn create_ot_request(
         }
     }
 
-    let request = OvertimeRequest {
-        id: crate::utils::id::new_id(),
-        workspace_id: ctx.workspace_id,
-        requested_by_user_id: ctx.user_id,
-        department_id: req.department_id,
-        planned_date: req.planned_date,
-        planned_start_time: req.planned_start_time,
-        planned_end_time: req.planned_end_time,
-        planned_minutes: req.planned_minutes,
-        reason: req.reason,
-        status: OtRequestStatus::Draft,
-        workflow_id: None,
-        current_step: 0,
-        quota_warning: None,
-        reconciled_at: None,
-        reconciled_by: None,
-        created_at: chrono::Utc::now(),
-        updated_at: chrono::Utc::now(),
-    };
+    let request = OvertimeRequest::new(
+        crate::utils::id::new_id(),
+        ctx.workspace_id,
+        ctx.user_id,
+        req.department_id,
+        req.planned_date,
+        req.planned_start_time,
+        req.planned_end_time,
+        req.planned_minutes,
+        req.reason,
+        OtRequestStatus::Draft,
+        None,
+        0,
+        None,
+        None,
+        None,
+        chrono::Utc::now(),
+        chrono::Utc::now(),
+    );
 
     let mut employees = Vec::new();
     for emp_id in req.employees {
-        employees.push(OvertimeRequestEmployee {
-            id: crate::utils::id::new_id(),
-            overtime_request_id: request.id,
-            employee_id: emp_id,
-            consent_status: "pending".to_string(),
-            consent_at: None,
-            decline_reason: None,
-            actual_ot_minutes: None,
-            matched_summary_id: None,
-            created_at: chrono::Utc::now(),
-        });
+        employees.push(OvertimeRequestEmployee::new(
+            crate::utils::id::new_id(),
+            request.id(),
+            emp_id,
+            "pending".to_string(),
+            None,
+            None,
+            None,
+            None,
+            chrono::Utc::now(),
+        ));
     }
 
     let created = state
@@ -204,9 +204,12 @@ pub async fn submit_for_approval(
         .overtime_request_service()
         .get_request_employees(&ctx.auth_token, id)
         .await?;
-    let beneficiary_employee_id = employees.first().map(|e| e.employee_id).ok_or_else(|| {
-        AppError::Validation("Overtime request has no employees assigned".to_string())
-    })?;
+    let beneficiary_employee_id = employees
+        .first()
+        .map(OvertimeRequestEmployee::employee_id)
+        .ok_or_else(|| {
+            AppError::Validation("Overtime request has no employees assigned".to_string())
+        })?;
 
     state
         .core()
