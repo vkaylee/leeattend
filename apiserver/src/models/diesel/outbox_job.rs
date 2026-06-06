@@ -18,16 +18,16 @@ pub struct OutboxJobEntity {
 
 impl From<OutboxJobEntity> for crate::models::OutboxJob {
     fn from(entity: OutboxJobEntity) -> Self {
-        Self {
-            id: entity.id,
-            workspace_id: entity.workspace_id,
-            job_type: entity.job_type,
-            payload: entity.payload,
-            status: entity.status,
-            error_message: entity.error_message,
-            created_at: entity.created_at,
-            updated_at: entity.updated_at,
-        }
+        Self::new(
+            entity.id,
+            entity.workspace_id,
+            entity.job_type,
+            entity.payload,
+            entity.status,
+            entity.error_message,
+            entity.created_at,
+            entity.updated_at,
+        )
     }
 }
 
@@ -53,9 +53,9 @@ mod tests {
         };
 
         let domain: OutboxJob = entity.into();
-        assert_eq!(domain.id, id);
-        assert_eq!(domain.workspace_id, ws_id);
-        assert_eq!(domain.job_type, "report");
-        assert_eq!(domain.status, "pending");
+        assert_eq!(domain.id(), id);
+        assert_eq!(domain.workspace_id(), ws_id);
+        assert_eq!(domain.job_type(), "report");
+        assert_eq!(domain.status(), "pending");
     }
 }

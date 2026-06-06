@@ -25,7 +25,7 @@ impl WorkspaceConfigRepository for DieselWorkspaceConfigRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         entry: WorkspaceConfigEntry,
     ) -> Result<WorkspaceConfigEntry, AppError> {
-        if entry.workspace_id != auth_token.workspace_id() {
+        if entry.workspace_id() != auth_token.workspace_id() {
             return Err(AppError::Forbidden("error.tenant_mismatch".into()));
         }
 
@@ -78,7 +78,7 @@ impl WorkspaceConfigRepository for DieselWorkspaceConfigRepository {
             .map_err(|e| AppError::Internal(format!("Failed to get effective config: {e}")))?;
 
         if let Some(entry) = &result {
-            if let Some(to) = entry.effective_to {
+            if let Some(to) = entry.effective_to() {
                 if target_date > to {
                     return Ok(None);
                 }
@@ -158,23 +158,23 @@ mod tests {
         let ws_id = Uuid::new_v4();
         let auth_token = TenantAuthToken::system_override(ws_id);
 
-        let entry = WorkspaceConfigEntry {
-            id: Uuid::new_v4(),
-            workspace_id: ws_id,
-            config_key: "test".into(),
-            value_int: None,
-            value_decimal: None,
-            value_text: None,
-            value_bool: None,
-            value_json: Some(json!({})),
-            scope_type: "workspace".into(),
-            scope_id: None,
-            effective_from: chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-            effective_to: None,
-            created_by: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        };
+        let entry = WorkspaceConfigEntry::new(
+            Uuid::new_v4(),
+            ws_id,
+            "workspace".into(),
+            None,
+            "test".into(),
+            None,
+            None,
+            None,
+            None,
+            Some(json!({})),
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
 
         // Try to create the entry. Since it's a real DB, it might actually succeed!
         let created = repo.create_entry(&auth_token, entry.clone()).await;
@@ -203,7 +203,7 @@ mod tests {
                 .await;
 
             let _ = repo.list_entries(&auth_token, ws_id, Some("test")).await;
-            let _ = repo.delete_entry(&auth_token, entry.id).await;
+            let _ = repo.delete_entry(&auth_token, entry.id()).await;
         } else {
             let _ = repo
                 .get_effective_config(

@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { fetchEmployees, fetchWorkingConditions, getCurrentWorkspaceId } from "@/lib/api";
-import { WorkingCondition } from "@/lib/api/types";
 
 /**
  * Maximum number of employees fetched in a single "all employees" request.

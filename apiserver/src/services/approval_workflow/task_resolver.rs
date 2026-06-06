@@ -78,14 +78,14 @@ impl ApprovalWorkflowService {
             .await
         {
             for entry in entries {
-                if entry.config_key.starts_with("delegation:") {
-                    if let Some(ref val_text) = entry.value_text {
-                        if val_text == &user_id.to_string() {
-                            if let Some(uuid_str) = entry.config_key.strip_prefix("delegation:") {
+                if entry.config_key().starts_with("delegation:") {
+                    if let Some(val_text) = entry.value_text() {
+                        if val_text == user_id.to_string() {
+                            if let Some(uuid_str) = entry.config_key().strip_prefix("delegation:") {
                                 if let Ok(delegator_uuid) = Uuid::parse_str(uuid_str) {
                                     let today = Utc::now().date_naive();
-                                    let is_effective = entry.effective_from <= today
-                                        && entry.effective_to.is_none_or(|to| to >= today);
+                                    let is_effective = entry.effective_from() <= today
+                                        && entry.effective_to().is_none_or(|to| to >= today);
                                     if is_effective {
                                         delegators.push(delegator_uuid);
                                     }

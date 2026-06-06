@@ -22,12 +22,12 @@ impl WorkspaceConfigService {
         mut entry: WorkspaceConfigEntry,
     ) -> AppResult<WorkspaceConfigEntry> {
         // Enforce workspace_id matches auth_token
-        entry.workspace_id = auth_token.workspace_id();
+        entry.set_workspace_id(auth_token.workspace_id());
 
-        if entry.scope_type != "workspace"
-            && entry.scope_type != "employer"
-            && entry.scope_type != "department"
-            && entry.scope_type != "employee"
+        if entry.scope_type() != "workspace"
+            && entry.scope_type() != "employer"
+            && entry.scope_type() != "department"
+            && entry.scope_type() != "employee"
         {
             return Err(AppError::Validation("Invalid scope type".to_string()));
         }
@@ -101,9 +101,9 @@ impl WorkspaceConfigService {
             )
             .await?
         {
-            if let Some(text) = entry.value_text {
+            if let Some(text) = entry.value_text() {
                 use std::str::FromStr;
-                if let Ok(strategy) = crate::models::HolidayOvernightStrategy::from_str(&text) {
+                if let Ok(strategy) = crate::models::HolidayOvernightStrategy::from_str(text) {
                     return Ok(strategy);
                 }
             }
@@ -123,9 +123,9 @@ impl WorkspaceConfigService {
                 )
                 .await?
             {
-                if let Some(text) = entry.value_text {
+                if let Some(text) = entry.value_text() {
                     use std::str::FromStr;
-                    if let Ok(strategy) = crate::models::HolidayOvernightStrategy::from_str(&text) {
+                    if let Ok(strategy) = crate::models::HolidayOvernightStrategy::from_str(text) {
                         return Ok(strategy);
                     }
                 }
@@ -146,9 +146,9 @@ impl WorkspaceConfigService {
                 )
                 .await?
             {
-                if let Some(text) = entry.value_text {
+                if let Some(text) = entry.value_text() {
                     use std::str::FromStr;
-                    if let Ok(strategy) = crate::models::HolidayOvernightStrategy::from_str(&text) {
+                    if let Ok(strategy) = crate::models::HolidayOvernightStrategy::from_str(text) {
                         return Ok(strategy);
                     }
                 }
@@ -168,9 +168,9 @@ impl WorkspaceConfigService {
             )
             .await?
         {
-            if let Some(text) = entry.value_text {
+            if let Some(text) = entry.value_text() {
                 use std::str::FromStr;
-                if let Ok(strategy) = crate::models::HolidayOvernightStrategy::from_str(&text) {
+                if let Ok(strategy) = crate::models::HolidayOvernightStrategy::from_str(text) {
                     return Ok(strategy);
                 }
             }
@@ -204,7 +204,7 @@ impl WorkspaceConfigService {
             )
             .await?
         {
-            if let Some(decimal) = entry.value_decimal {
+            if let Some(decimal) = entry.value_decimal() {
                 return Ok(decimal);
             }
         }
@@ -223,7 +223,7 @@ impl WorkspaceConfigService {
                 )
                 .await?
             {
-                if let Some(decimal) = entry.value_decimal {
+                if let Some(decimal) = entry.value_decimal() {
                     return Ok(decimal);
                 }
             }
@@ -243,7 +243,7 @@ impl WorkspaceConfigService {
                 )
                 .await?
             {
-                if let Some(decimal) = entry.value_decimal {
+                if let Some(decimal) = entry.value_decimal() {
                     return Ok(decimal);
                 }
             }
@@ -262,7 +262,7 @@ impl WorkspaceConfigService {
             )
             .await?
         {
-            if let Some(decimal) = entry.value_decimal {
+            if let Some(decimal) = entry.value_decimal() {
                 return Ok(decimal);
             }
         }
@@ -279,6 +279,39 @@ mod tests {
     use crate::errors::AppError;
     use async_trait::async_trait;
     use chrono::{NaiveDate, Utc};
+
+    fn create_test_entry(
+        id: Uuid,
+        workspace_id: Uuid,
+        scope_type: String,
+        scope_id: Option<Uuid>,
+        config_key: String,
+        value_int: Option<i32>,
+        value_decimal: Option<rust_decimal::Decimal>,
+        value_text: Option<String>,
+        value_bool: Option<bool>,
+        value_json: Option<serde_json::Value>,
+        effective_from: NaiveDate,
+        effective_to: Option<NaiveDate>,
+    ) -> WorkspaceConfigEntry {
+        WorkspaceConfigEntry::new(
+            id,
+            workspace_id,
+            scope_type,
+            scope_id,
+            config_key,
+            value_int,
+            value_decimal,
+            value_text,
+            value_bool,
+            value_json,
+            effective_from,
+            effective_to,
+            None,
+            Utc::now(),
+            Utc::now(),
+        )
+    }
 
     struct MockWorkspaceConfigRepository {
         pub create_entry_called: std::sync::atomic::AtomicBool,
@@ -320,9 +353,9 @@ mod tests {
             let entry = entries
                 .iter()
                 .find(|e| {
-                    e.config_key == config_key
-                        && e.scope_type == scope_type
-                        && e.scope_id == scope_id
+                    e.config_key() == config_key
+                        && e.scope_type() == scope_type
+                        && e.scope_id() == scope_id
                 })
                 .cloned();
             Ok(entry)
@@ -339,7 +372,7 @@ mod tests {
                 .iter()
                 .filter(|e| {
                     if let Some(key) = config_key {
-                        e.config_key == key
+                        e.config_key() == key
                     } else {
                         true
                     }
@@ -355,7 +388,7 @@ mod tests {
             entry_id: Uuid,
         ) -> Result<(), AppError> {
             let mut entries = self.entries.lock().unwrap();
-            entries.retain(|e| e.id != entry_id);
+            entries.retain(|e| e.id() != entry_id);
             Ok(())
         }
     }
@@ -367,23 +400,20 @@ mod tests {
         let ws_id = Uuid::new_v4();
         let token = TenantAuthToken::system_override(ws_id);
 
-        let entry = WorkspaceConfigEntry {
-            id: Uuid::new_v4(),
-            workspace_id: ws_id,
-            scope_type: "invalid_scope".to_string(),
-            scope_id: None,
-            config_key: "ot_quota".to_string(),
-            value_int: Some(10),
-            value_decimal: None,
-            value_text: None,
-            value_bool: None,
-            value_json: None,
-            effective_from: Utc::now().date_naive(),
-            effective_to: None,
-            created_by: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        };
+        let entry = create_test_entry(
+            Uuid::new_v4(),
+            ws_id,
+            "invalid_scope".to_string(),
+            None,
+            "ot_quota".to_string(),
+            Some(10),
+            None,
+            None,
+            None,
+            None,
+            Utc::now().date_naive(),
+            None,
+        );
 
         let result = service.create_entry(&token, entry).await;
         assert!(result.is_err());
@@ -400,27 +430,24 @@ mod tests {
         let ws_id = Uuid::new_v4();
         let token = TenantAuthToken::system_override(ws_id);
 
-        let entry = WorkspaceConfigEntry {
-            id: Uuid::new_v4(),
-            workspace_id: Uuid::new_v4(), // deliberate mismatch
-            scope_type: "workspace".to_string(),
-            scope_id: None,
-            config_key: "ot_quota".to_string(),
-            value_int: Some(10),
-            value_decimal: None,
-            value_text: None,
-            value_bool: None,
-            value_json: None,
-            effective_from: Utc::now().date_naive(),
-            effective_to: None,
-            created_by: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        };
+        let entry = create_test_entry(
+            Uuid::new_v4(),
+            Uuid::new_v4(), // deliberate mismatch
+            "workspace".to_string(),
+            None,
+            "ot_quota".to_string(),
+            Some(10),
+            None,
+            None,
+            None,
+            None,
+            Utc::now().date_naive(),
+            None,
+        );
 
         let result = service.create_entry(&token, entry).await.unwrap();
         // Ensure workspace_id is enforced
-        assert_eq!(result.workspace_id, ws_id);
+        assert_eq!(result.workspace_id(), ws_id);
         assert!(repo
             .create_entry_called
             .load(std::sync::atomic::Ordering::SeqCst));
@@ -433,23 +460,20 @@ mod tests {
         let ws_id = Uuid::new_v4();
         let token = TenantAuthToken::system_override(ws_id);
 
-        let entry = WorkspaceConfigEntry {
-            id: Uuid::new_v4(),
-            workspace_id: ws_id,
-            scope_type: "employee".to_string(),
-            scope_id: Some(Uuid::new_v4()),
-            config_key: "some_key".to_string(),
-            value_int: Some(42),
-            value_decimal: None,
-            value_text: None,
-            value_bool: None,
-            value_json: None,
-            effective_from: Utc::now().date_naive(),
-            effective_to: None,
-            created_by: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        };
+        let entry = create_test_entry(
+            Uuid::new_v4(),
+            ws_id,
+            "employee".to_string(),
+            Some(Uuid::new_v4()),
+            "some_key".to_string(),
+            Some(42),
+            None,
+            None,
+            None,
+            None,
+            Utc::now().date_naive(),
+            None,
+        );
 
         repo.entries.lock().unwrap().push(entry.clone());
 
@@ -458,14 +482,14 @@ mod tests {
                 &token,
                 "some_key",
                 "employee",
-                entry.scope_id,
+                entry.scope_id(),
                 Utc::now().date_naive(),
             )
             .await
             .unwrap();
 
         assert!(res.is_some());
-        assert_eq!(res.unwrap().value_int, Some(42));
+        assert_eq!(res.unwrap().value_int(), Some(42));
     }
 
     #[tokio::test]
@@ -475,41 +499,35 @@ mod tests {
         let ws_id = Uuid::new_v4();
         let token = TenantAuthToken::system_override(ws_id);
 
-        let entry1 = WorkspaceConfigEntry {
-            id: Uuid::new_v4(),
-            workspace_id: ws_id,
-            scope_type: "workspace".to_string(),
-            scope_id: None,
-            config_key: "key1".to_string(),
-            value_int: Some(1),
-            value_decimal: None,
-            value_text: None,
-            value_bool: None,
-            value_json: None,
-            effective_from: Utc::now().date_naive(),
-            effective_to: None,
-            created_by: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        };
+        let entry1 = create_test_entry(
+            Uuid::new_v4(),
+            ws_id,
+            "workspace".to_string(),
+            None,
+            "key1".to_string(),
+            Some(1),
+            None,
+            None,
+            None,
+            None,
+            Utc::now().date_naive(),
+            None,
+        );
 
-        let entry2 = WorkspaceConfigEntry {
-            id: Uuid::new_v4(),
-            workspace_id: ws_id,
-            scope_type: "workspace".to_string(),
-            scope_id: None,
-            config_key: "key2".to_string(),
-            value_int: Some(2),
-            value_decimal: None,
-            value_text: None,
-            value_bool: None,
-            value_json: None,
-            effective_from: Utc::now().date_naive(),
-            effective_to: None,
-            created_by: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        };
+        let entry2 = create_test_entry(
+            Uuid::new_v4(),
+            ws_id,
+            "workspace".to_string(),
+            None,
+            "key2".to_string(),
+            Some(2),
+            None,
+            None,
+            None,
+            None,
+            Utc::now().date_naive(),
+            None,
+        );
 
         repo.entries.lock().unwrap().push(entry1);
         repo.entries.lock().unwrap().push(entry2);
@@ -519,7 +537,7 @@ mod tests {
 
         let res_key1 = service.list_entries(&token, Some("key1")).await.unwrap();
         assert_eq!(res_key1.len(), 1);
-        assert_eq!(res_key1[0].config_key, "key1");
+        assert_eq!(res_key1[0].config_key(), "key1");
     }
 
     #[tokio::test]
@@ -530,23 +548,20 @@ mod tests {
         let token = TenantAuthToken::system_override(ws_id);
         let entry_id = Uuid::new_v4();
 
-        let entry = WorkspaceConfigEntry {
-            id: entry_id,
-            workspace_id: ws_id,
-            scope_type: "workspace".to_string(),
-            scope_id: None,
-            config_key: "key1".to_string(),
-            value_int: Some(1),
-            value_decimal: None,
-            value_text: None,
-            value_bool: None,
-            value_json: None,
-            effective_from: Utc::now().date_naive(),
-            effective_to: None,
-            created_by: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        };
+        let entry = create_test_entry(
+            entry_id,
+            ws_id,
+            "workspace".to_string(),
+            None,
+            "key1".to_string(),
+            Some(1),
+            None,
+            None,
+            None,
+            None,
+            Utc::now().date_naive(),
+            None,
+        );
 
         repo.entries.lock().unwrap().push(entry);
 
@@ -585,23 +600,20 @@ mod tests {
         );
 
         // 2. Workspace scope config
-        let ws_entry = WorkspaceConfigEntry {
-            id: Uuid::new_v4(),
-            workspace_id: ws_id,
-            scope_type: "workspace".to_string(),
-            scope_id: None,
-            config_key: config_key.to_string(),
-            value_int: None,
-            value_decimal: None,
-            value_text: Some("by_punch_in_date".to_string()),
-            value_bool: None,
-            value_json: None,
-            effective_from: target_date,
-            effective_to: None,
-            created_by: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        };
+        let ws_entry = create_test_entry(
+            Uuid::new_v4(),
+            ws_id,
+            "workspace".to_string(),
+            None,
+            config_key.to_string(),
+            None,
+            None,
+            Some("by_punch_in_date".to_string()),
+            None,
+            None,
+            target_date,
+            None,
+        );
         repo.entries.lock().unwrap().push(ws_entry);
 
         let strategy = service
@@ -620,23 +632,20 @@ mod tests {
         );
 
         // 3. Employer scope config overrides Workspace
-        let employer_entry = WorkspaceConfigEntry {
-            id: Uuid::new_v4(),
-            workspace_id: ws_id,
-            scope_type: "employer".to_string(),
-            scope_id: Some(employer_id),
-            config_key: config_key.to_string(),
-            value_int: None,
-            value_decimal: None,
-            value_text: Some("by_majority_hours".to_string()),
-            value_bool: None,
-            value_json: None,
-            effective_from: target_date,
-            effective_to: None,
-            created_by: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        };
+        let employer_entry = create_test_entry(
+            Uuid::new_v4(),
+            ws_id,
+            "employer".to_string(),
+            Some(employer_id),
+            config_key.to_string(),
+            None,
+            None,
+            Some("by_majority_hours".to_string()),
+            None,
+            None,
+            target_date,
+            None,
+        );
         repo.entries.lock().unwrap().push(employer_entry);
 
         let strategy = service
@@ -655,23 +664,20 @@ mod tests {
         );
 
         // 4. Department scope config overrides Employer
-        let dept_entry = WorkspaceConfigEntry {
-            id: Uuid::new_v4(),
-            workspace_id: ws_id,
-            scope_type: "department".to_string(),
-            scope_id: Some(dept_id),
-            config_key: config_key.to_string(),
-            value_int: None,
-            value_decimal: None,
-            value_text: Some("split_at_midnight".to_string()),
-            value_bool: None,
-            value_json: None,
-            effective_from: target_date,
-            effective_to: None,
-            created_by: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        };
+        let dept_entry = create_test_entry(
+            Uuid::new_v4(),
+            ws_id,
+            "department".to_string(),
+            Some(dept_id),
+            config_key.to_string(),
+            None,
+            None,
+            Some("split_at_midnight".to_string()),
+            None,
+            None,
+            target_date,
+            None,
+        );
         repo.entries.lock().unwrap().push(dept_entry);
 
         let strategy = service
@@ -690,23 +696,20 @@ mod tests {
         );
 
         // 5. Employee scope config overrides Department
-        let emp_entry = WorkspaceConfigEntry {
-            id: Uuid::new_v4(),
-            workspace_id: ws_id,
-            scope_type: "employee".to_string(),
-            scope_id: Some(emp_id),
-            config_key: config_key.to_string(),
-            value_int: None,
-            value_decimal: None,
-            value_text: Some("by_punch_in_date".to_string()),
-            value_bool: None,
-            value_json: None,
-            effective_from: target_date,
-            effective_to: None,
-            created_by: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        };
+        let emp_entry = create_test_entry(
+            Uuid::new_v4(),
+            ws_id,
+            "employee".to_string(),
+            Some(emp_id),
+            config_key.to_string(),
+            None,
+            None,
+            Some("by_punch_in_date".to_string()),
+            None,
+            None,
+            target_date,
+            None,
+        );
         repo.entries.lock().unwrap().push(emp_entry);
 
         let strategy = service
@@ -752,23 +755,20 @@ mod tests {
         assert_eq!(mult, rust_decimal::Decimal::new(30, 1));
 
         // 2. Workspace scope config
-        let ws_entry = WorkspaceConfigEntry {
-            id: Uuid::new_v4(),
-            workspace_id: ws_id,
-            scope_type: "workspace".to_string(),
-            scope_id: None,
-            config_key: config_key.to_string(),
-            value_int: None,
-            value_decimal: Some(rust_decimal::Decimal::new(15, 1)), // 1.5
-            value_text: None,
-            value_bool: None,
-            value_json: None,
-            effective_from: target_date,
-            effective_to: None,
-            created_by: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        };
+        let ws_entry = create_test_entry(
+            Uuid::new_v4(),
+            ws_id,
+            "workspace".to_string(),
+            None,
+            config_key.to_string(),
+            None,
+            Some(rust_decimal::Decimal::new(15, 1)), // 1.5
+            None,
+            None,
+            None,
+            target_date,
+            None,
+        );
         repo.entries.lock().unwrap().push(ws_entry);
 
         let mult = service
@@ -784,23 +784,20 @@ mod tests {
         assert_eq!(mult, rust_decimal::Decimal::new(15, 1));
 
         // 3. Employer scope config overrides Workspace
-        let employer_entry = WorkspaceConfigEntry {
-            id: Uuid::new_v4(),
-            workspace_id: ws_id,
-            scope_type: "employer".to_string(),
-            scope_id: Some(employer_id),
-            config_key: config_key.to_string(),
-            value_int: None,
-            value_decimal: Some(rust_decimal::Decimal::new(20, 1)), // 2.0
-            value_text: None,
-            value_bool: None,
-            value_json: None,
-            effective_from: target_date,
-            effective_to: None,
-            created_by: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        };
+        let employer_entry = create_test_entry(
+            Uuid::new_v4(),
+            ws_id,
+            "employer".to_string(),
+            Some(employer_id),
+            config_key.to_string(),
+            None,
+            Some(rust_decimal::Decimal::new(20, 1)), // 2.0
+            None,
+            None,
+            None,
+            target_date,
+            None,
+        );
         repo.entries.lock().unwrap().push(employer_entry);
 
         let mult = service
@@ -816,23 +813,20 @@ mod tests {
         assert_eq!(mult, rust_decimal::Decimal::new(20, 1));
 
         // 4. Department scope config overrides Employer
-        let dept_entry = WorkspaceConfigEntry {
-            id: Uuid::new_v4(),
-            workspace_id: ws_id,
-            scope_type: "department".to_string(),
-            scope_id: Some(dept_id),
-            config_key: config_key.to_string(),
-            value_int: None,
-            value_decimal: Some(rust_decimal::Decimal::new(25, 1)), // 2.5
-            value_text: None,
-            value_bool: None,
-            value_json: None,
-            effective_from: target_date,
-            effective_to: None,
-            created_by: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        };
+        let dept_entry = create_test_entry(
+            Uuid::new_v4(),
+            ws_id,
+            "department".to_string(),
+            Some(dept_id),
+            config_key.to_string(),
+            None,
+            Some(rust_decimal::Decimal::new(25, 1)), // 2.5
+            None,
+            None,
+            None,
+            target_date,
+            None,
+        );
         repo.entries.lock().unwrap().push(dept_entry);
 
         let mult = service
@@ -848,23 +842,20 @@ mod tests {
         assert_eq!(mult, rust_decimal::Decimal::new(25, 1));
 
         // 5. Employee scope config overrides Department
-        let emp_entry = WorkspaceConfigEntry {
-            id: Uuid::new_v4(),
-            workspace_id: ws_id,
-            scope_type: "employee".to_string(),
-            scope_id: Some(emp_id),
-            config_key: config_key.to_string(),
-            value_int: None,
-            value_decimal: Some(rust_decimal::Decimal::new(35, 1)), // 3.5
-            value_text: None,
-            value_bool: None,
-            value_json: None,
-            effective_from: target_date,
-            effective_to: None,
-            created_by: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        };
+        let emp_entry = create_test_entry(
+            Uuid::new_v4(),
+            ws_id,
+            "employee".to_string(),
+            Some(emp_id),
+            config_key.to_string(),
+            None,
+            Some(rust_decimal::Decimal::new(35, 1)), // 3.5
+            None,
+            None,
+            None,
+            target_date,
+            None,
+        );
         repo.entries.lock().unwrap().push(emp_entry);
 
         let mult = service

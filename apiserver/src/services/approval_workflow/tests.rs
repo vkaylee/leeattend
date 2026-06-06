@@ -383,7 +383,7 @@ mod tests {
             e: WorkspaceConfigEntry,
         ) -> Result<WorkspaceConfigEntry, AppError> {
             let mut state = self.state.lock().unwrap();
-            state.configs.insert(e.config_key.clone(), e.clone());
+            state.configs.insert(e.config_key().to_string(), e.clone());
             Ok(e)
         }
         async fn get_effective_config(
@@ -1621,23 +1621,23 @@ mod tests {
         user_id: Uuid,
         delegated_user_id: Uuid,
     ) -> WorkspaceConfigEntry {
-        WorkspaceConfigEntry {
-            id: Uuid::new_v4(),
+        WorkspaceConfigEntry::new(
+            Uuid::new_v4(),
             workspace_id,
-            scope_type: "workspace".to_string(),
-            scope_id: None,
-            config_key: format!("delegation:{user_id}"),
-            value_int: None,
-            value_decimal: None,
-            value_text: Some(delegated_user_id.to_string()),
-            value_bool: None,
-            value_json: None,
-            effective_from: NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
-            effective_to: None,
-            created_by: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        }
+            "workspace".to_string(),
+            None,
+            format!("delegation:{user_id}"),
+            None,
+            None,
+            Some(delegated_user_id.to_string()),
+            None,
+            None,
+            NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        )
     }
 
     #[tokio::test]
@@ -2015,8 +2015,10 @@ mod tests {
             s.active_workflows
                 .insert("leave_request".to_string(), workflow.clone());
             s.steps.insert(workflow.id, vec![step]);
-            s.configs
-                .insert(delegation_config.config_key.clone(), delegation_config);
+            s.configs.insert(
+                delegation_config.config_key().to_string(),
+                delegation_config,
+            );
         }
 
         let entity_id = Uuid::new_v4();

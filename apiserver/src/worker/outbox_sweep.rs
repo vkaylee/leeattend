@@ -64,14 +64,14 @@ impl OutboxSweepScheduler {
 
             for job in stuck_jobs {
                 info!(
-                    job_id = %job.id,
+                    job_id = %job.id(),
                     workspace_id = %ws.id(),
-                    job_type = %job.job_type,
-                    status = %job.status,
+                    job_type = %job.job_type(),
+                    status = %job.status(),
                     "Found stuck background job, re-enqueuing..."
                 );
 
-                if job.job_type == "AttendanceReport" {
+                if job.job_type() == "AttendanceReport" {
                     // Deserialize payload
                     #[derive(serde::Deserialize)]
                     struct OutboxPayload {
@@ -79,16 +79,16 @@ impl OutboxSweepScheduler {
                         requester_id: Uuid,
                     }
 
-                    match serde_json::from_value::<OutboxPayload>(job.payload.clone()) {
+                    match serde_json::from_value::<OutboxPayload>(job.payload().clone()) {
                         Ok(outbox_payload) => {
                             // Update job updated_at so it doesn't get swept again immediately
                             if let Err(e) = self
                                 .outbox_service
-                                .update_job_status(ws.id(), job.id, "running", None)
+                                .update_job_status(ws.id(), job.id(), "running", None)
                                 .await
                             {
                                 error!(
-                                    job_id = %job.id,
+                                    job_id = %job.id(),
                                     error = ?e,
                                     "Failed to update outbox job status before re-enqueue"
                                 );
@@ -101,13 +101,13 @@ impl OutboxSweepScheduler {
                                 .enqueue_report_job_internal(
                                     ws.id(),
                                     outbox_payload.requester_id,
-                                    job.id,
+                                    job.id(),
                                     outbox_payload.request,
                                 )
                                 .await
                             {
                                 error!(
-                                    job_id = %job.id,
+                                    job_id = %job.id(),
                                     error = ?e,
                                     "Failed to re-enqueue report job"
                                 );
@@ -116,18 +116,18 @@ impl OutboxSweepScheduler {
                                     .outbox_service
                                     .update_job_status(
                                         ws.id(),
-                                        job.id,
+                                        job.id(),
                                         "failed",
                                         Some(format!("Re-enqueue failed: {e}")),
                                     )
                                     .await;
                             } else {
-                                info!(job_id = %job.id, "Successfully re-enqueued report job");
+                                info!(job_id = %job.id(), "Successfully re-enqueued report job");
                             }
                         }
                         Err(e) => {
                             error!(
-                                job_id = %job.id,
+                                job_id = %job.id(),
                                 error = ?e,
                                 "Failed to deserialize outbox payload for AttendanceReport"
                             );
@@ -135,7 +135,7 @@ impl OutboxSweepScheduler {
                                 .outbox_service
                                 .update_job_status(
                                     ws.id(),
-                                    job.id,
+                                    job.id(),
                                     "failed",
                                     Some("Invalid job payload".to_string()),
                                 )
@@ -235,16 +235,16 @@ mod tests {
         })
         .unwrap();
 
-        let job = crate::models::OutboxJob {
-            id: job_id,
-            workspace_id: ws_id,
-            job_type: "AttendanceReport".to_string(),
+        let job = crate::models::OutboxJob::new(
+            job_id,
+            ws_id,
+            "AttendanceReport".to_string(),
             payload,
-            status: "running".to_string(),
-            error_message: None,
-            created_at: chrono::Utc::now() - chrono::Duration::minutes(10),
-            updated_at: chrono::Utc::now() - chrono::Duration::minutes(10),
-        };
+            "running".to_string(),
+            None,
+            chrono::Utc::now() - chrono::Duration::minutes(10),
+            chrono::Utc::now() - chrono::Duration::minutes(10),
+        );
 
         let job_clone = job.clone();
         mock_outbox_repo

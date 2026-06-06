@@ -20,8 +20,8 @@ export function useLocations(wsId: string) {
     queryFn: async () => {
       const res = await listLocations(wsId);
       // listLocations returns res.data which is typed as WorkLocation[] but at runtime is PaginatedLocations (having .data as WorkLocation[])
-      const raw = res.data as unknown as { data: WorkLocation[] };
-      return raw?.data ?? [];
+      const raw = res.data as unknown as { data?: WorkLocation[] };
+      return raw.data ?? [];
     },
     enabled: !!wsId,
   });

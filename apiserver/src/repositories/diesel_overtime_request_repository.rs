@@ -448,27 +448,61 @@ mod tests {
             chrono::Utc::now(),
         );
 
-        let req_employee = OvertimeRequestEmployee::new(
-            Uuid::new_v4(),
+        // 1. Assert workspace mismatch error (runnable even without DB availability)
+        let mismatched_ws_id = Uuid::new_v4();
+        let mismatched_request = OvertimeRequest::new(
             req_id,
-            emp_id,
-            "pending".to_string(),
+            mismatched_ws_id,
+            Uuid::new_v4(),
             None,
+            chrono::NaiveDate::from_ymd_opt(2023, 10, 10).unwrap(),
+            None,
+            None,
+            120,
+            "mismatched reason".to_string(),
+            crate::models::OtRequestStatus::PendingApproval,
+            None,
+            1,
             None,
             None,
             None,
             chrono::Utc::now(),
+            chrono::Utc::now(),
         );
+        let create_err = repo
+            .create_request(&auth_token, mismatched_request, vec![])
+            .await;
+        assert!(create_err.is_err());
+        assert!(matches!(create_err.unwrap_err(), AppError::Forbidden(_)));
 
-        let _ = repo
-            .create_request(&auth_token, request.clone(), vec![req_employee.clone()])
+        // Check DB availability to perform database-dependent assertions
+        let db_available = pools.tenant_transaction_conn(&auth_token).await.is_ok();
+        if !db_available {
+            println!("Database not available, skipping database error assertions");
+            return;
+        }
+
+        // 2. Assert get request returns None for non-existent requests
+        let non_existent_id = Uuid::new_v4();
+        let get_res = repo.get_request(&auth_token, ws_id, non_existent_id).await;
+        assert!(get_res.is_ok());
+        assert!(get_res.unwrap().is_none());
+
+        // 3. Assert get request employees returns empty vector for non-existent requests
+        let get_emps_res = repo
+            .get_request_employees(&auth_token, non_existent_id)
             .await;
-        let _ = repo.update_request(&auth_token, request.clone()).await;
-        let _ = repo.get_request(&auth_token, ws_id, request.id()).await;
-        let _ = repo.get_request_employees(&auth_token, request.id()).await;
-        let _ = repo
-            .update_employee_consent(&auth_token, request.id(), emp_id, "accepted", None)
+        assert!(get_emps_res.is_ok());
+        assert!(get_emps_res.unwrap().is_empty());
+
+        // 4. Assert update request of non-existent request fails
+        let update_res = repo.update_request(&auth_token, request.clone()).await;
+        assert!(update_res.is_err());
+
+        // 5. Assert update employee consent of non-existent employee/request fails
+        let update_consent_res = repo
+            .update_employee_consent(&auth_token, req_id, emp_id, "accepted", None)
             .await;
-        let _ = repo.list_requests(&auth_token, 1, 10).await;
+        assert!(update_consent_res.is_err());
     }
 }

@@ -704,16 +704,16 @@ mod tests {
                 mockall::predicate::always(),
             )
             .returning(|_, id, job_type, payload| {
-                Ok(crate::models::OutboxJob {
+                Ok(crate::models::OutboxJob::new(
                     id,
-                    workspace_id: Uuid::new_v4(),
-                    job_type: job_type.to_string(),
+                    Uuid::new_v4(),
+                    job_type.to_string(),
                     payload,
-                    status: "pending".to_string(),
-                    error_message: None,
-                    created_at: chrono::Utc::now(),
-                    updated_at: chrono::Utc::now(),
-                })
+                    "pending".to_string(),
+                    None,
+                    chrono::Utc::now(),
+                    chrono::Utc::now(),
+                ))
             });
         let outbox_service = Arc::new(crate::services::OutboxJobService::new(Arc::new(
             mock_outbox_repo,
@@ -798,16 +798,16 @@ mod tests {
                 mockall::predicate::always(),
             )
             .returning(|_, id, job_type, payload| {
-                Ok(crate::models::OutboxJob {
+                Ok(crate::models::OutboxJob::new(
                     id,
-                    workspace_id: Uuid::new_v4(),
-                    job_type: job_type.to_string(),
+                    Uuid::new_v4(),
+                    job_type.to_string(),
                     payload,
-                    status: "pending".to_string(),
-                    error_message: None,
-                    created_at: chrono::Utc::now(),
-                    updated_at: chrono::Utc::now(),
-                })
+                    "pending".to_string(),
+                    None,
+                    chrono::Utc::now(),
+                    chrono::Utc::now(),
+                ))
             });
         let outbox_service = Arc::new(crate::services::OutboxJobService::new(Arc::new(
             mock_outbox_repo,

@@ -78,12 +78,12 @@ pub async fn get_config(
         .await?;
 
     // We just return a dummy ResolvedConfig for now if found, or error
-    let resolved = crate::models::ResolvedConfig {
-        key: key.clone(),
-        value: ConfigValue::Text("mock".to_string()),
-        scope_type: "workspace".to_string(),
-        scope_id: None,
-    };
+    let resolved = crate::models::ResolvedConfig::new(
+        key.clone(),
+        ConfigValue::Text("mock".to_string()),
+        "workspace".to_string(),
+        None,
+    );
     Ok(Json(resolved))
 }
 
@@ -113,23 +113,23 @@ pub async fn upsert_config(
         ConfigValue::Json(v) => (None, None, None, None, Some(v)),
     };
 
-    let entry = WorkspaceConfigEntry {
-        id: crate::utils::id::new_id(),
-        workspace_id: ctx.workspace_id,
-        scope_type: req.scope_type,
-        scope_id: req.scope_id,
-        config_key: req.config_key,
+    let entry = WorkspaceConfigEntry::new(
+        crate::utils::id::new_id(),
+        ctx.workspace_id,
+        req.scope_type,
+        req.scope_id,
+        req.config_key,
         value_int,
         value_decimal,
         value_text,
         value_bool,
         value_json,
-        effective_from: req.effective_from,
-        effective_to: req.effective_to,
-        created_by: Some(ctx.user_id),
-        created_at: chrono::Utc::now(),
-        updated_at: chrono::Utc::now(),
-    };
+        req.effective_from,
+        req.effective_to,
+        Some(ctx.user_id),
+        chrono::Utc::now(),
+        chrono::Utc::now(),
+    );
 
     let created = state
         .core()

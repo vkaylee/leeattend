@@ -96,16 +96,16 @@ mod tests {
         let job_type = "TestJob";
 
         let mut mock_repo = MockOutboxJobRepository::new();
-        let expected_job = OutboxJob {
-            id: job_id,
-            workspace_id: ws_id,
-            job_type: job_type.to_string(),
-            payload: payload.clone(),
-            status: "pending".to_string(),
-            error_message: None,
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-        };
+        let expected_job = OutboxJob::new(
+            job_id,
+            ws_id,
+            job_type.to_string(),
+            payload.clone(),
+            "pending".to_string(),
+            None,
+            chrono::Utc::now(),
+            chrono::Utc::now(),
+        );
 
         let expected_clone = expected_job.clone();
         mock_repo
@@ -123,10 +123,10 @@ mod tests {
 
         assert!(result.is_ok());
         let job = result.unwrap();
-        assert_eq!(job.id, job_id);
-        assert_eq!(job.workspace_id, ws_id);
-        assert_eq!(job.job_type, "TestJob");
-        assert_eq!(job.status, "pending");
+        assert_eq!(job.id(), job_id);
+        assert_eq!(job.workspace_id(), ws_id);
+        assert_eq!(job.job_type(), "TestJob");
+        assert_eq!(job.status(), "pending");
     }
 
     #[tokio::test]
@@ -178,16 +178,16 @@ mod tests {
         let limit = 5;
 
         let mut mock_repo = MockOutboxJobRepository::new();
-        let expected_jobs = vec![OutboxJob {
-            id: Uuid::new_v4(),
-            workspace_id: ws_id,
-            job_type: "TestJob".to_string(),
-            payload: json!({}),
-            status: "pending".to_string(),
-            error_message: None,
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-        }];
+        let expected_jobs = vec![OutboxJob::new(
+            Uuid::new_v4(),
+            ws_id,
+            "TestJob".to_string(),
+            json!({}),
+            "pending".to_string(),
+            None,
+            chrono::Utc::now(),
+            chrono::Utc::now(),
+        )];
 
         let expected_clone = expected_jobs.clone();
         mock_repo

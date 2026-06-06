@@ -269,23 +269,23 @@ impl WorkspaceService {
                 .await
                 .map_err(|e| crate::errors::AppError::Internal(format!("db: {e}")))?;
 
-                let entry = crate::models::WorkspaceConfigEntry {
-                    id: Uuid::new_v4(),
-                    workspace_id: args.ws_id,
-                    scope_type: "workspace".to_string(),
-                    scope_id: None,
-                    config_key: "overtime.holiday_overnight_strategy".to_string(),
-                    value_int: None,
-                    value_decimal: None,
-                    value_text: Some(strategy.clone()),
-                    value_bool: None,
-                    value_json: None,
-                    effective_from: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap_or_default(),
-                    effective_to: None,
-                    created_by: None,
-                    created_at: chrono::Utc::now(),
-                    updated_at: chrono::Utc::now(),
-                };
+                let entry = crate::models::WorkspaceConfigEntry::new(
+                    Uuid::new_v4(),
+                    args.ws_id,
+                    "workspace".to_string(),
+                    None,
+                    "overtime.holiday_overnight_strategy".to_string(),
+                    None,
+                    None,
+                    Some(strategy.clone()),
+                    None,
+                    None,
+                    chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap_or_default(),
+                    None,
+                    None,
+                    chrono::Utc::now(),
+                    chrono::Utc::now(),
+                );
 
                 diesel::insert_into(workspace_config_entries::table)
                     .values(&entry)
@@ -312,23 +312,23 @@ impl WorkspaceService {
                 .await
                 .map_err(|e| crate::errors::AppError::Internal(format!("db: {e}")))?;
 
-                let entry = crate::models::WorkspaceConfigEntry {
-                    id: Uuid::new_v4(),
-                    workspace_id: args.ws_id,
-                    scope_type: "workspace".to_string(),
-                    scope_id: None,
-                    config_key: "overtime.default_holiday_ot_multiplier".to_string(),
-                    value_int: None,
-                    value_decimal: Some(multiplier),
-                    value_text: None,
-                    value_bool: None,
-                    value_json: None,
-                    effective_from: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap_or_default(),
-                    effective_to: None,
-                    created_by: None,
-                    created_at: chrono::Utc::now(),
-                    updated_at: chrono::Utc::now(),
-                };
+                let entry = crate::models::WorkspaceConfigEntry::new(
+                    Uuid::new_v4(),
+                    args.ws_id,
+                    "workspace".to_string(),
+                    None,
+                    "overtime.default_holiday_ot_multiplier".to_string(),
+                    None,
+                    Some(multiplier),
+                    None,
+                    None,
+                    None,
+                    chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap_or_default(),
+                    None,
+                    None,
+                    chrono::Utc::now(),
+                    chrono::Utc::now(),
+                );
 
                 diesel::insert_into(workspace_config_entries::table)
                     .values(&entry)

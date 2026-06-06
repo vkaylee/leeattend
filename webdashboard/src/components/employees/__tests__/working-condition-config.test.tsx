@@ -19,14 +19,14 @@ vi.stubGlobal("fetch", vi.fn((url: string, options?: RequestInit) => {
     mockDelete("ws-1", "emp-1", "cond-1");
     responseData = null;
   } else if (options?.method === "POST") {
-    responseData = { id: "cond-2", type: "EARLY_LEAVE", start_date: "2026-01-01", is_paid: true };
+    responseData = { id: "cond-2", type: "REGULAR", start_date: "2026-01-01", is_paid: true };
   } else {
     // GET
     responseData = {
       data: [
         {
           id: "cond-1",
-          type: "EARLY_LEAVE",
+          type: "REGULAR",
           minute_allowance: 60,
           is_paid: true,
           start_date: "2026-01-01"
@@ -53,7 +53,7 @@ vi.mock("react-i18next", () => ({
       if (key === "common.delete_confirm") return "Warning";
       if (key === "employees.policies.delete_warning") return "Delete policy?";
       if (key === "common.confirm") return "Confirm";
-      if (key === "employees.policies.types.early_leave") return "Early Leave";
+      if (key === "employees.policies.types.regular") return "Regular";
       return key;
     }
   })
@@ -92,7 +92,7 @@ describe("WorkingConditionConfig", () => {
     });
 
     // Wait for the mock condition to render
-    expect(await screen.findByText("Early Leave")).toBeDefined();
+    expect(await screen.findByText("Regular")).toBeDefined();
 
     // Find the delete button. The icon is Trash2.
     // We can find the button by getting all buttons and picking the one that looks like delete
