@@ -36,7 +36,7 @@ describe("AssignPolicyModal", () => {
  
     vi.mocked(api.fetchEmployees).mockResolvedValue({ data: [
       { id: "emp-1", first_name: "Alice", last_name: "Doe", employee_id_number: "EMP001" }
-    ], total: 1, page: 1, limit: 3000 } as unknown as never);
+    ], total: 1, page: 1, limit: 100 } as unknown as never);
  
     vi.mocked(api.fetchDepartments).mockResolvedValue([
       { id: "dept-1", name: "Engineering" }
@@ -65,7 +65,7 @@ describe("AssignPolicyModal", () => {
   it("fetches data when opened", async () => {
     renderModal(true);
     await waitFor(() => {
-      expect(api.fetchEmployees).toHaveBeenCalledWith("test-ws-id", 1, 3000, undefined);
+      expect(api.fetchEmployees).toHaveBeenCalledWith("test-ws-id", 1, 100, undefined);
       expect(api.fetchDepartments).toHaveBeenCalledWith("test-ws-id");
       expect(api.fetchLeavePolicies).toHaveBeenCalledWith("test-ws-id");
     });

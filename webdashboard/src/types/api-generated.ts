@@ -5527,6 +5527,14 @@ export interface components {
             /** Format: double */
             system_ot_hours: number;
         };
+        PaginatedApprovalWorkflowTasks: {
+            data: components["schemas"]["ApprovalWorkflowTask"][];
+            /** Format: int64 */
+            limit: number;
+            /** Format: int64 */
+            page: number;
+            total: number;
+        };
         PaginatedApprovalWorkflows: {
             data: components["schemas"]["ApprovalWorkflow"][];
             /** Format: int64 */
@@ -5542,6 +5550,14 @@ export interface components {
             /** Format: int64 */
             page: number;
             /** Format: int64 */
+            total: number;
+        };
+        PaginatedBehalfAssignments: {
+            data: components["schemas"]["BehalfAssignment"][];
+            /** Format: int64 */
+            limit: number;
+            /** Format: int64 */
+            page: number;
             total: number;
         };
         PaginatedDepartments: {
@@ -5570,6 +5586,14 @@ export interface components {
         };
         PaginatedLocations: {
             data: components["schemas"]["WorkLocation"][];
+            /** Format: int64 */
+            limit: number;
+            /** Format: int64 */
+            page: number;
+            total: number;
+        };
+        PaginatedOvertimeRequests: {
+            data: components["schemas"]["OvertimeRequest"][];
             /** Format: int64 */
             limit: number;
             /** Format: int64 */
@@ -10735,7 +10759,10 @@ export interface operations {
     };
     list_ot_requests: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number | null;
+                limit?: number | null;
+            };
             header?: never;
             path: {
                 /** @description Workspace ID */
@@ -10751,7 +10778,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OvertimeRequest"][];
+                    "application/json": components["schemas"]["PaginatedOvertimeRequests"];
                 };
             };
         };
@@ -10785,7 +10812,10 @@ export interface operations {
     };
     list_request_behalf_assignments: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number | null;
+                limit?: number | null;
+            };
             header?: never;
             path: {
                 /** @description Workspace ID */
@@ -10801,7 +10831,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BehalfAssignment"][];
+                    "application/json": components["schemas"]["PaginatedBehalfAssignments"];
                 };
             };
         };
@@ -12824,7 +12854,10 @@ export interface operations {
     };
     get_pending_tasks: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number | null;
+                limit?: number | null;
+            };
             header?: never;
             path: {
                 /** @description Workspace ID */
@@ -12840,7 +12873,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApprovalWorkflowTask"][];
+                    "application/json": components["schemas"]["PaginatedApprovalWorkflowTasks"];
                 };
             };
         };

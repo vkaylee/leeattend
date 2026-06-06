@@ -227,7 +227,8 @@ where
             if let Some(d) = cache.get::<CachedMemberContext>(&cache_key).await {
                 d
             } else {
-                let fresh = Self::fetch_member_context_from_db(user_id, workspace_id, &app_state).await?;
+                let fresh =
+                    Self::fetch_member_context_from_db(user_id, workspace_id, &app_state).await?;
                 let _ = cache.set(&cache_key, &fresh, ttl).await;
                 fresh
             }
