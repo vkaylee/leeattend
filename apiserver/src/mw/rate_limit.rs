@@ -144,16 +144,21 @@ where
             let identity = resolve_identity(&req, &jwt_secret);
 
             let method = req.method().clone();
-            let path = req.uri().path().to_string();
+            let matched_path = req
+                .extensions()
+                .get::<axum::extract::MatchedPath>()
+                .map(|mp| mp.as_str().to_string())
+                .unwrap_or_else(|| req.uri().path().to_string());
+
             // Bypass rate limiting for health checks to prevent false negatives in load balancers
-            if path.ends_with("/health") {
+            if matched_path.ends_with("/health") || matched_path.ends_with("/health/ready") {
                 return inner.call(req).await;
             }
             let tier = RateLimitConfig::tier_label(&method);
             let max_requests = config.limit_for_method(&method);
 
-            // Key format: rate:{user_or_ip}:{r|w}:{path}
-            let key = format!("rate:{identity}:{tier}:{path}");
+            // Key format: rate:{user_or_ip}:{r|w}:{path_template}
+            let key = format!("rate:{identity}:{tier}:{matched_path}");
 
             // Try rate check — fail-open on Redis errors
             match check_rate(&pool, &key, max_requests, config.window_secs).await {
@@ -161,7 +166,8 @@ where
                 Ok(false) => {
                     tracing::warn!(
                         identity = %identity,
-                        path = %path,
+                        path = %req.uri().path(),
+                        matched_path = %matched_path,
                         tier = %tier,
                         limit = %max_requests,
                         "Rate limit exceeded"
@@ -387,5 +393,68 @@ mod tests {
         assert_eq!(config.limit_for_method(&Method::GET), 200);
         assert_eq!(config.limit_for_method(&Method::POST), 50);
         assert_eq!(config.window_secs, 30);
+    }
+
+    #[tokio::test]
+    async fn test_rate_limiter_matched_path() {
+        use axum::{routing::get, Router};
+        use tower::ServiceExt;
+
+        let redis_url =
+            std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379/0".to_string());
+        let redis_pool = match tokio::time::timeout(
+            std::time::Duration::from_secs(2),
+            RedisPool::new(&redis_url),
+        )
+        .await
+        {
+            Ok(Ok(p)) => Some(p),
+            _ => {
+                println!("Redis not available, skipping rate limiter matched path integration assertions");
+                return;
+            }
+        };
+
+        let config = RateLimitConfig {
+            max_read_requests: 100,
+            max_write_requests: 100,
+            window_secs: 60,
+        };
+
+        let layer = RateLimitLayer::new(redis_pool.clone(), config, "test_secret".to_string());
+
+        let app = Router::new()
+            .route("/api/v1/employees/:id", get(|| async { "OK" }))
+            .layer(layer);
+
+        let req = Request::builder()
+            .method(Method::GET)
+            .uri("/api/v1/employees/550e8400-e29b-41d4-a716-446655440000")
+            .header("x-user-id", "550e8400-e29b-41d4-a716-446655440000")
+            .body(Body::empty())
+            .unwrap();
+
+        let res = app.oneshot(req).await.unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+
+        if let Some(ref pool) = redis_pool {
+            let mut conn = pool.get_async_connection().await.unwrap();
+            let key = "rate:u:550e8400-e29b-41d4-a716-446655440000:r:/api/v1/employees/:id";
+            let exists: bool = redis::cmd("EXISTS")
+                .arg(key)
+                .query_async(&mut conn)
+                .await
+                .unwrap();
+            assert!(
+                exists,
+                "Redis rate limit key should be based on MatchedPath template"
+            );
+
+            let _: () = redis::cmd("DEL")
+                .arg(key)
+                .query_async(&mut conn)
+                .await
+                .unwrap();
+        }
     }
 }

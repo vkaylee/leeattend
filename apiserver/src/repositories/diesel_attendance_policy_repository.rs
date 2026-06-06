@@ -758,20 +758,18 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
 
         use crate::schema::{attendance_policies, attendance_policy_assignments};
 
-        let target_ids: Vec<Uuid> = attendance_policy_assignments::table
-            .inner_join(attendance_policies::table)
-            .filter(attendance_policies::workspace_id.eq(workspace_id))
-            .select(attendance_policy_assignments::target_id)
-            .load::<Uuid>(&mut *conn)
-            .await
-            .map_err(|e| AppError::Internal(e.to_string()))?;
-
         let now = Utc::now();
 
         diesel::update(
             attendance_policy_assignments::table
                 .filter(attendance_policy_assignments::id.eq(assignment_id))
-                .filter(attendance_policy_assignments::target_id.eq_any(target_ids)),
+                .filter(
+                    attendance_policy_assignments::policy_id.eq_any(
+                        attendance_policies::table
+                            .select(attendance_policies::id)
+                            .filter(attendance_policies::workspace_id.eq(workspace_id)),
+                    ),
+                ),
         )
         .set((
             attendance_policy_assignments::valid_to.eq(Some(now)),
@@ -789,6 +787,8 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
 mod tests {
     use super::*;
     use crate::diesel_pool::DieselPools;
+    use diesel::ExpressionMethods;
+    use diesel::QueryDsl;
 
     #[tokio::test]
     async fn test_repo_initialization() {
@@ -799,5 +799,91 @@ mod tests {
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselAttendancePolicyRepository::new(pools);
         // DI connection test passes if it compiles
+    }
+
+    #[tokio::test]
+    async fn test_delete_policy_assignment() {
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
+        let pools = DieselPools::for_test(&test_db_url);
+        let repo = DieselAttendancePolicyRepository::new(pools.clone());
+        let ws_id = Uuid::new_v4();
+        let token = crate::diesel_pool::TenantAuthToken::system_override(ws_id);
+
+        let mut conn = match pools.tenant_transaction_conn(&token).await {
+            Ok(c) => c,
+            Err(_) => {
+                println!("Database not available, skipping integration assertions");
+                return;
+            }
+        };
+
+        // Insert Workspace to satisfy FK constraints
+        let workspace_entity = crate::models::diesel::core::WorkspaceEntity {
+            id: ws_id,
+            name: "Test Workspace".to_string(),
+            created_at: Some(chrono::Utc::now()),
+            date_format: "YYYY-MM-DD".to_string(),
+            time_format: "HH:mm".to_string(),
+            timezone: "UTC".to_string(),
+            theme_primary_color: None,
+            default_language: "en".to_string(),
+            logo_url: None,
+            tagline: None,
+            custom_db_url_encrypted: None,
+        };
+        diesel::insert_into(crate::schema::workspaces::table)
+            .values(&workspace_entity)
+            .execute(&mut *conn)
+            .await
+            .expect("insert workspace");
+
+        // Insert an attendance policy
+        let policy_id = Uuid::new_v4();
+        diesel::sql_query("INSERT INTO attendance_policies (id, workspace_id, name, is_default, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6)")
+            .bind::<diesel::sql_types::Uuid, _>(policy_id)
+            .bind::<diesel::sql_types::Uuid, _>(ws_id)
+            .bind::<diesel::sql_types::Text, _>("Test Policy")
+            .bind::<diesel::sql_types::Bool, _>(false)
+            .bind::<diesel::sql_types::Timestamptz, _>(chrono::Utc::now())
+            .bind::<diesel::sql_types::Timestamptz, _>(chrono::Utc::now())
+            .execute(&mut *conn)
+            .await
+            .expect("insert policy");
+
+        // Insert a policy assignment
+        let assignment_id = Uuid::new_v4();
+        let target_id = Uuid::new_v4();
+        diesel::sql_query("INSERT INTO attendance_policy_assignments (id, policy_id, target_type, target_id, valid_from, valid_to, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)")
+            .bind::<diesel::sql_types::Uuid, _>(assignment_id)
+            .bind::<diesel::sql_types::Uuid, _>(policy_id)
+            .bind::<diesel::sql_types::Text, _>("employee")
+            .bind::<diesel::sql_types::Uuid, _>(target_id)
+            .bind::<diesel::sql_types::Timestamptz, _>(chrono::Utc::now())
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>, _>(None::<chrono::DateTime<chrono::Utc>>)
+            .bind::<diesel::sql_types::Timestamptz, _>(chrono::Utc::now())
+            .bind::<diesel::sql_types::Timestamptz, _>(chrono::Utc::now())
+            .execute(&mut *conn)
+            .await
+            .expect("insert assignment");
+
+        drop(conn);
+
+        // Call delete_policy_assignment
+        let res = repo.delete_policy_assignment(&token, assignment_id).await;
+        assert!(res.is_ok());
+
+        // Verify it was soft-deleted (valid_to is set)
+        let mut conn = pools.tenant_transaction_conn(&token).await.unwrap();
+        let valid_to_val: Option<chrono::DateTime<chrono::Utc>> =
+            crate::schema::attendance_policy_assignments::table
+                .filter(crate::schema::attendance_policy_assignments::id.eq(assignment_id))
+                .select(crate::schema::attendance_policy_assignments::valid_to)
+                .first(&mut *conn)
+                .await
+                .unwrap();
+        assert!(valid_to_val.is_some());
     }
 }
