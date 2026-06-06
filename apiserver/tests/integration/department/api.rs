@@ -48,7 +48,7 @@ async fn test_department_management() {
         .await
         .unwrap();
     let dept: Department = serde_json::from_slice(&body).unwrap();
-    assert_eq!(dept.name, "Engineering");
+    assert_eq!(dept.name(), "Engineering");
 
     // 3. List Departments
     let response = app
@@ -76,7 +76,7 @@ async fn test_department_management() {
 
     // 4. Transfer Employee to Department
     let transfer_req = serde_json::json!({
-        "department_id": dept.id,
+        "department_id": dept.id(),
         "effective_date": "2026-01-10"
     });
 
@@ -124,7 +124,7 @@ async fn test_department_management() {
         .unwrap();
     let history: Vec<EmployeeDepartmentHistory> = serde_json::from_slice(&body).unwrap();
     assert!(!history.is_empty());
-    assert_eq!(history[0].department_id, dept.id);
+    assert_eq!(history[0].department_id(), dept.id());
 }
 
 #[tokio::test]
@@ -173,7 +173,7 @@ async fn test_department_working_pattern_api() {
         .await
         .unwrap();
     let dept: Department = serde_json::from_slice(&body).unwrap();
-    assert_eq!(dept.default_working_pattern_id, Some(pattern.id));
+    assert_eq!(dept.default_working_pattern_id(), Some(pattern.id));
 
     // 2. Update Department Pattern
     let update_req = serde_json::json!({
@@ -187,7 +187,8 @@ async fn test_department_working_pattern_api() {
                 .method("PATCH")
                 .uri(format!(
                     "/api/v1/workspaces/{}/departments/{}",
-                    ws_id, dept.id
+                    ws_id,
+                    dept.id()
                 ))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
@@ -205,7 +206,7 @@ async fn test_department_working_pattern_api() {
         .await
         .unwrap();
     let updated_dept: Department = serde_json::from_slice(&body).unwrap();
-    assert_eq!(updated_dept.default_working_pattern_id, None);
+    assert_eq!(updated_dept.default_working_pattern_id(), None);
 }
 
 #[tokio::test]

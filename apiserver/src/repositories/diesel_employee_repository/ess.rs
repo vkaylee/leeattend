@@ -64,6 +64,23 @@ impl EmployeeSelfServiceRepository for DieselEmployeeRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
+        let employee_exists = employees::table
+            .filter(employees::id.eq(employee_id))
+            .filter(employees::workspace_id.eq(workspace_id))
+            .filter(employees::deleted_at.is_null())
+            .select(employees::id)
+            .first::<Uuid>(&mut *conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db validation: {e}")))?
+            .is_some();
+
+        if !employee_exists {
+            return Err(AppError::Forbidden(
+                "Employee does not belong to this workspace".to_string(),
+            ));
+        }
+
         let result: EmployeeProfileEntity = diesel::insert_into(employee_profiles::table)
             .values((
                 employee_profiles::employee_id.eq(employee_id),
@@ -172,6 +189,23 @@ impl EmployeeSelfServiceRepository for DieselEmployeeRepository {
                 .await
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
+
+        let employee_exists = employees::table
+            .filter(employees::id.eq(employee_id))
+            .filter(employees::workspace_id.eq(workspace_id))
+            .filter(employees::deleted_at.is_null())
+            .select(employees::id)
+            .first::<Uuid>(&mut *conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db validation: {e}")))?
+            .is_some();
+
+        if !employee_exists {
+            return Err(AppError::Forbidden(
+                "Employee does not belong to this workspace".to_string(),
+            ));
+        }
 
         let is_primary = req.is_primary.unwrap_or(false);
 

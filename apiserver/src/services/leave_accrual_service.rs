@@ -517,7 +517,9 @@ impl LeaveAccrualService {
         let mut global_qualifying_start = date;
 
         for emp in &employees {
-            let dept_id = dept_map.get(&emp.id()).map(|h| h.department_id);
+            let dept_id = dept_map
+                .get(&emp.id())
+                .map(crate::models::EmployeeDepartmentHistory::department_id);
 
             let mut matched = all_assignments
                 .iter()

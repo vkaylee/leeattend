@@ -599,7 +599,7 @@ impl ReportService {
                         punch_in_time: actual_punch_in.map(|p| p.time()),
                         scheduled_start: daily.start_time,
                         is_holiday: is_hol,
-                        is_holiday_paid: holiday_entry.is_none_or(|h| h.is_paid),
+                        is_holiday_paid: holiday_entry.is_none_or(crate::models::Holiday::is_paid),
                         has_shift: daily.shift_id.is_some(),
                         is_on_leave,
                     },
@@ -661,7 +661,7 @@ impl ReportService {
                     is_holiday: is_hol,
                     is_unscheduled: status
                         == crate::services::attendance_utils::AttendanceStatus::Unscheduled,
-                    holiday_name: holiday_entry.map(|h| h.name.clone()),
+                    holiday_name: holiday_entry.map(|h| h.name().to_string()),
                     generation_metadata: combined_metadata,
                     is_leave_paid,
                 });

@@ -300,7 +300,7 @@ async fn test_get_daily_attendance_report_behalf_filtering() {
         .transfer_employee(
             &apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id),
             emp_assigned_id,
-            dept.id,
+            dept.id(),
             chrono::Utc::now().date_naive(),
             None,
         )
@@ -336,7 +336,7 @@ async fn test_get_daily_attendance_report_behalf_filtering() {
         diesel::sql_types::Uuid, assignment_id,
         diesel::sql_types::Uuid, workspace_id,
         diesel::sql_types::Uuid, clerk_user_id,
-        diesel::sql_types::Uuid, dept.id
+        diesel::sql_types::Uuid, dept.id()
     );
 
     // Query report again. This time it should return exactly 1 row (EMP_ASSIGNED)

@@ -1061,14 +1061,14 @@ mod tests {
             _date: chrono::NaiveDate,
             _notes: Option<String>,
         ) -> Result<crate::models::EmployeeDepartmentHistory, AppError> {
-            Ok(crate::models::EmployeeDepartmentHistory {
-                id: Uuid::new_v4(),
-                employee_id: _emp,
-                department_id: _dept,
-                effective_date: _date,
-                notes: _notes,
-                created_at: chrono::Utc::now(),
-            })
+            Ok(crate::models::EmployeeDepartmentHistory::new(
+                Uuid::new_v4(),
+                _emp,
+                _dept,
+                _date,
+                _notes,
+                chrono::Utc::now(),
+            ))
         }
         async fn get_employee_department_history(
             &self,

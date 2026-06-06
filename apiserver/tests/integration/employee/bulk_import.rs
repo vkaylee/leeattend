@@ -340,7 +340,7 @@ async fn test_upload_employee_csv_with_department() {
         )
         .await
         .unwrap();
-    let dept_names: Vec<&str> = departments.0.iter().map(|d| d.name.as_str()).collect();
+    let dept_names: Vec<&str> = departments.0.iter().map(|d| d.name()).collect();
     assert!(
         dept_names.contains(&"Engineering"),
         "Engineering department should be created"
@@ -379,11 +379,11 @@ async fn test_upload_employee_csv_with_department() {
     let eng_dept = departments
         .0
         .iter()
-        .find(|d| d.name == "Engineering")
+        .find(|d| d.name() == "Engineering")
         .unwrap();
     assert_eq!(
-        current_dept.unwrap().department_id,
-        eng_dept.id,
+        current_dept.unwrap().department_id(),
+        eng_dept.id(),
         "DEPT001 should be assigned to Engineering"
     );
 
@@ -413,11 +413,11 @@ async fn test_upload_employee_csv_with_department() {
     let mkt_dept = departments
         .0
         .iter()
-        .find(|d| d.name == "Marketing")
+        .find(|d| d.name() == "Marketing")
         .unwrap();
     assert_eq!(
-        current_dept3.unwrap().department_id,
-        mkt_dept.id,
+        current_dept3.unwrap().department_id(),
+        mkt_dept.id(),
         "DEPT003 should be assigned to Marketing"
     );
 }
@@ -511,7 +511,7 @@ async fn test_upload_employee_csv_reuses_existing_department() {
     let sales_depts: Vec<_> = departments
         .0
         .iter()
-        .filter(|d| d.name.to_lowercase() == "sales")
+        .filter(|d| d.name().to_lowercase() == "sales")
         .collect();
     assert_eq!(
         sales_depts.len(),
@@ -519,7 +519,8 @@ async fn test_upload_employee_csv_reuses_existing_department() {
         "Should reuse existing department, not create duplicate"
     );
     assert_eq!(
-        sales_depts[0].id, pre_existing_dept_id,
+        sales_depts[0].id(),
+        pre_existing_dept_id,
         "Should be the same pre-existing department"
     );
 
@@ -546,7 +547,7 @@ async fn test_upload_employee_csv_reuses_existing_department() {
         .unwrap();
     assert!(current_dept.is_some());
     assert_eq!(
-        current_dept.unwrap().department_id,
+        current_dept.unwrap().department_id(),
         pre_existing_dept_id,
         "Employee should be assigned to the pre-existing Sales department"
     );
@@ -676,7 +677,7 @@ async fn test_upload_employee_xlsx_with_department() {
         )
         .await
         .unwrap();
-    let dept_names: Vec<&str> = departments.0.iter().map(|d| d.name.as_str()).collect();
+    let dept_names: Vec<&str> = departments.0.iter().map(|d| d.name()).collect();
     assert!(
         dept_names.contains(&"Engineering"),
         "Engineering department should be created from xlsx"
@@ -715,11 +716,11 @@ async fn test_upload_employee_xlsx_with_department() {
     let eng_dept = departments
         .0
         .iter()
-        .find(|d| d.name == "Engineering")
+        .find(|d| d.name() == "Engineering")
         .unwrap();
     assert_eq!(
-        current_dept.unwrap().department_id,
-        eng_dept.id,
+        current_dept.unwrap().department_id(),
+        eng_dept.id(),
         "XLS001 should be assigned to Engineering"
     );
 
@@ -749,11 +750,11 @@ async fn test_upload_employee_xlsx_with_department() {
     let mkt_dept = departments
         .0
         .iter()
-        .find(|d| d.name == "Marketing")
+        .find(|d| d.name() == "Marketing")
         .unwrap();
     assert_eq!(
-        current_dept3.unwrap().department_id,
-        mkt_dept.id,
+        current_dept3.unwrap().department_id(),
+        mkt_dept.id(),
         "XLS003 should be assigned to Marketing"
     );
 }
@@ -846,7 +847,7 @@ async fn test_upload_employee_xlsx_reuses_existing_department() {
     let sales_depts: Vec<_> = departments
         .0
         .iter()
-        .filter(|d| d.name.to_lowercase() == "sales")
+        .filter(|d| d.name().to_lowercase() == "sales")
         .collect();
     assert_eq!(
         sales_depts.len(),
@@ -854,7 +855,8 @@ async fn test_upload_employee_xlsx_reuses_existing_department() {
         "Should reuse existing department, not create duplicate"
     );
     assert_eq!(
-        sales_depts[0].id, pre_existing_dept_id,
+        sales_depts[0].id(),
+        pre_existing_dept_id,
         "Should be the same pre-existing department"
     );
 
@@ -881,7 +883,7 @@ async fn test_upload_employee_xlsx_reuses_existing_department() {
         .unwrap();
     assert!(current_dept.is_some());
     assert_eq!(
-        current_dept.unwrap().department_id,
+        current_dept.unwrap().department_id(),
         pre_existing_dept_id,
         "Employee should be assigned to the pre-existing Sales department"
     );
@@ -981,7 +983,7 @@ async fn test_upload_csv_existing_employee_new_department() {
     let rd_dept = departments
         .0
         .iter()
-        .find(|d| d.name == "R&D")
+        .find(|d| d.name() == "R&D")
         .expect("R&D department should be created");
 
     // Verify existing employee is assigned to the new department
@@ -1010,8 +1012,8 @@ async fn test_upload_csv_existing_employee_new_department() {
         "Existing employee should be assigned to the new department"
     );
     assert_eq!(
-        current_dept.unwrap().department_id,
-        rd_dept.id,
+        current_dept.unwrap().department_id(),
+        rd_dept.id(),
         "Existing employee should be in R&D"
     );
 }
@@ -1114,7 +1116,7 @@ async fn test_upload_csv_existing_employee_existing_department() {
     let finance_depts: Vec<_> = departments
         .0
         .iter()
-        .filter(|d| d.name == "Finance")
+        .filter(|d| d.name() == "Finance")
         .collect();
     assert_eq!(
         finance_depts.len(),
@@ -1145,7 +1147,7 @@ async fn test_upload_csv_existing_employee_existing_department() {
         .unwrap();
     assert!(current_dept.is_some());
     assert_eq!(
-        current_dept.unwrap().department_id,
+        current_dept.unwrap().department_id(),
         pre_dept_id,
         "Existing employee should be assigned to existing Finance department"
     );
@@ -1245,7 +1247,7 @@ async fn test_upload_xlsx_existing_employee_new_department() {
     let devops_dept = departments
         .0
         .iter()
-        .find(|d| d.name == "DevOps")
+        .find(|d| d.name() == "DevOps")
         .expect("DevOps department should be created");
 
     // Verify existing employee is assigned
@@ -1271,8 +1273,8 @@ async fn test_upload_xlsx_existing_employee_new_department() {
         .unwrap();
     assert!(current_dept.is_some());
     assert_eq!(
-        current_dept.unwrap().department_id,
-        devops_dept.id,
+        current_dept.unwrap().department_id(),
+        devops_dept.id(),
         "Existing employee should be in DevOps"
     );
 }
@@ -1374,10 +1376,10 @@ async fn test_upload_xlsx_existing_employee_existing_department() {
     let hr_depts: Vec<_> = departments
         .0
         .iter()
-        .filter(|d| d.name.to_lowercase() == "hr")
+        .filter(|d| d.name().to_lowercase() == "hr")
         .collect();
     assert_eq!(hr_depts.len(), 1, "Should not create duplicate HR");
-    assert_eq!(hr_depts[0].id, pre_dept_id);
+    assert_eq!(hr_depts[0].id(), pre_dept_id);
 
     // Verify existing employee is assigned
     let emp = _state
@@ -1402,7 +1404,7 @@ async fn test_upload_xlsx_existing_employee_existing_department() {
         .unwrap();
     assert!(current_dept.is_some());
     assert_eq!(
-        current_dept.unwrap().department_id,
+        current_dept.unwrap().department_id(),
         pre_dept_id,
         "Existing employee should be assigned to existing HR department"
     );

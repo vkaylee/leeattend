@@ -140,7 +140,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         &*tenant_manager,
         backup_cache,
     )
-    .await;
+    .await?;
 
     // ╔═══════════════════════════════════════════════════════════════╗
     // ║  POOL ASSIGNMENT RULES                                       ║
@@ -282,7 +282,7 @@ async fn register_workspace_tenants_and_migrate(
     diesel_pools: &DieselPools,
     tenant_manager: &dyn apiserver::supavisor::TenantManager,
     backup_cache: std::collections::HashMap<Uuid, (String, String, rust_decimal::Decimal)>,
-) {
+) -> Result<(), Box<dyn std::error::Error>> {
     // Query workspaces from system DB via direct connection
     let primary_url = db_config.primary_url.clone();
     let workspaces: Vec<(Uuid, Option<String>)> = match tokio::task::spawn_blocking(move || {
@@ -316,23 +316,30 @@ async fn register_workspace_tenants_and_migrate(
         Ok(Ok(r)) => r,
         Ok(Err(e)) => {
             tracing::warn!("{e} — skipping tenant registration");
-            return;
+            return Ok(());
         }
         Err(e) => {
             tracing::error!("Failed to spawn blocking task for workspace query: {e}");
-            return;
+            return Ok(());
         }
     };
 
     if workspaces.is_empty() {
         tracing::info!("No workspaces — skipping tenant registration and migrations");
-        return;
+        return Ok(());
     }
 
+    let app_env = std::env::var("APP_ENV").unwrap_or_else(|_| "development".to_string());
     let crypto_service: Option<apiserver::crypto::CryptoService> =
-        std::env::var("ENCRYPTION_KEYS_JSON")
-            .ok()
-            .and_then(|keys| apiserver::crypto::CryptoService::from_json(&keys).ok());
+        if let Ok(keys) = std::env::var("ENCRYPTION_KEYS_JSON") {
+            let crypto = apiserver::crypto::CryptoService::from_json(&keys)
+                .map_err(|e| format!("Invalid ENCRYPTION_KEYS_JSON: {e}"))?;
+            Some(crypto)
+        } else if app_env == "production" {
+            return Err(Box::from("ENCRYPTION_KEYS_JSON must be set in production"));
+        } else {
+            None
+        };
 
     let mut migration_targets: Vec<(Uuid, String)> = Vec::new();
 
@@ -433,6 +440,7 @@ async fn register_workspace_tenants_and_migrate(
             Err(e) => tracing::error!("Tenant migration task panicked: {e}"),
         }
     }
+    Ok(())
 }
 
 async fn shutdown_signal() {

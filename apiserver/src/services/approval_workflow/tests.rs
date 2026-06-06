@@ -1070,17 +1070,17 @@ mod tests {
             _m: Option<Uuid>,
             _d: Option<Uuid>,
         ) -> Result<crate::models::Department, AppError> {
-            Ok(crate::models::Department {
-                id: Uuid::new_v4(),
-                workspace_id: _a.workspace_id(),
+            Ok(crate::models::Department::new(
+                Uuid::new_v4(),
+                _a.workspace_id(),
                 name,
-                description: _de,
-                manager_id: _m,
-                default_working_pattern_id: _d,
-                created_at: Utc::now(),
-                updated_at: Utc::now(),
-                active_employee_count: 0,
-            })
+                _de,
+                _m,
+                _d,
+                Utc::now(),
+                Utc::now(),
+                0,
+            ))
         }
         async fn get_department_by_name(
             &self,
@@ -1678,26 +1678,26 @@ mod tests {
         let beneficiary = mock_employee(employee_id, ws_id, Some(employee_user_id), "John Doe");
 
         let dept_id = Uuid::new_v4();
-        let department = crate::models::Department {
-            id: dept_id,
-            workspace_id: ws_id,
-            name: "Engineering".to_string(),
-            description: None,
-            manager_id: Some(employee_id),
-            default_working_pattern_id: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-            active_employee_count: 1,
-        };
+        let department = crate::models::Department::new(
+            dept_id,
+            ws_id,
+            "Engineering".to_string(),
+            None,
+            Some(employee_id),
+            None,
+            Utc::now(),
+            Utc::now(),
+            1,
+        );
 
-        let dept_history = crate::models::EmployeeDepartmentHistory {
-            id: Uuid::new_v4(),
+        let dept_history = crate::models::EmployeeDepartmentHistory::new(
+            Uuid::new_v4(),
             employee_id,
-            department_id: dept_id,
-            effective_date: NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
-            notes: None,
-            created_at: Utc::now(),
-        };
+            dept_id,
+            NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+            None,
+            Utc::now(),
+        );
 
         let admin_user_id = Uuid::new_v4();
 
@@ -1814,26 +1814,26 @@ mod tests {
         let beneficiary = mock_employee(employee_id, ws_id, Some(employee_user_id), "John Doe");
 
         let dept_id = Uuid::new_v4();
-        let department = crate::models::Department {
-            id: dept_id,
-            workspace_id: ws_id,
-            name: "Engineering".to_string(),
-            description: None,
-            manager_id: Some(employee_id),
-            default_working_pattern_id: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-            active_employee_count: 1,
-        };
+        let department = crate::models::Department::new(
+            dept_id,
+            ws_id,
+            "Engineering".to_string(),
+            None,
+            Some(employee_id),
+            None,
+            Utc::now(),
+            Utc::now(),
+            1,
+        );
 
-        let dept_history = crate::models::EmployeeDepartmentHistory {
-            id: Uuid::new_v4(),
+        let dept_history = crate::models::EmployeeDepartmentHistory::new(
+            Uuid::new_v4(),
             employee_id,
-            department_id: dept_id,
-            effective_date: NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
-            notes: None,
-            created_at: Utc::now(),
-        };
+            dept_id,
+            NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+            None,
+            Utc::now(),
+        );
 
         {
             let mut s = state.lock().unwrap();

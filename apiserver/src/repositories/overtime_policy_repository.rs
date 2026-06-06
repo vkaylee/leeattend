@@ -87,18 +87,18 @@ impl WorkspaceOvertimeData {
         // 2. Department Override
         let dept_assignment = all_dept_history
             .iter()
-            .filter(|h| h.effective_date <= date)
+            .filter(|h| h.effective_date() <= date)
             .filter_map(|h| {
                 self.assignments
                     .iter()
                     .filter(|a| {
                         a.assignee_type == "department"
-                            && a.assignee_id == Some(h.department_id)
+                            && a.assignee_id == Some(h.department_id())
                             && a.effective_from <= date
                             && a.effective_to.is_none_or(|to| to >= date)
                     })
                     .max_by_key(|a| a.created_at)
-                    .map(|a| (h.effective_date, a.created_at, a.policy_id))
+                    .map(|a| (h.effective_date(), a.created_at, a.policy_id))
             })
             .max_by_key(|(h_eff, a_created, _)| (*h_eff, *a_created));
 

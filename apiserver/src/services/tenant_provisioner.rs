@@ -134,4 +134,24 @@ mod tests {
             panic!("Expected AppError::Internal");
         }
     }
+
+    #[tokio::test]
+    async fn test_provision_tenant_db_success() {
+        if let Ok(db_url) = std::env::var("DATABASE_URL") {
+            use diesel::Connection;
+            if diesel::PgConnection::establish(&db_url).is_ok() {
+                let migrator = TenantMigrator::new();
+                let workspace_id = Uuid::new_v4();
+                let result = migrator.provision_tenant_db(&workspace_id, &db_url).await;
+                assert!(
+                    result.is_ok(),
+                    "provision_tenant_db failed: {:?}",
+                    result.err()
+                );
+                assert_eq!(result.unwrap(), db_url);
+            } else {
+                println!("Skipping test_provision_tenant_db_success: DB connection not available");
+            }
+        }
+    }
 }

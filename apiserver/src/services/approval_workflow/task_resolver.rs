@@ -196,7 +196,7 @@ impl ApprovalWorkflowService {
                         instance_id,
                         step_order,
                         "department_manager".to_string(),
-                        Some(current_dept.department_id),
+                        Some(current_dept.department_id()),
                         None,
                     ));
                 } else if let Ok(admins) = self

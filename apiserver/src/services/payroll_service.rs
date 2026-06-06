@@ -296,7 +296,7 @@ impl PayrollService {
 
         let department_ids: Vec<Uuid> = all_dept_history
             .iter()
-            .map(|d| d.department_id)
+            .map(crate::models::EmployeeDepartmentHistory::department_id)
             .collect::<std::collections::BTreeSet<_>>()
             .into_iter()
             .collect();
@@ -348,8 +348,8 @@ impl PayrollService {
             }
         }
         for dept in &ctx.all_dept_history {
-            if dept.effective_date > ctx.start_date && dept.effective_date <= ctx.end_date {
-                change_points.insert(dept.effective_date);
+            if dept.effective_date() > ctx.start_date && dept.effective_date() <= ctx.end_date {
+                change_points.insert(dept.effective_date());
             }
         }
 
@@ -412,9 +412,9 @@ impl PayrollService {
             let active_dept = ctx
                 .all_dept_history
                 .iter()
-                .filter(|d| d.effective_date <= seg_start)
-                .max_by_key(|d| d.effective_date);
-            let dept_id = active_dept.map(|d| d.department_id);
+                .filter(|d| d.effective_date() <= seg_start)
+                .max_by_key(|d| d.effective_date());
+            let dept_id = active_dept.map(crate::models::EmployeeDepartmentHistory::department_id);
 
             let mut segment_total_base = Decimal::ZERO;
             let mut segment_ot_base = Decimal::ZERO;
@@ -810,7 +810,7 @@ impl PayrollService {
             let batch_dept_ids: Vec<Uuid> = dept_map
                 .values()
                 .flatten()
-                .map(|dh| dh.department_id)
+                .map(crate::models::EmployeeDepartmentHistory::department_id)
                 .collect::<BTreeSet<_>>()
                 .into_iter()
                 .collect();
@@ -859,8 +859,8 @@ impl PayrollService {
                     let all_dept_history = dept_map.remove(&emp_id).unwrap_or_default();
                     let mut emp_dept_payroll_configs = HashMap::new();
                     for dh in &all_dept_history {
-                        if let Some(configs) = batch_dept_payroll_configs.get(&dh.department_id) {
-                            emp_dept_payroll_configs.insert(dh.department_id, configs.clone());
+                        if let Some(configs) = batch_dept_payroll_configs.get(&dh.department_id()) {
+                            emp_dept_payroll_configs.insert(dh.department_id(), configs.clone());
                         }
                     }
 
@@ -972,14 +972,14 @@ mod tests {
     }
 
     fn make_dept_entry(effective_date: NaiveDate) -> crate::models::EmployeeDepartmentHistory {
-        crate::models::EmployeeDepartmentHistory {
-            id: Uuid::new_v4(),
-            employee_id: Uuid::new_v4(),
-            department_id: Uuid::new_v4(),
+        crate::models::EmployeeDepartmentHistory::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            Uuid::new_v4(),
             effective_date,
-            notes: None,
-            created_at: Utc::now(),
-        }
+            None,
+            Utc::now(),
+        )
     }
 
     fn make_ctx(

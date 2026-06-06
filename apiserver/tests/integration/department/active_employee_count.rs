@@ -74,7 +74,8 @@ async fn test_department_with_no_employees_has_zero_count() {
         .unwrap();
     assert_eq!(depts.0.len(), 1);
     assert_eq!(
-        depts.0[0].active_employee_count, 0,
+        depts.0[0].active_employee_count(),
+        0,
         "Department with no employees should have count = 0"
     );
 }
@@ -111,7 +112,8 @@ async fn test_department_counts_active_employees() {
         .unwrap();
     assert_eq!(depts.0.len(), 1);
     assert_eq!(
-        depts.0[0].active_employee_count, 3,
+        depts.0[0].active_employee_count(),
+        3,
         "Should count 3 active employees"
     );
 }
@@ -155,7 +157,8 @@ async fn test_department_excludes_inactive_employees() {
         .unwrap();
     assert_eq!(depts.0.len(), 1);
     assert_eq!(
-        depts.0[0].active_employee_count, 2,
+        depts.0[0].active_employee_count(),
+        2,
         "Should only count active employees (excluding the deactivated one)"
     );
 }
@@ -208,15 +211,17 @@ async fn test_department_uses_latest_transfer_only() {
         .await
         .unwrap();
 
-    let dept_a_row = depts.0.iter().find(|d| d.id == dept_a).unwrap();
-    let dept_b_row = depts.0.iter().find(|d| d.id == dept_b).unwrap();
+    let dept_a_row = depts.0.iter().find(|d| d.id() == dept_a).unwrap();
+    let dept_b_row = depts.0.iter().find(|d| d.id() == dept_b).unwrap();
 
     assert_eq!(
-        dept_a_row.active_employee_count, 0,
+        dept_a_row.active_employee_count(),
+        0,
         "DeptA should have 0 — employee was transferred out"
     );
     assert_eq!(
-        dept_b_row.active_employee_count, 1,
+        dept_b_row.active_employee_count(),
+        1,
         "DeptB should have 1 — employee's latest assignment"
     );
 }
@@ -253,7 +258,8 @@ async fn test_get_department_by_id_includes_employee_count() {
         .unwrap()
         .unwrap();
     assert_eq!(
-        dept.active_employee_count, 2,
+        dept.active_employee_count(),
+        2,
         "get_department_by_id should also return active_employee_count"
     );
 }
@@ -281,7 +287,8 @@ async fn test_create_department_returns_zero_count() {
         .unwrap();
 
     assert_eq!(
-        dept.active_employee_count, 0,
+        dept.active_employee_count(),
+        0,
         "Newly created department should have count = 0 (via sqlx default)"
     );
 }
@@ -335,11 +342,11 @@ async fn test_multiple_departments_independent_counts() {
         .await
         .unwrap();
 
-    let eng = depts.0.iter().find(|d| d.id == dept_eng).unwrap();
-    let hr = depts.0.iter().find(|d| d.id == dept_hr).unwrap();
-    let empty = depts.0.iter().find(|d| d.id == dept_empty).unwrap();
+    let eng = depts.0.iter().find(|d| d.id() == dept_eng).unwrap();
+    let hr = depts.0.iter().find(|d| d.id() == dept_hr).unwrap();
+    let empty = depts.0.iter().find(|d| d.id() == dept_empty).unwrap();
 
-    assert_eq!(eng.active_employee_count, 3);
-    assert_eq!(hr.active_employee_count, 1);
-    assert_eq!(empty.active_employee_count, 0);
+    assert_eq!(eng.active_employee_count(), 3);
+    assert_eq!(hr.active_employee_count(), 1);
+    assert_eq!(empty.active_employee_count(), 0);
 }

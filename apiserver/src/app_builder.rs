@@ -648,13 +648,18 @@ impl AppState {
                 }),
                 tenant_manager,
                 tenant_provisioner.clone(),
-                std::env::var("ENCRYPTION_KEYS_JSON")
-                    .ok()
-                    .and_then(|keys_json| {
-                        crate::crypto::CryptoService::from_json(&keys_json)
-                            .ok()
-                            .map(Arc::new)
-                    }),
+                if let Ok(keys_json) = std::env::var("ENCRYPTION_KEYS_JSON") {
+                    let crypto = crate::crypto::CryptoService::from_json(&keys_json)
+                        .map_err(|e| format!("Invalid ENCRYPTION_KEYS_JSON: {e}"))?;
+                    Some(Arc::new(crypto))
+                } else {
+                    let app_env =
+                        std::env::var("APP_ENV").unwrap_or_else(|_| "development".to_string());
+                    if app_env == "production" {
+                        return Err("ENCRYPTION_KEYS_JSON must be set in production".into());
+                    }
+                    None
+                },
                 system_db_cluster_repo.clone(),
             ),
         ));

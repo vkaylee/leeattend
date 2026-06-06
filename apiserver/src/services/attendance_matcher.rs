@@ -204,12 +204,12 @@ impl AttendanceMatcher {
                                         args.segment_total_base,
                                         args.std_config.std_working_days(),
                                     );
-                                    if holiday.is_credit_on_work {
+                                    if holiday.is_credit_on_work() {
                                         segment_std_units +=
                                             args.seg_units_per_day.to_i32().unwrap_or(0);
                                     }
                                     let multiplier =
-                                        holiday.ot_multiplier.unwrap_or_else(|| Decimal::from(3));
+                                        holiday.ot_multiplier().unwrap_or_else(|| Decimal::from(3));
                                     if multiplier > Decimal::ONE {
                                         let worked_fraction =
                                             Decimal::from(std_u) / args.seg_units_per_day;
@@ -334,8 +334,8 @@ impl AttendanceMatcher {
                 }
             } else if let Some(holiday) = args.ctx.holidays_map.get(&current_date) {
                 // Paid holiday with no attendance → auto-credit standard day
-                if holiday.is_paid {
-                    let credit_units = if holiday.holiday_type == "half_day" {
+                if holiday.is_paid() {
+                    let credit_units = if holiday.holiday_type() == "half_day" {
                         (args.seg_units_per_day / Decimal::from(2))
                             .to_i32()
                             .unwrap_or(0)
@@ -786,21 +786,21 @@ mod tests {
         let mut holidays_map = HashMap::new();
         holidays_map.insert(
             date,
-            Holiday {
-                id: Uuid::new_v4(),
-                workspace_id: ws_id,
+            Holiday::new(
+                Uuid::new_v4(),
+                ws_id,
+                "New Year".to_string(),
                 date,
-                name: "New Year".to_string(),
-                is_paid: true,
-                is_credit_on_work: false,
-                holiday_type: "full_day".to_string(),
-                ot_multiplier: Some(Decimal::new(30, 1)),
-                created_at: Utc::now(),
-                updated_at: Utc::now(),
-                description: None,
-                work_threshold_percent: None,
-                leave_type_id: None,
-            },
+                "full_day".to_string(),
+                true,
+                None,
+                Some(Decimal::new(30, 1)),
+                None,
+                None,
+                false,
+                Utc::now(),
+                Utc::now(),
+            ),
         );
 
         let attendance_rules = AttendanceRules {
@@ -921,21 +921,21 @@ mod tests {
         let mut holidays_map = HashMap::new();
         holidays_map.insert(
             date,
-            Holiday {
-                id: Uuid::new_v4(),
-                workspace_id: ws_id,
+            Holiday::new(
+                Uuid::new_v4(),
+                ws_id,
+                "New Year".to_string(),
                 date,
-                name: "New Year".to_string(),
-                is_paid: true,
-                is_credit_on_work: true, // extra credit for working holiday
-                holiday_type: "full_day".to_string(),
-                ot_multiplier: Some(Decimal::new(30, 1)), // 3.0x multiplier
-                created_at: Utc::now(),
-                updated_at: Utc::now(),
-                description: None,
-                work_threshold_percent: None,
-                leave_type_id: None,
-            },
+                "full_day".to_string(),
+                true,
+                None,
+                Some(Decimal::new(30, 1)),
+                None,
+                None,
+                true,
+                Utc::now(),
+                Utc::now(),
+            ),
         );
 
         let attendance_rules = AttendanceRules {

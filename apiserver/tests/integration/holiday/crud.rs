@@ -92,12 +92,12 @@ async fn test_holiday_crud_lifecycle_smoke() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::CREATED);
     let holiday: Holiday = read_body(response).await;
-    assert_eq!(holiday.name, "Tết Dương Lịch");
-    assert_eq!(holiday.holiday_type, "national");
-    assert!(holiday.is_paid);
-    assert_eq!(holiday.date.to_string(), "2026-01-01");
+    assert_eq!(holiday.name(), "Tết Dương Lịch");
+    assert_eq!(holiday.holiday_type(), "national");
+    assert!(holiday.is_paid());
+    assert_eq!(holiday.date().to_string(), "2026-01-01");
 
-    let holiday_id = holiday.id;
+    let holiday_id = holiday.id();
 
     // 3. Get holiday by ID
     let response = app
@@ -113,7 +113,7 @@ async fn test_holiday_crud_lifecycle_smoke() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     let fetched: Holiday = read_body(response).await;
-    assert_eq!(fetched.id, holiday_id);
+    assert_eq!(fetched.id(), holiday_id);
 
     // 4. Update holiday
     let update_body = serde_json::json!({
@@ -134,8 +134,8 @@ async fn test_holiday_crud_lifecycle_smoke() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     let updated: Holiday = read_body(response).await;
-    assert_eq!(updated.name, "New Year 2026");
-    assert!(!updated.is_paid);
+    assert_eq!(updated.name(), "New Year 2026");
+    assert!(!updated.is_paid());
 
     // 5. List holidays — should have 1
     let response = app
@@ -373,7 +373,7 @@ async fn test_holiday_patch_update() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::CREATED);
     let holiday: Holiday = read_body(response).await;
-    let holiday_id = holiday.id;
+    let holiday_id = holiday.id();
 
     // Update via PATCH (the method used by the frontend)
     let patch_body = serde_json::json!({
@@ -394,11 +394,11 @@ async fn test_holiday_patch_update() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     let updated: Holiday = read_body(response).await;
-    assert_eq!(updated.name, "Giỗ Tổ Hùng Vương 2026");
-    assert!(!updated.is_paid);
+    assert_eq!(updated.name(), "Giỗ Tổ Hùng Vương 2026");
+    assert!(!updated.is_paid());
     // Unchanged fields should be preserved
-    assert_eq!(updated.holiday_type, "national");
-    assert_eq!(updated.date.to_string(), "2026-04-12");
+    assert_eq!(updated.holiday_type(), "national");
+    assert_eq!(updated.date().to_string(), "2026-04-12");
 }
 
 #[tokio::test]
@@ -432,8 +432,8 @@ async fn test_holiday_with_ot_multiplier() {
     assert_eq!(response.status(), StatusCode::CREATED);
     let holiday: Holiday = read_body(response).await;
     assert_eq!(
-        holiday.ot_multiplier,
+        holiday.ot_multiplier(),
         Some(rust_decimal::Decimal::new(40, 1)) // 4.0
     );
-    assert_eq!(holiday.description.unwrap(), "International Workers' Day");
+    assert_eq!(holiday.description().unwrap(), "International Workers' Day");
 }

@@ -377,7 +377,7 @@ impl AttendanceSummaryService {
             .is_holiday(&TenantAuthToken::system_override(workspace_id), date)
             .await?;
         let is_holiday = holiday.is_some();
-        let holiday_name = holiday.as_ref().map(|h| h.name.clone());
+        let holiday_name = holiday.as_ref().map(|h| h.name().to_string());
 
         if is_holiday && actual_work_minutes > 0 {
             if let Some(ref hol) = holiday {
@@ -443,7 +443,7 @@ impl AttendanceSummaryService {
             })
             .unwrap_or(DEFAULT_WORK_MINUTES_PER_DAY);
 
-        let threshold = holiday.work_threshold_percent.unwrap_or(50);
+        let threshold = holiday.work_threshold_percent().unwrap_or(50);
         let work_percent = if shift_minutes > 0 {
             (actual_work_minutes * 100) / shift_minutes
         } else {

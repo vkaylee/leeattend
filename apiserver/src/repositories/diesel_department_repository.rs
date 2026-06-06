@@ -37,17 +37,17 @@ pub struct DepartmentWithCountEntity {
 
 impl From<DepartmentWithCountEntity> for Department {
     fn from(entity: DepartmentWithCountEntity) -> Self {
-        Self {
-            id: entity.id,
-            workspace_id: entity.workspace_id,
-            name: entity.name,
-            description: entity.description,
-            manager_id: entity.manager_id,
-            default_working_pattern_id: entity.default_working_pattern_id,
-            created_at: entity.created_at.unwrap_or_else(Utc::now),
-            updated_at: entity.updated_at.unwrap_or_else(Utc::now),
-            active_employee_count: entity.active_employee_count,
-        }
+        Department::new(
+            entity.id,
+            entity.workspace_id,
+            entity.name,
+            entity.description,
+            entity.manager_id,
+            entity.default_working_pattern_id,
+            entity.created_at.unwrap_or_else(Utc::now),
+            entity.updated_at.unwrap_or_else(Utc::now),
+            entity.active_employee_count,
+        )
     }
 }
 
@@ -69,14 +69,14 @@ pub struct EmployeeDepartmentHistoryEntity {
 
 impl From<EmployeeDepartmentHistoryEntity> for EmployeeDepartmentHistory {
     fn from(entity: EmployeeDepartmentHistoryEntity) -> Self {
-        Self {
-            id: entity.id,
-            employee_id: entity.employee_id,
-            department_id: entity.department_id,
-            effective_date: entity.effective_date,
-            notes: entity.notes,
-            created_at: entity.created_at.unwrap_or_else(Utc::now),
-        }
+        EmployeeDepartmentHistory::new(
+            entity.id,
+            entity.employee_id,
+            entity.department_id,
+            entity.effective_date,
+            entity.notes,
+            entity.created_at.unwrap_or_else(Utc::now),
+        )
     }
 }
 
@@ -321,12 +321,12 @@ impl DepartmentRepository for DieselDepartmentRepository {
         let new_entities: Vec<NewDieselDepartment> = deps
             .iter()
             .map(|d| NewDieselDepartment {
-                id: d.id,
-                workspace_id: d.workspace_id,
-                name: d.name.clone(),
-                description: d.description.clone(),
-                manager_id: d.manager_id,
-                default_working_pattern_id: d.default_working_pattern_id,
+                id: d.id(),
+                workspace_id: d.workspace_id(),
+                name: d.name().to_string(),
+                description: d.description().map(String::from),
+                manager_id: d.manager_id(),
+                default_working_pattern_id: d.default_working_pattern_id(),
             })
             .collect();
 
@@ -706,14 +706,18 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .diesel_pools
             .tenant_transaction_conn(auth_token)
             .await?;
-        let _workspace_id = auth_token.workspace_id();
+        let workspace_id = auth_token.workspace_id();
 
-        use crate::schema::department_payroll_configs;
+        use crate::schema::{department_payroll_configs, departments};
 
         let result: Option<DepartmentPayrollConfigEntity> = department_payroll_configs::table
+            .inner_join(departments::table)
             .filter(department_payroll_configs::department_id.eq(department_id))
+            .filter(departments::workspace_id.eq(workspace_id))
+            .filter(departments::deleted_at.is_null())
             .filter(department_payroll_configs::effective_date.le(date))
             .order(department_payroll_configs::effective_date.desc())
+            .select(department_payroll_configs::all_columns)
             .first(&mut *conn)
             .await
             .optional()
@@ -839,17 +843,17 @@ mod tests {
         let err = repo
             .bulk_create_departments_skip_duplicates(
                 &auth_token,
-                &[crate::models::Department {
-                    id: Uuid::new_v4(),
-                    workspace_id: ws_id,
-                    name: "N".into(),
-                    description: None,
-                    manager_id: None,
-                    default_working_pattern_id: None,
-                    created_at: chrono::Utc::now(),
-                    updated_at: chrono::Utc::now(),
-                    active_employee_count: 0,
-                }],
+                &[crate::models::Department::new(
+                    Uuid::new_v4(),
+                    ws_id,
+                    "N".into(),
+                    None,
+                    None,
+                    None,
+                    chrono::Utc::now(),
+                    chrono::Utc::now(),
+                    0,
+                )],
             )
             .await;
         assert!(err.is_err());

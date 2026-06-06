@@ -83,7 +83,7 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
         date: chrono::NaiveDate,
     ) -> Result<Option<crate::models::EmployeePayrollConfig>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        use crate::schema::employee_payroll_configs;
+        use crate::schema::{employee_payroll_configs, employees};
 
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -94,7 +94,10 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
         );
 
         let result = employee_payroll_configs::table
+            .inner_join(employees::table)
             .filter(employee_payroll_configs::employee_id.eq(employee_id))
+            .filter(employees::workspace_id.eq(workspace_id))
+            .filter(employees::deleted_at.is_null())
             .filter(employee_payroll_configs::effective_date.le(date))
             .order(employee_payroll_configs::effective_date.desc())
             .select((

@@ -39,7 +39,7 @@ async fn test_resolve_attendance_policy_hierarchy() {
         )
         .await
         .unwrap();
-    let dept_id = dept.id;
+    let dept_id = dept.id();
 
     // 2. Create an employee
     let user_id = factory

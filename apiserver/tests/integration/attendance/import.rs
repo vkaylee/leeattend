@@ -520,5 +520,5 @@ async fn test_employee_import_duplicate_department_prevention() {
         "Should only create 1 department, found {}",
         departments.0.len()
     );
-    assert_eq!(departments.0[0].name, dept_name);
+    assert_eq!(departments.0[0].name(), dept_name);
 }

@@ -20,17 +20,17 @@ pub struct DieselDepartment {
 
 impl From<DieselDepartment> for crate::models::Department {
     fn from(val: DieselDepartment) -> Self {
-        crate::models::Department {
-            id: val.id,
-            workspace_id: val.workspace_id,
-            name: val.name,
-            description: val.description,
-            manager_id: val.manager_id,
-            default_working_pattern_id: val.default_working_pattern_id,
-            created_at: val.created_at.unwrap_or_else(Utc::now),
-            updated_at: val.updated_at.unwrap_or_else(Utc::now),
-            active_employee_count: 0, // PoC simplification
-        }
+        crate::models::Department::new(
+            val.id,
+            val.workspace_id,
+            val.name,
+            val.description,
+            val.manager_id,
+            val.default_working_pattern_id,
+            val.created_at.unwrap_or_else(Utc::now),
+            val.updated_at.unwrap_or_else(Utc::now),
+            0, // PoC simplification
+        )
     }
 }
 
@@ -94,14 +94,14 @@ pub struct DieselEmployeeDepartmentHistory {
 
 impl From<DieselEmployeeDepartmentHistory> for crate::models::EmployeeDepartmentHistory {
     fn from(val: DieselEmployeeDepartmentHistory) -> Self {
-        crate::models::EmployeeDepartmentHistory {
-            id: val.id,
-            employee_id: val.employee_id,
-            department_id: val.department_id,
-            effective_date: val.effective_date,
-            notes: val.notes,
-            created_at: val.created_at.unwrap_or_else(Utc::now),
-        }
+        crate::models::EmployeeDepartmentHistory::new(
+            val.id,
+            val.employee_id,
+            val.department_id,
+            val.effective_date,
+            val.notes,
+            val.created_at.unwrap_or_else(Utc::now),
+        )
     }
 }
 
@@ -133,15 +133,15 @@ mod tests {
         };
 
         let dept: crate::models::Department = diesel_dept.into();
-        assert_eq!(dept.id, id);
-        assert_eq!(dept.workspace_id, workspace_id);
-        assert_eq!(dept.name, "Engineering");
-        assert_eq!(dept.description, Some("Tech team".to_string()));
-        assert_eq!(dept.manager_id, Some(manager_id));
-        assert_eq!(dept.default_working_pattern_id, Some(pattern_id));
-        assert_eq!(dept.created_at, now);
-        assert_eq!(dept.updated_at, now);
-        assert_eq!(dept.active_employee_count, 0);
+        assert_eq!(dept.id(), id);
+        assert_eq!(dept.workspace_id(), workspace_id);
+        assert_eq!(dept.name(), "Engineering");
+        assert_eq!(dept.description(), Some("Tech team"));
+        assert_eq!(dept.manager_id(), Some(manager_id));
+        assert_eq!(dept.default_working_pattern_id(), Some(pattern_id));
+        assert_eq!(dept.created_at(), now);
+        assert_eq!(dept.updated_at(), now);
+        assert_eq!(dept.active_employee_count(), 0);
     }
 
     #[test]
@@ -163,9 +163,9 @@ mod tests {
         };
 
         let dept: crate::models::Department = diesel_dept.into();
-        assert_eq!(dept.id, id);
-        assert_eq!(dept.description, None);
-        assert!(dept.created_at <= Utc::now());
+        assert_eq!(dept.id(), id);
+        assert_eq!(dept.description(), None);
+        assert!(dept.created_at() <= Utc::now());
     }
 
     #[test]
@@ -217,11 +217,11 @@ mod tests {
         };
 
         let history: crate::models::EmployeeDepartmentHistory = diesel_history.into();
-        assert_eq!(history.id, id);
-        assert_eq!(history.employee_id, emp_id);
-        assert_eq!(history.department_id, dept_id);
-        assert_eq!(history.effective_date, effective);
-        assert_eq!(history.notes, Some("Transfer".to_string()));
-        assert_eq!(history.created_at, now);
+        assert_eq!(history.id(), id);
+        assert_eq!(history.employee_id(), emp_id);
+        assert_eq!(history.department_id(), dept_id);
+        assert_eq!(history.effective_date(), effective);
+        assert_eq!(history.notes(), Some("Transfer"));
+        assert_eq!(history.created_at(), now);
     }
 }

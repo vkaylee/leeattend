@@ -64,12 +64,12 @@ impl HolidayLeaveService {
         holiday: &Holiday,
     ) -> Result<Vec<HolidayLeaveResult>, crate::errors::AppError> {
         // Paid holidays need no deduction
-        if holiday.is_paid {
+        if holiday.is_paid() {
             return Ok(vec![HolidayLeaveResult::Paid]);
         }
 
         // Resolve which leave type to deduct from
-        let leave_type_id = match holiday.leave_type_id {
+        let leave_type_id = match holiday.leave_type_id() {
             Some(id) => id,
             None => {
                 // Fallback: find first is_paid=true leave type in workspace
@@ -104,12 +104,12 @@ impl HolidayLeaveService {
         }
 
         let employee_ids: Vec<Uuid> = employees.iter().map(crate::models::Employee::id).collect();
-        let year = holiday.date.year();
+        let year = holiday.date().year();
 
         // 1. Batch fetch existing leaves for this date
         let existing_leaves = self
             .leave_request_repo
-            .get_approved_leave_dates(&auth_token, &employee_ids, holiday.date, holiday.date)
+            .get_approved_leave_dates(&auth_token, &employee_ids, holiday.date(), holiday.date())
             .await?;
 
         // 2. Batch fetch balances
@@ -130,7 +130,7 @@ impl HolidayLeaveService {
 
         for emp in employees {
             // Check existing leave
-            if existing_leaves.contains(&(emp.id(), holiday.date)) {
+            if existing_leaves.contains(&(emp.id(), holiday.date())) {
                 continue;
             }
 
@@ -141,14 +141,14 @@ impl HolidayLeaveService {
 
             if remaining >= 1.0 {
                 let req_id = crate::utils::id::new_id();
-                let reason = format!("Nghỉ lễ (trừ phép): {}", holiday.name);
+                let reason = format!("Nghỉ lễ (trừ phép): {}", holiday.name());
 
                 new_requests.push(LeaveRequest {
                     id: req_id,
                     employee_id: emp.id(),
                     leave_type_id,
-                    start_date: holiday.date,
-                    end_date: holiday.date,
+                    start_date: holiday.date(),
+                    end_date: holiday.date(),
                     reason: Some(reason.clone()),
                     status: LeaveStatus::Approved,
                     duration_type: LeaveDurationType::FullDay,
@@ -164,7 +164,7 @@ impl HolidayLeaveService {
                     id: crate::utils::id::new_id(),
                     employee_id: emp.id(),
                     shift_id: None,
-                    date: holiday.date,
+                    date: holiday.date(),
                     status: "on_leave".to_string(),
                     notes: Some(reason.clone()),
                     created_at: Utc::now(),
@@ -175,8 +175,8 @@ impl HolidayLeaveService {
                     emp.id(),
                     leave_type_id,
                     rust_decimal::Decimal::ZERO,
-                    holiday.date,
-                    format!("Auto-deducted: Holiday {}", holiday.name),
+                    holiday.date(),
+                    format!("Auto-deducted: Holiday {}", holiday.name()),
                 ));
 
                 results.push(HolidayLeaveResult::LeaveDeducted {

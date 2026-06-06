@@ -453,18 +453,18 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         }
 
         let query = r"
+            WITH latest_history AS (
+                SELECT employee_id, department_id,
+                       ROW_NUMBER() OVER (PARTITION BY employee_id ORDER BY effective_date DESC) as rn
+                FROM employee_department_history
+                WHERE effective_date <= $2
+            )
             SELECT e.id AS employee_id,
-                   edh.department_id AS department_id,
+                   lh.department_id AS department_id,
                    COALESCE(d.name, 'Unassigned') AS department_name
             FROM employees e
-            LEFT JOIN LATERAL (
-                SELECT edh2.department_id
-                FROM employee_department_history edh2
-                WHERE edh2.employee_id = e.id AND edh2.effective_date <= $2
-                ORDER BY edh2.effective_date DESC
-                LIMIT 1
-            ) edh ON TRUE
-            LEFT JOIN departments d ON d.id = edh.department_id
+            LEFT JOIN latest_history lh ON lh.employee_id = e.id AND lh.rn = 1
+            LEFT JOIN departments d ON d.id = lh.department_id
             WHERE e.is_active = TRUE AND e.workspace_id = $1 AND e.deleted_at IS NULL
         ";
 

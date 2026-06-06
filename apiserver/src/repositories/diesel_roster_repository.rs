@@ -156,8 +156,8 @@ impl RosterRepository for DieselRosterRepository {
                         max_early_ot_minutes: None,
                         traces: traces.clone(),
                         is_holiday: holiday.is_some(),
-                        is_holiday_paid: holiday.is_some_and(|h| h.is_paid),
-                        holiday_name: holiday.map(|h| h.name.clone()),
+                        is_holiday_paid: holiday.is_some_and(crate::models::Holiday::is_paid),
+                        holiday_name: holiday.map(|h| h.name().to_string()),
                     };
 
                     if let Some(sid) = effective_shift_id {

@@ -27,20 +27,20 @@ pub struct HolidayEntity {
 
 impl From<HolidayEntity> for Holiday {
     fn from(entity: HolidayEntity) -> Self {
-        Self {
-            id: entity.id,
-            workspace_id: entity.workspace_id,
-            name: entity.name,
-            date: entity.date,
-            holiday_type: entity.holiday_type,
-            is_paid: entity.is_paid,
-            leave_type_id: entity.leave_type_id,
-            ot_multiplier: entity.ot_multiplier,
-            description: entity.description,
-            created_at: entity.created_at,
-            updated_at: entity.updated_at,
-            work_threshold_percent: entity.work_threshold_percent,
-            is_credit_on_work: entity.is_credit_on_work,
-        }
+        Self::new(
+            entity.id,
+            entity.workspace_id,
+            entity.name,
+            entity.date,
+            entity.holiday_type,
+            entity.is_paid,
+            entity.leave_type_id,
+            entity.ot_multiplier,
+            entity.description,
+            entity.work_threshold_percent,
+            entity.is_credit_on_work,
+            entity.created_at,
+            entity.updated_at,
+        )
     }
 }

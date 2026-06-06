@@ -125,7 +125,8 @@ impl ImportStrategy for EmployeeImportStrategy {
             .await
         {
             for dept in existing_depts.0 {
-                self.dept_cache.insert(dept.name.to_lowercase(), dept.id);
+                self.dept_cache
+                    .insert(dept.name().to_lowercase(), dept.id());
             }
         }
         if let Ok(existing_emps) = self
@@ -190,17 +191,17 @@ impl ImportStrategy for EmployeeImportStrategy {
             let key = name.to_lowercase();
             if !self.dept_cache.contains_key(&key) && unique_dept_names.insert(key.clone()) {
                 let dept_id = Uuid::new_v4();
-                new_depts.push(crate::models::Department {
-                    id: dept_id,
-                    workspace_id: job.workspace_id,
-                    name: name.clone(),
-                    description: None,
-                    manager_id: None,
-                    default_working_pattern_id: None,
-                    created_at: Utc::now(),
-                    updated_at: Utc::now(),
-                    active_employee_count: 0,
-                });
+                new_depts.push(crate::models::Department::new(
+                    dept_id,
+                    job.workspace_id,
+                    name.clone(),
+                    None,
+                    None,
+                    None,
+                    Utc::now(),
+                    Utc::now(),
+                    0,
+                ));
                 self.dept_cache.insert(key, dept_id);
             }
         }
@@ -209,7 +210,10 @@ impl ImportStrategy for EmployeeImportStrategy {
                 .department_repo
                 .bulk_create_departments_skip_duplicates(&auth_token, &new_depts)
                 .await;
-            let newly_inserted_names: Vec<String> = new_depts.into_iter().map(|d| d.name).collect();
+            let newly_inserted_names: Vec<String> = new_depts
+                .into_iter()
+                .map(|d| d.name().to_string())
+                .collect();
             if let Ok(existing_depts) = self
                 .department_repo
                 .get_department_ids_by_names(&auth_token, &newly_inserted_names)

@@ -6,24 +6,111 @@ use uuid::Uuid;
 /// Represents a holiday entry in the workspace calendar.
 #[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct Holiday {
-    pub id: Uuid,
-    pub workspace_id: Uuid,
-    pub name: String,
-    pub date: NaiveDate,
+    id: Uuid,
+    workspace_id: Uuid,
+    name: String,
+    date: NaiveDate,
     /// national | company | half_day
-    pub holiday_type: String,
-    pub is_paid: bool,
+    holiday_type: String,
+    is_paid: bool,
     /// When is_paid=false, which leave type to auto-deduct from employee balance.
-    pub leave_type_id: Option<Uuid>,
+    leave_type_id: Option<Uuid>,
     /// Per-holiday OT multiplier override. None = use workspace default.
-    pub ot_multiplier: Option<Decimal>,
-    pub description: Option<String>,
+    ot_multiplier: Option<Decimal>,
+    description: Option<String>,
     /// Threshold % of shift worked to reverse leave deduction. NULL = default 50%.
-    pub work_threshold_percent: Option<i32>,
+    work_threshold_percent: Option<i32>,
     /// Whether to credit holiday pay when employee works on this holiday.
-    pub is_credit_on_work: bool,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    is_credit_on_work: bool,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+impl Holiday {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        id: Uuid,
+        workspace_id: Uuid,
+        name: String,
+        date: NaiveDate,
+        holiday_type: String,
+        is_paid: bool,
+        leave_type_id: Option<Uuid>,
+        ot_multiplier: Option<Decimal>,
+        description: Option<String>,
+        work_threshold_percent: Option<i32>,
+        is_credit_on_work: bool,
+        created_at: DateTime<Utc>,
+        updated_at: DateTime<Utc>,
+    ) -> Self {
+        Self {
+            id,
+            workspace_id,
+            name,
+            date,
+            holiday_type,
+            is_paid,
+            leave_type_id,
+            ot_multiplier,
+            description,
+            work_threshold_percent,
+            is_credit_on_work,
+            created_at,
+            updated_at,
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn workspace_id(&self) -> Uuid {
+        self.workspace_id
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn date(&self) -> NaiveDate {
+        self.date
+    }
+
+    pub fn holiday_type(&self) -> &str {
+        &self.holiday_type
+    }
+
+    pub fn is_paid(&self) -> bool {
+        self.is_paid
+    }
+
+    pub fn leave_type_id(&self) -> Option<Uuid> {
+        self.leave_type_id
+    }
+
+    pub fn ot_multiplier(&self) -> Option<Decimal> {
+        self.ot_multiplier
+    }
+
+    pub fn description(&self) -> Option<&str> {
+        self.description.as_deref()
+    }
+
+    pub fn work_threshold_percent(&self) -> Option<i32> {
+        self.work_threshold_percent
+    }
+
+    pub fn is_credit_on_work(&self) -> bool {
+        self.is_credit_on_work
+    }
+
+    pub fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+
+    pub fn updated_at(&self) -> DateTime<Utc> {
+        self.updated_at
+    }
 }
 
 /// Request payload for creating a new holiday.

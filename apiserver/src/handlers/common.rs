@@ -535,7 +535,7 @@ pub async fn current_department_id(
         .await
         .ok()
         .flatten()
-        .map(|h| h.department_id)
+        .map(|h| h.department_id())
 }
 
 // --- Behalf Scope Helpers ---
