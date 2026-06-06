@@ -709,6 +709,14 @@ mod tests {
         ) -> Result<Option<Employee>, AppError> {
             Ok(None)
         }
+        async fn update_employee_transactional(
+            &self,
+            _id: Uuid,
+            _a: &TenantAuthToken,
+            _r: &crate::models::UpdateEmployeeRequest,
+        ) -> Result<Option<Employee>, AppError> {
+            Ok(None)
+        }
         async fn create_employee(&self, _e: &Employee) -> Result<(), AppError> {
             Ok(())
         }

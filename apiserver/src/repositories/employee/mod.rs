@@ -85,6 +85,13 @@ pub trait EmployeeCoreRepository: Send + Sync {
         req: &crate::models::UpdateEmployeeRequest,
     ) -> Result<Option<Employee>, AppError>;
 
+    async fn update_employee_transactional(
+        &self,
+        id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        req: &crate::models::UpdateEmployeeRequest,
+    ) -> Result<Option<Employee>, AppError>;
+
     async fn create_employee(&self, employee: &Employee) -> Result<(), AppError>;
 
     async fn create_employee_transactional(
@@ -432,6 +439,12 @@ mockall::mock! {
             date: NaiveDate,
         ) -> Result<std::collections::HashMap<Uuid, (Option<Uuid>, String)>, AppError>;
         async fn update_employee(
+            &self,
+            id: Uuid,
+            auth_token: &crate::diesel_pool::TenantAuthToken,
+            req: &crate::models::UpdateEmployeeRequest,
+        ) -> Result<Option<Employee>, AppError>;
+        async fn update_employee_transactional(
             &self,
             id: Uuid,
             auth_token: &crate::diesel_pool::TenantAuthToken,

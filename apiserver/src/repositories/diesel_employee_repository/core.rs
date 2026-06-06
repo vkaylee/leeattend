@@ -534,6 +534,73 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         Ok(result.map(Into::into))
     }
 
+    async fn update_employee_transactional(
+        &self,
+        id: Uuid,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        req: &UpdateEmployeeRequest,
+    ) -> Result<Option<Employee>, AppError> {
+        let workspace_id = auth_token.workspace_id();
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+
+        conn.transaction(|conn| {
+            Box::pin(async move {
+                let normalized_id = req
+                    .employee_id_number
+                    .as_ref()
+                    .map(|id| id.as_str().to_string());
+
+                let tags_mapped = req.tags.as_ref().map(|tags| {
+                    tags.iter()
+                        .map(|t| Some(t.clone()))
+                        .collect::<Vec<Option<String>>>()
+                });
+
+                let update_model = UpdateDieselEmployee {
+                    user_id: req.user_id,
+                    full_name: req.full_name.clone(),
+                    employee_id_number: normalized_id,
+                    tags: tags_mapped,
+                    is_active: req.is_active,
+                    hire_date: req.hire_date,
+                    termination_date: req.termination_date.map(Some),
+                    updated_at: Some(chrono::Utc::now()),
+                    primary_location_id: req.primary_location_id,
+                    employer_id: req.employer_id.map(Some),
+                };
+
+                let result: Option<EmployeeEntity> = diesel::update(employees::table)
+                    .filter(employees::id.eq(id))
+                    .filter(employees::workspace_id.eq(workspace_id))
+                    .set(&update_model)
+                    .get_result(&mut *conn)
+                    .await
+                    .optional()
+                    .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                if req.recruitment_source_id.is_some() {
+                    diesel::update(employees::table)
+                        .filter(employees::id.eq(id))
+                        .filter(employees::workspace_id.eq(workspace_id))
+                        .set((
+                            employees::recruitment_source_id.eq(req.recruitment_source_id),
+                            employees::updated_at.eq(Some(chrono::Utc::now())),
+                        ))
+                        .execute(&mut *conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                }
+
+                Ok(result.map(Into::into))
+            })
+        })
+        .await
+    }
+
+
     async fn create_employee(&self, employee: &Employee) -> Result<(), AppError> {
         let workspace_id = employee.workspace_id();
         let mut conn = crate::diesel_pool::TransactionConn(

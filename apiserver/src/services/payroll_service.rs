@@ -112,19 +112,19 @@ pub struct PayrollServiceArgs {
 }
 
 pub struct PayrollService {
-    pub payroll_repo: Arc<dyn PayrollRepository>,
-    pub department_repo: Arc<dyn DepartmentRepository>,
-    pub time_entry_repo: Arc<dyn time_entry_repository::TimeEntryRepository>,
-    pub workspace_repo: Arc<dyn WorkspaceRepository>,
-    pub holiday_repo: Arc<dyn HolidayRepository>,
-    pub roster_repo: Arc<dyn RosterRepository>,
-    pub leave_repo: Arc<dyn LeaveRequestRepository>,
-    pub policy_repo: Arc<dyn crate::repositories::AttendancePolicyRepository>,
-    pub employee_repo: Arc<dyn crate::repositories::EmployeeRepository>,
-    pub overtime_policy_repo: Arc<dyn OvertimePolicyRepositoryTrait>,
-    pub salary_base_repo:
+    payroll_repo: Arc<dyn PayrollRepository>,
+    department_repo: Arc<dyn DepartmentRepository>,
+    time_entry_repo: Arc<dyn time_entry_repository::TimeEntryRepository>,
+    workspace_repo: Arc<dyn WorkspaceRepository>,
+    holiday_repo: Arc<dyn HolidayRepository>,
+    roster_repo: Arc<dyn RosterRepository>,
+    leave_repo: Arc<dyn LeaveRequestRepository>,
+    policy_repo: Arc<dyn crate::repositories::AttendancePolicyRepository>,
+    employee_repo: Arc<dyn crate::repositories::EmployeeRepository>,
+    overtime_policy_repo: Arc<dyn OvertimePolicyRepositoryTrait>,
+    salary_base_repo:
         Arc<dyn crate::repositories::salary_base_repository::SalaryBaseRepository>,
-    pub roster_provider: Arc<dyn RosterDataProvider>,
+    roster_provider: Arc<dyn RosterDataProvider>,
 }
 impl PayrollService {
     pub fn new(args: PayrollServiceArgs) -> Self {
@@ -761,36 +761,32 @@ impl PayrollService {
                 .and_hms_opt(0, 0, 0)
                 .unwrap_or_default()
                 .and_utc();
-            let (
-                salary_histories,
-                dept_histories,
-                time_entries,
-                employees_res,
-                rosters,
-                conditions_res,
-                policies_res,
-            ) = tokio::join!(
-                self.payroll_repo.get_salary_components_history_batch(
-                    workspace_id,
-                    &chunk_ids,
-                    start_date,
-                    end_date,
-                ),
-                self.department_repo
-                    .get_employee_department_history_batch(token, &chunk_ids),
-                self.time_entry_repo
-                    .get_workspace_time_entries_batch(token, &chunk_ids, start_dt, end_dt),
-                self.employee_repo.get_employees_by_ids(&chunk_ids, token),
-                self.roster_repo
-                    .get_employee_rosters_batch(token, &chunk_ids, start_date, end_date),
-                self.employee_repo
-                    .get_working_conditions_batch(token, &chunk_ids, start_date, end_date),
-                self.policy_repo.get_employee_effective_policies_batch(
-                    token,
-                    &chunk_ids,
-                    effective_time
-                ),
-            );
+            let salary_histories = self.payroll_repo.get_salary_components_history_batch(
+                workspace_id,
+                &chunk_ids,
+                start_date,
+                end_date,
+            ).await;
+
+            let dept_histories = self.department_repo
+                .get_employee_department_history_batch(token, &chunk_ids).await;
+
+            let time_entries = self.time_entry_repo
+                .get_workspace_time_entries_batch(token, &chunk_ids, start_dt, end_dt).await;
+
+            let employees_res = self.employee_repo.get_employees_by_ids(&chunk_ids, token).await;
+
+            let rosters = self.roster_repo
+                .get_employee_rosters_batch(token, &chunk_ids, start_date, end_date).await;
+
+            let conditions_res = self.employee_repo
+                .get_working_conditions_batch(token, &chunk_ids, start_date, end_date).await;
+
+            let policies_res = self.policy_repo.get_employee_effective_policies_batch(
+                token,
+                &chunk_ids,
+                effective_time
+            ).await;
 
             let mut employees = match employees_res {
                 Ok(emps) => emps

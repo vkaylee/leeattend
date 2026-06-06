@@ -262,16 +262,9 @@ impl EmployeeService {
 
         let employee = self
             .repo
-            .update_employee(id, auth_token, &req)
+            .update_employee_transactional(id, auth_token, &req)
             .await?
             .ok_or(AppError::NotFound("Employee not found".into()))?;
-
-        // Update recruitment source if provided
-        if req.recruitment_source_id.is_some() {
-            self.repo
-                .set_employee_recruitment_source(auth_token, id, req.recruitment_source_id)
-                .await?;
-        }
 
         // If employee_id_number was updated, claim staged logs directly
         if let Some(new_id_number) = req.employee_id_number {
@@ -525,6 +518,15 @@ mod tests {
         }
 
         async fn update_employee(
+            &self,
+            _id: Uuid,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _req: &crate::models::UpdateEmployeeRequest,
+        ) -> Result<Option<Employee>, AppError> {
+            Ok(self.updated_employee.lock().expect("lock").clone())
+        }
+
+        async fn update_employee_transactional(
             &self,
             _id: Uuid,
             _auth_token: &crate::diesel_pool::TenantAuthToken,

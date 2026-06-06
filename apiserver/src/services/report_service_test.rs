@@ -299,6 +299,14 @@ mod tests {
         ) -> Result<Option<crate::models::Employee>, AppError> {
             unimplemented!()
         }
+        async fn update_employee_transactional(
+            &self,
+            _i: Uuid,
+            _a: &crate::diesel_pool::TenantAuthToken,
+            _r: &crate::models::UpdateEmployeeRequest,
+        ) -> Result<Option<crate::models::Employee>, AppError> {
+            unimplemented!()
+        }
         async fn create_employee(&self, _e: &crate::models::Employee) -> Result<(), AppError> {
             unimplemented!()
         }
@@ -1301,6 +1309,14 @@ mod tests {
             unimplemented!()
         }
         async fn update_employee(
+            &self,
+            _i: Uuid,
+            _a: &crate::diesel_pool::TenantAuthToken,
+            _r: &crate::models::UpdateEmployeeRequest,
+        ) -> Result<Option<crate::models::Employee>, AppError> {
+            unimplemented!()
+        }
+        async fn update_employee_transactional(
             &self,
             _i: Uuid,
             _a: &crate::diesel_pool::TenantAuthToken,
