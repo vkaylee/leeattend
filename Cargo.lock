@@ -186,6 +186,7 @@ dependencies = [
  "mimalloc",
  "mockall",
  "moka",
+ "parking_lot",
  "percent-encoding",
  "rand 0.8.6",
  "redis",

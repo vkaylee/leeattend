@@ -85,6 +85,7 @@ fn default_collapsed_sections() -> serde_json::Value {
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip(state, ctx))]
 pub async fn get_dashboard_preferences(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -128,6 +129,7 @@ pub async fn get_dashboard_preferences(
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip(state, ctx))]
 pub async fn update_dashboard_preferences(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,

@@ -28,6 +28,7 @@ use crate::{
     ),
     security(("bearer_auth" = []))
 )]
+#[tracing::instrument(skip(state, ctx))]
 pub async fn list_employee_assignments(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -56,6 +57,7 @@ pub async fn list_employee_assignments(
     ),
     security(("bearer_auth" = []))
 )]
+#[tracing::instrument(skip(state, ctx))]
 pub async fn get_employee_assignment(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -84,6 +86,7 @@ pub async fn get_employee_assignment(
     ),
     security(("bearer_auth" = []))
 )]
+#[tracing::instrument(skip(state, ctx))]
 pub async fn create_employee_assignment(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -143,6 +146,7 @@ pub async fn create_employee_assignment(
     ),
     security(("bearer_auth" = []))
 )]
+#[tracing::instrument(skip(state, ctx))]
 pub async fn update_employee_assignment(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -177,6 +181,7 @@ pub async fn update_employee_assignment(
     ),
     security(("bearer_auth" = []))
 )]
+#[tracing::instrument(skip(state, ctx))]
 pub async fn delete_employee_assignment(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,

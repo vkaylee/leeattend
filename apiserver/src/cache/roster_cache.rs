@@ -4,10 +4,10 @@
 //! workspace roster data.  Singleflight loading prevents thundering-herd
 //! on cache miss.  Falls back to direct DB load when Redis is unavailable.
 
+use parking_lot::Mutex;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::Mutex;
 
 use crate::repositories::diesel_department_repository::EmployeeDepartmentHistoryEntity;
 use chrono::{NaiveDate, NaiveTime, Utc};
@@ -504,7 +504,7 @@ impl RosterCache {
     ) -> Result<Arc<RosterData>, String> {
         // Determine leader vs follower while holding the mutex only briefly.
         let (is_leader, mut rx) = {
-            let mut map = self.inflight.lock().await;
+            let mut map = self.inflight.lock();
             let res = if let Some(sender) = map.get(&workspace_id) {
                 // Follower: subscribe to the leader's result.
                 (false, Some(sender.subscribe()))
@@ -523,7 +523,7 @@ impl RosterCache {
             let result = build_roster_data(diesel_pools, workspace_id).await;
 
             // Remove ourselves from the inflight map and retrieve the sender.
-            let sender = self.inflight.lock().await.remove(&workspace_id);
+            let sender = self.inflight.lock().remove(&workspace_id);
 
             // Notify all followers (ignore error if no receivers remain).
             if let Some(sender) = sender {

@@ -23,6 +23,7 @@ use uuid::Uuid;
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip(state))]
 pub async fn get_notifications(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
@@ -66,6 +67,7 @@ pub async fn get_notifications(
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip(state))]
 pub async fn get_unread_count(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
@@ -91,6 +93,7 @@ pub async fn get_unread_count(
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip(state))]
 pub async fn mark_as_read(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
@@ -114,6 +117,7 @@ pub async fn mark_as_read(
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip(state))]
 pub async fn mark_all_as_read(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,

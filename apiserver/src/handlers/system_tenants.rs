@@ -300,14 +300,6 @@ pub async fn delete_tenant_handler(
 ) -> AppResult<StatusCode> {
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
-    let mut conn = state
-        .infra()
-        .diesel()
-        .api
-        .get()
-        .await
-        .map_err(|e| AppError::Internal(e.to_string()))?;
-
     // 1. Delete from Supavisor
     state
         .infra()
@@ -316,6 +308,14 @@ pub async fn delete_tenant_handler(
         .await?;
 
     // 2. Audit Log
+    let mut conn = state
+        .infra()
+        .diesel()
+        .api
+        .get()
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+
     let details = serde_json::json!({
         "tenant_id": tenant_id
     });

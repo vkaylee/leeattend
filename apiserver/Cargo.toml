@@ -10,6 +10,7 @@ keywords = ["hrm", "attendance", "api", "rest"]
 categories = ["web-programming"]
 
 [dependencies]
+parking_lot = "0.12"
 axum = { version = "0.7", features = ["macros", "multipart", "ws"] }
 tokio = { version = "1.36", features = ["full"] }
 deadpool = { version = "0.13.0", features = ["rt_tokio_1"] }

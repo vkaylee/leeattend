@@ -21,6 +21,7 @@ use crate::state::AppState;
         (status = 200, description = "Get job status", body = serde_json::Value)
     )
 )]
+#[tracing::instrument(skip(state, ctx))]
 pub async fn get_generic_job_status(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
