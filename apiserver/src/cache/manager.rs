@@ -123,4 +123,54 @@ mod tests {
 
         manager.invalidate_workspace(Uuid::new_v4()).await;
     }
+
+    #[tokio::test]
+    async fn test_cache_manager_warm_up_errors() {
+        let mut mock_cache = MockCacheRepository::new();
+        mock_cache.expect_get_json().returning(|_| Ok(None));
+
+        let mut mock_workspace = MockWorkspaceRepository::new();
+        mock_workspace.expect_get_workspace_by_id().returning(|_| {
+            Box::pin(std::future::ready(Err(crate::errors::AppError::Internal(
+                "DB Error".to_string(),
+            ))))
+        });
+
+        let mut mock_shift = MockShiftRepository::new();
+        mock_shift.expect_get_workspace_shifts().returning(|_| {
+            Box::pin(std::future::ready(Err(crate::errors::AppError::Internal(
+                "DB Error".to_string(),
+            ))))
+        });
+
+        let manager = CacheManager::new(
+            Arc::new(mock_cache),
+            Arc::new(mock_workspace),
+            Arc::new(mock_shift),
+        );
+
+        manager.warm_up(Uuid::new_v4()).await;
+    }
+
+    #[tokio::test]
+    async fn test_cache_manager_invalidate_errors() {
+        let mut mock_cache = MockCacheRepository::new();
+        mock_cache
+            .expect_delete()
+            .returning(|_| Err("Cache Error".to_string()));
+        mock_cache
+            .expect_delete_pattern()
+            .returning(|_| Err("Cache Error".to_string()));
+
+        let mock_workspace = MockWorkspaceRepository::new();
+        let mock_shift = MockShiftRepository::new();
+
+        let manager = CacheManager::new(
+            Arc::new(mock_cache),
+            Arc::new(mock_workspace),
+            Arc::new(mock_shift),
+        );
+
+        manager.invalidate_workspace(Uuid::new_v4()).await;
+    }
 }

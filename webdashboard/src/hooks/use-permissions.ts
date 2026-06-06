@@ -30,7 +30,11 @@ export function useMyPermissions() {
 
     const { data, isLoading } = useQuery({
         queryKey: myPermissionsKey(wsId),
-        queryFn: fetchMyPermissions,
+        queryFn: async () => {
+            const res = await fetchMyPermissions();
+            const maybeRes = ((): typeof res | undefined => res)();
+            return maybeRes ?? { permissions: [], roles: [], managed_department_ids: null };
+        },
         enabled: !!wsId,
         staleTime: 5 * 60 * 1000,
         gcTime: 10 * 60 * 1000,

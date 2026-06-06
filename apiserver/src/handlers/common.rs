@@ -227,36 +227,12 @@ where
             if let Some(d) = cache.get::<CachedMemberContext>(&cache_key).await {
                 d
             } else {
-                let fresh = Self::fetch_member_context_from_db(user_id, workspace_id, &app_state)
-                    .await
-                    .map_err(|e| {
-                        if e == "Not a member of this workspace"
-                            || e == "error.not_workspace_member"
-                        {
-                            AppError::Forbidden("error.not_workspace_member".to_string())
-                        } else if e == "User not found" || e == "error.user_not_found" {
-                            AppError::Auth("error.user_not_found".to_string())
-                        } else {
-                            tracing::error!("DB error fetching member context: {e}");
-                            AppError::Internal("error.database_error".to_string())
-                        }
-                    })?;
+                let fresh = Self::fetch_member_context_from_db(user_id, workspace_id, &app_state).await?;
                 let _ = cache.set(&cache_key, &fresh, ttl).await;
                 fresh
             }
         } else {
-            Self::fetch_member_context_from_db(user_id, workspace_id, &app_state)
-                .await
-                .map_err(|e| {
-                    if e == "Not a member of this workspace" || e == "error.not_workspace_member" {
-                        AppError::Forbidden("error.not_workspace_member".to_string())
-                    } else if e == "User not found" || e == "error.user_not_found" {
-                        AppError::Auth("error.user_not_found".to_string())
-                    } else {
-                        tracing::error!("DB error fetching member context: {e}");
-                        AppError::Internal("error.database_error".to_string())
-                    }
-                })?
+            Self::fetch_member_context_from_db(user_id, workspace_id, &app_state).await?
         };
 
         let mut permissions = HashSet::new();
@@ -293,31 +269,28 @@ impl MemberContext {
         user_id: Uuid,
         workspace_id: Uuid,
         app_state: &Arc<AppState>,
-    ) -> Result<CachedMemberContext, String> {
+    ) -> Result<CachedMemberContext, AppError> {
         let user = app_state
             .core()
             .user_repo()
             .get_user_by_id(user_id)
-            .await
-            .map_err(|e| e.to_string())?
-            .ok_or_else(|| "error.user_not_found".to_string())?;
+            .await?
+            .ok_or_else(|| AppError::Auth("error.user_not_found".to_string()))?;
 
         // 1. Fetch Primary Role
         let primary_role = app_state
             .core()
             .workspace_repo()
             .find_primary_role(workspace_id, user_id)
-            .await
-            .map_err(|e| e.to_string())?
-            .ok_or_else(|| "error.not_workspace_member".to_string())?;
+            .await?
+            .ok_or_else(|| AppError::Forbidden("error.not_workspace_member".to_string()))?;
 
         // 2. Fetch Active Extra Roles
         let all_extra_roles = app_state
             .core()
             .workspace_repo()
             .find_extra_roles(workspace_id, user_id)
-            .await
-            .map_err(|e| e.to_string())?;
+            .await?;
 
         let mut roles: Vec<Uuid> = all_extra_roles
             .into_iter()
@@ -332,8 +305,7 @@ impl MemberContext {
             .core()
             .workspace_repo()
             .get_permissions_for_roles(&roles)
-            .await
-            .map_err(|e| e.to_string())?;
+            .await?;
 
         let mut permissions = HashSet::new();
         for perm_str in db_perms {

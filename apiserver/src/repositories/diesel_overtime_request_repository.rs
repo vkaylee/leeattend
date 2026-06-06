@@ -414,4 +414,61 @@ mod tests {
         assert_eq!(list.len(), 1);
         assert_eq!(list[0].id(), request.id());
     }
+
+    #[tokio::test]
+    async fn test_overtime_request_repository_errors() {
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+
+        let pools = DieselPools::for_test(&test_db_url);
+        let repo = DieselOvertimeRequestRepository::new(pools.clone());
+        let ws_id = Uuid::new_v4();
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(ws_id);
+        let emp_id = Uuid::new_v4();
+
+        let req_id = Uuid::new_v4();
+        let request = OvertimeRequest::new(
+            req_id,
+            ws_id,
+            Uuid::new_v4(),
+            None,
+            chrono::NaiveDate::from_ymd_opt(2023, 10, 10).unwrap(),
+            None,
+            None,
+            120,
+            "test reason".to_string(),
+            crate::models::OtRequestStatus::PendingApproval,
+            None,
+            1,
+            None,
+            None,
+            None,
+            chrono::Utc::now(),
+            chrono::Utc::now(),
+        );
+
+        let req_employee = OvertimeRequestEmployee::new(
+            Uuid::new_v4(),
+            req_id,
+            emp_id,
+            "pending".to_string(),
+            None,
+            None,
+            None,
+            None,
+            chrono::Utc::now(),
+        );
+
+        let _ = repo
+            .create_request(&auth_token, request.clone(), vec![req_employee.clone()])
+            .await;
+        let _ = repo.update_request(&auth_token, request.clone()).await;
+        let _ = repo.get_request(&auth_token, ws_id, request.id()).await;
+        let _ = repo.get_request_employees(&auth_token, request.id()).await;
+        let _ = repo
+            .update_employee_consent(&auth_token, request.id(), emp_id, "accepted", None)
+            .await;
+        let _ = repo.list_requests(&auth_token, 1, 10).await;
+    }
 }

@@ -53,6 +53,23 @@ def leeattend_run_lint(component_filter: str = "", mode: str = "all") -> bool:
         )
         tasks.append((task_name, "apiserver", backend_cmd))
 
+        # Add custom Python linters
+        clean_code_cmd = build_compose_exec(
+            "apiserver",
+            "python3 /workspace/scripts/lint_clean_code.py",
+            workdir="/workspace",
+            mode=mode,
+        )
+        tasks.append(("rust-backend-clean-code-linter", "apiserver", clean_code_cmd))
+
+        tenant_isolation_cmd = build_compose_exec(
+            "apiserver",
+            "python3 /workspace/scripts/lint_tenant_isolation.py",
+            workdir="/workspace",
+            mode=mode,
+        )
+        tasks.append(("rust-backend-tenant-isolation-linter", "apiserver", tenant_isolation_cmd))
+
     if mode in ("all", "web"):
         lint_cmd = build_compose_exec("webdashboard", "bun run lint", mode=mode)
         tasks.append(("webdashboard-lint", "webdashboard", lint_cmd))
@@ -135,6 +152,7 @@ def leeattend_run_integration(
             else "--workspace"
         )
         import os
+
         jobs = os.environ.get("CARGO_BUILD_JOBS", "2")
         backend = (
             f"DATABASE_URL={db_url} "

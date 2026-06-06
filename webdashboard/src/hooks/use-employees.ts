@@ -8,7 +8,7 @@ import { WorkingCondition } from "@/lib/api/types";
  * Maximum number of employees fetched in a single "all employees" request.
  * Used across pages that need a full employee roster for dropdowns/search.
  */
-export const MAX_EMPLOYEE_FETCH = 3_000;
+export const MAX_EMPLOYEE_FETCH = 100;
 
 export const employeeKeys = {
   all: ["employees"] as const,

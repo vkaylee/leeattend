@@ -1,10 +1,8 @@
-use crate::errors::AppError;
 use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use chrono_tz::Tz;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fmt;
-use uuid::Uuid;
 
 // ---------------------------------------------------------------------------
 // AttendanceStatus enum — replaces scattered string literals
@@ -227,125 +225,6 @@ pub fn date_range_to_utc_checked(
 }
 
 // ---------------------------------------------------------------------------
-// build_leave_date_set — batch-fetch approved leaves into a HashSet
-// ---------------------------------------------------------------------------
-
-/// Batch-fetch approved leave requests and build a `HashSet<(employee_id, date)>`.
-#[tracing::instrument(skip_all, err)]
-pub async fn build_leave_date_set(
-    conn: &mut diesel_async::AsyncPgConnection,
-    workspace_id: Uuid,
-    emp_ids: &[Uuid],
-    start_date: NaiveDate,
-    end_date: NaiveDate,
-) -> Result<HashSet<(Uuid, NaiveDate)>, AppError> {
-    use diesel_async::RunQueryDsl;
-
-    #[derive(diesel::QueryableByName)]
-    struct LeaveRow {
-        #[diesel(sql_type = diesel::sql_types::Uuid)]
-        employee_id: Uuid,
-        #[diesel(sql_type = diesel::sql_types::Date)]
-        start_date: NaiveDate,
-        #[diesel(sql_type = diesel::sql_types::Date)]
-        end_date: NaiveDate,
-    }
-
-    let leave_rows: Vec<LeaveRow> = diesel::sql_query(
-        r"SELECT lr.employee_id, lr.start_date, lr.end_date
-           FROM leave_requests lr
-           JOIN employees e ON lr.employee_id = e.id
-           WHERE e.workspace_id = $1
-             AND lr.employee_id = ANY($2)
-             AND lr.status IN ('approved', 'pre_approved')
-             AND lr.start_date <= $4
-             AND lr.end_date >= $3",
-    )
-    .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-    .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(emp_ids.to_vec())
-    .bind::<diesel::sql_types::Date, _>(start_date)
-    .bind::<diesel::sql_types::Date, _>(end_date)
-    .load(conn)
-    .await
-    .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?;
-
-    let mut set = HashSet::new();
-    for lr in &leave_rows {
-        let mut d = lr.start_date;
-        while d <= lr.end_date {
-            if d >= start_date && d <= end_date {
-                set.insert((lr.employee_id, d));
-            }
-            d = match d.succ_opt() {
-                Some(next) => next,
-                None => break,
-            };
-        }
-    }
-
-    Ok(set)
-}
-
-/// Batch-fetch approved leave requests with their paid status and build a `HashMap<(employee_id, date), is_paid>`.
-#[tracing::instrument(skip_all, err)]
-pub async fn build_leave_details_map(
-    conn: &mut diesel_async::AsyncPgConnection,
-    workspace_id: Uuid,
-    emp_ids: &[Uuid],
-    start_date: NaiveDate,
-    end_date: NaiveDate,
-) -> Result<HashMap<(Uuid, NaiveDate), bool>, AppError> {
-    use diesel_async::RunQueryDsl;
-
-    #[derive(diesel::QueryableByName)]
-    struct LeaveRow {
-        #[diesel(sql_type = diesel::sql_types::Uuid)]
-        employee_id: Uuid,
-        #[diesel(sql_type = diesel::sql_types::Date)]
-        start_date: NaiveDate,
-        #[diesel(sql_type = diesel::sql_types::Date)]
-        end_date: NaiveDate,
-        #[diesel(sql_type = diesel::sql_types::Bool)]
-        is_paid: bool,
-    }
-
-    let leave_rows: Vec<LeaveRow> = diesel::sql_query(
-        r"SELECT lr.employee_id, lr.start_date, lr.end_date, lt.is_paid
-           FROM leave_requests lr
-           JOIN employees e ON lr.employee_id = e.id
-           JOIN leave_types lt ON lr.leave_type_id = lt.id
-           WHERE e.workspace_id = $1
-             AND lr.employee_id = ANY($2)
-             AND lr.status IN ('approved', 'pre_approved')
-             AND lr.start_date <= $4
-             AND lr.end_date >= $3",
-    )
-    .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-    .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(emp_ids.to_vec())
-    .bind::<diesel::sql_types::Date, _>(start_date)
-    .bind::<diesel::sql_types::Date, _>(end_date)
-    .load(conn)
-    .await
-    .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?;
-
-    let mut map = HashMap::new();
-    for lr in &leave_rows {
-        let mut d = lr.start_date;
-        while d <= lr.end_date {
-            if d >= start_date && d <= end_date {
-                map.insert((lr.employee_id, d), lr.is_paid);
-            }
-            d = match d.succ_opt() {
-                Some(next) => next,
-                None => break,
-            };
-        }
-    }
-
-    Ok(map)
-}
-
-// ---------------------------------------------------------------------------
 // group_entries_by_date — pre-group time entries by local date
 // ---------------------------------------------------------------------------
 
@@ -376,6 +255,7 @@ pub fn group_entries_by_date(
 mod tests {
     use super::*;
     use chrono::Timelike;
+    use uuid::Uuid;
 
     // ===== AttendanceStatus enum tests =====
 

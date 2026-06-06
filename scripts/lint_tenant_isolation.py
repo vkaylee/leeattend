@@ -47,16 +47,25 @@ def extract_methods(file_content: str) -> list[dict[str, Any]]:
 def main() -> None:
     print("🔍 Running Multi-Tenancy Isolation Linter...")
     repo_dir = Path("apiserver/src/repositories")
-    if not repo_dir.exists():
+    worker_dir = Path("apiserver/src/worker")
+    
+    files_to_scan = []
+    
+    if repo_dir.exists():
+        for p in repo_dir.iterdir():
+            if p.is_file() and p.name.startswith("diesel_") and p.name.endswith(".rs"):
+                files_to_scan.append(p)
+    else:
         print(f"❌ ERROR: Directory {repo_dir} not found.")
         sys.exit(1)
         return
 
-    files = [
-        p.name
-        for p in repo_dir.iterdir()
-        if p.is_file() and p.name.startswith("diesel_") and p.name.endswith(".rs")
-    ]
+    if worker_dir.exists():
+        for p in worker_dir.rglob("*.rs"):
+            if p.is_file():
+                files_to_scan.append(p)
+    else:
+        print(f"⚠️ WARNING: Directory {worker_dir} not found.")
 
     errors = 0
     warnings = 0
@@ -68,11 +77,11 @@ def main() -> None:
         "diesel_outbox_job_repository.rs",
     }
 
-    for filename in sorted(files):
+    for filepath in sorted(files_to_scan, key=lambda p: p.name):
+        filename = filepath.name
         if filename in system_repos:
             continue
 
-        filepath = repo_dir / filename
         with filepath.open("r", encoding="utf-8") as f:
             content = f.read()
 

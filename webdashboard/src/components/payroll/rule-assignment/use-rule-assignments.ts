@@ -18,7 +18,11 @@ export function useRuleAssignments(wsId: string, ruleId: string) {
 
   const assignmentsQuery = useQuery({
     queryKey: ["payroll-rule-assignments", ruleId],
-    queryFn: () => fetchPayrollRuleAssignments(wsId, ruleId),
+    queryFn: async () => {
+      const res = await fetchPayrollRuleAssignments(wsId, ruleId);
+      const maybeRes = ((): typeof res | undefined => res)();
+      return maybeRes ?? [];
+    },
     enabled: !!ruleId,
   });
 

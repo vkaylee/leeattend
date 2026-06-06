@@ -1,6 +1,7 @@
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useMemo } from "react";
 
+import { MAX_EMPLOYEE_FETCH } from "@/hooks/use-employees";
 import {
   fetchEmployees,
   searchEmployees,
@@ -29,11 +30,12 @@ export function usePayrollData({
 }: UsePayrollDataOptions) {
   const { data: employeesData, isLoading: empsLoading } = useQuery({
     queryKey: ["employees", wsId, debouncedSearchTerm],
-    queryFn: () => {
-      if (debouncedSearchTerm.trim()) {
-        return searchEmployees({ wsId, query: debouncedSearchTerm, page: 1, limit: 100 });
-      }
-      return fetchEmployees(wsId, 1, 3000);
+    queryFn: async () => {
+      const res = debouncedSearchTerm.trim()
+        ? await searchEmployees({ wsId, query: debouncedSearchTerm, page: 1, limit: 100 })
+        : await fetchEmployees(wsId, 1, MAX_EMPLOYEE_FETCH);
+      const maybeRes = ((): typeof res | undefined => res)();
+      return maybeRes ?? null;
     },
     enabled: !!wsId,
     placeholderData: keepPreviousData,
