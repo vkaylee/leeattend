@@ -88,7 +88,7 @@ fn create_auth_cookies(access_token: &str, refresh_token: &str) -> HeaderMap {
 
     // access_token cookie
     let access_cookie = format!(
-        "access_token={access_token}; {domain_attr}HttpOnly; SameSite=None; Secure; Path=/; Max-Age=3600"
+        "access_token={access_token}; {domain_attr}HttpOnly; SameSite=None; Secure; Path=/; Max-Age=900"
     );
     // refresh_token cookie
     let refresh_cookie = format!(
@@ -215,7 +215,7 @@ pub async fn register(
     };
 
     // 7. Generate access token (stateless, no DB write needed)
-    let access_token = AuthService::generate_token(user.id(), state.core().jwt_secret(), 60)?;
+    let access_token = AuthService::generate_token(user.id(), state.core().jwt_secret(), 15)?;
 
     let headers = create_auth_cookies(&access_token, &refresh_token);
 
@@ -301,7 +301,7 @@ pub async fn login(
         system_roles: vec![],
     };
 
-    let access_token = AuthService::generate_token(user.id(), state.core().jwt_secret(), 60)?;
+    let access_token = AuthService::generate_token(user.id(), state.core().jwt_secret(), 15)?;
 
     let refresh_token = state
         .core()
@@ -802,7 +802,7 @@ mod tests {
             let cookie_str = cookie.to_str().expect("valid cookie string");
             if cookie_str.starts_with("access_token=my_access_123;") {
                 found_access = true;
-                assert!(cookie_str.contains("Max-Age=3600"));
+                assert!(cookie_str.contains("Max-Age=900"));
             } else if cookie_str.starts_with("refresh_token=my_refresh_456;") {
                 found_refresh = true;
                 assert!(cookie_str.contains("Max-Age=2592000"));

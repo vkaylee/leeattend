@@ -135,7 +135,7 @@ impl AuthService {
             .await?
             .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 
-        let access_token = Self::generate_token(user.id(), secret, 60)?; // 1 hour access
+        let access_token = Self::generate_token(user.id(), secret, 15)?; // 15 minutes access (per access-control.md §3)
 
         // Rotate refresh token
         let new_refresh_token = Uuid::new_v4().to_string();

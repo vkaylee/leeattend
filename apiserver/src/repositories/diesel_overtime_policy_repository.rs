@@ -287,20 +287,33 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let mut policies_map = std::collections::HashMap::new();
-        for p in policies_entities {
-            let rules: Vec<OvertimeRuleEntity> = overtime_rules::table
-                .filter(overtime_rules::policy_id.eq(p.id))
-                .order(overtime_rules::priority.desc())
+        let policy_ids: Vec<Uuid> = policies_entities.iter().map(|p| p.id).collect();
+
+        let all_rules: Vec<OvertimeRuleEntity> = if policy_ids.is_empty() {
+            Vec::new()
+        } else {
+            overtime_rules::table
+                .filter(overtime_rules::policy_id.eq_any(&policy_ids))
+                .order((overtime_rules::policy_id, overtime_rules::priority.desc()))
                 .select(OvertimeRuleEntity::as_select())
                 .load(&mut *conn)
                 .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?
+        };
 
-            policies_map.insert(
-                p.id,
-                (p.into(), rules.into_iter().map(Into::into).collect()),
-            );
+        let mut rules_by_policy: std::collections::HashMap<Uuid, Vec<OvertimeRule>> =
+            std::collections::HashMap::new();
+        for r in all_rules {
+            rules_by_policy
+                .entry(r.policy_id)
+                .or_default()
+                .push(r.into());
+        }
+
+        let mut policies_map = std::collections::HashMap::new();
+        for p in policies_entities {
+            let rules = rules_by_policy.remove(&p.id).unwrap_or_default();
+            policies_map.insert(p.id, (p.into(), rules));
         }
 
         let assignments_entities: Vec<OvertimePolicyAssignmentEntity> =
