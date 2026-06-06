@@ -11,7 +11,7 @@ use crate::repositories::raw_attendance_log_repository::RawAttendanceLogReposito
 use crate::schema::{devices, employees, raw_attendance_logs};
 
 pub struct DieselRawAttendanceLogRepository {
-    pub diesel_pools: crate::diesel_pool::DieselPools,
+    diesel_pools: crate::diesel_pool::DieselPools,
 }
 
 impl DieselRawAttendanceLogRepository {

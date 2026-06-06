@@ -14,7 +14,7 @@ use crate::repositories::assignment_rule_repository::AssignmentRuleRepository;
 use crate::schema::assignment_rules;
 
 pub struct DieselAssignmentRuleRepository {
-    pub diesel_pools: DieselPools,
+    diesel_pools: DieselPools,
 }
 
 impl DieselAssignmentRuleRepository {

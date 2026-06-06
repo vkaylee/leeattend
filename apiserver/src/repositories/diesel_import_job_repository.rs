@@ -13,7 +13,7 @@ use crate::models::AttendanceImportJob;
 use crate::repositories::import_job_repository::ImportJobRepository;
 
 pub struct DieselImportJobRepository {
-    pub diesel_pools: DieselPools,
+    diesel_pools: DieselPools,
 }
 
 impl DieselImportJobRepository {

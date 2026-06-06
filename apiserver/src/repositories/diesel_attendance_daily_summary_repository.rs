@@ -9,7 +9,7 @@ use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 
 pub struct DieselAttendanceDailySummaryRepository {
-    pub diesel_pools: DieselPools,
+    diesel_pools: DieselPools,
 }
 
 impl DieselAttendanceDailySummaryRepository {

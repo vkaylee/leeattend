@@ -67,7 +67,7 @@ impl From<SalaryBaseGroupMemberRow> for SalaryBaseGroupMember {
 // ---------------------------------------------------------------------------
 
 pub struct DieselSalaryBaseRepository {
-    pub diesel_pools: DieselPools,
+    diesel_pools: DieselPools,
 }
 
 impl DieselSalaryBaseRepository {

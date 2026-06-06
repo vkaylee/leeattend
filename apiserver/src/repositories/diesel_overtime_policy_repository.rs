@@ -17,7 +17,7 @@ use crate::schema::{
 };
 
 pub struct DieselOvertimePolicyRepository {
-    pub diesel_pools: DieselPools,
+    diesel_pools: DieselPools,
 }
 
 impl DieselOvertimePolicyRepository {

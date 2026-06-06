@@ -8,7 +8,7 @@ use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 
 pub struct DieselOvertimeRequestRepository {
-    pub diesel_pools: crate::diesel_pool::DieselPools,
+    diesel_pools: crate::diesel_pool::DieselPools,
 }
 
 impl DieselOvertimeRequestRepository {

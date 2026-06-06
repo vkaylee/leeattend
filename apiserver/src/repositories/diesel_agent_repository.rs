@@ -17,7 +17,7 @@ use crate::{
 use super::AgentRepository;
 
 pub struct DieselAgentRepository {
-    pub diesel_pools: DieselPools,
+    diesel_pools: DieselPools,
 }
 
 impl DieselAgentRepository {

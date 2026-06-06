@@ -11,7 +11,7 @@ use crate::{
 use super::AuditLogRepository;
 
 pub struct DieselAuditLogRepository {
-    pub diesel_pools: DieselPools,
+    diesel_pools: DieselPools,
 }
 
 impl DieselAuditLogRepository {

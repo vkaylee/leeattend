@@ -14,7 +14,7 @@ use crate::models::{
 use crate::schema::{employee_working_patterns, working_pattern_details, working_patterns};
 
 pub struct DieselWorkingPatternRepository {
-    pub diesel_pools: DieselPools,
+    diesel_pools: DieselPools,
 }
 
 impl DieselWorkingPatternRepository {

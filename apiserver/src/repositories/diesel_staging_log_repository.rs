@@ -10,7 +10,7 @@ use crate::repositories::staging_log_repository::{StagingLog, StagingLogReposito
 use crate::schema::attendance_staging_logs;
 
 pub struct DieselStagingLogRepository {
-    pub diesel_pools: crate::diesel_pool::DieselPools,
+    diesel_pools: crate::diesel_pool::DieselPools,
 }
 
 impl DieselStagingLogRepository {
@@ -345,18 +345,18 @@ impl StagingLogRepository for DieselStagingLogRepository {
                             _,
                         ) = e
                         {
-                            AppError::Conflict(
-                                "Log is being processed by another request".to_string(),
-                            )
+                            AppError::Conflict("error.staging_log_conflict".to_string())
                         } else if e == diesel::result::Error::NotFound {
-                            AppError::NotFound("Staging log not found".to_string())
+                            AppError::NotFound("error.staging_log_not_found".to_string())
                         } else {
                             AppError::Internal(format!("db: {e}"))
                         }
                     })?;
 
                 if staged.status != "pending" {
-                    return Err(AppError::Validation("Log already processed".to_string()));
+                    return Err(AppError::Validation(
+                        "error.staging_log_processed".to_string(),
+                    ));
                 }
 
                 let punch = staged

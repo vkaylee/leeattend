@@ -5,7 +5,7 @@ use crate::errors::AppError;
 use crate::repositories::system_repository::SystemRepository;
 
 pub struct DieselSystemRepository {
-    pub diesel_pools: crate::diesel_pool::DieselPools,
+    diesel_pools: crate::diesel_pool::DieselPools,
 }
 
 impl DieselSystemRepository {

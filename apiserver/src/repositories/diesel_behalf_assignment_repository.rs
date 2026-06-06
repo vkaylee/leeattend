@@ -11,7 +11,7 @@ use crate::repositories::behalf_assignment_repository::BehalfAssignmentRepositor
 use crate::schema::behalf_assignments;
 
 pub struct DieselBehalfAssignmentRepository {
-    pub diesel_pools: DieselPools,
+    diesel_pools: DieselPools,
 }
 
 impl DieselBehalfAssignmentRepository {

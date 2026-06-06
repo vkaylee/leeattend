@@ -51,7 +51,7 @@ struct BatchPolicyRow {
 }
 
 pub struct DieselAttendancePolicyRepository {
-    pub diesel_pools: crate::diesel_pool::DieselPools,
+    diesel_pools: crate::diesel_pool::DieselPools,
 }
 
 impl DieselAttendancePolicyRepository {

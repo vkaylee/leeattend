@@ -14,7 +14,7 @@ use crate::repositories::time_entry_repository::TimeEntryRepository;
 use crate::schema::{employees, time_entries};
 
 pub struct DieselTimeEntryRepository {
-    pub diesel_pools: crate::diesel_pool::DieselPools,
+    diesel_pools: crate::diesel_pool::DieselPools,
 }
 
 impl DieselTimeEntryRepository {

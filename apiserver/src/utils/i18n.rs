@@ -33,6 +33,9 @@ pub const ALL_KEYS: &[&str] = &[
     "error.tenant_mismatch",
     "error.supavisor_api_url_required",
     "error.api_jwt_secret_required",
+    "error.staging_log_not_found",
+    "error.staging_log_processed",
+    "error.staging_log_conflict",
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -153,6 +156,9 @@ fn lookup_en(key: &str) -> Option<&'static str> {
         "error.api_jwt_secret_required" => {
             Some("API_JWT_SECRET (or SUPAVISOR_API_JWT) environment variable is required")
         }
+        "error.staging_log_not_found" => Some("Staging log not found"),
+        "error.staging_log_processed" => Some("Log already processed"),
+        "error.staging_log_conflict" => Some("Log is being processed by another request"),
         _ => None,
     }
 }
@@ -185,6 +191,9 @@ fn lookup_vi(key: &str) -> Option<&'static str> {
         "error.tenant_mismatch" => Some("Không khớp tenant"),
         "error.supavisor_api_url_required" => Some("Yêu cầu biến môi trường SUPAVISOR_API_URL"),
         "error.api_jwt_secret_required" => Some("Yêu cầu biến môi trường API_JWT_SECRET (hoặc SUPAVISOR_API_JWT)"),
+        "error.staging_log_not_found" => Some("Không tìm thấy log tạm thời"),
+        "error.staging_log_processed" => Some("Log đã được xử lý"),
+        "error.staging_log_conflict" => Some("Log đang được xử lý bởi yêu cầu khác"),
         _ => None,
     }
 }
@@ -220,9 +229,10 @@ fn lookup_zh(key: &str) -> Option<&'static str> {
         "error.upload_no_file" => Some("未上传文件"),
         "error.tenant_mismatch" => Some("租户不匹配"),
         "error.supavisor_api_url_required" => Some("需要 SUPAVISOR_API_URL 环境变量"),
-        "error.api_jwt_secret_required" => {
-            Some("需要 API_JWT_SECRET (或 SUPAVISOR_API_JWT) 环境变量")
-        }
+        "error.api_jwt_secret_required" => Some("API_JWT_SECRET (or SUPAVISOR_API_JWT) 环境变量"),
+        "error.staging_log_not_found" => Some("未找到临时日志"),
+        "error.staging_log_processed" => Some("日志已处理"),
+        "error.staging_log_conflict" => Some("日志正在被另一个请求处理"),
         _ => None,
     }
 }
@@ -316,7 +326,6 @@ mod tests {
             "debug.rs",
             "agents.rs",
             "workspace_config_service.rs",
-            "diesel_staging_log_repository.rs",
             "diesel_workspace_repository.rs",
             "diesel_attendance_policy_repository.rs",
             "payroll_service.rs",

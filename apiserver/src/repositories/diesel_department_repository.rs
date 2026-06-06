@@ -114,7 +114,7 @@ impl From<DepartmentPayrollConfigEntity> for DepartmentPayrollConfig {
 }
 
 pub struct DieselDepartmentRepository {
-    pub diesel_pools: crate::diesel_pool::DieselPools,
+    diesel_pools: crate::diesel_pool::DieselPools,
 }
 
 impl DieselDepartmentRepository {

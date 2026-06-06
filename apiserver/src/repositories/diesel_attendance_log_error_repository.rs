@@ -7,7 +7,7 @@ use crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepo
 use crate::schema::attendance_log_errors;
 
 pub struct DieselAttendanceLogErrorRepository {
-    pub diesel_pools: crate::diesel_pool::DieselPools,
+    diesel_pools: crate::diesel_pool::DieselPools,
 }
 
 impl DieselAttendanceLogErrorRepository {

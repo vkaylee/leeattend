@@ -13,7 +13,7 @@ use crate::schema::shift_rosters;
 use std::collections::HashMap;
 
 pub struct DieselRosterRepository {
-    pub diesel_pools: DieselPools,
+    diesel_pools: DieselPools,
 }
 
 impl DieselRosterRepository {

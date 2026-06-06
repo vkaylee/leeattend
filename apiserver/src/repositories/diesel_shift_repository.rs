@@ -12,7 +12,7 @@ use crate::repositories::shift_repository::ShiftRepository;
 use crate::schema::{employee_shifts, shifts};
 
 pub struct DieselShiftRepository {
-    pub diesel_pools: DieselPools,
+    diesel_pools: DieselPools,
 }
 
 impl DieselShiftRepository {

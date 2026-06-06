@@ -11,7 +11,7 @@ use crate::{
 };
 
 pub struct DieselEmployeeContractRepository {
-    pub diesel_pools: DieselPools,
+    diesel_pools: DieselPools,
 }
 
 impl DieselEmployeeContractRepository {

@@ -12,7 +12,7 @@ use crate::repositories::feature_flag_repository::FeatureFlagRepository;
 use crate::schema::feature_flags;
 
 pub struct DieselFeatureFlagRepository {
-    pub diesel_pools: DieselPools,
+    diesel_pools: DieselPools,
 }
 
 impl DieselFeatureFlagRepository {

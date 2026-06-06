@@ -9,7 +9,7 @@ pub mod working_condition;
 pub use assignments::*;
 
 pub struct DieselEmployeeRepository {
-    pub diesel_pools: crate::diesel_pool::DieselPools,
+    diesel_pools: crate::diesel_pool::DieselPools,
 }
 
 impl DieselEmployeeRepository {

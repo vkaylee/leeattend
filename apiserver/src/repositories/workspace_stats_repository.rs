@@ -46,7 +46,7 @@ pub trait WorkspaceStatsRepository: Send + Sync {
 }
 
 pub struct DieselWorkspaceStatsRepository {
-    pub diesel_pools: DieselPools,
+    diesel_pools: DieselPools,
 }
 
 impl DieselWorkspaceStatsRepository {

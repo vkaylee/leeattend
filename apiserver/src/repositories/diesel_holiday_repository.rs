@@ -14,7 +14,7 @@ use crate::repositories::holiday_repository::HolidayRepository;
 use crate::schema::holidays;
 
 pub struct DieselHolidayRepository {
-    pub diesel_pools: DieselPools,
+    diesel_pools: DieselPools,
 }
 
 impl DieselHolidayRepository {

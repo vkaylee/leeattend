@@ -14,7 +14,7 @@ use std::str::FromStr;
 use uuid::Uuid;
 
 pub struct DieselLeaveBalanceRepository {
-    pub diesel_pools: DieselPools,
+    diesel_pools: DieselPools,
 }
 
 impl DieselLeaveBalanceRepository {
@@ -240,14 +240,29 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         balance: &LeaveBalance,
     ) -> Result<(), AppError> {
-        let _workspace_id = auth_token.workspace_id();
+        let workspace_id = auth_token.workspace_id();
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .tenants_tx
-                .get_connection(&auth_token.workspace_id())
+                .get_connection(&workspace_id)
                 .await
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
+
+        // Check if employee exists and belongs to the workspace of this tenant
+        let employee_exists = employees::table
+            .filter(employees::id.eq(balance.employee_id))
+            .filter(employees::workspace_id.eq(workspace_id))
+            .filter(employees::deleted_at.is_null())
+            .select(employees::id)
+            .first::<Uuid>(&mut *conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db check employee: {e}")))?;
+
+        if employee_exists.is_none() {
+            return Err(AppError::NotFound("error.employee_not_found".to_string()));
+        }
 
         let entity = LeaveBalanceEntity {
             id: balance.id,
@@ -295,7 +310,7 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .tenants_tx
-                .get_connection(&auth_token.workspace_id())
+                .get_connection(&workspace_id)
                 .await
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
@@ -304,8 +319,23 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
             .map_err(|e| AppError::Internal(format!("BigDecimal conversion failed: {e}")))?;
         let year = transaction_date.year();
 
-        conn.transaction(|conn| {
+        conn.transaction::<_, AppError, _>(|conn| {
             Box::pin(async move {
+                // Check if employee exists and belongs to the workspace of this tenant
+                let employee_exists = employees::table
+                    .filter(employees::id.eq(employee_id))
+                    .filter(employees::workspace_id.eq(workspace_id))
+                    .filter(employees::deleted_at.is_null())
+                    .select(employees::id)
+                    .first::<Uuid>(&mut *conn)
+                    .await
+                    .optional()
+                    .map_err(|e| AppError::Internal(format!("db check employee: {e}")))?;
+
+                if employee_exists.is_none() {
+                    return Err(AppError::NotFound("error.employee_not_found".to_string()));
+                }
+
                 // 1. Log adjustment
                 diesel::insert_into(leave_accrual_logs::table)
                     .values((
@@ -344,11 +374,10 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
                     .execute(&mut *conn)
                     .await?;
 
-                Ok::<_, diesel::result::Error>(())
+                Ok::<_, AppError>(())
             })
         })
-        .await
-        .map_err(|e| AppError::Internal(format!("db transaction: {e}")))?;
+        .await?;
 
         Ok(())
     }

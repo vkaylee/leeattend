@@ -23,7 +23,7 @@ use std::str::FromStr;
 use uuid::Uuid;
 
 pub struct DieselPayrollRepository {
-    pub diesel_pools: DieselPools,
+    diesel_pools: DieselPools,
 }
 
 #[derive(Debug, Clone, Queryable, Selectable, Insertable)]

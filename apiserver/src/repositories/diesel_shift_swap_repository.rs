@@ -113,7 +113,7 @@ impl From<SwapStatsEntity> for SwapStats {
     }
 }
 pub struct DieselShiftSwapRepository {
-    pub diesel_pools: DieselPools,
+    diesel_pools: DieselPools,
 }
 
 impl DieselShiftSwapRepository {

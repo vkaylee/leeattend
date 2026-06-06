@@ -13,7 +13,7 @@ use crate::repositories::attendance_adjustment_repository::AttendanceAdjustmentR
 use crate::schema::{attendance_adjustment_requests, employees};
 
 pub struct DieselAttendanceAdjustmentRepository {
-    pub diesel_pools: crate::diesel_pool::DieselPools,
+    diesel_pools: crate::diesel_pool::DieselPools,
 }
 
 impl DieselAttendanceAdjustmentRepository {

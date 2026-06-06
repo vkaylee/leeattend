@@ -9,7 +9,7 @@ use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 
 pub struct DieselWorkspaceConfigRepository {
-    pub diesel_pools: crate::diesel_pool::DieselPools,
+    diesel_pools: crate::diesel_pool::DieselPools,
 }
 
 impl DieselWorkspaceConfigRepository {

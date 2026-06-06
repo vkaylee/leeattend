@@ -14,7 +14,7 @@ use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 
 pub struct DieselLeaveRequestRepository {
-    pub diesel_pools: DieselPools,
+    diesel_pools: DieselPools,
 }
 
 impl DieselLeaveRequestRepository {

@@ -17,7 +17,7 @@ use std::str::FromStr;
 use uuid::Uuid;
 
 pub struct DieselPayrollRuleRepository {
-    pub diesel_pools: DieselPools,
+    diesel_pools: DieselPools,
 }
 
 impl DieselPayrollRuleRepository {
