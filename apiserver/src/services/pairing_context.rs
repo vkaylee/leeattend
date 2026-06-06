@@ -145,21 +145,21 @@ impl PairingContext {
                 map.insert("schedule_traces".to_string(), traces.clone());
             }
 
-            new_entries.push(TimeEntry {
-                id: crate::utils::id::new_id(),
-                workspace_id,
+            new_entries.push(TimeEntry::new(
+                crate::utils::id::new_id(),
                 employee_id,
-                shift_id: shift_id_opt,
-                punch_in_time: start_dt_utc,
-                punch_out_time: end_dt_utc,
-                duration_minutes: duration,
-                is_break_overtime: session.is_break_overtime,
-                entry_type: session.entry_type,
-                note: session.note,
-                generation_metadata: Some(final_metadata),
-                created_at: Utc::now(),
-                updated_at: Utc::now(),
-            });
+                workspace_id,
+                shift_id_opt,
+                start_dt_utc,
+                end_dt_utc,
+                duration,
+                session.is_break_overtime,
+                session.entry_type,
+                session.note,
+                Some(final_metadata),
+                Utc::now(),
+                Utc::now(),
+            ));
         }
         Ok(new_entries)
     }
@@ -406,21 +406,21 @@ mod tests {
         assert_eq!(entries.len(), 2);
 
         let e1 = &entries[0];
-        assert_eq!(e1.workspace_id, workspace_id);
-        assert_eq!(e1.employee_id, employee_id);
+        assert_eq!(e1.workspace_id(), workspace_id);
+        assert_eq!(e1.employee_id(), employee_id);
         // 08:00 HCM is 01:00 UTC
         assert_eq!(
-            e1.punch_in_time,
+            e1.punch_in_time(),
             Utc.with_ymd_and_hms(2026, 5, 20, 1, 0, 0).unwrap()
         );
         // 17:00 HCM is 10:00 UTC
         assert_eq!(
-            e1.punch_out_time,
+            e1.punch_out_time(),
             Some(Utc.with_ymd_and_hms(2026, 5, 20, 10, 0, 0).unwrap())
         );
-        assert_eq!(e1.duration_minutes, Some(540));
+        assert_eq!(e1.duration_minutes(), Some(540));
 
-        let meta1 = e1.generation_metadata.as_ref().unwrap();
+        let meta1 = e1.generation_metadata().unwrap();
         assert_eq!(
             meta1.get("schedule_traces").unwrap().as_array().unwrap()[0]
                 .as_str()
@@ -431,11 +431,11 @@ mod tests {
         let e2 = &entries[1];
         // 18:00 HCM is 11:00 UTC
         assert_eq!(
-            e2.punch_in_time,
+            e2.punch_in_time(),
             Utc.with_ymd_and_hms(2026, 5, 20, 11, 0, 0).unwrap()
         );
-        assert_eq!(e2.punch_out_time, None);
-        assert_eq!(e2.duration_minutes, None);
-        assert_eq!(e2.note.as_deref(), Some("Missing Punch Out"));
+        assert_eq!(e2.punch_out_time(), None);
+        assert_eq!(e2.duration_minutes(), None);
+        assert_eq!(e2.note(), Some("Missing Punch Out"));
     }
 }

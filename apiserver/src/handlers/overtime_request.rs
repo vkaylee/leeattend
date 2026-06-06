@@ -288,6 +288,18 @@ pub async fn employee_consent(
     Json(req): Json<EmployeeConsentRequest>,
 ) -> AppResult<StatusCode> {
     let (_, id, emp_id) = params;
+
+    let caller_employee_id = state
+        .employees()
+        .repo()
+        .get_employee_id_by_user_id(&ctx.auth_token, ctx.user_id)
+        .await?;
+
+    let is_self = caller_employee_id == Some(emp_id);
+    if !is_self {
+        check_request_behalf_scope(&state, &ctx, emp_id).await?;
+    }
+
     state
         .payroll()
         .overtime_request_service()

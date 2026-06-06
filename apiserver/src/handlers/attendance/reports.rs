@@ -111,10 +111,10 @@ pub async fn get_attendance_report(
         let mut assigned_dept_ids = Vec::new();
 
         for a in caller_assignments {
-            if let Some(emp_id) = a.target_employee_id {
+            if let Some(emp_id) = a.target_employee_id() {
                 allowed_employee_ids.insert(emp_id);
             }
-            if let Some(dept_id) = a.target_department_id {
+            if let Some(dept_id) = a.target_department_id() {
                 assigned_dept_ids.push(dept_id);
             }
         }

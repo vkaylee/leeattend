@@ -18,14 +18,14 @@ pub struct OvertimePolicyEntity {
 
 impl From<OvertimePolicyEntity> for OvertimePolicy {
     fn from(entity: OvertimePolicyEntity) -> Self {
-        Self {
-            id: entity.id,
-            workspace_id: entity.workspace_id,
-            name: entity.name,
-            description: entity.description,
-            created_at: entity.created_at,
-            updated_at: entity.updated_at,
-        }
+        Self::new(
+            entity.id,
+            entity.workspace_id,
+            entity.name,
+            entity.description,
+            entity.created_at,
+            entity.updated_at,
+        )
     }
 }
 
@@ -46,18 +46,18 @@ pub struct OvertimeRuleEntity {
 
 impl From<OvertimeRuleEntity> for OvertimeRule {
     fn from(entity: OvertimeRuleEntity) -> Self {
-        Self {
-            id: entity.id,
-            policy_id: entity.policy_id,
-            priority: entity.priority,
-            multiplier: entity.multiplier,
-            time_start: entity.time_start,
-            time_end: entity.time_end,
-            days_of_week: entity.days_of_week,
-            is_holiday: entity.is_holiday,
-            created_at: entity.created_at,
-            updated_at: entity.updated_at,
-        }
+        Self::new(
+            entity.id,
+            entity.policy_id,
+            entity.priority,
+            entity.multiplier,
+            entity.time_start,
+            entity.time_end,
+            entity.days_of_week,
+            entity.is_holiday,
+            entity.created_at,
+            entity.updated_at,
+        )
     }
 }
 
@@ -76,15 +76,15 @@ pub struct OvertimePolicyAssignmentEntity {
 
 impl From<OvertimePolicyAssignmentEntity> for crate::models::OvertimePolicyAssignment {
     fn from(entity: OvertimePolicyAssignmentEntity) -> Self {
-        Self {
-            id: entity.id,
-            workspace_id: entity.workspace_id,
-            assignee_type: entity.assignee_type,
-            assignee_id: entity.assignee_id,
-            policy_id: entity.policy_id,
-            effective_from: entity.effective_from,
-            effective_to: entity.effective_to,
-            created_at: entity.created_at,
-        }
+        Self::new(
+            entity.id,
+            entity.workspace_id,
+            entity.assignee_type,
+            entity.assignee_id,
+            entity.policy_id,
+            entity.effective_from,
+            entity.effective_to,
+            entity.created_at,
+        )
     }
 }

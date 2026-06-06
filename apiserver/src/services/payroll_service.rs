@@ -243,7 +243,7 @@ impl PayrollService {
         let mut daily_entries_map: HashMap<NaiveDate, Vec<crate::models::TimeEntry>> =
             HashMap::new();
         for entry in time_entries {
-            let local_date = entry.punch_in_time.with_timezone(&tz).date_naive();
+            let local_date = entry.punch_in_time().with_timezone(&tz).date_naive();
             daily_entries_map.entry(local_date).or_default().push(entry);
         }
 
@@ -837,7 +837,7 @@ impl PayrollService {
                         HashMap::new();
                     if let Some(entries) = time_map.remove(&emp_id) {
                         for entry in entries {
-                            let local_date = entry.punch_in_time.with_timezone(&tz).date_naive();
+                            let local_date = entry.punch_in_time().with_timezone(&tz).date_naive();
                             daily_entries_map.entry(local_date).or_default().push(entry);
                         }
                     }

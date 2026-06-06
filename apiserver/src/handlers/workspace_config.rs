@@ -68,6 +68,7 @@ pub async fn get_config(
     Path(params): Path<(Uuid, String)>,
     ctx: MemberContext,
 ) -> AppResult<Json<crate::models::ResolvedConfig>> {
+    ctx.require_permission(Permission::WorkspaceSettingsRead)?;
     let (_workspace_id, key) = params;
     let date = chrono::Utc::now().naive_utc().date();
     let _entry = state

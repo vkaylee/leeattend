@@ -80,7 +80,7 @@ pub async fn create_time_entry(
 ) -> Result<(), AppError> {
     let repo = apiserver::repositories::DieselTimeEntryRepository::new(diesel_pools.clone());
     repo.create_time_entry(
-        &apiserver::diesel_pool::TenantAuthToken::system_override(entry.workspace_id),
+        &apiserver::diesel_pool::TenantAuthToken::system_override(entry.workspace_id()),
         entry,
     )
     .await

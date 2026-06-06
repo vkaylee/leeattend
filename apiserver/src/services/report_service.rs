@@ -94,18 +94,18 @@ impl ReportService {
         let actual_punch_in = args
             .day_entries
             .first()
-            .map(|e| e.punch_in_time.with_timezone(&args.tz));
+            .map(|e| e.punch_in_time().with_timezone(&args.tz));
         let actual_punch_out = args
             .day_entries
             .last()
-            .and_then(|e| e.punch_out_time.map(|t| t.with_timezone(&args.tz)));
+            .and_then(|e| e.punch_out_time().map(|t| t.with_timezone(&args.tz)));
 
         if let (Some(punch_in), Some(punch_out)) = (actual_punch_in, actual_punch_out) {
             let actual_break_minutes: i32 = args
                 .day_entries
                 .iter()
-                .filter(|e| e.entry_type == "break")
-                .map(|e| e.duration_minutes.unwrap_or(0))
+                .filter(|e| e.entry_type() == "break")
+                .map(|e| e.duration_minutes().unwrap_or(0))
                 .sum();
 
             let shift_start_dt = args
@@ -269,7 +269,7 @@ impl ReportService {
 
             // Find last present date for consecutive calculation
             for entry in &entries {
-                let d = entry.punch_in_time.with_timezone(&tz).date_naive();
+                let d = entry.punch_in_time().with_timezone(&tz).date_naive();
                 if last_present_date.is_none_or(|lpd| d > lpd) {
                     last_present_date = Some(d);
                 }
@@ -535,10 +535,10 @@ impl ReportService {
 
                 let actual_punch_in = day_entries
                     .first()
-                    .map(|e| e.punch_in_time.with_timezone(&tz));
+                    .map(|e| e.punch_in_time().with_timezone(&tz));
                 let actual_punch_out = day_entries
                     .last()
-                    .and_then(|e| e.punch_out_time.map(|t| t.with_timezone(&tz)));
+                    .and_then(|e| e.punch_out_time().map(|t| t.with_timezone(&tz)));
 
                 let emp_attendance_rules = attendance_rules_map
                     .get(&emp_sched.employee_id)
@@ -610,7 +610,7 @@ impl ReportService {
 
                 let log_metadata: Vec<_> = day_entries
                     .iter()
-                    .filter_map(|e| e.generation_metadata.clone())
+                    .filter_map(|e| e.generation_metadata().cloned())
                     .collect();
 
                 if !log_metadata.is_empty() {

@@ -359,11 +359,11 @@ pub fn group_entries_by_date(
 ) -> HashMap<NaiveDate, Vec<&crate::models::TimeEntry>> {
     let mut result: HashMap<NaiveDate, Vec<&crate::models::TimeEntry>> = HashMap::new();
     for entry in entries {
-        let date = entry.punch_in_time.with_timezone(&tz).date_naive();
+        let date = entry.punch_in_time().with_timezone(&tz).date_naive();
         result.entry(date).or_default().push(entry);
     }
     for entries in result.values_mut() {
-        entries.sort_by_key(|e| e.punch_in_time);
+        entries.sort_by_key(|e| e.punch_in_time());
     }
     result
 }
@@ -709,21 +709,21 @@ mod tests {
     // ===== group_entries_by_date tests =====
 
     fn make_entry(punch_in: DateTime<Utc>) -> crate::models::TimeEntry {
-        crate::models::TimeEntry {
-            id: Uuid::new_v4(),
-            employee_id: Uuid::new_v4(),
-            workspace_id: Uuid::new_v4(),
-            punch_in_time: punch_in,
-            punch_out_time: None,
-            entry_type: "work".to_string(),
-            duration_minutes: Some(480),
-            shift_id: None,
-            is_break_overtime: false,
-            note: None,
-            generation_metadata: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        }
+        crate::models::TimeEntry::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            None,
+            punch_in,
+            None,
+            Some(480),
+            false,
+            "work".to_string(),
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        )
     }
 
     #[test]
@@ -888,29 +888,55 @@ mod tests {
         let t2 = "2026-05-20T14:31:36Z".parse::<DateTime<Utc>>().unwrap(); // Local 21:31
         let t3 = "2026-05-21T01:00:00Z".parse::<DateTime<Utc>>().unwrap(); // Local 08:00
 
-        let entry1 = TimeEntry {
-            id: Uuid::new_v4(),
-            workspace_id: Uuid::new_v4(),
-            employee_id: Uuid::new_v4(),
-            shift_id: None,
-            punch_in_time: t1,
-            punch_out_time: None,
-            entry_type: "work".to_string(),
-            duration_minutes: None,
-            note: None,
-            is_break_overtime: false,
-            generation_metadata: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        };
+        let workspace_id = Uuid::new_v4();
+        let employee_id = Uuid::new_v4();
+        let entry1 = TimeEntry::new(
+            Uuid::new_v4(),
+            employee_id,
+            workspace_id,
+            None,
+            t1,
+            None,
+            None,
+            false,
+            "work".to_string(),
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
 
-        let mut entry2 = entry1.clone();
-        entry2.punch_in_time = t2;
-        entry2.id = Uuid::new_v4();
+        let entry2 = TimeEntry::new(
+            Uuid::new_v4(),
+            employee_id,
+            workspace_id,
+            None,
+            t2,
+            None,
+            None,
+            false,
+            "work".to_string(),
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
 
-        let mut entry3 = entry1.clone();
-        entry3.punch_in_time = t3;
-        entry3.id = Uuid::new_v4();
+        let entry3 = TimeEntry::new(
+            Uuid::new_v4(),
+            employee_id,
+            workspace_id,
+            None,
+            t3,
+            None,
+            None,
+            false,
+            "work".to_string(),
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
 
         // Pass out of order
         let entries = vec![entry2, entry3, entry1];
@@ -925,11 +951,11 @@ mod tests {
         let group1 = grouped.get(&day1).expect("day 1 should exist");
         assert_eq!(group1.len(), 2);
         // Should be sorted by punch_in_time ASC
-        assert_eq!(group1[0].punch_in_time, t1);
-        assert_eq!(group1[1].punch_in_time, t2);
+        assert_eq!(group1[0].punch_in_time(), t1);
+        assert_eq!(group1[1].punch_in_time(), t2);
 
         let group2 = grouped.get(&day2).expect("day 2 should exist");
         assert_eq!(group2.len(), 1);
-        assert_eq!(group2[0].punch_in_time, t3);
+        assert_eq!(group2[0].punch_in_time(), t3);
     }
 }

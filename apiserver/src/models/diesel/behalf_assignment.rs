@@ -19,15 +19,15 @@ pub struct BehalfAssignmentEntity {
 
 impl From<BehalfAssignmentEntity> for BehalfAssignment {
     fn from(entity: BehalfAssignmentEntity) -> Self {
-        Self {
-            id: entity.id,
-            workspace_id: entity.workspace_id,
-            assignee_user_id: entity.assignee_user_id,
-            target_employee_id: entity.target_employee_id,
-            target_department_id: entity.target_department_id,
-            assignment_type: entity.assignment_type,
-            created_at: entity.created_at,
-            updated_at: entity.updated_at,
-        }
+        Self::new(
+            entity.id,
+            entity.workspace_id,
+            entity.assignee_user_id,
+            entity.target_employee_id,
+            entity.target_department_id,
+            entity.assignment_type,
+            entity.created_at,
+            entity.updated_at,
+        )
     }
 }

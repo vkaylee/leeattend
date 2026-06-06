@@ -40,15 +40,15 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         );
 
         let new_entry = NewTimeEntryEntity {
-            id: entry.id,
-            employee_id: entry.employee_id,
-            workspace_id: entry.workspace_id,
-            punch_in_time: entry.punch_in_time,
-            punch_out_time: entry.punch_out_time,
-            entry_type: entry.entry_type.clone(),
-            is_break_overtime: entry.is_break_overtime,
-            note: entry.note.clone(),
-            shift_id: entry.shift_id,
+            id: entry.id(),
+            employee_id: entry.employee_id(),
+            workspace_id: entry.workspace_id(),
+            punch_in_time: entry.punch_in_time(),
+            punch_out_time: entry.punch_out_time(),
+            entry_type: entry.entry_type().to_string(),
+            is_break_overtime: entry.is_break_overtime(),
+            note: entry.note().map(String::from),
+            shift_id: entry.shift_id(),
         };
 
         diesel::insert_into(time_entries::table)
@@ -162,15 +162,15 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         );
 
         let update_model = UpdateTimeEntryEntity {
-            punch_in_time: Some(entry.punch_in_time),
-            punch_out_time: Some(entry.punch_out_time),
-            entry_type: Some(entry.entry_type.clone()),
-            note: Some(entry.note.clone()),
+            punch_in_time: Some(entry.punch_in_time()),
+            punch_out_time: Some(entry.punch_out_time()),
+            entry_type: Some(entry.entry_type().to_string()),
+            note: Some(entry.note().map(String::from)),
             updated_at: Some(Utc::now()),
         };
 
         diesel::update(time_entries::table)
-            .filter(time_entries::id.eq(entry.id))
+            .filter(time_entries::id.eq(entry.id()))
             .filter(time_entries::workspace_id.eq(workspace_id))
             .set(&update_model)
             .execute(&mut *conn)
@@ -253,13 +253,13 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
             .filter(time_entries::workspace_id.eq(workspace_id))
             .into_boxed();
 
-        if let Some(emp_id) = filter.employee_id {
+        if let Some(emp_id) = filter.employee_id() {
             query = query.filter(time_entries::employee_id.eq(emp_id));
         }
-        if let Some(from_date) = filter.from {
+        if let Some(from_date) = filter.from() {
             query = query.filter(time_entries::punch_in_time.ge(from_date));
         }
-        if let Some(to_date) = filter.to {
+        if let Some(to_date) = filter.to() {
             query = query.filter(time_entries::punch_in_time.le(to_date));
         }
 
@@ -270,8 +270,8 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
                 employees::employee_id_number,
             ))
             .order(time_entries::punch_in_time.desc())
-            .limit(filter.limit)
-            .offset(filter.offset)
+            .limit(filter.limit())
+            .offset(filter.offset())
             .load::<(TimeEntryEntity, String, String)>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -280,23 +280,23 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
             .into_iter()
             .map(|(entry, full_name, id_number)| {
                 let domain: TimeEntry = entry.into();
-                TimeEntryWithEmployee {
-                    id: domain.id,
-                    employee_id: domain.employee_id,
-                    workspace_id: domain.workspace_id,
-                    shift_id: domain.shift_id,
-                    punch_in_time: domain.punch_in_time,
-                    punch_out_time: domain.punch_out_time,
-                    duration_minutes: domain.duration_minutes,
-                    is_break_overtime: domain.is_break_overtime,
-                    entry_type: domain.entry_type,
-                    note: domain.note,
-                    generation_metadata: domain.generation_metadata,
-                    created_at: domain.created_at,
-                    updated_at: domain.updated_at,
-                    employee_full_name: full_name,
-                    employee_id_number: id_number,
-                }
+                TimeEntryWithEmployee::new(
+                    domain.id(),
+                    domain.employee_id(),
+                    domain.workspace_id(),
+                    domain.shift_id(),
+                    domain.punch_in_time(),
+                    domain.punch_out_time(),
+                    domain.duration_minutes(),
+                    domain.is_break_overtime(),
+                    domain.entry_type().to_string(),
+                    domain.note().map(String::from),
+                    domain.generation_metadata().cloned(),
+                    domain.created_at(),
+                    domain.updated_at(),
+                    full_name,
+                    id_number,
+                )
             })
             .collect())
     }
@@ -425,7 +425,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         for entry in results {
             let domain: TimeEntry = entry.into();
             result_map
-                .entry(domain.employee_id)
+                .entry(domain.employee_id())
                 .or_default()
                 .push(domain);
         }
@@ -468,19 +468,19 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
                     let entities: Vec<TimeEntryEntity> = entries
                         .into_iter()
                         .map(|entry| TimeEntryEntity {
-                            id: entry.id,
-                            workspace_id: entry.workspace_id,
-                            employee_id: entry.employee_id,
-                            shift_id: entry.shift_id,
-                            punch_in_time: entry.punch_in_time,
-                            punch_out_time: entry.punch_out_time,
-                            duration_minutes: entry.duration_minutes,
-                            is_break_overtime: entry.is_break_overtime,
-                            entry_type: entry.entry_type.clone(),
-                            note: entry.note.clone(),
-                            generation_metadata: entry.generation_metadata.clone(),
-                            created_at: Some(entry.created_at),
-                            updated_at: Some(entry.updated_at),
+                            id: entry.id(),
+                            workspace_id: entry.workspace_id(),
+                            employee_id: entry.employee_id(),
+                            shift_id: entry.shift_id(),
+                            punch_in_time: entry.punch_in_time(),
+                            punch_out_time: entry.punch_out_time(),
+                            duration_minutes: entry.duration_minutes(),
+                            is_break_overtime: entry.is_break_overtime(),
+                            entry_type: entry.entry_type().to_string(),
+                            note: entry.note().map(String::from),
+                            generation_metadata: entry.generation_metadata().cloned(),
+                            created_at: Some(entry.created_at()),
+                            updated_at: Some(entry.updated_at()),
                         })
                         .collect();
 

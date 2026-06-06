@@ -163,7 +163,7 @@ async fn test_overnight_shift_pairing() {
     assert_eq!(entries.len(), 1);
     let entry = &entries[0];
 
-    assert_eq!(entry.punch_in_time, punch_in_utc);
-    assert_eq!(entry.punch_out_time, Some(punch_out_utc));
-    assert_eq!(entry.duration_minutes, Some(490));
+    assert_eq!(entry.punch_in_time(), punch_in_utc);
+    assert_eq!(entry.punch_out_time(), Some(punch_out_utc));
+    assert_eq!(entry.duration_minutes(), Some(490));
 }

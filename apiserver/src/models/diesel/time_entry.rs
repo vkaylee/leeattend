@@ -26,21 +26,21 @@ pub struct TimeEntryEntity {
 
 impl From<TimeEntryEntity> for TimeEntry {
     fn from(val: TimeEntryEntity) -> Self {
-        TimeEntry {
-            id: val.id,
-            employee_id: val.employee_id,
-            workspace_id: val.workspace_id,
-            shift_id: val.shift_id,
-            punch_in_time: val.punch_in_time,
-            punch_out_time: val.punch_out_time,
-            duration_minutes: val.duration_minutes,
-            is_break_overtime: val.is_break_overtime,
-            entry_type: val.entry_type,
-            note: val.note,
-            generation_metadata: val.generation_metadata,
-            created_at: val.created_at.unwrap_or_else(Utc::now),
-            updated_at: val.updated_at.unwrap_or_else(Utc::now),
-        }
+        TimeEntry::new(
+            val.id,
+            val.employee_id,
+            val.workspace_id,
+            val.shift_id,
+            val.punch_in_time,
+            val.punch_out_time,
+            val.duration_minutes,
+            val.is_break_overtime,
+            val.entry_type,
+            val.note,
+            val.generation_metadata,
+            val.created_at.unwrap_or_else(Utc::now),
+            val.updated_at.unwrap_or_else(Utc::now),
+        )
     }
 }
 

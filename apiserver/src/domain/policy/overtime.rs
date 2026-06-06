@@ -50,8 +50,8 @@ impl OvertimeEngine {
         let active_rules: Vec<&OvertimeRule> = rules
             .iter()
             .filter(|r| {
-                let day_matches = (r.days_of_week & day_mask) != 0;
-                let holiday_matches = !r.is_holiday || is_holiday;
+                let day_matches = (r.days_of_week() & day_mask) != 0;
+                let holiday_matches = !r.is_holiday() || is_holiday;
                 day_matches && holiday_matches
             })
             .collect();
@@ -65,10 +65,10 @@ impl OvertimeEngine {
         time_points.insert(NaiveTime::from_hms_opt(23, 59, 59).unwrap_or_default());
 
         for rule in &active_rules {
-            if let Some(start) = rule.time_start {
+            if let Some(start) = rule.time_start() {
                 time_points.insert(start);
             }
-            if let Some(end) = rule.time_end {
+            if let Some(end) = rule.time_end() {
                 time_points.insert(end);
             }
         }
@@ -90,9 +90,9 @@ impl OvertimeEngine {
             let best_rule = active_rules
                 .iter()
                 .filter(|r| {
-                    let r_start = r.time_start.unwrap_or(NaiveTime::MIN);
+                    let r_start = r.time_start().unwrap_or(NaiveTime::MIN);
                     let r_end = r
-                        .time_end
+                        .time_end()
                         .unwrap_or_else(|| NaiveTime::from_hms_opt(23, 59, 59).unwrap_or_default());
 
                     if r_start <= r_end {
@@ -101,10 +101,10 @@ impl OvertimeEngine {
                         mid_time >= r_start || mid_time < r_end
                     }
                 })
-                .max_by_key(|r| r.priority);
+                .max_by_key(|r| r.priority());
 
             if let Some(rule) = best_rule {
-                segments.push(OvertimeSegment::new(start, end, rule.multiplier));
+                segments.push(OvertimeSegment::new(start, end, rule.multiplier()));
             }
         }
 
@@ -249,20 +249,18 @@ mod tests {
         end: Option<&str>,
         days: i32,
     ) -> OvertimeRule {
-        OvertimeRule {
-            id: Uuid::new_v4(),
-            policy_id: Uuid::new_v4(),
+        OvertimeRule::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
             priority,
             multiplier,
-            time_start: start
-                .map(|s| NaiveTime::parse_from_str(s, "%H:%M:%S").expect("valid mock time")),
-            time_end: end
-                .map(|s| NaiveTime::parse_from_str(s, "%H:%M:%S").expect("valid mock time")),
-            days_of_week: days,
-            is_holiday: false,
-            created_at: None,
-            updated_at: None,
-        }
+            start.map(|s| NaiveTime::parse_from_str(s, "%H:%M:%S").expect("valid mock time")),
+            end.map(|s| NaiveTime::parse_from_str(s, "%H:%M:%S").expect("valid mock time")),
+            days,
+            false,
+            None,
+            None,
+        )
     }
 
     #[test]
@@ -369,7 +367,7 @@ mod tests {
         let date = NaiveDate::from_ymd_opt(2026, 5, 1).expect("valid date"); // Thursday
         let normal_rule = mock_rule(1, Decimal::new(15, 1), None, None, 127); // 1.5x all week
         let mut holiday_rule = mock_rule(10, Decimal::new(30, 1), None, None, 127); // 3.0x holiday
-        holiday_rule.is_holiday = true;
+        holiday_rule.set_is_holiday(true);
 
         let rules = vec![normal_rule, holiday_rule];
 
@@ -414,7 +412,7 @@ mod tests {
             Some("22:00:00"),
             127,
         );
-        holiday_rule.is_holiday = true;
+        holiday_rule.set_is_holiday(true);
         let rules = vec![normal_rule, holiday_rule];
 
         let ot_intervals = vec![(

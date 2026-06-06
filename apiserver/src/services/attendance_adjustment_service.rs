@@ -91,14 +91,9 @@ impl AttendanceAdjustmentService {
                     .await?
                     .ok_or(AppError::NotFound("Not found".into()))?;
 
-                entry.punch_in_time = request.requested_punch_in_time();
-                entry.punch_out_time = request.requested_punch_out_time();
-                entry.is_break_overtime = request.is_break_overtime();
-
-                if let Some(punch_out) = entry.punch_out_time {
-                    let duration = punch_out.signed_duration_since(entry.punch_in_time);
-                    entry.duration_minutes = Some(duration.num_minutes() as i32);
-                }
+                entry.set_punch_in_time(request.requested_punch_in_time());
+                entry.set_punch_out_time(request.requested_punch_out_time());
+                entry.set_is_break_overtime(request.is_break_overtime());
 
                 self.time_entry_repo
                     .update_time_entry(
@@ -113,21 +108,21 @@ impl AttendanceAdjustmentService {
                     duration.num_minutes() as i32
                 });
 
-                let entry = TimeEntry {
-                    id: new_id(),
-                    employee_id: request.employee_id(),
+                let entry = TimeEntry::new(
+                    new_id(),
+                    request.employee_id(),
                     workspace_id,
-                    shift_id: None,
-                    punch_in_time: request.requested_punch_in_time(),
-                    punch_out_time: request.requested_punch_out_time(),
+                    None,
+                    request.requested_punch_in_time(),
+                    request.requested_punch_out_time(),
                     duration_minutes,
-                    is_break_overtime: request.is_break_overtime(),
-                    entry_type: "work".to_string(),
-                    note: request.reason().map(|r| format!("Adjustment: {r}")),
-                    generation_metadata: Some(serde_json::json!({ "source": "adjustment" })),
-                    created_at: Utc::now(),
-                    updated_at: Utc::now(),
-                };
+                    request.is_break_overtime(),
+                    "work".to_string(),
+                    request.reason().map(|r| format!("Adjustment: {r}")),
+                    Some(serde_json::json!({ "source": "adjustment" })),
+                    Utc::now(),
+                    Utc::now(),
+                );
 
                 self.time_entry_repo
                     .create_time_entry(

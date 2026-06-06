@@ -2373,21 +2373,21 @@ mod tests {
         ) -> Result<HashMap<Uuid, Vec<TimeEntry>>, AppError> {
             use chrono::TimeZone;
             let mut map = HashMap::new();
-            let entry = TimeEntry {
-                id: Uuid::new_v4(),
-                employee_id: Uuid::nil(),
-                workspace_id: Uuid::nil(),
-                punch_in_time: Utc.with_ymd_and_hms(2023, 1, 1, 9, 0, 0).unwrap(),
-                punch_out_time: Some(Utc.with_ymd_and_hms(2023, 1, 1, 17, 0, 0).unwrap()),
-                entry_type: "work".to_string(),
-                duration_minutes: Some(480),
-                shift_id: Some(Uuid::nil()),
-                is_break_overtime: false,
-                note: None,
-                generation_metadata: None,
-                created_at: Utc::now(),
-                updated_at: Utc::now(),
-            };
+            let entry = TimeEntry::new(
+                Uuid::new_v4(),
+                Uuid::nil(),
+                Uuid::nil(),
+                Some(Uuid::nil()),
+                Utc.with_ymd_and_hms(2023, 1, 1, 9, 0, 0).unwrap(),
+                Some(Utc.with_ymd_and_hms(2023, 1, 1, 17, 0, 0).unwrap()),
+                Some(480),
+                false,
+                "work".to_string(),
+                None,
+                None,
+                Utc::now(),
+                Utc::now(),
+            );
             map.insert(Uuid::nil(), vec![entry]);
             Ok(map)
         }

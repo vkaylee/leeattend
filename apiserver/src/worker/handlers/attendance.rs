@@ -264,16 +264,16 @@ impl AttendanceHandler {
 
                 let actual_punch_in = day_entries
                     .first()
-                    .map(|e| e.punch_in_time.with_timezone(&args.tz));
+                    .map(|e| e.punch_in_time().with_timezone(&args.tz));
                 let actual_punch_out = day_entries
                     .last()
-                    .and_then(|e| e.punch_out_time.map(|t| t.with_timezone(&args.tz)));
+                    .and_then(|e| e.punch_out_time().map(|t| t.with_timezone(&args.tz)));
 
                 if let (Some(punch_in), Some(punch_out)) = (actual_punch_in, actual_punch_out) {
                     let actual_break_minutes: i32 = day_entries
                         .iter()
-                        .filter(|e| e.entry_type == "break")
-                        .map(|e| e.duration_minutes.unwrap_or(0))
+                        .filter(|e| e.entry_type() == "break")
+                        .map(|e| e.duration_minutes().unwrap_or(0))
                         .sum();
 
                     // Build rules from pre-fetched conditions (no DB call)
@@ -447,10 +447,10 @@ impl AttendanceHandler {
 
                 let actual_punch_in = day_entries
                     .first()
-                    .map(|e| e.punch_in_time.with_timezone(&args.tz));
+                    .map(|e| e.punch_in_time().with_timezone(&args.tz));
                 let actual_punch_out = day_entries
                     .last()
-                    .and_then(|e| e.punch_out_time.map(|t| t.with_timezone(&args.tz)));
+                    .and_then(|e| e.punch_out_time().map(|t| t.with_timezone(&args.tz)));
 
                 let mut std_work_units = 0;
                 let mut ot_work_units = 0;
@@ -462,8 +462,8 @@ impl AttendanceHandler {
                     if let (Some(punch_in), Some(punch_out)) = (actual_punch_in, actual_punch_out) {
                         let actual_break_minutes: i32 = day_entries
                             .iter()
-                            .filter(|e| e.entry_type == "break")
-                            .map(|e| e.duration_minutes.unwrap_or(0))
+                            .filter(|e| e.entry_type() == "break")
+                            .map(|e| e.duration_minutes().unwrap_or(0))
                             .sum();
 
                         let shift_start_dt = daily
@@ -554,7 +554,7 @@ impl AttendanceHandler {
                 let mut metadata_map = serde_json::Map::new();
                 let log_metadata: Vec<_> = day_entries
                     .iter()
-                    .filter_map(|e| e.generation_metadata.clone())
+                    .filter_map(|e| e.generation_metadata().cloned())
                     .collect();
 
                 if !log_metadata.is_empty() {
@@ -822,53 +822,53 @@ mod tests {
 
         // Create entries at specific UTC times that map to different local dates
         // UTC 2026-01-14 20:00 → Ho_Chi_Minh 2026-01-15 03:00
-        let entry_jan15_early = TimeEntry {
-            id: Uuid::new_v4(),
-            employee_id: Uuid::new_v4(),
-            workspace_id: Uuid::new_v4(),
-            punch_in_time: chrono::Utc.with_ymd_and_hms(2026, 1, 14, 20, 0, 0).unwrap(),
-            punch_out_time: None,
-            entry_type: "work".to_string(),
-            duration_minutes: Some(480),
-            shift_id: None,
-            is_break_overtime: false,
-            note: None,
-            generation_metadata: None,
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-        };
+        let entry_jan15_early = TimeEntry::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            None,
+            chrono::Utc.with_ymd_and_hms(2026, 1, 14, 20, 0, 0).unwrap(),
+            None,
+            Some(480),
+            false,
+            "work".to_string(),
+            None,
+            None,
+            chrono::Utc::now(),
+            chrono::Utc::now(),
+        );
         // UTC 2026-01-15 02:00 → Ho_Chi_Minh 2026-01-15 09:00
-        let entry_jan15_morning = TimeEntry {
-            id: Uuid::new_v4(),
-            employee_id: entry_jan15_early.employee_id,
-            workspace_id: entry_jan15_early.workspace_id,
-            punch_in_time: chrono::Utc.with_ymd_and_hms(2026, 1, 15, 2, 0, 0).unwrap(),
-            punch_out_time: None,
-            entry_type: "work".to_string(),
-            duration_minutes: Some(480),
-            shift_id: None,
-            is_break_overtime: false,
-            note: None,
-            generation_metadata: None,
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-        };
+        let entry_jan15_morning = TimeEntry::new(
+            Uuid::new_v4(),
+            entry_jan15_early.employee_id(),
+            entry_jan15_early.workspace_id(),
+            None,
+            chrono::Utc.with_ymd_and_hms(2026, 1, 15, 2, 0, 0).unwrap(),
+            None,
+            Some(480),
+            false,
+            "work".to_string(),
+            None,
+            None,
+            chrono::Utc::now(),
+            chrono::Utc::now(),
+        );
         // UTC 2026-01-15 18:00 → Ho_Chi_Minh 2026-01-16 01:00 (next day!)
-        let entry_jan16 = TimeEntry {
-            id: Uuid::new_v4(),
-            employee_id: entry_jan15_early.employee_id,
-            workspace_id: entry_jan15_early.workspace_id,
-            punch_in_time: chrono::Utc.with_ymd_and_hms(2026, 1, 15, 18, 0, 0).unwrap(),
-            punch_out_time: None,
-            entry_type: "work".to_string(),
-            duration_minutes: Some(480),
-            shift_id: None,
-            is_break_overtime: false,
-            note: None,
-            generation_metadata: None,
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-        };
+        let entry_jan16 = TimeEntry::new(
+            Uuid::new_v4(),
+            entry_jan15_early.employee_id(),
+            entry_jan15_early.workspace_id(),
+            None,
+            chrono::Utc.with_ymd_and_hms(2026, 1, 15, 18, 0, 0).unwrap(),
+            None,
+            Some(480),
+            false,
+            "work".to_string(),
+            None,
+            None,
+            chrono::Utc::now(),
+            chrono::Utc::now(),
+        );
 
         let entries = vec![entry_jan15_early, entry_jan15_morning, entry_jan16];
 
@@ -906,20 +906,22 @@ mod tests {
         let emp_id = Uuid::new_v4();
         let ws_id = Uuid::new_v4();
         let entries: Vec<TimeEntry> = (1..=5)
-            .map(|day| TimeEntry {
-                id: Uuid::new_v4(),
-                employee_id: emp_id,
-                workspace_id: ws_id,
-                punch_in_time: chrono::Utc.with_ymd_and_hms(2026, 1, day, 8, 0, 0).unwrap(),
-                punch_out_time: None,
-                entry_type: "work".to_string(),
-                duration_minutes: Some(480),
-                shift_id: None,
-                is_break_overtime: false,
-                note: None,
-                generation_metadata: None,
-                created_at: chrono::Utc::now(),
-                updated_at: chrono::Utc::now(),
+            .map(|day| {
+                TimeEntry::new(
+                    Uuid::new_v4(),
+                    emp_id,
+                    ws_id,
+                    None,
+                    chrono::Utc.with_ymd_and_hms(2026, 1, day, 8, 0, 0).unwrap(),
+                    None,
+                    Some(480),
+                    false,
+                    "work".to_string(),
+                    None,
+                    None,
+                    chrono::Utc::now(),
+                    chrono::Utc::now(),
+                )
             })
             .collect();
 
@@ -932,7 +934,7 @@ mod tests {
             let target = NaiveDate::from_ymd_opt(2026, 1, day).unwrap();
             let filtered_count = entries
                 .iter()
-                .filter(|e| e.punch_in_time.with_timezone(&tz).date_naive() == target)
+                .filter(|e| e.punch_in_time().with_timezone(&tz).date_naive() == target)
                 .count();
 
             let grouped = entries_by_date
@@ -1249,21 +1251,21 @@ mod tests {
         let punch_out = chrono::Utc
             .with_ymd_and_hms(2026, 1, 15, 16, 45, 0)
             .unwrap();
-        let entry = TimeEntry {
-            id: Uuid::new_v4(),
-            employee_id: emp_id,
-            workspace_id: ws_id,
-            punch_in_time: punch_in,
-            punch_out_time: Some(punch_out),
-            entry_type: "work".to_string(),
-            duration_minutes: Some(450),
-            shift_id: None,
-            is_break_overtime: false,
-            note: None,
-            generation_metadata: None,
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-        };
+        let entry = TimeEntry::new(
+            Uuid::new_v4(),
+            emp_id,
+            ws_id,
+            None,
+            punch_in,
+            Some(punch_out),
+            Some(450),
+            false,
+            "work".to_string(),
+            None,
+            None,
+            chrono::Utc::now(),
+            chrono::Utc::now(),
+        );
 
         builder
             .time_entry_repo
@@ -1434,21 +1436,21 @@ mod tests {
         let punch_out = chrono::Utc
             .with_ymd_and_hms(2026, 1, 15, 18, 30, 0)
             .unwrap();
-        let entry = TimeEntry {
-            id: Uuid::new_v4(),
-            employee_id: emp_id,
-            workspace_id: ws_id,
-            punch_in_time: punch_in,
-            punch_out_time: Some(punch_out),
-            entry_type: "work".to_string(),
-            duration_minutes: Some(570),
-            shift_id: None,
-            is_break_overtime: false,
-            note: None,
-            generation_metadata: None,
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-        };
+        let entry = TimeEntry::new(
+            Uuid::new_v4(),
+            emp_id,
+            ws_id,
+            None,
+            punch_in,
+            Some(punch_out),
+            Some(570),
+            false,
+            "work".to_string(),
+            None,
+            None,
+            chrono::Utc::now(),
+            chrono::Utc::now(),
+        );
 
         builder
             .time_entry_repo

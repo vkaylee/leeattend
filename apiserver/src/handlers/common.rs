@@ -685,7 +685,9 @@ pub async fn get_my_behalf_targets_handler(
     }
 
     // Resolve department → employee IDs if any exist
-    let has_dept = assignments.iter().any(|a| a.target_department_id.is_some());
+    let has_dept = assignments
+        .iter()
+        .any(|a| a.target_department_id().is_some());
 
     let dept_map = if has_dept {
         let today = chrono::Utc::now().date_naive();
@@ -731,12 +733,12 @@ pub(crate) fn resolve_behalf_target_ids(
 ) -> std::collections::HashSet<Uuid> {
     let mut all_employee_ids: std::collections::HashSet<Uuid> = assignments
         .iter()
-        .filter_map(|a| a.target_employee_id)
+        .filter_map(crate::models::BehalfAssignment::target_employee_id)
         .collect();
 
     let dept_ids: std::collections::HashSet<Uuid> = assignments
         .iter()
-        .filter_map(|a| a.target_department_id)
+        .filter_map(crate::models::BehalfAssignment::target_department_id)
         .collect();
 
     if !dept_ids.is_empty() {
@@ -993,16 +995,16 @@ mod tests {
         target_employee_id: Option<Uuid>,
         target_department_id: Option<Uuid>,
     ) -> crate::models::BehalfAssignment {
-        crate::models::BehalfAssignment {
-            id: Uuid::new_v4(),
-            workspace_id: Uuid::new_v4(),
-            assignee_user_id: Uuid::new_v4(),
+        crate::models::BehalfAssignment::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            Uuid::new_v4(),
             target_employee_id,
             target_department_id,
-            assignment_type: "leave_request".to_string(),
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-        }
+            "leave_request".to_string(),
+            chrono::Utc::now(),
+            chrono::Utc::now(),
+        )
     }
 
     #[test]

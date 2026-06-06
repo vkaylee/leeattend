@@ -43,8 +43,8 @@ pub async fn punch_in(
         .punch(
             state.attendance().log_service().as_ref(),
             workspace_id,
-            req.employee_id,
-            req.note,
+            req.employee_id(),
+            req.note().map(String::from),
         )
         .await?;
 
@@ -79,7 +79,7 @@ pub async fn punch_out(
             state.attendance().log_service().as_ref(),
             workspace_id,
             employee_id,
-            req.note,
+            req.note().map(String::from),
         )
         .await?;
 

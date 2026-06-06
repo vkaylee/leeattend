@@ -74,14 +74,14 @@ impl WorkspaceOvertimeData {
             .assignments
             .iter()
             .filter(|a| {
-                a.assignee_type == "employee"
-                    && a.assignee_id == Some(employee_id)
-                    && a.effective_from <= date
-                    && a.effective_to.is_none_or(|to| to >= date)
+                a.assignee_type() == "employee"
+                    && a.assignee_id() == Some(employee_id)
+                    && a.effective_from() <= date
+                    && a.effective_to().is_none_or(|to| to >= date)
             })
-            .max_by_key(|a| a.created_at);
+            .max_by_key(|a| a.created_at());
         if let Some(a) = emp_assignment {
-            return Some(a.policy_id);
+            return Some(a.policy_id());
         }
 
         // 2. Department Override
@@ -92,13 +92,13 @@ impl WorkspaceOvertimeData {
                 self.assignments
                     .iter()
                     .filter(|a| {
-                        a.assignee_type == "department"
-                            && a.assignee_id == Some(h.department_id())
-                            && a.effective_from <= date
-                            && a.effective_to.is_none_or(|to| to >= date)
+                        a.assignee_type() == "department"
+                            && a.assignee_id() == Some(h.department_id())
+                            && a.effective_from() <= date
+                            && a.effective_to().is_none_or(|to| to >= date)
                     })
-                    .max_by_key(|a| a.created_at)
-                    .map(|a| (h.effective_date(), a.created_at, a.policy_id))
+                    .max_by_key(|a| a.created_at())
+                    .map(|a| (h.effective_date(), a.created_at(), a.policy_id()))
             })
             .max_by_key(|(h_eff, a_created, _)| (*h_eff, *a_created));
 
@@ -111,13 +111,13 @@ impl WorkspaceOvertimeData {
             .assignments
             .iter()
             .filter(|a| {
-                a.assignee_type == "workspace"
-                    && a.effective_from <= date
-                    && a.effective_to.is_none_or(|to| to >= date)
+                a.assignee_type() == "workspace"
+                    && a.effective_from() <= date
+                    && a.effective_to().is_none_or(|to| to >= date)
             })
-            .max_by_key(|a| a.created_at);
+            .max_by_key(|a| a.created_at());
         if let Some(a) = ws_assignment {
-            return Some(a.policy_id);
+            return Some(a.policy_id());
         }
 
         None

@@ -132,13 +132,13 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
 
         diesel::insert_into(overtime_rules::table)
             .values((
-                overtime_rules::policy_id.eq(rule.policy_id),
-                overtime_rules::priority.eq(rule.priority),
-                overtime_rules::multiplier.eq(rule.multiplier),
-                overtime_rules::time_start.eq(rule.time_start),
-                overtime_rules::time_end.eq(rule.time_end),
-                overtime_rules::days_of_week.eq(rule.days_of_week),
-                overtime_rules::is_holiday.eq(rule.is_holiday),
+                overtime_rules::policy_id.eq(rule.policy_id()),
+                overtime_rules::priority.eq(rule.priority()),
+                overtime_rules::multiplier.eq(rule.multiplier()),
+                overtime_rules::time_start.eq(rule.time_start()),
+                overtime_rules::time_end.eq(rule.time_end()),
+                overtime_rules::days_of_week.eq(rule.days_of_week()),
+                overtime_rules::is_holiday.eq(rule.is_holiday()),
             ))
             .returning(OvertimeRuleEntity::as_returning())
             .get_result(&mut *conn)

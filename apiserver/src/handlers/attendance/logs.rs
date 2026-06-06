@@ -50,13 +50,13 @@ pub async fn get_attendance_logs(
         .time_entry_repo()
         .get_paginated_logs(
             &ctx.auth_token,
-            crate::models::TimeEntryLogFilter {
-                employee_id: query.employee_id,
-                from: query.from,
-                to: query.to,
+            crate::models::TimeEntryLogFilter::new(
+                query.employee_id,
+                query.from,
+                query.to,
                 limit,
                 offset,
-            },
+            ),
         )
         .await?;
 

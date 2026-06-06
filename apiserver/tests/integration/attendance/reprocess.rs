@@ -102,8 +102,8 @@ async fn test_force_reprocess_attendance_api() {
         .unwrap();
 
     assert_eq!(entries.len(), 1, "One time entry should have been created");
-    assert_eq!(entries[0].punch_in_time, start_time);
-    assert_eq!(entries[0].punch_out_time, Some(end_time));
+    assert_eq!(entries[0].punch_in_time(), start_time);
+    assert_eq!(entries[0].punch_out_time(), Some(end_time));
 }
 
 #[tokio::test]
@@ -279,7 +279,7 @@ async fn test_force_reprocess_all_attendance_api() {
             1,
             "One time entry should have been created for employee"
         );
-        assert_eq!(entries[0].punch_in_time, start_time);
-        assert_eq!(entries[0].punch_out_time, Some(end_time));
+        assert_eq!(entries[0].punch_in_time(), start_time);
+        assert_eq!(entries[0].punch_out_time(), Some(end_time));
     }
 }

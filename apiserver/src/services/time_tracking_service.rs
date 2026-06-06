@@ -224,7 +224,7 @@ impl TimeTrackingService {
         let _ = self
             .employee_repo
             .get_employee_by_id(
-                entry.employee_id,
+                entry.employee_id(),
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
             )
             .await?
@@ -232,22 +232,17 @@ impl TimeTrackingService {
                 "Employee does not belong to workspace".into(),
             ))?;
 
-        if let Some(t) = req.punch_in_time {
-            entry.punch_in_time = t;
+        if let Some(t) = req.punch_in_time() {
+            entry.set_punch_in_time(t);
         }
-        if let Some(t) = req.punch_out_time {
-            entry.punch_out_time = Some(t);
+        if let Some(t) = req.punch_out_time() {
+            entry.set_punch_out_time(Some(t));
         }
-        if let Some(et) = req.entry_type {
-            entry.entry_type = et;
+        if let Some(et) = req.entry_type() {
+            entry.set_entry_type(et.to_string());
         }
-        if let Some(n) = req.note {
-            entry.note = Some(n);
-        }
-
-        if let Some(po) = entry.punch_out_time {
-            let duration = po.signed_duration_since(entry.punch_in_time);
-            entry.duration_minutes = Some(duration.num_minutes() as i32);
+        if let Some(n) = req.note() {
+            entry.set_note(Some(n.to_string()));
         }
 
         self.repo
@@ -260,7 +255,7 @@ impl TimeTrackingService {
         // Recalculate summary
         if let Ok(Some(ws)) = self.workspace_repo.get_workspace_by_id(workspace_id).await {
             let tz: Tz = crate::utils::tz::parse_workspace_tz(ws.timezone());
-            let local_date = entry.punch_in_time.with_timezone(&tz).date_naive();
+            let local_date = entry.punch_in_time().with_timezone(&tz).date_naive();
             let summary_svc = crate::services::AttendanceSummaryService::new(
                 crate::services::attendance_summary_service::AttendanceSummaryServiceArgs {
                     time_entry_repo: Arc::clone(&self.repo),
@@ -274,7 +269,7 @@ impl TimeTrackingService {
                 },
             );
             let _ = summary_svc
-                .recalculate_daily_summary(workspace_id, entry.employee_id, local_date)
+                .recalculate_daily_summary(workspace_id, entry.employee_id(), local_date)
                 .await;
         }
 
@@ -296,7 +291,7 @@ impl TimeTrackingService {
         let _ = self
             .employee_repo
             .get_employee_by_id(
-                entry.employee_id,
+                entry.employee_id(),
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
             )
             .await?

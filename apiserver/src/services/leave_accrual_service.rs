@@ -453,7 +453,7 @@ impl LeaveAccrualService {
         for (emp_id, entries) in work_entries {
             let emp_map = result_map.entry(emp_id).or_default();
             for entry in entries {
-                let date = entry.punch_in_time.with_timezone(&tz).date_naive();
+                let date = entry.punch_in_time().with_timezone(&tz).date_naive();
                 let month_key =
                     NaiveDate::from_ymd_opt(date.year(), date.month(), 1).unwrap_or(date);
                 *emp_map.entry(month_key).or_insert(0) += 1;
@@ -1292,21 +1292,21 @@ mod tests {
                 let mut map = std::collections::HashMap::new();
                 map.insert(
                     emp1,
-                    vec![crate::models::TimeEntry {
-                        id: Uuid::new_v4(),
-                        employee_id: emp1,
-                        workspace_id: Uuid::new_v4(),
-                        punch_in_time: chrono::Utc.with_ymd_and_hms(2026, 1, 15, 8, 0, 0).unwrap(),
-                        punch_out_time: None,
-                        entry_type: "work".to_string(),
-                        duration_minutes: None,
-                        shift_id: None,
-                        is_break_overtime: false,
-                        note: None,
-                        generation_metadata: None,
-                        created_at: chrono::Utc::now(),
-                        updated_at: chrono::Utc::now(),
-                    }],
+                    vec![crate::models::TimeEntry::new(
+                        Uuid::new_v4(),
+                        emp1,
+                        Uuid::new_v4(),
+                        None,
+                        chrono::Utc.with_ymd_and_hms(2026, 1, 15, 8, 0, 0).unwrap(),
+                        None,
+                        None,
+                        false,
+                        "work".to_string(),
+                        None,
+                        None,
+                        chrono::Utc::now(),
+                        chrono::Utc::now(),
+                    )],
                 );
                 Ok(map)
             });

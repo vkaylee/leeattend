@@ -221,7 +221,7 @@ impl AttendanceSummaryService {
 
         let day_entries: Vec<_> = entries
             .into_iter()
-            .filter(|e| e.punch_in_time.with_timezone(&tz).date_naive() == date)
+            .filter(|e| e.punch_in_time().with_timezone(&tz).date_naive() == date)
             .collect();
 
         Ok((tz, daily_schedule, day_entries))
@@ -239,10 +239,10 @@ impl AttendanceSummaryService {
     ) -> AppResult<(i32, i32)> {
         let actual_punch_in = day_entries
             .first()
-            .map(|e| e.punch_in_time.with_timezone(tz));
+            .map(|e| e.punch_in_time().with_timezone(tz));
         let actual_punch_out = day_entries
             .last()
-            .and_then(|e| e.punch_out_time.map(|t| t.with_timezone(tz)));
+            .and_then(|e| e.punch_out_time().map(|t| t.with_timezone(tz)));
 
         let (Some(punch_in), Some(punch_out)) = (actual_punch_in, actual_punch_out) else {
             return Ok((0, 0));
@@ -250,8 +250,8 @@ impl AttendanceSummaryService {
 
         let actual_break_minutes: i32 = day_entries
             .iter()
-            .filter(|e| e.entry_type == "break")
-            .map(|e| e.duration_minutes.unwrap_or(0))
+            .filter(|e| e.entry_type() == "break")
+            .map(|e| e.duration_minutes().unwrap_or(0))
             .sum();
 
         let raw_duration = punch_out.signed_duration_since(punch_in).num_minutes() as i32;
@@ -1066,21 +1066,21 @@ mod tests {
                         date.and_hms_opt(17, 0, 0).unwrap(),
                         chrono::Utc,
                     );
-                    Ok(vec![TimeEntry {
-                        id: Uuid::new_v4(),
-                        workspace_id,
+                    Ok(vec![TimeEntry::new(
+                        Uuid::new_v4(),
                         employee_id,
-                        shift_id: None,
-                        punch_in_time: punch_in,
-                        punch_out_time: Some(punch_out),
-                        duration_minutes: Some(480),
-                        is_break_overtime: false,
-                        entry_type: "work".to_string(),
-                        note: None,
-                        generation_metadata: None,
-                        created_at: Utc::now(),
-                        updated_at: Utc::now(),
-                    }])
+                        workspace_id,
+                        None,
+                        punch_in,
+                        Some(punch_out),
+                        Some(480),
+                        false,
+                        "work".to_string(),
+                        None,
+                        None,
+                        Utc::now(),
+                        Utc::now(),
+                    )])
                 });
 
             // Mock get leave requests: returns one approved leave covering the date
@@ -1210,21 +1210,21 @@ mod tests {
                         date.and_hms_opt(17, 0, 0).unwrap(),
                         chrono::Utc,
                     );
-                    Ok(vec![TimeEntry {
-                        id: Uuid::new_v4(),
-                        workspace_id,
+                    Ok(vec![TimeEntry::new(
+                        Uuid::new_v4(),
                         employee_id,
-                        shift_id: None,
-                        punch_in_time: punch_in,
-                        punch_out_time: Some(punch_out),
-                        duration_minutes: Some(480),
-                        is_break_overtime: false,
-                        entry_type: "work".to_string(),
-                        note: None,
-                        generation_metadata: None,
-                        created_at: Utc::now(),
-                        updated_at: Utc::now(),
-                    }])
+                        workspace_id,
+                        None,
+                        punch_in,
+                        Some(punch_out),
+                        Some(480),
+                        false,
+                        "work".to_string(),
+                        None,
+                        None,
+                        Utc::now(),
+                        Utc::now(),
+                    )])
                 });
 
             // Leave request covers Mon to Wed
@@ -1351,21 +1351,21 @@ mod tests {
                         date.and_hms_opt(17, 0, 0).unwrap(),
                         chrono::Utc,
                     );
-                    Ok(vec![TimeEntry {
-                        id: Uuid::new_v4(),
-                        workspace_id,
+                    Ok(vec![TimeEntry::new(
+                        Uuid::new_v4(),
                         employee_id,
-                        shift_id: None,
-                        punch_in_time: punch_in,
-                        punch_out_time: Some(punch_out),
-                        duration_minutes: Some(480),
-                        is_break_overtime: false,
-                        entry_type: "work".to_string(),
-                        note: None,
-                        generation_metadata: None,
-                        created_at: Utc::now(),
-                        updated_at: Utc::now(),
-                    }])
+                        workspace_id,
+                        None,
+                        punch_in,
+                        Some(punch_out),
+                        Some(480),
+                        false,
+                        "work".to_string(),
+                        None,
+                        None,
+                        Utc::now(),
+                        Utc::now(),
+                    )])
                 });
 
             // Pending request
@@ -1590,21 +1590,21 @@ mod tests {
                         date.and_hms_opt(17, 0, 0).unwrap(),
                         chrono::Utc,
                     );
-                    Ok(vec![TimeEntry {
-                        id: Uuid::new_v4(),
-                        workspace_id,
+                    Ok(vec![TimeEntry::new(
+                        Uuid::new_v4(),
                         employee_id,
-                        shift_id: None,
-                        punch_in_time: punch_in,
-                        punch_out_time: Some(punch_out),
-                        duration_minutes: Some(480),
-                        is_break_overtime: false,
-                        entry_type: "work".to_string(),
-                        note: None,
-                        generation_metadata: None,
-                        created_at: Utc::now(),
-                        updated_at: Utc::now(),
-                    }])
+                        workspace_id,
+                        None,
+                        punch_in,
+                        Some(punch_out),
+                        Some(480),
+                        false,
+                        "work".to_string(),
+                        None,
+                        None,
+                        Utc::now(),
+                        Utc::now(),
+                    )])
                 });
 
             // Under regular logic, it should NOT try to cancel regular leaves or query them because it's a holiday

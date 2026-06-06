@@ -84,13 +84,15 @@ impl AttendanceMatcher {
             if let Some(entries) = args.ctx.daily_entries_map.get(&current_date) {
                 let work_entries: Vec<_> = entries
                     .iter()
-                    .filter(|e| e.entry_type == "work" || e.entry_type.is_empty())
+                    .filter(|e| e.entry_type() == "work" || e.entry_type().is_empty())
                     .collect();
-                let break_entries: Vec<_> =
-                    entries.iter().filter(|e| e.entry_type == "break").collect();
+                let break_entries: Vec<_> = entries
+                    .iter()
+                    .filter(|e| e.entry_type() == "break")
+                    .collect();
                 let actual_break_minutes: i32 = break_entries
                     .iter()
-                    .map(|e| e.duration_minutes.unwrap_or(0))
+                    .map(|e| e.duration_minutes().unwrap_or(0))
                     .sum();
 
                 // Process each shift with OT ceiling = next shift's start
@@ -123,7 +125,7 @@ impl AttendanceMatcher {
                         let matching_entries: Vec<_> = work_entries
                             .iter()
                             .filter(|entry| {
-                                let punch_in = entry.punch_in_time.with_timezone(&args.ctx.tz);
+                                let punch_in = entry.punch_in_time().with_timezone(&args.ctx.tz);
                                 let prev_end = if shift_idx > 0 {
                                     day_shifts.get(shift_idx - 1).and_then(|prev_s| {
                                         args.ctx
@@ -143,8 +145,8 @@ impl AttendanceMatcher {
                             .collect();
 
                         for entry in matching_entries {
-                            let punch_in = entry.punch_in_time.with_timezone(&args.ctx.tz);
-                            if let Some(punch_out_raw) = entry.punch_out_time {
+                            let punch_in = entry.punch_in_time().with_timezone(&args.ctx.tz);
+                            if let Some(punch_out_raw) = entry.punch_out_time() {
                                 let punch_out = punch_out_raw.with_timezone(&args.ctx.tz);
 
                                 let rules = PolicyResolver::resolve_with_shift_overrides_pure(
@@ -156,7 +158,7 @@ impl AttendanceMatcher {
                                         Some(s.is_break_auto_deduct),
                                         Some(s.allow_early_ot),
                                         args.attendance_rules.early_arrival_strategy,
-                                        entry.is_break_overtime,
+                                        entry.is_break_overtime(),
                                     ),
                                 );
 
@@ -321,8 +323,8 @@ impl AttendanceMatcher {
                 // Fallback: entries with no matching shift (day_shifts is empty)
                 if day_shifts.is_empty() {
                     for entry in &work_entries {
-                        let punch_in = entry.punch_in_time.with_timezone(&args.ctx.tz);
-                        if let Some(punch_out_raw) = entry.punch_out_time {
+                        let punch_in = entry.punch_in_time().with_timezone(&args.ctx.tz);
+                        if let Some(punch_out_raw) = entry.punch_out_time() {
                             let punch_out = punch_out_raw.with_timezone(&args.ctx.tz);
                             segment_std_units += AttendanceCalculator::calculate_units(
                                 (punch_out - punch_in).num_minutes() as i32,
@@ -486,14 +488,14 @@ mod tests {
             crate::errors::AppError,
         > {
             if id == self.policy_id {
-                let policy = crate::models::OvertimePolicy {
+                let policy = crate::models::OvertimePolicy::new(
                     id,
-                    workspace_id: _workspace_id,
-                    name: "Test Policy".to_string(),
-                    description: None,
-                    created_at: None,
-                    updated_at: None,
-                };
+                    _workspace_id,
+                    "Test Policy".to_string(),
+                    None,
+                    None,
+                    None,
+                );
                 Ok(Some((policy, self.rules.clone())))
             } else {
                 Ok(None)
@@ -581,21 +583,21 @@ mod tests {
             .unwrap()
             .and_utc();
 
-        let entry = TimeEntry {
-            id: Uuid::new_v4(),
-            workspace_id: ws_id,
+        let entry = TimeEntry::new(
+            Uuid::new_v4(),
             employee_id,
-            shift_id: None,
-            punch_in_time: punch_in,
-            punch_out_time: Some(punch_out),
-            duration_minutes: Some(240),
-            is_break_overtime: false,
-            entry_type: "work".to_string(),
-            note: None,
-            generation_metadata: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        };
+            ws_id,
+            None,
+            punch_in,
+            Some(punch_out),
+            Some(240),
+            false,
+            "work".to_string(),
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
 
         let mut daily_entries_map = HashMap::new();
         daily_entries_map.insert(Utc::now().date_naive(), vec![entry]);
@@ -671,21 +673,21 @@ mod tests {
         let punch_in = date.and_hms_opt(9, 0, 0).unwrap().and_utc();
         let punch_out = date.and_hms_opt(18, 0, 0).unwrap().and_utc();
 
-        let entry = TimeEntry {
-            id: Uuid::new_v4(),
-            workspace_id: ws_id,
+        let entry = TimeEntry::new(
+            Uuid::new_v4(),
             employee_id,
-            shift_id: None,
-            punch_in_time: punch_in,
-            punch_out_time: Some(punch_out),
-            duration_minutes: Some(540), // 9 hours
-            is_break_overtime: false,
-            entry_type: "work".to_string(),
-            note: None,
-            generation_metadata: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        };
+            ws_id,
+            None,
+            punch_in,
+            Some(punch_out),
+            Some(540),
+            false,
+            "work".to_string(),
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
 
         let mut daily_entries_map = HashMap::new();
         daily_entries_map.insert(date, vec![entry]);
@@ -872,21 +874,21 @@ mod tests {
         let punch_in = date.and_hms_opt(9, 0, 0).unwrap().and_utc();
         let punch_out = date.and_hms_opt(18, 0, 0).unwrap().and_utc();
 
-        let entry = TimeEntry {
-            id: Uuid::new_v4(),
-            workspace_id: ws_id,
+        let entry = TimeEntry::new(
+            Uuid::new_v4(),
             employee_id,
-            shift_id: None,
-            punch_in_time: punch_in,
-            punch_out_time: Some(punch_out),
-            duration_minutes: Some(540), // 9 hours
-            is_break_overtime: false,
-            entry_type: "work".to_string(),
-            note: None,
-            generation_metadata: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        };
+            ws_id,
+            None,
+            punch_in,
+            Some(punch_out),
+            Some(540),
+            false,
+            "work".to_string(),
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
 
         let mut daily_entries_map = HashMap::new();
         daily_entries_map.insert(date, vec![entry]);
@@ -1015,21 +1017,21 @@ mod tests {
         let punch_in = date.and_hms_opt(9, 0, 0).unwrap().and_utc();
         let punch_out = date.and_hms_opt(20, 0, 0).unwrap().and_utc();
 
-        let entry = TimeEntry {
-            id: Uuid::new_v4(),
-            workspace_id: ws_id,
+        let entry = TimeEntry::new(
+            Uuid::new_v4(),
             employee_id,
-            shift_id: None,
-            punch_in_time: punch_in,
-            punch_out_time: Some(punch_out),
-            duration_minutes: Some(660), // 11 hours
-            is_break_overtime: false,
-            entry_type: "work".to_string(),
-            note: None,
-            generation_metadata: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        };
+            ws_id,
+            None,
+            punch_in,
+            Some(punch_out),
+            Some(660),
+            false,
+            "work".to_string(),
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
 
         let mut daily_entries_map = HashMap::new();
         daily_entries_map.insert(date, vec![entry]);
@@ -1067,40 +1069,40 @@ mod tests {
             early_arrival_strategy: EarlyArrivalStrategy::Block,
         };
 
-        let rules = vec![crate::models::OvertimeRule {
-            id: Uuid::new_v4(),
+        let rules = vec![crate::models::OvertimeRule::new(
+            Uuid::new_v4(),
             policy_id,
-            priority: 1,
-            multiplier: Decimal::new(20, 1), // 2.0x
-            time_start: Some(NaiveTime::from_hms_opt(18, 0, 0).unwrap()),
-            time_end: Some(NaiveTime::from_hms_opt(22, 0, 0).unwrap()),
-            days_of_week: 127,
-            is_holiday: false,
-            created_at: None,
-            updated_at: None,
-        }];
+            1,
+            Decimal::new(20, 1), // 2.0x
+            Some(NaiveTime::from_hms_opt(18, 0, 0).unwrap()),
+            Some(NaiveTime::from_hms_opt(22, 0, 0).unwrap()),
+            127,
+            false,
+            None,
+            None,
+        )];
 
         let mut policies = HashMap::new();
-        let overtime_policy = crate::models::OvertimePolicy {
-            id: policy_id,
-            workspace_id: Uuid::new_v4(),
-            name: "Test Policy".to_string(),
-            description: None,
-            created_at: None,
-            updated_at: None,
-        };
+        let overtime_policy = crate::models::OvertimePolicy::new(
+            policy_id,
+            Uuid::new_v4(),
+            "Test Policy".to_string(),
+            None,
+            None,
+            None,
+        );
         policies.insert(policy_id, (overtime_policy, rules.clone()));
 
-        let assignments = vec![crate::models::OvertimePolicyAssignment {
-            id: Uuid::new_v4(),
-            workspace_id: Uuid::new_v4(),
+        let assignments = vec![crate::models::OvertimePolicyAssignment::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            "employee".to_string(),
+            Some(employee_id),
             policy_id,
-            assignee_type: "employee".to_string(),
-            assignee_id: Some(employee_id),
-            effective_from: date,
-            effective_to: None,
-            created_at: Some(chrono::Utc::now()),
-        }];
+            date,
+            None,
+            Some(chrono::Utc::now()),
+        )];
 
         let overtime_data =
             crate::repositories::overtime_policy_repository::WorkspaceOvertimeData {
