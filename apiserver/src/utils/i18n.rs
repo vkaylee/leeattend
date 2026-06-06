@@ -159,6 +159,9 @@ fn lookup_en(key: &str) -> Option<&'static str> {
         "error.staging_log_not_found" => Some("Staging log not found"),
         "error.staging_log_processed" => Some("Log already processed"),
         "error.staging_log_conflict" => Some("Log is being processed by another request"),
+        "error.login_locked" => {
+            Some("Too many login attempts. Your account has been temporarily locked. Please try again later.")
+        }
         _ => None,
     }
 }
@@ -194,6 +197,9 @@ fn lookup_vi(key: &str) -> Option<&'static str> {
         "error.staging_log_not_found" => Some("Không tìm thấy log tạm thời"),
         "error.staging_log_processed" => Some("Log đã được xử lý"),
         "error.staging_log_conflict" => Some("Log đang được xử lý bởi yêu cầu khác"),
+        "error.login_locked" => {
+            Some("Quá nhiều lần đăng nhập sai. Tài khoản của bạn đã bị khóa tạm thời. Vui lòng thử lại sau.")
+        }
         _ => None,
     }
 }
@@ -233,6 +239,7 @@ fn lookup_zh(key: &str) -> Option<&'static str> {
         "error.staging_log_not_found" => Some("未找到临时日志"),
         "error.staging_log_processed" => Some("日志已处理"),
         "error.staging_log_conflict" => Some("日志正在被另一个请求处理"),
+        "error.login_locked" => Some("登录尝试次数过多。您的帐户已被临时锁定。请稍后再试。"),
         _ => None,
     }
 }

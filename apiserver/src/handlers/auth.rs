@@ -1,7 +1,7 @@
 use axum::{
     extract::State,
     http::{header::SET_COOKIE, HeaderMap, HeaderValue, StatusCode},
-    response::{IntoResponse, Json},
+    response::{IntoResponse, Json, Response},
 };
 use chrono::Utc;
 use std::sync::Arc;
@@ -237,22 +237,61 @@ pub async fn register(
         (status = 200, description = "Successfully logged in", body = AuthResponse)
     )
 )]
+#[allow(clippy::too_many_lines)]
 pub async fn login(
     State(state): State<Arc<AppState>>,
     Json(req): Json<LoginRequest>,
-) -> AppResult<impl IntoResponse> {
-    let masked_email = crate::utils::masking::mask_email(&req.email);
+) -> AppResult<Response> {
+    let email = req.email.trim().to_lowercase();
+    let masked_email = crate::utils::masking::mask_email(&email);
     tracing::info!(email = %masked_email, "User attempting to login");
 
-    let user = state
-        .core()
-        .user_repo()
-        .get_user_by_email(&req.email)
-        .await?
-        .ok_or_else(|| {
-            tracing::warn!(email = %masked_email, "Login failed: User not found");
-            AppError::Auth("Invalid email or password".to_string())
-        })?;
+    let redis_pool = state.infra().redis();
+
+    // 1. Check if the account is currently locked out
+    if let Some(pool) = redis_pool {
+        let lockout_key = format!("login:lockout:{email}");
+        let mut conn = pool.conn();
+        use redis::AsyncCommands;
+        if let Ok(Some(_attempts_str)) = conn.get::<_, Option<String>>(&lockout_key).await {
+            tracing::warn!(email = %masked_email, "Login blocked: Account is locked");
+            return Ok((
+                StatusCode::TOO_MANY_REQUESTS,
+                Json(serde_json::json!({
+                    "error": {
+                        "code": "TOO_MANY_REQUESTS",
+                        "message": crate::utils::i18n::t("error.login_locked")
+                    }
+                })),
+            )
+                .into_response());
+        }
+    }
+
+    let user_opt = state.core().user_repo().get_user_by_email(&email).await?;
+
+    let Some(user) = user_opt else {
+        tracing::warn!(email = %masked_email, "Login failed: User not found");
+        if let Some(pool) = redis_pool {
+            let attempts_key = format!("login:attempts:{email}");
+            let lockout_key = format!("login:lockout:{email}");
+            let mut conn = pool.conn();
+            use redis::AsyncCommands;
+            let attempts: u32 = conn.incr(&attempts_key, 1).await.unwrap_or(0);
+            if attempts == 1 {
+                let _: Result<(), _> = conn.expire(&attempts_key, 900).await;
+            }
+            if attempts >= 5 {
+                let exponent = attempts.saturating_sub(5);
+                let multiplier = 2_u32.pow(exponent.min(6));
+                let lock_secs = 900 * multiplier;
+                let _: Result<(), _> = conn
+                    .set_ex(&lockout_key, attempts.to_string(), u64::from(lock_secs))
+                    .await;
+            }
+        }
+        return Err(AppError::Auth("Invalid email or password".to_string()));
+    };
 
     let password = req.password.clone();
     let hash = user.password_hash().to_string();
@@ -263,7 +302,34 @@ pub async fn login(
 
     if !is_valid {
         tracing::warn!(user_id = %user.id(), "Login failed: Invalid password");
+        if let Some(pool) = redis_pool {
+            let attempts_key = format!("login:attempts:{email}");
+            let lockout_key = format!("login:lockout:{email}");
+            let mut conn = pool.conn();
+            use redis::AsyncCommands;
+            let attempts: u32 = conn.incr(&attempts_key, 1).await.unwrap_or(0);
+            if attempts == 1 {
+                let _: Result<(), _> = conn.expire(&attempts_key, 900).await;
+            }
+            if attempts >= 5 {
+                let exponent = attempts.saturating_sub(5);
+                let multiplier = 2_u32.pow(exponent.min(6));
+                let lock_secs = 900 * multiplier;
+                let _: Result<(), _> = conn
+                    .set_ex(&lockout_key, attempts.to_string(), u64::from(lock_secs))
+                    .await;
+            }
+        }
         return Err(AppError::Auth("Invalid email or password".to_string()));
+    }
+
+    // Success -> Clear Redis attempts and lockout keys
+    if let Some(pool) = redis_pool {
+        let attempts_key = format!("login:attempts:{email}");
+        let lockout_key = format!("login:lockout:{email}");
+        let mut conn = pool.conn();
+        use redis::AsyncCommands;
+        let _: Result<(), _> = conn.del(&[attempts_key, lockout_key]).await;
     }
 
     // Transparent rehash: migrate legacy bcrypt hash to argon2id
@@ -318,7 +384,8 @@ pub async fn login(
             refresh_token,
             user: user_response,
         }),
-    ))
+    )
+        .into_response())
 }
 
 #[utoipa::path(
@@ -461,6 +528,48 @@ pub async fn logout(
 
     if let Some(token) = token_to_revoke {
         let _ = state.core().auth_service().revoke_session(&token).await;
+    }
+
+    // Extract access token to blocklist it immediately
+    let mut access_token_to_block = None;
+    if let Some(auth_header) = headers.get("Authorization") {
+        if let Ok(auth_str) = auth_header.to_str() {
+            if let Some(token) = auth_str.strip_prefix("Bearer ") {
+                access_token_to_block = Some(token.to_string());
+            }
+        }
+    }
+    if access_token_to_block.is_none() {
+        if let Some(cookie_header) = headers.get("cookie") {
+            if let Ok(cookie_str) = cookie_header.to_str() {
+                for cookie in cookie_str.split(';') {
+                    let cookie = cookie.trim();
+                    if let Some(token) = cookie.strip_prefix("access_token=") {
+                        access_token_to_block = Some(token.to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    if let Some(token) = access_token_to_block {
+        if let Some(redis_pool) = state.infra().redis() {
+            if let Some(sig) = token.rsplit('.').next() {
+                let key = format!("jwt:revoked:{sig}");
+                let mut conn = redis_pool.conn();
+                use redis::AsyncCommands;
+                let mut ttl: u64 = 900;
+                if let Ok(claims) =
+                    AuthService::verify_token_claims(&token, state.core().jwt_secret())
+                {
+                    let now = Utc::now().timestamp();
+                    if claims.exp > now {
+                        ttl = (claims.exp - now) as u64;
+                    }
+                }
+                let _: Result<(), _> = conn.set_ex(&key, "1", ttl).await;
+            }
+        }
     }
 
     Ok((clear_auth_cookies(), StatusCode::OK))

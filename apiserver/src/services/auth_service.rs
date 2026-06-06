@@ -16,6 +16,7 @@ pub struct Claims {
     pub iat: i64,
 }
 
+use crate::queue::RedisPool;
 use crate::repositories::session_repository::SessionRepository;
 use crate::repositories::user_repository::UserRepository;
 use std::sync::Arc;
@@ -23,16 +24,19 @@ use std::sync::Arc;
 pub struct AuthService {
     user_repo: Arc<dyn UserRepository>,
     session_repo: Arc<dyn SessionRepository>,
+    redis_pool: Option<RedisPool>,
 }
 
 impl AuthService {
     pub fn new(
         user_repo: Arc<dyn UserRepository>,
         session_repo: Arc<dyn SessionRepository>,
+        redis_pool: Option<RedisPool>,
     ) -> Self {
         Self {
             user_repo,
             session_repo,
+            redis_pool,
         }
     }
 
@@ -59,7 +63,7 @@ impl AuthService {
         .map_err(|e| AppError::Auth(format!("Token generation failed: {e}")))
     }
 
-    pub fn verify_token(token: &str, secret: &str) -> AppResult<Uuid> {
+    pub fn verify_token_claims(token: &str, secret: &str) -> AppResult<Claims> {
         let token_data = decode::<Claims>(
             token,
             &DecodingKey::from_secret(secret.as_ref()),
@@ -67,7 +71,12 @@ impl AuthService {
         )
         .map_err(|e| AppError::Auth(format!("Invalid token: {e}")))?;
 
-        Uuid::parse_str(&token_data.claims.sub)
+        Ok(token_data.claims)
+    }
+
+    pub fn verify_token(token: &str, secret: &str) -> AppResult<Uuid> {
+        let claims = Self::verify_token_claims(token, secret)?;
+        Uuid::parse_str(&claims.sub)
             .map_err(|e| AppError::Auth(format!("Invalid token subject: {e}")))
     }
 
@@ -171,6 +180,19 @@ impl AuthService {
     pub async fn revoke_all_sessions_for_user(&self, user_id: Uuid) -> AppResult<()> {
         self.session_repo
             .revoke_all_sessions_for_user(user_id)
-            .await
+            .await?;
+
+        if let Some(redis_pool) = &self.redis_pool {
+            let key = format!("user:revoked_at:{user_id}");
+            let now_ts = Utc::now().timestamp().to_string();
+            let mut conn = redis_pool.conn();
+            use redis::AsyncCommands;
+            let _: () = conn
+                .set_ex(&key, now_ts, 900)
+                .await
+                .map_err(|e| AppError::Redis(format!("Failed to set user revocation: {e}")))?;
+        }
+
+        Ok(())
     }
 }

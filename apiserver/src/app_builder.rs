@@ -218,6 +218,7 @@ impl AppState {
         let auth_service = Arc::new(crate::services::auth_service::AuthService::new(
             user_repo.clone(),
             session_repo.clone(),
+            redis_pool.clone(),
         ));
         let shift_service = Arc::new(crate::services::shift_service::ShiftService::new(
             shift_repo.clone(),

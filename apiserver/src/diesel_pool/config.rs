@@ -190,4 +190,33 @@ mod tests {
         assert_eq!(config.worker_acquire_timeout_secs, 99);
         assert_eq!(config.tenant_max_conn, 5); // default
     }
+
+    #[test]
+    #[serial]
+    fn test_from_env_empty_string_urls() {
+        setup_env(
+            Some("postgres://user:pass@localhost:5432/db"),
+            Some("   "), // Empty whitespace pooler tx url
+            Some("postgres://pooler:pass@localhost:5452/db"),
+            None,
+        );
+        assert!(DbPoolConfig::from_env().is_err());
+    }
+
+    #[test]
+    #[serial]
+    fn test_env_parse_invalid_values() {
+        setup_env(
+            Some("postgres://user:pass@localhost:5432/db"),
+            Some("postgres://pooler:pass@localhost:6543/db"),
+            Some("postgres://pooler:pass@localhost:5452/db"),
+            None,
+        );
+        env::set_var("DB_API_MAX_CONN", "not_a_number");
+        env::set_var("DB_WORKER_ACQUIRE_TIMEOUT_SECS", "12.34");
+
+        let config = DbPoolConfig::from_env().unwrap();
+        assert_eq!(config.api_max_conn, 20); // fallback to default
+        assert_eq!(config.worker_acquire_timeout_secs, 30); // fallback to default
+    }
 }

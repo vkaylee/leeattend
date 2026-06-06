@@ -234,4 +234,46 @@ mod tests {
         assert!(!debug_str.contains("old_password_123"));
         assert!(!debug_str.contains("new_password_456"));
     }
+
+    #[test]
+    fn test_user_getters() {
+        let id = Uuid::new_v4();
+        let created_at = Utc::now();
+        let user = User::new(
+            id,
+            "user@example.com".to_string(),
+            "hashed".to_string(),
+            created_at,
+            Some("Full Name".to_string()),
+            Some("http://avatar.url".to_string()),
+            Some("My Bio".to_string()),
+            Some("vi".to_string()),
+        );
+
+        assert_eq!(user.id(), id);
+        assert_eq!(user.email(), "user@example.com");
+        assert_eq!(user.password_hash(), "hashed");
+        assert_eq!(user.created_at(), created_at);
+        assert_eq!(user.full_name(), Some("Full Name"));
+        assert_eq!(user.avatar_url(), Some("http://avatar.url"));
+        assert_eq!(user.bio(), Some("My Bio"));
+        assert_eq!(user.preferred_language(), Some("vi"));
+    }
+
+    #[test]
+    fn test_user_response_default_roles() {
+        let json_data = r#"{
+            "id": "a0a0a0a0-b0b0-c0c0-d0d0-e0e0e0e0e0e0",
+            "email": "test@example.com",
+            "full_name": "Test User",
+            "avatar_url": null,
+            "bio": null,
+            "preferred_language": "en",
+            "created_at": "2026-06-06T12:00:00Z"
+        }"#;
+
+        let response: UserResponse = serde_json::from_str(json_data).unwrap();
+        assert_eq!(response.email, "test@example.com");
+        assert!(response.system_roles.is_empty()); // default system_roles as empty vector
+    }
 }

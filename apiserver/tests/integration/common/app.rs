@@ -386,6 +386,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     let auth_service = Arc::new(apiserver::services::auth_service::AuthService::new(
         user_repo.clone(),
         session_repo.clone(),
+        shared_redis_pool.clone(),
     ));
     let shift_service = Arc::new(apiserver::services::shift_service::ShiftService::new(
         shift_repo.clone(),
@@ -992,6 +993,7 @@ pub async fn spawn_app_with_factory_extended(
     let auth_service = Arc::new(apiserver::services::auth_service::AuthService::new(
         user_repo.clone(),
         session_repo.clone(),
+        shared_redis_pool.clone(),
     ));
     let shift_service = Arc::new(apiserver::services::shift_service::ShiftService::new(
         shift_repo.clone(),
@@ -1647,6 +1649,7 @@ pub async fn setup_app_tower_internal_extended(
     let auth_service = Arc::new(apiserver::services::auth_service::AuthService::new(
         user_repo.clone(),
         session_repo.clone(),
+        shared_redis_pool.clone(),
     ));
     let shift_service = Arc::new(apiserver::services::shift_service::ShiftService::new(
         shift_repo.clone(),

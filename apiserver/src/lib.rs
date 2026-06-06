@@ -116,6 +116,42 @@ mod ax_auth {
 
     pub struct UserId(pub Uuid);
 
+    async fn is_token_revoked(
+        token: &str,
+        user_id: uuid::Uuid,
+        iat: i64,
+        app_state: &Arc<AppState>,
+    ) -> bool {
+        let Some(redis_pool) = app_state.infra().redis() else {
+            return false;
+        };
+        let Some(sig) = token.rsplit('.').next() else {
+            return true;
+        };
+
+        let sig_key = format!("jwt:revoked:{sig}");
+        let user_key = format!("user:revoked_at:{user_id}");
+
+        let mut conn = redis_pool.conn();
+        use redis::AsyncCommands;
+
+        // 1. Check if token signature is explicitly revoked (individual blocklist)
+        if conn.exists::<_, bool>(&sig_key).await.unwrap_or(false) {
+            return true;
+        }
+
+        // 2. Check if user sessions were revoked globally after token issued
+        if let Ok(Some(revoked_at_str)) = conn.get::<_, Option<String>>(&user_key).await {
+            if let Ok(revoked_at) = revoked_at_str.parse::<i64>() {
+                if iat < revoked_at {
+                    return true;
+                }
+            }
+        }
+
+        false
+    }
+
     #[async_trait]
     impl<S> FromRequestParts<S> for UserId
     where
@@ -144,10 +180,14 @@ mod ax_auth {
                     if let Some(token) = auth_str.strip_prefix("Bearer ") {
                         let app_state = Arc::<AppState>::from_ref(state);
 
-                        if let Ok(user_id) =
-                            AuthService::verify_token(token, app_state.core().jwt_secret())
+                        if let Ok(claims) =
+                            AuthService::verify_token_claims(token, app_state.core().jwt_secret())
                         {
-                            return Ok(Self(user_id));
+                            if let Ok(user_id) = Uuid::parse_str(&claims.sub) {
+                                if !is_token_revoked(token, user_id, claims.iat, &app_state).await {
+                                    return Ok(Self(user_id));
+                                }
+                            }
                         }
                     }
                 }
@@ -160,10 +200,17 @@ mod ax_auth {
                         let cookie = cookie.trim();
                         if let Some(token) = cookie.strip_prefix("access_token=") {
                             let app_state = Arc::<AppState>::from_ref(state);
-                            if let Ok(user_id) =
-                                AuthService::verify_token(token, app_state.core().jwt_secret())
-                            {
-                                return Ok(Self(user_id));
+                            if let Ok(claims) = AuthService::verify_token_claims(
+                                token,
+                                app_state.core().jwt_secret(),
+                            ) {
+                                if let Ok(user_id) = Uuid::parse_str(&claims.sub) {
+                                    if !is_token_revoked(token, user_id, claims.iat, &app_state)
+                                        .await
+                                    {
+                                        return Ok(Self(user_id));
+                                    }
+                                }
                             }
                         }
                     }
@@ -175,10 +222,14 @@ mod ax_auth {
                 for param in query.split('&') {
                     if let Some(token) = param.strip_prefix("access_token=") {
                         let app_state = Arc::<AppState>::from_ref(state);
-                        if let Ok(user_id) =
-                            AuthService::verify_token(token, app_state.core().jwt_secret())
+                        if let Ok(claims) =
+                            AuthService::verify_token_claims(token, app_state.core().jwt_secret())
                         {
-                            return Ok(Self(user_id));
+                            if let Ok(user_id) = Uuid::parse_str(&claims.sub) {
+                                if !is_token_revoked(token, user_id, claims.iat, &app_state).await {
+                                    return Ok(Self(user_id));
+                                }
+                            }
                         }
                     }
                 }
