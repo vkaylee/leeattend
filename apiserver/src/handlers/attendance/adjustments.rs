@@ -31,6 +31,7 @@ use serde::Deserialize;
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip(state, ctx))]
 pub async fn submit_attendance_adjustment(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
@@ -66,8 +67,8 @@ pub async fn submit_attendance_adjustment(
         .submit_to_workflow(
             &ctx.auth_token,
             "attendance_adjustment".to_string(),
-            adjustment.id,
-            adjustment.employee_id,
+            adjustment.id(),
+            adjustment.employee_id(),
         )
         .await?;
 
@@ -109,6 +110,7 @@ async fn check_adjustment_behalf_scope(
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip(state, ctx))]
 pub async fn approve_attendance_adjustment(
     Path(__path_params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
@@ -165,6 +167,7 @@ pub async fn approve_attendance_adjustment(
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip(state, ctx, _user_id))]
 pub async fn get_my_attendance_adjustments(
     Path(id): Path<Uuid>,
     UserId(_user_id): UserId,
@@ -180,7 +183,7 @@ pub async fn get_my_attendance_adjustments(
     Ok(Json(requests))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct AdjustmentStatusQuery {
     pub status: Option<AdjustmentStatus>,
 }
@@ -199,6 +202,7 @@ pub struct AdjustmentStatusQuery {
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip(state, ctx))]
 pub async fn get_workspace_attendance_adjustments(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -233,6 +237,7 @@ use crate::models::{BehalfAssignment, CreateBehalfAssignmentRequest};
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip(state, ctx, _ws_id))]
 pub async fn create_adjustment_behalf_assignment(
     State(state): State<Arc<AppState>>,
     Path(_ws_id): Path<Uuid>,
@@ -264,6 +269,7 @@ pub async fn create_adjustment_behalf_assignment(
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip(state, ctx))]
 pub async fn delete_adjustment_behalf_assignment(
     State(state): State<Arc<AppState>>,
     Path(params): Path<(Uuid, Uuid)>,
@@ -293,6 +299,7 @@ pub async fn delete_adjustment_behalf_assignment(
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip(state, ctx, _ws_id))]
 pub async fn list_adjustment_behalf_assignments(
     State(state): State<Arc<AppState>>,
     Path(_ws_id): Path<Uuid>,
@@ -321,6 +328,7 @@ pub async fn list_adjustment_behalf_assignments(
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip(state, ctx, _ws_id))]
 pub async fn get_my_adjustment_behalf_targets(
     State(state): State<Arc<AppState>>,
     Path(_ws_id): Path<Uuid>,

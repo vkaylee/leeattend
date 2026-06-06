@@ -73,32 +73,32 @@ async fn test_overnight_shift_pairing() {
         apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone());
     use apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
 
-    let raw_log_in = apiserver::models::RawAttendanceLog {
-        id: Uuid::new_v4(),
-        workspace_id: ws_id,
+    let raw_log_in = apiserver::models::RawAttendanceLog::new(
+        Uuid::new_v4(),
+        ws_id,
         employee_id,
-        punch_time: punch_in_utc,
-        source: LogSource::Device,
-        device_id: None,
-        raw_data: None,
-        punch: -1,
-        status: -1,
-        created_at: Utc::now(),
-    };
+        punch_in_utc,
+        LogSource::Device,
+        None,
+        None,
+        -1,
+        -1,
+        Utc::now(),
+    );
     raw_repo.create_raw_log(ws_id, &raw_log_in).await.unwrap();
 
-    let raw_log_out = apiserver::models::RawAttendanceLog {
-        id: Uuid::new_v4(),
-        workspace_id: ws_id,
+    let raw_log_out = apiserver::models::RawAttendanceLog::new(
+        Uuid::new_v4(),
+        ws_id,
         employee_id,
-        punch_time: punch_out_utc,
-        source: LogSource::Device,
-        device_id: None,
-        raw_data: None,
-        punch: -1,
-        status: -1,
-        created_at: Utc::now(),
-    };
+        punch_out_utc,
+        LogSource::Device,
+        None,
+        None,
+        -1,
+        -1,
+        Utc::now(),
+    );
     raw_repo.create_raw_log(ws_id, &raw_log_out).await.unwrap();
 
     // 3. Process Pairing

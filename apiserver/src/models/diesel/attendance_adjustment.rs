@@ -51,20 +51,20 @@ pub struct AttendanceAdjustmentEntity {
 
 impl From<AttendanceAdjustmentEntity> for AttendanceAdjustmentRequest {
     fn from(val: AttendanceAdjustmentEntity) -> Self {
-        AttendanceAdjustmentRequest {
-            id: val.id,
-            employee_id: val.employee_id,
-            time_entry_id: val.time_entry_id,
-            requested_punch_in_time: val.requested_punch_in_time,
-            requested_punch_out_time: val.requested_punch_out_time,
-            is_break_overtime: val.is_break_overtime,
-            reason: val.reason,
-            status: val.status,
-            requested_by_user_id: val.requested_by_user_id,
-            approved_by_user_id: val.approved_by_user_id,
-            created_at: val.created_at.unwrap_or_else(Utc::now),
-            updated_at: val.updated_at.unwrap_or_else(Utc::now),
-        }
+        AttendanceAdjustmentRequest::new(
+            val.id,
+            val.employee_id,
+            val.time_entry_id,
+            val.requested_punch_in_time,
+            val.requested_punch_out_time,
+            val.is_break_overtime,
+            val.reason,
+            val.status,
+            val.requested_by_user_id,
+            val.approved_by_user_id,
+            val.created_at.unwrap_or_else(Utc::now),
+            val.updated_at.unwrap_or_else(Utc::now),
+        )
     }
 }
 

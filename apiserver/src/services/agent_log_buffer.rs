@@ -218,7 +218,7 @@ async fn process_batch(
     let mut logs_by_workspace: HashMap<Uuid, Vec<&RawAttendanceLog>> = HashMap::new();
     for parsed in &parsed_logs {
         logs_by_workspace
-            .entry(parsed.raw_log.workspace_id)
+            .entry(parsed.raw_log.workspace_id())
             .or_default()
             .push(&parsed.raw_log);
     }
@@ -247,7 +247,7 @@ async fn process_batch(
     // Trigger pairing for each successfully parsed log
     for parsed in &parsed_logs {
         if let Err(e) = pairing_service.process_new_raw_log(&parsed.raw_log).await {
-            error!("Pairing error for log {}: {:?}", parsed.raw_log.id, e);
+            error!("Pairing error for log {}: {:?}", parsed.raw_log.id(), e);
         }
     }
 }
@@ -296,18 +296,18 @@ async fn parse_log_entry(
     let (punch, status) =
         crate::services::attendance_utils::extract_punch_status(entry.raw_data.as_ref());
 
-    let raw_log = RawAttendanceLog {
-        id: new_id(),
-        workspace_id: entry.workspace_id,
-        employee_id: employee.id(),
+    let raw_log = RawAttendanceLog::new(
+        new_id(),
+        entry.workspace_id,
+        employee.id(),
         punch_time,
-        source: LogSource::Device,
-        device_id: entry.device_id.clone(),
-        raw_data: entry.raw_data.clone(),
+        LogSource::Device,
+        entry.device_id.clone(),
+        entry.raw_data.clone(),
         punch,
         status,
-        created_at: Utc::now(),
-    };
+        Utc::now(),
+    );
 
     Ok(ParsedLogEntry { raw_log })
 }

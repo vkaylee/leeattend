@@ -36,20 +36,20 @@ impl AttendanceAdjustmentService {
         user_id: Uuid,
         req: CreateAttendanceAdjustmentRequest,
     ) -> Result<AttendanceAdjustmentRequest, AppError> {
-        let adjustment = AttendanceAdjustmentRequest {
-            id: new_id(),
-            employee_id: req.employee_id,
-            time_entry_id: req.time_entry_id,
-            requested_punch_in_time: req.requested_punch_in_time,
-            requested_punch_out_time: req.requested_punch_out_time,
-            is_break_overtime: req.is_break_overtime,
-            reason: req.reason,
-            status: AdjustmentStatus::Pending,
-            requested_by_user_id: Some(user_id),
-            approved_by_user_id: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        };
+        let adjustment = AttendanceAdjustmentRequest::new(
+            new_id(),
+            req.employee_id,
+            req.time_entry_id,
+            req.requested_punch_in_time,
+            req.requested_punch_out_time,
+            req.is_break_overtime,
+            req.reason,
+            AdjustmentStatus::Pending,
+            Some(user_id),
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
 
         self.adj_repo
             .create_request(workspace_id, &adjustment)
@@ -81,7 +81,7 @@ impl AttendanceAdjustmentService {
             .await?;
 
         if status == AdjustmentStatus::Approved {
-            if let Some(time_entry_id) = request.time_entry_id {
+            if let Some(time_entry_id) = request.time_entry_id() {
                 let mut entry = self
                     .time_entry_repo
                     .get_time_entry_by_id(
@@ -91,9 +91,9 @@ impl AttendanceAdjustmentService {
                     .await?
                     .ok_or(AppError::NotFound("Not found".into()))?;
 
-                entry.punch_in_time = request.requested_punch_in_time;
-                entry.punch_out_time = request.requested_punch_out_time;
-                entry.is_break_overtime = request.is_break_overtime;
+                entry.punch_in_time = request.requested_punch_in_time();
+                entry.punch_out_time = request.requested_punch_out_time();
+                entry.is_break_overtime = request.is_break_overtime();
 
                 if let Some(punch_out) = entry.punch_out_time {
                     let duration = punch_out.signed_duration_since(entry.punch_in_time);
@@ -107,22 +107,23 @@ impl AttendanceAdjustmentService {
                     )
                     .await?;
             } else {
-                let duration_minutes = request.requested_punch_out_time.map(|punch_out| {
-                    let duration = punch_out.signed_duration_since(request.requested_punch_in_time);
+                let duration_minutes = request.requested_punch_out_time().map(|punch_out| {
+                    let duration =
+                        punch_out.signed_duration_since(request.requested_punch_in_time());
                     duration.num_minutes() as i32
                 });
 
                 let entry = TimeEntry {
                     id: new_id(),
-                    employee_id: request.employee_id,
+                    employee_id: request.employee_id(),
                     workspace_id,
                     shift_id: None,
-                    punch_in_time: request.requested_punch_in_time,
-                    punch_out_time: request.requested_punch_out_time,
+                    punch_in_time: request.requested_punch_in_time(),
+                    punch_out_time: request.requested_punch_out_time(),
                     duration_minutes,
-                    is_break_overtime: request.is_break_overtime,
+                    is_break_overtime: request.is_break_overtime(),
                     entry_type: "work".to_string(),
-                    note: request.reason.map(|r| format!("Adjustment: {r}")),
+                    note: request.reason().map(|r| format!("Adjustment: {r}")),
                     generation_metadata: Some(serde_json::json!({ "source": "adjustment" })),
                     created_at: Utc::now(),
                     updated_at: Utc::now(),

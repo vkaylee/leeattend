@@ -65,41 +65,47 @@ impl PairingService {
         // 1. Deduplication (exact match check)
         let is_duplicate = self
             .raw_log_repo
-            .has_duplicate_raw_log(log.workspace_id, log.employee_id, log.id, log.punch_time)
+            .has_duplicate_raw_log(
+                log.workspace_id(),
+                log.employee_id(),
+                log.id(),
+                log.punch_time(),
+            )
             .await?;
 
         if is_duplicate {
             info!(
                 "Deduplicating log {} for employee {}. Found another log with identical timestamp.",
-                log.id, log.employee_id
+                log.id(),
+                log.employee_id()
             );
             return Ok(());
         }
 
         // 2. Fetch Timezone (Two-step resolution)
-        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(log.workspace_id);
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(log.workspace_id());
 
         // Step 2a: Get fallback timezone to determine tentative date
         let fallback_tz: Tz = self
             .employee_repo
-            .get_employee_timezone_fallback(&auth_token, log.employee_id)
+            .get_employee_timezone_fallback(&auth_token, log.employee_id())
             .await?;
 
-        let tentative_local_dt = log.punch_time.with_timezone(&fallback_tz);
+        let tentative_local_dt = log.punch_time().with_timezone(&fallback_tz);
         let tentative_date = tentative_local_dt.date_naive();
 
         // Step 2b: Get exact timezone considering secondment assignments for that date
         let tz: Tz = self
             .employee_repo
-            .get_employee_timezone_at_date(&auth_token, log.employee_id, tentative_date)
+            .get_employee_timezone_at_date(&auth_token, log.employee_id(), tentative_date)
             .await?;
 
         // 3. Determine Local Date
-        let local_dt = log.punch_time.with_timezone(&tz);
+        let local_dt = log.punch_time().with_timezone(&tz);
         let local_date = local_dt.date_naive();
 
         // 4. Reprocess that day
-        self.reprocess_daily_attendance(log.workspace_id, log.employee_id, local_date, tz)
+        self.reprocess_daily_attendance(log.workspace_id(), log.employee_id(), local_date, tz)
             .await?;
 
         // 5. Reprocess previous day if early in the morning (Overnight checkouts)
@@ -109,7 +115,7 @@ impl PairingService {
                 "Log is early in day ({}), reprocessing previous day {} for overnight checkouts",
                 local_dt, prev_date
             );
-            self.reprocess_daily_attendance(log.workspace_id, log.employee_id, prev_date, tz)
+            self.reprocess_daily_attendance(log.workspace_id(), log.employee_id(), prev_date, tz)
                 .await?;
         }
 
@@ -401,18 +407,18 @@ mod tests {
             shift_repo: Arc::new(MockShiftRepository::new()),
         });
 
-        let log = crate::models::RawAttendanceLog {
-            id: Uuid::new_v4(),
-            workspace_id: Uuid::new_v4(),
-            employee_id: Uuid::new_v4(),
-            punch_time: Utc::now(),
-            source: crate::models::enums::LogSource::Manual,
-            device_id: None,
-            raw_data: Some(serde_json::json!({})),
-            punch: 1,
-            status: 1,
-            created_at: Utc::now(),
-        };
+        let log = crate::models::RawAttendanceLog::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            Utc::now(),
+            crate::models::enums::LogSource::Manual,
+            None,
+            Some(serde_json::json!({})),
+            1,
+            1,
+            Utc::now(),
+        );
 
         let result = service.process_new_raw_log(&log).await;
         assert!(result.is_ok());

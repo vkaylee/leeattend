@@ -54,18 +54,18 @@ pub struct RawAttendanceLogEntity {
 
 impl From<RawAttendanceLogEntity> for RawAttendanceLog {
     fn from(val: RawAttendanceLogEntity) -> Self {
-        RawAttendanceLog {
-            id: val.id,
-            workspace_id: val.workspace_id,
-            employee_id: val.employee_id,
-            punch_time: val.punch_time,
-            source: val.source,
-            device_id: val.device_id,
-            raw_data: val.raw_data,
-            punch: val.punch,
-            status: val.status,
-            created_at: val.created_at.unwrap_or_else(Utc::now),
-        }
+        RawAttendanceLog::new(
+            val.id,
+            val.workspace_id,
+            val.employee_id,
+            val.punch_time,
+            val.source,
+            val.device_id,
+            val.raw_data,
+            val.punch,
+            val.status,
+            val.created_at.unwrap_or_else(Utc::now),
+        )
     }
 }
 

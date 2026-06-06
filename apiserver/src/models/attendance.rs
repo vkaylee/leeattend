@@ -10,18 +10,99 @@ use crate::services::attendance_utils::AttendanceStatus;
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct AttendanceAdjustmentRequest {
-    pub id: Uuid,
-    pub employee_id: Uuid,
-    pub time_entry_id: Option<Uuid>,
-    pub requested_punch_in_time: DateTime<Utc>,
-    pub requested_punch_out_time: Option<DateTime<Utc>>,
-    pub is_break_overtime: bool,
-    pub reason: Option<String>,
-    pub status: AdjustmentStatus,
-    pub requested_by_user_id: Option<Uuid>,
-    pub approved_by_user_id: Option<Uuid>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    id: Uuid,
+    employee_id: Uuid,
+    time_entry_id: Option<Uuid>,
+    requested_punch_in_time: DateTime<Utc>,
+    requested_punch_out_time: Option<DateTime<Utc>>,
+    is_break_overtime: bool,
+    reason: Option<String>,
+    status: AdjustmentStatus,
+    requested_by_user_id: Option<Uuid>,
+    approved_by_user_id: Option<Uuid>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+impl AttendanceAdjustmentRequest {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        id: Uuid,
+        employee_id: Uuid,
+        time_entry_id: Option<Uuid>,
+        requested_punch_in_time: DateTime<Utc>,
+        requested_punch_out_time: Option<DateTime<Utc>>,
+        is_break_overtime: bool,
+        reason: Option<String>,
+        status: AdjustmentStatus,
+        requested_by_user_id: Option<Uuid>,
+        approved_by_user_id: Option<Uuid>,
+        created_at: DateTime<Utc>,
+        updated_at: DateTime<Utc>,
+    ) -> Self {
+        Self {
+            id,
+            employee_id,
+            time_entry_id,
+            requested_punch_in_time,
+            requested_punch_out_time,
+            is_break_overtime,
+            reason,
+            status,
+            requested_by_user_id,
+            approved_by_user_id,
+            created_at,
+            updated_at,
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn employee_id(&self) -> Uuid {
+        self.employee_id
+    }
+
+    pub fn time_entry_id(&self) -> Option<Uuid> {
+        self.time_entry_id
+    }
+
+    pub fn requested_punch_in_time(&self) -> DateTime<Utc> {
+        self.requested_punch_in_time
+    }
+
+    pub fn requested_punch_out_time(&self) -> Option<DateTime<Utc>> {
+        self.requested_punch_out_time
+    }
+
+    pub fn is_break_overtime(&self) -> bool {
+        self.is_break_overtime
+    }
+
+    pub fn reason(&self) -> Option<&str> {
+        self.reason.as_deref()
+    }
+
+    pub fn status(&self) -> AdjustmentStatus {
+        self.status
+    }
+
+    pub fn requested_by_user_id(&self) -> Option<Uuid> {
+        self.requested_by_user_id
+    }
+
+    pub fn approved_by_user_id(&self) -> Option<Uuid> {
+        self.approved_by_user_id
+    }
+
+    pub fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+
+    pub fn updated_at(&self) -> DateTime<Utc> {
+        self.updated_at
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, utoipa::ToSchema)]
@@ -108,16 +189,85 @@ pub struct DailyAttendanceReport {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RawAttendanceLog {
-    pub id: Uuid,
-    pub workspace_id: Uuid,
-    pub employee_id: Uuid,
-    pub punch_time: DateTime<Utc>,
-    pub source: LogSource,
-    pub device_id: Option<String>,
-    pub raw_data: Option<serde_json::Value>,
-    pub punch: i32,
-    pub status: i32,
-    pub created_at: DateTime<Utc>,
+    id: Uuid,
+    workspace_id: Uuid,
+    employee_id: Uuid,
+    punch_time: DateTime<Utc>,
+    source: LogSource,
+    device_id: Option<String>,
+    raw_data: Option<serde_json::Value>,
+    punch: i32,
+    status: i32,
+    created_at: DateTime<Utc>,
+}
+
+impl RawAttendanceLog {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        id: Uuid,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        punch_time: DateTime<Utc>,
+        source: LogSource,
+        device_id: Option<String>,
+        raw_data: Option<serde_json::Value>,
+        punch: i32,
+        status: i32,
+        created_at: DateTime<Utc>,
+    ) -> Self {
+        Self {
+            id,
+            workspace_id,
+            employee_id,
+            punch_time,
+            source,
+            device_id,
+            raw_data,
+            punch,
+            status,
+            created_at,
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn workspace_id(&self) -> Uuid {
+        self.workspace_id
+    }
+
+    pub fn employee_id(&self) -> Uuid {
+        self.employee_id
+    }
+
+    pub fn punch_time(&self) -> DateTime<Utc> {
+        self.punch_time
+    }
+
+    pub fn source(&self) -> &LogSource {
+        &self.source
+    }
+
+    pub fn device_id(&self) -> Option<&str> {
+        self.device_id.as_deref()
+    }
+
+    pub fn raw_data(&self) -> Option<&serde_json::Value> {
+        self.raw_data.as_ref()
+    }
+
+    pub fn punch(&self) -> i32 {
+        self.punch
+    }
+
+    pub fn status(&self) -> i32 {
+        self.status
+    }
+
+    pub fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

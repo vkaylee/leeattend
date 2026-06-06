@@ -49,5 +49,5 @@ async fn test_attendance_adjustment_lifecycle_smoke() {
         .await
         .unwrap();
     let adjustment: AttendanceAdjustmentRequest = serde_json::from_slice(&body_bytes).unwrap();
-    assert_eq!(adjustment.status, AdjustmentStatus::Pending);
+    assert_eq!(adjustment.status(), AdjustmentStatus::Pending);
 }

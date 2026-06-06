@@ -370,31 +370,31 @@ impl StagingLogRepository for DieselStagingLogRepository {
                     .and_then(|d| d["status"].as_i64())
                     .map_or(-1, |v| v as i32);
 
-                let raw_log = RawAttendanceLog {
-                    id: crate::utils::id::new_id(),
+                let raw_log = RawAttendanceLog::new(
+                    crate::utils::id::new_id(),
                     workspace_id,
                     employee_id,
-                    punch_time: staged.punch_time,
-                    source: LogSource::Device,
-                    device_id: staged.device_id.clone(),
-                    raw_data: staged.raw_data.clone(),
+                    staged.punch_time,
+                    LogSource::Device,
+                    staged.device_id.clone(),
+                    staged.raw_data.clone(),
                     punch,
                     status,
-                    created_at: Utc::now(),
-                };
+                    Utc::now(),
+                );
 
                 let raw_log_entity =
                     crate::models::diesel::attendance_log::RawAttendanceLogEntity {
-                        id: raw_log.id,
-                        workspace_id: raw_log.workspace_id,
-                        employee_id: raw_log.employee_id,
-                        punch_time: raw_log.punch_time,
-                        source: raw_log.source,
-                        device_id: raw_log.device_id.clone(),
-                        raw_data: raw_log.raw_data.clone(),
-                        punch: raw_log.punch,
-                        status: raw_log.status,
-                        created_at: Some(raw_log.created_at),
+                        id: raw_log.id(),
+                        workspace_id: raw_log.workspace_id(),
+                        employee_id: raw_log.employee_id(),
+                        punch_time: raw_log.punch_time(),
+                        source: *raw_log.source(),
+                        device_id: raw_log.device_id().map(ToString::to_string),
+                        raw_data: raw_log.raw_data().cloned(),
+                        punch: raw_log.punch(),
+                        status: raw_log.status(),
+                        created_at: Some(raw_log.created_at()),
                     };
 
                 diesel::insert_into(raw_attendance_logs::table)

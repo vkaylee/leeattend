@@ -511,11 +511,11 @@ impl ImportStrategy for PunchImportStrategy {
                         .approve_request(
                             job.workspace_id,
                             job.user_id,
-                            adjustment.id,
+                            adjustment.id(),
                             AdjustmentStatus::Approved,
                         )
                         .await;
-                    Ok(Some(adjustment.id))
+                    Ok(Some(adjustment.id()))
                 }
                 Err(e) => {
                     error!("ADJUSTMENT_SUBMIT_ERROR: {}", e);

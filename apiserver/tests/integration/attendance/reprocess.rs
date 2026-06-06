@@ -32,18 +32,18 @@ async fn test_force_reprocess_attendance_api() {
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let logs = vec![start_time, end_time];
     for punch_time in logs {
-        let raw_log = RawAttendanceLog {
-            id: Uuid::new_v4(),
-            workspace_id: ws_id,
-            employee_id: emp_id,
+        let raw_log = RawAttendanceLog::new(
+            Uuid::new_v4(),
+            ws_id,
+            emp_id,
             punch_time,
-            source: LogSource::Manual,
-            device_id: None,
-            raw_data: None,
-            punch: -1,
-            status: -1,
-            created_at: Utc::now(),
-        };
+            LogSource::Manual,
+            None,
+            None,
+            -1,
+            -1,
+            Utc::now(),
+        );
         helpers::create_raw_log(&diesel_pools, &raw_log)
             .await
             .unwrap();
@@ -127,18 +127,18 @@ async fn test_force_reprocess_all_attendance_api() {
     for emp_id in [emp_id_1, emp_id_2] {
         let logs = vec![start_time, end_time];
         for punch_time in logs {
-            let raw_log = RawAttendanceLog {
-                id: Uuid::new_v4(),
-                workspace_id: ws_id,
-                employee_id: emp_id,
+            let raw_log = RawAttendanceLog::new(
+                Uuid::new_v4(),
+                ws_id,
+                emp_id,
                 punch_time,
-                source: LogSource::Manual,
-                device_id: None,
-                raw_data: None,
-                punch: -1,
-                status: -1,
-                created_at: Utc::now(),
-            };
+                LogSource::Manual,
+                None,
+                None,
+                -1,
+                -1,
+                Utc::now(),
+            );
             helpers::create_raw_log(&diesel_pools, &raw_log)
                 .await
                 .unwrap();

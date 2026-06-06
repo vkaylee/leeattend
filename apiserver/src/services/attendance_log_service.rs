@@ -258,18 +258,18 @@ impl AttendanceLogService {
         // 3. Create RawAttendanceLog
         let (punch, status) = Self::extract_punch_status(raw_data.as_ref());
 
-        let raw_log = RawAttendanceLog {
-            id: new_id(),
-            workspace_id: args.workspace_id,
-            employee_id: employee.id(),
+        let raw_log = RawAttendanceLog::new(
+            new_id(),
+            args.workspace_id,
+            employee.id(),
             punch_time,
-            source: args.source,
-            device_id: args.device_id,
+            args.source,
+            args.device_id,
             raw_data,
             punch,
             status,
-            created_at: Utc::now(),
-        };
+            Utc::now(),
+        );
 
         // 4. Save to DB (Handle duplicates with ON CONFLICT DO NOTHING)
         match self
@@ -280,12 +280,14 @@ impl AttendanceLogService {
             Ok(true) => {
                 info!(
                     "Successfully saved log for employee {} at {} (UTC) from {:?}",
-                    normalized_emp_id, punch_time, raw_log.source
+                    normalized_emp_id,
+                    punch_time,
+                    *raw_log.source()
                 );
 
                 // 5. Trigger Pairing Logic
                 if let Err(e) = self.pairing_service.process_new_raw_log(&raw_log).await {
-                    error!("Pairing error for log {}: {:?}", raw_log.id, e);
+                    error!("Pairing error for log {}: {:?}", raw_log.id(), e);
                     // We return Ok(true) because the log WAS saved, pairing is secondary/async-ish
                 }
                 Ok(true)
@@ -320,8 +322,8 @@ impl AttendanceLogService {
         let raw_data = raw_data.map(AgentLogEntry::sanitize_json_value);
         let (punch, status) = Self::extract_punch_status(raw_data.as_ref());
 
-        let raw_log = RawAttendanceLog {
-            id: new_id(),
+        let raw_log = RawAttendanceLog::new(
+            new_id(),
             workspace_id,
             employee_id,
             punch_time,
@@ -330,8 +332,8 @@ impl AttendanceLogService {
             raw_data,
             punch,
             status,
-            created_at: Utc::now(),
-        };
+            Utc::now(),
+        );
 
         match self
             .raw_log_repo

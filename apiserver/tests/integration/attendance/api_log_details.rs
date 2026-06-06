@@ -70,18 +70,18 @@ async fn test_attendance_logs_include_employee_details() -> Result<(), Box<dyn s
         diesel::sql_types::Uuid, ws_id
     );
 
-    let raw_log = RawAttendanceLog {
-        id: Uuid::new_v4(),
-        workspace_id: ws_id,
-        employee_id: emp_id,
-        punch_time: Utc::now(),
-        source: LogSource::Device,
-        device_id: Some(device_id.to_string()),
-        raw_data: None,
-        punch: 0,
-        status: 0,
-        created_at: Utc::now(),
-    };
+    let raw_log = RawAttendanceLog::new(
+        Uuid::new_v4(),
+        ws_id,
+        emp_id,
+        Utc::now(),
+        LogSource::Device,
+        Some(device_id.to_string()),
+        None,
+        0,
+        0,
+        Utc::now(),
+    );
     use apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
     raw_log_repo.create_raw_log(ws_id, &raw_log).await?;
 

@@ -89,18 +89,18 @@ impl PairingContext {
         let mut last_minute: Option<i64> = None;
 
         for log in logs {
-            let current_minute = log.punch_time.timestamp() / 60;
+            let current_minute = log.punch_time().timestamp() / 60;
             if last_minute == Some(current_minute) {
                 continue;
             }
 
-            let log_local = log.punch_time.with_timezone(&self.tz);
+            let log_local = log.punch_time().with_timezone(&self.tz);
             let duration_since_start = log_local.signed_duration_since(start_of_day_local);
 
             filtered_log_events.push(LogEvent {
-                id: log.id,
+                id: log.id(),
                 minutes: duration_since_start.num_minutes() as i32,
-                raw_data: log.raw_data.clone(),
+                raw_data: log.raw_data().cloned(),
             });
 
             last_minute = Some(current_minute);
@@ -218,30 +218,30 @@ mod tests {
         let log2_utc = Utc.with_ymd_and_hms(2026, 5, 20, 14, 31, 36).unwrap();
 
         let raw_logs = vec![
-            RawAttendanceLog {
-                id: Uuid::new_v4(),
-                workspace_id: Uuid::new_v4(),
-                employee_id: Uuid::new_v4(),
-                punch_time: log1_utc,
-                source: LogSource::Manual,
-                device_id: None,
-                raw_data: None,
-                punch: 1,
-                status: 1,
-                created_at: Utc::now(),
-            },
-            RawAttendanceLog {
-                id: Uuid::new_v4(),
-                workspace_id: Uuid::new_v4(),
-                employee_id: Uuid::new_v4(),
-                punch_time: log2_utc,
-                source: LogSource::Manual,
-                device_id: None,
-                raw_data: None,
-                punch: 1,
-                status: 1,
-                created_at: Utc::now(),
-            },
+            RawAttendanceLog::new(
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                log1_utc,
+                LogSource::Manual,
+                None,
+                None,
+                1,
+                1,
+                Utc::now(),
+            ),
+            RawAttendanceLog::new(
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                log2_utc,
+                LogSource::Manual,
+                None,
+                None,
+                1,
+                1,
+                Utc::now(),
+            ),
         ];
 
         let log_events_utc = context_utc.build_log_events(&raw_logs).unwrap();
@@ -331,22 +331,33 @@ mod tests {
         let tz = chrono_tz::UTC;
         let context = PairingContext::new(date, tz);
 
-        let log1 = RawAttendanceLog {
-            id: Uuid::new_v4(),
-            workspace_id: Uuid::new_v4(),
-            employee_id: Uuid::new_v4(),
-            punch_time: Utc.with_ymd_and_hms(2026, 5, 20, 8, 30, 15).unwrap(),
-            source: LogSource::Manual,
-            device_id: None,
-            raw_data: None,
-            punch: 1,
-            status: 1,
-            created_at: Utc::now(),
-        };
+        let workspace_id = Uuid::new_v4();
+        let employee_id = Uuid::new_v4();
+        let log1 = RawAttendanceLog::new(
+            Uuid::new_v4(),
+            workspace_id,
+            employee_id,
+            Utc.with_ymd_and_hms(2026, 5, 20, 8, 30, 15).unwrap(),
+            LogSource::Manual,
+            None,
+            None,
+            1,
+            1,
+            Utc::now(),
+        );
 
-        let mut log2 = log1.clone();
-        log2.id = Uuid::new_v4();
-        log2.punch_time = Utc.with_ymd_and_hms(2026, 5, 20, 8, 30, 45).unwrap(); // Same minute
+        let log2 = RawAttendanceLog::new(
+            Uuid::new_v4(),
+            workspace_id,
+            employee_id,
+            Utc.with_ymd_and_hms(2026, 5, 20, 8, 30, 45).unwrap(), // Same minute
+            LogSource::Manual,
+            None,
+            None,
+            1,
+            1,
+            log1.created_at(),
+        );
 
         let logs = vec![log1, log2];
         let events = context.build_log_events(&logs).unwrap();

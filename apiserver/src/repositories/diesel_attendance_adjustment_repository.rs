@@ -38,17 +38,17 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
         );
 
         let new_entity = NewAttendanceAdjustmentEntity {
-            id: request.id,
-            employee_id: request.employee_id,
-            time_entry_id: request.time_entry_id,
-            requested_punch_in_time: request.requested_punch_in_time,
-            requested_punch_out_time: request.requested_punch_out_time,
-            is_break_overtime: request.is_break_overtime,
-            reason: request.reason.clone(),
-            status: request.status,
-            requested_by_user_id: request.requested_by_user_id,
-            created_at: Some(request.created_at),
-            updated_at: Some(request.updated_at),
+            id: request.id(),
+            employee_id: request.employee_id(),
+            time_entry_id: request.time_entry_id(),
+            requested_punch_in_time: request.requested_punch_in_time(),
+            requested_punch_out_time: request.requested_punch_out_time(),
+            is_break_overtime: request.is_break_overtime(),
+            reason: request.reason().map(ToString::to_string),
+            status: request.status(),
+            requested_by_user_id: request.requested_by_user_id(),
+            created_at: Some(request.created_at()),
+            updated_at: Some(request.updated_at()),
         };
 
         diesel::insert_into(attendance_adjustment_requests::table)

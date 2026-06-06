@@ -36,16 +36,16 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
         );
 
         let entity = RawAttendanceLogEntity {
-            id: log.id,
-            workspace_id: log.workspace_id,
-            employee_id: log.employee_id,
-            punch_time: log.punch_time,
-            source: log.source,
-            device_id: log.device_id.clone(),
-            raw_data: log.raw_data.clone(),
-            created_at: Some(log.created_at),
-            punch: log.punch,
-            status: log.status,
+            id: log.id(),
+            workspace_id: log.workspace_id(),
+            employee_id: log.employee_id(),
+            punch_time: log.punch_time(),
+            source: *log.source(),
+            device_id: log.device_id().map(ToString::to_string),
+            raw_data: log.raw_data().cloned(),
+            created_at: Some(log.created_at()),
+            punch: log.punch(),
+            status: log.status(),
         };
 
         let rows_affected = diesel::insert_into(raw_attendance_logs::table)
@@ -173,16 +173,16 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
             .map(|(log, emp_name, emp_id_num, dev_name)| {
                 let base: RawAttendanceLog = log.into();
                 RawAttendanceLogWithEmployee {
-                    id: base.id,
-                    workspace_id: base.workspace_id,
-                    employee_id: base.employee_id,
-                    punch_time: base.punch_time,
-                    source: base.source,
-                    device_id: base.device_id,
-                    raw_data: base.raw_data,
-                    punch: base.punch,
-                    status: base.status,
-                    created_at: base.created_at,
+                    id: base.id(),
+                    workspace_id: base.workspace_id(),
+                    employee_id: base.employee_id(),
+                    punch_time: base.punch_time(),
+                    source: *base.source(),
+                    device_id: base.device_id().map(ToString::to_string),
+                    raw_data: base.raw_data().cloned(),
+                    punch: base.punch(),
+                    status: base.status(),
+                    created_at: base.created_at(),
                     employee_full_name: emp_name,
                     employee_id_number: emp_id_num,
                     device_name: dev_name,
@@ -251,16 +251,16 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
         let entities: Vec<RawAttendanceLogEntity> = logs
             .iter()
             .map(|log| RawAttendanceLogEntity {
-                id: log.id,
-                workspace_id: log.workspace_id,
-                employee_id: log.employee_id,
-                punch_time: log.punch_time,
-                source: log.source,
-                device_id: log.device_id.clone(),
-                raw_data: log.raw_data.clone(),
-                created_at: Some(log.created_at),
-                punch: log.punch,
-                status: log.status,
+                id: log.id(),
+                workspace_id: log.workspace_id(),
+                employee_id: log.employee_id(),
+                punch_time: log.punch_time(),
+                source: *log.source(),
+                device_id: log.device_id().map(ToString::to_string),
+                raw_data: log.raw_data().cloned(),
+                created_at: Some(log.created_at()),
+                punch: log.punch(),
+                status: log.status(),
             })
             .collect();
 

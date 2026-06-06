@@ -55,7 +55,7 @@ pub async fn create_raw_log(
     log: &RawAttendanceLog,
 ) -> Result<bool, AppError> {
     let repo = apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone());
-    repo.create_raw_log(log.workspace_id, log).await
+    repo.create_raw_log(log.workspace_id(), log).await
 }
 
 pub async fn get_paginated_raw_logs(

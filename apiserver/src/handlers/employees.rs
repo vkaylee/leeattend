@@ -43,6 +43,7 @@ pub struct PaginatedWorkingConditions {
         PaginationParams
     )
 )]
+#[tracing::instrument(skip(state, ctx))]
 pub async fn get_working_conditions(
     Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
@@ -79,6 +80,7 @@ pub async fn get_working_conditions(
         ("id" = Uuid, Path, description = "Employee ID"),
     )
 )]
+#[tracing::instrument(skip(state, ctx))]
 pub async fn create_working_condition(
     Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
@@ -108,6 +110,7 @@ pub async fn create_working_condition(
         ("cond_id" = Uuid, Path, description = "Working Condition ID"),
     )
 )]
+#[tracing::instrument(skip(state, ctx))]
 pub async fn delete_working_condition(
     Path(params): Path<(Uuid, Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
@@ -137,6 +140,7 @@ pub async fn delete_working_condition(
         PaginationParams
     )
 )]
+#[tracing::instrument(skip(state, ctx))]
 pub async fn get_employees(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -192,6 +196,7 @@ pub async fn get_employees(
         ("id" = Uuid, Path, description = "Employee ID"),
     )
 )]
+#[tracing::instrument(skip(state, ctx))]
 pub async fn get_employee(
     Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
@@ -220,6 +225,7 @@ pub async fn get_employee(
         ("workspace_id" = Uuid, Path, description = "Workspace ID"),
     )
 )]
+#[tracing::instrument(skip(state, ctx))]
 pub async fn create_employee(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -247,6 +253,7 @@ pub async fn create_employee(
         ("id" = Uuid, Path, description = "Employee ID"),
     )
 )]
+#[tracing::instrument(skip(state, ctx))]
 pub async fn update_employee(
     Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
@@ -275,6 +282,7 @@ pub async fn update_employee(
         ("id" = Uuid, Path, description = "Employee ID"),
     )
 )]
+#[tracing::instrument(skip(state, ctx))]
 pub async fn delete_employee(
     Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
@@ -305,6 +313,7 @@ pub async fn delete_employee(
         ("id" = Uuid, Path, description = "Employee ID"),
     )
 )]
+#[tracing::instrument(skip(state, ctx))]
 pub async fn rehire_employee(
     Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
@@ -333,6 +342,7 @@ pub async fn rehire_employee(
         ("id" = Uuid, Path, description = "Employee ID"),
     )
 )]
+#[tracing::instrument(skip(state, ctx))]
 pub async fn get_employee_department_history(
     Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
@@ -359,6 +369,7 @@ pub async fn get_employee_department_history(
         ("id" = Uuid, Path, description = "Employee ID"),
     )
 )]
+#[tracing::instrument(skip(state, ctx))]
 pub async fn transfer_employee(
     Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
