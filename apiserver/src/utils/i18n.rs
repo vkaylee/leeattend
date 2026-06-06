@@ -20,6 +20,8 @@ pub const ALL_KEYS: &[&str] = &[
     "error.system_route_tenant_context",
     "error.not_workspace_member",
     "error.user_not_found",
+    "error.employee_not_found",
+    "error.department_not_found",
     "error.database_error",
     "error.cannot_revoke_last_admin",
     "error.behalf_assignment_missing_target",
@@ -128,6 +130,8 @@ fn lookup_en(key: &str) -> Option<&'static str> {
         }
         "error.not_workspace_member" => Some("Not a member of this workspace"),
         "error.user_not_found" => Some("User not found"),
+        "error.employee_not_found" => Some("Employee not found"),
+        "error.department_not_found" => Some("Department not found"),
         "error.database_error" => Some("Database error"),
         "error.cannot_revoke_last_admin" => {
             Some("Cannot revoke the last platform_admin. Assign another admin first.")
@@ -168,6 +172,8 @@ fn lookup_vi(key: &str) -> Option<&'static str> {
         "error.system_route_tenant_context" => Some("Không thể sử dụng context Tenant (MemberContext) trong route hệ thống"),
         "error.not_workspace_member" => Some("Bạn không phải là thành viên của workspace này"),
         "error.user_not_found" => Some("Không tìm thấy người dùng"),
+        "error.employee_not_found" => Some("Không tìm thấy nhân viên"),
+        "error.department_not_found" => Some("Không tìm thấy phòng ban"),
         "error.database_error" => Some("Lỗi cơ sở dữ liệu"),
         "error.cannot_revoke_last_admin" => Some("Không thể thu hồi platform_admin cuối cùng. Hãy gán quản trị viên khác trước."),
         "error.behalf_assignment_missing_target" => Some("Phải chỉ định nhân viên đích hoặc phòng ban đích"),
@@ -200,6 +206,8 @@ fn lookup_zh(key: &str) -> Option<&'static str> {
         "error.system_route_tenant_context" => Some("系统路由中无法使用租户上下文 (MemberContext)"),
         "error.not_workspace_member" => Some("您不是该工作空间的成员"),
         "error.user_not_found" => Some("未找到该用户"),
+        "error.employee_not_found" => Some("未找到员工"),
+        "error.department_not_found" => Some("未找到部门"),
         "error.database_error" => Some("数据库错误"),
         "error.cannot_revoke_last_admin" => {
             Some("无法撤销最后一个 platform_admin。请先分配另一个管理员。")

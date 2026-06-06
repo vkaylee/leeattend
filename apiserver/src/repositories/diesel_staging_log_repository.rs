@@ -19,6 +19,7 @@ impl DieselStagingLogRepository {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 #[async_trait]
 impl StagingLogRepository for DieselStagingLogRepository {
     async fn create_staging_log(
@@ -220,6 +221,23 @@ impl StagingLogRepository for DieselStagingLogRepository {
         let raw_user_id_owned = raw_user_id.to_string();
         conn.transaction(|conn| {
             Box::pin(async move {
+                use crate::schema::employees;
+
+                // Verify that employee_id belongs to workspace_id and is active
+                let employee_exists = employees::table
+                    .filter(employees::id.eq(employee_id))
+                    .filter(employees::workspace_id.eq(workspace_id))
+                    .filter(employees::deleted_at.is_null())
+                    .select(employees::id)
+                    .first::<Uuid>(&mut *conn)
+                    .await
+                    .optional()
+                    .map_err(|e| AppError::Internal(format!("db check employee: {e}")))?;
+
+                if employee_exists.is_none() {
+                    return Err(AppError::NotFound("error.employee_not_found".to_string()));
+                }
+
                 let staged_logs = attendance_staging_logs::table
                     .filter(attendance_staging_logs::workspace_id.eq(workspace_id))
                     .filter(attendance_staging_logs::raw_user_id.eq(&raw_user_id_owned))
@@ -296,6 +314,23 @@ impl StagingLogRepository for DieselStagingLogRepository {
 
         conn.transaction(|conn| {
             Box::pin(async move {
+                use crate::schema::employees;
+
+                // Verify that employee_id belongs to workspace_id and is active
+                let employee_exists = employees::table
+                    .filter(employees::id.eq(employee_id))
+                    .filter(employees::workspace_id.eq(workspace_id))
+                    .filter(employees::deleted_at.is_null())
+                    .select(employees::id)
+                    .first::<Uuid>(&mut *conn)
+                    .await
+                    .optional()
+                    .map_err(|e| AppError::Internal(format!("db check employee: {e}")))?;
+
+                if employee_exists.is_none() {
+                    return Err(AppError::NotFound("error.employee_not_found".to_string()));
+                }
+
                 // Use for_update() to lock the row. We don't use nowait() here because it might
                 // not be available or might cause compatibility issues. Just use regular for_update().
                 let staged = attendance_staging_logs::table
@@ -443,6 +478,55 @@ mod tests {
             let _ = repo
                 .resolve_staging_log(Uuid::new_v4(), ws_id, emp_id)
                 .await;
+        }
+    }
+
+    #[tokio::test]
+    async fn test_claim_resolve_non_existent_employee() {
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+        let pools = DieselPools::for_test(&test_db_url);
+        let repo = DieselStagingLogRepository::new(pools);
+        let ws_id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+
+        // 1. claim_staged_logs with invalid employee should return NotFound
+        let claim_res = repo.claim_staged_logs(ws_id, "user1", emp_id).await;
+        assert!(claim_res.is_err());
+        match claim_res.unwrap_err() {
+            AppError::NotFound(msg) => {
+                assert_eq!(msg, "error.employee_not_found");
+            }
+            AppError::Internal(msg) => {
+                assert!(
+                    msg.contains("connecting") || msg.contains("connection") || msg.contains("db")
+                );
+            }
+            other => panic!(
+                "Expected AppError::NotFound in claim or db connection error, got {:?}",
+                other
+            ),
+        }
+
+        // 2. resolve_staging_log with invalid employee should return NotFound
+        let resolve_res = repo
+            .resolve_staging_log(Uuid::new_v4(), ws_id, emp_id)
+            .await;
+        assert!(resolve_res.is_err());
+        match resolve_res.unwrap_err() {
+            AppError::NotFound(msg) => {
+                assert_eq!(msg, "error.employee_not_found");
+            }
+            AppError::Internal(msg) => {
+                assert!(
+                    msg.contains("connecting") || msg.contains("connection") || msg.contains("db")
+                );
+            }
+            other => panic!(
+                "Expected AppError::NotFound in resolve or db connection error, got {:?}",
+                other
+            ),
         }
     }
 }

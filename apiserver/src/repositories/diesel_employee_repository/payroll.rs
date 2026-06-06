@@ -20,7 +20,7 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
         effective_date: chrono::NaiveDate,
     ) -> Result<crate::models::EmployeePayrollConfig, AppError> {
         let workspace_id = auth_token.workspace_id();
-        use crate::schema::employee_payroll_configs;
+        use crate::schema::{employee_payroll_configs, employees};
 
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -29,6 +29,21 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
                 .await
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
+
+        // Check if employee exists and belongs to the workspace of this tenant
+        let employee_exists = employees::table
+            .filter(employees::id.eq(employee_id))
+            .filter(employees::workspace_id.eq(workspace_id))
+            .filter(employees::deleted_at.is_null())
+            .select(employees::id)
+            .first::<Uuid>(&mut *conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db check employee: {e}")))?;
+
+        if employee_exists.is_none() {
+            return Err(AppError::NotFound("error.employee_not_found".to_string()));
+        }
 
         let result = diesel::insert_into(employee_payroll_configs::table)
             .values((
@@ -244,5 +259,51 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
         }
 
         Ok(map)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::diesel_pool::DieselPools;
+    use crate::diesel_pool::TenantAuthToken;
+
+    #[tokio::test]
+    async fn test_upsert_employee_payroll_config_non_existent_employee() {
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+        let pools = DieselPools::for_test(&test_db_url);
+        let repo = DieselEmployeeRepository::new(pools);
+        let ws_id = Uuid::new_v4();
+        let auth_token = TenantAuthToken::system_override(ws_id);
+
+        // Pass a random employee_id which does not exist in the tenant's workspace
+        let emp_id = Uuid::new_v4();
+        let res = repo
+            .upsert_employee_payroll_config(
+                &auth_token,
+                emp_id,
+                rust_decimal::Decimal::new(22, 0),
+                rust_decimal::Decimal::new(8, 0),
+                chrono::NaiveDate::from_ymd_opt(2026, 6, 6).unwrap(),
+            )
+            .await;
+
+        assert!(res.is_err());
+        match res.unwrap_err() {
+            AppError::NotFound(msg) => {
+                assert_eq!(msg, "error.employee_not_found");
+            }
+            AppError::Internal(msg) => {
+                assert!(
+                    msg.contains("connecting") || msg.contains("connection") || msg.contains("db")
+                );
+            }
+            other => panic!(
+                "Expected AppError::NotFound or db connection error, got {:?}",
+                other
+            ),
+        }
     }
 }

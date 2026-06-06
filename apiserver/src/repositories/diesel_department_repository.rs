@@ -661,7 +661,22 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .diesel_pools
             .tenant_transaction_conn(auth_token)
             .await?;
-        let _workspace_id = auth_token.workspace_id();
+        let workspace_id = auth_token.workspace_id();
+
+        // Check if department exists and belongs to the workspace of this tenant
+        let department_exists = departments::table
+            .filter(departments::id.eq(department_id))
+            .filter(departments::workspace_id.eq(workspace_id))
+            .filter(departments::deleted_at.is_null())
+            .select(departments::id)
+            .first::<Uuid>(&mut *conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db check department: {e}")))?;
+
+        if department_exists.is_none() {
+            return Err(AppError::NotFound("error.department_not_found".to_string()));
+        }
 
         use std::str::FromStr;
         let std_wd =
@@ -933,5 +948,42 @@ mod tests {
             .get_department_payroll_configs(&auth_token, Uuid::new_v4())
             .await;
         assert!(err.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_upsert_department_payroll_config_non_existent_department() {
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+        });
+        let pools = DieselPools::for_test(&test_db_url);
+        let repo = DieselDepartmentRepository::new(pools);
+        let ws_id = Uuid::new_v4();
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(ws_id);
+
+        let res = repo
+            .upsert_department_payroll_config(
+                &auth_token,
+                Uuid::new_v4(),
+                Decimal::new(22, 0),
+                Decimal::new(8, 0),
+                chrono::NaiveDate::from_ymd_opt(2026, 6, 6).unwrap(),
+            )
+            .await;
+
+        assert!(res.is_err());
+        match res.unwrap_err() {
+            AppError::NotFound(msg) => {
+                assert_eq!(msg, "error.department_not_found");
+            }
+            AppError::Internal(msg) => {
+                assert!(
+                    msg.contains("connecting") || msg.contains("connection") || msg.contains("db")
+                );
+            }
+            other => panic!(
+                "Expected AppError::NotFound department or db connection error, got {:?}",
+                other
+            ),
+        }
     }
 }
