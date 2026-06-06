@@ -581,6 +581,19 @@
       "description": "Không có yêu cầu tăng ca nào đang chờ duyệt",
       "title": "Đã xử lý hết!"
     },
+    "pre": {
+      "no_pending_title": "Không có yêu cầu chờ duyệt",
+      "no_pending_desc": "Bạn không có yêu cầu Pre-OT nào đang chờ phê duyệt.",
+      "pending_status": "Chờ duyệt",
+      "employees": "Nhân viên",
+      "no_reason": "Không có lý do",
+      "approved_note": "Đã phê duyệt qua Cổng quản lý",
+      "rejected_note": "Đã từ chối qua Cổng quản lý",
+      "success_approve": "Đã phê duyệt yêu cầu",
+      "success_reject": "Đã từ chối yêu cầu",
+      "fail_process": "Phê duyệt thất bại",
+      "workflow_configured": "Đã cấu hình luồng duyệt"
+    },
     "evidence": {
       "add": "Thêm ảnh",
       "description": "Tải lên ảnh chụp của biểu mẫu giấy đã ký cho yêu cầu này.",

@@ -695,6 +695,7 @@
     "shift": "Shift",
     "status": "Status",
     "date": "Date",
+    "duration": "Duration",
     "notes": "Notes",
     "reason": "Reason",
     "approve": "Approve",

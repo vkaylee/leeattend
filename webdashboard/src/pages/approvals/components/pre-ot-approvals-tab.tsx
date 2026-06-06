@@ -9,7 +9,7 @@ import { useProcessApproval } from "@/hooks/use-approval-workflows";
 import { useOvertimeRequests } from "@/hooks/use-overtime-requests";
 
 export function PreOtApprovalsTab({ wsId: _wsId, canApprove }: { wsId: string; canApprove: boolean }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(["common", "attendance"]);
   const toast = useToast();
   // Fetch pending requests specifically for Pre-OT approval
   const { data: allRequests, isLoading } = useOvertimeRequests({ limit: 20 });
@@ -24,14 +24,14 @@ export function PreOtApprovalsTab({ wsId: _wsId, canApprove }: { wsId: string; c
         entity_type: "ot_request",
         entity_id: id,
         action,
-        note: action === "approve" ? "Approved via Manager Portal" : "Rejected via Manager Portal",
+        note: action === "approve" ? t("ot_approvals.pre.approved_note") : t("ot_approvals.pre.rejected_note"),
       },
       {
         onSuccess: () => {
-          toast.success(action === "approve" ? "Request approved" : "Request rejected");
+          toast.success(action === "approve" ? t("ot_approvals.pre.success_approve") : t("ot_approvals.pre.success_reject"));
         },
         onError: () => {
-          toast.error("Failed to process approval");
+          toast.error(t("ot_approvals.pre.fail_process"));
         }
       }
     );
@@ -55,10 +55,10 @@ export function PreOtApprovalsTab({ wsId: _wsId, canApprove }: { wsId: string; c
           <CheckCircle className="text-emerald-200" size={40} />
         </div>
         <Typography className="text-xl font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight" variant="h3">
-          No Pending Requests
+          {t("ot_approvals.pre.no_pending_title")}
         </Typography>
         <Typography className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-2 opacity-50 italic" variant="p">
-          You have no Pre-OT requests waiting for your approval.
+          {t("ot_approvals.pre.no_pending_desc")}
         </Typography>
       </div>
     );
@@ -71,30 +71,30 @@ export function PreOtApprovalsTab({ wsId: _wsId, canApprove }: { wsId: string; c
           <div className="space-y-3 flex-1">
             <div className="flex items-center gap-3">
               <span className="px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-                Pending Approval
+                {t("ot_approvals.pre.pending_status")}
               </span>
               <Typography className="font-bold text-lg text-slate-800 dark:text-slate-100">
-                {req.employees && req.employees.length > 0 ? req.employees.map(emp => emp.full_name ?? emp.employee_id).join(", ") : "Employees"}
+                {req.employees && req.employees.length > 0 ? req.employees.map(emp => emp.full_name ?? emp.employee_id).join(", ") : t("ot_approvals.pre.employees")}
               </Typography>
             </div>
  
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl">
               <div>
-                <span className="block text-[10px] font-bold text-slate-500 uppercase">Date</span>
+                <span className="block text-[10px] font-bold text-slate-500 uppercase">{t("common.date")}</span>
                 <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{new Date(req.planned_date).toLocaleDateString()}</span>
               </div>
               <div>
-                <span className="block text-[10px] font-bold text-slate-500 uppercase">Time</span>
+                <span className="block text-[10px] font-bold text-slate-500 uppercase">{t("common.time")}</span>
                 <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{req.planned_start_time} - {req.planned_end_time}</span>
               </div>
               <div>
-                <span className="block text-[10px] font-bold text-slate-500 uppercase">Duration</span>
+                <span className="block text-[10px] font-bold text-slate-500 uppercase">{t("common.duration")}</span>
                 <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{Math.round(req.planned_minutes / 60 * 10) / 10} hrs</span>
               </div>
               <div>
-                <span className="block text-[10px] font-bold text-slate-500 uppercase">Reason</span>
+                <span className="block text-[10px] font-bold text-slate-500 uppercase">{t("common.reason")}</span>
                 <span className="text-sm font-bold text-slate-700 dark:text-slate-300 truncate max-w-[150px] inline-block" title={req.reason || ""}>
-                  {req.reason || "No reason"}
+                  {req.reason || t("ot_approvals.pre.no_reason")}
                 </span>
               </div>
             </div>
@@ -110,7 +110,7 @@ export function PreOtApprovalsTab({ wsId: _wsId, canApprove }: { wsId: string; c
                   variant="ghost"
                 >
                   <Check className="w-3.5 h-3.5" />
-                  {t("common.approve") || "Approve"}
+                  {t("common.approve")}
                 </Button>
                 <Button
                   className="normal-case tracking-normal px-4 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 dark:bg-rose-950/20 dark:text-rose-300 dark:hover:bg-rose-900/40 dark:hover:text-rose-200 border-none flex items-center gap-1.5 rounded-xl font-bold text-xs shadow-none h-auto transition-colors"
@@ -119,13 +119,13 @@ export function PreOtApprovalsTab({ wsId: _wsId, canApprove }: { wsId: string; c
                   variant="ghost"
                 >
                   <X className="w-3.5 h-3.5" />
-                  {t("common.reject") || "Reject"}
+                  {t("common.reject")}
                 </Button>
               </div>
             ) : null}
             {!!req.workflow_id && (
               <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
-                Workflow Configured <ArrowRight className="w-3 h-3" />
+                {t("ot_approvals.pre.workflow_configured")} <ArrowRight className="w-3 h-3" />
               </span>
             )}
           </div>

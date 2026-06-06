@@ -189,6 +189,15 @@ export const overtimeRequestsApi = {
       },
     });
     if (!data) throw new Error("No response data");
+    const responseObj = data as unknown;
+    if (
+      responseObj &&
+      typeof responseObj === "object" &&
+      "data" in responseObj &&
+      Array.isArray((responseObj as Record<string, unknown>).data)
+    ) {
+      return (responseObj as { data: BehalfAssignment[] }).data;
+    }
     return data;
   },
 

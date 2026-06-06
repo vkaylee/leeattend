@@ -581,6 +581,19 @@
       "description": "暂无待审批的加班申请",
       "title": "全部处理完毕！"
     },
+    "pre": {
+      "no_pending_title": "暂无待审批请求",
+      "no_pending_desc": "您没有等待审批的 Pre-OT 请求。",
+      "pending_status": "待审批",
+      "employees": "员工",
+      "no_reason": "无原因",
+      "approved_note": "已通过管理后台批准",
+      "rejected_note": "已通过管理后台拒绝",
+      "success_approve": "请求已批准",
+      "success_reject": "请求已拒绝",
+      "fail_process": "审批处理失败",
+      "workflow_configured": "已配置审批流"
+    },
     "evidence": {
       "add": "添加照片",
       "description": "上传此申请的已签字纸质表单照片。",

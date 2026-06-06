@@ -10,6 +10,7 @@ import type { AttendanceDailySummary, DailyAttendanceReport } from "@/lib/api";
 
 import { BulkUploadOtDialog } from "@/components/approvals/bulk-upload-ot-dialog";
 import { ConfirmClaimsDialog } from "@/components/approvals/confirm-claims-dialog";
+import { ErrorBoundary } from "@/components/common/error-boundary";
 import Button from "@/components/ui/button";
 import { PageTabs, PageTab } from "@/components/ui/page-tabs";
 import { useToast } from "@/components/ui/toast";
@@ -373,38 +374,46 @@ function TabContentRenderer({
   switch (activeTab) {
     case "pre":
       return (canApprove || canCreateOnBehalf) ? (
-        <PreOtApprovalsTab canApprove={canApprove} wsId={workspace.id} />
+        <ErrorBoundary variant="compact">
+          <PreOtApprovalsTab canApprove={canApprove} wsId={workspace.id} />
+        </ErrorBoundary>
       ) : null;
     case "post":
       return (
-        <PostOtTabContent
-          canApprove={canApprove}
-          handleApprove={handleApprove}
-          isLoading={isLoading}
-          isProcessing={isProcessing}
-          pendingSummaries={pendingSummaries}
-          setPhotoTargetSummary={setPhotoTargetSummary}
-          setSourceFilter={setSourceFilter}
-          sourceFilter={sourceFilter}
-        />
+        <ErrorBoundary variant="compact">
+          <PostOtTabContent
+            canApprove={canApprove}
+            handleApprove={handleApprove}
+            isLoading={isLoading}
+            isProcessing={isProcessing}
+            pendingSummaries={pendingSummaries}
+            setPhotoTargetSummary={setPhotoTargetSummary}
+            setSourceFilter={setSourceFilter}
+            sourceFilter={sourceFilter}
+          />
+        </ErrorBoundary>
       );
     case "delegated_claim":
       return (
-        <DelegatedClaimsTab
-          isLoading={isReportLoading}
-          refetch={async () => {
-            await refetch();
-            await refetchReport();
-          }}
-          reportData={reportData}
-        />
+        <ErrorBoundary variant="compact">
+          <DelegatedClaimsTab
+            isLoading={isReportLoading}
+            refetch={async () => {
+              await refetch();
+              await refetchReport();
+            }}
+            reportData={reportData}
+          />
+        </ErrorBoundary>
       );
     case "behalf_assignments":
       return (
-        <div className="divide-y divide-slate-100 dark:divide-slate-800">
-          <BehalfAssignmentsTab assignmentType="ot" wsId={workspace.id} />
-          <BehalfAssignmentsTab assignmentType="overtime_request" wsId={workspace.id} />
-        </div>
+        <ErrorBoundary variant="compact">
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            <BehalfAssignmentsTab assignmentType="ot" wsId={workspace.id} />
+            <BehalfAssignmentsTab assignmentType="overtime_request" wsId={workspace.id} />
+          </div>
+        </ErrorBoundary>
       );
     default:
       return null;

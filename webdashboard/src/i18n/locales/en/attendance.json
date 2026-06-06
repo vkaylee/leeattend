@@ -581,6 +581,19 @@
       "description": "No pending OT requests",
       "title": "All caught up!"
     },
+    "pre": {
+      "no_pending_title": "No Pending Requests",
+      "no_pending_desc": "You have no Pre-OT requests waiting for your approval.",
+      "pending_status": "Pending Approval",
+      "employees": "Employees",
+      "no_reason": "No reason",
+      "approved_note": "Approved via Manager Portal",
+      "rejected_note": "Rejected via Manager Portal",
+      "success_approve": "Request approved",
+      "success_reject": "Request rejected",
+      "fail_process": "Failed to process approval",
+      "workflow_configured": "Workflow Configured"
+    },
     "evidence": {
       "add": "Add Photo",
       "description": "Upload a photo of the signed paper form for this claim.",

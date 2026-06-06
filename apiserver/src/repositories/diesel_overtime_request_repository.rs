@@ -233,20 +233,102 @@ mod tests {
         });
 
         let pools = DieselPools::for_test(&test_db_url);
-        let repo = DieselOvertimeRequestRepository::new(pools);
+        let repo = DieselOvertimeRequestRepository::new(pools.clone());
         let ws_id = Uuid::new_v4();
         let auth_token = crate::diesel_pool::TenantAuthToken::system_override(ws_id);
+        let emp_id = Uuid::new_v4();
 
+        // Check if database is available by attempting to get a connection.
+        // If it is not available (e.g. during offline unit tests), we skip the rest of the test.
+        let mut conn = match pools.tenant_transaction_conn(&auth_token).await {
+            Ok(c) => c,
+            Err(_) => {
+                println!("Database not available, skipping integration assertions");
+                return;
+            }
+        };
+
+        // 1. Arrange: Insert workspace, location, and employee to satisfy foreign key constraints
+        {
+            // Insert Workspace
+            let workspace_entity = crate::models::diesel::core::WorkspaceEntity {
+                id: ws_id,
+                name: "Test Workspace".to_string(),
+                created_at: Some(chrono::Utc::now()),
+                date_format: "YYYY-MM-DD".to_string(),
+                time_format: "HH:mm".to_string(),
+                timezone: "UTC".to_string(),
+                theme_primary_color: None,
+                default_language: "en".to_string(),
+                logo_url: None,
+                tagline: None,
+                custom_db_url_encrypted: None,
+            };
+            diesel::insert_into(crate::schema::workspaces::table)
+                .values(&workspace_entity)
+                .execute(&mut *conn)
+                .await
+                .expect("insert workspace");
+
+            // Insert Work Location
+            let loc_id = Uuid::new_v4();
+            let work_location_entity = crate::models::diesel::work_location::WorkLocationEntity {
+                id: loc_id,
+                workspace_id: ws_id,
+                name: "Test Location".to_string(),
+                address: None,
+                timezone: "UTC".to_string(),
+                is_headquarters: true,
+                status: "active".to_string(),
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
+            };
+            diesel::insert_into(crate::schema::work_locations::table)
+                .values(&work_location_entity)
+                .execute(&mut *conn)
+                .await
+                .expect("insert location");
+
+            // Insert Employee
+            let employee_entity = crate::models::diesel::employee::EmployeeEntity {
+                id: emp_id,
+                workspace_id: ws_id,
+                user_id: None,
+                employee_id_number: "EMP001".to_string(),
+                is_active: true,
+                created_at: Some(chrono::Utc::now()),
+                updated_at: Some(chrono::Utc::now()),
+                tags: None,
+                full_name: "Test Employee".to_string(),
+                recruitment_source_id: None,
+                hire_date: chrono::NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
+                termination_date: None,
+                original_hire_date: chrono::NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
+                primary_location_id: loc_id,
+                employer_id: None,
+                deleted_at: None,
+            };
+            diesel::insert_into(crate::schema::employees::table)
+                .values(&employee_entity)
+                .execute(&mut *conn)
+                .await
+                .expect("insert employee");
+        }
+
+        // Drop the connection to release it back to the pool before running repository methods
+        drop(conn);
+
+        let req_id = Uuid::new_v4();
         let request = OvertimeRequest::new(
-            Uuid::new_v4(),
+            req_id,
             ws_id,
-            Uuid::new_v4(),
+            Uuid::new_v4(), // requested_by_user_id (no constraint check)
             None,
             chrono::NaiveDate::from_ymd_opt(2023, 10, 10).unwrap(),
             None,
             None,
             120,
-            "test".to_string(),
+            "test reason".to_string(),
             crate::models::OtRequestStatus::PendingApproval,
             None,
             1,
@@ -257,15 +339,79 @@ mod tests {
             chrono::Utc::now(),
         );
 
-        let _ = repo
-            .create_request(&auth_token, request.clone(), vec![])
-            .await;
-        let _ = repo.update_request(&auth_token, request.clone()).await;
-        let _ = repo.get_request(&auth_token, ws_id, request.id()).await;
-        let _ = repo.get_request_employees(&auth_token, request.id()).await;
-        let _ = repo
-            .update_employee_consent(&auth_token, request.id(), Uuid::new_v4(), "approved", None)
-            .await;
-        let _ = repo.list_requests(&auth_token, 1, 10).await;
+        let req_employee = OvertimeRequestEmployee::new(
+            Uuid::new_v4(),
+            req_id,
+            emp_id,
+            "pending".to_string(),
+            None,
+            None,
+            None,
+            None,
+            chrono::Utc::now(),
+        );
+
+        // 2. Act & Assert: Create request with an employee link
+        let created = repo
+            .create_request(&auth_token, request.clone(), vec![req_employee.clone()])
+            .await
+            .expect("Failed to create request");
+        assert_eq!(created.id(), request.id());
+        assert_eq!(created.reason(), "test reason");
+        assert_eq!(created.planned_minutes(), 120);
+
+        // Act & Assert: Get Request
+        let retrieved = repo
+            .get_request(&auth_token, ws_id, request.id())
+            .await
+            .expect("Failed to get request");
+        assert!(retrieved.is_some());
+        assert_eq!(retrieved.unwrap().reason(), "test reason");
+
+        // Act & Assert: Get Request Employees
+        let emps = repo
+            .get_request_employees(&auth_token, request.id())
+            .await
+            .expect("Failed to get request employees");
+        assert_eq!(emps.len(), 1);
+        assert_eq!(emps[0].employee_id(), emp_id);
+        assert_eq!(emps[0].consent_status(), "pending");
+
+        // Act & Assert: Update Employee Consent
+        let updated_emp = repo
+            .update_employee_consent(
+                &auth_token,
+                request.id(),
+                emp_id,
+                "accepted",
+                Some("Approved by worker".to_string()),
+            )
+            .await
+            .expect("Failed to update employee consent");
+        assert_eq!(updated_emp.consent_status(), "accepted");
+        assert_eq!(updated_emp.decline_reason(), Some("Approved by worker"));
+
+        // Act & Assert: Update Request (change status/step)
+        let mut request_to_update = request.clone();
+        request_to_update.set_status(crate::models::OtRequestStatus::Approved);
+        request_to_update.set_current_step(2);
+        let updated_req = repo
+            .update_request(&auth_token, request_to_update)
+            .await
+            .expect("Failed to update request");
+        assert_eq!(
+            updated_req.status(),
+            crate::models::OtRequestStatus::Approved
+        );
+        assert_eq!(updated_req.current_step(), 2);
+
+        // Act & Assert: List Requests
+        let (list, total) = repo
+            .list_requests(&auth_token, 1, 10)
+            .await
+            .expect("Failed to list requests");
+        assert_eq!(total, 1);
+        assert_eq!(list.len(), 1);
+        assert_eq!(list[0].id(), request.id());
     }
 }

@@ -695,6 +695,7 @@
     "shift": "班次",
     "status": "状态",
     "date": "日期",
+    "duration": "时长",
     "notes": "备注",
     "reason": "原因",
     "approve": "批准",
