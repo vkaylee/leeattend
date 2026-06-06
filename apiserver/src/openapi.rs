@@ -695,6 +695,7 @@ use utoipa::OpenApi;
 pub struct ApiDoc;
 
 #[cfg(test)]
+#[allow(clippy::disallowed_methods)]
 mod tests {
     use super::*;
     use utoipa::OpenApi;

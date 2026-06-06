@@ -5,7 +5,18 @@
 disallowed-methods = [
     # Cấm thoát đột ngột (Buộc phải Graceful Shutdown)
     "std::process::exit",
-    "std::process::abort"
+    "std::process::abort",
+
+    # Cấm các hàm block thread trong môi trường async (Buộc dùng tokio::time::sleep hoặc tokio::fs)
+    "std::thread::sleep",
+    "std::fs::read",
+    "std::fs::read_to_string",
+    "std::fs::write",
+    "std::fs::remove_file",
+    "std::fs::create_dir",
+    "std::fs::create_dir_all",
+    "std::fs::rename",
+    "std::fs::copy"
 ]
 
 # 2. BANNED MACROS (Cấm các macro không chuẩn)
@@ -27,5 +38,8 @@ disallowed-types = [
     # Trong môi trường tokio (async), std::sync::Mutex có thể gây Deadlock toàn hệ thống.
     # Bắt buộc phải dùng tokio::sync::Mutex hoặc parking_lot::Mutex
     "std::sync::Mutex",
-    "std::sync::RwLock"
+    "std::sync::RwLock",
+
+    # Cấm dùng std::fs::File trực tiếp trong async context (Buộc dùng tokio::fs::File)
+    "std::fs::File"
 ]

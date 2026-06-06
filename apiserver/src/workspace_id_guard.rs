@@ -10,6 +10,7 @@
 //! — before they reach production and leak data across tenants.
 
 #[cfg(test)]
+#[allow(clippy::disallowed_methods)]
 mod tests {
     use std::collections::HashSet;
     use std::fs;

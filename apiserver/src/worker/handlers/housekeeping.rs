@@ -6,6 +6,7 @@ use crate::queue::Job;
 pub struct NightlyHousekeepingHandler;
 
 impl NightlyHousekeepingHandler {
+    #[allow(clippy::too_many_lines)]
     pub async fn handle(deps: &crate::worker::WorkerDeps, job: &Job) -> Result<(), String> {
         let payload = job
             .housekeeping_payload()
@@ -97,10 +98,10 @@ impl NightlyHousekeepingHandler {
                     "DELETE FROM attendance_daily_summaries WHERE workspace_id = '{tenant_id}' AND employee_id IN (SELECT id FROM employees WHERE workspace_id = '{tenant_id}' AND termination_date IS NOT NULL AND termination_date <= CURRENT_DATE - INTERVAL '5 years') AND date <= CURRENT_DATE - INTERVAL '5 years'"
                 ));
                 queries.push(format!(
-                    "DELETE FROM leave_requests WHERE workspace_id = '{tenant_id}' AND employee_id IN (SELECT id FROM employees WHERE workspace_id = '{tenant_id}' AND termination_date IS NOT NULL AND termination_date <= CURRENT_DATE - INTERVAL '5 years') AND end_date <= CURRENT_DATE - INTERVAL '5 years'"
+                    "DELETE FROM leave_requests WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = '{tenant_id}' AND termination_date IS NOT NULL AND termination_date <= CURRENT_DATE - INTERVAL '5 years') AND end_date <= CURRENT_DATE - INTERVAL '5 years'"
                 ));
                 queries.push(format!(
-                    "DELETE FROM leave_accrual_logs WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = '{tenant_id}' AND termination_date IS NOT NULL AND termination_date <= CURRENT_DATE - INTERVAL '5 years') AND accrual_date <= CURRENT_DATE - INTERVAL '5 years'"
+                    "DELETE FROM leave_accrual_logs WHERE workspace_id = '{tenant_id}' AND employee_id IN (SELECT id FROM employees WHERE workspace_id = '{tenant_id}' AND termination_date IS NOT NULL AND termination_date <= CURRENT_DATE - INTERVAL '5 years') AND accrual_date <= CURRENT_DATE - INTERVAL '5 years'"
                 ));
 
                 // Anonymize Employee PII for employees terminated >= 1 year ago (GDPR right to erasure)
@@ -121,10 +122,19 @@ impl NightlyHousekeepingHandler {
         .collect::<Vec<_>>()
         .await;
 
+        let mut errors = Vec::new();
         for res in results {
             if let Err((tenant_id, e)) = res {
                 error!(error = %e, tenant_id = %tenant_id, "Failed to execute batch partition queries for workspace");
+                errors.push(format!("Tenant {tenant_id}: {e}"));
             }
+        }
+
+        if !errors.is_empty() {
+            return Err(format!(
+                "Nightly housekeeping job failed with errors: {}",
+                errors.join("; ")
+            ));
         }
 
         info!(

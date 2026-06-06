@@ -2,6 +2,7 @@
 
 #![deny(clippy::unwrap_used)]
 #![deny(clippy::expect_used)]
+#![allow(clippy::disallowed_methods)]
 
 use apiserver::diesel_pool::{DbPoolConfig, DieselPools};
 use apiserver::openapi::ApiDoc;
