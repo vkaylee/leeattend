@@ -169,7 +169,8 @@ impl ImportStrategy for LeaveImportStrategy {
             })?;
 
         for lt in leaves {
-            self.leave_types_cache.insert(lt.code.to_uppercase(), lt.id);
+            self.leave_types_cache
+                .insert(lt.code().to_uppercase(), lt.id());
         }
 
         Ok(())
@@ -219,7 +220,7 @@ impl ImportStrategy for LeaveImportStrategy {
             .submit_leave_request(job.workspace_id, self.user_id, submit, self.auto_approve)
             .await
         {
-            Ok(res) => Ok(Some(res.id)),
+            Ok(res) => Ok(Some(res.id())),
             Err(e) => Err(crate::errors::AppError::Internal(format!(
                 "{}: {e}",
                 self.msgs.submission_error_prefix

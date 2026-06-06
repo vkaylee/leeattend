@@ -106,16 +106,16 @@ impl AttendanceSummaryService {
                 .await?;
 
             let leave_to_cancel = leaves.into_iter().find(|l| {
-                (l.status == crate::models::enums::LeaveStatus::Approved
-                    || l.status == crate::models::enums::LeaveStatus::PreApproved)
-                    && l.start_date <= date
-                    && l.end_date >= date
+                (l.status() == crate::models::enums::LeaveStatus::Approved
+                    || l.status() == crate::models::enums::LeaveStatus::PreApproved)
+                    && l.start_date() <= date
+                    && l.end_date() >= date
             });
 
             if let Some(req) = leave_to_cancel {
                 // Cancel the leave request (which updates status and refunds balance)
                 self.leave_request_repo
-                    .cancel_leave_request(&TenantAuthToken::system_override(workspace_id), req.id)
+                    .cancel_leave_request(&TenantAuthToken::system_override(workspace_id), req.id())
                     .await?;
             }
         }
@@ -955,22 +955,22 @@ mod tests {
             start: NaiveDate,
             end: NaiveDate,
         ) -> LeaveRequest {
-            LeaveRequest {
+            LeaveRequest::new(
                 id,
                 employee_id,
-                leave_type_id: Uuid::new_v4(),
-                start_date: start,
-                end_date: end,
-                reason: None,
-                status: LeaveStatus::Approved,
-                duration_type: LeaveDurationType::FullDay,
-                start_time: None,
-                end_time: None,
-                requested_by_user_id: None,
-                approved_by_user_id: None,
-                created_at: chrono::Utc::now(),
-                updated_at: chrono::Utc::now(),
-            }
+                Uuid::new_v4(),
+                start,
+                end,
+                None,
+                LeaveStatus::Approved,
+                LeaveDurationType::FullDay,
+                None,
+                None,
+                None,
+                None,
+                chrono::Utc::now(),
+                chrono::Utc::now(),
+            )
         }
 
         fn test_workspace(workspace_id: Uuid) -> Workspace {
@@ -1369,8 +1369,22 @@ mod tests {
                 });
 
             // Pending request
-            let mut req = create_approved_leave(Uuid::new_v4(), employee_id, date, date);
-            req.status = LeaveStatus::Pending;
+            let req = LeaveRequest::new(
+                Uuid::new_v4(),
+                employee_id,
+                Uuid::new_v4(),
+                date,
+                date,
+                None,
+                LeaveStatus::Pending,
+                LeaveDurationType::FullDay,
+                None,
+                None,
+                None,
+                None,
+                chrono::Utc::now(),
+                chrono::Utc::now(),
+            );
             leave_request_repo
                 .expect_get_employee_leave_requests()
                 .returning(move |_, _| {

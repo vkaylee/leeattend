@@ -59,25 +59,25 @@ impl From<ShiftSwapRequestWithNamesEntity> for ShiftSwapRequestWithNames {
             "cancelled" => ShiftSwapStatus::Cancelled,
             _ => ShiftSwapStatus::PendingTarget,
         };
-        Self {
-            id: entity.id,
-            workspace_id: entity.workspace_id,
-            requester_id: entity.requester_id,
-            target_id: entity.target_id,
-            swap_date: entity.swap_date,
-            requester_shift_id: entity.requester_shift_id,
-            target_shift_id: entity.target_shift_id,
+        ShiftSwapRequestWithNames::new(
+            entity.id,
+            entity.workspace_id,
+            entity.requester_id,
+            entity.target_id,
+            entity.swap_date,
+            entity.requester_shift_id,
+            entity.target_shift_id,
             status,
-            reason: entity.reason,
-            requested_by_user_id: entity.requested_by_user_id,
-            approved_by_user_id: entity.approved_by_user_id,
-            created_at: entity.created_at,
-            updated_at: entity.updated_at,
-            requester_name: entity.requester_name,
-            target_name: entity.target_name,
-            requester_shift_name: entity.requester_shift_name,
-            target_shift_name: entity.target_shift_name,
-        }
+            entity.reason,
+            entity.requested_by_user_id,
+            entity.approved_by_user_id,
+            entity.created_at,
+            entity.updated_at,
+            entity.requester_name,
+            entity.target_name,
+            entity.requester_shift_name,
+            entity.target_shift_name,
+        )
     }
 }
 
@@ -139,25 +139,25 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         );
 
         let entity = ShiftSwapRequestEntity {
-            id: request.id,
-            workspace_id: request.workspace_id,
-            requester_id: request.requester_id,
-            target_id: request.target_id,
-            swap_date: request.swap_date,
-            requester_shift_id: request.requester_shift_id,
-            target_shift_id: request.target_shift_id,
-            status: match request.status {
+            id: request.id(),
+            workspace_id: request.workspace_id(),
+            requester_id: request.requester_id(),
+            target_id: request.target_id(),
+            swap_date: request.swap_date(),
+            requester_shift_id: request.requester_shift_id(),
+            target_shift_id: request.target_shift_id(),
+            status: match request.status() {
                 ShiftSwapStatus::PendingTarget => "pending_target".to_string(),
                 ShiftSwapStatus::PendingAdmin => "pending_admin".to_string(),
                 ShiftSwapStatus::Approved => "approved".to_string(),
                 ShiftSwapStatus::Rejected => "rejected".to_string(),
                 ShiftSwapStatus::Cancelled => "cancelled".to_string(),
             },
-            reason: request.reason.clone(),
-            requested_by_user_id: request.requested_by_user_id,
-            approved_by_user_id: request.approved_by_user_id,
-            created_at: request.created_at,
-            updated_at: request.updated_at,
+            reason: request.reason().map(String::from),
+            requested_by_user_id: request.requested_by_user_id(),
+            approved_by_user_id: request.approved_by_user_id(),
+            created_at: request.created_at(),
+            updated_at: request.updated_at(),
         };
 
         let result: ShiftSwapRequestEntity = diesel::insert_into(shift_swap_requests::table)

@@ -165,98 +165,98 @@ fn bd_to_dec(bd: &BigDecimal) -> rust_decimal::Decimal {
 
 impl From<LeaveRequestEntity> for LeaveRequest {
     fn from(entity: LeaveRequestEntity) -> Self {
-        Self {
-            id: entity.id,
-            employee_id: entity.employee_id,
-            leave_type_id: entity.leave_type_id,
-            start_date: entity.start_date,
-            end_date: entity.end_date,
-            reason: entity.reason,
-            status: entity.status,
-            duration_type: entity.duration_type.parse().unwrap_or_default(),
-            start_time: entity.start_time,
-            end_time: entity.end_time,
-            requested_by_user_id: entity.requested_by_user_id,
-            approved_by_user_id: entity.approved_by_user_id,
-            created_at: entity.created_at.unwrap_or_else(Utc::now),
-            updated_at: entity.updated_at.unwrap_or_else(Utc::now),
-        }
+        Self::new(
+            entity.id,
+            entity.employee_id,
+            entity.leave_type_id,
+            entity.start_date,
+            entity.end_date,
+            entity.reason,
+            entity.status,
+            entity.duration_type.parse().unwrap_or_default(),
+            entity.start_time,
+            entity.end_time,
+            entity.requested_by_user_id,
+            entity.approved_by_user_id,
+            entity.created_at.unwrap_or_else(Utc::now),
+            entity.updated_at.unwrap_or_else(Utc::now),
+        )
     }
 }
 
 impl From<LeaveTypeEntity> for LeaveType {
     fn from(entity: LeaveTypeEntity) -> Self {
-        Self {
-            id: entity.id,
-            workspace_id: entity.workspace_id,
-            code: entity.code,
-            name: entity.name,
-            is_paid: entity.is_paid,
-            policy_config: serde_json::from_value(entity.policy_config).unwrap_or_default(),
-            created_at: entity.created_at,
-        }
+        Self::new(
+            entity.id,
+            entity.workspace_id,
+            entity.code,
+            entity.name,
+            entity.is_paid,
+            serde_json::from_value(entity.policy_config).unwrap_or_default(),
+            entity.created_at,
+        )
     }
 }
 
 impl From<LeaveBalanceEntity> for LeaveBalance {
     fn from(entity: LeaveBalanceEntity) -> Self {
-        Self {
-            id: entity.id,
-            employee_id: entity.employee_id,
-            leave_type_id: entity.leave_type_id,
-            year: entity.year,
-            entitlement: entity.entitlement,
-            accrued_amount: bd_to_dec(&entity.accrued_amount),
-            carried_over: entity.carried_over,
-            created_at: entity.created_at.unwrap_or_else(Utc::now),
-            updated_at: entity.updated_at.unwrap_or_else(Utc::now),
-        }
+        Self::new(
+            entity.id,
+            entity.employee_id,
+            entity.leave_type_id,
+            entity.year,
+            entity.entitlement,
+            bd_to_dec(&entity.accrued_amount),
+            entity.carried_over,
+            entity.created_at.unwrap_or_else(Utc::now),
+            entity.updated_at.unwrap_or_else(Utc::now),
+        )
     }
 }
 
 impl From<LeavePolicyDefinitionEntity> for LeavePolicyDefinition {
     fn from(entity: LeavePolicyDefinitionEntity) -> Self {
-        Self {
-            id: entity.id,
-            workspace_id: entity.workspace_id,
-            name: entity.name,
-            description: entity.description,
-            leave_type_id: entity.leave_type_id,
-            rule_config: serde_json::from_value(entity.rule_config).unwrap_or_default(),
-            created_at: entity.created_at.unwrap_or_else(Utc::now),
-            updated_at: entity.updated_at.unwrap_or_else(Utc::now),
-        }
+        Self::new(
+            entity.id,
+            entity.workspace_id,
+            entity.name,
+            entity.description,
+            entity.leave_type_id,
+            serde_json::from_value(entity.rule_config).unwrap_or_default(),
+            entity.created_at.unwrap_or_else(Utc::now),
+            entity.updated_at.unwrap_or_else(Utc::now),
+        )
     }
 }
 
 impl From<LeavePolicyAssignmentEntity> for LeavePolicyAssignment {
     fn from(entity: LeavePolicyAssignmentEntity) -> Self {
-        Self {
-            id: entity.id,
-            workspace_id: entity.workspace_id,
-            assignee_type: entity.assignee_type,
-            assignee_id: entity.assignee_id,
-            policy_id: entity.policy_id,
-            effective_from: entity.effective_from,
-            effective_to: entity.effective_to,
-            created_at: entity.created_at.unwrap_or_else(Utc::now),
-        }
+        Self::new(
+            entity.id,
+            entity.workspace_id,
+            entity.assignee_type,
+            entity.assignee_id,
+            entity.policy_id,
+            entity.effective_from,
+            entity.effective_to,
+            entity.created_at.unwrap_or_else(Utc::now),
+        )
     }
 }
 
 impl From<LeaveAccrualLogEntity> for LeaveAccrualLog {
     fn from(entity: LeaveAccrualLogEntity) -> Self {
-        Self {
-            id: entity.id,
-            workspace_id: entity.workspace_id,
-            employee_id: entity.employee_id,
-            policy_assignment_id: entity.policy_assignment_id,
-            accrual_date: entity.accrual_date,
-            amount: bd_to_dec(&entity.amount),
-            leave_type_id: entity.leave_type_id,
-            notes: entity.notes,
-            created_at: entity.created_at.unwrap_or_else(Utc::now),
-        }
+        Self::new(
+            entity.id,
+            entity.workspace_id,
+            entity.employee_id,
+            entity.policy_assignment_id,
+            entity.accrual_date,
+            bd_to_dec(&entity.amount),
+            entity.leave_type_id,
+            entity.notes,
+            entity.created_at.unwrap_or_else(Utc::now),
+        )
     }
 }
 

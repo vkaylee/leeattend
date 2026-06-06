@@ -316,10 +316,10 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                 Box::pin(async move {
                     // 1. Get leave_type_id
                     let lt_id: Uuid = leave_policy_definitions::table
-                        .filter(leave_policy_definitions::id.eq(assignment_owned.policy_id))
+                        .filter(leave_policy_definitions::id.eq(assignment_owned.policy_id()))
                         .filter(
                             leave_policy_definitions::workspace_id
-                                .eq(assignment_owned.workspace_id),
+                                .eq(assignment_owned.workspace_id()),
                         )
                         .filter(leave_policy_definitions::deleted_at.is_null())
                         .select(leave_policy_definitions::leave_type_id)
@@ -331,15 +331,15 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                         leave_policy_assignments::table
                             .filter(
                                 leave_policy_assignments::workspace_id
-                                    .eq(assignment_owned.workspace_id),
+                                    .eq(assignment_owned.workspace_id()),
                             )
                             .filter(
                                 leave_policy_assignments::assignee_type
-                                    .eq(assignment_owned.assignee_type.clone()),
+                                    .eq(assignment_owned.assignee_type().to_string()),
                             )
                             .filter(
                                 leave_policy_assignments::assignee_id
-                                    .is_not_distinct_from(assignment_owned.assignee_id),
+                                    .is_not_distinct_from(assignment_owned.assignee_id()),
                             )
                             .filter(
                                 leave_policy_assignments::policy_id.eq_any(
@@ -350,7 +350,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                             )
                             .filter(
                                 leave_policy_assignments::effective_from
-                                    .ge(assignment_owned.effective_from),
+                                    .ge(assignment_owned.effective_from()),
                             ),
                     )
                     .execute(&mut *conn)
@@ -361,15 +361,15 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                         leave_policy_assignments::table
                             .filter(
                                 leave_policy_assignments::workspace_id
-                                    .eq(assignment_owned.workspace_id),
+                                    .eq(assignment_owned.workspace_id()),
                             )
                             .filter(
                                 leave_policy_assignments::assignee_type
-                                    .eq(assignment_owned.assignee_type.clone()),
+                                    .eq(assignment_owned.assignee_type().to_string()),
                             )
                             .filter(
                                 leave_policy_assignments::assignee_id
-                                    .is_not_distinct_from(assignment_owned.assignee_id),
+                                    .is_not_distinct_from(assignment_owned.assignee_id()),
                             )
                             .filter(
                                 leave_policy_assignments::policy_id.eq_any(
@@ -380,18 +380,18 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                             )
                             .filter(
                                 leave_policy_assignments::effective_from
-                                    .lt(assignment_owned.effective_from),
+                                    .lt(assignment_owned.effective_from()),
                             )
                             .filter(
                                 leave_policy_assignments::effective_to
                                     .is_null()
                                     .or(leave_policy_assignments::effective_to
-                                        .ge(assignment_owned.effective_from)),
+                                        .ge(assignment_owned.effective_from())),
                             ),
                     )
                     .set(
                         leave_policy_assignments::effective_to
-                            .eq(assignment_owned.effective_from.pred_opt()),
+                            .eq(assignment_owned.effective_from().pred_opt()),
                     )
                     .execute(&mut *conn)
                     .await?;
@@ -399,12 +399,12 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                     // 3. Insert new
                     let entity = LeavePolicyAssignmentEntity {
                         id: Uuid::new_v4(),
-                        workspace_id: assignment_owned.workspace_id,
-                        assignee_type: assignment_owned.assignee_type,
-                        assignee_id: assignment_owned.assignee_id,
-                        policy_id: assignment_owned.policy_id,
-                        effective_from: assignment_owned.effective_from,
-                        effective_to: assignment_owned.effective_to,
+                        workspace_id: assignment_owned.workspace_id(),
+                        assignee_type: assignment_owned.assignee_type().to_string(),
+                        assignee_id: assignment_owned.assignee_id(),
+                        policy_id: assignment_owned.policy_id(),
+                        effective_from: assignment_owned.effective_from(),
+                        effective_to: assignment_owned.effective_to(),
                         created_at: Some(Utc::now()),
                     };
 
@@ -613,17 +613,19 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
 
         Ok(results
             .into_iter()
-            .map(|(a, p_name, lt_name)| LeavePolicyAssignmentDetail {
-                id: a.id,
-                workspace_id: a.workspace_id,
-                assignee_type: a.assignee_type,
-                assignee_id: a.assignee_id,
-                policy_id: a.policy_id,
-                effective_from: a.effective_from,
-                effective_to: a.effective_to,
-                created_at: a.created_at.unwrap_or_else(Utc::now),
-                policy_name: p_name,
-                leave_type_name: lt_name,
+            .map(|(a, p_name, lt_name)| {
+                LeavePolicyAssignmentDetail::new(
+                    a.id,
+                    a.workspace_id,
+                    a.assignee_type,
+                    a.assignee_id,
+                    a.policy_id,
+                    a.effective_from,
+                    a.effective_to,
+                    a.created_at.unwrap_or_else(Utc::now),
+                    p_name,
+                    lt_name,
+                )
             })
             .collect())
     }

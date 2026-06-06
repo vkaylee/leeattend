@@ -57,7 +57,7 @@ impl ExpiringContractsHandler {
             // 4. Create notifications
             for contract in contracts {
                 // Ensure end_date exists since we filtered by IS NOT NULL
-                let Some(end_date) = contract.end_date else {
+                let Some(end_date) = contract.end_date() else {
                     continue;
                 };
 
@@ -65,7 +65,7 @@ impl ExpiringContractsHandler {
                 let emp = deps
                     .employee_repo
                     .get_employee_by_id(
-                        contract.employee_id,
+                        contract.employee_id(),
                         &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
                     )
                     .await
@@ -86,7 +86,7 @@ impl ExpiringContractsHandler {
                         emp_code,
                         end_date.format("%d/%m/%Y")
                     );
-                    let link = format!("/workspace/employees/{}", contract.employee_id);
+                    let link = format!("/workspace/employees/{}", contract.employee_id());
 
                     // Check if a notification for this specific contract has already been created recently
                     let existing = deps
@@ -210,20 +210,20 @@ mod tests {
         contract_repo
             .expect_get_expiring_contracts()
             .returning(move |_, _| {
-                Ok(vec![EmployeeContract {
-                    id: Uuid::new_v4(),
-                    workspace_id: ws_id,
-                    employee_id: emp_id,
-                    contract_number: None,
-                    contract_type: crate::models::enums::ContractType::FixedTerm,
-                    status: crate::models::enums::ContractStatus::Active,
-                    start_date: NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
-                    end_date: Some(NaiveDate::from_ymd_opt(2026, 1, 15).unwrap()),
-                    document_id: None,
-                    notes: None,
-                    created_at: chrono::Utc::now(),
-                    updated_at: chrono::Utc::now(),
-                }])
+                Ok(vec![EmployeeContract::new(
+                    Uuid::new_v4(),
+                    ws_id,
+                    emp_id,
+                    None,
+                    crate::models::enums::ContractType::FixedTerm,
+                    crate::models::enums::ContractStatus::Active,
+                    NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                    Some(NaiveDate::from_ymd_opt(2026, 1, 15).unwrap()),
+                    None,
+                    None,
+                    chrono::Utc::now(),
+                    chrono::Utc::now(),
+                )])
             });
 
         let mut emp_repo = MockEmployeeRepository::new();

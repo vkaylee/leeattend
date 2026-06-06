@@ -503,10 +503,9 @@ mod tests {
                     msg.contains("connecting") || msg.contains("connection") || msg.contains("db")
                 );
             }
-            other => panic!(
-                "Expected AppError::NotFound in claim or db connection error, got {:?}",
-                other
-            ),
+            other => {
+                panic!("Expected AppError::NotFound in claim or db connection error, got {other:?}")
+            }
         }
 
         // 2. resolve_staging_log with invalid employee should return NotFound
@@ -524,8 +523,7 @@ mod tests {
                 );
             }
             other => panic!(
-                "Expected AppError::NotFound in resolve or db connection error, got {:?}",
-                other
+                "Expected AppError::NotFound in resolve or db connection error, got {other:?}"
             ),
         }
     }

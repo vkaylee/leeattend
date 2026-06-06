@@ -49,8 +49,8 @@ impl SyncHireDateHandler {
         {
             Ok(contracts) => contracts
                 .into_iter()
-                .rfind(|c| c.status != crate::models::enums::ContractStatus::Draft)
-                .map(|c| c.start_date),
+                .rfind(|c| c.status() != crate::models::enums::ContractStatus::Draft)
+                .map(|c| c.start_date()),
             Err(e) => {
                 error!("Database error fetching oldest contract: {:?}", e);
                 return Err(format!("DB error: {e}"));
@@ -153,20 +153,20 @@ mod tests {
         contract_repo
             .expect_list_employee_contracts()
             .returning(move |_, _| {
-                Ok(vec![EmployeeContract {
-                    id: Uuid::new_v4(),
-                    workspace_id: ws_id,
-                    employee_id: emp_id,
-                    contract_number: None,
-                    contract_type: ContractType::Indefinite,
-                    status: ContractStatus::Active,
-                    start_date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-                    end_date: None,
-                    document_id: None,
-                    notes: None,
-                    created_at: Utc::now(),
-                    updated_at: Utc::now(),
-                }])
+                Ok(vec![EmployeeContract::new(
+                    Uuid::new_v4(),
+                    ws_id,
+                    emp_id,
+                    None,
+                    ContractType::Indefinite,
+                    ContractStatus::Active,
+                    NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                    None,
+                    None,
+                    None,
+                    Utc::now(),
+                    Utc::now(),
+                )])
             });
 
         let mut builder = MockWorkerDepsBuilder::new();

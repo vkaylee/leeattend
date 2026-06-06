@@ -79,20 +79,20 @@ pub struct EmployeeContractEntity {
 
 impl From<EmployeeContractEntity> for EmployeeContract {
     fn from(val: EmployeeContractEntity) -> Self {
-        EmployeeContract {
-            id: val.id,
-            workspace_id: val.workspace_id,
-            employee_id: val.employee_id,
-            contract_number: val.contract_number,
-            contract_type: val.contract_type,
-            status: val.status,
-            start_date: val.start_date,
-            end_date: val.end_date,
-            document_id: val.document_id,
-            notes: val.notes,
-            created_at: val.created_at,
-            updated_at: val.updated_at,
-        }
+        EmployeeContract::new(
+            val.id,
+            val.workspace_id,
+            val.employee_id,
+            val.contract_number,
+            val.contract_type,
+            val.status,
+            val.start_date,
+            val.end_date,
+            val.document_id,
+            val.notes,
+            val.created_at,
+            val.updated_at,
+        )
     }
 }
 

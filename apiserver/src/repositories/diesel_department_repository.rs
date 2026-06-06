@@ -981,8 +981,7 @@ mod tests {
                 );
             }
             other => panic!(
-                "Expected AppError::NotFound department or db connection error, got {:?}",
-                other
+                "Expected AppError::NotFound department or db connection error, got {other:?}"
             ),
         }
     }

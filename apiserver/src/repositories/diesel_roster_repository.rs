@@ -385,14 +385,29 @@ impl RosterRepository for DieselRosterRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         roster: &ShiftRoster,
     ) -> Result<ShiftRoster, AppError> {
-        let _workspace_id = auth_token.workspace_id();
+        let workspace_id = auth_token.workspace_id();
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .tenants_tx
-                .get_connection(&auth_token.workspace_id())
+                .get_connection(&workspace_id)
                 .await
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
+
+        // Check if employee exists and belongs to the workspace of this tenant
+        let employee_exists = crate::schema::employees::table
+            .filter(crate::schema::employees::id.eq(roster.employee_id))
+            .filter(crate::schema::employees::workspace_id.eq(workspace_id))
+            .filter(crate::schema::employees::deleted_at.is_null())
+            .select(crate::schema::employees::id)
+            .first::<Uuid>(&mut *conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db check employee: {e}")))?;
+
+        if employee_exists.is_none() {
+            return Err(AppError::NotFound("error.employee_not_found".to_string()));
+        }
 
         let entity: crate::models::diesel::roster::ShiftRosterEntity = roster.clone().into();
 
@@ -422,14 +437,29 @@ impl RosterRepository for DieselRosterRepository {
         employee_id: Uuid,
         items: Vec<RosterItem>,
     ) -> Result<(), AppError> {
-        let _workspace_id = auth_token.workspace_id();
+        let workspace_id = auth_token.workspace_id();
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .tenants_tx
-                .get_connection(&auth_token.workspace_id())
+                .get_connection(&workspace_id)
                 .await
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
+
+        // Check if employee exists and belongs to the workspace of this tenant
+        let employee_exists = crate::schema::employees::table
+            .filter(crate::schema::employees::id.eq(employee_id))
+            .filter(crate::schema::employees::workspace_id.eq(workspace_id))
+            .filter(crate::schema::employees::deleted_at.is_null())
+            .select(crate::schema::employees::id)
+            .first::<Uuid>(&mut *conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db check employee: {e}")))?;
+
+        if employee_exists.is_none() {
+            return Err(AppError::NotFound("error.employee_not_found".to_string()));
+        }
 
         let entities: Vec<ShiftRosterEntity> = items
             .into_iter()
@@ -737,14 +767,29 @@ impl RosterRepository for DieselRosterRepository {
         employee_id: Uuid,
         date: NaiveDate,
     ) -> Result<(), AppError> {
-        let _workspace_id = auth_token.workspace_id();
+        let workspace_id = auth_token.workspace_id();
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .tenants_tx
-                .get_connection(&auth_token.workspace_id())
+                .get_connection(&workspace_id)
                 .await
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
+
+        // Check if employee exists and belongs to the workspace of this tenant
+        let employee_exists = crate::schema::employees::table
+            .filter(crate::schema::employees::id.eq(employee_id))
+            .filter(crate::schema::employees::workspace_id.eq(workspace_id))
+            .filter(crate::schema::employees::deleted_at.is_null())
+            .select(crate::schema::employees::id)
+            .first::<Uuid>(&mut *conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db check employee: {e}")))?;
+
+        if employee_exists.is_none() {
+            return Err(AppError::NotFound("error.employee_not_found".to_string()));
+        }
 
         diesel::delete(
             shift_rosters::table

@@ -44,9 +44,9 @@ async fn test_leave_accrual_log_repo_crud() {
         .unwrap()
         .unwrap();
 
-    assert_eq!(log.amount, Decimal::new(15, 1));
-    assert_eq!(log.employee_id, employee_id);
-    assert_eq!(log.leave_type_id, leave_type_id);
+    assert_eq!(log.amount(), Decimal::new(15, 1));
+    assert_eq!(log.employee_id(), employee_id);
+    assert_eq!(log.leave_type_id(), leave_type_id);
 
     // 2. Find by employee, date, type
     let found = repo
@@ -55,18 +55,18 @@ async fn test_leave_accrual_log_repo_crud() {
         .unwrap();
     assert!(found.is_some());
     let found = found.unwrap();
-    assert_eq!(found.id, log.id);
+    assert_eq!(found.id, log.id());
     assert_eq!(found.amount, Decimal::new(15, 1));
 
     // 3. Update Accrual Amount
     let updated = repo
-        .update_accrual_amount(log.id, ws_id, Decimal::new(20, 1))
+        .update_accrual_amount(log.id(), ws_id, Decimal::new(20, 1))
         .await
         .unwrap();
-    assert_eq!(updated.amount, Decimal::new(20, 1));
+    assert_eq!(updated.amount(), Decimal::new(20, 1));
     // Notes should contain (Re-calculated)
     assert!(updated
-        .notes
+        .notes()
         .unwrap_or_default()
         .contains("(Re-calculated)"));
 
@@ -161,8 +161,8 @@ async fn test_leave_accrual_log_repo_crud() {
 
     assert!(persisted.is_some());
     let p = persisted.unwrap();
-    assert_eq!(p.amount, Decimal::new(35, 1));
-    assert_eq!(p.accrual_date, persist_date);
+    assert_eq!(p.amount(), Decimal::new(35, 1));
+    assert_eq!(p.accrual_date(), persist_date);
 
     // Call again with same amount and force=false should return None
     let persisted2 = repo
@@ -196,7 +196,7 @@ async fn test_leave_accrual_log_repo_crud() {
         .unwrap();
     assert!(persisted3.is_some());
     let p3 = persisted3.unwrap();
-    assert_eq!(p3.amount, Decimal::new(50, 1));
+    assert_eq!(p3.amount(), Decimal::new(50, 1));
 
     // And balance should be updated accordingly (6.0 + 3.5 + (5.0 - 3.5) = 11.0)
     let balance_amt_new: bigdecimal::BigDecimal = crate::test_query_scalar_bigdecimal!(

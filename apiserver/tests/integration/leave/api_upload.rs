@@ -177,7 +177,7 @@ async fn test_upload_leave_csv_api() {
         .unwrap();
 
     assert_eq!(requests.len(), 1, "Leave request was not created");
-    assert_eq!(requests[0].leave_type_id, leave_type_id);
+    assert_eq!(requests[0].leave_type_id(), leave_type_id);
 
     // Get latest leave import
     let response = app

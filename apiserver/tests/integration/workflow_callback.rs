@@ -121,12 +121,12 @@ async fn test_leave_request_workflow_flow() {
 
     assert_eq!(resp.status(), StatusCode::CREATED);
     let created: LeaveRequest = serde_json::from_value(body_json(resp).await).unwrap();
-    assert_eq!(created.status, LeaveStatus::Pending);
+    assert_eq!(created.status(), LeaveStatus::Pending);
 
     // Approve workflow step
     let approve_payload = serde_json::json!({
         "entity_type": "leave_request",
-        "entity_id": created.id,
+        "entity_id": created.id(),
         "action": "approve",
         "note": "approved!"
     });
@@ -150,7 +150,7 @@ async fn test_leave_request_workflow_flow() {
         &factory.diesel_pools.api,
         "SELECT status::text AS val FROM leave_requests WHERE id = $1",
         diesel::sql_types::Uuid,
-        created.id
+        created.id()
     );
     assert_eq!(status_str, "approved");
 
@@ -178,12 +178,12 @@ async fn test_leave_request_workflow_flow() {
 
     assert_eq!(resp.status(), StatusCode::CREATED);
     let created_b: LeaveRequest = serde_json::from_value(body_json(resp).await).unwrap();
-    assert_eq!(created_b.status, LeaveStatus::Pending);
+    assert_eq!(created_b.status(), LeaveStatus::Pending);
 
     // Reject workflow step
     let reject_payload = serde_json::json!({
         "entity_type": "leave_request",
-        "entity_id": created_b.id,
+        "entity_id": created_b.id(),
         "action": "reject",
         "note": "denied!"
     });
@@ -207,7 +207,7 @@ async fn test_leave_request_workflow_flow() {
         &factory.diesel_pools.api,
         "SELECT status::text AS val FROM leave_requests WHERE id = $1",
         diesel::sql_types::Uuid,
-        created_b.id
+        created_b.id()
     );
     assert_eq!(status_str_b, "rejected");
 }

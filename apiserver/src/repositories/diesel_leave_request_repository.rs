@@ -31,31 +31,46 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         request: &LeaveRequest,
     ) -> Result<(), AppError> {
-        let _workspace_id = auth_token.workspace_id();
+        let workspace_id = auth_token.workspace_id();
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .tenants_tx
-                .get_connection(&auth_token.workspace_id())
+                .get_connection(&workspace_id)
                 .await
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
+        // Check if employee exists and belongs to the workspace of this tenant
+        let employee_exists = employees::table
+            .filter(employees::id.eq(request.employee_id()))
+            .filter(employees::workspace_id.eq(workspace_id))
+            .filter(employees::deleted_at.is_null())
+            .select(employees::id)
+            .first::<Uuid>(&mut *conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db check employee: {e}")))?;
+
+        if employee_exists.is_none() {
+            return Err(AppError::NotFound("error.employee_not_found".to_string()));
+        }
+
         diesel::insert_into(leave_requests::table)
             .values((
-                leave_requests::id.eq(request.id),
-                leave_requests::employee_id.eq(request.employee_id),
-                leave_requests::leave_type_id.eq(request.leave_type_id),
-                leave_requests::start_date.eq(request.start_date),
-                leave_requests::end_date.eq(request.end_date),
-                leave_requests::reason.eq(&request.reason),
-                leave_requests::status.eq(request.status),
-                leave_requests::duration_type.eq(request.duration_type.to_string()),
-                leave_requests::start_time.eq(request.start_time),
-                leave_requests::end_time.eq(request.end_time),
-                leave_requests::requested_by_user_id.eq(request.requested_by_user_id),
-                leave_requests::approved_by_user_id.eq(request.approved_by_user_id),
-                leave_requests::created_at.eq(request.created_at),
-                leave_requests::updated_at.eq(request.updated_at),
+                leave_requests::id.eq(request.id()),
+                leave_requests::employee_id.eq(request.employee_id()),
+                leave_requests::leave_type_id.eq(request.leave_type_id()),
+                leave_requests::start_date.eq(request.start_date()),
+                leave_requests::end_date.eq(request.end_date()),
+                leave_requests::reason.eq(&request.reason()),
+                leave_requests::status.eq(request.status()),
+                leave_requests::duration_type.eq(request.duration_type().to_string()),
+                leave_requests::start_time.eq(request.start_time()),
+                leave_requests::end_time.eq(request.end_time()),
+                leave_requests::requested_by_user_id.eq(request.requested_by_user_id()),
+                leave_requests::approved_by_user_id.eq(request.approved_by_user_id()),
+                leave_requests::created_at.eq(request.created_at()),
+                leave_requests::updated_at.eq(request.updated_at()),
             ))
             .execute(&mut *conn)
             .await
@@ -709,22 +724,22 @@ mod tests {
         let lt_id = Uuid::new_v4();
         let auth_token = TenantAuthToken(ws_id);
 
-        let req = LeaveRequest {
-            id: Uuid::new_v4(),
-            employee_id: emp_id,
-            leave_type_id: lt_id,
-            start_date: NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
-            end_date: NaiveDate::from_ymd_opt(2023, 1, 2).unwrap(),
-            reason: Some("test".to_string()),
-            status: LeaveStatus::Pending,
-            duration_type: crate::models::LeaveDurationType::FullDay,
-            start_time: None,
-            end_time: None,
-            requested_by_user_id: None,
-            approved_by_user_id: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        };
+        let req = LeaveRequest::new(
+            Uuid::new_v4(),
+            emp_id,
+            lt_id,
+            NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
+            NaiveDate::from_ymd_opt(2023, 1, 2).unwrap(),
+            Some("test".to_string()),
+            LeaveStatus::Pending,
+            crate::models::LeaveDurationType::FullDay,
+            None,
+            None,
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
 
         let _ = repo.create_leave_request(&auth_token, &req).await;
         let _ = repo

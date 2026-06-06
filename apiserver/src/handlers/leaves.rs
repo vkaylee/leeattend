@@ -96,8 +96,8 @@ pub async fn submit_leave_request(
             .submit_to_workflow(
                 &ctx.auth_token,
                 "leave_request".to_string(),
-                request.id,
-                request.employee_id,
+                request.id(),
+                request.employee_id(),
             )
             .await?;
     }
@@ -262,7 +262,7 @@ pub async fn get_workspace_leave_requests(
             .get_workspace_leave_requests(ctx.workspace_id, Some(LeaveStatus::PreApproved))
             .await?;
         requests.extend(pre_approved);
-        requests.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        requests.sort_by(|a, b| b.created_at().cmp(&a.created_at()));
     }
 
     Ok(Json(requests))
@@ -475,16 +475,16 @@ pub async fn assign_leave_policy(
 ) -> AppResult<(StatusCode, Json<LeavePolicyAssignment>)> {
     ctx.require_permission(Permission::LeavePoliciesManage)?;
 
-    let assignment = LeavePolicyAssignment {
-        id: crate::utils::id::new_id(),
-        workspace_id: ctx.workspace_id,
-        assignee_type: req.assignee_type,
-        assignee_id: req.assignee_id,
-        policy_id: req.policy_id,
-        effective_from: req.effective_from,
-        effective_to: req.effective_to,
-        created_at: chrono::Utc::now(),
-    };
+    let assignment = LeavePolicyAssignment::new(
+        crate::utils::id::new_id(),
+        ctx.workspace_id,
+        req.assignee_type,
+        req.assignee_id,
+        req.policy_id,
+        req.effective_from,
+        req.effective_to,
+        chrono::Utc::now(),
+    );
 
     let saved = state
         .leaves()

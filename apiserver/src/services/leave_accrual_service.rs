@@ -167,19 +167,19 @@ impl LeaveAccrualService {
         let mut valid_intervals = Vec::new();
 
         for c in contracts {
-            if c.status == ContractStatus::Draft {
+            if c.status() == ContractStatus::Draft {
                 continue;
             }
 
-            if c.start_date > as_of {
+            if c.start_date() > as_of {
                 continue;
             }
 
-            let end_date = c.end_date.unwrap_or(as_of);
+            let end_date = c.end_date().unwrap_or(as_of);
             let end_date = if end_date > as_of { as_of } else { end_date };
 
-            if end_date >= c.start_date {
-                valid_intervals.push((c.start_date, end_date));
+            if end_date >= c.start_date() {
+                valid_intervals.push((c.start_date(), end_date));
             }
         }
 
@@ -521,25 +521,25 @@ impl LeaveAccrualService {
                 .get(&emp.id())
                 .map(crate::models::EmployeeDepartmentHistory::department_id);
 
-            let mut matched = all_assignments
-                .iter()
-                .find(|(a, _, _)| a.assignee_type == "employee" && a.assignee_id == Some(emp.id()));
+            let mut matched = all_assignments.iter().find(|(a, _, _)| {
+                a.assignee_type() == "employee" && a.assignee_id() == Some(emp.id())
+            });
             if matched.is_none() {
                 if let Some(d_id) = dept_id {
                     matched = all_assignments.iter().find(|(a, _, _)| {
-                        a.assignee_type == "department" && a.assignee_id == Some(d_id)
+                        a.assignee_type() == "department" && a.assignee_id() == Some(d_id)
                     });
                 }
             }
             if matched.is_none() {
                 matched = all_assignments.iter().find(|(a, _, _)| {
-                    a.assignee_type == "workspace" && a.assignee_id == Some(workspace_id)
+                    a.assignee_type() == "workspace" && a.assignee_id() == Some(workspace_id)
                 });
             }
 
             if let Some((assignment, def, _code)) = matched {
-                let config = &def.rule_config;
-                let effective_from = assignment.effective_from;
+                let config = def.rule_config();
+                let effective_from = assignment.effective_from();
                 let dates = Self::get_accrual_dates(
                     &config.frequency,
                     &config.accrual_timing,
@@ -548,7 +548,7 @@ impl LeaveAccrualService {
                 );
 
                 if !dates.is_empty() {
-                    emp_policy_map.insert(emp.id(), (def.clone(), assignment.id));
+                    emp_policy_map.insert(emp.id(), (def.clone(), assignment.id()));
                     accrual_plan.insert(emp.id(), dates);
 
                     let q_start = Self::compute_qualifying_range_start(config, effective_from);
@@ -585,8 +585,8 @@ impl LeaveAccrualService {
                 tracing::error!("policy must exist for accrued employee {}", emp.id());
                 continue;
             };
-            let config = &def.rule_config;
-            let leave_type_id = def.leave_type_id;
+            let config = def.rule_config();
+            let leave_type_id = def.leave_type_id();
 
             let empty_contracts = vec![];
             let contracts = contract_map.get(&emp.id()).unwrap_or(&empty_contracts);
@@ -685,20 +685,20 @@ mod tests {
         hire: NaiveDate,
         term: Option<NaiveDate>,
     ) -> crate::models::contract::EmployeeContract {
-        crate::models::contract::EmployeeContract {
-            id: Uuid::new_v4(),
-            workspace_id: Uuid::new_v4(),
-            employee_id: Uuid::new_v4(),
-            contract_number: None,
-            contract_type: crate::models::enums::ContractType::Indefinite,
-            status: crate::models::enums::ContractStatus::Active,
-            start_date: hire,
-            end_date: term,
-            document_id: None,
-            notes: None,
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-        }
+        crate::models::contract::EmployeeContract::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            None,
+            crate::models::enums::ContractType::Indefinite,
+            crate::models::enums::ContractStatus::Active,
+            hire,
+            term,
+            None,
+            None,
+            chrono::Utc::now(),
+            chrono::Utc::now(),
+        )
     }
 
     #[test]

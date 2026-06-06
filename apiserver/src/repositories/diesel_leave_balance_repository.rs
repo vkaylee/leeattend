@@ -251,7 +251,7 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
 
         // Check if employee exists and belongs to the workspace of this tenant
         let employee_exists = employees::table
-            .filter(employees::id.eq(balance.employee_id))
+            .filter(employees::id.eq(balance.employee_id()))
             .filter(employees::workspace_id.eq(workspace_id))
             .filter(employees::deleted_at.is_null())
             .select(employees::id)
@@ -265,16 +265,16 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
         }
 
         let entity = LeaveBalanceEntity {
-            id: balance.id,
-            employee_id: balance.employee_id,
-            year: balance.year,
-            entitlement: balance.entitlement,
-            carried_over: balance.carried_over,
-            created_at: Some(balance.created_at),
-            updated_at: Some(balance.updated_at),
-            accrued_amount: BigDecimal::from_str(&balance.accrued_amount.to_string())
+            id: balance.id(),
+            employee_id: balance.employee_id(),
+            year: balance.year(),
+            entitlement: balance.entitlement(),
+            carried_over: balance.carried_over(),
+            created_at: Some(balance.created_at()),
+            updated_at: Some(balance.updated_at()),
+            accrued_amount: BigDecimal::from_str(&balance.accrued_amount().to_string())
                 .unwrap_or_else(|_| BigDecimal::from(0)),
-            leave_type_id: balance.leave_type_id,
+            leave_type_id: balance.leave_type_id(),
         };
 
         diesel::insert_into(leave_balances::table)

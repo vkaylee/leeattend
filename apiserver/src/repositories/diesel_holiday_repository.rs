@@ -285,20 +285,20 @@ impl HolidayRepository for DieselHolidayRepository {
                         requests
                             .iter()
                             .map(|r| crate::models::diesel::leave::LeaveRequestEntity {
-                                id: r.id,
-                                employee_id: r.employee_id,
-                                leave_type_id: r.leave_type_id,
-                                start_date: r.start_date,
-                                end_date: r.end_date,
-                                reason: r.reason.clone(),
-                                status: r.status,
-                                duration_type: r.duration_type.to_string(),
-                                start_time: r.start_time,
-                                end_time: r.end_time,
-                                requested_by_user_id: r.requested_by_user_id,
-                                approved_by_user_id: r.approved_by_user_id,
-                                created_at: Some(r.created_at),
-                                updated_at: Some(r.updated_at),
+                                id: r.id(),
+                                employee_id: r.employee_id(),
+                                leave_type_id: r.leave_type_id(),
+                                start_date: r.start_date(),
+                                end_date: r.end_date(),
+                                reason: r.reason().map(String::from),
+                                status: r.status(),
+                                duration_type: r.duration_type().to_string(),
+                                start_time: r.start_time(),
+                                end_time: r.end_time(),
+                                requested_by_user_id: r.requested_by_user_id(),
+                                approved_by_user_id: r.approved_by_user_id(),
+                                created_at: Some(r.created_at()),
+                                updated_at: Some(r.updated_at()),
                             })
                             .collect();
 

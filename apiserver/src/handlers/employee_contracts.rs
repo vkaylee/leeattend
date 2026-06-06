@@ -135,27 +135,27 @@ pub async fn create_contract(
 
     // Assign employment phase if requested
     if let Some(phase_id) = payload.assign_phase_id {
-        let end_date = contract.end_date.unwrap_or_else(|| {
+        let end_date = contract.end_date().unwrap_or_else(|| {
             contract
-                .start_date
+                .start_date()
                 .checked_add_months(chrono::Months::new(12))
-                .unwrap_or(contract.start_date)
+                .unwrap_or_else(|| contract.start_date())
         });
         let _ = state
             .employees()
             .employment_phase_repo()
             .assign_phase(
                 workspace_id,
-                contract.employee_id,
+                contract.employee_id(),
                 phase_id,
-                contract.start_date,
+                contract.start_date(),
                 end_date,
                 None,
             )
             .await;
     }
 
-    dispatch_sync_hire_date(&state, workspace_id, contract.employee_id, contract.id).await;
+    dispatch_sync_hire_date(&state, workspace_id, contract.employee_id(), contract.id()).await;
 
     Ok((StatusCode::CREATED, Json(contract)))
 }
@@ -189,7 +189,7 @@ pub async fn update_contract(
         .update_contract(&ctx.auth_token, contract_id, &payload)
         .await?;
 
-    dispatch_sync_hire_date(&state, workspace_id, contract.employee_id, contract.id).await;
+    dispatch_sync_hire_date(&state, workspace_id, contract.employee_id(), contract.id()).await;
 
     Ok(Json(contract))
 }

@@ -92,7 +92,7 @@ async fn test_leave_request_lifecycle_smoke() {
         .await
         .unwrap();
     let leave_req: LeaveRequest = serde_json::from_slice(&body).unwrap();
-    assert_eq!(leave_req.status, LeaveStatus::PreApproved);
+    assert_eq!(leave_req.status(), LeaveStatus::PreApproved);
 
     // 3. Approve Request
     let approve_req = ApproveLeaveRequest {
@@ -106,7 +106,8 @@ async fn test_leave_request_lifecycle_smoke() {
                 .method("POST")
                 .uri(format!(
                     "/api/v1/workspaces/{}/leave/requests/{}/approve",
-                    ws_id, leave_req.id
+                    ws_id,
+                    leave_req.id()
                 ))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())

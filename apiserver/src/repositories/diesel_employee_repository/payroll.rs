@@ -300,10 +300,7 @@ mod tests {
                     msg.contains("connecting") || msg.contains("connection") || msg.contains("db")
                 );
             }
-            other => panic!(
-                "Expected AppError::NotFound or db connection error, got {:?}",
-                other
-            ),
+            other => panic!("Expected AppError::NotFound or db connection error, got {other:?}"),
         }
     }
 }

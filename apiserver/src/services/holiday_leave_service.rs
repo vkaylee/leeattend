@@ -143,22 +143,22 @@ impl HolidayLeaveService {
                 let req_id = crate::utils::id::new_id();
                 let reason = format!("Nghỉ lễ (trừ phép): {}", holiday.name());
 
-                new_requests.push(LeaveRequest {
-                    id: req_id,
-                    employee_id: emp.id(),
+                new_requests.push(LeaveRequest::new(
+                    req_id,
+                    emp.id(),
                     leave_type_id,
-                    start_date: holiday.date(),
-                    end_date: holiday.date(),
-                    reason: Some(reason.clone()),
-                    status: LeaveStatus::Approved,
-                    duration_type: LeaveDurationType::FullDay,
-                    start_time: None,
-                    end_time: None,
-                    requested_by_user_id: None,
-                    approved_by_user_id: None,
-                    created_at: Utc::now(),
-                    updated_at: Utc::now(),
-                });
+                    holiday.date(),
+                    holiday.date(),
+                    Some(reason.clone()),
+                    LeaveStatus::Approved,
+                    LeaveDurationType::FullDay,
+                    None,
+                    None,
+                    None,
+                    None,
+                    Utc::now(),
+                    Utc::now(),
+                ));
 
                 new_rosters.push(ShiftRoster {
                     id: crate::utils::id::new_id(),

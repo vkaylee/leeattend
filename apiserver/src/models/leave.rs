@@ -8,30 +8,155 @@ use crate::models::enums::{
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct LeaveRequest {
-    pub id: Uuid,
-    pub employee_id: Uuid,
-    pub leave_type_id: Uuid,
-    pub start_date: NaiveDate,
-    pub end_date: NaiveDate,
-    pub reason: Option<String>,
-    pub status: LeaveStatus,
-    pub duration_type: LeaveDurationType,
-    pub start_time: Option<NaiveTime>,
-    pub end_time: Option<NaiveTime>,
-    pub requested_by_user_id: Option<Uuid>,
-    pub approved_by_user_id: Option<Uuid>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    id: Uuid,
+    employee_id: Uuid,
+    leave_type_id: Uuid,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+    reason: Option<String>,
+    status: LeaveStatus,
+    duration_type: LeaveDurationType,
+    start_time: Option<NaiveTime>,
+    end_time: Option<NaiveTime>,
+    requested_by_user_id: Option<Uuid>,
+    approved_by_user_id: Option<Uuid>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+impl LeaveRequest {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        id: Uuid,
+        employee_id: Uuid,
+        leave_type_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+        reason: Option<String>,
+        status: LeaveStatus,
+        duration_type: LeaveDurationType,
+        start_time: Option<NaiveTime>,
+        end_time: Option<NaiveTime>,
+        requested_by_user_id: Option<Uuid>,
+        approved_by_user_id: Option<Uuid>,
+        created_at: DateTime<Utc>,
+        updated_at: DateTime<Utc>,
+    ) -> Self {
+        Self {
+            id,
+            employee_id,
+            leave_type_id,
+            start_date,
+            end_date,
+            reason,
+            status,
+            duration_type,
+            start_time,
+            end_time,
+            requested_by_user_id,
+            approved_by_user_id,
+            created_at,
+            updated_at,
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn employee_id(&self) -> Uuid {
+        self.employee_id
+    }
+
+    pub fn leave_type_id(&self) -> Uuid {
+        self.leave_type_id
+    }
+
+    pub fn start_date(&self) -> NaiveDate {
+        self.start_date
+    }
+
+    pub fn end_date(&self) -> NaiveDate {
+        self.end_date
+    }
+
+    pub fn reason(&self) -> Option<&str> {
+        self.reason.as_deref()
+    }
+
+    pub fn status(&self) -> LeaveStatus {
+        self.status
+    }
+
+    pub fn duration_type(&self) -> LeaveDurationType {
+        self.duration_type
+    }
+
+    pub fn start_time(&self) -> Option<NaiveTime> {
+        self.start_time
+    }
+
+    pub fn end_time(&self) -> Option<NaiveTime> {
+        self.end_time
+    }
+
+    pub fn requested_by_user_id(&self) -> Option<Uuid> {
+        self.requested_by_user_id
+    }
+
+    pub fn approved_by_user_id(&self) -> Option<Uuid> {
+        self.approved_by_user_id
+    }
+
+    pub fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+
+    pub fn updated_at(&self) -> DateTime<Utc> {
+        self.updated_at
+    }
 }
 
 /// Response wrapper with leave type details for API responses
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LeaveRequestWithType {
     #[serde(flatten)]
-    pub request: LeaveRequest,
-    pub leave_type_code: String,
-    pub leave_type_name: String,
-    pub is_paid: bool,
+    request: LeaveRequest,
+    leave_type_code: String,
+    leave_type_name: String,
+    is_paid: bool,
+}
+
+impl LeaveRequestWithType {
+    pub fn new(
+        request: LeaveRequest,
+        leave_type_code: String,
+        leave_type_name: String,
+        is_paid: bool,
+    ) -> Self {
+        Self {
+            request,
+            leave_type_code,
+            leave_type_name,
+            is_paid,
+        }
+    }
+
+    pub fn request(&self) -> &LeaveRequest {
+        &self.request
+    }
+
+    pub fn leave_type_code(&self) -> &str {
+        &self.leave_type_code
+    }
+
+    pub fn leave_type_name(&self) -> &str {
+        &self.leave_type_name
+    }
+
+    pub fn is_paid(&self) -> bool {
+        self.is_paid
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
@@ -56,15 +181,78 @@ pub struct ApproveLeaveRequest {
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct LeaveBalance {
-    pub id: Uuid,
-    pub employee_id: Uuid,
-    pub leave_type_id: Uuid,
-    pub year: i32,
-    pub entitlement: i32,
-    pub accrued_amount: rust_decimal::Decimal,
-    pub carried_over: i32,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    id: Uuid,
+    employee_id: Uuid,
+    leave_type_id: Uuid,
+    year: i32,
+    entitlement: i32,
+    accrued_amount: rust_decimal::Decimal,
+    carried_over: i32,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+impl LeaveBalance {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        id: Uuid,
+        employee_id: Uuid,
+        leave_type_id: Uuid,
+        year: i32,
+        entitlement: i32,
+        accrued_amount: rust_decimal::Decimal,
+        carried_over: i32,
+        created_at: DateTime<Utc>,
+        updated_at: DateTime<Utc>,
+    ) -> Self {
+        Self {
+            id,
+            employee_id,
+            leave_type_id,
+            year,
+            entitlement,
+            accrued_amount,
+            carried_over,
+            created_at,
+            updated_at,
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn employee_id(&self) -> Uuid {
+        self.employee_id
+    }
+
+    pub fn leave_type_id(&self) -> Uuid {
+        self.leave_type_id
+    }
+
+    pub fn year(&self) -> i32 {
+        self.year
+    }
+
+    pub fn entitlement(&self) -> i32 {
+        self.entitlement
+    }
+
+    pub fn accrued_amount(&self) -> rust_decimal::Decimal {
+        self.accrued_amount
+    }
+
+    pub fn carried_over(&self) -> i32 {
+        self.carried_over
+    }
+
+    pub fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+
+    pub fn updated_at(&self) -> DateTime<Utc> {
+        self.updated_at
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
@@ -123,13 +311,63 @@ pub struct LeaveTypeConfig {
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct LeaveType {
-    pub id: Uuid,
-    pub workspace_id: Uuid,
-    pub code: String,
-    pub name: String,
-    pub is_paid: bool,
-    pub policy_config: LeaveTypeConfig,
-    pub created_at: DateTime<Utc>,
+    id: Uuid,
+    workspace_id: Uuid,
+    code: String,
+    name: String,
+    is_paid: bool,
+    policy_config: LeaveTypeConfig,
+    created_at: DateTime<Utc>,
+}
+
+impl LeaveType {
+    pub fn new(
+        id: Uuid,
+        workspace_id: Uuid,
+        code: String,
+        name: String,
+        is_paid: bool,
+        policy_config: LeaveTypeConfig,
+        created_at: DateTime<Utc>,
+    ) -> Self {
+        Self {
+            id,
+            workspace_id,
+            code,
+            name,
+            is_paid,
+            policy_config,
+            created_at,
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn workspace_id(&self) -> Uuid {
+        self.workspace_id
+    }
+
+    pub fn code(&self) -> &str {
+        &self.code
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn is_paid(&self) -> bool {
+        self.is_paid
+    }
+
+    pub fn policy_config(&self) -> &LeaveTypeConfig {
+        &self.policy_config
+    }
+
+    pub fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, utoipa::ToSchema)]
@@ -147,39 +385,215 @@ pub struct LeavePolicyConfig {
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct LeavePolicyDefinition {
-    pub id: Uuid,
-    pub workspace_id: Uuid,
-    pub name: String,
-    pub description: Option<String>,
-    pub leave_type_id: Uuid,
-    pub rule_config: LeavePolicyConfig,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    id: Uuid,
+    workspace_id: Uuid,
+    name: String,
+    description: Option<String>,
+    leave_type_id: Uuid,
+    rule_config: LeavePolicyConfig,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+impl LeavePolicyDefinition {
+    pub fn new(
+        id: Uuid,
+        workspace_id: Uuid,
+        name: String,
+        description: Option<String>,
+        leave_type_id: Uuid,
+        rule_config: LeavePolicyConfig,
+        created_at: DateTime<Utc>,
+        updated_at: DateTime<Utc>,
+    ) -> Self {
+        Self {
+            id,
+            workspace_id,
+            name,
+            description,
+            leave_type_id,
+            rule_config,
+            created_at,
+            updated_at,
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn workspace_id(&self) -> Uuid {
+        self.workspace_id
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn description(&self) -> Option<&str> {
+        self.description.as_deref()
+    }
+
+    pub fn leave_type_id(&self) -> Uuid {
+        self.leave_type_id
+    }
+
+    pub fn rule_config(&self) -> &LeavePolicyConfig {
+        &self.rule_config
+    }
+
+    pub fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+
+    pub fn updated_at(&self) -> DateTime<Utc> {
+        self.updated_at
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct LeavePolicyAssignment {
-    pub id: Uuid,
-    pub workspace_id: Uuid,
-    pub assignee_type: String,
-    pub assignee_id: Option<Uuid>,
-    pub policy_id: Uuid,
-    pub effective_from: NaiveDate,
-    pub effective_to: Option<NaiveDate>,
-    pub created_at: DateTime<Utc>,
+    id: Uuid,
+    workspace_id: Uuid,
+    assignee_type: String,
+    assignee_id: Option<Uuid>,
+    policy_id: Uuid,
+    effective_from: NaiveDate,
+    effective_to: Option<NaiveDate>,
+    created_at: DateTime<Utc>,
+}
+
+impl LeavePolicyAssignment {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        id: Uuid,
+        workspace_id: Uuid,
+        assignee_type: String,
+        assignee_id: Option<Uuid>,
+        policy_id: Uuid,
+        effective_from: NaiveDate,
+        effective_to: Option<NaiveDate>,
+        created_at: DateTime<Utc>,
+    ) -> Self {
+        Self {
+            id,
+            workspace_id,
+            assignee_type,
+            assignee_id,
+            policy_id,
+            effective_from,
+            effective_to,
+            created_at,
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn workspace_id(&self) -> Uuid {
+        self.workspace_id
+    }
+
+    pub fn assignee_type(&self) -> &str {
+        &self.assignee_type
+    }
+
+    pub fn assignee_id(&self) -> Option<Uuid> {
+        self.assignee_id
+    }
+
+    pub fn policy_id(&self) -> Uuid {
+        self.policy_id
+    }
+
+    pub fn effective_from(&self) -> NaiveDate {
+        self.effective_from
+    }
+
+    pub fn effective_to(&self) -> Option<NaiveDate> {
+        self.effective_to
+    }
+
+    pub fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct LeaveAccrualLog {
-    pub id: Uuid,
-    pub workspace_id: Uuid,
-    pub employee_id: Uuid,
-    pub policy_assignment_id: Option<Uuid>,
-    pub accrual_date: NaiveDate,
-    pub amount: rust_decimal::Decimal,
-    pub leave_type_id: Uuid,
-    pub notes: Option<String>,
-    pub created_at: DateTime<Utc>,
+    id: Uuid,
+    workspace_id: Uuid,
+    employee_id: Uuid,
+    policy_assignment_id: Option<Uuid>,
+    accrual_date: NaiveDate,
+    amount: rust_decimal::Decimal,
+    leave_type_id: Uuid,
+    notes: Option<String>,
+    created_at: DateTime<Utc>,
+}
+
+impl LeaveAccrualLog {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        id: Uuid,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        policy_assignment_id: Option<Uuid>,
+        accrual_date: NaiveDate,
+        amount: rust_decimal::Decimal,
+        leave_type_id: Uuid,
+        notes: Option<String>,
+        created_at: DateTime<Utc>,
+    ) -> Self {
+        Self {
+            id,
+            workspace_id,
+            employee_id,
+            policy_assignment_id,
+            accrual_date,
+            amount,
+            leave_type_id,
+            notes,
+            created_at,
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn workspace_id(&self) -> Uuid {
+        self.workspace_id
+    }
+
+    pub fn employee_id(&self) -> Uuid {
+        self.employee_id
+    }
+
+    pub fn policy_assignment_id(&self) -> Option<Uuid> {
+        self.policy_assignment_id
+    }
+
+    pub fn accrual_date(&self) -> NaiveDate {
+        self.accrual_date
+    }
+
+    pub fn amount(&self) -> rust_decimal::Decimal {
+        self.amount
+    }
+
+    pub fn leave_type_id(&self) -> Uuid {
+        self.leave_type_id
+    }
+
+    pub fn notes(&self) -> Option<&str> {
+        self.notes.as_deref()
+    }
+
+    pub fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
@@ -230,16 +644,85 @@ pub struct AdjustBalanceRequest {
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct LeavePolicyAssignmentDetail {
-    pub id: Uuid,
-    pub workspace_id: Uuid,
-    pub assignee_type: String,
-    pub assignee_id: Option<Uuid>,
-    pub policy_id: Uuid,
-    pub effective_from: NaiveDate,
-    pub effective_to: Option<NaiveDate>,
-    pub created_at: DateTime<Utc>,
-    pub policy_name: String,
-    pub leave_type_name: String,
+    id: Uuid,
+    workspace_id: Uuid,
+    assignee_type: String,
+    assignee_id: Option<Uuid>,
+    policy_id: Uuid,
+    effective_from: NaiveDate,
+    effective_to: Option<NaiveDate>,
+    created_at: DateTime<Utc>,
+    policy_name: String,
+    leave_type_name: String,
+}
+
+impl LeavePolicyAssignmentDetail {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        id: Uuid,
+        workspace_id: Uuid,
+        assignee_type: String,
+        assignee_id: Option<Uuid>,
+        policy_id: Uuid,
+        effective_from: NaiveDate,
+        effective_to: Option<NaiveDate>,
+        created_at: DateTime<Utc>,
+        policy_name: String,
+        leave_type_name: String,
+    ) -> Self {
+        Self {
+            id,
+            workspace_id,
+            assignee_type,
+            assignee_id,
+            policy_id,
+            effective_from,
+            effective_to,
+            created_at,
+            policy_name,
+            leave_type_name,
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn workspace_id(&self) -> Uuid {
+        self.workspace_id
+    }
+
+    pub fn assignee_type(&self) -> &str {
+        &self.assignee_type
+    }
+
+    pub fn assignee_id(&self) -> Option<Uuid> {
+        self.assignee_id
+    }
+
+    pub fn policy_id(&self) -> Uuid {
+        self.policy_id
+    }
+
+    pub fn effective_from(&self) -> NaiveDate {
+        self.effective_from
+    }
+
+    pub fn effective_to(&self) -> Option<NaiveDate> {
+        self.effective_to
+    }
+
+    pub fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+
+    pub fn policy_name(&self) -> &str {
+        &self.policy_name
+    }
+
+    pub fn leave_type_name(&self) -> &str {
+        &self.leave_type_name
+    }
 }
 
 #[cfg(test)]

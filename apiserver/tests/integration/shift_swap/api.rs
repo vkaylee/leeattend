@@ -148,14 +148,14 @@ async fn test_create_shift_swap() {
     assert_eq!(res.status(), StatusCode::CREATED);
 
     let swap: ShiftSwapRequest = res.json().await.unwrap();
-    assert_eq!(swap.requester_id, s.emp_a);
-    assert_eq!(swap.target_id, s.emp_b);
-    assert_eq!(swap.swap_date, s.swap_date);
-    assert_eq!(swap.requester_shift_id, Some(s.shift_morning));
-    assert_eq!(swap.target_shift_id, Some(s.shift_evening));
-    assert_eq!(swap.status, ShiftSwapStatus::PendingAdmin);
-    assert_eq!(swap.reason, Some("Family emergency".to_string()));
-    assert_eq!(swap.requested_by_user_id, Some(s.user_id));
+    assert_eq!(swap.requester_id(), s.emp_a);
+    assert_eq!(swap.target_id(), s.emp_b);
+    assert_eq!(swap.swap_date(), s.swap_date);
+    assert_eq!(swap.requester_shift_id(), Some(s.shift_morning));
+    assert_eq!(swap.target_shift_id(), Some(s.shift_evening));
+    assert_eq!(swap.status(), ShiftSwapStatus::PendingAdmin);
+    assert_eq!(swap.reason(), Some("Family emergency"));
+    assert_eq!(swap.requested_by_user_id(), Some(s.user_id));
 }
 
 // ---------------------------------------------------------------------------
@@ -198,8 +198,8 @@ async fn test_list_shift_swaps_by_status() {
     assert_eq!(list_res.status(), StatusCode::OK);
     let swaps: Vec<ShiftSwapRequestWithNames> = list_res.json().await.unwrap();
     assert_eq!(swaps.len(), 1);
-    assert_eq!(swaps[0].requester_name.as_deref(), Some("Employee A"));
-    assert_eq!(swaps[0].target_name.as_deref(), Some("Employee B"));
+    assert_eq!(swaps[0].requester_name(), Some("Employee A"));
+    assert_eq!(swaps[0].target_name(), Some("Employee B"));
 
     // List approved — should be empty
     let empty_res = client
@@ -249,7 +249,9 @@ async fn test_approve_shift_swap_swaps_rosters() {
     let approve_res = client
         .put(format!(
             "{}/api/v1/workspaces/{}/shift-swaps/{}/approve",
-            s.address, s.workspace_id, swap.id
+            s.address,
+            s.workspace_id,
+            swap.id()
         ))
         .header("Authorization", format!("Bearer {}", s.auth_token))
         .json(&json!({ "status": "approved" }))
@@ -319,7 +321,7 @@ async fn test_approve_shift_swap_swaps_rosters() {
         .unwrap();
 
     assert_eq!(swaps.len(), 1);
-    assert_eq!(swaps[0].status, ShiftSwapStatus::Approved);
+    assert_eq!(swaps[0].status(), ShiftSwapStatus::Approved);
 }
 
 // ---------------------------------------------------------------------------
@@ -354,7 +356,9 @@ async fn test_reject_shift_swap() {
     let reject_res = client
         .put(format!(
             "{}/api/v1/workspaces/{}/shift-swaps/{}/approve",
-            s.address, s.workspace_id, swap.id
+            s.address,
+            s.workspace_id,
+            swap.id()
         ))
         .header("Authorization", format!("Bearer {}", s.auth_token))
         .json(&json!({ "status": "rejected" }))
@@ -419,7 +423,9 @@ async fn test_cannot_double_approve() {
     client
         .put(format!(
             "{}/api/v1/workspaces/{}/shift-swaps/{}/approve",
-            s.address, s.workspace_id, swap.id
+            s.address,
+            s.workspace_id,
+            swap.id()
         ))
         .header("Authorization", format!("Bearer {}", s.auth_token))
         .json(&json!({ "status": "approved" }))
@@ -431,7 +437,9 @@ async fn test_cannot_double_approve() {
     let res = client
         .put(format!(
             "{}/api/v1/workspaces/{}/shift-swaps/{}/approve",
-            s.address, s.workspace_id, swap.id
+            s.address,
+            s.workspace_id,
+            swap.id()
         ))
         .header("Authorization", format!("Bearer {}", s.auth_token))
         .json(&json!({ "status": "approved" }))
@@ -673,7 +681,9 @@ async fn test_shift_swap_stats() {
     client
         .put(format!(
             "{}/api/v1/workspaces/{}/shift-swaps/{}/approve",
-            s.address, s.workspace_id, swap.id
+            s.address,
+            s.workspace_id,
+            swap.id()
         ))
         .header("Authorization", format!("Bearer {}", s.auth_token))
         .json(&json!({ "status": "approved" }))

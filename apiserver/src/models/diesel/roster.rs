@@ -151,21 +151,21 @@ impl From<ShiftSwapRequestEntity> for ShiftSwapRequest {
             "cancelled" => ShiftSwapStatus::Cancelled,
             _ => ShiftSwapStatus::PendingTarget,
         };
-        Self {
-            id: entity.id,
-            workspace_id: entity.workspace_id,
-            requester_id: entity.requester_id,
-            target_id: entity.target_id,
-            swap_date: entity.swap_date,
-            requester_shift_id: entity.requester_shift_id,
-            target_shift_id: entity.target_shift_id,
+        ShiftSwapRequest::new(
+            entity.id,
+            entity.workspace_id,
+            entity.requester_id,
+            entity.target_id,
+            entity.swap_date,
+            entity.requester_shift_id,
+            entity.target_shift_id,
             status,
-            reason: entity.reason,
-            requested_by_user_id: entity.requested_by_user_id,
-            approved_by_user_id: entity.approved_by_user_id,
-            created_at: entity.created_at,
-            updated_at: entity.updated_at,
-        }
+            entity.reason,
+            entity.requested_by_user_id,
+            entity.approved_by_user_id,
+            entity.created_at,
+            entity.updated_at,
+        )
     }
 }
 use crate::models::enums::AssignmentHistoryType;

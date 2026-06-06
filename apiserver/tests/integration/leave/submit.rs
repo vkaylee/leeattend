@@ -138,9 +138,9 @@ async fn test_teamlead_submit_own_dept_auto_approved() {
     let leave_req: LeaveRequest = serde_json::from_slice(&body).unwrap();
 
     // Should be pre_approved (auto-approved by TeamLead)
-    assert_eq!(leave_req.status, LeaveStatus::PreApproved);
-    assert_eq!(leave_req.approved_by_user_id, Some(tl_user_id));
-    assert_eq!(leave_req.requested_by_user_id, Some(tl_user_id));
+    assert_eq!(leave_req.status(), LeaveStatus::PreApproved);
+    assert_eq!(leave_req.approved_by_user_id(), Some(tl_user_id));
+    assert_eq!(leave_req.requested_by_user_id(), Some(tl_user_id));
 }
 
 /// `TeamLead` submits leave for employee in OTHER department → 403 Forbidden
@@ -288,8 +288,8 @@ async fn test_hr_submit_stays_pending() {
 
     // HR has global scope → auto_approve = true (has LeaveRequestsApprove globally)
     // So HR should get pre_approved since they have approve permission
-    assert_eq!(leave_req.status, LeaveStatus::PreApproved);
-    assert_eq!(leave_req.approved_by_user_id, Some(hr_user_id));
+    assert_eq!(leave_req.status(), LeaveStatus::PreApproved);
+    assert_eq!(leave_req.approved_by_user_id(), Some(hr_user_id));
 }
 
 /// Regular Employee without `LeaveRequestsSubmit` → 403 Forbidden
@@ -462,6 +462,6 @@ async fn test_submit_leave_on_behalf_with_assignment() {
         .await
         .unwrap();
     let leave_req: LeaveRequest = serde_json::from_slice(&body).unwrap();
-    assert_eq!(leave_req.employee_id, target_emp_id);
-    assert_eq!(leave_req.requested_by_user_id, Some(submitter_user_id));
+    assert_eq!(leave_req.employee_id(), target_emp_id);
+    assert_eq!(leave_req.requested_by_user_id(), Some(submitter_user_id));
 }

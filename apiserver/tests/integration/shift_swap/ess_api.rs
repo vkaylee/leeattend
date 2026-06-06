@@ -93,13 +93,13 @@ async fn test_ess_shift_swap_flow() {
     println!("Response: {}", body);
     assert_eq!(status, StatusCode::CREATED);
     let swap: ShiftSwapRequest = serde_json::from_str(&body).unwrap();
-    assert_eq!(swap.status, ShiftSwapStatus::PendingTarget);
+    assert_eq!(swap.status(), ShiftSwapStatus::PendingTarget);
 
     // 2. Target rejects the swap
     let res = client
         .put(format!(
             "{address}/api/v1/ess/shift-swaps/{}/respond",
-            swap.id
+            swap.id()
         ))
         .header("Authorization", format!("Bearer {target_token}"))
         .header("x-workspace-id", workspace_id.to_string())
@@ -119,7 +119,7 @@ async fn test_ess_shift_swap_flow() {
         .await
         .unwrap();
     let swaps: Vec<ShiftSwapRequestWithNames> = res.json().await.unwrap();
-    assert_eq!(swaps[0].status, ShiftSwapStatus::Rejected);
+    assert_eq!(swaps[0].status(), ShiftSwapStatus::Rejected);
 }
 
 #[tokio::test]
@@ -186,7 +186,7 @@ async fn test_ess_shift_swap_cancel_and_accept() {
 
     // 2. Employee A cancels swap
     let res = client
-        .delete(format!("{address}/api/v1/ess/shift-swaps/{}", swap.id))
+        .delete(format!("{address}/api/v1/ess/shift-swaps/{}", swap.id()))
         .header("Authorization", format!("Bearer {requester_token}"))
         .header("x-workspace-id", workspace_id.to_string())
         .send()
@@ -214,7 +214,7 @@ async fn test_ess_shift_swap_cancel_and_accept() {
     let res = client
         .put(format!(
             "{address}/api/v1/ess/shift-swaps/{}/respond",
-            swap2.id
+            swap2.id()
         ))
         .header("Authorization", format!("Bearer {target_token}"))
         .header("x-workspace-id", workspace_id.to_string())
@@ -236,6 +236,6 @@ async fn test_ess_shift_swap_cancel_and_accept() {
         .await
         .unwrap();
 
-    let accepted = swaps.iter().find(|s| s.id == swap2.id).unwrap();
-    assert_eq!(accepted.status, ShiftSwapStatus::PendingAdmin);
+    let accepted = swaps.iter().find(|s| s.id() == swap2.id()).unwrap();
+    assert_eq!(accepted.status(), ShiftSwapStatus::PendingAdmin);
 }

@@ -105,9 +105,9 @@ async fn test_leave_requests_crud() {
     }
 
     let created: LeaveRequest = serde_json::from_str(&body_str).unwrap();
-    let request_id = created.id;
+    let request_id = created.id();
     // Auto approved since owner created it
-    assert_eq!(created.status, LeaveStatus::PreApproved);
+    assert_eq!(created.status(), LeaveStatus::PreApproved);
 
     // 2. Get my leave requests (as employee)
     let response = app

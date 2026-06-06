@@ -239,6 +239,21 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
+        // Check if employee exists and belongs to the workspace of this tenant
+        let employee_exists = crate::schema::employees::table
+            .filter(crate::schema::employees::id.eq(employee_id))
+            .filter(crate::schema::employees::workspace_id.eq(workspace_id))
+            .filter(crate::schema::employees::deleted_at.is_null())
+            .select(crate::schema::employees::id)
+            .first::<Uuid>(&mut *conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db check employee: {e}")))?;
+
+        if employee_exists.is_none() {
+            return Err(AppError::NotFound("error.employee_not_found".to_string()));
+        }
+
         map_db_err!(
             diesel::insert_into(employee_working_patterns::table)
                 .values((
@@ -297,6 +312,20 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
                 .await
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
+
+        // Verify all employee_ids belong to this workspace
+        let valid_count = crate::schema::employees::table
+            .filter(crate::schema::employees::id.eq_any(employee_ids))
+            .filter(crate::schema::employees::workspace_id.eq(workspace_id))
+            .filter(crate::schema::employees::deleted_at.is_null())
+            .count()
+            .get_result::<i64>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db check employees: {e}")))?;
+
+        if valid_count != employee_ids.len() as i64 {
+            return Err(AppError::NotFound("error.employee_not_found".to_string()));
+        }
 
         let conflicts: Vec<Uuid> = employee_working_patterns::table
             .filter(employee_working_patterns::workspace_id.eq(workspace_id))
