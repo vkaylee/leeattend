@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-import type { CreateWorkLocationRequest, UpdateWorkLocationRequest } from "@/lib/api-generated/models";
+import type { CreateWorkLocationRequest, UpdateWorkLocationRequest, WorkLocation } from "@/lib/api-generated/models";
 
 import { 
   listLocations, 
@@ -19,7 +19,9 @@ export function useLocations(wsId: string) {
     queryKey: locationKeys.all(wsId),
     queryFn: async () => {
       const res = await listLocations(wsId);
-      return res.data;
+      // listLocations returns res.data which is typed as WorkLocation[] but at runtime is PaginatedLocations (having .data as WorkLocation[])
+      const raw = res.data as unknown as { data: WorkLocation[] };
+      return raw?.data ?? [];
     },
     enabled: !!wsId,
   });
