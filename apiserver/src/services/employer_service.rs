@@ -45,6 +45,8 @@ impl EmployerService {
         actor_id: Uuid,
         data: CreateEmployerRequest,
     ) -> Result<Employer, AppError> {
+        self.validate_parent_employer(workspace_id, None, data.parent_id).await?;
+
         let auth_token = TenantAuthToken::system_override(workspace_id);
         let employer = self.repo.create_employer(&auth_token, data).await?;
 
@@ -74,6 +76,10 @@ impl EmployerService {
         actor_id: Uuid,
         data: UpdateEmployerRequest,
     ) -> Result<Employer, AppError> {
+        if let Some(parent_opt) = data.parent_id {
+            self.validate_parent_employer(workspace_id, Some(id), parent_opt).await?;
+        }
+
         let auth_token = TenantAuthToken::system_override(workspace_id);
         let employer = self.repo.update_employer(&auth_token, id, data).await?;
 
@@ -133,6 +139,57 @@ impl EmployerService {
             headers: &empty_headers,
         })
         .await;
+
+        Ok(())
+    }
+
+    async fn validate_parent_employer(
+        &self,
+        workspace_id: Uuid,
+        employer_id: Option<Uuid>,
+        parent_id: Option<Uuid>,
+    ) -> Result<(), AppError> {
+        let parent_id = match parent_id {
+            Some(pid) => pid,
+            None => return Ok(()),
+        };
+
+        if let Some(id) = employer_id {
+            if id == parent_id {
+                return Err(AppError::validation_raw(
+                    "An employer cannot be its own parent."
+                ));
+            }
+        }
+
+        let parent = self.get_employer(workspace_id, parent_id).await.map_err(|_| {
+            AppError::validation_raw("Parent employer not found in this workspace.")
+        })?;
+
+        if let Some(id) = employer_id {
+            let mut current_parent_id = parent.parent_id;
+            let mut visited = std::collections::HashSet::new();
+            visited.insert(id);
+            visited.insert(parent_id);
+
+            while let Some(pid) = current_parent_id {
+                if pid == id {
+                    return Err(AppError::validation_raw(
+                        "Circular dependency detected: updating the parent would create a cycle."
+                    ));
+                }
+                if visited.contains(&pid) {
+                    break;
+                }
+                visited.insert(pid);
+
+                if let Ok(p) = self.get_employer(workspace_id, pid).await {
+                    current_parent_id = p.parent_id;
+                } else {
+                    break;
+                }
+            }
+        }
 
         Ok(())
     }

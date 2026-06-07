@@ -26,6 +26,8 @@ pub struct EmployerEntity {
     pub updated_at: DateTime<Utc>,
     pub legal_address: Option<String>,
     pub deleted_at: Option<DateTime<Utc>>,
+    pub parent_id: Option<Uuid>,
+    pub relationship_type: Option<String>,
 }
 
 impl From<EmployerEntity> for Employer {
@@ -38,6 +40,8 @@ impl From<EmployerEntity> for Employer {
             legal_address: entity.legal_address,
             created_at: entity.created_at,
             updated_at: entity.updated_at,
+            parent_id: entity.parent_id,
+            relationship_type: entity.relationship_type,
         }
     }
 }
@@ -60,6 +64,8 @@ mod tests {
             created_at: now,
             updated_at: now,
             deleted_at: None,
+            parent_id: None,
+            relationship_type: None,
         };
 
         let employer: Employer = entity.into();
@@ -70,5 +76,7 @@ mod tests {
         assert_eq!(employer.legal_address, Some("123 Address Rd".to_string()));
         assert_eq!(employer.created_at, now);
         assert_eq!(employer.updated_at, now);
+        assert_eq!(employer.parent_id, None);
+        assert_eq!(employer.relationship_type, None);
     }
 }

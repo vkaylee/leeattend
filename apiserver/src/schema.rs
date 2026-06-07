@@ -1088,6 +1088,9 @@ diesel::table! {
         #[max_length = 255]
         legal_address -> Nullable<Varchar>,
         deleted_at -> Nullable<Timestamptz>,
+        parent_id -> Nullable<Uuid>,
+        #[max_length = 100]
+        relationship_type -> Nullable<Varchar>,
     }
 }
 

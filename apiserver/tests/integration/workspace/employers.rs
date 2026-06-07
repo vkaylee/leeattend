@@ -32,6 +32,8 @@ async fn test_employers_crud() {
         name: "Test Employer Corp".to_string(),
         tax_code: Some("MST-999888".to_string()),
         legal_address: Some("123 Corporate Way".to_string()),
+        parent_id: None,
+        relationship_type: None,
     };
 
     let res = client
@@ -71,6 +73,8 @@ async fn test_employers_crud() {
         name: Some("Updated Employer Corp".to_string()),
         tax_code: Some("MST-111222".to_string()),
         legal_address: Some("456 Executive Blvd".to_string()),
+        parent_id: None,
+        relationship_type: None,
     };
 
     let res = client
@@ -167,4 +171,133 @@ async fn test_employers_crud() {
     let paginated: Value = res.json().await.unwrap();
     let list = paginated["data"].as_array().unwrap().clone();
     assert!(list.is_empty(), "Employers list should be empty again");
+}
+
+#[tokio::test]
+async fn test_employer_hierarchy() {
+    let (address, workspace_id, user_id, _factory, _db) = spawn_app_with_factory().await;
+    let client = reqwest::Client::new();
+
+    // 1. Create a parent employer
+    let parent_payload = CreateEmployerRequest {
+        name: "Parent Company".to_string(),
+        tax_code: Some("TAX-PARENT".to_string()),
+        legal_address: Some("1 Parent Rd".to_string()),
+        parent_id: None,
+        relationship_type: None,
+    };
+    let res = client
+        .post(&format!("{address}/api/v1/workspaces/{workspace_id}/employers"))
+        .header("X-User-Id", user_id.to_string())
+        .json(&parent_payload)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::CREATED);
+    let parent: Value = res.json().await.unwrap();
+    let parent_id = parent["id"].as_str().unwrap().to_string();
+
+    // 2. Create a subsidiary employer linked to the parent
+    let child_payload = CreateEmployerRequest {
+        name: "Subsidiary Company".to_string(),
+        tax_code: Some("TAX-CHILD".to_string()),
+        legal_address: Some("2 Child Rd".to_string()),
+        parent_id: Some(Uuid::parse_str(&parent_id).unwrap()),
+        relationship_type: Some("subsidiary".to_string()),
+    };
+    let res = client
+        .post(&format!("{address}/api/v1/workspaces/{workspace_id}/employers"))
+        .header("X-User-Id", user_id.to_string())
+        .json(&child_payload)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::CREATED);
+    let child: Value = res.json().await.unwrap();
+    let child_id = child["id"].as_str().unwrap().to_string();
+    assert_eq!(child["parent_id"], parent_id);
+    assert_eq!(child["relationship_type"], "subsidiary");
+
+    // 3. Try to link child to a parent in a different workspace
+    let other_workspace_id = Uuid::new_v4();
+    let other_parent_id = Uuid::new_v4();
+    crate::test_execute!(
+        &_db.diesel_pools.api,
+        "INSERT INTO employers (id, workspace_id, name, tax_code, created_at, updated_at) VALUES ($1, $2, 'Other Parent', 'TAX-OTHER', NOW(), NOW())",
+        diesel::sql_types::Uuid,
+        other_parent_id,
+        diesel::sql_types::Uuid,
+        other_workspace_id
+    );
+
+    let bad_child_payload = CreateEmployerRequest {
+        name: "Bad Subsidiary".to_string(),
+        tax_code: Some("TAX-BAD".to_string()),
+        legal_address: None,
+        parent_id: Some(other_parent_id),
+        relationship_type: Some("subsidiary".to_string()),
+    };
+    let res = client
+        .post(&format!("{address}/api/v1/workspaces/{workspace_id}/employers"))
+        .header("X-User-Id", user_id.to_string())
+        .json(&bad_child_payload)
+        .send()
+        .await
+        .unwrap();
+    // Should fail validation (400 Bad Request)
+    assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+
+    // 4. Update parent to have child as its parent (circular dependency test)
+    let bad_parent_update = UpdateEmployerRequest {
+        name: None,
+        tax_code: None,
+        legal_address: None,
+        parent_id: Some(Some(Uuid::parse_str(&child_id).unwrap())),
+        relationship_type: Some(Some("subsidiary".to_string())),
+    };
+    let res = client
+        .put(&format!("{address}/api/v1/workspaces/{workspace_id}/employers/{parent_id}"))
+        .header("X-User-Id", user_id.to_string())
+        .json(&bad_parent_update)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+
+    // 5. Update child to have itself as its parent (self-reference test)
+    let self_parent_update = UpdateEmployerRequest {
+        name: None,
+        tax_code: None,
+        legal_address: None,
+        parent_id: Some(Some(Uuid::parse_str(&child_id).unwrap())),
+        relationship_type: None,
+    };
+    let res = client
+        .put(&format!("{address}/api/v1/workspaces/{workspace_id}/employers/{child_id}"))
+        .header("X-User-Id", user_id.to_string())
+        .json(&self_parent_update)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+
+    // 6. Update child to remove parent (set parent_id to null)
+    let remove_parent_payload = UpdateEmployerRequest {
+        name: None,
+        tax_code: None,
+        legal_address: None,
+        parent_id: Some(None),
+        relationship_type: Some(None),
+    };
+    let res = client
+        .put(&format!("{address}/api/v1/workspaces/{workspace_id}/employers/{child_id}"))
+        .header("X-User-Id", user_id.to_string())
+        .json(&remove_parent_payload)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+    let updated_child: Value = res.json().await.unwrap();
+    assert!(updated_child["parent_id"].is_null());
+    assert!(updated_child["relationship_type"].is_null());
 }

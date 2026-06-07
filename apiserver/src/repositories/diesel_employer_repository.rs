@@ -43,6 +43,8 @@ impl EmployerRepository for DieselEmployerRepository {
             created_at: Utc::now(),
             updated_at: Utc::now(),
             deleted_at: None,
+            parent_id: data.parent_id,
+            relationship_type: data.relationship_type,
         };
 
         let result = diesel::insert_into(employers::table)
@@ -138,6 +140,34 @@ impl EmployerRepository for DieselEmployerRepository {
         }
         if data.legal_address.is_some() || data.legal_address.is_none() {
             existing.legal_address = data.legal_address;
+        }
+        if let Some(parent_opt) = data.parent_id {
+            if parent_opt.is_none() {
+                diesel::update(
+                    employers::table
+                        .filter(employers::id.eq(id))
+                        .filter(employers::workspace_id.eq(workspace_id)),
+                )
+                .set(employers::parent_id.eq(None::<Uuid>))
+                .execute(&mut *conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            }
+            existing.parent_id = parent_opt;
+        }
+        if let Some(rel_opt) = data.relationship_type {
+            if rel_opt.is_none() {
+                diesel::update(
+                    employers::table
+                        .filter(employers::id.eq(id))
+                        .filter(employers::workspace_id.eq(workspace_id)),
+                )
+                .set(employers::relationship_type.eq(None::<String>))
+                .execute(&mut *conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            }
+            existing.relationship_type = rel_opt;
         }
         existing.updated_at = Utc::now();
 
