@@ -52,9 +52,13 @@ def main() -> None:
     files_to_scan = []
     
     if repo_dir.exists():
-        for p in repo_dir.iterdir():
-            if p.is_file() and p.name.startswith("diesel_") and p.name.endswith(".rs"):
-                files_to_scan.append(p)
+        for p in repo_dir.rglob("*.rs"):
+            if p.is_file():
+                if p.name == "mod.rs":
+                    continue
+                is_sub_dir = p.parent != repo_dir
+                if is_sub_dir or p.name.startswith("diesel_"):
+                    files_to_scan.append(p)
     else:
         print(f"❌ ERROR: Directory {repo_dir} not found.")
         sys.exit(1)

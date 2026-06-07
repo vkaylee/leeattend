@@ -26,6 +26,7 @@ pub struct PayrollIncentivePolicyEntity {
     pub created_at: DateTime<Utc>,
     pub effective_from: NaiveDate,
     pub effective_to: Option<NaiveDate>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 // ---------------------------------------------------------------------------

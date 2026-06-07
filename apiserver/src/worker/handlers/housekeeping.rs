@@ -25,108 +25,116 @@ impl NightlyHousekeepingHandler {
             .await
             .map_err(|e| e.to_string())?;
 
-        use futures_util::StreamExt;
-
-        let results = futures_util::stream::iter(workspaces.into_iter().map(|workspace| {
-            async move {
-                let tenant_id = workspace.id();
-                let mut queries = Vec::new();
-
-                // Ensure partitions for current month + next 3 months
-                let Some(mut target_date) = NaiveDate::from_ymd_opt(ref_date.year(), ref_date.month(), 1) else {
-                    return Err((tenant_id, "Invalid reference date".to_string()));
-                };
-
-                for _ in 0..4 {
-                    let year = target_date.year();
-                    let month = target_date.month();
-
-                    let next_month = if month == 12 { 1 } else { month + 1 };
-                    let next_year = if month == 12 { year + 1 } else { year };
-
-                    let from_date_str = format!("{year:04}-{month:02}-01");
-                    let to_date_str = format!("{next_year:04}-{next_month:02}-01");
-
-                    let audit_table = format!("audit_logs_y{year:04}m{month:02}");
-                    let staging_table = format!("attendance_staging_logs_y{year:04}m{month:02}");
-
-                    queries.push(format!("CREATE TABLE IF NOT EXISTS {audit_table} PARTITION OF audit_logs FOR VALUES FROM ('{from_date_str}') TO ('{to_date_str}')"));
-                    queries.push(format!("CREATE TABLE IF NOT EXISTS {staging_table} PARTITION OF attendance_staging_logs FOR VALUES FROM ('{from_date_str}') TO ('{to_date_str}')"));
-
-                    target_date = match NaiveDate::from_ymd_opt(next_year, next_month, 1) {
-                        Some(date) => date,
-                        None => return Err((tenant_id, "Invalid next target date".to_string())),
-                    };
-                }
-
-                // Retention Policy: Drop partitions older than 3 years (36 months) for audit_logs
-                // We drop partitions for the 37th, 38th, and 39th months ago to provide a safety buffer.
-                for i in 37..=39 {
-                    let mut total_months = ref_date.year() * 12 + (ref_date.month() as i32) - 1;
-                    total_months -= i;
-                    let drop_year = total_months / 12;
-                    let drop_month = (total_months % 12) as u32 + 1;
-
-                    let audit_table = format!("audit_logs_y{drop_year:04}m{drop_month:02}");
-                    queries.push(format!("DROP TABLE IF EXISTS {audit_table}"));
-                }
-
-                // Drop partitions older than 2 years (24 months) for attendance_staging_logs
-                for i in 25..=27 {
-                    let mut total_months = ref_date.year() * 12 + (ref_date.month() as i32) - 1;
-                    total_months -= i;
-                    let drop_year = total_months / 12;
-                    let drop_month = (total_months % 12) as u32 + 1;
-
-                    let staging_table = format!("attendance_staging_logs_y{drop_year:04}m{drop_month:02}");
-                    queries.push(format!("DROP TABLE IF EXISTS {staging_table}"));
-                }
-
-                // Clean up expired session tokens (T1 data / Redis/DB sync)
-                queries.push("DELETE FROM sessions WHERE expires_at < NOW()".to_string());
-
-                // Clean up temporary import jobs older than 7 days
-                queries.push(format!(
-                    "DELETE FROM attendance_import_jobs WHERE workspace_id = '{tenant_id}' AND created_at < NOW() - INTERVAL '7 days'"
-                ));
-
-                // Clean up attendance and leave records older than 5 years for employees terminated >= 5 years ago
-                queries.push(format!(
-                    "DELETE FROM time_entries WHERE workspace_id = '{tenant_id}' AND employee_id IN (SELECT id FROM employees WHERE workspace_id = '{tenant_id}' AND termination_date IS NOT NULL AND termination_date <= CURRENT_DATE - INTERVAL '5 years') AND punch_in_time <= CURRENT_TIMESTAMP - INTERVAL '5 years'"
-                ));
-                queries.push(format!(
-                    "DELETE FROM attendance_daily_summaries WHERE workspace_id = '{tenant_id}' AND employee_id IN (SELECT id FROM employees WHERE workspace_id = '{tenant_id}' AND termination_date IS NOT NULL AND termination_date <= CURRENT_DATE - INTERVAL '5 years') AND date <= CURRENT_DATE - INTERVAL '5 years'"
-                ));
-                queries.push(format!(
-                    "DELETE FROM leave_requests WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = '{tenant_id}' AND termination_date IS NOT NULL AND termination_date <= CURRENT_DATE - INTERVAL '5 years') AND end_date <= CURRENT_DATE - INTERVAL '5 years'"
-                ));
-                queries.push(format!(
-                    "DELETE FROM leave_accrual_logs WHERE workspace_id = '{tenant_id}' AND employee_id IN (SELECT id FROM employees WHERE workspace_id = '{tenant_id}' AND termination_date IS NOT NULL AND termination_date <= CURRENT_DATE - INTERVAL '5 years') AND accrual_date <= CURRENT_DATE - INTERVAL '5 years'"
-                ));
-
-                // Anonymize Employee PII for employees terminated >= 1 year ago (GDPR right to erasure)
-                queries.push(format!(
-                    "UPDATE employees SET full_name = 'Anonymized Employee', employee_id_number = 'ANON_' || md5(id::text) WHERE workspace_id = '{tenant_id}' AND termination_date IS NOT NULL AND termination_date <= CURRENT_DATE - INTERVAL '1 year' AND full_name <> 'Anonymized Employee'"
-                ));
-                queries.push(format!(
-                    "UPDATE employee_profiles SET phone = NULL, address = NULL, national_id = NULL, bank_name = NULL, bank_account_number = NULL, bank_branch = NULL WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = '{tenant_id}' AND termination_date IS NOT NULL AND termination_date <= CURRENT_DATE - INTERVAL '1 year')"
-                ));
-
-                deps.system_repo
-                    .execute_tenant_partition_queries_batch(tenant_id, &queries)
-                    .await
-                    .map_err(|e| (tenant_id, e.to_string()))
-            }
-        }))
-        .buffer_unordered(5)
-        .collect::<Vec<_>>()
-        .await;
-
         let mut errors = Vec::new();
-        for res in results {
-            if let Err((tenant_id, e)) = res {
-                error!(error = %e, tenant_id = %tenant_id, "Failed to execute batch partition queries for workspace");
-                errors.push(format!("Tenant {tenant_id}: {e}"));
+        for workspace in workspaces {
+            let tenant_id = workspace.id();
+            let mut queries = Vec::new();
+
+            // Ensure partitions for current month + next 3 months
+            let Some(mut target_date) =
+                NaiveDate::from_ymd_opt(ref_date.year(), ref_date.month(), 1)
+            else {
+                errors.push(format!("Tenant {tenant_id}: Invalid reference date"));
+                continue;
+            };
+
+            let mut target_date_err = false;
+            for _ in 0..4 {
+                let year = target_date.year();
+                let month = target_date.month();
+
+                let next_month = if month == 12 { 1 } else { month + 1 };
+                let next_year = if month == 12 { year + 1 } else { year };
+
+                let from_date_str = format!("{year:04}-{month:02}-01");
+                let to_date_str = format!("{next_year:04}-{next_month:02}-01");
+
+                let audit_table = format!("audit_logs_y{year:04}m{month:02}");
+                let staging_table = format!("attendance_staging_logs_y{year:04}m{month:02}");
+
+                queries.push(format!("CREATE TABLE IF NOT EXISTS {audit_table} PARTITION OF audit_logs FOR VALUES FROM ('{from_date_str}') TO ('{to_date_str}')"));
+                queries.push(format!("CREATE TABLE IF NOT EXISTS {staging_table} PARTITION OF attendance_staging_logs FOR VALUES FROM ('{from_date_str}') TO ('{to_date_str}')"));
+
+                target_date = if let Some(date) = NaiveDate::from_ymd_opt(next_year, next_month, 1)
+                {
+                    date
+                } else {
+                    errors.push(format!("Tenant {tenant_id}: Invalid next target date"));
+                    target_date_err = true;
+                    break;
+                };
+            }
+            if target_date_err {
+                continue;
+            }
+
+            // Retention Policy: Drop partitions older than 3 years (36 months) for audit_logs
+            // We drop partitions for the 37th, 38th, and 39th months ago to provide a safety buffer.
+            for i in 37..=39 {
+                let mut total_months = ref_date.year() * 12 + (ref_date.month() as i32) - 1;
+                total_months -= i;
+                let drop_year = total_months / 12;
+                let drop_month = (total_months % 12) as u32 + 1;
+
+                let audit_table = format!("audit_logs_y{drop_year:04}m{drop_month:02}");
+                queries.push(format!("DROP TABLE IF EXISTS {audit_table}"));
+            }
+
+            // Drop partitions older than 2 years (24 months) for attendance_staging_logs
+            for i in 25..=27 {
+                let mut total_months = ref_date.year() * 12 + (ref_date.month() as i32) - 1;
+                total_months -= i;
+                let drop_year = total_months / 12;
+                let drop_month = (total_months % 12) as u32 + 1;
+
+                let staging_table =
+                    format!("attendance_staging_logs_y{drop_year:04}m{drop_month:02}");
+                queries.push(format!("DROP TABLE IF EXISTS {staging_table}"));
+            }
+
+            // Clean up expired session tokens (T1 data / Redis/DB sync)
+            queries.push("DELETE FROM sessions WHERE expires_at < NOW()".to_string());
+
+            // Clean up temporary import jobs older than 7 days
+            queries.push(format!(
+                "DELETE FROM attendance_import_jobs WHERE workspace_id = '{tenant_id}' AND created_at < NOW() - INTERVAL '7 days'"
+            ));
+
+            // Clean up attendance and leave records older than 5 years for employees terminated >= 5 years ago
+            queries.push(format!(
+                "DELETE FROM time_entries WHERE workspace_id = '{tenant_id}' AND employee_id IN (SELECT id FROM employees WHERE workspace_id = '{tenant_id}' AND termination_date IS NOT NULL AND termination_date <= CURRENT_DATE - INTERVAL '5 years') AND punch_in_time <= CURRENT_TIMESTAMP - INTERVAL '5 years'"
+            ));
+            queries.push(format!(
+                "DELETE FROM attendance_daily_summaries WHERE workspace_id = '{tenant_id}' AND employee_id IN (SELECT id FROM employees WHERE workspace_id = '{tenant_id}' AND termination_date IS NOT NULL AND termination_date <= CURRENT_DATE - INTERVAL '5 years') AND date <= CURRENT_DATE - INTERVAL '5 years'"
+            ));
+            queries.push(format!(
+                "DELETE FROM leave_requests WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = '{tenant_id}' AND termination_date IS NOT NULL AND termination_date <= CURRENT_DATE - INTERVAL '5 years') AND end_date <= CURRENT_DATE - INTERVAL '5 years'"
+            ));
+            queries.push(format!(
+                "DELETE FROM leave_accrual_logs WHERE workspace_id = '{tenant_id}' AND employee_id IN (SELECT id FROM employees WHERE workspace_id = '{tenant_id}' AND termination_date IS NOT NULL AND termination_date <= CURRENT_DATE - INTERVAL '5 years') AND accrual_date <= CURRENT_DATE - INTERVAL '5 years'"
+            ));
+
+            // Anonymize Employee PII for employees terminated >= 1 year ago (GDPR right to erasure)
+            queries.push(format!(
+                "UPDATE employees SET full_name = 'Anonymized Employee', employee_id_number = 'ANON_' || md5(id::text) WHERE workspace_id = '{tenant_id}' AND termination_date IS NOT NULL AND termination_date <= CURRENT_DATE - INTERVAL '1 year' AND full_name <> 'Anonymized Employee'"
+            ));
+            queries.push(format!(
+                "UPDATE employee_profiles SET phone = NULL, address = NULL, national_id = NULL, bank_name = NULL, bank_account_number = NULL, bank_branch = NULL WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = '{tenant_id}' AND termination_date IS NOT NULL AND termination_date <= CURRENT_DATE - INTERVAL '1 year')"
+            ));
+
+            match deps
+                .system_repo
+                .execute_tenant_partition_queries_batch(tenant_id, &queries)
+                .await
+            {
+                Ok(()) => {
+                    // Throttling: short pause to release connections and allow other operations to execute
+                    tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+                }
+                Err(e) => {
+                    error!(error = %e, tenant_id = %tenant_id, "Failed to execute batch partition queries for workspace");
+                    errors.push(format!("Tenant {tenant_id}: {e}"));
+                }
             }
         }
 

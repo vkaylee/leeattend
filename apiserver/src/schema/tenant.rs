@@ -832,6 +832,7 @@ diesel::table! {
         created_at -> Timestamptz,
         effective_from -> Date,
         effective_to -> Nullable<Date>,
+        deleted_at -> Nullable<Timestamptz>,
     }
 }
 

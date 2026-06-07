@@ -57,6 +57,7 @@ impl PayrollRepository for DieselPayrollRepository {
         let entities = payroll_incentive_policies::table
             .filter(payroll_incentive_policies::workspace_id.eq(workspace_id))
             .filter(payroll_incentive_policies::is_active.eq(true))
+            .filter(payroll_incentive_policies::deleted_at.is_null())
             .load::<PayrollIncentivePolicyEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -80,6 +81,7 @@ impl PayrollRepository for DieselPayrollRepository {
         let entities = payroll_incentive_policies::table
             .filter(payroll_incentive_policies::workspace_id.eq(workspace_id))
             .filter(payroll_incentive_policies::is_active.eq(true))
+            .filter(payroll_incentive_policies::deleted_at.is_null())
             .filter(payroll_incentive_policies::effective_from.le(period_end))
             .filter(
                 payroll_incentive_policies::effective_to
@@ -140,6 +142,7 @@ impl PayrollRepository for DieselPayrollRepository {
             effective_from: req.effective_from,
             effective_to: None,
             created_at: Utc::now(),
+            deleted_at: None,
         };
 
         let entity = conn
@@ -194,11 +197,12 @@ impl PayrollRepository for DieselPayrollRepository {
                 .await?,
         );
 
-        diesel::delete(
+        diesel::update(
             payroll_incentive_policies::table
                 .filter(payroll_incentive_policies::id.eq(policy_id))
                 .filter(payroll_incentive_policies::workspace_id.eq(workspace_id)),
         )
+        .set(payroll_incentive_policies::deleted_at.eq(Some(Utc::now())))
         .execute(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -227,6 +231,7 @@ impl PayrollRepository for DieselPayrollRepository {
                     let original_policy = payroll_incentive_policies::table
                         .filter(payroll_incentive_policies::id.eq(policy_id))
                         .filter(payroll_incentive_policies::workspace_id.eq(workspace_id))
+                        .filter(payroll_incentive_policies::deleted_at.is_null())
                         .first::<crate::models::diesel::payroll::PayrollIncentivePolicyEntity>(
                             &mut *conn,
                         )
@@ -254,6 +259,7 @@ impl PayrollRepository for DieselPayrollRepository {
                             effective_from: chrono::Utc::now().date_naive(),
                             effective_to: None,
                             created_at: Utc::now(),
+                            deleted_at: None,
                         };
 
                     diesel::insert_into(payroll_incentive_policies::table)

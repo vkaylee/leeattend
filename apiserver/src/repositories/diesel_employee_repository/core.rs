@@ -627,6 +627,11 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         employee: &Employee,
         recruitment_source_id: Option<Uuid>,
     ) -> Result<(), AppError> {
+        let workspace_id = auth_token.workspace_id();
+        if employee.workspace_id() != workspace_id {
+            return Err(AppError::Forbidden("error.forbidden".to_string()));
+        }
+
         let mut conn = self
             .diesel_pools
             .tenant_transaction_conn(auth_token)
