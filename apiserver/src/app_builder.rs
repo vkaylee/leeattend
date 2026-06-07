@@ -423,6 +423,8 @@ impl AppState {
                 overtime_policy_repo: Arc::clone(&overtime_policy_repo),
                 salary_base_repo: Arc::clone(&salary_base_repo),
                 roster_provider,
+                contract_repo: Arc::clone(&contract_repo)
+                    as Arc<dyn crate::repositories::EmployeeContractRepository>,
             },
         ));
         let jwt_secret = if cfg!(debug_assertions) {

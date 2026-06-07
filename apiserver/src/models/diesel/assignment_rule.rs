@@ -17,12 +17,14 @@ pub struct AssignmentRuleEntity {
     pub is_active: bool,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
+    pub start_date: Option<chrono::NaiveDate>,
+    pub end_date: Option<chrono::NaiveDate>,
 }
 
 impl From<AssignmentRuleEntity> for AssignmentRule {
     fn from(e: AssignmentRuleEntity) -> Self {
         let conditions = serde_json::from_value(e.conditions)
-            .unwrap_or_else(|_| AssignmentRuleConditions::new(None, None, None));
+            .unwrap_or_else(|_| AssignmentRuleConditions::new(None, None, None, None, None));
         Self::new(
             e.id,
             e.workspace_id,
@@ -33,6 +35,8 @@ impl From<AssignmentRuleEntity> for AssignmentRule {
             e.is_active,
             e.created_at.unwrap_or_else(Utc::now),
             e.updated_at.unwrap_or_else(Utc::now),
+            e.start_date,
+            e.end_date,
         )
     }
 }

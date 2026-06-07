@@ -35,7 +35,6 @@ async fn test_resolve_attendance_policy_hierarchy() {
             "Engineering".to_string(),
             None,
             None,
-            None,
         )
         .await
         .unwrap();

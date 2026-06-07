@@ -1,10 +1,14 @@
 use crate::models::{AssignmentRule, ScheduleTrace};
+use chrono::NaiveDate;
 use uuid::Uuid;
 
 pub struct EmployeeMatchContext {
+    pub date: NaiveDate,
     pub department_id: Option<Uuid>,
     pub employee_id_number: String,
     pub tags: Vec<String>,
+    pub location_id: Option<Uuid>,
+    pub employer_id: Option<Uuid>,
 }
 
 pub struct RuleEvaluator;
@@ -34,6 +38,32 @@ impl RuleEvaluator {
                 if !has_tag_match {
                     return false;
                 }
+            }
+        }
+
+        // 4. Location match (Strict)
+        if let Some(loc_id) = conditions.location_id() {
+            if ctx.location_id != Some(loc_id) {
+                return false;
+            }
+        }
+
+        // 5. Employer match (Strict)
+        if let Some(emp_id) = conditions.employer_id() {
+            if ctx.employer_id != Some(emp_id) {
+                return false;
+            }
+        }
+
+        // 6. Date range validity match
+        if let Some(start_date) = rule.start_date() {
+            if ctx.date < start_date {
+                return false;
+            }
+        }
+        if let Some(end_date) = rule.end_date() {
+            if ctx.date > end_date {
+                return false;
             }
         }
 
@@ -102,21 +132,26 @@ mod tests {
             Uuid::new_v4(),
             name.to_string(),
             priority,
-            AssignmentRuleConditions::new(dept, ids, tags),
+            AssignmentRuleConditions::new(dept, ids, tags, None, None),
             true,
             Utc::now(),
             Utc::now(),
+            None,
+            None,
         )
     }
 
     fn make_ctx(dept: Option<Uuid>, id_number: &str, tags: Vec<&str>) -> EmployeeMatchContext {
         EmployeeMatchContext {
+            date: Utc::now().date_naive(),
             department_id: dept,
             employee_id_number: id_number.to_string(),
             tags: tags
                 .into_iter()
                 .map(std::string::ToString::to_string)
                 .collect(),
+            location_id: None,
+            employer_id: None,
         }
     }
 
@@ -403,5 +438,101 @@ mod tests {
             &make_ctx(None, "EMP001", vec!["b"]),
             &rule
         ));
+    }
+
+    #[test]
+    fn test_matches_location_exact() {
+        let loc_id = Uuid::new_v4();
+        let rule = AssignmentRule::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            "Location Only".to_string(),
+            1,
+            AssignmentRuleConditions::new(None, None, None, Some(loc_id), None),
+            true,
+            Utc::now(),
+            Utc::now(),
+            None,
+            None,
+        );
+
+        let mut ctx = make_ctx(None, "EMP001", vec![]);
+        assert!(!RuleEvaluator::matches(&ctx, &rule)); // None in context, Some in rule => mismatch
+
+        ctx.location_id = Some(loc_id);
+        assert!(RuleEvaluator::matches(&ctx, &rule)); // match
+
+        ctx.location_id = Some(Uuid::new_v4());
+        assert!(!RuleEvaluator::matches(&ctx, &rule)); // mismatch
+    }
+
+    #[test]
+    fn test_matches_employer_exact() {
+        let emp_id = Uuid::new_v4();
+        let rule = AssignmentRule::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            "Employer Only".to_string(),
+            1,
+            AssignmentRuleConditions::new(None, None, None, None, Some(emp_id)),
+            true,
+            Utc::now(),
+            Utc::now(),
+            None,
+            None,
+        );
+
+        let mut ctx = make_ctx(None, "EMP001", vec![]);
+        assert!(!RuleEvaluator::matches(&ctx, &rule)); // None in context, Some in rule => mismatch
+
+        ctx.employer_id = Some(emp_id);
+        assert!(RuleEvaluator::matches(&ctx, &rule)); // match
+
+        ctx.employer_id = Some(Uuid::new_v4());
+        assert!(!RuleEvaluator::matches(&ctx, &rule)); // mismatch
+    }
+
+    #[test]
+    fn test_matches_date_range_validity() {
+        let start = NaiveDate::from_ymd_opt(2026, 1, 10).unwrap();
+        let end = NaiveDate::from_ymd_opt(2026, 1, 20).unwrap();
+
+        let rule = AssignmentRule::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            "Date bounded rule".to_string(),
+            1,
+            AssignmentRuleConditions::new(None, None, None, None, None),
+            true,
+            Utc::now(),
+            Utc::now(),
+            Some(start),
+            Some(end),
+        );
+
+        let mut ctx = make_ctx(None, "EMP001", vec![]);
+
+        // 1. Context date before range => mismatch
+        ctx.date = NaiveDate::from_ymd_opt(2026, 1, 9).unwrap();
+        assert!(!RuleEvaluator::matches(&ctx, &rule));
+
+        // 2. Context date at start range => match
+        ctx.date = start;
+        assert!(RuleEvaluator::matches(&ctx, &rule));
+
+        // 3. Context date within range => match
+        ctx.date = NaiveDate::from_ymd_opt(2026, 1, 15).unwrap();
+        assert!(RuleEvaluator::matches(&ctx, &rule));
+
+        // 4. Context date at end range => match
+        ctx.date = end;
+        assert!(RuleEvaluator::matches(&ctx, &rule));
+
+        // 5. Context date after range => mismatch
+        ctx.date = NaiveDate::from_ymd_opt(2026, 1, 21).unwrap();
+        assert!(!RuleEvaluator::matches(&ctx, &rule));
     }
 }

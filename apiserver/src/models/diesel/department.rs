@@ -13,7 +13,6 @@ pub struct DieselDepartment {
     pub manager_id: Option<Uuid>,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
-    pub default_working_pattern_id: Option<Uuid>,
     pub std_working_days: Option<bigdecimal::BigDecimal>,
     pub deleted_at: Option<DateTime<Utc>>,
 }
@@ -26,7 +25,6 @@ impl From<DieselDepartment> for crate::models::Department {
             val.name,
             val.description,
             val.manager_id,
-            val.default_working_pattern_id,
             val.created_at.unwrap_or_else(Utc::now),
             val.updated_at.unwrap_or_else(Utc::now),
             0, // PoC simplification
@@ -42,7 +40,6 @@ pub struct NewDieselDepartment {
     pub name: String,
     pub description: Option<String>,
     pub manager_id: Option<Uuid>,
-    pub default_working_pattern_id: Option<Uuid>,
 }
 
 #[derive(AsChangeset, Debug)]
@@ -51,7 +48,6 @@ pub struct UpdateDieselDepartment {
     pub name: Option<String>,
     pub description: Option<String>,
     pub manager_id: Option<Uuid>,
-    pub default_working_pattern_id: Option<Option<Uuid>>,
 }
 
 #[derive(Queryable, Selectable, Identifiable, Clone, Debug)]
@@ -116,7 +112,6 @@ mod tests {
         let id = Uuid::new_v4();
         let workspace_id = Uuid::new_v4();
         let manager_id = Uuid::new_v4();
-        let pattern_id = Uuid::new_v4();
         let now = Utc::now();
 
         let diesel_dept = DieselDepartment {
@@ -127,7 +122,6 @@ mod tests {
             manager_id: Some(manager_id),
             created_at: Some(now),
             updated_at: Some(now),
-            default_working_pattern_id: Some(pattern_id),
             std_working_days: Some(bigdecimal::BigDecimal::from_str("22.5").unwrap()),
             deleted_at: None,
         };
@@ -138,7 +132,6 @@ mod tests {
         assert_eq!(dept.name(), "Engineering");
         assert_eq!(dept.description(), Some("Tech team"));
         assert_eq!(dept.manager_id(), Some(manager_id));
-        assert_eq!(dept.default_working_pattern_id(), Some(pattern_id));
         assert_eq!(dept.created_at(), now);
         assert_eq!(dept.updated_at(), now);
         assert_eq!(dept.active_employee_count(), 0);
@@ -157,7 +150,6 @@ mod tests {
             manager_id: None,
             created_at: None,
             updated_at: None,
-            default_working_pattern_id: None,
             std_working_days: None,
             deleted_at: None,
         };

@@ -81,13 +81,7 @@ pub async fn create_department(
     let dept = state
         .payroll()
         .department_repo()
-        .create_department(
-            &ctx.auth_token,
-            req.name,
-            req.description,
-            req.manager_id,
-            req.default_working_pattern_id,
-        )
+        .create_department(&ctx.auth_token, req.name, req.description, req.manager_id)
         .await?;
 
     Ok((StatusCode::CREATED, Json(dept)))

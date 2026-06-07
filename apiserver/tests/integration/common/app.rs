@@ -381,6 +381,11 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             roster_provider: std::sync::Arc::new(
                 apiserver::services::payroll_service::DirectRosterDataProvider(roster_repo.clone()),
             ),
+            contract_repo: Arc::new(
+                apiserver::repositories::DieselEmployeeContractRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
         },
     ));
     let auth_service = Arc::new(apiserver::services::auth_service::AuthService::new(
@@ -987,6 +992,11 @@ pub async fn spawn_app_with_factory_extended(
 
             roster_provider: std::sync::Arc::new(
                 apiserver::services::payroll_service::DirectRosterDataProvider(roster_repo.clone()),
+            ),
+            contract_repo: Arc::new(
+                apiserver::repositories::DieselEmployeeContractRepository::new(
+                    diesel_pools.clone(),
+                ),
             ),
         },
     ));
@@ -1643,6 +1653,11 @@ pub async fn setup_app_tower_internal_extended(
 
             roster_provider: std::sync::Arc::new(
                 apiserver::services::payroll_service::DirectRosterDataProvider(roster_repo.clone()),
+            ),
+            contract_repo: Arc::new(
+                apiserver::repositories::DieselEmployeeContractRepository::new(
+                    diesel_pools.clone(),
+                ),
             ),
         },
     ));

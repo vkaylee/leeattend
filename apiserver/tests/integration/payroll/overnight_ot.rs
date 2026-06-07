@@ -155,6 +155,11 @@ async fn test_overnight_ot_payroll_calculation() {
                     )),
                 ),
             ),
+            contract_repo: Arc::new(
+                apiserver::repositories::DieselEmployeeContractRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
         })
     }
     .calculate_monthly_payslip(employee_id, workspace_id, 2026, 1)

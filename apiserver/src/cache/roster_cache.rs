@@ -145,22 +145,6 @@ pub struct RosterPatternEntry {
     pub anchor_date: Option<NaiveDate>,
 }
 
-/// Department-level default pattern entry for one employee.
-#[derive(Debug, Clone)]
-pub struct RosterDeptPattern {
-    pub default_working_pattern_id: Option<Uuid>,
-    pub effective_date: NaiveDate,
-    pub schedule_day: i32,
-    pub shift_id: Option<Uuid>,
-}
-
-/// Department-level fixed shift entry for one employee.
-#[derive(Debug, Clone)]
-pub struct RosterDeptFixedShift {
-    pub shift_id: Uuid,
-    pub effective_date: NaiveDate,
-}
-
 /// One row of an employee's department-history timeline.
 #[derive(Debug, Clone)]
 pub struct RosterDeptHistory {
@@ -180,10 +164,7 @@ pub struct RosterData {
     pub fixed_assignments: HashMap<Uuid, Vec<RosterFixedAssignment>>,
     /// employee_id -> pattern entries (ORDER BY created_at DESC preserved)
     pub pattern_assignments: HashMap<Uuid, Vec<RosterPatternEntry>>,
-    /// employee_id -> dept pattern entries (ORDER BY effective_date DESC)
-    pub dept_patterns: HashMap<Uuid, Vec<RosterDeptPattern>>,
-    /// employee_id -> dept fixed shift entries (ORDER BY effective_date DESC)
-    pub dept_fixed_shifts: HashMap<Uuid, Vec<RosterDeptFixedShift>>,
+
     /// Active assignment rules
     pub active_rules: Vec<crate::models::AssignmentRule>,
     /// (pattern_id, schedule_day) -> list of shift_ids (supports split shifts)
@@ -214,9 +195,8 @@ pub async fn build_roster_data(
         .map_err(|e| format!("db connection: {e}"))?;
 
     use crate::schema::{
-        assignment_rules, department_default_shifts, departments, employee_department_history,
-        employee_shifts, employee_working_patterns, employees, shifts, working_pattern_details,
-        working_patterns,
+        assignment_rules, employee_department_history, employee_shifts, employee_working_patterns,
+        employees, shifts, working_pattern_details, working_patterns,
     };
 
     // 1. Shifts
@@ -276,47 +256,6 @@ pub async fn build_roster_data(
         )>(&mut conn)
         .await
         .map_err(|e| format!("pattern_assignments: {e}"))?;
-
-    // 4. Dept Patterns
-    let dept_pattern_rows = employee_department_history::table
-        .inner_join(
-            departments::table.on(employee_department_history::department_id.eq(departments::id)),
-        )
-        .inner_join(
-            working_pattern_details::table.on(departments::default_working_pattern_id
-                .eq(working_pattern_details::pattern_id.nullable())),
-        )
-        .filter(departments::workspace_id.eq(workspace_id))
-        .order(employee_department_history::effective_date.desc())
-        .select((
-            employee_department_history::employee_id,
-            departments::default_working_pattern_id,
-            employee_department_history::effective_date,
-            working_pattern_details::schedule_day,
-            working_pattern_details::shift_id,
-        ))
-        .load::<(Uuid, Option<Uuid>, NaiveDate, i32, Option<Uuid>)>(&mut conn)
-        .await
-        .map_err(|e| format!("dept_patterns: {e}"))?;
-
-    // 5. Dept Fixed Shifts
-    let dept_fixed_rows = employee_department_history::table
-        .inner_join(department_default_shifts::table.on(
-            employee_department_history::department_id.eq(department_default_shifts::department_id),
-        ))
-        .inner_join(
-            departments::table.on(department_default_shifts::department_id.eq(departments::id)),
-        )
-        .filter(departments::workspace_id.eq(workspace_id))
-        .order(employee_department_history::effective_date.desc())
-        .select((
-            employee_department_history::employee_id,
-            department_default_shifts::shift_id,
-            employee_department_history::effective_date,
-        ))
-        .load::<(Uuid, Uuid, NaiveDate)>(&mut conn)
-        .await
-        .map_err(|e| format!("dept_fixed_shifts: {e}"))?;
 
     // 6. Active Rules
     let active_rules_entities = assignment_rules::table
@@ -419,30 +358,6 @@ pub async fn build_roster_data(
             });
     }
 
-    let mut dept_patterns: HashMap<Uuid, Vec<RosterDeptPattern>> = HashMap::new();
-    for (emp_id, pat_id, eff_date, dow, s_id) in dept_pattern_rows {
-        dept_patterns
-            .entry(emp_id)
-            .or_default()
-            .push(RosterDeptPattern {
-                default_working_pattern_id: pat_id,
-                effective_date: eff_date,
-                schedule_day: dow,
-                shift_id: s_id,
-            });
-    }
-
-    let mut dept_fixed_shifts: HashMap<Uuid, Vec<RosterDeptFixedShift>> = HashMap::new();
-    for (emp_id, s_id, eff_date) in dept_fixed_rows {
-        dept_fixed_shifts
-            .entry(emp_id)
-            .or_default()
-            .push(RosterDeptFixedShift {
-                shift_id: s_id,
-                effective_date: eff_date,
-            });
-    }
-
     let mut rule_patterns: HashMap<(Uuid, i32), Vec<Option<Uuid>>> = HashMap::new();
     for (pat_id, dow, s_id) in rule_pattern_rows {
         rule_patterns.entry((pat_id, dow)).or_default().push(s_id);
@@ -463,8 +378,7 @@ pub async fn build_roster_data(
         shifts: shifts_map,
         fixed_assignments,
         pattern_assignments,
-        dept_patterns,
-        dept_fixed_shifts,
+
         active_rules,
         rule_patterns,
         dept_history,
@@ -727,28 +641,6 @@ mod tests {
     }
 
     #[test]
-    fn test_roster_dept_pattern_construction() {
-        let entry = RosterDeptPattern {
-            default_working_pattern_id: Some(Uuid::new_v4()),
-            effective_date: chrono::NaiveDate::from_ymd_opt(2026, 1, 15).expect("valid date"),
-            schedule_day: 3,
-            shift_id: None,
-        };
-        assert_eq!(entry.schedule_day, 3);
-        assert!(entry.shift_id.is_none());
-    }
-
-    #[test]
-    fn test_roster_dept_fixed_shift_construction() {
-        let shift_id = Uuid::new_v4();
-        let entry = RosterDeptFixedShift {
-            shift_id,
-            effective_date: chrono::NaiveDate::from_ymd_opt(2026, 3, 1).expect("valid date"),
-        };
-        assert_eq!(entry.shift_id, shift_id);
-    }
-
-    #[test]
     fn test_roster_dept_history_construction() {
         let dept_id = Uuid::new_v4();
         let entry = RosterDeptHistory {
@@ -808,8 +700,7 @@ mod tests {
             shifts: HashMap::new(),
             fixed_assignments: HashMap::new(),
             pattern_assignments: HashMap::new(),
-            dept_patterns: HashMap::new(),
-            dept_fixed_shifts: HashMap::new(),
+
             active_rules: Vec::new(),
             rule_patterns: HashMap::new(),
             dept_history: HashMap::new(),
@@ -830,8 +721,7 @@ mod tests {
             shifts: HashMap::new(),
             fixed_assignments: HashMap::new(),
             pattern_assignments: HashMap::new(),
-            dept_patterns: HashMap::new(),
-            dept_fixed_shifts: HashMap::new(),
+
             active_rules: Vec::new(),
             rule_patterns: HashMap::new(),
             dept_history: HashMap::new(),

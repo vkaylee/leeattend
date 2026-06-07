@@ -1046,6 +1046,8 @@ pub struct AssignmentRuleBuilder {
     name: String,
     priority: i32,
     conditions: apiserver::models::AssignmentRuleConditions,
+    start_date: Option<chrono::NaiveDate>,
+    end_date: Option<chrono::NaiveDate>,
 }
 
 #[allow(dead_code)]
@@ -1058,7 +1060,11 @@ impl AssignmentRuleBuilder {
             pattern_id: None,
             name: "Test Rule".to_string(),
             priority: 0,
-            conditions: apiserver::models::AssignmentRuleConditions::new(None, None, None),
+            conditions: apiserver::models::AssignmentRuleConditions::new(
+                None, None, None, None, None,
+            ),
+            start_date: None,
+            end_date: None,
         }
     }
 
@@ -1095,15 +1101,29 @@ impl AssignmentRuleBuilder {
         self
     }
 
+    #[must_use]
+    pub const fn with_start_date(mut self, date: chrono::NaiveDate) -> Self {
+        self.start_date = Some(date);
+        self
+    }
+
+    #[must_use]
+    pub const fn with_end_date(mut self, date: chrono::NaiveDate) -> Self {
+        self.end_date = Some(date);
+        self
+    }
+
     pub async fn create(self) -> Uuid {
         crate::test_query_scalar_uuid!(
             &self.diesel_pools.api,
-            "INSERT INTO assignment_rules (workspace_id, pattern_id, name, priority, conditions) VALUES ($1, $2, $3, $4, $5) RETURNING id",
+            "INSERT INTO assignment_rules (workspace_id, pattern_id, name, priority, conditions, start_date, end_date) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
             diesel::sql_types::Uuid, self.workspace_id.expect("WS ID required"),
             diesel::sql_types::Uuid, self.pattern_id.expect("Pattern ID required"),
             diesel::sql_types::Text, self.name,
             diesel::sql_types::Integer, self.priority,
-            diesel::sql_types::Jsonb, serde_json::to_value(&self.conditions).unwrap()
+            diesel::sql_types::Jsonb, serde_json::to_value(&self.conditions).unwrap(),
+            diesel::sql_types::Nullable<diesel::sql_types::Date>, self.start_date,
+            diesel::sql_types::Nullable<diesel::sql_types::Date>, self.end_date
         )
     }
 }

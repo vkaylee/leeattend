@@ -29,6 +29,8 @@ pub fn resolve_effective_shift_from_data<S: ::std::hash::BuildHasher>(
     employee_id_number: &str,
     employee_tags: Option<&Vec<String>>,
     date: NaiveDate,
+    active_location_id: Option<Uuid>,
+    active_employer_id: Option<Uuid>,
 ) -> (Vec<Option<Uuid>>, String, Vec<ScheduleTrace>) {
     let mut traces = Vec::new();
 
@@ -96,9 +98,12 @@ pub fn resolve_effective_shift_from_data<S: ::std::hash::BuildHasher>(
         .map(|h| h.department_id);
 
     let match_ctx = crate::services::rule_evaluator::EmployeeMatchContext {
+        date,
         department_id: emp_dept_id,
         employee_id_number: employee_id_number.to_string(),
         tags: employee_tags.cloned().unwrap_or_default(),
+        location_id: active_location_id,
+        employer_id: active_employer_id,
     };
 
     let (matched_rule, rule_traces) =
@@ -112,32 +117,6 @@ pub fn resolve_effective_shift_from_data<S: ::std::hash::BuildHasher>(
         if let Some(shift_opts) = roster_data.rule_patterns.get(&(rule.pattern_id(), dow)) {
             return (shift_opts.clone(), "assignment_rule".to_string(), traces);
         }
-    }
-
-    // P4: Department Working Pattern — collect ALL matching shifts
-    let dept_ps: Vec<_> = roster_data
-        .dept_patterns
-        .get(&employee_id)
-        .map(|v| {
-            v.iter()
-                .filter(|a| a.effective_date <= date && a.schedule_day == dow)
-                .collect()
-        })
-        .unwrap_or_default();
-
-    if !dept_ps.is_empty() {
-        traces.push(ScheduleTrace {
-            rule_id: dept_ps[0].default_working_pattern_id,
-            rule_name: "Department Pattern".to_string(),
-            priority: 40,
-            status: "applied".to_string(),
-            reason: Some("Inherited from department default pattern".to_string()),
-        });
-        return (
-            dept_ps.iter().map(|dp| dp.shift_id).collect(),
-            "department_pattern".to_string(),
-            traces,
-        );
     }
 
     // P5: Fixed Assignment (Individual)
@@ -160,27 +139,6 @@ pub fn resolve_effective_shift_from_data<S: ::std::hash::BuildHasher>(
         return (vec![Some(f.shift_id)], "fixed".to_string(), traces);
     }
 
-    // P6: Department Fixed Shift
-    let dept_f = roster_data
-        .dept_fixed_shifts
-        .get(&employee_id)
-        .and_then(|v| v.iter().find(|a| a.effective_date <= date));
-
-    if let Some(df) = dept_f {
-        traces.push(ScheduleTrace {
-            rule_id: None,
-            rule_name: "Department Fixed".to_string(),
-            priority: 10,
-            status: "applied".to_string(),
-            reason: Some("Inherited from department default shift".to_string()),
-        });
-        return (
-            vec![Some(df.shift_id)],
-            "department_fixed".to_string(),
-            traces,
-        );
-    }
-
     (vec![None], "none".to_string(), traces)
 }
 
@@ -193,12 +151,29 @@ pub fn resolve_effective_shift_from_data<S: ::std::hash::BuildHasher>(
 )]
 mod tests {
     use super::*;
-    use crate::cache::{
-        RosterData, RosterDeptFixedShift, RosterDeptPattern, RosterFixedAssignment,
-        RosterPatternEntry,
-    };
+    use crate::cache::{RosterData, RosterFixedAssignment, RosterPatternEntry};
     use chrono::NaiveDate;
     use std::sync::Arc;
+
+    fn resolve_effective_shift_from_data(
+        roster_data: &RosterData,
+        roster_map: &HashMap<(Uuid, NaiveDate), Option<Uuid>>,
+        employee_id: Uuid,
+        employee_id_number: &str,
+        employee_tags: Option<&Vec<String>>,
+        date: NaiveDate,
+    ) -> (Vec<Option<Uuid>>, String, Vec<ScheduleTrace>) {
+        super::resolve_effective_shift_from_data(
+            roster_data,
+            roster_map,
+            employee_id,
+            employee_id_number,
+            employee_tags,
+            date,
+            None,
+            None,
+        )
+    }
 
     fn date(y: i32, m: u32, d: u32) -> NaiveDate {
         NaiveDate::from_ymd_opt(y, m, d).expect("valid date")
@@ -229,8 +204,6 @@ mod tests {
             shifts: HashMap::new(),
             fixed_assignments: HashMap::new(),
             pattern_assignments: HashMap::new(),
-            dept_patterns: HashMap::new(),
-            dept_fixed_shifts: HashMap::new(),
             active_rules: Vec::new(),
             rule_patterns: HashMap::new(),
             dept_history: HashMap::new(),
@@ -398,10 +371,12 @@ mod tests {
             pattern_id,
             "Split shift rule".to_string(),
             10,
-            crate::models::AssignmentRuleConditions::new(None, None, None),
+            crate::models::AssignmentRuleConditions::new(None, None, None, None, None),
             true,
             chrono::Utc::now(),
             chrono::Utc::now(),
+            None,
+            None,
         ));
         // Two shifts for the same (pattern, day)
         data.rule_patterns.insert(
@@ -427,89 +402,6 @@ mod tests {
         );
         assert_eq!(shift_ids, vec![Some(shift_morning), Some(shift_afternoon)]);
         assert_eq!(source, "assignment_rule");
-    }
-
-    #[test]
-    fn test_p4_dept_split_shift_returns_both() {
-        let emp = Uuid::new_v4();
-        let shift_morning = Uuid::new_v4();
-        let shift_afternoon = Uuid::new_v4();
-        let pattern_id = Uuid::new_v4();
-        let target_date = date(2026, 3, 3);
-        let dow = chrono::Datelike::weekday(&target_date).num_days_from_sunday() as i32;
-
-        let mut data = (*empty_roster_data()).clone();
-        data.dept_patterns.insert(
-            emp,
-            vec![
-                RosterDeptPattern {
-                    default_working_pattern_id: Some(pattern_id),
-                    effective_date: date(2026, 1, 1),
-                    schedule_day: dow,
-                    shift_id: Some(shift_morning),
-                },
-                RosterDeptPattern {
-                    default_working_pattern_id: Some(pattern_id),
-                    effective_date: date(2026, 1, 1),
-                    schedule_day: dow,
-                    shift_id: Some(shift_afternoon),
-                },
-            ],
-        );
-
-        let roster_map = HashMap::new();
-
-        let (shift_ids, source, _) = resolve_effective_shift_from_data(
-            &Arc::new(data),
-            &roster_map,
-            emp,
-            "EMP001",
-            None,
-            target_date,
-        );
-
-        assert_eq!(
-            shift_ids.len(),
-            2,
-            "Dept split shift should return 2 shifts"
-        );
-        assert_eq!(shift_ids, vec![Some(shift_morning), Some(shift_afternoon)]);
-        assert_eq!(source, "department_pattern");
-    }
-
-    #[test]
-    fn test_p4_department_pattern_wins() {
-        let emp = Uuid::new_v4();
-        let shift_id = Uuid::new_v4();
-        let pattern_id = Uuid::new_v4();
-        let target_date = date(2026, 3, 3);
-        let dow = chrono::Datelike::weekday(&target_date).num_days_from_sunday() as i32;
-
-        let mut data = (*empty_roster_data()).clone();
-        data.dept_patterns.insert(
-            emp,
-            vec![RosterDeptPattern {
-                default_working_pattern_id: Some(pattern_id),
-                effective_date: date(2026, 1, 1),
-                schedule_day: dow,
-                shift_id: Some(shift_id),
-            }],
-        );
-
-        let roster_map = HashMap::new();
-
-        let (shift, source, traces) = resolve_effective_shift_from_data(
-            &Arc::new(data),
-            &roster_map,
-            emp,
-            "EMP001",
-            None,
-            target_date,
-        );
-
-        assert_eq!(shift, vec![Some(shift_id)]);
-        assert_eq!(source, "department_pattern");
-        assert_eq!(traces[0].priority, 40);
     }
 
     #[test]
@@ -544,41 +436,10 @@ mod tests {
     }
 
     #[test]
-    fn test_p6_department_fixed_wins() {
-        let emp = Uuid::new_v4();
-        let shift_id = Uuid::new_v4();
-
-        let mut data = (*empty_roster_data()).clone();
-        data.dept_fixed_shifts.insert(
-            emp,
-            vec![RosterDeptFixedShift {
-                shift_id,
-                effective_date: date(2026, 1, 1),
-            }],
-        );
-
-        let roster_map = HashMap::new();
-
-        let (shift, source, traces) = resolve_effective_shift_from_data(
-            &Arc::new(data),
-            &roster_map,
-            emp,
-            "EMP001",
-            None,
-            date(2026, 3, 3),
-        );
-
-        assert_eq!(shift, vec![Some(shift_id)]);
-        assert_eq!(source, "department_fixed");
-        assert_eq!(traces[0].priority, 10);
-    }
-
-    #[test]
     fn test_p1_beats_all_lower_priorities() {
         let emp = Uuid::new_v4();
         let roster_shift = Uuid::new_v4();
         let fixed_shift = Uuid::new_v4();
-        let dept_fixed_shift = Uuid::new_v4();
         let target_date = date(2026, 3, 3);
 
         let mut data = (*empty_roster_data()).clone();
@@ -589,14 +450,6 @@ mod tests {
                 shift_id: fixed_shift,
                 start_date: date(2026, 1, 1),
                 end_date: None,
-            }],
-        );
-        // P6
-        data.dept_fixed_shifts.insert(
-            emp,
-            vec![RosterDeptFixedShift {
-                shift_id: dept_fixed_shift,
-                effective_date: date(2026, 1, 1),
             }],
         );
 
@@ -613,11 +466,7 @@ mod tests {
             target_date,
         );
 
-        assert_eq!(
-            shift,
-            vec![Some(roster_shift)],
-            "P1 roster should beat P5 and P6"
-        );
+        assert_eq!(shift, vec![Some(roster_shift)], "P1 roster should beat P5");
         assert_eq!(source, "roster");
     }
 
@@ -669,37 +518,6 @@ mod tests {
             "expired P2 should fall through to P5"
         );
         assert_eq!(source, "fixed");
-    }
-
-    #[test]
-    fn test_future_dept_history_ignored() {
-        let emp = Uuid::new_v4();
-        let shift_id = Uuid::new_v4();
-        let target_date = date(2026, 3, 3);
-
-        let mut data = (*empty_roster_data()).clone();
-        // Department fixed with future effective date
-        data.dept_fixed_shifts.insert(
-            emp,
-            vec![RosterDeptFixedShift {
-                shift_id,
-                effective_date: date(2026, 4, 1), // future
-            }],
-        );
-
-        let roster_map = HashMap::new();
-
-        let (shift, source, _) = resolve_effective_shift_from_data(
-            &Arc::new(data),
-            &roster_map,
-            emp,
-            "EMP001",
-            None,
-            target_date,
-        );
-
-        assert_eq!(shift, vec![None], "future effective_date should be ignored");
-        assert_eq!(source, "none");
     }
 
     // ─── Rotation pattern tests ───────────────────────────────────────────
@@ -1303,5 +1121,84 @@ mod tests {
         assert_eq!(shifts.len(), 2);
         assert!(shifts.contains(&Some(shift_rotation)));
         assert!(shifts.contains(&Some(shift_weekly)));
+    }
+
+    #[test]
+    fn test_p3_rule_with_location_and_employer() {
+        let emp = Uuid::new_v4();
+        let shift_id = Uuid::new_v4();
+        let pattern_id = Uuid::new_v4();
+        let rule_id = Uuid::new_v4();
+        let target_date = date(2026, 3, 3); // Tuesday (dow = 2)
+        let dow = 2;
+
+        let loc_match = Uuid::new_v4();
+        let emp_match = Uuid::new_v4();
+
+        let mut data = (*empty_roster_data()).clone();
+        data.active_rules.push(crate::models::AssignmentRule::new(
+            rule_id,
+            Uuid::new_v4(),
+            pattern_id,
+            "Location/Employer matching rule".to_string(),
+            10,
+            crate::models::AssignmentRuleConditions::new(
+                None,
+                None,
+                None,
+                Some(loc_match),
+                Some(emp_match),
+            ),
+            true,
+            chrono::Utc::now(),
+            chrono::Utc::now(),
+            None,
+            None,
+        ));
+        data.rule_patterns
+            .insert((pattern_id, dow), vec![Some(shift_id)]);
+
+        let roster_map = HashMap::new();
+
+        // 1. Mismatch location and employer (should not match, returns none)
+        let (shifts, source, _) = super::resolve_effective_shift_from_data(
+            &Arc::new(data.clone()),
+            &roster_map,
+            emp,
+            "EMP001",
+            None,
+            target_date,
+            None,
+            None,
+        );
+        assert_eq!(shifts, vec![None]);
+        assert_eq!(source, "none");
+
+        // 2. Mismatch location only (should not match, returns none)
+        let (shifts, _source, _) = super::resolve_effective_shift_from_data(
+            &Arc::new(data.clone()),
+            &roster_map,
+            emp,
+            "EMP001",
+            None,
+            target_date,
+            None,
+            Some(emp_match),
+        );
+        assert_eq!(shifts, vec![None]);
+
+        // 3. Match both location and employer (should match, returns shift_id)
+        let (shifts, source, _) = super::resolve_effective_shift_from_data(
+            &Arc::new(data),
+            &roster_map,
+            emp,
+            "EMP001",
+            None,
+            target_date,
+            Some(loc_match),
+            Some(emp_match),
+        );
+        assert_eq!(shifts, vec![Some(shift_id)]);
+        assert_eq!(source, "assignment_rule");
     }
 }

@@ -53,6 +53,8 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
             is_active: true,
             created_at: Some(now),
             updated_at: Some(now),
+            start_date: req.start_date,
+            end_date: req.end_date,
         };
 
         diesel::insert_into(assignment_rules::table)
@@ -151,6 +153,8 @@ impl AssignmentRuleRepository for DieselAssignmentRuleRepository {
                 req.priority.map(|v| assignment_rules::priority.eq(v)),
                 conditions_json.map(|v| assignment_rules::conditions.eq(v)),
                 req.is_active.map(|v| assignment_rules::is_active.eq(v)),
+                req.start_date.map(|v| assignment_rules::start_date.eq(v)),
+                req.end_date.map(|v| assignment_rules::end_date.eq(v)),
                 assignment_rules::updated_at.eq(Some(Utc::now())),
             ))
             .returning(AssignmentRuleEntity::as_returning())

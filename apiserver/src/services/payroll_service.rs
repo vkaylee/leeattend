@@ -53,6 +53,9 @@ pub struct PayrollContext {
         HashMap<Uuid, Vec<crate::models::DepartmentPayrollConfig>>,
     pub(crate) overtime_data:
         crate::repositories::overtime_policy_repository::WorkspaceOvertimeData,
+    pub(crate) active_contracts: Vec<crate::models::contract::EmployeeContract>,
+    pub(crate) active_assignments: Vec<crate::models::employee_assignment::EmployeeAssignment>,
+    pub(crate) primary_location_id: Uuid,
 }
 
 /// Named record for a payroll segment snapshot.
@@ -109,6 +112,7 @@ pub struct PayrollServiceArgs {
     pub salary_base_repo:
         Arc<dyn crate::repositories::salary_base_repository::SalaryBaseRepository>,
     pub roster_provider: Arc<dyn RosterDataProvider>,
+    pub contract_repo: Arc<dyn crate::repositories::EmployeeContractRepository>,
 }
 
 pub struct PayrollService {
@@ -124,6 +128,7 @@ pub struct PayrollService {
     overtime_policy_repo: Arc<dyn OvertimePolicyRepositoryTrait>,
     salary_base_repo: Arc<dyn crate::repositories::salary_base_repository::SalaryBaseRepository>,
     roster_provider: Arc<dyn RosterDataProvider>,
+    contract_repo: Arc<dyn crate::repositories::EmployeeContractRepository>,
 }
 impl PayrollService {
     pub fn new(args: PayrollServiceArgs) -> Self {
@@ -140,6 +145,7 @@ impl PayrollService {
             overtime_policy_repo: args.overtime_policy_repo,
             salary_base_repo: args.salary_base_repo,
             roster_provider: args.roster_provider,
+            contract_repo: args.contract_repo,
         }
     }
 
@@ -313,6 +319,24 @@ impl PayrollService {
             .get_workspace_overtime_data(workspace_id)
             .await?;
 
+        let active_contracts = self
+            .contract_repo
+            .list_employee_contracts(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                employee_id,
+            )
+            .await?;
+
+        let active_assignments = self
+            .employee_repo
+            .list_employee_assignments(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                employee_id,
+            )
+            .await?;
+
+        let primary_location_id = employee.primary_location_id();
+
         Ok(PayrollContext {
             employee_id,
             workspace,
@@ -333,6 +357,9 @@ impl PayrollService {
             ws_payroll_settings_history,
             department_payroll_configs,
             overtime_data,
+            active_contracts,
+            active_assignments,
+            primary_location_id,
         })
     }
 
@@ -795,6 +822,16 @@ impl PayrollService {
                 .get_employee_effective_policies_batch(token, &chunk_ids, effective_time)
                 .await;
 
+            let contracts_res = self
+                .contract_repo
+                .list_contracts_batch(token, &chunk_ids)
+                .await;
+
+            let assignments_res = self
+                .employee_repo
+                .list_assignments_batch(token, &chunk_ids)
+                .await;
+
             let mut employees = match employees_res {
                 Ok(emps) => emps
                     .into_iter()
@@ -809,6 +846,8 @@ impl PayrollService {
             let mut roster_map = rosters.unwrap_or_default();
             let mut conditions_map = conditions_res.unwrap_or_default();
             let mut policies_map = policies_res.unwrap_or_default();
+            let mut contracts_map = contracts_res.unwrap_or_default();
+            let mut assignments_map = assignments_res.unwrap_or_default();
 
             let batch_dept_ids: Vec<Uuid> = dept_map
                 .values()
@@ -867,6 +906,8 @@ impl PayrollService {
                         }
                     }
 
+                    let primary_location_id = employee.primary_location_id();
+
                     contexts.push(PayrollContext {
                         employee_id: emp_id,
                         workspace: workspace.clone(),
@@ -887,6 +928,9 @@ impl PayrollService {
                         ws_payroll_settings_history: ws_payroll_settings_history.clone(),
                         department_payroll_configs: emp_dept_payroll_configs,
                         overtime_data: overtime_data.clone(),
+                        active_contracts: contracts_map.remove(&emp_id).unwrap_or_default(),
+                        active_assignments: assignments_map.remove(&emp_id).unwrap_or_default(),
+                        primary_location_id,
                     });
                 }
             }
@@ -907,6 +951,7 @@ impl PayrollService {
                         overtime_policy_repo: Arc::clone(&self.overtime_policy_repo),
                         salary_base_repo: Arc::clone(&self.salary_base_repo),
                         roster_provider: Arc::clone(&self.roster_provider),
+                        contract_repo: Arc::clone(&self.contract_repo),
                     };
                     async move {
                         match svc.calculate_payslip_with_context(ctx).await {
@@ -1022,8 +1067,6 @@ mod tests {
                 shifts: HashMap::new(),
                 fixed_assignments: HashMap::new(),
                 pattern_assignments: HashMap::new(),
-                dept_patterns: HashMap::new(),
-                dept_fixed_shifts: HashMap::new(),
                 active_rules: Vec::new(),
                 rule_patterns: HashMap::new(),
                 dept_history: HashMap::new(),
@@ -1044,6 +1087,9 @@ mod tests {
                 policies: HashMap::new(),
                 assignments: Vec::new(),
             },
+            active_contracts: Vec::new(),
+            active_assignments: Vec::new(),
+            primary_location_id: Uuid::new_v4(),
         }
     }
 

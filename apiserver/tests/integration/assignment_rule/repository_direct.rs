@@ -39,7 +39,15 @@ async fn test_assignment_rule_crud() {
         pattern_id,
         name: "Test Rule".to_string(),
         priority: 10,
-        conditions: AssignmentRuleConditions::new(None, Some(vec!["E123".to_string()]), None),
+        conditions: AssignmentRuleConditions::new(
+            None,
+            Some(vec!["E123".to_string()]),
+            None,
+            None,
+            None,
+        ),
+        start_date: None,
+        end_date: None,
     };
 
     let rule = repo
@@ -74,6 +82,8 @@ async fn test_assignment_rule_crud() {
         conditions: None,
         is_active: Some(false),
         max_concurrent_workers: None,
+        start_date: None,
+        end_date: None,
     };
     let updated_rule = repo
         .update_rule(&auth_token, rule.id(), &update_req)

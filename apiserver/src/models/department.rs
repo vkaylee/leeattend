@@ -9,7 +9,6 @@ pub struct Department {
     name: String,
     description: Option<String>,
     manager_id: Option<Uuid>,
-    default_working_pattern_id: Option<Uuid>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
     active_employee_count: i64,
@@ -22,7 +21,6 @@ impl Department {
         name: String,
         description: Option<String>,
         manager_id: Option<Uuid>,
-        default_working_pattern_id: Option<Uuid>,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
         active_employee_count: i64,
@@ -33,7 +31,6 @@ impl Department {
             name,
             description,
             manager_id,
-            default_working_pattern_id,
             created_at,
             updated_at,
             active_employee_count,
@@ -60,10 +57,6 @@ impl Department {
         self.manager_id
     }
 
-    pub fn default_working_pattern_id(&self) -> Option<Uuid> {
-        self.default_working_pattern_id
-    }
-
     pub fn created_at(&self) -> DateTime<Utc> {
         self.created_at
     }
@@ -82,7 +75,6 @@ pub struct CreateDepartmentRequest {
     pub name: String,
     pub description: Option<String>,
     pub manager_id: Option<Uuid>,
-    pub default_working_pattern_id: Option<Uuid>,
 }
 
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
@@ -90,11 +82,6 @@ pub struct UpdateDepartmentRequest {
     pub name: Option<String>,
     pub description: Option<String>,
     pub manager_id: Option<Uuid>,
-    #[serde(
-        default,
-        deserialize_with = "crate::utils::serde_helpers::deserialize_option_option"
-    )]
-    pub default_working_pattern_id: Option<Option<Uuid>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]

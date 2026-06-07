@@ -19,7 +19,6 @@ pub trait DepartmentRepository: Send + Sync {
         name: String,
         description: Option<String>,
         manager_id: Option<Uuid>,
-        default_working_pattern_id: Option<Uuid>,
     ) -> Result<Department, AppError>;
     async fn get_department_by_id(
         &self,

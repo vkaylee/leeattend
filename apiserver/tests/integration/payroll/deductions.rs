@@ -123,6 +123,11 @@ async fn test_net_pay_formula_with_zero_deductions() {
                     )),
                 ),
             ),
+            contract_repo: Arc::new(
+                apiserver::repositories::DieselEmployeeContractRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
         })
     }
     .calculate_monthly_payslip(employee_id, workspace_id, 2026, 1)

@@ -187,7 +187,9 @@ async fn test_employer_hierarchy() {
         relationship_type: None,
     };
     let res = client
-        .post(&format!("{address}/api/v1/workspaces/{workspace_id}/employers"))
+        .post(&format!(
+            "{address}/api/v1/workspaces/{workspace_id}/employers"
+        ))
         .header("X-User-Id", user_id.to_string())
         .json(&parent_payload)
         .send()
@@ -206,7 +208,9 @@ async fn test_employer_hierarchy() {
         relationship_type: Some("subsidiary".to_string()),
     };
     let res = client
-        .post(&format!("{address}/api/v1/workspaces/{workspace_id}/employers"))
+        .post(&format!(
+            "{address}/api/v1/workspaces/{workspace_id}/employers"
+        ))
         .header("X-User-Id", user_id.to_string())
         .json(&child_payload)
         .send()
@@ -238,7 +242,9 @@ async fn test_employer_hierarchy() {
         relationship_type: Some("subsidiary".to_string()),
     };
     let res = client
-        .post(&format!("{address}/api/v1/workspaces/{workspace_id}/employers"))
+        .post(&format!(
+            "{address}/api/v1/workspaces/{workspace_id}/employers"
+        ))
         .header("X-User-Id", user_id.to_string())
         .json(&bad_child_payload)
         .send()
@@ -256,7 +262,9 @@ async fn test_employer_hierarchy() {
         relationship_type: Some(Some("subsidiary".to_string())),
     };
     let res = client
-        .put(&format!("{address}/api/v1/workspaces/{workspace_id}/employers/{parent_id}"))
+        .put(&format!(
+            "{address}/api/v1/workspaces/{workspace_id}/employers/{parent_id}"
+        ))
         .header("X-User-Id", user_id.to_string())
         .json(&bad_parent_update)
         .send()
@@ -273,7 +281,9 @@ async fn test_employer_hierarchy() {
         relationship_type: None,
     };
     let res = client
-        .put(&format!("{address}/api/v1/workspaces/{workspace_id}/employers/{child_id}"))
+        .put(&format!(
+            "{address}/api/v1/workspaces/{workspace_id}/employers/{child_id}"
+        ))
         .header("X-User-Id", user_id.to_string())
         .json(&self_parent_update)
         .send()
@@ -290,7 +300,9 @@ async fn test_employer_hierarchy() {
         relationship_type: Some(None),
     };
     let res = client
-        .put(&format!("{address}/api/v1/workspaces/{workspace_id}/employers/{child_id}"))
+        .put(&format!(
+            "{address}/api/v1/workspaces/{workspace_id}/employers/{child_id}"
+        ))
         .header("X-User-Id", user_id.to_string())
         .json(&remove_parent_payload)
         .send()

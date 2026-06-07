@@ -347,6 +347,8 @@ pub struct AssignmentRuleConditions {
     department_id: Option<Uuid>,
     employee_id_numbers: Option<Vec<String>>,
     tags: Option<Vec<String>>,
+    location_id: Option<Uuid>,
+    employer_id: Option<Uuid>,
 }
 
 impl AssignmentRuleConditions {
@@ -354,11 +356,15 @@ impl AssignmentRuleConditions {
         department_id: Option<Uuid>,
         employee_id_numbers: Option<Vec<String>>,
         tags: Option<Vec<String>>,
+        location_id: Option<Uuid>,
+        employer_id: Option<Uuid>,
     ) -> Self {
         Self {
             department_id,
             employee_id_numbers,
             tags,
+            location_id,
+            employer_id,
         }
     }
 
@@ -373,6 +379,14 @@ impl AssignmentRuleConditions {
     pub fn tags(&self) -> Option<&[String]> {
         self.tags.as_deref()
     }
+
+    pub fn location_id(&self) -> Option<Uuid> {
+        self.location_id
+    }
+
+    pub fn employer_id(&self) -> Option<Uuid> {
+        self.employer_id
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
@@ -386,6 +400,8 @@ pub struct AssignmentRule {
     is_active: bool,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
+    start_date: Option<NaiveDate>,
+    end_date: Option<NaiveDate>,
 }
 
 impl AssignmentRule {
@@ -399,6 +415,8 @@ impl AssignmentRule {
         is_active: bool,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
+        start_date: Option<NaiveDate>,
+        end_date: Option<NaiveDate>,
     ) -> Self {
         Self {
             id,
@@ -410,6 +428,8 @@ impl AssignmentRule {
             is_active,
             created_at,
             updated_at,
+            start_date,
+            end_date,
         }
     }
 
@@ -448,6 +468,14 @@ impl AssignmentRule {
     pub fn updated_at(&self) -> DateTime<Utc> {
         self.updated_at
     }
+
+    pub fn start_date(&self) -> Option<NaiveDate> {
+        self.start_date
+    }
+
+    pub fn end_date(&self) -> Option<NaiveDate> {
+        self.end_date
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
@@ -456,6 +484,8 @@ pub struct CreateAssignmentRuleRequest {
     pub name: String,
     pub priority: i32,
     pub conditions: AssignmentRuleConditions,
+    pub start_date: Option<NaiveDate>,
+    pub end_date: Option<NaiveDate>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
@@ -466,6 +496,16 @@ pub struct UpdateAssignmentRuleRequest {
     pub conditions: Option<AssignmentRuleConditions>,
     pub is_active: Option<bool>,
     pub max_concurrent_workers: Option<i32>,
+    #[serde(
+        default,
+        deserialize_with = "crate::utils::serde_helpers::deserialize_option_option"
+    )]
+    pub start_date: Option<Option<NaiveDate>>,
+    #[serde(
+        default,
+        deserialize_with = "crate::utils::serde_helpers::deserialize_option_option"
+    )]
+    pub end_date: Option<Option<NaiveDate>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]

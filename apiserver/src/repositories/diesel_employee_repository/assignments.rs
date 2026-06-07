@@ -45,6 +45,19 @@ pub trait EmployeeAssignmentRepository: Send + Sync {
         employee_id: Uuid,
         assignment_id: Uuid,
     ) -> Result<u64, AppError>;
+
+    async fn list_assignments_batch(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_ids: &[Uuid],
+    ) -> Result<std::collections::HashMap<Uuid, Vec<EmployeeAssignment>>, AppError> {
+        let mut map = std::collections::HashMap::new();
+        for &emp_id in employee_ids {
+            let list = self.list_employee_assignments(auth_token, emp_id).await?;
+            map.insert(emp_id, list);
+        }
+        Ok(map)
+    }
 }
 
 #[async_trait]
@@ -150,5 +163,33 @@ impl EmployeeAssignmentRepository for DieselEmployeeRepository {
         .execute(&mut conn)
         .await?;
         Ok(deleted as u64)
+    }
+
+    async fn list_assignments_batch(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_ids: &[Uuid],
+    ) -> Result<std::collections::HashMap<Uuid, Vec<EmployeeAssignment>>, AppError> {
+        let mut conn = self
+            .diesel_pools
+            .tenants_tx
+            .get_connection(&auth_token.workspace_id())
+            .await?;
+        let assignments = employee_assignments::table
+            .filter(employee_assignments::workspace_id.eq(auth_token.workspace_id()))
+            .filter(employee_assignments::employee_id.eq_any(employee_ids))
+            .order((
+                employee_assignments::employee_id.asc(),
+                employee_assignments::start_date.desc(),
+            ))
+            .load::<EmployeeAssignment>(&mut conn)
+            .await?;
+
+        let mut map: std::collections::HashMap<Uuid, Vec<EmployeeAssignment>> =
+            std::collections::HashMap::new();
+        for a in assignments {
+            map.entry(a.employee_id).or_default().push(a);
+        }
+        Ok(map)
     }
 }

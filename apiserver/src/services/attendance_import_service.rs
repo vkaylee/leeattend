@@ -197,7 +197,6 @@ impl ImportStrategy for EmployeeImportStrategy {
                     name.clone(),
                     None,
                     None,
-                    None,
                     Utc::now(),
                     Utc::now(),
                     0,

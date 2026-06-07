@@ -1076,7 +1076,6 @@ mod tests {
             name: String,
             _de: Option<String>,
             _m: Option<Uuid>,
-            _d: Option<Uuid>,
         ) -> Result<crate::models::Department, AppError> {
             Ok(crate::models::Department::new(
                 Uuid::new_v4(),
@@ -1084,7 +1083,6 @@ mod tests {
                 name,
                 _de,
                 _m,
-                _d,
                 Utc::now(),
                 Utc::now(),
                 0,
@@ -1704,7 +1702,6 @@ mod tests {
             "Engineering".to_string(),
             None,
             Some(employee_id),
-            None,
             Utc::now(),
             Utc::now(),
             1,
@@ -1840,7 +1837,6 @@ mod tests {
             "Engineering".to_string(),
             None,
             Some(employee_id),
-            None,
             Utc::now(),
             Utc::now(),
             1,

@@ -134,6 +134,11 @@ async fn test_calculate_payroll_multi_segment() {
                     )),
                 ),
             ),
+            contract_repo: Arc::new(
+                apiserver::repositories::DieselEmployeeContractRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
         })
     }
     .calculate_monthly_payslip(employee_id, workspace_id, 2026, 1)

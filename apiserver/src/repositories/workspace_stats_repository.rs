@@ -9,6 +9,7 @@ use chrono::{Datelike, NaiveDate, Utc};
 use diesel_async::RunQueryDsl;
 
 use crate::repositories::raw_models::workspace_stats::*;
+use crate::repositories::roster::RosterRepository;
 use uuid::Uuid;
 
 #[cfg_attr(test, mockall::automock)]
@@ -79,6 +80,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         let workspace_id = auth_token.workspace_id();
         let today = Utc::now().date_naive();
         let tz_str = self.get_timezone(auth_token).await;
+        let start_date = today - chrono::Duration::days(29);
 
         let mut conn = self
             .diesel_pools
@@ -94,23 +96,45 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         .load(&mut *conn)
         .await?;
 
-        let late_rows: Vec<LateRow> = diesel::sql_query(include_str!(
-            "sql/workspace_stats/attendance_trend_late.sql"
-        ))
-        .bind::<diesel::sql_types::Date, _>(today)
-        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .bind::<diesel::sql_types::Text, _>(&tz_str)
-        .load(&mut *conn)
-        .await
-        .unwrap_or_else(|e| {
-            tracing::warn!(error = %e, "late detection query failed, degrading gracefully");
-            vec![]
-        });
+        // Resolve workspace schedules for the range in Rust
+        let roster_repo =
+            crate::repositories::diesel_roster_repository::DieselRosterRepository::new(
+                self.diesel_pools.clone(),
+            );
+        let schedules = roster_repo
+            .get_workspace_schedules(None, auth_token, start_date, today, None)
+            .await
+            .unwrap_or_default();
 
-        let late_map: std::collections::HashMap<NaiveDate, i64> = late_rows
-            .into_iter()
-            .map(|r| (r.work_date, r.late_count))
-            .collect();
+        // Fetch first punches in range
+        let punch_rows: Vec<EmployeeFirstPunchRow> =
+            diesel::sql_query(include_str!("sql/workspace_stats/first_punches_range.sql"))
+                .bind::<diesel::sql_types::Date, _>(start_date)
+                .bind::<diesel::sql_types::Date, _>(today)
+                .bind::<diesel::sql_types::Text, _>(&tz_str)
+                .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+                .load(&mut *conn)
+                .await
+                .unwrap_or_default();
+
+        let mut punch_map = std::collections::HashMap::new();
+        for row in punch_rows {
+            punch_map.insert((row.employee_id, row.work_date), row.first_punch);
+        }
+
+        // Count late entries per date
+        let mut late_count_map = std::collections::HashMap::new();
+        for schedule in &schedules {
+            for s in &schedule.schedules {
+                if let Some(shift_start) = s.start_time {
+                    if let Some(&first_punch) = punch_map.get(&(schedule.employee_id, s.date)) {
+                        if first_punch > shift_start {
+                            *late_count_map.entry(s.date).or_insert(0i64) += 1;
+                        }
+                    }
+                }
+            }
+        }
 
         let total_active: i64 = diesel::sql_query(
             "SELECT COUNT(*)::bigint as count FROM employees WHERE workspace_id = $1 AND is_active = TRUE",
@@ -124,7 +148,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         let trend = base_rows
             .into_iter()
             .map(|r| {
-                let late = *late_map.get(&r.date).unwrap_or(&0);
+                let late = *late_count_map.get(&r.date).unwrap_or(&0);
                 let absent = (total_active - r.present - r.on_leave).max(0);
                 AttendanceTrendPoint {
                     date: r.date,
@@ -195,23 +219,63 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         let late_map: std::collections::HashMap<Uuid, i64> = if range == "today" {
             let tz_str = self.get_timezone(auth_token).await;
 
-            let late_rows: Vec<LateDepartmentRow> = diesel::sql_query(include_str!(
-                "sql/workspace_stats/department_attendance_late.sql"
+            // Fetch today's first punches
+            let punch_rows: Vec<EmployeeFirstPunchTodayRow> =
+                diesel::sql_query(include_str!("sql/workspace_stats/first_punches_today.sql"))
+                    .bind::<diesel::sql_types::Date, _>(today)
+                    .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+                    .bind::<diesel::sql_types::Text, _>(&tz_str)
+                    .load(&mut *conn)
+                    .await
+                    .unwrap_or_default();
+
+            // Fetch employee department mappings
+            let dept_rows: Vec<EmployeeDepartmentRow> = diesel::sql_query(include_str!(
+                "sql/workspace_stats/employee_departments_today.sql"
             ))
             .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-            .bind::<diesel::sql_types::Timestamptz, _>(start_dt)
             .bind::<diesel::sql_types::Date, _>(today)
-            .bind::<diesel::sql_types::Text, _>(&tz_str)
             .load(&mut *conn)
             .await
-            .unwrap_or_else(|e| {
-                tracing::warn!(error = %e, "late detection query failed, degrading gracefully");
-                vec![]
-            });
-            late_rows
+            .unwrap_or_default();
+
+            let dept_map: std::collections::HashMap<Uuid, Uuid> = dept_rows
                 .into_iter()
-                .map(|r| (r.department_id, r.late_count))
-                .collect()
+                .map(|r| (r.employee_id, r.department_id))
+                .collect();
+
+            // Resolve today's schedules
+            let roster_repo =
+                crate::repositories::diesel_roster_repository::DieselRosterRepository::new(
+                    self.diesel_pools.clone(),
+                );
+            let schedules = roster_repo
+                .get_workspace_schedules(None, auth_token, today, today, None)
+                .await
+                .unwrap_or_default();
+
+            let mut punch_map = std::collections::HashMap::new();
+            for row in punch_rows {
+                punch_map.insert(row.employee_id, row.first_punch);
+            }
+
+            let mut late_dept_counts = std::collections::HashMap::new();
+            for schedule in schedules {
+                if let Some(dept_id) = dept_map.get(&schedule.employee_id) {
+                    if !schedule.schedules.is_empty() {
+                        let s = &schedule.schedules[0];
+                        if let Some(shift_start) = s.start_time {
+                            if let Some(&first_punch) = punch_map.get(&schedule.employee_id) {
+                                if first_punch > shift_start {
+                                    *late_dept_counts.entry(*dept_id).or_insert(0i64) += 1;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            late_dept_counts
         } else {
             std::collections::HashMap::new()
         };
@@ -365,29 +429,68 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
 
         let absent_today = (total_employees - present_today - on_leave_today).max(0);
 
-        let late_today: i64 = diesel::sql_query(include_str!(
-            "sql/workspace_stats/workspace_stats_late_today.sql"
-        ))
-        .bind::<diesel::sql_types::Timestamptz, _>(start_of_day)
-        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .bind::<diesel::sql_types::Date, _>(today)
-        .bind::<diesel::sql_types::Text, _>(&tz_str)
-        .get_result::<CountRow>(&mut *conn)
-        .await
-        .map(|r| r.count)
-        .unwrap_or(0);
+        // Fetch today's first punches
+        let first_punch_rows: Vec<EmployeeFirstPunchTodayRow> =
+            diesel::sql_query(include_str!("sql/workspace_stats/first_punches_today.sql"))
+                .bind::<diesel::sql_types::Date, _>(today)
+                .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+                .bind::<diesel::sql_types::Text, _>(&tz_str)
+                .load(&mut *conn)
+                .await
+                .unwrap_or_default();
 
-        let early_departure_today: i64 = diesel::sql_query(include_str!(
-            "sql/workspace_stats/workspace_stats_early_departure.sql"
-        ))
-        .bind::<diesel::sql_types::Timestamptz, _>(start_of_day)
-        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .bind::<diesel::sql_types::Date, _>(today)
-        .bind::<diesel::sql_types::Text, _>(&tz_str)
-        .get_result::<CountRow>(&mut *conn)
-        .await
-        .map(|r| r.count)
-        .unwrap_or(0);
+        let first_punch_map: std::collections::HashMap<Uuid, chrono::NaiveTime> = first_punch_rows
+            .into_iter()
+            .map(|r| (r.employee_id, r.first_punch))
+            .collect();
+
+        // Fetch today's last punches
+        let last_punch_rows: Vec<EmployeeLastPunchRow> =
+            diesel::sql_query(include_str!("sql/workspace_stats/last_punches_today.sql"))
+                .bind::<diesel::sql_types::Date, _>(today)
+                .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+                .bind::<diesel::sql_types::Text, _>(&tz_str)
+                .load(&mut *conn)
+                .await
+                .unwrap_or_default();
+
+        let last_punch_map: std::collections::HashMap<Uuid, chrono::NaiveTime> = last_punch_rows
+            .into_iter()
+            .map(|r| (r.employee_id, r.last_punch_out))
+            .collect();
+
+        // Resolve today's schedules
+        let roster_repo =
+            crate::repositories::diesel_roster_repository::DieselRosterRepository::new(
+                self.diesel_pools.clone(),
+            );
+        let schedules = roster_repo
+            .get_workspace_schedules(None, auth_token, today, today, None)
+            .await
+            .unwrap_or_default();
+
+        let mut late_today = 0;
+        let mut early_departure_today = 0;
+
+        for schedule in schedules {
+            if !schedule.schedules.is_empty() {
+                let s = &schedule.schedules[0];
+                if let Some(shift_start) = s.start_time {
+                    if let Some(&first_punch) = first_punch_map.get(&schedule.employee_id) {
+                        if first_punch > shift_start {
+                            late_today += 1;
+                        }
+                    }
+                }
+                if let Some(shift_end) = s.end_time {
+                    if let Some(&last_punch_out) = last_punch_map.get(&schedule.employee_id) {
+                        if last_punch_out < shift_end {
+                            early_departure_today += 1;
+                        }
+                    }
+                }
+            }
+        }
 
         let avg_work_minutes: Option<f64> = diesel::sql_query(
         "SELECT AVG(duration_minutes)::float8 as amount FROM time_entries
@@ -502,7 +605,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
     ) -> Result<Vec<LatenessByDay>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let today = Utc::now().date_naive();
-        let _start_date = today - chrono::Duration::days(29);
+        let start_date = today - chrono::Duration::days(29);
         let tz_str = self.get_timezone(auth_token).await;
 
         let mut conn = self
@@ -510,32 +613,65 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             .tenant_transaction_conn(auth_token)
             .await?;
 
-        let rows: Vec<DayRow> = diesel::sql_query(include_str!(
-            "sql/workspace_stats/lateness_by_day.sql"
-        ))
-        .bind::<diesel::sql_types::Date, _>(today)
-        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .bind::<diesel::sql_types::Text, _>(&tz_str)
-        .load(&mut *conn)
-        .await
-        .unwrap_or_else(|e| {
-            tracing::warn!(error = %e, "lateness by day query failed, degrading gracefully");
-            vec![]
-        });
+        // Resolve workspace schedules for the range in Rust
+        let roster_repo =
+            crate::repositories::diesel_roster_repository::DieselRosterRepository::new(
+                self.diesel_pools.clone(),
+            );
+        let schedules = roster_repo
+            .get_workspace_schedules(None, auth_token, start_date, today, None)
+            .await
+            .unwrap_or_default();
+
+        // Fetch first punches in range
+        let punch_rows: Vec<EmployeeFirstPunchRow> =
+            diesel::sql_query(include_str!("sql/workspace_stats/first_punches_range.sql"))
+                .bind::<diesel::sql_types::Date, _>(start_date)
+                .bind::<diesel::sql_types::Date, _>(today)
+                .bind::<diesel::sql_types::Text, _>(&tz_str)
+                .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+                .load(&mut *conn)
+                .await
+                .unwrap_or_default();
+
+        let mut punch_map = std::collections::HashMap::new();
+        for row in punch_rows {
+            punch_map.insert((row.employee_id, row.work_date), row.first_punch);
+        }
+
+        let mut dow_stats: std::collections::HashMap<i32, (i64, f64)> =
+            std::collections::HashMap::new();
+        for schedule in &schedules {
+            for s in &schedule.schedules {
+                if let Some(shift_start) = s.start_time {
+                    if let Some(&first_punch) = punch_map.get(&(schedule.employee_id, s.date)) {
+                        if first_punch > shift_start {
+                            let late_mins = (first_punch - shift_start).num_seconds() as f64 / 60.0;
+                            let dow = s.date.weekday().number_from_monday() as i32;
+                            let entry = dow_stats.entry(dow).or_insert((0, 0.0));
+                            entry.0 += 1;
+                            entry.1 += late_mins;
+                        }
+                    }
+                }
+            }
+        }
 
         let day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-        let result = rows
-            .into_iter()
-            .map(|r| {
-                let day_idx = (r.dow - 1).clamp(0, 6) as usize;
-                LatenessByDay {
-                    day: day_names[day_idx].to_string(),
-                    late_count: r.late_count,
-                    avg_late_minutes: (r.avg_late_minutes * 10.0).round() / 10.0,
+        let mut result = Vec::new();
+        for dow in 1..=7 {
+            if let Some(&(late_count, total_late_minutes)) = dow_stats.get(&dow) {
+                if late_count > 0 {
+                    let avg_late_minutes = total_late_minutes / (late_count as f64);
+                    let day_idx = (dow - 1).clamp(0, 6) as usize;
+                    result.push(LatenessByDay {
+                        day: day_names[day_idx].to_string(),
+                        late_count,
+                        avg_late_minutes: (avg_late_minutes * 10.0).round() / 10.0,
+                    });
                 }
-            })
-            .collect();
+            }
+        }
 
         Ok(result)
     }

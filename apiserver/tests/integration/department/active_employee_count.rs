@@ -281,7 +281,6 @@ async fn test_create_department_returns_zero_count() {
             "New Dept".to_string(),
             None,
             None,
-            None,
         )
         .await
         .unwrap();

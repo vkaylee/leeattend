@@ -291,7 +291,6 @@ async fn test_get_daily_attendance_report_behalf_filtering() {
             "Assigned Department".to_string(),
             None,
             None,
-            None,
         )
         .await
         .unwrap();

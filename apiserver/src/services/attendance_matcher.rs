@@ -64,6 +64,35 @@ impl AttendanceMatcher {
 
         let mut current_date = args.seg_start;
         while current_date <= args.seg_end {
+            // Find active contract on current_date
+            let active_contract = args
+                .ctx
+                .active_contracts
+                .iter()
+                .filter(|c| {
+                    c.status() == crate::models::enums::ContractStatus::Active
+                        && c.start_date() <= current_date
+                        && c.end_date().is_none_or(|end| end >= current_date)
+                })
+                .max_by_key(|c| c.start_date());
+            let active_employer_id =
+                active_contract.map(crate::models::EmployeeContract::employer_id);
+
+            // Find active assignment on current_date
+            let active_assignment = args
+                .ctx
+                .active_assignments
+                .iter()
+                .filter(|a| {
+                    a.status == crate::models::employee_assignment::AssignmentStatusEnum::Active
+                        && a.start_date <= current_date
+                        && a.end_date.is_none_or(|end| end >= current_date)
+                })
+                .max_by_key(|a| a.start_date);
+            let active_location_id = active_assignment
+                .map(|a| a.host_location_id)
+                .unwrap_or(args.ctx.primary_location_id);
+
             // Resolve shift from pre-loaded roster data (in-memory, zero DB queries)
             let (shift_ids, _, _) = resolve_effective_shift_from_data(
                 &args.ctx.roster_data,
@@ -72,6 +101,8 @@ impl AttendanceMatcher {
                 &args.ctx.emp_id_number,
                 args.ctx.emp_tags.as_ref(),
                 current_date,
+                Some(active_location_id),
+                active_employer_id,
             );
 
             // Collect resolved shifts sorted by start_time for OT ceiling
@@ -629,6 +660,9 @@ mod tests {
             department_payroll_configs: HashMap::new(),
             overtime_data:
                 crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default(),
+            active_contracts: vec![],
+            active_assignments: vec![],
+            primary_location_id: Uuid::new_v4(),
         };
 
         let std_config = crate::domain::policy::resolver::StandardMonthConfig::new(
@@ -746,6 +780,9 @@ mod tests {
             department_payroll_configs: HashMap::new(),
             overtime_data:
                 crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default(),
+            active_contracts: vec![],
+            active_assignments: vec![],
+            primary_location_id: Uuid::new_v4(),
         };
 
         let std_config = crate::domain::policy::resolver::StandardMonthConfig::new(
@@ -832,6 +869,9 @@ mod tests {
             department_payroll_configs: HashMap::new(),
             overtime_data:
                 crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default(),
+            active_contracts: vec![],
+            active_assignments: vec![],
+            primary_location_id: Uuid::new_v4(),
         };
 
         let std_config = crate::domain::policy::resolver::StandardMonthConfig::new(
@@ -967,6 +1007,9 @@ mod tests {
             department_payroll_configs: HashMap::new(),
             overtime_data:
                 crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default(),
+            active_contracts: vec![],
+            active_assignments: vec![],
+            primary_location_id: Uuid::new_v4(),
         };
 
         let std_config = crate::domain::policy::resolver::StandardMonthConfig::new(
@@ -1130,6 +1173,9 @@ mod tests {
             ws_payroll_settings_history: vec![],
             department_payroll_configs: HashMap::new(),
             overtime_data,
+            active_contracts: vec![],
+            active_assignments: vec![],
+            primary_location_id: Uuid::new_v4(),
         };
 
         let std_config = crate::domain::policy::resolver::StandardMonthConfig::new(

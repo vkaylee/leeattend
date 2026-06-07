@@ -1023,7 +1023,6 @@ mod tests {
             _name: String,
             _desc: Option<String>,
             _mgr: Option<Uuid>,
-            _pat: Option<Uuid>,
         ) -> Result<crate::models::Department, AppError> {
             unimplemented!()
         }

@@ -118,6 +118,40 @@ pub struct DayRow {
     pub avg_late_minutes: f64,
 }
 
+#[derive(QueryableByName)]
+pub struct EmployeeFirstPunchRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    pub employee_id: Uuid,
+    #[diesel(sql_type = Date)]
+    pub work_date: NaiveDate,
+    #[diesel(sql_type = Time)]
+    pub first_punch: chrono::NaiveTime,
+}
+
+#[derive(QueryableByName)]
+pub struct EmployeeFirstPunchTodayRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    pub employee_id: Uuid,
+    #[diesel(sql_type = Time)]
+    pub first_punch: chrono::NaiveTime,
+}
+
+#[derive(QueryableByName)]
+pub struct EmployeeLastPunchRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    pub employee_id: Uuid,
+    #[diesel(sql_type = Time)]
+    pub last_punch_out: chrono::NaiveTime,
+}
+
+#[derive(QueryableByName)]
+pub struct EmployeeDepartmentRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    pub employee_id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    pub department_id: Uuid,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -25,8 +25,6 @@ pub struct DepartmentWithCountEntity {
     pub description: Option<String>,
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Uuid>)]
     pub manager_id: Option<Uuid>,
-    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Uuid>)]
-    pub default_working_pattern_id: Option<Uuid>,
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>)]
     pub created_at: Option<chrono::DateTime<Utc>>,
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>)]
@@ -43,7 +41,6 @@ impl From<DepartmentWithCountEntity> for Department {
             entity.name,
             entity.description,
             entity.manager_id,
-            entity.default_working_pattern_id,
             entity.created_at.unwrap_or_else(Utc::now),
             entity.updated_at.unwrap_or_else(Utc::now),
             entity.active_employee_count,
@@ -131,7 +128,6 @@ impl DepartmentRepository for DieselDepartmentRepository {
         name: String,
         description: Option<String>,
         manager_id: Option<Uuid>,
-        default_working_pattern_id: Option<Uuid>,
     ) -> Result<Department, AppError> {
         let mut conn = self
             .diesel_pools
@@ -145,7 +141,6 @@ impl DepartmentRepository for DieselDepartmentRepository {
             name,
             description,
             manager_id,
-            default_working_pattern_id,
         };
 
         let result: DieselDepartment = diesel::insert_into(departments::table)
@@ -176,7 +171,6 @@ impl DepartmentRepository for DieselDepartmentRepository {
             name: entity.0.name,
             description: entity.0.description,
             manager_id: entity.0.manager_id,
-            default_working_pattern_id: entity.0.default_working_pattern_id,
             created_at: entity.0.created_at,
             updated_at: entity.0.updated_at,
             active_employee_count: entity.1,
@@ -219,7 +213,6 @@ impl DepartmentRepository for DieselDepartmentRepository {
             name: d.name,
             description: d.description,
             manager_id: d.manager_id,
-            default_working_pattern_id: d.default_working_pattern_id,
             created_at: d.created_at,
             updated_at: d.updated_at,
             active_employee_count: count,
@@ -326,7 +319,6 @@ impl DepartmentRepository for DieselDepartmentRepository {
                 name: d.name().to_string(),
                 description: d.description().map(String::from),
                 manager_id: d.manager_id(),
-                default_working_pattern_id: d.default_working_pattern_id(),
             })
             .collect();
 
@@ -357,7 +349,6 @@ impl DepartmentRepository for DieselDepartmentRepository {
             name: req.name,
             description: req.description,
             manager_id: req.manager_id,
-            default_working_pattern_id: req.default_working_pattern_id,
         };
 
         diesel::update(departments::table)
@@ -390,7 +381,6 @@ impl DepartmentRepository for DieselDepartmentRepository {
             name: entity.0.name,
             description: entity.0.description,
             manager_id: entity.0.manager_id,
-            default_working_pattern_id: entity.0.default_working_pattern_id,
             created_at: entity.0.created_at,
             updated_at: entity.0.updated_at,
             active_employee_count: entity.1,
@@ -467,7 +457,6 @@ impl DepartmentRepository for DieselDepartmentRepository {
                 name: d.name,
                 description: d.description,
                 manager_id: d.manager_id,
-                default_working_pattern_id: d.default_working_pattern_id,
                 created_at: d.created_at,
                 updated_at: d.updated_at,
                 active_employee_count: count,
@@ -840,7 +829,7 @@ mod tests {
         let auth_token = crate::diesel_pool::TenantAuthToken::system_override(ws_id);
 
         let err = repo
-            .create_department(&auth_token, "Name".into(), None, None, None)
+            .create_department(&auth_token, "Name".into(), None, None)
             .await;
         assert!(err.is_err());
 
@@ -864,7 +853,6 @@ mod tests {
                     "N".into(),
                     None,
                     None,
-                    None,
                     chrono::Utc::now(),
                     chrono::Utc::now(),
                     0,
@@ -881,7 +869,6 @@ mod tests {
                     name: Some("Name".to_string()),
                     description: None,
                     manager_id: None,
-                    default_working_pattern_id: None,
                 },
             )
             .await;

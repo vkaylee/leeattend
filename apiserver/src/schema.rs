@@ -141,6 +141,8 @@ diesel::table! {
         is_active -> Bool,
         created_at -> Nullable<Timestamptz>,
         updated_at -> Nullable<Timestamptz>,
+        start_date -> Nullable<Date>,
+        end_date -> Nullable<Date>,
     }
 }
 
@@ -817,13 +819,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    department_default_shifts (department_id, shift_id) {
-        department_id -> Uuid,
-        shift_id -> Uuid,
-    }
-}
-
-diesel::table! {
     department_payroll_configs (id) {
         id -> Uuid,
         department_id -> Uuid,
@@ -844,7 +839,6 @@ diesel::table! {
         manager_id -> Nullable<Uuid>,
         created_at -> Nullable<Timestamptz>,
         updated_at -> Nullable<Timestamptz>,
-        default_working_pattern_id -> Nullable<Uuid>,
         std_working_days -> Nullable<Numeric>,
         deleted_at -> Nullable<Timestamptz>,
     }
@@ -1926,11 +1920,8 @@ diesel::joinable!(attendance_policy_versions -> attendance_policies (policy_id))
 diesel::joinable!(authorized_agents -> workspaces (workspace_id));
 diesel::joinable!(behalf_assignments -> departments (target_department_id));
 diesel::joinable!(behalf_assignments -> employees (target_employee_id));
-diesel::joinable!(department_default_shifts -> departments (department_id));
-diesel::joinable!(department_default_shifts -> shifts (shift_id));
 diesel::joinable!(department_payroll_configs -> departments (department_id));
 diesel::joinable!(departments -> employees (manager_id));
-diesel::joinable!(departments -> working_patterns (default_working_pattern_id));
 diesel::joinable!(employee_assignments -> employees (employee_id));
 diesel::joinable!(employee_contracts -> employee_documents (document_id));
 diesel::joinable!(employee_contracts -> employees (employee_id));
@@ -2046,7 +2037,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     authorized_agents,
     behalf_assignments,
     dashboard_preferences,
-    department_default_shifts,
     department_payroll_configs,
     departments,
     devices,

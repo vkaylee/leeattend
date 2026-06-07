@@ -28,8 +28,6 @@ async fn test_empty_workspace_all_maps_empty() {
     assert!(data.shifts.is_empty());
     assert!(data.fixed_assignments.is_empty());
     assert!(data.pattern_assignments.is_empty());
-    assert!(data.dept_patterns.is_empty());
-    assert!(data.dept_fixed_shifts.is_empty());
     assert!(data.active_rules.is_empty());
     assert!(data.rule_patterns.is_empty());
     assert!(data.dept_history.is_empty());

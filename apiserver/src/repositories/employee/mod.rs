@@ -689,5 +689,10 @@ mockall::mock! {
             employee_id: Uuid,
             assignment_id: Uuid,
         ) -> Result<u64, AppError>;
+        async fn list_assignments_batch(
+            &self,
+            auth_token: &crate::diesel_pool::TenantAuthToken,
+            employee_ids: &[Uuid],
+        ) -> Result<std::collections::HashMap<Uuid, Vec<crate::models::employee_assignment::EmployeeAssignment>>, AppError>;
     }
 }
