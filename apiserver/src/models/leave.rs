@@ -461,6 +461,7 @@ pub struct LeavePolicyAssignment {
     effective_from: NaiveDate,
     effective_to: Option<NaiveDate>,
     created_at: DateTime<Utc>,
+    deleted_at: Option<DateTime<Utc>>,
 }
 
 impl LeavePolicyAssignment {
@@ -474,6 +475,7 @@ impl LeavePolicyAssignment {
         effective_from: NaiveDate,
         effective_to: Option<NaiveDate>,
         created_at: DateTime<Utc>,
+        deleted_at: Option<DateTime<Utc>>,
     ) -> Self {
         Self {
             id,
@@ -484,6 +486,7 @@ impl LeavePolicyAssignment {
             effective_from,
             effective_to,
             created_at,
+            deleted_at,
         }
     }
 
@@ -517,6 +520,10 @@ impl LeavePolicyAssignment {
 
     pub fn created_at(&self) -> DateTime<Utc> {
         self.created_at
+    }
+
+    pub fn deleted_at(&self) -> Option<DateTime<Utc>> {
+        self.deleted_at
     }
 }
 

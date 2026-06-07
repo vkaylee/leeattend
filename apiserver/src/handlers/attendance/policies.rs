@@ -45,6 +45,7 @@ pub struct AttendancePolicyVersionResponse {
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn get_default_attendance_rules(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -82,6 +83,7 @@ pub async fn get_default_attendance_rules(
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn list_default_attendance_policy_versions(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -127,6 +129,7 @@ pub async fn list_default_attendance_policy_versions(
     )
 )]
 #[allow(clippy::too_many_lines)]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn update_default_attendance_rules(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,

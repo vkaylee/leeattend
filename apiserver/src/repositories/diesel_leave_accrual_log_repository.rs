@@ -74,6 +74,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
         let date = leave_policy_assignments::table
             .filter(leave_policy_assignments::id.eq(assignment_id))
             .filter(leave_policy_assignments::workspace_id.eq(workspace_id))
+            .filter(leave_policy_assignments::deleted_at.is_null())
             .select(leave_policy_assignments::effective_from)
             .first::<NaiveDate>(&mut *conn)
             .await

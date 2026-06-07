@@ -43,6 +43,7 @@ pub struct PaginatedWorkspaceLeaveBalances {
         ("ws_id" = Uuid, Path, description = "Workspace ID")
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn submit_leave_request(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
@@ -118,6 +119,7 @@ pub async fn submit_leave_request(
         ("id" = Uuid, Path, description = "Leave request ID")
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn approve_leave_request(
     Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
@@ -159,6 +161,7 @@ pub async fn approve_leave_request(
         ("id" = Uuid, Path, description = "Employee ID")
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn get_my_leave_requests(
     Path(id): Path<Uuid>,
     UserId(_user_id): UserId,
@@ -184,6 +187,7 @@ pub async fn get_my_leave_requests(
         PaginationParams
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn get_workspace_leave_balances(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -211,6 +215,7 @@ pub async fn get_workspace_leave_balances(
         ("id" = Uuid, Path, description = "Employee ID")
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn get_employee_leave_balances(
     Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
@@ -243,6 +248,7 @@ pub struct LeaveStatusQuery {
         LeaveStatusQuery
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn get_workspace_leave_requests(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -286,6 +292,7 @@ pub struct LeaveHistoryQuery {
         LeaveHistoryQuery
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn get_employee_leave_history(
     Path(params): Path<(Uuid, Uuid)>,
     Query(query): Query<LeaveHistoryQuery>,
@@ -317,6 +324,7 @@ pub async fn get_employee_leave_history(
         ("id" = Uuid, Path, description = "Employee ID")
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn adjust_leave_balance(
     Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
@@ -345,6 +353,7 @@ pub async fn adjust_leave_balance(
         ("ws_id" = Uuid, Path, description = "Workspace ID")
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn create_leave_policy(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -379,6 +388,7 @@ pub async fn create_leave_policy(
         ("policy_id" = Uuid, Path, description = "Policy ID")
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn update_leave_policy(
     State(state): State<Arc<AppState>>,
     Path(params): Path<(Uuid, Uuid)>,
@@ -415,6 +425,7 @@ pub async fn update_leave_policy(
         ("policy_id" = Uuid, Path, description = "Policy ID")
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn delete_leave_policy(
     State(state): State<Arc<AppState>>,
     Path(params): Path<(Uuid, Uuid)>,
@@ -446,6 +457,7 @@ pub async fn delete_leave_policy(
         ("ws_id" = Uuid, Path, description = "Workspace ID")
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn get_leave_policies(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -469,6 +481,7 @@ pub async fn get_leave_policies(
         ("ws_id" = Uuid, Path, description = "Workspace ID")
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn assign_leave_policy(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -485,6 +498,7 @@ pub async fn assign_leave_policy(
         req.effective_from,
         req.effective_to,
         chrono::Utc::now(),
+        None,
     );
 
     let saved = state
@@ -518,6 +532,7 @@ pub struct AccrualJobResponse {
         ("ws_id" = Uuid, Path, description = "Workspace ID")
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn trigger_accrual_run(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -594,10 +609,11 @@ pub struct JobStatusResponse {
         ("job_id" = Uuid, Path, description = "Job ID")
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn get_job_status(
     Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
-    _ctx: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<Json<JobStatusResponse>> {
     let (_, job_id) = params;
     let queue = state.infra().job_queue()?;
@@ -630,6 +646,7 @@ pub async fn get_job_status(
         ("ws_id" = Uuid, Path, description = "Workspace ID")
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn get_leave_policy_assignments(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -659,6 +676,7 @@ pub async fn get_leave_policy_assignments(
         ("ws_id" = Uuid, Path, description = "Workspace ID")
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn upload_leave_excel(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
@@ -746,6 +764,7 @@ pub async fn upload_leave_excel(
         ("ws_id" = Uuid, Path, description = "Workspace ID")
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn get_latest_leave_import(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -790,6 +809,7 @@ pub async fn get_latest_leave_import(
         ("job_id" = Uuid, Path, description = "Job ID")
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn download_leave_import_errors(
     Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
@@ -854,6 +874,7 @@ pub struct DownloadTemplateQuery {
         DownloadTemplateQuery
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn download_leave_import_template(
     State(state): State<Arc<AppState>>,
     axum::extract::Query(query): axum::extract::Query<DownloadTemplateQuery>,
@@ -923,6 +944,7 @@ async fn check_leave_behalf_scope(
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn create_leave_behalf_assignment(
     State(state): State<Arc<AppState>>,
     Path(_ws_id): Path<Uuid>,
@@ -954,6 +976,7 @@ pub async fn create_leave_behalf_assignment(
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn delete_leave_behalf_assignment(
     State(state): State<Arc<AppState>>,
     Path(params): Path<(Uuid, Uuid)>,
@@ -983,6 +1006,7 @@ pub async fn delete_leave_behalf_assignment(
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn list_leave_behalf_assignments(
     State(state): State<Arc<AppState>>,
     Path(_ws_id): Path<Uuid>,
@@ -1011,6 +1035,7 @@ pub async fn list_leave_behalf_assignments(
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn get_my_leave_behalf_targets(
     State(state): State<Arc<AppState>>,
     Path(_ws_id): Path<Uuid>,

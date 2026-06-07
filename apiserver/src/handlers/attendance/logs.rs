@@ -34,6 +34,7 @@ pub struct AttendanceLogQuery {
         AttendanceLogQuery
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn get_attendance_logs(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -85,6 +86,7 @@ pub async fn get_attendance_logs(
         AttendanceLogQuery
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn get_raw_attendance_logs(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -145,6 +147,7 @@ pub struct ReprocessQuery {
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id, employee_id = %__path_params.1))]
 pub async fn force_reprocess_attendance(
     State(state): State<Arc<AppState>>,
     Path(__path_params): Path<(Uuid, Uuid)>,
@@ -208,6 +211,7 @@ pub async fn force_reprocess_attendance(
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn force_reprocess_all_attendance(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,

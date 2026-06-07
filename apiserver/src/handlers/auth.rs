@@ -132,6 +132,7 @@ fn clear_auth_cookies() -> HeaderMap {
         (status = 200, description = "Successfully registered", body = AuthResponse)
     )
 )]
+#[tracing::instrument(skip_all)]
 pub async fn register(
     State(state): State<Arc<AppState>>,
     Json(req): Json<RegisterRequest>,
@@ -233,6 +234,7 @@ pub async fn register(
     )
 )]
 #[allow(clippy::too_many_lines)]
+#[tracing::instrument(skip_all)]
 pub async fn login(
     State(state): State<Arc<AppState>>,
     Json(req): Json<LoginRequest>,
@@ -391,6 +393,7 @@ pub async fn login(
         (status = 200, description = "Successfully refreshed session", body = AuthResponse)
     )
 )]
+#[tracing::instrument(skip_all)]
 pub async fn refresh_token(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -435,6 +438,7 @@ pub async fn refresh_token(
         (status = 200, description = "Successfully changed password")
     )
 )]
+#[tracing::instrument(skip_all, fields(user_id = %user_id))]
 pub async fn change_password(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
@@ -500,6 +504,7 @@ pub async fn change_password(
         (status = 200, description = "Successfully logged out")
     )
 )]
+#[tracing::instrument(skip_all)]
 pub async fn logout(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -577,6 +582,7 @@ pub async fn logout(
         (status = 200, description = "Get current user info", body = UserResponse)
     )
 )]
+#[tracing::instrument(skip_all, fields(user_id = %user_id))]
 pub async fn get_me(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
@@ -617,6 +623,7 @@ pub async fn get_me(
         (status = 200, description = "Get calling user permissions and roles")
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn get_my_permissions(
     ctx: crate::handlers::common::MemberContext,
 ) -> AppResult<Json<serde_json::Value>> {
@@ -643,6 +650,7 @@ pub async fn get_my_permissions(
         (status = 200, description = "Update user profile info", body = UserResponse)
     )
 )]
+#[tracing::instrument(skip_all, fields(user_id = %user_id))]
 pub async fn update_me(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
@@ -673,6 +681,7 @@ pub async fn update_me(
         (status = 200, description = "Get all workspace users", body = Vec<UserResponse>)
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn get_users(
     State(state): State<Arc<AppState>>,
     ctx: crate::handlers::common::MemberContext,

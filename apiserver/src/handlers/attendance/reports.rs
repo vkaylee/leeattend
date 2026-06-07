@@ -40,6 +40,7 @@ pub struct AttendanceReportQuery {
     )
 )]
 #[allow(clippy::too_many_lines)]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn get_attendance_report(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,

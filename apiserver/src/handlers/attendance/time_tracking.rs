@@ -30,6 +30,7 @@ pub struct HistoryQuery {
         ("workspace_id" = Uuid, Path, description = "Workspace ID")
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn punch_in(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -63,6 +64,7 @@ pub async fn punch_in(
         ("employee_id" = Uuid, Path, description = "Employee ID")
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id, employee_id = %params.1))]
 pub async fn punch_out(
     Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
@@ -98,6 +100,7 @@ pub async fn punch_out(
         HistoryQuery
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id, employee_id = %params.1))]
 pub async fn get_time_history(
     Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
@@ -131,6 +134,7 @@ pub async fn get_time_history(
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id, entry_id = %__path_params.1))]
 pub async fn update_time_entry(
     Path(__path_params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
@@ -163,6 +167,7 @@ pub async fn update_time_entry(
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id, entry_id = %__path_params.1))]
 pub async fn delete_time_entry(
     Path(__path_params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,

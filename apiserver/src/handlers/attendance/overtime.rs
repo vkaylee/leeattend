@@ -37,6 +37,7 @@ pub struct ClaimOtRequest {
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id, employee_id = %__path_params.1))]
 pub async fn claim_ot(
     State(state): State<Arc<AppState>>,
     Path(__path_params): Path<(Uuid, Uuid)>,
@@ -116,6 +117,7 @@ pub struct ApproveOtRequest {
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id, employee_id = %__path_params.1))]
 pub async fn approve_ot(
     State(state): State<Arc<AppState>>,
     Path(__path_params): Path<(Uuid, Uuid)>,
@@ -174,6 +176,7 @@ pub struct SummaryQuery {
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn get_attendance_summaries(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -249,6 +252,7 @@ use crate::models::{BehalfAssignment, CreateBehalfAssignmentRequest};
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn create_behalf_assignment(
     State(state): State<Arc<AppState>>,
     Path(_ws_id): Path<Uuid>,
@@ -280,6 +284,7 @@ pub async fn create_behalf_assignment(
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id, assignment_id = %params.1))]
 pub async fn delete_behalf_assignment(
     State(state): State<Arc<AppState>>,
     Path(params): Path<(Uuid, Uuid)>,
@@ -309,6 +314,7 @@ pub async fn delete_behalf_assignment(
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn list_behalf_assignments(
     State(state): State<Arc<AppState>>,
     Path(_ws_id): Path<Uuid>,

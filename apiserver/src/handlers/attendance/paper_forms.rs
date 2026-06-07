@@ -42,6 +42,7 @@ pub struct EnterPaperOtRequest {
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id, employee_id = %__path_params.1))]
 pub async fn enter_paper_ot(
     State(state): State<Arc<AppState>>,
     Path(__path_params): Path<(Uuid, Uuid)>,
@@ -101,6 +102,7 @@ pub async fn enter_paper_ot(
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn bulk_upload_paper_ot(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,

@@ -272,12 +272,14 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
 
         conn.transaction(|conn| {
             Box::pin(async move {
-                // 1. Delete assignments
-                diesel::delete(
+                // 1. Soft delete assignments
+                diesel::update(
                     leave_policy_assignments::table
                         .filter(leave_policy_assignments::policy_id.eq(id))
-                        .filter(leave_policy_assignments::workspace_id.eq(workspace_id)),
+                        .filter(leave_policy_assignments::workspace_id.eq(workspace_id))
+                        .filter(leave_policy_assignments::deleted_at.is_null()),
                 )
+                .set(leave_policy_assignments::deleted_at.eq(Utc::now()))
                 .execute(&mut *conn)
                 .await?;
 
@@ -327,8 +329,8 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                         .first(&mut *conn)
                         .await?;
 
-                    // 2a. Delete future assignments
-                    diesel::delete(
+                    // 2a. Soft delete future assignments
+                    diesel::update(
                         leave_policy_assignments::table
                             .filter(
                                 leave_policy_assignments::workspace_id
@@ -352,8 +354,10 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                             .filter(
                                 leave_policy_assignments::effective_from
                                     .ge(assignment_owned.effective_from()),
-                            ),
+                            )
+                            .filter(leave_policy_assignments::deleted_at.is_null()),
                     )
+                    .set(leave_policy_assignments::deleted_at.eq(Utc::now()))
                     .execute(&mut *conn)
                     .await?;
 
@@ -388,7 +392,8 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                                     .is_null()
                                     .or(leave_policy_assignments::effective_to
                                         .ge(assignment_owned.effective_from())),
-                            ),
+                            )
+                            .filter(leave_policy_assignments::deleted_at.is_null()),
                     )
                     .set(
                         leave_policy_assignments::effective_to
@@ -407,6 +412,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                         effective_from: assignment_owned.effective_from(),
                         effective_to: assignment_owned.effective_to(),
                         created_at: Some(Utc::now()),
+                        deleted_at: None,
                     };
 
                     let saved = diesel::insert_into(leave_policy_assignments::table)

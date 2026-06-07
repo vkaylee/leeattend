@@ -43,6 +43,7 @@ pub struct UpsertPolicyAssignmentRequest {
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn list_policy_assignments(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -73,6 +74,7 @@ pub async fn list_policy_assignments(
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn upsert_policy_assignment(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -104,6 +106,7 @@ pub async fn upsert_policy_assignment(
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id, assignment_id = %__path_params.1))]
 pub async fn delete_policy_assignment(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,

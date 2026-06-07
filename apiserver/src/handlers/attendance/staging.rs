@@ -71,6 +71,7 @@ pub struct StagingLogsResponse {
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn get_staging_logs(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -126,6 +127,7 @@ pub struct ResolveStagingLogRequest {
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id, log_id = %__path_params.1))]
 pub async fn resolve_staging_log(
     Path(__path_params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
@@ -170,6 +172,7 @@ pub async fn resolve_staging_log(
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id, log_id = %__path_params.1))]
 pub async fn dismiss_staging_log(
     Path(__path_params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,

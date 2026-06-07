@@ -133,6 +133,7 @@ pub struct LeavePolicyAssignmentEntity {
     pub effective_from: NaiveDate,
     pub effective_to: Option<NaiveDate>,
     pub created_at: Option<DateTime<Utc>>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 // ---------------------------------------------------------------------------
@@ -240,6 +241,7 @@ impl From<LeavePolicyAssignmentEntity> for LeavePolicyAssignment {
             entity.effective_from,
             entity.effective_to,
             entity.created_at.unwrap_or_else(Utc::now),
+            entity.deleted_at,
         )
     }
 }

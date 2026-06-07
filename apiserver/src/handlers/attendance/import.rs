@@ -26,6 +26,7 @@ use crate::AppState;
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn upload_attendance_excel(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -71,6 +72,7 @@ pub async fn upload_attendance_excel(
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn upload_attendance_logs(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -111,6 +113,7 @@ pub async fn upload_attendance_logs(
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn upload_employee_excel(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -194,6 +197,7 @@ pub struct ImportJobQuery {
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
 pub async fn get_latest_import_job(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -240,6 +244,7 @@ pub async fn get_latest_import_job(
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id, job_id = %__path_params.1))]
 pub async fn get_import_job_status(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -286,6 +291,7 @@ pub async fn get_import_job_status(
         ("bearer_auth" = [])
     )
 )]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id, job_id = %__path_params.1))]
 pub async fn download_import_error_file(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
