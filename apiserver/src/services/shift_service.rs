@@ -4,6 +4,7 @@ use uuid::Uuid;
 
 use crate::errors::AppError;
 use crate::models::{Shift, UpdateShiftRequest};
+use crate::utils::i18n::I18nKey;
 use crate::repositories::shift_repository::ShiftRepository;
 
 pub struct ShiftService {
@@ -54,7 +55,7 @@ impl ShiftService {
                 shift_id,
             )
             .await?
-            .ok_or(AppError::NotFound("Shift not found".into()))?;
+            .ok_or_else(|| AppError::not_found(I18nKey::ShiftNotFound))?;
 
         let has_time_changes = old_shift.start_time != req.start_time
             || old_shift.end_time != req.end_time
@@ -158,7 +159,7 @@ impl ShiftService {
                 diesel::result::DatabaseErrorKind::UniqueViolation,
                 info,
             ))) if info.constraint_name() == Some("uq_employee_shift_start") => Err(
-                AppError::Conflict("Shift assignment already exists for this date".into()),
+                AppError::conflict(I18nKey::ShiftAssignmentAlreadyExists),
             ),
             Err(e) => Err(e),
         }

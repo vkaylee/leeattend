@@ -53,25 +53,7 @@ impl fmt::Display for AttendanceStatus {
         }
     }
 }
-
 impl AttendanceStatus {
-    /// Parse from the legacy string representation.
-    pub fn from_str_legacy(s: &str) -> Option<Self> {
-        match s {
-            "present" => Some(Self::Present),
-            "late" => Some(Self::Late),
-            "absent" => Some(Self::Absent),
-            "off" => Some(Self::Off),
-            "unscheduled" => Some(Self::Unscheduled),
-            "holiday_work" => Some(Self::HolidayWork),
-            "holiday_paid" => Some(Self::HolidayPaid),
-            "holiday_unpaid" => Some(Self::HolidayUnpaid),
-            "holiday_leave" => Some(Self::HolidayLeave),
-            "leave" => Some(Self::Leave),
-            _ => None,
-        }
-    }
-
     /// Whether this status represents an unexcused absence.
     pub fn is_unexcused(&self) -> bool {
         matches!(self, Self::Absent)
@@ -322,17 +304,7 @@ mod tests {
 
         for (status, expected_str) in statuses {
             assert_eq!(status.to_string(), expected_str);
-            assert_eq!(
-                AttendanceStatus::from_str_legacy(expected_str),
-                Some(status)
-            );
         }
-    }
-
-    #[test]
-    fn test_from_str_legacy_unknown_returns_none() {
-        assert_eq!(AttendanceStatus::from_str_legacy("unknown"), None);
-        assert_eq!(AttendanceStatus::from_str_legacy(""), None);
     }
 
     #[test]

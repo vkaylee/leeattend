@@ -14,6 +14,7 @@ use crate::models::{
     AssignShiftRequest, AssignmentHistory, BulkRosterRequest, CreateRosterRequest,
     CreateShiftRequest, EmployeeSchedule, Shift, ShiftRoster, UpdateShiftRequest,
 };
+use crate::utils::i18n::I18nKey;
 use crate::AppState;
 
 #[derive(serde::Deserialize, utoipa::IntoParams)]
@@ -208,10 +209,10 @@ pub async fn get_workspace_schedules(
     let _workspace_id = ctx.workspace_id;
 
     let start_date = NaiveDate::parse_from_str(&query.start_date, "%Y-%m-%d")
-        .map_err(|_err| AppError::Validation("Invalid start_date format".to_string()))?;
+        .map_err(|_err| AppError::validation(I18nKey::InvalidStartDateValue))?;
 
     let end_date = NaiveDate::parse_from_str(&query.end_date, "%Y-%m-%d")
-        .map_err(|_err| AppError::Validation("Invalid end_date format".to_string()))?;
+        .map_err(|_err| AppError::validation(I18nKey::InvalidEndDateValue))?;
 
     let schedules = state
         .shifts()

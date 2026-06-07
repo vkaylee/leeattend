@@ -1,5 +1,6 @@
 use crate::models::{MemberExtraRole, Workspace};
 use crate::repositories::WorkspaceRepository;
+use crate::utils::i18n::I18nKey;
 use uuid::Uuid;
 
 use crate::repositories::user_repository::UserRepository;
@@ -66,9 +67,7 @@ impl WorkspaceService {
         let user_exists = self.user_repo.get_user_by_id(owner_id).await?.is_some();
 
         if !user_exists {
-            return Err(crate::errors::AppError::NotFound(format!(
-                "User with ID {owner_id} does not exist"
-            )));
+            return Err(crate::errors::AppError::not_found(I18nKey::UserNotFound));
         }
 
         // 2. Resolve database_url
@@ -178,7 +177,7 @@ impl WorkspaceService {
             .find_primary_role(workspace_id, user_id)
             .await?
             .ok_or_else(|| {
-                crate::errors::AppError::NotFound("Primary role not found".to_string())
+                crate::errors::AppError::not_found(I18nKey::RoleNotFound)
             })?;
 
         let extra_roles = repo.find_extra_roles(workspace_id, user_id).await?;
@@ -204,9 +203,7 @@ impl WorkspaceService {
             || args.default_holiday_ot_multiplier.is_some();
 
         if !has_system_changes && !has_eav_changes {
-            return Err(crate::errors::AppError::Validation(
-                "No fields to update".to_string(),
-            ));
+            return Err(crate::errors::AppError::validation(I18nKey::NoFieldsToUpdate));
         }
 
         if has_eav_changes {
@@ -356,7 +353,7 @@ impl WorkspaceService {
             self.workspace_repo
                 .get_workspace_by_id(args.ws_id)
                 .await?
-                .ok_or_else(|| crate::errors::AppError::NotFound("Workspace not found".to_string()))
+                .ok_or_else(|| crate::errors::AppError::not_found(I18nKey::WorkspaceNotFound))
         }
     }
 }

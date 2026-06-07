@@ -37,6 +37,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, AppResult};
 use crate::models::enums::SystemRoleType;
+use crate::utils::i18n::I18nKey;
 use crate::{AppState, UserId};
 
 /// Resolved system-level context for a platform admin request.
@@ -64,7 +65,7 @@ impl SystemContext {
         if self.has_role(role) {
             Ok(())
         } else {
-            Err(AppError::Forbidden(format!("Requires system role: {role}")))
+            Err(AppError::forbidden(I18nKey::Forbidden))
         }
     }
 
@@ -73,11 +74,7 @@ impl SystemContext {
         if roles.iter().any(|r| self.has_role(*r)) {
             Ok(())
         } else {
-            let names: Vec<String> = roles.iter().map(std::string::ToString::to_string).collect();
-            Err(AppError::Forbidden(format!(
-                "Requires one of system roles: [{}]",
-                names.join(", ")
-            )))
+            Err(AppError::forbidden(I18nKey::Forbidden))
         }
     }
 
@@ -225,12 +222,12 @@ mod tests {
     }
 
     #[test]
-    fn test_require_role_error_message_contains_role_name() {
+    fn test_require_role_error_message_is_forbidden() {
         let ctx = make_ctx(&[]);
         let Err(AppError::Forbidden(msg)) = ctx.require_role(SystemRoleType::BillingAdmin) else {
             panic!("Expected Forbidden");
         };
-        assert!(msg.contains("billing_admin"), "msg={msg}");
+        assert_eq!(msg, "error.forbidden");
     }
 
     #[test]

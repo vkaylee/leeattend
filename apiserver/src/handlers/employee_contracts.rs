@@ -8,11 +8,12 @@ use axum::{
 use uuid::Uuid;
 
 use crate::{
-    errors::AppResult,
+    errors::{AppError, AppResult},
     handlers::common::MemberContext,
     models::contract::{CreateContractRequest, EmployeeContract, UpdateContractRequest},
     queue::{Job, JobPayload, SyncHireDatePayload, TaskType},
     repositories::employee_contract_repository::EmployeeContractRepository,
+    utils::i18n::I18nKey,
     AppState,
 };
 
@@ -100,7 +101,7 @@ pub async fn get_contract(
         .contract_repo()
         .get_contract_by_id(&ctx.auth_token, contract_id)
         .await?
-        .ok_or_else(|| crate::errors::AppError::NotFound("Contract not found".to_string()))?;
+        .ok_or_else(|| AppError::not_found(I18nKey::ContractNotFound))?;
 
     Ok(Json(contract))
 }

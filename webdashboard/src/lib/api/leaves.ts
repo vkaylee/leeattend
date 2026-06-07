@@ -202,14 +202,6 @@ export async function createLeaveType(
   return resData;
 }
 
-export function updateLeaveType(
-  _wsId: string,
-  _id: string,
-  _data: Partial<LeaveType>
-): Promise<LeaveType> {
-  throw new Error("updateLeaveType is deprecated. Use updateLeaveTypeConfig instead.");
-}
-
 export async function deleteLeaveType(
   wsId: string,
   id: string

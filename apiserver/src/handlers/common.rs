@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use crate::diesel_pool::TenantAuthToken;
 use crate::domain::permissions::{self, Permission};
 use crate::errors::{AppError, AppResult};
+use crate::utils::i18n::I18nKey;
 use crate::models::GenericResponse;
 use crate::repositories::CacheRepositoryExt;
 use crate::{AppState, UserId};
@@ -69,7 +70,7 @@ where
             Ok(ApiContext::System)
         } else {
             // If it's not a system route, it means it's a tenant route that failed to provide a Workspace ID.
-            Err(AppError::Validation("error.missing_workspace".to_string()))
+            Err(AppError::validation(I18nKey::MissingWorkspace))
         }
     }
 }
@@ -101,10 +102,10 @@ where
             .headers
             .get("X-Workspace-Id")
             .and_then(|h| h.to_str().ok())
-            .ok_or_else(|| AppError::Validation("error.missing_workspace".to_string()))?;
+            .ok_or_else(|| AppError::validation(I18nKey::MissingWorkspace))?;
 
         let workspace_id = Uuid::parse_str(workspace_id_str)
-            .map_err(|_e| AppError::Validation("error.invalid_workspace_id".to_string()))?;
+            .map_err(|_e| AppError::validation(I18nKey::InvalidWorkspaceId))?;
 
         Ok(WorkspaceId::from(workspace_id))
     }
@@ -137,7 +138,8 @@ impl MemberContext {
         if self.has_permission(perm) {
             Ok(())
         } else {
-            Err(AppError::Forbidden(format!("Missing permission: {perm:?}")))
+            tracing::warn!(user_id = ?self.user_id, missing_permission = ?perm, "Permission denied");
+            Err(AppError::forbidden(I18nKey::Forbidden))
         }
     }
 
@@ -161,9 +163,7 @@ impl MemberContext {
             }
         }
 
-        Err(AppError::Forbidden(
-            "Permission denied: Target is outside your managed departments scope.".to_string(),
-        ))
+        Err(AppError::forbidden(I18nKey::Forbidden))
     }
 
     /// Check if the member has ANY of the given permissions, scoped to the department.
@@ -174,9 +174,8 @@ impl MemberContext {
     ) -> AppResult<()> {
         let has_perm = perms.iter().any(|&p| self.has_permission(p));
         if !has_perm {
-            return Err(AppError::Forbidden(format!(
-                "Missing any of permissions: {perms:?}"
-            )));
+            tracing::warn!(user_id = ?self.user_id, missing_any_permissions = ?perms, "Permission denied");
+            return Err(AppError::forbidden(I18nKey::Forbidden));
         }
 
         // Global scope
@@ -191,9 +190,7 @@ impl MemberContext {
             }
         }
 
-        Err(AppError::Forbidden(
-            "Permission denied: Target is outside your managed departments scope.".to_string(),
-        ))
+        Err(AppError::forbidden(I18nKey::Forbidden))
     }
 }
 
@@ -612,7 +609,7 @@ pub async fn delete_behalf_assignment_handler(
         .await?;
 
     if affected == 0 {
-        return Err(AppError::NotFound("Assignment not found".to_string()));
+        return Err(AppError::not_found(I18nKey::NotFound));
     }
 
     Ok(())

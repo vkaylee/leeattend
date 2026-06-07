@@ -9,6 +9,7 @@ use uuid::Uuid;
 
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
+use crate::utils::i18n::I18nKey;
 use crate::handlers::common::MemberContext;
 use crate::models::{AddMemberRequest, WorkspaceMemberDetailResponse};
 use crate::services::audit_service::AuditHelper;
@@ -95,7 +96,7 @@ pub async fn add_workspace_member(
         .get_user_by_email(&req.email)
         .await?
         .map(|u| u.id())
-        .ok_or_else(|| AppError::NotFound("User with this email not found".to_string()))?;
+        .ok_or_else(|| AppError::not_found(I18nKey::UserNotFound))?;
 
     // 3. Add to workspace
     state
@@ -226,9 +227,7 @@ pub async fn remove_workspace_member(
 
     // Don't allow removing yourself (prevent lockout if only one admin, though owner should probably remain)
     if user_id == ctx.user_id {
-        return Err(AppError::Validation(
-            "You cannot remove yourself from the workspace".to_string(),
-        ));
+        return Err(AppError::validation(I18nKey::CannotRemoveSelf));
     }
 
     state

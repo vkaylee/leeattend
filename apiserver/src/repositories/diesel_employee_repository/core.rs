@@ -1,4 +1,5 @@
 use crate::errors::AppError;
+use crate::utils::i18n::I18nKey;
 use async_trait::async_trait;
 use chrono::NaiveDate;
 use diesel::prelude::*;
@@ -629,7 +630,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
     ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
         if employee.workspace_id() != workspace_id {
-            return Err(AppError::Forbidden("error.forbidden".to_string()));
+            return Err(AppError::forbidden(I18nKey::Forbidden));
         }
 
         let mut conn = self
@@ -957,7 +958,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             .get_result(&mut *conn)
             .await
             .map_err(|e| match e {
-                diesel::result::Error::NotFound => AppError::NotFound("Employee not found".into()),
+                diesel::result::Error::NotFound => AppError::not_found(I18nKey::EmployeeNotFound),
                 _ => AppError::Internal(format!("db: {e}")),
             })?;
 
@@ -1008,7 +1009,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             .get_result(&mut *conn)
             .await
             .map_err(|e| match e {
-                diesel::result::Error::NotFound => AppError::NotFound("Employee not found".into()),
+                diesel::result::Error::NotFound => AppError::not_found(I18nKey::EmployeeNotFound),
                 _ => AppError::Internal(format!("db: {e}")),
             })?;
 

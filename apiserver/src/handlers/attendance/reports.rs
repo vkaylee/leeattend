@@ -10,6 +10,7 @@ use uuid::Uuid;
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
+use crate::utils::i18n::I18nKey;
 use crate::AppState;
 
 #[derive(serde::Deserialize, utoipa::IntoParams)]
@@ -178,9 +179,9 @@ pub async fn get_attendance_report(
     }
 
     let start_date = NaiveDate::parse_from_str(start_date_str, "%Y-%m-%d")
-        .map_err(|_e| AppError::Validation("Invalid start_date format".to_string()))?;
+        .map_err(|_e| AppError::validation(I18nKey::InvalidStartDateValue))?;
     let end_date = NaiveDate::parse_from_str(end_date_str, "%Y-%m-%d")
-        .map_err(|_e| AppError::Validation("Invalid end_date format".to_string()))?;
+        .map_err(|_e| AppError::validation(I18nKey::InvalidEndDateValue))?;
 
     if report_type == "daily" {
         let report = state

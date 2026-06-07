@@ -1,4 +1,5 @@
 use crate::errors::AppError;
+use crate::utils::i18n::I18nKey;
 use crate::models::{
     ApprovalActionLog, ApprovalWorkflow, ApprovalWorkflowInstance, ApprovalWorkflowStep,
     ApprovalWorkflowTask,
@@ -31,7 +32,7 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
         workflow: ApprovalWorkflow,
     ) -> Result<ApprovalWorkflow, AppError> {
         if workflow.workspace_id != auth_token.workspace_id() {
-            return Err(AppError::Forbidden("error.tenant_mismatch".into()));
+            return Err(AppError::forbidden(I18nKey::TenantMismatch));
         }
 
         let mut conn = self
@@ -68,7 +69,7 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
                 .await
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?;
             if count == 0 {
-                return Err(AppError::Forbidden("Workflow tenant mismatch".into()));
+                return Err(AppError::forbidden(I18nKey::TenantMismatch));
             }
         }
 
@@ -88,7 +89,7 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
         steps: Vec<ApprovalWorkflowStep>,
     ) -> Result<(ApprovalWorkflow, Vec<ApprovalWorkflowStep>), AppError> {
         if workflow.workspace_id != auth_token.workspace_id() {
-            return Err(AppError::Forbidden("error.tenant_mismatch".into()));
+            return Err(AppError::forbidden(I18nKey::TenantMismatch));
         }
 
         let mut conn = self
@@ -136,7 +137,7 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
         steps: Vec<ApprovalWorkflowStep>,
     ) -> Result<(ApprovalWorkflow, Vec<ApprovalWorkflowStep>), AppError> {
         if workflow.workspace_id != auth_token.workspace_id() {
-            return Err(AppError::Forbidden("error.tenant_mismatch".into()));
+            return Err(AppError::forbidden(I18nKey::TenantMismatch));
         }
 
         let mut conn = self
@@ -162,7 +163,7 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
                 .await
                 .map_err(|e| match e {
                     diesel::result::Error::NotFound => {
-                        AppError::NotFound("Workflow not found".to_string())
+                        AppError::not_found(I18nKey::WorkflowNotFound)
                     }
                     _ => AppError::Internal(format!("Failed to update approval workflow: {e}")),
                 })?;
@@ -256,7 +257,7 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
         log: ApprovalActionLog,
     ) -> Result<ApprovalActionLog, AppError> {
         if log.workspace_id != auth_token.workspace_id() {
-            return Err(AppError::Forbidden("error.tenant_mismatch".into()));
+            return Err(AppError::forbidden(I18nKey::TenantMismatch));
         }
 
         let mut conn = self
@@ -300,7 +301,7 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
         instance: ApprovalWorkflowInstance,
     ) -> Result<ApprovalWorkflowInstance, AppError> {
         if instance.workspace_id != auth_token.workspace_id() {
-            return Err(AppError::Forbidden("error.tenant_mismatch".into()));
+            return Err(AppError::forbidden(I18nKey::TenantMismatch));
         }
 
         let mut conn = self
@@ -489,7 +490,7 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
         .get_result(&mut *conn)
         .await
         .map_err(|e| match e {
-            diesel::result::Error::NotFound => AppError::NotFound("Workflow not found".to_string()),
+            diesel::result::Error::NotFound => AppError::not_found(I18nKey::WorkflowNotFound),
             _ => AppError::Internal(format!("Failed to update approval workflow: {e}")),
         })?;
 
@@ -516,7 +517,7 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
         .map_err(|e| AppError::Internal(format!("Failed to delete approval workflow: {e}")))?;
 
         if rows_deleted == 0 {
-            return Err(AppError::NotFound("Workflow not found".to_string()));
+            return Err(AppError::not_found(I18nKey::WorkflowNotFound));
         }
 
         Ok(())
@@ -600,9 +601,7 @@ impl ApprovalWorkflowRepository for DieselApprovalWorkflowRepository {
                 .await
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?;
             if count == 0 {
-                return Err(AppError::Forbidden(
-                    "Workflow instance tenant mismatch".into(),
-                ));
+                return Err(AppError::forbidden(I18nKey::TenantMismatch));
             }
         }
 

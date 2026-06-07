@@ -18,6 +18,7 @@ use uuid::Uuid;
 use crate::agent_manager::AgentCommand;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
+use crate::utils::i18n::I18nKey;
 use crate::models::{
     AgentStatus, AuthorizedAgent, CreateAuthorizedAgentRequest, CreateDeviceRequest, Device,
     TrustAgentRequest, UpdateAuthorizedAgentRequest, UpdateDeviceRequest,
@@ -354,9 +355,7 @@ pub async fn send_command(
         .await?;
 
     if !agent_exists {
-        return Err(AppError::NotFound(
-            "Agent not found in this workspace".to_string(),
-        ));
+        return Err(AppError::not_found(I18nKey::AgentNotFound));
     }
 
     let command = AgentCommand {
@@ -377,7 +376,7 @@ pub async fn send_command(
         .manager()
         .send_command(&agent_id, command)
         .await
-        .map_err(AppError::NotFound)?;
+        .map_err(|_e| AppError::not_found(I18nKey::AgentNotFound))?;
 
     Ok((
         StatusCode::OK,
@@ -478,7 +477,7 @@ pub async fn update_device(
         .repo()
         .get_device_by_id(id, &ctx.auth_token)
         .await?
-        .ok_or_else(|| AppError::NotFound("Device not found".to_string()))?;
+        .ok_or_else(|| AppError::not_found(I18nKey::DeviceNotFound))?;
 
     let name = req.name.unwrap_or(current_device.name);
     let ip = req.ip.unwrap_or(current_device.ip);
@@ -557,7 +556,7 @@ pub async fn delete_device(
         }
         Ok(StatusCode::NO_CONTENT)
     } else {
-        Err(AppError::NotFound("Device not found".to_string()))
+        Err(AppError::not_found(I18nKey::DeviceNotFound))
     }
 }
 
@@ -664,7 +663,7 @@ pub async fn update_agent_trust(
         }
         Ok(StatusCode::OK)
     } else {
-        Err(AppError::NotFound("Agent not found".to_string()))
+        Err(AppError::not_found(I18nKey::AgentNotFound))
     }
 }
 
@@ -691,7 +690,7 @@ pub async fn get_authorized_agent_by_id(
         .repo()
         .get_agent_by_id_in_workspace(&id, &ctx.auth_token)
         .await?
-        .ok_or_else(|| AppError::NotFound("Agent not found".to_string()))?;
+        .ok_or_else(|| AppError::not_found(I18nKey::AgentNotFound))?;
 
     Ok(Json(agent))
 }
@@ -724,7 +723,7 @@ pub async fn update_authorized_agent(
         && req.success_cooldown_secs.is_none()
         && req.retention_days.is_none()
     {
-        return Err(AppError::Validation("No fields to update".to_string()));
+        return Err(AppError::validation(I18nKey::NoFieldsToUpdate));
     }
 
     // Fetch existing
@@ -733,7 +732,7 @@ pub async fn update_authorized_agent(
         .repo()
         .get_agent_by_id_in_workspace(&id, &ctx.auth_token)
         .await?
-        .ok_or_else(|| AppError::NotFound("Agent not found".to_string()))?;
+        .ok_or_else(|| AppError::not_found(I18nKey::AgentNotFound))?;
 
     // Apply updates
     if let Some(name) = req.name {
@@ -805,7 +804,7 @@ pub async fn get_device_info_on_demand(
         .repo()
         .get_device_by_id(id, &ctx.auth_token)
         .await?
-        .ok_or_else(|| AppError::NotFound("Device not found".to_string()))?;
+        .ok_or_else(|| AppError::not_found(I18nKey::DeviceNotFound))?;
 
     let info = state
         .agents()
@@ -845,6 +844,6 @@ pub async fn delete_authorized_agent(
         state.agents().manager().remove_agent(&id).await;
         Ok(StatusCode::NO_CONTENT)
     } else {
-        Err(AppError::NotFound("Agent not found".to_string()))
+        Err(AppError::not_found(I18nKey::AgentNotFound))
     }
 }

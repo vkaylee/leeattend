@@ -10,6 +10,7 @@ use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{CreateFeatureFlagRequest, FeatureFlag, UpdateFeatureFlagRequest};
+use crate::utils::i18n::I18nKey;
 use crate::AppState;
 
 /// GET /workspaces/:ws_id/feature-flags
@@ -67,9 +68,7 @@ pub async fn create_feature_flag(
     ctx.require_permission(Permission::FeatureFlagsManage)?;
 
     if body.flag_key.is_empty() || body.flag_key.len() > 255 {
-        return Err(AppError::Validation(
-            "flag_key must be between 1 and 255 characters".into(),
-        ));
+        return Err(AppError::validation(I18nKey::InvalidFeatureFlagKey));
     }
 
     let flag = state
@@ -126,7 +125,7 @@ pub async fn get_feature_flag(
 
     match flag {
         Some(f) => Ok(Json(f).into_response()),
-        None => Err(AppError::NotFound("Feature flag not found".into())),
+        None => Err(AppError::not_found(I18nKey::FeatureFlagNotFound)),
     }
 }
 
@@ -208,7 +207,7 @@ pub async fn update_feature_flag(
 
     match flag {
         Some(f) => Ok(Json(f).into_response()),
-        None => Err(AppError::NotFound("Feature flag not found".into())),
+        None => Err(AppError::not_found(I18nKey::FeatureFlagNotFound)),
     }
 }
 
@@ -235,9 +234,7 @@ pub async fn upsert_feature_flag(
     ctx.require_permission(Permission::FeatureFlagsManage)?;
 
     if body.flag_key.is_empty() || body.flag_key.len() > 255 {
-        return Err(AppError::Validation(
-            "flag_key must be between 1 and 255 characters".into(),
-        ));
+        return Err(AppError::validation(I18nKey::InvalidFeatureFlagKey));
     }
 
     let flag = state
@@ -295,6 +292,6 @@ pub async fn delete_feature_flag(
     if deleted {
         Ok(StatusCode::NO_CONTENT.into_response())
     } else {
-        Err(AppError::NotFound("Feature flag not found".into()))
+        Err(AppError::not_found(I18nKey::FeatureFlagNotFound))
     }
 }

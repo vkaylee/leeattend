@@ -3,6 +3,7 @@ use crate::errors::AppError;
 use crate::models::diesel::core::{MemberExtraRoleEntity, WorkspaceEntity, WorkspaceMemberEntity};
 use crate::models::{MemberExtraRole, Workspace};
 use crate::repositories::workspace_repository::WorkspaceRepository;
+use crate::utils::i18n::I18nKey;
 use crate::schema::{
     member_extra_roles, users, workspace_member_extra_permissions, workspace_members,
     workspace_role_permissions, workspace_roles, workspaces,
@@ -386,7 +387,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
         .await
         .map_err(|e| match e {
             diesel::result::Error::RollbackTransaction => {
-                AppError::Validation("Invalid group".to_string())
+                AppError::validation(I18nKey::InvalidGroup)
             }
             e => AppError::Internal(format!("db error: {e}")),
         })?;
@@ -1169,7 +1170,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             return self
                 .get_workspace_by_id(id)
                 .await?
-                .ok_or(AppError::NotFound("Workspace not found".to_string()));
+                .ok_or_else(|| AppError::not_found(I18nKey::WorkspaceNotFound));
         }
 
         let update = WorkspaceUpdate {

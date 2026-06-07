@@ -6,6 +6,7 @@ use uuid::Uuid;
 use crate::errors::AppError;
 use crate::models::{AttendancePolicyVersion, AttendanceRules};
 use crate::repositories::attendance_policy_repository::AttendancePolicyRepository;
+use crate::utils::i18n::I18nKey;
 
 use diesel::sql_types::{Array, Nullable, Timestamptz, Uuid as UuidType};
 use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, QueryableByName};
@@ -471,12 +472,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                                         .ok_or_else(|| "Invalid time".to_string())
                                 })
                         })
-                        .map_err(|_e| {
-                            AppError::Validation(
-                                "Invalid valid_from date format. Use ISO 8601 or YYYY-MM-DD."
-                                    .into(),
-                            )
-                        })?,
+                        .map_err(|_e| AppError::validation(I18nKey::InvalidDateFormat))?,
                     None => Utc::now(),
                 };
 
@@ -645,7 +641,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                                         .ok_or_else(|| "Invalid time".to_string())
                                 })
                         })
-                        .map_err(|_e| AppError::Validation("Invalid valid_from date format.".into()))?,
+                        .map_err(|_e| AppError::validation(I18nKey::InvalidDateFormat))?,
                     None => Utc::now(),
                 };
 

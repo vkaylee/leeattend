@@ -12,6 +12,7 @@ use uuid::Uuid;
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
+use crate::utils::i18n::I18nKey;
 use crate::models::{LeaveType, LeaveTypeConfig};
 use crate::AppState;
 
@@ -138,7 +139,7 @@ pub async fn delete_leave_type(
     if affected > 0 {
         Ok(StatusCode::NO_CONTENT)
     } else {
-        Err(AppError::NotFound("Leave type not found".to_string()))
+        Err(AppError::not_found(I18nKey::LeaveTypeNotFound))
     }
 }
 

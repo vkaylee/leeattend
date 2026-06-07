@@ -8,6 +8,7 @@ use crate::{
     diesel_pool::DieselPools,
     errors::AppError,
     models::{SalaryBaseGroup, SalaryBaseGroupMember},
+    utils::i18n::I18nKey,
 };
 
 // ---------------------------------------------------------------------------
@@ -181,7 +182,7 @@ impl crate::repositories::salary_base_repository::SalaryBaseRepository
             .map_err(|e| AppError::Internal(format!("Failed to validate group: {e}")))?;
 
         if valid_group.is_none() {
-            return Err(AppError::Forbidden("Invalid base group".to_string()));
+            return Err(AppError::forbidden(I18nKey::InvalidBaseGroup));
         }
 
         let new_member = SalaryBaseGroupMemberRow {

@@ -3,6 +3,7 @@ use crate::{
     errors::{AppError, AppResult},
     handlers::common::MemberContext,
     models::{OvertimePolicy, OvertimeRule},
+    utils::i18n::I18nKey,
     AppState,
 };
 use axum::{
@@ -75,7 +76,7 @@ pub async fn get_policy(
         .overtime_policy_repo()
         .get_policy_with_rules(ctx.workspace_id, policy_id)
         .await?
-        .ok_or_else(|| AppError::NotFound("Policy not found".to_string()))?;
+        .ok_or_else(|| AppError::not_found(I18nKey::PolicyNotFound))?;
     Ok(Json(result))
 }
 

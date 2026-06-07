@@ -16,6 +16,7 @@ use crate::handlers::common::ApiContext;
 use crate::handlers::system_auth::SystemContext;
 use crate::models::enums::SystemRoleType;
 use crate::supavisor::{build_tenant_payload, TenantPayloadOptions};
+use crate::utils::i18n::I18nKey;
 use crate::AppState;
 use uuid::Uuid;
 
@@ -360,7 +361,7 @@ pub async fn update_tenant_database(
 
     let uuid_str = tenant_id.strip_prefix("tenant_").unwrap_or(&tenant_id);
     let workspace_id = uuid::Uuid::parse_str(uuid_str)
-        .map_err(|e| AppError::Validation(format!("Invalid tenant_id format: {e}")))?;
+        .map_err(|_e| AppError::validation(I18nKey::InvalidTenantIdFormat))?;
 
     // Build dynamic Supavisor payload.
     // Tenant ID must match the format produced by diesel_pool::get_tenant_url()

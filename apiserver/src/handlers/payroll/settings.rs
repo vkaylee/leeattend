@@ -5,6 +5,7 @@ use std::sync::Arc;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{PayrollSettings, UpdatePayrollSettingsRequest};
+use crate::utils::i18n::I18nKey;
 use crate::AppState;
 
 /// GET /workspaces/{ws_id}/payroll-settings
@@ -29,7 +30,7 @@ pub async fn get_payroll_settings(
         .repo()
         .get_payroll_settings(workspace_id)
         .await?
-        .ok_or_else(|| AppError::NotFound("Settings not found".to_string()))?;
+        .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
 
     Ok(Json(settings))
 }

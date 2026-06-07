@@ -4,6 +4,7 @@ use crate::models::{
     ApprovalActionLog, ApprovalWorkflowInstance, ApprovalWorkflowTask, ApproverActionInfo,
     WorkflowInstanceStepSnapshot,
 };
+use crate::utils::i18n::I18nKey;
 use chrono::Utc;
 use serde_json::json;
 use uuid::Uuid;
@@ -245,11 +246,11 @@ impl ApprovalWorkflowService {
             .get_instance_by_id(auth_token, instance_id)
             .await?
             .ok_or_else(|| {
-                AppError::NotFound(format!("Workflow instance not found: {instance_id}"))
+                AppError::not_found(I18nKey::WorkflowInstanceNotFound)
             })?;
 
         if instance.status != "pending" {
-            return Err(AppError::Validation(format!(
+            return Err(AppError::validation_raw(format!(
                 "Workflow instance is already {}",
                 instance.status
             )));
@@ -294,9 +295,7 @@ impl ApprovalWorkflowService {
 
         let is_authorized = is_admin || matching_task.is_some();
         if !is_authorized {
-            return Err(AppError::Forbidden(
-                "You are not authorized to approve this step".to_string(),
-            ));
+            return Err(AppError::forbidden(I18nKey::Forbidden));
         }
 
         let db_action = match action.as_str() {
@@ -335,8 +334,8 @@ impl ApprovalWorkflowService {
         match action.as_str() {
             "reassign" => {
                 let target_uid = new_approver_user_id.ok_or_else(|| {
-                    AppError::Validation(
-                        "new_approver_user_id is required for reassignment".to_string(),
+                    AppError::validation_raw(
+                        "new_approver_user_id is required for reassignment",
                     )
                 })?;
 
@@ -486,7 +485,7 @@ impl ApprovalWorkflowService {
                     }
                 }
             }
-            _ => return Err(AppError::Validation(format!("Invalid action: {action}"))),
+            _ => return Err(AppError::validation_raw(format!("Invalid action: {action}"))),
         }
 
         instance.steps_snapshot =

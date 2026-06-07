@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::errors::AppError;
+use crate::utils::i18n::I18nKey;
 use chrono::Utc;
 use tracing::error;
 use uuid::Uuid;
@@ -74,7 +75,7 @@ impl AttendanceAdjustmentService {
             .adj_repo
             .get_request_by_id(workspace_id, request_id)
             .await?
-            .ok_or(AppError::NotFound("Not found".into()))?;
+            .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
 
         self.adj_repo
             .update_adjustment_status(workspace_id, request_id, status, Some(approver_id))
@@ -89,7 +90,7 @@ impl AttendanceAdjustmentService {
                         time_entry_id,
                     )
                     .await?
-                    .ok_or(AppError::NotFound("Not found".into()))?;
+                    .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
 
                 entry.set_punch_in_time(request.requested_punch_in_time());
                 entry.set_punch_out_time(request.requested_punch_out_time());
@@ -148,7 +149,7 @@ impl AttendanceAdjustmentService {
             preferred_date,
             preferred_time,
         )
-        .map_err(AppError::Validation)
+        .map_err(AppError::validation_raw)
     }
 
     #[tracing::instrument(skip_all, err)]

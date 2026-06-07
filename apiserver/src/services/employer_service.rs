@@ -1,6 +1,7 @@
 use crate::diesel_pool::TenantAuthToken;
 use crate::errors::AppError;
 use crate::models::{CreateEmployerRequest, Employer, UpdateEmployerRequest};
+use crate::utils::i18n::I18nKey;
 use crate::repositories::audit_log_repository::AuditLogRepository;
 use crate::repositories::employer_repository::EmployerRepository;
 use crate::services::audit_service::{AuditHelper, AuditLogArgs};
@@ -35,7 +36,7 @@ impl EmployerService {
         self.repo
             .get_employer_by_id(&auth_token, id)
             .await?
-            .ok_or_else(|| AppError::NotFound("Employer not found".to_string()))
+            .ok_or_else(|| AppError::not_found(I18nKey::EmployerNotFound))
     }
 
     pub async fn create_employer(
@@ -110,7 +111,7 @@ impl EmployerService {
             .await?;
 
         if employee_count > 0 {
-            return Err(AppError::Validation(format!(
+            return Err(AppError::validation_raw(format!(
                 "Cannot delete employer because {employee_count} employees are still assigned to it."
             )));
         }

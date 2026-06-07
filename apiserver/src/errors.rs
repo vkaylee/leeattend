@@ -7,6 +7,8 @@ use serde_json::json;
 use thiserror::Error;
 use tracing::error;
 
+use crate::utils::i18n::I18nKey;
+
 #[derive(Error, Debug)]
 pub enum AppError {
     #[error("Database error: {0}")]
@@ -87,6 +89,49 @@ impl From<(StatusCode, String)> for AppError {
 }
 
 impl AppError {
+    pub fn auth(key: I18nKey) -> Self {
+        Self::Auth(key.as_str().to_string())
+    }
+
+    pub fn auth_raw(msg: impl Into<String>) -> Self {
+        Self::Auth(msg.into())
+    }
+
+    pub fn forbidden(key: I18nKey) -> Self {
+        Self::Forbidden(key.as_str().to_string())
+    }
+
+    pub fn forbidden_raw(msg: impl Into<String>) -> Self {
+        Self::Forbidden(msg.into())
+    }
+
+    pub fn not_found(key: I18nKey) -> Self {
+        Self::NotFound(key.as_str().to_string())
+    }
+
+    pub fn not_found_raw(msg: impl Into<String>) -> Self {
+        Self::NotFound(msg.into())
+    }
+
+    pub fn validation(key: I18nKey) -> Self {
+        Self::Validation(key.as_str().to_string())
+    }
+
+    pub fn validation_raw(msg: impl Into<String>) -> Self {
+        Self::Validation(msg.into())
+    }
+
+    pub fn conflict(key: I18nKey) -> Self {
+        Self::Conflict(key.as_str().to_string())
+    }
+
+    pub fn conflict_raw(msg: impl Into<String>) -> Self {
+        Self::Conflict(msg.into())
+    }
+
+    pub fn service_unavailable(key: I18nKey) -> Self {
+        Self::ServiceUnavailable(key.as_str().to_string())
+    }
     pub fn status_code(&self) -> StatusCode {
         match self {
             Self::Diesel(_)
@@ -202,6 +247,7 @@ impl IntoResponse for AppError {
 pub type AppResult<T> = Result<T, AppError>;
 
 #[cfg(test)]
+#[allow(clippy::disallowed_methods, clippy::disallowed_types)]
 mod tests {
     use super::*;
 
@@ -376,5 +422,16 @@ mod tests {
             let display = err.to_string();
             assert!(!display.is_empty());
         }
+    }
+
+    #[test]
+    fn test_i18n_key_errors() {
+        let err = AppError::not_found(I18nKey::UserNotFound);
+        assert_eq!(err.status_code(), StatusCode::NOT_FOUND);
+        assert_eq!(err.error_code(), "NOT_FOUND");
+        assert_eq!(err.to_string(), "Not Found: error.user_not_found");
+
+        let response = err.into_response();
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
     }
 }

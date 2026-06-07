@@ -7,6 +7,7 @@ use uuid::Uuid;
 
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
+use crate::utils::i18n::I18nKey;
 use crate::handlers::common::MemberContext;
 use crate::models::{enums::ImportTargetType, AttendanceImportJob};
 use crate::AppState;
@@ -252,7 +253,7 @@ pub async fn get_import_job_status(
         .import_repo()
         .get_job_by_id(&ctx.auth_token, job_id)
         .await?
-        .ok_or_else(|| AppError::NotFound("Job not found".to_string()))?;
+        .ok_or_else(|| AppError::not_found(I18nKey::JobNotFound))?;
 
     if job.status == crate::models::ImportJobStatus::Processing {
         if let Some(redis) = state.infra().redis() {
@@ -298,12 +299,10 @@ pub async fn download_import_error_file(
         .import_repo()
         .get_job_by_id(&ctx.auth_token, job_id)
         .await?
-        .ok_or_else(|| AppError::NotFound("Job not found".to_string()))?;
+        .ok_or_else(|| AppError::not_found(I18nKey::JobNotFound))?;
 
     if job.workspace_id != workspace_id {
-        return Err(AppError::Forbidden(
-            "Unauthorized access to this job".to_string(),
-        ));
+        return Err(AppError::forbidden(I18nKey::Forbidden));
     }
 
     let base_dir = crate::utils::get_storage_dir();
@@ -311,7 +310,7 @@ pub async fn download_import_error_file(
 
     let data = tokio::fs::read(&file_path)
         .await
-        .map_err(|_e| AppError::NotFound("Error file not found or has expired".to_string()))?;
+        .map_err(|_e| AppError::not_found(I18nKey::ErrorFileNotFound))?;
 
     use axum::http::header;
     let headers = [

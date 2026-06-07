@@ -1,6 +1,7 @@
 use crate::errors::{AppError, AppResult};
 use crate::models::{OtRequestStatus, OvertimeRequest, OvertimeRequestEmployee};
 use crate::repositories::OvertimeRequestRepository;
+use crate::utils::i18n::I18nKey;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -45,7 +46,7 @@ impl OvertimeRequestService {
             .overtime_request_repo
             .get_request(auth_token, workspace_id, request_id)
             .await?
-            .ok_or_else(|| AppError::NotFound("Overtime request not found".into()))?;
+            .ok_or_else(|| AppError::not_found(I18nKey::OvertimeRequestNotFound))?;
 
         req.set_status(new_status);
         if let Some(s) = new_step {

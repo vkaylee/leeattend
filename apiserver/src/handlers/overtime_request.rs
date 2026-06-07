@@ -6,6 +6,7 @@ use crate::{
         BehalfAssignment, CreateBehalfAssignmentRequest, Employee, OtRequestStatus,
         OvertimeRequest, OvertimeRequestEmployee, PaginatedResponse,
     },
+    utils::i18n::I18nKey,
     AppState,
 };
 use axum::{
@@ -195,7 +196,7 @@ pub async fn get_ot_request(
         .overtime_request_service()
         .get_request(&ctx.auth_token, id)
         .await?
-        .ok_or_else(|| AppError::NotFound("Request not found".into()))?;
+        .ok_or_else(|| AppError::not_found(I18nKey::OvertimeRequestNotFound))?;
 
     let employees = state
         .payroll()
@@ -244,9 +245,7 @@ pub async fn submit_for_approval(
     let beneficiary_employee_id = employees
         .first()
         .map(OvertimeRequestEmployee::employee_id)
-        .ok_or_else(|| {
-            AppError::Validation("Overtime request has no employees assigned".to_string())
-        })?;
+        .ok_or_else(|| AppError::validation(I18nKey::OvertimeRequestNoEmployees))?;
 
     state
         .core()

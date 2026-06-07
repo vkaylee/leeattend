@@ -12,6 +12,7 @@ use crate::{
         AssignmentStatusEnum, CreateEmployeeAssignmentRequest, EmployeeAssignment,
         NewEmployeeAssignment, UpdateEmployeeAssignmentRequest,
     },
+    utils::i18n::I18nKey,
     AppState,
 };
 
@@ -68,7 +69,7 @@ pub async fn get_employee_assignment(
     let assignment = repo
         .get_employee_assignment(&ctx.auth_token, employee_id, assignment_id)
         .await?
-        .ok_or_else(|| AppError::NotFound("Employee assignment not found".to_string()))?;
+        .ok_or_else(|| AppError::not_found(I18nKey::EmployeeAssignmentNotFound))?;
     Ok(Json(assignment))
 }
 
@@ -100,15 +101,13 @@ pub async fn create_employee_assignment(
     let employee = repo
         .get_employee_by_id(employee_id, &ctx.auth_token)
         .await?
-        .ok_or_else(|| AppError::NotFound("Employee not found".to_string()))?;
+        .ok_or_else(|| AppError::not_found(I18nKey::EmployeeNotFound))?;
 
     let home_location_id = employee.primary_location_id();
 
     // Validate that home and host locations are not the same
     if home_location_id == payload.host_location_id {
-        return Err(AppError::Validation(
-            "Home location and host location cannot be the same".to_string(),
-        ));
+        return Err(AppError::validation(I18nKey::HomeHostLocationSame));
     }
 
     // Additional validations can be done here (e.g. checking overlapping active assignments)
@@ -159,7 +158,7 @@ pub async fn update_employee_assignment(
     // Ensure it exists
     repo.get_employee_assignment(&ctx.auth_token, employee_id, assignment_id)
         .await?
-        .ok_or_else(|| AppError::NotFound("Employee assignment not found".to_string()))?;
+        .ok_or_else(|| AppError::not_found(I18nKey::EmployeeAssignmentNotFound))?;
 
     let updated = repo
         .update_employee_assignment(&ctx.auth_token, employee_id, assignment_id, &payload)
@@ -195,9 +194,7 @@ pub async fn delete_employee_assignment(
         .await?;
 
     if deleted_count == 0 {
-        return Err(AppError::NotFound(
-            "Employee assignment not found".to_string(),
-        ));
+        return Err(AppError::not_found(I18nKey::EmployeeAssignmentNotFound));
     }
 
     Ok(Json(()))

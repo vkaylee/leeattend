@@ -8,6 +8,7 @@ use tracing::{info, warn};
 
 use crate::errors::{AppError, AppResult};
 use crate::models::{AttendanceSummary, DailyAttendanceReport};
+use crate::utils::i18n::I18nKey;
 use crate::queue::{Job, JobStatus, ReportType};
 use crate::repositories::{PublisherRepository, QueueRepository};
 use crate::services::import_messages::ExcelReportMessages;
@@ -96,7 +97,7 @@ impl MergeHandler {
             .get_job_metadata(parent_job_id)
             .await
             .map_err(|e| AppError::Internal(format!("Failed to get job metadata: {e}")))?
-            .ok_or(AppError::NotFound("Job metadata not found".to_string()))?;
+            .ok_or_else(|| AppError::not_found(I18nKey::JobNotFound))?;
 
         // 2. Fetch all batch results from Redis
         let batch_results = queue

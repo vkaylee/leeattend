@@ -11,6 +11,7 @@ use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{AttendanceDailySummary, BulkOtEntryError, BulkOtUploadResult};
+use crate::utils::i18n::I18nKey;
 use crate::AppState;
 
 const MAX_BULK_UPLOAD_ROWS: usize = 10_000;
@@ -57,13 +58,11 @@ pub async fn enter_paper_ot(
         .repo()
         .get_employee_by_id(employee_id, &ctx.auth_token)
         .await?
-        .ok_or_else(|| AppError::NotFound("Employee not found".to_string()))?;
+        .ok_or_else(|| AppError::not_found(I18nKey::EmployeeNotFound))?;
 
     // 3. Validate minutes
     if req.claimed_minutes <= 0 {
-        return Err(AppError::Validation(
-            "Minutes must be greater than 0".to_string(),
-        ));
+        return Err(AppError::validation(I18nKey::MinutesGreaterThanZero));
     }
 
     // 4. Call service
@@ -115,18 +114,18 @@ pub async fn bulk_upload_paper_ot(
     while let Some(field) = multipart
         .next_field()
         .await
-        .map_err(|e| AppError::Validation(format!("Multipart error: {e}")))?
+        .map_err(|_e| AppError::validation(I18nKey::MultipartError))?
     {
         let name = field.name().unwrap_or("").to_string();
         if name == "file" {
             let data = field
                 .bytes()
                 .await
-                .map_err(|e| AppError::Validation(format!("Failed to read file bytes: {e}")))?;
+                .map_err(|_e| AppError::validation(I18nKey::FailedToReadFileBytes))?;
 
             // File size limit check
             if data.len() > MAX_BULK_UPLOAD_FILE_SIZE {
-                return Err(AppError::Validation("File too large".to_string()));
+                return Err(AppError::validation(I18nKey::FileTooLarge));
             }
 
             csv_data = Some(data.to_vec());
@@ -134,26 +133,24 @@ pub async fn bulk_upload_paper_ot(
         }
     }
 
-    let csv_bytes = csv_data.ok_or_else(|| AppError::Validation("No file uploaded".to_string()))?;
+    let csv_bytes = csv_data.ok_or_else(|| AppError::validation(I18nKey::NoFileUploaded))?;
 
     // 3. Parse CSV
     let csv_str = String::from_utf8(csv_bytes)
-        .map_err(|e| AppError::Validation(format!("Invalid UTF-8 in CSV: {e}")))?;
+        .map_err(|_e| AppError::validation(I18nKey::InvalidUtf8Csv))?;
 
     let mut rdr = csv::Reader::from_reader(csv_str.as_bytes());
 
     // Collect all rows first to validate count
     let mut rows: Vec<(usize, csv::StringRecord)> = Vec::new();
     for (idx, result) in rdr.records().enumerate() {
-        let record = result.map_err(|e| {
-            AppError::Validation(format!("CSV parsing error at row {}: {e}", idx + 2))
+        let record = result.map_err(|_e| {
+            AppError::validation(I18nKey::CsvParsingError)
         })?;
         rows.push((idx + 2, record)); // +2 because CSV line 1 is header, records start at line 2
 
         if rows.len() > MAX_BULK_UPLOAD_ROWS {
-            return Err(AppError::Validation(format!(
-                "Max {MAX_BULK_UPLOAD_ROWS} rows allowed"
-            )));
+            return Err(AppError::validation(I18nKey::MaxRowsExceeded));
         }
     }
 

@@ -16,6 +16,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::ApiContext;
+use crate::utils::i18n::I18nKey;
 use crate::handlers::system_auth::SystemContext;
 use crate::models::enums::SystemRoleType;
 use crate::AppState;
@@ -257,7 +258,7 @@ pub async fn assign_system_role(
 
     let role_id = role_id_row
         .map(|r| r.id)
-        .ok_or_else(|| AppError::NotFound(format!("System role '{}' not found", req.role_name)))?;
+        .ok_or_else(|| AppError::not_found(I18nKey::SystemRoleNotFound))?;
 
     // Upsert — idempotent assign
     diesel::sql_query(
@@ -323,7 +324,7 @@ pub async fn revoke_system_role(
     // Safety: verify the role_name is a known system role
     use std::str::FromStr;
     let role_type = SystemRoleType::from_str(&role_name)
-        .map_err(|_e| AppError::Validation(format!("Unknown system role: '{role_name}'")))?;
+        .map_err(|_e| AppError::validation(I18nKey::UnknownSystemRole))?;
 
     // Prevent revoking the last platform_admin — regardless of who performs it.
     // Without this guard, admin A could revoke admin B (the sole remaining admin),
@@ -348,9 +349,7 @@ pub async fn revoke_system_role(
         .map_err(|e| AppError::Internal(e.to_string()))?;
 
         if count_row.count <= 1 {
-            return Err(AppError::Validation(
-                "error.cannot_revoke_last_admin".to_string(),
-            ));
+            return Err(AppError::validation(I18nKey::CannotRevokeLastAdmin));
         }
     }
 
@@ -368,9 +367,7 @@ pub async fn revoke_system_role(
     .map_err(|e| AppError::Internal(e.to_string()))?;
 
     if res == 0 {
-        return Err(AppError::NotFound(
-            "System role assignment not found".to_string(),
-        ));
+        return Err(AppError::not_found(I18nKey::SystemRoleNotFound));
     }
 
     SystemContext::invalidate_cache(user_id, &state).await;

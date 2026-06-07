@@ -8,6 +8,7 @@ use uuid::Uuid;
 
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
+use crate::utils::i18n::I18nKey;
 use crate::handlers::common::MemberContext;
 use crate::models::{CreateHolidayRequest, Holiday, UpdateHolidayRequest};
 use crate::repositories::holiday_repository::HolidayLeaveResult;
@@ -66,7 +67,7 @@ pub async fn get_holiday(
         .holiday_repo()
         .get_by_id(&ctx.auth_token, id)
         .await?
-        .ok_or_else(|| AppError::NotFound("Holiday not found".to_string()))?;
+        .ok_or_else(|| AppError::not_found(I18nKey::HolidayNotFound))?;
 
     Ok(Json(holiday))
 }
@@ -96,7 +97,7 @@ pub async fn create_holiday(
         .await
         .map_err(|e| {
             if e.to_string().contains("unique") || e.to_string().contains("duplicate") {
-                AppError::Conflict(format!("A holiday already exists on {}", req.date))
+                AppError::conflict(I18nKey::HolidayAlreadyExists)
             } else {
                 AppError::Internal(e.to_string())
             }
@@ -131,7 +132,7 @@ pub async fn update_holiday(
         .holiday_repo()
         .update_holiday(&ctx.auth_token, id, &req)
         .await?
-        .ok_or_else(|| AppError::NotFound("Holiday not found".to_string()))?;
+        .ok_or_else(|| AppError::not_found(I18nKey::HolidayNotFound))?;
 
     Ok(Json(holiday))
 }
@@ -164,7 +165,7 @@ pub async fn delete_holiday(
     if deleted {
         Ok(axum::http::StatusCode::NO_CONTENT)
     } else {
-        Err(AppError::NotFound("Holiday not found".to_string()))
+        Err(AppError::not_found(I18nKey::HolidayNotFound))
     }
 }
 
@@ -192,7 +193,7 @@ pub async fn process_holiday_leave(
         .holiday_repo()
         .get_by_id(&ctx.auth_token, id)
         .await?
-        .ok_or_else(|| AppError::NotFound("Holiday not found".to_string()))?;
+        .ok_or_else(|| AppError::not_found(I18nKey::HolidayNotFound))?;
 
     let results = state
         .leaves()

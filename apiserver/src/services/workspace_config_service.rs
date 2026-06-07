@@ -1,6 +1,7 @@
 use crate::errors::{AppError, AppResult};
 use crate::models::WorkspaceConfigEntry;
 use crate::repositories::WorkspaceConfigRepository;
+use crate::utils::i18n::I18nKey;
 use chrono::NaiveDate;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -29,7 +30,7 @@ impl WorkspaceConfigService {
             && entry.scope_type() != "department"
             && entry.scope_type() != "employee"
         {
-            return Err(AppError::Validation("Invalid scope type".to_string()));
+            return Err(AppError::validation(I18nKey::InvalidScopeType));
         }
 
         self.workspace_config_repo

@@ -1,5 +1,6 @@
 use crate::diesel_pool::DieselPools;
 use crate::errors::AppError;
+use crate::utils::i18n::I18nKey;
 use crate::models::diesel::leave::*;
 use crate::models::{
     LeavePolicyAssignment, LeavePolicyAssignmentDetail, LeavePolicyConfig, LeavePolicyDefinition,
@@ -109,7 +110,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
         .await
         .map_err(|e| match e {
             diesel::result::Error::NotFound => {
-                AppError::NotFound("Leave type not found".to_string())
+                AppError::not_found(I18nKey::LeaveTypeNotFound)
             }
             _ => AppError::Internal(format!("db: {e}")),
         })?;
@@ -139,8 +140,8 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         if in_balances.is_some() {
-            return Err(AppError::Conflict(
-                "Cannot delete: Leave type is currently used in employee balances".to_string(),
+            return Err(AppError::conflict_raw(
+                "Cannot delete: Leave type is currently used in employee balances",
             ));
         }
 

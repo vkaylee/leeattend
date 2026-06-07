@@ -11,6 +11,7 @@ use uuid::Uuid;
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
+use crate::utils::i18n::I18nKey;
 use crate::models::AttendanceDailySummary;
 use crate::AppState;
 
@@ -49,7 +50,7 @@ pub async fn claim_ot(
         .repo()
         .get_employee_by_id(employee_id, &ctx.auth_token)
         .await?
-        .ok_or_else(|| AppError::NotFound("Employee not found".to_string()))?;
+        .ok_or_else(|| AppError::not_found(I18nKey::EmployeeNotFound))?;
 
     if let Some(uid) = employee.user_id() {
         if uid != ctx.user_id {
@@ -76,7 +77,7 @@ pub async fn claim_ot(
         .attendance_daily_summary_repo()
         .get_summary(&ctx.auth_token, employee_id, req.date)
         .await?
-        .ok_or_else(|| AppError::NotFound("Attendance summary not found".to_string()))?;
+        .ok_or_else(|| AppError::not_found(I18nKey::AttendanceSummaryNotFound))?;
 
     state
         .core()
@@ -131,7 +132,7 @@ pub async fn approve_ot(
     let status_enum = match req.status.as_str() {
         "approved" => crate::models::OtStatus::Approved,
         "rejected" => crate::models::OtStatus::Rejected,
-        _ => return Err(AppError::Validation("Invalid status".to_string())),
+        _ => return Err(AppError::validation(I18nKey::InvalidStatus)),
     };
 
     state
@@ -190,11 +191,11 @@ pub async fn get_attendance_summaries(
             .repo()
             .get_employee_id_by_user_id(&ctx.auth_token, ctx.user_id)
             .await?
-            .ok_or_else(|| AppError::Forbidden("Forbidden".to_string()))?;
+            .ok_or_else(|| AppError::forbidden(I18nKey::Forbidden))?;
 
         if let Some(req_id) = query.employee_id {
             if req_id != my_id {
-                return Err(AppError::Forbidden("Forbidden".to_string()));
+                return Err(AppError::forbidden(I18nKey::Forbidden));
             }
         }
         Some(my_id)

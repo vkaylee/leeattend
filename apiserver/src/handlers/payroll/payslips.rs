@@ -14,6 +14,7 @@ use crate::models::{
     BatchCalculatePayrollRequest, BatchCalculatePayrollResponse, IncentiveEvaluationResult,
     Payslip, PayslipRuleEvaluation, PayslipSegment, SalaryComponentWithDefinition,
 };
+use crate::utils::i18n::I18nKey;
 use crate::AppState;
 
 #[derive(Debug, Deserialize)]
@@ -85,7 +86,7 @@ pub async fn get_workspace_payslips(
 ) -> AppResult<Json<Vec<Payslip>>> {
     ctx.require_permission(Permission::PayrollRead)?;
     let start_date = chrono::NaiveDate::from_ymd_opt(query.year, query.month, 1)
-        .ok_or_else(|| AppError::Validation("Invalid year/month".to_string()))?;
+        .ok_or_else(|| AppError::validation(I18nKey::InvalidYearMonth))?;
 
     let next_month = if query.month == 12 {
         chrono::NaiveDate::from_ymd_opt(query.year + 1, 1, 1)
@@ -95,7 +96,7 @@ pub async fn get_workspace_payslips(
 
     let end_date = next_month
         .and_then(|d| d.pred_opt())
-        .ok_or_else(|| AppError::Validation("Invalid date range".to_string()))?;
+        .ok_or_else(|| AppError::validation(I18nKey::InvalidDateRange))?;
 
     let payslips = state
         .payroll()

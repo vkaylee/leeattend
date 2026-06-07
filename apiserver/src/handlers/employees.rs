@@ -1,5 +1,6 @@
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
+use crate::utils::i18n::I18nKey;
 use crate::handlers::common::{self, MemberContext};
 use crate::models::{
     CreateEmployeeRequest, CreateWorkingConditionRequest, Employee, EmployeeDepartmentHistory,
@@ -210,7 +211,7 @@ pub async fn get_employee(
         .service()
         .get_employee_by_id(id, &ctx.auth_token)
         .await
-        .map_err(|_e| AppError::NotFound("Employee not found".to_string()))?;
+        .map_err(|_e| AppError::not_found(I18nKey::EmployeeNotFound))?;
     Ok(Json(employee))
 }
 
@@ -297,7 +298,7 @@ pub async fn delete_employee(
         .service()
         .delete_employee(id, &ctx.auth_token)
         .await
-        .map_err(|_e| AppError::NotFound("Employee not found".to_string()))?;
+        .map_err(|_e| AppError::not_found(I18nKey::EmployeeNotFound))?;
     Ok(StatusCode::NO_CONTENT)
 }
 

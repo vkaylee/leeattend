@@ -20,6 +20,7 @@ use uuid::Uuid;
 
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
+use crate::utils::i18n::I18nKey;
 use crate::handlers::common::MemberContext;
 use crate::queue::ReportType;
 use crate::services::report_coordinator::{
@@ -103,11 +104,11 @@ impl From<ReportError> for AppError {
     fn from(err: ReportError) -> Self {
         match err {
             ReportError::NoEmployees => {
-                AppError::Validation("No active employees found for report".to_string())
+                AppError::validation(I18nKey::NoActiveEmployeesFound)
             }
-            ReportError::JobNotFound => AppError::NotFound("Job not found".to_string()),
+            ReportError::JobNotFound => AppError::not_found(I18nKey::JobNotFound),
             ReportError::CannotCancel => {
-                AppError::Conflict("Cannot cancel completed or failed job".to_string())
+                AppError::conflict(I18nKey::CannotCancelJob)
             }
             ReportError::QueueError(e) => AppError::from(format!("Queue error: {e}")),
             ReportError::DatabaseError(e) => AppError::from(format!("Database error: {e}")),
@@ -122,10 +123,7 @@ fn get_coordinator(state: &AppState) -> AppResult<&ReportCoordinator> {
         .coordinator()
         .map(|arc| &**arc)
         .ok_or_else(|| {
-            AppError::ServiceUnavailable(
-                "Async export not available. Redis is required for distributed processing."
-                    .to_string(),
-            )
+            AppError::service_unavailable(I18nKey::ServiceUnavailable)
         })
 }
 
@@ -161,17 +159,13 @@ pub async fn create_export_job(
         "summary" => ReportType::Summary,
         "detail" => ReportType::Detail,
         _ => {
-            return Err(AppError::Validation(
-                "Invalid report_type. Must be 'summary' or 'detail'.".to_string(),
-            ))
+            return Err(AppError::validation(I18nKey::Validation))
         }
     };
 
     // Validate date range
     if request.end_date < request.start_date {
-        return Err(AppError::Validation(
-            "end_date must be >= start_date".to_string(),
-        ));
+        return Err(AppError::validation(I18nKey::InvalidDateRange));
     }
 
     let date_diff = request
@@ -179,16 +173,12 @@ pub async fn create_export_job(
         .signed_duration_since(request.start_date)
         .num_days();
     if date_diff > 365 {
-        return Err(AppError::Validation(
-            "Date range cannot exceed 365 days".to_string(),
-        ));
+        return Err(AppError::validation(I18nKey::InvalidDateRange));
     }
 
     // Validate format
     if request.format != "xlsx" && request.format != "csv" {
-        return Err(AppError::Validation(
-            "Invalid format. Must be 'xlsx' or 'csv'.".to_string(),
-        ));
+        return Err(AppError::validation(I18nKey::Validation));
     }
 
     // Get coordinator
@@ -259,12 +249,10 @@ pub async fn get_job_status(
     let metadata = queue
         .get_job_metadata(job_id)
         .await?
-        .ok_or_else(|| AppError::NotFound("Job not found".to_string()))?;
+        .ok_or_else(|| AppError::not_found(I18nKey::JobNotFound))?;
 
     if metadata.workspace_id != ctx.workspace_id {
-        return Err(AppError::Forbidden(
-            "Job does not belong to this workspace".to_string(),
-        ));
+        return Err(AppError::forbidden(I18nKey::Forbidden));
     }
 
     Ok(Json(JobStatusResponse {
@@ -306,12 +294,10 @@ pub async fn download_report(
     let metadata = queue
         .get_job_metadata(job_id)
         .await?
-        .ok_or_else(|| AppError::NotFound("Job not found".to_string()))?;
+        .ok_or_else(|| AppError::not_found(I18nKey::JobNotFound))?;
 
     if metadata.workspace_id != ctx.workspace_id {
-        return Err(AppError::Forbidden(
-            "Job does not belong to this workspace".to_string(),
-        ));
+        return Err(AppError::forbidden(I18nKey::Forbidden));
     }
 
     let status = coordinator.get_job_status(job_id).await?;
@@ -339,9 +325,7 @@ pub async fn download_report(
                     )
                         .into_response())
                 }
-                None => Err(AppError::NotFound(
-                    "Report data expired or not available".to_string(),
-                )),
+                None => Err(AppError::not_found(I18nKey::NoReportFileGenerated)),
             }
         }
         "failed" => Err(AppError::from(
@@ -387,12 +371,10 @@ pub async fn cancel_job(
     let metadata = queue
         .get_job_metadata(job_id)
         .await?
-        .ok_or_else(|| AppError::NotFound("Job not found".to_string()))?;
+        .ok_or_else(|| AppError::not_found(I18nKey::JobNotFound))?;
 
     if metadata.workspace_id != ctx.workspace_id {
-        return Err(AppError::Forbidden(
-            "Job does not belong to this workspace".to_string(),
-        ));
+        return Err(AppError::forbidden(I18nKey::Forbidden));
     }
 
     coordinator.cancel_job(job_id).await?;

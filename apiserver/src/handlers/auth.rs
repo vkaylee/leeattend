@@ -11,6 +11,7 @@ use crate::models::{
     AuthResponse, ChangePasswordRequest, LoginRequest, RefreshRequest, RegisterRequest,
     UpdateUserRequest, User, UserResponse,
 };
+use crate::utils::i18n::I18nKey;
 
 use crate::services::auth_service::AuthService;
 use crate::{AppState, UserId};
@@ -22,14 +23,10 @@ const MAX_PASSWORD_LEN: usize = 128;
 
 fn validate_password(password: &str) -> AppResult<()> {
     if password.len() < MIN_PASSWORD_LEN {
-        return Err(AppError::Validation(format!(
-            "Password must be at least {MIN_PASSWORD_LEN} characters"
-        )));
+        return Err(AppError::validation(I18nKey::PasswordTooShort));
     }
     if password.len() > MAX_PASSWORD_LEN {
-        return Err(AppError::Validation(format!(
-            "Password must not exceed {MAX_PASSWORD_LEN} characters"
-        )));
+        return Err(AppError::validation(I18nKey::PasswordTooLong));
     }
 
     // Simple strength check: must have at least one digit or special char
@@ -37,9 +34,7 @@ fn validate_password(password: &str) -> AppResult<()> {
         .chars()
         .any(|c| c.is_ascii_digit() || c.is_ascii_punctuation())
     {
-        return Err(AppError::Validation(
-            "Password must contain at least one digit or special character".to_string(),
-        ));
+        return Err(AppError::validation(I18nKey::PasswordComplexity));
     }
 
     Ok(())
@@ -49,19 +44,19 @@ fn validate_email(email: &str) -> AppResult<()> {
     // Basic structural validation: local@domain.tld
     let trimmed = email.trim();
     if trimmed.is_empty() || trimmed.len() > 254 {
-        return Err(AppError::Validation("Invalid email format".to_string()));
+        return Err(AppError::validation(I18nKey::InvalidEmailFormat));
     }
 
     let parts: Vec<&str> = trimmed.splitn(2, '@').collect();
     if parts.len() != 2 {
-        return Err(AppError::Validation("Invalid email format".to_string()));
+        return Err(AppError::validation(I18nKey::InvalidEmailFormat));
     }
 
     let (local, domain) = (parts[0], parts[1]);
 
     // Local part must not be empty
     if local.is_empty() || local.len() > 64 {
-        return Err(AppError::Validation("Invalid email format".to_string()));
+        return Err(AppError::validation(I18nKey::InvalidEmailFormat));
     }
 
     // Domain must have at least one dot, no consecutive dots, no leading/trailing dots
@@ -71,7 +66,7 @@ fn validate_email(email: &str) -> AppResult<()> {
         || domain.ends_with('.')
         || domain.contains("..")
     {
-        return Err(AppError::Validation("Invalid email format".to_string()));
+        return Err(AppError::validation(I18nKey::InvalidEmailFormat));
     }
 
     Ok(())
@@ -143,7 +138,7 @@ pub async fn register(
 ) -> AppResult<impl IntoResponse> {
     // 1. Validation
     if req.full_name.trim().is_empty() {
-        return Err(AppError::Validation("Full name is required".to_string()));
+        return Err(AppError::validation(I18nKey::FullNameRequired));
     }
     validate_email(&req.email)?;
     validate_password(&req.password)?;
@@ -158,7 +153,7 @@ pub async fn register(
         .await?;
 
     if existing_user.is_some() {
-        return Err(AppError::Conflict("Email already exists".to_string()));
+        return Err(AppError::conflict(I18nKey::EmailAlreadyExists));
     }
 
     // 3. Hash password
@@ -290,7 +285,7 @@ pub async fn login(
                     .await;
             }
         }
-        return Err(AppError::Auth("Invalid email or password".to_string()));
+        return Err(AppError::auth(I18nKey::InvalidEmailOrPassword));
     };
 
     let password = req.password.clone();
@@ -320,7 +315,7 @@ pub async fn login(
                     .await;
             }
         }
-        return Err(AppError::Auth("Invalid email or password".to_string()));
+        return Err(AppError::auth(I18nKey::InvalidEmailOrPassword));
     }
 
     // Success -> Clear Redis attempts and lockout keys
@@ -418,7 +413,7 @@ pub async fn refresh_token(
     }
 
     let token =
-        token_to_refresh.ok_or_else(|| AppError::Auth("No refresh token provided".to_string()))?;
+        token_to_refresh.ok_or_else(|| AppError::auth(I18nKey::NoRefreshToken))?;
 
     let auth_response = state
         .core()
@@ -451,7 +446,7 @@ pub async fn change_password(
         .user_repo()
         .get_user_by_id(user_id)
         .await?
-        .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
+        .ok_or_else(|| AppError::not_found(I18nKey::UserNotFound))?;
 
     // 2. Verify old password
     let old_password = req.old_password.clone();
@@ -462,7 +457,7 @@ pub async fn change_password(
             .map_err(|e| AppError::Internal(format!("Failed to spawn blocking task: {e}")))?;
 
     if !is_valid {
-        return Err(AppError::Auth("Current password is incorrect".to_string()));
+        return Err(AppError::auth(I18nKey::CurrentPasswordIncorrect));
     }
 
     // 3. Validate new password strength
@@ -592,7 +587,7 @@ pub async fn get_me(
         .user_repo()
         .get_user_by_id(user_id)
         .await?
-        .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
+        .ok_or_else(|| AppError::not_found(I18nKey::UserNotFound))?;
 
     // Fetch system-level roles (platform_admin, support, etc.)
     let system_roles = state

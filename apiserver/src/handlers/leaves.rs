@@ -18,6 +18,7 @@ use crate::models::{
     LeavePolicyDefinition, LeaveRequest, LeaveStatus, PaginatedResponse, PaginationParams,
     SubmitLeaveRequest, UpdateLeavePolicyRequest, WorkspaceLeaveBalance,
 };
+use crate::utils::i18n::I18nKey;
 
 use crate::{AppState, UserId};
 
@@ -431,7 +432,7 @@ pub async fn delete_leave_policy(
     if rows > 0 {
         Ok(StatusCode::NO_CONTENT)
     } else {
-        Err(AppError::NotFound("Policy not found".to_string()))
+        Err(AppError::not_found(I18nKey::PolicyNotFound))
     }
 }
 
@@ -525,7 +526,7 @@ pub async fn trigger_accrual_run(
     ctx.require_permission(Permission::LeaveAccrualRun)?;
 
     let date = NaiveDate::parse_from_str(&payload.date, "%Y-%m-%d")
-        .map_err(|_e| AppError::Validation("Invalid date format YYYY-MM-DD".to_string()))?;
+        .map_err(|_e| AppError::validation(I18nKey::InvalidDateFormat))?;
 
     use crate::queue::{AccrualPayload, Job, JobMetadata, JobPayload, TaskType};
 
@@ -615,7 +616,7 @@ pub async fn get_job_status(
             completed_at: m.completed_at.map(|t| t.to_rfc3339()),
             error_message: m.error_message,
         })),
-        None => Err(AppError::NotFound(format!("Job {job_id} not found"))),
+        None => Err(AppError::not_found(I18nKey::JobNotFound)),
     }
 }
 
@@ -802,8 +803,8 @@ pub async fn download_leave_import_errors(
     let job = repo
         .get_job_by_id(&ctx.auth_token, job_id)
         .await
-        .map_err(|e| AppError::ServiceUnavailable(format!("DB error: {e}")))?
-        .ok_or_else(|| AppError::NotFound("Import job not found".to_string()))?;
+        .map_err(|_e| AppError::service_unavailable(I18nKey::ServiceUnavailable))?
+        .ok_or_else(|| AppError::not_found(I18nKey::JobNotFound))?;
 
     // Extract error file path from error_log JSON
     let error_file_path = job
@@ -814,11 +815,11 @@ pub async fn download_leave_import_errors(
             v.get("error_file_path")
                 .and_then(|p| p.as_str().map(String::from))
         })
-        .ok_or_else(|| AppError::NotFound("No error file available for this import".to_string()))?;
+        .ok_or_else(|| AppError::not_found(I18nKey::NoErrorFileAvailable))?;
 
     let bytes = tokio::fs::read(&error_file_path)
         .await
-        .map_err(|e| AppError::NotFound(format!("Error file not found: {e}")))?;
+        .map_err(|_e| AppError::not_found(I18nKey::ErrorFileNotFound))?;
 
     use axum::http::header;
 

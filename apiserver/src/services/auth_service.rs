@@ -1,4 +1,5 @@
 use crate::errors::{AppError, AppResult};
+use crate::utils::i18n::I18nKey;
 use crate::models::{AuthResponse, UserResponse};
 use argon2::password_hash::{rand_core::OsRng, SaltString};
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
@@ -45,7 +46,7 @@ impl AuthService {
     pub fn generate_token(user_id: Uuid, secret: &str, duration_mins: i64) -> AppResult<String> {
         let expiration = Utc::now()
             .checked_add_signed(Duration::minutes(duration_mins))
-            .ok_or_else(|| AppError::Auth("Overflow calculating expiration timestamp".to_string()))?
+            .ok_or_else(|| AppError::auth(I18nKey::OverflowCalculation))?
             .timestamp();
 
         let claims = Claims {
@@ -60,7 +61,7 @@ impl AuthService {
             &claims,
             &EncodingKey::from_secret(secret.as_ref()),
         )
-        .map_err(|e| AppError::Auth(format!("Token generation failed: {e}")))
+        .map_err(|e| AppError::auth_raw(format!("Token generation failed: {e}")))
     }
 
     pub fn verify_token_claims(token: &str, secret: &str) -> AppResult<Claims> {
@@ -69,7 +70,7 @@ impl AuthService {
             &DecodingKey::from_secret(secret.as_ref()),
             &Validation::default(),
         )
-        .map_err(|e| AppError::Auth(format!("Invalid token: {e}")))?;
+        .map_err(|e| AppError::auth_raw(format!("Invalid token: {e}")))?;
 
         Ok(token_data.claims)
     }
@@ -77,7 +78,7 @@ impl AuthService {
     pub fn verify_token(token: &str, secret: &str) -> AppResult<Uuid> {
         let claims = Self::verify_token_claims(token, secret)?;
         Uuid::parse_str(&claims.sub)
-            .map_err(|e| AppError::Auth(format!("Invalid token subject: {e}")))
+            .map_err(|e| AppError::auth_raw(format!("Invalid token subject: {e}")))
     }
 
     /// Hash a password using argon2id (per access-control.md §3).
@@ -148,22 +149,20 @@ impl AuthService {
                             "CRITICAL: Refresh token reuse detected (potential session theft)! Revoking all sessions for user."
                         );
                         let _ = self.revoke_all_sessions_for_user(user_id).await;
-                        return Err(AppError::Auth(
-                            "Token theft detected. All sessions revoked for security.".to_string(),
+                        return Err(AppError::auth_raw(
+                            "Token theft detected. All sessions revoked for security.",
                         ));
                     }
                 }
             }
-            return Err(AppError::Auth(
-                "Invalid or expired refresh token".to_string(),
-            ));
+            return Err(AppError::auth(I18nKey::InvalidToken));
         };
 
         let user = self
             .user_repo
             .get_user_by_id(session.user_id)
             .await?
-            .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
+            .ok_or_else(|| AppError::not_found(I18nKey::UserNotFound))?;
 
         let access_token = Self::generate_token(user.id(), secret, 15)?; // 15 minutes access (per access-control.md §3)
 

@@ -1,5 +1,6 @@
 use crate::diesel_pool::DieselPools;
 use crate::errors::AppError;
+use crate::utils::i18n::I18nKey;
 use crate::models::diesel::employment_phase::{
     EmployeePhaseEntity, EmploymentPhaseDefinitionEntity,
 };
@@ -63,9 +64,8 @@ impl DieselEmploymentPhaseRepository {
                         .constraint_name()
                         .is_some_and(|c| c == "employment_phase_definitions_workspace_id_name_key")
                     {
-                        return AppError::Validation(
-                            "Phase definition with this name already exists in the workspace."
-                                .to_string(),
+                        return AppError::validation_raw(
+                            "Phase definition with this name already exists in the workspace.",
                         );
                     }
                 }
@@ -222,7 +222,7 @@ impl DieselEmploymentPhaseRepository {
 
         result
             .map(Into::into)
-            .ok_or_else(|| AppError::NotFound("Employee phase not found".to_string()))
+            .ok_or_else(|| AppError::not_found(I18nKey::EmployeePhaseNotFound))
     }
 
     pub async fn get_employee_phases(

@@ -9,6 +9,7 @@ use uuid::Uuid;
 
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
+use crate::utils::i18n::I18nKey;
 use crate::handlers::common::MemberContext;
 use crate::handlers::system_auth::SystemContext;
 use crate::models::enums::SystemRoleType;
@@ -280,7 +281,7 @@ pub async fn get_workspace_by_id(
         .workspace_repo()
         .get_workspace_by_id(ws_id)
         .await?
-        .ok_or_else(|| AppError::NotFound("Workspace not found".to_string()))?;
+        .ok_or_else(|| AppError::not_found(I18nKey::WorkspaceNotFound))?;
 
     Ok(Json(workspace))
 }

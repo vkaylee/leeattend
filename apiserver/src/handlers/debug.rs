@@ -1,4 +1,5 @@
 use crate::errors::{AppError, AppResult};
+use crate::utils::i18n::I18nKey;
 use crate::AppState;
 #[allow(unused_imports)]
 use axum::{
@@ -35,7 +36,7 @@ pub async fn get_debug_users(
             .api
             .get()
             .await
-            .map_err(|e| AppError::ServiceUnavailable(e.to_string()))?;
+            .map_err(|_e| AppError::service_unavailable(I18nKey::ServiceUnavailable))?;
 
         use diesel_async::RunQueryDsl;
 
@@ -62,7 +63,7 @@ pub async fn get_debug_users(
         )
         .load(&mut *conn)
         .await
-        .map_err(|e| AppError::ServiceUnavailable(e.to_string()))?;
+        .map_err(|_e| AppError::service_unavailable(I18nKey::ServiceUnavailable))?;
 
         let mapped = users
             .into_iter()
@@ -80,7 +81,7 @@ pub async fn get_debug_users(
     #[cfg(not(debug_assertions))]
     {
         let _ = state; // Suppress unused warning in release mode
-        Err(AppError::NotFound("Not found".to_string()))
+        Err(AppError::not_found(I18nKey::NotFound))
     }
 }
 
@@ -116,7 +117,7 @@ pub async fn clear_debug_db(
                                 .bind::<diesel::sql_types::Uuid, _>(ws_id)
                                 .execute(conn)
                                 .await
-                                .map_err(|e| AppError::ServiceUnavailable(e.to_string()))?;
+                                .map_err(|_e| AppError::service_unavailable(I18nKey::ServiceUnavailable))?;
                         }
                     }
                     "payroll" => {
@@ -129,7 +130,7 @@ pub async fn clear_debug_db(
                                 .bind::<diesel::sql_types::Uuid, _>(ws_id)
                                 .execute(conn)
                                 .await
-                                .map_err(|e| AppError::ServiceUnavailable(e.to_string()))?;
+                                .map_err(|_e| AppError::service_unavailable(I18nKey::ServiceUnavailable))?;
                         }
                     }
                     "rosters" => {
@@ -141,7 +142,7 @@ pub async fn clear_debug_db(
                                 .bind::<diesel::sql_types::Uuid, _>(ws_id)
                                 .execute(conn)
                                 .await
-                                .map_err(|e| AppError::ServiceUnavailable(e.to_string()))?;
+                                .map_err(|_e| AppError::service_unavailable(I18nKey::ServiceUnavailable))?;
                         }
                     }
                     "employees" => {
@@ -170,7 +171,7 @@ pub async fn clear_debug_db(
                                 .bind::<diesel::sql_types::Uuid, _>(ws_id)
                                 .execute(conn)
                                 .await
-                                .map_err(|e| AppError::ServiceUnavailable(e.to_string()))?;
+                                .map_err(|_e| AppError::service_unavailable(I18nKey::ServiceUnavailable))?;
                         }
                     }
                     "full_reset" => {
@@ -209,7 +210,7 @@ pub async fn clear_debug_db(
                                 .bind::<diesel::sql_types::Uuid, _>(ws_id)
                                 .execute(conn)
                                 .await
-                                .map_err(|e| AppError::ServiceUnavailable(e.to_string()))?;
+                                .map_err(|_e| AppError::service_unavailable(I18nKey::ServiceUnavailable))?;
                         }
                     }
                     "seed" => {
@@ -224,21 +225,21 @@ pub async fn clear_debug_db(
                         .bind::<diesel::sql_types::Uuid, _>(ws_id)
                         .get_result(conn)
                         .await
-                        .map_err(|e| AppError::ServiceUnavailable(e.to_string()))?;
+                        .map_err(|_e| AppError::service_unavailable(I18nKey::ServiceUnavailable))?;
 
                         let dept_hr: IdRow = diesel::sql_query("INSERT INTO departments (workspace_id, name, description) VALUES ($1, 'Human Resources', 'People Operations') RETURNING id"
                         )
                         .bind::<diesel::sql_types::Uuid, _>(ws_id)
                         .get_result(conn)
                         .await
-                        .map_err(|e| AppError::ServiceUnavailable(e.to_string()))?;
+                        .map_err(|_e| AppError::service_unavailable(I18nKey::ServiceUnavailable))?;
 
                         let _shift_morning: IdRow = diesel::sql_query("INSERT INTO shifts (workspace_id, name, start_time, end_time) VALUES ($1, 'Morning Shift', '08:00:00', '17:00:00') RETURNING id"
                         )
                         .bind::<diesel::sql_types::Uuid, _>(ws_id)
                         .get_result(conn)
                         .await
-                        .map_err(|e| AppError::ServiceUnavailable(e.to_string()))?;
+                        .map_err(|_e| AppError::service_unavailable(I18nKey::ServiceUnavailable))?;
 
                         let loc_id = crate::utils::id::new_id();
                         diesel::sql_query(
@@ -250,7 +251,7 @@ pub async fn clear_debug_db(
                         .bind::<diesel::sql_types::Uuid, _>(ws_id)
                         .execute(conn)
                         .await
-                        .map_err(|e| AppError::ServiceUnavailable(e.to_string()))?;
+                        .map_err(|_e| AppError::service_unavailable(I18nKey::ServiceUnavailable))?;
 
                         #[derive(diesel::QueryableByName)]
                         struct LocIdRow {
@@ -264,7 +265,7 @@ pub async fn clear_debug_db(
                         .bind::<diesel::sql_types::Uuid, _>(ws_id)
                         .get_result(conn)
                         .await
-                        .map_err(|e| AppError::ServiceUnavailable(e.to_string()))?;
+                        .map_err(|_e| AppError::service_unavailable(I18nKey::ServiceUnavailable))?;
 
                         let employees = vec![
                             ("Alice Engineer", "EMP001", dept_eng.id),
@@ -287,7 +288,7 @@ pub async fn clear_debug_db(
                             .bind::<diesel::sql_types::Uuid, _>(loc.id)
                             .execute(conn)
                             .await
-                            .map_err(|e| AppError::ServiceUnavailable(e.to_string()))?;
+                            .map_err(|_e| AppError::service_unavailable(I18nKey::ServiceUnavailable))?;
 
                             diesel::sql_query("INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $2, CURRENT_DATE)"
                             )
@@ -295,10 +296,10 @@ pub async fn clear_debug_db(
                             .bind::<diesel::sql_types::Uuid, _>(dept_id)
                             .execute(conn)
                             .await
-                            .map_err(|e| AppError::ServiceUnavailable(e.to_string()))?;
+                            .map_err(|_e| AppError::service_unavailable(I18nKey::ServiceUnavailable))?;
                         }
                     }
-                    _ => return Err(AppError::Validation("Invalid group".to_string())),
+                    _ => return Err(AppError::validation(I18nKey::InvalidGroup)),
                 }
 
                 Ok(())
@@ -312,6 +313,6 @@ pub async fn clear_debug_db(
     #[cfg(not(debug_assertions))]
     {
         let _ = (ws_id, state, payload);
-        Err::<(), AppError>(AppError::NotFound("Not found".to_string()))
+        Err::<(), AppError>(AppError::not_found(I18nKey::NotFound))
     }
 }

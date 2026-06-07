@@ -8,6 +8,7 @@ use uuid::Uuid;
 
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
+use crate::utils::i18n::I18nKey;
 use crate::handlers::common::MemberContext;
 use crate::models::{AssignPermissionRequest, MemberExtraPermission};
 use crate::services::audit_service::AuditHelper;
@@ -75,16 +76,11 @@ pub async fn assign_extra_permission(
 
     // Validate the permission string
     if Permission::from_str_permission(&req.permission).is_none() {
-        return Err(AppError::Validation(format!(
-            "Unknown permission: '{}'. Use GET /permissions/available for valid values.",
-            req.permission
-        )));
+        return Err(AppError::validation(I18nKey::UnknownPermission));
     }
 
     if req.expires_at <= chrono::Utc::now() {
-        return Err(AppError::Validation(
-            "Expiration time must be in the future".to_string(),
-        ));
+        return Err(AppError::validation(I18nKey::ExpirationFuture));
     }
 
     let perm = state
@@ -190,7 +186,7 @@ pub async fn revoke_extra_permission(
 
         Ok(StatusCode::NO_CONTENT)
     } else {
-        Err(AppError::NotFound("Permission not found".to_string()))
+        Err(AppError::not_found(I18nKey::NotFound))
     }
 }
 

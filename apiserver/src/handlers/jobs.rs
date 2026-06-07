@@ -6,6 +6,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::errors::AppError;
+use crate::utils::i18n::I18nKey;
 use crate::handlers::common::MemberContext;
 use crate::state::AppState;
 
@@ -34,13 +35,11 @@ pub async fn get_generic_job_status(
         .get_job_metadata(job_id)
         .await
         .map_err(|e| AppError::BackgroundJobError(format!("Redis error: {e}")))?
-        .ok_or_else(|| AppError::NotFound("Job not found".to_string()))?;
+        .ok_or_else(|| AppError::not_found(I18nKey::JobNotFound))?;
 
     // Security check
     if meta.workspace_id != ctx.workspace_id {
-        return Err(AppError::Forbidden(
-            "Cannot access job from another workspace".to_string(),
-        ));
+        return Err(AppError::forbidden(I18nKey::Forbidden));
     }
 
     let percentage = if meta.total_batches > 0 {

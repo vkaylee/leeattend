@@ -1,11 +1,12 @@
 use crate::{
     domain::permissions::Permission,
-    errors::AppResult,
+    errors::{AppError, AppResult},
     handlers::common::MemberContext,
     models::{
         ApprovalActionLog, ApprovalWorkflow, ApprovalWorkflowTask, CreateWorkflowRequest,
         PaginatedResponse,
     },
+    utils::i18n::I18nKey,
     AppState,
 };
 use axum::{
@@ -174,7 +175,7 @@ pub async fn get_workflow(
         .approval_workflow_service()
         .get_workflow(&ctx.auth_token, id)
         .await?
-        .ok_or_else(|| crate::errors::AppError::NotFound("Workflow not found".into()))?;
+        .ok_or_else(|| AppError::not_found(I18nKey::WorkflowNotFound))?;
 
     let mut val = serde_json::to_value(&workflow)
         .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?;
@@ -323,9 +324,7 @@ pub async fn process_approval(
         .approval_workflow_service()
         .get_workflow_instance_by_entity(&ctx.auth_token, &req.entity_type, req.entity_id)
         .await?
-        .ok_or_else(|| {
-            crate::errors::AppError::NotFound("Workflow instance not found for this entity".into())
-        })?;
+        .ok_or_else(|| AppError::not_found(I18nKey::WorkflowInstanceNotFound))?;
 
     state
         .core()

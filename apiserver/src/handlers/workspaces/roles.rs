@@ -8,6 +8,7 @@ use uuid::Uuid;
 
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
+use crate::utils::i18n::I18nKey;
 use crate::handlers::common::MemberContext;
 use crate::models::enums::RoleScopeType;
 use crate::models::{AssignRoleRequest, MemberExtraRole, PaginationParams, WorkspaceRole};
@@ -98,9 +99,7 @@ pub async fn assign_extra_role(
     ctx.require_permission(Permission::MembersRolesManage)?;
 
     if req.expires_at <= chrono::Utc::now() {
-        return Err(AppError::Validation(
-            "Expiration time must be in the future".to_string(),
-        ));
+        return Err(AppError::validation(I18nKey::ExpirationFuture));
     }
 
     let extra_role = state
@@ -196,7 +195,7 @@ pub async fn revoke_extra_role(
 
         Ok(StatusCode::NO_CONTENT)
     } else {
-        Err(AppError::NotFound("Role not found".to_string()))
+        Err(AppError::not_found(I18nKey::RoleNotFound))
     }
 }
 
@@ -318,7 +317,7 @@ pub async fn update_workspace_role(
             req.color,
         )
         .await?
-        .ok_or_else(|| AppError::NotFound("Role not found or is a system role".to_string()))?;
+        .ok_or_else(|| AppError::not_found(I18nKey::RoleNotFoundOrSystem))?;
 
     Ok(Json(role))
 }
@@ -360,9 +359,7 @@ pub async fn delete_workspace_role(
         }
         Ok(StatusCode::NO_CONTENT)
     } else {
-        Err(AppError::NotFound(
-            "Role not found or is a system role".to_string(),
-        ))
+        Err(AppError::not_found(I18nKey::RoleNotFoundOrSystem))
     }
 }
 
@@ -428,9 +425,7 @@ pub async fn update_role_permissions(
         .await?;
 
     if !role_exists {
-        return Err(AppError::NotFound(
-            "Role not found or is a system role".to_string(),
-        ));
+        return Err(AppError::not_found(I18nKey::RoleNotFoundOrSystem));
     }
 
     state

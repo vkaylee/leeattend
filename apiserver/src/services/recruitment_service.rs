@@ -4,6 +4,7 @@ use chrono::Utc;
 use uuid::Uuid;
 
 use crate::errors::AppError;
+use crate::utils::i18n::I18nKey;
 use crate::models::{
     CreateRecruitmentSourceRequest, RecruitmentSource, RecruitmentSourceBreakdown,
     TurnoverAnalytics, UpdateRecruitmentSourceRequest,
@@ -77,7 +78,7 @@ impl RecruitmentService {
         self.repo
             .update_recruitment_source(id, auth_token, &req)
             .await?
-            .ok_or(AppError::NotFound("Recruitment source not found".into()))
+            .ok_or_else(|| AppError::not_found(I18nKey::RecruitmentSourceNotFound))
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -89,7 +90,7 @@ impl RecruitmentService {
         let _workspace_id = auth_token.workspace_id();
         let rows = self.repo.delete_recruitment_source(id, auth_token).await?;
         if rows == 0 {
-            return Err(AppError::NotFound("Recruitment source not found".into()));
+            return Err(AppError::not_found(I18nKey::RecruitmentSourceNotFound));
         }
         Ok(())
     }

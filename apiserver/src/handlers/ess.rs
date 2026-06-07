@@ -13,6 +13,7 @@ use crate::models::{
     CreateEmergencyContactRequest, EmployeeDocument, EmployeeEmergencyContact, EmployeeProfile,
     LeaveRequest, MyProfileResponse, Payslip, TimeEntry, UpdateEmployeeProfileRequest,
 };
+use crate::utils::i18n::I18nKey;
 use crate::AppState;
 
 // --- Profile Endpoints ---
@@ -38,7 +39,7 @@ pub async fn get_my_profile(
             &crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id),
         )
         .await?
-        .ok_or_else(|| AppError::NotFound("Employee not found".to_string()))?;
+        .ok_or_else(|| AppError::not_found(I18nKey::EmployeeNotFound))?;
 
     // Get profile (may not exist yet)
     let profile = state
@@ -176,7 +177,7 @@ pub async fn delete_emergency_contact(
         .await?;
 
     if affected == 0 {
-        return Err(AppError::NotFound("Contact not found".to_string()));
+        return Err(AppError::not_found(I18nKey::ContactNotFound));
     }
 
     Ok(StatusCode::NO_CONTENT)

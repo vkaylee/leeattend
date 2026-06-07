@@ -11,6 +11,7 @@ use uuid::Uuid;
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
+use crate::utils::i18n::I18nKey;
 use crate::repositories::staging_log_repository::StagingLog;
 use crate::AppState;
 
@@ -184,7 +185,7 @@ pub async fn dismiss_staging_log(
         .await?;
 
     if !updated {
-        return Err(AppError::NotFound("Staging log not found".to_string()));
+        return Err(AppError::not_found(I18nKey::StagingLogNotFound));
     }
 
     Ok(StatusCode::NO_CONTENT)
