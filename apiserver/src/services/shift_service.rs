@@ -4,8 +4,8 @@ use uuid::Uuid;
 
 use crate::errors::AppError;
 use crate::models::{Shift, UpdateShiftRequest};
-use crate::utils::i18n::I18nKey;
 use crate::repositories::shift_repository::ShiftRepository;
+use crate::utils::i18n::I18nKey;
 
 pub struct ShiftService {
     repo: Arc<dyn ShiftRepository>,
@@ -158,9 +158,9 @@ impl ShiftService {
             Err(AppError::Diesel(diesel::result::Error::DatabaseError(
                 diesel::result::DatabaseErrorKind::UniqueViolation,
                 info,
-            ))) if info.constraint_name() == Some("uq_employee_shift_start") => Err(
-                AppError::conflict(I18nKey::ShiftAssignmentAlreadyExists),
-            ),
+            ))) if info.constraint_name() == Some("uq_employee_shift_start") => {
+                Err(AppError::conflict(I18nKey::ShiftAssignmentAlreadyExists))
+            }
             Err(e) => Err(e),
         }
     }

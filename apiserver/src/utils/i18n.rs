@@ -106,6 +106,7 @@ pub const ALL_KEYS: &[&str] = &[
     "error.invalid_base_group",
     "error.invalid_token",
     "error.overflow_calculation",
+    "error.user_already_linked",
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -210,6 +211,7 @@ pub enum I18nKey {
     InvalidBaseGroup,
     InvalidToken,
     OverflowCalculation,
+    UserAlreadyLinked,
 }
 
 impl I18nKey {
@@ -316,6 +318,7 @@ impl I18nKey {
             Self::InvalidBaseGroup => "error.invalid_base_group",
             Self::InvalidToken => "error.invalid_token",
             Self::OverflowCalculation => "error.overflow_calculation",
+            Self::UserAlreadyLinked => "error.user_already_linked",
         }
     }
 }
@@ -514,6 +517,7 @@ fn lookup_en(key: &str) -> Option<&'static str> {
         "error.invalid_base_group" => Some("Invalid base group"),
         "error.invalid_token" => Some("Invalid or expired token"),
         "error.overflow_calculation" => Some("Calculation overflow occurred"),
+        "error.user_already_linked" => Some("User is already linked to employee {name} in this workspace"),
         _ => None,
     }
 }
@@ -622,6 +626,7 @@ fn lookup_vi(key: &str) -> Option<&'static str> {
         "error.invalid_base_group" => Some("Nhóm cơ bản không hợp lệ"),
         "error.invalid_token" => Some("Token không hợp lệ hoặc đã hết hạn"),
         "error.overflow_calculation" => Some("Xảy ra lỗi tràn số khi tính toán"),
+        "error.user_already_linked" => Some("Tài khoản đã được gán cho nhân viên {name} trong workspace này"),
         _ => None,
     }
 }
@@ -672,7 +677,9 @@ fn lookup_zh(key: &str) -> Option<&'static str> {
         "error.role_not_found" => Some("未找到该角色"),
         "error.role_not_found_or_system" => Some("未找到角色或该角色为系统角色"),
         "error.expiration_future" => Some("过期时间必须在未来"),
-        "error.unknown_permission" => Some("未知权限。请使用 GET /permissions/available 获取有效值。"),
+        "error.unknown_permission" => {
+            Some("未知权限。请使用 GET /permissions/available 获取有效值。")
+        }
         "error.employee_assignment_not_found" => Some("未找到员工外派记录"),
         "error.home_host_location_same" => Some("居住地和工作地不能相同"),
         "error.contract_not_found" => Some("未找到合同"),
@@ -732,6 +739,7 @@ fn lookup_zh(key: &str) -> Option<&'static str> {
         "error.invalid_base_group" => Some("无效的基本组"),
         "error.invalid_token" => Some("无效或过期的令牌"),
         "error.overflow_calculation" => Some("计算溢出"),
+        "error.user_already_linked" => Some("该用户已在此工作空间中与员工 {name} 关联"),
         _ => None,
     }
 }
@@ -900,6 +908,7 @@ mod tests {
             I18nKey::InvalidBaseGroup,
             I18nKey::InvalidToken,
             I18nKey::OverflowCalculation,
+            I18nKey::UserAlreadyLinked,
         ];
 
         for variant in &variants {

@@ -542,7 +542,11 @@ pub struct CreateEmployeeRequest {
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct UpdateEmployeeRequest {
-    pub user_id: Option<Uuid>,
+    #[serde(
+        default,
+        deserialize_with = "crate::utils::serde_helpers::deserialize_option_option"
+    )]
+    pub user_id: Option<Option<Uuid>>,
     pub full_name: Option<String>,
     pub employee_id_number: Option<SanitizedEmployeeId>,
     pub hire_date: Option<NaiveDate>,
@@ -553,4 +557,5 @@ pub struct UpdateEmployeeRequest {
     pub max_concurrent_workers: Option<i32>,
     pub recruitment_source_id: Option<Uuid>,
     pub employer_id: Option<Uuid>,
+    pub force_transfer: Option<bool>,
 }

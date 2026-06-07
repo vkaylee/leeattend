@@ -1,5 +1,4 @@
 use crate::errors::AppError;
-use crate::utils::i18n::I18nKey;
 use crate::models::{
     ApprovalActionLog, ApprovalWorkflow, ApprovalWorkflowInstance, ApprovalWorkflowStep,
     ApprovalWorkflowTask,
@@ -9,6 +8,7 @@ use crate::schema::{
     approval_action_log, approval_workflow_instances, approval_workflow_steps,
     approval_workflow_tasks, approval_workflows,
 };
+use crate::utils::i18n::I18nKey;
 use async_trait::async_trait;
 use diesel::prelude::*;
 use diesel_async::{AsyncConnection, RunQueryDsl};

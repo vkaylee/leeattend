@@ -3,11 +3,11 @@ use crate::errors::AppError;
 use crate::models::diesel::core::{MemberExtraRoleEntity, WorkspaceEntity, WorkspaceMemberEntity};
 use crate::models::{MemberExtraRole, Workspace};
 use crate::repositories::workspace_repository::WorkspaceRepository;
-use crate::utils::i18n::I18nKey;
 use crate::schema::{
     member_extra_roles, users, workspace_member_extra_permissions, workspace_members,
     workspace_role_permissions, workspace_roles, workspaces,
 };
+use crate::utils::i18n::I18nKey;
 use async_trait::async_trait;
 use chrono::Utc;
 use diesel::prelude::*;

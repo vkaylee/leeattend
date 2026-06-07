@@ -225,7 +225,17 @@ impl IntoResponse for AppError {
             }
             Self::Validation(msg) => {
                 if msg.starts_with("error.") {
-                    crate::utils::i18n::t(msg)
+                    if let Some((key, params_str)) = msg.split_once(':') {
+                        let mut args = Vec::new();
+                        for param in params_str.split(',') {
+                            if let Some((k, v)) = param.split_once('=') {
+                                args.push((k, v));
+                            }
+                        }
+                        crate::utils::i18n::t_args(key, &args)
+                    } else {
+                        crate::utils::i18n::t(msg)
+                    }
                 } else {
                     crate::utils::i18n::t_args("error.validation", &[("msg", msg)])
                 }

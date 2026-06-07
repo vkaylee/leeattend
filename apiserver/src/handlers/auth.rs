@@ -415,8 +415,7 @@ pub async fn refresh_token(
         }
     }
 
-    let token =
-        token_to_refresh.ok_or_else(|| AppError::auth(I18nKey::NoRefreshToken))?;
+    let token = token_to_refresh.ok_or_else(|| AppError::auth(I18nKey::NoRefreshToken))?;
 
     let auth_response = state
         .core()

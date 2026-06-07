@@ -8,12 +8,12 @@ use uuid::Uuid;
 
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
-use crate::utils::i18n::I18nKey;
 use crate::handlers::common::MemberContext;
 use crate::models::enums::RoleScopeType;
 use crate::models::{AssignRoleRequest, MemberExtraRole, PaginationParams, WorkspaceRole};
 use crate::services::audit_service::AuditHelper;
 use crate::services::WorkspaceService;
+use crate::utils::i18n::I18nKey;
 use crate::AppState;
 use serde::Deserialize;
 

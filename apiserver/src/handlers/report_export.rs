@@ -20,12 +20,12 @@ use uuid::Uuid;
 
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
-use crate::utils::i18n::I18nKey;
 use crate::handlers::common::MemberContext;
 use crate::queue::ReportType;
 use crate::services::report_coordinator::{
     CreateJobRequest, JobProgress as CoordinatorJobProgress, ReportCoordinator, ReportError,
 };
+use crate::utils::i18n::I18nKey;
 use crate::AppState;
 
 // ============================================================================
@@ -103,13 +103,9 @@ impl From<CoordinatorJobProgress> for JobProgress {
 impl From<ReportError> for AppError {
     fn from(err: ReportError) -> Self {
         match err {
-            ReportError::NoEmployees => {
-                AppError::validation(I18nKey::NoActiveEmployeesFound)
-            }
+            ReportError::NoEmployees => AppError::validation(I18nKey::NoActiveEmployeesFound),
             ReportError::JobNotFound => AppError::not_found(I18nKey::JobNotFound),
-            ReportError::CannotCancel => {
-                AppError::conflict(I18nKey::CannotCancelJob)
-            }
+            ReportError::CannotCancel => AppError::conflict(I18nKey::CannotCancelJob),
             ReportError::QueueError(e) => AppError::from(format!("Queue error: {e}")),
             ReportError::DatabaseError(e) => AppError::from(format!("Database error: {e}")),
         }
@@ -122,9 +118,7 @@ fn get_coordinator(state: &AppState) -> AppResult<&ReportCoordinator> {
         .reports()
         .coordinator()
         .map(|arc| &**arc)
-        .ok_or_else(|| {
-            AppError::service_unavailable(I18nKey::ServiceUnavailable)
-        })
+        .ok_or_else(|| AppError::service_unavailable(I18nKey::ServiceUnavailable))
 }
 
 // ============================================================================
@@ -158,9 +152,7 @@ pub async fn create_export_job(
     let report_type = match request.report_type.as_str() {
         "summary" => ReportType::Summary,
         "detail" => ReportType::Detail,
-        _ => {
-            return Err(AppError::validation(I18nKey::Validation))
-        }
+        _ => return Err(AppError::validation(I18nKey::Validation)),
     };
 
     // Validate date range

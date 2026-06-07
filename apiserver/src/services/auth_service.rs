@@ -1,6 +1,6 @@
 use crate::errors::{AppError, AppResult};
-use crate::utils::i18n::I18nKey;
 use crate::models::{AuthResponse, UserResponse};
+use crate::utils::i18n::I18nKey;
 use argon2::password_hash::{rand_core::OsRng, SaltString};
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use chrono::{Duration, Utc};

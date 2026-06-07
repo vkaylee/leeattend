@@ -138,17 +138,15 @@ pub async fn bulk_upload_paper_ot(
     let csv_bytes = csv_data.ok_or_else(|| AppError::validation(I18nKey::NoFileUploaded))?;
 
     // 3. Parse CSV
-    let csv_str = String::from_utf8(csv_bytes)
-        .map_err(|_e| AppError::validation(I18nKey::InvalidUtf8Csv))?;
+    let csv_str =
+        String::from_utf8(csv_bytes).map_err(|_e| AppError::validation(I18nKey::InvalidUtf8Csv))?;
 
     let mut rdr = csv::Reader::from_reader(csv_str.as_bytes());
 
     // Collect all rows first to validate count
     let mut rows: Vec<(usize, csv::StringRecord)> = Vec::new();
     for (idx, result) in rdr.records().enumerate() {
-        let record = result.map_err(|_e| {
-            AppError::validation(I18nKey::CsvParsingError)
-        })?;
+        let record = result.map_err(|_e| AppError::validation(I18nKey::CsvParsingError))?;
         rows.push((idx + 2, record)); // +2 because CSV line 1 is header, records start at line 2
 
         if rows.len() > MAX_BULK_UPLOAD_ROWS {

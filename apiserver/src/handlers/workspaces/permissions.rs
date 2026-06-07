@@ -8,10 +8,10 @@ use uuid::Uuid;
 
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
-use crate::utils::i18n::I18nKey;
 use crate::handlers::common::MemberContext;
 use crate::models::{AssignPermissionRequest, MemberExtraPermission};
 use crate::services::audit_service::AuditHelper;
+use crate::utils::i18n::I18nKey;
 use crate::AppState;
 
 /// GET /workspaces/:ws_id/members/:user_id/permissions

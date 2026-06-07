@@ -245,9 +245,7 @@ impl ApprovalWorkflowService {
             .approval_workflow_repo
             .get_instance_by_id(auth_token, instance_id)
             .await?
-            .ok_or_else(|| {
-                AppError::not_found(I18nKey::WorkflowInstanceNotFound)
-            })?;
+            .ok_or_else(|| AppError::not_found(I18nKey::WorkflowInstanceNotFound))?;
 
         if instance.status != "pending" {
             return Err(AppError::validation_raw(format!(
@@ -334,9 +332,7 @@ impl ApprovalWorkflowService {
         match action.as_str() {
             "reassign" => {
                 let target_uid = new_approver_user_id.ok_or_else(|| {
-                    AppError::validation_raw(
-                        "new_approver_user_id is required for reassignment",
-                    )
+                    AppError::validation_raw("new_approver_user_id is required for reassignment")
                 })?;
 
                 for mut task in active_tasks {
@@ -485,7 +481,11 @@ impl ApprovalWorkflowService {
                     }
                 }
             }
-            _ => return Err(AppError::validation_raw(format!("Invalid action: {action}"))),
+            _ => {
+                return Err(AppError::validation_raw(format!(
+                    "Invalid action: {action}"
+                )))
+            }
         }
 
         instance.steps_snapshot =

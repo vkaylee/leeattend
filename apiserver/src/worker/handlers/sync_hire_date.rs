@@ -85,6 +85,7 @@ impl SyncHireDateHandler {
                             recruitment_source_id: None,
                             primary_location_id: None,
                             employer_id: None,
+                            force_transfer: None,
                         },
                     )
                     .await

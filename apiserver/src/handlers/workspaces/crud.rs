@@ -9,7 +9,6 @@ use uuid::Uuid;
 
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
-use crate::utils::i18n::I18nKey;
 use crate::handlers::common::MemberContext;
 use crate::handlers::system_auth::SystemContext;
 use crate::models::enums::SystemRoleType;
@@ -18,6 +17,7 @@ use crate::models::{
     LeaveTypeBreakdown, OvertimeTrendPoint, PeakTimeSlot, UnexcusedAbsencesPoint,
     UpdateWorkspaceRequest, Workspace, WorkspaceStats,
 };
+use crate::utils::i18n::I18nKey;
 
 use crate::{AppState, UserId};
 

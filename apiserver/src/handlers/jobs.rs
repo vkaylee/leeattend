@@ -6,9 +6,9 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::errors::AppError;
-use crate::utils::i18n::I18nKey;
 use crate::handlers::common::MemberContext;
 use crate::state::AppState;
+use crate::utils::i18n::I18nKey;
 
 /// GET /workspaces/{ws_id}/jobs/{job_id}
 #[utoipa::path(

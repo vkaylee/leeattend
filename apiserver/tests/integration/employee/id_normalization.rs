@@ -130,6 +130,7 @@ async fn test_update_employee_id_normalization() {
         recruitment_source_id: None,
         primary_location_id: Some(hq_loc_id),
         employer_id: None,
+        force_transfer: None,
     };
 
     let response = app

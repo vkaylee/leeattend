@@ -3,9 +3,9 @@ use std::collections::HashSet;
 use crate::diesel_pool::TenantAuthToken;
 use crate::domain::permissions::{self, Permission};
 use crate::errors::{AppError, AppResult};
-use crate::utils::i18n::I18nKey;
 use crate::models::GenericResponse;
 use crate::repositories::CacheRepositoryExt;
+use crate::utils::i18n::I18nKey;
 use crate::{AppState, UserId};
 use axum::{
     async_trait,

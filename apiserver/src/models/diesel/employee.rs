@@ -137,7 +137,7 @@ impl From<EmployeeEntity> for Employee {
 #[derive(Debug, AsChangeset)]
 #[diesel(table_name = employees)]
 pub struct UpdateDieselEmployee {
-    pub user_id: Option<Uuid>,
+    pub user_id: Option<Option<Uuid>>,
     pub full_name: Option<String>,
     pub employee_id_number: Option<String>,
     pub tags: Option<Vec<Option<String>>>,

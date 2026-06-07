@@ -1,12 +1,12 @@
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
-use crate::utils::i18n::I18nKey;
 use crate::handlers::common::{self, MemberContext};
 use crate::models::{
     CreateEmployeeRequest, CreateWorkingConditionRequest, Employee, EmployeeDepartmentHistory,
     PaginatedResponse, PaginationParams, RehireEmployeeRequest, TransferEmployeeRequest,
     UpdateEmployeeRequest, WorkingCondition,
 };
+use crate::utils::i18n::I18nKey;
 use crate::AppState;
 use axum::{
     extract::{Path, Query, State},

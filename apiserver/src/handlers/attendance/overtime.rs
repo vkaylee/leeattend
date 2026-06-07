@@ -11,8 +11,8 @@ use uuid::Uuid;
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
-use crate::utils::i18n::I18nKey;
 use crate::models::AttendanceDailySummary;
+use crate::utils::i18n::I18nKey;
 use crate::AppState;
 
 #[derive(Deserialize, utoipa::ToSchema)]

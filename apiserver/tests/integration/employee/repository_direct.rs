@@ -891,6 +891,7 @@ async fn test_employee_core_crud() {
         recruitment_source_id: None,
         max_concurrent_workers: None,
         employer_id: None,
+        force_transfer: None,
     };
     let updated = repo
         .update_employee(new_emp.id(), &auth_token, &update_req)

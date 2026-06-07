@@ -499,6 +499,19 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
+        if let Some(Some(new_user_id)) = req.user_id {
+            if req.force_transfer == Some(true) {
+                diesel::update(employees::table)
+                    .filter(employees::user_id.eq(new_user_id))
+                    .filter(employees::workspace_id.eq(workspace_id))
+                    .filter(employees::id.ne(id))
+                    .set(employees::user_id.eq(None::<Uuid>))
+                    .execute(&mut *conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            }
+        }
+
         let normalized_id = req
             .employee_id_number
             .as_ref()
@@ -549,6 +562,19 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
 
         conn.transaction(|conn| {
             Box::pin(async move {
+                if let Some(Some(new_user_id)) = req.user_id {
+                    if req.force_transfer == Some(true) {
+                        diesel::update(employees::table)
+                            .filter(employees::user_id.eq(new_user_id))
+                            .filter(employees::workspace_id.eq(workspace_id))
+                            .filter(employees::id.ne(id))
+                            .set(employees::user_id.eq(None::<Uuid>))
+                            .execute(&mut *conn)
+                            .await
+                            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                    }
+                }
+
                 let normalized_id = req
                     .employee_id_number
                     .as_ref()

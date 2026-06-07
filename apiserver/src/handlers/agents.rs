@@ -18,11 +18,11 @@ use uuid::Uuid;
 use crate::agent_manager::AgentCommand;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
-use crate::utils::i18n::I18nKey;
 use crate::models::{
     AgentStatus, AuthorizedAgent, CreateAuthorizedAgentRequest, CreateDeviceRequest, Device,
     TrustAgentRequest, UpdateAuthorizedAgentRequest, UpdateDeviceRequest,
 };
+use crate::utils::i18n::I18nKey;
 use crate::AppState;
 
 // --- WebSocket Handlers ---

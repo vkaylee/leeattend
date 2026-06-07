@@ -12,8 +12,8 @@ use uuid::Uuid;
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
-use crate::utils::i18n::I18nKey;
 use crate::models::{LeaveType, LeaveTypeConfig};
+use crate::utils::i18n::I18nKey;
 use crate::AppState;
 
 #[derive(Debug, Deserialize, utoipa::ToSchema)]

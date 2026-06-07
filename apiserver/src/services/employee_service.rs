@@ -239,8 +239,8 @@ impl EmployeeService {
         req: UpdateEmployeeRequest,
     ) -> Result<Employee, AppError> {
         let workspace_id = auth_token.workspace_id();
-        // Optional: Check if user_id exists if provided
-        if let Some(user_id) = req.user_id {
+        // Optional: Check if user_id exists if provided, and check duplicate
+        if let Some(Some(user_id)) = req.user_id {
             self.user_repo
                 .get_user_by_id(user_id)
                 .await?
@@ -252,10 +252,17 @@ impl EmployeeService {
                 .get_employee_id_by_user_id(auth_token, user_id)
                 .await?
             {
-                if existing_emp_id != id {
-                    return Err(AppError::Validation(
-                        "User is already linked to another employee in this workspace".into(),
-                    ));
+                if existing_emp_id != id && req.force_transfer != Some(true) {
+                    let existing_emp = self
+                        .repo
+                        .get_employee_by_id(existing_emp_id, auth_token)
+                        .await?
+                        .ok_or_else(|| AppError::NotFound("Existing employee not found".into()))?;
+
+                    return Err(AppError::Validation(format!(
+                        "error.user_already_linked:name={}",
+                        existing_emp.full_name()
+                    )));
                 }
             }
         }
@@ -414,6 +421,7 @@ mod tests {
         turnover: Mutex<Option<TurnoverAnalytics>>,
         updated_recruitment_source: Mutex<Option<RecruitmentSource>>,
         recruitment_source_breakdown: Mutex<Vec<RecruitmentSourceBreakdown>>,
+        employee_id_by_user_id: Mutex<Option<Uuid>>,
     }
 
     impl MockEmployeeRepo {
@@ -432,6 +440,7 @@ mod tests {
                 turnover: Mutex::new(None),
                 updated_recruitment_source: Mutex::new(None),
                 recruitment_source_breakdown: Mutex::new(vec![]),
+                employee_id_by_user_id: Mutex::new(None),
             }
         }
 
@@ -609,7 +618,7 @@ mod tests {
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _user: Uuid,
         ) -> Result<Option<Uuid>, AppError> {
-            Ok(None)
+            Ok(*self.employee_id_by_user_id.lock().expect("lock"))
         }
 
         async fn get_employee_timezone_fallback(
@@ -1159,8 +1168,17 @@ mod tests {
         ) -> Result<Option<crate::models::User>, AppError> {
             unimplemented!()
         }
-        async fn get_user_by_id(&self, _id: Uuid) -> Result<Option<crate::models::User>, AppError> {
-            unimplemented!()
+        async fn get_user_by_id(&self, id: Uuid) -> Result<Option<crate::models::User>, AppError> {
+            Ok(Some(crate::models::User::new(
+                id,
+                "test@example.com".to_string(),
+                "password_hash".to_string(),
+                chrono::Utc::now(),
+                Some("Test User".to_string()),
+                None,
+                None,
+                None,
+            )))
         }
         async fn update_password_hash(
             &self,
@@ -1677,6 +1695,7 @@ mod tests {
             recruitment_source_id: None,
             primary_location_id: None,
             employer_id: None,
+            force_transfer: None,
         };
         let result = svc
             .update_employee(
@@ -1708,6 +1727,7 @@ mod tests {
             recruitment_source_id: None, // No source ID, no id_number update
             primary_location_id: None,
             employer_id: None,
+            force_transfer: None,
         };
         let result = svc
             .update_employee(
@@ -1716,6 +1736,90 @@ mod tests {
                 req,
             )
             .await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn update_employee_duplicate_user_conflict() {
+        let ws = Uuid::new_v4();
+        let target_emp_id = Uuid::new_v4();
+        let existing_emp_id = Uuid::new_v4();
+        let conflict_user_id = Uuid::new_v4();
+
+        let mock = MockEmployeeRepo::empty();
+        *mock.employee_id_by_user_id.lock().unwrap() = Some(existing_emp_id);
+        let existing_emp = make_employee(ws);
+        *mock.employee.lock().unwrap() = Some(existing_emp.clone());
+
+        let svc = make_service(mock);
+        let req = crate::models::UpdateEmployeeRequest {
+            user_id: Some(Some(conflict_user_id)),
+            full_name: None,
+            employee_id_number: None,
+            hire_date: None,
+            termination_date: None,
+            tags: None,
+            is_active: None,
+            max_concurrent_workers: None,
+            recruitment_source_id: None,
+            primary_location_id: None,
+            employer_id: None,
+            force_transfer: None,
+        };
+
+        let result = svc
+            .update_employee(
+                target_emp_id,
+                &crate::diesel_pool::TenantAuthToken::system_override(ws),
+                req,
+            )
+            .await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(matches!(err, AppError::Validation(_)));
+        assert_eq!(
+            err.to_string(),
+            "Validation error: error.user_already_linked:name=Test Employee"
+        );
+    }
+
+    #[tokio::test]
+    async fn update_employee_duplicate_user_force() {
+        let ws = Uuid::new_v4();
+        let target_emp_id = Uuid::new_v4();
+        let existing_emp_id = Uuid::new_v4();
+        let conflict_user_id = Uuid::new_v4();
+
+        let mock = MockEmployeeRepo::empty();
+        *mock.employee_id_by_user_id.lock().unwrap() = Some(existing_emp_id);
+        let updated_emp = make_employee(ws);
+        *mock.updated_employee.lock().unwrap() = Some(updated_emp.clone());
+
+        let svc = make_service(mock);
+        let req = crate::models::UpdateEmployeeRequest {
+            user_id: Some(Some(conflict_user_id)),
+            full_name: None,
+            employee_id_number: None,
+            hire_date: None,
+            termination_date: None,
+            tags: None,
+            is_active: None,
+            max_concurrent_workers: None,
+            recruitment_source_id: None,
+            primary_location_id: None,
+            employer_id: None,
+            force_transfer: Some(true),
+        };
+
+        let result = svc
+            .update_employee(
+                target_emp_id,
+                &crate::diesel_pool::TenantAuthToken::system_override(ws),
+                req,
+            )
+            .await;
+
         assert!(result.is_ok());
     }
 

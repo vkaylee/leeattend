@@ -176,9 +176,7 @@ impl WorkspaceService {
         let primary_role_id = repo
             .find_primary_role(workspace_id, user_id)
             .await?
-            .ok_or_else(|| {
-                crate::errors::AppError::not_found(I18nKey::RoleNotFound)
-            })?;
+            .ok_or_else(|| crate::errors::AppError::not_found(I18nKey::RoleNotFound))?;
 
         let extra_roles = repo.find_extra_roles(workspace_id, user_id).await?;
 
@@ -203,7 +201,9 @@ impl WorkspaceService {
             || args.default_holiday_ot_multiplier.is_some();
 
         if !has_system_changes && !has_eav_changes {
-            return Err(crate::errors::AppError::validation(I18nKey::NoFieldsToUpdate));
+            return Err(crate::errors::AppError::validation(
+                I18nKey::NoFieldsToUpdate,
+            ));
         }
 
         if has_eav_changes {

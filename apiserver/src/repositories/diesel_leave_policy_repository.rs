@@ -1,11 +1,11 @@
 use crate::diesel_pool::DieselPools;
 use crate::errors::AppError;
-use crate::utils::i18n::I18nKey;
 use crate::models::diesel::leave::*;
 use crate::models::{
     LeavePolicyAssignment, LeavePolicyAssignmentDetail, LeavePolicyConfig, LeavePolicyDefinition,
 };
 use crate::repositories::leave_policy_repository::LeavePolicyRepository;
+use crate::utils::i18n::I18nKey;
 
 use crate::schema::*;
 use async_trait::async_trait;
@@ -109,9 +109,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
         .get_result::<LeaveTypeEntity>(&mut *conn)
         .await
         .map_err(|e| match e {
-            diesel::result::Error::NotFound => {
-                AppError::not_found(I18nKey::LeaveTypeNotFound)
-            }
+            diesel::result::Error::NotFound => AppError::not_found(I18nKey::LeaveTypeNotFound),
             _ => AppError::Internal(format!("db: {e}")),
         })?;
 

@@ -293,7 +293,7 @@ async fn test_update_workspace_no_fields() {
     .await;
 
     let err = result.unwrap_err();
-    assert!(err.to_string().contains("No fields to update"));
+    assert!(err.to_string().contains("error.no_fields_to_update"));
 }
 
 #[tokio::test]
