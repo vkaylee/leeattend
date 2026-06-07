@@ -84,12 +84,12 @@ async fn test_shift_fields_mapped_correctly() {
     let data = build_roster_data(&diesel_pools, ws).await.unwrap();
     let shift = data.shifts.get(&shift_id).expect("shift must exist");
 
-    assert_eq!(shift.name, "Morning Shift");
-    assert_eq!(shift.start_time, start);
-    assert_eq!(shift.end_time, end);
-    assert_eq!(shift.break_duration_minutes, 45);
-    assert_eq!(shift.early_punch_in_grace_period_minutes, 10);
-    assert!(shift.allow_early_ot);
+    assert_eq!(shift.name(), "Morning Shift");
+    assert_eq!(shift.start_time(), start);
+    assert_eq!(shift.end_time(), end);
+    assert_eq!(shift.break_duration_minutes(), 45);
+    assert_eq!(shift.early_punch_in_grace_period_minutes(), 10);
+    assert!(shift.allow_early_ot());
 }
 
 // ---------------------------------------------------------------------------
@@ -293,6 +293,6 @@ async fn test_build_returns_arc_with_consistent_data() {
             .shifts
             .get(id)
             .expect("same shift should exist in both");
-        assert_eq!(shift.name, other.name);
+        assert_eq!(shift.name(), other.name());
     }
 }

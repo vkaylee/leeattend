@@ -162,19 +162,19 @@ impl RosterRepository for DieselRosterRepository {
 
                     if let Some(sid) = effective_shift_id {
                         if let Some(shift) = roster_data.shifts.get(sid) {
-                            sched.shift_name = Some(shift.name.clone());
-                            sched.shift_symbol.clone_from(&shift.report_symbol);
-                            sched.start_time = Some(shift.start_time);
-                            sched.end_time = Some(shift.end_time);
-                            sched.break_duration_minutes = Some(shift.break_duration_minutes);
-                            sched.break_start = shift.break_start;
-                            sched.break_end = shift.break_end;
-                            sched.is_break_auto_deduct = Some(shift.is_break_auto_deduct);
+                            sched.shift_name = Some(shift.name().to_string());
+                            sched.shift_symbol = shift.report_symbol().map(String::from);
+                            sched.start_time = Some(shift.start_time());
+                            sched.end_time = Some(shift.end_time());
+                            sched.break_duration_minutes = Some(shift.break_duration_minutes());
+                            sched.break_start = shift.break_start();
+                            sched.break_end = shift.break_end();
+                            sched.is_break_auto_deduct = Some(shift.is_break_auto_deduct());
                             sched.early_punch_in_grace_period_minutes =
-                                Some(shift.early_punch_in_grace_period_minutes);
-                            sched.allow_early_ot = Some(shift.allow_early_ot);
-                            sched.break_is_overtime = Some(shift.break_is_overtime);
-                            sched.max_early_ot_minutes = shift.max_early_ot_minutes;
+                                Some(shift.early_punch_in_grace_period_minutes());
+                            sched.allow_early_ot = Some(shift.allow_early_ot());
+                            sched.break_is_overtime = Some(shift.break_is_overtime());
+                            sched.max_early_ot_minutes = shift.max_early_ot_minutes();
                         }
                     }
 

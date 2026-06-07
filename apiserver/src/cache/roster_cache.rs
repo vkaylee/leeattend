@@ -27,18 +27,98 @@ use crate::queue::RedisPool;
 /// A single shift's static configuration.
 #[derive(Debug, Clone)]
 pub struct RosterShift {
-    pub name: String,
-    pub report_symbol: Option<String>,
-    pub start_time: NaiveTime,
-    pub end_time: NaiveTime,
-    pub break_duration_minutes: i32,
-    pub break_start: Option<NaiveTime>,
-    pub break_end: Option<NaiveTime>,
-    pub is_break_auto_deduct: bool,
-    pub early_punch_in_grace_period_minutes: i32,
-    pub allow_early_ot: bool,
-    pub break_is_overtime: bool,
-    pub max_early_ot_minutes: Option<i32>,
+    name: String,
+    report_symbol: Option<String>,
+    start_time: NaiveTime,
+    end_time: NaiveTime,
+    break_duration_minutes: i32,
+    break_start: Option<NaiveTime>,
+    break_end: Option<NaiveTime>,
+    is_break_auto_deduct: bool,
+    early_punch_in_grace_period_minutes: i32,
+    allow_early_ot: bool,
+    break_is_overtime: bool,
+    max_early_ot_minutes: Option<i32>,
+}
+
+impl RosterShift {
+    pub fn new(
+        name: String,
+        report_symbol: Option<String>,
+        start_time: NaiveTime,
+        end_time: NaiveTime,
+        break_duration_minutes: i32,
+        break_start: Option<NaiveTime>,
+        break_end: Option<NaiveTime>,
+        is_break_auto_deduct: bool,
+        early_punch_in_grace_period_minutes: i32,
+        allow_early_ot: bool,
+        break_is_overtime: bool,
+        max_early_ot_minutes: Option<i32>,
+    ) -> Self {
+        Self {
+            name,
+            report_symbol,
+            start_time,
+            end_time,
+            break_duration_minutes,
+            break_start,
+            break_end,
+            is_break_auto_deduct,
+            early_punch_in_grace_period_minutes,
+            allow_early_ot,
+            break_is_overtime,
+            max_early_ot_minutes,
+        }
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn report_symbol(&self) -> Option<&str> {
+        self.report_symbol.as_deref()
+    }
+
+    pub fn start_time(&self) -> NaiveTime {
+        self.start_time
+    }
+
+    pub fn end_time(&self) -> NaiveTime {
+        self.end_time
+    }
+
+    pub fn break_duration_minutes(&self) -> i32 {
+        self.break_duration_minutes
+    }
+
+    pub fn break_start(&self) -> Option<NaiveTime> {
+        self.break_start
+    }
+
+    pub fn break_end(&self) -> Option<NaiveTime> {
+        self.break_end
+    }
+
+    pub fn is_break_auto_deduct(&self) -> bool {
+        self.is_break_auto_deduct
+    }
+
+    pub fn early_punch_in_grace_period_minutes(&self) -> i32 {
+        self.early_punch_in_grace_period_minutes
+    }
+
+    pub fn allow_early_ot(&self) -> bool {
+        self.allow_early_ot
+    }
+
+    pub fn break_is_overtime(&self) -> bool {
+        self.break_is_overtime
+    }
+
+    pub fn max_early_ot_minutes(&self) -> Option<i32> {
+        self.max_early_ot_minutes
+    }
 }
 
 /// A fixed (direct) shift assignment row for one employee.
@@ -595,29 +675,29 @@ mod tests {
 
     #[test]
     fn test_roster_shift_construction() {
-        let shift = RosterShift {
-            name: "Morning".to_string(),
-            report_symbol: None,
-            start_time: chrono::NaiveTime::from_hms_opt(8, 0, 0).expect("valid time"),
-            end_time: chrono::NaiveTime::from_hms_opt(17, 0, 0).expect("valid time"),
-            break_duration_minutes: 60,
-            break_start: Some(chrono::NaiveTime::from_hms_opt(12, 0, 0).expect("valid time")),
-            break_end: Some(chrono::NaiveTime::from_hms_opt(13, 0, 0).expect("valid time")),
-            is_break_auto_deduct: true,
-            early_punch_in_grace_period_minutes: 15,
-            allow_early_ot: false,
-            break_is_overtime: false,
-            max_early_ot_minutes: None,
-        };
+        let shift = RosterShift::new(
+            "Morning".to_string(),
+            None,
+            chrono::NaiveTime::from_hms_opt(8, 0, 0).expect("valid time"),
+            chrono::NaiveTime::from_hms_opt(17, 0, 0).expect("valid time"),
+            60,
+            Some(chrono::NaiveTime::from_hms_opt(12, 0, 0).expect("valid time")),
+            Some(chrono::NaiveTime::from_hms_opt(13, 0, 0).expect("valid time")),
+            true,
+            15,
+            false,
+            false,
+            None,
+        );
 
-        assert_eq!(shift.name, "Morning");
-        assert_eq!(shift.break_duration_minutes, 60);
-        assert!(shift.is_break_auto_deduct);
+        assert_eq!(shift.name(), "Morning");
+        assert_eq!(shift.break_duration_minutes(), 60);
+        assert!(shift.is_break_auto_deduct());
 
         // Clone round-trip
         let clone = shift.clone();
-        assert_eq!(clone.name, shift.name);
-        assert_eq!(clone.start_time, shift.start_time);
+        assert_eq!(clone.name(), shift.name());
+        assert_eq!(clone.start_time(), shift.start_time());
     }
 
     #[test]

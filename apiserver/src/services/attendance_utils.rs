@@ -104,20 +104,64 @@ impl AttendanceStatus {
 /// Input for status determination — extracted from schedule/entries/holidays.
 #[allow(clippy::struct_excessive_bools)]
 pub struct DailyStatusInput {
-    /// Whether the employee punched in on this day.
-    pub has_punch_in: bool,
-    /// The time the employee punched in (if any), for late detection.
-    pub punch_in_time: Option<NaiveTime>,
-    /// The scheduled shift start time (if any).
-    pub scheduled_start: Option<NaiveTime>,
-    /// Whether this day is a holiday.
-    pub is_holiday: bool,
-    /// Whether the holiday is paid (only relevant when `is_holiday` is true).
-    pub is_holiday_paid: bool,
-    /// Whether the employee has a shift assigned.
-    pub has_shift: bool,
-    /// Whether the employee has an approved leave request for this day.
-    pub is_on_leave: bool,
+    has_punch_in: bool,
+    punch_in_time: Option<NaiveTime>,
+    scheduled_start: Option<NaiveTime>,
+    is_holiday: bool,
+    is_holiday_paid: bool,
+    has_shift: bool,
+    is_on_leave: bool,
+}
+
+impl DailyStatusInput {
+    #[allow(clippy::fn_params_excessive_bools)]
+    pub fn new(
+        has_punch_in: bool,
+        punch_in_time: Option<NaiveTime>,
+        scheduled_start: Option<NaiveTime>,
+        is_holiday: bool,
+        is_holiday_paid: bool,
+        has_shift: bool,
+        is_on_leave: bool,
+    ) -> Self {
+        Self {
+            has_punch_in,
+            punch_in_time,
+            scheduled_start,
+            is_holiday,
+            is_holiday_paid,
+            has_shift,
+            is_on_leave,
+        }
+    }
+
+    pub fn has_punch_in(&self) -> bool {
+        self.has_punch_in
+    }
+
+    pub fn punch_in_time(&self) -> Option<NaiveTime> {
+        self.punch_in_time
+    }
+
+    pub fn scheduled_start(&self) -> Option<NaiveTime> {
+        self.scheduled_start
+    }
+
+    pub fn is_holiday(&self) -> bool {
+        self.is_holiday
+    }
+
+    pub fn is_holiday_paid(&self) -> bool {
+        self.is_holiday_paid
+    }
+
+    pub fn has_shift(&self) -> bool {
+        self.has_shift
+    }
+
+    pub fn is_on_leave(&self) -> bool {
+        self.is_on_leave
+    }
 }
 
 /// Determine the attendance status for a single day.
@@ -133,14 +177,16 @@ pub struct DailyStatusInput {
 /// 3. No shift? → `Off`
 /// 4. Otherwise → `Absent`
 pub fn determine_daily_status(input: &DailyStatusInput) -> AttendanceStatus {
-    if input.has_punch_in {
-        if input.is_holiday {
+    if input.has_punch_in() {
+        if input.is_holiday() {
             return AttendanceStatus::HolidayWork;
         }
-        if !input.has_shift {
+        if !input.has_shift() {
             return AttendanceStatus::Unscheduled;
         }
-        if let (Some(punch_in), Some(sched_start)) = (input.punch_in_time, input.scheduled_start) {
+        if let (Some(punch_in), Some(sched_start)) =
+            (input.punch_in_time(), input.scheduled_start())
+        {
             if punch_in > sched_start + chrono::Duration::minutes(5) {
                 return AttendanceStatus::Late;
             }
@@ -148,21 +194,21 @@ pub fn determine_daily_status(input: &DailyStatusInput) -> AttendanceStatus {
         return AttendanceStatus::Present;
     }
 
-    if input.is_holiday {
-        if input.is_holiday_paid {
+    if input.is_holiday() {
+        if input.is_holiday_paid() {
             return AttendanceStatus::HolidayPaid;
         }
-        if input.is_on_leave {
+        if input.is_on_leave() {
             return AttendanceStatus::HolidayLeave;
         }
         return AttendanceStatus::HolidayUnpaid;
     }
 
-    if input.is_on_leave {
+    if input.is_on_leave() {
         return AttendanceStatus::Leave;
     }
 
-    if !input.has_shift {
+    if !input.has_shift() {
         return AttendanceStatus::Off;
     }
 

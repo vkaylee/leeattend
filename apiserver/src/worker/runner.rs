@@ -38,11 +38,49 @@ pub enum WorkerStatus {
 /// Worker heartbeat payload stored in Redis
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkerHeartbeat {
-    pub id: Uuid,
-    pub host: String,
-    pub status: WorkerStatus,
-    pub current_task_type: Option<String>,
-    pub last_seen_at: DateTime<Utc>,
+    id: Uuid,
+    host: String,
+    status: WorkerStatus,
+    current_task_type: Option<String>,
+    last_seen_at: DateTime<Utc>,
+}
+
+impl WorkerHeartbeat {
+    pub fn new(
+        id: Uuid,
+        host: String,
+        status: WorkerStatus,
+        current_task_type: Option<String>,
+        last_seen_at: DateTime<Utc>,
+    ) -> Self {
+        Self {
+            id,
+            host,
+            status,
+            current_task_type,
+            last_seen_at,
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn host(&self) -> &str {
+        &self.host
+    }
+
+    pub fn status(&self) -> &WorkerStatus {
+        &self.status
+    }
+
+    pub fn current_task_type(&self) -> Option<&str> {
+        self.current_task_type.as_deref()
+    }
+
+    pub fn last_seen_at(&self) -> DateTime<Utc> {
+        self.last_seen_at
+    }
 }
 
 /// Configuration for worker behavior.
@@ -372,13 +410,13 @@ impl JobWorker {
         let status = self.current_status.lock().await.clone();
         let task_type = self.current_task_type.lock().await.clone();
 
-        let heartbeat = WorkerHeartbeat {
-            id: self.worker_id,
-            host: self.hostname.clone(),
+        let heartbeat = WorkerHeartbeat::new(
+            self.worker_id,
+            self.hostname.clone(),
             status,
-            current_task_type: task_type,
-            last_seen_at: Utc::now(),
-        };
+            task_type,
+            Utc::now(),
+        );
 
         let json = serde_json::to_string(&heartbeat).map_err(|e| {
             redis::RedisError::from((redis::ErrorKind::TypeError, "JSON error", e.to_string()))
@@ -707,13 +745,13 @@ mod tests {
 
     #[test]
     fn test_worker_heartbeat_serialization() {
-        let heartbeat = WorkerHeartbeat {
-            id: Uuid::nil(),
-            host: "worker-pod-1".to_string(),
-            status: WorkerStatus::Processing,
-            current_task_type: Some("AttendanceReport".to_string()),
-            last_seen_at: Utc::now(),
-        };
+        let heartbeat = WorkerHeartbeat::new(
+            Uuid::nil(),
+            "worker-pod-1".to_string(),
+            WorkerStatus::Processing,
+            Some("AttendanceReport".to_string()),
+            Utc::now(),
+        );
 
         let json = serde_json::to_string(&heartbeat).unwrap();
         assert!(json.contains("\"status\":\"PROCESSING\""));
@@ -722,8 +760,8 @@ mod tests {
 
         // Verify roundtrip
         let decoded: WorkerHeartbeat = serde_json::from_str(&json).unwrap();
-        assert_eq!(decoded.host, "worker-pod-1");
-        assert_eq!(decoded.status, WorkerStatus::Processing);
+        assert_eq!(decoded.host(), "worker-pod-1");
+        assert_eq!(decoded.status(), &WorkerStatus::Processing);
     }
 
     #[test]

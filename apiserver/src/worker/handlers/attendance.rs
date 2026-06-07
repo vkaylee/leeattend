@@ -539,15 +539,15 @@ impl AttendanceHandler {
                 }
 
                 let status = crate::services::attendance_utils::determine_daily_status(
-                    &crate::services::attendance_utils::DailyStatusInput {
-                        has_punch_in: actual_punch_in.is_some(),
-                        punch_in_time: actual_punch_in.map(|p| p.time()),
-                        scheduled_start: daily.start_time,
-                        is_holiday: daily.is_holiday,
-                        is_holiday_paid: daily.is_holiday_paid,
-                        has_shift: daily.shift_id.is_some(),
+                    &crate::services::attendance_utils::DailyStatusInput::new(
+                        actual_punch_in.is_some(),
+                        actual_punch_in.map(|p| p.time()),
+                        daily.start_time,
+                        daily.is_holiday,
+                        daily.is_holiday_paid,
+                        daily.shift_id.is_some(),
                         is_on_leave,
-                    },
+                    ),
                 );
 
                 // Collect metadata
@@ -626,60 +626,54 @@ mod tests {
 
     #[test]
     fn test_status_determination_present() {
-        let status = determine_daily_status(&DailyStatusInput {
-            has_punch_in: true,
-            punch_in_time: Some(NaiveTime::from_hms_opt(8, 0, 0).unwrap()),
-            scheduled_start: Some(NaiveTime::from_hms_opt(8, 30, 0).unwrap()),
-            is_holiday: false,
-            is_holiday_paid: false,
-            has_shift: true,
-            is_on_leave: false,
-        });
+        let status = determine_daily_status(&DailyStatusInput::new(
+            true,
+            Some(NaiveTime::from_hms_opt(8, 0, 0).unwrap()),
+            Some(NaiveTime::from_hms_opt(8, 30, 0).unwrap()),
+            false,
+            false,
+            true,
+            false,
+        ));
         assert_eq!(status, AttendanceStatus::Present);
         assert_eq!(status.to_string(), "present");
     }
 
     #[test]
     fn test_status_determination_late() {
-        let status = determine_daily_status(&DailyStatusInput {
-            has_punch_in: true,
-            punch_in_time: Some(NaiveTime::from_hms_opt(9, 0, 0).unwrap()),
-            scheduled_start: Some(NaiveTime::from_hms_opt(8, 30, 0).unwrap()),
-            is_holiday: false,
-            is_holiday_paid: false,
-            has_shift: true,
-            is_on_leave: false,
-        });
+        let status = determine_daily_status(&DailyStatusInput::new(
+            true,
+            Some(NaiveTime::from_hms_opt(9, 0, 0).unwrap()),
+            Some(NaiveTime::from_hms_opt(8, 30, 0).unwrap()),
+            false,
+            false,
+            true,
+            false,
+        ));
         assert_eq!(status, AttendanceStatus::Late);
         assert_eq!(status.to_string(), "late");
     }
 
     #[test]
     fn test_status_determination_absent() {
-        let status = determine_daily_status(&DailyStatusInput {
-            has_punch_in: false,
-            punch_in_time: None,
-            scheduled_start: Some(NaiveTime::from_hms_opt(8, 30, 0).unwrap()),
-            is_holiday: false,
-            is_holiday_paid: false,
-            has_shift: true,
-            is_on_leave: false,
-        });
+        let status = determine_daily_status(&DailyStatusInput::new(
+            false,
+            None,
+            Some(NaiveTime::from_hms_opt(8, 30, 0).unwrap()),
+            false,
+            false,
+            true,
+            false,
+        ));
         assert_eq!(status, AttendanceStatus::Absent);
         assert_eq!(status.to_string(), "absent");
     }
 
     #[test]
     fn test_status_determination_off() {
-        let status = determine_daily_status(&DailyStatusInput {
-            has_punch_in: false,
-            punch_in_time: None,
-            scheduled_start: None,
-            is_holiday: false,
-            is_holiday_paid: false,
-            has_shift: false,
-            is_on_leave: false,
-        });
+        let status = determine_daily_status(&DailyStatusInput::new(
+            false, None, None, false, false, false, false,
+        ));
         assert_eq!(status, AttendanceStatus::Off);
         assert_eq!(status.to_string(), "off");
     }

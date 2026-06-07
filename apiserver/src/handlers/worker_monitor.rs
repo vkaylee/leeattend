@@ -47,11 +47,49 @@ pub enum WorkerStatus {
 /// Worker heartbeat payload stored in Redis
 #[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct WorkerHeartbeat {
-    pub id: Uuid,
-    pub host: String,
-    pub status: WorkerStatus,
-    pub current_task_type: Option<String>,
-    pub last_seen_at: DateTime<Utc>,
+    id: Uuid,
+    host: String,
+    status: WorkerStatus,
+    current_task_type: Option<String>,
+    last_seen_at: DateTime<Utc>,
+}
+
+impl WorkerHeartbeat {
+    pub fn new(
+        id: Uuid,
+        host: String,
+        status: WorkerStatus,
+        current_task_type: Option<String>,
+        last_seen_at: DateTime<Utc>,
+    ) -> Self {
+        Self {
+            id,
+            host,
+            status,
+            current_task_type,
+            last_seen_at,
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn host(&self) -> &str {
+        &self.host
+    }
+
+    pub fn status(&self) -> &WorkerStatus {
+        &self.status
+    }
+
+    pub fn current_task_type(&self) -> Option<&str> {
+        self.current_task_type.as_deref()
+    }
+
+    pub fn last_seen_at(&self) -> DateTime<Utc> {
+        self.last_seen_at
+    }
 }
 
 /// Statistics of jobs grouped by task type.
@@ -327,10 +365,10 @@ fn filter_stale_workers(
     for value in values.into_iter().flatten() {
         if let Ok(heartbeat) = serde_json::from_str::<WorkerHeartbeat>(&value) {
             // Skip stale workers (not seen within threshold)
-            if heartbeat.last_seen_at < stale_cutoff {
+            if heartbeat.last_seen_at() < stale_cutoff {
                 continue;
             }
-            match heartbeat.status {
+            match heartbeat.status() {
                 WorkerStatus::Processing => active += 1,
                 WorkerStatus::Idle => idle += 1,
             }
@@ -395,13 +433,13 @@ mod tests {
 
     #[test]
     fn test_worker_heartbeat_serialization() {
-        let heartbeat = WorkerHeartbeat {
-            id: Uuid::nil(),
-            host: "worker-pod-1".to_string(),
-            status: WorkerStatus::Processing,
-            current_task_type: Some("EXPORT_CHUNK".to_string()),
-            last_seen_at: Utc::now(),
-        };
+        let heartbeat = WorkerHeartbeat::new(
+            Uuid::nil(),
+            "worker-pod-1".to_string(),
+            WorkerStatus::Processing,
+            Some("EXPORT_CHUNK".to_string()),
+            Utc::now(),
+        );
 
         let json = serde_json::to_string(&heartbeat)
             .expect("WorkerHeartbeat serialization should not fail");
@@ -462,9 +500,9 @@ mod tests {
 
         let heartbeat: WorkerHeartbeat =
             serde_json::from_str(json).expect("WorkerHeartbeat deserialization should not fail");
-        assert_eq!(heartbeat.host, "worker-1");
-        assert_eq!(heartbeat.status, WorkerStatus::Idle);
-        assert!(heartbeat.current_task_type.is_none());
+        assert_eq!(heartbeat.host(), "worker-1");
+        assert_eq!(heartbeat.status(), &WorkerStatus::Idle);
+        assert!(heartbeat.current_task_type().is_none());
     }
 
     #[test]
@@ -473,31 +511,31 @@ mod tests {
         let stale_cutoff = now - TimeDelta::seconds(STALE_THRESHOLD_SECS);
 
         // Worker 1: Active, very recent
-        let w1 = WorkerHeartbeat {
-            id: Uuid::new_v4(),
-            host: "h1".to_string(),
-            status: WorkerStatus::Processing,
-            current_task_type: None,
-            last_seen_at: now - TimeDelta::seconds(10),
-        };
+        let w1 = WorkerHeartbeat::new(
+            Uuid::new_v4(),
+            "h1".to_string(),
+            WorkerStatus::Processing,
+            None,
+            now - TimeDelta::seconds(10),
+        );
 
         // Worker 2: Idle, just before cutoff
-        let w2 = WorkerHeartbeat {
-            id: Uuid::new_v4(),
-            host: "h2".to_string(),
-            status: WorkerStatus::Idle,
-            current_task_type: None,
-            last_seen_at: stale_cutoff + TimeDelta::seconds(5),
-        };
+        let w2 = WorkerHeartbeat::new(
+            Uuid::new_v4(),
+            "h2".to_string(),
+            WorkerStatus::Idle,
+            None,
+            stale_cutoff + TimeDelta::seconds(5),
+        );
 
         // Worker 3: Processing, stale (should be dropped)
-        let w3 = WorkerHeartbeat {
-            id: Uuid::new_v4(),
-            host: "h3".to_string(),
-            status: WorkerStatus::Processing,
-            current_task_type: None,
-            last_seen_at: stale_cutoff - TimeDelta::seconds(5),
-        };
+        let w3 = WorkerHeartbeat::new(
+            Uuid::new_v4(),
+            "h3".to_string(),
+            WorkerStatus::Processing,
+            None,
+            stale_cutoff - TimeDelta::seconds(5),
+        );
 
         let values = vec![
             Some(serde_json::to_string(&w1).expect("w1 serialization should not fail")),
@@ -515,7 +553,7 @@ mod tests {
         assert_eq!(workers.len(), 2);
 
         // Ensure w3 was dropped
-        let hosts: Vec<String> = workers.into_iter().map(|w| w.host).collect();
+        let hosts: Vec<String> = workers.into_iter().map(|w| w.host().to_string()).collect();
         assert!(hosts.contains(&"h1".to_string()));
         assert!(hosts.contains(&"h2".to_string()));
         assert!(!hosts.contains(&"h3".to_string()));
