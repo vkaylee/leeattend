@@ -11,7 +11,7 @@ export async function fetchDepartments(wsId: string): Promise<Department[]> {
 
 export async function createDepartment(
   wsId: string,
-  data: { name: string; description?: string | null; parent_id?: string | null; manager_id?: string | null; default_working_pattern_id?: string | null }
+  data: { name: string; description?: string | null; parent_id?: string | null; manager_id?: string | null }
 ): Promise<Department> {
   const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/departments", {
     params: { path: { ws_id: wsId } },
@@ -24,7 +24,7 @@ export async function createDepartment(
 export async function updateDepartment(
   wsId: string,
   id: string,
-  data: { name?: string; description?: string | null; parent_id?: string | null; manager_id?: string | null; default_working_pattern_id?: string | null }
+  data: { name?: string; description?: string | null; parent_id?: string | null; manager_id?: string | null }
 ): Promise<Department> {
   const { data: resData } = await client.PUT("/v1/workspaces/{ws_id}/departments/{id}", {
     params: { path: { ws_id: wsId, id } },

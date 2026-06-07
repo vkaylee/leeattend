@@ -10,8 +10,9 @@ import * as api from "../../lib/api";
 import AssignmentRulesPage from "../assignment-rules-page";
 
 // Mock TanStack Router
+const mockNavigate = vi.fn();
 vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => vi.fn(),
+  useNavigate: () => mockNavigate,
   useLocation: () => ({ pathname: "/", search: "", hash: "" }),
   Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
 }));
@@ -217,20 +218,19 @@ describe("AssignmentRulesPage", () => {
     expect(await screen.findByText("No rules yet")).toBeInTheDocument();
   });
 
-  // ── Modal Tests ───────────────────────────────────────────
+  // ── Navigation Tests ───────────────────────────────────────────
 
-  it("opens create modal when create button is clicked", async () => {
+  it("navigates to create rule page when create button is clicked", async () => {
     const user = userEvent.setup();
     renderPage();
 
     const createButton = await screen.findByText("CREATE RULE");
     await user.click(createButton);
 
-    expect(screen.getByText("Create New Rule")).toBeInTheDocument();
-    expect(screen.getByText("Rule Name")).toBeInTheDocument();
+    expect(mockNavigate).toHaveBeenCalledWith({ to: "/assignment-rules/new" });
   });
 
-  it("opens edit modal when edit button is clicked", async () => {
+  it("navigates to edit rule page when edit button is clicked", async () => {
     const user = userEvent.setup();
     renderPage();
 
@@ -238,53 +238,7 @@ describe("AssignmentRulesPage", () => {
     const editBtns = screen.getAllByTitle("Edit");
     await user.click(editBtns[0]);
 
-    expect(await screen.findByText("Edit Rule")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("Day Shift Engineers")).toBeInTheDocument();
-  });
-
-  it("submits create form with correct data", async () => {
-    const user = userEvent.setup();
-    renderPage();
-
-    const createButton = await screen.findByText("CREATE RULE");
-    await user.click(createButton);
-
-    const nameInput = screen.getByPlaceholderText("e.g. Day shift for operations");
-    await user.type(nameInput, "New Rule");
-
-    // Select pattern via mock Combobox
-    const patternSelect = screen.getByTestId("pattern-combobox");
-    await user.selectOptions(patternSelect, "pat-1");
-
-    const submitButton = screen.getByText("Create");
-    await user.click(submitButton);
-
-    await waitFor(() => {
-      expect(api.createAssignmentRule).toHaveBeenCalledWith(
-        "ws-1",
-        expect.objectContaining({
-          name: "New Rule",
-          pattern_id: "pat-1",
-          priority: 0,
-        }),
-      );
-    });
-  });
-
-  it("closes modal when cancel is clicked", async () => {
-    const user = userEvent.setup();
-    renderPage();
-
-    const createButton = await screen.findByText("CREATE RULE");
-    await user.click(createButton);
-    expect(screen.getByText("Create New Rule")).toBeInTheDocument();
-
-    const cancelButton = screen.getByText("Cancel");
-    await user.click(cancelButton);
-
-    await waitFor(() => {
-      expect(screen.queryByText("Create New Rule")).not.toBeInTheDocument();
-    });
+    expect(mockNavigate).toHaveBeenCalledWith({ to: "/assignment-rules/rule-1/edit" });
   });
 
   // ── Delete Tests ──────────────────────────────────────────

@@ -233,13 +233,22 @@
       "priority": "Mức ưu tiên (Càng cao càng mạnh)",
       "pattern": "Chọn mẫu lịch",
       "name_placeholder": "VD: Nhân viên kỹ thuật ca đêm",
-      "tags_placeholder": "CaDem, HaNoi, VVIP"
+      "tags_placeholder": "CaDem, HaNoi, VVIP",
+      "start_date": "Ngày bắt đầu",
+      "end_date": "Ngày kết thúc",
+      "employer": "Pháp nhân / Công ty",
+      "all_employers": "Tất cả công ty",
+      "location": "Địa điểm / Chi nhánh",
+      "all_locations": "Tất cả địa điểm",
+      "employee_id_numbers": "Mã số nhân viên"
     },
     "conditions_title": "Điều kiện khớp",
     "condition_help": "Để trống để khớp với tất cả nhân viên (trong phạm vi các điều kiện khác).",
     "messages": {
       "create_success": "Đã tạo quy tắc thành công",
+      "create_error": "Không thể tạo quy tắc",
       "update_success": "Đã cập nhật quy tắc thành công",
+      "update_error": "Không thể cập nhật quy tắc",
       "delete_success": "Đã xóa quy tắc"
     },
     "validation": {

@@ -14,15 +14,12 @@ export function useDepartmentForm(wsId: string, editingDept: Department | null, 
 
   const deptId = editingDept?.id ?? null;
   const managerId = editingDept?.manager_id ?? "";
-  const patternId = editingDept?.default_working_pattern_id ?? "";
   
   const [selectedManagerId, setSelectedManagerId] = useState<string>(managerId);
-  const [selectedPatternId, setSelectedPatternId] = useState<string>(patternId);
   const [prevDeptId, setPrevDeptId] = useState<string | null>(deptId);
 
   if (deptId !== prevDeptId) {
     setSelectedManagerId(managerId);
-    setSelectedPatternId(patternId);
     setPrevDeptId(deptId);
   }
 
@@ -53,8 +50,7 @@ export function useDepartmentForm(wsId: string, editingDept: Department | null, 
     const data = { 
       name: formData.get("name") as string, 
       description: formData.get("description") as string, 
-      manager_id: selectedManagerId || null, 
-      default_working_pattern_id: selectedPatternId || null 
+      manager_id: selectedManagerId || null 
     };
     if (editingDept) { 
       updateMutation.mutate(data); 
@@ -66,8 +62,6 @@ export function useDepartmentForm(wsId: string, editingDept: Department | null, 
   return {
     selectedManagerId,
     setSelectedManagerId,
-    selectedPatternId,
-    setSelectedPatternId,
     handleSubmit,
     isLoading: createMutation.isPending || updateMutation.isPending
   };

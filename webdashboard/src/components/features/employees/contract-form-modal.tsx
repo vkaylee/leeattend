@@ -169,6 +169,7 @@ export default function ContractFormModal({
         const payload: CreateContractRequest = {
           ...data,
           employee_id: employeeId,
+          employer_id: employee?.employer_id ?? "",
           end_date: payloadDate,
           assign_phase_id: data.assign_phase_id ?? undefined,
         };

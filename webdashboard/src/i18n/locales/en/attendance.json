@@ -233,13 +233,22 @@
       "priority": "Priority (Higher is stronger)",
       "pattern": "Select Pattern",
       "name_placeholder": "Ex: Tech Support Night Shift",
-      "tags_placeholder": "NightShift, Hanoi, VVIP"
+      "tags_placeholder": "NightShift, Hanoi, VVIP",
+      "start_date": "Start Date",
+      "end_date": "End Date",
+      "employer": "Employer / Subsidiary",
+      "all_employers": "All Employers",
+      "location": "Branch / Location",
+      "all_locations": "All Locations",
+      "employee_id_numbers": "Employee ID Numbers"
     },
     "conditions_title": "Matching Conditions",
     "condition_help": "Leave empty to match all employees (within scope of other conditions).",
     "messages": {
       "create_success": "Rule created successfully",
+      "create_error": "Failed to create rule",
       "update_success": "Rule updated successfully",
+      "update_error": "Failed to update rule",
       "delete_success": "Rule deleted"
     },
     "validation": {

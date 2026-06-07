@@ -3930,6 +3930,8 @@ export interface components {
             conditions: components["schemas"]["AssignmentRuleConditions"];
             /** Format: date-time */
             created_at: string;
+            /** Format: date */
+            end_date?: string | null;
             /** Format: uuid */
             id: string;
             is_active: boolean;
@@ -3938,6 +3940,8 @@ export interface components {
             pattern_id: string;
             /** Format: int32 */
             priority: number;
+            /** Format: date */
+            start_date?: string | null;
             /** Format: date-time */
             updated_at: string;
             /** Format: uuid */
@@ -3947,6 +3951,10 @@ export interface components {
             /** Format: uuid */
             department_id?: string | null;
             employee_id_numbers?: string[] | null;
+            /** Format: uuid */
+            employer_id?: string | null;
+            /** Format: uuid */
+            location_id?: string | null;
             tags?: string[] | null;
         };
         /** @enum {string} */
@@ -4195,11 +4203,15 @@ export interface components {
         ContractType: "probation" | "training" | "fixed_term" | "indefinite";
         CreateAssignmentRuleRequest: {
             conditions: components["schemas"]["AssignmentRuleConditions"];
+            /** Format: date */
+            end_date?: string | null;
             name: string;
             /** Format: uuid */
             pattern_id: string;
             /** Format: int32 */
             priority: number;
+            /** Format: date */
+            start_date?: string | null;
         };
         CreateAttendanceAdjustmentRequest: {
             /** Format: uuid */
@@ -4249,6 +4261,8 @@ export interface components {
             document_id?: string | null;
             /** Format: uuid */
             employee_id: string;
+            /** Format: uuid */
+            employer_id: string;
             /** Format: date */
             end_date?: string | null;
             notes?: string | null;
@@ -4264,8 +4278,6 @@ export interface components {
             region: string;
         };
         CreateDepartmentRequest: {
-            /** Format: uuid */
-            default_working_pattern_id?: string | null;
             description?: string | null;
             /** Format: uuid */
             manager_id?: string | null;
@@ -4318,6 +4330,9 @@ export interface components {
         CreateEmployerRequest: {
             legal_address?: string | null;
             name: string;
+            /** Format: uuid */
+            parent_id?: string | null;
+            relationship_type?: string | null;
             tax_code?: string | null;
         };
         CreateEmploymentPhaseDefinitionRequest: {
@@ -4560,8 +4575,6 @@ export interface components {
             active_employee_count: number;
             /** Format: date-time */
             created_at: string;
-            /** Format: uuid */
-            default_working_pattern_id?: string | null;
             description?: string | null;
             /** Format: uuid */
             id: string;
@@ -4716,6 +4729,8 @@ export interface components {
             document_id?: string | null;
             /** Format: uuid */
             employee_id: string;
+            /** Format: uuid */
+            employer_id: string;
             /** Format: date */
             end_date?: string | null;
             /** Format: uuid */
@@ -4897,6 +4912,9 @@ export interface components {
             id: string;
             legal_address?: string | null;
             name: string;
+            /** Format: uuid */
+            parent_id?: string | null;
+            relationship_type?: string | null;
             tax_code?: string | null;
             /** Format: date-time */
             updated_at: string;
@@ -5208,6 +5226,8 @@ export interface components {
             assignee_type: string;
             /** Format: date-time */
             created_at: string;
+            /** Format: date-time */
+            deleted_at?: string | null;
             /** Format: date */
             effective_from: string;
             /** Format: date */
@@ -6258,6 +6278,8 @@ export interface components {
         };
         UpdateAssignmentRuleRequest: {
             conditions?: null | components["schemas"]["AssignmentRuleConditions"];
+            /** Format: date */
+            end_date?: string | null;
             is_active?: boolean | null;
             /** Format: int32 */
             max_concurrent_workers?: number | null;
@@ -6266,6 +6288,8 @@ export interface components {
             pattern_id?: string | null;
             /** Format: int32 */
             priority?: number | null;
+            /** Format: date */
+            start_date?: string | null;
         };
         UpdateAttendanceRulesRequest: {
             early_arrival_strategy?: null | components["schemas"]["EarlyArrivalStrategy"];
@@ -6292,6 +6316,8 @@ export interface components {
             contract_type?: null | components["schemas"]["ContractType"];
             /** Format: uuid */
             document_id?: string | null;
+            /** Format: uuid */
+            employer_id?: string | null;
             /** Format: date */
             end_date?: string | null;
             notes?: string | null;
@@ -6309,8 +6335,6 @@ export interface components {
             is_active: boolean;
         };
         UpdateDepartmentRequest: {
-            /** Format: uuid */
-            default_working_pattern_id?: string | null;
             description?: string | null;
             /** Format: uuid */
             manager_id?: string | null;
@@ -6351,6 +6375,7 @@ export interface components {
             employee_id_number?: null | components["schemas"]["String"];
             /** Format: uuid */
             employer_id?: string | null;
+            force_transfer?: boolean | null;
             full_name?: string | null;
             /** Format: date */
             hire_date?: string | null;
@@ -6370,6 +6395,9 @@ export interface components {
         UpdateEmployerRequest: {
             legal_address?: string | null;
             name?: string | null;
+            /** Format: uuid */
+            parent_id?: string | null;
+            relationship_type?: string | null;
             tax_code?: string | null;
         };
         /** @description Request payload for updating a feature flag. */

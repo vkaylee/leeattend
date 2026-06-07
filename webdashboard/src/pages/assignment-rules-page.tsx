@@ -1,36 +1,24 @@
+import { useNavigate } from "@tanstack/react-router";
 import { Plus, AlertCircle } from "lucide-react";
 import React from "react";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 
-import { AssignmentRuleModal } from "./assignment-rules/components/assignment-rule-modal";
 import { AssignmentRulesTable } from "./assignment-rules/components/assignment-rules-table";
 import { useAssignmentRules } from "./assignment-rules/hooks/use-assignment-rules";
 
 export default function AssignmentRulesPage() {
+  const navigate = useNavigate();
   const {
     t,
     rules,
     rulesLoading,
     patterns,
     departments,
-    isModalOpen,
-    editingRule,
-    name,
-    setName,
-    priority,
-    setPriority,
-    patternId,
-    setPatternId,
-    conditions,
-    setConditions,
-    openCreateModal,
-    openEditModal,
-    closeModal,
-    handleSubmit,
+    employers,
+    locations,
     handleDelete,
-    isPending,
     ConfirmationDialog,
   } = useAssignmentRules();
 
@@ -45,16 +33,26 @@ export default function AssignmentRulesPage() {
             {t("rules.subtitle")}
           </Typography>
         </div>
-        <Button icon={<Plus size={18} />} onClick={openCreateModal} variant="primary">
+        <Button
+          icon={<Plus size={18} />}
+          onClick={() => {
+            void navigate({ to: "/assignment-rules/new" });
+          }}
+          variant="primary"
+        >
           {t("rules.create_btn").toUpperCase()}
         </Button>
       </div>
 
       <AssignmentRulesTable
         departments={departments}
+        employers={employers}
+        locations={locations}
         isLoading={rulesLoading}
         onDelete={handleDelete}
-        onEdit={openEditModal}
+        onEdit={(rule) => {
+          void navigate({ to: `/assignment-rules/${rule.id}/edit` });
+        }}
         patterns={patterns}
         rules={rules}
       />
@@ -73,23 +71,6 @@ export default function AssignmentRulesPage() {
         </div>
       </div>
 
-      <AssignmentRuleModal
-        conditions={conditions}
-        departments={departments}
-        editingRule={editingRule}
-        isOpen={isModalOpen}
-        isPending={isPending}
-        name={name}
-        onClose={closeModal}
-        onSubmit={handleSubmit}
-        patternId={patternId}
-        patterns={patterns}
-        priority={priority}
-        setConditions={setConditions}
-        setName={setName}
-        setPatternId={setPatternId}
-        setPriority={setPriority}
-      />
       <ConfirmationDialog />
     </div>
   );

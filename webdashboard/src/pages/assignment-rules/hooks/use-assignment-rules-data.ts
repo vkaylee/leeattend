@@ -4,6 +4,8 @@ import {
   fetchAssignmentRules, 
   fetchWorkingPatterns,
   fetchDepartments,
+  fetchEmployers,
+  fetchLocations,
   getCurrentWorkspaceId
 } from "@/lib/api";
 
@@ -28,11 +30,25 @@ export function useAssignmentRulesData() {
     enabled: !!wsId 
   });
 
+  const { data: employers } = useQuery({ 
+    queryKey: ["employers", wsId], 
+    queryFn: () => fetchEmployers(wsId), 
+    enabled: !!wsId 
+  });
+
+  const { data: locations } = useQuery({ 
+    queryKey: ["locations", wsId], 
+    queryFn: () => fetchLocations(wsId), 
+    enabled: !!wsId 
+  });
+
   return {
     wsId,
     rules,
     rulesLoading,
     patterns,
-    departments
+    departments,
+    employers,
+    locations
   };
 }

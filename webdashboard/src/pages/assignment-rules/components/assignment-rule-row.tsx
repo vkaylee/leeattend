@@ -10,6 +10,8 @@ import { AssignmentRuleConditionsList } from "./assignment-rule-conditions-list"
 
 interface AssignmentRuleRowProps {
   departments: { id: string; name: string }[] | undefined;
+  employers?: { id: string; name: string }[] | undefined;
+  locations?: { id: string; name: string }[] | undefined;
   onDelete: (id: string) => void;
   onEdit: (rule: AssignmentRule) => void;
   patterns: { id: string; name: string }[] | undefined;
@@ -18,6 +20,8 @@ interface AssignmentRuleRowProps {
 
 export const AssignmentRuleRow: React.FC<AssignmentRuleRowProps> = ({
   departments,
+  employers,
+  locations,
   onDelete,
   onEdit,
   patterns,
@@ -33,7 +37,10 @@ export const AssignmentRuleRow: React.FC<AssignmentRuleRowProps> = ({
         </span>
       </td>
       <td className="px-8 py-6">
-        <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none mb-1.5">{rule.name}</div>
+        <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none mb-1">{rule.name}</div>
+        <div className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold tracking-tight mb-2">
+          {rule.start_date ? rule.start_date : "Từ trước"} ~ {rule.end_date ? rule.end_date : "Vô thời hạn"}
+        </div>
         {!rule.is_active && <StatusBadge variant="danger">{t("common.inactive").toUpperCase()}</StatusBadge>}
       </td>
       <td className="px-8 py-6">
@@ -45,6 +52,8 @@ export const AssignmentRuleRow: React.FC<AssignmentRuleRowProps> = ({
         <AssignmentRuleConditionsList
           conditions={rule.conditions}
           departments={departments}
+          employers={employers}
+          locations={locations}
         />
       </td>
       <td className="px-10 py-6 text-right">

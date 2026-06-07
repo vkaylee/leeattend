@@ -233,13 +233,22 @@
       "priority": "优先级 (越高越强)",
       "pattern": "选择模式",
       "name_placeholder": "例：技术支持夜班",
-      "tags_placeholder": "夜班, 河内, VVIP"
+      "tags_placeholder": "夜班, 河内, VVIP",
+      "start_date": "开始日期",
+      "end_date": "结束日期",
+      "employer": "法人口 / 公司",
+      "all_employers": "所有公司",
+      "location": "分支机构 / 地点",
+      "all_locations": "所有地点",
+      "employee_id_numbers": "员工编号"
     },
     "conditions_title": "匹配条件",
     "condition_help": "留空以匹配所有员工 (在其他条件范围内)。",
     "messages": {
       "create_success": "规则创建成功",
+      "create_error": "规则创建失败",
       "update_success": "规则更新成功",
+      "update_error": "规则更新失败",
       "delete_success": "规则已删除"
     },
     "validation": {

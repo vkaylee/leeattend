@@ -1,9 +1,9 @@
 import type { TFunction } from "i18next";
 
-import { LayoutGrid, UserCircle, CalendarDays } from "lucide-react";
+import { LayoutGrid, UserCircle } from "lucide-react";
 import React, { useMemo } from "react";
 
-import type { Department, Employee, WorkingPattern } from "@/lib/api";
+import type { Department, Employee } from "@/lib/api";
 
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
@@ -17,17 +17,14 @@ export interface DepartmentFormModalProps {
   employees: Employee[];
   isOpen: boolean;
   onClose: () => void;
-  patterns: WorkingPattern[];
   t: TFunction;
   wsId: string;
 }
 
-export function DepartmentFormModal({ editingDept, isOpen, onClose, wsId, employees, patterns, t }: DepartmentFormModalProps) {
+export function DepartmentFormModal({ editingDept, isOpen, onClose, wsId, employees, t }: DepartmentFormModalProps) {
   const { 
     selectedManagerId, 
     setSelectedManagerId, 
-    selectedPatternId, 
-    setSelectedPatternId, 
     handleSubmit,
     isLoading 
   } = useDepartmentForm(wsId, editingDept, onClose, t);
@@ -46,7 +43,6 @@ export function DepartmentFormModal({ editingDept, isOpen, onClose, wsId, employ
         <FormField defaultValue={editingDept?.description ?? undefined} id="dept-desc" label={t("common.description")} name="description" placeholder={t("departments.form.desc_placeholder")} rows={4} type="textarea" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="space-y-3 px-1"><label className={LABEL_BASE} htmlFor="dept-manager">{t("departments.manager_label")}</label><Combobox className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" data-testid="dept-manager" id="dept-manager" onChange={setSelectedManagerId} options={sortedEmployees.map(e => ({ value: e.id, label: e.full_name.toUpperCase(), description: e.department_name ? `${e.employee_id_number} • ${e.department_name}` : e.employee_id_number, icon: <UserCircle size={14} /> }))} placeholder={t("departments.form.manager_placeholder")} value={selectedManagerId} /></div>
-          <div className="space-y-3 px-1"><label className={LABEL_BASE} htmlFor="dept-pattern">{t("departments.default_pattern_label")}</label><Combobox className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" data-testid="dept-pattern" id="dept-pattern" onChange={setSelectedPatternId} options={patterns.map(p => ({ value: p.id, label: p.name.toUpperCase(), icon: <CalendarDays size={14} /> }))} placeholder={t("departments.form.pattern_placeholder")} value={selectedPatternId} /></div>
         </div>
         <div className="pt-6 grid grid-cols-2 gap-6 border-t border-slate-50 dark:border-slate-800">
           <Button onClick={onClose} size="lg" variant="outline">{t("common.cancel").toUpperCase()}</Button>

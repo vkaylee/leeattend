@@ -107,7 +107,7 @@ describe("DepartmentsPage", () => {
     expect(screen.getByText("Manager One")).toBeDefined();
   });
 
-  it("handles creating a new department with working pattern", async () => {
+  it("handles creating a new department", async () => {
     const user = userEvent.setup();
  
     vi.mocked(api.createDepartment).mockResolvedValue({ id: "new-dept", name: "HR" } as unknown as Department);
@@ -121,17 +121,12 @@ describe("DepartmentsPage", () => {
 
     const nameInput = await screen.findByLabelText(/departments.form.name_label/i);
     await user.type(nameInput, "Human Resources");
-    
-    // Select pattern via mock select (which is what Combobox is in tests)
-    const mockSelect = await screen.findByTestId("dept-pattern");
-    await user.selectOptions(mockSelect, "pat-1");
 
     await user.click(screen.getByText(/departments.modal.submit_btn/i));
 
     await waitFor(() => {
       expect(api.createDepartment).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({
-        name: "Human Resources",
-        default_working_pattern_id: "pat-1"
+        name: "Human Resources"
       }));
     });
   });

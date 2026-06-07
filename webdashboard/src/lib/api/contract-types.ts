@@ -23,6 +23,7 @@ export interface CreateContractRequest {
   contract_type: ContractType;
   document_id?: string | null;
   employee_id: string;
+  employer_id: string;
   end_date?: string | null;
   notes?: string | null;
   start_date: string;

@@ -3,34 +3,42 @@ import { client } from "./client";
 export interface AssignmentRuleConditions {
   department_id?: string;
   employee_id_numbers?: string[];
+  employer_id?: string;
+  location_id?: string;
   tags?: string[];
 }
 
 export interface AssignmentRule {
   conditions: AssignmentRuleConditions;
   created_at: string;
+  end_date?: string | null;
   id: string;
   is_active: boolean;
   name: string;
   pattern_id: string;
   priority: number;
+  start_date?: string | null;
   updated_at: string;
   workspace_id: string;
 }
 
 export interface CreateAssignmentRuleRequest {
   conditions: AssignmentRuleConditions;
+  end_date?: string | null;
   name: string;
   pattern_id: string;
   priority: number;
+  start_date?: string | null;
 }
 
 export interface UpdateAssignmentRuleRequest {
   conditions?: AssignmentRuleConditions;
+  end_date?: string | null;
   is_active?: boolean;
   name?: string;
   pattern_id?: string;
   priority?: number;
+  start_date?: string | null;
 }
 
 export async function fetchAssignmentRules(wsId: string): Promise<AssignmentRule[]> {
