@@ -230,3 +230,52 @@ async fn test_invalid_refresh_token() {
         .await;
     assert!(result.is_err());
 }
+
+#[tokio::test]
+async fn test_refresh_token_reuse_detection() {
+    let (_test_db, factory, state, _app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+    let user_id: Uuid = factory.user().create().await;
+
+    // Skip if Redis is not configured in this test environment
+    if state.infra().redis().is_none() {
+        return;
+    }
+
+    // 1. Create session
+    let refresh_token = state
+        .core()
+        .auth_service()
+        .create_session(user_id)
+        .await
+        .unwrap();
+
+    // 2. Refresh session (first time - rotates refresh token)
+    let auth_res = state
+        .core()
+        .auth_service()
+        .refresh_session(&refresh_token, &state.core().jwt_secret())
+        .await
+        .unwrap();
+
+    let rotated_token = auth_res.refresh_token;
+
+    // 3. Try to refresh again using the OLD (already rotated) refresh token
+    let result = state
+        .core()
+        .auth_service()
+        .refresh_session(&refresh_token, &state.core().jwt_secret())
+        .await;
+
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(err.to_string().contains("Token theft detected"));
+
+    // 4. Verify that the new (rotated) refresh token is now ALSO invalid because all sessions were revoked
+    let result2 = state
+        .core()
+        .auth_service()
+        .refresh_session(&rotated_token, &state.core().jwt_secret())
+        .await;
+    assert!(result2.is_err());
+}

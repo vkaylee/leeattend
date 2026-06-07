@@ -26,31 +26,45 @@ pub struct DbPoolConfig {
 
 impl DbPoolConfig {
     pub fn from_env() -> Result<Self, crate::errors::AppError> {
-        let primary_url = std::env::var("DATABASE_URL").map_err(|_e| {
-            crate::errors::AppError::Internal("DATABASE_URL must be set".to_string())
-        })?;
+        let primary_url = std::env::var("DB_PRIMARY_URL")
+            .or_else(|_| std::env::var("DB_URL"))
+            .or_else(|_| std::env::var("DATABASE_URL"))
+            .map_err(|_e| {
+                crate::errors::AppError::Internal(
+                    "DB_PRIMARY_URL or DATABASE_URL must be set".to_string(),
+                )
+            })?;
+        validate_db_url(&primary_url, "DB_PRIMARY_URL")?;
 
-        let pooler_tx_url = std::env::var("DATABASE_POOLER_TX_URL")
+        let pooler_tx_url = std::env::var("DB_POOLER_TX_URL")
+            .or_else(|_| std::env::var("DATABASE_POOLER_TX_URL"))
             .ok()
             .filter(|s| !s.trim().is_empty())
             .ok_or_else(|| {
                 crate::errors::AppError::Internal(
-                    "DATABASE_POOLER_TX_URL must be set (Supavisor mode is enforced)".to_string(),
+                    "DB_POOLER_TX_URL or DATABASE_POOLER_TX_URL must be set (Supavisor mode is enforced)".to_string(),
                 )
             })?;
+        validate_db_url(&pooler_tx_url, "DB_POOLER_TX_URL")?;
 
-        let pooler_sess_url = std::env::var("DATABASE_POOLER_SESS_URL")
+        let pooler_sess_url = std::env::var("DB_POOLER_SESS_URL")
+            .or_else(|_| std::env::var("DATABASE_POOLER_SESS_URL"))
             .ok()
             .filter(|s| !s.trim().is_empty())
             .ok_or_else(|| {
                 crate::errors::AppError::Internal(
-                    "DATABASE_POOLER_SESS_URL must be set (Supavisor mode is enforced)".to_string(),
+                    "DB_POOLER_SESS_URL or DATABASE_POOLER_SESS_URL must be set (Supavisor mode is enforced)".to_string(),
                 )
             })?;
+        validate_db_url(&pooler_sess_url, "DB_POOLER_SESS_URL")?;
 
-        let reader_url = std::env::var("DATABASE_READER_URL")
+        let reader_url = std::env::var("DB_READER_URL")
+            .or_else(|_| std::env::var("DATABASE_READER_URL"))
             .ok()
             .filter(|s| !s.trim().is_empty());
+        if let Some(ref url) = reader_url {
+            validate_db_url(url, "DB_READER_URL")?;
+        }
 
         Ok(Self {
             primary_url,
@@ -82,6 +96,16 @@ fn env_parse<T: std::str::FromStr>(key: &str, default: T) -> T {
         .unwrap_or(default)
 }
 
+/// Validate database connection string prefix.
+fn validate_db_url(url: &str, var_name: &str) -> Result<(), crate::errors::AppError> {
+    if !url.starts_with("postgres://") && !url.starts_with("postgresql://") {
+        return Err(crate::errors::AppError::Internal(format!(
+            "FATAL: {var_name} must start with 'postgres://' or 'postgresql://'"
+        )));
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -96,9 +120,14 @@ mod tests {
     ) {
         let vars = [
             ("DATABASE_URL", db_url),
+            ("DB_PRIMARY_URL", db_url),
+            ("DB_URL", db_url),
             ("DATABASE_POOLER_TX_URL", pool_tx),
+            ("DB_POOLER_TX_URL", pool_tx),
             ("DATABASE_POOLER_SESS_URL", pool_sess),
+            ("DB_POOLER_SESS_URL", pool_sess),
             ("DATABASE_READER_URL", reader),
+            ("DB_READER_URL", reader),
             ("DB_API_MAX_CONN", None),
             ("DB_API_ACQUIRE_TIMEOUT_SECS", None),
             ("DB_WORKER_MAX_CONN", None),
@@ -218,5 +247,23 @@ mod tests {
         let config = DbPoolConfig::from_env().unwrap();
         assert_eq!(config.api_max_conn, 20); // fallback to default
         assert_eq!(config.worker_acquire_timeout_secs, 30); // fallback to default
+    }
+
+    #[test]
+    #[serial]
+    fn test_from_env_invalid_url_prefixes() {
+        setup_env(
+            Some("mysql://user:pass@localhost:5432/db"), // Invalid prefix
+            Some("postgres://pooler:pass@localhost:6543/db"),
+            Some("postgres://pooler:pass@localhost:5452/db"),
+            None,
+        );
+        let err = DbPoolConfig::from_env();
+        assert!(err.is_err());
+        if let Err(crate::errors::AppError::Internal(msg)) = err {
+            assert!(msg.contains("must start with 'postgres://' or 'postgresql://'"));
+        } else {
+            panic!("Expected AppError::Internal with prefix validation message");
+        }
     }
 }

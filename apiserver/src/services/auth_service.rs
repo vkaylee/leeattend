@@ -132,11 +132,32 @@ impl AuthService {
         refresh_token: &str,
         secret: &str,
     ) -> AppResult<AuthResponse> {
-        let session = self
+        let Some(session) = self
             .session_repo
             .get_session_by_token(refresh_token)
             .await?
-            .ok_or_else(|| AppError::Auth("Invalid or expired refresh token".to_string()))?;
+        else {
+            if let Some(redis_pool) = &self.redis_pool {
+                let key = format!("jwt:rotated:{refresh_token}");
+                let mut conn = redis_pool.conn();
+                use redis::AsyncCommands;
+                if let Ok(Some(user_id_str)) = conn.get::<_, Option<String>>(&key).await {
+                    if let Ok(user_id) = Uuid::parse_str(&user_id_str) {
+                        tracing::error!(
+                            user_id = %user_id,
+                            "CRITICAL: Refresh token reuse detected (potential session theft)! Revoking all sessions for user."
+                        );
+                        let _ = self.revoke_all_sessions_for_user(user_id).await;
+                        return Err(AppError::Auth(
+                            "Token theft detected. All sessions revoked for security.".to_string(),
+                        ));
+                    }
+                }
+            }
+            return Err(AppError::Auth(
+                "Invalid or expired refresh token".to_string(),
+            ));
+        };
 
         let user = self
             .user_repo
@@ -145,6 +166,16 @@ impl AuthService {
             .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 
         let access_token = Self::generate_token(user.id(), secret, 15)?; // 15 minutes access (per access-control.md §3)
+
+        // Store the old refresh token in Redis for reuse detection before rotating
+        if let Some(redis_pool) = &self.redis_pool {
+            let key = format!("jwt:rotated:{refresh_token}");
+            let mut conn = redis_pool.conn();
+            use redis::AsyncCommands;
+            let _: Result<(), _> = conn
+                .set_ex(&key, user.id().to_string(), 7 * 24 * 3600)
+                .await;
+        }
 
         // Rotate refresh token
         let new_refresh_token = Uuid::new_v4().to_string();

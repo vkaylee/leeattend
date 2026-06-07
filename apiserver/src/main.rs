@@ -46,13 +46,56 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
-    tracing_subscriber::registry()
-        .with(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "apiserver=debug,tower_http=debug".into()),
-        )
-        .with(tracing_subscriber::fmt::layer())
-        .init();
+    let app_env = std::env::var("APP_ENV")
+        .or_else(|_| std::env::var("API_ENV"))
+        .unwrap_or_else(|_| "development".to_string());
+
+    let registry = tracing_subscriber::registry().with(
+        tracing_subscriber::EnvFilter::try_from_default_env()
+            .unwrap_or_else(|_| "apiserver=debug,tower_http=debug".into()),
+    );
+
+    if app_env == "production" {
+        registry
+            .with(tracing_subscriber::fmt::layer().json())
+            .init();
+    } else {
+        registry.with(tracing_subscriber::fmt::layer()).init();
+    }
+
+    // Log loaded configuration keys (no values)
+    let mut loaded_keys = Vec::new();
+    for key in &[
+        "APP_ENV",
+        "API_ENV",
+        "APP_PORT",
+        "API_PORT",
+        "APP_HOST",
+        "API_HOST",
+        "DB_PRIMARY_URL",
+        "DB_URL",
+        "DATABASE_URL",
+        "DB_POOLER_TX_URL",
+        "DATABASE_POOLER_TX_URL",
+        "DB_POOLER_SESS_URL",
+        "DATABASE_POOLER_SESS_URL",
+        "DB_READER_URL",
+        "DATABASE_READER_URL",
+        "REDIS_URL",
+        "JWT_SECRET",
+        "COOKIE_DOMAIN",
+        "ALLOWED_ORIGINS",
+        "ENCRYPTION_KEYS_JSON",
+    ] {
+        if std::env::var(key).is_ok() {
+            loaded_keys.push(*key);
+        }
+    }
+    tracing::info!(
+        app_env = %app_env,
+        loaded_keys = ?loaded_keys,
+        "Configuration loaded successfully"
+    );
 
     // Initialize configurable database pools (API + Worker + optional Reader)
     let db_config = DbPoolConfig::from_env()?;
@@ -163,12 +206,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let app = create_app(std::sync::Arc::clone(&state));
 
-    let host = std::env::var("API_HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
+    let host = std::env::var("APP_HOST")
+        .or_else(|_| std::env::var("API_HOST"))
+        .unwrap_or_else(|_| "0.0.0.0".to_string());
     let host = host.trim().to_string();
-    let preferred_port = std::env::var("API_PORT")
-        .unwrap_or_else(|_| "3000".to_string())
-        .parse::<u16>()
-        .unwrap_or(3000);
+    let port_str = std::env::var("APP_PORT")
+        .or_else(|_| std::env::var("API_PORT"))
+        .unwrap_or_else(|_| "3000".to_string());
+    let preferred_port = port_str.parse::<u16>().map_err(|e| {
+        Box::<dyn std::error::Error>::from(format!("FATAL: Invalid APP_PORT/API_PORT: {e}"))
+    })?;
 
     let port_file_name =
         std::env::var("PORT_FILE_NAME").unwrap_or_else(|_| ".api_port".to_string());
