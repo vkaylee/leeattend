@@ -112,11 +112,15 @@ async fn test_employers_crud() {
     // Manually assign employee to the custom employer
     crate::test_execute!(
         &_db.diesel_pools.api,
-        "UPDATE employees SET employer_id = $1 WHERE id = $2",
+        "INSERT INTO employee_contracts (id, workspace_id, employee_id, contract_type, status, start_date, created_at, updated_at, employer_id) VALUES ($1, $2, $3, 'indefinite', 'active', CURRENT_DATE, NOW(), NOW(), $4)",
         diesel::sql_types::Uuid,
-        Uuid::parse_str(&employer_1_id).unwrap(),
+        Uuid::new_v4(),
         diesel::sql_types::Uuid,
-        emp_id
+        workspace_id,
+        diesel::sql_types::Uuid,
+        emp_id,
+        diesel::sql_types::Uuid,
+        Uuid::parse_str(&employer_1_id).unwrap()
     );
 
     let res = client
@@ -134,7 +138,7 @@ async fn test_employers_crud() {
     // 7. Unassign the employee, then delete should succeed
     crate::test_execute!(
         &_db.diesel_pools.api,
-        "UPDATE employees SET employer_id = NULL WHERE id = $1",
+        "UPDATE employee_contracts SET deleted_at = NOW() WHERE employee_id = $1",
         diesel::sql_types::Uuid,
         emp_id
     );

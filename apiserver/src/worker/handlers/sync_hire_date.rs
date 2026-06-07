@@ -167,6 +167,7 @@ mod tests {
                     None,
                     Utc::now(),
                     Utc::now(),
+                    Uuid::new_v4(),
                 )])
             });
 

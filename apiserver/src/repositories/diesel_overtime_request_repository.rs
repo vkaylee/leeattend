@@ -305,7 +305,6 @@ mod tests {
                 termination_date: None,
                 original_hire_date: chrono::NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
                 primary_location_id: loc_id,
-                employer_id: None,
                 deleted_at: None,
             };
             diesel::insert_into(crate::schema::employees::table)

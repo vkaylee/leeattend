@@ -223,6 +223,7 @@ mod tests {
                     None,
                     chrono::Utc::now(),
                     chrono::Utc::now(),
+                    Uuid::new_v4(),
                 )])
             });
 

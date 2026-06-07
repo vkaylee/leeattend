@@ -85,7 +85,6 @@ pub struct EmployeeEntity {
     pub termination_date: Option<NaiveDate>,
     pub original_hire_date: NaiveDate,
     pub primary_location_id: Uuid,
-    pub employer_id: Option<Uuid>,
     pub deleted_at: Option<DateTime<Utc>>,
 }
 
@@ -106,7 +105,6 @@ impl From<Employee> for EmployeeEntity {
             termination_date: val.termination_date(),
             original_hire_date: val.original_hire_date(),
             primary_location_id: val.primary_location_id(),
-            employer_id: val.employer_id(),
             deleted_at: None,
         }
     }
@@ -129,7 +127,7 @@ impl From<EmployeeEntity> for Employee {
             val.updated_at.unwrap_or_else(Utc::now),
             None,
             val.primary_location_id,
-            val.employer_id,
+            None,
         )
     }
 }
@@ -146,7 +144,6 @@ pub struct UpdateDieselEmployee {
     pub termination_date: Option<Option<NaiveDate>>,
     pub updated_at: Option<DateTime<Utc>>,
     pub primary_location_id: Option<Uuid>,
-    pub employer_id: Option<Option<Uuid>>,
 }
 
 use crate::models::{RecruitmentSource, RecruitmentSourceType};

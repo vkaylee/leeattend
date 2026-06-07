@@ -111,6 +111,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
                         created_at: Utc::now(),
                         updated_at: Utc::now(),
                         deleted_at: None,
+                        employer_id: req.employer_id,
                     };
 
                     let inserted = diesel::insert_into(employee_contracts)
@@ -236,6 +237,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
             document_id: req.document_id.map(Some),
             notes: req.notes.clone().map(Some),
             updated_at: Some(Utc::now()),
+            employer_id: req.employer_id,
         };
 
         let updated_contract = diesel::update(

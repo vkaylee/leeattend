@@ -22,9 +22,9 @@ pub struct EmployerEntity {
     pub workspace_id: Uuid,
     pub name: String,
     pub tax_code: Option<String>,
-    pub legal_address: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub legal_address: Option<String>,
     pub deleted_at: Option<DateTime<Utc>>,
 }
 

@@ -23,7 +23,7 @@ pub const EMPLOYEE_SELECT_QUERY: &str = r"
         e.id, e.workspace_id, e.user_id, e.full_name, e.employee_id_number,
         e.original_hire_date, e.hire_date, e.termination_date,
         e.tags, e.is_active, e.created_at, e.updated_at,
-        d_cur.name as department_name, e.primary_location_id, e.employer_id
+        d_cur.name as department_name, e.primary_location_id, ec_cur.employer_id
     FROM employees e
     LEFT JOIN (
         SELECT DISTINCT ON (employee_id) employee_id, department_id
@@ -31,6 +31,12 @@ pub const EMPLOYEE_SELECT_QUERY: &str = r"
         ORDER BY employee_id, effective_date DESC
     ) edh_cur ON e.id = edh_cur.employee_id
     LEFT JOIN departments d_cur ON edh_cur.department_id = d_cur.id
+    LEFT JOIN (
+        SELECT DISTINCT ON (employee_id) employee_id, employer_id
+        FROM employee_contracts
+        WHERE status = 'active' AND deleted_at IS NULL AND CURRENT_DATE BETWEEN start_date AND COALESCE(end_date, '9999-12-31'::date)
+        ORDER BY employee_id, start_date DESC
+    ) ec_cur ON e.id = ec_cur.employee_id
 ";
 
 pub const EMPLOYEE_DEPT_JOIN: &str = r"

@@ -26,8 +26,8 @@ pub struct ShiftEntity {
     pub is_active: bool,
     pub parent_shift_id: Option<Uuid>,
     pub allow_early_ot: bool,
-    pub max_early_ot_minutes: Option<i32>,
     pub report_symbol: Option<String>,
+    pub max_early_ot_minutes: Option<i32>,
 }
 
 impl From<ShiftEntity> for Shift {

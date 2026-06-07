@@ -19,6 +19,7 @@ pub struct EmployeeContract {
     notes: Option<String>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
+    employer_id: Uuid,
 }
 
 impl EmployeeContract {
@@ -36,6 +37,7 @@ impl EmployeeContract {
         notes: Option<String>,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
+        employer_id: Uuid,
     ) -> Self {
         Self {
             id,
@@ -50,6 +52,7 @@ impl EmployeeContract {
             notes,
             created_at,
             updated_at,
+            employer_id,
         }
     }
 
@@ -100,6 +103,10 @@ impl EmployeeContract {
     pub fn updated_at(&self) -> DateTime<Utc> {
         self.updated_at
     }
+
+    pub fn employer_id(&self) -> Uuid {
+        self.employer_id
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
@@ -113,6 +120,7 @@ pub struct CreateContractRequest {
     pub notes: Option<String>,
     pub assign_phase_id: Option<Uuid>,
     pub auto_close_overlapping: Option<bool>,
+    pub employer_id: Uuid,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
@@ -124,4 +132,5 @@ pub struct UpdateContractRequest {
     pub end_date: Option<NaiveDate>,
     pub document_id: Option<Uuid>,
     pub notes: Option<String>,
+    pub employer_id: Option<Uuid>,
 }

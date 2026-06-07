@@ -42,6 +42,16 @@ async fn test_employee_contracts_crud() {
     let ws_id = factory.workspace().create_with_owner(user_id).await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
+    let employer_id = Uuid::new_v4();
+    crate::test_execute!(
+        &_test_db.diesel_pools.api,
+        "INSERT INTO employers (id, workspace_id, name, tax_code, legal_address, created_at, updated_at) VALUES ($1, $2, 'Test Employer', 'MST-1', 'Addr', NOW(), NOW())",
+        diesel::sql_types::Uuid,
+        employer_id,
+        diesel::sql_types::Uuid,
+        ws_id
+    );
+
     let create_payload = json!({
         "employee_id": emp_id,
         "contract_type": "fixed_term",
@@ -49,7 +59,8 @@ async fn test_employee_contracts_crud() {
         "start_date": "2026-01-01",
         "end_date": "2027-01-01",
         "contract_number": "HD-2026-001",
-        "notes": "Test contract"
+        "notes": "Test contract",
+        "employer_id": employer_id.to_string()
     });
 
     // 1. Create Contract
@@ -150,6 +161,16 @@ async fn test_explicitly_assign_employment_phase_during_contract_creation() {
     let ws_id = factory.workspace().create_with_owner(user_id).await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
+    let employer_id = Uuid::new_v4();
+    crate::test_execute!(
+        &_test_db.diesel_pools.api,
+        "INSERT INTO employers (id, workspace_id, name, tax_code, legal_address, created_at, updated_at) VALUES ($1, $2, 'Test Employer', 'MST-1', 'Addr', NOW(), NOW())",
+        diesel::sql_types::Uuid,
+        employer_id,
+        diesel::sql_types::Uuid,
+        ws_id
+    );
+
     // Create a phase definition first
     let phase_def_id = Uuid::new_v4();
     let pool = _test_db.diesel_pools.clone();
@@ -170,7 +191,8 @@ async fn test_explicitly_assign_employment_phase_during_contract_creation() {
         "contract_type": "probation",
         "start_date": "2026-05-01",
         "end_date": "2026-07-01",
-        "assign_phase_id": phase_def_id
+        "assign_phase_id": phase_def_id,
+        "employer_id": employer_id.to_string()
     });
 
     // Create Contract with assign_phase_id
@@ -221,6 +243,16 @@ async fn test_employee_contracts_overlap_auto_close() {
     let ws_id = factory.workspace().create_with_owner(user_id).await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
+    let employer_id = Uuid::new_v4();
+    crate::test_execute!(
+        &_test_db.diesel_pools.api,
+        "INSERT INTO employers (id, workspace_id, name, tax_code, legal_address, created_at, updated_at) VALUES ($1, $2, 'Test Employer', 'MST-1', 'Addr', NOW(), NOW())",
+        diesel::sql_types::Uuid,
+        employer_id,
+        diesel::sql_types::Uuid,
+        ws_id
+    );
+
     // 1. Create first contract
     let create_payload_1 = json!({
         "employee_id": emp_id,
@@ -229,7 +261,8 @@ async fn test_employee_contracts_overlap_auto_close() {
         "start_date": "2026-01-01",
         "end_date": "2026-12-31",
         "contract_number": "HD-001",
-        "notes": "Original note"
+        "notes": "Original note",
+        "employer_id": employer_id.to_string()
     });
 
     let res1 = app
@@ -259,7 +292,8 @@ async fn test_employee_contracts_overlap_auto_close() {
         "start_date": "2026-06-01",
         "end_date": "2027-05-31",
         "contract_number": "HD-002",
-        "auto_close_overlapping": true
+        "auto_close_overlapping": true,
+        "employer_id": employer_id.to_string()
     });
 
     let res2 = app

@@ -490,62 +490,8 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         req: &UpdateEmployeeRequest,
     ) -> Result<Option<Employee>, AppError> {
-        let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
-
-        if let Some(Some(new_user_id)) = req.user_id {
-            if req.force_transfer == Some(true) {
-                diesel::update(employees::table)
-                    .filter(employees::user_id.eq(new_user_id))
-                    .filter(employees::workspace_id.eq(workspace_id))
-                    .filter(employees::id.ne(id))
-                    .set(employees::user_id.eq(None::<Uuid>))
-                    .execute(&mut *conn)
-                    .await
-                    .map_err(|e| AppError::Internal(format!("db: {e}")))?;
-            }
-        }
-
-        let normalized_id = req
-            .employee_id_number
-            .as_ref()
-            .map(|id| id.as_str().to_string());
-
-        let tags_mapped = req.tags.as_ref().map(|tags| {
-            tags.iter()
-                .map(|t| Some(t.clone()))
-                .collect::<Vec<Option<String>>>()
-        });
-
-        let update_model = UpdateDieselEmployee {
-            user_id: req.user_id,
-            full_name: req.full_name.clone(),
-            employee_id_number: normalized_id,
-            tags: tags_mapped,
-            is_active: req.is_active,
-            hire_date: req.hire_date,
-            termination_date: req.termination_date.map(Some),
-            updated_at: Some(chrono::Utc::now()),
-            primary_location_id: req.primary_location_id,
-            employer_id: req.employer_id.map(Some),
-        };
-
-        let result: Option<EmployeeEntity> = diesel::update(employees::table)
-            .filter(employees::id.eq(id))
-            .filter(employees::workspace_id.eq(workspace_id))
-            .set(&update_model)
-            .get_result(&mut *conn)
+        self.update_employee_transactional(id, auth_token, req)
             .await
-            .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
-
-        Ok(result.map(Into::into))
     }
 
     async fn update_employee_transactional(
@@ -596,7 +542,6 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                     termination_date: req.termination_date.map(Some),
                     updated_at: Some(chrono::Utc::now()),
                     primary_location_id: req.primary_location_id,
-                    employer_id: req.employer_id.map(Some),
                 };
 
                 let result: Option<EmployeeEntity> = diesel::update(employees::table)
@@ -607,6 +552,67 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                     .await
                     .optional()
                     .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                if let Some(new_employer_id) = req.employer_id {
+                    if let Some(ref emp) = result {
+                        use crate::schema::employee_contracts;
+
+                        let active_contract_id: Option<Uuid> = diesel_async::RunQueryDsl::first(
+                            employee_contracts::table
+                                .select(employee_contracts::id)
+                                .filter(employee_contracts::employee_id.eq(id))
+                                .filter(employee_contracts::workspace_id.eq(workspace_id))
+                                .filter(employee_contracts::status.eq(crate::models::enums::ContractStatus::Active))
+                                .filter(employee_contracts::deleted_at.is_null())
+                                .filter(employee_contracts::start_date.le(chrono::Utc::now().date_naive()))
+                                .filter(
+                                    employee_contracts::end_date.is_null()
+                                        .or(employee_contracts::end_date.ge(chrono::Utc::now().date_naive()))
+                                )
+                                .order_by(employee_contracts::start_date.desc()),
+                            &mut *conn
+                        )
+                        .await
+                        .optional()
+                        .map_err(|e| AppError::Internal(format!("db select contract: {e}")))?;
+
+                        if let Some(contract_id) = active_contract_id {
+                            diesel_async::RunQueryDsl::execute(
+                                diesel::update(employee_contracts::table)
+                                    .filter(employee_contracts::id.eq(contract_id))
+                                    .set(employee_contracts::employer_id.eq(new_employer_id)),
+                                &mut *conn
+                            )
+                            .await
+                            .map_err(|e| AppError::Internal(format!("db update contract employer: {e}")))?;
+                        } else {
+                            let default_contract = crate::models::diesel::employee_contract::EmployeeContractEntity {
+                                id: Uuid::new_v4(),
+                                workspace_id,
+                                employee_id: id,
+                                contract_number: None,
+                                contract_type: crate::models::enums::ContractType::Indefinite,
+                                status: crate::models::enums::ContractStatus::Active,
+                                start_date: emp.hire_date,
+                                end_date: None,
+                                document_id: None,
+                                notes: Some("Hệ thống tự động khởi tạo thỏa thuận làm việc khi cập nhật thông tin".to_string()),
+                                created_at: chrono::Utc::now(),
+                                updated_at: chrono::Utc::now(),
+                                deleted_at: None,
+                                employer_id: new_employer_id,
+                            };
+
+                            diesel_async::RunQueryDsl::execute(
+                                diesel::insert_into(crate::schema::employee_contracts::table)
+                                    .values(&default_contract),
+                                &mut *conn
+                            )
+                            .await
+                            .map_err(|e| AppError::Internal(format!("db contract insert: {e}")))?;
+                        }
+                    }
+                }
 
                 if req.recruitment_source_id.is_some() {
                     diesel::update(employees::table)
@@ -628,24 +634,10 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
     }
 
     async fn create_employee(&self, employee: &Employee) -> Result<(), AppError> {
-        let workspace_id = employee.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
-
-        let new_entity: EmployeeEntity = employee.clone().into();
-
-        diesel::insert_into(crate::schema::employees::table)
-            .values(&new_entity)
-            .execute(&mut *conn)
+        let auth_token =
+            crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id());
+        self.create_employee_transactional(&auth_token, employee, None)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
-
-        Ok(())
     }
 
     async fn create_employee_transactional(
@@ -665,7 +657,6 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             .await?;
 
         let mut new_entity: EmployeeEntity = employee.clone().into();
-        // The recruitment_source_id belongs on the employee entity in this schema
         new_entity.recruitment_source_id = recruitment_source_id;
 
         conn.transaction(|conn| {
@@ -674,9 +665,38 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                     .values(&new_entity)
                     .execute(&mut *conn)
                     .await
-                    .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                    .map_err(|e| AppError::Internal(format!("db employee insert: {e}")))?;
 
-                Ok(())
+                if let Some(emp_id) = employee.employer_id() {
+                    let default_contract =
+                        crate::models::diesel::employee_contract::EmployeeContractEntity {
+                            id: Uuid::new_v4(),
+                            workspace_id,
+                            employee_id: employee.id(),
+                            contract_number: None,
+                            contract_type: crate::models::enums::ContractType::Indefinite,
+                            status: crate::models::enums::ContractStatus::Active,
+                            start_date: employee.hire_date(),
+                            end_date: None,
+                            document_id: None,
+                            notes: Some(
+                                "Hệ thống tự động khởi tạo thỏa thuận làm việc khi onboard"
+                                    .to_string(),
+                            ),
+                            created_at: chrono::Utc::now(),
+                            updated_at: chrono::Utc::now(),
+                            deleted_at: None,
+                            employer_id: emp_id,
+                        };
+
+                    diesel::insert_into(crate::schema::employee_contracts::table)
+                        .values(&default_contract)
+                        .execute(&mut *conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db contract insert: {e}")))?;
+                }
+
+                Ok::<(), AppError>(())
             })
         })
         .await
@@ -705,11 +725,47 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
 
         let new_entity: EmployeeEntity = employee.clone().into();
 
-        diesel::insert_into(employees::table)
-            .values(&new_entity)
-            .execute(&mut *conn)
-            .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        conn.transaction(|conn| {
+            Box::pin(async move {
+                diesel::insert_into(employees::table)
+                    .values(&new_entity)
+                    .execute(&mut *conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db employee insert: {e}")))?;
+
+                if let Some(emp_id) = employee.employer_id() {
+                    let default_contract =
+                        crate::models::diesel::employee_contract::EmployeeContractEntity {
+                            id: Uuid::new_v4(),
+                            workspace_id,
+                            employee_id: employee.id(),
+                            contract_number: None,
+                            contract_type: crate::models::enums::ContractType::Indefinite,
+                            status: crate::models::enums::ContractStatus::Active,
+                            start_date: employee.hire_date(),
+                            end_date: None,
+                            document_id: None,
+                            notes: Some(
+                                "Hệ thống tự động khởi tạo thỏa thuận làm việc khi onboard"
+                                    .to_string(),
+                            ),
+                            created_at: chrono::Utc::now(),
+                            updated_at: chrono::Utc::now(),
+                            deleted_at: None,
+                            employer_id: emp_id,
+                        };
+
+                    diesel::insert_into(crate::schema::employee_contracts::table)
+                        .values(&default_contract)
+                        .execute(&mut *conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db contract insert: {e}")))?;
+                }
+
+                Ok::<(), AppError>(())
+            })
+        })
+        .await?;
 
         Ok(true)
     }
@@ -869,23 +925,70 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
 
         // 3. Filter out those that already exist
         let mut to_insert = Vec::new();
-        for (key, emp) in unique_emps {
-            if !existing.contains_key(&key) {
+        for (key, emp) in &unique_emps {
+            if !existing.contains_key(key) {
                 let entity: EmployeeEntity = (*emp).clone().into();
                 to_insert.push(entity);
             }
         }
 
-        // 4. Perform chunked insertion
-        if !to_insert.is_empty() {
-            for chunk in to_insert.chunks(1000) {
-                diesel::insert_into(employees::table)
-                    .values(chunk)
-                    .execute(&mut *conn)
-                    .await
-                    .map_err(|e| AppError::Internal(format!("db: {e}")))?;
-            }
-        }
+        // 4. Perform chunked insertion inside a transaction
+        conn.transaction(|conn| {
+            Box::pin(async move {
+                if !to_insert.is_empty() {
+                    for chunk in to_insert.chunks(1000) {
+                        diesel::insert_into(employees::table)
+                            .values(chunk)
+                            .execute(&mut *conn)
+                            .await
+                            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                    }
+                }
+
+                // Insert contracts for each inserted employee who has an employer_id
+                let mut contracts_to_insert = Vec::new();
+                for emp in unique_emps.values() {
+                    if !existing.contains_key(&emp.employee_id_number().to_lowercase()) {
+                        if let Some(emp_id) = emp.employer_id() {
+                            contracts_to_insert.push(
+                                crate::models::diesel::employee_contract::EmployeeContractEntity {
+                                    id: Uuid::new_v4(),
+                                    workspace_id,
+                                    employee_id: emp.id(),
+                                    contract_number: None,
+                                    contract_type: crate::models::enums::ContractType::Indefinite,
+                                    status: crate::models::enums::ContractStatus::Active,
+                                    start_date: emp.hire_date(),
+                                    end_date: None,
+                                    document_id: None,
+                                    notes: Some(
+                                        "Hệ thống tự động khởi tạo thỏa thuận làm việc khi import"
+                                            .to_string(),
+                                    ),
+                                    created_at: chrono::Utc::now(),
+                                    updated_at: chrono::Utc::now(),
+                                    deleted_at: None,
+                                    employer_id: emp_id,
+                                },
+                            );
+                        }
+                    }
+                }
+
+                if !contracts_to_insert.is_empty() {
+                    for chunk in contracts_to_insert.chunks(1000) {
+                        diesel::insert_into(crate::schema::employee_contracts::table)
+                            .values(chunk)
+                            .execute(&mut *conn)
+                            .await
+                            .map_err(|e| AppError::Internal(format!("db contracts insert: {e}")))?;
+                    }
+                }
+
+                Ok::<(), AppError>(())
+            })
+        })
+        .await?;
 
         Ok(())
     }

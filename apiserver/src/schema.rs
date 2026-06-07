@@ -43,24 +43,89 @@ pub mod sql_types {
 }
 
 diesel::table! {
-    audit_logs (id, created_at) {
+    approval_action_log (id) {
         id -> Uuid,
         workspace_id -> Uuid,
-        actor_id -> Nullable<Uuid>,
         #[max_length = 50]
-        actor_type -> Nullable<Varchar>,
-        #[max_length = 255]
-        actor_name -> Nullable<Varchar>,
-        #[max_length = 255]
-        actor_email -> Nullable<Varchar>,
-        target_user_id -> Nullable<Uuid>,
-        target_resource_id -> Nullable<Uuid>,
-        #[max_length = 255]
+        entity_type -> Varchar,
+        entity_id -> Uuid,
+        step_order -> Int4,
+        #[max_length = 100]
+        step_name -> Nullable<Varchar>,
+        acted_by_user_id -> Uuid,
+        #[max_length = 20]
         action -> Varchar,
-        details -> Nullable<Jsonb>,
-        ip_address -> Nullable<Text>,
-        user_agent -> Nullable<Text>,
+        note -> Nullable<Text>,
+        acted_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    approval_workflow_instances (id) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        workflow_id -> Nullable<Uuid>,
+        #[max_length = 50]
+        entity_type -> Varchar,
+        entity_id -> Uuid,
+        #[max_length = 20]
+        status -> Varchar,
+        current_step_order -> Int4,
+        steps_snapshot -> Jsonb,
         created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    approval_workflow_steps (id) {
+        id -> Uuid,
+        workflow_id -> Uuid,
+        step_order -> Int4,
+        #[max_length = 100]
+        step_name -> Varchar,
+        #[max_length = 30]
+        approver_type -> Varchar,
+        approver_config -> Jsonb,
+        #[max_length = 20]
+        action_required -> Varchar,
+        can_skip -> Bool,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    approval_workflow_tasks (id) {
+        id -> Uuid,
+        instance_id -> Uuid,
+        step_order -> Int4,
+        #[max_length = 20]
+        status -> Varchar,
+        #[max_length = 30]
+        assignee_type -> Varchar,
+        assignee_target_id -> Nullable<Uuid>,
+        #[max_length = 100]
+        assignee_target_name -> Nullable<Varchar>,
+        created_at -> Timestamptz,
+        completed_at -> Nullable<Timestamptz>,
+        completed_by -> Nullable<Uuid>,
+    }
+}
+
+diesel::table! {
+    approval_workflows (id) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        #[max_length = 50]
+        entity_type -> Varchar,
+        #[max_length = 255]
+        name -> Varchar,
+        description -> Nullable<Text>,
+        total_steps -> Int4,
+        is_active -> Bool,
+        created_by -> Nullable<Uuid>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
     }
 }
 
@@ -213,6 +278,496 @@ diesel::table! {
 }
 
 diesel::table! {
+    attendance_staging_logs_default (id, created_at) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        device_id -> Nullable<Text>,
+        raw_user_id -> Text,
+        punch_time -> Timestamptz,
+        raw_data -> Nullable<Jsonb>,
+        fingerprint -> Text,
+        status -> Text,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    attendance_staging_logs_y2026m01 (id, created_at) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        device_id -> Nullable<Text>,
+        raw_user_id -> Text,
+        punch_time -> Timestamptz,
+        raw_data -> Nullable<Jsonb>,
+        fingerprint -> Text,
+        status -> Text,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    attendance_staging_logs_y2026m02 (id, created_at) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        device_id -> Nullable<Text>,
+        raw_user_id -> Text,
+        punch_time -> Timestamptz,
+        raw_data -> Nullable<Jsonb>,
+        fingerprint -> Text,
+        status -> Text,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    attendance_staging_logs_y2026m03 (id, created_at) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        device_id -> Nullable<Text>,
+        raw_user_id -> Text,
+        punch_time -> Timestamptz,
+        raw_data -> Nullable<Jsonb>,
+        fingerprint -> Text,
+        status -> Text,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    attendance_staging_logs_y2026m04 (id, created_at) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        device_id -> Nullable<Text>,
+        raw_user_id -> Text,
+        punch_time -> Timestamptz,
+        raw_data -> Nullable<Jsonb>,
+        fingerprint -> Text,
+        status -> Text,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    attendance_staging_logs_y2026m05 (id, created_at) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        device_id -> Nullable<Text>,
+        raw_user_id -> Text,
+        punch_time -> Timestamptz,
+        raw_data -> Nullable<Jsonb>,
+        fingerprint -> Text,
+        status -> Text,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    attendance_staging_logs_y2026m06 (id, created_at) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        device_id -> Nullable<Text>,
+        raw_user_id -> Text,
+        punch_time -> Timestamptz,
+        raw_data -> Nullable<Jsonb>,
+        fingerprint -> Text,
+        status -> Text,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    attendance_staging_logs_y2026m07 (id, created_at) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        device_id -> Nullable<Text>,
+        raw_user_id -> Text,
+        punch_time -> Timestamptz,
+        raw_data -> Nullable<Jsonb>,
+        fingerprint -> Text,
+        status -> Text,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    attendance_staging_logs_y2026m08 (id, created_at) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        device_id -> Nullable<Text>,
+        raw_user_id -> Text,
+        punch_time -> Timestamptz,
+        raw_data -> Nullable<Jsonb>,
+        fingerprint -> Text,
+        status -> Text,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    attendance_staging_logs_y2026m09 (id, created_at) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        device_id -> Nullable<Text>,
+        raw_user_id -> Text,
+        punch_time -> Timestamptz,
+        raw_data -> Nullable<Jsonb>,
+        fingerprint -> Text,
+        status -> Text,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    attendance_staging_logs_y2026m10 (id, created_at) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        device_id -> Nullable<Text>,
+        raw_user_id -> Text,
+        punch_time -> Timestamptz,
+        raw_data -> Nullable<Jsonb>,
+        fingerprint -> Text,
+        status -> Text,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    attendance_staging_logs_y2026m11 (id, created_at) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        device_id -> Nullable<Text>,
+        raw_user_id -> Text,
+        punch_time -> Timestamptz,
+        raw_data -> Nullable<Jsonb>,
+        fingerprint -> Text,
+        status -> Text,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    attendance_staging_logs_y2026m12 (id, created_at) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        device_id -> Nullable<Text>,
+        raw_user_id -> Text,
+        punch_time -> Timestamptz,
+        raw_data -> Nullable<Jsonb>,
+        fingerprint -> Text,
+        status -> Text,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    audit_logs (id, created_at) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        actor_id -> Nullable<Uuid>,
+        target_user_id -> Nullable<Uuid>,
+        target_resource_id -> Nullable<Uuid>,
+        #[max_length = 255]
+        action -> Varchar,
+        details -> Nullable<Jsonb>,
+        ip_address -> Nullable<Text>,
+        user_agent -> Nullable<Text>,
+        created_at -> Timestamptz,
+        #[max_length = 50]
+        actor_type -> Nullable<Varchar>,
+        #[max_length = 255]
+        actor_name -> Nullable<Varchar>,
+        #[max_length = 255]
+        actor_email -> Nullable<Varchar>,
+    }
+}
+
+diesel::table! {
+    audit_logs_default (id, created_at) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        actor_id -> Nullable<Uuid>,
+        target_user_id -> Nullable<Uuid>,
+        target_resource_id -> Nullable<Uuid>,
+        #[max_length = 255]
+        action -> Varchar,
+        details -> Nullable<Jsonb>,
+        ip_address -> Nullable<Text>,
+        user_agent -> Nullable<Text>,
+        created_at -> Timestamptz,
+        #[max_length = 50]
+        actor_type -> Nullable<Varchar>,
+        #[max_length = 255]
+        actor_name -> Nullable<Varchar>,
+        #[max_length = 255]
+        actor_email -> Nullable<Varchar>,
+    }
+}
+
+diesel::table! {
+    audit_logs_y2026m01 (id, created_at) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        actor_id -> Nullable<Uuid>,
+        target_user_id -> Nullable<Uuid>,
+        target_resource_id -> Nullable<Uuid>,
+        #[max_length = 255]
+        action -> Varchar,
+        details -> Nullable<Jsonb>,
+        ip_address -> Nullable<Text>,
+        user_agent -> Nullable<Text>,
+        created_at -> Timestamptz,
+        #[max_length = 50]
+        actor_type -> Nullable<Varchar>,
+        #[max_length = 255]
+        actor_name -> Nullable<Varchar>,
+        #[max_length = 255]
+        actor_email -> Nullable<Varchar>,
+    }
+}
+
+diesel::table! {
+    audit_logs_y2026m02 (id, created_at) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        actor_id -> Nullable<Uuid>,
+        target_user_id -> Nullable<Uuid>,
+        target_resource_id -> Nullable<Uuid>,
+        #[max_length = 255]
+        action -> Varchar,
+        details -> Nullable<Jsonb>,
+        ip_address -> Nullable<Text>,
+        user_agent -> Nullable<Text>,
+        created_at -> Timestamptz,
+        #[max_length = 50]
+        actor_type -> Nullable<Varchar>,
+        #[max_length = 255]
+        actor_name -> Nullable<Varchar>,
+        #[max_length = 255]
+        actor_email -> Nullable<Varchar>,
+    }
+}
+
+diesel::table! {
+    audit_logs_y2026m03 (id, created_at) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        actor_id -> Nullable<Uuid>,
+        target_user_id -> Nullable<Uuid>,
+        target_resource_id -> Nullable<Uuid>,
+        #[max_length = 255]
+        action -> Varchar,
+        details -> Nullable<Jsonb>,
+        ip_address -> Nullable<Text>,
+        user_agent -> Nullable<Text>,
+        created_at -> Timestamptz,
+        #[max_length = 50]
+        actor_type -> Nullable<Varchar>,
+        #[max_length = 255]
+        actor_name -> Nullable<Varchar>,
+        #[max_length = 255]
+        actor_email -> Nullable<Varchar>,
+    }
+}
+
+diesel::table! {
+    audit_logs_y2026m04 (id, created_at) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        actor_id -> Nullable<Uuid>,
+        target_user_id -> Nullable<Uuid>,
+        target_resource_id -> Nullable<Uuid>,
+        #[max_length = 255]
+        action -> Varchar,
+        details -> Nullable<Jsonb>,
+        ip_address -> Nullable<Text>,
+        user_agent -> Nullable<Text>,
+        created_at -> Timestamptz,
+        #[max_length = 50]
+        actor_type -> Nullable<Varchar>,
+        #[max_length = 255]
+        actor_name -> Nullable<Varchar>,
+        #[max_length = 255]
+        actor_email -> Nullable<Varchar>,
+    }
+}
+
+diesel::table! {
+    audit_logs_y2026m05 (id, created_at) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        actor_id -> Nullable<Uuid>,
+        target_user_id -> Nullable<Uuid>,
+        target_resource_id -> Nullable<Uuid>,
+        #[max_length = 255]
+        action -> Varchar,
+        details -> Nullable<Jsonb>,
+        ip_address -> Nullable<Text>,
+        user_agent -> Nullable<Text>,
+        created_at -> Timestamptz,
+        #[max_length = 50]
+        actor_type -> Nullable<Varchar>,
+        #[max_length = 255]
+        actor_name -> Nullable<Varchar>,
+        #[max_length = 255]
+        actor_email -> Nullable<Varchar>,
+    }
+}
+
+diesel::table! {
+    audit_logs_y2026m06 (id, created_at) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        actor_id -> Nullable<Uuid>,
+        target_user_id -> Nullable<Uuid>,
+        target_resource_id -> Nullable<Uuid>,
+        #[max_length = 255]
+        action -> Varchar,
+        details -> Nullable<Jsonb>,
+        ip_address -> Nullable<Text>,
+        user_agent -> Nullable<Text>,
+        created_at -> Timestamptz,
+        #[max_length = 50]
+        actor_type -> Nullable<Varchar>,
+        #[max_length = 255]
+        actor_name -> Nullable<Varchar>,
+        #[max_length = 255]
+        actor_email -> Nullable<Varchar>,
+    }
+}
+
+diesel::table! {
+    audit_logs_y2026m07 (id, created_at) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        actor_id -> Nullable<Uuid>,
+        target_user_id -> Nullable<Uuid>,
+        target_resource_id -> Nullable<Uuid>,
+        #[max_length = 255]
+        action -> Varchar,
+        details -> Nullable<Jsonb>,
+        ip_address -> Nullable<Text>,
+        user_agent -> Nullable<Text>,
+        created_at -> Timestamptz,
+        #[max_length = 50]
+        actor_type -> Nullable<Varchar>,
+        #[max_length = 255]
+        actor_name -> Nullable<Varchar>,
+        #[max_length = 255]
+        actor_email -> Nullable<Varchar>,
+    }
+}
+
+diesel::table! {
+    audit_logs_y2026m08 (id, created_at) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        actor_id -> Nullable<Uuid>,
+        target_user_id -> Nullable<Uuid>,
+        target_resource_id -> Nullable<Uuid>,
+        #[max_length = 255]
+        action -> Varchar,
+        details -> Nullable<Jsonb>,
+        ip_address -> Nullable<Text>,
+        user_agent -> Nullable<Text>,
+        created_at -> Timestamptz,
+        #[max_length = 50]
+        actor_type -> Nullable<Varchar>,
+        #[max_length = 255]
+        actor_name -> Nullable<Varchar>,
+        #[max_length = 255]
+        actor_email -> Nullable<Varchar>,
+    }
+}
+
+diesel::table! {
+    audit_logs_y2026m09 (id, created_at) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        actor_id -> Nullable<Uuid>,
+        target_user_id -> Nullable<Uuid>,
+        target_resource_id -> Nullable<Uuid>,
+        #[max_length = 255]
+        action -> Varchar,
+        details -> Nullable<Jsonb>,
+        ip_address -> Nullable<Text>,
+        user_agent -> Nullable<Text>,
+        created_at -> Timestamptz,
+        #[max_length = 50]
+        actor_type -> Nullable<Varchar>,
+        #[max_length = 255]
+        actor_name -> Nullable<Varchar>,
+        #[max_length = 255]
+        actor_email -> Nullable<Varchar>,
+    }
+}
+
+diesel::table! {
+    audit_logs_y2026m10 (id, created_at) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        actor_id -> Nullable<Uuid>,
+        target_user_id -> Nullable<Uuid>,
+        target_resource_id -> Nullable<Uuid>,
+        #[max_length = 255]
+        action -> Varchar,
+        details -> Nullable<Jsonb>,
+        ip_address -> Nullable<Text>,
+        user_agent -> Nullable<Text>,
+        created_at -> Timestamptz,
+        #[max_length = 50]
+        actor_type -> Nullable<Varchar>,
+        #[max_length = 255]
+        actor_name -> Nullable<Varchar>,
+        #[max_length = 255]
+        actor_email -> Nullable<Varchar>,
+    }
+}
+
+diesel::table! {
+    audit_logs_y2026m11 (id, created_at) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        actor_id -> Nullable<Uuid>,
+        target_user_id -> Nullable<Uuid>,
+        target_resource_id -> Nullable<Uuid>,
+        #[max_length = 255]
+        action -> Varchar,
+        details -> Nullable<Jsonb>,
+        ip_address -> Nullable<Text>,
+        user_agent -> Nullable<Text>,
+        created_at -> Timestamptz,
+        #[max_length = 50]
+        actor_type -> Nullable<Varchar>,
+        #[max_length = 255]
+        actor_name -> Nullable<Varchar>,
+        #[max_length = 255]
+        actor_email -> Nullable<Varchar>,
+    }
+}
+
+diesel::table! {
+    audit_logs_y2026m12 (id, created_at) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        actor_id -> Nullable<Uuid>,
+        target_user_id -> Nullable<Uuid>,
+        target_resource_id -> Nullable<Uuid>,
+        #[max_length = 255]
+        action -> Varchar,
+        details -> Nullable<Jsonb>,
+        ip_address -> Nullable<Text>,
+        user_agent -> Nullable<Text>,
+        created_at -> Timestamptz,
+        #[max_length = 50]
+        actor_type -> Nullable<Varchar>,
+        #[max_length = 255]
+        actor_name -> Nullable<Varchar>,
+        #[max_length = 255]
+        actor_email -> Nullable<Varchar>,
+    }
+}
+
+diesel::table! {
     authorized_agents (id) {
         #[max_length = 50]
         id -> Varchar,
@@ -230,6 +785,20 @@ diesel::table! {
         max_concurrent_workers -> Int4,
         success_cooldown_secs -> Int4,
         retention_days -> Int4,
+    }
+}
+
+diesel::table! {
+    behalf_assignments (id) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        target_employee_id -> Nullable<Uuid>,
+        target_department_id -> Nullable<Uuid>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        #[max_length = 50]
+        assignment_type -> Varchar,
+        assignee_user_id -> Uuid,
     }
 }
 
@@ -306,6 +875,25 @@ diesel::table! {
 
 diesel::table! {
     use diesel::sql_types::*;
+    use super::sql_types::AssignmentStatus;
+
+    employee_assignments (id) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        employee_id -> Uuid,
+        home_location_id -> Uuid,
+        host_location_id -> Uuid,
+        start_date -> Date,
+        end_date -> Nullable<Date>,
+        reason -> Nullable<Text>,
+        status -> AssignmentStatus,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    use diesel::sql_types::*;
     use super::sql_types::ContractTypeEnum;
     use super::sql_types::ContractStatusEnum;
 
@@ -324,6 +912,7 @@ diesel::table! {
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
         deleted_at -> Nullable<Timestamptz>,
+        employer_id -> Uuid,
     }
 }
 
@@ -465,25 +1054,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    use diesel::sql_types::*;
-    use super::sql_types::AssignmentStatus;
-
-    employee_assignments (id) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        employee_id -> Uuid,
-        home_location_id -> Uuid,
-        host_location_id -> Uuid,
-        start_date -> Date,
-        end_date -> Nullable<Date>,
-        reason -> Nullable<Text>,
-        status -> AssignmentStatus,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
     employees (id) {
         id -> Uuid,
         workspace_id -> Uuid,
@@ -501,7 +1071,6 @@ diesel::table! {
         termination_date -> Nullable<Date>,
         original_hire_date -> Date,
         primary_location_id -> Uuid,
-        employer_id -> Nullable<Uuid>,
         deleted_at -> Nullable<Timestamptz>,
     }
 }
@@ -514,10 +1083,10 @@ diesel::table! {
         name -> Varchar,
         #[max_length = 50]
         tax_code -> Nullable<Varchar>,
-        #[max_length = 255]
-        legal_address -> Nullable<Varchar>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        #[max_length = 255]
+        legal_address -> Nullable<Varchar>,
         deleted_at -> Nullable<Timestamptz>,
     }
 }
@@ -694,6 +1263,21 @@ diesel::table! {
 }
 
 diesel::table! {
+    outbox_jobs (id) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        #[max_length = 50]
+        job_type -> Varchar,
+        payload -> Jsonb,
+        #[max_length = 20]
+        status -> Varchar,
+        error_message -> Nullable<Text>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     overtime_policy_assignments (id) {
         id -> Uuid,
         workspace_id -> Uuid,
@@ -718,15 +1302,40 @@ diesel::table! {
 }
 
 diesel::table! {
-    outbox_jobs (id) {
+    overtime_request_employees (id) {
+        id -> Uuid,
+        overtime_request_id -> Uuid,
+        employee_id -> Uuid,
+        #[max_length = 20]
+        consent_status -> Varchar,
+        consent_at -> Nullable<Timestamptz>,
+        decline_reason -> Nullable<Text>,
+        actual_ot_minutes -> Nullable<Int4>,
+        matched_summary_id -> Nullable<Uuid>,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::OtRequestStatusType;
+
+    overtime_requests (id) {
         id -> Uuid,
         workspace_id -> Uuid,
-        #[max_length = 50]
-        job_type -> Varchar,
-        payload -> Jsonb,
-        #[max_length = 20]
-        status -> Varchar,
-        error_message -> Nullable<Text>,
+        requested_by_user_id -> Uuid,
+        department_id -> Nullable<Uuid>,
+        planned_date -> Date,
+        planned_start_time -> Nullable<Time>,
+        planned_end_time -> Nullable<Time>,
+        planned_minutes -> Int4,
+        reason -> Text,
+        status -> OtRequestStatusType,
+        workflow_id -> Nullable<Uuid>,
+        current_step -> Int4,
+        quota_warning -> Nullable<Jsonb>,
+        reconciled_at -> Nullable<Timestamptz>,
+        reconciled_by -> Nullable<Uuid>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
     }
@@ -1070,9 +1679,9 @@ diesel::table! {
         is_active -> Bool,
         parent_shift_id -> Nullable<Uuid>,
         allow_early_ot -> Bool,
-        max_early_ot_minutes -> Nullable<Int4>,
         #[max_length = 10]
         report_symbol -> Nullable<Varchar>,
+        max_early_ot_minutes -> Nullable<Int4>,
     }
 }
 
@@ -1161,6 +1770,23 @@ diesel::table! {
 }
 
 diesel::table! {
+    work_locations (id) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        #[max_length = 255]
+        name -> Varchar,
+        address -> Nullable<Text>,
+        #[max_length = 50]
+        timezone -> Varchar,
+        is_headquarters -> Bool,
+        #[max_length = 20]
+        status -> Varchar,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     working_conditions (id) {
         id -> Uuid,
         employee_id -> Uuid,
@@ -1197,6 +1823,28 @@ diesel::table! {
         pattern_type -> Varchar,
         cycle_length_days -> Nullable<Int4>,
         deleted_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    workspace_config_entries (id) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        #[max_length = 20]
+        scope_type -> Varchar,
+        scope_id -> Nullable<Uuid>,
+        #[max_length = 100]
+        config_key -> Varchar,
+        value_int -> Nullable<Int4>,
+        value_decimal -> Nullable<Numeric>,
+        value_text -> Nullable<Text>,
+        value_bool -> Nullable<Bool>,
+        value_json -> Nullable<Jsonb>,
+        effective_from -> Date,
+        effective_to -> Nullable<Date>,
+        created_by -> Nullable<Uuid>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
     }
 }
 
@@ -1263,202 +1911,27 @@ diesel::table! {
     }
 }
 
-diesel::table! {
-    work_locations (id) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        #[max_length = 255]
-        name -> Varchar,
-        address -> Nullable<Text>,
-        #[max_length = 50]
-        timezone -> Varchar,
-        is_headquarters -> Bool,
-        #[max_length = 20]
-        status -> Varchar,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    approval_action_log (id) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        #[max_length = 50]
-        entity_type -> Varchar,
-        entity_id -> Uuid,
-        step_order -> Int4,
-        #[max_length = 100]
-        step_name -> Nullable<Varchar>,
-        acted_by_user_id -> Uuid,
-        #[max_length = 20]
-        action -> Varchar,
-        note -> Nullable<Text>,
-        acted_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    approval_workflow_steps (id) {
-        id -> Uuid,
-        workflow_id -> Uuid,
-        step_order -> Int4,
-        #[max_length = 100]
-        step_name -> Varchar,
-        #[max_length = 30]
-        approver_type -> Varchar,
-        approver_config -> Jsonb,
-        #[max_length = 20]
-        action_required -> Varchar,
-        can_skip -> Bool,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    approval_workflows (id) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        #[max_length = 50]
-        entity_type -> Varchar,
-        #[max_length = 255]
-        name -> Varchar,
-        description -> Nullable<Text>,
-        total_steps -> Int4,
-        is_active -> Bool,
-        created_by -> Nullable<Uuid>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    approval_workflow_instances (id) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        workflow_id -> Nullable<Uuid>,
-        #[max_length = 50]
-        entity_type -> Varchar,
-        entity_id -> Uuid,
-        #[max_length = 20]
-        status -> Varchar,
-        current_step_order -> Int4,
-        steps_snapshot -> Jsonb,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    approval_workflow_tasks (id) {
-        id -> Uuid,
-        instance_id -> Uuid,
-        step_order -> Int4,
-        #[max_length = 20]
-        status -> Varchar,
-        #[max_length = 30]
-        assignee_type -> Varchar,
-        assignee_target_id -> Nullable<Uuid>,
-        #[max_length = 100]
-        assignee_target_name -> Nullable<Varchar>,
-        created_at -> Timestamptz,
-        completed_at -> Nullable<Timestamptz>,
-        completed_by -> Nullable<Uuid>,
-    }
-}
-
-diesel::table! {
-    workspace_config_entries (id) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        #[max_length = 20]
-        scope_type -> Varchar,
-        scope_id -> Nullable<Uuid>,
-        #[max_length = 100]
-        config_key -> Varchar,
-        value_int -> Nullable<Int4>,
-        value_decimal -> Nullable<Numeric>,
-        value_text -> Nullable<Text>,
-        value_bool -> Nullable<Bool>,
-        value_json -> Nullable<Jsonb>,
-        effective_from -> Date,
-        effective_to -> Nullable<Date>,
-        created_by -> Nullable<Uuid>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    use diesel::sql_types::*;
-    use super::sql_types::OtRequestStatusType;
-
-    overtime_requests (id) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        requested_by_user_id -> Uuid,
-        department_id -> Nullable<Uuid>,
-        planned_date -> Date,
-        planned_start_time -> Nullable<Time>,
-        planned_end_time -> Nullable<Time>,
-        planned_minutes -> Int4,
-        reason -> Text,
-        status -> OtRequestStatusType,
-        workflow_id -> Nullable<Uuid>,
-        current_step -> Int4,
-        quota_warning -> Nullable<Jsonb>,
-        reconciled_at -> Nullable<Timestamptz>,
-        reconciled_by -> Nullable<Uuid>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    overtime_request_employees (id) {
-        id -> Uuid,
-        overtime_request_id -> Uuid,
-        employee_id -> Uuid,
-        #[max_length = 20]
-        consent_status -> Varchar,
-        consent_at -> Nullable<Timestamptz>,
-        decline_reason -> Nullable<Text>,
-        actual_ot_minutes -> Nullable<Int4>,
-        matched_summary_id -> Nullable<Uuid>,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    behalf_assignments (id) {
-        id -> Uuid,
-        workspace_id -> Uuid,
-        assignee_user_id -> Uuid,
-        target_employee_id -> Nullable<Uuid>,
-        target_department_id -> Nullable<Uuid>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-        assignment_type -> Text,
-    }
-}
-
+diesel::joinable!(approval_workflow_instances -> approval_workflows (workflow_id));
+diesel::joinable!(approval_workflow_steps -> approval_workflows (workflow_id));
+diesel::joinable!(approval_workflow_tasks -> approval_workflow_instances (instance_id));
 diesel::joinable!(assignment_rules -> working_patterns (pattern_id));
-diesel::joinable!(behalf_assignments -> users (assignee_user_id));
 diesel::joinable!(attendance_adjustment_requests -> employees (employee_id));
 diesel::joinable!(attendance_adjustment_requests -> time_entries (time_entry_id));
 diesel::joinable!(attendance_daily_summaries -> employees (employee_id));
 diesel::joinable!(attendance_policy_assignments -> attendance_policies (policy_id));
 diesel::joinable!(attendance_policy_versions -> attendance_policies (policy_id));
-diesel::joinable!(audit_logs -> workspaces (workspace_id));
-
 diesel::joinable!(authorized_agents -> workspaces (workspace_id));
+diesel::joinable!(behalf_assignments -> departments (target_department_id));
+diesel::joinable!(behalf_assignments -> employees (target_employee_id));
 diesel::joinable!(department_default_shifts -> departments (department_id));
 diesel::joinable!(department_default_shifts -> shifts (shift_id));
 diesel::joinable!(department_payroll_configs -> departments (department_id));
 diesel::joinable!(departments -> employees (manager_id));
 diesel::joinable!(departments -> working_patterns (default_working_pattern_id));
+diesel::joinable!(employee_assignments -> employees (employee_id));
 diesel::joinable!(employee_contracts -> employee_documents (document_id));
 diesel::joinable!(employee_contracts -> employees (employee_id));
+diesel::joinable!(employee_contracts -> employers (employer_id));
 diesel::joinable!(employee_department_history -> departments (department_id));
 diesel::joinable!(employee_department_history -> employees (employee_id));
 diesel::joinable!(employee_documents -> employees (employee_id));
@@ -1473,6 +1946,7 @@ diesel::joinable!(employee_shifts -> employees (employee_id));
 diesel::joinable!(employee_shifts -> shifts (shift_id));
 diesel::joinable!(employee_working_patterns -> employees (employee_id));
 diesel::joinable!(employee_working_patterns -> working_patterns (pattern_id));
+diesel::joinable!(employees -> work_locations (primary_location_id));
 diesel::joinable!(holidays -> leave_types (leave_type_id));
 diesel::joinable!(leave_accrual_logs -> employees (employee_id));
 diesel::joinable!(leave_accrual_logs -> leave_policy_assignments (policy_assignment_id));
@@ -1488,6 +1962,11 @@ diesel::joinable!(member_extra_roles -> workspace_roles (role_id));
 diesel::joinable!(member_extra_roles -> workspaces (workspace_id));
 diesel::joinable!(notifications -> users (user_id));
 diesel::joinable!(overtime_policy_assignments -> overtime_policy_definitions (policy_id));
+diesel::joinable!(overtime_request_employees -> attendance_daily_summaries (matched_summary_id));
+diesel::joinable!(overtime_request_employees -> employees (employee_id));
+diesel::joinable!(overtime_request_employees -> overtime_requests (overtime_request_id));
+diesel::joinable!(overtime_requests -> approval_workflows (workflow_id));
+diesel::joinable!(overtime_requests -> departments (department_id));
 diesel::joinable!(overtime_rules -> overtime_policy_definitions (policy_id));
 diesel::joinable!(payroll_incentive_assignments -> payroll_incentive_policies (policy_id));
 diesel::joinable!(payroll_incentive_tiers -> payroll_incentive_policies (policy_id));
@@ -1518,24 +1997,13 @@ diesel::joinable!(workspace_members -> users (user_id));
 diesel::joinable!(workspace_members -> workspace_roles (role_id));
 diesel::joinable!(workspace_members -> workspaces (workspace_id));
 diesel::joinable!(workspace_role_permissions -> workspace_roles (role_id));
-diesel::joinable!(employees -> work_locations (primary_location_id));
-diesel::joinable!(employees -> employers (employer_id));
-diesel::joinable!(employee_assignments -> employees (employee_id));
-diesel::joinable!(employee_assignments -> work_locations (home_location_id));
-diesel::joinable!(approval_workflow_instances -> approval_workflows (workflow_id));
-diesel::joinable!(approval_workflow_tasks -> approval_workflow_instances (instance_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
-    behalf_assignments,
     approval_action_log,
     approval_workflow_instances,
-    approval_workflow_tasks,
     approval_workflow_steps,
+    approval_workflow_tasks,
     approval_workflows,
-    overtime_request_employees,
-    overtime_requests,
-    workspace_config_entries,
-    audit_logs,
     assignment_rules,
     attendance_adjustment_requests,
     attendance_daily_summaries,
@@ -1545,12 +2013,41 @@ diesel::allow_tables_to_appear_in_same_query!(
     attendance_policy_assignments,
     attendance_policy_versions,
     attendance_staging_logs,
+    attendance_staging_logs_default,
+    attendance_staging_logs_y2026m01,
+    attendance_staging_logs_y2026m02,
+    attendance_staging_logs_y2026m03,
+    attendance_staging_logs_y2026m04,
+    attendance_staging_logs_y2026m05,
+    attendance_staging_logs_y2026m06,
+    attendance_staging_logs_y2026m07,
+    attendance_staging_logs_y2026m08,
+    attendance_staging_logs_y2026m09,
+    attendance_staging_logs_y2026m10,
+    attendance_staging_logs_y2026m11,
+    attendance_staging_logs_y2026m12,
+    audit_logs,
+    audit_logs_default,
+    audit_logs_y2026m01,
+    audit_logs_y2026m02,
+    audit_logs_y2026m03,
+    audit_logs_y2026m04,
+    audit_logs_y2026m05,
+    audit_logs_y2026m06,
+    audit_logs_y2026m07,
+    audit_logs_y2026m08,
+    audit_logs_y2026m09,
+    audit_logs_y2026m10,
+    audit_logs_y2026m11,
+    audit_logs_y2026m12,
     authorized_agents,
+    behalf_assignments,
     dashboard_preferences,
     department_default_shifts,
     department_payroll_configs,
     departments,
     devices,
+    employee_assignments,
     employee_contracts,
     employee_department_history,
     employee_documents,
@@ -1559,7 +2056,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     employee_phases,
     employee_profiles,
     employee_salary_components,
-    employee_assignments,
     employee_shifts,
     employee_working_patterns,
     employees,
@@ -1578,6 +2074,8 @@ diesel::allow_tables_to_appear_in_same_query!(
     outbox_jobs,
     overtime_policy_assignments,
     overtime_policy_definitions,
+    overtime_request_employees,
+    overtime_requests,
     overtime_rules,
     payroll_incentive_assignments,
     payroll_incentive_policies,
@@ -1606,16 +2104,14 @@ diesel::allow_tables_to_appear_in_same_query!(
     time_entries,
     user_system_roles,
     users,
+    work_locations,
     working_conditions,
     working_pattern_details,
     working_patterns,
+    workspace_config_entries,
     workspace_member_extra_permissions,
     workspace_members,
     workspace_role_permissions,
     workspace_roles,
     workspaces,
 );
-
-diesel::allow_tables_to_appear_in_same_query!(work_locations, employees,);
-
-diesel::allow_tables_to_appear_in_same_query!(work_locations, workspaces,);

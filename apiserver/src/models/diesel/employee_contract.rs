@@ -75,6 +75,7 @@ pub struct EmployeeContractEntity {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
+    pub employer_id: Uuid,
 }
 
 impl From<EmployeeContractEntity> for EmployeeContract {
@@ -92,6 +93,7 @@ impl From<EmployeeContractEntity> for EmployeeContract {
             val.notes,
             val.created_at,
             val.updated_at,
+            val.employer_id,
         )
     }
 }
@@ -107,4 +109,5 @@ pub struct UpdateDieselEmployeeContract {
     pub document_id: Option<Option<Uuid>>,
     pub notes: Option<Option<String>>,
     pub updated_at: Option<DateTime<Utc>>,
+    pub employer_id: Option<Uuid>,
 }
