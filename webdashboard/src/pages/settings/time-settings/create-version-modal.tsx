@@ -160,7 +160,7 @@ function WorkUnitInput({
             value: "60",
           },
         ]}
-        value={workUnit.toString() || "15"}
+        value={workUnit?.toString() ?? "15"}
       />
     </div>
   );

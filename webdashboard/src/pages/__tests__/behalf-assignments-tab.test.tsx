@@ -7,7 +7,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ToastProvider } from "../../components/ui/toast";
 import { useBehalfAssignments } from "../../hooks/use-behalf-assignments";
-import { useAllEmployees } from "../../hooks/use-employees";
 import { fetchDepartments } from "../../lib/api";
 import { BehalfAssignmentsTab } from "../approvals/components/behalf-assignments-tab";
 
@@ -118,14 +117,28 @@ vi.mock("react-i18next", () => {
 
 // Mock EmployeeSearch
 vi.mock("@/components/common/employee-search", () => ({
-  EmployeeSearch: ({ id, value, onChange, placeholder }: any) => (
-    <input
-      data-testid={id}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      value={value}
-    />
-  ),
+  EmployeeSearch: ({ id, value, onChange, placeholder, onSelectEmployee }: any) => {
+    const mockEmployees = [
+      { id: "emp-1", full_name: "Alice Smith", employee_id_number: "E001", user_id: "user-1" },
+      { id: "emp-2", full_name: "Bob Jones", employee_id_number: "E002", user_id: "user-2" },
+      { id: "emp-3", full_name: "Charlie Brown", employee_id_number: "E003", user_id: "user-3" },
+    ];
+    return (
+      <input
+        data-testid={id}
+        onChange={(e) => {
+          const val = e.target.value;
+          onChange(val);
+          const emp = mockEmployees.find((emp) => emp.id === val);
+          if (emp && onSelectEmployee) {
+            onSelectEmployee(emp);
+          }
+        }}
+        placeholder={placeholder}
+        value={value}
+      />
+    );
+  },
 }));
 
 // Mock Combobox
@@ -175,10 +188,6 @@ vi.mock("@/hooks/use-behalf-assignments", () => ({
   useBehalfAssignments: vi.fn(),
 }));
 
-vi.mock("@/hooks/use-employees", () => ({
-  useAllEmployees: vi.fn(),
-}));
-
 vi.mock("@/lib/api", () => ({
   fetchDepartments: vi.fn(),
 }));
@@ -209,14 +218,24 @@ describe("BehalfAssignmentsTab", () => {
     {
       id: "assign-1",
       assignee_user_id: "user-1",
+      assignee_name: "Alice Smith",
+      assignee_employee_id_number: "E001",
       target_employee_id: "emp-2",
+      target_employee_name: "Bob Jones",
+      target_employee_id_number: "E002",
       target_department_id: null,
+      target_department_name: null,
     },
     {
       id: "assign-2",
       assignee_user_id: "user-1",
+      assignee_name: "Alice Smith",
+      assignee_employee_id_number: "E001",
       target_employee_id: null,
+      target_employee_name: null,
+      target_employee_id_number: null,
       target_department_id: "dept-1",
+      target_department_name: "Engineering",
     },
   ];
 
@@ -238,15 +257,6 @@ describe("BehalfAssignmentsTab", () => {
     };
 
     vi.mocked(useBehalfAssignments).mockReturnValue(defaultHookReturn);
-
-    vi.mocked(useAllEmployees).mockReturnValue({
-      employees: mockEmployees,
-      employeesData: { data: mockEmployees, total: mockEmployees.length, page: 1, limit: 3000 },
-      isLoading: false,
-      isError: false,
-      error: null,
-      refetch: vi.fn(),
-    });
 
     vi.mocked(fetchDepartments).mockResolvedValue(mockDepartments);
   });

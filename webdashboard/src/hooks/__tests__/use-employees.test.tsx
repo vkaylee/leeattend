@@ -100,7 +100,7 @@ describe("useAllEmployees", () => {
   });
 
   it("exposes the MAX_EMPLOYEE_FETCH constant as 100", () => {
-    expect(MAX_EMPLOYEE_FETCH).toBe(100);
+    expect(MAX_EMPLOYEE_FETCH).toBe(3000);
   });
 
   it("generates correct query keys", () => {

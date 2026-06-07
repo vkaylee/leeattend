@@ -4129,6 +4129,8 @@ export interface components {
             status: string;
         };
         BehalfAssignment: {
+            assignee_employee_id_number?: string | null;
+            assignee_name?: string | null;
             /** Format: uuid */
             assignee_user_id: string;
             assignment_type: string;
@@ -4138,8 +4140,11 @@ export interface components {
             id: string;
             /** Format: uuid */
             target_department_id?: string | null;
+            target_department_name?: string | null;
             /** Format: uuid */
             target_employee_id?: string | null;
+            target_employee_id_number?: string | null;
+            target_employee_name?: string | null;
             /** Format: date-time */
             updated_at: string;
             /** Format: uuid */
@@ -4363,6 +4368,8 @@ export interface components {
              * @description When is_paid=false, which leave type to auto-deduct.
              */
             leave_type_id?: string | null;
+            /** Format: uuid */
+            location_id?: string | null;
             name: string;
             ot_multiplier?: string | null;
             /** Format: int32 */
@@ -5050,6 +5057,8 @@ export interface components {
              * @description When is_paid=false, which leave type to auto-deduct from employee balance.
              */
             leave_type_id?: string | null;
+            /** Format: uuid */
+            location_id?: string | null;
             name: string;
             /** @description Per-holiday OT multiplier override. None = use workspace default. */
             ot_multiplier?: string | null;
@@ -6416,6 +6425,8 @@ export interface components {
             is_paid?: boolean | null;
             /** Format: uuid */
             leave_type_id?: string | null;
+            /** Format: uuid */
+            location_id?: string | null;
             name?: string | null;
             ot_multiplier?: string | null;
             /** Format: int32 */
@@ -12002,6 +12013,7 @@ export interface operations {
         parameters: {
             query?: {
                 year?: number | null;
+                location_id?: string | null;
             };
             header?: never;
             path: {

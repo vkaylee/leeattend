@@ -223,6 +223,12 @@ pub struct BehalfAssignment {
     assignment_type: String,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
+    // Optional joined details for client optimization
+    assignee_name: Option<String>,
+    assignee_employee_id_number: Option<String>,
+    target_employee_name: Option<String>,
+    target_employee_id_number: Option<String>,
+    target_department_name: Option<String>,
 }
 
 impl BehalfAssignment {
@@ -246,6 +252,11 @@ impl BehalfAssignment {
             assignment_type,
             created_at,
             updated_at,
+            assignee_name: None,
+            assignee_employee_id_number: None,
+            target_employee_name: None,
+            target_employee_id_number: None,
+            target_department_name: None,
         }
     }
 
@@ -279,6 +290,46 @@ impl BehalfAssignment {
 
     pub fn updated_at(&self) -> DateTime<Utc> {
         self.updated_at
+    }
+
+    pub fn assignee_name(&self) -> Option<&str> {
+        self.assignee_name.as_deref()
+    }
+
+    pub fn set_assignee_name(&mut self, val: Option<String>) {
+        self.assignee_name = val;
+    }
+
+    pub fn assignee_employee_id_number(&self) -> Option<&str> {
+        self.assignee_employee_id_number.as_deref()
+    }
+
+    pub fn set_assignee_employee_id_number(&mut self, val: Option<String>) {
+        self.assignee_employee_id_number = val;
+    }
+
+    pub fn target_employee_name(&self) -> Option<&str> {
+        self.target_employee_name.as_deref()
+    }
+
+    pub fn set_target_employee_name(&mut self, val: Option<String>) {
+        self.target_employee_name = val;
+    }
+
+    pub fn target_employee_id_number(&self) -> Option<&str> {
+        self.target_employee_id_number.as_deref()
+    }
+
+    pub fn set_target_employee_id_number(&mut self, val: Option<String>) {
+        self.target_employee_id_number = val;
+    }
+
+    pub fn target_department_name(&self) -> Option<&str> {
+        self.target_department_name.as_deref()
+    }
+
+    pub fn set_target_department_name(&mut self, val: Option<String>) {
+        self.target_department_name = val;
     }
 }
 

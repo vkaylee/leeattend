@@ -10,7 +10,6 @@ import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useBehalfAssignments } from "@/hooks/use-behalf-assignments";
-import { useAllEmployees } from "@/hooks/use-employees";
 import { fetchDepartments } from "@/lib/api";
 import { BehalfAssignment, Employee } from "@/lib/api/types";
 
@@ -22,6 +21,7 @@ interface AddAssignmentFormProps {
   onCancel: () => void;
   onSubmit: (e: React.SyntheticEvent) => void;
   setAssigneeId: (id: string) => void;
+  onSelectAssigneeEmployee: (emp: Employee | null) => void;
   setTargetDepartmentId: (id: string) => void;
   setTargetEmployeeId: (id: string) => void;
   setTargetType: (type: "employee" | "department") => void;
@@ -39,7 +39,6 @@ interface AssignmentItemProps {
     id: string;
     name: string;
   }[];
-  employees: Employee[];
   isDeleting: boolean;
   onDelete: (id: string) => Promise<void>;
 }
@@ -110,17 +109,30 @@ function AssignmentItem({
   assignment,
   assignmentType,
   departments,
-  employees,
   isDeleting,
   onDelete,
 }: AssignmentItemProps) {
   const { t } = useTranslation();
-  const assignee = employees.find((e) => e.user_id === assignment.assignee_user_id);
-  const targetEmp = employees.find((e) => e.id === assignment.target_employee_id) ?? null;
-  const targetDept = departments.find((d) => d.id === assignment.target_department_id) ?? null;
 
   const assigneeLabel = t(`behalf_assignments.assignee_labels.${assignmentType}`);
   const targetLabel = t(`behalf_assignments.target_labels.${assignmentType}`);
+
+  const targetEmp = assignment.target_employee_id
+    ? {
+        full_name: assignment.target_employee_name ?? t("behalf_assignments.unknown_employee"),
+        employee_id_number: assignment.target_employee_id_number,
+      }
+    : null;
+
+  const targetDept = assignment.target_department_id
+    ? {
+        name: assignment.target_department_name ?? t("behalf_assignments.unknown_department"),
+        description: departments.find((d) => d.id === assignment.target_department_id)?.description ?? null,
+      }
+    : null;
+
+  const assigneeName = assignment.assignee_name ?? t("behalf_assignments.unknown_employee");
+  const assigneeIdNumber = assignment.assignee_employee_id_number;
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all duration-200">
@@ -130,11 +142,11 @@ function AssignmentItem({
             {assigneeLabel}
           </span>
           <span className="font-bold text-slate-800 dark:text-slate-200 text-sm mt-0.5">
-            {assignee?.full_name ?? t("behalf_assignments.unknown_employee")}
+            {assigneeName}
           </span>
-          {assignee?.employee_id_number ? (
+          {assigneeIdNumber ? (
             <span className="text-[10px] text-slate-400 font-mono mt-0.5">
-              {assignee.employee_id_number}
+              {assigneeIdNumber}
             </span>
           ) : null}
         </div>
@@ -173,6 +185,7 @@ function AddAssignmentForm({
   onCancel,
   onSubmit,
   setAssigneeId,
+  onSelectAssigneeEmployee,
   setTargetDepartmentId,
   setTargetEmployeeId,
   setTargetType,
@@ -212,7 +225,14 @@ function AddAssignmentForm({
           clearOnEscape
           emptyQueryBehavior="prompt-to-type"
           id="submitter-select"
-          onChange={(val) => { setAssigneeId(typeof val === "string" ? val : val[0] ?? ""); }}
+          onChange={(val) => {
+            const id = typeof val === "string" ? val : val[0] ?? "";
+            setAssigneeId(id);
+            if (!id) {
+              onSelectAssigneeEmployee(null);
+            }
+          }}
+          onSelectEmployee={onSelectAssigneeEmployee}
           permission={
             assignmentType === "ot"
               ? "overtime:claim_on_behalf"
@@ -424,9 +444,6 @@ export function BehalfAssignmentsTab({
     isDeleting,
   } = useBehalfAssignments(assignmentType);
 
-  const { employees: allEmployees, isLoading: allEmployeesLoading } = useAllEmployees(wsId);
-  const employeesLoading = allEmployeesLoading;
-
   const { data: departments = [], isLoading: deptsLoading } = useQuery({
     queryKey: ["departments", wsId],
     queryFn: () => fetchDepartments(wsId),
@@ -435,6 +452,7 @@ export function BehalfAssignmentsTab({
 
   const [isOpen, setIsOpen] = useState(false);
   const [assigneeId, setAssigneeId] = useState("");
+  const [selectedAssigneeEmployee, setSelectedAssigneeEmployee] = useState<Employee | null>(null);
   const [targetType, setTargetType] = useState<"employee" | "department">("employee");
   const [targetEmployeeId, setTargetEmployeeId] = useState("");
   const [targetDepartmentId, setTargetDepartmentId] = useState("");
@@ -462,15 +480,14 @@ export function BehalfAssignmentsTab({
     e.preventDefault();
     if (!validateForm()) return;
 
-    const selectedEmployee = allEmployees.find((emp) => emp.id === assigneeId);
-    if (!selectedEmployee?.user_id) {
+    if (!selectedAssigneeEmployee?.user_id) {
       toast.error(t("behalf_assignments.toasts.no_linked_user"));
       return;
     }
 
     try {
       const payload: BehalfAssignmentInput = {
-        assignee_user_id: selectedEmployee.user_id,
+        assignee_user_id: selectedAssigneeEmployee.user_id,
         target_department_id: targetType === "department" ? targetDepartmentId : null,
         target_employee_id: targetType === "employee" ? targetEmployeeId : null,
       };
@@ -478,6 +495,7 @@ export function BehalfAssignmentsTab({
       toast.success(t("behalf_assignments.toasts.create_success"));
       setIsOpen(false);
       setAssigneeId("");
+      setSelectedAssigneeEmployee(null);
       setTargetEmployeeId("");
       setTargetDepartmentId("");
     } catch (err: unknown) {
@@ -498,7 +516,7 @@ export function BehalfAssignmentsTab({
     }
   };
 
-  const isLoading = assignmentsLoading || employeesLoading || deptsLoading;
+  const isLoading = assignmentsLoading || deptsLoading;
 
   if (isLoading && assignments.length === 0) {
     return (
@@ -535,7 +553,6 @@ export function BehalfAssignmentsTab({
               assignment={assignment}
               assignmentType={assignmentType}
               departments={departments}
-              employees={allEmployees}
               isDeleting={isDeleting}
               key={assignment.id}
               onDelete={handleDelete}
@@ -561,6 +578,7 @@ export function BehalfAssignmentsTab({
           }}
           onSubmit={handleCreate}
           setAssigneeId={setAssigneeId}
+          onSelectAssigneeEmployee={setSelectedAssigneeEmployee}
           setTargetDepartmentId={setTargetDepartmentId}
           setTargetEmployeeId={setTargetEmployeeId}
           setTargetType={setTargetType}

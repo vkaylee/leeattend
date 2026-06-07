@@ -96,15 +96,99 @@ impl BehalfAssignmentRepository for DieselBehalfAssignmentRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        behalf_assignments::table
+        let rows: Vec<BehalfAssignmentEntity> = behalf_assignments::table
             .filter(behalf_assignments::workspace_id.eq(workspace_id))
             .filter(behalf_assignments::assignment_type.eq(assignment_type))
             .order(behalf_assignments::created_at.desc())
             .select(BehalfAssignmentEntity::as_select())
             .load(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))
-            .map(|rows| rows.into_iter().map(Into::into).collect())
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        if rows.is_empty() {
+            return Ok(vec![]);
+        }
+
+        // 1. Fetch Assignee Employees
+        let assignee_user_ids: Vec<Uuid> = rows.iter().map(|a| a.assignee_user_id).collect();
+        let assignees: Vec<(Option<Uuid>, String, String)> = crate::schema::employees::table
+            .filter(crate::schema::employees::workspace_id.eq(workspace_id))
+            .filter(crate::schema::employees::deleted_at.is_null())
+            .filter(crate::schema::employees::user_id.is_not_null())
+            .filter(crate::schema::employees::user_id.eq_any(assignee_user_ids))
+            .select((
+                crate::schema::employees::user_id,
+                crate::schema::employees::full_name,
+                crate::schema::employees::employee_id_number,
+            ))
+            .load(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        // 2. Fetch Target Employees
+        let target_emp_ids: Vec<Uuid> = rows.iter().filter_map(|a| a.target_employee_id).collect();
+        let targets: Vec<(Uuid, String, String)> = crate::schema::employees::table
+            .filter(crate::schema::employees::workspace_id.eq(workspace_id))
+            .filter(crate::schema::employees::deleted_at.is_null())
+            .filter(crate::schema::employees::id.eq_any(target_emp_ids))
+            .select((
+                crate::schema::employees::id,
+                crate::schema::employees::full_name,
+                crate::schema::employees::employee_id_number,
+            ))
+            .load(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        // 3. Fetch Target Departments
+        let target_dept_ids: Vec<Uuid> =
+            rows.iter().filter_map(|a| a.target_department_id).collect();
+        let depts: Vec<(Uuid, String)> = crate::schema::departments::table
+            .filter(crate::schema::departments::workspace_id.eq(workspace_id))
+            .filter(crate::schema::departments::deleted_at.is_null())
+            .filter(crate::schema::departments::id.eq_any(target_dept_ids))
+            .select((
+                crate::schema::departments::id,
+                crate::schema::departments::name,
+            ))
+            .load(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let assignee_map: std::collections::HashMap<Uuid, (String, String)> = assignees
+            .into_iter()
+            .filter_map(|(uid, name, id_num)| uid.map(|id| (id, (name, id_num))))
+            .collect();
+
+        let target_map: std::collections::HashMap<Uuid, (String, String)> = targets
+            .into_iter()
+            .map(|(eid, name, id_num)| (eid, (name, id_num)))
+            .collect();
+
+        let dept_map: std::collections::HashMap<Uuid, String> = depts.into_iter().collect();
+
+        let mut results = Vec::new();
+        for row in rows {
+            let mut item: BehalfAssignment = row.into();
+            if let Some((name, id_num)) = assignee_map.get(&item.assignee_user_id()) {
+                item.set_assignee_name(Some(name.clone()));
+                item.set_assignee_employee_id_number(Some(id_num.clone()));
+            }
+            if let Some(target_id) = item.target_employee_id() {
+                if let Some((name, id_num)) = target_map.get(&target_id) {
+                    item.set_target_employee_name(Some(name.clone()));
+                    item.set_target_employee_id_number(Some(id_num.clone()));
+                }
+            }
+            if let Some(dept_id) = item.target_department_id() {
+                if let Some(name) = dept_map.get(&dept_id) {
+                    item.set_target_department_name(Some(name.clone()));
+                }
+            }
+            results.push(item);
+        }
+
+        Ok(results)
     }
 
     async fn check_behalf_permission(
