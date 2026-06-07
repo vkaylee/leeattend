@@ -176,6 +176,15 @@ async fn test_incentive_policy_delete() {
     assert_eq!(resp.status(), StatusCode::OK);
     let list = body_json(resp).await;
     assert!(list.as_array().unwrap().is_empty());
+
+    // Verify that the record is still present in the database but soft-deleted (deleted_at is NOT NULL)
+    let deleted_count: i64 = crate::test_query_scalar_i64!(
+        &test_db.diesel_pools.api,
+        "SELECT COUNT(*) FROM payroll_incentive_policies WHERE id = $1 AND deleted_at IS NOT NULL",
+        diesel::sql_types::Uuid,
+        policy_id
+    );
+    assert_eq!(deleted_count, 1);
 }
 
 #[tokio::test]
