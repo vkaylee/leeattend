@@ -1150,6 +1150,7 @@ mod tests {
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _y: Option<i32>,
+            _location_id: Option<Uuid>,
         ) -> Result<Vec<Holiday>, AppError> {
             unimplemented!()
         }
@@ -1194,6 +1195,7 @@ mod tests {
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _d: NaiveDate,
+            _location_id: Option<Uuid>,
         ) -> Result<Option<Holiday>, AppError> {
             unimplemented!()
         }
@@ -2192,6 +2194,7 @@ mod tests {
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _y: Option<i32>,
+            _location_id: Option<Uuid>,
         ) -> Result<Vec<Holiday>, AppError> {
             unimplemented!()
         }
@@ -2236,6 +2239,7 @@ mod tests {
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _d: NaiveDate,
+            _location_id: Option<Uuid>,
         ) -> Result<Option<Holiday>, AppError> {
             unimplemented!()
         }

@@ -51,33 +51,6 @@ pub struct UpdateDieselDepartment {
 }
 
 #[derive(Queryable, Selectable, Identifiable, Clone, Debug)]
-#[diesel(table_name = crate::schema::department_payroll_configs)]
-pub struct DieselDepartmentPayrollConfig {
-    pub id: Uuid,
-    pub department_id: Uuid,
-    pub std_working_days: bigdecimal::BigDecimal,
-    pub effective_date: chrono::NaiveDate,
-    pub created_at: Option<DateTime<Utc>>,
-    pub hours_per_day: bigdecimal::BigDecimal,
-}
-
-impl From<DieselDepartmentPayrollConfig> for crate::models::DepartmentPayrollConfig {
-    fn from(val: DieselDepartmentPayrollConfig) -> Self {
-        use std::str::FromStr;
-        crate::models::DepartmentPayrollConfig {
-            id: val.id,
-            department_id: val.department_id,
-            std_working_days: rust_decimal::Decimal::from_str(&val.std_working_days.to_string())
-                .unwrap_or_default(),
-            effective_date: val.effective_date,
-            created_at: val.created_at.unwrap_or_else(Utc::now),
-            hours_per_day: rust_decimal::Decimal::from_str(&val.hours_per_day.to_string())
-                .unwrap_or_default(),
-        }
-    }
-}
-
-#[derive(Queryable, Selectable, Identifiable, Clone, Debug)]
 #[diesel(table_name = crate::schema::employee_department_history)]
 pub struct DieselEmployeeDepartmentHistory {
     pub id: Uuid,
@@ -158,37 +131,6 @@ mod tests {
         assert_eq!(dept.id(), id);
         assert_eq!(dept.description(), None);
         assert!(dept.created_at() <= Utc::now());
-    }
-
-    #[test]
-    fn test_diesel_department_payroll_config_from() {
-        let id = Uuid::new_v4();
-        let dept_id = Uuid::new_v4();
-        let effective = NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
-        let now = Utc::now();
-
-        let diesel_config = DieselDepartmentPayrollConfig {
-            id,
-            department_id: dept_id,
-            std_working_days: bigdecimal::BigDecimal::from_str("21.5").unwrap(),
-            effective_date: effective,
-            created_at: Some(now),
-            hours_per_day: bigdecimal::BigDecimal::from_str("8.0").unwrap(),
-        };
-
-        let config: crate::models::DepartmentPayrollConfig = diesel_config.into();
-        assert_eq!(config.id, id);
-        assert_eq!(config.department_id, dept_id);
-        assert_eq!(config.effective_date, effective);
-        assert_eq!(config.created_at, now);
-        assert_eq!(
-            config.std_working_days,
-            rust_decimal::Decimal::from_str("21.5").unwrap()
-        );
-        assert_eq!(
-            config.hours_per_day,
-            rust_decimal::Decimal::from_str("8.0").unwrap()
-        );
     }
 
     #[test]

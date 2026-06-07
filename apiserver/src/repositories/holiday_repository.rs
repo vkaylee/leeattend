@@ -28,6 +28,7 @@ pub trait HolidayRepository: Send + Sync {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         year: Option<i32>,
+        location_id: Option<Uuid>,
     ) -> Result<Vec<Holiday>, AppError>;
     async fn get_by_id(
         &self,
@@ -60,6 +61,7 @@ pub trait HolidayRepository: Send + Sync {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         date: NaiveDate,
+        location_id: Option<Uuid>,
     ) -> Result<Option<Holiday>, AppError>;
 
     /// Executes a bulk insertion of leave requests, shift rosters, and leave accrual logs

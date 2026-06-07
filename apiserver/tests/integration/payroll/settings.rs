@@ -50,10 +50,13 @@ async fn test_payroll_settings_update_and_history() {
     // Seed initial payroll settings
     crate::test_execute!(
         &test_db.diesel_pools.api,
-        r"INSERT INTO payroll_settings
-           (workspace_id, std_working_day_mode, fixed_std_days, working_days_per_week, hours_per_day, effective_date)
-           VALUES ($1, 'fixed', 26, 6, 8, '2026-01-01')
-           ON CONFLICT (workspace_id, effective_date) DO NOTHING",
+        r"INSERT INTO workspace_config_entries
+           (workspace_id, scope_type, scope_id, config_key, value_text, value_decimal, value_int, effective_from)
+           VALUES 
+             ($1, 'workspace', NULL, 'payroll.std_working_day_mode', 'fixed', NULL, NULL, '2026-01-01'),
+             ($1, 'workspace', NULL, 'payroll.fixed_std_days', NULL, 26, NULL, '2026-01-01'),
+             ($1, 'workspace', NULL, 'payroll.working_days_per_week', NULL, NULL, 6, '2026-01-01'),
+             ($1, 'workspace', NULL, 'payroll.hours_per_day', NULL, 8, NULL, '2026-01-01')",
         diesel::sql_types::Uuid,
         ws_id
     );

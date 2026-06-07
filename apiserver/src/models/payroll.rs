@@ -187,11 +187,45 @@ pub struct PayrollSettings {
     pub updated_at: DateTime<Utc>,
 }
 
+pub mod serde_decimal_as_str {
+    use rust_decimal::Decimal;
+    use serde::{self, Deserialize, Deserializer, Serializer};
+    use std::str::FromStr;
+
+    pub fn serialize<S>(value: &Decimal, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&value.normalize().to_string())
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Decimal, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum StringOrNumber {
+            String(String),
+            Number(serde_json::Number),
+        }
+
+        match StringOrNumber::deserialize(deserializer)? {
+            StringOrNumber::String(s) => Decimal::from_str(&s).map_err(serde::de::Error::custom),
+            StringOrNumber::Number(n) => {
+                Decimal::from_str(&n.to_string()).map_err(serde::de::Error::custom)
+            }
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct DepartmentPayrollConfig {
     pub id: Uuid,
     pub department_id: Uuid,
+    #[serde(with = "serde_decimal_as_str")]
     pub std_working_days: rust_decimal::Decimal,
+    #[serde(with = "serde_decimal_as_str")]
     pub hours_per_day: rust_decimal::Decimal,
     pub effective_date: NaiveDate,
     pub created_at: DateTime<Utc>,
@@ -201,7 +235,9 @@ pub struct DepartmentPayrollConfig {
 pub struct EmployeePayrollConfig {
     pub id: Uuid,
     pub employee_id: Uuid,
+    #[serde(with = "serde_decimal_as_str")]
     pub std_working_days: rust_decimal::Decimal,
+    #[serde(with = "serde_decimal_as_str")]
     pub hours_per_day: rust_decimal::Decimal,
     pub effective_date: NaiveDate,
     pub created_at: DateTime<Utc>,
@@ -445,5 +481,20 @@ mod tests {
         let back: IncentiveEvaluationResult = serde_json::from_str(&json).unwrap();
         assert_eq!(back.policy_name, "Attendance Bonus");
         assert_eq!(back.amount, Decimal::from(1000));
+    }
+
+    #[test]
+    fn test_payroll_config_serde_serialization() {
+        let config = DepartmentPayrollConfig {
+            id: Uuid::new_v4(),
+            department_id: Uuid::new_v4(),
+            std_working_days: Decimal::new(2200, 2),
+            hours_per_day: Decimal::new(800, 2),
+            effective_date: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            created_at: chrono::Utc::now(),
+        };
+        let val: serde_json::Value = serde_json::to_value(&config).unwrap();
+        assert_eq!(val["std_working_days"], serde_json::json!("22"));
+        assert_eq!(val["hours_per_day"], serde_json::json!("8"));
     }
 }

@@ -839,6 +839,7 @@ mod tests {
                 false,
                 Utc::now(),
                 Utc::now(),
+                None,
             ),
         );
 
@@ -977,6 +978,7 @@ mod tests {
                 true,
                 Utc::now(),
                 Utc::now(),
+                None,
             ),
         );
 

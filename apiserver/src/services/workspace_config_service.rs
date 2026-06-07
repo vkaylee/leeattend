@@ -1,5 +1,5 @@
 use crate::errors::{AppError, AppResult};
-use crate::models::WorkspaceConfigEntry;
+use crate::models::{EffectivePayrollSettings, WorkspaceConfigEntry, WorkspaceConfigResolver};
 use crate::repositories::WorkspaceConfigRepository;
 use crate::utils::i18n::I18nKey;
 use chrono::NaiveDate;
@@ -76,6 +76,22 @@ impl WorkspaceConfigService {
         self.workspace_config_repo
             .delete_entry(auth_token, entry_id)
             .await
+    }
+
+    pub async fn get_effective_payroll_settings(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_id: Uuid,
+        department_id: Option<Uuid>,
+        employer_id: Option<Uuid>,
+        target_date: NaiveDate,
+    ) -> AppResult<EffectivePayrollSettings> {
+        let entries = self
+            .workspace_config_repo
+            .list_entries(auth_token, auth_token.workspace_id(), None)
+            .await?;
+        let resolver = WorkspaceConfigResolver::new(entries);
+        Ok(resolver.resolve_payroll_settings(employee_id, department_id, employer_id, target_date))
     }
 
     #[allow(clippy::similar_names)]
@@ -870,5 +886,152 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(mult, rust_decimal::Decimal::new(35, 1));
+    }
+
+    #[tokio::test]
+    async fn test_get_effective_payroll_settings() {
+        let repo = Arc::new(MockWorkspaceConfigRepository::new());
+        let service = WorkspaceConfigService::new(repo.clone());
+        let ws_id = Uuid::new_v4();
+        let token = TenantAuthToken::system_override(ws_id);
+
+        let emp_id = Uuid::new_v4();
+        let dept_id = Uuid::new_v4();
+        let employer_id = Uuid::new_v4();
+        let target_date = Utc::now().date_naive();
+
+        // 1. Fallback Default
+        let settings = service
+            .get_effective_payroll_settings(
+                &token,
+                emp_id,
+                Some(dept_id),
+                Some(employer_id),
+                target_date,
+            )
+            .await
+            .unwrap();
+        assert_eq!(settings.std_working_day_mode, "fixed");
+        assert_eq!(settings.fixed_std_days, rust_decimal::Decimal::from(26));
+        assert_eq!(settings.working_days_per_week, 5);
+        assert_eq!(settings.hours_per_day, rust_decimal::Decimal::from(8));
+        assert!(settings.max_ot_hours_per_day.is_none());
+        assert!(settings.max_ot_hours_per_month.is_none());
+
+        // 2. Workspace scope overrides default
+        let ws_entry = create_test_entry(
+            Uuid::new_v4(),
+            ws_id,
+            "workspace".to_string(),
+            None,
+            "payroll.fixed_std_days".to_string(),
+            None,
+            Some(rust_decimal::Decimal::from(22)),
+            None,
+            None,
+            None,
+            target_date,
+            None,
+        );
+        repo.entries.lock().unwrap().push(ws_entry);
+
+        let settings = service
+            .get_effective_payroll_settings(
+                &token,
+                emp_id,
+                Some(dept_id),
+                Some(employer_id),
+                target_date,
+            )
+            .await
+            .unwrap();
+        assert_eq!(settings.fixed_std_days, rust_decimal::Decimal::from(22));
+
+        // 3. Employer scope overrides Workspace
+        let employer_entry = create_test_entry(
+            Uuid::new_v4(),
+            ws_id,
+            "employer".to_string(),
+            Some(employer_id),
+            "payroll.fixed_std_days".to_string(),
+            None,
+            Some(rust_decimal::Decimal::from(24)),
+            None,
+            None,
+            None,
+            target_date,
+            None,
+        );
+        repo.entries.lock().unwrap().push(employer_entry);
+
+        let settings = service
+            .get_effective_payroll_settings(
+                &token,
+                emp_id,
+                Some(dept_id),
+                Some(employer_id),
+                target_date,
+            )
+            .await
+            .unwrap();
+        assert_eq!(settings.fixed_std_days, rust_decimal::Decimal::from(24));
+
+        // 4. Department scope overrides Employer
+        let dept_entry = create_test_entry(
+            Uuid::new_v4(),
+            ws_id,
+            "department".to_string(),
+            Some(dept_id),
+            "payroll.fixed_std_days".to_string(),
+            None,
+            Some(rust_decimal::Decimal::from(25)),
+            None,
+            None,
+            None,
+            target_date,
+            None,
+        );
+        repo.entries.lock().unwrap().push(dept_entry);
+
+        let settings = service
+            .get_effective_payroll_settings(
+                &token,
+                emp_id,
+                Some(dept_id),
+                Some(employer_id),
+                target_date,
+            )
+            .await
+            .unwrap();
+        assert_eq!(settings.fixed_std_days, rust_decimal::Decimal::from(25));
+
+        // 5. Employee scope overrides Department
+        let emp_entry = create_test_entry(
+            Uuid::new_v4(),
+            ws_id,
+            "employee".to_string(),
+            Some(emp_id),
+            "payroll.fixed_std_days".to_string(),
+            None,
+            Some(rust_decimal::Decimal::from(26)),
+            None,
+            None,
+            None,
+            target_date,
+            None,
+        );
+        repo.entries.lock().unwrap().push(emp_entry);
+
+        let settings = service
+            .get_effective_payroll_settings(
+                &token,
+                emp_id,
+                Some(dept_id),
+                Some(employer_id),
+                target_date,
+            )
+            .await
+            .unwrap();
+        assert_eq!(settings.fixed_std_days, rust_decimal::Decimal::from(26));
     }
 }

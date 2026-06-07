@@ -23,6 +23,7 @@ pub struct HolidayEntity {
     pub work_threshold_percent: Option<i32>,
     pub is_credit_on_work: bool,
     pub deleted_at: Option<DateTime<Utc>>,
+    pub location_id: Option<Uuid>,
 }
 
 impl From<HolidayEntity> for Holiday {
@@ -41,6 +42,7 @@ impl From<HolidayEntity> for Holiday {
             entity.is_credit_on_work,
             entity.created_at,
             entity.updated_at,
+            entity.location_id,
         )
     }
 }

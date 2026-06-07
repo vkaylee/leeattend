@@ -18,6 +18,7 @@ use crate::AppState;
 #[derive(Debug, Deserialize, utoipa::IntoParams)]
 pub struct ListHolidaysQuery {
     pub year: Option<i32>,
+    pub location_id: Option<Uuid>,
 }
 
 #[utoipa::path(
@@ -39,7 +40,7 @@ pub async fn list_holidays(
     let holidays = state
         .leaves()
         .holiday_repo()
-        .list(&ctx.auth_token, query.year)
+        .list(&ctx.auth_token, query.year, query.location_id)
         .await?;
 
     Ok(Json(holidays))

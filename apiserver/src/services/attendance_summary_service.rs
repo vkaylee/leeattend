@@ -372,9 +372,19 @@ impl AttendanceSummaryService {
         actual_work_minutes: i32,
         daily_schedule: &crate::models::EffectiveSchedule,
     ) -> AppResult<(bool, Option<String>)> {
+        let emp = self
+            .employee_repo
+            .get_employee_by_id(employee_id, &TenantAuthToken::system_override(workspace_id))
+            .await?;
+        let location_id = emp.map(|e| e.primary_location_id());
+
         let holiday = self
             .holiday_repo
-            .is_holiday(&TenantAuthToken::system_override(workspace_id), date)
+            .is_holiday(
+                &TenantAuthToken::system_override(workspace_id),
+                date,
+                location_id,
+            )
             .await?;
         let is_holiday = holiday.is_some();
         let holiday_name = holiday.as_ref().map(|h| h.name().to_string());
@@ -1002,7 +1012,28 @@ mod tests {
             let mut roster_repo = MockRosterRepository::new();
             let policy_repo = MockAttendancePolicyRepository::new();
             let mut workspace_repo = MockWorkspaceRepository::new();
-            let employee_repo = MockEmployeeRepository::new();
+            let mut employee_repo = MockEmployeeRepository::new();
+            employee_repo
+                .expect_get_employee_by_id()
+                .returning(move |id, _| {
+                    Ok(Some(crate::models::Employee::new(
+                        id,
+                        workspace_id,
+                        None,
+                        "John Doe".to_string(),
+                        "EMP001".to_string(),
+                        chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                        chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                        None,
+                        vec![],
+                        true,
+                        chrono::Utc::now(),
+                        chrono::Utc::now(),
+                        None,
+                        Uuid::new_v4(),
+                        None,
+                    )))
+                });
             let mut holiday_repo = MockHolidayRepository::new();
             let mut leave_request_repo = MockLeaveRequestRepository::new();
             let mut daily_summary_repo = MockAttendanceDailySummaryRepository::new();
@@ -1017,7 +1048,7 @@ mod tests {
             // Mock is_holiday
             holiday_repo
                 .expect_is_holiday()
-                .returning(move |_, _| Box::pin(async move { Ok(None) }));
+                .returning(move |_, _, _| Box::pin(async move { Ok(None) }));
 
             // Mock fetch schedule: initially we return a schedule with shift_id=Some(shift_id) (original shift)
             let shift_id = Uuid::new_v4();
@@ -1150,7 +1181,28 @@ mod tests {
             let mut roster_repo = MockRosterRepository::new();
             let policy_repo = MockAttendancePolicyRepository::new();
             let mut workspace_repo = MockWorkspaceRepository::new();
-            let employee_repo = MockEmployeeRepository::new();
+            let mut employee_repo = MockEmployeeRepository::new();
+            employee_repo
+                .expect_get_employee_by_id()
+                .returning(move |id, _| {
+                    Ok(Some(crate::models::Employee::new(
+                        id,
+                        workspace_id,
+                        None,
+                        "John Doe".to_string(),
+                        "EMP001".to_string(),
+                        chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                        chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                        None,
+                        vec![],
+                        true,
+                        chrono::Utc::now(),
+                        chrono::Utc::now(),
+                        None,
+                        Uuid::new_v4(),
+                        None,
+                    )))
+                });
             let mut holiday_repo = MockHolidayRepository::new();
             let mut leave_request_repo = MockLeaveRequestRepository::new();
             let mut daily_summary_repo = MockAttendanceDailySummaryRepository::new();
@@ -1164,7 +1216,7 @@ mod tests {
             // Mock is_holiday
             holiday_repo
                 .expect_is_holiday()
-                .returning(move |_, _| Box::pin(async move { Ok(None) }));
+                .returning(move |_, _, _| Box::pin(async move { Ok(None) }));
 
             roster_repo
                 .expect_get_workspace_schedules()
@@ -1291,7 +1343,28 @@ mod tests {
             let mut roster_repo = MockRosterRepository::new();
             let policy_repo = MockAttendancePolicyRepository::new();
             let mut workspace_repo = MockWorkspaceRepository::new();
-            let employee_repo = MockEmployeeRepository::new();
+            let mut employee_repo = MockEmployeeRepository::new();
+            employee_repo
+                .expect_get_employee_by_id()
+                .returning(move |id, _| {
+                    Ok(Some(crate::models::Employee::new(
+                        id,
+                        workspace_id,
+                        None,
+                        "John Doe".to_string(),
+                        "EMP001".to_string(),
+                        chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                        chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                        None,
+                        vec![],
+                        true,
+                        chrono::Utc::now(),
+                        chrono::Utc::now(),
+                        None,
+                        Uuid::new_v4(),
+                        None,
+                    )))
+                });
             let mut holiday_repo = MockHolidayRepository::new();
             let mut leave_request_repo = MockLeaveRequestRepository::new();
             let mut daily_summary_repo = MockAttendanceDailySummaryRepository::new();
@@ -1305,7 +1378,7 @@ mod tests {
             // Mock is_holiday
             holiday_repo
                 .expect_is_holiday()
-                .returning(move |_, _| Box::pin(async move { Ok(None) }));
+                .returning(move |_, _, _| Box::pin(async move { Ok(None) }));
 
             roster_repo
                 .expect_get_workspace_schedules()
@@ -1432,7 +1505,28 @@ mod tests {
             let mut roster_repo = MockRosterRepository::new();
             let policy_repo = MockAttendancePolicyRepository::new();
             let mut workspace_repo = MockWorkspaceRepository::new();
-            let employee_repo = MockEmployeeRepository::new();
+            let mut employee_repo = MockEmployeeRepository::new();
+            employee_repo
+                .expect_get_employee_by_id()
+                .returning(move |id, _| {
+                    Ok(Some(crate::models::Employee::new(
+                        id,
+                        workspace_id,
+                        None,
+                        "John Doe".to_string(),
+                        "EMP001".to_string(),
+                        chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                        chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                        None,
+                        vec![],
+                        true,
+                        chrono::Utc::now(),
+                        chrono::Utc::now(),
+                        None,
+                        Uuid::new_v4(),
+                        None,
+                    )))
+                });
             let mut holiday_repo = MockHolidayRepository::new();
             let mut leave_request_repo = MockLeaveRequestRepository::new();
             let mut daily_summary_repo = MockAttendanceDailySummaryRepository::new();
@@ -1446,7 +1540,7 @@ mod tests {
             // Mock is_holiday
             holiday_repo
                 .expect_is_holiday()
-                .returning(move |_, _| Box::pin(async move { Ok(None) }));
+                .returning(move |_, _, _| Box::pin(async move { Ok(None) }));
 
             roster_repo
                 .expect_get_workspace_schedules()
@@ -1529,7 +1623,28 @@ mod tests {
             let mut roster_repo = MockRosterRepository::new();
             let policy_repo = MockAttendancePolicyRepository::new();
             let mut workspace_repo = MockWorkspaceRepository::new();
-            let employee_repo = MockEmployeeRepository::new();
+            let mut employee_repo = MockEmployeeRepository::new();
+            employee_repo
+                .expect_get_employee_by_id()
+                .returning(move |id, _| {
+                    Ok(Some(crate::models::Employee::new(
+                        id,
+                        workspace_id,
+                        None,
+                        "John Doe".to_string(),
+                        "EMP001".to_string(),
+                        chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                        chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                        None,
+                        vec![],
+                        true,
+                        chrono::Utc::now(),
+                        chrono::Utc::now(),
+                        None,
+                        Uuid::new_v4(),
+                        None,
+                    )))
+                });
             let mut holiday_repo = MockHolidayRepository::new();
             let mut leave_request_repo = MockLeaveRequestRepository::new();
             let mut daily_summary_repo = MockAttendanceDailySummaryRepository::new();
@@ -1543,7 +1658,7 @@ mod tests {
             // Mock is_holiday for the holiday check inside handle_holiday_leave_conflict
             holiday_repo
                 .expect_is_holiday()
-                .returning(move |_, _| Box::pin(async move { Ok(None) }));
+                .returning(move |_, _, _| Box::pin(async move { Ok(None) }));
 
             roster_repo
                 .expect_get_workspace_schedules()

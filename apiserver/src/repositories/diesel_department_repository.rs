@@ -77,39 +77,6 @@ impl From<EmployeeDepartmentHistoryEntity> for EmployeeDepartmentHistory {
     }
 }
 
-#[derive(Debug, Queryable, QueryableByName, Selectable)]
-#[diesel(table_name = crate::schema::department_payroll_configs)]
-pub struct DepartmentPayrollConfigEntity {
-    #[diesel(sql_type = diesel::sql_types::Uuid)]
-    pub id: Uuid,
-    #[diesel(sql_type = diesel::sql_types::Uuid)]
-    pub department_id: Uuid,
-    #[diesel(sql_type = diesel::sql_types::Numeric)]
-    pub std_working_days: bigdecimal::BigDecimal,
-    #[diesel(sql_type = diesel::sql_types::Date)]
-    pub effective_date: NaiveDate,
-    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>)]
-    pub created_at: Option<chrono::DateTime<Utc>>,
-    #[diesel(sql_type = diesel::sql_types::Numeric)]
-    pub hours_per_day: bigdecimal::BigDecimal,
-}
-
-impl From<DepartmentPayrollConfigEntity> for DepartmentPayrollConfig {
-    fn from(entity: DepartmentPayrollConfigEntity) -> Self {
-        use std::str::FromStr;
-        Self {
-            id: entity.id,
-            department_id: entity.department_id,
-            std_working_days: rust_decimal::Decimal::from_str(&entity.std_working_days.to_string())
-                .unwrap_or_default(),
-            hours_per_day: rust_decimal::Decimal::from_str(&entity.hours_per_day.to_string())
-                .unwrap_or_default(),
-            effective_date: entity.effective_date,
-            created_at: entity.created_at.unwrap_or_else(Utc::now),
-        }
-    }
-}
-
 pub struct DieselDepartmentRepository {
     diesel_pools: crate::diesel_pool::DieselPools,
 }
@@ -667,37 +634,78 @@ impl DepartmentRepository for DieselDepartmentRepository {
             return Err(AppError::NotFound("error.department_not_found".to_string()));
         }
 
-        use std::str::FromStr;
-        let std_wd =
-            bigdecimal::BigDecimal::from_str(&std_working_days.to_string()).unwrap_or_default();
-        let h_per_d =
-            bigdecimal::BigDecimal::from_str(&hours_per_day.to_string()).unwrap_or_default();
+        use crate::schema::workspace_config_entries;
 
-        use crate::schema::department_payroll_configs;
+        let keys_and_values = vec![
+            ("payroll.fixed_std_days", std_working_days),
+            ("payroll.hours_per_day", hours_per_day),
+        ];
 
-        let entity: DepartmentPayrollConfigEntity =
-            diesel::insert_into(department_payroll_configs::table)
-                .values((
-                    department_payroll_configs::department_id.eq(department_id),
-                    department_payroll_configs::std_working_days.eq(std_wd.clone()),
-                    department_payroll_configs::hours_per_day.eq(h_per_d.clone()),
-                    department_payroll_configs::effective_date.eq(effective_date),
-                ))
-                .on_conflict((
-                    department_payroll_configs::department_id,
-                    department_payroll_configs::effective_date,
-                ))
-                .do_update()
-                .set((
-                    department_payroll_configs::std_working_days.eq(std_wd),
-                    department_payroll_configs::hours_per_day.eq(h_per_d),
-                ))
-                .returning(department_payroll_configs::all_columns)
-                .get_result(&mut *conn)
+        let mut first_id = Uuid::new_v4();
+
+        for (key, val) in keys_and_values {
+            let existing = workspace_config_entries::table
+                .filter(workspace_config_entries::workspace_id.eq(workspace_id))
+                .filter(workspace_config_entries::scope_type.eq("department"))
+                .filter(workspace_config_entries::scope_id.eq(department_id))
+                .filter(workspace_config_entries::config_key.eq(key))
+                .filter(workspace_config_entries::effective_from.eq(effective_date))
+                .first::<crate::models::WorkspaceConfigEntry>(&mut *conn)
                 .await
+                .optional()
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        Ok(entity.into())
+            if let Some(entry) = existing {
+                first_id = entry.id();
+                diesel::update(
+                    workspace_config_entries::table
+                        .filter(workspace_config_entries::id.eq(entry.id())),
+                )
+                .set((
+                    workspace_config_entries::value_decimal.eq(val),
+                    workspace_config_entries::updated_at.eq(chrono::Utc::now()),
+                ))
+                .execute(&mut *conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            } else {
+                let id = Uuid::new_v4();
+                if key == "payroll.fixed_std_days" {
+                    first_id = id;
+                }
+                let entry = crate::models::WorkspaceConfigEntry::new(
+                    id,
+                    workspace_id,
+                    "department".to_string(),
+                    Some(department_id),
+                    key.to_string(),
+                    None,
+                    Some(val),
+                    None,
+                    None,
+                    None,
+                    effective_date,
+                    None,
+                    None,
+                    chrono::Utc::now(),
+                    chrono::Utc::now(),
+                );
+                diesel::insert_into(workspace_config_entries::table)
+                    .values(&entry)
+                    .execute(&mut *conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            }
+        }
+
+        Ok(DepartmentPayrollConfig {
+            id: first_id,
+            department_id,
+            std_working_days,
+            hours_per_day,
+            effective_date,
+            created_at: chrono::Utc::now(),
+        })
     }
 
     async fn get_department_payroll_config_at(
@@ -712,22 +720,69 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .await?;
         let workspace_id = auth_token.workspace_id();
 
-        use crate::schema::{department_payroll_configs, departments};
+        use crate::schema::{departments, workspace_config_entries};
 
-        let result: Option<DepartmentPayrollConfigEntity> = department_payroll_configs::table
-            .inner_join(departments::table)
-            .filter(department_payroll_configs::department_id.eq(department_id))
+        let department_exists = departments::table
+            .filter(departments::id.eq(department_id))
             .filter(departments::workspace_id.eq(workspace_id))
             .filter(departments::deleted_at.is_null())
-            .filter(department_payroll_configs::effective_date.le(date))
-            .order(department_payroll_configs::effective_date.desc())
-            .select(department_payroll_configs::all_columns)
-            .first(&mut *conn)
+            .select(departments::id)
+            .first::<Uuid>(&mut *conn)
             .await
             .optional()
+            .map_err(|e| AppError::Internal(format!("db check department: {e}")))?;
+
+        if department_exists.is_none() {
+            return Ok(None);
+        }
+
+        let entries = workspace_config_entries::table
+            .filter(workspace_config_entries::workspace_id.eq(workspace_id))
+            .filter(workspace_config_entries::scope_type.eq("department"))
+            .filter(workspace_config_entries::scope_id.eq(department_id))
+            .filter(workspace_config_entries::effective_from.le(date))
+            .load::<crate::models::WorkspaceConfigEntry>(&mut *conn)
+            .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        Ok(result.map(Into::into))
+        if entries.is_empty() {
+            return Ok(None);
+        }
+
+        let mut fixed_std_days = None;
+        let mut hours_per_day = None;
+        let mut max_effective_from = None;
+        let mut entry_id = Uuid::new_v4();
+
+        for entry in &entries {
+            if entry.config_key() == "payroll.fixed_std_days"
+                && max_effective_from.is_none_or(|max_d| entry.effective_from() >= max_d)
+            {
+                fixed_std_days = entry.value_decimal();
+                max_effective_from = Some(entry.effective_from());
+                entry_id = entry.id();
+            } else if entry.config_key() == "payroll.hours_per_day"
+                && max_effective_from.is_none_or(|max_d| entry.effective_from() >= max_d)
+            {
+                hours_per_day = entry.value_decimal();
+                max_effective_from = Some(entry.effective_from());
+            }
+        }
+
+        if fixed_std_days.is_none() && hours_per_day.is_none() {
+            return Ok(None);
+        }
+
+        let effective_date = max_effective_from.unwrap_or(date);
+
+        Ok(Some(DepartmentPayrollConfig {
+            id: entry_id,
+            department_id,
+            std_working_days: fixed_std_days.unwrap_or_else(|| rust_decimal::Decimal::from(0)),
+            hours_per_day: hours_per_day.unwrap_or_else(|| rust_decimal::Decimal::from(0)),
+            effective_date,
+            created_at: chrono::Utc::now(),
+        }))
     }
 
     async fn get_department_payroll_configs(
@@ -741,22 +796,67 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .await?;
         let workspace_id = auth_token.workspace_id();
 
-        use crate::schema::department_payroll_configs;
+        use crate::schema::{departments, workspace_config_entries};
 
-        let results: Vec<DepartmentPayrollConfigEntity> = department_payroll_configs::table
-            .inner_join(
-                departments::table
-                    .on(departments::id.eq(department_payroll_configs::department_id)),
-            )
-            .filter(department_payroll_configs::department_id.eq(department_id))
+        let department_exists = departments::table
+            .filter(departments::id.eq(department_id))
             .filter(departments::workspace_id.eq(workspace_id))
-            .select(department_payroll_configs::all_columns)
-            .order(department_payroll_configs::effective_date.desc())
-            .load(&mut *conn)
+            .filter(departments::deleted_at.is_null())
+            .select(departments::id)
+            .first::<Uuid>(&mut *conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db check department: {e}")))?;
+
+        if department_exists.is_none() {
+            return Ok(Vec::new());
+        }
+
+        let entries = workspace_config_entries::table
+            .filter(workspace_config_entries::workspace_id.eq(workspace_id))
+            .filter(workspace_config_entries::scope_type.eq("department"))
+            .filter(workspace_config_entries::scope_id.eq(department_id))
+            .load::<crate::models::WorkspaceConfigEntry>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        Ok(results.into_iter().map(Into::into).collect())
+        let mut dates: Vec<chrono::NaiveDate> = entries
+            .iter()
+            .map(crate::models::WorkspaceConfigEntry::effective_from)
+            .collect();
+        dates.sort_unstable();
+        dates.dedup();
+        dates.reverse();
+
+        let mut configs = Vec::new();
+        for d in dates {
+            let mut fixed_std_days = None;
+            let mut hours_per_day = None;
+            let mut entry_id = Uuid::new_v4();
+            for entry in &entries {
+                if entry.effective_from() == d {
+                    if entry.config_key() == "payroll.fixed_std_days" {
+                        fixed_std_days = entry.value_decimal();
+                        entry_id = entry.id();
+                    } else if entry.config_key() == "payroll.hours_per_day" {
+                        hours_per_day = entry.value_decimal();
+                    }
+                }
+            }
+            if fixed_std_days.is_some() || hours_per_day.is_some() {
+                configs.push(DepartmentPayrollConfig {
+                    id: entry_id,
+                    department_id,
+                    std_working_days: fixed_std_days
+                        .unwrap_or_else(|| rust_decimal::Decimal::from(0)),
+                    hours_per_day: hours_per_day.unwrap_or_else(|| rust_decimal::Decimal::from(0)),
+                    effective_date: d,
+                    created_at: chrono::Utc::now(),
+                });
+            }
+        }
+
+        Ok(configs)
     }
 
     async fn get_department_payroll_configs_batch(
@@ -774,30 +874,69 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .await?;
         let workspace_id = auth_token.workspace_id();
 
-        use crate::schema::department_payroll_configs;
+        use crate::schema::workspace_config_entries;
 
-        let results: Vec<DepartmentPayrollConfigEntity> = department_payroll_configs::table
-            .inner_join(
-                departments::table
-                    .on(departments::id.eq(department_payroll_configs::department_id)),
-            )
-            .filter(department_payroll_configs::department_id.eq_any(department_ids))
-            .filter(departments::workspace_id.eq(workspace_id))
-            .select(department_payroll_configs::all_columns)
-            .order((
-                department_payroll_configs::department_id.asc(),
-                department_payroll_configs::effective_date.desc(),
-            ))
-            .load(&mut *conn)
+        let entries = workspace_config_entries::table
+            .filter(workspace_config_entries::workspace_id.eq(workspace_id))
+            .filter(workspace_config_entries::scope_type.eq("department"))
+            .filter(workspace_config_entries::scope_id.eq_any(department_ids))
+            .load::<crate::models::WorkspaceConfigEntry>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let mut map: std::collections::HashMap<Uuid, Vec<DepartmentPayrollConfig>> =
-            std::collections::HashMap::new();
-        for entity in results {
-            map.entry(entity.department_id)
-                .or_default()
-                .push(entity.into());
+        let mut department_entries: std::collections::HashMap<
+            Uuid,
+            Vec<crate::models::WorkspaceConfigEntry>,
+        > = std::collections::HashMap::new();
+        for entry in entries {
+            if let Some(dept_id) = entry.scope_id() {
+                department_entries.entry(dept_id).or_default().push(entry);
+            }
+        }
+
+        let mut map = std::collections::HashMap::new();
+        for &department_id in department_ids {
+            if let Some(entries) = department_entries.get(&department_id) {
+                let mut dates: Vec<chrono::NaiveDate> = entries
+                    .iter()
+                    .map(crate::models::WorkspaceConfigEntry::effective_from)
+                    .collect();
+                dates.sort_unstable();
+                dates.dedup();
+                dates.reverse();
+
+                let mut configs = Vec::new();
+                for d in dates {
+                    let mut fixed_std_days = None;
+                    let mut hours_per_day = None;
+                    let mut entry_id = Uuid::new_v4();
+                    for entry in entries {
+                        if entry.effective_from() == d {
+                            if entry.config_key() == "payroll.fixed_std_days" {
+                                fixed_std_days = entry.value_decimal();
+                                entry_id = entry.id();
+                            } else if entry.config_key() == "payroll.hours_per_day" {
+                                hours_per_day = entry.value_decimal();
+                            }
+                        }
+                    }
+                    if fixed_std_days.is_some() || hours_per_day.is_some() {
+                        configs.push(DepartmentPayrollConfig {
+                            id: entry_id,
+                            department_id,
+                            std_working_days: fixed_std_days
+                                .unwrap_or_else(|| rust_decimal::Decimal::from(0)),
+                            hours_per_day: hours_per_day
+                                .unwrap_or_else(|| rust_decimal::Decimal::from(0)),
+                            effective_date: d,
+                            created_at: chrono::Utc::now(),
+                        });
+                    }
+                }
+                map.insert(department_id, configs);
+            } else {
+                map.insert(department_id, Vec::new());
+            }
         }
 
         Ok(map)

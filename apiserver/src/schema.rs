@@ -819,17 +819,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    department_payroll_configs (id) {
-        id -> Uuid,
-        department_id -> Uuid,
-        std_working_days -> Numeric,
-        effective_date -> Date,
-        created_at -> Nullable<Timestamptz>,
-        hours_per_day -> Numeric,
-    }
-}
-
-diesel::table! {
     departments (id) {
         id -> Uuid,
         workspace_id -> Uuid,
@@ -954,17 +943,6 @@ diesel::table! {
         phone -> Varchar,
         is_primary -> Bool,
         created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    employee_payroll_configs (id) {
-        id -> Uuid,
-        employee_id -> Uuid,
-        std_working_days -> Numeric,
-        effective_date -> Date,
-        created_at -> Nullable<Timestamptz>,
-        hours_per_day -> Numeric,
     }
 }
 
@@ -1135,6 +1113,7 @@ diesel::table! {
         work_threshold_percent -> Nullable<Int4>,
         is_credit_on_work -> Bool,
         deleted_at -> Nullable<Timestamptz>,
+        location_id -> Nullable<Uuid>,
     }
 }
 
@@ -1434,21 +1413,6 @@ diesel::table! {
         rate -> Numeric,
         fixed_amount -> Numeric,
         created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    payroll_settings (workspace_id, effective_date) {
-        workspace_id -> Uuid,
-        std_working_day_mode -> Text,
-        fixed_std_days -> Numeric,
-        working_days_per_week -> Int4,
-        hours_per_day -> Numeric,
-        created_at -> Nullable<Timestamptz>,
-        updated_at -> Nullable<Timestamptz>,
-        effective_date -> Date,
-        max_ot_hours_per_day -> Nullable<Numeric>,
-        max_ot_hours_per_month -> Nullable<Numeric>,
     }
 }
 
@@ -1920,7 +1884,6 @@ diesel::joinable!(attendance_policy_versions -> attendance_policies (policy_id))
 diesel::joinable!(authorized_agents -> workspaces (workspace_id));
 diesel::joinable!(behalf_assignments -> departments (target_department_id));
 diesel::joinable!(behalf_assignments -> employees (target_employee_id));
-diesel::joinable!(department_payroll_configs -> departments (department_id));
 diesel::joinable!(departments -> employees (manager_id));
 diesel::joinable!(employee_assignments -> employees (employee_id));
 diesel::joinable!(employee_contracts -> employee_documents (document_id));
@@ -1930,7 +1893,6 @@ diesel::joinable!(employee_department_history -> departments (department_id));
 diesel::joinable!(employee_department_history -> employees (employee_id));
 diesel::joinable!(employee_documents -> employees (employee_id));
 diesel::joinable!(employee_emergency_contacts -> employees (employee_id));
-diesel::joinable!(employee_payroll_configs -> employees (employee_id));
 diesel::joinable!(employee_phases -> employees (employee_id));
 diesel::joinable!(employee_phases -> employment_phase_definitions (phase_definition_id));
 diesel::joinable!(employee_profiles -> employees (employee_id));
@@ -1942,6 +1904,7 @@ diesel::joinable!(employee_working_patterns -> employees (employee_id));
 diesel::joinable!(employee_working_patterns -> working_patterns (pattern_id));
 diesel::joinable!(employees -> work_locations (primary_location_id));
 diesel::joinable!(holidays -> leave_types (leave_type_id));
+diesel::joinable!(holidays -> work_locations (location_id));
 diesel::joinable!(leave_accrual_logs -> employees (employee_id));
 diesel::joinable!(leave_accrual_logs -> leave_policy_assignments (policy_assignment_id));
 diesel::joinable!(leave_accrual_logs -> leave_types (leave_type_id));
@@ -2037,7 +2000,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     authorized_agents,
     behalf_assignments,
     dashboard_preferences,
-    department_payroll_configs,
     departments,
     devices,
     employee_assignments,
@@ -2045,7 +2007,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     employee_department_history,
     employee_documents,
     employee_emergency_contacts,
-    employee_payroll_configs,
     employee_phases,
     employee_profiles,
     employee_salary_components,
@@ -2076,7 +2037,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     payroll_rule_assignments,
     payroll_rule_definitions,
     payroll_rule_tiers,
-    payroll_settings,
     payslip_incentives,
     payslip_rule_evaluations,
     payslip_segments,

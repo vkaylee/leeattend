@@ -177,3 +177,165 @@ impl WorkspaceConfigEntry {
         self.updated_at
     }
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
+pub struct EffectivePayrollSettings {
+    pub std_working_day_mode: String,
+    pub fixed_std_days: rust_decimal::Decimal,
+    pub working_days_per_week: i32,
+    pub hours_per_day: rust_decimal::Decimal,
+    pub max_ot_hours_per_day: Option<rust_decimal::Decimal>,
+    pub max_ot_hours_per_month: Option<rust_decimal::Decimal>,
+}
+
+pub struct WorkspaceConfigResolver {
+    entries: Vec<WorkspaceConfigEntry>,
+}
+
+impl WorkspaceConfigResolver {
+    pub fn new(entries: Vec<WorkspaceConfigEntry>) -> Self {
+        Self { entries }
+    }
+
+    pub fn resolve_key(
+        &self,
+        config_key: &str,
+        employee_id: Uuid,
+        department_id: Option<Uuid>,
+        employer_id: Option<Uuid>,
+        target_date: NaiveDate,
+    ) -> Option<&WorkspaceConfigEntry> {
+        let mut best_entry: Option<&WorkspaceConfigEntry> = None;
+        let mut best_scope_priority = 0; // 0: none, 1: workspace, 2: employer, 3: department, 4: employee
+
+        for entry in &self.entries {
+            if entry.config_key() != config_key {
+                continue;
+            }
+            if entry.effective_from() > target_date {
+                continue;
+            }
+            if let Some(to) = entry.effective_to() {
+                if to < target_date {
+                    continue;
+                }
+            }
+
+            let (scope_match, priority) = match entry.scope_type() {
+                "employee" => (entry.scope_id() == Some(employee_id), 4),
+                "department" => (
+                    department_id.is_some() && entry.scope_id() == department_id,
+                    3,
+                ),
+                "employer" => (employer_id.is_some() && entry.scope_id() == employer_id, 2),
+                "workspace" => (true, 1),
+                _ => (false, 0),
+            };
+
+            if scope_match {
+                if priority > best_scope_priority {
+                    best_scope_priority = priority;
+                    best_entry = Some(entry);
+                } else if priority == best_scope_priority {
+                    if let Some(current_best) = best_entry {
+                        if entry.effective_from() > current_best.effective_from() {
+                            best_entry = Some(entry);
+                        }
+                    } else {
+                        best_entry = Some(entry);
+                    }
+                }
+            }
+        }
+
+        best_entry
+    }
+
+    pub fn resolve_payroll_settings(
+        &self,
+        employee_id: Uuid,
+        department_id: Option<Uuid>,
+        employer_id: Option<Uuid>,
+        target_date: NaiveDate,
+    ) -> EffectivePayrollSettings {
+        let std_working_day_mode = self
+            .resolve_key(
+                "payroll.std_working_day_mode",
+                employee_id,
+                department_id,
+                employer_id,
+                target_date,
+            )
+            .and_then(|e| e.value_text())
+            .unwrap_or("fixed")
+            .to_string();
+
+        let fixed_std_days = self
+            .resolve_key(
+                "payroll.fixed_std_days",
+                employee_id,
+                department_id,
+                employer_id,
+                target_date,
+            )
+            .and_then(WorkspaceConfigEntry::value_decimal)
+            .unwrap_or_else(|| {
+                rust_decimal::Decimal::from(
+                    crate::domain::policy::defaults::DEFAULT_STD_WORKING_DAYS,
+                )
+            });
+
+        let working_days_per_week = self
+            .resolve_key(
+                "payroll.working_days_per_week",
+                employee_id,
+                department_id,
+                employer_id,
+                target_date,
+            )
+            .and_then(WorkspaceConfigEntry::value_int)
+            .unwrap_or(5);
+
+        let hours_per_day = self
+            .resolve_key(
+                "payroll.hours_per_day",
+                employee_id,
+                department_id,
+                employer_id,
+                target_date,
+            )
+            .and_then(WorkspaceConfigEntry::value_decimal)
+            .unwrap_or_else(|| {
+                rust_decimal::Decimal::from(crate::domain::policy::defaults::DEFAULT_HOURS_PER_DAY)
+            });
+
+        let max_ot_hours_per_day = self
+            .resolve_key(
+                "payroll.max_ot_hours_per_day",
+                employee_id,
+                department_id,
+                employer_id,
+                target_date,
+            )
+            .and_then(WorkspaceConfigEntry::value_decimal);
+
+        let max_ot_hours_per_month = self
+            .resolve_key(
+                "payroll.max_ot_hours_per_month",
+                employee_id,
+                department_id,
+                employer_id,
+                target_date,
+            )
+            .and_then(WorkspaceConfigEntry::value_decimal);
+
+        EffectivePayrollSettings {
+            std_working_day_mode,
+            fixed_std_days,
+            working_days_per_week,
+            hours_per_day,
+            max_ot_hours_per_day,
+            max_ot_hours_per_month,
+        }
+    }
+}

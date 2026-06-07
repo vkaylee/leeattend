@@ -24,6 +24,7 @@ pub struct Holiday {
     is_credit_on_work: bool,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
+    location_id: Option<Uuid>,
 }
 
 impl Holiday {
@@ -42,6 +43,7 @@ impl Holiday {
         is_credit_on_work: bool,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
+        location_id: Option<Uuid>,
     ) -> Self {
         Self {
             id,
@@ -57,6 +59,7 @@ impl Holiday {
             is_credit_on_work,
             created_at,
             updated_at,
+            location_id,
         }
     }
 
@@ -111,6 +114,10 @@ impl Holiday {
     pub fn updated_at(&self) -> DateTime<Utc> {
         self.updated_at
     }
+
+    pub fn location_id(&self) -> Option<Uuid> {
+        self.location_id
+    }
 }
 
 /// Request payload for creating a new holiday.
@@ -129,6 +136,7 @@ pub struct CreateHolidayRequest {
     pub work_threshold_percent: Option<i32>,
     #[serde(default = "default_true")]
     pub is_credit_on_work: bool,
+    pub location_id: Option<Uuid>,
 }
 
 /// Request payload for updating an existing holiday.
@@ -143,6 +151,7 @@ pub struct UpdateHolidayRequest {
     pub description: Option<String>,
     pub work_threshold_percent: Option<i32>,
     pub is_credit_on_work: Option<bool>,
+    pub location_id: Option<Option<Uuid>>,
 }
 
 /// Workspace-level strategy for calculating OT when a shift crosses midnight
@@ -329,6 +338,7 @@ mod tests {
             is_credit_on_work: true,
             created_at: Utc::now(),
             updated_at: Utc::now(),
+            location_id: None,
         };
 
         let json = serde_json::to_string(&holiday).unwrap();

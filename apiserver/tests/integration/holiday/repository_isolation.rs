@@ -12,7 +12,7 @@ async fn test_holiday_repo_list_empty_for_new_tenant() {
     let mock_workspace_id = Uuid::new_v4();
     let token = TenantAuthToken::system_override(mock_workspace_id);
 
-    let result = repo.list(&token, Some(2026)).await;
+    let result = repo.list(&token, Some(2026), None).await;
 
     assert!(result.is_ok(), "Query failed: {:?}", result.err());
     let holidays = result.unwrap();

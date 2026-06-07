@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::schema::{
     employee_salary_components, payroll_incentive_policies, payroll_incentive_tiers,
-    payroll_settings, payslip_incentives, payslip_rule_evaluations, payslip_segments, payslips,
+    payslip_incentives, payslip_rule_evaluations, payslip_segments, payslips,
     salary_component_definitions,
 };
 use crate::utils::bigdecimal_helpers::bd_to_dec;
@@ -98,26 +98,6 @@ pub struct PayslipRuleEvaluationEntity {
 }
 
 // ---------------------------------------------------------------------------
-// Payroll Settings
-// ---------------------------------------------------------------------------
-
-#[derive(Debug, Clone, Queryable, Selectable, Insertable, Identifiable, AsChangeset)]
-#[diesel(table_name = payroll_settings)]
-#[diesel(primary_key(workspace_id, effective_date))]
-pub struct PayrollSettingsEntity {
-    pub workspace_id: Uuid,
-    pub std_working_day_mode: String,
-    pub fixed_std_days: BigDecimal,
-    pub working_days_per_week: i32,
-    pub hours_per_day: BigDecimal,
-    pub created_at: Option<DateTime<Utc>>,
-    pub updated_at: Option<DateTime<Utc>>,
-    pub effective_date: NaiveDate,
-    pub max_ot_hours_per_day: Option<BigDecimal>,
-    pub max_ot_hours_per_month: Option<BigDecimal>,
-}
-
-// ---------------------------------------------------------------------------
 // Salary Component Definition
 // ---------------------------------------------------------------------------
 
@@ -177,8 +157,8 @@ pub struct PayslipSegmentEntity {
 // ---------------------------------------------------------------------------
 
 use crate::models::{
-    EmployeeSalaryComponent, IncentiveTier, PayrollIncentivePolicy, PayrollSettings, Payslip,
-    PayslipRuleEvaluation, PayslipSegment, SalaryComponentDefinition,
+    EmployeeSalaryComponent, IncentiveTier, PayrollIncentivePolicy, Payslip, PayslipRuleEvaluation,
+    PayslipSegment, SalaryComponentDefinition,
 };
 
 impl From<PayrollIncentivePolicyEntity> for PayrollIncentivePolicy {
@@ -239,23 +219,6 @@ impl From<PayslipRuleEvaluationEntity> for PayslipRuleEvaluation {
             rule_code: entity.rule_code,
             amount: bd_to_dec(&entity.amount),
             created_at: entity.created_at,
-        }
-    }
-}
-
-impl From<PayrollSettingsEntity> for PayrollSettings {
-    fn from(entity: PayrollSettingsEntity) -> Self {
-        Self {
-            workspace_id: entity.workspace_id,
-            std_working_day_mode: entity.std_working_day_mode,
-            fixed_std_days: bd_to_dec(&entity.fixed_std_days),
-            working_days_per_week: entity.working_days_per_week,
-            hours_per_day: bd_to_dec(&entity.hours_per_day),
-            max_ot_hours_per_day: entity.max_ot_hours_per_day.as_ref().map(bd_to_dec),
-            max_ot_hours_per_month: entity.max_ot_hours_per_month.as_ref().map(bd_to_dec),
-            effective_date: entity.effective_date,
-            created_at: entity.created_at.unwrap_or_else(Utc::now),
-            updated_at: entity.updated_at.unwrap_or_else(Utc::now),
         }
     }
 }

@@ -30,6 +30,7 @@ impl HolidayRepository for DieselHolidayRepository {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         year: Option<i32>,
+        location_id: Option<Uuid>,
     ) -> Result<Vec<Holiday>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = crate::diesel_pool::TransactionConn(
@@ -54,6 +55,14 @@ impl HolidayRepository for DieselHolidayRepository {
                     .filter(holidays::date.ge(start))
                     .filter(holidays::date.le(end));
             }
+        }
+
+        if let Some(loc_id) = location_id {
+            query = query.filter(
+                holidays::location_id
+                    .is_null()
+                    .or(holidays::location_id.eq(loc_id)),
+            );
         }
 
         let entities: Vec<HolidayEntity> = query
@@ -120,6 +129,7 @@ impl HolidayRepository for DieselHolidayRepository {
             work_threshold_percent: req.work_threshold_percent,
             is_credit_on_work: req.is_credit_on_work,
             deleted_at: None,
+            location_id: req.location_id,
         };
 
         let result: HolidayEntity = diesel::insert_into(holidays::table)
@@ -166,6 +176,7 @@ impl HolidayRepository for DieselHolidayRepository {
                     .map(|w| holidays::work_threshold_percent.eq(w)),
                 req.is_credit_on_work
                     .map(|c| holidays::is_credit_on_work.eq(c)),
+                req.location_id.map(|l| holidays::location_id.eq(l)),
                 Some(holidays::updated_at.eq(Utc::now())),
             ))
             .get_result(&mut *conn)
@@ -233,6 +244,7 @@ impl HolidayRepository for DieselHolidayRepository {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         date: NaiveDate,
+        location_id: Option<Uuid>,
     ) -> Result<Option<Holiday>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = crate::diesel_pool::TransactionConn(
@@ -243,10 +255,21 @@ impl HolidayRepository for DieselHolidayRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        let entity: Option<HolidayEntity> = holidays::table
+        let mut query = holidays::table
             .filter(holidays::workspace_id.eq(workspace_id))
             .filter(holidays::deleted_at.is_null())
             .filter(holidays::date.eq(date))
+            .into_boxed();
+
+        if let Some(loc_id) = location_id {
+            query = query.filter(
+                holidays::location_id
+                    .is_null()
+                    .or(holidays::location_id.eq(loc_id)),
+            );
+        }
+
+        let entity: Option<HolidayEntity> = query
             .first(&mut *conn)
             .await
             .optional()
