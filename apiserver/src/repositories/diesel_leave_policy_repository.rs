@@ -126,11 +126,11 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
         );
 
         // First check if there are any balances using this leave type
-        use crate::schema::{employees, leave_balances};
+        use crate::schema::{employments, leave_balances};
         let in_balances: Option<i32> = leave_balances::table
-            .inner_join(employees::table)
+            .inner_join(employments::table)
             .filter(leave_balances::leave_type_id.eq(id))
-            .filter(employees::workspace_id.eq(workspace_id))
+            .filter(employments::workspace_id.eq(workspace_id))
             .select(diesel::dsl::sql::<diesel::sql_types::Integer>("1"))
             .first(&mut *conn)
             .await

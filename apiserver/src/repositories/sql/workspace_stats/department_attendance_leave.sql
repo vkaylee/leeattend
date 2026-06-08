@@ -6,9 +6,10 @@ WITH latest_dept AS (
     ORDER BY edh.employee_id, edh.effective_date DESC
 )
 SELECT ld.department_id,
-       COUNT(DISTINCT lr.employee_id)::bigint AS leave_count
+       COUNT(DISTINCT emp.employee_id)::bigint AS leave_count
 FROM leave_requests lr
-JOIN latest_dept ld ON ld.employee_id = lr.employee_id
+JOIN employments emp ON lr.employment_id = emp.id AND emp.deleted_at IS NULL
+JOIN latest_dept ld ON ld.employee_id = emp.employee_id
 WHERE lr.status IN ('approved', 'pre_approved')
   AND lr.start_date <= $3 AND lr.end_date >= $2
 GROUP BY ld.department_id

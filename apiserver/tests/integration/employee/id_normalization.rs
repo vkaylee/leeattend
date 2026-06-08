@@ -37,6 +37,14 @@ async fn test_create_employee_id_normalization() {
             .unwrap()
     };
 
+    let employer_id = Uuid::new_v4();
+    crate::test_execute!(
+        &pool.api,
+        "INSERT INTO employers (id, workspace_id, name, tax_code, legal_address, created_at, updated_at) VALUES ($1, $2, 'Test Employer', 'TAX123', 'Address', NOW(), NOW())",
+        diesel::sql_types::Uuid, employer_id,
+        diesel::sql_types::Uuid, ws_id
+    );
+
     // Create employee with leading zeros "00123"
     let req_body = CreateEmployeeRequest {
         user_id: None,
@@ -45,8 +53,9 @@ async fn test_create_employee_id_normalization() {
         hire_date: chrono::Utc::now().date_naive(),
         tags: None,
         recruitment_source_id: None,
-        primary_location_id: hq_loc_id,
-        employer_id: None,
+        primary_location_id: Some(hq_loc_id),
+        employer_id,
+        department_id: None,
     };
 
     let response = app
@@ -128,8 +137,6 @@ async fn test_update_employee_id_normalization() {
         is_active: None,
         max_concurrent_workers: None,
         recruitment_source_id: None,
-        primary_location_id: Some(hq_loc_id),
-        employer_id: None,
         force_transfer: None,
     };
 
@@ -200,6 +207,13 @@ async fn test_employee_id_uniqueness_on_normalized_values() {
             .await
             .unwrap()
     };
+    let employer_id = Uuid::new_v4();
+    crate::test_execute!(
+        &pool.api,
+        "INSERT INTO employers (id, workspace_id, name, tax_code, legal_address, created_at, updated_at) VALUES ($1, $2, 'Test Employer', 'TAX123', 'Address', NOW(), NOW())",
+        diesel::sql_types::Uuid, employer_id,
+        diesel::sql_types::Uuid, ws_id
+    );
 
     // Try to create second employee with "00555" (should conflict after normalization)
     let req_body = CreateEmployeeRequest {
@@ -209,8 +223,9 @@ async fn test_employee_id_uniqueness_on_normalized_values() {
         hire_date: chrono::Utc::now().date_naive(),
         tags: None,
         recruitment_source_id: None,
-        primary_location_id: hq_loc_id,
-        employer_id: None,
+        primary_location_id: Some(hq_loc_id),
+        employer_id,
+        department_id: None,
     };
 
     let response = app

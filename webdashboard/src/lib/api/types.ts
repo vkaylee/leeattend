@@ -61,6 +61,7 @@ export type WorkspaceRole = Omit<components["schemas"]["WorkspaceRole"], "descri
 export type AuthResponse = components["schemas"]["AuthResponse"];
 // --- Timekeeping Models ---
 export type Employee = components["schemas"]["Employee"];
+export type Employment = components["schemas"]["Employment"];
 export type TimeEntry = components["schemas"]["TimeEntry"];
 export type AttendanceEntry = TimeEntry;
 

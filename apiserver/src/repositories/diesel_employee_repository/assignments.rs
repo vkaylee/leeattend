@@ -15,13 +15,13 @@ pub trait EmployeeAssignmentRepository: Send + Sync {
     async fn list_employee_assignments(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
     ) -> Result<Vec<EmployeeAssignment>, AppError>;
 
     async fn get_employee_assignment(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         assignment_id: Uuid,
     ) -> Result<Option<EmployeeAssignment>, AppError>;
 
@@ -34,7 +34,7 @@ pub trait EmployeeAssignmentRepository: Send + Sync {
     async fn update_employee_assignment(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         assignment_id: Uuid,
         req: &UpdateEmployeeAssignmentRequest,
     ) -> Result<EmployeeAssignment, AppError>;
@@ -42,17 +42,17 @@ pub trait EmployeeAssignmentRepository: Send + Sync {
     async fn delete_employee_assignment(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         assignment_id: Uuid,
     ) -> Result<u64, AppError>;
 
     async fn list_assignments_batch(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_ids: &[Uuid],
+        employment_ids: &[Uuid],
     ) -> Result<std::collections::HashMap<Uuid, Vec<EmployeeAssignment>>, AppError> {
         let mut map = std::collections::HashMap::new();
-        for &emp_id in employee_ids {
+        for &emp_id in employment_ids {
             let list = self.list_employee_assignments(auth_token, emp_id).await?;
             map.insert(emp_id, list);
         }
@@ -65,7 +65,7 @@ impl EmployeeAssignmentRepository for DieselEmployeeRepository {
     async fn list_employee_assignments(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
     ) -> Result<Vec<EmployeeAssignment>, AppError> {
         let mut conn = self
             .diesel_pools
@@ -74,7 +74,7 @@ impl EmployeeAssignmentRepository for DieselEmployeeRepository {
             .await?;
         let assignments = employee_assignments::table
             .filter(employee_assignments::workspace_id.eq(auth_token.workspace_id()))
-            .filter(employee_assignments::employee_id.eq(employee_id))
+            .filter(employee_assignments::employment_id.eq(employment_id))
             .order(employee_assignments::start_date.desc())
             .load::<EmployeeAssignment>(&mut conn)
             .await?;
@@ -84,7 +84,7 @@ impl EmployeeAssignmentRepository for DieselEmployeeRepository {
     async fn get_employee_assignment(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         assignment_id: Uuid,
     ) -> Result<Option<EmployeeAssignment>, AppError> {
         let mut conn = self
@@ -95,7 +95,7 @@ impl EmployeeAssignmentRepository for DieselEmployeeRepository {
         let assignment = employee_assignments::table
             .filter(employee_assignments::id.eq(assignment_id))
             .filter(employee_assignments::workspace_id.eq(auth_token.workspace_id()))
-            .filter(employee_assignments::employee_id.eq(employee_id))
+            .filter(employee_assignments::employment_id.eq(employment_id))
             .first::<EmployeeAssignment>(&mut conn)
             .await
             .optional()?;
@@ -122,7 +122,7 @@ impl EmployeeAssignmentRepository for DieselEmployeeRepository {
     async fn update_employee_assignment(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         assignment_id: Uuid,
         req: &UpdateEmployeeAssignmentRequest,
     ) -> Result<EmployeeAssignment, AppError> {
@@ -135,7 +135,7 @@ impl EmployeeAssignmentRepository for DieselEmployeeRepository {
             employee_assignments::table
                 .filter(employee_assignments::id.eq(assignment_id))
                 .filter(employee_assignments::workspace_id.eq(auth_token.workspace_id()))
-                .filter(employee_assignments::employee_id.eq(employee_id)),
+                .filter(employee_assignments::employment_id.eq(employment_id)),
         )
         .set(req)
         .get_result(&mut conn)
@@ -146,7 +146,7 @@ impl EmployeeAssignmentRepository for DieselEmployeeRepository {
     async fn delete_employee_assignment(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         assignment_id: Uuid,
     ) -> Result<u64, AppError> {
         let mut conn = self
@@ -158,7 +158,7 @@ impl EmployeeAssignmentRepository for DieselEmployeeRepository {
             employee_assignments::table
                 .filter(employee_assignments::id.eq(assignment_id))
                 .filter(employee_assignments::workspace_id.eq(auth_token.workspace_id()))
-                .filter(employee_assignments::employee_id.eq(employee_id)),
+                .filter(employee_assignments::employment_id.eq(employment_id)),
         )
         .execute(&mut conn)
         .await?;
@@ -168,7 +168,7 @@ impl EmployeeAssignmentRepository for DieselEmployeeRepository {
     async fn list_assignments_batch(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_ids: &[Uuid],
+        employment_ids: &[Uuid],
     ) -> Result<std::collections::HashMap<Uuid, Vec<EmployeeAssignment>>, AppError> {
         let mut conn = self
             .diesel_pools
@@ -177,9 +177,9 @@ impl EmployeeAssignmentRepository for DieselEmployeeRepository {
             .await?;
         let assignments = employee_assignments::table
             .filter(employee_assignments::workspace_id.eq(auth_token.workspace_id()))
-            .filter(employee_assignments::employee_id.eq_any(employee_ids))
+            .filter(employee_assignments::employment_id.eq_any(employment_ids))
             .order((
-                employee_assignments::employee_id.asc(),
+                employee_assignments::employment_id.asc(),
                 employee_assignments::start_date.desc(),
             ))
             .load::<EmployeeAssignment>(&mut conn)
@@ -188,7 +188,7 @@ impl EmployeeAssignmentRepository for DieselEmployeeRepository {
         let mut map: std::collections::HashMap<Uuid, Vec<EmployeeAssignment>> =
             std::collections::HashMap::new();
         for a in assignments {
-            map.entry(a.employee_id).or_default().push(a);
+            map.entry(a.employment_id).or_default().push(a);
         }
         Ok(map)
     }

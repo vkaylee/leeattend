@@ -37,7 +37,6 @@ export function createMockEmployee(overrides?: Partial<Employee>): Employee {
     workspace_id: "ws-123",
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
-    primary_location_id: "loc-123",
     tags: [],
     ...overrides,
   };

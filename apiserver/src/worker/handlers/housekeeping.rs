@@ -109,7 +109,7 @@ impl NightlyHousekeepingHandler {
                         "DELETE FROM attendance_daily_summaries WHERE workspace_id = '{tenant_id}' AND employee_id IN (SELECT id FROM employees WHERE workspace_id = '{tenant_id}' AND termination_date IS NOT NULL AND termination_date <= CURRENT_DATE - INTERVAL '5 years') AND date <= CURRENT_DATE - INTERVAL '5 years'"
                     ));
                     queries.push(format!(
-                        "DELETE FROM leave_requests WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = '{tenant_id}' AND termination_date IS NOT NULL AND termination_date <= CURRENT_DATE - INTERVAL '5 years') AND end_date <= CURRENT_DATE - INTERVAL '5 years'"
+                        "DELETE FROM leave_requests WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = '{tenant_id}' AND employee_id IN (SELECT id FROM employees WHERE workspace_id = '{tenant_id}' AND termination_date IS NOT NULL AND termination_date <= CURRENT_DATE - INTERVAL '5 years')) AND end_date <= CURRENT_DATE - INTERVAL '5 years'"
                     ));
                     queries.push(format!(
                         "DELETE FROM leave_accrual_logs WHERE workspace_id = '{tenant_id}' AND employee_id IN (SELECT id FROM employees WHERE workspace_id = '{tenant_id}' AND termination_date IS NOT NULL AND termination_date <= CURRENT_DATE - INTERVAL '5 years') AND accrual_date <= CURRENT_DATE - INTERVAL '5 years'"

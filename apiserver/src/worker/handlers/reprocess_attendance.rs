@@ -47,6 +47,7 @@ impl ReprocessAttendanceHandler {
                 policy_repo: Arc::clone(&deps.policy_repo),
                 workspace_repo: Arc::clone(&deps.workspace_repo),
                 employee_repo: Arc::clone(&deps.employee_repo),
+                employment_repo: Arc::clone(&deps.employment_repo),
                 holiday_repo: Arc::clone(&deps.holiday_repo),
                 leave_request_repo: Arc::clone(&deps.leave_request_repo),
                 daily_summary_repo: Arc::clone(&deps.daily_summary_repo),

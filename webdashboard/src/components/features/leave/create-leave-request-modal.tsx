@@ -11,7 +11,7 @@ import { useToast } from "@/components/ui/toast";
 import { useBehalfEmployees } from "@/hooks/use-behalf-employees";
 import { useMyProfile } from "@/hooks/use-ess";
 import { useMyPermissions } from "@/hooks/use-permissions";
-import { fetchEmployeeLeaveBalances, submitLeaveRequest } from "@/lib/api";
+import { fetchEmployeeLeaveBalances, submitLeaveRequest, fetchEmployeeEmployments } from "@/lib/api";
 
 import { CreateLeaveRequestForm } from "./create-leave-request-form";
 
@@ -61,12 +61,19 @@ export function CreateLeaveRequestModal({ isOpen, onClose, wsId, leaveTypes, t }
     enabled: !!wsId && !!empIdToUse && isOpen 
   });
 
+  const { data: employments = [] } = useQuery({
+    queryKey: ["employee-employments", wsId, empIdToUse],
+    queryFn: () => fetchEmployeeEmployments(wsId, empIdToUse),
+    enabled: !!wsId && !!empIdToUse && isOpen,
+  });
+  const activeEmployment = employments.find(e => e.status === "active") || employments[0];
+
   if (leaveTypes.length > 0 && !leaveTypeId) {
     setLeaveTypeId(leaveTypes[0].id);
   }
 
   const submitMutation = useMutation({
-    mutationFn: (data: { employee_id: string; leave_type_id: string; start_date: string; end_date: string; reason?: string; duration_type?: LeaveDurationType; start_time?: string; end_time?: string }) => submitLeaveRequest(wsId, data),
+    mutationFn: (data: { employment_id: string; leave_type_id: string; start_date: string; end_date: string; reason?: string; duration_type?: LeaveDurationType; start_time?: string; end_time?: string }) => submitLeaveRequest(wsId, data),
     onSuccess: () => { 
       void queryClient.invalidateQueries({ queryKey: ["leave-requests"] }); 
       handleClose();
@@ -78,9 +85,10 @@ export function CreateLeaveRequestModal({ isOpen, onClose, wsId, leaveTypes, t }
     e.preventDefault(); 
     if (!leaveTypeId) { toast.error(t("leave_requests.invalid_leave_type")); return; }
     if (!empIdToUse) { toast.error("Please select an employee"); return; }
+    if (!activeEmployment) { toast.error("Không tìm thấy thông tin công việc"); return; }
  
-    const payload: { employee_id: string; leave_type_id: string; start_date: string; end_date: string; reason?: string; duration_type?: LeaveDurationType; start_time?: string; end_time?: string } = {
-      employee_id: empIdToUse,
+    const payload: { employment_id: string; leave_type_id: string; start_date: string; end_date: string; reason?: string; duration_type?: LeaveDurationType; start_time?: string; end_time?: string } = {
+      employment_id: activeEmployment.id,
       leave_type_id: leaveTypeId,
       start_date: startDate,
       end_date: endDate,

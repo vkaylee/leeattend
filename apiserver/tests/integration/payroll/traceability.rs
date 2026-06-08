@@ -126,6 +126,9 @@ async fn test_payroll_std_days_source_traceability() {
                     diesel_pools.clone(),
                 ),
             ),
+            employment_repo: Arc::new(apiserver::repositories::DieselEmploymentRepository::new(
+                diesel_pools.clone(),
+            )),
         })
     }
     .calculate_monthly_payslip(employee_id, workspace_id, 2024, 1)
@@ -214,6 +217,9 @@ async fn test_payroll_std_days_source_traceability() {
                     diesel_pools.clone(),
                 ),
             ),
+            employment_repo: Arc::new(apiserver::repositories::DieselEmploymentRepository::new(
+                diesel_pools.clone(),
+            )),
         })
     }
     .calculate_monthly_payslip(employee_id, workspace_id, 2024, 2)
@@ -297,6 +303,9 @@ async fn test_payroll_std_days_source_traceability() {
                     diesel_pools.clone(),
                 ),
             ),
+            employment_repo: Arc::new(apiserver::repositories::DieselEmploymentRepository::new(
+                diesel_pools.clone(),
+            )),
         })
     }
     .calculate_monthly_payslip(employee_id, workspace_id, 2024, 3)
@@ -381,6 +390,9 @@ async fn test_payroll_std_days_source_traceability() {
                     diesel_pools.clone(),
                 ),
             ),
+            employment_repo: Arc::new(apiserver::repositories::DieselEmploymentRepository::new(
+                diesel_pools.clone(),
+            )),
         })
     }
     .calculate_monthly_payslip(employee_id, workspace_id, 2024, 4)

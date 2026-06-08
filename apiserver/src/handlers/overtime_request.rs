@@ -107,12 +107,23 @@ pub async fn create_ot_request(
         chrono::Utc::now(),
     );
 
+    let employments = state
+        .employees()
+        .employment_repo()
+        .get_active_employments_for_employees(&ctx.auth_token, &req.employees, req.planned_date)
+        .await?;
+
     let mut employees = Vec::new();
     for emp_id in req.employees {
+        let employment = employments
+            .iter()
+            .find(|e| e.employee_id == emp_id)
+            .ok_or_else(|| AppError::not_found(I18nKey::EmploymentNotFound))?;
+
         employees.push(OvertimeRequestEmployee::new(
             crate::utils::id::new_id(),
             request.id(),
-            emp_id,
+            employment.id,
             "pending".to_string(),
             None,
             None,
@@ -242,10 +253,18 @@ pub async fn submit_for_approval(
         .overtime_request_service()
         .get_request_employees(&ctx.auth_token, id)
         .await?;
-    let beneficiary_employee_id = employees
+    let beneficiary_employment_id = employees
         .first()
-        .map(OvertimeRequestEmployee::employee_id)
+        .map(crate::models::overtime_request::OvertimeRequestEmployee::employment_id)
         .ok_or_else(|| AppError::validation(I18nKey::OvertimeRequestNoEmployees))?;
+
+    let employment = state
+        .employees()
+        .employment_repo()
+        .get_employment_by_id(&ctx.auth_token, beneficiary_employment_id)
+        .await?
+        .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
+    let beneficiary_employee_id = employment.employee_id;
 
     state
         .core()

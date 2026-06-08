@@ -51,6 +51,9 @@ async fn test_process_log_success_with_timezone() {
             holiday_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselHolidayRepository::new(diesel_pools.clone()),
             ),
+            employment_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselEmploymentRepository::new(diesel_pools.clone()),
+            ),
             leave_request_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselLeaveRequestRepository::new(diesel_pools.clone()),
             ),
@@ -173,6 +176,9 @@ async fn test_same_second_punch_with_different_status_allowed() {
             ),
             holiday_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselHolidayRepository::new(diesel_pools.clone()),
+            ),
+            employment_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselEmploymentRepository::new(diesel_pools.clone()),
             ),
             leave_request_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselLeaveRequestRepository::new(diesel_pools.clone()),

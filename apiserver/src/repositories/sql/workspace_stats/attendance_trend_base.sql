@@ -16,13 +16,15 @@ daily_present AS (
 ),
 daily_leave AS (
     SELECT d.date,
-           COUNT(DISTINCT lr.employee_id) AS on_leave
+           COUNT(DISTINCT emp.employee_id) AS on_leave
     FROM days d
-    LEFT JOIN leave_requests lr
-        ON lr.status IN ('approved', 'pre_approved')
-        AND lr.start_date <= d.date
-        AND lr.end_date >= d.date
-        AND lr.employee_id IN (SELECT id FROM active_employees)
+    LEFT JOIN (
+        leave_requests lr 
+        JOIN employments emp ON lr.employment_id = emp.id AND emp.deleted_at IS NULL
+    ) ON lr.status IN ('approved', 'pre_approved')
+      AND lr.start_date <= d.date
+      AND lr.end_date >= d.date
+      AND emp.employee_id IN (SELECT id FROM active_employees)
     GROUP BY d.date
 )
 SELECT dp.date,

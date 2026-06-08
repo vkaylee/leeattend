@@ -315,6 +315,9 @@ mod tests {
             _a: &crate::diesel_pool::TenantAuthToken,
             _e: &crate::models::Employee,
             _r: Option<Uuid>,
+            _employer_id: Uuid,
+            _primary_location_id: Option<Uuid>,
+            _department_id: Option<Uuid>,
         ) -> Result<(), AppError> {
             Ok(())
         }
@@ -596,14 +599,14 @@ mod tests {
         async fn list_employee_assignments(
             &self,
             _a: &crate::diesel_pool::TenantAuthToken,
-            _id: Uuid,
+            _employment_id: Uuid,
         ) -> Result<Vec<crate::models::employee_assignment::EmployeeAssignment>, AppError> {
             Ok(vec![])
         }
         async fn get_employee_assignment(
             &self,
             _a: &crate::diesel_pool::TenantAuthToken,
-            _id: Uuid,
+            _employment_id: Uuid,
             _as_id: Uuid,
         ) -> Result<Option<crate::models::employee_assignment::EmployeeAssignment>, AppError>
         {
@@ -619,7 +622,7 @@ mod tests {
         async fn update_employee_assignment(
             &self,
             _a: &crate::diesel_pool::TenantAuthToken,
-            _id: Uuid,
+            _employment_id: Uuid,
             _as_id: Uuid,
             _r: &crate::models::employee_assignment::UpdateEmployeeAssignmentRequest,
         ) -> Result<crate::models::employee_assignment::EmployeeAssignment, AppError> {
@@ -628,7 +631,7 @@ mod tests {
         async fn delete_employee_assignment(
             &self,
             _a: &crate::diesel_pool::TenantAuthToken,
-            _id: Uuid,
+            _employment_id: Uuid,
             _as_id: Uuid,
         ) -> Result<u64, AppError> {
             Ok(0)
@@ -1334,6 +1337,9 @@ mod tests {
             _a: &crate::diesel_pool::TenantAuthToken,
             _e: &crate::models::Employee,
             _r: Option<Uuid>,
+            _employer_id: Uuid,
+            _primary_location_id: Option<Uuid>,
+            _department_id: Option<Uuid>,
         ) -> Result<(), AppError> {
             Ok(())
         }
@@ -1615,14 +1621,14 @@ mod tests {
         async fn list_employee_assignments(
             &self,
             _a: &crate::diesel_pool::TenantAuthToken,
-            _id: Uuid,
+            _employment_id: Uuid,
         ) -> Result<Vec<crate::models::employee_assignment::EmployeeAssignment>, AppError> {
             Ok(vec![])
         }
         async fn get_employee_assignment(
             &self,
             _a: &crate::diesel_pool::TenantAuthToken,
-            _id: Uuid,
+            _employment_id: Uuid,
             _as_id: Uuid,
         ) -> Result<Option<crate::models::employee_assignment::EmployeeAssignment>, AppError>
         {
@@ -1638,7 +1644,7 @@ mod tests {
         async fn update_employee_assignment(
             &self,
             _a: &crate::diesel_pool::TenantAuthToken,
-            _id: Uuid,
+            _employment_id: Uuid,
             _as_id: Uuid,
             _r: &crate::models::employee_assignment::UpdateEmployeeAssignmentRequest,
         ) -> Result<crate::models::employee_assignment::EmployeeAssignment, AppError> {
@@ -1647,7 +1653,7 @@ mod tests {
         async fn delete_employee_assignment(
             &self,
             _a: &crate::diesel_pool::TenantAuthToken,
-            _id: Uuid,
+            _employment_id: Uuid,
             _as_id: Uuid,
         ) -> Result<u64, AppError> {
             Ok(0)

@@ -239,7 +239,7 @@ async fn test_work_locations_edge_cases() {
     // Manually assign employee to the custom location
     crate::test_execute!(
         &_db.diesel_pools.api,
-        "UPDATE employees SET primary_location_id = $1 WHERE id = $2",
+        "UPDATE employments SET primary_location_id = $1 WHERE employee_id = $2",
         diesel::sql_types::Uuid,
         Uuid::parse_str(&location_id).unwrap(),
         diesel::sql_types::Uuid,

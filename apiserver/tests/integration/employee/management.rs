@@ -33,12 +33,20 @@ async fn test_employee_crud_lifecycle_smoke() {
             .unwrap()
     };
 
+    let employer_id: Uuid = crate::test_query_scalar_uuid!(
+        &_test_db.diesel_pools.api,
+        "SELECT id FROM employers WHERE workspace_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        ws_id
+    );
+
     // 1. Create Employee
     let create_req = serde_json::json!({
         "full_name": "Test Employee",
         "employee_id_number": "EMP001",
         "hire_date": "2026-01-01",
-        "primary_location_id": hq_loc_id
+        "primary_location_id": hq_loc_id,
+        "employer_id": employer_id
     });
 
     let response = app
@@ -221,13 +229,21 @@ async fn test_employee_user_id_uniqueness() {
             .unwrap()
     };
 
+    let employer_id: Uuid = crate::test_query_scalar_uuid!(
+        &_test_db.diesel_pools.api,
+        "SELECT id FROM employers WHERE workspace_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        ws_id
+    );
+
     // 1. Create first employee linked to target_user_id -> Should SUCCEED
     let create_req1 = serde_json::json!({
         "full_name": "First Employee",
         "employee_id_number": "EMP001",
         "hire_date": "2026-01-01",
         "primary_location_id": hq_loc_id,
-        "user_id": target_user_id
+        "user_id": target_user_id,
+        "employer_id": employer_id
     });
 
     let response = app
@@ -258,7 +274,8 @@ async fn test_employee_user_id_uniqueness() {
         "employee_id_number": "EMP002",
         "hire_date": "2026-01-01",
         "primary_location_id": hq_loc_id,
-        "user_id": target_user_id
+        "user_id": target_user_id,
+        "employer_id": employer_id
     });
 
     let response = app
@@ -284,7 +301,8 @@ async fn test_employee_user_id_uniqueness() {
         "employee_id_number": "EMP003",
         "hire_date": "2026-01-01",
         "primary_location_id": hq_loc_id,
-        "user_id": null
+        "user_id": null,
+        "employer_id": employer_id
     });
 
     let response = app

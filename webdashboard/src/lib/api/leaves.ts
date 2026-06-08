@@ -9,7 +9,7 @@ import { apiFetch } from "./helpers";
 export async function submitLeaveRequest(
   wsId: string,
   data: {
-    employee_id: string;
+    employment_id: string;
     leave_type_id: string;
     start_date: string;
     end_date: string;

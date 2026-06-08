@@ -3,7 +3,7 @@ use crate::errors::AppError;
 use crate::models::diesel::employer::EmployerEntity;
 use crate::models::{CreateEmployerRequest, Employer, UpdateEmployerRequest};
 use crate::repositories::employer_repository::EmployerRepository;
-use crate::schema::{employees, employers};
+use crate::schema::employers;
 use async_trait::async_trait;
 use chrono::Utc;
 use diesel::prelude::*;
@@ -219,22 +219,13 @@ impl EmployerRepository for DieselEmployerRepository {
             .await?;
         let workspace_id = auth_token.workspace_id();
 
-        use crate::models::enums::ContractStatus;
-        use crate::schema::employee_contracts;
+        use crate::schema::employments;
 
-        let count = employees::table
-            .inner_join(employee_contracts::table)
-            .filter(employees::workspace_id.eq(workspace_id))
-            .filter(employees::deleted_at.is_null())
-            .filter(employee_contracts::employer_id.eq(id))
-            .filter(employee_contracts::status.eq(ContractStatus::Active))
-            .filter(employee_contracts::deleted_at.is_null())
-            .filter(employee_contracts::start_date.le(chrono::Utc::now().date_naive()))
-            .filter(
-                employee_contracts::end_date
-                    .is_null()
-                    .or(employee_contracts::end_date.ge(chrono::Utc::now().date_naive())),
-            )
+        let count = employments::table
+            .filter(employments::workspace_id.eq(workspace_id))
+            .filter(employments::employer_id.eq(id))
+            .filter(employments::status.eq("active"))
+            .filter(employments::deleted_at.is_null())
             .count()
             .get_result::<i64>(&mut *conn)
             .await

@@ -224,8 +224,9 @@ pub struct Employee {
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
     department_name: Option<String>,
-    primary_location_id: Uuid,
+    active_employment_id: Option<Uuid>,
     employer_id: Option<Uuid>,
+    primary_location_id: Option<Uuid>,
 }
 
 impl Employee {
@@ -244,8 +245,6 @@ impl Employee {
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
         department_name: Option<String>,
-        primary_location_id: Uuid,
-        employer_id: Option<Uuid>,
     ) -> Self {
         Self {
             id,
@@ -261,8 +260,9 @@ impl Employee {
             created_at,
             updated_at,
             department_name,
-            primary_location_id,
-            employer_id,
+            active_employment_id: None,
+            employer_id: None,
+            primary_location_id: None,
         }
     }
 
@@ -318,12 +318,29 @@ impl Employee {
         self.department_name.as_deref()
     }
 
-    pub fn primary_location_id(&self) -> Uuid {
-        self.primary_location_id
+    pub fn active_employment_id(&self) -> Option<Uuid> {
+        self.active_employment_id
     }
 
     pub fn employer_id(&self) -> Option<Uuid> {
         self.employer_id
+    }
+
+    pub fn primary_location_id(&self) -> Option<Uuid> {
+        self.primary_location_id
+    }
+
+    #[must_use]
+    pub fn with_employment_info(
+        mut self,
+        active_employment_id: Option<Uuid>,
+        employer_id: Option<Uuid>,
+        primary_location_id: Option<Uuid>,
+    ) -> Self {
+        self.active_employment_id = active_employment_id;
+        self.employer_id = employer_id;
+        self.primary_location_id = primary_location_id;
+        self
     }
 
     #[cfg(test)]
@@ -576,8 +593,9 @@ pub struct CreateEmployeeRequest {
     pub hire_date: NaiveDate,
     pub tags: Option<Vec<String>>,
     pub recruitment_source_id: Option<Uuid>,
-    pub primary_location_id: Uuid,
-    pub employer_id: Option<Uuid>,
+    pub employer_id: Uuid,
+    pub primary_location_id: Option<Uuid>,
+    pub department_id: Option<Uuid>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
@@ -591,11 +609,9 @@ pub struct UpdateEmployeeRequest {
     pub employee_id_number: Option<SanitizedEmployeeId>,
     pub hire_date: Option<NaiveDate>,
     pub termination_date: Option<NaiveDate>,
-    pub primary_location_id: Option<Uuid>,
     pub tags: Option<Vec<String>>,
     pub is_active: Option<bool>,
     pub max_concurrent_workers: Option<i32>,
     pub recruitment_source_id: Option<Uuid>,
-    pub employer_id: Option<Uuid>,
     pub force_transfer: Option<bool>,
 }

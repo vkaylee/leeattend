@@ -6,7 +6,7 @@ export interface EmployeeContract {
   contract_type: ContractType;
   created_at: string;
   document_id?: string | null;
-  employee_id: string;
+  employment_id: string;
   end_date?: string | null;
   id: string;
   notes?: string | null;
@@ -22,8 +22,7 @@ export interface CreateContractRequest {
   contract_number?: string | null;
   contract_type: ContractType;
   document_id?: string | null;
-  employee_id: string;
-  employer_id: string;
+  employment_id: string;
   end_date?: string | null;
   notes?: string | null;
   start_date: string;

@@ -23,13 +23,13 @@ pub trait EmployeeContractRepository: Send + Sync {
     async fn list_employee_contracts(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id_val: Uuid,
+        employment_id_val: Uuid,
     ) -> Result<Vec<EmployeeContract>, AppError>;
 
     async fn list_contracts_batch(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_ids: &[Uuid],
+        employment_ids: &[Uuid],
     ) -> Result<HashMap<Uuid, Vec<EmployeeContract>>, AppError>;
 
     async fn update_contract(
@@ -54,7 +54,7 @@ pub trait EmployeeContractRepository: Send + Sync {
     async fn get_active_contract_on_date(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         date: chrono::NaiveDate,
     ) -> Result<Option<EmployeeContract>, AppError>;
 }

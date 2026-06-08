@@ -224,7 +224,7 @@ impl ImportStrategy for EmployeeImportStrategy {
             }
         }
 
-        let Ok(Some(hq_id)) =
+        let Ok(Some(_)) =
             EmployeeCoreRepository::get_headquarters_location_id(&*self.employee_repo, &auth_token)
                 .await
         else {
@@ -253,18 +253,15 @@ impl ImportStrategy for EmployeeImportStrategy {
                     Utc::now(),
                     Utc::now(),
                     None,
-                    hq_id,
-                    None,
                 ));
                 self.emp_cache.insert(key.clone(), emp_id);
                 self.newly_added_emps.insert(key);
             }
         }
         if !new_emps.is_empty() {
-            let _ = self
-                .employee_repo
+            self.employee_repo
                 .bulk_create_employees_skip_duplicates(&auth_token, &new_emps)
-                .await;
+                .await?;
             let newly_inserted_ids: Vec<String> = new_emps
                 .into_iter()
                 .map(|e| e.employee_id_number().to_string())

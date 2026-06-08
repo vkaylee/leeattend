@@ -22,6 +22,7 @@ pub struct PairingService {
     policy_repo: Arc<dyn AttendancePolicyRepository>,
     workspace_repo: Arc<dyn WorkspaceRepository>,
     employee_repo: Arc<dyn crate::repositories::employee::EmployeeRepository>,
+    employment_repo: Arc<dyn crate::repositories::EmploymentRepository>,
     holiday_repo: Arc<dyn crate::repositories::holiday_repository::HolidayRepository>,
     leave_request_repo:
         Arc<dyn crate::repositories::leave_request_repository::LeaveRequestRepository>,
@@ -36,6 +37,7 @@ pub struct PairingServiceArgs {
     pub policy_repo: Arc<dyn AttendancePolicyRepository>,
     pub workspace_repo: Arc<dyn WorkspaceRepository>,
     pub employee_repo: Arc<dyn crate::repositories::employee::EmployeeRepository>,
+    pub employment_repo: Arc<dyn crate::repositories::EmploymentRepository>,
     pub holiday_repo: Arc<dyn crate::repositories::holiday_repository::HolidayRepository>,
     pub leave_request_repo:
         Arc<dyn crate::repositories::leave_request_repository::LeaveRequestRepository>,
@@ -52,6 +54,7 @@ impl PairingService {
             policy_repo: args.policy_repo,
             workspace_repo: args.workspace_repo,
             employee_repo: args.employee_repo,
+            employment_repo: args.employment_repo,
             holiday_repo: args.holiday_repo,
             leave_request_repo: args.leave_request_repo,
             daily_summary_repo: args.daily_summary_repo,
@@ -193,6 +196,7 @@ impl PairingService {
                     policy_repo: Arc::clone(&self.policy_repo),
                     workspace_repo: Arc::clone(&self.workspace_repo),
                     employee_repo: Arc::clone(&self.employee_repo),
+                    employment_repo: Arc::clone(&self.employment_repo),
                     holiday_repo: Arc::clone(&self.holiday_repo),
                     leave_request_repo: Arc::clone(&self.leave_request_repo),
                     daily_summary_repo: Arc::clone(&self.daily_summary_repo),
@@ -236,6 +240,7 @@ impl PairingService {
                 policy_repo: Arc::clone(&self.policy_repo),
                 workspace_repo: Arc::clone(&self.workspace_repo),
                 employee_repo: Arc::clone(&self.employee_repo),
+                employment_repo: Arc::clone(&self.employment_repo),
                 holiday_repo: Arc::clone(&self.holiday_repo),
                 leave_request_repo: Arc::clone(&self.leave_request_repo),
                 daily_summary_repo: Arc::clone(&self.daily_summary_repo),
@@ -285,6 +290,7 @@ mod tests {
 
     use crate::repositories::attendance_policy_repository::MockAttendancePolicyRepository;
     use crate::repositories::employee::MockEmployeeRepository;
+    use crate::repositories::employment_repository::MockEmploymentRepository;
     use crate::repositories::holiday_repository::MockHolidayRepository;
     use crate::repositories::leave_request_repository::MockLeaveRequestRepository;
     use crate::repositories::raw_attendance_log_repository::MockRawAttendanceLogRepository;
@@ -292,6 +298,14 @@ mod tests {
     use crate::repositories::shift_repository::MockShiftRepository;
     use crate::repositories::time_entry_repository::MockTimeEntryRepository;
     use crate::repositories::workspace_repository::MockWorkspaceRepository;
+
+    fn mock_employment_repo() -> MockEmploymentRepository {
+        let mut repo = MockEmploymentRepository::new();
+        repo.expect_get_active_employment_on_date()
+            .returning(|_, _, _| Ok(None));
+        repo
+    }
+
     // We didn't add automock to AttendanceDailySummaryRepository yet, let's use a dummy struct for it.
     struct DummyDailySummaryRepo;
     #[async_trait::async_trait]
@@ -400,6 +414,7 @@ mod tests {
             policy_repo: Arc::new(MockAttendancePolicyRepository::new()),
             workspace_repo: Arc::new(MockWorkspaceRepository::new()),
             employee_repo: Arc::new(MockEmployeeRepository::new()),
+            employment_repo: Arc::new(mock_employment_repo()),
             holiday_repo: Arc::new(MockHolidayRepository::new()),
             leave_request_repo: Arc::new(MockLeaveRequestRepository::new()),
             daily_summary_repo: Arc::new(DummyDailySummaryRepo),
@@ -438,6 +453,7 @@ mod tests {
             policy_repo: Arc::new(MockAttendancePolicyRepository::new()),
             workspace_repo: Arc::new(MockWorkspaceRepository::new()),
             employee_repo: Arc::new(MockEmployeeRepository::new()),
+            employment_repo: Arc::new(mock_employment_repo()),
             holiday_repo: Arc::new(MockHolidayRepository::new()),
             leave_request_repo: Arc::new(MockLeaveRequestRepository::new()),
             daily_summary_repo: Arc::new(DummyDailySummaryRepo),
@@ -483,6 +499,7 @@ mod tests {
             policy_repo: Arc::new(MockAttendancePolicyRepository::new()),
             workspace_repo: Arc::new(mock_workspace_repo),
             employee_repo: Arc::new(MockEmployeeRepository::new()),
+            employment_repo: Arc::new(mock_employment_repo()),
             holiday_repo: Arc::new(MockHolidayRepository::new()),
             leave_request_repo: Arc::new(MockLeaveRequestRepository::new()),
             daily_summary_repo: Arc::new(DummyDailySummaryRepo),

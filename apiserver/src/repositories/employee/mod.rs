@@ -99,6 +99,9 @@ pub trait EmployeeCoreRepository: Send + Sync {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee: &Employee,
         recruitment_source_id: Option<Uuid>,
+        employer_id: Uuid,
+        primary_location_id: Option<Uuid>,
+        department_id: Option<Uuid>,
     ) -> Result<(), AppError>;
 
     async fn create_employee_skip_duplicates(&self, employee: &Employee) -> Result<bool, AppError>;
@@ -456,6 +459,9 @@ mockall::mock! {
             auth_token: &crate::diesel_pool::TenantAuthToken,
             employee: &Employee,
             recruitment_source_id: Option<Uuid>,
+            employer_id: Uuid,
+            primary_location_id: Option<Uuid>,
+            department_id: Option<Uuid>,
         ) -> Result<(), AppError>;
         async fn create_employee_skip_duplicates(&self, employee: &Employee) -> Result<bool, AppError>;
         async fn rehire_employee(
@@ -663,12 +669,12 @@ mockall::mock! {
         async fn list_employee_assignments(
             &self,
             auth_token: &crate::diesel_pool::TenantAuthToken,
-            employee_id: Uuid,
+            employment_id: Uuid,
         ) -> Result<Vec<crate::models::employee_assignment::EmployeeAssignment>, AppError>;
         async fn get_employee_assignment(
             &self,
             auth_token: &crate::diesel_pool::TenantAuthToken,
-            employee_id: Uuid,
+            employment_id: Uuid,
             assignment_id: Uuid,
         ) -> Result<Option<crate::models::employee_assignment::EmployeeAssignment>, AppError>;
         async fn create_employee_assignment(
@@ -679,20 +685,20 @@ mockall::mock! {
         async fn update_employee_assignment(
             &self,
             auth_token: &crate::diesel_pool::TenantAuthToken,
-            employee_id: Uuid,
+            employment_id: Uuid,
             assignment_id: Uuid,
             req: &crate::models::employee_assignment::UpdateEmployeeAssignmentRequest,
         ) -> Result<crate::models::employee_assignment::EmployeeAssignment, AppError>;
         async fn delete_employee_assignment(
             &self,
             auth_token: &crate::diesel_pool::TenantAuthToken,
-            employee_id: Uuid,
+            employment_id: Uuid,
             assignment_id: Uuid,
         ) -> Result<u64, AppError>;
         async fn list_assignments_batch(
             &self,
             auth_token: &crate::diesel_pool::TenantAuthToken,
-            employee_ids: &[Uuid],
+            employment_ids: &[Uuid],
         ) -> Result<std::collections::HashMap<Uuid, Vec<crate::models::employee_assignment::EmployeeAssignment>>, AppError>;
     }
 }

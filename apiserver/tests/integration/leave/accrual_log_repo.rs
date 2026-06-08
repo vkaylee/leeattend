@@ -91,7 +91,7 @@ async fn test_leave_accrual_log_repo_crud() {
     // Check balance
     let balance_amt: bigdecimal::BigDecimal = crate::test_query_scalar_bigdecimal!(
         &factory.diesel_pools.api,
-        "SELECT accrued_amount as val FROM leave_balances WHERE employee_id = $1",
+        "SELECT lb.accrued_amount as val FROM leave_balances lb JOIN employments emp ON lb.employment_id = emp.id WHERE emp.employee_id = $1",
         diesel::sql_types::Uuid,
         employee_id
     );
@@ -201,7 +201,7 @@ async fn test_leave_accrual_log_repo_crud() {
     // And balance should be updated accordingly (6.0 + 3.5 + (5.0 - 3.5) = 11.0)
     let balance_amt_new: bigdecimal::BigDecimal = crate::test_query_scalar_bigdecimal!(
         &factory.diesel_pools.api,
-        "SELECT accrued_amount as val FROM leave_balances WHERE employee_id = $1",
+        "SELECT lb.accrued_amount as val FROM leave_balances lb JOIN employments emp ON lb.employment_id = emp.id WHERE emp.employee_id = $1",
         diesel::sql_types::Uuid,
         employee_id
     );

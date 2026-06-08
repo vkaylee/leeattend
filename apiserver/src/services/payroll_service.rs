@@ -53,8 +53,10 @@ pub struct PayrollContext {
         HashMap<Uuid, Vec<crate::models::DepartmentPayrollConfig>>,
     pub(crate) overtime_data:
         crate::repositories::overtime_policy_repository::WorkspaceOvertimeData,
+    #[allow(dead_code)]
     pub(crate) active_contracts: Vec<crate::models::contract::EmployeeContract>,
     pub(crate) active_assignments: Vec<crate::models::employee_assignment::EmployeeAssignment>,
+    pub(crate) active_employments: Vec<crate::models::employment::Employment>,
     pub(crate) primary_location_id: Uuid,
 }
 
@@ -113,6 +115,7 @@ pub struct PayrollServiceArgs {
         Arc<dyn crate::repositories::salary_base_repository::SalaryBaseRepository>,
     pub roster_provider: Arc<dyn RosterDataProvider>,
     pub contract_repo: Arc<dyn crate::repositories::EmployeeContractRepository>,
+    pub employment_repo: Arc<dyn crate::repositories::EmploymentRepository>,
 }
 
 pub struct PayrollService {
@@ -129,6 +132,7 @@ pub struct PayrollService {
     salary_base_repo: Arc<dyn crate::repositories::salary_base_repository::SalaryBaseRepository>,
     roster_provider: Arc<dyn RosterDataProvider>,
     contract_repo: Arc<dyn crate::repositories::EmployeeContractRepository>,
+    employment_repo: Arc<dyn crate::repositories::EmploymentRepository>,
 }
 impl PayrollService {
     pub fn new(args: PayrollServiceArgs) -> Self {
@@ -146,6 +150,7 @@ impl PayrollService {
             salary_base_repo: args.salary_base_repo,
             roster_provider: args.roster_provider,
             contract_repo: args.contract_repo,
+            employment_repo: args.employment_repo,
         }
     }
 
@@ -335,7 +340,21 @@ impl PayrollService {
             )
             .await?;
 
-        let primary_location_id = employee.primary_location_id();
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
+        let active_employment = self
+            .employment_repo
+            .get_active_employment_on_date(&auth_token, employee_id, start_date)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Active employment not found".into()))?;
+
+        let primary_location_id = active_employment.primary_location_id.ok_or_else(|| {
+            AppError::NotFound("Primary location not found for active employment".into())
+        })?;
+
+        let active_employments = self
+            .employment_repo
+            .list_employee_employments(&auth_token, employee_id)
+            .await?;
 
         Ok(PayrollContext {
             employee_id,
@@ -359,6 +378,7 @@ impl PayrollService {
             overtime_data,
             active_contracts,
             active_assignments,
+            active_employments,
             primary_location_id,
         })
     }
@@ -419,6 +439,17 @@ impl PayrollService {
     ) -> Result<Payslip, AppError> {
         let employee_id = ctx.employee_id;
         let workspace_id = ctx.workspace.id();
+        let active_emp = ctx
+            .active_employments
+            .iter()
+            .find(|e| {
+                e.status == "active"
+                    && e.start_date <= ctx.start_date
+                    && e.end_date.is_none_or(|end| end >= ctx.start_date)
+            })
+            .or_else(|| ctx.active_employments.first())
+            .ok_or_else(|| AppError::NotFound("No active employment found".into()))?;
+        let employment_id = active_emp.id;
 
         // Phase 2: Build segments
         let segments = Self::build_segments(&ctx);
@@ -636,7 +667,7 @@ impl PayrollService {
         let payslip = FinancialCalculator::assemble_payslip(
             crate::services::financial_calculator::AssemblePayslipArgs {
                 workspace_id,
-                employee_id,
+                employment_id,
                 start_date: ctx.start_date,
                 end_date: ctx.end_date,
                 total_base_pay,
@@ -869,6 +900,29 @@ impl PayrollService {
                     .await
                     .unwrap_or_default();
 
+            let employments_history = self
+                .employment_repo
+                .get_employments_for_employees(token, &chunk_ids)
+                .await
+                .unwrap_or_default();
+
+            let mut emp_to_location = HashMap::new();
+            let mut emp_to_employments = HashMap::new();
+            for emp_ment in employments_history {
+                if emp_ment.status == "active"
+                    && emp_ment.start_date <= start_date
+                    && emp_ment.end_date.is_none_or(|end| end >= start_date)
+                {
+                    if let Some(loc_id) = emp_ment.primary_location_id {
+                        emp_to_location.insert(emp_ment.employee_id, loc_id);
+                    }
+                }
+                emp_to_employments
+                    .entry(emp_ment.employee_id)
+                    .or_insert_with(Vec::new)
+                    .push(emp_ment);
+            }
+
             let mut contexts = Vec::new();
             for emp_id in chunk_ids {
                 if let Some(employee) = employees.remove(&emp_id) {
@@ -906,7 +960,10 @@ impl PayrollService {
                         }
                     }
 
-                    let primary_location_id = employee.primary_location_id();
+                    let primary_location_id = emp_to_location
+                        .get(&emp_id)
+                        .copied()
+                        .unwrap_or_else(Uuid::new_v4);
 
                     contexts.push(PayrollContext {
                         employee_id: emp_id,
@@ -930,6 +987,7 @@ impl PayrollService {
                         overtime_data: overtime_data.clone(),
                         active_contracts: contracts_map.remove(&emp_id).unwrap_or_default(),
                         active_assignments: assignments_map.remove(&emp_id).unwrap_or_default(),
+                        active_employments: emp_to_employments.remove(&emp_id).unwrap_or_default(),
                         primary_location_id,
                     });
                 }
@@ -952,6 +1010,7 @@ impl PayrollService {
                         salary_base_repo: Arc::clone(&self.salary_base_repo),
                         roster_provider: Arc::clone(&self.roster_provider),
                         contract_repo: Arc::clone(&self.contract_repo),
+                        employment_repo: Arc::clone(&self.employment_repo),
                     };
                     async move {
                         match svc.calculate_payslip_with_context(ctx).await {
@@ -1089,6 +1148,7 @@ mod tests {
             },
             active_contracts: Vec::new(),
             active_assignments: Vec::new(),
+            active_employments: Vec::new(),
             primary_location_id: Uuid::new_v4(),
         }
     }

@@ -52,8 +52,15 @@ async fn test_employee_contracts_crud() {
         ws_id
     );
 
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &_test_db.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
+
     let create_payload = json!({
-        "employee_id": emp_id,
+        "employment_id": employment_id,
         "contract_type": "fixed_term",
         "status": "active",
         "start_date": "2026-01-01",
@@ -186,8 +193,15 @@ async fn test_explicitly_assign_employment_phase_during_contract_creation() {
         ws_id
     );
 
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &_test_db.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
+
     let create_payload = json!({
-        "employee_id": emp_id,
+        "employment_id": employment_id,
         "contract_type": "probation",
         "start_date": "2026-05-01",
         "end_date": "2026-07-01",
@@ -253,9 +267,16 @@ async fn test_employee_contracts_overlap_auto_close() {
         ws_id
     );
 
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &_test_db.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
+
     // 1. Create first contract
     let create_payload_1 = json!({
-        "employee_id": emp_id,
+        "employment_id": employment_id,
         "contract_type": "fixed_term",
         "status": "active",
         "start_date": "2026-01-01",
@@ -286,7 +307,7 @@ async fn test_employee_contracts_overlap_auto_close() {
 
     // 2. Create second contract that overlaps
     let create_payload_2 = json!({
-        "employee_id": emp_id,
+        "employment_id": employment_id,
         "contract_type": "fixed_term",
         "status": "active",
         "start_date": "2026-06-01",

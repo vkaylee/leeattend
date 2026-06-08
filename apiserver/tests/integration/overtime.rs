@@ -181,7 +181,14 @@ async fn test_overtime_request_full_flow() {
         .await
         .unwrap();
 
+    let status = res.status();
     let create_response: serde_json::Value = res.json().await.unwrap();
+    assert_eq!(
+        status,
+        StatusCode::OK,
+        "Failed to create OT request: body={:?}",
+        create_response
+    );
     let request_id = create_response["id"].as_str().unwrap();
 
     // 5. Get OT Request
@@ -477,7 +484,14 @@ async fn test_overtime_request_behalf_assignments() {
         .await
         .unwrap();
 
-    assert_eq!(res.status(), StatusCode::OK);
+    let status = res.status();
+    let body = res.text().await.unwrap();
+    assert_eq!(
+        status,
+        StatusCode::OK,
+        "Failed to create behalf request: body={}",
+        body
+    );
 
     // 5. Team Lead still cannot create Pre-OT request for emp2
     let ot_payload_emp2 = serde_json::json!({

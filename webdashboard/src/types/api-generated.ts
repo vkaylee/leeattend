@@ -74,6 +74,43 @@ export interface paths {
         patch: operations["update_contract"];
         trace?: never;
     };
+    "/api/v1/workspaces/{ws_id}/employees/{employee_id}/employments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lấy danh sách mối quan hệ công việc của một nhân viên */
+        get: operations["list_employee_employments"];
+        put?: never;
+        /** Tạo mới một mối quan hệ công việc */
+        post: operations["create_employment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{ws_id}/employees/{employee_id}/employments/{employment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lấy chi tiết mối quan hệ công việc */
+        get: operations["get_employment"];
+        put?: never;
+        post?: never;
+        /** Xóa (soft delete) mối quan hệ công việc */
+        delete: operations["delete_employment"];
+        options?: never;
+        head?: never;
+        /** Cập nhật mối quan hệ công việc */
+        patch: operations["update_employment"];
+        trace?: never;
+    };
     "/auth/change-password": {
         parameters: {
             query?: never;
@@ -4265,9 +4302,7 @@ export interface components {
             /** Format: uuid */
             document_id?: string | null;
             /** Format: uuid */
-            employee_id: string;
-            /** Format: uuid */
-            employer_id: string;
+            employment_id: string;
             /** Format: date */
             end_date?: string | null;
             notes?: string | null;
@@ -4318,14 +4353,16 @@ export interface components {
             start_date: string;
         };
         CreateEmployeeRequest: {
+            /** Format: uuid */
+            department_id?: string | null;
             employee_id_number: components["schemas"]["String"];
             /** Format: uuid */
-            employer_id?: string | null;
+            employer_id: string;
             full_name: string;
             /** Format: date */
             hire_date: string;
             /** Format: uuid */
-            primary_location_id: string;
+            primary_location_id?: string | null;
             /** Format: uuid */
             recruitment_source_id?: string | null;
             tags?: string[] | null;
@@ -4347,6 +4384,21 @@ export interface components {
             name: string;
             phase_type: string;
             rule_config: unknown;
+        };
+        CreateEmploymentRequest: {
+            /** Format: uuid */
+            department_id?: string | null;
+            /** Format: uuid */
+            employee_id: string;
+            /** Format: uuid */
+            employer_id: string;
+            /** Format: date */
+            end_date?: string | null;
+            /** Format: uuid */
+            primary_location_id?: string | null;
+            /** Format: date */
+            start_date: string;
+            status: string;
         };
         /** @description Request payload for creating a new feature flag. */
         CreateFeatureFlagRequest: {
@@ -4679,6 +4731,8 @@ export interface components {
             traces?: components["schemas"]["ScheduleTrace"][];
         };
         Employee: {
+            /** Format: uuid */
+            active_employment_id?: string | null;
             /** Format: date-time */
             created_at: string;
             department_name?: string | null;
@@ -4694,7 +4748,7 @@ export interface components {
             /** Format: date */
             original_hire_date: string;
             /** Format: uuid */
-            primary_location_id: string;
+            primary_location_id?: string | null;
             tags: string[];
             /** Format: date */
             termination_date?: string | null;
@@ -4709,7 +4763,7 @@ export interface components {
             /** Format: date-time */
             created_at: string;
             /** Format: uuid */
-            employee_id: string;
+            employment_id: string;
             /** Format: date */
             end_date?: string | null;
             /** Format: uuid */
@@ -4739,9 +4793,7 @@ export interface components {
             /** Format: uuid */
             document_id?: string | null;
             /** Format: uuid */
-            employee_id: string;
-            /** Format: uuid */
-            employer_id: string;
+            employment_id: string;
             /** Format: date */
             end_date?: string | null;
             /** Format: uuid */
@@ -4927,6 +4979,29 @@ export interface components {
             parent_id?: string | null;
             relationship_type?: string | null;
             tax_code?: string | null;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        Employment: {
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            department_id?: string | null;
+            /** Format: uuid */
+            employee_id: string;
+            /** Format: uuid */
+            employer_id: string;
+            /** Format: date */
+            end_date?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            primary_location_id?: string | null;
+            /** Format: date */
+            start_date: string;
+            status: string;
             /** Format: date-time */
             updated_at: string;
             /** Format: uuid */
@@ -5308,7 +5383,7 @@ export interface components {
             created_at: string;
             duration_type: components["schemas"]["LeaveDurationType"];
             /** Format: uuid */
-            employee_id: string;
+            employment_id: string;
             /** Format: date */
             end_date: string;
             end_time?: string | null;
@@ -5526,7 +5601,7 @@ export interface components {
             created_at: string;
             decline_reason?: string | null;
             /** Format: uuid */
-            employee_id: string;
+            employment_id: string;
             /** Format: uuid */
             id: string;
             /** Format: uuid */
@@ -5765,7 +5840,7 @@ export interface components {
             created_at: string;
             deductions_amount: string;
             /** Format: uuid */
-            employee_id: string;
+            employment_id: string;
             /** @description Premium paid when employee works on a holiday (configurable per-holiday via ot_multiplier). */
             holiday_work_premium_amount: string;
             /** Format: uuid */
@@ -6134,7 +6209,7 @@ export interface components {
         SubmitLeaveRequest: {
             duration_type?: components["schemas"]["LeaveDurationType"];
             /** Format: uuid */
-            employee_id: string;
+            employment_id: string;
             /** Format: date */
             end_date: string;
             end_time?: string | null;
@@ -6333,8 +6408,6 @@ export interface components {
             contract_type?: null | components["schemas"]["ContractType"];
             /** Format: uuid */
             document_id?: string | null;
-            /** Format: uuid */
-            employer_id?: string | null;
             /** Format: date */
             end_date?: string | null;
             notes?: string | null;
@@ -6390,8 +6463,6 @@ export interface components {
         };
         UpdateEmployeeRequest: {
             employee_id_number?: null | components["schemas"]["String"];
-            /** Format: uuid */
-            employer_id?: string | null;
             force_transfer?: boolean | null;
             full_name?: string | null;
             /** Format: date */
@@ -6399,8 +6470,6 @@ export interface components {
             is_active?: boolean | null;
             /** Format: int32 */
             max_concurrent_workers?: number | null;
-            /** Format: uuid */
-            primary_location_id?: string | null;
             /** Format: uuid */
             recruitment_source_id?: string | null;
             tags?: string[] | null;
@@ -6416,6 +6485,19 @@ export interface components {
             parent_id?: string | null;
             relationship_type?: string | null;
             tax_code?: string | null;
+        };
+        UpdateEmploymentRequest: {
+            /** Format: uuid */
+            department_id?: string | null;
+            /** Format: uuid */
+            employer_id?: string | null;
+            /** Format: date */
+            end_date?: string | null;
+            /** Format: uuid */
+            primary_location_id?: string | null;
+            /** Format: date */
+            start_date?: string | null;
+            status?: string | null;
         };
         /** @description Request payload for updating a feature flag. */
         UpdateFeatureFlagRequest: {
@@ -6974,6 +7056,143 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EmployeeContract"];
+                };
+            };
+        };
+    };
+    list_employee_employments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employee ID */
+                employee_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Danh sách quan hệ công việc */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Employment"][];
+                };
+            };
+        };
+    };
+    create_employment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employee ID */
+                employee_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateEmploymentRequest"];
+            };
+        };
+        responses: {
+            /** @description Đã tạo quan hệ công việc */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Employment"];
+                };
+            };
+        };
+    };
+    get_employment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employee ID */
+                employee_id: string;
+                /** @description Employment ID */
+                employment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Chi tiết quan hệ công việc */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Employment"];
+                };
+            };
+        };
+    };
+    delete_employment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employee ID */
+                employee_id: string;
+                /** @description Employment ID */
+                employment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Đã xóa quan hệ công việc */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_employment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employee ID */
+                employee_id: string;
+                /** @description Employment ID */
+                employment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateEmploymentRequest"];
+            };
+        };
+        responses: {
+            /** @description Đã cập nhật quan hệ công việc */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Employment"];
                 };
             };
         };

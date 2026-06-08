@@ -131,8 +131,6 @@ mod tests {
                     chrono::Utc::now(),
                     chrono::Utc::now(),
                     None,
-                    uuid::Uuid::new_v4(),
-                    None,
                 );
                 Ok(Some(emp))
             });

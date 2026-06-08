@@ -120,6 +120,9 @@ async fn test_overnight_shift_pairing() {
             employee_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
             ),
+            employment_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselEmploymentRepository::new(diesel_pools.clone()),
+            ),
             holiday_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselHolidayRepository::new(diesel_pools.clone()),
             ),

@@ -8,6 +8,7 @@ use crate::repositories::attendance_policy_repository::MockAttendancePolicyRepos
 use crate::repositories::department_repository::MockDepartmentRepository;
 use crate::repositories::employee::MockEmployeeRepository;
 use crate::repositories::employee_contract_repository::MockEmployeeContractRepository;
+use crate::repositories::employment_repository::MockEmploymentRepository;
 use crate::repositories::holiday_repository::MockHolidayRepository;
 use crate::repositories::import_job_repository::MockImportJobRepository;
 use crate::repositories::leave_accrual_log_repository::MockLeaveAccrualLogRepository;
@@ -178,6 +179,7 @@ pub struct MockWorkerDepsBuilder {
     pub session_repo: MockSessionRepository,
     pub leave_balance_repo: MockLeaveBalanceRepository,
     pub contract_repo: MockEmployeeContractRepository,
+    pub employment_repo: MockEmploymentRepository,
     pub leave_accrual_log_repo: MockLeaveAccrualLogRepository,
     pub leave_policy_repo: DummyLeavePolicyRepository,
     pub user_repo: MockUserRepository,
@@ -220,6 +222,7 @@ impl MockWorkerDepsBuilder {
             session_repo: MockSessionRepository::new(),
             leave_balance_repo: MockLeaveBalanceRepository::new(),
             contract_repo: MockEmployeeContractRepository::new(),
+            employment_repo: MockEmploymentRepository::new(),
             leave_accrual_log_repo: MockLeaveAccrualLogRepository::new(),
             leave_policy_repo: DummyLeavePolicyRepository,
             user_repo: MockUserRepository::new(),
@@ -248,6 +251,7 @@ impl MockWorkerDepsBuilder {
             session_repo: Arc::new(self.session_repo),
             leave_balance_repo: Arc::new(self.leave_balance_repo),
             contract_repo: Arc::new(self.contract_repo),
+            employment_repo: Arc::new(self.employment_repo),
             leave_accrual_log_repo: Arc::new(self.leave_accrual_log_repo),
             leave_policy_repo: Arc::new(self.leave_policy_repo),
             user_repo: Arc::new(self.user_repo),

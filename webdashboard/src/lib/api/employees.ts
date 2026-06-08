@@ -3,8 +3,10 @@ import type {
   EmploymentPeriod,
   EmployeeDepartmentHistory,
   PaginatedResponse,
+  Employment,
 } from "./types";
 
+import { components } from "@/types/api-generated";
 import { client } from "./client";
 
 export * from "./employee-phases";
@@ -161,4 +163,34 @@ export async function fetchEmployeeDepartmentHistory(wsId: string, employeeId: s
   });
   if (!data) throw new Error("No response data");
   return data;
+}
+
+
+export async function fetchEmployeeEmployments(
+  wsId: string,
+  employeeId: string
+): Promise<Employment[]> {
+  const { data } = await client.GET("/api/v1/workspaces/{ws_id}/employees/{employee_id}/employments", {
+    params: {
+      path: { ws_id: wsId, employee_id: employeeId },
+    },
+  });
+  if (!data) throw new Error("No response data");
+  return data as unknown as Employment[];
+}
+
+export async function updateEmployeeEmployment(
+  wsId: string,
+  employeeId: string,
+  employmentId: string,
+  body: components["schemas"]["UpdateEmploymentRequest"]
+): Promise<Employment> {
+  const { data } = await client.PATCH("/api/v1/workspaces/{ws_id}/employees/{employee_id}/employments/{employment_id}", {
+    params: {
+      path: { ws_id: wsId, employee_id: employeeId, employment_id: employmentId },
+    },
+    body,
+  });
+  if (!data) throw new Error("No response data");
+  return data as unknown as Employment;
 }

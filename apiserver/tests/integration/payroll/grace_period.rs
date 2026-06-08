@@ -161,6 +161,9 @@ async fn test_grace_period_zero_shift_uses_policy_default() {
                     diesel_pools.clone(),
                 ),
             ),
+            employment_repo: Arc::new(apiserver::repositories::DieselEmploymentRepository::new(
+                diesel_pools.clone(),
+            )),
         })
     }
     .calculate_monthly_payslip(employee_id, workspace_id, 2026, 1)
@@ -321,6 +324,9 @@ async fn test_grace_period_nonzero_shift_overrides() {
                     diesel_pools.clone(),
                 ),
             ),
+            employment_repo: Arc::new(apiserver::repositories::DieselEmploymentRepository::new(
+                diesel_pools.clone(),
+            )),
         })
     }
     .calculate_monthly_payslip(employee_id, workspace_id, 2026, 1)

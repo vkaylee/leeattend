@@ -16,6 +16,12 @@ async fn test_persist_calculated_payslip_data_transaction_rollback() {
     let ws_id = factory.workspace().create_with_owner(user_id).await;
 
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
 
     let payroll_repo =
         apiserver::repositories::diesel_payroll_repository::DieselPayrollRepository::new(
@@ -26,7 +32,7 @@ async fn test_persist_calculated_payslip_data_transaction_rollback() {
     let payslip = Payslip {
         id: payslip_id,
         workspace_id: ws_id,
-        employee_id: emp_id,
+        employment_id,
         period_start: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
         period_end: NaiveDate::from_ymd_opt(2026, 1, 31).unwrap(),
         base_pay_amount: Decimal::from(1000),

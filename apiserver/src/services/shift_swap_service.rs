@@ -649,8 +649,6 @@ mod tests {
             Utc::now(),
             Utc::now(),
             None,
-            uuid::Uuid::new_v4(),
-            None,
         )
     }
 

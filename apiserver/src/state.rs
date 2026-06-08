@@ -51,6 +51,7 @@ pub struct EmployeeState {
     service: Arc<EmployeeService>,
     recruitment_service: Arc<RecruitmentService>,
     repo: Arc<dyn EmployeeRepository>,
+    employment_repo: Arc<dyn crate::repositories::EmploymentRepository>,
     contract_repo: Arc<DieselEmployeeContractRepository>,
     employment_phase_repo: Arc<crate::repositories::DieselEmploymentPhaseRepository>,
 }
@@ -60,6 +61,7 @@ impl EmployeeState {
         service: Arc<EmployeeService>,
         recruitment_service: Arc<RecruitmentService>,
         repo: Arc<dyn EmployeeRepository>,
+        employment_repo: Arc<dyn crate::repositories::EmploymentRepository>,
         contract_repo: Arc<DieselEmployeeContractRepository>,
         employment_phase_repo: Arc<crate::repositories::DieselEmploymentPhaseRepository>,
     ) -> Self {
@@ -67,6 +69,7 @@ impl EmployeeState {
             service,
             recruitment_service,
             repo,
+            employment_repo,
             contract_repo,
             employment_phase_repo,
         }
@@ -82,6 +85,10 @@ impl EmployeeState {
 
     pub fn repo(&self) -> &Arc<dyn EmployeeRepository> {
         &self.repo
+    }
+
+    pub fn employment_repo(&self) -> &Arc<dyn crate::repositories::EmploymentRepository> {
+        &self.employment_repo
     }
 
     pub fn contract_repo(&self) -> &Arc<DieselEmployeeContractRepository> {

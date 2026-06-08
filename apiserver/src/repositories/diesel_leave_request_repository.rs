@@ -40,25 +40,25 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        // Check if employee exists and belongs to the workspace of this tenant
-        let employee_exists = employees::table
-            .filter(employees::id.eq(request.employee_id()))
-            .filter(employees::workspace_id.eq(workspace_id))
-            .filter(employees::deleted_at.is_null())
-            .select(employees::id)
+        // Check if employment exists and belongs to the workspace of this tenant
+        let employment_exists = employments::table
+            .filter(employments::id.eq(request.employment_id()))
+            .filter(employments::workspace_id.eq(workspace_id))
+            .filter(employments::deleted_at.is_null())
+            .select(employments::id)
             .first::<Uuid>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db check employee: {e}")))?;
+            .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
 
-        if employee_exists.is_none() {
-            return Err(AppError::NotFound("error.employee_not_found".to_string()));
+        if employment_exists.is_none() {
+            return Err(AppError::NotFound("error.employment_not_found".to_string()));
         }
 
         diesel::insert_into(leave_requests::table)
             .values((
                 leave_requests::id.eq(request.id()),
-                leave_requests::employee_id.eq(request.employee_id()),
+                leave_requests::employment_id.eq(request.employment_id()),
                 leave_requests::leave_type_id.eq(request.leave_type_id()),
                 leave_requests::start_date.eq(request.start_date()),
                 leave_requests::end_date.eq(request.end_date()),
@@ -94,9 +94,9 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         );
 
         let entity = leave_requests::table
-            .inner_join(employees::table)
+            .inner_join(employments::table)
             .filter(leave_requests::id.eq(id))
-            .filter(employees::workspace_id.eq(workspace_id))
+            .filter(employments::workspace_id.eq(workspace_id))
             .select(LeaveRequestEntity::as_select())
             .first::<LeaveRequestEntity>(&mut *conn)
             .await
@@ -125,9 +125,9 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         diesel::update(leave_requests::table)
             .filter(leave_requests::id.eq(id))
             .filter(diesel::dsl::exists(
-                employees::table
-                    .filter(employees::id.eq(leave_requests::employee_id))
-                    .filter(employees::workspace_id.eq(workspace_id)),
+                employments::table
+                    .filter(employments::id.eq(leave_requests::employment_id))
+                    .filter(employments::workspace_id.eq(workspace_id)),
             ))
             .set((
                 leave_requests::status.eq(status),
@@ -156,9 +156,9 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         );
 
         let entities = leave_requests::table
-            .inner_join(employees::table)
-            .filter(leave_requests::employee_id.eq(employee_id))
-            .filter(employees::workspace_id.eq(workspace_id))
+            .inner_join(employments::table)
+            .filter(employments::employee_id.eq(employee_id))
+            .filter(employments::workspace_id.eq(workspace_id))
             .order(leave_requests::start_date.desc())
             .select(LeaveRequestEntity::as_select())
             .load::<LeaveRequestEntity>(&mut *conn)
@@ -183,8 +183,8 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         );
 
         let mut query = leave_requests::table
-            .inner_join(employees::table)
-            .filter(employees::workspace_id.eq(workspace_id))
+            .inner_join(employments::table)
+            .filter(employments::workspace_id.eq(workspace_id))
             .into_boxed();
 
         if let Some(s) = status {
@@ -220,9 +220,9 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         // Step 1: Get raw leave days per type
         let rows = leave_requests::table
             .inner_join(leave_types::table)
-            .inner_join(employees::table)
-            .filter(leave_requests::employee_id.eq(employee_id))
-            .filter(employees::workspace_id.eq(workspace_id))
+            .inner_join(employments::table)
+            .filter(employments::employee_id.eq(employee_id))
+            .filter(employments::workspace_id.eq(workspace_id))
             .filter(
                 leave_requests::status
                     .eq(LeaveStatus::Approved)
@@ -234,7 +234,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             .select((
                 leave_types::code,
                 diesel::dsl::sql::<diesel::sql_types::BigInt>(&format!(
-                    "SUM(LEAST(end_date, '{end_date}') - GREATEST(start_date, '{start_date}') + 1)"
+                    "SUM(LEAST(leave_requests.end_date, '{end_date}') - GREATEST(leave_requests.start_date, '{start_date}') + 1)"
                 )),
             ))
             .load::<(String, i64)>(&mut *conn)
@@ -249,7 +249,9 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             .filter(holidays::date.le(end_date))
             .filter(diesel::dsl::exists(
                 leave_requests::table
-                    .filter(leave_requests::employee_id.eq(employee_id))
+                    .inner_join(employments::table)
+                    .filter(employments::employee_id.eq(employee_id))
+                    .filter(employments::workspace_id.eq(workspace_id))
                     .filter(
                         leave_requests::status
                             .eq(LeaveStatus::Approved)
@@ -302,13 +304,13 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         );
 
         let dept_id = leave_requests::table
+            .inner_join(employments::table)
             .inner_join(
                 employee_department_history::table
-                    .on(leave_requests::employee_id.eq(employee_department_history::employee_id)),
+                    .on(employments::employee_id.eq(employee_department_history::employee_id)),
             )
-            .inner_join(employees::table.on(leave_requests::employee_id.eq(employees::id)))
             .filter(leave_requests::id.eq(request_id))
-            .filter(employees::workspace_id.eq(workspace_id))
+            .filter(employments::workspace_id.eq(workspace_id))
             .order(employee_department_history::effective_date.desc())
             .select(employee_department_history::department_id)
             .first::<Uuid>(&mut *conn)
@@ -360,9 +362,9 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
 
         let row = leave_requests::table
             .inner_join(leave_types::table)
-            .inner_join(employees::table)
-            .filter(leave_requests::employee_id.eq(employee_id))
-            .filter(employees::workspace_id.eq(workspace_id))
+            .inner_join(employments::table)
+            .filter(employments::employee_id.eq(employee_id))
+            .filter(employments::workspace_id.eq(workspace_id))
             .filter(
                 leave_requests::status
                     .eq(LeaveStatus::Approved)
@@ -401,9 +403,9 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         diesel::update(leave_requests::table)
             .filter(leave_requests::id.eq(id))
             .filter(diesel::dsl::exists(
-                employees::table
-                    .filter(employees::id.eq(leave_requests::employee_id))
-                    .filter(employees::workspace_id.eq(workspace_id)),
+                employments::table
+                    .filter(employments::id.eq(leave_requests::employment_id))
+                    .filter(employments::workspace_id.eq(workspace_id)),
             ))
             .set((
                 leave_requests::status.eq(LeaveStatus::Cancelled),
@@ -434,9 +436,9 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
 
         let mut query = leave_requests::table
             .inner_join(leave_types::table)
-            .inner_join(employees::table)
-            .filter(leave_requests::employee_id.eq(employee_id))
-            .filter(employees::workspace_id.eq(workspace_id))
+            .inner_join(employments::table)
+            .filter(employments::employee_id.eq(employee_id))
+            .filter(employments::workspace_id.eq(workspace_id))
             .filter(
                 leave_requests::status
                     .eq(LeaveStatus::Approved)
@@ -562,7 +564,9 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             .filter(holidays::date.le(end_date))
             .filter(diesel::dsl::not(diesel::dsl::exists(
                 leave_requests::table
-                    .filter(leave_requests::employee_id.eq(employee_id))
+                    .inner_join(employments::table)
+                    .filter(employments::employee_id.eq(employee_id))
+                    .filter(employments::workspace_id.eq(workspace_id))
                     .filter(
                         leave_requests::status
                             .eq(LeaveStatus::Approved)
@@ -596,9 +600,9 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         );
 
         let rows = leave_requests::table
-            .inner_join(employees::table)
-            .filter(leave_requests::employee_id.eq_any(employee_ids))
-            .filter(employees::workspace_id.eq(workspace_id))
+            .inner_join(employments::table)
+            .filter(employments::employee_id.eq_any(employee_ids))
+            .filter(employments::workspace_id.eq(workspace_id))
             .filter(
                 leave_requests::status
                     .eq(LeaveStatus::Approved)
@@ -606,10 +610,12 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             )
             .filter(leave_requests::start_date.ge(start_date))
             .filter(leave_requests::end_date.le(end_date))
-            .group_by(leave_requests::employee_id)
+            .group_by(employments::employee_id)
             .select((
-                leave_requests::employee_id,
-                diesel::dsl::sql::<diesel::sql_types::BigInt>("SUM(end_date - start_date + 1)"),
+                employments::employee_id,
+                diesel::dsl::sql::<diesel::sql_types::BigInt>(
+                    "SUM(leave_requests.end_date - leave_requests.start_date + 1)",
+                ),
             ))
             .load::<(Uuid, i64)>(&mut *conn)
             .await
@@ -646,11 +652,11 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         );
 
         let leave_rows: Vec<LeaveRow> = diesel::sql_query(
-            r"SELECT lr.employee_id, lr.start_date, lr.end_date
+            r"SELECT emp.employee_id, lr.start_date, lr.end_date
                FROM leave_requests lr
-               JOIN employees e ON lr.employee_id = e.id
-               WHERE e.workspace_id = $1
-                 AND lr.employee_id = ANY($2)
+               JOIN employments emp ON lr.employment_id = emp.id
+               WHERE emp.workspace_id = $1
+                 AND emp.employee_id = ANY($2)
                  AND lr.status IN ('approved', 'pre_approved')
                  AND lr.start_date <= $4
                  AND lr.end_date >= $3",
@@ -710,12 +716,12 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         );
 
         let leave_rows: Vec<LeaveRow> = diesel::sql_query(
-            r"SELECT lr.employee_id, lr.start_date, lr.end_date, lt.is_paid
+            r"SELECT emp.employee_id, lr.start_date, lr.end_date, lt.is_paid
                FROM leave_requests lr
-               JOIN employees e ON lr.employee_id = e.id
+               JOIN employments emp ON lr.employment_id = emp.id
                JOIN leave_types lt ON lr.leave_type_id = lt.id
-               WHERE e.workspace_id = $1
-                 AND lr.employee_id = ANY($2)
+               WHERE emp.workspace_id = $1
+                 AND emp.employee_id = ANY($2)
                  AND lr.status IN ('approved', 'pre_approved')
                  AND lr.start_date <= $4
                  AND lr.end_date >= $3",
@@ -762,9 +768,9 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         );
 
         let rows: Vec<(NaiveDate, NaiveDate)> = leave_requests::table
-            .inner_join(employees::table)
-            .filter(leave_requests::employee_id.eq(employee_id))
-            .filter(employees::workspace_id.eq(workspace_id))
+            .inner_join(employments::table)
+            .filter(employments::employee_id.eq(employee_id))
+            .filter(employments::workspace_id.eq(workspace_id))
             .filter(
                 leave_requests::status
                     .eq(LeaveStatus::Approved)

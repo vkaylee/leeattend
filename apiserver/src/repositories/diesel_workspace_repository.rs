@@ -169,8 +169,9 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
 
                 use crate::schema::{
                     attendance_adjustment_requests, attendance_import_jobs, departments,
-                    employee_department_history, employee_salary_components, employee_shifts,
-                    employees, leave_accrual_logs, leave_balances, leave_policy_assignments,
+                    employee_assignments, employee_contracts, employee_department_history,
+                    employee_salary_components, employee_shifts, employees, employments,
+                    leave_accrual_logs, leave_balances, leave_policy_assignments,
                     leave_policy_definitions, leave_requests, payslips, raw_attendance_logs,
                     salary_component_definitions, shift_rosters, shifts, time_entries,
                 };
@@ -178,6 +179,10 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                 let emp_subquery = employees::dsl::employees
                     .filter(employees::dsl::workspace_id.eq(ws_id))
                     .select(employees::dsl::id);
+
+                let employment_subquery = employments::dsl::employments
+                    .filter(employments::dsl::workspace_id.eq(ws_id))
+                    .select(employments::dsl::id);
 
                 match group {
                     "attendance" => {
@@ -230,23 +235,21 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                         )
                         .execute(&mut *conn)
                         .await?;
-                        diesel::delete(
-                            leave_requests::dsl::leave_requests
-                                .filter(leave_requests::dsl::employee_id.eq_any(emp_subquery)),
-                        )
+                        diesel::delete(leave_requests::dsl::leave_requests.filter(
+                            leave_requests::dsl::employment_id.eq_any(employment_subquery),
+                        ))
                         .execute(&mut *conn)
                         .await?;
-                        diesel::delete(
-                            leave_balances::dsl::leave_balances
-                                .filter(leave_balances::dsl::employee_id.eq_any(emp_subquery)),
-                        )
+                        diesel::delete(leave_balances::dsl::leave_balances.filter(
+                            leave_balances::dsl::employment_id.eq_any(employment_subquery),
+                        ))
                         .execute(&mut *conn)
                         .await?;
                     }
                     "payroll" => {
                         diesel::delete(
                             payslips::dsl::payslips
-                                .filter(payslips::dsl::employee_id.eq_any(emp_subquery)),
+                                .filter(payslips::dsl::employment_id.eq_any(employment_subquery)),
                         )
                         .execute(&mut *conn)
                         .await?;
@@ -310,21 +313,19 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                         )
                         .execute(&mut *conn)
                         .await?;
-                        diesel::delete(
-                            leave_requests::dsl::leave_requests
-                                .filter(leave_requests::dsl::employee_id.eq_any(emp_subquery)),
-                        )
+                        diesel::delete(leave_requests::dsl::leave_requests.filter(
+                            leave_requests::dsl::employment_id.eq_any(employment_subquery),
+                        ))
                         .execute(&mut *conn)
                         .await?;
-                        diesel::delete(
-                            leave_balances::dsl::leave_balances
-                                .filter(leave_balances::dsl::employee_id.eq_any(emp_subquery)),
-                        )
+                        diesel::delete(leave_balances::dsl::leave_balances.filter(
+                            leave_balances::dsl::employment_id.eq_any(employment_subquery),
+                        ))
                         .execute(&mut *conn)
                         .await?;
                         diesel::delete(
                             payslips::dsl::payslips
-                                .filter(payslips::dsl::employee_id.eq_any(emp_subquery)),
+                                .filter(payslips::dsl::employment_id.eq_any(employment_subquery)),
                         )
                         .execute(&mut *conn)
                         .await?;
@@ -361,6 +362,25 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                         )
                         .execute(&mut *conn)
                         .await?;
+
+                        diesel::delete(employee_contracts::dsl::employee_contracts.filter(
+                            employee_contracts::dsl::employment_id.eq_any(employment_subquery),
+                        ))
+                        .execute(&mut *conn)
+                        .await?;
+                        diesel::delete(employee_assignments::dsl::employee_assignments.filter(
+                            employee_assignments::dsl::employment_id.eq_any(employment_subquery),
+                        ))
+                        .execute(&mut *conn)
+                        .await?;
+
+                        diesel::delete(
+                            employments::dsl::employments
+                                .filter(employments::dsl::workspace_id.eq(ws_id)),
+                        )
+                        .execute(&mut *conn)
+                        .await?;
+
                         diesel::delete(
                             employees::dsl::employees
                                 .filter(employees::dsl::workspace_id.eq(ws_id)),

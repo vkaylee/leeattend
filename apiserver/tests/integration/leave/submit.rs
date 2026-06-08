@@ -97,6 +97,12 @@ async fn test_teamlead_submit_own_dept_auto_approved() {
         .with_full_name("Nguyen Van A")
         .create()
         .await;
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
     assign_to_department(&factory.diesel_pools, emp_id, dept_id).await;
 
     // Get vacation leave type
@@ -109,7 +115,7 @@ async fn test_teamlead_submit_own_dept_auto_approved() {
 
     // Submit leave request as TeamLead
     let submit_req = SubmitLeaveRequest {
-        employee_id: emp_id,
+        employment_id,
         leave_type_id: vacation_id,
         start_date: chrono::NaiveDate::from_ymd_opt(2026, 6, 1).unwrap(),
         end_date: chrono::NaiveDate::from_ymd_opt(2026, 6, 3).unwrap(),
@@ -188,6 +194,12 @@ async fn test_teamlead_submit_other_dept_forbidden() {
         .with_full_name("Le Van B")
         .create()
         .await;
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
     assign_to_department(&factory.diesel_pools, emp_id, dept_sales).await;
 
     let vacation_id: Uuid = crate::test_query_scalar_uuid!(
@@ -198,7 +210,7 @@ async fn test_teamlead_submit_other_dept_forbidden() {
     );
 
     let submit_req = SubmitLeaveRequest {
-        employee_id: emp_id,
+        employment_id,
         leave_type_id: vacation_id,
         start_date: chrono::NaiveDate::from_ymd_opt(2026, 6, 1).unwrap(),
         end_date: chrono::NaiveDate::from_ymd_opt(2026, 6, 3).unwrap(),
@@ -249,6 +261,12 @@ async fn test_hr_submit_stays_pending() {
         .with_full_name("Tran Van C")
         .create()
         .await;
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
 
     let vacation_id: Uuid = crate::test_query_scalar_uuid!(
         &factory.diesel_pools.api,
@@ -258,7 +276,7 @@ async fn test_hr_submit_stays_pending() {
     );
 
     let submit_req = SubmitLeaveRequest {
-        employee_id: emp_id,
+        employment_id,
         leave_type_id: vacation_id,
         start_date: chrono::NaiveDate::from_ymd_opt(2026, 7, 1).unwrap(),
         end_date: chrono::NaiveDate::from_ymd_opt(2026, 7, 2).unwrap(),
@@ -312,6 +330,12 @@ async fn test_employee_submit_forbidden() {
         .await;
 
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
 
     let vacation_id: Uuid = crate::test_query_scalar_uuid!(
         &factory.diesel_pools.api,
@@ -321,7 +345,7 @@ async fn test_employee_submit_forbidden() {
     );
 
     let submit_req = SubmitLeaveRequest {
-        employee_id: emp_id,
+        employment_id,
         leave_type_id: vacation_id,
         start_date: chrono::NaiveDate::from_ymd_opt(2026, 8, 1).unwrap(),
         end_date: chrono::NaiveDate::from_ymd_opt(2026, 8, 2).unwrap(),
@@ -395,6 +419,12 @@ async fn test_submit_leave_on_behalf_with_assignment() {
         .with_full_name("Target Employee")
         .create()
         .await;
+    let target_employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        target_emp_id
+    );
 
     let vacation_id: Uuid = crate::test_query_scalar_uuid!(
         &factory.diesel_pools.api,
@@ -404,7 +434,7 @@ async fn test_submit_leave_on_behalf_with_assignment() {
     );
 
     let submit_req = SubmitLeaveRequest {
-        employee_id: target_emp_id,
+        employment_id: target_employment_id,
         leave_type_id: vacation_id,
         start_date: chrono::NaiveDate::from_ymd_opt(2026, 6, 10).unwrap(),
         end_date: chrono::NaiveDate::from_ymd_opt(2026, 6, 12).unwrap(),
@@ -462,6 +492,6 @@ async fn test_submit_leave_on_behalf_with_assignment() {
         .await
         .unwrap();
     let leave_req: LeaveRequest = serde_json::from_slice(&body).unwrap();
-    assert_eq!(leave_req.employee_id(), target_emp_id);
+    assert_eq!(leave_req.employment_id(), target_employment_id);
     assert_eq!(leave_req.requested_by_user_id(), Some(submitter_user_id));
 }

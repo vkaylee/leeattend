@@ -62,6 +62,13 @@ async fn test_leave_requests_crud() {
         .create()
         .await;
 
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
+
     // Get Vacation leave type id
     let vacation_id: Uuid = crate::test_query_scalar_uuid!(
         &factory.diesel_pools.api,
@@ -72,7 +79,7 @@ async fn test_leave_requests_crud() {
 
     // 1. Submit Request (as Owner for employee)
     let submit_req = SubmitLeaveRequest {
-        employee_id: emp_id,
+        employment_id,
         leave_type_id: vacation_id,
         start_date: chrono::NaiveDate::from_ymd_opt(2027, 8, 1).unwrap(),
         end_date: chrono::NaiveDate::from_ymd_opt(2027, 8, 2).unwrap(),

@@ -215,6 +215,7 @@ impl LeaveImportChunkHandler {
         };
 
         let employee_repo = Arc::clone(&deps.employee_repo);
+        let employment_repo = Arc::clone(&deps.employment_repo);
         let leave_balance_repo = Arc::clone(&deps.leave_balance_repo);
         let leave_request_repo = Arc::clone(&deps.leave_request_repo);
         let roster_repo = Arc::clone(&deps.roster_repo);
@@ -223,6 +224,7 @@ impl LeaveImportChunkHandler {
             leave_balance_repo,
             leave_request_repo,
             Arc::clone(&employee_repo),
+            employment_repo,
             roster_repo,
             leave_accrual_log_repo,
         );

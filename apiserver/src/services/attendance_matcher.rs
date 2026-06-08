@@ -64,19 +64,18 @@ impl AttendanceMatcher {
 
         let mut current_date = args.seg_start;
         while current_date <= args.seg_end {
-            // Find active contract on current_date
-            let active_contract = args
+            // Find active employment on current_date
+            let active_employment = args
                 .ctx
-                .active_contracts
+                .active_employments
                 .iter()
-                .filter(|c| {
-                    c.status() == crate::models::enums::ContractStatus::Active
-                        && c.start_date() <= current_date
-                        && c.end_date().is_none_or(|end| end >= current_date)
+                .filter(|e| {
+                    e.status == "active"
+                        && e.start_date <= current_date
+                        && e.end_date.is_none_or(|end| end >= current_date)
                 })
-                .max_by_key(|c| c.start_date());
-            let active_employer_id =
-                active_contract.map(crate::models::EmployeeContract::employer_id);
+                .max_by_key(|e| e.start_date);
+            let active_employer_id = active_employment.map(|e| e.employer_id);
 
             // Find active assignment on current_date
             let active_assignment = args
@@ -662,6 +661,7 @@ mod tests {
                 crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default(),
             active_contracts: vec![],
             active_assignments: vec![],
+            active_employments: vec![],
             primary_location_id: Uuid::new_v4(),
         };
 
@@ -782,6 +782,7 @@ mod tests {
                 crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default(),
             active_contracts: vec![],
             active_assignments: vec![],
+            active_employments: vec![],
             primary_location_id: Uuid::new_v4(),
         };
 
@@ -872,6 +873,7 @@ mod tests {
                 crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default(),
             active_contracts: vec![],
             active_assignments: vec![],
+            active_employments: vec![],
             primary_location_id: Uuid::new_v4(),
         };
 
@@ -1011,6 +1013,7 @@ mod tests {
                 crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default(),
             active_contracts: vec![],
             active_assignments: vec![],
+            active_employments: vec![],
             primary_location_id: Uuid::new_v4(),
         };
 
@@ -1177,6 +1180,7 @@ mod tests {
             overtime_data,
             active_contracts: vec![],
             active_assignments: vec![],
+            active_employments: vec![],
             primary_location_id: Uuid::new_v4(),
         };
 

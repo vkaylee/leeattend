@@ -151,13 +151,18 @@ impl EmployeeService {
             Utc::now(),
             Utc::now(),
             None,
-            req.primary_location_id,
-            req.employer_id,
         );
 
         // Use repository to create employee and set recruitment source transactionally
         self.repo
-            .create_employee_transactional(auth_token, &employee, req.recruitment_source_id)
+            .create_employee_transactional(
+                auth_token,
+                &employee,
+                req.recruitment_source_id,
+                req.employer_id,
+                req.primary_location_id,
+                req.department_id,
+            )
             .await?;
 
         // Claim staged logs asynchronously (best-effort, non-fatal if fails)
@@ -387,8 +392,6 @@ mod tests {
             Utc::now(),
             Utc::now(),
             None,
-            Uuid::new_v4(),
-            None,
         )
     }
 
@@ -553,6 +556,9 @@ mod tests {
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _employee: &Employee,
             _recruitment_source_id: Option<Uuid>,
+            _employer_id: Uuid,
+            _primary_location_id: Option<Uuid>,
+            _department_id: Option<Uuid>,
         ) -> Result<(), AppError> {
             Ok(())
         }
@@ -918,7 +924,7 @@ mod tests {
         async fn list_employee_assignments(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _employee_id: Uuid,
+            _employment_id: Uuid,
         ) -> Result<Vec<crate::models::employee_assignment::EmployeeAssignment>, AppError> {
             Ok(vec![])
         }
@@ -926,7 +932,7 @@ mod tests {
         async fn get_employee_assignment(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _employee_id: Uuid,
+            _employment_id: Uuid,
             _assignment_id: Uuid,
         ) -> Result<Option<crate::models::employee_assignment::EmployeeAssignment>, AppError>
         {
@@ -941,7 +947,7 @@ mod tests {
             Ok(crate::models::employee_assignment::EmployeeAssignment {
                 id: Uuid::new_v4(),
                 workspace_id: _assignment.workspace_id,
-                employee_id: _assignment.employee_id,
+                employment_id: _assignment.employment_id,
                 home_location_id: _assignment.home_location_id,
                 host_location_id: _assignment.host_location_id,
                 start_date: _assignment.start_date,
@@ -956,14 +962,14 @@ mod tests {
         async fn update_employee_assignment(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _employee_id: Uuid,
+            _employment_id: Uuid,
             _assignment_id: Uuid,
             _req: &crate::models::employee_assignment::UpdateEmployeeAssignmentRequest,
         ) -> Result<crate::models::employee_assignment::EmployeeAssignment, AppError> {
             Ok(crate::models::employee_assignment::EmployeeAssignment {
                 id: _assignment_id,
                 workspace_id: Uuid::new_v4(),
-                employee_id: _employee_id,
+                employment_id: _employment_id,
                 home_location_id: Uuid::new_v4(),
                 host_location_id: Uuid::new_v4(),
                 start_date: chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
@@ -978,10 +984,24 @@ mod tests {
         async fn delete_employee_assignment(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _employee_id: Uuid,
+            _employment_id: Uuid,
             _assignment_id: Uuid,
         ) -> Result<u64, AppError> {
             Ok(0)
+        }
+
+        async fn list_assignments_batch(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employment_ids: &[Uuid],
+        ) -> Result<
+            std::collections::HashMap<
+                Uuid,
+                Vec<crate::models::employee_assignment::EmployeeAssignment>,
+            >,
+            AppError,
+        > {
+            Ok(std::collections::HashMap::new())
         }
     }
 
@@ -1411,8 +1431,9 @@ mod tests {
             hire_date: chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             tags: None,
             recruitment_source_id: None,
-            primary_location_id: Uuid::new_v4(),
-            employer_id: None,
+            primary_location_id: Some(Uuid::new_v4()),
+            employer_id: Uuid::new_v4(),
+            department_id: None,
         };
         let result = svc
             .create_employee(
@@ -1692,8 +1713,6 @@ mod tests {
             is_active: None,
             max_concurrent_workers: None,
             recruitment_source_id: None,
-            primary_location_id: None,
-            employer_id: None,
             force_transfer: None,
         };
         let result = svc
@@ -1724,8 +1743,6 @@ mod tests {
             is_active: None,
             max_concurrent_workers: None,
             recruitment_source_id: None, // No source ID, no id_number update
-            primary_location_id: None,
-            employer_id: None,
             force_transfer: None,
         };
         let result = svc
@@ -1761,8 +1778,6 @@ mod tests {
             is_active: None,
             max_concurrent_workers: None,
             recruitment_source_id: None,
-            primary_location_id: None,
-            employer_id: None,
             force_transfer: None,
         };
 
@@ -1806,8 +1821,6 @@ mod tests {
             is_active: None,
             max_concurrent_workers: None,
             recruitment_source_id: None,
-            primary_location_id: None,
-            employer_id: None,
             force_transfer: Some(true),
         };
 

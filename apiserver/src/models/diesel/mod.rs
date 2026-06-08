@@ -11,6 +11,7 @@ pub mod department;
 pub mod employee;
 pub mod employee_contract;
 pub mod employer;
+pub mod employment;
 pub mod employment_phase;
 pub mod feature_flag;
 pub mod holiday;

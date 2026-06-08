@@ -40,6 +40,7 @@ pub struct AttendanceSummaryServiceArgs {
     pub policy_repo: Arc<dyn AttendancePolicyRepository>,
     pub workspace_repo: Arc<dyn WorkspaceRepository>,
     pub employee_repo: Arc<dyn EmployeeRepository>,
+    pub employment_repo: Arc<dyn crate::repositories::EmploymentRepository>,
     pub holiday_repo: Arc<dyn HolidayRepository>,
     pub leave_request_repo: Arc<dyn LeaveRequestRepository>,
     pub daily_summary_repo: Arc<dyn AttendanceDailySummaryRepository>,
@@ -51,6 +52,7 @@ pub struct AttendanceSummaryService {
     policy_repo: Arc<dyn AttendancePolicyRepository>,
     workspace_repo: Arc<dyn WorkspaceRepository>,
     employee_repo: Arc<dyn EmployeeRepository>,
+    employment_repo: Arc<dyn crate::repositories::EmploymentRepository>,
     holiday_repo: Arc<dyn HolidayRepository>,
     leave_request_repo: Arc<dyn LeaveRequestRepository>,
     daily_summary_repo: Arc<dyn AttendanceDailySummaryRepository>,
@@ -75,6 +77,7 @@ impl AttendanceSummaryService {
             policy_repo: args.policy_repo,
             workspace_repo: args.workspace_repo,
             employee_repo: args.employee_repo,
+            employment_repo: args.employment_repo,
             holiday_repo: args.holiday_repo,
             leave_request_repo: args.leave_request_repo,
             daily_summary_repo: args.daily_summary_repo,
@@ -372,11 +375,15 @@ impl AttendanceSummaryService {
         actual_work_minutes: i32,
         daily_schedule: &crate::models::EffectiveSchedule,
     ) -> AppResult<(bool, Option<String>)> {
-        let emp = self
-            .employee_repo
-            .get_employee_by_id(employee_id, &TenantAuthToken::system_override(workspace_id))
+        let active_employment = self
+            .employment_repo
+            .get_active_employment_on_date(
+                &TenantAuthToken::system_override(workspace_id),
+                employee_id,
+                date,
+            )
             .await?;
-        let location_id = emp.map(|e| e.primary_location_id());
+        let location_id = active_employment.and_then(|e| e.primary_location_id);
 
         let holiday = self
             .holiday_repo
@@ -668,6 +675,7 @@ mod tests {
     use crate::repositories::attendance_daily_summary_repository::MockAttendanceDailySummaryRepository;
     use crate::repositories::attendance_policy_repository::MockAttendancePolicyRepository;
     use crate::repositories::employee::MockEmployeeRepository;
+    use crate::repositories::employment_repository::MockEmploymentRepository;
     use crate::repositories::holiday_repository::MockHolidayRepository;
     use crate::repositories::leave_request_repository::MockLeaveRequestRepository;
     use crate::repositories::roster::MockRosterRepository;
@@ -676,6 +684,13 @@ mod tests {
 
     fn dummy_date() -> NaiveDate {
         NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()
+    }
+
+    fn mock_employment_repo() -> MockEmploymentRepository {
+        let mut repo = MockEmploymentRepository::new();
+        repo.expect_get_active_employment_on_date()
+            .returning(|_, _, _| Ok(None));
+        repo
     }
 
     fn create_dummy_summary(sys_ot: i32, status: OtStatus) -> AttendanceDailySummary {
@@ -711,6 +726,7 @@ mod tests {
             policy_repo: Arc::new(MockAttendancePolicyRepository::new()),
             workspace_repo: Arc::new(MockWorkspaceRepository::new()),
             employee_repo: Arc::new(MockEmployeeRepository::new()),
+            employment_repo: Arc::new(mock_employment_repo()),
             holiday_repo: Arc::new(MockHolidayRepository::new()),
             leave_request_repo: Arc::new(MockLeaveRequestRepository::new()),
             daily_summary_repo: Arc::new(daily_summary_repo),
@@ -1030,8 +1046,6 @@ mod tests {
                         chrono::Utc::now(),
                         chrono::Utc::now(),
                         None,
-                        Uuid::new_v4(),
-                        None,
                     )))
                 });
             let mut holiday_repo = MockHolidayRepository::new();
@@ -1159,6 +1173,7 @@ mod tests {
                 policy_repo: Arc::new(policy_repo),
                 workspace_repo: Arc::new(workspace_repo),
                 employee_repo: Arc::new(employee_repo),
+                employment_repo: Arc::new(mock_employment_repo()),
                 holiday_repo: Arc::new(holiday_repo),
                 leave_request_repo: Arc::new(leave_request_repo),
                 daily_summary_repo: Arc::new(daily_summary_repo),
@@ -1198,8 +1213,6 @@ mod tests {
                         true,
                         chrono::Utc::now(),
                         chrono::Utc::now(),
-                        None,
-                        Uuid::new_v4(),
                         None,
                     )))
                 });
@@ -1322,6 +1335,7 @@ mod tests {
                 policy_repo: Arc::new(policy_repo),
                 workspace_repo: Arc::new(workspace_repo),
                 employee_repo: Arc::new(employee_repo),
+                employment_repo: Arc::new(mock_employment_repo()),
                 holiday_repo: Arc::new(holiday_repo),
                 leave_request_repo: Arc::new(leave_request_repo),
                 daily_summary_repo: Arc::new(daily_summary_repo),
@@ -1360,8 +1374,6 @@ mod tests {
                         true,
                         chrono::Utc::now(),
                         chrono::Utc::now(),
-                        None,
-                        Uuid::new_v4(),
                         None,
                     )))
                 });
@@ -1484,6 +1496,7 @@ mod tests {
                 policy_repo: Arc::new(policy_repo),
                 workspace_repo: Arc::new(workspace_repo),
                 employee_repo: Arc::new(employee_repo),
+                employment_repo: Arc::new(mock_employment_repo()),
                 holiday_repo: Arc::new(holiday_repo),
                 leave_request_repo: Arc::new(leave_request_repo),
                 daily_summary_repo: Arc::new(daily_summary_repo),
@@ -1522,8 +1535,6 @@ mod tests {
                         true,
                         chrono::Utc::now(),
                         chrono::Utc::now(),
-                        None,
-                        Uuid::new_v4(),
                         None,
                     )))
                 });
@@ -1602,6 +1613,7 @@ mod tests {
                 policy_repo: Arc::new(policy_repo),
                 workspace_repo: Arc::new(workspace_repo),
                 employee_repo: Arc::new(employee_repo),
+                employment_repo: Arc::new(mock_employment_repo()),
                 holiday_repo: Arc::new(holiday_repo),
                 leave_request_repo: Arc::new(leave_request_repo),
                 daily_summary_repo: Arc::new(daily_summary_repo),
@@ -1640,8 +1652,6 @@ mod tests {
                         true,
                         chrono::Utc::now(),
                         chrono::Utc::now(),
-                        None,
-                        Uuid::new_v4(),
                         None,
                     )))
                 });
@@ -1744,6 +1754,7 @@ mod tests {
                 policy_repo: Arc::new(policy_repo),
                 workspace_repo: Arc::new(workspace_repo),
                 employee_repo: Arc::new(employee_repo),
+                employment_repo: Arc::new(mock_employment_repo()),
                 holiday_repo: Arc::new(holiday_repo),
                 leave_request_repo: Arc::new(leave_request_repo),
                 daily_summary_repo: Arc::new(daily_summary_repo),

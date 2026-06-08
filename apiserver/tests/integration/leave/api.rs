@@ -49,6 +49,12 @@ async fn test_leave_request_lifecycle_smoke() {
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
     let emp_id: Uuid = factory.employee().with_workspace(ws_id).create().await;
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
 
     // 1. Get default leave type (Vacation)
     let vacation_id: Uuid = crate::test_query_scalar_uuid!(
@@ -60,7 +66,7 @@ async fn test_leave_request_lifecycle_smoke() {
 
     // 2. Submit Leave Request
     let submit_req = SubmitLeaveRequest {
-        employee_id: emp_id,
+        employment_id,
         leave_type_id: vacation_id,
         start_date: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
         end_date: chrono::NaiveDate::from_ymd_opt(2026, 1, 3).unwrap(), // 3 days

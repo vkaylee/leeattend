@@ -19,9 +19,14 @@ export function usePayrollSummaryLogic({
 }: UsePayrollSummaryLogicProps) {
   const payslipMap = useMemo(() => {
     const map: Record<string, Payslip> = {};
-    payslips.forEach(p => { map[p.employee_id] = p; });
+    payslips.forEach(p => {
+      const emp = employees.find(e => e.active_employment_id === p.employment_id);
+      if (emp) {
+        map[emp.id] = p;
+      }
+    });
     return map;
-  }, [payslips]);
+  }, [payslips, employees]);
 
   const filteredEmployees = useMemo(() => {
     return employees.filter(emp => 

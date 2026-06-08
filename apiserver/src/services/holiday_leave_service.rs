@@ -16,10 +16,11 @@ use crate::repositories::leave_request_repository::LeaveRequestRepository;
 use crate::repositories::roster::RosterRepository;
 
 use crate::repositories::holiday_repository::HolidayLeaveResult;
-use crate::repositories::EmployeeRepository;
+use crate::repositories::{EmployeeRepository, EmploymentRepository};
 
 pub struct HolidayLeaveService {
     employee_repo: Arc<dyn EmployeeRepository>,
+    employment_repo: Arc<dyn EmploymentRepository>,
     leave_balance_repo: Arc<dyn LeaveBalanceRepository>,
     leave_request_repo: Arc<dyn LeaveRequestRepository>,
     #[allow(dead_code)]
@@ -31,6 +32,7 @@ pub struct HolidayLeaveService {
 impl HolidayLeaveService {
     pub fn new(
         employee_repo: Arc<dyn EmployeeRepository>,
+        employment_repo: Arc<dyn EmploymentRepository>,
         leave_balance_repo: Arc<dyn LeaveBalanceRepository>,
         leave_request_repo: Arc<dyn LeaveRequestRepository>,
         roster_repo: Arc<dyn RosterRepository>,
@@ -41,6 +43,7 @@ impl HolidayLeaveService {
     ) -> Self {
         Self {
             employee_repo,
+            employment_repo,
             leave_balance_repo,
             leave_request_repo,
             roster_repo,
@@ -106,6 +109,17 @@ impl HolidayLeaveService {
         let employee_ids: Vec<Uuid> = employees.iter().map(crate::models::Employee::id).collect();
         let year = holiday.date().year();
 
+        // Fetch active employments on holiday date
+        let active_employments = self
+            .employment_repo
+            .get_active_employments_for_employees(&auth_token, &employee_ids, holiday.date())
+            .await?;
+
+        let mut emp_to_employment_map = std::collections::HashMap::new();
+        for emp_record in active_employments {
+            emp_to_employment_map.insert(emp_record.employee_id, emp_record.id);
+        }
+
         // 1. Batch fetch existing leaves for this date
         let existing_leaves = self
             .leave_request_repo
@@ -134,6 +148,14 @@ impl HolidayLeaveService {
                 continue;
             }
 
+            // Get employment ID
+            let Some(&employment_id) = emp_to_employment_map.get(&emp.id()) else {
+                results.push(HolidayLeaveResult::Unpaid {
+                    employee_id: emp.id(),
+                });
+                continue;
+            };
+
             let remaining = balance_map
                 .get(&(emp.id(), leave_type_id))
                 .copied()
@@ -145,7 +167,7 @@ impl HolidayLeaveService {
 
                 new_requests.push(LeaveRequest::new(
                     req_id,
-                    emp.id(),
+                    employment_id,
                     leave_type_id,
                     holiday.date(),
                     holiday.date(),

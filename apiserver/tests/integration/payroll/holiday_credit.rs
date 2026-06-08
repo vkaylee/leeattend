@@ -135,6 +135,9 @@ async fn test_payroll_credits_paid_holiday() {
                     diesel_pools.clone(),
                 ),
             ),
+            employment_repo: Arc::new(apiserver::repositories::DieselEmploymentRepository::new(
+                diesel_pools.clone(),
+            )),
         })
     }
     .calculate_monthly_payslip(employee_id, workspace_id, 2026, 5)

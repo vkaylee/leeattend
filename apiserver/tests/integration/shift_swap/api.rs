@@ -608,11 +608,27 @@ async fn test_same_shift_swap_rejected() {
     let emp_c = Uuid::new_v4();
     crate::test_execute!(
         &s._db.diesel_pools.api,
-        "INSERT INTO employees (id, workspace_id, full_name, employee_id_number, is_active, original_hire_date, hire_date, primary_location_id, created_at, updated_at) VALUES ($1, $2, $3, $4, true, CURRENT_DATE, CURRENT_DATE, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        "INSERT INTO employees (id, workspace_id, full_name, employee_id_number, is_active, original_hire_date, hire_date, created_at, updated_at) VALUES ($1, $2, $3, $4, true, CURRENT_DATE, CURRENT_DATE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
         diesel::sql_types::Uuid, emp_c,
         diesel::sql_types::Uuid, s.workspace_id,
         diesel::sql_types::Text, "Employee C",
-        diesel::sql_types::Text, "EMP-C",
+        diesel::sql_types::Text, "EMP-C"
+    );
+
+    let employer_id: Uuid = crate::test_query_scalar_uuid!(
+        &s._db.diesel_pools.api,
+        "SELECT id FROM employers WHERE workspace_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        s.workspace_id
+    );
+
+    crate::test_execute!(
+        &s._db.diesel_pools.api,
+        "INSERT INTO employments (id, workspace_id, employee_id, employer_id, primary_location_id, status, start_date, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, 'active', CURRENT_DATE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        diesel::sql_types::Uuid, Uuid::new_v4(),
+        diesel::sql_types::Uuid, s.workspace_id,
+        diesel::sql_types::Uuid, emp_c,
+        diesel::sql_types::Uuid, employer_id,
         diesel::sql_types::Uuid, hq_loc_id
     );
 

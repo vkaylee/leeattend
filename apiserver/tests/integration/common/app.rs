@@ -151,6 +151,7 @@ pub async fn create_test_redis_pool() -> Option<apiserver::queue::RedisPool> {
 /// Basic app spawn - returns address (URL) and `TestDatabase`
 #[allow(dead_code)]
 pub async fn spawn_app() -> (String, TestDatabase) {
+    init_tracing();
     let test_db = TestDatabase::new().await;
     let shared_redis_pool = create_test_redis_pool().await;
     let pool = test_db.diesel_pools.clone();
@@ -199,6 +200,9 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     let employee_repo = Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
         diesel_pools.clone(),
     ));
+    let employment_repo = Arc::new(apiserver::repositories::DieselEmploymentRepository::new(
+        diesel_pools.clone(),
+    ));
     let employee_service = Arc::new(apiserver::services::EmployeeService::new(
         employee_repo.clone(),
         Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
@@ -234,6 +238,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         roster_repo.clone(),
         policy_repo.clone(),
         employee_repo.clone(),
+        employment_repo.clone(),
         workspace_repo.clone(),
         shift_repo.clone(),
         holiday_repo.clone(),
@@ -268,6 +273,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
                 diesel_pools.clone(),
             )),
+            employment_repo: employment_repo.clone(),
             holiday_repo: Arc::new(apiserver::repositories::DieselHolidayRepository::new(
                 diesel_pools.clone(),
             )),
@@ -370,6 +376,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             roster_repo: roster_repo.clone(),
             leave_repo: leave_request_repo.clone(),
             employee_repo: employee_repo.clone(),
+            employment_repo: employment_repo.clone(),
             policy_repo: policy_repo.clone(),
             overtime_policy_repo: Arc::new(
                 apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
@@ -415,6 +422,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         leave_balance_repo.clone(),
         leave_request_repo.clone(),
         employee_repo.clone(),
+        employment_repo.clone(),
         roster_repo.clone(),
         leave_accrual_log_repo.clone(),
     ));
@@ -450,6 +458,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     let holiday_leave_service = Arc::new(
         apiserver::services::holiday_leave_service::HolidayLeaveService::new(
             employee_repo.clone(),
+            employment_repo.clone(),
             leave_balance_repo.clone(),
             leave_request_repo.clone(),
             roster_repo.clone(),
@@ -491,6 +500,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
                 diesel_pools.clone(),
             )),
+            employment_repo: employment_repo.clone(),
             holiday_repo: Arc::new(apiserver::repositories::DieselHolidayRepository::new(
                 diesel_pools.clone(),
             )),
@@ -523,6 +533,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             workspace_config_repo.clone(),
             workspace_repo.clone(),
             employee_repo.clone(),
+            employment_repo.clone(),
             department_repo.clone(),
             leave_request_repo.clone(),
             overtime_request_repo.clone(),
@@ -554,6 +565,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             employee_service,
             recruitment_service.clone(),
             employee_repo.clone(),
+            employment_repo.clone(),
             Arc::new(
                 apiserver::repositories::DieselEmployeeContractRepository::new(
                     diesel_pools.clone(),
@@ -790,6 +802,9 @@ pub async fn spawn_app_with_factory_extended(
     let employee_repo = Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
         diesel_pools.clone(),
     ));
+    let employment_repo = Arc::new(apiserver::repositories::DieselEmploymentRepository::new(
+        diesel_pools.clone(),
+    ));
     let employee_service = Arc::new(apiserver::services::EmployeeService::new(
         employee_repo.clone(),
         Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
@@ -823,6 +838,7 @@ pub async fn spawn_app_with_factory_extended(
         roster_repo.clone(),
         policy_repo.clone(),
         employee_repo.clone(),
+        employment_repo.clone(),
         workspace_repo.clone(),
         shift_repo.clone(),
         holiday_repo.clone(),
@@ -840,6 +856,7 @@ pub async fn spawn_app_with_factory_extended(
             employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
                 diesel_pools.clone(),
             )),
+            employment_repo: employment_repo.clone(),
             holiday_repo: Arc::new(apiserver::repositories::DieselHolidayRepository::new(
                 diesel_pools.clone(),
             )),
@@ -880,6 +897,7 @@ pub async fn spawn_app_with_factory_extended(
             employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
                 diesel_pools.clone(),
             )),
+            employment_repo: employment_repo.clone(),
             holiday_repo: Arc::new(apiserver::repositories::DieselHolidayRepository::new(
                 diesel_pools.clone(),
             )),
@@ -982,6 +1000,7 @@ pub async fn spawn_app_with_factory_extended(
             roster_repo: roster_repo.clone(),
             leave_repo: leave_request_repo.clone(),
             employee_repo: employee_repo.clone(),
+            employment_repo: employment_repo.clone(),
             policy_repo: policy_repo.clone(),
             overtime_policy_repo: Arc::new(
                 apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
@@ -1027,6 +1046,7 @@ pub async fn spawn_app_with_factory_extended(
         leave_balance_repo.clone(),
         leave_request_repo.clone(),
         employee_repo.clone(),
+        employment_repo.clone(),
         roster_repo.clone(),
         leave_accrual_log_repo.clone(),
     ));
@@ -1062,6 +1082,7 @@ pub async fn spawn_app_with_factory_extended(
     let holiday_leave_service = Arc::new(
         apiserver::services::holiday_leave_service::HolidayLeaveService::new(
             employee_repo.clone(),
+            employment_repo.clone(),
             leave_balance_repo.clone(),
             leave_request_repo.clone(),
             roster_repo.clone(),
@@ -1103,6 +1124,7 @@ pub async fn spawn_app_with_factory_extended(
             employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
                 diesel_pools.clone(),
             )),
+            employment_repo: employment_repo.clone(),
             holiday_repo: Arc::new(apiserver::repositories::DieselHolidayRepository::new(
                 diesel_pools.clone(),
             )),
@@ -1135,6 +1157,7 @@ pub async fn spawn_app_with_factory_extended(
             workspace_config_repo.clone(),
             workspace_repo.clone(),
             employee_repo.clone(),
+            employment_repo.clone(),
             department_repo.clone(),
             leave_request_repo.clone(),
             overtime_request_repo.clone(),
@@ -1166,6 +1189,7 @@ pub async fn spawn_app_with_factory_extended(
             employee_service,
             recruitment_service.clone(),
             employee_repo.clone(),
+            employment_repo.clone(),
             Arc::new(
                 apiserver::repositories::DieselEmployeeContractRepository::new(
                     diesel_pools.clone(),
@@ -1439,6 +1463,9 @@ pub async fn setup_app_tower_internal_extended(
     let employee_repo = Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
         diesel_pools.clone(),
     ));
+    let employment_repo = Arc::new(apiserver::repositories::DieselEmploymentRepository::new(
+        diesel_pools.clone(),
+    ));
     let employee_service = Arc::new(apiserver::services::EmployeeService::new(
         employee_repo.clone(),
         Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
@@ -1473,6 +1500,7 @@ pub async fn setup_app_tower_internal_extended(
         roster_repo.clone(),
         policy_repo.clone(),
         employee_repo.clone(),
+        employment_repo.clone(),
         workspace_repo.clone(),
         shift_repo.clone(),
         holiday_repo.clone(),
@@ -1490,6 +1518,7 @@ pub async fn setup_app_tower_internal_extended(
             employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
                 diesel_pools.clone(),
             )),
+            employment_repo: employment_repo.clone(),
             holiday_repo: Arc::new(apiserver::repositories::DieselHolidayRepository::new(
                 diesel_pools.clone(),
             )),
@@ -1536,6 +1565,7 @@ pub async fn setup_app_tower_internal_extended(
             employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
                 diesel_pools.clone(),
             )),
+            employment_repo: employment_repo.clone(),
             holiday_repo: Arc::new(apiserver::repositories::DieselHolidayRepository::new(
                 diesel_pools.clone(),
             )),
@@ -1643,6 +1673,7 @@ pub async fn setup_app_tower_internal_extended(
             roster_repo: roster_repo.clone(),
             leave_repo: leave_request_repo.clone(),
             employee_repo: employee_repo.clone(),
+            employment_repo: employment_repo.clone(),
             policy_repo: policy_repo.clone(),
             overtime_policy_repo: Arc::new(
                 apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
@@ -1688,6 +1719,7 @@ pub async fn setup_app_tower_internal_extended(
         leave_balance_repo.clone(),
         leave_request_repo.clone(),
         employee_repo.clone(),
+        employment_repo.clone(),
         roster_repo.clone(),
         leave_accrual_log_repo.clone(),
     ));
@@ -1723,6 +1755,7 @@ pub async fn setup_app_tower_internal_extended(
     let holiday_leave_service = Arc::new(
         apiserver::services::holiday_leave_service::HolidayLeaveService::new(
             employee_repo.clone(),
+            employment_repo.clone(),
             leave_balance_repo.clone(),
             leave_request_repo.clone(),
             roster_repo.clone(),
@@ -1764,6 +1797,7 @@ pub async fn setup_app_tower_internal_extended(
             employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
                 diesel_pools.clone(),
             )),
+            employment_repo: employment_repo.clone(),
             holiday_repo: Arc::new(apiserver::repositories::DieselHolidayRepository::new(
                 diesel_pools.clone(),
             )),
@@ -1796,6 +1830,7 @@ pub async fn setup_app_tower_internal_extended(
             workspace_config_repo.clone(),
             workspace_repo.clone(),
             employee_repo.clone(),
+            employment_repo.clone(),
             department_repo.clone(),
             leave_request_repo.clone(),
             overtime_request_repo.clone(),
@@ -1827,6 +1862,7 @@ pub async fn setup_app_tower_internal_extended(
             employee_service,
             recruitment_service.clone(),
             employee_repo.clone(),
+            employment_repo.clone(),
             Arc::new(
                 apiserver::repositories::DieselEmployeeContractRepository::new(
                     diesel_pools.clone(),

@@ -93,6 +93,12 @@ use utoipa::OpenApi;
         crate::handlers::employee_contracts::update_contract,
         crate::handlers::employee_contracts::delete_contract,
 
+        crate::handlers::employments::list_employee_employments,
+        crate::handlers::employments::get_employment,
+        crate::handlers::employments::create_employment,
+        crate::handlers::employments::update_employment,
+        crate::handlers::employments::delete_employment,
+
         crate::handlers::list_employee_assignments,
         crate::handlers::get_employee_assignment,
         crate::handlers::create_employee_assignment,
@@ -543,6 +549,9 @@ use utoipa::OpenApi;
             EmployeeContract,
             CreateContractRequest,
             UpdateContractRequest,
+            Employment,
+            CreateEmploymentRequest,
+            UpdateEmploymentRequest,
             EmployeeAssignment,
             CreateEmployeeAssignmentRequest,
             UpdateEmployeeAssignmentRequest,

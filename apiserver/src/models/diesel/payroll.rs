@@ -51,7 +51,6 @@ pub struct IncentiveTierEntity {
 #[diesel(table_name = payslips)]
 pub struct PayslipEntity {
     pub id: Uuid,
-    pub employee_id: Uuid,
     pub period_start: NaiveDate,
     pub period_end: NaiveDate,
     pub base_pay_amount: BigDecimal,
@@ -65,6 +64,7 @@ pub struct PayslipEntity {
     pub overtime_units: i32,
     pub holiday_work_premium_amount: BigDecimal,
     pub workspace_id: Uuid,
+    pub employment_id: Uuid,
 }
 
 // ---------------------------------------------------------------------------
@@ -193,7 +193,7 @@ impl From<PayslipEntity> for Payslip {
     fn from(entity: PayslipEntity) -> Self {
         Self {
             id: entity.id,
-            employee_id: entity.employee_id,
+            employment_id: entity.employment_id,
             workspace_id: entity.workspace_id,
             period_start: entity.period_start,
             period_end: entity.period_end,

@@ -24,10 +24,16 @@ async fn test_payroll_payslips_smoke() {
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
     let employee_id = factory.employee().with_workspace(ws_id).create().await;
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        employee_id
+    );
 
     let payslip = Payslip {
         id: Uuid::new_v4(),
-        employee_id,
+        employment_id,
         workspace_id: ws_id,
         period_start: Utc::now().date_naive(),
         period_end: Utc::now().date_naive(),
@@ -63,11 +69,17 @@ async fn test_get_employee_payslips_api() {
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
     let emp_id: Uuid = factory.employee().with_workspace(ws_id).create().await;
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
 
     // Create a payslip
     let payslip = Payslip {
         id: Uuid::new_v4(),
-        employee_id: emp_id,
+        employment_id,
         workspace_id: ws_id,
         period_start: Utc::now().date_naive(),
         period_end: Utc::now().date_naive(),

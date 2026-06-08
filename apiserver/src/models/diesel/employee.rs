@@ -40,10 +40,12 @@ pub struct EmployeeRow {
     pub updated_at: chrono::DateTime<chrono::Utc>,
     #[diesel(sql_type = Nullable<Text>)]
     pub department_name: Option<String>,
-    #[diesel(sql_type = UuidType)]
-    pub primary_location_id: Uuid,
+    #[diesel(sql_type = Nullable<UuidType>)]
+    pub primary_location_id: Option<Uuid>,
     #[diesel(sql_type = Nullable<UuidType>)]
     pub employer_id: Option<Uuid>,
+    #[diesel(sql_type = Nullable<UuidType>)]
+    pub active_employment_id: Option<Uuid>,
 }
 
 impl From<EmployeeRow> for Employee {
@@ -62,8 +64,11 @@ impl From<EmployeeRow> for Employee {
             row.created_at,
             row.updated_at,
             row.department_name,
-            row.primary_location_id,
+        )
+        .with_employment_info(
+            row.active_employment_id,
             row.employer_id,
+            row.primary_location_id,
         )
     }
 }
@@ -84,7 +89,6 @@ pub struct EmployeeEntity {
     pub hire_date: NaiveDate,
     pub termination_date: Option<NaiveDate>,
     pub original_hire_date: NaiveDate,
-    pub primary_location_id: Uuid,
     pub deleted_at: Option<DateTime<Utc>>,
 }
 
@@ -104,7 +108,6 @@ impl From<Employee> for EmployeeEntity {
             hire_date: val.hire_date(),
             termination_date: val.termination_date(),
             original_hire_date: val.original_hire_date(),
-            primary_location_id: val.primary_location_id(),
             deleted_at: None,
         }
     }
@@ -126,8 +129,6 @@ impl From<EmployeeEntity> for Employee {
             val.created_at.unwrap_or_else(Utc::now),
             val.updated_at.unwrap_or_else(Utc::now),
             None,
-            val.primary_location_id,
-            None,
         )
     }
 }
@@ -143,7 +144,6 @@ pub struct UpdateDieselEmployee {
     pub hire_date: Option<NaiveDate>,
     pub termination_date: Option<Option<NaiveDate>>,
     pub updated_at: Option<DateTime<Utc>>,
-    pub primary_location_id: Option<Uuid>,
 }
 
 use crate::models::{RecruitmentSource, RecruitmentSourceType};

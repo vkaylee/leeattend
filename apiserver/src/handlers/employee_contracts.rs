@@ -64,13 +64,28 @@ pub async fn list_employee_contracts(
     Path(params): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<Vec<EmployeeContract>>> {
     let (_ws_id, employee_id) = params;
-    let _workspace_id = ctx.workspace_id;
 
-    let contracts = state
+    let employments = state
         .employees()
-        .contract_repo()
-        .list_employee_contracts(&ctx.auth_token, employee_id)
+        .employment_repo()
+        .list_employee_employments(&ctx.auth_token, employee_id)
         .await?;
+
+    let employment_ids: Vec<Uuid> = employments.into_iter().map(|e| e.id).collect();
+
+    let mut contracts = Vec::new();
+    if !employment_ids.is_empty() {
+        let mut batch_map = state
+            .employees()
+            .contract_repo()
+            .list_contracts_batch(&ctx.auth_token, &employment_ids)
+            .await?;
+        for id in employment_ids {
+            if let Some(mut list) = batch_map.remove(&id) {
+                contracts.append(&mut list);
+            }
+        }
+    }
 
     Ok(Json(contracts))
 }
@@ -134,6 +149,14 @@ pub async fn create_contract(
         .create_contract(&ctx.auth_token, &payload)
         .await?;
 
+    let employee_id = state
+        .employees()
+        .employment_repo()
+        .get_employment_by_id(&ctx.auth_token, contract.employment_id())
+        .await?
+        .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?
+        .employee_id;
+
     // Assign employment phase if requested
     if let Some(phase_id) = payload.assign_phase_id {
         let end_date = contract.end_date().unwrap_or_else(|| {
@@ -147,7 +170,7 @@ pub async fn create_contract(
             .employment_phase_repo()
             .assign_phase(
                 workspace_id,
-                contract.employee_id(),
+                employee_id,
                 phase_id,
                 contract.start_date(),
                 end_date,
@@ -156,7 +179,7 @@ pub async fn create_contract(
             .await;
     }
 
-    dispatch_sync_hire_date(&state, workspace_id, contract.employee_id(), contract.id()).await;
+    dispatch_sync_hire_date(&state, workspace_id, employee_id, contract.id()).await;
 
     Ok((StatusCode::CREATED, Json(contract)))
 }
@@ -190,7 +213,15 @@ pub async fn update_contract(
         .update_contract(&ctx.auth_token, contract_id, &payload)
         .await?;
 
-    dispatch_sync_hire_date(&state, workspace_id, contract.employee_id(), contract.id()).await;
+    let employee_id = state
+        .employees()
+        .employment_repo()
+        .get_employment_by_id(&ctx.auth_token, contract.employment_id())
+        .await?
+        .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?
+        .employee_id;
+
+    dispatch_sync_hire_date(&state, workspace_id, employee_id, contract.id()).await;
 
     Ok(Json(contract))
 }

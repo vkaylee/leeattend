@@ -12,7 +12,7 @@ import { PageTabs, PageTab } from "@/components/ui/page-tabs";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useMyPermissions } from "@/hooks/use-permissions";
-import { getCurrentWorkspaceId } from "@/lib/api";
+import { getCurrentWorkspaceId, Employee } from "@/lib/api";
 
 import { BehalfAssignmentsTab } from "./approvals/components/behalf-assignments-tab";
 
@@ -34,7 +34,16 @@ export default function LeaveRequestsPage() {
   } = useLeaveRequests(wsId);
 
   const employeeMap = useMemo(
-    () => new Map(employees.map(e => [e.id, e])),
+    () => {
+      const map = new Map<string, Employee>();
+      employees.forEach(e => {
+        if (e.active_employment_id) {
+          map.set(e.active_employment_id, e);
+        }
+        map.set(e.id, e);
+      });
+      return map;
+    },
     [employees]
   );
 
@@ -119,7 +128,7 @@ export default function LeaveRequestsPage() {
         >
           {requests.map((request) => (
             <LeaveRequestRow
-              emp={employeeMap.get(request.employee_id)}
+              emp={employeeMap.get(request.employment_id)}
               formatDate={formatDate}
               key={request.id}
               leaveTypes={leaveTypes}

@@ -412,6 +412,15 @@ async fn test_employee_import_duplicate_department_prevention() {
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
 
+    // Seed default employer so that the employee import strategy can associate a default employer with the imported employee
+    let employer_id = uuid::Uuid::new_v4();
+    crate::test_execute!(
+        &diesel_pools.api,
+        "INSERT INTO employers (id, workspace_id, name, tax_code, legal_address, created_at, updated_at) VALUES ($1, $2, 'Default Test Employer', 'DEFAULT-TAX-1', 'Default Address', NOW(), NOW())",
+        diesel::sql_types::Uuid, employer_id,
+        diesel::sql_types::Uuid, ws_id
+    );
+
     let job_id = uuid::Uuid::new_v4();
     let job = AttendanceImportJob {
         id: job_id,

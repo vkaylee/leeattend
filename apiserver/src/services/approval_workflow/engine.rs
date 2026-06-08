@@ -33,13 +33,20 @@ impl ApprovalWorkflowService {
                     .get_leave_request_by_id(auth_token, entity_id)
                     .await
                 {
-                    info.employee_id = Some(req.employee_id());
-                    if let Ok(Some(emp)) = self
-                        .employee_repo
-                        .get_employee_by_id(req.employee_id(), auth_token)
+                    if let Ok(Some(employment)) = self
+                        .employment_repo
+                        .get_employment_by_id(auth_token, req.employment_id())
                         .await
                     {
-                        info.user_id = emp.user_id();
+                        let emp_id = employment.employee_id;
+                        info.employee_id = Some(emp_id);
+                        if let Ok(Some(emp)) = self
+                            .employee_repo
+                            .get_employee_by_id(emp_id, auth_token)
+                            .await
+                        {
+                            info.user_id = emp.user_id();
+                        }
                     }
                 }
             }

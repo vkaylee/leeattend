@@ -37,6 +37,7 @@ pub struct WorkerDeps {
     pub session_repo: Arc<dyn crate::repositories::SessionRepository>,
     pub leave_balance_repo: Arc<dyn crate::repositories::leave_balance_repository::LeaveBalanceRepository>,
     pub contract_repo: Arc<dyn crate::repositories::EmployeeContractRepository>,
+    pub employment_repo: Arc<dyn crate::repositories::EmploymentRepository>,
     pub leave_accrual_log_repo: Arc<dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository>,
     pub leave_policy_repo: Arc<dyn crate::repositories::leave_policy_repository::LeavePolicyRepository>,
     pub user_repo: Arc<dyn crate::repositories::UserRepository>,
@@ -103,6 +104,9 @@ impl WorkerDeps {
             contract_repo: Arc::new(crate::repositories::DieselEmployeeContractRepository::new(
                 diesel.clone(),
             )),
+            employment_repo: Arc::new(crate::repositories::DieselEmploymentRepository::new(
+                diesel.clone(),
+            )),
             leave_accrual_log_repo: Arc::new(
                 crate::repositories::DieselLeaveAccrualLogRepository::new(diesel.clone()),
             ),
@@ -131,6 +135,7 @@ impl WorkerDeps {
                 policy_repo: Arc::clone(&self.policy_repo),
                 workspace_repo: Arc::clone(&self.workspace_repo),
                 employee_repo: Arc::clone(&self.employee_repo),
+                employment_repo: Arc::clone(&self.employment_repo),
                 holiday_repo: Arc::clone(&self.holiday_repo),
                 leave_request_repo: Arc::clone(&self.leave_request_repo),
                 daily_summary_repo: Arc::clone(&self.daily_summary_repo),

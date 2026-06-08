@@ -267,10 +267,26 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
         let amount_bd = bigdecimal::BigDecimal::from_str(&amount.to_string())
             .map_err(|e| AppError::Internal(format!("BigDecimal conversion failed: {e}")))?;
 
+        // Find active/latest employment
+        let active_employment = employments::table
+            .filter(employments::workspace_id.eq(workspace_id))
+            .filter(employments::employee_id.eq(employee_id))
+            .filter(employments::deleted_at.is_null())
+            .order(employments::start_date.desc())
+            .select(employments::id)
+            .first::<Uuid>(&mut *conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db check active employment: {e}")))?;
+
+        let Some(active_emp_id) = active_employment else {
+            return Err(AppError::NotFound("error.employment_not_found".to_string()));
+        };
+
         diesel::insert_into(leave_balances::table)
             .values((
                 leave_balances::id.eq(Uuid::new_v4()),
-                leave_balances::employee_id.eq(employee_id),
+                leave_balances::employment_id.eq(active_emp_id),
                 leave_balances::year.eq(year),
                 leave_balances::leave_type_id.eq(leave_type_id),
                 leave_balances::entitlement.eq(0),
@@ -278,7 +294,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                 leave_balances::carried_over.eq(0),
             ))
             .on_conflict((
-                leave_balances::employee_id,
+                leave_balances::employment_id,
                 leave_balances::leave_type_id,
                 leave_balances::year,
             ))
@@ -313,8 +329,24 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
         let diff_bd = bigdecimal::BigDecimal::from_str(&diff.to_string())
             .map_err(|e| AppError::Internal(format!("BigDecimal conversion failed: {e}")))?;
 
+        // Find active/latest employment
+        let active_employment = employments::table
+            .filter(employments::workspace_id.eq(workspace_id))
+            .filter(employments::employee_id.eq(employee_id))
+            .filter(employments::deleted_at.is_null())
+            .order(employments::start_date.desc())
+            .select(employments::id)
+            .first::<Uuid>(&mut *conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db check active employment: {e}")))?;
+
+        let Some(active_emp_id) = active_employment else {
+            return Err(AppError::NotFound("error.employment_not_found".to_string()));
+        };
+
         diesel::update(leave_balances::table)
-            .filter(leave_balances::employee_id.eq(employee_id))
+            .filter(leave_balances::employment_id.eq(active_emp_id))
             .filter(leave_balances::year.eq(year))
             .filter(leave_balances::leave_type_id.eq(leave_type_id))
             .set((
@@ -352,6 +384,22 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
 
         conn.transaction(|conn| {
             Box::pin(async move {
+                // Find active/latest employment
+                let active_employment = employments::table
+                    .filter(employments::workspace_id.eq(workspace_id))
+                    .filter(employments::employee_id.eq(employee_id))
+                    .filter(employments::deleted_at.is_null())
+                    .order(employments::start_date.desc())
+                    .select(employments::id)
+                    .first::<Uuid>(&mut *conn)
+                    .await
+                    .optional()
+                    .map_err(|e| AppError::Internal(format!("db check active employment: {e}")))?;
+
+                let Some(active_emp_id) = active_employment else {
+                    return Err(AppError::NotFound("error.employment_not_found".to_string()));
+                };
+
                 let row = leave_accrual_logs::table
                     .filter(leave_accrual_logs::employee_id.eq(employee_id))
                     .filter(leave_accrual_logs::leave_type_id.eq(leave_type_id))
@@ -389,7 +437,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
                         diesel::update(leave_balances::table)
-                            .filter(leave_balances::employee_id.eq(employee_id))
+                            .filter(leave_balances::employment_id.eq(active_emp_id))
                             .filter(leave_balances::year.eq(year))
                             .filter(leave_balances::leave_type_id.eq(leave_type_id))
                             .set((
@@ -431,7 +479,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                         diesel::insert_into(leave_balances::table)
                             .values((
                                 leave_balances::id.eq(Uuid::new_v4()),
-                                leave_balances::employee_id.eq(employee_id),
+                                leave_balances::employment_id.eq(active_emp_id),
                                 leave_balances::year.eq(year),
                                 leave_balances::leave_type_id.eq(leave_type_id),
                                 leave_balances::entitlement.eq(0),
@@ -439,7 +487,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                                 leave_balances::carried_over.eq(0),
                             ))
                             .on_conflict((
-                                leave_balances::employee_id,
+                                leave_balances::employment_id,
                                 leave_balances::leave_type_id,
                                 leave_balances::year,
                             ))
@@ -494,10 +542,47 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
         conn.transaction(|conn| {
             Box::pin(async move {
                 let mut all_logs = Vec::new();
+                let emp_ids: Vec<Uuid> = entries_owned.iter().map(|e| e.0).collect();
+
+                // Fetch latest active/non-deleted employment for each employee in emp_ids
+                let employments_list = employments::table
+                    .filter(employments::workspace_id.eq(workspace_id))
+                    .filter(employments::employee_id.eq_any(&emp_ids))
+                    .filter(employments::deleted_at.is_null())
+                    .load::<crate::models::diesel::employment::EmploymentEntity>(&mut *conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db fetch employments: {e}")))?;
+
+                // Map employee_id -> employment_id (taking the one with latest start_date)
+                use std::collections::HashMap;
+                let mut employee_to_employment = HashMap::new();
+                for emp in employments_list {
+                    employee_to_employment
+                        .entry(emp.employee_id)
+                        .or_insert_with(Vec::new)
+                        .push(emp);
+                }
+
+                let mut resolved_employments = HashMap::new();
+                for (emp_id, mut list) in employee_to_employment {
+                    list.sort_by_key(|e| std::cmp::Reverse(e.start_date));
+                    if let Some(latest) = list.as_slice().first() {
+                        resolved_employments.insert(emp_id, latest.id);
+                    }
+                }
 
                 for (employee_id, assignment_id, leave_type_id, accrual_date, amount) in
                     &entries_owned
                 {
+                    let active_emp_id = match resolved_employments.get(employee_id) {
+                        Some(id) => *id,
+                        None => {
+                            return Err(AppError::NotFound(
+                                "error.employment_not_found".to_string(),
+                            ))
+                        }
+                    };
+
                     use rust_decimal::prelude::FromPrimitive;
                     let decimal_amount =
                         rust_decimal::Decimal::from_f64(*amount).unwrap_or(Decimal::ZERO);
@@ -545,7 +630,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                                 .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
                             diesel::update(leave_balances::table)
-                                .filter(leave_balances::employee_id.eq(employee_id))
+                                .filter(leave_balances::employment_id.eq(active_emp_id))
                                 .filter(leave_balances::year.eq(year))
                                 .filter(leave_balances::leave_type_id.eq(leave_type_id))
                                 .set((
@@ -588,7 +673,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                             diesel::insert_into(leave_balances::table)
                                 .values((
                                     leave_balances::id.eq(Uuid::new_v4()),
-                                    leave_balances::employee_id.eq(employee_id),
+                                    leave_balances::employment_id.eq(active_emp_id),
                                     leave_balances::year.eq(year),
                                     leave_balances::leave_type_id.eq(leave_type_id),
                                     leave_balances::entitlement.eq(0),
@@ -596,7 +681,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                                     leave_balances::carried_over.eq(0),
                                 ))
                                 .on_conflict((
-                                    leave_balances::employee_id,
+                                    leave_balances::employment_id,
                                     leave_balances::leave_type_id,
                                     leave_balances::year,
                                 ))

@@ -541,7 +541,6 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                     hire_date: req.hire_date,
                     termination_date: req.termination_date.map(Some),
                     updated_at: Some(chrono::Utc::now()),
-                    primary_location_id: req.primary_location_id,
                 };
 
                 let result: Option<EmployeeEntity> = diesel::update(employees::table)
@@ -552,67 +551,6 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                     .await
                     .optional()
                     .map_err(|e| AppError::Internal(format!("db: {e}")))?;
-
-                if let Some(new_employer_id) = req.employer_id {
-                    if let Some(ref emp) = result {
-                        use crate::schema::employee_contracts;
-
-                        let active_contract_id: Option<Uuid> = diesel_async::RunQueryDsl::first(
-                            employee_contracts::table
-                                .select(employee_contracts::id)
-                                .filter(employee_contracts::employee_id.eq(id))
-                                .filter(employee_contracts::workspace_id.eq(workspace_id))
-                                .filter(employee_contracts::status.eq(crate::models::enums::ContractStatus::Active))
-                                .filter(employee_contracts::deleted_at.is_null())
-                                .filter(employee_contracts::start_date.le(chrono::Utc::now().date_naive()))
-                                .filter(
-                                    employee_contracts::end_date.is_null()
-                                        .or(employee_contracts::end_date.ge(chrono::Utc::now().date_naive()))
-                                )
-                                .order_by(employee_contracts::start_date.desc()),
-                            &mut *conn
-                        )
-                        .await
-                        .optional()
-                        .map_err(|e| AppError::Internal(format!("db select contract: {e}")))?;
-
-                        if let Some(contract_id) = active_contract_id {
-                            diesel_async::RunQueryDsl::execute(
-                                diesel::update(employee_contracts::table)
-                                    .filter(employee_contracts::id.eq(contract_id))
-                                    .set(employee_contracts::employer_id.eq(new_employer_id)),
-                                &mut *conn
-                            )
-                            .await
-                            .map_err(|e| AppError::Internal(format!("db update contract employer: {e}")))?;
-                        } else {
-                            let default_contract = crate::models::diesel::employee_contract::EmployeeContractEntity {
-                                id: Uuid::new_v4(),
-                                workspace_id,
-                                employee_id: id,
-                                contract_number: None,
-                                contract_type: crate::models::enums::ContractType::Indefinite,
-                                status: crate::models::enums::ContractStatus::Active,
-                                start_date: emp.hire_date,
-                                end_date: None,
-                                document_id: None,
-                                notes: Some("Hệ thống tự động khởi tạo thỏa thuận làm việc khi cập nhật thông tin".to_string()),
-                                created_at: chrono::Utc::now(),
-                                updated_at: chrono::Utc::now(),
-                                deleted_at: None,
-                                employer_id: new_employer_id,
-                            };
-
-                            diesel_async::RunQueryDsl::execute(
-                                diesel::insert_into(crate::schema::employee_contracts::table)
-                                    .values(&default_contract),
-                                &mut *conn
-                            )
-                            .await
-                            .map_err(|e| AppError::Internal(format!("db contract insert: {e}")))?;
-                        }
-                    }
-                }
 
                 if req.recruitment_source_id.is_some() {
                     diesel::update(employees::table)
@@ -636,7 +574,24 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
     async fn create_employee(&self, employee: &Employee) -> Result<(), AppError> {
         let auth_token =
             crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id());
-        self.create_employee_transactional(&auth_token, employee, None)
+        let workspace_id = employee.workspace_id();
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(&auth_token)
+            .await?;
+        use crate::schema::employers;
+        let emp_id_opt: Option<Uuid> = diesel_async::RunQueryDsl::first(
+            employers::table
+                .filter(employers::workspace_id.eq(workspace_id))
+                .select(employers::id),
+            &mut conn,
+        )
+        .await
+        .optional()
+        .map_err(|e| AppError::Internal(format!("db select first employer: {e}")))?;
+        let employer_id = emp_id_opt.unwrap_or_else(Uuid::new_v4);
+
+        self.create_employee_transactional(&auth_token, employee, None, employer_id, None, None)
             .await
     }
 
@@ -645,6 +600,9 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee: &Employee,
         recruitment_source_id: Option<Uuid>,
+        employer_id: Uuid,
+        primary_location_id: Option<Uuid>,
+        department_id: Option<Uuid>,
     ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
         if employee.workspace_id() != workspace_id {
@@ -667,34 +625,55 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                     .await
                     .map_err(|e| AppError::Internal(format!("db employee insert: {e}")))?;
 
-                if let Some(emp_id) = employee.employer_id() {
-                    let default_contract =
-                        crate::models::diesel::employee_contract::EmployeeContractEntity {
-                            id: Uuid::new_v4(),
-                            workspace_id,
-                            employee_id: employee.id(),
-                            contract_number: None,
-                            contract_type: crate::models::enums::ContractType::Indefinite,
-                            status: crate::models::enums::ContractStatus::Active,
-                            start_date: employee.hire_date(),
-                            end_date: None,
-                            document_id: None,
-                            notes: Some(
-                                "Hệ thống tự động khởi tạo thỏa thuận làm việc khi onboard"
-                                    .to_string(),
-                            ),
-                            created_at: chrono::Utc::now(),
-                            updated_at: chrono::Utc::now(),
-                            deleted_at: None,
-                            employer_id: emp_id,
-                        };
+                use crate::schema::employee_contracts;
+                use crate::schema::employments;
 
-                    diesel::insert_into(crate::schema::employee_contracts::table)
-                        .values(&default_contract)
-                        .execute(&mut *conn)
-                        .await
-                        .map_err(|e| AppError::Internal(format!("db contract insert: {e}")))?;
-                }
+                let employment_id = Uuid::new_v4();
+                let new_emp = crate::models::diesel::employment::EmploymentEntity {
+                    id: employment_id,
+                    workspace_id,
+                    employee_id: employee.id(),
+                    employer_id,
+                    primary_location_id,
+                    department_id,
+                    status: "active".to_string(),
+                    start_date: employee.hire_date(),
+                    end_date: None,
+                    created_at: chrono::Utc::now(),
+                    updated_at: chrono::Utc::now(),
+                    deleted_at: None,
+                };
+
+                diesel::insert_into(employments::table)
+                    .values(&new_emp)
+                    .execute(&mut *conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db insert employment: {e}")))?;
+
+                let default_contract =
+                    crate::models::diesel::employee_contract::EmployeeContractEntity {
+                        id: Uuid::new_v4(),
+                        workspace_id,
+                        contract_number: None,
+                        contract_type: crate::models::enums::ContractType::Indefinite,
+                        status: crate::models::enums::ContractStatus::Active,
+                        start_date: employee.hire_date(),
+                        end_date: None,
+                        document_id: None,
+                        notes: Some(
+                            "Hệ thống tự động khởi tạo thỏa thuận làm việc khi onboard".to_string(),
+                        ),
+                        created_at: chrono::Utc::now(),
+                        updated_at: chrono::Utc::now(),
+                        deleted_at: None,
+                        employment_id,
+                    };
+
+                diesel::insert_into(employee_contracts::table)
+                    .values(&default_contract)
+                    .execute(&mut *conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db contract insert: {e}")))?;
 
                 Ok::<(), AppError>(())
             })
@@ -733,34 +712,67 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                     .await
                     .map_err(|e| AppError::Internal(format!("db employee insert: {e}")))?;
 
-                if let Some(emp_id) = employee.employer_id() {
-                    let default_contract =
-                        crate::models::diesel::employee_contract::EmployeeContractEntity {
-                            id: Uuid::new_v4(),
-                            workspace_id,
-                            employee_id: employee.id(),
-                            contract_number: None,
-                            contract_type: crate::models::enums::ContractType::Indefinite,
-                            status: crate::models::enums::ContractStatus::Active,
-                            start_date: employee.hire_date(),
-                            end_date: None,
-                            document_id: None,
-                            notes: Some(
-                                "Hệ thống tự động khởi tạo thỏa thuận làm việc khi onboard"
-                                    .to_string(),
-                            ),
-                            created_at: chrono::Utc::now(),
-                            updated_at: chrono::Utc::now(),
-                            deleted_at: None,
-                            employer_id: emp_id,
-                        };
+                use crate::schema::employers;
+                let emp_id_opt: Option<Uuid> = diesel_async::RunQueryDsl::first(
+                    employers::table
+                        .filter(employers::workspace_id.eq(workspace_id))
+                        .select(employers::id),
+                    &mut *conn,
+                )
+                .await
+                .optional()
+                .map_err(|e| AppError::Internal(format!("db select first employer: {e}")))?;
+                let emp_id = emp_id_opt.unwrap_or_else(Uuid::new_v4);
 
-                    diesel::insert_into(crate::schema::employee_contracts::table)
-                        .values(&default_contract)
-                        .execute(&mut *conn)
-                        .await
-                        .map_err(|e| AppError::Internal(format!("db contract insert: {e}")))?;
-                }
+                use crate::schema::employee_contracts;
+                use crate::schema::employments;
+
+                let employment_id = Uuid::new_v4();
+                let new_emp = crate::models::diesel::employment::EmploymentEntity {
+                    id: employment_id,
+                    workspace_id,
+                    employee_id: employee.id(),
+                    employer_id: emp_id,
+                    primary_location_id: None,
+                    department_id: None,
+                    status: "active".to_string(),
+                    start_date: employee.hire_date(),
+                    end_date: None,
+                    created_at: chrono::Utc::now(),
+                    updated_at: chrono::Utc::now(),
+                    deleted_at: None,
+                };
+
+                diesel::insert_into(employments::table)
+                    .values(&new_emp)
+                    .execute(&mut *conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db insert employment: {e}")))?;
+
+                let default_contract =
+                    crate::models::diesel::employee_contract::EmployeeContractEntity {
+                        id: Uuid::new_v4(),
+                        workspace_id,
+                        contract_number: None,
+                        contract_type: crate::models::enums::ContractType::Indefinite,
+                        status: crate::models::enums::ContractStatus::Active,
+                        start_date: employee.hire_date(),
+                        end_date: None,
+                        document_id: None,
+                        notes: Some(
+                            "Hệ thống tự động khởi tạo thỏa thuận làm việc khi onboard".to_string(),
+                        ),
+                        created_at: chrono::Utc::now(),
+                        updated_at: chrono::Utc::now(),
+                        deleted_at: None,
+                        employment_id,
+                    };
+
+                diesel::insert_into(employee_contracts::table)
+                    .values(&default_contract)
+                    .execute(&mut *conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db contract insert: {e}")))?;
 
                 Ok::<(), AppError>(())
             })
@@ -932,46 +944,103 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             }
         }
 
+        tracing::debug!("bulk_create_employees_skip_duplicates: workspace_id={}, new_employees_len={}, unique_emps_keys={:?}, existing={:?}, to_insert_len={}", workspace_id, new_employees.len(), unique_emps.keys().collect::<Vec<_>>(), existing, to_insert.len());
+
         // 4. Perform chunked insertion inside a transaction
         conn.transaction(|conn| {
             Box::pin(async move {
                 if !to_insert.is_empty() {
                     for chunk in to_insert.chunks(1000) {
-                        diesel::insert_into(employees::table)
+                        tracing::debug!("inserting chunk of size {}", chunk.len());
+                        let res = diesel::insert_into(employees::table)
                             .values(chunk)
                             .execute(&mut *conn)
-                            .await
-                            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                            .await;
+                        tracing::debug!("insert res={:?}", res);
+                        res.map_err(|e| AppError::Internal(format!("db: {e}")))?;
                     }
                 }
 
-                // Insert contracts for each inserted employee who has an employer_id
+                use crate::schema::employers;
+                use crate::schema::work_locations;
+
+                let default_employer_id: Option<Uuid> = diesel_async::RunQueryDsl::first(
+                    employers::table
+                        .filter(employers::workspace_id.eq(workspace_id))
+                        .select(employers::id),
+                    &mut *conn,
+                )
+                .await
+                .optional()
+                .map_err(|e| AppError::Internal(format!("db select first employer: {e}")))?;
+                let default_employer_id = default_employer_id.unwrap_or_else(Uuid::new_v4);
+
+                let hq_id: Option<Uuid> = diesel_async::RunQueryDsl::first(
+                    work_locations::table
+                        .filter(work_locations::workspace_id.eq(workspace_id))
+                        .filter(work_locations::is_headquarters.eq(true))
+                        .select(work_locations::id),
+                    &mut *conn,
+                )
+                .await
+                .optional()
+                .unwrap_or(None);
+
+                // Insert employments & contracts for each inserted employee
+                let mut employments_to_insert = Vec::new();
                 let mut contracts_to_insert = Vec::new();
                 for emp in unique_emps.values() {
                     if !existing.contains_key(&emp.employee_id_number().to_lowercase()) {
-                        if let Some(emp_id) = emp.employer_id() {
-                            contracts_to_insert.push(
-                                crate::models::diesel::employee_contract::EmployeeContractEntity {
-                                    id: Uuid::new_v4(),
-                                    workspace_id,
-                                    employee_id: emp.id(),
-                                    contract_number: None,
-                                    contract_type: crate::models::enums::ContractType::Indefinite,
-                                    status: crate::models::enums::ContractStatus::Active,
-                                    start_date: emp.hire_date(),
-                                    end_date: None,
-                                    document_id: None,
-                                    notes: Some(
-                                        "Hệ thống tự động khởi tạo thỏa thuận làm việc khi import"
-                                            .to_string(),
-                                    ),
-                                    created_at: chrono::Utc::now(),
-                                    updated_at: chrono::Utc::now(),
-                                    deleted_at: None,
-                                    employer_id: emp_id,
-                                },
-                            );
-                        }
+                        let employment_id = Uuid::new_v4();
+                        employments_to_insert.push(
+                            crate::models::diesel::employment::EmploymentEntity {
+                                id: employment_id,
+                                workspace_id,
+                                employee_id: emp.id(),
+                                employer_id: default_employer_id,
+                                primary_location_id: hq_id,
+                                department_id: None,
+                                status: "active".to_string(),
+                                start_date: emp.hire_date(),
+                                end_date: None,
+                                created_at: chrono::Utc::now(),
+                                updated_at: chrono::Utc::now(),
+                                deleted_at: None,
+                            },
+                        );
+                        contracts_to_insert.push(
+                            crate::models::diesel::employee_contract::EmployeeContractEntity {
+                                id: Uuid::new_v4(),
+                                workspace_id,
+                                contract_number: None,
+                                contract_type: crate::models::enums::ContractType::Indefinite,
+                                status: crate::models::enums::ContractStatus::Active,
+                                start_date: emp.hire_date(),
+                                end_date: None,
+                                document_id: None,
+                                notes: Some(
+                                    "Hệ thống tự động khởi tạo thỏa thuận làm việc khi import"
+                                        .to_string(),
+                                ),
+                                created_at: chrono::Utc::now(),
+                                updated_at: chrono::Utc::now(),
+                                deleted_at: None,
+                                employment_id,
+                            },
+                        );
+                    }
+                }
+
+                if !employments_to_insert.is_empty() {
+                    use crate::schema::employments;
+                    for chunk in employments_to_insert.chunks(1000) {
+                        diesel::insert_into(employments::table)
+                            .values(chunk)
+                            .execute(&mut *conn)
+                            .await
+                            .map_err(|e| {
+                                AppError::Internal(format!("db employments insert: {e}"))
+                            })?;
                     }
                 }
 
@@ -1076,9 +1145,11 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
 
         let query = r"
             SELECT wl.timezone as timezone
-            FROM employees e
-            JOIN work_locations wl ON wl.id = e.primary_location_id
-            WHERE e.id = $1 AND e.workspace_id = $2
+            FROM employments emp
+            JOIN work_locations wl ON wl.id = emp.primary_location_id
+            WHERE emp.employee_id = $1 AND emp.workspace_id = $2
+            ORDER BY CASE WHEN emp.status = 'active' THEN 0 ELSE 1 END, emp.start_date DESC
+            LIMIT 1
         ";
 
         let row: TzRow = diesel::sql_query(query)
@@ -1120,15 +1191,17 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                 (SELECT host_wl.timezone
                  FROM employee_assignments ea
                  JOIN work_locations host_wl ON host_wl.id = ea.host_location_id
-                 WHERE ea.employee_id = e.id AND ea.status = 'active'
+                 WHERE ea.employment_id = emp.id AND ea.status = 'active'
                    AND ea.start_date <= $3
                    AND (ea.end_date IS NULL OR ea.end_date >= $3)
                  ORDER BY ea.created_at DESC LIMIT 1),
                 primary_wl.timezone
             ) as timezone
-            FROM employees e
-            JOIN work_locations primary_wl ON primary_wl.id = e.primary_location_id
-            WHERE e.id = $1 AND e.workspace_id = $2
+            FROM employments emp
+            JOIN work_locations primary_wl ON primary_wl.id = emp.primary_location_id
+            WHERE emp.employee_id = $1 AND emp.workspace_id = $2
+            ORDER BY CASE WHEN emp.status = 'active' THEN 0 ELSE 1 END, emp.start_date DESC
+            LIMIT 1
         ";
 
         let row: TzRow = diesel::sql_query(query)

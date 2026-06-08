@@ -258,6 +258,14 @@ impl WorkspaceBuilder {
         diesel::sql_types::Text, self.timezone.clone()
     );
 
+            // Seed default employer
+            crate::test_execute!(
+        &self.diesel_pools.api,
+        "INSERT INTO employers (id, workspace_id, name, tax_code, legal_address, created_at, updated_at) VALUES ($1, $2, 'Default Test Employer', 'DEFAULT-TAX-1', 'Default Address', NOW(), NOW())",
+        diesel::sql_types::Uuid, Uuid::new_v4(),
+        diesel::sql_types::Uuid, ws_id
+    );
+
             ws_id
         })
         .await
@@ -338,7 +346,7 @@ impl EmployeeBuilder {
             user_id: None,
             full_name: "Test Employee".to_string(),
             employee_id_number: format!("EMP-{}", Uuid::new_v4().as_u128() % 1_000_000_000),
-            hire_date: chrono::Utc::now().date_naive(),
+            hire_date: chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
         }
     }
 
@@ -387,17 +395,47 @@ impl EmployeeBuilder {
                 diesel::sql_types::Uuid, workspace_id
             );
 
-            crate::test_query_scalar_uuid!(
+            let employer_id: Uuid = match crate::test_query_scalar_uuid_optional!(
                 &self.diesel_pools.api,
-                "INSERT INTO employees (workspace_id, user_id, full_name, employee_id_number, hire_date, original_hire_date, primary_location_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
+                "SELECT id FROM employers WHERE workspace_id = $1 LIMIT 1",
+                diesel::sql_types::Uuid, workspace_id
+            ) {
+                Some(id) => id,
+                None => {
+                    let new_id = Uuid::new_v4();
+                    crate::test_execute!(
+                        &self.diesel_pools.api,
+                        "INSERT INTO employers (id, workspace_id, name, tax_code, legal_address, created_at, updated_at) VALUES ($1, $2, 'Default Test Employer', 'DEFAULT-TAX-1', 'Default Address', NOW(), NOW())",
+                        diesel::sql_types::Uuid, new_id,
+                        diesel::sql_types::Uuid, workspace_id
+                    );
+                    new_id
+                }
+            };
+
+            let employee_id = crate::test_query_scalar_uuid!(
+                &self.diesel_pools.api,
+                "INSERT INTO employees (workspace_id, user_id, full_name, employee_id_number, hire_date, original_hire_date) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
                 diesel::sql_types::Uuid, workspace_id,
                 diesel::sql_types::Nullable<diesel::sql_types::Uuid>, self.user_id,
                 diesel::sql_types::Text, self.full_name,
                 diesel::sql_types::Text, normalized_id,
                 diesel::sql_types::Date, self.hire_date,
-                diesel::sql_types::Date, self.hire_date,
-                diesel::sql_types::Uuid, location_id
-            )
+                diesel::sql_types::Date, self.hire_date
+            );
+
+            crate::test_execute!(
+                &self.diesel_pools.api,
+                "INSERT INTO employments (id, workspace_id, employee_id, employer_id, primary_location_id, status, start_date, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, 'active', $6, NOW(), NOW())",
+                diesel::sql_types::Uuid, Uuid::new_v4(),
+                diesel::sql_types::Uuid, workspace_id,
+                diesel::sql_types::Uuid, employee_id,
+                diesel::sql_types::Uuid, employer_id,
+                diesel::sql_types::Nullable<diesel::sql_types::Uuid>, Some(location_id),
+                diesel::sql_types::Date, self.hire_date
+            );
+
+            employee_id
         }).await.expect("Employee creation timed out")
     }
 }
@@ -810,11 +848,18 @@ impl LeaveRequestBuilder {
             LeaveStatus::PreApproved => "pre_approved",
         };
 
+        let employment_id: Uuid = crate::test_query_scalar_uuid!(
+            &self.diesel_pools.api,
+            "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+            diesel::sql_types::Uuid,
+            emp_id
+        );
+
         crate::test_execute!(
             &self.diesel_pools.api,
-            "INSERT INTO leave_requests (id, employee_id, leave_type_id, start_date, end_date, status) VALUES ($1, $2, $3, $4, $5, $6::leave_status_type)",
+            "INSERT INTO leave_requests (id, employment_id, leave_type_id, start_date, end_date, status) VALUES ($1, $2, $3, $4, $5, $6::leave_status_type)",
             diesel::sql_types::Uuid, id,
-            diesel::sql_types::Uuid, emp_id,
+            diesel::sql_types::Uuid, employment_id,
             diesel::sql_types::Uuid, leave_type_id,
             diesel::sql_types::Date, self.start_date,
             diesel::sql_types::Date, self.end_date,
@@ -889,11 +934,18 @@ impl LeaveBalanceBuilder {
             )
         };
 
+        let employment_id: Uuid = crate::test_query_scalar_uuid!(
+            &self.diesel_pools.api,
+            "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+            diesel::sql_types::Uuid,
+            emp_id
+        );
+
         crate::test_execute!(
             &self.diesel_pools.api,
-            "INSERT INTO leave_balances (id, employee_id, leave_type_id, year, entitlement, carried_over) VALUES ($1, $2, $3, $4, $5, $6)",
+            "INSERT INTO leave_balances (id, employment_id, leave_type_id, year, entitlement, carried_over) VALUES ($1, $2, $3, $4, $5, $6)",
             diesel::sql_types::Uuid, id,
-            diesel::sql_types::Uuid, emp_id,
+            diesel::sql_types::Uuid, employment_id,
             diesel::sql_types::Uuid, leave_type_id,
             diesel::sql_types::Integer, self.year,
             diesel::sql_types::Numeric, rust_decimal::Decimal::from(self.entitlement),

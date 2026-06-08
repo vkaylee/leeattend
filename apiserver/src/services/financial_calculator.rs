@@ -48,7 +48,7 @@ pub struct CalculateDeductionsArgs<'a> {
 #[derive(Debug, Clone, Copy)]
 pub struct AssemblePayslipArgs {
     pub workspace_id: Uuid,
-    pub employee_id: Uuid,
+    pub employment_id: Uuid,
     pub start_date: NaiveDate,
     pub end_date: NaiveDate,
     pub total_base_pay: Decimal,
@@ -258,7 +258,7 @@ impl FinancialCalculator {
     pub fn assemble_payslip(args: AssemblePayslipArgs) -> Payslip {
         Payslip {
             id: Uuid::new_v4(),
-            employee_id: args.employee_id,
+            employment_id: args.employment_id,
             workspace_id: args.workspace_id,
             period_start: args.start_date,
             period_end: args.end_date,
@@ -360,7 +360,7 @@ mod tests {
 
         let slip = FinancialCalculator::assemble_payslip(AssemblePayslipArgs {
             workspace_id: Uuid::new_v4(),
-            employee_id: emp,
+            employment_id: emp,
             start_date: start,
             end_date: end,
             total_base_pay: Decimal::from(10000),    // base
@@ -372,7 +372,7 @@ mod tests {
             total_ot_units: 10,                      // OT units
         });
 
-        assert_eq!(slip.employee_id, emp);
+        assert_eq!(slip.employment_id, emp);
         assert_eq!(slip.period_start, start);
         assert_eq!(slip.period_end, end);
         assert_eq!(slip.base_pay_amount, Decimal::from(10000));
@@ -394,7 +394,7 @@ mod tests {
 
         let slip = FinancialCalculator::assemble_payslip(AssemblePayslipArgs {
             workspace_id: Uuid::new_v4(),
-            employee_id: emp,
+            employment_id: emp,
             start_date: start,
             end_date: end,
             total_base_pay: Decimal::ZERO,
@@ -500,7 +500,7 @@ mod tests {
 
         let slip = FinancialCalculator::assemble_payslip(AssemblePayslipArgs {
             workspace_id: Uuid::new_v4(),
-            employee_id: emp,
+            employment_id: emp,
             start_date: start,
             end_date: end,
             total_base_pay: Decimal::from(1000),       // base
@@ -524,7 +524,7 @@ mod tests {
 
         let slip = FinancialCalculator::assemble_payslip(AssemblePayslipArgs {
             workspace_id: Uuid::new_v4(),
-            employee_id: emp,
+            employment_id: emp,
             start_date: start,
             end_date: end,
             total_base_pay: Decimal::from(20000),    // base

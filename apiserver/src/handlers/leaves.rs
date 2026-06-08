@@ -50,9 +50,17 @@ pub async fn submit_leave_request(
     ctx: MemberContext,
     Json(req): Json<SubmitLeaveRequest>,
 ) -> AppResult<(StatusCode, Json<LeaveRequest>)> {
+    let employment = state
+        .employees()
+        .employment_repo()
+        .get_employment_by_id(&ctx.auth_token, req.employment_id)
+        .await?
+        .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
+    let target_employee_id = employment.employee_id;
+
     // Look up employee's department for scoped permission check
     let target_dept_id =
-        crate::handlers::common::current_department_id(&state, &ctx.auth_token, req.employee_id)
+        crate::handlers::common::current_department_id(&state, &ctx.auth_token, target_employee_id)
             .await;
 
     let caller_employee_id = state
@@ -62,12 +70,12 @@ pub async fn submit_leave_request(
         .await?;
 
     let is_on_behalf = match caller_employee_id {
-        Some(emp_id) => emp_id != req.employee_id,
+        Some(emp_id) => emp_id != target_employee_id,
         None => true,
     };
 
     if is_on_behalf {
-        check_leave_behalf_scope(&state, &ctx, req.employee_id).await?;
+        check_leave_behalf_scope(&state, &ctx, target_employee_id).await?;
     } else {
         // Require submit permission scoped to the employee's department
         ctx.require_scoped_permission(Permission::LeaveRequestsSubmit, target_dept_id)?;
@@ -99,7 +107,7 @@ pub async fn submit_leave_request(
                 &ctx.auth_token,
                 "leave_request".to_string(),
                 request.id(),
-                request.employee_id(),
+                target_employee_id,
             )
             .await?;
     }

@@ -64,7 +64,6 @@ impl FromSql<ContractStatusEnum, Pg> for ContractStatus {
 pub struct EmployeeContractEntity {
     pub id: Uuid,
     pub workspace_id: Uuid,
-    pub employee_id: Uuid,
     pub contract_number: Option<String>,
     pub contract_type: ContractType,
     pub status: ContractStatus,
@@ -75,7 +74,7 @@ pub struct EmployeeContractEntity {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
-    pub employer_id: Uuid,
+    pub employment_id: Uuid,
 }
 
 impl From<EmployeeContractEntity> for EmployeeContract {
@@ -83,7 +82,7 @@ impl From<EmployeeContractEntity> for EmployeeContract {
         EmployeeContract::new(
             val.id,
             val.workspace_id,
-            val.employee_id,
+            val.employment_id,
             val.contract_number,
             val.contract_type,
             val.status,
@@ -93,7 +92,6 @@ impl From<EmployeeContractEntity> for EmployeeContract {
             val.notes,
             val.created_at,
             val.updated_at,
-            val.employer_id,
         )
     }
 }
@@ -109,5 +107,4 @@ pub struct UpdateDieselEmployeeContract {
     pub document_id: Option<Option<Uuid>>,
     pub notes: Option<Option<String>>,
     pub updated_at: Option<DateTime<Utc>>,
-    pub employer_id: Option<Uuid>,
 }

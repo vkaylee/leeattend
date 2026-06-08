@@ -62,7 +62,6 @@ impl FromSql<AssignmentStatus, Pg> for AssignmentStatusEnum {
 pub struct EmployeeAssignment {
     pub id: Uuid,
     pub workspace_id: Uuid,
-    pub employee_id: Uuid,
     pub home_location_id: Uuid,
     pub host_location_id: Uuid,
     pub start_date: NaiveDate,
@@ -71,6 +70,7 @@ pub struct EmployeeAssignment {
     pub status: AssignmentStatusEnum,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub employment_id: Uuid,
 }
 
 #[derive(Debug, Clone, Insertable)]
@@ -78,13 +78,13 @@ pub struct EmployeeAssignment {
 pub struct NewEmployeeAssignment {
     pub id: Uuid,
     pub workspace_id: Uuid,
-    pub employee_id: Uuid,
     pub home_location_id: Uuid,
     pub host_location_id: Uuid,
     pub start_date: NaiveDate,
     pub end_date: Option<NaiveDate>,
     pub reason: Option<String>,
     pub status: AssignmentStatusEnum,
+    pub employment_id: Uuid,
 }
 
 #[derive(Debug, Clone, Deserialize, utoipa::ToSchema)]

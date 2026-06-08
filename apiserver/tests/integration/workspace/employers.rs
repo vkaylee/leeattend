@@ -9,6 +9,14 @@ async fn test_employers_crud() {
     let (address, workspace_id, user_id, factory, _db) = spawn_app_with_factory().await;
     let client = reqwest::Client::new();
 
+    // Clean up default employer seeded by workspace creation
+    crate::test_execute!(
+        &_db.diesel_pools.api,
+        "DELETE FROM employers WHERE workspace_id = $1",
+        diesel::sql_types::Uuid,
+        workspace_id
+    );
+
     // 1. Fetch all employers (should be empty initially)
     let res = client
         .get(&format!(
@@ -116,15 +124,11 @@ async fn test_employers_crud() {
     // Manually assign employee to the custom employer
     crate::test_execute!(
         &_db.diesel_pools.api,
-        "INSERT INTO employee_contracts (id, workspace_id, employee_id, contract_type, status, start_date, created_at, updated_at, employer_id) VALUES ($1, $2, $3, 'indefinite', 'active', CURRENT_DATE, NOW(), NOW(), $4)",
+        "UPDATE employments SET employer_id = $1 WHERE employee_id = $2 AND status = 'active'",
         diesel::sql_types::Uuid,
-        Uuid::new_v4(),
+        Uuid::parse_str(&employer_1_id).unwrap(),
         diesel::sql_types::Uuid,
-        workspace_id,
-        diesel::sql_types::Uuid,
-        emp_id,
-        diesel::sql_types::Uuid,
-        Uuid::parse_str(&employer_1_id).unwrap()
+        emp_id
     );
 
     let res = client
@@ -142,7 +146,7 @@ async fn test_employers_crud() {
     // 7. Unassign the employee, then delete should succeed
     crate::test_execute!(
         &_db.diesel_pools.api,
-        "UPDATE employee_contracts SET deleted_at = NOW() WHERE employee_id = $1",
+        "DELETE FROM employments WHERE employee_id = $1",
         diesel::sql_types::Uuid,
         emp_id
     );

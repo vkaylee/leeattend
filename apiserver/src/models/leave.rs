@@ -9,7 +9,7 @@ use crate::models::enums::{
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct LeaveRequest {
     id: Uuid,
-    employee_id: Uuid,
+    employment_id: Uuid,
     leave_type_id: Uuid,
     start_date: NaiveDate,
     end_date: NaiveDate,
@@ -28,7 +28,7 @@ impl LeaveRequest {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         leave_type_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
@@ -44,7 +44,7 @@ impl LeaveRequest {
     ) -> Self {
         Self {
             id,
-            employee_id,
+            employment_id,
             leave_type_id,
             start_date,
             end_date,
@@ -64,8 +64,8 @@ impl LeaveRequest {
         self.id
     }
 
-    pub fn employee_id(&self) -> Uuid {
-        self.employee_id
+    pub fn employment_id(&self) -> Uuid {
+        self.employment_id
     }
 
     pub fn leave_type_id(&self) -> Uuid {
@@ -161,7 +161,7 @@ impl LeaveRequestWithType {
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct SubmitLeaveRequest {
-    pub employee_id: Uuid,
+    pub employment_id: Uuid,
     pub leave_type_id: Uuid,
     pub start_date: NaiveDate,
     pub end_date: NaiveDate,
@@ -182,7 +182,7 @@ pub struct ApproveLeaveRequest {
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct LeaveBalance {
     id: Uuid,
-    employee_id: Uuid,
+    employment_id: Uuid,
     leave_type_id: Uuid,
     year: i32,
     entitlement: i32,
@@ -196,7 +196,7 @@ impl LeaveBalance {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         leave_type_id: Uuid,
         year: i32,
         entitlement: i32,
@@ -207,7 +207,7 @@ impl LeaveBalance {
     ) -> Self {
         Self {
             id,
-            employee_id,
+            employment_id,
             leave_type_id,
             year,
             entitlement,
@@ -222,8 +222,8 @@ impl LeaveBalance {
         self.id
     }
 
-    pub fn employee_id(&self) -> Uuid {
-        self.employee_id
+    pub fn employment_id(&self) -> Uuid {
+        self.employment_id
     }
 
     pub fn leave_type_id(&self) -> Uuid {
@@ -828,7 +828,7 @@ mod tests {
     #[test]
     fn test_submit_leave_request_serde() {
         let json = r#"{
-            "employee_id": "00000000-0000-0000-0000-000000000001",
+            "employment_id": "00000000-0000-0000-0000-000000000001",
             "leave_type_id": "00000000-0000-0000-0000-000000000002",
             "start_date": "2026-03-01",
             "end_date": "2026-03-05",

@@ -371,7 +371,11 @@ async fn test_process_holiday_leave_api() {
         .send()
         .await
         .unwrap();
-    assert_eq!(resp.status(), StatusCode::OK);
+    if resp.status() != StatusCode::OK {
+        let status = resp.status();
+        let body = resp.text().await.unwrap();
+        panic!("Request failed with status {status}: {body}");
+    }
 
     let results: Vec<serde_json::Value> = resp.json().await.unwrap();
     assert!(
@@ -382,9 +386,10 @@ async fn test_process_holiday_leave_api() {
     // Verify a leave request was created for the employee
     let leave_count: i64 = crate::test_query_scalar_i64!(
         &pool.api,
-        r#"SELECT COUNT(*) as "count" FROM leave_requests
-           WHERE employee_id = $1 AND status = 'approved'
-             AND start_date = $2 AND end_date = $2"#,
+        r#"SELECT COUNT(*) as "count" FROM leave_requests lr
+           JOIN employments emp ON lr.employment_id = emp.id
+           WHERE emp.employee_id = $1 AND lr.status = 'approved'
+             AND lr.start_date = $2 AND lr.end_date = $2"#,
         diesel::sql_types::Uuid,
         emp,
         diesel::sql_types::Date,
@@ -465,8 +470,9 @@ async fn test_process_holiday_leave_insufficient_balance() {
     // Should NOT have created a leave request (balance insufficient)
     let leave_count: i64 = crate::test_query_scalar_i64!(
         &pool.api,
-        r#"SELECT COUNT(*) as "count" FROM leave_requests
-           WHERE employee_id = $1 AND start_date = $2"#,
+        r#"SELECT COUNT(*) as "count" FROM leave_requests lr
+           JOIN employments emp ON lr.employment_id = emp.id
+           WHERE emp.employee_id = $1 AND lr.start_date = $2"#,
         diesel::sql_types::Uuid,
         emp,
         diesel::sql_types::Date,
@@ -541,14 +547,19 @@ async fn test_process_holiday_leave_idempotent() {
             .send()
             .await
             .unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
+        if resp.status() != StatusCode::OK {
+            let status = resp.status();
+            let body = resp.text().await.unwrap();
+            panic!("Request failed with status {status}: {body}");
+        }
     }
 
     // Should still have exactly 1 leave request
     let leave_count: i64 = crate::test_query_scalar_i64!(
         &pool.api,
-        r#"SELECT COUNT(*) as "count" FROM leave_requests
-           WHERE employee_id = $1 AND start_date = $2"#,
+        r#"SELECT COUNT(*) as "count" FROM leave_requests lr
+           JOIN employments emp ON lr.employment_id = emp.id
+           WHERE emp.employee_id = $1 AND lr.start_date = $2"#,
         diesel::sql_types::Uuid,
         emp,
         diesel::sql_types::Date,
@@ -704,7 +715,11 @@ async fn test_process_holiday_leave_edge_cases() {
         .send()
         .await
         .unwrap();
-    assert_eq!(resp.status(), StatusCode::OK);
+    if resp.status() != StatusCode::OK {
+        let status = resp.status();
+        let body = resp.text().await.unwrap();
+        panic!("Request failed with status {status}: {body}");
+    }
 
     let results: Vec<serde_json::Value> = resp.json().await.unwrap();
     assert_eq!(results.len(), 3);

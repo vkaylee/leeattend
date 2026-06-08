@@ -857,7 +857,7 @@ impl PayrollRepository for DieselPayrollRepository {
 
         let entity = PayslipEntity {
             id: payslip.id,
-            employee_id: payslip.employee_id,
+            employment_id: payslip.employment_id,
             period_start: payslip.period_start,
             period_end: payslip.period_end,
             base_pay_amount: bigdecimal::BigDecimal::from_str(&payslip.base_pay_amount.to_string())
@@ -906,8 +906,10 @@ impl PayrollRepository for DieselPayrollRepository {
         );
 
         let entities = payslips::table
+            .inner_join(employments::table)
             .filter(payslips::workspace_id.eq(workspace_id))
-            .filter(payslips::employee_id.eq(employee_id))
+            .filter(employments::employee_id.eq(employee_id))
+            .select(PayslipEntity::as_select())
             .order(payslips::period_start.desc())
             .load::<PayslipEntity>(&mut *conn)
             .await
@@ -1187,7 +1189,7 @@ impl PayrollRepository for DieselPayrollRepository {
 
         let payslip_entity = PayslipEntity {
             id: payslip.id,
-            employee_id: payslip.employee_id,
+            employment_id: payslip.employment_id,
             period_start: payslip.period_start,
             period_end: payslip.period_end,
             base_pay_amount: bigdecimal::BigDecimal::from_str(&payslip.base_pay_amount.to_string())

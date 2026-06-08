@@ -76,6 +76,13 @@ async fn test_leave_request_workflow_flow() {
         .create()
         .await;
 
+    let emp_employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 AND status = 'active' LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
+
     let admin_token = apiserver::services::auth_service::AuthService::generate_token(
         admin_user_id,
         "test_secret_tower",
@@ -99,7 +106,7 @@ async fn test_leave_request_workflow_flow() {
 
     // Scenario A: Approve Leave Request
     let submit_payload = serde_json::json!({
-        "employee_id": emp_id,
+        "employment_id": emp_employment_id,
         "leave_type_id": vacation_id,
         "start_date": "2027-08-10",
         "end_date": "2027-08-11",
@@ -156,7 +163,7 @@ async fn test_leave_request_workflow_flow() {
 
     // Scenario B: Reject Leave Request
     let submit_payload_b = serde_json::json!({
-        "employee_id": emp_id,
+        "employment_id": emp_employment_id,
         "leave_type_id": vacation_id,
         "start_date": "2027-08-15",
         "end_date": "2027-08-16",

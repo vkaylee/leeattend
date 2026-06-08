@@ -157,7 +157,17 @@ impl OvertimeRequestRepository for DieselOvertimeRequestRepository {
         let updated = diesel::update(
             overtime_request_employees::table
                 .filter(overtime_request_employees::overtime_request_id.eq(request_id))
-                .filter(overtime_request_employees::employee_id.eq(employee_id))
+                .filter(
+                    overtime_request_employees::employment_id.eq_any(
+                        crate::schema::employments::table
+                            .select(crate::schema::employments::id)
+                            .filter(crate::schema::employments::employee_id.eq(employee_id))
+                            .filter(
+                                crate::schema::employments::workspace_id
+                                    .eq(auth_token.workspace_id()),
+                            ),
+                    ),
+                )
                 .filter(
                     overtime_request_employees::overtime_request_id.eq_any(
                         overtime_requests::table
@@ -304,7 +314,6 @@ mod tests {
                 hire_date: chrono::NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
                 termination_date: None,
                 original_hire_date: chrono::NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
-                primary_location_id: loc_id,
                 deleted_at: None,
             };
             diesel::insert_into(crate::schema::employees::table)
@@ -373,7 +382,7 @@ mod tests {
             .await
             .expect("Failed to get request employees");
         assert_eq!(emps.len(), 1);
-        assert_eq!(emps[0].employee_id(), emp_id);
+        assert_eq!(emps[0].employment_id(), emp_id);
         assert_eq!(emps[0].consent_status(), "pending");
 
         // Act & Assert: Update Employee Consent

@@ -9,7 +9,7 @@ use crate::models::enums::{ContractStatus, ContractType};
 pub struct EmployeeContract {
     id: Uuid,
     workspace_id: Uuid,
-    employee_id: Uuid,
+    employment_id: Uuid,
     contract_number: Option<String>,
     contract_type: ContractType,
     status: ContractStatus,
@@ -19,7 +19,6 @@ pub struct EmployeeContract {
     notes: Option<String>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
-    employer_id: Uuid,
 }
 
 impl EmployeeContract {
@@ -27,7 +26,7 @@ impl EmployeeContract {
     pub fn new(
         id: Uuid,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         contract_number: Option<String>,
         contract_type: ContractType,
         status: ContractStatus,
@@ -37,12 +36,11 @@ impl EmployeeContract {
         notes: Option<String>,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
-        employer_id: Uuid,
     ) -> Self {
         Self {
             id,
             workspace_id,
-            employee_id,
+            employment_id,
             contract_number,
             contract_type,
             status,
@@ -52,7 +50,6 @@ impl EmployeeContract {
             notes,
             created_at,
             updated_at,
-            employer_id,
         }
     }
 
@@ -64,8 +61,8 @@ impl EmployeeContract {
         self.workspace_id
     }
 
-    pub fn employee_id(&self) -> Uuid {
-        self.employee_id
+    pub fn employment_id(&self) -> Uuid {
+        self.employment_id
     }
 
     pub fn contract_number(&self) -> Option<&str> {
@@ -103,15 +100,11 @@ impl EmployeeContract {
     pub fn updated_at(&self) -> DateTime<Utc> {
         self.updated_at
     }
-
-    pub fn employer_id(&self) -> Uuid {
-        self.employer_id
-    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct CreateContractRequest {
-    pub employee_id: Uuid,
+    pub employment_id: Uuid,
     pub contract_number: Option<String>,
     pub contract_type: ContractType,
     pub start_date: NaiveDate,
@@ -120,7 +113,6 @@ pub struct CreateContractRequest {
     pub notes: Option<String>,
     pub assign_phase_id: Option<Uuid>,
     pub auto_close_overlapping: Option<bool>,
-    pub employer_id: Uuid,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
@@ -132,5 +124,4 @@ pub struct UpdateContractRequest {
     pub end_date: Option<NaiveDate>,
     pub document_id: Option<Uuid>,
     pub notes: Option<String>,
-    pub employer_id: Option<Uuid>,
 }

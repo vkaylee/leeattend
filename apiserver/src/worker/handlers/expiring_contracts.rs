@@ -62,10 +62,24 @@ impl ExpiringContractsHandler {
                 };
 
                 // We need employee code and name for the message. We could fetch employee info
+                let employment = deps
+                    .employment_repo
+                    .get_employment_by_id(
+                        &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
+                        contract.employment_id(),
+                    )
+                    .await
+                    .unwrap_or_default();
+
+                let Some(employment) = employment else {
+                    continue;
+                };
+                let employee_id = employment.employee_id;
+
                 let emp = deps
                     .employee_repo
                     .get_employee_by_id(
-                        contract.employee_id(),
+                        employee_id,
                         &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
                     )
                     .await
@@ -86,7 +100,7 @@ impl ExpiringContractsHandler {
                         emp_code,
                         end_date.format("%d/%m/%Y")
                     );
-                    let link = format!("/workspace/employees/{}", contract.employee_id());
+                    let link = format!("/workspace/employees/{employee_id}");
 
                     // Check if a notification for this specific contract has already been created recently
                     let existing = deps
@@ -206,6 +220,7 @@ mod tests {
             .expect_get_admins_with_permissions()
             .returning(move |_, _| Box::pin(async move { Ok(vec![admin_id]) }));
 
+        let employment_id = Uuid::new_v4();
         let mut contract_repo = MockEmployeeContractRepository::new();
         contract_repo
             .expect_get_expiring_contracts()
@@ -213,7 +228,7 @@ mod tests {
                 Ok(vec![EmployeeContract::new(
                     Uuid::new_v4(),
                     ws_id,
-                    emp_id,
+                    employment_id,
                     None,
                     crate::models::enums::ContractType::FixedTerm,
                     crate::models::enums::ContractStatus::Active,
@@ -223,7 +238,6 @@ mod tests {
                     None,
                     chrono::Utc::now(),
                     chrono::Utc::now(),
-                    Uuid::new_v4(),
                 )])
             });
 
@@ -243,8 +257,6 @@ mod tests {
                 chrono::Utc::now(),
                 chrono::Utc::now(),
                 None,
-                uuid::Uuid::new_v4(),
-                None,
             )))
         });
 
@@ -254,10 +266,31 @@ mod tests {
             .returning(|_, _, _, _| Ok(false));
         user_repo.expect_create_notification().returning(|_| Ok(()));
 
+        let mut employment_repo =
+            crate::repositories::employment_repository::MockEmploymentRepository::new();
+        employment_repo
+            .expect_get_employment_by_id()
+            .returning(move |_, _| {
+                Ok(Some(crate::models::employment::Employment {
+                    id: employment_id,
+                    workspace_id: ws_id,
+                    employee_id: emp_id,
+                    employer_id: Uuid::new_v4(),
+                    primary_location_id: None,
+                    department_id: None,
+                    status: "active".to_string(),
+                    start_date: NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                    end_date: None,
+                    created_at: chrono::Utc::now(),
+                    updated_at: chrono::Utc::now(),
+                }))
+            });
+
         let mut builder = MockWorkerDepsBuilder::new();
         builder.workspace_repo = workspace_repo;
         builder.contract_repo = contract_repo;
         builder.employee_repo = emp_repo;
+        builder.employment_repo = employment_repo;
         builder.user_repo = user_repo;
 
         let deps = builder.build();

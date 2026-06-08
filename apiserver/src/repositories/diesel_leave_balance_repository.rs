@@ -52,9 +52,9 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
                          WHERE EXTRACT(DOW FROM d) NOT IN (0, 6))
                     )::INT as used_days
                 FROM leave_requests lr
-                JOIN employees e_usage ON lr.employee_id = e_usage.id
-                WHERE lr.employee_id = $1
-                  AND e_usage.workspace_id = $3
+                JOIN employments emp_usage ON lr.employment_id = emp_usage.id
+                WHERE emp_usage.employee_id = $1
+                  AND emp_usage.workspace_id = $3
                   AND lr.status IN ('approved', 'pre_approved')
                   AND EXTRACT(YEAR FROM lr.start_date)::INT = $2
                 GROUP BY lr.leave_type_id
@@ -74,9 +74,9 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
                 )::FLOAT8 as "remaining"
             FROM leave_balances lb
             JOIN leave_types lt ON lb.leave_type_id = lt.id
-            JOIN employees e ON lb.employee_id = e.id
+            JOIN employments emp ON lb.employment_id = emp.id
             LEFT JOIN leave_usage lu ON lb.leave_type_id = lu.leave_type_id
-            WHERE lb.employee_id = $1 AND lb.year = $2 AND e.workspace_id = $3
+            WHERE emp.employee_id = $1 AND lb.year = $2 AND emp.workspace_id = $3
         "#;
 
         let balances = diesel::sql_query(sql)
@@ -114,11 +114,12 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
             SELECT COUNT(*)
             FROM employees e
             CROSS JOIN leave_types lt
-            LEFT JOIN leave_balances lb ON e.id = lb.employee_id AND lt.id = lb.leave_type_id AND lb.year = $2
+            LEFT JOIN employments emp ON e.id = emp.employee_id AND emp.workspace_id = $1 AND emp.deleted_at IS NULL
+            LEFT JOIN leave_balances lb ON emp.id = lb.employment_id AND lt.id = lb.leave_type_id AND lb.year = $2
             WHERE e.workspace_id = $1 AND e.is_active = TRUE AND lt.workspace_id = $1
               AND ($3 = '%%' OR e.full_name ILIKE $3 OR e.employee_id_number ILIKE $3 OR lt.name ILIKE $3 OR lt.code ILIKE $3)
               AND (
-                lb.employee_id IS NOT NULL
+                lb.employment_id IS NOT NULL
                 OR EXISTS (
                   SELECT 1 FROM leave_policy_assignments a
                   JOIN leave_policy_definitions d ON a.policy_id = d.id
@@ -150,7 +151,7 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
         let sql = r"
             WITH leave_usage AS (
                 SELECT
-                    lr.employee_id,
+                    emp_usage.employee_id,
                     lr.leave_type_id,
                     SUM(
                         (SELECT COUNT(*)
@@ -158,9 +159,10 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
                          WHERE EXTRACT(DOW FROM d) NOT IN (0, 6))
                     )::INT as used_days
                 FROM leave_requests lr
+                JOIN employments emp_usage ON lr.employment_id = emp_usage.id
                 WHERE lr.status IN ('approved', 'pre_approved')
                   AND EXTRACT(YEAR FROM lr.start_date)::INT = $2
-                GROUP BY lr.employee_id, lr.leave_type_id
+                GROUP BY emp_usage.employee_id, lr.leave_type_id
             ),
             best_policy AS (
                 SELECT DISTINCT ON (lt_id, emp_id)
@@ -212,12 +214,13 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
                 bp.assignment_type as assignment_type
             FROM employees e
             CROSS JOIN leave_types lt
-            LEFT JOIN leave_balances lb ON e.id = lb.employee_id AND lt.id = lb.leave_type_id AND lb.year = $2
+            LEFT JOIN employments emp ON e.id = emp.employee_id AND emp.workspace_id = $1 AND emp.deleted_at IS NULL
+            LEFT JOIN leave_balances lb ON emp.id = lb.employment_id AND lt.id = lb.leave_type_id AND lb.year = $2
             LEFT JOIN leave_usage lu ON e.id = lu.employee_id AND lt.id = lu.leave_type_id
             LEFT JOIN best_policy bp ON e.id = bp.emp_id AND lt.id = bp.lt_id
             WHERE e.workspace_id = $1 AND e.is_active = TRUE AND lt.workspace_id = $1
               AND ($3 = '%%' OR e.full_name ILIKE $3 OR e.employee_id_number ILIKE $3 OR lt.name ILIKE $3 OR lt.code ILIKE $3)
-              AND (lb.employee_id IS NOT NULL OR bp.emp_id IS NOT NULL)
+              AND (lb.employment_id IS NOT NULL OR bp.emp_id IS NOT NULL)
             ORDER BY e.full_name ASC, lt.name ASC
             LIMIT $4 OFFSET $5
         ";
@@ -249,24 +252,24 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        // Check if employee exists and belongs to the workspace of this tenant
-        let employee_exists = employees::table
-            .filter(employees::id.eq(balance.employee_id()))
-            .filter(employees::workspace_id.eq(workspace_id))
-            .filter(employees::deleted_at.is_null())
-            .select(employees::id)
+        // Check if employment exists and belongs to the workspace of this tenant
+        let employment_exists = employments::table
+            .filter(employments::id.eq(balance.employment_id()))
+            .filter(employments::workspace_id.eq(workspace_id))
+            .filter(employments::deleted_at.is_null())
+            .select(employments::id)
             .first::<Uuid>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db check employee: {e}")))?;
+            .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
 
-        if employee_exists.is_none() {
-            return Err(AppError::NotFound("error.employee_not_found".to_string()));
+        if employment_exists.is_none() {
+            return Err(AppError::NotFound("error.employment_not_found".to_string()));
         }
 
         let entity = LeaveBalanceEntity {
             id: balance.id(),
-            employee_id: balance.employee_id(),
+            employment_id: balance.employment_id(),
             year: balance.year(),
             entitlement: balance.entitlement(),
             carried_over: balance.carried_over(),
@@ -280,7 +283,7 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
         diesel::insert_into(leave_balances::table)
             .values(&entity)
             .on_conflict((
-                leave_balances::employee_id,
+                leave_balances::employment_id,
                 leave_balances::leave_type_id,
                 leave_balances::year,
             ))
@@ -321,20 +324,21 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
 
         conn.transaction::<_, AppError, _>(|conn| {
             Box::pin(async move {
-                // Check if employee exists and belongs to the workspace of this tenant
-                let employee_exists = employees::table
-                    .filter(employees::id.eq(employee_id))
-                    .filter(employees::workspace_id.eq(workspace_id))
-                    .filter(employees::deleted_at.is_null())
-                    .select(employees::id)
+                // Check if active employment exists and belongs to the workspace of this tenant
+                let active_employment = employments::table
+                    .filter(employments::workspace_id.eq(workspace_id))
+                    .filter(employments::employee_id.eq(employee_id))
+                    .filter(employments::deleted_at.is_null())
+                    .order(employments::start_date.desc())
+                    .select(employments::id)
                     .first::<Uuid>(&mut *conn)
                     .await
                     .optional()
-                    .map_err(|e| AppError::Internal(format!("db check employee: {e}")))?;
+                    .map_err(|e| AppError::Internal(format!("db check active employment: {e}")))?;
 
-                if employee_exists.is_none() {
-                    return Err(AppError::NotFound("error.employee_not_found".to_string()));
-                }
+                let Some(active_emp_id) = active_employment else {
+                    return Err(AppError::NotFound("error.employment_not_found".to_string()));
+                };
 
                 // 1. Log adjustment
                 diesel::insert_into(leave_accrual_logs::table)
@@ -353,7 +357,7 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
                 diesel::insert_into(leave_balances::table)
                     .values((
                         leave_balances::id.eq(Uuid::new_v4()),
-                        leave_balances::employee_id.eq(employee_id),
+                        leave_balances::employment_id.eq(active_emp_id),
                         leave_balances::leave_type_id.eq(leave_type_id),
                         leave_balances::year.eq(year),
                         leave_balances::entitlement.eq(0),
@@ -361,7 +365,7 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
                         leave_balances::carried_over.eq(0),
                     ))
                     .on_conflict((
-                        leave_balances::employee_id,
+                        leave_balances::employment_id,
                         leave_balances::leave_type_id,
                         leave_balances::year,
                     ))

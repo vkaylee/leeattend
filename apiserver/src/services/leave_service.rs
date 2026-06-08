@@ -20,6 +20,7 @@ pub struct LeaveService {
     leave_balance_repo: Arc<dyn LeaveBalanceRepository>,
     leave_request_repo: Arc<dyn LeaveRequestRepository>,
     employee_repo: Arc<dyn EmployeeRepository>,
+    employment_repo: Arc<dyn crate::repositories::EmploymentRepository>,
     #[allow(dead_code)]
     roster_repo: Arc<dyn RosterRepository>,
     leave_accrual_log_repo:
@@ -31,6 +32,7 @@ impl LeaveService {
         leave_balance_repo: Arc<dyn LeaveBalanceRepository>,
         leave_request_repo: Arc<dyn LeaveRequestRepository>,
         employee_repo: Arc<dyn EmployeeRepository>,
+        employment_repo: Arc<dyn crate::repositories::EmploymentRepository>,
         roster_repo: Arc<dyn RosterRepository>,
         leave_accrual_log_repo: Arc<
             dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
@@ -40,6 +42,7 @@ impl LeaveService {
             leave_balance_repo,
             leave_request_repo,
             employee_repo,
+            employment_repo,
             roster_repo,
             leave_accrual_log_repo,
         }
@@ -219,15 +222,15 @@ impl LeaveService {
         req: SubmitLeaveRequest,
         auto_approve: bool,
     ) -> Result<LeaveRequest, AppError> {
-        // Verify employee belongs to workspace
+        // Verify employment belongs to workspace
         let _ = self
-            .employee_repo
-            .get_employee_by_id(
-                req.employee_id,
+            .employment_repo
+            .get_employment_by_id(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                req.employment_id,
             )
             .await?
-            .ok_or(AppError::NotFound("Not found".into()))?;
+            .ok_or(AppError::NotFound("Employment not found".into()))?;
 
         // Validate leave_type_id exists for this workspace
         if !self
@@ -280,7 +283,7 @@ impl LeaveService {
 
         let request = LeaveRequest::new(
             Uuid::new_v4(),
-            req.employee_id,
+            req.employment_id,
             req.leave_type_id,
             req.start_date,
             req.end_date,
@@ -344,12 +347,12 @@ impl LeaveService {
             .await?
             .ok_or(AppError::NotFound("Not found".into()))?;
 
-        // Verify employee of this request belongs to the workspace
+        // Verify employment of this request belongs to the workspace
         let _ = self
-            .employee_repo
-            .get_employee_by_id(
-                request.employee_id(),
+            .employment_repo
+            .get_employment_by_id(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                request.employment_id(),
             )
             .await?
             .ok_or(AppError::Forbidden("Forbidden".into()))?;
@@ -868,6 +871,7 @@ mod tests {
         });
         use crate::repositories::employee::MockEmployeeRepository;
         let mut mock_emp_repo = MockEmployeeRepository::new();
+        let has_emp = mock_emp.is_some();
         if let Some(emp) = mock_emp {
             mock_emp_repo
                 .expect_get_employee_by_id()
@@ -885,11 +889,38 @@ mod tests {
             history_logs: Mutex::new(vec![]),
         });
 
+        let mut mock_employment_repo =
+            crate::repositories::employment_repository::MockEmploymentRepository::new();
+        if has_emp {
+            mock_employment_repo
+                .expect_get_employment_by_id()
+                .returning(|_, _| {
+                    Ok(Some(crate::models::employment::Employment {
+                        id: Uuid::new_v4(),
+                        workspace_id: Uuid::new_v4(),
+                        employee_id: Uuid::new_v4(),
+                        employer_id: Uuid::new_v4(),
+                        primary_location_id: None,
+                        department_id: None,
+                        status: "active".to_string(),
+                        start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                        end_date: None,
+                        created_at: chrono::Utc::now(),
+                        updated_at: chrono::Utc::now(),
+                    }))
+                });
+        } else {
+            mock_employment_repo
+                .expect_get_employment_by_id()
+                .returning(|_, _| Ok(None));
+        }
+
         (
             LeaveService::new(
                 bal_repo.clone(),
                 req_repo.clone(),
                 emp_repo,
+                Arc::new(mock_employment_repo),
                 ros_repo.clone(),
                 log_repo.clone(),
             ),
@@ -914,8 +945,6 @@ mod tests {
             true,
             Utc::now(),
             Utc::now(),
-            None,
-            uuid::Uuid::new_v4(),
             None,
         )
     }
@@ -992,7 +1021,7 @@ mod tests {
     async fn test_submit_leave_request_employee_not_found() {
         let (svc, _, _, _, _) = build_service(None, true);
         let req = crate::models::SubmitLeaveRequest {
-            employee_id: Uuid::new_v4(),
+            employment_id: Uuid::new_v4(),
             leave_type_id: Uuid::new_v4(),
             start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             end_date: NaiveDate::from_ymd_opt(2024, 1, 2).unwrap(),
@@ -1012,7 +1041,7 @@ mod tests {
     async fn test_submit_leave_request_invalid_leave_type() {
         let (svc, _, _, _, _) = build_service(Some(dummy_employee()), false); // leave_type exists = false
         let req = crate::models::SubmitLeaveRequest {
-            employee_id: Uuid::new_v4(),
+            employment_id: Uuid::new_v4(),
             leave_type_id: Uuid::new_v4(),
             start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             end_date: NaiveDate::from_ymd_opt(2024, 1, 2).unwrap(),
@@ -1032,7 +1061,7 @@ mod tests {
     async fn test_submit_leave_request_success() {
         let (svc, _, _, _, _) = build_service(Some(dummy_employee()), true);
         let req = crate::models::SubmitLeaveRequest {
-            employee_id: Uuid::new_v4(),
+            employment_id: Uuid::new_v4(),
             leave_type_id: Uuid::new_v4(),
             start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             end_date: NaiveDate::from_ymd_opt(2024, 1, 2).unwrap(),
@@ -1051,7 +1080,7 @@ mod tests {
     async fn test_submit_leave_request_half_day_validation() {
         let (svc, _, _, _, _) = build_service(Some(dummy_employee()), true);
         let req = crate::models::SubmitLeaveRequest {
-            employee_id: Uuid::new_v4(),
+            employment_id: Uuid::new_v4(),
             leave_type_id: Uuid::new_v4(),
             start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             end_date: NaiveDate::from_ymd_opt(2024, 1, 2).unwrap(),
@@ -1073,7 +1102,7 @@ mod tests {
 
         // Test missing time
         let mut req = crate::models::SubmitLeaveRequest {
-            employee_id: Uuid::new_v4(),
+            employment_id: Uuid::new_v4(),
             leave_type_id: Uuid::new_v4(),
             start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             end_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
@@ -1284,7 +1313,7 @@ mod tests {
         let end_date = NaiveDate::from_ymd_opt(2024, 1, 3).unwrap();
 
         let req = crate::models::SubmitLeaveRequest {
-            employee_id: Uuid::new_v4(),
+            employment_id: Uuid::new_v4(),
             leave_type_id: Uuid::new_v4(),
             start_date,
             end_date,
@@ -1316,7 +1345,7 @@ mod tests {
         let end_date = NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
 
         let req = crate::models::SubmitLeaveRequest {
-            employee_id: Uuid::new_v4(),
+            employment_id: Uuid::new_v4(),
             leave_type_id: Uuid::new_v4(),
             start_date,
             end_date,

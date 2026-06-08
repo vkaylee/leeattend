@@ -385,19 +385,25 @@ class Orchestrator:
             run_unit = False
             run_e2e = False
 
+        if run_lint:
+            self.run_phase("Linting", mode, args)
+
         if run_unit:
             self.run_phase("Unit Tests", mode, args)
 
         if run_e2e:
             self.run_phase("Integration Tests", mode, args)
 
-        if run_lint:
-            self.run_phase("Linting", mode, args)
-
         if args.coverage:
             self.run_phase("Coverage", mode, args)
 
         self.print_test_summary(target or "all")
+
+        is_single_phase = getattr(args, "lint_only", False) or getattr(args, "unit_only", False) or getattr(args, "e2e_only", False)
+        if is_single_phase:
+            target_name = target or "all"
+            log_success(f"\n💡 Tip: Isolated phase completed successfully! Run the full suite to verify everything:")
+            log_success(f"   ./test.sh {target_name}\n")
 
     def run_phase(self, phase_name: str, mode: str, args: argparse.Namespace) -> None:
         if self.dry_run:
@@ -441,6 +447,8 @@ class Orchestrator:
             "Coverage": lambda: leeattend_run_coverage(
                 getattr(args, "component", "") or "", mode, getattr(args, "unit_only", False)
             ),
+            "Database Setup": lambda: self.handle_db_setup_phase(),
+            "Prebuild": lambda: self.handle_prebuild_phase(),
         }
 
         func = func_map.get(phase_name)
@@ -455,6 +463,15 @@ class Orchestrator:
             lifecycle_down("all")
 
         if res is False:
+            is_single_phase = getattr(args, "lint_only", False) or getattr(args, "unit_only", False) or getattr(args, "e2e_only", False)
+            target = getattr(args, "target", "api")
+            if not is_single_phase:
+                if phase_name == "Linting":
+                    log_warn(f"\n💡 Tip: To quickly verify only linting/formatting fixes, run:\n   ./test.sh {target} --lint-only\n")
+                elif phase_name == "Unit Tests":
+                    log_warn(f"\n💡 Tip: To focus on unit tests and skip linting/e2e, run:\n   ./test.sh {target} --unit-only\n")
+                elif phase_name == "Integration Tests":
+                    log_warn(f"\n💡 Tip: To focus on integration/E2E tests only, run:\n   ./test.sh {target} --e2e-only\n")
             sys.exit(1)
 
     def handle_manage(self, args: argparse.Namespace) -> None:
@@ -916,6 +933,109 @@ class Orchestrator:
             log_success(msg)
         else:
             log_success(f"All selected tests for [{target}] passed successfully!")
+
+    def handle_db_setup_phase(self) -> bool:
+        log_info("Bringing up database and apiserver containers...")
+        _lifecycle_up("int-api")
+        _lifecycle_up("infra-db")
+        _lifecycle_up("infra-redis")
+
+        project_name = self.env_vars.get("COMPOSE_PROJECT_NAME", "leeattend-test")
+        db_container = f"{project_name}_db_system_1"
+
+        # Wait for database container to be ready
+        log_info("Waiting for database container to be ready...")
+        db_ready = False
+        for _ in range(60):
+            res = subprocess.run(
+                [self.engine, "exec", "-i", db_container, "pg_isready", "-U", "test_user", "-d", "test_database"],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False
+            )
+            if res.returncode == 0:
+                db_ready = True
+                break
+            time.sleep(1)
+
+        if not db_ready:
+            log_error("❌ Database container failed to become ready in time.")
+            return False
+
+        # Drop zombie test databases (from nextest crashed runs)
+        log_info("Cleaning up old test databases...")
+        cleanup_sql = "SELECT 'DROP DATABASE IF EXISTS \"' || datname || '\";' FROM pg_database WHERE datname LIKE 'test_db_%';"
+        cleanup_res = subprocess.run(
+            [self.engine, "exec", "-i", db_container, "psql", "-U", "test_user", "-d", "test_database", "-t", "-c", cleanup_sql],
+            capture_output=True, text=True, check=False
+        )
+        if cleanup_res.returncode == 0 and cleanup_res.stdout.strip():
+            drop_commands = cleanup_res.stdout.strip()
+            subprocess.run(
+                [self.engine, "exec", "-i", db_container, "psql", "-U", "test_user", "-d", "test_database"],
+                input=drop_commands, text=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False
+            )
+
+        # Create template database
+        log_info("Creating template database...")
+        create_sql = "DROP DATABASE IF EXISTS leeattend_test_template; CREATE DATABASE leeattend_test_template;"
+        subprocess.run(
+            [self.engine, "exec", "-i", db_container, "psql", "-U", "test_user", "-d", "test_database", "-c", create_sql],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False
+        )
+
+        # Run migrations on main database
+        log_info("Running migrations on main database...")
+        main_db_url = "postgres://test_user:test_password@db_system:5432/test_database?sslmode=disable"
+        main_cmd = self.compose_engine + [
+            "-p", project_name,
+            "-f", str(PROJECT_ROOT / ".compose" / "docker-compose.test.yml"),
+            "run", "-T", "--rm",
+            "-e", f"DATABASE_URL={main_db_url}",
+            "--entrypoint", "cargo",
+            "apiserver",
+            "test", "--test", "setup_migrations", "--", "run_migrations", "--ignored", "--exact"
+        ]
+        self.execute_safe(main_cmd)
+
+        # Run migrations on template database
+        log_info("Running migrations on template database...")
+        template_db_url = "postgres://test_user:test_password@db_system:5432/leeattend_test_template?sslmode=disable"
+        template_cmd = self.compose_engine + [
+            "-p", project_name,
+            "-f", str(PROJECT_ROOT / ".compose" / "docker-compose.test.yml"),
+            "run", "-T", "--rm",
+            "-e", f"DATABASE_URL={template_db_url}",
+            "--entrypoint", "cargo",
+            "apiserver",
+            "test", "--test", "setup_migrations", "--", "run_migrations", "--ignored", "--exact"
+        ]
+        self.execute_safe(template_cmd)
+
+        # Revoke connect on template to prevent hangs
+        revoke_sql = "REVOKE CONNECT ON DATABASE leeattend_test_template FROM public;"
+        terminate_sql = "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'leeattend_test_template' AND pid <> pg_backend_pid();"
+        subprocess.run(
+            [self.engine, "exec", "-i", db_container, "psql", "-U", "test_user", "-d", "test_database", "-c", revoke_sql],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False
+        )
+        subprocess.run(
+            [self.engine, "exec", "-i", db_container, "psql", "-U", "test_user", "-d", "test_database", "-c", terminate_sql],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False
+        )
+
+        log_success("✅ Database Setup complete.")
+        return True
+
+    def handle_prebuild_phase(self) -> bool:
+        log_info("Building test Docker images...")
+        project_name = self.env_vars.get("COMPOSE_PROJECT_NAME", "leeattend-test")
+        build_cmd = self.compose_engine + [
+            "-p", project_name,
+            "-f", str(PROJECT_ROOT / ".compose" / "docker-compose.test.yml"),
+            "build"
+        ]
+        self.execute_safe(build_cmd)
+        log_success("✅ Prebuild complete.")
+        return True
 
 
 if __name__ == "__main__":  # pragma: no cover

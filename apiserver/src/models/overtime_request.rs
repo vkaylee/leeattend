@@ -164,13 +164,13 @@ impl OvertimeRequest {
 pub struct OvertimeRequestEmployee {
     id: Uuid,
     overtime_request_id: Uuid,
-    employee_id: Uuid,
     consent_status: String,
     consent_at: Option<DateTime<Utc>>,
     decline_reason: Option<String>,
     actual_ot_minutes: Option<i32>,
     matched_summary_id: Option<Uuid>,
     created_at: DateTime<Utc>,
+    employment_id: Uuid,
 }
 
 impl OvertimeRequestEmployee {
@@ -178,7 +178,7 @@ impl OvertimeRequestEmployee {
     pub fn new(
         id: Uuid,
         overtime_request_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         consent_status: String,
         consent_at: Option<DateTime<Utc>>,
         decline_reason: Option<String>,
@@ -189,13 +189,13 @@ impl OvertimeRequestEmployee {
         Self {
             id,
             overtime_request_id,
-            employee_id,
             consent_status,
             consent_at,
             decline_reason,
             actual_ot_minutes,
             matched_summary_id,
             created_at,
+            employment_id,
         }
     }
 
@@ -211,8 +211,8 @@ impl OvertimeRequestEmployee {
         self.overtime_request_id = val;
     }
 
-    pub fn employee_id(&self) -> Uuid {
-        self.employee_id
+    pub fn employment_id(&self) -> Uuid {
+        self.employment_id
     }
 
     pub fn consent_status(&self) -> &str {

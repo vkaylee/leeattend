@@ -297,11 +297,44 @@ impl HolidayRepository for DieselHolidayRepository {
             .tenant_transaction_conn(auth_token)
             .await?;
 
+        use crate::schema::employments;
         use bigdecimal::BigDecimal;
         use std::str::FromStr;
 
         conn.transaction(|conn| {
             Box::pin(async move {
+                // 0. Fetch all employments for these employees in bulk to map employee_id to employment_id
+                let mut emp_ids: Vec<Uuid> =
+                    logs.iter().map(|(emp_id, _, _, _, _)| *emp_id).collect();
+                emp_ids.sort();
+                emp_ids.dedup();
+
+                let mut resolved_employments = HashMap::new();
+                if !emp_ids.is_empty() {
+                    let employments_list = employments::table
+                        .filter(employments::workspace_id.eq(workspace_id))
+                        .filter(employments::employee_id.eq_any(&emp_ids))
+                        .filter(employments::deleted_at.is_null())
+                        .load::<crate::models::diesel::employment::EmploymentEntity>(&mut *conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db fetch employments: {e}")))?;
+
+                    let mut emp_groups: HashMap<
+                        Uuid,
+                        Vec<crate::models::diesel::employment::EmploymentEntity>,
+                    > = HashMap::new();
+                    for emp in employments_list {
+                        emp_groups.entry(emp.employee_id).or_default().push(emp);
+                    }
+
+                    for (emp_id, mut list) in emp_groups {
+                        list.sort_by(|a, b| b.start_date.cmp(&a.start_date));
+                        if let Some(latest) = list.as_slice().first() {
+                            resolved_employments.insert(emp_id, latest.id);
+                        }
+                    }
+                }
+
                 // 1. Bulk insert leave requests
                 if !requests.is_empty() {
                     let lr_entities: Vec<crate::models::diesel::leave::LeaveRequestEntity> =
@@ -309,7 +342,7 @@ impl HolidayRepository for DieselHolidayRepository {
                             .iter()
                             .map(|r| crate::models::diesel::leave::LeaveRequestEntity {
                                 id: r.id(),
-                                employee_id: r.employee_id(),
+                                employment_id: r.employment_id(),
                                 leave_type_id: r.leave_type_id(),
                                 start_date: r.start_date(),
                                 end_date: r.end_date(),
@@ -402,7 +435,15 @@ impl HolidayRepository for DieselHolidayRepository {
                         let amount_bd =
                             BigDecimal::from_str(&amount.to_string()).unwrap_or_default();
                         let year = date.year();
-                        let key = (*emp_id, *leave_type_id, year);
+                        let employment_id = match resolved_employments.get(emp_id) {
+                            Some(id) => *id,
+                            None => {
+                                return Err(AppError::Internal(format!(
+                                    "No employment found for employee {emp_id}"
+                                )))
+                            }
+                        };
+                        let key = (employment_id, *leave_type_id, year);
                         let entry = balance_aggregates.entry(key).or_default();
                         *entry += amount_bd;
                     }
@@ -410,10 +451,10 @@ impl HolidayRepository for DieselHolidayRepository {
                     let balance_entities: Vec<crate::models::diesel::leave::LeaveBalanceEntity> =
                         balance_aggregates
                             .into_iter()
-                            .map(|((emp_id, leave_type_id, year), amount_bd)| {
+                            .map(|((employment_id, leave_type_id, year), amount_bd)| {
                                 crate::models::diesel::leave::LeaveBalanceEntity {
                                     id: Uuid::new_v4(),
-                                    employee_id: emp_id,
+                                    employment_id,
                                     leave_type_id,
                                     year,
                                     entitlement: 0,
@@ -428,7 +469,7 @@ impl HolidayRepository for DieselHolidayRepository {
                     diesel::insert_into(crate::schema::leave_balances::table)
                         .values(&balance_entities)
                         .on_conflict((
-                            crate::schema::leave_balances::employee_id,
+                            crate::schema::leave_balances::employment_id,
                             crate::schema::leave_balances::leave_type_id,
                             crate::schema::leave_balances::year,
                         ))

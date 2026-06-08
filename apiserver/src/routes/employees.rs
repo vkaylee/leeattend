@@ -51,6 +51,18 @@ pub fn router() -> Router<Arc<AppState>> {
                 .patch(handlers::employee_contracts::update_contract)
                 .delete(handlers::employee_contracts::delete_contract),
         )
+        // Employee Employments
+        .route(
+            "/workspaces/:ws_id/employees/:employee_id/employments",
+            get(handlers::employments::list_employee_employments)
+                .post(handlers::employments::create_employment),
+        )
+        .route(
+            "/workspaces/:ws_id/employees/:employee_id/employments/:employment_id",
+            get(handlers::employments::get_employment)
+                .patch(handlers::employments::update_employment)
+                .delete(handlers::employments::delete_employment),
+        )
         // Employee Assignments (Secondment)
         .route(
             "/workspaces/:ws_id/employees/:employee_id/assignments",

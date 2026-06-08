@@ -19,6 +19,15 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
 
+    // Seed default employer so that the employee import strategy can associate a default employer with the imported employee
+    let employer_id = Uuid::new_v4();
+    crate::test_execute!(
+        &diesel_pools.api,
+        "INSERT INTO employers (id, workspace_id, name, tax_code, legal_address, created_at, updated_at) VALUES ($1, $2, 'Default Test Employer', 'DEFAULT-TAX-1', 'Default Address', NOW(), NOW())",
+        diesel::sql_types::Uuid, employer_id,
+        diesel::sql_types::Uuid, ws_id
+    );
+
     let emp_id_number = "CLAIM-001";
     let normalized_id = apiserver::utils::normalize_employee_id(emp_id_number);
     let punch_time = Utc::now();
@@ -107,13 +116,14 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
     let normalized_id = apiserver::utils::normalize_employee_id(emp_id_number);
 
     // 3. Verify employee was created
-    let employee = emp_repo
+    let employee_opt = emp_repo
         .get_employee_by_id_number(
             &normalized_id,
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
         )
-        .await?
-        .ok_or("Employee should be created")?;
+        .await?;
+
+    let employee = employee_opt.ok_or("Employee should be created")?;
 
     // 4. Verify staged log was claimed
     let pending_count_after = helpers::count_pending_staging_logs(&diesel_pools, ws_id).await?;

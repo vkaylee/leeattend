@@ -345,7 +345,7 @@ export default function PayrollTable({
       {payslips.map((slip) => {
         const isExpanded = expandedId === slip.id;
         const slipAdjustments = adjustments.filter(adj => 
-          adj.employee_id === slip.employee_id && 
+          adj.employee_id === employee?.id && 
           adj.requested_date &&
           new Date(adj.requested_date) >= new Date(slip.period_start) &&
           new Date(adj.requested_date) <= new Date(slip.period_end)

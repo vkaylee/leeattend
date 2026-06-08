@@ -2,7 +2,7 @@ use crate::errors::AppError;
 use crate::repositories::{
     department_repository::DepartmentRepository, leave_request_repository::LeaveRequestRepository,
     overtime_request_repository::OvertimeRequestRepository, ApprovalWorkflowRepository,
-    EmployeeRepository, WorkspaceConfigRepository, WorkspaceRepository,
+    EmployeeRepository, EmploymentRepository, WorkspaceConfigRepository, WorkspaceRepository,
 };
 use std::sync::Arc;
 use uuid::Uuid;
@@ -30,6 +30,7 @@ pub struct ApprovalWorkflowService {
     pub(crate) workspace_config_repo: Arc<dyn WorkspaceConfigRepository>,
     pub(crate) workspace_repo: Arc<dyn WorkspaceRepository>,
     pub(crate) employee_repo: Arc<dyn EmployeeRepository>,
+    pub(crate) employment_repo: Arc<dyn EmploymentRepository>,
     pub(crate) department_repo: Arc<dyn DepartmentRepository>,
     pub(crate) leave_request_repo: Arc<dyn LeaveRequestRepository>,
     pub(crate) overtime_request_repo: Arc<dyn OvertimeRequestRepository>,
@@ -44,6 +45,7 @@ impl ApprovalWorkflowService {
         workspace_config_repo: Arc<dyn WorkspaceConfigRepository>,
         workspace_repo: Arc<dyn WorkspaceRepository>,
         employee_repo: Arc<dyn EmployeeRepository>,
+        employment_repo: Arc<dyn EmploymentRepository>,
         department_repo: Arc<dyn DepartmentRepository>,
         leave_request_repo: Arc<dyn LeaveRequestRepository>,
         overtime_request_repo: Arc<dyn OvertimeRequestRepository>,
@@ -54,6 +56,7 @@ impl ApprovalWorkflowService {
             workspace_config_repo,
             workspace_repo,
             employee_repo,
+            employment_repo,
             department_repo,
             leave_request_repo,
             overtime_request_repo,

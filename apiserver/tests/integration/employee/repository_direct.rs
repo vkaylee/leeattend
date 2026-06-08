@@ -645,9 +645,9 @@ async fn test_get_employee_timezone_fallback() {
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
     // Update employee to use custom location
-    use apiserver::schema::employees;
-    diesel::update(employees::table.find(emp_id))
-        .set(employees::primary_location_id.eq(custom_loc_id))
+    use apiserver::schema::employments;
+    diesel::update(employments::table.filter(employments::employee_id.eq(emp_id)))
+        .set(employments::primary_location_id.eq(custom_loc_id))
         .execute(&mut *tenant_conn)
         .await
         .unwrap();
@@ -676,8 +676,8 @@ async fn test_get_employee_timezone_fallback() {
         .await
         .unwrap();
 
-    diesel::update(employees::table.find(emp_id))
-        .set(employees::primary_location_id.eq(default_tz_loc_id))
+    diesel::update(employments::table.filter(employments::employee_id.eq(emp_id)))
+        .set(employments::primary_location_id.eq(default_tz_loc_id))
         .execute(&mut *tenant_conn)
         .await
         .unwrap();
@@ -736,11 +736,21 @@ async fn test_get_employee_timezone_at_date() {
         .unwrap();
 
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &test_db.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 AND workspace_id = $2 AND status = 'active' LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id,
+        diesel::sql_types::Uuid,
+        ws_id
+    );
     let hq_id: Uuid = crate::test_query_scalar_uuid!(
         &test_db.diesel_pools.api,
-        "SELECT primary_location_id AS id FROM employees WHERE id = $1",
+        "SELECT primary_location_id AS id FROM employments WHERE employee_id = $1 AND workspace_id = $2 AND status = 'active' LIMIT 1",
         diesel::sql_types::Uuid,
-        emp_id
+        emp_id,
+        diesel::sql_types::Uuid,
+        ws_id
     );
 
     // Default primary location is HQ (UTC)
@@ -760,7 +770,7 @@ async fn test_get_employee_timezone_at_date() {
     struct NewAssig {
         id: Uuid,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         home_location_id: Uuid,
         host_location_id: Uuid,
         start_date: NaiveDate,
@@ -772,7 +782,7 @@ async fn test_get_employee_timezone_at_date() {
         .values(&NewAssig {
             id: Uuid::new_v4(),
             workspace_id: ws_id,
-            employee_id: emp_id,
+            employment_id,
             home_location_id: hq_id,
             host_location_id: tokyo_loc_id,
             start_date: NaiveDate::from_ymd_opt(2026, 6, 1).unwrap(),
@@ -857,8 +867,6 @@ async fn test_employee_core_crud() {
         Utc::now(),
         Utc::now(),
         None,
-        hq_loc_id,
-        None,
     );
     repo.create_employee(&new_emp).await.unwrap();
 
@@ -886,11 +894,9 @@ async fn test_employee_core_crud() {
         is_active: Some(false),
         hire_date: Some(NaiveDate::from_ymd_opt(2026, 2, 1).unwrap()),
         termination_date: Some(NaiveDate::from_ymd_opt(2026, 3, 1).unwrap()),
-        primary_location_id: None,
         user_id: None,
         recruitment_source_id: None,
         max_concurrent_workers: None,
-        employer_id: None,
         force_transfer: None,
     };
     let updated = repo

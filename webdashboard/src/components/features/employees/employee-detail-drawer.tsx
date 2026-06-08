@@ -26,7 +26,7 @@ import { Combobox } from "@/components/ui/combobox";
 import Sheet from "@/components/ui/sheet";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
-import { fetchWorkspaceMembers, updateEmployee } from "@/lib/api";
+import { fetchWorkspaceMembers, updateEmployee, fetchEmployeeEmployments, updateEmployeeEmployment } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useLocations } from "@/pages/settings/hooks/use-locations";
 
@@ -236,6 +236,7 @@ function LocationSection({
     updateLocationMutation,
     handleSaveLocation,
     currentLocation,
+    activeLocationId,
     t
 }: {
     employee: Employee;
@@ -247,6 +248,7 @@ function LocationSection({
     updateLocationMutation: { isPending: boolean };
     handleSaveLocation: () => void;
     currentLocation?: WorkLocation;
+    activeLocationId: string;
     t: (k: string) => string;
 }) {
     return (
@@ -255,7 +257,7 @@ function LocationSection({
                 <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 opacity-70"><MapPin className="text-rose-500" size={14} /> WORK LOCATION</span>
                 <PermissionGate permission="employees:update">
                     {!isEditingLocation ? (
-                        <Button className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:underline active:scale-90 h-auto shadow-none border-none p-0" onClick={() => { setIsEditingLocation(true); setSelectedLocationId(employee.primary_location_id); }} type="button" variant="ghost">{t("common.edit").toUpperCase()}</Button>
+                        <Button className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:underline active:scale-90 h-auto shadow-none border-none p-0" onClick={() => { setIsEditingLocation(true); setSelectedLocationId(activeLocationId); }} type="button" variant="ghost">{t("common.edit").toUpperCase()}</Button>
                     ) : (
                         <Button className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest hover:underline active:scale-90 h-auto shadow-none border-none p-0 flex items-center gap-1" disabled={updateLocationMutation.isPending} onClick={handleSaveLocation} type="button" variant="ghost"><Check size={12}/> SAVE</Button>
                     )}
@@ -333,16 +335,16 @@ function HireDatesSection({
 }
 
 function ProfileTab({
-    employee,
-    linkedUser,
     departments,
     deptHistory,
+    employee,
     locations,
     wsId,
     formatDate,
+    linkedUser,
     onEdit,
-    onTerminate,
     onRehire,
+    onTerminate,
     onTransfer,
     t
 }: {
@@ -362,30 +364,48 @@ function ProfileTab({
     const queryClient = useQueryClient();
     const toast = useToast();
     const [isEditingLocation, setIsEditingLocation] = useState(false);
-    const [selectedLocationId, setSelectedLocationId] = useState(employee.primary_location_id);
+    const [selectedLocationId, setSelectedLocationId] = useState("");
+
+    const { data: employments = [] } = useQuery({
+        queryKey: ["employee-employments", wsId, employee.id],
+        queryFn: () => fetchEmployeeEmployments(wsId, employee.id),
+        enabled: !!wsId && !!employee.id,
+    });
+    const activeEmployment = employments.find(e => e.status === "active") || employments[0];
+    const activeLocationId = activeEmployment?.primary_location_id ?? "";
+
+    useEffect(() => {
+        if (activeLocationId) {
+            setSelectedLocationId(activeLocationId);
+        }
+    }, [activeLocationId]);
 
     const updateLocationMutation = useMutation({
-        mutationFn: (locationId: string) => updateEmployee(wsId, employee.id, { primary_location_id: locationId }),
+        mutationFn: (locationId: string) => {
+            if (!activeEmployment) return Promise.reject(new Error("No active employment found"));
+            return updateEmployeeEmployment(wsId, employee.id, activeEmployment.id, { primary_location_id: locationId });
+        },
         onSuccess: () => {
+            void queryClient.invalidateQueries({ queryKey: ["employee-employments", wsId, employee.id] });
             void queryClient.invalidateQueries({ queryKey: ["employees", wsId] });
             setIsEditingLocation(false);
             toast.success(t("common.success"));
         },
         onError: () => {
             toast.error("Failed to update location");
-            setSelectedLocationId(employee.primary_location_id);
+            setSelectedLocationId(activeLocationId);
         }
     });
 
     const handleSaveLocation = () => {
-        if (selectedLocationId !== employee.primary_location_id) {
+        if (selectedLocationId !== activeLocationId) {
             updateLocationMutation.mutate(selectedLocationId);
         } else {
             setIsEditingLocation(false);
         }
     };
 
-    const currentLocation = locations?.find(l => l.id === employee.primary_location_id);
+    const currentLocation = locations?.find(l => l.id === activeLocationId);
 
     return (
         <div className="space-y-10">
@@ -414,6 +434,7 @@ function ProfileTab({
                 selectedLocationId={selectedLocationId}
                 setIsEditingLocation={setIsEditingLocation}
                 setSelectedLocationId={setSelectedLocationId}
+                activeLocationId={activeLocationId}
                 t={t}
                 updateLocationMutation={updateLocationMutation}
             />
@@ -424,13 +445,19 @@ function ProfileTab({
                 t={t}
             />
 
-            <HireDatesSection
-                employee={employee}
-                formatDate={formatDate}
-                t={t}
-            />
+            <GridWrap>
+                <HireDatesSection
+                    employee={employee}
+                    formatDate={formatDate}
+                    t={t}
+                />
+            </GridWrap>
         </div>
     );
+}
+
+function GridWrap({ children }: { children: React.ReactNode }) {
+    return <div className="w-full">{children}</div>;
 }
 
 function DrawerTabContent({

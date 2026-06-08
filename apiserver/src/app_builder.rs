@@ -57,6 +57,9 @@ impl AppState {
                 diesel_pools.clone(),
             ),
         );
+        let employment_repo: Arc<dyn crate::repositories::EmploymentRepository> = Arc::new(
+            crate::repositories::DieselEmploymentRepository::new(diesel_pools.clone()),
+        );
         let department_repo: Arc<
             dyn crate::repositories::department_repository::DepartmentRepository,
         > = Arc::new(
@@ -137,6 +140,7 @@ impl AppState {
             Arc::clone(&roster_repo),
             Arc::clone(&policy_repo),
             Arc::clone(&employee_repo),
+            Arc::clone(&employment_repo),
             Arc::clone(&workspace_repo),
             Arc::clone(&shift_repo),
             Arc::clone(&holiday_repo),
@@ -151,6 +155,7 @@ impl AppState {
                 policy_repo: Arc::clone(&policy_repo),
                 workspace_repo: Arc::clone(&workspace_repo),
                 employee_repo: Arc::clone(&employee_repo),
+                employment_repo: Arc::clone(&employment_repo),
                 holiday_repo: Arc::clone(&holiday_repo),
                 leave_request_repo: Arc::clone(&leave_request_repo),
                 daily_summary_repo: Arc::clone(&attendance_daily_summary_repo),
@@ -182,6 +187,7 @@ impl AppState {
                 policy_repo: Arc::clone(&policy_repo),
                 workspace_repo: Arc::clone(&workspace_repo),
                 employee_repo: Arc::clone(&employee_repo),
+                employment_repo: Arc::clone(&employment_repo),
                 holiday_repo: Arc::clone(&holiday_repo),
                 leave_request_repo: Arc::clone(&leave_request_repo),
                 daily_summary_repo: Arc::clone(&attendance_daily_summary_repo),
@@ -257,6 +263,7 @@ impl AppState {
             Arc::clone(&leave_balance_repo),
             Arc::clone(&leave_request_repo),
             Arc::clone(&employee_repo),
+            Arc::clone(&employment_repo),
             Arc::clone(&roster_repo),
             Arc::clone(&leave_accrual_log_repo),
         ));
@@ -289,6 +296,7 @@ impl AppState {
         let holiday_leave_service = Arc::new(
             crate::services::holiday_leave_service::HolidayLeaveService::new(
                 Arc::clone(&employee_repo),
+                Arc::clone(&employment_repo),
                 Arc::clone(&leave_balance_repo),
                 Arc::clone(&leave_request_repo),
                 Arc::clone(&roster_repo),
@@ -378,6 +386,7 @@ impl AppState {
                 workspace_config_repo.clone(),
                 workspace_repo.clone(),
                 employee_repo.clone(),
+                employment_repo.clone(),
                 department_repo.clone(),
                 leave_request_repo.clone(),
                 overtime_request_repo.clone(),
@@ -425,6 +434,7 @@ impl AppState {
                 roster_provider,
                 contract_repo: Arc::clone(&contract_repo)
                     as Arc<dyn crate::repositories::EmployeeContractRepository>,
+                employment_repo: Arc::clone(&employment_repo),
             },
         ));
         let jwt_secret = if cfg!(debug_assertions) {
@@ -570,6 +580,7 @@ impl AppState {
                 employee_service,
                 recruitment_service,
                 employee_repo,
+                employment_repo,
                 contract_repo,
                 employment_phase_repo,
             ),

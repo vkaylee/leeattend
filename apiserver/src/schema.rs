@@ -863,7 +863,6 @@ diesel::table! {
     employee_assignments (id) {
         id -> Uuid,
         workspace_id -> Uuid,
-        employee_id -> Uuid,
         home_location_id -> Uuid,
         host_location_id -> Uuid,
         start_date -> Date,
@@ -872,6 +871,7 @@ diesel::table! {
         status -> AssignmentStatus,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        employment_id -> Uuid,
     }
 }
 
@@ -883,7 +883,6 @@ diesel::table! {
     employee_contracts (id) {
         id -> Uuid,
         workspace_id -> Uuid,
-        employee_id -> Uuid,
         #[max_length = 100]
         contract_number -> Nullable<Varchar>,
         contract_type -> ContractTypeEnum,
@@ -895,7 +894,7 @@ diesel::table! {
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
         deleted_at -> Nullable<Timestamptz>,
-        employer_id -> Uuid,
+        employment_id -> Uuid,
     }
 }
 
@@ -1042,7 +1041,6 @@ diesel::table! {
         hire_date -> Date,
         termination_date -> Nullable<Date>,
         original_hire_date -> Date,
-        primary_location_id -> Uuid,
         deleted_at -> Nullable<Timestamptz>,
     }
 }
@@ -1078,6 +1076,24 @@ diesel::table! {
         display_order -> Int4,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    employments (id) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        employee_id -> Uuid,
+        employer_id -> Uuid,
+        primary_location_id -> Nullable<Uuid>,
+        department_id -> Nullable<Uuid>,
+        #[max_length = 50]
+        status -> Varchar,
+        start_date -> Date,
+        end_date -> Nullable<Date>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        deleted_at -> Nullable<Timestamptz>,
     }
 }
 
@@ -1134,7 +1150,6 @@ diesel::table! {
 diesel::table! {
     leave_balances (id) {
         id -> Uuid,
-        employee_id -> Uuid,
         year -> Int4,
         entitlement -> Int4,
         carried_over -> Int4,
@@ -1142,6 +1157,7 @@ diesel::table! {
         updated_at -> Nullable<Timestamptz>,
         accrued_amount -> Numeric,
         leave_type_id -> Uuid,
+        employment_id -> Uuid,
     }
 }
 
@@ -1179,7 +1195,6 @@ diesel::table! {
 
     leave_requests (id) {
         id -> Uuid,
-        employee_id -> Uuid,
         start_date -> Date,
         end_date -> Date,
         reason -> Nullable<Text>,
@@ -1193,6 +1208,7 @@ diesel::table! {
         duration_type -> Varchar,
         start_time -> Nullable<Time>,
         end_time -> Nullable<Time>,
+        employment_id -> Uuid,
     }
 }
 
@@ -1281,7 +1297,6 @@ diesel::table! {
     overtime_request_employees (id) {
         id -> Uuid,
         overtime_request_id -> Uuid,
-        employee_id -> Uuid,
         #[max_length = 20]
         consent_status -> Varchar,
         consent_at -> Nullable<Timestamptz>,
@@ -1289,6 +1304,7 @@ diesel::table! {
         actual_ot_minutes -> Nullable<Int4>,
         matched_summary_id -> Nullable<Uuid>,
         created_at -> Timestamptz,
+        employment_id -> Uuid,
     }
 }
 
@@ -1460,7 +1476,6 @@ diesel::table! {
 diesel::table! {
     payslips (id) {
         id -> Uuid,
-        employee_id -> Uuid,
         period_start -> Date,
         period_end -> Date,
         base_pay_amount -> Numeric,
@@ -1475,6 +1490,7 @@ diesel::table! {
         overtime_units -> Int4,
         holiday_work_premium_amount -> Numeric,
         workspace_id -> Uuid,
+        employment_id -> Uuid,
     }
 }
 
@@ -1887,10 +1903,9 @@ diesel::joinable!(authorized_agents -> workspaces (workspace_id));
 diesel::joinable!(behalf_assignments -> departments (target_department_id));
 diesel::joinable!(behalf_assignments -> employees (target_employee_id));
 diesel::joinable!(departments -> employees (manager_id));
-diesel::joinable!(employee_assignments -> employees (employee_id));
+diesel::joinable!(employee_assignments -> employments (employment_id));
 diesel::joinable!(employee_contracts -> employee_documents (document_id));
-diesel::joinable!(employee_contracts -> employees (employee_id));
-diesel::joinable!(employee_contracts -> employers (employer_id));
+diesel::joinable!(employee_contracts -> employments (employment_id));
 diesel::joinable!(employee_department_history -> departments (department_id));
 diesel::joinable!(employee_department_history -> employees (employee_id));
 diesel::joinable!(employee_documents -> employees (employee_id));
@@ -1904,17 +1919,20 @@ diesel::joinable!(employee_shifts -> employees (employee_id));
 diesel::joinable!(employee_shifts -> shifts (shift_id));
 diesel::joinable!(employee_working_patterns -> employees (employee_id));
 diesel::joinable!(employee_working_patterns -> working_patterns (pattern_id));
-diesel::joinable!(employees -> work_locations (primary_location_id));
+diesel::joinable!(employments -> departments (department_id));
+diesel::joinable!(employments -> employees (employee_id));
+diesel::joinable!(employments -> employers (employer_id));
+diesel::joinable!(employments -> work_locations (primary_location_id));
 diesel::joinable!(holidays -> leave_types (leave_type_id));
 diesel::joinable!(holidays -> work_locations (location_id));
 diesel::joinable!(leave_accrual_logs -> employees (employee_id));
 diesel::joinable!(leave_accrual_logs -> leave_policy_assignments (policy_assignment_id));
 diesel::joinable!(leave_accrual_logs -> leave_types (leave_type_id));
-diesel::joinable!(leave_balances -> employees (employee_id));
+diesel::joinable!(leave_balances -> employments (employment_id));
 diesel::joinable!(leave_balances -> leave_types (leave_type_id));
 diesel::joinable!(leave_policy_assignments -> leave_policy_definitions (policy_id));
 diesel::joinable!(leave_policy_definitions -> leave_types (leave_type_id));
-diesel::joinable!(leave_requests -> employees (employee_id));
+diesel::joinable!(leave_requests -> employments (employment_id));
 diesel::joinable!(leave_requests -> leave_types (leave_type_id));
 diesel::joinable!(member_extra_roles -> users (user_id));
 diesel::joinable!(member_extra_roles -> workspace_roles (role_id));
@@ -1922,8 +1940,7 @@ diesel::joinable!(member_extra_roles -> workspaces (workspace_id));
 diesel::joinable!(notifications -> users (user_id));
 diesel::joinable!(overtime_policy_assignments -> overtime_policy_definitions (policy_id));
 diesel::joinable!(overtime_request_employees -> attendance_daily_summaries (matched_summary_id));
-diesel::joinable!(overtime_request_employees -> employees (employee_id));
-diesel::joinable!(overtime_request_employees -> overtime_requests (overtime_request_id));
+diesel::joinable!(overtime_request_employees -> employments (employment_id));
 diesel::joinable!(overtime_requests -> approval_workflows (workflow_id));
 diesel::joinable!(overtime_requests -> departments (department_id));
 diesel::joinable!(overtime_rules -> overtime_policy_definitions (policy_id));
@@ -1935,7 +1952,7 @@ diesel::joinable!(payslip_incentives -> payslips (payslip_id));
 diesel::joinable!(payslip_rule_evaluations -> payslips (payslip_id));
 diesel::joinable!(payslip_segments -> departments (department_id));
 diesel::joinable!(payslip_segments -> payslips (payslip_id));
-diesel::joinable!(payslips -> employees (employee_id));
+diesel::joinable!(payslips -> employments (employment_id));
 diesel::joinable!(raw_attendance_logs -> employees (employee_id));
 diesel::joinable!(salary_component_base_members -> salary_base_groups (base_group_id));
 diesel::joinable!(salary_component_base_members -> salary_component_definitions (component_definition_id));
@@ -2019,6 +2036,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     employees,
     employers,
     employment_phase_definitions,
+    employments,
     feature_flags,
     holidays,
     leave_accrual_logs,

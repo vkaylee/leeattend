@@ -3,7 +3,7 @@ use crate::diesel_pool::DieselPools;
 use crate::models::diesel::work_location::WorkLocationEntity;
 use crate::models::{CreateWorkLocationRequest, UpdateWorkLocationRequest, WorkLocation};
 use crate::repositories::location_repository::LocationRepository;
-use crate::schema::{employees, work_locations};
+use crate::schema::{employees, employments, work_locations};
 use async_trait::async_trait;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
@@ -200,9 +200,11 @@ impl LocationRepository for DieselLocationRepository {
             .map_err(|e| e.to_string())?;
 
         let count = employees::table
+            .inner_join(employments::table)
             .filter(employees::workspace_id.eq(workspace_id))
-            .filter(employees::primary_location_id.eq(id))
+            .filter(employments::primary_location_id.eq(id))
             .filter(employees::is_active.eq(true))
+            .filter(employments::deleted_at.is_null())
             .count()
             .get_result::<i64>(&mut *conn)
             .await

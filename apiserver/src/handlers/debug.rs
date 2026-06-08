@@ -122,8 +122,10 @@ pub async fn clear_debug_db(
                     }
                     "payroll" => {
                         let queries = [
-                            "DELETE FROM payslip_segments WHERE payslip_id IN (SELECT id FROM payslips WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1))",
-                            "DELETE FROM payslips WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
+                            "DELETE FROM payslip_incentives WHERE payslip_id IN (SELECT id FROM payslips WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1))",
+                            "DELETE FROM payslip_rule_evaluations WHERE payslip_id IN (SELECT id FROM payslips WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1))",
+                            "DELETE FROM payslip_segments WHERE payslip_id IN (SELECT id FROM payslips WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1))",
+                            "DELETE FROM payslips WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
                         ];
                         for q in queries {
                             diesel::sql_query(q)
@@ -152,11 +154,13 @@ pub async fn clear_debug_db(
                             "DELETE FROM raw_attendance_logs WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
                             "DELETE FROM shift_rosters WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
                             "DELETE FROM employee_shifts WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
-                            "DELETE FROM payslip_segments WHERE payslip_id IN (SELECT id FROM payslips WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1))",
-                            "DELETE FROM payslips WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
+                            "DELETE FROM payslip_incentives WHERE payslip_id IN (SELECT id FROM payslips WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1))",
+                            "DELETE FROM payslip_rule_evaluations WHERE payslip_id IN (SELECT id FROM payslips WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1))",
+                            "DELETE FROM payslip_segments WHERE payslip_id IN (SELECT id FROM payslips WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1))",
+                            "DELETE FROM payslips WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
                             "DELETE FROM leave_accrual_logs WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
-                            "DELETE FROM leave_requests WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
-                            "DELETE FROM leave_balances WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
+                            "DELETE FROM leave_requests WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
+                            "DELETE FROM leave_balances WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
                             "DELETE FROM employee_salary_components WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
                             "DELETE FROM workspace_config_entries WHERE workspace_id = $1 AND scope_type = 'employee'",
                             "DELETE FROM employee_working_patterns WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
@@ -164,6 +168,9 @@ pub async fn clear_debug_db(
                             "DELETE FROM employee_documents WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
                             "DELETE FROM employee_profiles WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
                             "DELETE FROM employee_department_history WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
+                            "DELETE FROM employee_assignments WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
+                            "DELETE FROM employee_contracts WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
+                            "DELETE FROM employments WHERE workspace_id = $1",
                             "DELETE FROM employees WHERE workspace_id = $1",
                         ];
                         for q in queries {
@@ -183,18 +190,23 @@ pub async fn clear_debug_db(
                             "DELETE FROM shift_rosters WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
                             "DELETE FROM employee_shifts WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
                             "DELETE FROM employee_working_patterns WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
-                            "DELETE FROM payslip_segments WHERE payslip_id IN (SELECT id FROM payslips WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1))",
-                            "DELETE FROM payslips WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
+                            "DELETE FROM payslip_incentives WHERE payslip_id IN (SELECT id FROM payslips WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1))",
+                            "DELETE FROM payslip_rule_evaluations WHERE payslip_id IN (SELECT id FROM payslips WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1))",
+                            "DELETE FROM payslip_segments WHERE payslip_id IN (SELECT id FROM payslips WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1))",
+                            "DELETE FROM payslips WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
                             "DELETE FROM employee_salary_components WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
                             "DELETE FROM workspace_config_entries WHERE workspace_id = $1",
                             "DELETE FROM leave_accrual_logs WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
-                            "DELETE FROM leave_requests WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
-                            "DELETE FROM leave_balances WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
+                            "DELETE FROM leave_requests WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
+                            "DELETE FROM leave_balances WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
                             "DELETE FROM leave_policy_assignments WHERE workspace_id = $1",
                             "DELETE FROM employee_emergency_contacts WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
                             "DELETE FROM employee_documents WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
                             "DELETE FROM employee_profiles WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
                             "DELETE FROM employee_department_history WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
+                            "DELETE FROM employee_assignments WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
+                            "DELETE FROM employee_contracts WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
+                            "DELETE FROM employments WHERE workspace_id = $1",
                             "DELETE FROM employees WHERE workspace_id = $1",
                             "DELETE FROM assignment_rules WHERE workspace_id = $1",
                             "DELETE FROM working_patterns WHERE workspace_id = $1",
@@ -266,6 +278,33 @@ pub async fn clear_debug_db(
                         .await
                         .map_err(|_e| AppError::service_unavailable(I18nKey::ServiceUnavailable))?;
 
+                        #[derive(diesel::QueryableByName)]
+                        struct EmployerIdRow {
+                            #[diesel(sql_type = diesel::sql_types::Uuid)]
+                            id: Uuid,
+                        }
+
+                        let employer: EmployerIdRow = if let Ok(row) = diesel::sql_query(
+                            "SELECT id FROM employers WHERE workspace_id = $1 LIMIT 1"
+                        )
+                        .bind::<diesel::sql_types::Uuid, _>(ws_id)
+                        .get_result(conn)
+                        .await {
+                            row
+                        } else {
+                            let new_employer_id = crate::utils::id::new_id();
+                            diesel::sql_query(
+                                "INSERT INTO employers (id, workspace_id, name, tax_code, legal_address) \
+                                 VALUES ($1, $2, 'Seeded Employer', 'SEED-TAX-1', 'Seeded Address') \
+                                 RETURNING id"
+                            )
+                            .bind::<diesel::sql_types::Uuid, _>(new_employer_id)
+                            .bind::<diesel::sql_types::Uuid, _>(ws_id)
+                            .get_result(conn)
+                            .await
+                            .map_err(|_e| AppError::service_unavailable(I18nKey::ServiceUnavailable))?
+                        };
+
                         let employees = vec![
                             ("Alice Engineer", "EMP001", dept_eng.id),
                             ("Bob Developer", "EMP002", dept_eng.id),
@@ -277,14 +316,28 @@ pub async fn clear_debug_db(
                         for (name, code, dept_id) in employees {
                             let emp_id = crate::utils::id::new_id();
                             diesel::sql_query(
-                                "INSERT INTO employees (id, workspace_id, full_name, employee_id_number, original_hire_date, hire_date, is_active, primary_location_id) \
-                                 VALUES ($1, $2, $3, $4, CURRENT_DATE, CURRENT_DATE, true, $5)"
+                                "INSERT INTO employees (id, workspace_id, full_name, employee_id_number, original_hire_date, hire_date, is_active) \
+                                 VALUES ($1, $2, $3, $4, CURRENT_DATE, CURRENT_DATE, true)"
                             )
                             .bind::<diesel::sql_types::Uuid, _>(emp_id)
                             .bind::<diesel::sql_types::Uuid, _>(ws_id)
                             .bind::<diesel::sql_types::Text, _>(name)
                             .bind::<diesel::sql_types::Text, _>(code)
-                            .bind::<diesel::sql_types::Uuid, _>(loc.id)
+                            .execute(conn)
+                            .await
+                            .map_err(|_e| AppError::service_unavailable(I18nKey::ServiceUnavailable))?;
+
+                            let employment_id = crate::utils::id::new_id();
+                            diesel::sql_query(
+                                "INSERT INTO employments (id, workspace_id, employee_id, employer_id, primary_location_id, department_id, status, start_date) \
+                                 VALUES ($1, $2, $3, $4, $5, $6, 'active', CURRENT_DATE)"
+                            )
+                            .bind::<diesel::sql_types::Uuid, _>(employment_id)
+                            .bind::<diesel::sql_types::Uuid, _>(ws_id)
+                            .bind::<diesel::sql_types::Uuid, _>(emp_id)
+                            .bind::<diesel::sql_types::Uuid, _>(employer.id)
+                            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(Some(loc.id))
+                            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(Some(dept_id))
                             .execute(conn)
                             .await
                             .map_err(|_e| AppError::service_unavailable(I18nKey::ServiceUnavailable))?;

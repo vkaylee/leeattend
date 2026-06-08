@@ -34,16 +34,17 @@ async fn test_payroll_holiday_work_with_multiplier() {
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = crate::common::factory::TestFactory::new(pool.clone());
 
+    let today = Utc::now().date_naive();
+    let first_of_month = NaiveDate::from_ymd_opt(today.year(), today.month(), 1).unwrap();
+
     let user_id = factory.user().create().await;
     let workspace_id = factory.workspace().create_with_owner(user_id).await;
     let emp = factory
         .employee()
         .with_workspace(workspace_id)
+        .with_hire_date(first_of_month)
         .create()
         .await;
-
-    let today = Utc::now().date_naive();
-    let first_of_month = NaiveDate::from_ymd_opt(today.year(), today.month(), 1).unwrap();
 
     // Assign shift 09:00-18:00
     factory
@@ -157,6 +158,9 @@ async fn test_payroll_holiday_work_with_multiplier() {
                 employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
                     diesel_pools.clone(),
                 )),
+                employment_repo: Arc::new(
+                    apiserver::repositories::DieselEmploymentRepository::new(diesel_pools.clone()),
+                ),
                 overtime_policy_repo: Arc::new(
                     apiserver::repositories::DieselOvertimePolicyRepository::new(
                         diesel_pools.clone(),
@@ -221,16 +225,17 @@ async fn test_payroll_holiday_work_no_credit() {
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = crate::common::factory::TestFactory::new(pool.clone());
 
+    let today = Utc::now().date_naive();
+    let first_of_month = NaiveDate::from_ymd_opt(today.year(), today.month(), 1).unwrap();
+
     let user_id = factory.user().create().await;
     let workspace_id = factory.workspace().create_with_owner(user_id).await;
     let emp = factory
         .employee()
         .with_workspace(workspace_id)
+        .with_hire_date(first_of_month)
         .create()
         .await;
-
-    let today = Utc::now().date_naive();
-    let first_of_month = NaiveDate::from_ymd_opt(today.year(), today.month(), 1).unwrap();
 
     factory
         .shift()
@@ -340,6 +345,9 @@ async fn test_payroll_holiday_work_no_credit() {
                 employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
                     diesel_pools.clone(),
                 )),
+                employment_repo: Arc::new(
+                    apiserver::repositories::DieselEmploymentRepository::new(diesel_pools.clone()),
+                ),
                 overtime_policy_repo: Arc::new(
                     apiserver::repositories::DieselOvertimePolicyRepository::new(
                         diesel_pools.clone(),
@@ -391,16 +399,17 @@ async fn test_payroll_holiday_work_unpaid_no_premium() {
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let factory = crate::common::factory::TestFactory::new(pool.clone());
 
+    let today = Utc::now().date_naive();
+    let first_of_month = NaiveDate::from_ymd_opt(today.year(), today.month(), 1).unwrap();
+
     let user_id = factory.user().create().await;
     let workspace_id = factory.workspace().create_with_owner(user_id).await;
     let emp = factory
         .employee()
         .with_workspace(workspace_id)
+        .with_hire_date(first_of_month)
         .create()
         .await;
-
-    let today = Utc::now().date_naive();
-    let first_of_month = NaiveDate::from_ymd_opt(today.year(), today.month(), 1).unwrap();
 
     factory
         .shift()
@@ -510,6 +519,9 @@ async fn test_payroll_holiday_work_unpaid_no_premium() {
                 employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
                     diesel_pools.clone(),
                 )),
+                employment_repo: Arc::new(
+                    apiserver::repositories::DieselEmploymentRepository::new(diesel_pools.clone()),
+                ),
                 overtime_policy_repo: Arc::new(
                     apiserver::repositories::DieselOvertimePolicyRepository::new(
                         diesel_pools.clone(),
@@ -593,13 +605,20 @@ async fn test_leave_reversal_full_shift() {
         workspace_id
     );
 
+    let emp_employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp
+    );
+
     // System-generated leave (requested_by_user_id IS NULL)
     let leave_id = Uuid::new_v4();
     crate::test_execute!(&pool.api,
-        "INSERT INTO leave_requests (id, employee_id, leave_type_id, start_date, end_date, status, requested_by_user_id)
+        "INSERT INTO leave_requests (id, employment_id, leave_type_id, start_date, end_date, status, requested_by_user_id)
          VALUES ($1, $2, $3, $4, $4, 'approved'::leave_status_type, NULL)",
         diesel::sql_types::Uuid, leave_id,
-        diesel::sql_types::Uuid, emp,
+        diesel::sql_types::Uuid, emp_employment_id,
         diesel::sql_types::Uuid, vacation_id,
         diesel::sql_types::Date, today
     );
@@ -608,7 +627,8 @@ async fn test_leave_reversal_full_shift() {
     let found: Option<Uuid> = crate::test_query_scalar_uuid_optional!(
         &pool.api,
         r"SELECT lr.id FROM leave_requests lr
-           WHERE lr.employee_id = $1
+           JOIN employments emp ON lr.employment_id = emp.id
+           WHERE emp.employee_id = $1
              AND lr.status = 'approved'::leave_status_type
              AND lr.start_date <= $2 AND lr.end_date >= $2
              AND lr.requested_by_user_id IS NULL",
@@ -689,12 +709,19 @@ async fn test_leave_kept_partial_work() {
         workspace_id
     );
 
+    let emp_employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp
+    );
+
     let leave_id = Uuid::new_v4();
     crate::test_execute!(&pool.api,
-        "INSERT INTO leave_requests (id, employee_id, leave_type_id, start_date, end_date, status, requested_by_user_id)
+        "INSERT INTO leave_requests (id, employment_id, leave_type_id, start_date, end_date, status, requested_by_user_id)
          VALUES ($1, $2, $3, $4, $4, 'approved', NULL)",
         diesel::sql_types::Uuid, leave_id,
-        diesel::sql_types::Uuid, emp,
+        diesel::sql_types::Uuid, emp_employment_id,
         diesel::sql_types::Uuid, vacation_id,
         diesel::sql_types::Date, today
     );
@@ -733,6 +760,9 @@ async fn test_leave_kept_partial_work() {
             ),
             employee_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
+            ),
+            employment_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselEmploymentRepository::new(diesel_pools.clone()),
             ),
             holiday_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselHolidayRepository::new(diesel_pools.clone()),
@@ -798,24 +828,31 @@ async fn test_leave_reversal_custom_threshold() {
         workspace_id
     );
 
+    let emp_employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp
+    );
+
     // Create system leave (NULL user) and user leave (non-NULL user)
     let sys_leave = Uuid::new_v4();
     let user_leave = Uuid::new_v4();
 
     crate::test_execute!(&pool.api,
-        "INSERT INTO leave_requests (id, employee_id, leave_type_id, start_date, end_date, status, requested_by_user_id)
+        "INSERT INTO leave_requests (id, employment_id, leave_type_id, start_date, end_date, status, requested_by_user_id)
          VALUES ($1, $2, $3, $4, $4, 'approved'::leave_status_type, NULL)",
         diesel::sql_types::Uuid, sys_leave,
-        diesel::sql_types::Uuid, emp,
+        diesel::sql_types::Uuid, emp_employment_id,
         diesel::sql_types::Uuid, vacation_id,
         diesel::sql_types::Date, today
     );
 
     crate::test_execute!(&pool.api,
-        "INSERT INTO leave_requests (id, employee_id, leave_type_id, start_date, end_date, status, requested_by_user_id)
+        "INSERT INTO leave_requests (id, employment_id, leave_type_id, start_date, end_date, status, requested_by_user_id)
          VALUES ($1, $2, $3, $4, $4, 'approved'::leave_status_type, $5)",
         diesel::sql_types::Uuid, user_leave,
-        diesel::sql_types::Uuid, emp,
+        diesel::sql_types::Uuid, emp_employment_id,
         diesel::sql_types::Uuid, vacation_id,
         diesel::sql_types::Date, today,
         diesel::sql_types::Uuid, user_id
@@ -825,7 +862,8 @@ async fn test_leave_reversal_custom_threshold() {
     let system_only_uuid: Uuid = crate::test_query_scalar_uuid!(
         &pool.api,
         r"SELECT lr.id FROM leave_requests lr
-           WHERE lr.employee_id = $1
+           JOIN employments emp ON lr.employment_id = emp.id
+           WHERE emp.employee_id = $1
              AND lr.status = 'approved'::leave_status_type
              AND lr.start_date <= $2 AND lr.end_date >= $2
              AND lr.requested_by_user_id IS NULL",
@@ -922,13 +960,20 @@ async fn test_leave_reversal_only_system() {
         workspace_id
     );
 
+    let emp_employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp
+    );
+
     // User-submitted leave (requested_by_user_id is NOT NULL)
     let leave_id = Uuid::new_v4();
     crate::test_execute!(&pool.api,
-        "INSERT INTO leave_requests (id, employee_id, leave_type_id, start_date, end_date, status, requested_by_user_id)
+        "INSERT INTO leave_requests (id, employment_id, leave_type_id, start_date, end_date, status, requested_by_user_id)
          VALUES ($1, $2, $3, $4, $4, 'approved', $5)",
         diesel::sql_types::Uuid, leave_id,
-        diesel::sql_types::Uuid, emp,
+        diesel::sql_types::Uuid, emp_employment_id,
         diesel::sql_types::Uuid, vacation_id,
         diesel::sql_types::Date, today,
         diesel::sql_types::Uuid, user_id
@@ -968,6 +1013,9 @@ async fn test_leave_reversal_only_system() {
             ),
             employee_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
+            ),
+            employment_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselEmploymentRepository::new(diesel_pools.clone()),
             ),
             holiday_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselHolidayRepository::new(diesel_pools.clone()),

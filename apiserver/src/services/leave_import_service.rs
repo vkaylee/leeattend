@@ -149,14 +149,31 @@ impl ImportStrategy for LeaveImportStrategy {
                 crate::errors::AppError::Internal(format!("Failed to load employees: {e}"))
             })?;
 
+        let employments = deps
+            .employment_repo
+            .get_active_employments_for_workspace(
+                &crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
+            )
+            .await
+            .map_err(|e| {
+                crate::errors::AppError::Internal(format!("Failed to load employments: {e}"))
+            })?;
+
+        let mut emp_to_employment = std::collections::HashMap::new();
+        for emp_ment in employments {
+            emp_to_employment.insert(emp_ment.employee_id, emp_ment.id);
+        }
+
         for emp in emps {
             tracing::info!(
                 "Loaded employee into cache: id_number = '{}'",
                 emp.employee_id_number()
             );
             if !emp.employee_id_number().is_empty() {
-                self.employees_cache
-                    .insert(emp.employee_id_number().to_uppercase(), emp.id());
+                if let Some(employment_id) = emp_to_employment.get(&emp.id()) {
+                    self.employees_cache
+                        .insert(emp.employee_id_number().to_uppercase(), *employment_id);
+                }
             }
         }
 
@@ -182,7 +199,7 @@ impl ImportStrategy for LeaveImportStrategy {
         job: &AttendanceImportJob,
         row: &Self::RowData,
     ) -> Result<Option<Uuid>, crate::errors::AppError> {
-        let employee_id = *self
+        let employment_id = *self
             .employees_cache
             .get(&row.employee_id_number.to_uppercase())
             .ok_or_else(|| {
@@ -205,7 +222,7 @@ impl ImportStrategy for LeaveImportStrategy {
             })?;
 
         let submit = SubmitLeaveRequest {
-            employee_id,
+            employment_id,
             leave_type_id,
             start_date: row.start_date,
             end_date: row.end_date,
@@ -277,6 +294,7 @@ impl LeaveImportService {
             Arc::clone(&self.deps.leave_balance_repo),
             Arc::clone(&self.deps.leave_request_repo),
             Arc::clone(&self.deps.employee_repo),
+            Arc::clone(&self.deps.employment_repo),
             Arc::clone(&self.deps.roster_repo),
             Arc::clone(&self.deps.leave_accrual_log_repo),
         );

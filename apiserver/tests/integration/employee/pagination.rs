@@ -18,41 +18,17 @@ async fn test_employee_pagination_logic() {
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
     let pool = test_db.diesel_pools.clone();
 
-    let hq_loc_id = {
-        let mut conn = pool.tenants_tx.get_connection(&ws_id).await.unwrap();
-        use apiserver::schema::work_locations::dsl::*;
-        use diesel::prelude::*;
-        use diesel_async::RunQueryDsl;
-        work_locations
-            .filter(workspace_id.eq(ws_id))
-            .filter(is_headquarters.eq(true))
-            .select(id)
-            .first::<uuid::Uuid>(&mut *conn)
-            .await
-            .unwrap()
-    };
-
     // Create 25 employees (sorted by name)
     for i in 0..25 {
-        let employee_id = Uuid::new_v4();
         let name = format!("User {i:02}");
         let id_num = format!("EMP{i:02}");
-
-        crate::test_execute!(
-            &pool.api,
-            r"INSERT INTO employees (id, workspace_id, full_name, employee_id_number, is_active, original_hire_date, hire_date, primary_location_id, created_at, updated_at)
-             VALUES ($1, $2, $3, $4, true, CURRENT_DATE, CURRENT_DATE, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-            diesel::sql_types::Uuid,
-            employee_id,
-            diesel::sql_types::Uuid,
-            ws_id,
-            diesel::sql_types::Text,
-            &name,
-            diesel::sql_types::Text,
-            &id_num,
-            diesel::sql_types::Uuid,
-            hq_loc_id
-        );
+        factory
+            .employee()
+            .with_workspace(ws_id)
+            .with_full_name(&name)
+            .with_employee_id_number(&id_num)
+            .create()
+            .await;
     }
 
     // Request Page 1, Limit 10
@@ -113,40 +89,16 @@ async fn test_employee_search_limit() {
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
     let pool = test_db.diesel_pools.clone();
 
-    let hq_loc_id = {
-        let mut conn = pool.tenants_tx.get_connection(&ws_id).await.unwrap();
-        use apiserver::schema::work_locations::dsl::*;
-        use diesel::prelude::*;
-        use diesel_async::RunQueryDsl;
-        work_locations
-            .filter(workspace_id.eq(ws_id))
-            .filter(is_headquarters.eq(true))
-            .select(id)
-            .first::<uuid::Uuid>(&mut *conn)
-            .await
-            .unwrap()
-    };
-
     for i in 0..60 {
-        let employee_id = Uuid::new_v4();
         let name = format!("SearchTest User {i:02}");
         let id_num = format!("ST{i:02}");
-
-        crate::test_execute!(
-            &pool.api,
-            r"INSERT INTO employees (id, workspace_id, full_name, employee_id_number, is_active, original_hire_date, hire_date, primary_location_id, created_at, updated_at)
-             VALUES ($1, $2, $3, $4, true, CURRENT_DATE, CURRENT_DATE, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-            diesel::sql_types::Uuid,
-            employee_id,
-            diesel::sql_types::Uuid,
-            ws_id,
-            diesel::sql_types::Text,
-            &name,
-            diesel::sql_types::Text,
-            &id_num,
-            diesel::sql_types::Uuid,
-            hq_loc_id
-        );
+        factory
+            .employee()
+            .with_workspace(ws_id)
+            .with_full_name(&name)
+            .with_employee_id_number(&id_num)
+            .create()
+            .await;
     }
 
     let response = app

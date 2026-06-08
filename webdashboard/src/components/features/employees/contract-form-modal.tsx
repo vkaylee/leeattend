@@ -18,7 +18,7 @@ import FormField from "@/components/ui/form-field";
 import { cn } from "@/lib/utils";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
-import { fetchEmploymentPhases, fetchEmployee } from "@/lib/api/employees";
+import { fetchEmploymentPhases, fetchEmployee, fetchEmployeeEmployments } from "@/lib/api/employees";
 import { useEmployeeContracts } from "@/pages/employees/hooks/use-employee-contracts";
 
 const contractSchema = z.object({
@@ -72,6 +72,12 @@ export default function ContractFormModal({
   const { createContract, updateContract } = useEmployeeContracts(wsId, employeeId);
   const { data: phases } = useQuery({ queryKey: ["employment-phases", wsId], queryFn: () => fetchEmploymentPhases(wsId), enabled: !!wsId });
   const { data: employee } = useQuery({ queryKey: ["employee", wsId, employeeId], queryFn: () => fetchEmployee(wsId, employeeId), enabled: !!wsId && !!employeeId && isOpen });
+  const { data: employments = [] } = useQuery({
+    queryKey: ["employee-employments", wsId, employeeId],
+    queryFn: () => fetchEmployeeEmployments(wsId, employeeId),
+    enabled: !!wsId && !!employeeId && isOpen,
+  });
+  const activeEmployment = employments.find(e => e.status === "active") || employments[0];
   const [overlapData, setOverlapData] = useState<CreateContractRequest | null>(null);
   const [isConfirmingOverlap, setIsConfirmingOverlap] = useState(false);
 
@@ -168,8 +174,7 @@ export default function ContractFormModal({
 
         const payload: CreateContractRequest = {
           ...data,
-          employee_id: employeeId,
-          employer_id: employee?.employer_id ?? "",
+          employment_id: activeEmployment?.id ?? "",
           end_date: payloadDate,
           assign_phase_id: data.assign_phase_id ?? undefined,
         };

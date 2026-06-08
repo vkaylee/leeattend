@@ -13,7 +13,7 @@ import { Combobox } from "@/components/ui/combobox";
 import FormField from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
-import { createEmployee, updateEmployee, fetchWorkspaceMembers, Employee, fetchEmployers, Employer } from "@/lib/api";
+import { createEmployee, updateEmployee, fetchWorkspaceMembers, Employee, fetchEmployers, Employer, fetchEmployeeEmployments, updateEmployeeEmployment } from "@/lib/api";
 import { useLocations } from "@/pages/settings/hooks/use-locations";
 
 interface EmployeeFormModalProps {
@@ -180,7 +180,6 @@ function EmployeeFormInputs({
   );
 }
 
-// eslint-disable-next-line complexity
 export default function EmployeeFormModal({
   isOpen,
   onClose,
@@ -191,25 +190,28 @@ export default function EmployeeFormModal({
 }: EmployeeFormModalProps) {
   const { t } = useTranslation();
   const { createMutation, updateMutation } = useEmployeeMutations(wsId, onClose, onSuccess);
-  const { data: locations } = useLocations(wsId);
+  const { data: locations = [] } = useLocations(wsId);
+  const { data: employers = [] } = useQuery({ queryKey: ["employers", wsId], queryFn: () => fetchEmployers(wsId), enabled: !!wsId });
 
-  const { data: employers = [] } = useQuery({
-    queryKey: ["employers", wsId],
-    queryFn: () => fetchEmployers(wsId),
-    enabled: !!wsId && isOpen,
+  const { data: employments = [] } = useQuery({
+    queryKey: ["employee-employments", wsId, editingEmployee?.id],
+    queryFn: () => fetchEmployeeEmployments(wsId, editingEmployee!.id),
+    enabled: !!wsId && !!editingEmployee?.id && isOpen,
   });
+  const activeEmployment = employments.find(e => e.status === "active") || employments[0];
+  const activeLocationId = activeEmployment?.primary_location_id ?? "";
+  const activeEmployerId = activeEmployment?.employer_id ?? "";
 
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
   const [selectedUserId, setSelectedUserId] = useState(editingEmployee?.user_id ?? "");
-  const [selectedLocationId, setSelectedLocationId] = useState(editingEmployee?.primary_location_id ?? "");
-  const [selectedEmployerId, setSelectedEmployerId] = useState(editingEmployee?.employer_id ?? "");
+  const [selectedLocationId, setSelectedLocationId] = useState("");
+  const [selectedEmployerId, setSelectedEmployerId] = useState("");
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Derived state synced from props; intentional pattern
     setSelectedUserId(editingEmployee?.user_id ?? "");
-    setSelectedLocationId(editingEmployee?.primary_location_id ?? "");
-    setSelectedEmployerId(editingEmployee?.employer_id ?? "");
-  }, [editingEmployee]);
+    setSelectedLocationId(editingEmployee ? activeLocationId : "");
+    setSelectedEmployerId(editingEmployee ? activeEmployerId : "");
+  }, [editingEmployee, activeLocationId, activeEmployerId]);
 
   useEffect(() => {
     if (isOpen && wsId) {
@@ -217,10 +219,10 @@ export default function EmployeeFormModal({
     }
   }, [isOpen, wsId]);
 
-  const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const data: Partial<Employee> = {
+    const data: any = {
       full_name: formData.get("full_name") as string,
       employee_id_number: formData.get("employee_id_number") as string,
       hire_date: formData.get("hire_date") as string,
@@ -229,14 +231,24 @@ export default function EmployeeFormModal({
     if (selectedUserId) {
       data.user_id = selectedUserId;
     }
-    if (selectedLocationId) {
-      data.primary_location_id = selectedLocationId;
-    }
-    data.employer_id = selectedEmployerId ? selectedEmployerId : null;
 
     if (editingEmployee) {
-      updateMutation.mutate({ id: editingEmployee.id, employee: data });
+      try {
+        await updateMutation.mutateAsync({ id: editingEmployee.id, employee: data });
+        if (activeEmployment && (selectedLocationId !== activeLocationId || selectedEmployerId !== activeEmployerId)) {
+          await updateEmployeeEmployment(wsId, editingEmployee.id, activeEmployment.id, {
+            primary_location_id: selectedLocationId || null,
+            employer_id: selectedEmployerId || undefined,
+          });
+        }
+      } catch {
+        // error handling inside mutation
+      }
     } else {
+      if (selectedLocationId) {
+        data.primary_location_id = selectedLocationId;
+      }
+      data.employer_id = selectedEmployerId ? selectedEmployerId : null;
       createMutation.mutate(data);
     }
   };

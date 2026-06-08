@@ -44,7 +44,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
                     // 1. Check for overlapping active contracts
                     let overlaps: Vec<(Uuid, Option<String>)> = employee_contracts
                         .filter(workspace_id.eq(auth_token.workspace_id()))
-                        .filter(employee_id.eq(req.employee_id))
+                        .filter(employment_id.eq(req.employment_id))
                         .filter(status.eq(ContractStatus::Active))
                         .filter(start_date.le(req.start_date))
                         .filter(end_date.is_null().or(end_date.ge(req.start_date)))
@@ -100,7 +100,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
                     let new_contract = EmployeeContractEntity {
                         id: Uuid::new_v4(),
                         workspace_id: auth_token.workspace_id(),
-                        employee_id: req.employee_id,
+                        employment_id: req.employment_id,
                         contract_number: req.contract_number.clone(),
                         contract_type: req.contract_type,
                         status: ContractStatus::Active, // Default status or maybe from req? Wait, req.status isn't in CreateContractRequest
@@ -111,7 +111,6 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
                         created_at: Utc::now(),
                         updated_at: Utc::now(),
                         deleted_at: None,
-                        employer_id: req.employer_id,
                     };
 
                     let inserted = diesel::insert_into(employee_contracts)
@@ -160,7 +159,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
     async fn list_employee_contracts(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id_val: Uuid,
+        employment_id_val: Uuid,
     ) -> Result<Vec<EmployeeContract>, AppError> {
         use crate::schema::employee_contracts::dsl::*;
 
@@ -171,7 +170,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
                 .await?,
         );
         let contracts = employee_contracts
-            .filter(employee_id.eq(employee_id_val))
+            .filter(employment_id.eq(employment_id_val))
             .filter(workspace_id.eq(auth_token.workspace_id()))
             .filter(deleted_at.is_null())
             .order(start_date.desc())
@@ -184,7 +183,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
     async fn list_contracts_batch(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_ids: &[Uuid],
+        employment_ids: &[Uuid],
     ) -> Result<std::collections::HashMap<Uuid, Vec<EmployeeContract>>, AppError> {
         use crate::schema::employee_contracts::dsl::*;
 
@@ -195,17 +194,17 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
                 .await?,
         );
         let contracts = employee_contracts
-            .filter(employee_id.eq_any(employee_ids))
+            .filter(employment_id.eq_any(employment_ids))
             .filter(workspace_id.eq(auth_token.workspace_id()))
             .filter(deleted_at.is_null())
-            .order((employee_id.asc(), start_date.desc()))
+            .order((employment_id.asc(), start_date.desc()))
             .load::<EmployeeContractEntity>(&mut *conn)
             .await?;
 
         let mut map: std::collections::HashMap<Uuid, Vec<EmployeeContract>> =
             std::collections::HashMap::new();
         for contract in contracts {
-            map.entry(contract.employee_id)
+            map.entry(contract.employment_id)
                 .or_default()
                 .push(contract.into());
         }
@@ -237,7 +236,6 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
             document_id: req.document_id.map(Some),
             notes: req.notes.clone().map(Some),
             updated_at: Some(Utc::now()),
-            employer_id: req.employer_id,
         };
 
         let updated_contract = diesel::update(
@@ -311,7 +309,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
     async fn get_active_contract_on_date(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id_val: Uuid,
+        employment_id_val: Uuid,
         date_val: chrono::NaiveDate,
     ) -> Result<Option<EmployeeContract>, AppError> {
         use crate::models::enums::ContractStatus;
@@ -326,7 +324,7 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
 
         let entity = employee_contracts
             .filter(workspace_id.eq(auth_token.workspace_id()))
-            .filter(employee_id.eq(employee_id_val))
+            .filter(employment_id.eq(employment_id_val))
             .filter(status.eq(ContractStatus::Active))
             .filter(start_date.le(date_val))
             .filter(end_date.is_null().or(end_date.ge(date_val)))

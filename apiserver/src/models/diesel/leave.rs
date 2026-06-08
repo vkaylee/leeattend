@@ -50,7 +50,7 @@ impl FromSql<LeaveStatusType, Pg> for LeaveStatus {
 #[diesel(table_name = leave_requests)]
 pub struct LeaveRequestEntity {
     pub id: Uuid,
-    pub employee_id: Uuid,
+    pub employment_id: Uuid,
     pub start_date: NaiveDate,
     pub end_date: NaiveDate,
     pub reason: Option<String>,
@@ -90,7 +90,7 @@ pub struct LeaveTypeEntity {
 #[diesel(table_name = leave_balances)]
 pub struct LeaveBalanceEntity {
     pub id: Uuid,
-    pub employee_id: Uuid,
+    pub employment_id: Uuid,
     pub year: i32,
     pub entitlement: i32,
     pub carried_over: i32,
@@ -168,7 +168,7 @@ impl From<LeaveRequestEntity> for LeaveRequest {
     fn from(entity: LeaveRequestEntity) -> Self {
         Self::new(
             entity.id,
-            entity.employee_id,
+            entity.employment_id,
             entity.leave_type_id,
             entity.start_date,
             entity.end_date,
@@ -203,7 +203,7 @@ impl From<LeaveBalanceEntity> for LeaveBalance {
     fn from(entity: LeaveBalanceEntity) -> Self {
         Self::new(
             entity.id,
-            entity.employee_id,
+            entity.employment_id,
             entity.leave_type_id,
             entity.year,
             entity.entitlement,

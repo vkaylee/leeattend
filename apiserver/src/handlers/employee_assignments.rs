@@ -37,9 +37,26 @@ pub async fn list_employee_assignments(
 ) -> Result<Json<Vec<EmployeeAssignment>>, AppError> {
     let (_ws_id, employee_id) = params;
     let repo = state.employees().repo();
-    let assignments = repo
-        .list_employee_assignments(&ctx.auth_token, employee_id)
+
+    let employments = state
+        .employees()
+        .employment_repo()
+        .list_employee_employments(&ctx.auth_token, employee_id)
         .await?;
+    let employment_ids: Vec<Uuid> = employments.into_iter().map(|e| e.id).collect();
+
+    let mut assignments = Vec::new();
+    if !employment_ids.is_empty() {
+        let mut batch_map = repo
+            .list_assignments_batch(&ctx.auth_token, &employment_ids)
+            .await?;
+        for id in employment_ids {
+            if let Some(mut list) = batch_map.remove(&id) {
+                assignments.append(&mut list);
+            }
+        }
+    }
+
     Ok(Json(assignments))
 }
 
@@ -66,10 +83,26 @@ pub async fn get_employee_assignment(
 ) -> Result<Json<EmployeeAssignment>, AppError> {
     let (_ws_id, employee_id, assignment_id) = params;
     let repo = state.employees().repo();
-    let assignment = repo
-        .get_employee_assignment(&ctx.auth_token, employee_id, assignment_id)
-        .await?
-        .ok_or_else(|| AppError::not_found(I18nKey::EmployeeAssignmentNotFound))?;
+
+    let employments = state
+        .employees()
+        .employment_repo()
+        .list_employee_employments(&ctx.auth_token, employee_id)
+        .await?;
+
+    let mut assignment = None;
+    for emp in employments {
+        if let Ok(Some(a)) = repo
+            .get_employee_assignment(&ctx.auth_token, emp.id, assignment_id)
+            .await
+        {
+            assignment = Some(a);
+            break;
+        }
+    }
+
+    let assignment =
+        assignment.ok_or_else(|| AppError::not_found(I18nKey::EmployeeAssignmentNotFound))?;
     Ok(Json(assignment))
 }
 
@@ -97,13 +130,25 @@ pub async fn create_employee_assignment(
     let (_ws_id, employee_id) = params;
     let repo = state.employees().repo();
 
-    // Ensure the employee exists and fetch their current primary_location_id.
-    let employee = repo
-        .get_employee_by_id(employee_id, &ctx.auth_token)
+    // Ensure the employee exists
+    repo.get_employee_by_id(employee_id, &ctx.auth_token)
         .await?
         .ok_or_else(|| AppError::not_found(I18nKey::EmployeeNotFound))?;
 
-    let home_location_id = employee.primary_location_id();
+    let active_employment = state
+        .employees()
+        .employment_repo()
+        .get_active_employment_on_date(
+            &ctx.auth_token,
+            employee_id,
+            chrono::Utc::now().date_naive(),
+        )
+        .await?
+        .ok_or_else(|| AppError::validation_raw("Employee has no active employment profile"))?;
+
+    let home_location_id = active_employment.primary_location_id.ok_or_else(|| {
+        AppError::validation_raw("Employee active employment has no primary location assigned")
+    })?;
 
     // Validate that home and host locations are not the same
     if home_location_id == payload.host_location_id {
@@ -115,7 +160,7 @@ pub async fn create_employee_assignment(
     let new_assignment = NewEmployeeAssignment {
         id: Uuid::new_v4(),
         workspace_id: ctx.workspace_id,
-        employee_id,
+        employment_id: active_employment.id,
         home_location_id,
         host_location_id: payload.host_location_id,
         start_date: payload.start_date,
@@ -155,13 +200,28 @@ pub async fn update_employee_assignment(
     let (_ws_id, employee_id, assignment_id) = params;
     let repo = state.employees().repo();
 
-    // Ensure it exists
-    repo.get_employee_assignment(&ctx.auth_token, employee_id, assignment_id)
-        .await?
+    let employments = state
+        .employees()
+        .employment_repo()
+        .list_employee_employments(&ctx.auth_token, employee_id)
+        .await?;
+
+    let mut found_employment_id = None;
+    for emp in &employments {
+        if let Ok(Some(_)) = repo
+            .get_employee_assignment(&ctx.auth_token, emp.id, assignment_id)
+            .await
+        {
+            found_employment_id = Some(emp.id);
+            break;
+        }
+    }
+
+    let employment_id_val = found_employment_id
         .ok_or_else(|| AppError::not_found(I18nKey::EmployeeAssignmentNotFound))?;
 
     let updated = repo
-        .update_employee_assignment(&ctx.auth_token, employee_id, assignment_id, &payload)
+        .update_employee_assignment(&ctx.auth_token, employment_id_val, assignment_id, &payload)
         .await?;
     Ok(Json(updated))
 }
@@ -189,8 +249,28 @@ pub async fn delete_employee_assignment(
     let (_ws_id, employee_id, assignment_id) = params;
     let repo = state.employees().repo();
 
+    let employments = state
+        .employees()
+        .employment_repo()
+        .list_employee_employments(&ctx.auth_token, employee_id)
+        .await?;
+
+    let mut found_employment_id = None;
+    for emp in &employments {
+        if let Ok(Some(_)) = repo
+            .get_employee_assignment(&ctx.auth_token, emp.id, assignment_id)
+            .await
+        {
+            found_employment_id = Some(emp.id);
+            break;
+        }
+    }
+
+    let employment_id_val = found_employment_id
+        .ok_or_else(|| AppError::not_found(I18nKey::EmployeeAssignmentNotFound))?;
+
     let deleted_count = repo
-        .delete_employee_assignment(&ctx.auth_token, employee_id, assignment_id)
+        .delete_employee_assignment(&ctx.auth_token, employment_id_val, assignment_id)
         .await?;
 
     if deleted_count == 0 {

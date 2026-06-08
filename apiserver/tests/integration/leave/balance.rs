@@ -57,14 +57,20 @@ async fn test_leave_balances_endpoints() {
 
     // Give employee some initial balance so it shows up in queries
     let current_year = chrono::Utc::now().year();
+    let emp_employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
     crate::test_execute!(
         &factory.diesel_pools.api,
-        "INSERT INTO leave_balances (id, employee_id, leave_type_id, year, entitlement, carried_over, accrued_amount, updated_at) 
+        "INSERT INTO leave_balances (id, employment_id, leave_type_id, year, entitlement, carried_over, accrued_amount, updated_at) 
          VALUES ($1, $2, $3, $4, 10, 0, 0, NOW())",
         diesel::sql_types::Uuid,
         uuid::Uuid::now_v7(),
         diesel::sql_types::Uuid,
-        emp_id,
+        emp_employment_id,
         diesel::sql_types::Uuid,
         vacation_id,
         diesel::sql_types::Integer,
