@@ -63,6 +63,12 @@ async fn reprocess_after_roster_change(
 
 // --- Shift Handlers ---
 
+#[derive(serde::Deserialize, utoipa::IntoParams)]
+pub struct GetShiftsQuery {
+    pub location_id: Option<Uuid>,
+    pub employer_id: Option<Uuid>,
+}
+
 #[utoipa::path(
     get,
     path = "/workspaces/{workspace_id}/shifts",
@@ -70,11 +76,13 @@ async fn reprocess_after_roster_change(
         (status = 200, description = "List of shifts", body = [Shift])
     ),
     params(
-        ("workspace_id" = Uuid, Path, description = "Workspace ID")
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        GetShiftsQuery
     )
 )]
 pub async fn get_shifts(
     State(state): State<Arc<AppState>>,
+    Query(query): Query<GetShiftsQuery>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<Shift>>> {
     let workspace_id = ctx.workspace_id;
@@ -82,7 +90,7 @@ pub async fn get_shifts(
     let shifts = state
         .shifts()
         .service()
-        .get_workspace_shifts(workspace_id)
+        .get_workspace_shifts(workspace_id, query.location_id, query.employer_id)
         .await?;
 
     Ok(Json(shifts))

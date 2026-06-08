@@ -94,7 +94,7 @@ mod tests {
         let mut mock_shift = MockShiftRepository::new();
         mock_shift
             .expect_get_workspace_shifts()
-            .returning(|_| Box::pin(std::future::ready(Ok(vec![]))));
+            .returning(|_, _, _| Box::pin(std::future::ready(Ok(vec![]))));
 
         let manager = CacheManager::new(
             Arc::new(mock_cache),
@@ -137,11 +137,13 @@ mod tests {
         });
 
         let mut mock_shift = MockShiftRepository::new();
-        mock_shift.expect_get_workspace_shifts().returning(|_| {
-            Box::pin(std::future::ready(Err(crate::errors::AppError::Internal(
-                "DB Error".to_string(),
-            ))))
-        });
+        mock_shift
+            .expect_get_workspace_shifts()
+            .returning(|_, _, _| {
+                Box::pin(std::future::ready(Err(crate::errors::AppError::Internal(
+                    "DB Error".to_string(),
+                ))))
+            });
 
         let manager = CacheManager::new(
             Arc::new(mock_cache),

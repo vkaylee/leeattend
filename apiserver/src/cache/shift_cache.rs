@@ -55,9 +55,11 @@ impl ShiftCache {
             .cache
             .get_or_fetch(&key, DEFAULT_CACHE_TTL, || async move {
                 let rows = repo
-                    .get_workspace_shifts(&crate::diesel_pool::TenantAuthToken::system_override(
-                        workspace_id,
-                    ))
+                    .get_workspace_shifts(
+                        &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                        None,
+                        None,
+                    )
                     .await
                     .map_err(|e| format!("Failed to fetch shifts: {e}"))?;
 

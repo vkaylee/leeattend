@@ -58,6 +58,8 @@ impl ShiftRepository for DieselShiftRepository {
             allow_early_ot: req.allow_early_ot,
             max_early_ot_minutes: req.max_early_ot_minutes,
             report_symbol: req.report_symbol.clone(),
+            location_id: req.location_id,
+            employer_id: req.employer_id,
         };
 
         let entity: ShiftEntity = diesel::insert_into(shifts::table)
@@ -97,6 +99,8 @@ impl ShiftRepository for DieselShiftRepository {
     async fn get_workspace_shifts(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
+        location_id: Option<Uuid>,
+        employer_id: Option<Uuid>,
     ) -> Result<Vec<Shift>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = crate::diesel_pool::TransactionConn(
@@ -107,9 +111,28 @@ impl ShiftRepository for DieselShiftRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        let entities: Vec<ShiftEntity> = shifts::table
+        let mut query = shifts::table
             .filter(shifts::workspace_id.eq(workspace_id))
             .filter(shifts::is_active.eq(true))
+            .into_boxed();
+
+        if let Some(loc_id) = location_id {
+            query = query.filter(
+                shifts::location_id
+                    .is_null()
+                    .or(shifts::location_id.eq(loc_id)),
+            );
+        }
+
+        if let Some(emp_id) = employer_id {
+            query = query.filter(
+                shifts::employer_id
+                    .is_null()
+                    .or(shifts::employer_id.eq(emp_id)),
+            );
+        }
+
+        let entities: Vec<ShiftEntity> = query
             .order(shifts::name.asc())
             .load(&mut *conn)
             .await
@@ -150,6 +173,8 @@ impl ShiftRepository for DieselShiftRepository {
                     .eq(req.early_punch_in_grace_period_minutes),
                 shifts::allow_early_ot.eq(req.allow_early_ot),
                 shifts::max_early_ot_minutes.eq(req.max_early_ot_minutes),
+                shifts::location_id.eq(req.location_id),
+                shifts::employer_id.eq(req.employer_id),
                 shifts::updated_at.eq(Utc::now()),
             ))
             .get_result(&mut *conn)

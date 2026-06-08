@@ -40,6 +40,8 @@ pub struct Shift {
     pub max_early_ot_minutes: Option<i32>,
     pub is_active: bool,
     pub parent_shift_id: Option<Uuid>,
+    pub location_id: Option<Uuid>,
+    pub employer_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -70,6 +72,10 @@ pub struct CreateShiftRequest {
     pub allow_early_ot: bool,
     #[serde(default)]
     pub max_early_ot_minutes: Option<i32>,
+    #[serde(default)]
+    pub location_id: Option<Uuid>,
+    #[serde(default)]
+    pub employer_id: Option<Uuid>,
 }
 
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
@@ -95,6 +101,10 @@ pub struct UpdateShiftRequest {
     pub allow_early_ot: bool,
     #[serde(default)]
     pub max_early_ot_minutes: Option<i32>,
+    #[serde(default)]
+    pub location_id: Option<Uuid>,
+    #[serde(default)]
+    pub employer_id: Option<Uuid>,
     /// If true, update the current record (Correction).
     /// If false (default), create a new version if time-related fields changed.
     #[serde(default)]

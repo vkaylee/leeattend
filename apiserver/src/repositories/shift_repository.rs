@@ -26,6 +26,8 @@ pub trait ShiftRepository: Send + Sync {
     async fn get_workspace_shifts(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
+        location_id: Option<Uuid>,
+        employer_id: Option<Uuid>,
     ) -> Result<Vec<Shift>, AppError>;
 
     async fn update_shift_direct(

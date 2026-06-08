@@ -33,11 +33,18 @@ impl ShiftService {
     }
 
     #[tracing::instrument(skip_all, err)]
-    pub async fn get_workspace_shifts(&self, workspace_id: Uuid) -> Result<Vec<Shift>, AppError> {
+    pub async fn get_workspace_shifts(
+        &self,
+        workspace_id: Uuid,
+        location_id: Option<Uuid>,
+        employer_id: Option<Uuid>,
+    ) -> Result<Vec<Shift>, AppError> {
         self.repo
-            .get_workspace_shifts(&crate::diesel_pool::TenantAuthToken::system_override(
-                workspace_id,
-            ))
+            .get_workspace_shifts(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                location_id,
+                employer_id,
+            )
             .await
     }
 
@@ -63,7 +70,9 @@ impl ShiftService {
             || old_shift.break_start != req.break_start
             || old_shift.break_end != req.break_end
             || old_shift.allow_early_ot != req.allow_early_ot
-            || old_shift.max_early_ot_minutes != req.max_early_ot_minutes;
+            || old_shift.max_early_ot_minutes != req.max_early_ot_minutes
+            || old_shift.location_id != req.location_id
+            || old_shift.employer_id != req.employer_id;
 
         if req.is_correction || !has_time_changes {
             // Direct update
@@ -106,6 +115,8 @@ impl ShiftService {
                             .early_punch_in_grace_period_minutes,
                         allow_early_ot: req.allow_early_ot,
                         max_early_ot_minutes: req.max_early_ot_minutes,
+                        location_id: req.location_id,
+                        employer_id: req.employer_id,
                     },
                     true,
                     Some(shift_id),
@@ -194,6 +205,8 @@ mod tests {
             max_early_ot_minutes: None,
             is_active: true,
             parent_shift_id: None,
+            location_id: None,
+            employer_id: None,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         }
@@ -244,6 +257,8 @@ mod tests {
                 max_early_ot_minutes: req.max_early_ot_minutes,
                 is_active: true,
                 parent_shift_id: parent,
+                location_id: req.location_id,
+                employer_id: req.employer_id,
                 created_at: Utc::now(),
                 updated_at: Utc::now(),
             })
@@ -260,6 +275,8 @@ mod tests {
         async fn get_workspace_shifts(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _location_id: Option<Uuid>,
+            _employer_id: Option<Uuid>,
         ) -> Result<Vec<Shift>, AppError> {
             Ok(self
                 .shift
@@ -346,6 +363,8 @@ mod tests {
             early_punch_in_grace_period_minutes: 0,
             allow_early_ot: false,
             max_early_ot_minutes: None,
+            location_id: None,
+            employer_id: None,
         }
     }
 
@@ -365,14 +384,20 @@ mod tests {
     #[tokio::test]
     async fn test_get_workspace_shifts_empty() {
         let (svc, _) = build_service(None);
-        let result = svc.get_workspace_shifts(Uuid::new_v4()).await.unwrap();
+        let result = svc
+            .get_workspace_shifts(Uuid::new_v4(), None, None)
+            .await
+            .unwrap();
         assert!(result.is_empty());
     }
 
     #[tokio::test]
     async fn test_get_workspace_shifts_with_data() {
         let (svc, _) = build_service(Some(dummy_shift()));
-        let result = svc.get_workspace_shifts(Uuid::new_v4()).await.unwrap();
+        let result = svc
+            .get_workspace_shifts(Uuid::new_v4(), None, None)
+            .await
+            .unwrap();
         assert_eq!(result.len(), 1);
     }
 
@@ -394,6 +419,8 @@ mod tests {
             early_punch_in_grace_period_minutes: 0,
             allow_early_ot: false,
             max_early_ot_minutes: None,
+            location_id: None,
+            employer_id: None,
             is_correction: true,
             effective_date: None,
         };
@@ -420,6 +447,8 @@ mod tests {
             early_punch_in_grace_period_minutes: 0,
             allow_early_ot: false,
             max_early_ot_minutes: None,
+            location_id: None,
+            employer_id: None,
             is_correction: false,
             effective_date: None,
         };
@@ -448,6 +477,8 @@ mod tests {
             early_punch_in_grace_period_minutes: 0,
             allow_early_ot: false,
             max_early_ot_minutes: None,
+            location_id: None,
+            employer_id: None,
             is_correction: false,
             effective_date: Some(NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()),
         };

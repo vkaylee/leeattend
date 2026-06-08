@@ -28,6 +28,8 @@ pub struct ShiftEntity {
     pub allow_early_ot: bool,
     pub report_symbol: Option<String>,
     pub max_early_ot_minutes: Option<i32>,
+    pub location_id: Option<Uuid>,
+    pub employer_id: Option<Uuid>,
 }
 
 impl From<ShiftEntity> for Shift {
@@ -49,6 +51,8 @@ impl From<ShiftEntity> for Shift {
             max_early_ot_minutes: entity.max_early_ot_minutes,
             is_active: entity.is_active,
             parent_shift_id: entity.parent_shift_id,
+            location_id: entity.location_id,
+            employer_id: entity.employer_id,
             created_at: entity.created_at.unwrap_or_else(Utc::now),
             updated_at: entity.updated_at.unwrap_or_else(Utc::now),
         }

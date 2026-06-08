@@ -4484,8 +4484,12 @@ export interface components {
             break_start?: string | null;
             /** Format: int32 */
             early_punch_in_grace_period_minutes?: number;
+            /** Format: uuid */
+            employer_id?: string | null;
             end_time: string;
             is_break_auto_deduct?: boolean;
+            /** Format: uuid */
+            location_id?: string | null;
             /** Format: int32 */
             max_early_ot_minutes?: number | null;
             name: string;
@@ -6008,11 +6012,15 @@ export interface components {
             created_at: string;
             /** Format: int32 */
             early_punch_in_grace_period_minutes: number;
+            /** Format: uuid */
+            employer_id?: string | null;
             end_time: string;
             /** Format: uuid */
             id: string;
             is_active: boolean;
             is_break_auto_deduct: boolean;
+            /** Format: uuid */
+            location_id?: string | null;
             /** Format: int32 */
             max_early_ot_minutes?: number | null;
             name: string;
@@ -6486,6 +6494,8 @@ export interface components {
              * @description Effective date for the new version. If not provided, defaults to today.
              */
             effective_date?: string | null;
+            /** Format: uuid */
+            employer_id?: string | null;
             end_time: string;
             is_break_auto_deduct?: boolean;
             /**
@@ -6493,6 +6503,8 @@ export interface components {
              *     If false (default), create a new version if time-related fields changed.
              */
             is_correction?: boolean;
+            /** Format: uuid */
+            location_id?: string | null;
             /** Format: int32 */
             max_early_ot_minutes?: number | null;
             name: string;
@@ -12396,7 +12408,10 @@ export interface operations {
     };
     get_shifts: {
         parameters: {
-            query?: never;
+            query?: {
+                location_id?: string | null;
+                employer_id?: string | null;
+            };
             header?: never;
             path: {
                 /** @description Workspace ID */

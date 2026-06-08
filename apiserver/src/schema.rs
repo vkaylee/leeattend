@@ -1643,6 +1643,8 @@ diesel::table! {
         #[max_length = 10]
         report_symbol -> Nullable<Varchar>,
         max_early_ot_minutes -> Nullable<Int4>,
+        location_id -> Nullable<Uuid>,
+        employer_id -> Nullable<Uuid>,
     }
 }
 
@@ -1941,6 +1943,8 @@ diesel::joinable!(salary_component_definitions -> payroll_rule_definitions (link
 diesel::joinable!(sessions -> users (user_id));
 diesel::joinable!(shift_rosters -> employees (employee_id));
 diesel::joinable!(shift_rosters -> shifts (shift_id));
+diesel::joinable!(shifts -> employers (employer_id));
+diesel::joinable!(shifts -> work_locations (location_id));
 diesel::joinable!(system_audit_logs -> users (actor_id));
 diesel::joinable!(time_entries -> employees (employee_id));
 diesel::joinable!(time_entries -> shifts (shift_id));

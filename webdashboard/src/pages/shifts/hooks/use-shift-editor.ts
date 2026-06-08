@@ -1,5 +1,5 @@
  
-/* eslint-disable complexity, max-lines-per-function */
+/* eslint-disable complexity, max-lines-per-function, max-lines */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBlocker, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
@@ -43,6 +43,19 @@ export function useShiftEditor(shiftId?: string) {
   const [isCorrection, setIsCorrection] = useState(false);
   const [correctionEffectiveDate, setCorrectionEffectiveDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
+  const [locationId, setLocationIdState] = useState<string | null>(null);
+  const [employerId, setEmployerIdState] = useState<string | null>(null);
+
+  const setLocationId = (v: string | null) => {
+    setLocationIdState(v);
+    setIsDirty(true);
+  };
+
+  const setEmployerId = (v: string | null) => {
+    setEmployerIdState(v);
+    setIsDirty(true);
+  };
+
   const [isDirty, setIsDirty] = useState(false);
 
   const setIsFixedBreak = (val: boolean) => {
@@ -80,6 +93,8 @@ export function useShiftEditor(shiftId?: string) {
       setIsBreakOvertime(editingShift.break_is_overtime);
       setAllowEarlyOt(editingShift.allow_early_ot);
       setMaxEarlyOtMinutes(editingShift.max_early_ot_minutes ?? 60);
+      setLocationIdState(editingShift.location_id ?? null);
+      setEmployerIdState(editingShift.employer_id ?? null);
       setIsCorrection(false);
       setCorrectionEffectiveDate(format(new Date(), 'yyyy-MM-dd'));
       setIsDirty(false);
@@ -131,6 +146,8 @@ export function useShiftEditor(shiftId?: string) {
       allow_early_ot: allowEarlyOt,
       max_early_ot_minutes: allowEarlyOt ? maxEarlyOtMinutes : null,
       is_break_auto_deduct: isAutoDeduct,
+      location_id: locationId,
+      employer_id: employerId,
     };
 
     if (isFixedBreak && breakStart && breakEnd) {
@@ -207,6 +224,10 @@ export function useShiftEditor(shiftId?: string) {
     setIsCorrection: (v: boolean) => { setIsCorrection(v); setIsDirty(true); },
     correctionEffectiveDate,
     setCorrectionEffectiveDate: (v: string) => { setCorrectionEffectiveDate(v); setIsDirty(true); },
+    locationId,
+    setLocationId,
+    employerId,
+    setEmployerId,
     handleSubmit,
     isSaving,
     isSaveDisabled,

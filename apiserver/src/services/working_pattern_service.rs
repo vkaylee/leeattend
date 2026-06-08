@@ -60,9 +60,11 @@ pub async fn create_working_pattern(
     // For days with >1 shift, validate no time overlaps
     if !day_shifts.is_empty() {
         let all_shifts = shift_repo
-            .get_workspace_shifts(&crate::diesel_pool::TenantAuthToken::system_override(
-                workspace_id,
-            ))
+            .get_workspace_shifts(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                None,
+                None,
+            )
             .await?;
         let shift_map: HashMap<Uuid, _> = all_shifts.into_iter().map(|s| (s.id, s)).collect();
 
@@ -152,9 +154,11 @@ pub async fn update_working_pattern(
 
     if !day_shifts.is_empty() {
         let all_shifts = shift_repo
-            .get_workspace_shifts(&crate::diesel_pool::TenantAuthToken::system_override(
-                workspace_id,
-            ))
+            .get_workspace_shifts(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                None,
+                None,
+            )
             .await?;
         let shift_map: HashMap<Uuid, _> = all_shifts.into_iter().map(|s| (s.id, s)).collect();
 
@@ -405,6 +409,8 @@ mod tests {
                 allow_early_ot: false,
                 is_active: true,
                 parent_shift_id: _p,
+                location_id: req.location_id,
+                employer_id: req.employer_id,
                 max_early_ot_minutes: None,
                 created_at: Utc::now(),
                 updated_at: Utc::now(),
@@ -420,6 +426,8 @@ mod tests {
         async fn get_workspace_shifts(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _location_id: Option<Uuid>,
+            _employer_id: Option<Uuid>,
         ) -> Result<Vec<Shift>, AppError> {
             // Provide a few mock shifts for overlap testing
             let s1 = Shift {
@@ -438,6 +446,8 @@ mod tests {
                 allow_early_ot: false,
                 is_active: true,
                 parent_shift_id: None,
+                location_id: None,
+                employer_id: None,
                 max_early_ot_minutes: None,
                 created_at: Utc::now(),
                 updated_at: Utc::now(),
@@ -458,6 +468,8 @@ mod tests {
                 allow_early_ot: false,
                 is_active: true,
                 parent_shift_id: None,
+                location_id: None,
+                employer_id: None,
                 max_early_ot_minutes: None,
                 created_at: Utc::now(),
                 updated_at: Utc::now(),

@@ -1,4 +1,5 @@
 /* eslint-disable max-lines-per-function, complexity */
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { ArrowLeft, Save, Info, Zap } from "lucide-react";
 import React from "react";
@@ -6,8 +7,10 @@ import { useTranslation } from "react-i18next";
 
 import { ShiftTimelinePreview } from "@/components/shifts/shift-timeline-preview";
 import Button from "@/components/ui/button";
+import { Combobox } from "@/components/ui/combobox";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
 import { Typography } from "@/components/ui/typography";
+import { fetchLocations, fetchEmployers } from "@/lib/api";
 
 import { useShiftEditor } from "./hooks/use-shift-editor";
 
@@ -50,10 +53,26 @@ export default function ShiftEditorPage() {
     setIsCorrection,
     correctionEffectiveDate,
     setCorrectionEffectiveDate,
+    locationId,
+    setLocationId,
+    employerId,
+    setEmployerId,
     handleSubmit,
     isSaveDisabled,
     blocker,
   } = useShiftEditor(shiftId);
+
+  const { data: locations } = useQuery({
+    queryKey: ["locations", wsId],
+    queryFn: () => fetchLocations(wsId),
+    enabled: !!wsId,
+  });
+
+  const { data: employers } = useQuery({
+    queryKey: ["employers", wsId],
+    queryFn: () => fetchEmployers(wsId),
+    enabled: !!wsId,
+  });
 
   if (!wsId) {
     return (
@@ -166,6 +185,50 @@ export default function ShiftEditorPage() {
                   placeholder={t("shifts.modal.report_symbol_placeholder", "VD: S8, T8, FX...")}
                   type="text"
                   value={shiftSymbol}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest" htmlFor="shift_location_input">
+                  {t("shifts.modal.location", "Chi nhánh / Địa điểm Scope")}
+                </label>
+                <Combobox
+                  clearOnEscape
+                  id="shift_location_input"
+                  onChange={setLocationId}
+                  options={[
+                    { value: "", label: t("shifts.modal.global_scope", "Toàn cục / Dùng chung") },
+                    ...(locations ?? []).map((loc) => ({
+                      value: loc.id,
+                      label: loc.name,
+                      description: loc.timezone,
+                    })),
+                  ]}
+                  placeholder={t("shifts.modal.select_location", "Chọn địa điểm làm việc")}
+                  value={locationId ?? ""}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest" htmlFor="shift_employer_input">
+                  {t("shifts.modal.employer", "Pháp nhân / Công ty Scope")}
+                </label>
+                <Combobox
+                  clearOnEscape
+                  id="shift_employer_input"
+                  onChange={setEmployerId}
+                  options={[
+                    { value: "", label: t("shifts.modal.global_scope", "Toàn cục / Dùng chung") },
+                    ...(employers ?? []).map((emp) => ({
+                      value: emp.id,
+                      label: emp.name,
+                      description: emp.tax_code ? `MST: ${emp.tax_code}` : undefined,
+                    })),
+                  ]}
+                  placeholder={t("shifts.modal.select_employer", "Chọn pháp nhân trực thuộc")}
+                  value={employerId ?? ""}
                 />
               </div>
             </div>
