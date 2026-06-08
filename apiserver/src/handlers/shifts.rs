@@ -299,7 +299,7 @@ pub async fn get_employee_rosters(
     let rosters = state
         .shifts()
         .roster_repo()
-        .get_employee_rosters(&ctx.auth_token, employee_id, start_date, end_date)
+        .get_employment_rosters(&ctx.auth_token, employee_id, start_date, end_date)
         .await?;
 
     Ok(Json(rosters))
@@ -327,7 +327,7 @@ pub async fn upsert_roster(
     ctx.require_permission(Permission::RostersManage)?;
     let roster = ShiftRoster {
         id: crate::utils::id::new_id(),
-        employee_id,
+        employment_id: employee_id,
         shift_id: req.shift_id,
         date: req.date,
         status: "confirmed".to_string(),

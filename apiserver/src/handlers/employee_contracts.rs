@@ -71,7 +71,7 @@ pub async fn list_employee_contracts(
         .list_employee_employments(&ctx.auth_token, employee_id)
         .await?;
 
-    let employment_ids: Vec<Uuid> = employments.into_iter().map(|e| e.id).collect();
+    let employment_ids: Vec<Uuid> = employments.into_iter().map(|e| e.id()).collect();
 
     let mut contracts = Vec::new();
     if !employment_ids.is_empty() {
@@ -155,7 +155,7 @@ pub async fn create_contract(
         .get_employment_by_id(&ctx.auth_token, contract.employment_id())
         .await?
         .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?
-        .employee_id;
+        .employee_id();
 
     // Assign employment phase if requested
     if let Some(phase_id) = payload.assign_phase_id {
@@ -219,7 +219,7 @@ pub async fn update_contract(
         .get_employment_by_id(&ctx.auth_token, contract.employment_id())
         .await?
         .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?
-        .employee_id;
+        .employee_id();
 
     dispatch_sync_hire_date(&state, workspace_id, employee_id, contract.id()).await;
 

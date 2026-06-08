@@ -24,18 +24,18 @@ pub trait TimeEntryRepository: Send + Sync {
     async fn get_active_time_entry(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
     ) -> Result<Option<TimeEntry>, AppError>;
     async fn get_latest_active_entry(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
     ) -> Result<Option<TimeEntry>, AppError>;
 
-    async fn get_latest_entry_for_employee(
+    async fn get_latest_entry_for_employment(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
     ) -> Result<Option<TimeEntry>, AppError>;
     async fn update_time_entry(
         &self,
@@ -47,10 +47,10 @@ pub trait TimeEntryRepository: Send + Sync {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         id: Uuid,
     ) -> Result<(), AppError>;
-    async fn get_employee_time_entries(
+    async fn get_employment_time_entries(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         from: DateTime<Utc>,
         to: DateTime<Utc>,
     ) -> Result<Vec<TimeEntry>, AppError>;
@@ -62,29 +62,29 @@ pub trait TimeEntryRepository: Send + Sync {
     async fn count_logs(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        p_employee_id: Option<Uuid>,
+        p_employment_id: Option<Uuid>,
         p_from: Option<DateTime<Utc>>,
         p_to: Option<DateTime<Utc>>,
     ) -> Result<i64, AppError>;
     async fn get_distinct_work_days(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         start_time: DateTime<Utc>,
         end_time: DateTime<Utc>,
         tz: &str,
     ) -> Result<Vec<chrono::NaiveDate>, AppError>;
-    async fn get_workspace_time_entries_batch(
+    async fn get_workspace_time_entries_batch_by_employments(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_ids: &[Uuid],
+        employment_ids: &[Uuid],
         from: DateTime<Utc>,
         to: DateTime<Utc>,
     ) -> Result<HashMap<Uuid, Vec<TimeEntry>>, AppError>;
     async fn replace_time_entries(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         start_time: DateTime<Utc>,
         end_time: DateTime<Utc>,
         entries: Vec<TimeEntry>,

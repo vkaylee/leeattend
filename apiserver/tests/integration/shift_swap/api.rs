@@ -90,7 +90,7 @@ async fn setup() -> SwapTestSetup {
 
     // Employee A → Morning shift
     crate::test_execute!(&_db.diesel_pools.api,
-        "INSERT INTO shift_rosters (id, employee_id, shift_id, date, status) VALUES ($1, $2, $3, $4, 'active')",
+        "INSERT INTO shift_rosters (id, employment_id, shift_id, date, status) VALUES ($1, $2, $3, $4, 'active')",
         diesel::sql_types::Uuid, Uuid::new_v4(),
         diesel::sql_types::Uuid, emp_a,
         diesel::sql_types::Uuid, shift_morning,
@@ -99,7 +99,7 @@ async fn setup() -> SwapTestSetup {
 
     // Employee B → Evening shift
     crate::test_execute!(&_db.diesel_pools.api,
-        "INSERT INTO shift_rosters (id, employee_id, shift_id, date, status) VALUES ($1, $2, $3, $4, 'active')",
+        "INSERT INTO shift_rosters (id, employment_id, shift_id, date, status) VALUES ($1, $2, $3, $4, 'active')",
         diesel::sql_types::Uuid, Uuid::new_v4(),
         diesel::sql_types::Uuid, emp_b,
         diesel::sql_types::Uuid, shift_evening,
@@ -608,7 +608,7 @@ async fn test_same_shift_swap_rejected() {
     let emp_c = Uuid::new_v4();
     crate::test_execute!(
         &s._db.diesel_pools.api,
-        "INSERT INTO employees (id, workspace_id, full_name, employee_id_number, is_active, original_hire_date, hire_date, created_at, updated_at) VALUES ($1, $2, $3, $4, true, CURRENT_DATE, CURRENT_DATE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        "INSERT INTO employees (id, workspace_id, full_name, employee_id_number, created_at, updated_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
         diesel::sql_types::Uuid, emp_c,
         diesel::sql_types::Uuid, s.workspace_id,
         diesel::sql_types::Text, "Employee C",
@@ -622,10 +622,11 @@ async fn test_same_shift_swap_rejected() {
         s.workspace_id
     );
 
+    let emp_c_employment_id = Uuid::new_v4();
     crate::test_execute!(
         &s._db.diesel_pools.api,
         "INSERT INTO employments (id, workspace_id, employee_id, employer_id, primary_location_id, status, start_date, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, 'active', CURRENT_DATE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-        diesel::sql_types::Uuid, Uuid::new_v4(),
+        diesel::sql_types::Uuid, emp_c_employment_id,
         diesel::sql_types::Uuid, s.workspace_id,
         diesel::sql_types::Uuid, emp_c,
         diesel::sql_types::Uuid, employer_id,
@@ -635,9 +636,9 @@ async fn test_same_shift_swap_rejected() {
     // Assign Employee C → Morning shift (same as A)
     crate::test_execute!(
         &s._db.diesel_pools.api,
-        "INSERT INTO shift_rosters (id, employee_id, shift_id, date, status) VALUES ($1, $2, $3, $4, 'active')",
+        "INSERT INTO shift_rosters (id, employment_id, shift_id, date, status) VALUES ($1, $2, $3, $4, 'active')",
         diesel::sql_types::Uuid, Uuid::new_v4(),
-        diesel::sql_types::Uuid, emp_c,
+        diesel::sql_types::Uuid, emp_c_employment_id,
         diesel::sql_types::Uuid, s.shift_morning,
         diesel::sql_types::Date, s.swap_date
     );

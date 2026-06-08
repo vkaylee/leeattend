@@ -10,7 +10,7 @@ use crate::models::diesel::attendance_adjustment::{
 };
 use crate::models::{AdjustmentStatus, AttendanceAdjustmentRequest};
 use crate::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository;
-use crate::schema::{attendance_adjustment_requests, employees};
+use crate::schema::{attendance_adjustment_requests, employees, employments};
 
 pub struct DieselAttendanceAdjustmentRepository {
     diesel_pools: crate::diesel_pool::DieselPools,
@@ -39,7 +39,7 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
 
         let new_entity = NewAttendanceAdjustmentEntity {
             id: request.id(),
-            employee_id: request.employee_id(),
+            employment_id: request.employment_id(),
             time_entry_id: request.time_entry_id(),
             requested_punch_in_time: request.requested_punch_in_time(),
             requested_punch_out_time: request.requested_punch_out_time(),
@@ -75,8 +75,10 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
 
         let entry: Option<AttendanceAdjustmentEntity> = attendance_adjustment_requests::table
             .inner_join(
-                employees::table.on(attendance_adjustment_requests::employee_id.eq(employees::id)),
+                employments::table
+                    .on(attendance_adjustment_requests::employment_id.eq(employments::id)),
             )
+            .inner_join(employees::table.on(employments::employee_id.eq(employees::id)))
             .filter(employees::workspace_id.eq(workspace_id))
             .filter(attendance_adjustment_requests::id.eq(id))
             .select(attendance_adjustment_requests::all_columns)
@@ -112,10 +114,10 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
         diesel::update(attendance_adjustment_requests::table)
             .filter(attendance_adjustment_requests::id.eq(id))
             .filter(
-                attendance_adjustment_requests::employee_id.eq_any(
-                    employees::table
-                        .filter(employees::workspace_id.eq(workspace_id))
-                        .select(employees::id),
+                attendance_adjustment_requests::employment_id.eq_any(
+                    employments::table
+                        .filter(employments::workspace_id.eq(workspace_id))
+                        .select(employments::id),
                 ),
             )
             .set(&update_model)
@@ -141,8 +143,10 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
 
         let mut query = attendance_adjustment_requests::table
             .inner_join(
-                employees::table.on(attendance_adjustment_requests::employee_id.eq(employees::id)),
+                employments::table
+                    .on(attendance_adjustment_requests::employment_id.eq(employments::id)),
             )
+            .inner_join(employees::table.on(employments::employee_id.eq(employees::id)))
             .filter(employees::workspace_id.eq(workspace_id))
             .into_boxed();
 
@@ -160,10 +164,10 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
         Ok(results.into_iter().map(Into::into).collect())
     }
 
-    async fn get_employee_adjustment_requests(
+    async fn get_employment_adjustment_requests(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
     ) -> Result<Vec<AttendanceAdjustmentRequest>, AppError> {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -175,10 +179,12 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
 
         let results: Vec<AttendanceAdjustmentEntity> = attendance_adjustment_requests::table
             .inner_join(
-                employees::table.on(attendance_adjustment_requests::employee_id.eq(employees::id)),
+                employments::table
+                    .on(attendance_adjustment_requests::employment_id.eq(employments::id)),
             )
+            .inner_join(employees::table.on(employments::employee_id.eq(employees::id)))
             .filter(employees::workspace_id.eq(workspace_id))
-            .filter(attendance_adjustment_requests::employee_id.eq(employee_id))
+            .filter(attendance_adjustment_requests::employment_id.eq(employment_id))
             .select(attendance_adjustment_requests::all_columns)
             .order(attendance_adjustment_requests::created_at.desc())
             .load(&mut *conn)

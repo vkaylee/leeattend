@@ -1,16 +1,19 @@
 SELECT bucket, COUNT(*)::bigint AS count FROM (
     SELECT CASE
-        WHEN e.termination_date - e.hire_date < 90 THEN '< 3 months'
-        WHEN e.termination_date - e.hire_date < 180 THEN '3-6 months'
-        WHEN e.termination_date - e.hire_date < 365 THEN '6-12 months'
-        WHEN e.termination_date - e.hire_date < 730 THEN '1-2 years'
-        WHEN e.termination_date - e.hire_date < 1825 THEN '2-5 years'
+        WHEN emp.end_date - emp.start_date < 90 THEN '< 3 months'
+        WHEN emp.end_date - emp.start_date < 180 THEN '3-6 months'
+        WHEN emp.end_date - emp.start_date < 365 THEN '6-12 months'
+        WHEN emp.end_date - emp.start_date < 730 THEN '1-2 years'
+        WHEN emp.end_date - emp.start_date < 1825 THEN '2-5 years'
         ELSE '> 5 years'
     END AS bucket
     FROM employees e
-    WHERE e.workspace_id = $1 AND e.is_active = FALSE
-      AND e.termination_date IS NOT NULL
-      AND e.termination_date >= $2 AND e.termination_date <= $3
+    JOIN employments emp ON e.id = emp.employee_id
+    WHERE emp.workspace_id = $1
+      AND emp.deleted_at IS NULL
+      AND emp.status = 'terminated'
+      AND emp.end_date IS NOT NULL
+      AND emp.end_date >= $2 AND emp.end_date <= $3
 ) sub
 GROUP BY bucket
 ORDER BY CASE bucket

@@ -44,6 +44,8 @@ pub struct ReportService {
     pub(crate) roster_repo: Arc<dyn RosterRepository>,
     pub(crate) policy_repo: Arc<dyn AttendancePolicyRepository>,
     pub(crate) employee_repo: Arc<dyn EmployeeRepository>,
+    pub(crate) employment_repo:
+        Arc<dyn crate::repositories::employment_repository::EmploymentRepository>,
     pub(crate) attendance_daily_summary_repo: Arc<dyn AttendanceDailySummaryRepository>,
     pub(crate) leave_repo:
         Arc<dyn crate::repositories::leave_request_repository::LeaveRequestRepository>,
@@ -56,6 +58,7 @@ pub struct ReportServiceArgs {
     pub roster_repo: Arc<dyn RosterRepository>,
     pub policy_repo: Arc<dyn AttendancePolicyRepository>,
     pub employee_repo: Arc<dyn EmployeeRepository>,
+    pub employment_repo: Arc<dyn crate::repositories::employment_repository::EmploymentRepository>,
     pub attendance_daily_summary_repo: Arc<dyn AttendanceDailySummaryRepository>,
     pub leave_repo: Arc<dyn crate::repositories::leave_request_repository::LeaveRequestRepository>,
     pub workspace_repo: Arc<dyn WorkspaceRepository>,
@@ -69,6 +72,7 @@ impl ReportService {
             roster_repo: args.roster_repo,
             policy_repo: args.policy_repo,
             employee_repo: args.employee_repo,
+            employment_repo: args.employment_repo,
             attendance_daily_summary_repo: args.attendance_daily_summary_repo,
             leave_repo: args.leave_repo,
             workspace_repo: args.workspace_repo,

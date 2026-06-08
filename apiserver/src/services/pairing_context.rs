@@ -112,7 +112,7 @@ impl PairingContext {
     pub fn build_time_entries(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         shift_id_opt: Option<Uuid>,
         sessions: Vec<PairedSession>,
         traces: &serde_json::Value,
@@ -147,7 +147,7 @@ impl PairingContext {
 
             new_entries.push(TimeEntry::new(
                 crate::utils::id::new_id(),
-                employee_id,
+                employment_id,
                 workspace_id,
                 shift_id_opt,
                 start_dt_utc,
@@ -378,7 +378,7 @@ mod tests {
         let context = PairingContext::new(date, tz);
 
         let workspace_id = Uuid::new_v4();
-        let employee_id = Uuid::new_v4();
+        let employment_id = Uuid::new_v4();
 
         // Paired Session from 08:00 to 17:00 (480 mins to 1020 mins)
         let session1 = PairedSession {
@@ -404,14 +404,14 @@ mod tests {
         let traces = serde_json::json!(["trace1"]);
 
         let entries = context
-            .build_time_entries(workspace_id, employee_id, None, sessions, &traces)
+            .build_time_entries(workspace_id, employment_id, None, sessions, &traces)
             .unwrap();
 
         assert_eq!(entries.len(), 2);
 
         let e1 = &entries[0];
         assert_eq!(e1.workspace_id(), workspace_id);
-        assert_eq!(e1.employee_id(), employee_id);
+        assert_eq!(e1.employment_id(), employment_id);
         // 08:00 HCM is 01:00 UTC
         assert_eq!(
             e1.punch_in_time(),

@@ -239,18 +239,20 @@ impl ImportStrategy for EmployeeImportStrategy {
             let key = row.id_number.to_lowercase();
             if !self.emp_cache.contains_key(&key) && unique_emp_ids.insert(key.clone()) {
                 let emp_id = Uuid::new_v4();
+                let hire_date_dt = row
+                    .hire_date
+                    .and_hms_opt(0, 0, 0)
+                    .and_then(|t| t.and_local_timezone(Utc).single())
+                    .unwrap_or_else(Utc::now);
+
                 new_emps.push(crate::models::Employee::new(
                     emp_id,
                     job.workspace_id,
                     None,
                     row.full_name.clone(),
                     row.id_number.clone(),
-                    row.hire_date,
-                    row.hire_date,
-                    None,
                     Vec::new(),
-                    true,
-                    Utc::now(),
+                    hire_date_dt,
                     Utc::now(),
                     None,
                 ));
@@ -419,6 +421,7 @@ impl ImportStrategy for PunchImportStrategy {
         Ok(())
     }
 
+    #[allow(clippy::too_many_lines)]
     async fn process_row(
         &mut self,
         _deps: &crate::worker::deps::WorkerDeps,
@@ -484,8 +487,14 @@ impl ImportStrategy for PunchImportStrategy {
                 }
             }
         } else {
+            let Some(employment_id) = employee.active_employment_id() else {
+                return Err(AppError::NotFound(
+                    "error.active_employment_not_found".to_string(),
+                ));
+            };
+
             let req = CreateAttendanceAdjustmentRequest {
-                employee_id: employee.id(),
+                employment_id,
                 time_entry_id: None,
                 requested_punch_in_time: row.punch_time,
                 requested_punch_out_time: None,

@@ -62,21 +62,21 @@ impl TimeTrackingService {
         &self,
         log_service: &crate::services::AttendanceLogService,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         note: Option<String>,
     ) -> Result<TimeEntry, AppError> {
-        // Verify employee belongs to workspace
-        let employee = self
-            .employee_repo
-            .get_employee_by_id(
-                employee_id,
+        // Verify employment belongs to workspace
+        let employment = self
+            .employment_repo
+            .get_employment_by_id(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                employment_id,
             )
             .await?
-            .ok_or(AppError::NotFound("Employee not found".into()))?;
+            .ok_or(AppError::NotFound("Employment not found".into()))?;
 
-        if !employee.is_active() {
-            return Err(AppError::Forbidden("Employee is inactive".into()));
+        if employment.status() != "active" {
+            return Err(AppError::Forbidden("Employment is inactive".into()));
         }
 
         let now = Utc::now();
@@ -88,7 +88,7 @@ impl TimeTrackingService {
             .repo
             .get_latest_active_entry(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                employee_id,
+                employment_id,
             )
             .await?
             .is_none();
@@ -110,7 +110,7 @@ impl TimeTrackingService {
                 .roster_repo
                 .get_effective_shift(
                     &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                    employee_id,
+                    employment_id,
                     today,
                 )
                 .await?;
@@ -135,7 +135,7 @@ impl TimeTrackingService {
                 let rules = crate::services::PolicyResolverService::resolve_attendance_rules(
                     &*self.policy_repo,
                     &*self.employee_repo,
-                    employee_id,
+                    employment_id,
                     workspace_id,
                     today,
                 )
@@ -159,7 +159,7 @@ impl TimeTrackingService {
         log_service
             .process_parsed_log(
                 workspace_id,
-                employee_id,
+                employment_id,
                 now,
                 crate::models::LogSource::Device,
                 Some("ESS_WEB".to_string()),
@@ -169,9 +169,9 @@ impl TimeTrackingService {
 
         let entry = self
             .repo
-            .get_latest_entry_for_employee(
+            .get_latest_entry_for_employment(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                employee_id,
+                employment_id,
             )
             .await?
             .ok_or(AppError::Internal("Failed to fetch punched entry".into()))?;
@@ -183,24 +183,24 @@ impl TimeTrackingService {
     pub async fn get_employee_history(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         start_date: DateTime<Utc>,
         end_date: DateTime<Utc>,
     ) -> Result<Vec<TimeEntry>, AppError> {
-        // Verify employee belongs to workspace
+        // Verify employment belongs to workspace
         let _ = self
-            .employee_repo
-            .get_employee_by_id(
-                employee_id,
+            .employment_repo
+            .get_employment_by_id(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                employment_id,
             )
             .await?
-            .ok_or(AppError::NotFound("Employee not found".into()))?;
+            .ok_or(AppError::NotFound("Employment not found".into()))?;
 
         self.repo
-            .get_employee_time_entries(
+            .get_employment_time_entries(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                employee_id,
+                employment_id,
                 start_date,
                 end_date,
             )
@@ -223,16 +223,16 @@ impl TimeTrackingService {
             .await?
             .ok_or(AppError::NotFound("Time entry not found".into()))?;
 
-        // Verify employee of this entry belongs to the workspace
+        // Verify employment of this entry belongs to the workspace
         let _ = self
-            .employee_repo
-            .get_employee_by_id(
-                entry.employee_id(),
+            .employment_repo
+            .get_employment_by_id(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                entry.employment_id(),
             )
             .await?
             .ok_or(AppError::Forbidden(
-                "Employee does not belong to workspace".into(),
+                "Employment does not belong to workspace".into(),
             ))?;
 
         if let Some(t) = req.punch_in_time() {
@@ -273,7 +273,7 @@ impl TimeTrackingService {
                 },
             );
             let _ = summary_svc
-                .recalculate_daily_summary(workspace_id, entry.employee_id(), local_date)
+                .recalculate_daily_summary(workspace_id, entry.employment_id(), local_date)
                 .await;
         }
 
@@ -291,16 +291,16 @@ impl TimeTrackingService {
             .await?
             .ok_or(AppError::NotFound("Time entry not found".into()))?;
 
-        // Verify employee of this entry belongs to the workspace
+        // Verify employment of this entry belongs to the workspace
         let _ = self
-            .employee_repo
-            .get_employee_by_id(
-                entry.employee_id(),
+            .employment_repo
+            .get_employment_by_id(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                entry.employment_id(),
             )
             .await?
             .ok_or(AppError::Forbidden(
-                "Employee does not belong to workspace".into(),
+                "Employment does not belong to workspace".into(),
             ))?;
 
         self.repo

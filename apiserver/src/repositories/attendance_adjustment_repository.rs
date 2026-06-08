@@ -31,9 +31,9 @@ pub trait AttendanceAdjustmentRepository: Send + Sync {
         workspace_id: Uuid,
         status: Option<AdjustmentStatus>,
     ) -> Result<Vec<AttendanceAdjustmentRequest>, AppError>;
-    async fn get_employee_adjustment_requests(
+    async fn get_employment_adjustment_requests(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
     ) -> Result<Vec<AttendanceAdjustmentRequest>, AppError>;
 }

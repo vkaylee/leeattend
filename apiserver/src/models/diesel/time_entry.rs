@@ -10,7 +10,6 @@ use crate::schema::time_entries;
 #[diesel(table_name = time_entries)]
 pub struct TimeEntryEntity {
     pub id: Uuid,
-    pub employee_id: Uuid,
     pub punch_in_time: DateTime<Utc>,
     pub punch_out_time: Option<DateTime<Utc>>,
     pub duration_minutes: Option<i32>,
@@ -22,13 +21,14 @@ pub struct TimeEntryEntity {
     pub shift_id: Option<Uuid>,
     pub generation_metadata: Option<Value>,
     pub workspace_id: Uuid,
+    pub employment_id: Uuid,
 }
 
 impl From<TimeEntryEntity> for TimeEntry {
     fn from(val: TimeEntryEntity) -> Self {
         TimeEntry::new(
             val.id,
-            val.employee_id,
+            val.employment_id,
             val.workspace_id,
             val.shift_id,
             val.punch_in_time,
@@ -48,7 +48,7 @@ impl From<TimeEntryEntity> for TimeEntry {
 #[diesel(table_name = time_entries)]
 pub struct NewTimeEntryEntity {
     pub id: Uuid,
-    pub employee_id: Uuid,
+    pub employment_id: Uuid,
     pub workspace_id: Uuid,
     pub punch_in_time: DateTime<Utc>,
     pub punch_out_time: Option<DateTime<Utc>>,

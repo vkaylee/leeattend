@@ -123,11 +123,7 @@ mod tests {
                     None,
                     "Test User".to_string(),
                     "EMP001".to_string(),
-                    chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
-                    chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
-                    None,
                     vec![],
-                    true,
                     chrono::Utc::now(),
                     chrono::Utc::now(),
                     None,
@@ -153,7 +149,7 @@ mod tests {
             .expect_create_raw_log()
             .returning(|_, _| Box::pin(async { Ok(true) }));
         raw_log_repo
-            .expect_get_employee_logs_in_time_range()
+            .expect_get_employment_logs_in_time_range()
             .returning(|_, _, _, _| Box::pin(async { Ok(vec![]) }));
 
         // Mock Staging repo just in case

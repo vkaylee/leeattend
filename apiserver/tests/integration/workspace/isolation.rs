@@ -51,7 +51,7 @@ async fn test_get_employee_time_entries_isolated_by_workspace() {
     // Query with correct workspace → should find 1 entry
     let repo = apiserver::repositories::DieselTimeEntryRepository::new(diesel_pools.clone());
     let entries_a = repo
-        .get_employee_time_entries(
+        .get_employment_time_entries(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_a),
             emp_a,
             start,
@@ -67,7 +67,7 @@ async fn test_get_employee_time_entries_isolated_by_workspace() {
 
     // Query with wrong workspace → should find 0 entries
     let entries_b = repo
-        .get_employee_time_entries(
+        .get_employment_time_entries(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_b),
             emp_a,
             start,
@@ -155,7 +155,7 @@ async fn test_get_workspace_time_entries_batch_isolated() {
     // Batch query with correct workspace
     let repo = apiserver::repositories::DieselTimeEntryRepository::new(diesel_pools.clone());
     let batch_a = repo
-        .get_workspace_time_entries_batch(
+        .get_workspace_time_entries_batch_by_employments(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_a),
             &[emp_a],
             start,
@@ -167,7 +167,7 @@ async fn test_get_workspace_time_entries_batch_isolated() {
 
     // Batch query with wrong workspace
     let batch_b = repo
-        .get_workspace_time_entries_batch(
+        .get_workspace_time_entries_batch_by_employments(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_b),
             &[emp_a],
             start,

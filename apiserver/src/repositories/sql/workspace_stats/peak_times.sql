@@ -12,10 +12,13 @@ slot_labels AS (
     FROM slots
 ),
 today_entries AS (
-    SELECT punch_in_time, punch_out_time
-    FROM time_entries
-    WHERE punch_in_time >= $1
-      AND employee_id IN (SELECT id FROM employees WHERE workspace_id = $2 AND is_active = TRUE)
+    SELECT te.punch_in_time, te.punch_out_time
+    FROM time_entries te
+    JOIN employments emp ON te.employment_id = emp.id AND emp.deleted_at IS NULL
+    WHERE te.punch_in_time >= $1
+      AND emp.workspace_id = $2
+      AND emp.status = 'active'
+      AND CURRENT_DATE BETWEEN emp.start_date AND COALESCE(emp.end_date, '9999-12-31'::date)
 )
 SELECT sl.time_slot::text,
        COALESCE(SUM(CASE WHEN te.punch_in_time::time >= sl.slot_start

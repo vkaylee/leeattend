@@ -16,12 +16,12 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
     async fn get_working_conditions(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         page: i64,
         limit: i64,
     ) -> Result<(Vec<WorkingCondition>, i64), AppError> {
         let workspace_id = auth_token.workspace_id();
-        use crate::schema::{employees, working_conditions};
+        use crate::schema::{employments, working_conditions};
 
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -32,29 +32,29 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
         );
 
         let total: i64 = working_conditions::table
-            .inner_join(employees::table)
-            .filter(working_conditions::employee_id.eq(employee_id))
-            .filter(employees::workspace_id.eq(workspace_id))
-            .filter(employees::deleted_at.is_null())
+            .inner_join(employments::table)
+            .filter(working_conditions::employment_id.eq(employment_id))
+            .filter(employments::workspace_id.eq(workspace_id))
+            .filter(employments::deleted_at.is_null())
             .count()
             .get_result(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db count: {e}")))?;
 
         let result = working_conditions::table
-            .inner_join(employees::table)
+            .inner_join(employments::table)
             .select((
                 working_conditions::id,
-                working_conditions::employee_id,
+                working_conditions::employment_id,
                 working_conditions::type_,
                 working_conditions::minute_allowance,
                 working_conditions::is_paid,
                 working_conditions::start_date,
                 working_conditions::end_date,
             ))
-            .filter(working_conditions::employee_id.eq(employee_id))
-            .filter(employees::workspace_id.eq(workspace_id))
-            .filter(employees::deleted_at.is_null())
+            .filter(working_conditions::employment_id.eq(employment_id))
+            .filter(employments::workspace_id.eq(workspace_id))
+            .filter(employments::deleted_at.is_null())
             .order(working_conditions::start_date.desc())
             .limit(limit)
             .offset((page - 1) * limit)
@@ -86,7 +86,7 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
         condition: &WorkingCondition,
     ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
-        use crate::schema::{employees, working_conditions};
+        use crate::schema::{employments, working_conditions};
 
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -96,25 +96,25 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        // Check if employee exists and belongs to the workspace of this tenant
-        let employee_exists = employees::table
-            .filter(employees::id.eq(condition.employee_id()))
-            .filter(employees::workspace_id.eq(workspace_id))
-            .filter(employees::deleted_at.is_null())
-            .select(employees::id)
+        // Check if employment exists and belongs to the workspace of this tenant
+        let employment_exists = employments::table
+            .filter(employments::id.eq(condition.employment_id()))
+            .filter(employments::workspace_id.eq(workspace_id))
+            .filter(employments::deleted_at.is_null())
+            .select(employments::id)
             .first::<Uuid>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db check employee: {e}")))?;
+            .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
 
-        if employee_exists.is_none() {
-            return Err(AppError::NotFound("error.employee_not_found".to_string()));
+        if employment_exists.is_none() {
+            return Err(AppError::NotFound("error.employment_not_found".to_string()));
         }
 
         diesel::insert_into(working_conditions::table)
             .values((
                 working_conditions::id.eq(condition.id()),
-                working_conditions::employee_id.eq(condition.employee_id()),
+                working_conditions::employment_id.eq(condition.employment_id()),
                 working_conditions::type_.eq(condition.type_()),
                 working_conditions::minute_allowance.eq(condition.minute_allowance()),
                 working_conditions::is_paid.eq(condition.is_paid()),
@@ -132,10 +132,10 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
     ) -> Result<bool, AppError> {
         let workspace_id = auth_token.workspace_id();
-        use crate::schema::{employees, working_conditions};
+        use crate::schema::{employments, working_conditions};
 
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -147,12 +147,12 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
 
         let affected = diesel::delete(working_conditions::table)
             .filter(working_conditions::id.eq(id))
-            .filter(working_conditions::employee_id.eq(employee_id))
+            .filter(working_conditions::employment_id.eq(employment_id))
             .filter(
-                working_conditions::employee_id.eq_any(
-                    employees::table
-                        .select(employees::id)
-                        .filter(employees::workspace_id.eq(workspace_id)),
+                working_conditions::employment_id.eq_any(
+                    employments::table
+                        .select(employments::id)
+                        .filter(employments::workspace_id.eq(workspace_id)),
                 ),
             )
             .execute(&mut *conn)
@@ -165,11 +165,11 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
     async fn get_working_conditions_at(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         date: NaiveDate,
     ) -> Result<Vec<WorkingCondition>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        use crate::schema::{employees, working_conditions};
+        use crate::schema::{employments, working_conditions};
 
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -180,19 +180,19 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
         );
 
         let result = working_conditions::table
-            .inner_join(employees::table)
+            .inner_join(employments::table)
             .select((
                 working_conditions::id,
-                working_conditions::employee_id,
+                working_conditions::employment_id,
                 working_conditions::type_,
                 working_conditions::minute_allowance,
                 working_conditions::is_paid,
                 working_conditions::start_date,
                 working_conditions::end_date,
             ))
-            .filter(working_conditions::employee_id.eq(employee_id))
-            .filter(employees::workspace_id.eq(workspace_id))
-            .filter(employees::deleted_at.is_null())
+            .filter(working_conditions::employment_id.eq(employment_id))
+            .filter(employments::workspace_id.eq(workspace_id))
+            .filter(employments::deleted_at.is_null())
             .filter(working_conditions::start_date.le(date))
             .filter(
                 working_conditions::end_date
@@ -219,17 +219,17 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
             .collect())
     }
 
-    async fn get_working_conditions_batch(
+    async fn get_working_conditions_batch_by_employments(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_ids: &[Uuid],
+        employment_ids: &[Uuid],
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<std::collections::HashMap<Uuid, Vec<WorkingCondition>>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        use crate::schema::{employees, working_conditions};
+        use crate::schema::{employments, working_conditions};
 
-        if employee_ids.is_empty() {
+        if employment_ids.is_empty() {
             return Ok(std::collections::HashMap::new());
         }
 
@@ -242,19 +242,19 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
         );
 
         let result = working_conditions::table
-            .inner_join(employees::table)
+            .inner_join(employments::table)
             .select((
                 working_conditions::id,
-                working_conditions::employee_id,
+                working_conditions::employment_id,
                 working_conditions::type_,
                 working_conditions::minute_allowance,
                 working_conditions::is_paid,
                 working_conditions::start_date,
                 working_conditions::end_date,
             ))
-            .filter(working_conditions::employee_id.eq_any(employee_ids))
-            .filter(employees::workspace_id.eq(workspace_id))
-            .filter(employees::deleted_at.is_null())
+            .filter(working_conditions::employment_id.eq_any(employment_ids))
+            .filter(employments::workspace_id.eq(workspace_id))
+            .filter(employments::deleted_at.is_null())
             .filter(working_conditions::start_date.le(end_date))
             .filter(
                 working_conditions::end_date
@@ -262,7 +262,7 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
                     .or(working_conditions::end_date.ge(start_date)),
             )
             .order((
-                working_conditions::employee_id,
+                working_conditions::employment_id,
                 working_conditions::start_date,
             ))
             .load::<(
@@ -277,7 +277,7 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let mut map = std::collections::HashMap::with_capacity(employee_ids.len());
+        let mut map = std::collections::HashMap::with_capacity(employment_ids.len());
         for (id, emp_id, type_, min, paid, start, end) in result {
             map.entry(emp_id)
                 .or_insert_with(Vec::new)

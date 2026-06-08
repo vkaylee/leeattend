@@ -203,11 +203,82 @@ impl MockWorkerDepsBuilder {
             .expect_get_approved_leave_details()
             .returning(|_, _, _, _| Box::pin(async move { Ok(std::collections::HashMap::new()) }));
 
+        let mut employment_repo = MockEmploymentRepository::new();
+        employment_repo
+            .expect_get_employments_for_employees()
+            .returning(|_, employee_ids| {
+                let mut employments = Vec::new();
+                for &emp_id in employee_ids {
+                    employments.push(crate::models::employment::Employment::new(
+                        emp_id,
+                        uuid::Uuid::new_v4(),
+                        emp_id,
+                        uuid::Uuid::new_v4(),
+                        None,
+                        None,
+                        "active".to_string(),
+                        chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+                        None,
+                        None,
+                        "full_time".to_string(),
+                        None,
+                        chrono::Utc::now(),
+                        chrono::Utc::now(),
+                    ));
+                }
+                Ok(employments)
+            });
+
+        employment_repo
+            .expect_get_employment_by_id()
+            .returning(|_, employment_id| {
+                Ok(Some(crate::models::employment::Employment::new(
+                    employment_id,
+                    uuid::Uuid::new_v4(),
+                    employment_id,
+                    uuid::Uuid::new_v4(),
+                    None,
+                    None,
+                    "active".to_string(),
+                    chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+                    None,
+                    None,
+                    "full_time".to_string(),
+                    None,
+                    chrono::Utc::now(),
+                    chrono::Utc::now(),
+                )))
+            });
+
+        let mut employee_repo = MockEmployeeRepository::new();
+        employee_repo
+            .expect_get_employees_by_ids()
+            .returning(|employee_ids, _| {
+                let mut employees = Vec::new();
+                for &id in employee_ids {
+                    employees.push(
+                        crate::models::Employee::new(
+                            id,
+                            uuid::Uuid::new_v4(),
+                            None,
+                            "Test Employee".to_string(),
+                            "EMP001".to_string(),
+                            vec![],
+                            chrono::Utc::now(),
+                            chrono::Utc::now(),
+                            None,
+                        )
+                        .with_employment_info(Some(id), None, None),
+                    );
+                }
+                Ok(employees)
+            });
+
         Self {
             time_entry_repo: MockTimeEntryRepository::new(),
             roster_repo: MockRosterRepository::new(),
             policy_repo: MockAttendancePolicyRepository::new(),
-            employee_repo: MockEmployeeRepository::new(),
+            employee_repo,
             raw_log_repo: MockRawAttendanceLogRepository::new(),
             staging_repo: MockStagingLogRepository::new(),
             error_repo: MockAttendanceLogErrorRepository::new(),
@@ -222,7 +293,7 @@ impl MockWorkerDepsBuilder {
             session_repo: MockSessionRepository::new(),
             leave_balance_repo: MockLeaveBalanceRepository::new(),
             contract_repo: MockEmployeeContractRepository::new(),
-            employment_repo: MockEmploymentRepository::new(),
+            employment_repo,
             leave_accrual_log_repo: MockLeaveAccrualLogRepository::new(),
             leave_policy_repo: DummyLeavePolicyRepository,
             user_repo: MockUserRepository::new(),

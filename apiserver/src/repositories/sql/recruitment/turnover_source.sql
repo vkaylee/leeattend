@@ -3,9 +3,12 @@ SELECT
     COALESCE(rs.name, 'Direct Hire') AS source_name,
     COUNT(*)::bigint AS count
 FROM employees e
+JOIN employments emp ON e.id = emp.employee_id
 LEFT JOIN recruitment_sources rs ON e.recruitment_source_id = rs.id
-WHERE e.workspace_id = $1 AND e.is_active = FALSE
-  AND e.termination_date IS NOT NULL
-  AND e.termination_date >= $2 AND e.termination_date <= $3
+WHERE emp.workspace_id = $1
+  AND emp.deleted_at IS NULL
+  AND emp.status = 'terminated'
+  AND emp.end_date IS NOT NULL
+  AND emp.end_date >= $2 AND emp.end_date <= $3
 GROUP BY rs.source_type, rs.name
 ORDER BY count DESC

@@ -59,7 +59,7 @@ async fn test_force_reprocess_attendance_api() {
 
     // 2. Verify time_entries are initially empty
     let entries = time_entry_repo
-        .get_employee_time_entries(
+        .get_employment_time_entries(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             emp_id,
             start_dt,
@@ -92,7 +92,7 @@ async fn test_force_reprocess_attendance_api() {
 
     // 4. Verify time_entries are now created correctly
     let entries = time_entry_repo
-        .get_employee_time_entries(
+        .get_employment_time_entries(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             emp_id,
             start_dt,
@@ -153,7 +153,7 @@ async fn test_force_reprocess_all_attendance_api() {
     let end_dt = base_date.and_hms_opt(23, 59, 59).unwrap().and_utc();
     for emp_id in [emp_id_1, emp_id_2] {
         let entries = time_entry_repo
-            .get_employee_time_entries(
+            .get_employment_time_entries(
                 &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
                 emp_id,
                 start_dt,
@@ -265,7 +265,7 @@ async fn test_force_reprocess_all_attendance_api() {
     // 7. Verify time_entries are now created correctly for both employees
     for emp_id in [emp_id_1, emp_id_2] {
         let entries = time_entry_repo
-            .get_employee_time_entries(
+            .get_employment_time_entries(
                 &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
                 emp_id,
                 start_dt,

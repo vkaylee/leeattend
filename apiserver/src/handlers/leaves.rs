@@ -56,7 +56,7 @@ pub async fn submit_leave_request(
         .get_employment_by_id(&ctx.auth_token, req.employment_id)
         .await?
         .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
-    let target_employee_id = employment.employee_id;
+    let target_employee_id = employment.employee_id();
 
     // Look up employee's department for scoped permission check
     let target_dept_id =

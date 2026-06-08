@@ -143,11 +143,7 @@ impl EmployeeService {
             req.user_id,
             req.full_name,
             req.employee_id_number.into_inner(),
-            req.hire_date,
-            req.hire_date,
-            None,
             req.tags.unwrap_or_default(),
-            true,
             Utc::now(),
             Utc::now(),
             None,
@@ -158,6 +154,7 @@ impl EmployeeService {
             .create_employee_transactional(
                 auth_token,
                 &employee,
+                req.hire_date,
                 req.recruitment_source_id,
                 req.employer_id,
                 req.primary_location_id,
@@ -188,27 +185,15 @@ impl EmployeeService {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         req: RehireEmployeeRequest,
     ) -> Result<Employee, AppError> {
-        let _workspace_id = auth_token.workspace_id();
-        let employee = self
-            .repo
-            .get_employee_by_id(employee_id, auth_token)
-            .await?
-            .ok_or(AppError::NotFound("Employee not found".into()))?;
-
-        if employee.is_active() {
-            return Err(AppError::Validation("Employee is already active".into()));
-        }
-
-        if let Some(term_date) = employee.termination_date() {
-            if req.hire_date <= term_date {
-                return Err(AppError::Validation(
-                    "Rehire date must be after termination date".into(),
-                ));
-            }
-        }
-
         self.repo
-            .rehire_employee(auth_token, employee_id, req.hire_date)
+            .rehire_employee(
+                auth_token,
+                employee_id,
+                req.hire_date,
+                req.employer_id,
+                req.primary_location_id,
+                req.department_id,
+            )
             .await?
             .ok_or(AppError::NotFound("Employee not found after rehire".into()))
     }
@@ -384,11 +369,7 @@ mod tests {
             None,
             "Test Employee".into(),
             "EMP001".into(),
-            NaiveDate::from_ymd_opt(2026, 1, 1).expect("valid date"),
-            NaiveDate::from_ymd_opt(2026, 1, 1).expect("valid date"),
-            None,
             vec![],
-            true,
             Utc::now(),
             Utc::now(),
             None,
@@ -555,6 +536,7 @@ mod tests {
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _employee: &Employee,
+            _hire_date: chrono::NaiveDate,
             _recruitment_source_id: Option<Uuid>,
             _employer_id: Uuid,
             _primary_location_id: Option<Uuid>,
@@ -574,7 +556,10 @@ mod tests {
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _emp: Uuid,
-            _date: NaiveDate,
+            _hire_date: NaiveDate,
+            _employer_id: Uuid,
+            _primary_location_id: Option<Uuid>,
+            _department_id: Option<Uuid>,
         ) -> Result<Option<Employee>, AppError> {
             Ok(self.updated_employee.lock().expect("lock").clone())
         }
@@ -699,10 +684,10 @@ mod tests {
             Ok(vec![])
         }
 
-        async fn get_working_conditions_batch(
+        async fn get_working_conditions_batch_by_employments(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _employee_ids: &[Uuid],
+            _employment_ids: &[Uuid],
             _start_date: NaiveDate,
             _end_date: NaiveDate,
         ) -> Result<std::collections::HashMap<Uuid, Vec<WorkingCondition>>, AppError> {
@@ -1537,7 +1522,7 @@ mod tests {
         assert_eq!(wc.type_(), "early_leave");
         assert_eq!(wc.minute_allowance(), 30);
         assert!(!wc.is_paid());
-        assert_eq!(wc.employee_id(), emp.id());
+        assert_eq!(wc.employment_id(), emp.id());
     }
 
     // ── Tests: delete_working_condition ──────────────────────────────
@@ -1647,6 +1632,9 @@ mod tests {
         let svc = make_service(MockEmployeeRepo::empty());
         let req = crate::models::RehireEmployeeRequest {
             hire_date: NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
+            employer_id: Uuid::new_v4(),
+            primary_location_id: None,
+            department_id: None,
         };
         let result = svc
             .rehire_employee(
@@ -1659,58 +1647,13 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn rehire_employee_already_active() {
-        let ws = Uuid::new_v4();
-        let emp = make_employee(ws); // active by default
-        let svc = make_service(MockEmployeeRepo::with_employee(emp.clone()));
-        let req = crate::models::RehireEmployeeRequest {
-            hire_date: NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
-        };
-        let result = svc
-            .rehire_employee(
-                emp.id(),
-                &crate::diesel_pool::TenantAuthToken::system_override(ws),
-                req,
-            )
-            .await;
-        assert!(
-            matches!(result.unwrap_err(), AppError::Validation(e) if e == "Employee is already active")
-        );
-    }
-
-    #[tokio::test]
-    async fn rehire_employee_invalid_date() {
-        let ws = Uuid::new_v4();
-        let mut emp = make_employee(ws);
-        emp.set_is_active(false);
-        emp.set_termination_date(Some(NaiveDate::from_ymd_opt(2026, 5, 1).unwrap()));
-        let svc = make_service(MockEmployeeRepo::with_employee(emp.clone()));
-        let req = crate::models::RehireEmployeeRequest {
-            hire_date: NaiveDate::from_ymd_opt(2026, 4, 1).unwrap(), // Before termination
-        };
-        let result = svc
-            .rehire_employee(
-                emp.id(),
-                &crate::diesel_pool::TenantAuthToken::system_override(ws),
-                req,
-            )
-            .await;
-        assert!(
-            matches!(result.unwrap_err(), AppError::Validation(e) if e == "Rehire date must be after termination date")
-        );
-    }
-
-    #[tokio::test]
     async fn update_employee_not_found() {
         let svc = make_service(MockEmployeeRepo::empty());
         let req = crate::models::UpdateEmployeeRequest {
             user_id: None,
             full_name: None,
             employee_id_number: None,
-            hire_date: None,
-            termination_date: None,
             tags: None,
-            is_active: None,
             max_concurrent_workers: None,
             recruitment_source_id: None,
             force_transfer: None,
@@ -1737,10 +1680,7 @@ mod tests {
             user_id: None,
             full_name: Some("Updated Name".into()),
             employee_id_number: None,
-            hire_date: None,
-            termination_date: None,
             tags: None,
-            is_active: None,
             max_concurrent_workers: None,
             recruitment_source_id: None, // No source ID, no id_number update
             force_transfer: None,
@@ -1772,10 +1712,7 @@ mod tests {
             user_id: Some(Some(conflict_user_id)),
             full_name: None,
             employee_id_number: None,
-            hire_date: None,
-            termination_date: None,
             tags: None,
-            is_active: None,
             max_concurrent_workers: None,
             recruitment_source_id: None,
             force_transfer: None,
@@ -1815,10 +1752,7 @@ mod tests {
             user_id: Some(Some(conflict_user_id)),
             full_name: None,
             employee_id_number: None,
-            hire_date: None,
-            termination_date: None,
             tags: None,
-            is_active: None,
             max_concurrent_workers: None,
             recruitment_source_id: None,
             force_transfer: Some(true),

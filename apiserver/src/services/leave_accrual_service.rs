@@ -432,9 +432,28 @@ impl LeaveAccrualService {
         let end_dt = local_to_utc(&tz, range_end, 23, 59, 59).map_err(AppError::Internal)?;
         let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
 
+        let employees = self
+            .employee_repo
+            .get_employees_by_ids(employee_ids, &auth_token)
+            .await?;
+
+        let mut emp_to_employment = HashMap::new();
+        let mut employment_ids = Vec::new();
+        for emp in &employees {
+            if let Some(employment_id) = emp.active_employment_id() {
+                emp_to_employment.insert(emp.id(), employment_id);
+                employment_ids.push(employment_id);
+            }
+        }
+
         let work_entries = self
             .time_entry_repo
-            .get_workspace_time_entries_batch(&auth_token, employee_ids, start_dt, end_dt)
+            .get_workspace_time_entries_batch_by_employments(
+                &auth_token,
+                &employment_ids,
+                start_dt,
+                end_dt,
+            )
             .await?;
 
         let _leave_days_map = self
@@ -450,13 +469,15 @@ impl LeaveAccrualService {
         let mut result_map: HashMap<Uuid, HashMap<NaiveDate, i32>> = HashMap::new();
         use chrono::Datelike;
 
-        for (emp_id, entries) in work_entries {
-            let emp_map = result_map.entry(emp_id).or_default();
-            for entry in entries {
-                let date = entry.punch_in_time().with_timezone(&tz).date_naive();
-                let month_key =
-                    NaiveDate::from_ymd_opt(date.year(), date.month(), 1).unwrap_or(date);
-                *emp_map.entry(month_key).or_insert(0) += 1;
+        for (emp_id, employment_id) in &emp_to_employment {
+            if let Some(entries) = work_entries.get(employment_id) {
+                let emp_map = result_map.entry(*emp_id).or_default();
+                for entry in entries {
+                    let date = entry.punch_in_time().with_timezone(&tz).date_naive();
+                    let month_key =
+                        NaiveDate::from_ymd_opt(date.year(), date.month(), 1).unwrap_or(date);
+                    *emp_map.entry(month_key).or_insert(0) += 1;
+                }
             }
         }
 
@@ -1287,7 +1308,7 @@ mod tests {
 
         use chrono::TimeZone;
         mock_time_entry
-            .expect_get_workspace_time_entries_batch()
+            .expect_get_workspace_time_entries_batch_by_employments()
             .returning(move |_, _, _, _| {
                 let mut map = std::collections::HashMap::new();
                 map.insert(
@@ -1325,8 +1346,32 @@ mod tests {
                 )))
             });
 
+        let mut mock_employee_repo = MockEmployeeRepository::new();
+        mock_employee_repo
+            .expect_get_employees_by_ids()
+            .returning(move |ids, _| {
+                let mut employees = Vec::new();
+                for &id in ids {
+                    employees.push(
+                        crate::models::Employee::new(
+                            id,
+                            Uuid::new_v4(),
+                            None,
+                            "John Doe".to_string(),
+                            "EMP001".to_string(),
+                            vec![],
+                            chrono::Utc::now(),
+                            chrono::Utc::now(),
+                            None,
+                        )
+                        .with_employment_info(Some(id), None, None),
+                    );
+                }
+                Ok(employees)
+            });
+
         let service = LeaveAccrualService {
-            employee_repo: Arc::new(MockEmployeeRepository::new()),
+            employee_repo: Arc::new(mock_employee_repo),
             department_repo: Arc::new(MockDepartmentRepository::new()),
             leave_policy_repo: Arc::new(MockLeavePolicyRepository::new()),
             accrual_log_repo: Arc::new(MockLeaveAccrualLogRepository::new()),

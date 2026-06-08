@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::models::Employee;
 use crate::schema::employees;
-use diesel::sql_types::{Array, BigInt, Bool, Date, Nullable, Text, Timestamptz, Uuid as UuidType};
+use diesel::sql_types::{Array, BigInt, Nullable, Text, Timestamptz, Uuid as UuidType};
 
 #[derive(QueryableByName)]
 pub struct CountRow {
@@ -24,16 +24,8 @@ pub struct EmployeeRow {
     pub full_name: String,
     #[diesel(sql_type = Text)]
     pub employee_id_number: String,
-    #[diesel(sql_type = Date)]
-    pub original_hire_date: chrono::NaiveDate,
-    #[diesel(sql_type = Date)]
-    pub hire_date: chrono::NaiveDate,
-    #[diesel(sql_type = Nullable<Date>)]
-    pub termination_date: Option<chrono::NaiveDate>,
     #[diesel(sql_type = Array<Text>)]
     pub tags: Vec<String>,
-    #[diesel(sql_type = Bool)]
-    pub is_active: bool,
     #[diesel(sql_type = Timestamptz)]
     pub created_at: chrono::DateTime<chrono::Utc>,
     #[diesel(sql_type = Timestamptz)]
@@ -56,11 +48,7 @@ impl From<EmployeeRow> for Employee {
             row.user_id,
             row.full_name,
             row.employee_id_number,
-            row.original_hire_date,
-            row.hire_date,
-            row.termination_date,
             row.tags,
-            row.is_active,
             row.created_at,
             row.updated_at,
             row.department_name,
@@ -80,15 +68,11 @@ pub struct EmployeeEntity {
     pub workspace_id: Uuid,
     pub user_id: Option<Uuid>,
     pub employee_id_number: String,
-    pub is_active: bool,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
     pub tags: Option<Vec<Option<String>>>,
     pub full_name: String,
     pub recruitment_source_id: Option<Uuid>,
-    pub hire_date: NaiveDate,
-    pub termination_date: Option<NaiveDate>,
-    pub original_hire_date: NaiveDate,
     pub deleted_at: Option<DateTime<Utc>>,
 }
 
@@ -99,15 +83,11 @@ impl From<Employee> for EmployeeEntity {
             workspace_id: val.workspace_id(),
             user_id: val.user_id(),
             employee_id_number: val.employee_id_number().to_string(),
-            is_active: val.is_active(),
             created_at: Some(val.created_at()),
             updated_at: Some(val.updated_at()),
             tags: Some(val.tags().to_vec().into_iter().map(Some).collect()),
             full_name: val.full_name().to_string(),
             recruitment_source_id: None,
-            hire_date: val.hire_date(),
-            termination_date: val.termination_date(),
-            original_hire_date: val.original_hire_date(),
             deleted_at: None,
         }
     }
@@ -121,11 +101,7 @@ impl From<EmployeeEntity> for Employee {
             val.user_id,
             val.full_name,
             val.employee_id_number,
-            val.original_hire_date,
-            val.hire_date,
-            val.termination_date,
             val.tags.unwrap_or_default().into_iter().flatten().collect(),
-            val.is_active,
             val.created_at.unwrap_or_else(Utc::now),
             val.updated_at.unwrap_or_else(Utc::now),
             None,
@@ -140,9 +116,6 @@ pub struct UpdateDieselEmployee {
     pub full_name: Option<String>,
     pub employee_id_number: Option<String>,
     pub tags: Option<Vec<Option<String>>>,
-    pub is_active: Option<bool>,
-    pub hire_date: Option<NaiveDate>,
-    pub termination_date: Option<Option<NaiveDate>>,
     pub updated_at: Option<DateTime<Utc>>,
 }
 

@@ -7,7 +7,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::domain::permissions::Permission;
-use crate::errors::AppResult;
+use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{
     AdjustmentStatus, ApproveAttendanceAdjustmentRequest, AttendanceAdjustmentRequest,
@@ -39,7 +39,15 @@ pub async fn submit_attendance_adjustment(
     Json(req): Json<CreateAttendanceAdjustmentRequest>,
 ) -> AppResult<(StatusCode, Json<AttendanceAdjustmentRequest>)> {
     let workspace_id = ctx.workspace_id;
-    let target_employee_id = req.employee_id;
+
+    let target_employment = state
+        .employees()
+        .employment_repo()
+        .get_employment_by_id(&ctx.auth_token, req.employment_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("error.employment_not_found".to_string()))?;
+
+    let target_employee_id = target_employment.employee_id();
 
     // Behalf scope enforcement: check if caller is submitting for another employee
     let caller_employee_id = state
@@ -68,7 +76,7 @@ pub async fn submit_attendance_adjustment(
             &ctx.auth_token,
             "attendance_adjustment".to_string(),
             adjustment.id(),
-            adjustment.employee_id(),
+            target_employee_id,
         )
         .await?;
 

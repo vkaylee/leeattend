@@ -44,7 +44,7 @@ pub async fn punch_in(
         .punch(
             state.attendance().log_service().as_ref(),
             workspace_id,
-            req.employee_id(),
+            req.employment_id(),
             req.note().map(String::from),
         )
         .await?;

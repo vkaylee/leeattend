@@ -302,7 +302,7 @@ impl ShiftSwapService {
             // Requester gets target's shift
             let requester_roster = ShiftRoster {
                 id: Uuid::new_v4(),
-                employee_id: request.requester_id(),
+                employment_id: request.requester_id(),
                 shift_id: request.target_shift_id(),
                 date: request.swap_date(),
                 status: "active".to_string(),
@@ -314,7 +314,7 @@ impl ShiftSwapService {
             // Target gets requester's shift
             let target_roster = ShiftRoster {
                 id: Uuid::new_v4(),
-                employee_id: request.target_id(),
+                employment_id: request.target_id(),
                 shift_id: request.requester_shift_id(),
                 date: request.swap_date(),
                 status: "active".to_string(),
@@ -641,11 +641,7 @@ mod tests {
             Some(Uuid::new_v4()),
             "Test Emp".to_string(),
             "EMP".to_string(),
-            NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-            NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-            None,
             vec![],
-            true,
             Utc::now(),
             Utc::now(),
             None,

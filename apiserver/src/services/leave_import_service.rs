@@ -161,7 +161,7 @@ impl ImportStrategy for LeaveImportStrategy {
 
         let mut emp_to_employment = std::collections::HashMap::new();
         for emp_ment in employments {
-            emp_to_employment.insert(emp_ment.employee_id, emp_ment.id);
+            emp_to_employment.insert(emp_ment.employee_id(), emp_ment.id());
         }
 
         for emp in emps {

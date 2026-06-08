@@ -724,6 +724,7 @@ mod tests {
             &self,
             _a: &TenantAuthToken,
             _e: &Employee,
+            _hire_date: chrono::NaiveDate,
             _r: Option<Uuid>,
             _employer_id: Uuid,
             _primary_location_id: Option<Uuid>,
@@ -738,7 +739,10 @@ mod tests {
             &self,
             _a: &TenantAuthToken,
             _id: Uuid,
-            _d: NaiveDate,
+            _hire_date: NaiveDate,
+            _employer_id: Uuid,
+            _primary_location_id: Option<Uuid>,
+            _department_id: Option<Uuid>,
         ) -> Result<Option<Employee>, AppError> {
             Ok(None)
         }
@@ -837,10 +841,10 @@ mod tests {
         ) -> Result<Vec<crate::models::WorkingCondition>, AppError> {
             Ok(vec![])
         }
-        async fn get_working_conditions_batch(
+        async fn get_working_conditions_batch_by_employments(
             &self,
             _a: &TenantAuthToken,
-            _ids: &[Uuid],
+            _employment_ids: &[Uuid],
             _s: NaiveDate,
             _en: NaiveDate,
         ) -> Result<std::collections::HashMap<Uuid, Vec<crate::models::WorkingCondition>>, AppError>
@@ -1605,11 +1609,7 @@ mod tests {
             user_id,
             name.to_string(),
             format!("EMP_{name}"),
-            NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
-            NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
-            None,
             vec![],
-            true,
             Utc::now(),
             Utc::now(),
             None,

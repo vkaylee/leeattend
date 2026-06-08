@@ -667,10 +667,10 @@ mod tests {
     }
     #[async_trait]
     impl RosterRepository for MockRosterRepo {
-        async fn get_employee_rosters_batch(
+        async fn get_employment_rosters_batch(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _employee_ids: &[uuid::Uuid],
+            _employment_ids: &[uuid::Uuid],
             _start_date: chrono::NaiveDate,
             _end_date: chrono::NaiveDate,
         ) -> Result<
@@ -737,10 +737,10 @@ mod tests {
         ) -> Result<Vec<crate::models::AssignmentHistory>, AppError> {
             unimplemented!()
         }
-        async fn get_employee_rosters(
+        async fn get_employment_rosters(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _e: Uuid,
+            _employment_id: Uuid,
             _s: NaiveDate,
             _en: NaiveDate,
         ) -> Result<Vec<ShiftRoster>, AppError> {
@@ -895,19 +895,22 @@ mod tests {
             mock_employment_repo
                 .expect_get_employment_by_id()
                 .returning(|_, _| {
-                    Ok(Some(crate::models::employment::Employment {
-                        id: Uuid::new_v4(),
-                        workspace_id: Uuid::new_v4(),
-                        employee_id: Uuid::new_v4(),
-                        employer_id: Uuid::new_v4(),
-                        primary_location_id: None,
-                        department_id: None,
-                        status: "active".to_string(),
-                        start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-                        end_date: None,
-                        created_at: chrono::Utc::now(),
-                        updated_at: chrono::Utc::now(),
-                    }))
+                    Ok(Some(crate::models::employment::Employment::new(
+                        Uuid::new_v4(),
+                        Uuid::new_v4(),
+                        Uuid::new_v4(),
+                        Uuid::new_v4(),
+                        None,
+                        None,
+                        "active".to_string(),
+                        NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                        None,
+                        None,
+                        "full_time".to_string(),
+                        None,
+                        chrono::Utc::now(),
+                        chrono::Utc::now(),
+                    )))
                 });
         } else {
             mock_employment_repo
@@ -938,11 +941,7 @@ mod tests {
             None,
             "Test".into(),
             "EMP001".into(),
-            NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
-            NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
-            None,
             vec![],
-            true,
             Utc::now(),
             Utc::now(),
             None,

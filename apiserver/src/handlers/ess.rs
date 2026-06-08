@@ -273,15 +273,21 @@ pub async fn get_my_attendance(
         .map(|t| t.and_utc())
         .ok_or_else(|| AppError::Internal("Invalid end date".to_string()))?;
 
+    let auth_token = crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id);
+    let emp = state
+        .employees()
+        .repo()
+        .get_employee_by_id(employee.employee_id, &auth_token)
+        .await?
+        .ok_or_else(|| AppError::not_found(I18nKey::EmployeeNotFound))?;
+    let active_emp_id = emp
+        .active_employment_id()
+        .ok_or_else(|| AppError::validation_raw("No active employment found"))?;
+
     let entries = state
         .attendance()
         .time_entry_repo()
-        .get_employee_time_entries(
-            &crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id),
-            employee.employee_id,
-            from,
-            to,
-        )
+        .get_employment_time_entries(&auth_token, active_emp_id, from, to)
         .await?;
 
     Ok(Json(entries))
@@ -307,13 +313,24 @@ pub async fn ess_punch(
     employee: EmployeeContext,
     Json(req): Json<EssPunchRequest>,
 ) -> AppResult<(StatusCode, Json<TimeEntry>)> {
+    let auth_token = crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id);
+    let emp = state
+        .employees()
+        .repo()
+        .get_employee_by_id(employee.employee_id, &auth_token)
+        .await?
+        .ok_or_else(|| AppError::not_found(I18nKey::EmployeeNotFound))?;
+    let active_emp_id = emp
+        .active_employment_id()
+        .ok_or_else(|| AppError::validation_raw("No active employment found"))?;
+
     let entry = state
         .attendance()
         .time_tracking_service()
         .punch(
             state.attendance().log_service().as_ref(),
             employee.workspace_id,
-            employee.employee_id,
+            active_emp_id,
             req.note,
         )
         .await?;
@@ -348,10 +365,21 @@ pub async fn get_my_time_entries(
         .unwrap_or_else(|| chrono::Utc::now() - chrono::Duration::days(30));
     let end = query.end_date.unwrap_or_else(chrono::Utc::now);
 
+    let auth_token = crate::diesel_pool::TenantAuthToken::system_override(employee.workspace_id);
+    let emp = state
+        .employees()
+        .repo()
+        .get_employee_by_id(employee.employee_id, &auth_token)
+        .await?
+        .ok_or_else(|| AppError::not_found(I18nKey::EmployeeNotFound))?;
+    let active_emp_id = emp
+        .active_employment_id()
+        .ok_or_else(|| AppError::validation_raw("No active employment found"))?;
+
     let entries = state
         .attendance()
         .time_tracking_service()
-        .get_employee_history(employee.workspace_id, employee.employee_id, start, end)
+        .get_employee_history(employee.workspace_id, active_emp_id, start, end)
         .await?;
 
     Ok(Json(entries))

@@ -127,7 +127,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         for schedule in &schedules {
             for s in &schedule.schedules {
                 if let Some(shift_start) = s.start_time {
-                    if let Some(&first_punch) = punch_map.get(&(schedule.employee_id, s.date)) {
+                    if let Some(&first_punch) = punch_map.get(&(schedule.employment_id, s.date)) {
                         if first_punch > shift_start {
                             *late_count_map.entry(s.date).or_insert(0i64) += 1;
                         }
@@ -137,7 +137,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         }
 
         let total_active: i64 = diesel::sql_query(
-            "SELECT COUNT(*)::bigint as count FROM employees WHERE workspace_id = $1 AND is_active = TRUE",
+            "SELECT COUNT(*)::bigint as count FROM employments WHERE workspace_id = $1 AND status = 'active' AND deleted_at IS NULL",
         )
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
         .get_result::<CountRow>(&mut *conn)
@@ -261,11 +261,11 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
 
             let mut late_dept_counts = std::collections::HashMap::new();
             for schedule in schedules {
-                if let Some(dept_id) = dept_map.get(&schedule.employee_id) {
+                if let Some(dept_id) = dept_map.get(&schedule.employment_id) {
                     if !schedule.schedules.is_empty() {
                         let s = &schedule.schedules[0];
                         if let Some(shift_start) = s.start_time {
-                            if let Some(&first_punch) = punch_map.get(&schedule.employee_id) {
+                            if let Some(&first_punch) = punch_map.get(&schedule.employment_id) {
                                 if first_punch > shift_start {
                                     *late_dept_counts.entry(*dept_id).or_insert(0i64) += 1;
                                 }
@@ -366,7 +366,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             .await?;
 
         let total_employees: i64 = diesel::sql_query(
-            "SELECT COUNT(*)::bigint as count FROM employees WHERE workspace_id = $1 AND is_active = TRUE",
+            "SELECT COUNT(*)::bigint as count FROM employments WHERE workspace_id = $1 AND status = 'active' AND deleted_at IS NULL",
         )
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
         .get_result::<CountRow>(&mut *conn)
@@ -382,9 +382,9 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             .ok_or_else(|| AppError::Internal("Invalid date calculation".to_string()))?;
 
         let present_today: i64 = diesel::sql_query(
-            "SELECT COUNT(DISTINCT employee_id)::bigint as count FROM time_entries
+            "SELECT COUNT(DISTINCT employment_id)::bigint as count FROM time_entries
          WHERE (punch_in_time AT TIME ZONE $3)::date = $1::date
-         AND employee_id IN (SELECT id FROM employees WHERE workspace_id = $2)",
+         AND employment_id IN (SELECT id FROM employments WHERE workspace_id = $2 AND deleted_at IS NULL)",
         )
         .bind::<diesel::sql_types::Date, _>(today)
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
@@ -397,7 +397,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         let pending_leave: i64 = diesel::sql_query(
             "SELECT COUNT(*)::bigint as count FROM leave_requests
          WHERE status = 'pending'
-         AND employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
+         AND employment_id IN (SELECT id FROM employments WHERE workspace_id = $1 AND deleted_at IS NULL)",
         )
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
         .get_result::<CountRow>(&mut *conn)
@@ -415,10 +415,10 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         .unwrap_or(rust_decimal::Decimal::ZERO);
 
         let on_leave_today: i64 = diesel::sql_query(
-        "SELECT COUNT(DISTINCT lr.employee_id)::bigint as count FROM leave_requests lr
+        "SELECT COUNT(DISTINCT lr.employment_id)::bigint as count FROM leave_requests lr
          WHERE lr.status IN ('approved', 'pre_approved')
          AND lr.start_date <= $1 AND lr.end_date >= $1
-         AND lr.employee_id IN (SELECT id FROM employees WHERE workspace_id = $2 AND is_active = TRUE)",
+         AND lr.employment_id IN (SELECT id FROM employments WHERE workspace_id = $2 AND status = 'active' AND deleted_at IS NULL)",
     )
     .bind::<diesel::sql_types::Date, _>(today)
     .bind::<diesel::sql_types::Uuid, _>(workspace_id)
@@ -476,14 +476,14 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             if !schedule.schedules.is_empty() {
                 let s = &schedule.schedules[0];
                 if let Some(shift_start) = s.start_time {
-                    if let Some(&first_punch) = first_punch_map.get(&schedule.employee_id) {
+                    if let Some(&first_punch) = first_punch_map.get(&schedule.employment_id) {
                         if first_punch > shift_start {
                             late_today += 1;
                         }
                     }
                 }
                 if let Some(shift_end) = s.end_time {
-                    if let Some(&last_punch_out) = last_punch_map.get(&schedule.employee_id) {
+                    if let Some(&last_punch_out) = last_punch_map.get(&schedule.employment_id) {
                         if last_punch_out < shift_end {
                             early_departure_today += 1;
                         }
@@ -497,7 +497,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
          WHERE punch_in_time >= $1
          AND punch_out_time IS NOT NULL
          AND duration_minutes > 0
-         AND employee_id IN (SELECT id FROM employees WHERE workspace_id = $2 AND is_active = TRUE)",
+         AND employment_id IN (SELECT id FROM employments WHERE workspace_id = $2 AND status = 'active' AND deleted_at IS NULL)",
     )
     .bind::<diesel::sql_types::Timestamptz, _>(start_of_day)
     .bind::<diesel::sql_types::Uuid, _>(workspace_id)
@@ -644,7 +644,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         for schedule in &schedules {
             for s in &schedule.schedules {
                 if let Some(shift_start) = s.start_time {
-                    if let Some(&first_punch) = punch_map.get(&(schedule.employee_id, s.date)) {
+                    if let Some(&first_punch) = punch_map.get(&(schedule.employment_id, s.date)) {
                         if first_punch > shift_start {
                             let late_mins = (first_punch - shift_start).num_seconds() as f64 / 60.0;
                             let dow = s.date.weekday().number_from_monday() as i32;

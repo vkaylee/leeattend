@@ -70,12 +70,21 @@ impl AttendanceMatcher {
                 .active_employments
                 .iter()
                 .filter(|e| {
-                    e.status == "active"
-                        && e.start_date <= current_date
-                        && e.end_date.is_none_or(|end| end >= current_date)
+                    e.status() == "active"
+                        && e.start_date() <= current_date
+                        && e.end_date().is_none_or(|end| end >= current_date)
                 })
-                .max_by_key(|e| e.start_date);
-            let active_employer_id = active_employment.map(|e| e.employer_id);
+                .max_by_key(|e| e.start_date());
+            let active_employer_id = active_employment.map(crate::models::Employment::employer_id);
+            let active_employment_id = active_employment
+                .map(crate::models::Employment::id)
+                .unwrap_or_else(|| {
+                    args.ctx
+                        .active_employments
+                        .first()
+                        .map(crate::models::Employment::id)
+                        .unwrap_or_else(Uuid::nil)
+                });
 
             // Find active assignment on current_date
             let active_assignment = args
@@ -96,6 +105,7 @@ impl AttendanceMatcher {
             let (shift_ids, _, _) = resolve_effective_shift_from_data(
                 &args.ctx.roster_data,
                 &args.ctx.payroll_roster_map,
+                active_employment_id,
                 employee_id,
                 &args.ctx.emp_id_number,
                 args.ctx.emp_tags.as_ref(),
@@ -750,8 +760,27 @@ mod tests {
             ..Default::default()
         };
 
+        let employment_id = Uuid::new_v4();
+        let employer_id = Uuid::new_v4();
+        let employment = crate::models::employment::Employment::new(
+            employment_id,
+            ws_id,
+            employee_id,
+            employer_id,
+            None,
+            None,
+            "active".to_string(),
+            date - chrono::Duration::days(10),
+            None,
+            None,
+            "full_time".to_string(),
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
+
         let mut payroll_roster_map = HashMap::new();
-        payroll_roster_map.insert((employee_id, date), Some(shift_id));
+        payroll_roster_map.insert((employment_id, date), Some(shift_id));
 
         let attendance_rules = AttendanceRules {
             work_unit_minutes: 30,
@@ -782,7 +811,7 @@ mod tests {
                 crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default(),
             active_contracts: vec![],
             active_assignments: vec![],
-            active_employments: vec![],
+            active_employments: vec![employment],
             primary_location_id: Uuid::new_v4(),
         };
 
@@ -960,8 +989,27 @@ mod tests {
             ..Default::default()
         };
 
+        let employment_id = Uuid::new_v4();
+        let employer_id = Uuid::new_v4();
+        let employment = crate::models::employment::Employment::new(
+            employment_id,
+            ws_id,
+            employee_id,
+            employer_id,
+            None,
+            None,
+            "active".to_string(),
+            date - chrono::Duration::days(10),
+            None,
+            None,
+            "full_time".to_string(),
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
+
         let mut payroll_roster_map = HashMap::new();
-        payroll_roster_map.insert((employee_id, date), Some(shift_id));
+        payroll_roster_map.insert((employment_id, date), Some(shift_id));
 
         let mut holidays_map = HashMap::new();
         holidays_map.insert(
@@ -1013,7 +1061,7 @@ mod tests {
                 crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default(),
             active_contracts: vec![],
             active_assignments: vec![],
-            active_employments: vec![],
+            active_employments: vec![employment],
             primary_location_id: Uuid::new_v4(),
         };
 
@@ -1108,8 +1156,27 @@ mod tests {
             ..Default::default()
         };
 
+        let employment_id = Uuid::new_v4();
+        let employer_id = Uuid::new_v4();
+        let employment = crate::models::employment::Employment::new(
+            employment_id,
+            ws_id,
+            employee_id,
+            employer_id,
+            None,
+            None,
+            "active".to_string(),
+            date - chrono::Duration::days(10),
+            None,
+            None,
+            "full_time".to_string(),
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
+
         let mut payroll_roster_map = HashMap::new();
-        payroll_roster_map.insert((employee_id, date), Some(shift_id));
+        payroll_roster_map.insert((employment_id, date), Some(shift_id));
 
         let attendance_rules = AttendanceRules {
             work_unit_minutes: 30,
@@ -1180,7 +1247,7 @@ mod tests {
             overtime_data,
             active_contracts: vec![],
             active_assignments: vec![],
-            active_employments: vec![],
+            active_employments: vec![employment],
             primary_location_id: Uuid::new_v4(),
         };
 

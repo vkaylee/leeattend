@@ -277,7 +277,7 @@ async fn test_get_active_employees_excludes_inactive() {
     // Deactivate one
     crate::test_execute!(
         &pool.api,
-        "UPDATE employees SET is_active = false WHERE id = $1",
+        "UPDATE employments SET status = 'terminated' WHERE employee_id = $1",
         diesel::sql_types::Uuid,
         e2
     );
@@ -451,10 +451,10 @@ async fn test_get_turnover_analytics_direct() {
         .create()
         .await;
 
-    // Manually set hire_date and termination_date
+    // Manually set start_date, end_date and status
     crate::test_execute!(
         &test_db.diesel_pools.api,
-        "UPDATE employees SET is_active = false, hire_date = $1, termination_date = $2 WHERE id = $3",
+        "UPDATE employments SET status = 'terminated', start_date = $1, end_date = $2 WHERE employee_id = $3",
         diesel::sql_types::Date, NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
         diesel::sql_types::Date, NaiveDate::from_ymd_opt(2025, 6, 1).unwrap(),
         diesel::sql_types::Uuid, emp_id
@@ -838,18 +838,26 @@ async fn test_employee_core_crud() {
     let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
     let auth_token = apiserver::diesel_pool::TenantAuthToken::system_override(ws_id);
 
-    let hq_loc_id = {
+    let (hq_loc_id, employer_id) = {
         let mut conn = pool.tenants_tx.get_connection(&ws_id).await.unwrap();
+        use apiserver::schema::employers::dsl::employers;
         use apiserver::schema::work_locations::dsl::*;
         use diesel::prelude::*;
         use diesel_async::RunQueryDsl;
-        work_locations
+        let loc = work_locations
             .filter(workspace_id.eq(ws_id))
             .filter(is_headquarters.eq(true))
             .select(id)
             .first::<uuid::Uuid>(&mut *conn)
             .await
-            .unwrap()
+            .unwrap();
+        let emp_id = employers
+            .filter(apiserver::schema::employers::dsl::workspace_id.eq(ws_id))
+            .select(apiserver::schema::employers::dsl::id)
+            .first::<uuid::Uuid>(&mut *conn)
+            .await
+            .unwrap();
+        (loc, emp_id)
     };
 
     // Create
@@ -859,11 +867,7 @@ async fn test_employee_core_crud() {
         None,
         "Core Employee".to_string(),
         "CORE1".to_string(),
-        NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-        NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-        None,
         vec!["Test".to_string()],
-        true,
         Utc::now(),
         Utc::now(),
         None,
@@ -891,9 +895,6 @@ async fn test_employee_core_crud() {
         full_name: Some("Core Updated".to_string()),
         employee_id_number: Some("CORE1-U".to_string().into()),
         tags: Some(vec!["Updated".to_string()]),
-        is_active: Some(false),
-        hire_date: Some(NaiveDate::from_ymd_opt(2026, 2, 1).unwrap()),
-        termination_date: Some(NaiveDate::from_ymd_opt(2026, 3, 1).unwrap()),
         user_id: None,
         recruitment_source_id: None,
         max_concurrent_workers: None,
@@ -908,23 +909,47 @@ async fn test_employee_core_crud() {
     assert_eq!(updated.full_name(), "Core Updated");
     assert_eq!(updated.is_active(), false);
 
+    // Deactivate the active employment in DB to allow rehire
+    crate::test_execute!(
+        &pool.api,
+        "UPDATE employments SET status = 'terminated', end_date = '2026-03-31' WHERE employee_id = $1 AND workspace_id = $2 AND status = 'active'",
+        diesel::sql_types::Uuid, new_emp.id(),
+        diesel::sql_types::Uuid, ws_id
+    );
+
     // Rehire
     let rehired = repo
         .rehire_employee(
             &auth_token,
             new_emp.id(),
             NaiveDate::from_ymd_opt(2026, 4, 1).unwrap(),
+            employer_id,
+            Some(hq_loc_id),
+            None,
         )
         .await
         .unwrap();
     assert!(rehired.is_some());
     let rehired = rehired.unwrap();
     assert_eq!(rehired.is_active(), true);
+
+    let db_employment = {
+        let mut conn = pool.tenants_tx.get_connection(&ws_id).await.unwrap();
+        use apiserver::schema::employments::dsl::*;
+        use diesel::prelude::*;
+        use diesel_async::RunQueryDsl;
+        employments
+            .filter(employee_id.eq(new_emp.id()))
+            .filter(status.eq("active"))
+            .first::<apiserver::models::diesel::employment::EmploymentEntity>(&mut *conn)
+            .await
+            .unwrap()
+    };
     assert_eq!(
-        rehired.hire_date(),
+        db_employment.start_date,
         NaiveDate::from_ymd_opt(2026, 4, 1).unwrap()
     );
-    assert!(rehired.termination_date().is_none());
+    assert!(db_employment.end_date.is_none());
 
     // Delete
     let deleted = repo

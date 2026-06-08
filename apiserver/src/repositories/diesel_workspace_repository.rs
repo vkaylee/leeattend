@@ -187,8 +187,9 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                 match group {
                     "attendance" => {
                         diesel::delete(
-                            time_entries::dsl::time_entries
-                                .filter(time_entries::dsl::employee_id.eq_any(emp_subquery)),
+                            time_entries::dsl::time_entries.filter(
+                                time_entries::dsl::employment_id.eq_any(employment_subquery),
+                            ),
                         )
                         .execute(&mut *conn)
                         .await?;
@@ -201,8 +202,8 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                         diesel::delete(
                             attendance_adjustment_requests::dsl::attendance_adjustment_requests
                                 .filter(
-                                    attendance_adjustment_requests::dsl::employee_id
-                                        .eq_any(emp_subquery),
+                                    attendance_adjustment_requests::dsl::employment_id
+                                        .eq_any(employment_subquery),
                                 ),
                         )
                         .execute(&mut *conn)
@@ -216,8 +217,9 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                     }
                     "schedules" => {
                         diesel::delete(
-                            shift_rosters::dsl::shift_rosters
-                                .filter(shift_rosters::dsl::employee_id.eq_any(emp_subquery)),
+                            shift_rosters::dsl::shift_rosters.filter(
+                                shift_rosters::dsl::employment_id.eq_any(employment_subquery),
+                            ),
                         )
                         .execute(&mut *conn)
                         .await?;
@@ -269,8 +271,9 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                     }
                     "full_reset" => {
                         diesel::delete(
-                            time_entries::dsl::time_entries
-                                .filter(time_entries::dsl::employee_id.eq_any(emp_subquery)),
+                            time_entries::dsl::time_entries.filter(
+                                time_entries::dsl::employment_id.eq_any(employment_subquery),
+                            ),
                         )
                         .execute(&mut *conn)
                         .await?;
@@ -283,8 +286,8 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                         diesel::delete(
                             attendance_adjustment_requests::dsl::attendance_adjustment_requests
                                 .filter(
-                                    attendance_adjustment_requests::dsl::employee_id
-                                        .eq_any(emp_subquery),
+                                    attendance_adjustment_requests::dsl::employment_id
+                                        .eq_any(employment_subquery),
                                 ),
                         )
                         .execute(&mut *conn)
@@ -296,8 +299,9 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                         .execute(&mut *conn)
                         .await?;
                         diesel::delete(
-                            shift_rosters::dsl::shift_rosters
-                                .filter(shift_rosters::dsl::employee_id.eq_any(emp_subquery)),
+                            shift_rosters::dsl::shift_rosters.filter(
+                                shift_rosters::dsl::employment_id.eq_any(employment_subquery),
+                            ),
                         )
                         .execute(&mut *conn)
                         .await?;

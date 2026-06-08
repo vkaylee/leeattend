@@ -86,17 +86,17 @@ pub async fn create_time_entry(
     .await
 }
 
-pub async fn get_employee_time_entries(
+pub async fn get_employment_time_entries(
     diesel_pools: &DieselPools,
     workspace_id: Uuid,
-    employee_id: Uuid,
+    employment_id: Uuid,
     from: DateTime<Utc>,
     to: DateTime<Utc>,
 ) -> Result<Vec<apiserver::models::TimeEntry>, AppError> {
     let repo = apiserver::repositories::DieselTimeEntryRepository::new(diesel_pools.clone());
-    repo.get_employee_time_entries(
+    repo.get_employment_time_entries(
         &apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id),
-        employee_id,
+        employment_id,
         from,
         to,
     )

@@ -39,7 +39,7 @@ impl AttendanceAdjustmentService {
     ) -> Result<AttendanceAdjustmentRequest, AppError> {
         let adjustment = AttendanceAdjustmentRequest::new(
             new_id(),
-            req.employee_id,
+            req.employment_id,
             req.time_entry_id,
             req.requested_punch_in_time,
             req.requested_punch_out_time,
@@ -111,7 +111,7 @@ impl AttendanceAdjustmentService {
 
                 let entry = TimeEntry::new(
                     new_id(),
-                    request.employee_id(),
+                    request.employment_id(),
                     workspace_id,
                     None,
                     request.requested_punch_in_time(),
@@ -167,10 +167,10 @@ impl AttendanceAdjustmentService {
     pub async fn get_my_requests(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
     ) -> Result<Vec<AttendanceAdjustmentRequest>, AppError> {
         self.adj_repo
-            .get_employee_adjustment_requests(workspace_id, employee_id)
+            .get_employment_adjustment_requests(workspace_id, employment_id)
             .await
     }
 }

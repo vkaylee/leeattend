@@ -174,7 +174,7 @@ pub async fn bulk_upload_paper_ot(
         if employee_id_str.is_empty() {
             errors.push(BulkOtEntryError {
                 line_number,
-                employee_id: employee_id_str,
+                employment_id: employee_id_str,
                 error_message: "Employee ID is required".to_string(),
             });
             continue;
@@ -184,7 +184,7 @@ pub async fn bulk_upload_paper_ot(
         let Ok(date) = NaiveDate::parse_from_str(date_str, "%Y-%m-%d") else {
             errors.push(BulkOtEntryError {
                 line_number,
-                employee_id: employee_id_str,
+                employment_id: employee_id_str,
                 error_message: format!("Invalid date format: {date_str}. Expected YYYY-MM-DD"),
             });
             continue;
@@ -195,7 +195,7 @@ pub async fn bulk_upload_paper_ot(
         if date > today {
             errors.push(BulkOtEntryError {
                 line_number,
-                employee_id: employee_id_str.clone(),
+                employment_id: employee_id_str.clone(),
                 error_message: "Date cannot be in the future".to_string(),
             });
             continue;
@@ -205,7 +205,7 @@ pub async fn bulk_upload_paper_ot(
         let Ok(minutes) = minutes_str.parse::<i32>() else {
             errors.push(BulkOtEntryError {
                 line_number,
-                employee_id: employee_id_str,
+                employment_id: employee_id_str,
                 error_message: format!("Invalid minutes value: {minutes_str}"),
             });
             continue;
@@ -215,7 +215,7 @@ pub async fn bulk_upload_paper_ot(
         if minutes <= 0 {
             errors.push(BulkOtEntryError {
                 line_number,
-                employee_id: employee_id_str,
+                employment_id: employee_id_str,
                 error_message: "Minutes must be greater than 0".to_string(),
             });
             continue;
@@ -225,7 +225,7 @@ pub async fn bulk_upload_paper_ot(
         if reason.is_empty() {
             errors.push(BulkOtEntryError {
                 line_number,
-                employee_id: employee_id_str,
+                employment_id: employee_id_str,
                 error_message: "Reason is required".to_string(),
             });
             continue;
@@ -236,7 +236,7 @@ pub async fn bulk_upload_paper_ot(
         if seen_keys.contains(&key) {
             errors.push(BulkOtEntryError {
                 line_number,
-                employee_id: employee_id_str,
+                employment_id: employee_id_str,
                 error_message: "Duplicate entry in this upload".to_string(),
             });
             continue;
@@ -254,7 +254,7 @@ pub async fn bulk_upload_paper_ot(
             Ok(None) => {
                 errors.push(BulkOtEntryError {
                     line_number,
-                    employee_id: employee_id_str.clone(),
+                    employment_id: employee_id_str.clone(),
                     error_message: "Employee not found in workspace".to_string(),
                 });
                 None
@@ -262,7 +262,7 @@ pub async fn bulk_upload_paper_ot(
             Err(e) => {
                 errors.push(BulkOtEntryError {
                     line_number,
-                    employee_id: employee_id_str.clone(),
+                    employment_id: employee_id_str.clone(),
                     error_message: format!("Database error: {e}"),
                 });
                 None
@@ -271,11 +271,21 @@ pub async fn bulk_upload_paper_ot(
             continue;
         };
 
+        // Get active employment ID
+        let Some(active_employment_id) = employee.active_employment_id() else {
+            errors.push(BulkOtEntryError {
+                line_number,
+                employment_id: employee_id_str,
+                error_message: "No active employment found for employee".to_string(),
+            });
+            continue;
+        };
+
         // Validate against system_detected_ot_minutes
         let existing_summary = state
             .attendance()
             .attendance_daily_summary_repo()
-            .get_summary(&ctx.auth_token, employee.id(), date)
+            .get_summary(&ctx.auth_token, active_employment_id, date)
             .await;
 
         if let Ok(Some(summary)) = existing_summary {
@@ -283,7 +293,7 @@ pub async fn bulk_upload_paper_ot(
             if minutes > system_detected {
                 errors.push(BulkOtEntryError {
                     line_number,
-                    employee_id: employee_id_str,
+                    employment_id: employee_id_str,
                     error_message: format!(
                         "Claimed {minutes} minutes exceeds system detected {system_detected} minutes"
                     ),
@@ -299,7 +309,7 @@ pub async fn bulk_upload_paper_ot(
             .enter_paper_ot(
                 crate::services::attendance_summary_service::EnterPaperOtArgs {
                     workspace_id: ctx.workspace_id,
-                    employee_id: employee.id(),
+                    employee_id: active_employment_id,
                     date,
                     claimed_minutes: minutes,
                     reason,
@@ -316,7 +326,7 @@ pub async fn bulk_upload_paper_ot(
             Err(e) => {
                 errors.push(BulkOtEntryError {
                     line_number,
-                    employee_id: employee_id_str,
+                    employment_id: employee_id_str,
                     error_message: e.to_string(),
                 });
             }

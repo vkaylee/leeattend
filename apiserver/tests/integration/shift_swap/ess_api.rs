@@ -56,7 +56,7 @@ async fn test_ess_shift_swap_flow() {
 
     // Employee A → Morning shift
     crate::test_execute!(&_db.diesel_pools.api,
-        "INSERT INTO shift_rosters (id, employee_id, shift_id, date, status) VALUES ($1, $2, $3, $4, 'active')",
+        "INSERT INTO shift_rosters (id, employment_id, shift_id, date, status) VALUES ($1, $2, $3, $4, 'active')",
         diesel::sql_types::Uuid, Uuid::new_v4(),
         diesel::sql_types::Uuid, emp_a,
         diesel::sql_types::Uuid, shift_morning,
@@ -65,7 +65,7 @@ async fn test_ess_shift_swap_flow() {
 
     // Employee B → Evening shift
     crate::test_execute!(&_db.diesel_pools.api,
-        "INSERT INTO shift_rosters (id, employee_id, shift_id, date, status) VALUES ($1, $2, $3, $4, 'active')",
+        "INSERT INTO shift_rosters (id, employment_id, shift_id, date, status) VALUES ($1, $2, $3, $4, 'active')",
         diesel::sql_types::Uuid, Uuid::new_v4(),
         diesel::sql_types::Uuid, emp_b,
         diesel::sql_types::Uuid, shift_evening,
@@ -155,14 +155,14 @@ async fn test_ess_shift_swap_cancel_and_accept() {
     let swap_date = Utc::now().date_naive() + chrono::Duration::days(1);
 
     crate::test_execute!(&_db.diesel_pools.api,
-        "INSERT INTO shift_rosters (id, employee_id, shift_id, date, status) VALUES ($1, $2, $3, $4, 'active')",
+        "INSERT INTO shift_rosters (id, employment_id, shift_id, date, status) VALUES ($1, $2, $3, $4, 'active')",
         diesel::sql_types::Uuid, Uuid::new_v4(),
         diesel::sql_types::Uuid, emp_a,
         diesel::sql_types::Uuid, shift_morning,
         diesel::sql_types::Date, swap_date
     );
     crate::test_execute!(&_db.diesel_pools.api,
-        "INSERT INTO shift_rosters (id, employee_id, shift_id, date, status) VALUES ($1, $2, $3, $4, 'active')",
+        "INSERT INTO shift_rosters (id, employment_id, shift_id, date, status) VALUES ($1, $2, $3, $4, 'active')",
         diesel::sql_types::Uuid, Uuid::new_v4(),
         diesel::sql_types::Uuid, emp_b,
         diesel::sql_types::Uuid, shift_evening,

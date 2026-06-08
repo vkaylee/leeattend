@@ -98,6 +98,7 @@ pub trait EmployeeCoreRepository: Send + Sync {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee: &Employee,
+        hire_date: chrono::NaiveDate,
         recruitment_source_id: Option<Uuid>,
         employer_id: Uuid,
         primary_location_id: Option<Uuid>,
@@ -111,6 +112,9 @@ pub trait EmployeeCoreRepository: Send + Sync {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         hire_date: NaiveDate,
+        employer_id: Uuid,
+        primary_location_id: Option<Uuid>,
+        department_id: Option<Uuid>,
     ) -> Result<Option<Employee>, AppError>;
 
     async fn delete_employee(
@@ -177,7 +181,7 @@ pub trait EmployeeWorkingConditionRepository: Send + Sync {
     async fn get_working_conditions(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         page: i64,
         limit: i64,
     ) -> Result<(Vec<WorkingCondition>, i64), AppError>;
@@ -192,20 +196,20 @@ pub trait EmployeeWorkingConditionRepository: Send + Sync {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
     ) -> Result<bool, AppError>;
 
     async fn get_working_conditions_at(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         date: NaiveDate,
     ) -> Result<Vec<WorkingCondition>, AppError>;
 
-    async fn get_working_conditions_batch(
+    async fn get_working_conditions_batch_by_employments(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_ids: &[Uuid],
+        employment_ids: &[Uuid],
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<std::collections::HashMap<Uuid, Vec<WorkingCondition>>, AppError>;
@@ -458,6 +462,7 @@ mockall::mock! {
             &self,
             auth_token: &crate::diesel_pool::TenantAuthToken,
             employee: &Employee,
+            hire_date: chrono::NaiveDate,
             recruitment_source_id: Option<Uuid>,
             employer_id: Uuid,
             primary_location_id: Option<Uuid>,
@@ -469,6 +474,9 @@ mockall::mock! {
             auth_token: &crate::diesel_pool::TenantAuthToken,
             employee_id: Uuid,
             hire_date: NaiveDate,
+            employer_id: Uuid,
+            primary_location_id: Option<Uuid>,
+            department_id: Option<Uuid>,
         ) -> Result<Option<Employee>, AppError>;
         async fn delete_employee(
             &self,
@@ -522,7 +530,7 @@ mockall::mock! {
         async fn get_working_conditions(
             &self,
             auth_token: &crate::diesel_pool::TenantAuthToken,
-            employee_id: Uuid,
+            employment_id: Uuid,
             page: i64,
             limit: i64,
         ) -> Result<(Vec<WorkingCondition>, i64), AppError>;
@@ -535,18 +543,18 @@ mockall::mock! {
             &self,
             auth_token: &crate::diesel_pool::TenantAuthToken,
             id: Uuid,
-            employee_id: Uuid,
+            employment_id: Uuid,
         ) -> Result<bool, AppError>;
         async fn get_working_conditions_at(
             &self,
             auth_token: &crate::diesel_pool::TenantAuthToken,
-            employee_id: Uuid,
+            employment_id: Uuid,
             date: NaiveDate,
         ) -> Result<Vec<WorkingCondition>, AppError>;
-        async fn get_working_conditions_batch(
+        async fn get_working_conditions_batch_by_employments(
             &self,
             auth_token: &crate::diesel_pool::TenantAuthToken,
-            employee_ids: &[Uuid],
+            employment_ids: &[Uuid],
             start_date: NaiveDate,
             end_date: NaiveDate,
         ) -> Result<std::collections::HashMap<Uuid, Vec<WorkingCondition>>, AppError>;

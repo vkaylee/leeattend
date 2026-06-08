@@ -201,14 +201,30 @@ impl PayrollService {
             )
             .await?;
 
+        let employee = self
+            .employee_repo
+            .get_employee_by_id(
+                employee_id,
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+            )
+            .await?
+            .ok_or(AppError::NotFound("Employee not found".into()))?;
+
+        let active_emp_id = employee
+            .active_employment_id()
+            .ok_or_else(|| AppError::validation_raw("No active employment found"))?;
+
+        let emp_id_number = employee.employee_id_number().to_string();
+        let emp_tags = Some(employee.tags().to_vec());
+
         let start_dt = local_to_utc(&tz, start_date, 0, 0, 0).map_err(AppError::Internal)?;
         let end_dt = local_to_utc(&tz, end_date, 23, 59, 59).map_err(AppError::Internal)?;
 
         let time_entries = self
             .time_entry_repo
-            .get_employee_time_entries(
+            .get_employment_time_entries(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                employee_id,
+                active_emp_id,
                 start_dt,
                 end_dt,
             )
@@ -225,30 +241,18 @@ impl PayrollService {
 
         let roster_data = self.roster_provider.get_roster_data(workspace_id).await?;
 
-        let employee = self
-            .employee_repo
-            .get_employee_by_id(
-                employee_id,
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-            )
-            .await?
-            .ok_or(AppError::NotFound("Employee not found".into()))?;
-
-        let emp_id_number = employee.employee_id_number().to_string();
-        let emp_tags = Some(employee.tags().to_vec());
-
         let rosters = self
             .roster_repo
-            .get_employee_rosters(
+            .get_employment_rosters(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                employee_id,
+                active_emp_id,
                 start_date,
                 end_date,
             )
             .await?;
         let payroll_roster_map: HashMap<(Uuid, NaiveDate), Option<Uuid>> = rosters
             .into_iter()
-            .map(|r| ((r.employee_id, r.date), r.shift_id))
+            .map(|r| ((r.employment_id, r.date), r.shift_id))
             .collect();
 
         let mut daily_entries_map: HashMap<NaiveDate, Vec<crate::models::TimeEntry>> =
@@ -347,7 +351,7 @@ impl PayrollService {
             .await?
             .ok_or_else(|| AppError::NotFound("Active employment not found".into()))?;
 
-        let primary_location_id = active_employment.primary_location_id.ok_or_else(|| {
+        let primary_location_id = active_employment.primary_location_id().ok_or_else(|| {
             AppError::NotFound("Primary location not found for active employment".into())
         })?;
 
@@ -443,13 +447,13 @@ impl PayrollService {
             .active_employments
             .iter()
             .find(|e| {
-                e.status == "active"
-                    && e.start_date <= ctx.start_date
-                    && e.end_date.is_none_or(|end| end >= ctx.start_date)
+                e.status() == "active"
+                    && e.start_date() <= ctx.start_date
+                    && e.end_date().is_none_or(|end| end >= ctx.start_date)
             })
             .or_else(|| ctx.active_employments.first())
             .ok_or_else(|| AppError::NotFound("No active employment found".into()))?;
-        let employment_id = active_emp.id;
+        let employment_id = active_emp.id();
 
         // Phase 2: Build segments
         let segments = Self::build_segments(&ctx);
@@ -828,9 +832,32 @@ impl PayrollService {
                 .get_employee_department_history_batch(token, &chunk_ids)
                 .await;
 
+            let employments_history = self
+                .employment_repo
+                .get_employments_for_employees(token, &chunk_ids)
+                .await
+                .unwrap_or_default();
+
+            let mut emp_to_active_employment_id = HashMap::new();
+            let mut employment_ids = Vec::new();
+            for emp_ment in &employments_history {
+                if emp_ment.status() == "active"
+                    && emp_ment.start_date() <= start_date
+                    && emp_ment.end_date().is_none_or(|end| end >= start_date)
+                {
+                    emp_to_active_employment_id.insert(emp_ment.employee_id(), emp_ment.id());
+                    employment_ids.push(emp_ment.id());
+                }
+            }
+
             let time_entries = self
                 .time_entry_repo
-                .get_workspace_time_entries_batch(token, &chunk_ids, start_dt, end_dt)
+                .get_workspace_time_entries_batch_by_employments(
+                    token,
+                    &employment_ids,
+                    start_dt,
+                    end_dt,
+                )
                 .await;
 
             let employees_res = self
@@ -840,12 +867,17 @@ impl PayrollService {
 
             let rosters = self
                 .roster_repo
-                .get_employee_rosters_batch(token, &chunk_ids, start_date, end_date)
+                .get_employment_rosters_batch(token, &employment_ids, start_date, end_date)
                 .await;
 
             let conditions_res = self
                 .employee_repo
-                .get_working_conditions_batch(token, &chunk_ids, start_date, end_date)
+                .get_working_conditions_batch_by_employments(
+                    token,
+                    &employment_ids,
+                    start_date,
+                    end_date,
+                )
                 .await;
 
             let policies_res = self
@@ -873,9 +905,34 @@ impl PayrollService {
 
             let mut salary_map = salary_histories.unwrap_or_default();
             let mut dept_map = dept_histories.unwrap_or_default();
-            let mut time_map = time_entries.unwrap_or_default();
-            let mut roster_map = rosters.unwrap_or_default();
-            let mut conditions_map = conditions_res.unwrap_or_default();
+
+            let mut time_map = HashMap::new();
+            if let Ok(entries) = time_entries {
+                for (emp_id, employment_id) in &emp_to_active_employment_id {
+                    if let Some(list) = entries.get(employment_id) {
+                        time_map.insert(*emp_id, list.clone());
+                    }
+                }
+            }
+
+            let mut roster_map = HashMap::new();
+            if let Ok(r) = rosters {
+                for (emp_id, employment_id) in &emp_to_active_employment_id {
+                    if let Some(list) = r.get(employment_id) {
+                        roster_map.insert(*emp_id, list.clone());
+                    }
+                }
+            }
+
+            let mut conditions_map = HashMap::new();
+            if let Ok(c) = conditions_res {
+                for (emp_id, employment_id) in &emp_to_active_employment_id {
+                    if let Some(list) = c.get(employment_id) {
+                        conditions_map.insert(*emp_id, list.clone());
+                    }
+                }
+            }
+
             let mut policies_map = policies_res.unwrap_or_default();
             let mut contracts_map = contracts_res.unwrap_or_default();
             let mut assignments_map = assignments_res.unwrap_or_default();
@@ -900,27 +957,21 @@ impl PayrollService {
                     .await
                     .unwrap_or_default();
 
-            let employments_history = self
-                .employment_repo
-                .get_employments_for_employees(token, &chunk_ids)
-                .await
-                .unwrap_or_default();
-
             let mut emp_to_location = HashMap::new();
             let mut emp_to_employments = HashMap::new();
-            for emp_ment in employments_history {
-                if emp_ment.status == "active"
-                    && emp_ment.start_date <= start_date
-                    && emp_ment.end_date.is_none_or(|end| end >= start_date)
+            for emp_ment in &employments_history {
+                if emp_ment.status() == "active"
+                    && emp_ment.start_date() <= start_date
+                    && emp_ment.end_date().is_none_or(|end| end >= start_date)
                 {
-                    if let Some(loc_id) = emp_ment.primary_location_id {
-                        emp_to_location.insert(emp_ment.employee_id, loc_id);
+                    if let Some(loc_id) = emp_ment.primary_location_id() {
+                        emp_to_location.insert(emp_ment.employee_id(), loc_id);
                     }
                 }
                 emp_to_employments
-                    .entry(emp_ment.employee_id)
+                    .entry(emp_ment.employee_id())
                     .or_insert_with(Vec::new)
-                    .push(emp_ment);
+                    .push(emp_ment.clone());
             }
 
             let mut contexts = Vec::new();
@@ -938,7 +989,7 @@ impl PayrollService {
                     let emp_rosters = roster_map.remove(&emp_id).unwrap_or_default();
                     let mut payroll_roster_map = HashMap::new();
                     for r in emp_rosters {
-                        payroll_roster_map.insert((r.employee_id, r.date), r.shift_id);
+                        payroll_roster_map.insert((r.employment_id, r.date), r.shift_id);
                     }
 
                     let working_conditions = conditions_map.remove(&emp_id).unwrap_or_default();

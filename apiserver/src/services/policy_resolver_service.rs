@@ -146,14 +146,37 @@ impl PolicyResolverService {
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<HashMap<Uuid, Vec<WorkingCondition>>, AppError> {
-        employee_repo
-            .get_working_conditions_batch(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                employee_ids,
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
+        let employees = employee_repo
+            .get_employees_by_ids(employee_ids, &auth_token)
+            .await?;
+
+        let mut emp_to_employment = HashMap::new();
+        let mut employment_ids = Vec::new();
+        for emp in &employees {
+            if let Some(employment_id) = emp.active_employment_id() {
+                emp_to_employment.insert(emp.id(), employment_id);
+                employment_ids.push(employment_id);
+            }
+        }
+
+        let conditions = employee_repo
+            .get_working_conditions_batch_by_employments(
+                &auth_token,
+                &employment_ids,
                 start_date,
                 end_date,
             )
-            .await
+            .await?;
+
+        let mut result = HashMap::new();
+        for (emp_id, employment_id) in &emp_to_employment {
+            if let Some(list) = conditions.get(employment_id) {
+                result.insert(*emp_id, list.clone());
+            }
+        }
+
+        Ok(result)
     }
 
     pub async fn resolve_with_shift_overrides(

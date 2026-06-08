@@ -8,7 +8,10 @@ WHERE lr.status IN ('approved', 'pre_approved')
   AND lr.end_date >= $1
   AND emp.workspace_id = $3
   AND emp.employee_id IN (
-      SELECT id FROM employees WHERE workspace_id = $3 AND is_active = TRUE
+      SELECT e.id FROM employees e
+      JOIN employments emp_inner ON e.id = emp_inner.employee_id
+      WHERE e.workspace_id = $3 AND emp_inner.status = 'active' AND emp_inner.deleted_at IS NULL
+        AND CURRENT_DATE BETWEEN emp_inner.start_date AND COALESCE(emp_inner.end_date, '9999-12-31'::date)
   )
 GROUP BY COALESCE(lt.name, 'Other')
 ORDER BY count DESC

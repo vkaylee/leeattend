@@ -43,21 +43,42 @@ impl ReportService {
             .await
             .map_err(|e| AppError::Internal(format!("Error fetching schedules: {e}")))?;
 
+        // Fetch active employments to map employment_id -> employee_id
+        let active_employments = self
+            .employment_repo
+            .get_active_employments_for_workspace(auth_token)
+            .await
+            .map_err(|e| AppError::Internal(format!("Error fetching employments: {e}")))?;
+
+        let mut emp_id_to_employee_id = HashMap::new();
+        for emp in &active_employments {
+            emp_id_to_employee_id.insert(emp.id(), emp.employee_id());
+        }
+
         // 3. Batch-fetch time entries (using shared date_range_to_utc)
-        let emp_ids: Vec<Uuid> = schedules.iter().map(|s| s.employee_id).collect();
+        let employment_ids: Vec<Uuid> = schedules.iter().map(|s| s.employment_id).collect();
+        let employee_ids: Vec<Uuid> = employment_ids
+            .iter()
+            .filter_map(|emp_id| emp_id_to_employee_id.get(emp_id).copied())
+            .collect();
         let (start_dt, end_dt) = attendance_utils::date_range_to_utc(tz, start_date, end_date)
             .map_err(|_e| AppError::Validation("error.validation".to_string()))?;
 
         let entries_map = self
             .time_entry_repo
-            .get_workspace_time_entries_batch(auth_token, &emp_ids, start_dt, end_dt)
+            .get_workspace_time_entries_batch_by_employments(
+                auth_token,
+                &employment_ids,
+                start_dt,
+                end_dt,
+            )
             .await
             .map_err(|e| AppError::Internal(format!("Error fetching time entries: {e}")))?;
 
         // 4. Batch-fetch approved leave requests using leave_repo
         let leave_details_map = self
             .leave_repo
-            .get_approved_leave_details(auth_token, &emp_ids, start_date, end_date)
+            .get_approved_leave_details(auth_token, &employee_ids, start_date, end_date)
             .await?;
 
         let leave_date_set: std::collections::HashSet<(Uuid, NaiveDate)> =
@@ -83,8 +104,13 @@ impl ReportService {
         let unassigned_id = Uuid::nil();
 
         for emp_sched in &schedules {
+            let employee_id = emp_id_to_employee_id
+                .get(&emp_sched.employment_id)
+                .copied()
+                .unwrap_or_else(Uuid::nil);
+
             let entries = entries_map
-                .get(&emp_sched.employee_id)
+                .get(&emp_sched.employment_id)
                 .cloned()
                 .unwrap_or_default();
 
@@ -92,7 +118,7 @@ impl ReportService {
             let entries_by_date = attendance_utils::group_entries_by_date(&entries, tz);
 
             let (dept_id, dept_name) = dept_map
-                .get(&emp_sched.employee_id)
+                .get(&employee_id)
                 .cloned()
                 .unwrap_or_else(|| (None, "Unassigned".to_string()));
 
@@ -115,7 +141,7 @@ impl ReportService {
                     continue;
                 }
 
-                let is_on_leave = leave_date_set.contains(&(emp_sched.employee_id, date));
+                let is_on_leave = leave_date_set.contains(&(employee_id, date));
 
                 let status = determine_daily_status(&DailyStatusInput::new(
                     entries_by_date.contains_key(&date),
@@ -143,7 +169,7 @@ impl ReportService {
             }
 
             emp_stats.insert(
-                emp_sched.employee_id,
+                emp_sched.employment_id,
                 EmployeeStats {
                     employee_name: emp_sched.full_name.clone(),
                     department_id: dept_id,

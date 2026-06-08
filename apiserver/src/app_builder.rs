@@ -167,6 +167,7 @@ impl AppState {
                 roster_repo: Arc::clone(&roster_repo),
                 policy_repo: Arc::clone(&policy_repo),
                 employee_repo: Arc::clone(&employee_repo),
+                employment_repo: Arc::clone(&employment_repo),
                 attendance_daily_summary_repo: Arc::clone(&attendance_daily_summary_repo),
                 leave_repo: Arc::clone(&leave_request_repo),
                 holiday_repo: Arc::clone(&holiday_repo),

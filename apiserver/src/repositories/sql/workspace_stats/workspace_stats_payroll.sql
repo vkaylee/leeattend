@@ -1,5 +1,10 @@
 WITH active_emps AS (
-    SELECT id FROM employees WHERE workspace_id = $1 AND is_active = TRUE
+    SELECT e.id FROM employees e
+    JOIN employments emp ON e.id = emp.employee_id
+    WHERE e.workspace_id = $1
+      AND emp.status = 'active'
+      AND emp.deleted_at IS NULL
+      AND CURRENT_DATE BETWEEN emp.start_date AND COALESCE(emp.end_date, '9999-12-31'::date)
 ),
 dynamic_payroll AS (
     SELECT esc.employee_id, SUM(esc.amount) as total_amount

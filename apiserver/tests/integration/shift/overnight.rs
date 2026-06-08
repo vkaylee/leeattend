@@ -151,7 +151,7 @@ async fn test_overnight_shift_pairing() {
     // 4. Verify
     use apiserver::repositories::time_entry_repository::TimeEntryRepository;
     let entries = repo
-        .get_employee_time_entries(
+        .get_employment_time_entries(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             employee_id,
             shift_date.and_hms_opt(0, 0, 0).unwrap().and_utc(),

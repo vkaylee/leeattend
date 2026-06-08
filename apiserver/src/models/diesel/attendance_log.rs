@@ -42,7 +42,6 @@ impl FromSql<LogSourceType, Pg> for LogSource {
 pub struct RawAttendanceLogEntity {
     pub id: Uuid,
     pub workspace_id: Uuid,
-    pub employee_id: Uuid,
     pub punch_time: DateTime<Utc>,
     pub source: LogSource,
     pub device_id: Option<String>,
@@ -50,6 +49,7 @@ pub struct RawAttendanceLogEntity {
     pub created_at: Option<DateTime<Utc>>,
     pub punch: i32,
     pub status: i32,
+    pub employment_id: Uuid,
 }
 
 impl From<RawAttendanceLogEntity> for RawAttendanceLog {
@@ -57,7 +57,7 @@ impl From<RawAttendanceLogEntity> for RawAttendanceLog {
         RawAttendanceLog::new(
             val.id,
             val.workspace_id,
-            val.employee_id,
+            val.employment_id,
             val.punch_time,
             val.source,
             val.device_id,

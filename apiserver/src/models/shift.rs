@@ -116,7 +116,7 @@ pub struct UpdateShiftRequest {
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct ShiftRoster {
     pub id: Uuid,
-    pub employee_id: Uuid,
+    pub employment_id: Uuid,
     pub shift_id: Option<Uuid>,
     pub date: NaiveDate,
     pub status: String,
@@ -127,7 +127,7 @@ pub struct ShiftRoster {
 
 #[derive(Debug, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct CreateRosterRequest {
-    pub employee_id: Uuid,
+    pub employment_id: Uuid,
     pub shift_id: Option<Uuid>,
     pub date: NaiveDate,
     pub notes: Option<String>,
@@ -269,7 +269,7 @@ mod tests {
     #[test]
     fn test_create_roster_request_serde() {
         let json = r#"{
-            "employee_id": "00000000-0000-0000-0000-000000000001",
+            "employment_id": "00000000-0000-0000-0000-000000000001",
             "shift_id": "00000000-0000-0000-0000-000000000002",
             "date": "2026-03-01",
             "notes": "First day"

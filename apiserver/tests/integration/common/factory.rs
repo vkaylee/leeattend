@@ -415,19 +415,17 @@ impl EmployeeBuilder {
 
             let employee_id = crate::test_query_scalar_uuid!(
                 &self.diesel_pools.api,
-                "INSERT INTO employees (workspace_id, user_id, full_name, employee_id_number, hire_date, original_hire_date) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
+                "INSERT INTO employees (workspace_id, user_id, full_name, employee_id_number) VALUES ($1, $2, $3, $4) RETURNING id",
                 diesel::sql_types::Uuid, workspace_id,
                 diesel::sql_types::Nullable<diesel::sql_types::Uuid>, self.user_id,
                 diesel::sql_types::Text, self.full_name,
-                diesel::sql_types::Text, normalized_id,
-                diesel::sql_types::Date, self.hire_date,
-                diesel::sql_types::Date, self.hire_date
+                diesel::sql_types::Text, normalized_id
             );
 
             crate::test_execute!(
                 &self.diesel_pools.api,
-                "INSERT INTO employments (id, workspace_id, employee_id, employer_id, primary_location_id, status, start_date, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, 'active', $6, NOW(), NOW())",
-                diesel::sql_types::Uuid, Uuid::new_v4(),
+                "INSERT INTO employments (id, workspace_id, employee_id, employer_id, primary_location_id, status, start_date, employment_type, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, 'active', $6, 'full_time', NOW(), NOW())",
+                diesel::sql_types::Uuid, employee_id,
                 diesel::sql_types::Uuid, workspace_id,
                 diesel::sql_types::Uuid, employee_id,
                 diesel::sql_types::Uuid, employer_id,
@@ -621,22 +619,30 @@ impl TimeEntryBuilder {
 
             let employee_id = self.employee_id.expect("Employee ID is required for TimeEntry");
             let workspace_id: Uuid = crate::test_query_scalar_uuid!(
-        &self.diesel_pools.api,
-        "SELECT workspace_id AS id FROM employees WHERE id = $1",
-        diesel::sql_types::Uuid, employee_id
-    );
+                &self.diesel_pools.api,
+                "SELECT workspace_id AS id FROM employees WHERE id = $1",
+                diesel::sql_types::Uuid, employee_id
+            );
+
+            let employment_id: Uuid = crate::test_query_scalar_uuid!(
+                &self.diesel_pools.api,
+                "SELECT id FROM employments WHERE employee_id = $1 AND workspace_id = $2 AND status = 'active' AND deleted_at IS NULL LIMIT 1",
+                diesel::sql_types::Uuid, employee_id,
+                diesel::sql_types::Uuid, workspace_id
+            );
 
             crate::test_query_scalar_uuid!(
-        &self.diesel_pools.api,
-        "INSERT INTO time_entries (employee_id, workspace_id, punch_in_time, punch_out_time, is_break_overtime, entry_type, duration_minutes) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
-        diesel::sql_types::Uuid, employee_id,
-        diesel::sql_types::Uuid, workspace_id,
-        diesel::sql_types::Timestamptz, self.punch_in_time,
-        diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>, self.punch_out_time,
-        diesel::sql_types::Bool, self.is_break_overtime,
-        diesel::sql_types::Text, self.entry_type,
-        diesel::sql_types::Nullable<diesel::sql_types::Integer>, duration_minutes
-    )}).await.expect("TimeEntry creation timed out")
+                &self.diesel_pools.api,
+                "INSERT INTO time_entries (employment_id, workspace_id, punch_in_time, punch_out_time, is_break_overtime, entry_type, duration_minutes) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
+                diesel::sql_types::Uuid, employment_id,
+                diesel::sql_types::Uuid, workspace_id,
+                diesel::sql_types::Timestamptz, self.punch_in_time,
+                diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>, self.punch_out_time,
+                diesel::sql_types::Bool, self.is_break_overtime,
+                diesel::sql_types::Text, self.entry_type,
+                diesel::sql_types::Nullable<diesel::sql_types::Integer>, duration_minutes
+            )
+        }).await.expect("TimeEntry creation timed out")
     }
 }
 

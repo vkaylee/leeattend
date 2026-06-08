@@ -232,7 +232,7 @@ async fn test_claim_ot_delegated_success() {
     let date = NaiveDate::from_ymd_opt(2026, 1, 20).unwrap();
     crate::test_execute!(
         &factory.diesel_pools.api,
-        "INSERT INTO attendance_daily_summaries (id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, ot_status, created_at, updated_at) VALUES ($1, $2, $3, $4, 500, 60, $5::ot_status_type, NOW(), NOW())",
+        "INSERT INTO attendance_daily_summaries (id, workspace_id, employment_id, date, actual_work_minutes, system_detected_ot_minutes, ot_status, created_at, updated_at) VALUES ($1, $2, $3, $4, 500, 60, $5::ot_status_type, NOW(), NOW())",
         diesel::sql_types::Uuid, uuid::Uuid::new_v4(),
         diesel::sql_types::Uuid, ws_id,
         diesel::sql_types::Uuid, emp_id,
@@ -395,7 +395,7 @@ async fn test_behalf_assignments_crud_and_claims() {
     let date = NaiveDate::from_ymd_opt(2026, 1, 20).unwrap();
     crate::test_execute!(
         &factory.diesel_pools.api,
-        "INSERT INTO attendance_daily_summaries (id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, ot_status, created_at, updated_at) VALUES ($1, $2, $3, $4, 500, 60, $5::ot_status_type, NOW(), NOW())",
+        "INSERT INTO attendance_daily_summaries (id, workspace_id, employment_id, date, actual_work_minutes, system_detected_ot_minutes, ot_status, created_at, updated_at) VALUES ($1, $2, $3, $4, 500, 60, $5::ot_status_type, NOW(), NOW())",
         diesel::sql_types::Uuid, uuid::Uuid::new_v4(),
         diesel::sql_types::Uuid, ws_id,
         diesel::sql_types::Uuid, target_emp_id,
@@ -539,7 +539,7 @@ async fn test_behalf_assignments_department_claims() {
     let date = NaiveDate::from_ymd_opt(2026, 1, 20).unwrap();
     crate::test_execute!(
         &factory.diesel_pools.api,
-        "INSERT INTO attendance_daily_summaries (id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, ot_status, created_at, updated_at) VALUES ($1, $2, $3, $4, 500, 60, $5::ot_status_type, NOW(), NOW())",
+        "INSERT INTO attendance_daily_summaries (id, workspace_id, employment_id, date, actual_work_minutes, system_detected_ot_minutes, ot_status, created_at, updated_at) VALUES ($1, $2, $3, $4, 500, 60, $5::ot_status_type, NOW(), NOW())",
         diesel::sql_types::Uuid, uuid::Uuid::new_v4(),
         diesel::sql_types::Uuid, ws_id,
         diesel::sql_types::Uuid, target_emp_id,

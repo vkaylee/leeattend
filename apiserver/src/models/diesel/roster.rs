@@ -63,20 +63,20 @@ impl From<ShiftEntity> for Shift {
 #[diesel(table_name = shift_rosters)]
 pub struct ShiftRosterEntity {
     pub id: Uuid,
-    pub employee_id: Uuid,
     pub shift_id: Option<Uuid>,
     pub date: NaiveDate,
     pub status: Option<String>,
     pub notes: Option<String>,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
+    pub employment_id: Uuid,
 }
 
 impl From<ShiftRosterEntity> for ShiftRoster {
     fn from(entity: ShiftRosterEntity) -> Self {
         Self {
             id: entity.id,
-            employee_id: entity.employee_id,
+            employment_id: entity.employment_id,
             shift_id: entity.shift_id,
             date: entity.date,
             status: entity.status.unwrap_or_else(|| "scheduled".to_string()),
@@ -91,7 +91,7 @@ impl From<ShiftRoster> for ShiftRosterEntity {
     fn from(model: ShiftRoster) -> Self {
         Self {
             id: model.id,
-            employee_id: model.employee_id,
+            employment_id: model.employment_id,
             shift_id: model.shift_id,
             date: model.date,
             status: Some(model.status),

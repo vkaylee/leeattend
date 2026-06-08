@@ -31,7 +31,7 @@ impl RosterRepository for DieselRosterRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         start_date: NaiveDate,
         end_date: NaiveDate,
-        employee_ids: Option<&Vec<Uuid>>,
+        employment_ids: Option<&Vec<Uuid>>,
     ) -> Result<Vec<EmployeeSchedule>, AppError> {
         let workspace_id = auth_token.workspace_id();
         // 1. Fetch Roster Data (Cache or DB)
@@ -53,25 +53,26 @@ impl RosterRepository for DieselRosterRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        // 2. Fetch Employees
+        // 2. Fetch Employees and Employments
         let mut query = crate::schema::employees::table
             .inner_join(crate::schema::employments::table)
             .filter(crate::schema::employees::workspace_id.eq(workspace_id))
-            .filter(crate::schema::employees::is_active.eq(true))
+            .filter(crate::schema::employments::status.eq("active"))
             .filter(crate::schema::employments::deleted_at.is_null())
             .into_boxed();
 
-        if let Some(ids) = employee_ids {
-            query = query.filter(crate::schema::employees::id.eq_any(ids));
+        if let Some(ids) = employment_ids {
+            query = query.filter(crate::schema::employments::id.eq_any(ids));
         }
 
         let employees_entities_raw = query
             .select((
-                crate::schema::employees::id,
+                crate::schema::employments::id,
                 crate::schema::employees::full_name,
                 crate::schema::employees::employee_id_number,
                 crate::schema::employees::tags,
                 crate::schema::employments::primary_location_id,
+                crate::schema::employees::id,
             ))
             .load::<(
                 Uuid,
@@ -79,34 +80,42 @@ impl RosterRepository for DieselRosterRepository {
                 String,
                 Option<Vec<Option<String>>>,
                 Option<Uuid>,
+                Uuid,
             )>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let employees_entities: Vec<(Uuid, String, String, Option<Vec<String>>, Option<Uuid>)> =
-            employees_entities_raw
-                .into_iter()
-                .map(|(id, name, num, tags, primary_loc)| {
-                    (
-                        id,
-                        name,
-                        num,
-                        tags.map(|v| v.into_iter().flatten().collect()),
-                        primary_loc,
-                    )
-                })
-                .collect();
+        let employees_entities: Vec<(
+            Uuid,
+            String,
+            String,
+            Option<Vec<String>>,
+            Option<Uuid>,
+            Uuid,
+        )> = employees_entities_raw
+            .into_iter()
+            .map(|(emp_id, name, num, tags, primary_loc, employee_id)| {
+                (
+                    emp_id,
+                    name,
+                    num,
+                    tags.map(|v| v.into_iter().flatten().collect()),
+                    primary_loc,
+                    employee_id,
+                )
+            })
+            .collect();
 
         // 2a. Batch load employee contracts active in the range
         let emp_ids: Vec<Uuid> = employees_entities
             .iter()
-            .map(|(id, _, _, _, _)| *id)
+            .map(|(id, _, _, _, _, _)| *id)
             .collect();
 
         let batch_contracts = crate::schema::employee_contracts::table
             .inner_join(crate::schema::employments::table)
             .filter(crate::schema::employee_contracts::workspace_id.eq(workspace_id))
-            .filter(crate::schema::employments::employee_id.eq_any(&emp_ids))
+            .filter(crate::schema::employments::id.eq_any(&emp_ids))
             .filter(
                 crate::schema::employee_contracts::status
                     .eq(crate::models::enums::ContractStatus::Active),
@@ -120,7 +129,7 @@ impl RosterRepository for DieselRosterRepository {
             )
             .select((
                 crate::schema::employee_contracts::all_columns,
-                crate::schema::employments::employee_id,
+                crate::schema::employments::id,
                 crate::schema::employments::employer_id,
             ))
             .load::<(
@@ -131,16 +140,16 @@ impl RosterRepository for DieselRosterRepository {
             .await
             .map_err(|e| AppError::Internal(format!("db load batch contracts: {e}")))?;
 
-        let mut contracts_by_employee: HashMap<
+        let mut contracts_by_employment: HashMap<
             Uuid,
             Vec<(
                 crate::models::diesel::employee_contract::EmployeeContractEntity,
                 Uuid,
             )>,
         > = HashMap::new();
-        for (contract, employee_id, employer_id) in batch_contracts {
-            contracts_by_employee
-                .entry(employee_id)
+        for (contract, employment_id, employer_id) in batch_contracts {
+            contracts_by_employment
+                .entry(employment_id)
                 .or_default()
                 .push((contract, employer_id));
         }
@@ -149,7 +158,7 @@ impl RosterRepository for DieselRosterRepository {
         let batch_assignments = crate::schema::employee_assignments::table
             .inner_join(crate::schema::employments::table)
             .filter(crate::schema::employee_assignments::workspace_id.eq(workspace_id))
-            .filter(crate::schema::employments::employee_id.eq_any(&emp_ids))
+            .filter(crate::schema::employments::id.eq_any(&emp_ids))
             .filter(
                 crate::schema::employee_assignments::status
                     .eq(crate::models::employee_assignment::AssignmentStatusEnum::Active),
@@ -162,19 +171,19 @@ impl RosterRepository for DieselRosterRepository {
             )
             .select((
                 crate::schema::employee_assignments::all_columns,
-                crate::schema::employments::employee_id,
+                crate::schema::employments::id,
             ))
             .load::<(crate::models::employee_assignment::EmployeeAssignment, Uuid)>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db load batch assignments: {e}")))?;
 
-        let mut assignments_by_employee: HashMap<
+        let mut assignments_by_employment: HashMap<
             Uuid,
             Vec<crate::models::employee_assignment::EmployeeAssignment>,
         > = HashMap::new();
-        for (assignment, employee_id) in batch_assignments {
-            assignments_by_employee
-                .entry(employee_id)
+        for (assignment, employment_id) in batch_assignments {
+            assignments_by_employment
+                .entry(employment_id)
                 .or_default()
                 .push(assignment);
         }
@@ -195,8 +204,8 @@ impl RosterRepository for DieselRosterRepository {
 
         // 4. Fetch Rosters
         let rosters_entities = crate::schema::shift_rosters::table
-            .inner_join(crate::schema::employees::table)
-            .filter(crate::schema::employees::workspace_id.eq(workspace_id))
+            .inner_join(crate::schema::employments::table)
+            .filter(crate::schema::employments::workspace_id.eq(workspace_id))
             .filter(crate::schema::shift_rosters::date.ge(start_date))
             .filter(crate::schema::shift_rosters::date.le(end_date))
             .select(crate::schema::shift_rosters::all_columns)
@@ -206,19 +215,21 @@ impl RosterRepository for DieselRosterRepository {
 
         let mut roster_map: HashMap<(Uuid, NaiveDate), Option<Uuid>> = HashMap::new();
         for r in rosters_entities {
-            roster_map.insert((r.employee_id, r.date), r.shift_id);
+            roster_map.insert((r.employment_id, r.date), r.shift_id);
         }
 
         // 5. Build Result
         let mut result = Vec::new();
 
-        for (emp_id, emp_full_name, emp_id_number, emp_tags, primary_loc) in employees_entities {
+        for (emp_id, emp_full_name, emp_id_number, emp_tags, primary_loc, employee_id) in
+            employees_entities
+        {
             let mut daily_schedules = Vec::new();
             let mut curr_date = start_date;
 
             while curr_date <= end_date {
                 // Find active contract on curr_date
-                let active_contract = contracts_by_employee.get(&emp_id).and_then(|contracts| {
+                let active_contract = contracts_by_employment.get(&emp_id).and_then(|contracts| {
                     contracts
                         .iter()
                         .filter(|(c, _)| {
@@ -231,7 +242,7 @@ impl RosterRepository for DieselRosterRepository {
 
                 // Find active assignment on curr_date
                 let active_assignment =
-                    assignments_by_employee
+                    assignments_by_employment
                         .get(&emp_id)
                         .and_then(|assignments| {
                             assignments
@@ -251,6 +262,7 @@ impl RosterRepository for DieselRosterRepository {
                 &roster_data,
                 &roster_map,
                 emp_id,
+                employee_id,
                 &emp_id_number,
                 emp_tags.as_ref(),
                 curr_date,
@@ -312,7 +324,7 @@ impl RosterRepository for DieselRosterRepository {
             }
 
             result.push(EmployeeSchedule {
-                employee_id: emp_id,
+                employment_id: emp_id,
                 employee_id_number: emp_id_number.clone(),
                 full_name: emp_full_name.clone(),
                 schedules: daily_schedules,
@@ -381,18 +393,18 @@ impl RosterRepository for DieselRosterRepository {
                 -- Roster Assignments
                 SELECT
                     sr.id,
-                    sr.employee_id,
+                    emp.employee_id,
                     'roster'::assignment_history_type as assignment_type,
                     CASE WHEN sr.shift_id IS NULL THEN 'OFF' ELSE s.name END as shift_name,
                     TO_CHAR(sr.date, 'YYYY-MM-DD') as date_range,
                     sr.created_at
                 FROM shift_rosters sr
                 LEFT JOIN shifts s ON sr.shift_id = s.id
-                JOIN employees e ON sr.employee_id = e.id
-                WHERE e.workspace_id = $1
+                JOIN employments emp ON sr.employment_id = emp.id
+                WHERE emp.workspace_id = $1
             ) as history
             ORDER BY created_at DESC
-            LIMIT $2
+            limit $2
             "
         )
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
@@ -404,10 +416,10 @@ impl RosterRepository for DieselRosterRepository {
         Ok(history)
     }
 
-    async fn get_employee_rosters(
+    async fn get_employment_rosters(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<Vec<ShiftRoster>, AppError> {
@@ -421,9 +433,9 @@ impl RosterRepository for DieselRosterRepository {
         );
 
         let rosters = crate::schema::shift_rosters::table
-            .inner_join(crate::schema::employees::table)
-            .filter(crate::schema::employees::workspace_id.eq(workspace_id))
-            .filter(crate::schema::shift_rosters::employee_id.eq(employee_id))
+            .inner_join(crate::schema::employments::table)
+            .filter(crate::schema::employments::workspace_id.eq(workspace_id))
+            .filter(crate::schema::shift_rosters::employment_id.eq(employment_id))
             .filter(crate::schema::shift_rosters::date.ge(start_date))
             .filter(crate::schema::shift_rosters::date.le(end_date))
             .select(crate::schema::shift_rosters::all_columns)
@@ -434,10 +446,10 @@ impl RosterRepository for DieselRosterRepository {
         Ok(rosters.into_iter().map(Into::into).collect())
     }
 
-    async fn get_employee_rosters_batch(
+    async fn get_employment_rosters_batch(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_ids: &[Uuid],
+        employment_ids: &[Uuid],
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<std::collections::HashMap<Uuid, Vec<ShiftRoster>>, AppError> {
@@ -451,9 +463,9 @@ impl RosterRepository for DieselRosterRepository {
         );
 
         let rosters = crate::schema::shift_rosters::table
-            .inner_join(crate::schema::employees::table)
-            .filter(crate::schema::employees::workspace_id.eq(workspace_id))
-            .filter(crate::schema::shift_rosters::employee_id.eq_any(employee_ids))
+            .inner_join(crate::schema::employments::table)
+            .filter(crate::schema::employments::workspace_id.eq(workspace_id))
+            .filter(crate::schema::shift_rosters::employment_id.eq_any(employment_ids))
             .filter(crate::schema::shift_rosters::date.ge(start_date))
             .filter(crate::schema::shift_rosters::date.le(end_date))
             .select(crate::schema::shift_rosters::all_columns)
@@ -464,7 +476,7 @@ impl RosterRepository for DieselRosterRepository {
         let mut map: std::collections::HashMap<Uuid, Vec<ShiftRoster>> =
             std::collections::HashMap::new();
         for roster in rosters {
-            map.entry(roster.employee_id)
+            map.entry(roster.employment_id)
                 .or_default()
                 .push(roster.into());
         }
@@ -485,19 +497,19 @@ impl RosterRepository for DieselRosterRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        // Check if employee exists and belongs to the workspace of this tenant
-        let employee_exists = crate::schema::employees::table
-            .filter(crate::schema::employees::id.eq(roster.employee_id))
-            .filter(crate::schema::employees::workspace_id.eq(workspace_id))
-            .filter(crate::schema::employees::deleted_at.is_null())
-            .select(crate::schema::employees::id)
+        // Check if employment exists and belongs to the workspace of this tenant
+        let employment_exists = crate::schema::employments::table
+            .filter(crate::schema::employments::id.eq(roster.employment_id))
+            .filter(crate::schema::employments::workspace_id.eq(workspace_id))
+            .filter(crate::schema::employments::deleted_at.is_null())
+            .select(crate::schema::employments::id)
             .first::<Uuid>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db check employee: {e}")))?;
+            .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
 
-        if employee_exists.is_none() {
-            return Err(AppError::NotFound("error.employee_not_found".to_string()));
+        if employment_exists.is_none() {
+            return Err(AppError::NotFound("error.employment_not_found".to_string()));
         }
 
         let entity: crate::models::diesel::roster::ShiftRosterEntity = roster.clone().into();
@@ -505,7 +517,7 @@ impl RosterRepository for DieselRosterRepository {
         let result = diesel::insert_into(crate::schema::shift_rosters::table)
             .values(&entity)
             .on_conflict((
-                crate::schema::shift_rosters::employee_id,
+                crate::schema::shift_rosters::employment_id,
                 crate::schema::shift_rosters::date,
             ))
             .do_update()
@@ -525,7 +537,7 @@ impl RosterRepository for DieselRosterRepository {
     async fn bulk_upsert_roster(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         items: Vec<RosterItem>,
     ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
@@ -537,26 +549,26 @@ impl RosterRepository for DieselRosterRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        // Check if employee exists and belongs to the workspace of this tenant
-        let employee_exists = crate::schema::employees::table
-            .filter(crate::schema::employees::id.eq(employee_id))
-            .filter(crate::schema::employees::workspace_id.eq(workspace_id))
-            .filter(crate::schema::employees::deleted_at.is_null())
-            .select(crate::schema::employees::id)
+        // Check if employment exists and belongs to the workspace of this tenant
+        let employment_exists = crate::schema::employments::table
+            .filter(crate::schema::employments::id.eq(employment_id))
+            .filter(crate::schema::employments::workspace_id.eq(workspace_id))
+            .filter(crate::schema::employments::deleted_at.is_null())
+            .select(crate::schema::employments::id)
             .first::<Uuid>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db check employee: {e}")))?;
+            .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
 
-        if employee_exists.is_none() {
-            return Err(AppError::NotFound("error.employee_not_found".to_string()));
+        if employment_exists.is_none() {
+            return Err(AppError::NotFound("error.employment_not_found".to_string()));
         }
 
         let entities: Vec<ShiftRosterEntity> = items
             .into_iter()
             .map(|item| ShiftRosterEntity {
                 id: crate::utils::id::new_id(),
-                employee_id,
+                employment_id,
                 shift_id: item.shift_id,
                 date: item.date,
                 status: Some("confirmed".to_string()),
@@ -568,7 +580,7 @@ impl RosterRepository for DieselRosterRepository {
 
         diesel::insert_into(shift_rosters::table)
             .values(&entities)
-            .on_conflict((shift_rosters::employee_id, shift_rosters::date))
+            .on_conflict((shift_rosters::employment_id, shift_rosters::date))
             .do_update()
             .set((
                 shift_rosters::shift_id.eq(diesel::dsl::sql("EXCLUDED.shift_id")),
@@ -586,7 +598,7 @@ impl RosterRepository for DieselRosterRepository {
     async fn get_effective_shift(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         date: NaiveDate,
     ) -> Result<(Option<Uuid>, Vec<ScheduleTrace>), AppError> {
         let workspace_id = auth_token.workspace_id();
@@ -600,12 +612,44 @@ impl RosterRepository for DieselRosterRepository {
 
         let mut traces = Vec::new();
 
+        // 1. Resolve actual_employment_id (in case employee_id was passed)
+        let actual_employment_id = {
+            let direct_exists = crate::schema::employments::table
+                .filter(crate::schema::employments::id.eq(employment_id))
+                .filter(crate::schema::employments::workspace_id.eq(workspace_id))
+                .filter(crate::schema::employments::deleted_at.is_null())
+                .select(crate::schema::employments::id)
+                .first::<Uuid>(&mut *conn)
+                .await
+                .optional()
+                .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
+
+            if let Some(id) = direct_exists {
+                id
+            } else {
+                // Try to find the active employment for this employee ID
+                let active_emp = crate::schema::employments::table
+                    .filter(crate::schema::employments::employee_id.eq(employment_id))
+                    .filter(crate::schema::employments::workspace_id.eq(workspace_id))
+                    .filter(crate::schema::employments::status.eq("active"))
+                    .filter(crate::schema::employments::deleted_at.is_null())
+                    .select(crate::schema::employments::id)
+                    .first::<Uuid>(&mut *conn)
+                    .await
+                    .optional()
+                    .map_err(|e| AppError::Internal(format!("db select active employment: {e}")))?;
+
+                active_emp
+                    .ok_or_else(|| AppError::NotFound("error.employment_not_found".to_string()))?
+            }
+        };
+
         // Priority 1: Shift Roster
         let roster_shift: Option<Option<Uuid>> = crate::schema::shift_rosters::table
-            .inner_join(crate::schema::employees::table)
-            .filter(crate::schema::shift_rosters::employee_id.eq(employee_id))
+            .inner_join(crate::schema::employments::table)
+            .filter(crate::schema::shift_rosters::employment_id.eq(actual_employment_id))
             .filter(crate::schema::shift_rosters::date.eq(date))
-            .filter(crate::schema::employees::workspace_id.eq(workspace_id))
+            .filter(crate::schema::employments::workspace_id.eq(workspace_id))
             .select(crate::schema::shift_rosters::shift_id)
             .first::<Option<Uuid>>(&mut *conn)
             .await
@@ -622,6 +666,20 @@ impl RosterRepository for DieselRosterRepository {
             });
             return Ok((shift, traces));
         }
+
+        // Fetch the employee_id associated with this employment to check patterns and default shifts
+        let emp_info = crate::schema::employments::table
+            .filter(crate::schema::employments::id.eq(actual_employment_id))
+            .filter(crate::schema::employments::workspace_id.eq(workspace_id))
+            .select(crate::schema::employments::employee_id)
+            .first::<Uuid>(&mut *conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db select employee from employment: {e}")))?;
+
+        let Some(employee_id) = emp_info else {
+            return Err(AppError::NotFound("error.employment_not_found".to_string()));
+        };
 
         // Priority 2: Working Pattern
         let dow = chrono::Datelike::weekday(&date).num_days_from_sunday() as i32;
@@ -709,7 +767,7 @@ impl RosterRepository for DieselRosterRepository {
         if let Some((emp_id_num, tags, dept_id, primary_loc)) = employee_full {
             let active_assignment: Option<Uuid> = crate::schema::employee_assignments::table
                 .inner_join(crate::schema::employments::table)
-                .filter(crate::schema::employments::employee_id.eq(employee_id))
+                .filter(crate::schema::employments::id.eq(actual_employment_id))
                 .filter(crate::schema::employee_assignments::workspace_id.eq(workspace_id))
                 .filter(
                     crate::schema::employee_assignments::status
@@ -731,7 +789,7 @@ impl RosterRepository for DieselRosterRepository {
 
             let active_employer: Option<Uuid> = crate::schema::employee_contracts::table
                 .inner_join(crate::schema::employments::table)
-                .filter(crate::schema::employments::employee_id.eq(employee_id))
+                .filter(crate::schema::employments::id.eq(actual_employment_id))
                 .filter(crate::schema::employee_contracts::workspace_id.eq(workspace_id))
                 .filter(
                     crate::schema::employee_contracts::status
@@ -840,7 +898,7 @@ impl RosterRepository for DieselRosterRepository {
     async fn delete_roster(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         date: NaiveDate,
     ) -> Result<(), AppError> {
         let workspace_id = auth_token.workspace_id();
@@ -852,24 +910,24 @@ impl RosterRepository for DieselRosterRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        // Check if employee exists and belongs to the workspace of this tenant
-        let employee_exists = crate::schema::employees::table
-            .filter(crate::schema::employees::id.eq(employee_id))
-            .filter(crate::schema::employees::workspace_id.eq(workspace_id))
-            .filter(crate::schema::employees::deleted_at.is_null())
-            .select(crate::schema::employees::id)
+        // Check if employment exists and belongs to the workspace of this tenant
+        let employment_exists = crate::schema::employments::table
+            .filter(crate::schema::employments::id.eq(employment_id))
+            .filter(crate::schema::employments::workspace_id.eq(workspace_id))
+            .filter(crate::schema::employments::deleted_at.is_null())
+            .select(crate::schema::employments::id)
             .first::<Uuid>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db check employee: {e}")))?;
+            .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
 
-        if employee_exists.is_none() {
-            return Err(AppError::NotFound("error.employee_not_found".to_string()));
+        if employment_exists.is_none() {
+            return Err(AppError::NotFound("error.employment_not_found".to_string()));
         }
 
         diesel::delete(
             shift_rosters::table
-                .filter(shift_rosters::employee_id.eq(employee_id))
+                .filter(shift_rosters::employment_id.eq(employment_id))
                 .filter(shift_rosters::date.eq(date)),
         )
         .execute(&mut *conn)

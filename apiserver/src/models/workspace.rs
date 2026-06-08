@@ -99,7 +99,7 @@ impl PolicyRules {
 #[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct WorkingCondition {
     id: Uuid,
-    employee_id: Uuid,
+    employment_id: Uuid,
     type_: String,
     minute_allowance: i32,
     is_paid: bool,
@@ -110,7 +110,7 @@ pub struct WorkingCondition {
 impl WorkingCondition {
     pub fn new(
         id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         type_: String,
         minute_allowance: i32,
         is_paid: bool,
@@ -119,7 +119,7 @@ impl WorkingCondition {
     ) -> Self {
         Self {
             id,
-            employee_id,
+            employment_id,
             type_,
             minute_allowance,
             is_paid,
@@ -132,8 +132,8 @@ impl WorkingCondition {
         self.id
     }
 
-    pub fn employee_id(&self) -> Uuid {
-        self.employee_id
+    pub fn employment_id(&self) -> Uuid {
+        self.employment_id
     }
 
     pub fn type_(&self) -> &str {

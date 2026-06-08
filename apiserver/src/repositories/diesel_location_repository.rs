@@ -203,7 +203,7 @@ impl LocationRepository for DieselLocationRepository {
             .inner_join(employments::table)
             .filter(employees::workspace_id.eq(workspace_id))
             .filter(employments::primary_location_id.eq(id))
-            .filter(employees::is_active.eq(true))
+            .filter(employments::status.eq("active"))
             .filter(employments::deleted_at.is_null())
             .count()
             .get_result::<i64>(&mut *conn)

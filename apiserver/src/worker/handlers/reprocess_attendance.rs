@@ -182,7 +182,7 @@ mod tests {
             crate::repositories::raw_attendance_log_repository::MockRawAttendanceLogRepository::new(
             );
         raw_log_repo
-            .expect_get_employee_logs_in_time_range()
+            .expect_get_employment_logs_in_time_range()
             .returning(|_, _, _, _| Box::pin(async { Ok(vec![]) }));
         builder.raw_log_repo = raw_log_repo;
 

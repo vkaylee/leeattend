@@ -238,16 +238,22 @@ async fn test_employee_rehire_lifecycle() {
     let ws_id = factory.workspace().create_with_owner(owner_id).await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
-    // Step 1: Terminate employee (via update)
+    // Step 1: Terminate employee (via updating active employment)
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 AND workspace_id = $2 AND status = 'active' AND deleted_at IS NULL LIMIT 1",
+        diesel::sql_types::Uuid, emp_id,
+        diesel::sql_types::Uuid, ws_id
+    );
     let terminate_payload = json!({
-        "termination_date": "2026-02-28",
-        "is_active": false
+        "status": "terminated",
+        "end_date": "2026-02-28"
     });
     let response = app
         .clone()
         .oneshot(make_req(
-            "PUT",
-            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}"),
+            "PATCH",
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/employments/{employment_id}"),
             ws_id,
             owner_id,
             Some(terminate_payload),
@@ -257,12 +263,20 @@ async fn test_employee_rehire_lifecycle() {
     assert_eq!(
         response.status(),
         StatusCode::OK,
-        "Should terminate employee"
+        "Should terminate employee employment"
     );
 
     // Step 2: Rehire employee
+    let employer_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employers WHERE workspace_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        ws_id
+    );
+
     let rehire_payload = json!({
-        "hire_date": "2026-06-01"
+        "hire_date": "2026-06-01",
+        "employer_id": employer_id
     });
 
     let response = app
@@ -277,23 +291,29 @@ async fn test_employee_rehire_lifecycle() {
         .await
         .unwrap();
 
-    assert_eq!(
-        response.status(),
-        StatusCode::OK,
-        "Rehire should succeed for a terminated employee"
-    );
+    let status = response.status();
     let body = axum::body::to_bytes(response.into_body(), usize::MAX)
         .await
         .unwrap();
+    let body_str = String::from_utf8_lossy(&body);
+    assert_eq!(
+        status,
+        StatusCode::OK,
+        "Rehire should succeed for a terminated employee. Response body: {}",
+        body_str
+    );
     let emp: serde_json::Value = serde_json::from_slice(&body).unwrap();
-    assert_eq!(emp["is_active"], true, "Rehired employee should be active");
+    assert!(
+        emp["active_employment_id"].is_string(),
+        "Rehired employee should be active with a new employment"
+    );
 
     // Step 3: Fetch employee details to verify rehire date
     let response = app
         .clone()
         .oneshot(make_req(
             "GET",
-            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}"),
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/employments"),
             ws_id,
             owner_id,
             None,
@@ -305,6 +325,20 @@ async fn test_employee_rehire_lifecycle() {
     let body = axum::body::to_bytes(response.into_body(), usize::MAX)
         .await
         .unwrap();
-    let emp_details: serde_json::Value = serde_json::from_slice(&body).unwrap();
-    assert_eq!(emp_details["hire_date"], "2026-06-01");
+    let employments: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
+    assert_eq!(employments.len(), 2, "Should have two employments now");
+
+    // One should be active with start_date 2026-06-01
+    let active_emp = employments
+        .iter()
+        .find(|e| e["status"] == "active")
+        .unwrap();
+    assert_eq!(active_emp["start_date"], "2026-06-01");
+
+    // The other should be terminated with end_date 2026-02-28
+    let terminated_emp = employments
+        .iter()
+        .find(|e| e["status"] == "terminated")
+        .unwrap();
+    assert_eq!(terminated_emp["end_date"], "2026-02-28");
 }

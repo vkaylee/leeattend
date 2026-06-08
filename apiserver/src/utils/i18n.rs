@@ -108,6 +108,8 @@ pub const ALL_KEYS: &[&str] = &[
     "error.invalid_token",
     "error.overflow_calculation",
     "error.user_already_linked",
+    "error.employee_already_active",
+    "error.rehire_date_invalid",
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -214,6 +216,8 @@ pub enum I18nKey {
     InvalidToken,
     OverflowCalculation,
     UserAlreadyLinked,
+    EmployeeAlreadyActive,
+    RehireDateInvalid,
 }
 
 impl I18nKey {
@@ -322,6 +326,8 @@ impl I18nKey {
             Self::InvalidToken => "error.invalid_token",
             Self::OverflowCalculation => "error.overflow_calculation",
             Self::UserAlreadyLinked => "error.user_already_linked",
+            Self::EmployeeAlreadyActive => "error.employee_already_active",
+            Self::RehireDateInvalid => "error.rehire_date_invalid",
         }
     }
 }
@@ -522,6 +528,8 @@ fn lookup_en(key: &str) -> Option<&'static str> {
         "error.invalid_token" => Some("Invalid or expired token"),
         "error.overflow_calculation" => Some("Calculation overflow occurred"),
         "error.user_already_linked" => Some("User is already linked to employee {name} in this workspace"),
+        "error.employee_already_active" => Some("Employee is already active"),
+        "error.rehire_date_invalid" => Some("Rehire date must be after termination date"),
         _ => None,
     }
 }
@@ -632,6 +640,8 @@ fn lookup_vi(key: &str) -> Option<&'static str> {
         "error.invalid_token" => Some("Token không hợp lệ hoặc đã hết hạn"),
         "error.overflow_calculation" => Some("Xảy ra lỗi tràn số khi tính toán"),
         "error.user_already_linked" => Some("Tài khoản đã được gán cho nhân viên {name} trong workspace này"),
+        "error.employee_already_active" => Some("Nhân viên đang hoạt động"),
+        "error.rehire_date_invalid" => Some("Ngày tái tuyển dụng phải sau ngày chấm dứt hợp đồng"),
         _ => None,
     }
 }
@@ -746,6 +756,8 @@ fn lookup_zh(key: &str) -> Option<&'static str> {
         "error.invalid_token" => Some("无效或过期的令牌"),
         "error.overflow_calculation" => Some("计算溢出"),
         "error.user_already_linked" => Some("该用户已在此工作空间中与员工 {name} 关联"),
+        "error.employee_already_active" => Some("员工已处于活动状态"),
+        "error.rehire_date_invalid" => Some("重新雇佣日期必须在解雇日期之后"),
         _ => None,
     }
 }
@@ -916,6 +928,8 @@ mod tests {
             I18nKey::InvalidToken,
             I18nKey::OverflowCalculation,
             I18nKey::UserAlreadyLinked,
+            I18nKey::EmployeeAlreadyActive,
+            I18nKey::RehireDateInvalid,
         ];
 
         for variant in &variants {

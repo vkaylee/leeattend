@@ -41,7 +41,6 @@ impl FromSql<OtStatusType, Pg> for OtStatus {
 pub struct AttendanceDailySummaryEntity {
     pub id: Uuid,
     pub workspace_id: Uuid,
-    pub employee_id: Uuid,
     pub date: NaiveDate,
     pub actual_work_minutes: i32,
     pub system_detected_ot_minutes: i32,
@@ -58,6 +57,7 @@ pub struct AttendanceDailySummaryEntity {
     pub entered_via: Option<String>,
     pub is_holiday: bool,
     pub holiday_name: Option<String>,
+    pub employment_id: Uuid,
 }
 
 impl From<AttendanceDailySummaryEntity> for AttendanceDailySummary {
@@ -65,7 +65,7 @@ impl From<AttendanceDailySummaryEntity> for AttendanceDailySummary {
         AttendanceDailySummary {
             id: val.id,
             workspace_id: val.workspace_id,
-            employee_id: val.employee_id,
+            employment_id: val.employment_id,
             date: val.date,
             actual_work_minutes: val.actual_work_minutes,
             system_detected_ot_minutes: val.system_detected_ot_minutes,

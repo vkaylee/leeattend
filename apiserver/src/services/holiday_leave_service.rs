@@ -117,7 +117,7 @@ impl HolidayLeaveService {
 
         let mut emp_to_employment_map = std::collections::HashMap::new();
         for emp_record in active_employments {
-            emp_to_employment_map.insert(emp_record.employee_id, emp_record.id);
+            emp_to_employment_map.insert(emp_record.employee_id(), emp_record.id());
         }
 
         // 1. Batch fetch existing leaves for this date
@@ -184,7 +184,7 @@ impl HolidayLeaveService {
 
                 new_rosters.push(ShiftRoster {
                     id: crate::utils::id::new_id(),
-                    employee_id: emp.id(),
+                    employment_id,
                     shift_id: None,
                     date: holiday.date(),
                     status: "on_leave".to_string(),

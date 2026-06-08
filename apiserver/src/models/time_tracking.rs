@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 #[derive(Debug, Clone, Default)]
 pub struct TimeEntryLogFilter {
-    employee_id: Option<Uuid>,
+    employment_id: Option<Uuid>,
     from: Option<DateTime<Utc>>,
     to: Option<DateTime<Utc>>,
     limit: i64,
@@ -13,14 +13,14 @@ pub struct TimeEntryLogFilter {
 
 impl TimeEntryLogFilter {
     pub fn new(
-        employee_id: Option<Uuid>,
+        employment_id: Option<Uuid>,
         from: Option<DateTime<Utc>>,
         to: Option<DateTime<Utc>>,
         limit: i64,
         offset: i64,
     ) -> Self {
         Self {
-            employee_id,
+            employment_id,
             from,
             to,
             limit,
@@ -28,8 +28,8 @@ impl TimeEntryLogFilter {
         }
     }
 
-    pub fn employee_id(&self) -> Option<Uuid> {
-        self.employee_id
+    pub fn employment_id(&self) -> Option<Uuid> {
+        self.employment_id
     }
 
     pub fn from(&self) -> Option<DateTime<Utc>> {
@@ -52,7 +52,7 @@ impl TimeEntryLogFilter {
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct TimeEntry {
     id: Uuid,
-    employee_id: Uuid,
+    employment_id: Uuid,
     workspace_id: Uuid,
     shift_id: Option<Uuid>,
     punch_in_time: DateTime<Utc>,
@@ -70,7 +70,7 @@ impl TimeEntry {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         workspace_id: Uuid,
         shift_id: Option<Uuid>,
         punch_in_time: DateTime<Utc>,
@@ -85,7 +85,7 @@ impl TimeEntry {
     ) -> Self {
         Self {
             id,
-            employee_id,
+            employment_id,
             workspace_id,
             shift_id,
             punch_in_time,
@@ -104,8 +104,8 @@ impl TimeEntry {
         self.id
     }
 
-    pub fn employee_id(&self) -> Uuid {
-        self.employee_id
+    pub fn employment_id(&self) -> Uuid {
+        self.employment_id
     }
 
     pub fn workspace_id(&self) -> Uuid {
@@ -187,7 +187,7 @@ impl TimeEntry {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TimeEntryWithEmployee {
     id: Uuid,
-    employee_id: Uuid,
+    employment_id: Uuid,
     workspace_id: Uuid,
     shift_id: Option<Uuid>,
     punch_in_time: DateTime<Utc>,
@@ -207,7 +207,7 @@ impl TimeEntryWithEmployee {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         workspace_id: Uuid,
         shift_id: Option<Uuid>,
         punch_in_time: DateTime<Utc>,
@@ -224,7 +224,7 @@ impl TimeEntryWithEmployee {
     ) -> Self {
         Self {
             id,
-            employee_id,
+            employment_id,
             workspace_id,
             shift_id,
             punch_in_time,
@@ -245,8 +245,8 @@ impl TimeEntryWithEmployee {
         self.id
     }
 
-    pub fn employee_id(&self) -> Uuid {
-        self.employee_id
+    pub fn employment_id(&self) -> Uuid {
+        self.employment_id
     }
 
     pub fn workspace_id(&self) -> Uuid {
@@ -304,7 +304,7 @@ impl TimeEntryWithEmployee {
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct PunchInRequest {
-    employee_id: Uuid,
+    employment_id: Uuid,
     entry_type: Option<String>,
     is_break_overtime: Option<bool>,
     note: Option<String>,
@@ -312,21 +312,21 @@ pub struct PunchInRequest {
 
 impl PunchInRequest {
     pub fn new(
-        employee_id: Uuid,
+        employment_id: Uuid,
         entry_type: Option<String>,
         is_break_overtime: Option<bool>,
         note: Option<String>,
     ) -> Self {
         Self {
-            employee_id,
+            employment_id,
             entry_type,
             is_break_overtime,
             note,
         }
     }
 
-    pub fn employee_id(&self) -> Uuid {
-        self.employee_id
+    pub fn employment_id(&self) -> Uuid {
+        self.employment_id
     }
 
     pub fn entry_type(&self) -> Option<&str> {

@@ -116,14 +116,44 @@ impl ReportService {
 
         let emp_ids: Vec<Uuid> = paginated_employees.iter().map(|e| e.id).collect();
 
+        // Fetch employments to build maps
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id);
+        let employments = self
+            .employment_repo
+            .get_employments_for_employees(&auth_token, &emp_ids)
+            .await?;
+
+        // Map employee_id -> active employment_id
+        let mut emp_to_active_employment = std::collections::HashMap::new();
+        // Map employment_id -> employee_id
+        let mut employment_to_employee = std::collections::HashMap::new();
+
+        for emp in &employments {
+            employment_to_employee.insert(emp.id(), emp.employee_id());
+            let is_matching_end_date = emp.end_date().is_none_or(|end| end >= args.start_date);
+            if emp.status() == "active" || is_matching_end_date {
+                emp_to_active_employment.insert(emp.employee_id(), emp.id());
+            }
+        }
+        for emp in &employments {
+            emp_to_active_employment
+                .entry(emp.employee_id())
+                .or_insert_with(|| emp.id());
+        }
+
+        let paginated_employment_ids: Vec<Uuid> = emp_ids
+            .iter()
+            .filter_map(|emp_id| emp_to_active_employment.get(emp_id).copied())
+            .collect();
+
         let schedules = self
             .roster_repo
             .get_workspace_schedules(
                 None,
-                &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
+                &auth_token,
                 args.start_date,
                 args.end_date,
-                Some(&emp_ids),
+                Some(&paginated_employment_ids),
             )
             .await?;
 
@@ -136,9 +166,9 @@ impl ReportService {
 
         let entries_map = self
             .time_entry_repo
-            .get_workspace_time_entries_batch(
-                &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
-                &emp_ids,
+            .get_workspace_time_entries_batch_by_employments(
+                &auth_token,
+                &paginated_employment_ids,
                 start_dt,
                 end_dt,
             )
@@ -146,12 +176,7 @@ impl ReportService {
 
         let leave_data = self
             .leave_repo
-            .get_batch_leave_days(
-                &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
-                &emp_ids,
-                args.start_date,
-                args.end_date,
-            )
+            .get_batch_leave_days(&auth_token, &emp_ids, args.start_date, args.end_date)
             .await?;
 
         let attendance_rules_map = PolicyResolverService::resolve_attendance_policy_batch(
@@ -174,12 +199,17 @@ impl ReportService {
         let mut employee_totals: HashMap<Uuid, (i32, i32, i32)> = HashMap::new();
 
         for emp_sched in schedules {
+            let employee_id = employment_to_employee
+                .get(&emp_sched.employment_id)
+                .copied()
+                .unwrap_or_else(Uuid::nil);
+
             let entries = entries_map
-                .get(&emp_sched.employee_id)
+                .get(&emp_sched.employment_id)
                 .map_or_else(Default::default, std::vec::Vec::as_slice);
 
             let emp_attendance_rules = attendance_rules_map
-                .get(&emp_sched.employee_id)
+                .get(&employee_id)
                 .cloned()
                 .unwrap_or_else(|| crate::models::AttendanceRules {
                     work_unit_minutes: 30,
@@ -200,7 +230,7 @@ impl ReportService {
                     .map_or_else(Default::default, std::vec::Vec::as_slice);
 
                 let emp_working_conditions = working_conditions_map
-                    .get(&emp_sched.employee_id)
+                    .get(&employee_id)
                     .map_or_else(Default::default, std::vec::Vec::as_slice);
 
                 let base_rules = PolicyResolver::build_rules_from_conditions(
@@ -222,7 +252,7 @@ impl ReportService {
                     daily,
                     date,
                     tz,
-                    employee_id: emp_sched.employee_id,
+                    employee_id,
                     workspace_id: workspace.id(),
                     rules,
                     work_unit_minutes: emp_attendance_rules.work_unit_minutes,
@@ -234,7 +264,7 @@ impl ReportService {
             }
 
             employee_totals.insert(
-                emp_sched.employee_id,
+                emp_sched.employment_id,
                 (
                     employee_total_std,
                     employee_total_ot,
@@ -246,11 +276,17 @@ impl ReportService {
         let mut results: Vec<AttendanceSummary> = paginated_employees
             .iter()
             .map(|emp| {
-                let (std, ot, work_unit_minutes) =
-                    employee_totals.get(&emp.id).copied().unwrap_or((0, 0, 30));
+                let active_emp_id = emp_to_active_employment
+                    .get(&emp.id)
+                    .copied()
+                    .unwrap_or(emp.id);
+                let (std, ot, work_unit_minutes) = employee_totals
+                    .get(&active_emp_id)
+                    .copied()
+                    .unwrap_or((0, 0, 30));
                 let coeff = f64::from(work_unit_minutes) / 60.0;
                 AttendanceSummary {
-                    employee_id: emp.id,
+                    employment_id: active_emp_id,
                     employee_name: emp.full_name.clone(),
                     employee_id_number: emp.employee_id_number.clone(),
                     total_std_units: std,

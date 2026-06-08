@@ -371,7 +371,7 @@ impl HolidayRepository for DieselHolidayRepository {
                             .iter()
                             .map(|r| crate::models::diesel::roster::ShiftRosterEntity {
                                 id: r.id,
-                                employee_id: r.employee_id,
+                                employment_id: r.employment_id,
                                 shift_id: r.shift_id,
                                 date: r.date,
                                 status: Some(r.status.clone()),
@@ -384,7 +384,7 @@ impl HolidayRepository for DieselHolidayRepository {
                     diesel::insert_into(crate::schema::shift_rosters::table)
                         .values(&roster_entities)
                         .on_conflict((
-                            crate::schema::shift_rosters::employee_id,
+                            crate::schema::shift_rosters::employment_id,
                             crate::schema::shift_rosters::date,
                         ))
                         .do_update()

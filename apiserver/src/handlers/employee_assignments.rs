@@ -43,7 +43,7 @@ pub async fn list_employee_assignments(
         .employment_repo()
         .list_employee_employments(&ctx.auth_token, employee_id)
         .await?;
-    let employment_ids: Vec<Uuid> = employments.into_iter().map(|e| e.id).collect();
+    let employment_ids: Vec<Uuid> = employments.into_iter().map(|e| e.id()).collect();
 
     let mut assignments = Vec::new();
     if !employment_ids.is_empty() {
@@ -93,7 +93,7 @@ pub async fn get_employee_assignment(
     let mut assignment = None;
     for emp in employments {
         if let Ok(Some(a)) = repo
-            .get_employee_assignment(&ctx.auth_token, emp.id, assignment_id)
+            .get_employee_assignment(&ctx.auth_token, emp.id(), assignment_id)
             .await
         {
             assignment = Some(a);
@@ -146,7 +146,7 @@ pub async fn create_employee_assignment(
         .await?
         .ok_or_else(|| AppError::validation_raw("Employee has no active employment profile"))?;
 
-    let home_location_id = active_employment.primary_location_id.ok_or_else(|| {
+    let home_location_id = active_employment.primary_location_id().ok_or_else(|| {
         AppError::validation_raw("Employee active employment has no primary location assigned")
     })?;
 
@@ -160,7 +160,7 @@ pub async fn create_employee_assignment(
     let new_assignment = NewEmployeeAssignment {
         id: Uuid::new_v4(),
         workspace_id: ctx.workspace_id,
-        employment_id: active_employment.id,
+        employment_id: active_employment.id(),
         home_location_id,
         host_location_id: payload.host_location_id,
         start_date: payload.start_date,
@@ -209,10 +209,10 @@ pub async fn update_employee_assignment(
     let mut found_employment_id = None;
     for emp in &employments {
         if let Ok(Some(_)) = repo
-            .get_employee_assignment(&ctx.auth_token, emp.id, assignment_id)
+            .get_employee_assignment(&ctx.auth_token, emp.id(), assignment_id)
             .await
         {
-            found_employment_id = Some(emp.id);
+            found_employment_id = Some(emp.id());
             break;
         }
     }
@@ -258,10 +258,10 @@ pub async fn delete_employee_assignment(
     let mut found_employment_id = None;
     for emp in &employments {
         if let Ok(Some(_)) = repo
-            .get_employee_assignment(&ctx.auth_token, emp.id, assignment_id)
+            .get_employee_assignment(&ctx.auth_token, emp.id(), assignment_id)
             .await
         {
-            found_employment_id = Some(emp.id);
+            found_employment_id = Some(emp.id());
             break;
         }
     }

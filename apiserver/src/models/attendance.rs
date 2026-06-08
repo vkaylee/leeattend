@@ -11,7 +11,7 @@ use crate::services::attendance_utils::AttendanceStatus;
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct AttendanceAdjustmentRequest {
     id: Uuid,
-    employee_id: Uuid,
+    employment_id: Uuid,
     time_entry_id: Option<Uuid>,
     requested_punch_in_time: DateTime<Utc>,
     requested_punch_out_time: Option<DateTime<Utc>>,
@@ -28,7 +28,7 @@ impl AttendanceAdjustmentRequest {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         time_entry_id: Option<Uuid>,
         requested_punch_in_time: DateTime<Utc>,
         requested_punch_out_time: Option<DateTime<Utc>>,
@@ -42,7 +42,7 @@ impl AttendanceAdjustmentRequest {
     ) -> Self {
         Self {
             id,
-            employee_id,
+            employment_id,
             time_entry_id,
             requested_punch_in_time,
             requested_punch_out_time,
@@ -60,8 +60,8 @@ impl AttendanceAdjustmentRequest {
         self.id
     }
 
-    pub fn employee_id(&self) -> Uuid {
-        self.employee_id
+    pub fn employment_id(&self) -> Uuid {
+        self.employment_id
     }
 
     pub fn time_entry_id(&self) -> Option<Uuid> {
@@ -107,7 +107,7 @@ impl AttendanceAdjustmentRequest {
 
 #[derive(Debug, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct CreateAttendanceAdjustmentRequest {
-    pub employee_id: Uuid,
+    pub employment_id: Uuid,
     pub time_entry_id: Option<Uuid>,
     pub requested_punch_in_time: DateTime<Utc>,
     pub requested_punch_out_time: Option<DateTime<Utc>>,
@@ -122,7 +122,7 @@ pub struct ApproveAttendanceAdjustmentRequest {
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct AttendanceSummary {
-    pub employee_id: Uuid,
+    pub employment_id: Uuid,
     pub employee_name: String,
     #[serde(default)]
     pub employee_id_number: String,
@@ -151,7 +151,7 @@ pub struct ScheduleTrace {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DailyAttendanceReport {
     pub date: NaiveDate,
-    pub employee_id: Uuid,
+    pub employment_id: Uuid,
     pub employee_name: String,
     pub employee_id_number: String,
     pub shift_symbol: Option<String>,
@@ -191,7 +191,7 @@ pub struct DailyAttendanceReport {
 pub struct RawAttendanceLog {
     id: Uuid,
     workspace_id: Uuid,
-    employee_id: Uuid,
+    employment_id: Uuid,
     punch_time: DateTime<Utc>,
     source: LogSource,
     device_id: Option<String>,
@@ -206,7 +206,7 @@ impl RawAttendanceLog {
     pub fn new(
         id: Uuid,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         punch_time: DateTime<Utc>,
         source: LogSource,
         device_id: Option<String>,
@@ -218,7 +218,7 @@ impl RawAttendanceLog {
         Self {
             id,
             workspace_id,
-            employee_id,
+            employment_id,
             punch_time,
             source,
             device_id,
@@ -237,8 +237,8 @@ impl RawAttendanceLog {
         self.workspace_id
     }
 
-    pub fn employee_id(&self) -> Uuid {
-        self.employee_id
+    pub fn employment_id(&self) -> Uuid {
+        self.employment_id
     }
 
     pub fn punch_time(&self) -> DateTime<Utc> {
@@ -274,7 +274,7 @@ impl RawAttendanceLog {
 pub struct RawAttendanceLogWithEmployee {
     pub id: Uuid,
     pub workspace_id: Uuid,
-    pub employee_id: Uuid,
+    pub employment_id: Uuid,
     pub punch_time: DateTime<Utc>,
     pub source: LogSource,
     pub device_id: Option<String>,
@@ -306,7 +306,7 @@ pub struct AttendanceImportJob {
 pub struct AttendanceDailySummary {
     pub id: Uuid,
     pub workspace_id: Uuid,
-    pub employee_id: Uuid,
+    pub employment_id: Uuid,
     pub date: NaiveDate,
     pub actual_work_minutes: i32,
     pub system_detected_ot_minutes: i32,
@@ -329,7 +329,7 @@ pub struct AttendanceDailySummary {
 #[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct BulkOtEntryError {
     pub line_number: usize,
-    pub employee_id: String,
+    pub employment_id: String,
     pub error_message: String,
 }
 
@@ -389,9 +389,8 @@ mod tests {
 
     #[test]
     fn test_attendance_summary_backward_compatibility() {
-        // Old payload missing the multi-unit fields
         let old_json = json!({
-            "employee_id": Uuid::new_v4(),
+            "employment_id": Uuid::new_v4(),
             "employee_name": "Test User",
             "employee_id_number": "EMP001",
             "total_std_units": 160,
@@ -401,7 +400,6 @@ mod tests {
 
         let summary: AttendanceSummary = serde_json::from_value(old_json).unwrap();
 
-        // Ensure defaults are applied correctly
         assert_eq!(summary.total_std_units, 160);
         assert!(matches!(summary.unit_type, TimekeepingUnit::DAY));
         assert!((summary.unit_coefficient_hours - 0.0).abs() < f64::EPSILON);
@@ -412,7 +410,7 @@ mod tests {
     #[test]
     fn test_attendance_summary_multi_unit_serialization() {
         let summary = AttendanceSummary {
-            employee_id: Uuid::new_v4(),
+            employment_id: Uuid::new_v4(),
             employee_name: "Test User".to_string(),
             employee_id_number: "EMP001".to_string(),
             total_std_units: 160,
@@ -427,7 +425,6 @@ mod tests {
         let serialized = serde_json::to_string(&summary).unwrap();
 
         let deserialized: AttendanceSummary = serde_json::from_str(&serialized).unwrap();
-        // Use a small epsilon for float comparison to avoid clippy::float_cmp
         assert!((deserialized.computed_ot_hours - 160.0).abs() < f64::EPSILON);
         assert!((deserialized.unit_coefficient_hours - 8.0).abs() < f64::EPSILON);
     }

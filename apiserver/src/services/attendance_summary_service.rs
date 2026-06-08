@@ -90,12 +90,22 @@ impl AttendanceSummaryService {
     pub async fn recalculate_daily_summary(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         date: NaiveDate,
     ) -> AppResult<()> {
+        let employment = self
+            .employment_repo
+            .get_employment_by_id(
+                &TenantAuthToken::system_override(workspace_id),
+                employment_id,
+            )
+            .await?
+            .ok_or_else(|| AppError::NotFound("Employment not found".to_string()))?;
+        let employee_id = employment.employee_id();
+
         // 1. Fetch schedule & time entries
         let (tz, daily_schedule, day_entries) = self
-            .fetch_daily_schedule(workspace_id, employee_id, date)
+            .fetch_daily_schedule(workspace_id, employment_id, date)
             .await?;
 
         // Auto-cancel approved leave requests if the employee worked (day_entries is not empty) and it's not a holiday
@@ -155,7 +165,7 @@ impl AttendanceSummaryService {
         self.daily_summary_repo
             .upsert_calculated_summary(
                 &TenantAuthToken::system_override(workspace_id),
-                employee_id,
+                employment_id,
                 date,
                 actual_work_minutes,
                 system_detected_ot_minutes,
@@ -172,7 +182,7 @@ impl AttendanceSummaryService {
     async fn fetch_daily_schedule(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         date: NaiveDate,
     ) -> AppResult<(
         Tz,
@@ -194,7 +204,7 @@ impl AttendanceSummaryService {
                 &TenantAuthToken::system_override(workspace_id),
                 date,
                 date,
-                Some(&vec![employee_id]),
+                Some(&vec![employment_id]),
             )
             .await?;
 
@@ -214,9 +224,9 @@ impl AttendanceSummaryService {
 
         let entries = self
             .time_entry_repo
-            .get_employee_time_entries(
+            .get_employment_time_entries(
                 &TenantAuthToken::system_override(workspace_id),
-                employee_id,
+                employment_id,
                 start_dt_utc,
                 end_dt_utc,
             )
@@ -383,7 +393,7 @@ impl AttendanceSummaryService {
                 date,
             )
             .await?;
-        let location_id = active_employment.and_then(|e| e.primary_location_id);
+        let location_id = active_employment.and_then(|e| e.primary_location_id());
 
         let holiday = self
             .holiday_repo
@@ -659,7 +669,7 @@ impl crate::services::approval_workflow::WorkflowCallbackHandler for AttendanceS
 
         self.approve_ot(
             workspace_id,
-            summary.employee_id,
+            summary.employment_id,
             summary.date,
             summary.claimed_ot_minutes,
             Some("Approved via workflow".to_string()),
@@ -690,6 +700,25 @@ mod tests {
         let mut repo = MockEmploymentRepository::new();
         repo.expect_get_active_employment_on_date()
             .returning(|_, _, _| Ok(None));
+        repo.expect_get_employment_by_id()
+            .returning(|_, employment_id| {
+                Ok(Some(crate::models::employment::Employment::new(
+                    employment_id,
+                    Uuid::new_v4(),
+                    employment_id,
+                    Uuid::new_v4(),
+                    None,
+                    None,
+                    "active".to_string(),
+                    NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+                    None,
+                    None,
+                    "full_time".to_string(),
+                    None,
+                    chrono::Utc::now(),
+                    chrono::Utc::now(),
+                )))
+            });
         repo
     }
 
@@ -697,7 +726,7 @@ mod tests {
         AttendanceDailySummary {
             id: Uuid::new_v4(),
             workspace_id: Uuid::new_v4(),
-            employee_id: Uuid::new_v4(),
+            employment_id: Uuid::new_v4(),
             date: dummy_date(),
             actual_work_minutes: 0,
             system_detected_ot_minutes: sys_ot,
@@ -1038,11 +1067,7 @@ mod tests {
                         None,
                         "John Doe".to_string(),
                         "EMP001".to_string(),
-                        chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-                        chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-                        None,
                         vec![],
-                        true,
                         chrono::Utc::now(),
                         chrono::Utc::now(),
                         None,
@@ -1071,7 +1096,7 @@ mod tests {
                 .returning(move |_, _, _, _, _| {
                     Box::pin(async move {
                         Ok(vec![crate::models::EmployeeSchedule {
-                            employee_id,
+                            employment_id: employee_id,
                             employee_id_number: "EMP001".to_string(),
                             full_name: "John Doe".to_string(),
                             schedules: vec![crate::models::EffectiveSchedule {
@@ -1101,7 +1126,7 @@ mod tests {
 
             // Mock fetch time entries (non-empty, i.e., worked)
             time_entry_repo
-                .expect_get_employee_time_entries()
+                .expect_get_employment_time_entries()
                 .returning(move |_, _, _, _| {
                     let punch_in = chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(
                         date.and_hms_opt(8, 0, 0).unwrap(),
@@ -1206,11 +1231,7 @@ mod tests {
                         None,
                         "John Doe".to_string(),
                         "EMP001".to_string(),
-                        chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-                        chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-                        None,
                         vec![],
-                        true,
                         chrono::Utc::now(),
                         chrono::Utc::now(),
                         None,
@@ -1236,7 +1257,7 @@ mod tests {
                 .returning(move |_, _, _, _, _| {
                     Box::pin(async move {
                         Ok(vec![crate::models::EmployeeSchedule {
-                            employee_id,
+                            employment_id: employee_id,
                             employee_id_number: "EMP001".to_string(),
                             full_name: "John Doe".to_string(),
                             schedules: vec![crate::models::EffectiveSchedule {
@@ -1265,7 +1286,7 @@ mod tests {
                 });
 
             time_entry_repo
-                .expect_get_employee_time_entries()
+                .expect_get_employment_time_entries()
                 .returning(move |_, _, _, _| {
                     let punch_in = chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(
                         date.and_hms_opt(8, 0, 0).unwrap(),
@@ -1367,11 +1388,7 @@ mod tests {
                         None,
                         "John Doe".to_string(),
                         "EMP001".to_string(),
-                        chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-                        chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-                        None,
                         vec![],
-                        true,
                         chrono::Utc::now(),
                         chrono::Utc::now(),
                         None,
@@ -1397,7 +1414,7 @@ mod tests {
                 .returning(move |_, _, _, _, _| {
                     Box::pin(async move {
                         Ok(vec![crate::models::EmployeeSchedule {
-                            employee_id,
+                            employment_id: employee_id,
                             employee_id_number: "EMP001".to_string(),
                             full_name: "John Doe".to_string(),
                             schedules: vec![crate::models::EffectiveSchedule {
@@ -1426,7 +1443,7 @@ mod tests {
                 });
 
             time_entry_repo
-                .expect_get_employee_time_entries()
+                .expect_get_employment_time_entries()
                 .returning(move |_, _, _, _| {
                     let punch_in = chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(
                         date.and_hms_opt(8, 0, 0).unwrap(),
@@ -1528,11 +1545,7 @@ mod tests {
                         None,
                         "John Doe".to_string(),
                         "EMP001".to_string(),
-                        chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-                        chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-                        None,
                         vec![],
-                        true,
                         chrono::Utc::now(),
                         chrono::Utc::now(),
                         None,
@@ -1558,7 +1571,7 @@ mod tests {
                 .returning(move |_, _, _, _, _| {
                     Box::pin(async move {
                         Ok(vec![crate::models::EmployeeSchedule {
-                            employee_id,
+                            employment_id: employee_id,
                             employee_id_number: "EMP001".to_string(),
                             full_name: "John Doe".to_string(),
                             schedules: vec![crate::models::EffectiveSchedule {
@@ -1588,7 +1601,7 @@ mod tests {
 
             // NO time entries (i.e., did not work)
             time_entry_repo
-                .expect_get_employee_time_entries()
+                .expect_get_employment_time_entries()
                 .returning(move |_, _, _, _| Ok(vec![]));
 
             // Should NOT call get_employee_leave_requests, cancel_leave_request or delete_roster
@@ -1645,11 +1658,7 @@ mod tests {
                         None,
                         "John Doe".to_string(),
                         "EMP001".to_string(),
-                        chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-                        chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-                        None,
                         vec![],
-                        true,
                         chrono::Utc::now(),
                         chrono::Utc::now(),
                         None,
@@ -1675,7 +1684,7 @@ mod tests {
                 .returning(move |_, _, _, _, _| {
                     Box::pin(async move {
                         Ok(vec![crate::models::EmployeeSchedule {
-                            employee_id,
+                            employment_id: employee_id,
                             employee_id_number: "EMP001".to_string(),
                             full_name: "John Doe".to_string(),
                             schedules: vec![crate::models::EffectiveSchedule {
@@ -1705,7 +1714,7 @@ mod tests {
 
             // Worked (has time entries)
             time_entry_repo
-                .expect_get_employee_time_entries()
+                .expect_get_employment_time_entries()
                 .returning(move |_, _, _, _| {
                     let punch_in = chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(
                         date.and_hms_opt(8, 0, 0).unwrap(),

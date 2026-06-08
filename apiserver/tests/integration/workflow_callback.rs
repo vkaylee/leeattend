@@ -373,16 +373,23 @@ async fn test_ot_claim_workflow_flow() {
     )
     .unwrap();
 
+    let emp_employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 AND status = 'active' LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
+
     let date = chrono::NaiveDate::from_ymd_opt(2026, 1, 20).unwrap();
     let summary_id = uuid::Uuid::new_v4();
 
     // Create a daily summary in pending_employee
     crate::test_execute!(
         &factory.diesel_pools.api,
-        "INSERT INTO attendance_daily_summaries (id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, ot_status, created_at, updated_at) VALUES ($1, $2, $3, $4, 500, 60, $5::ot_status_type, NOW(), NOW())",
+        "INSERT INTO attendance_daily_summaries (id, workspace_id, employment_id, date, actual_work_minutes, system_detected_ot_minutes, ot_status, created_at, updated_at) VALUES ($1, $2, $3, $4, 500, 60, $5::ot_status_type, NOW(), NOW())",
         diesel::sql_types::Uuid, summary_id,
         diesel::sql_types::Uuid, ws_id,
-        diesel::sql_types::Uuid, emp_id,
+        diesel::sql_types::Uuid, emp_employment_id,
         diesel::sql_types::Date, date,
         diesel::sql_types::Text, "pending_employee"
     );

@@ -45,7 +45,7 @@ async fn test_upsert_roster_insert_and_update() {
     // Insert
     let roster_in = ShiftRoster {
         id: Uuid::new_v4(),
-        employee_id: emp_id,
+        employment_id: emp_id,
         shift_id: Some(shift_id),
         date,
         status: "confirmed".to_string(),
@@ -60,7 +60,7 @@ async fn test_upsert_roster_insert_and_update() {
         )
         .await
         .unwrap();
-    assert_eq!(inserted.employee_id, emp_id);
+    assert_eq!(inserted.employment_id, emp_id);
     assert_eq!(inserted.shift_id, Some(shift_id));
     assert_eq!(inserted.date, date);
     assert_eq!(inserted.notes.as_deref(), Some("Initial"));
@@ -74,7 +74,7 @@ async fn test_upsert_roster_insert_and_update() {
         .await;
     let roster_update = ShiftRoster {
         id: Uuid::new_v4(), // different ID, but same (employee_id, date) conflict key
-        employee_id: emp_id,
+        employment_id: emp_id,
         shift_id: Some(shift_id2),
         date,
         status: "confirmed".to_string(),
@@ -107,7 +107,7 @@ async fn test_upsert_roster_day_off() {
 
     let roster_off = ShiftRoster {
         id: Uuid::new_v4(),
-        employee_id: emp_id,
+        employment_id: emp_id,
         shift_id: None, // Day off
         date,
         status: "confirmed".to_string(),
@@ -145,7 +145,7 @@ async fn test_get_employee_rosters_date_range() {
         let date = NaiveDate::from_ymd_opt(2026, 3, day).unwrap();
         let r = ShiftRoster {
             id: Uuid::new_v4(),
-            employee_id: emp_id,
+            employment_id: emp_id,
             shift_id: Some(shift_id),
             date,
             status: "confirmed".to_string(),
@@ -165,7 +165,7 @@ async fn test_get_employee_rosters_date_range() {
     let start = NaiveDate::from_ymd_opt(2026, 3, 3).unwrap();
     let end = NaiveDate::from_ymd_opt(2026, 3, 7).unwrap();
     let result = repo
-        .get_employee_rosters(
+        .get_employment_rosters(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             emp_id,
             start,
@@ -180,7 +180,7 @@ async fn test_get_employee_rosters_date_range() {
     let start_full = NaiveDate::from_ymd_opt(2026, 3, 1).unwrap();
     let end_full = NaiveDate::from_ymd_opt(2026, 3, 31).unwrap();
     let all = repo
-        .get_employee_rosters(
+        .get_employment_rosters(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             emp_id,
             start_full,
@@ -205,7 +205,7 @@ async fn test_get_employee_rosters_empty() {
     let start = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
     let end = NaiveDate::from_ymd_opt(2026, 12, 31).unwrap();
     let result = repo
-        .get_employee_rosters(
+        .get_employment_rosters(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             emp_id,
             start,
@@ -232,7 +232,7 @@ async fn test_delete_roster() {
     // Insert then delete
     let r = ShiftRoster {
         id: Uuid::new_v4(),
-        employee_id: emp_id,
+        employment_id: emp_id,
         shift_id: Some(shift_id),
         date,
         status: "confirmed".to_string(),
@@ -258,7 +258,7 @@ async fn test_delete_roster() {
     let start = NaiveDate::from_ymd_opt(2026, 3, 1).unwrap();
     let end = NaiveDate::from_ymd_opt(2026, 3, 31).unwrap();
     let remaining = repo
-        .get_employee_rosters(
+        .get_employment_rosters(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             emp_id,
             start,
@@ -344,7 +344,7 @@ async fn test_bulk_upsert_roster() {
     let start = NaiveDate::from_ymd_opt(2026, 4, 1).unwrap();
     let end = NaiveDate::from_ymd_opt(2026, 4, 30).unwrap();
     let rosters = repo
-        .get_employee_rosters(
+        .get_employment_rosters(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             emp_id,
             start,
@@ -386,7 +386,7 @@ async fn test_bulk_upsert_overwrites_existing() {
     // Insert first entry
     let r = ShiftRoster {
         id: Uuid::new_v4(),
-        employee_id: emp_id,
+        employment_id: emp_id,
         shift_id: Some(shift_old),
         date,
         status: "confirmed".to_string(),
@@ -418,7 +418,7 @@ async fn test_bulk_upsert_overwrites_existing() {
     let start = NaiveDate::from_ymd_opt(2026, 4, 1).unwrap();
     let end = NaiveDate::from_ymd_opt(2026, 4, 1).unwrap();
     let rosters = repo
-        .get_employee_rosters(
+        .get_employment_rosters(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             emp_id,
             start,
@@ -454,7 +454,7 @@ async fn test_get_assignment_history_includes_roster_entries() {
     // Create a roster entry
     let r = ShiftRoster {
         id: Uuid::new_v4(),
-        employee_id: emp_id,
+        employment_id: emp_id,
         shift_id: Some(shift_id),
         date: NaiveDate::from_ymd_opt(2026, 3, 10).unwrap(),
         status: "confirmed".to_string(),
@@ -521,7 +521,7 @@ async fn test_get_assignment_history_respects_limit() {
     for day in 1..=5 {
         let r = ShiftRoster {
             id: Uuid::new_v4(),
-            employee_id: emp_id,
+            employment_id: emp_id,
             shift_id: Some(shift_id),
             date: NaiveDate::from_ymd_opt(2026, 5, day).unwrap(),
             status: "confirmed".to_string(),
@@ -568,7 +568,7 @@ async fn test_get_effective_shift_from_roster() {
     // Assign via roster (P1 — highest priority)
     let r = ShiftRoster {
         id: Uuid::new_v4(),
-        employee_id: emp_id,
+        employment_id: emp_id,
         shift_id: Some(shift_id),
         date,
         status: "confirmed".to_string(),

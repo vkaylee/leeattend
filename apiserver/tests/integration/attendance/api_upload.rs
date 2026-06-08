@@ -96,7 +96,7 @@ async fn test_upload_attendance_csv_api() {
     assert!(completed, "CSV Job did not complete");
 
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&_test_db.url());
-    let entries = helpers::get_employee_time_entries(
+    let entries = helpers::get_employment_time_entries(
         &diesel_pools,
         ws_id,
         emp_id,

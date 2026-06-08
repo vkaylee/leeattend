@@ -301,7 +301,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         );
 
         let query = format!(
-            "{EMPLOYEE_SELECT_QUERY} WHERE e.workspace_id = $1 AND e.is_active = true AND e.deleted_at IS NULL ORDER BY e.full_name ASC"
+            "{EMPLOYEE_SELECT_QUERY} WHERE e.workspace_id = $1 AND EXISTS (SELECT 1 FROM employments em WHERE em.employee_id = e.id AND em.status = 'active' AND em.deleted_at IS NULL) AND e.deleted_at IS NULL ORDER BY e.full_name ASC"
         );
         let emps: Vec<EmployeeRow> = diesel::sql_query(&query)
             .bind::<UuidType, _>(workspace_id)
@@ -326,11 +326,17 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
+        use crate::schema::employments;
         let mut query = employees::table
             .select(employees::id)
             .filter(employees::workspace_id.eq(workspace_id))
-            .filter(employees::is_active.eq(true))
             .filter(employees::deleted_at.is_null())
+            .filter(diesel::dsl::exists(
+                employments::table
+                    .filter(employments::employee_id.eq(employees::id))
+                    .filter(employments::status.eq("active"))
+                    .filter(employments::deleted_at.is_null()),
+            ))
             .into_boxed();
 
         if let Some(ids) = filter_ids {
@@ -466,7 +472,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             FROM employees e
             LEFT JOIN latest_history lh ON lh.employee_id = e.id AND lh.rn = 1
             LEFT JOIN departments d ON d.id = lh.department_id
-            WHERE e.is_active = TRUE AND e.workspace_id = $1 AND e.deleted_at IS NULL
+            WHERE EXISTS (SELECT 1 FROM employments em WHERE em.employee_id = e.id AND em.status = 'active' AND em.deleted_at IS NULL) AND e.workspace_id = $1 AND e.deleted_at IS NULL
         ";
 
         let rows: Vec<DeptRow> = diesel::sql_query(query)
@@ -537,9 +543,6 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                     full_name: req.full_name.clone(),
                     employee_id_number: normalized_id,
                     tags: tags_mapped,
-                    is_active: req.is_active,
-                    hire_date: req.hire_date,
-                    termination_date: req.termination_date.map(Some),
                     updated_at: Some(chrono::Utc::now()),
                 };
 
@@ -591,14 +594,23 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         .map_err(|e| AppError::Internal(format!("db select first employer: {e}")))?;
         let employer_id = emp_id_opt.unwrap_or_else(Uuid::new_v4);
 
-        self.create_employee_transactional(&auth_token, employee, None, employer_id, None, None)
-            .await
+        self.create_employee_transactional(
+            &auth_token,
+            employee,
+            employee.created_at().date_naive(),
+            None,
+            employer_id,
+            None,
+            None,
+        )
+        .await
     }
 
     async fn create_employee_transactional(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee: &Employee,
+        hire_date: chrono::NaiveDate,
         recruitment_source_id: Option<Uuid>,
         employer_id: Uuid,
         primary_location_id: Option<Uuid>,
@@ -637,11 +649,14 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                     primary_location_id,
                     department_id,
                     status: "active".to_string(),
-                    start_date: employee.hire_date(),
+                    start_date: hire_date,
                     end_date: None,
                     created_at: chrono::Utc::now(),
                     updated_at: chrono::Utc::now(),
                     deleted_at: None,
+                    job_title: None,
+                    employment_type: "full_time".to_string(),
+                    manager_employment_id: None,
                 };
 
                 diesel::insert_into(employments::table)
@@ -657,7 +672,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                         contract_number: None,
                         contract_type: crate::models::enums::ContractType::Indefinite,
                         status: crate::models::enums::ContractStatus::Active,
-                        start_date: employee.hire_date(),
+                        start_date: hire_date,
                         end_date: None,
                         document_id: None,
                         notes: Some(
@@ -736,11 +751,14 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                     primary_location_id: None,
                     department_id: None,
                     status: "active".to_string(),
-                    start_date: employee.hire_date(),
+                    start_date: employee.created_at().date_naive(),
                     end_date: None,
                     created_at: chrono::Utc::now(),
                     updated_at: chrono::Utc::now(),
                     deleted_at: None,
+                    job_title: None,
+                    employment_type: "full_time".to_string(),
+                    manager_employment_id: None,
                 };
 
                 diesel::insert_into(employments::table)
@@ -756,7 +774,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                         contract_number: None,
                         contract_type: crate::models::enums::ContractType::Indefinite,
                         status: crate::models::enums::ContractStatus::Active,
-                        start_date: employee.hire_date(),
+                        start_date: employee.created_at().date_naive(),
                         end_date: None,
                         document_id: None,
                         notes: Some(
@@ -787,31 +805,92 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_id: Uuid,
         hire_date: chrono::NaiveDate,
+        employer_id: Uuid,
+        primary_location_id: Option<Uuid>,
+        department_id: Option<Uuid>,
     ) -> Result<Option<Employee>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = crate::diesel_pool::TransactionConn(
-            self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+
+        conn.transaction(|conn| {
+            Box::pin(async move {
+                let employee_exists: bool = employees::table
+                    .filter(employees::id.eq(employee_id))
+                    .filter(employees::workspace_id.eq(workspace_id))
+                    .select(diesel::dsl::sql::<diesel::sql_types::Bool>("1"))
+                    .first::<bool>(&mut *conn)
+                    .await
+                    .optional()
+                    .map_err(|e| AppError::Internal(format!("db select employee: {e}")))?
+                    .is_some();
+
+                if !employee_exists {
+                    return Ok::<Option<Employee>, AppError>(None);
+                }
+
+                use crate::schema::employments;
+
+                let previous_employments = diesel_async::RunQueryDsl::load::<crate::models::diesel::employment::EmploymentEntity>(
+                    employments::table
+                        .filter(employments::employee_id.eq(employee_id))
+                        .filter(employments::deleted_at.is_null()),
+                    &mut *conn,
+                )
                 .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
-        );
+                .map_err(|e| AppError::Internal(format!("db select previous employments: {e}")))?;
 
-        let result: Option<EmployeeEntity> = diesel::update(employees::table)
-            .filter(employees::id.eq(employee_id))
-            .filter(employees::workspace_id.eq(workspace_id))
-            .set((
-                employees::is_active.eq(true),
-                employees::hire_date.eq(hire_date),
-                employees::termination_date.eq(None::<chrono::NaiveDate>),
-                employees::updated_at.eq(Some(chrono::Utc::now())),
-            ))
-            .get_result(&mut *conn)
-            .await
-            .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                for emp in &previous_employments {
+                    if emp.status == "active" {
+                        return Err(AppError::Validation("error.employee_already_active".into()));
+                    }
+                    if let Some(end_date) = emp.end_date {
+                        if hire_date <= end_date {
+                            return Err(AppError::Validation("error.rehire_date_invalid".into()));
+                        }
+                    }
+                }
 
-        Ok(result.map(Into::into))
+                let employment_id = Uuid::new_v4();
+                let new_emp = crate::models::diesel::employment::EmploymentEntity {
+                    id: employment_id,
+                    workspace_id,
+                    employee_id,
+                    employer_id,
+                    primary_location_id,
+                    department_id,
+                    status: "active".to_string(),
+                    start_date: hire_date,
+                    end_date: None,
+                    job_title: None,
+                    employment_type: "full_time".to_string(),
+                    manager_employment_id: None,
+                    created_at: chrono::Utc::now(),
+                    updated_at: chrono::Utc::now(),
+                    deleted_at: None,
+                };
+
+                diesel::insert_into(employments::table)
+                    .values(&new_emp)
+                    .execute(&mut *conn)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db insert employment: {e}")))?;
+
+                let query = format!("{EMPLOYEE_SELECT_QUERY} WHERE e.id = $1 AND e.workspace_id = $2 AND e.deleted_at IS NULL");
+                let row: Option<EmployeeRow> = diesel::sql_query(query)
+                    .bind::<diesel::sql_types::Uuid, _>(employee_id)
+                    .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+                    .get_result(&mut *conn)
+                    .await
+                    .optional()
+                    .map_err(|e| AppError::Internal(format!("db select employee row: {e}")))?;
+
+                Ok(row.map(Into::into))
+            })
+        })
+        .await
     }
 
     async fn delete_employee(
@@ -1001,11 +1080,14 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                                 primary_location_id: hq_id,
                                 department_id: None,
                                 status: "active".to_string(),
-                                start_date: emp.hire_date(),
+                                start_date: emp.created_at().date_naive(),
                                 end_date: None,
                                 created_at: chrono::Utc::now(),
                                 updated_at: chrono::Utc::now(),
                                 deleted_at: None,
+                                job_title: None,
+                                employment_type: "full_time".to_string(),
+                                manager_employment_id: None,
                             },
                         );
                         contracts_to_insert.push(
@@ -1015,7 +1097,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                                 contract_number: None,
                                 contract_type: crate::models::enums::ContractType::Indefinite,
                                 status: crate::models::enums::ContractStatus::Active,
-                                start_date: emp.hire_date(),
+                                start_date: emp.created_at().date_naive(),
                                 end_date: None,
                                 document_id: None,
                                 notes: Some(
@@ -1106,12 +1188,18 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
+        use crate::schema::employments;
         let result: Option<Uuid> = employees::table
             .select(employees::id)
             .filter(employees::workspace_id.eq(workspace_id))
             .filter(employees::deleted_at.is_null())
             .filter(employees::user_id.eq(user_id))
-            .filter(employees::is_active.eq(true))
+            .filter(diesel::dsl::exists(
+                employments::table
+                    .filter(employments::employee_id.eq(employees::id))
+                    .filter(employments::status.eq("active"))
+                    .filter(employments::deleted_at.is_null()),
+            ))
             .order(employees::updated_at.desc())
             .first(&mut *conn)
             .await

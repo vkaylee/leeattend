@@ -129,11 +129,19 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
     let pending_count_after = helpers::count_pending_staging_logs(&diesel_pools, ws_id).await?;
     assert_eq!(pending_count_after, 0, "Staged log should be processed");
 
+    // Get the employment ID for the employee
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        employee.id()
+    );
+
     // 5. Verify raw log exists for this employee
     let raw_logs = helpers::get_paginated_raw_logs(
         &diesel_pools,
         ws_id,
-        Some(employee.id()),
+        Some(employment_id),
         None,
         None,
         10,
@@ -261,10 +269,25 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
         "Staged log should be processed for existing employee"
     );
 
+    // Get the employment ID for the employee
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        employee_id
+    );
+
     // 4. Verify raw log exists for this employee
-    let raw_logs =
-        helpers::get_paginated_raw_logs(&diesel_pools, ws_id, Some(employee_id), None, None, 10, 0)
-            .await?;
+    let raw_logs = helpers::get_paginated_raw_logs(
+        &diesel_pools,
+        ws_id,
+        Some(employment_id),
+        None,
+        None,
+        10,
+        0,
+    )
+    .await?;
     assert_eq!(
         raw_logs.len(),
         1,

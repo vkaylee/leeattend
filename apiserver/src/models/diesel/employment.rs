@@ -20,23 +20,29 @@ pub struct EmploymentEntity {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
+    pub job_title: Option<String>,
+    pub employment_type: String,
+    pub manager_employment_id: Option<Uuid>,
 }
 
 impl From<EmploymentEntity> for Employment {
     fn from(val: EmploymentEntity) -> Self {
-        Self {
-            id: val.id,
-            workspace_id: val.workspace_id,
-            employee_id: val.employee_id,
-            employer_id: val.employer_id,
-            primary_location_id: val.primary_location_id,
-            department_id: val.department_id,
-            status: val.status,
-            start_date: val.start_date,
-            end_date: val.end_date,
-            created_at: val.created_at,
-            updated_at: val.updated_at,
-        }
+        Self::new(
+            val.id,
+            val.workspace_id,
+            val.employee_id,
+            val.employer_id,
+            val.primary_location_id,
+            val.department_id,
+            val.status,
+            val.start_date,
+            val.end_date,
+            val.job_title,
+            val.employment_type,
+            val.manager_employment_id,
+            val.created_at,
+            val.updated_at,
+        )
     }
 }
 
@@ -49,5 +55,8 @@ pub struct UpdateDieselEmployment {
     pub status: Option<String>,
     pub start_date: Option<NaiveDate>,
     pub end_date: Option<Option<NaiveDate>>,
+    pub job_title: Option<String>,
+    pub employment_type: Option<String>,
+    pub manager_employment_id: Option<Option<Uuid>>,
     pub updated_at: Option<DateTime<Utc>>,
 }

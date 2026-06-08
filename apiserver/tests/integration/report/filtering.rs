@@ -48,6 +48,9 @@ async fn test_daily_report_employee_filtering() {
             employee_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
             ),
+            employment_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselEmploymentRepository::new(diesel_pools.clone()),
+            ),
             attendance_daily_summary_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
                     diesel_pools.clone(),
@@ -79,7 +82,7 @@ async fn test_daily_report_employee_filtering() {
         .await
         .expect("Failed to get report");
     assert_eq!(result_1.data.len(), 1);
-    assert_eq!(result_1.data[0].employee_id, emp1);
+    assert_eq!(result_1.data[0].employment_id, emp1);
 
     // Filter by emp2, emp3
     let result_23 = report_service

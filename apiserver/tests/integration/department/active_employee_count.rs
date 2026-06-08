@@ -41,7 +41,7 @@ async fn transfer(
 async fn deactivate_employee(pool: &apiserver::diesel_pool::DieselPools, employee_id: Uuid) {
     crate::test_execute!(
         &pool.api,
-        "UPDATE employees SET is_active = false WHERE id = $1",
+        "UPDATE employments SET status = 'terminated' WHERE employee_id = $1",
         diesel::sql_types::Uuid,
         employee_id
     );

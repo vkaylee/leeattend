@@ -21,8 +21,7 @@ impl DieselEmployeeRepository {
 pub const EMPLOYEE_SELECT_QUERY: &str = r"
     SELECT
         e.id, e.workspace_id, e.user_id, e.full_name, e.employee_id_number,
-        e.original_hire_date, e.hire_date, e.termination_date,
-        e.tags, e.is_active, e.created_at, e.updated_at,
+        e.tags, e.created_at, e.updated_at,
         d_cur.name as department_name, emp_cur.primary_location_id, emp_cur.employer_id, emp_cur.id as active_employment_id
     FROM employees e
     LEFT JOIN (
@@ -89,7 +88,9 @@ fn build_employee_search_sql(
             Some("department") => {
                 format!("ORDER BY COALESCE(d_sort.name, '') {dir}, e.full_name ASC")
             }
-            Some("status") => format!("ORDER BY e.is_active {dir}, e.full_name ASC"),
+            Some("status") => {
+                format!("ORDER BY COALESCE(emp_cur.status, '') {dir}, e.full_name ASC")
+            }
             _ => format!("ORDER BY e.full_name {dir}"),
         }
     };

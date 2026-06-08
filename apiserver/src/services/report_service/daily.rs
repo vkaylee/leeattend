@@ -141,14 +141,43 @@ impl ReportService {
 
         let emp_ids: Vec<Uuid> = paginated_employees.iter().map(|e| e.id).collect();
 
+        // Fetch employments to build maps
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id);
+        let employments = self
+            .employment_repo
+            .get_employments_for_employees(&auth_token, &emp_ids)
+            .await?;
+
+        // Map employee_id -> active employment_id
+        let mut emp_to_active_employment = std::collections::HashMap::new();
+        // Map employment_id -> employee_id
+        let mut employment_to_employee = std::collections::HashMap::new();
+
+        for emp in &employments {
+            employment_to_employee.insert(emp.id(), emp.employee_id());
+            if emp.status() == "active" || emp.end_date().is_none_or(|end| end >= args.start_date) {
+                emp_to_active_employment.insert(emp.employee_id(), emp.id());
+            }
+        }
+        for emp in &employments {
+            emp_to_active_employment
+                .entry(emp.employee_id())
+                .or_insert_with(|| emp.id());
+        }
+
+        let paginated_employment_ids: Vec<Uuid> = emp_ids
+            .iter()
+            .filter_map(|emp_id| emp_to_active_employment.get(emp_id).copied())
+            .collect();
+
         let schedules = self
             .roster_repo
             .get_workspace_schedules(
                 None,
-                &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
+                &auth_token,
                 args.start_date,
                 args.end_date,
-                Some(&emp_ids),
+                Some(&paginated_employment_ids),
             )
             .await?;
 
@@ -161,9 +190,9 @@ impl ReportService {
 
         let entries_map = self
             .time_entry_repo
-            .get_workspace_time_entries_batch(
-                &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
-                &emp_ids,
+            .get_workspace_time_entries_batch_by_employments(
+                &auth_token,
+                &paginated_employment_ids,
                 start_dt,
                 end_dt,
             )
@@ -171,18 +200,14 @@ impl ReportService {
 
         let holidays_map = self
             .holiday_repo
-            .get_holidays_in_range(
-                &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
-                args.start_date,
-                args.end_date,
-            )
+            .get_holidays_in_range(&auth_token, args.start_date, args.end_date)
             .await?;
 
         let ot_status_map = self
             .attendance_daily_summary_repo
             .get_batch_ot_statuses(
-                &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
-                &emp_ids,
+                &auth_token,
+                &paginated_employment_ids,
                 args.start_date,
                 args.end_date,
             )
@@ -190,12 +215,7 @@ impl ReportService {
 
         let leave_details_map = self
             .leave_repo
-            .get_approved_leave_details(
-                &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
-                &emp_ids,
-                args.start_date,
-                args.end_date,
-            )
+            .get_approved_leave_details(&auth_token, &emp_ids, args.start_date, args.end_date)
             .await?;
 
         let leave_date_set: std::collections::HashSet<(Uuid, NaiveDate)> =
@@ -221,8 +241,13 @@ impl ReportService {
         let mut reports = Vec::new();
 
         for emp_sched in schedules {
+            let employee_id = employment_to_employee
+                .get(&emp_sched.employment_id)
+                .copied()
+                .unwrap_or_else(Uuid::nil);
+
             let entries = entries_map
-                .get(&emp_sched.employee_id)
+                .get(&emp_sched.employment_id)
                 .map_or_else(Default::default, std::vec::Vec::as_slice);
             let entries_by_date =
                 crate::services::attendance_utils::group_entries_by_date(entries, tz);
@@ -242,7 +267,7 @@ impl ReportService {
                     .and_then(|e| e.punch_out_time().map(|t| t.with_timezone(&tz)));
 
                 let emp_attendance_rules = attendance_rules_map
-                    .get(&emp_sched.employee_id)
+                    .get(&employee_id)
                     .cloned()
                     .unwrap_or_else(|| crate::models::AttendanceRules {
                         work_unit_minutes: 30,
@@ -251,7 +276,7 @@ impl ReportService {
                     });
 
                 let emp_working_conditions = working_conditions_map
-                    .get(&emp_sched.employee_id)
+                    .get(&employee_id)
                     .map_or_else(Default::default, std::vec::Vec::as_slice);
 
                 let base_rules = PolicyResolver::build_rules_from_conditions(
@@ -275,7 +300,7 @@ impl ReportService {
                         daily: &daily,
                         date,
                         tz,
-                        employee_id: emp_sched.employee_id,
+                        employee_id,
                         workspace_id: workspace.id(),
                         rules,
                         work_unit_minutes: emp_attendance_rules.work_unit_minutes,
@@ -284,11 +309,9 @@ impl ReportService {
 
                 let holiday_entry = holidays_map.get(&date);
                 let is_hol = holiday_entry.is_some();
-                let is_on_leave = leave_date_set.contains(&(emp_sched.employee_id, date));
+                let is_on_leave = leave_date_set.contains(&(employee_id, date));
                 let is_leave_paid = if is_on_leave {
-                    leave_details_map
-                        .get(&(emp_sched.employee_id, date))
-                        .copied()
+                    leave_details_map.get(&(employee_id, date)).copied()
                 } else {
                     None
                 };
@@ -332,7 +355,7 @@ impl ReportService {
 
                 reports.push(DailyAttendanceReport {
                     date,
-                    employee_id: emp_sched.employee_id,
+                    employment_id: emp_sched.employment_id,
                     employee_name: emp_sched.full_name.clone(),
                     employee_id_number: emp_sched.employee_id_number.clone(),
                     shift_symbol: daily.shift_symbol.clone(),
@@ -347,7 +370,7 @@ impl ReportService {
                     actual_punch_out: actual_punch_out.map(|t| t.with_timezone(&Utc)),
                     std_work_units,
                     ot_work_units,
-                    ot_claim_status: ot_status_map.get(&(emp_sched.employee_id, date)).cloned(),
+                    ot_claim_status: ot_status_map.get(&(emp_sched.employment_id, date)).cloned(),
                     unit_type: crate::models::enums::TimekeepingUnit::DAY,
                     unit_coefficient_hours: f64::from(emp_attendance_rules.work_unit_minutes)
                         / 60.0,

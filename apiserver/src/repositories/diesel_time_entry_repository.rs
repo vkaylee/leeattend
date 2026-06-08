@@ -11,7 +11,7 @@ use crate::models::diesel::time_entry::{
 };
 use crate::models::{TimeEntry, TimeEntryLogFilter, TimeEntryWithEmployee};
 use crate::repositories::time_entry_repository::TimeEntryRepository;
-use crate::schema::{employees, time_entries};
+use crate::schema::{employees, employments, time_entries};
 
 pub struct DieselTimeEntryRepository {
     diesel_pools: crate::diesel_pool::DieselPools,
@@ -41,7 +41,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
 
         let new_entry = NewTimeEntryEntity {
             id: entry.id(),
-            employee_id: entry.employee_id(),
+            employment_id: entry.employment_id(),
             workspace_id: entry.workspace_id(),
             punch_in_time: entry.punch_in_time(),
             punch_out_time: entry.punch_out_time(),
@@ -88,7 +88,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
     async fn get_active_time_entry(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
     ) -> Result<Option<TimeEntry>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = crate::diesel_pool::TransactionConn(
@@ -101,7 +101,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
 
         let entry: Option<TimeEntryEntity> = time_entries::table
             .filter(time_entries::workspace_id.eq(workspace_id))
-            .filter(time_entries::employee_id.eq(employee_id))
+            .filter(time_entries::employment_id.eq(employment_id))
             .filter(time_entries::punch_out_time.is_null())
             .order(time_entries::punch_in_time.desc())
             .first(&mut *conn)
@@ -115,16 +115,16 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
     async fn get_latest_active_entry(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
     ) -> Result<Option<TimeEntry>, AppError> {
         let _workspace_id = auth_token.workspace_id();
-        self.get_active_time_entry(auth_token, employee_id).await
+        self.get_active_time_entry(auth_token, employment_id).await
     }
 
-    async fn get_latest_entry_for_employee(
+    async fn get_latest_entry_for_employment(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
     ) -> Result<Option<TimeEntry>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = crate::diesel_pool::TransactionConn(
@@ -137,7 +137,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
 
         let entry: Option<TimeEntryEntity> = time_entries::table
             .filter(time_entries::workspace_id.eq(workspace_id))
-            .filter(time_entries::employee_id.eq(employee_id))
+            .filter(time_entries::employment_id.eq(employment_id))
             .order(time_entries::punch_in_time.desc())
             .first(&mut *conn)
             .await
@@ -204,10 +204,10 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         Ok(())
     }
 
-    async fn get_employee_time_entries(
+    async fn get_employment_time_entries(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         from: DateTime<Utc>,
         to: DateTime<Utc>,
     ) -> Result<Vec<TimeEntry>, AppError> {
@@ -222,7 +222,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
 
         let entries: Vec<TimeEntryEntity> = time_entries::table
             .filter(time_entries::workspace_id.eq(workspace_id))
-            .filter(time_entries::employee_id.eq(employee_id))
+            .filter(time_entries::employment_id.eq(employment_id))
             .filter(time_entries::punch_in_time.ge(from))
             .filter(time_entries::punch_in_time.le(to))
             .order(time_entries::punch_in_time.desc())
@@ -239,7 +239,6 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         filter: TimeEntryLogFilter,
     ) -> Result<Vec<TimeEntryWithEmployee>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        // Dynamic SQL with Diesel boxed query
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .tenants_tx
@@ -249,12 +248,13 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         );
 
         let mut query = time_entries::table
-            .inner_join(employees::table.on(time_entries::employee_id.eq(employees::id)))
+            .inner_join(employments::table.on(time_entries::employment_id.eq(employments::id)))
+            .inner_join(employees::table.on(employments::employee_id.eq(employees::id)))
             .filter(time_entries::workspace_id.eq(workspace_id))
             .into_boxed();
 
-        if let Some(emp_id) = filter.employee_id() {
-            query = query.filter(time_entries::employee_id.eq(emp_id));
+        if let Some(emp_id) = filter.employment_id() {
+            query = query.filter(time_entries::employment_id.eq(emp_id));
         }
         if let Some(from_date) = filter.from() {
             query = query.filter(time_entries::punch_in_time.ge(from_date));
@@ -282,7 +282,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
                 let domain: TimeEntry = entry.into();
                 TimeEntryWithEmployee::new(
                     domain.id(),
-                    domain.employee_id(),
+                    domain.employment_id(),
                     domain.workspace_id(),
                     domain.shift_id(),
                     domain.punch_in_time(),
@@ -304,7 +304,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
     async fn count_logs(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        p_employee_id: Option<Uuid>,
+        p_employment_id: Option<Uuid>,
         p_from: Option<DateTime<Utc>>,
         p_to: Option<DateTime<Utc>>,
     ) -> Result<i64, AppError> {
@@ -318,12 +318,13 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         );
 
         let mut query = time_entries::table
-            .inner_join(employees::table.on(time_entries::employee_id.eq(employees::id)))
+            .inner_join(employments::table.on(time_entries::employment_id.eq(employments::id)))
+            .inner_join(employees::table.on(employments::employee_id.eq(employees::id)))
             .filter(time_entries::workspace_id.eq(workspace_id))
             .into_boxed();
 
-        if let Some(emp_id) = p_employee_id {
-            query = query.filter(time_entries::employee_id.eq(emp_id));
+        if let Some(emp_id) = p_employment_id {
+            query = query.filter(time_entries::employment_id.eq(emp_id));
         }
         if let Some(from_date) = p_from {
             query = query.filter(time_entries::punch_in_time.ge(from_date));
@@ -344,7 +345,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
     async fn get_distinct_work_days(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         start_time: DateTime<Utc>,
         end_time: DateTime<Utc>,
         tz: &str,
@@ -368,15 +369,16 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
             r"
             SELECT DISTINCT(te.punch_in_time AT TIME ZONE $2)::date as date
             FROM time_entries te
-            JOIN employees e ON te.employee_id = e.id
-            WHERE te.employee_id = $1
+            JOIN employments em ON te.employment_id = em.id
+            JOIN employees e ON em.employee_id = e.id
+            WHERE te.employment_id = $1
               AND e.workspace_id = $5
               AND te.punch_in_time >= $3
               AND te.punch_in_time <= $4
               AND te.entry_type = 'work'
             ",
         )
-        .bind::<diesel::sql_types::Uuid, _>(employee_id)
+        .bind::<diesel::sql_types::Uuid, _>(employment_id)
         .bind::<diesel::sql_types::Text, _>(tz.to_string())
         .bind::<diesel::sql_types::Timestamptz, _>(start_time)
         .bind::<diesel::sql_types::Timestamptz, _>(end_time)
@@ -388,15 +390,15 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         Ok(work_days.into_iter().map(|row| row.date).collect())
     }
 
-    async fn get_workspace_time_entries_batch(
+    async fn get_workspace_time_entries_batch_by_employments(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_ids: &[Uuid],
+        employment_ids: &[Uuid],
         from: DateTime<Utc>,
         to: DateTime<Utc>,
     ) -> Result<HashMap<Uuid, Vec<TimeEntry>>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        if employee_ids.is_empty() {
+        if employment_ids.is_empty() {
             return Ok(HashMap::new());
         }
 
@@ -410,11 +412,11 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
 
         let results: Vec<TimeEntryEntity> = time_entries::table
             .filter(time_entries::workspace_id.eq(workspace_id))
-            .filter(time_entries::employee_id.eq_any(employee_ids))
+            .filter(time_entries::employment_id.eq_any(employment_ids))
             .filter(time_entries::punch_in_time.ge(from))
             .filter(time_entries::punch_in_time.le(to))
             .order((
-                time_entries::employee_id.asc(),
+                time_entries::employment_id.asc(),
                 time_entries::punch_in_time.asc(),
             ))
             .load(&mut *conn)
@@ -425,7 +427,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
         for entry in results {
             let domain: TimeEntry = entry.into();
             result_map
-                .entry(domain.employee_id())
+                .entry(domain.employment_id())
                 .or_default()
                 .push(domain);
         }
@@ -436,7 +438,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
     async fn replace_time_entries(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         start_time: DateTime<Utc>,
         end_time: DateTime<Utc>,
         entries: Vec<TimeEntry>,
@@ -457,7 +459,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
                 diesel::delete(
                     time_entries::table
                         .filter(time_entries::workspace_id.eq(workspace_id))
-                        .filter(time_entries::employee_id.eq(employee_id))
+                        .filter(time_entries::employment_id.eq(employment_id))
                         .filter(time_entries::punch_in_time.ge(start_time))
                         .filter(time_entries::punch_in_time.lt(end_time)),
                 )
@@ -470,7 +472,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
                         .map(|entry| TimeEntryEntity {
                             id: entry.id(),
                             workspace_id: entry.workspace_id(),
-                            employee_id: entry.employee_id(),
+                            employment_id: entry.employment_id(),
                             shift_id: entry.shift_id(),
                             punch_in_time: entry.punch_in_time(),
                             punch_out_time: entry.punch_out_time(),

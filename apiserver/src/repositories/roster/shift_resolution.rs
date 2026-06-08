@@ -25,6 +25,7 @@ use uuid::Uuid;
 pub fn resolve_effective_shift_from_data<S: ::std::hash::BuildHasher>(
     roster_data: &RosterData,
     roster_map: &HashMap<(Uuid, NaiveDate), Option<Uuid>, S>,
+    employment_id: Uuid,
     employee_id: Uuid,
     employee_id_number: &str,
     employee_tags: Option<&Vec<String>>,
@@ -35,7 +36,7 @@ pub fn resolve_effective_shift_from_data<S: ::std::hash::BuildHasher>(
     let mut traces = Vec::new();
 
     // P1: Roster override
-    if let Some(shift_opt) = roster_map.get(&(employee_id, date)) {
+    if let Some(shift_opt) = roster_map.get(&(employment_id, date)) {
         traces.push(ScheduleTrace {
             rule_id: None,
             rule_name: "Manual Roster".to_string(),
@@ -166,6 +167,7 @@ mod tests {
         super::resolve_effective_shift_from_data(
             roster_data,
             roster_map,
+            employee_id,
             employee_id,
             employee_id_number,
             employee_tags,
@@ -1165,6 +1167,7 @@ mod tests {
             &Arc::new(data.clone()),
             &roster_map,
             emp,
+            emp,
             "EMP001",
             None,
             target_date,
@@ -1179,6 +1182,7 @@ mod tests {
             &Arc::new(data.clone()),
             &roster_map,
             emp,
+            emp,
             "EMP001",
             None,
             target_date,
@@ -1191,6 +1195,7 @@ mod tests {
         let (shifts, source, _) = super::resolve_effective_shift_from_data(
             &Arc::new(data),
             &roster_map,
+            emp,
             emp,
             "EMP001",
             None,

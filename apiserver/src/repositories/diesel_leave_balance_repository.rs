@@ -116,7 +116,7 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
             CROSS JOIN leave_types lt
             LEFT JOIN employments emp ON e.id = emp.employee_id AND emp.workspace_id = $1 AND emp.deleted_at IS NULL
             LEFT JOIN leave_balances lb ON emp.id = lb.employment_id AND lt.id = lb.leave_type_id AND lb.year = $2
-            WHERE e.workspace_id = $1 AND e.is_active = TRUE AND lt.workspace_id = $1
+            WHERE e.workspace_id = $1 AND emp.status = 'active' AND lt.workspace_id = $1
               AND ($3 = '%%' OR e.full_name ILIKE $3 OR e.employee_id_number ILIKE $3 OR lt.name ILIKE $3 OR lt.code ILIKE $3)
               AND (
                 lb.employment_id IS NOT NULL
@@ -174,9 +174,10 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
                 FROM leave_policy_assignments a
                 JOIN leave_policy_definitions d ON a.policy_id = d.id
                 CROSS JOIN employees e_inner
+                LEFT JOIN employments emp_inner ON e_inner.id = emp_inner.employee_id AND emp_inner.workspace_id = $1 AND emp_inner.deleted_at IS NULL
                 WHERE a.workspace_id = $1
                   AND e_inner.workspace_id = $1
-                  AND e_inner.is_active = TRUE
+                  AND emp_inner.status = 'active'
                   AND (
                     (a.assignee_type = 'employee' AND a.assignee_id = e_inner.id) OR
                     (a.assignee_type = 'department' AND a.assignee_id = (
@@ -218,7 +219,7 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
             LEFT JOIN leave_balances lb ON emp.id = lb.employment_id AND lt.id = lb.leave_type_id AND lb.year = $2
             LEFT JOIN leave_usage lu ON e.id = lu.employee_id AND lt.id = lu.leave_type_id
             LEFT JOIN best_policy bp ON e.id = bp.emp_id AND lt.id = bp.lt_id
-            WHERE e.workspace_id = $1 AND e.is_active = TRUE AND lt.workspace_id = $1
+            WHERE e.workspace_id = $1 AND emp.status = 'active' AND lt.workspace_id = $1
               AND ($3 = '%%' OR e.full_name ILIKE $3 OR e.employee_id_number ILIKE $3 OR lt.name ILIKE $3 OR lt.code ILIKE $3)
               AND (lb.employment_id IS NOT NULL OR bp.emp_id IS NOT NULL)
             ORDER BY e.full_name ASC, lt.name ASC

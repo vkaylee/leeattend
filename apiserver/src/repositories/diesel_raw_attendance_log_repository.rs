@@ -8,7 +8,7 @@ use crate::errors::AppError;
 use crate::models::attendance::{RawAttendanceLog, RawAttendanceLogWithEmployee};
 use crate::models::diesel::attendance_log::RawAttendanceLogEntity;
 use crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
-use crate::schema::{devices, employees, raw_attendance_logs};
+use crate::schema::{devices, employees, employments, raw_attendance_logs};
 
 pub struct DieselRawAttendanceLogRepository {
     diesel_pools: crate::diesel_pool::DieselPools,
@@ -38,7 +38,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
         let entity = RawAttendanceLogEntity {
             id: log.id(),
             workspace_id: log.workspace_id(),
-            employee_id: log.employee_id(),
+            employment_id: log.employment_id(),
             punch_time: log.punch_time(),
             source: *log.source(),
             device_id: log.device_id().map(ToString::to_string),
@@ -52,7 +52,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
             .values(&entity)
             .on_conflict((
                 raw_attendance_logs::workspace_id,
-                raw_attendance_logs::employee_id,
+                raw_attendance_logs::employment_id,
                 raw_attendance_logs::punch_time,
                 raw_attendance_logs::punch,
                 raw_attendance_logs::status,
@@ -92,7 +92,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
     async fn get_latest_log(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
     ) -> Result<Option<RawAttendanceLog>, AppError> {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -103,7 +103,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
         );
 
         let res: Option<RawAttendanceLogEntity> = raw_attendance_logs::table
-            .filter(raw_attendance_logs::employee_id.eq(employee_id))
+            .filter(raw_attendance_logs::employment_id.eq(employment_id))
             .filter(raw_attendance_logs::workspace_id.eq(workspace_id))
             .order(raw_attendance_logs::punch_time.desc())
             .first(&mut *conn)
@@ -117,7 +117,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
     async fn get_paginated_raw_logs(
         &self,
         workspace_id: Uuid,
-        p_employee_id: Option<Uuid>,
+        p_employment_id: Option<Uuid>,
         p_from: Option<DateTime<Utc>>,
         p_to: Option<DateTime<Utc>>,
         p_limit: i64,
@@ -132,7 +132,10 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
         );
 
         let mut query = raw_attendance_logs::table
-            .inner_join(employees::table.on(raw_attendance_logs::employee_id.eq(employees::id)))
+            .inner_join(
+                employments::table.on(raw_attendance_logs::employment_id.eq(employments::id)),
+            )
+            .inner_join(employees::table.on(employments::employee_id.eq(employees::id)))
             .left_join(
                 devices::table.on(diesel::dsl::sql::<diesel::sql_types::Bool>(
                     "raw_attendance_logs.device_id = devices.id::text",
@@ -141,8 +144,8 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
             .filter(raw_attendance_logs::workspace_id.eq(workspace_id))
             .into_boxed();
 
-        if let Some(emp_id) = p_employee_id {
-            query = query.filter(raw_attendance_logs::employee_id.eq(emp_id));
+        if let Some(emp_id) = p_employment_id {
+            query = query.filter(raw_attendance_logs::employment_id.eq(emp_id));
         }
 
         if let Some(from) = p_from {
@@ -175,7 +178,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
                 RawAttendanceLogWithEmployee {
                     id: base.id(),
                     workspace_id: base.workspace_id(),
-                    employee_id: base.employee_id(),
+                    employment_id: base.employment_id(),
                     punch_time: base.punch_time(),
                     source: *base.source(),
                     device_id: base.device_id().map(ToString::to_string),
@@ -194,7 +197,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
     async fn count_raw_logs(
         &self,
         workspace_id: Uuid,
-        p_employee_id: Option<Uuid>,
+        p_employment_id: Option<Uuid>,
         p_from: Option<DateTime<Utc>>,
         p_to: Option<DateTime<Utc>>,
     ) -> Result<i64, AppError> {
@@ -210,8 +213,8 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
             .filter(raw_attendance_logs::workspace_id.eq(workspace_id))
             .into_boxed();
 
-        if let Some(emp_id) = p_employee_id {
-            query = query.filter(raw_attendance_logs::employee_id.eq(emp_id));
+        if let Some(emp_id) = p_employment_id {
+            query = query.filter(raw_attendance_logs::employment_id.eq(emp_id));
         }
 
         if let Some(from) = p_from {
@@ -253,7 +256,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
             .map(|log| RawAttendanceLogEntity {
                 id: log.id(),
                 workspace_id: log.workspace_id(),
-                employee_id: log.employee_id(),
+                employment_id: log.employment_id(),
                 punch_time: log.punch_time(),
                 source: *log.source(),
                 device_id: log.device_id().map(ToString::to_string),
@@ -268,7 +271,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
             .values(&entities)
             .on_conflict((
                 raw_attendance_logs::workspace_id,
-                raw_attendance_logs::employee_id,
+                raw_attendance_logs::employment_id,
                 raw_attendance_logs::punch_time,
                 raw_attendance_logs::punch,
                 raw_attendance_logs::status,
@@ -284,7 +287,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
     async fn has_duplicate_raw_log(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         log_id: Uuid,
         punch_time: DateTime<Utc>,
     ) -> Result<bool, AppError> {
@@ -299,7 +302,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
         let duplicate_exists = diesel::select(diesel::dsl::exists(
             raw_attendance_logs::table
                 .filter(raw_attendance_logs::workspace_id.eq(workspace_id))
-                .filter(raw_attendance_logs::employee_id.eq(employee_id))
+                .filter(raw_attendance_logs::employment_id.eq(employment_id))
                 .filter(raw_attendance_logs::id.ne(log_id))
                 .filter(raw_attendance_logs::punch_time.eq(punch_time)),
         ))
@@ -310,10 +313,10 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
         Ok(duplicate_exists)
     }
 
-    async fn get_employee_logs_in_time_range(
+    async fn get_employment_logs_in_time_range(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         start_time: DateTime<Utc>,
         end_time: DateTime<Utc>,
     ) -> Result<Vec<RawAttendanceLog>, AppError> {
@@ -327,7 +330,7 @@ impl RawAttendanceLogRepository for DieselRawAttendanceLogRepository {
 
         let results = raw_attendance_logs::table
             .filter(raw_attendance_logs::workspace_id.eq(workspace_id))
-            .filter(raw_attendance_logs::employee_id.eq(employee_id))
+            .filter(raw_attendance_logs::employment_id.eq(employment_id))
             .filter(raw_attendance_logs::punch_time.ge(start_time))
             .filter(raw_attendance_logs::punch_time.lt(end_time))
             .order(raw_attendance_logs::punch_time.asc())

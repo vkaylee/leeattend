@@ -152,7 +152,6 @@ diesel::table! {
 
     attendance_adjustment_requests (id) {
         id -> Uuid,
-        employee_id -> Uuid,
         time_entry_id -> Nullable<Uuid>,
         requested_punch_in_time -> Timestamptz,
         requested_punch_out_time -> Nullable<Timestamptz>,
@@ -163,6 +162,7 @@ diesel::table! {
         created_at -> Nullable<Timestamptz>,
         updated_at -> Nullable<Timestamptz>,
         is_break_overtime -> Bool,
+        employment_id -> Uuid,
     }
 }
 
@@ -173,7 +173,6 @@ diesel::table! {
     attendance_daily_summaries (id) {
         id -> Uuid,
         workspace_id -> Uuid,
-        employee_id -> Uuid,
         date -> Date,
         actual_work_minutes -> Int4,
         system_detected_ot_minutes -> Int4,
@@ -191,6 +190,7 @@ diesel::table! {
         is_holiday -> Bool,
         #[max_length = 255]
         holiday_name -> Nullable<Varchar>,
+        employment_id -> Uuid,
     }
 }
 
@@ -1031,16 +1031,12 @@ diesel::table! {
         user_id -> Nullable<Uuid>,
         #[max_length = 50]
         employee_id_number -> Varchar,
-        is_active -> Bool,
         created_at -> Nullable<Timestamptz>,
         updated_at -> Nullable<Timestamptz>,
         tags -> Nullable<Array<Nullable<Text>>>,
         #[max_length = 255]
         full_name -> Varchar,
         recruitment_source_id -> Nullable<Uuid>,
-        hire_date -> Date,
-        termination_date -> Nullable<Date>,
-        original_hire_date -> Date,
         deleted_at -> Nullable<Timestamptz>,
     }
 }
@@ -1094,6 +1090,11 @@ diesel::table! {
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
         deleted_at -> Nullable<Timestamptz>,
+        #[max_length = 100]
+        job_title -> Nullable<Varchar>,
+        #[max_length = 50]
+        employment_type -> Varchar,
+        manager_employment_id -> Nullable<Uuid>,
     }
 }
 
@@ -1518,7 +1519,6 @@ diesel::table! {
     raw_attendance_logs (id) {
         id -> Uuid,
         workspace_id -> Uuid,
-        employee_id -> Uuid,
         punch_time -> Timestamptz,
         source -> LogSourceType,
         #[max_length = 50]
@@ -1527,6 +1527,7 @@ diesel::table! {
         created_at -> Nullable<Timestamptz>,
         punch -> Int4,
         status -> Int4,
+        employment_id -> Uuid,
     }
 }
 
@@ -1607,7 +1608,6 @@ diesel::table! {
 diesel::table! {
     shift_rosters (id) {
         id -> Uuid,
-        employee_id -> Uuid,
         shift_id -> Nullable<Uuid>,
         date -> Date,
         #[max_length = 20]
@@ -1615,6 +1615,7 @@ diesel::table! {
         notes -> Nullable<Text>,
         created_at -> Nullable<Timestamptz>,
         updated_at -> Nullable<Timestamptz>,
+        employment_id -> Uuid,
     }
 }
 
@@ -1706,7 +1707,6 @@ diesel::table! {
 diesel::table! {
     time_entries (id) {
         id -> Uuid,
-        employee_id -> Uuid,
         punch_in_time -> Timestamptz,
         punch_out_time -> Nullable<Timestamptz>,
         duration_minutes -> Nullable<Int4>,
@@ -1719,6 +1719,7 @@ diesel::table! {
         shift_id -> Nullable<Uuid>,
         generation_metadata -> Nullable<Jsonb>,
         workspace_id -> Uuid,
+        employment_id -> Uuid,
     }
 }
 
@@ -1768,7 +1769,6 @@ diesel::table! {
 diesel::table! {
     working_conditions (id) {
         id -> Uuid,
-        employee_id -> Uuid,
         #[sql_name = "type"]
         #[max_length = 50]
         type_ -> Varchar,
@@ -1777,6 +1777,7 @@ diesel::table! {
         start_date -> Date,
         end_date -> Nullable<Date>,
         created_at -> Nullable<Timestamptz>,
+        employment_id -> Uuid,
     }
 }
 
@@ -1894,9 +1895,9 @@ diesel::joinable!(approval_workflow_instances -> approval_workflows (workflow_id
 diesel::joinable!(approval_workflow_steps -> approval_workflows (workflow_id));
 diesel::joinable!(approval_workflow_tasks -> approval_workflow_instances (instance_id));
 diesel::joinable!(assignment_rules -> working_patterns (pattern_id));
-diesel::joinable!(attendance_adjustment_requests -> employees (employee_id));
+diesel::joinable!(attendance_adjustment_requests -> employments (employment_id));
 diesel::joinable!(attendance_adjustment_requests -> time_entries (time_entry_id));
-diesel::joinable!(attendance_daily_summaries -> employees (employee_id));
+diesel::joinable!(attendance_daily_summaries -> employments (employment_id));
 diesel::joinable!(attendance_policy_assignments -> attendance_policies (policy_id));
 diesel::joinable!(attendance_policy_versions -> attendance_policies (policy_id));
 diesel::joinable!(authorized_agents -> workspaces (workspace_id));
@@ -1953,20 +1954,20 @@ diesel::joinable!(payslip_rule_evaluations -> payslips (payslip_id));
 diesel::joinable!(payslip_segments -> departments (department_id));
 diesel::joinable!(payslip_segments -> payslips (payslip_id));
 diesel::joinable!(payslips -> employments (employment_id));
-diesel::joinable!(raw_attendance_logs -> employees (employee_id));
+diesel::joinable!(raw_attendance_logs -> employments (employment_id));
 diesel::joinable!(salary_component_base_members -> salary_base_groups (base_group_id));
 diesel::joinable!(salary_component_base_members -> salary_component_definitions (component_definition_id));
 diesel::joinable!(salary_component_definitions -> payroll_rule_definitions (linked_rule_id));
 diesel::joinable!(sessions -> users (user_id));
-diesel::joinable!(shift_rosters -> employees (employee_id));
+diesel::joinable!(shift_rosters -> employments (employment_id));
 diesel::joinable!(shift_rosters -> shifts (shift_id));
 diesel::joinable!(shifts -> employers (employer_id));
 diesel::joinable!(shifts -> work_locations (location_id));
 diesel::joinable!(system_audit_logs -> users (actor_id));
-diesel::joinable!(time_entries -> employees (employee_id));
+diesel::joinable!(time_entries -> employments (employment_id));
 diesel::joinable!(time_entries -> shifts (shift_id));
 diesel::joinable!(user_system_roles -> system_roles (role_id));
-diesel::joinable!(working_conditions -> employees (employee_id));
+diesel::joinable!(working_conditions -> employments (employment_id));
 diesel::joinable!(working_pattern_details -> shifts (shift_id));
 diesel::joinable!(working_pattern_details -> working_patterns (pattern_id));
 diesel::joinable!(workspace_member_extra_permissions -> users (user_id));

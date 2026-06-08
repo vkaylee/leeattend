@@ -216,11 +216,7 @@ pub struct Employee {
     user_id: Option<Uuid>,
     full_name: String,
     employee_id_number: String,
-    original_hire_date: NaiveDate,
-    hire_date: NaiveDate,
-    termination_date: Option<NaiveDate>,
     tags: Vec<String>,
-    is_active: bool,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
     department_name: Option<String>,
@@ -230,18 +226,13 @@ pub struct Employee {
 }
 
 impl Employee {
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: Uuid,
         workspace_id: Uuid,
         user_id: Option<Uuid>,
         full_name: String,
         employee_id_number: String,
-        original_hire_date: NaiveDate,
-        hire_date: NaiveDate,
-        termination_date: Option<NaiveDate>,
         tags: Vec<String>,
-        is_active: bool,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
         department_name: Option<String>,
@@ -252,11 +243,7 @@ impl Employee {
             user_id,
             full_name,
             employee_id_number,
-            original_hire_date,
-            hire_date,
-            termination_date,
             tags,
-            is_active,
             created_at,
             updated_at,
             department_name,
@@ -286,24 +273,8 @@ impl Employee {
         &self.employee_id_number
     }
 
-    pub fn original_hire_date(&self) -> NaiveDate {
-        self.original_hire_date
-    }
-
-    pub fn hire_date(&self) -> NaiveDate {
-        self.hire_date
-    }
-
-    pub fn termination_date(&self) -> Option<NaiveDate> {
-        self.termination_date
-    }
-
     pub fn tags(&self) -> &[String] {
         &self.tags
-    }
-
-    pub fn is_active(&self) -> bool {
-        self.is_active
     }
 
     pub fn created_at(&self) -> DateTime<Utc> {
@@ -320,6 +291,10 @@ impl Employee {
 
     pub fn active_employment_id(&self) -> Option<Uuid> {
         self.active_employment_id
+    }
+
+    pub fn is_active(&self) -> bool {
+        self.active_employment_id.is_some()
     }
 
     pub fn employer_id(&self) -> Option<Uuid> {
@@ -341,16 +316,6 @@ impl Employee {
         self.employer_id = employer_id;
         self.primary_location_id = primary_location_id;
         self
-    }
-
-    #[cfg(test)]
-    pub fn set_is_active(&mut self, is_active: bool) {
-        self.is_active = is_active;
-    }
-
-    #[cfg(test)]
-    pub fn set_termination_date(&mut self, termination_date: Option<NaiveDate>) {
-        self.termination_date = termination_date;
     }
 
     #[cfg(test)]
@@ -528,6 +493,9 @@ pub struct UpdateAssignmentRuleRequest {
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct RehireEmployeeRequest {
     pub hire_date: NaiveDate,
+    pub employer_id: Uuid,
+    pub primary_location_id: Option<Uuid>,
+    pub department_id: Option<Uuid>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, utoipa::ToSchema)]
@@ -607,10 +575,7 @@ pub struct UpdateEmployeeRequest {
     pub user_id: Option<Option<Uuid>>,
     pub full_name: Option<String>,
     pub employee_id_number: Option<SanitizedEmployeeId>,
-    pub hire_date: Option<NaiveDate>,
-    pub termination_date: Option<NaiveDate>,
     pub tags: Option<Vec<String>>,
-    pub is_active: Option<bool>,
     pub max_concurrent_workers: Option<i32>,
     pub recruitment_source_id: Option<Uuid>,
     pub force_transfer: Option<bool>,

@@ -103,24 +103,24 @@ impl NightlyHousekeepingHandler {
 
                     // Clean up attendance and leave records older than 5 years for employees terminated >= 5 years ago
                     queries.push(format!(
-                        "DELETE FROM time_entries WHERE workspace_id = '{tenant_id}' AND employee_id IN (SELECT id FROM employees WHERE workspace_id = '{tenant_id}' AND termination_date IS NOT NULL AND termination_date <= CURRENT_DATE - INTERVAL '5 years') AND punch_in_time <= CURRENT_TIMESTAMP - INTERVAL '5 years'"
+                        "DELETE FROM time_entries WHERE workspace_id = '{tenant_id}' AND employment_id IN (SELECT id FROM employments WHERE workspace_id = '{tenant_id}' AND status = 'terminated' AND end_date <= CURRENT_DATE - INTERVAL '5 years') AND punch_in_time <= CURRENT_TIMESTAMP - INTERVAL '5 years'"
                     ));
                     queries.push(format!(
-                        "DELETE FROM attendance_daily_summaries WHERE workspace_id = '{tenant_id}' AND employee_id IN (SELECT id FROM employees WHERE workspace_id = '{tenant_id}' AND termination_date IS NOT NULL AND termination_date <= CURRENT_DATE - INTERVAL '5 years') AND date <= CURRENT_DATE - INTERVAL '5 years'"
+                        "DELETE FROM attendance_daily_summaries WHERE workspace_id = '{tenant_id}' AND employment_id IN (SELECT id FROM employments WHERE workspace_id = '{tenant_id}' AND status = 'terminated' AND end_date <= CURRENT_DATE - INTERVAL '5 years') AND date <= CURRENT_DATE - INTERVAL '5 years'"
                     ));
                     queries.push(format!(
-                        "DELETE FROM leave_requests WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = '{tenant_id}' AND employee_id IN (SELECT id FROM employees WHERE workspace_id = '{tenant_id}' AND termination_date IS NOT NULL AND termination_date <= CURRENT_DATE - INTERVAL '5 years')) AND end_date <= CURRENT_DATE - INTERVAL '5 years'"
+                        "DELETE FROM leave_requests WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = '{tenant_id}' AND status = 'terminated' AND end_date <= CURRENT_DATE - INTERVAL '5 years') AND end_date <= CURRENT_DATE - INTERVAL '5 years'"
                     ));
                     queries.push(format!(
-                        "DELETE FROM leave_accrual_logs WHERE workspace_id = '{tenant_id}' AND employee_id IN (SELECT id FROM employees WHERE workspace_id = '{tenant_id}' AND termination_date IS NOT NULL AND termination_date <= CURRENT_DATE - INTERVAL '5 years') AND accrual_date <= CURRENT_DATE - INTERVAL '5 years'"
+                        "DELETE FROM leave_accrual_logs WHERE workspace_id = '{tenant_id}' AND employee_id IN (SELECT employee_id FROM employments WHERE workspace_id = '{tenant_id}' AND status = 'terminated' AND end_date <= CURRENT_DATE - INTERVAL '5 years') AND accrual_date <= CURRENT_DATE - INTERVAL '5 years'"
                     ));
 
                     // Anonymize Employee PII for employees terminated >= 1 year ago (GDPR right to erasure)
                     queries.push(format!(
-                        "UPDATE employees SET full_name = 'Anonymized Employee', employee_id_number = 'ANON_' || md5(id::text) WHERE workspace_id = '{tenant_id}' AND termination_date IS NOT NULL AND termination_date <= CURRENT_DATE - INTERVAL '1 year' AND full_name <> 'Anonymized Employee'"
+                        "UPDATE employees SET full_name = 'Anonymized Employee', employee_id_number = 'ANON_' || md5(id::text) WHERE workspace_id = '{tenant_id}' AND full_name <> 'Anonymized Employee' AND EXISTS (SELECT 1 FROM employments WHERE employee_id = employees.id AND workspace_id = '{tenant_id}' AND status = 'terminated' AND end_date <= CURRENT_DATE - INTERVAL '1 year') AND NOT EXISTS (SELECT 1 FROM employments WHERE employee_id = employees.id AND workspace_id = '{tenant_id}' AND (status = 'active' OR end_date > CURRENT_DATE - INTERVAL '1 year' OR end_date IS NULL))"
                     ));
                     queries.push(format!(
-                        "UPDATE employee_profiles SET phone = NULL, address = NULL, national_id = NULL, bank_name = NULL, bank_account_number = NULL, bank_branch = NULL WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = '{tenant_id}' AND termination_date IS NOT NULL AND termination_date <= CURRENT_DATE - INTERVAL '1 year')"
+                        "UPDATE employee_profiles SET phone = NULL, address = NULL, national_id = NULL, bank_name = NULL, bank_account_number = NULL, bank_branch = NULL WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = '{tenant_id}' AND EXISTS (SELECT 1 FROM employments WHERE employee_id = employees.id AND workspace_id = '{tenant_id}' AND status = 'terminated' AND end_date <= CURRENT_DATE - INTERVAL '1 year') AND NOT EXISTS (SELECT 1 FROM employments WHERE employee_id = employees.id AND workspace_id = '{tenant_id}' AND (status = 'active' OR end_date > CURRENT_DATE - INTERVAL '1 year' OR end_date IS NULL)))"
                     ));
 
                     match deps

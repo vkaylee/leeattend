@@ -68,8 +68,39 @@ impl AttendanceHandler {
             crate::services::attendance_utils::date_range_to_utc_checked(tz, start_date, end_date)
                 .ok_or("Invalid or ambiguous date range")?;
 
-        // 3. Fetch schedules AND time entries sequentially (prevent DB pool exhaustion)
         let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
+
+        // Fetch employments to build active employment mappings
+        let employments = deps
+            .employment_repo
+            .get_employments_for_employees(&auth_token, employee_ids)
+            .await
+            .map_err(|e| format!("Failed to fetch employments: {e}"))?;
+
+        // Map employee_id -> active employment_id
+        let mut emp_to_active_employment = HashMap::new();
+        // Map employment_id -> employee_id
+        let mut employment_to_employee = HashMap::new();
+
+        for emp in &employments {
+            employment_to_employee.insert(emp.id(), emp.employee_id());
+            let is_matching_end_date = emp.end_date().is_none_or(|end| end >= start_date);
+            if emp.status() == "active" || is_matching_end_date {
+                emp_to_active_employment.insert(emp.employee_id(), emp.id());
+            }
+        }
+        for emp in &employments {
+            emp_to_active_employment
+                .entry(emp.employee_id())
+                .or_insert_with(|| emp.id());
+        }
+
+        let employment_ids: Vec<Uuid> = employee_ids
+            .iter()
+            .filter_map(|emp_id| emp_to_active_employment.get(emp_id).copied())
+            .collect();
+
+        // 3. Fetch schedules AND time entries sequentially (prevent DB pool exhaustion)
         let schedules_result = deps
             .roster_repo
             .get_workspace_schedules(
@@ -77,13 +108,18 @@ impl AttendanceHandler {
                 &auth_token,
                 start_date,
                 end_date,
-                Some(employee_ids),
+                Some(&employment_ids),
             )
             .await;
 
         let entries_result = deps
             .time_entry_repo
-            .get_workspace_time_entries_batch(&auth_token, employee_ids, start_dt, end_dt)
+            .get_workspace_time_entries_batch_by_employments(
+                &auth_token,
+                &employment_ids,
+                start_dt,
+                end_dt,
+            )
             .await;
 
         let schedules = schedules_result.map_err(|e| format!("Failed to fetch schedules: {e}"))?;
@@ -109,6 +145,8 @@ impl AttendanceHandler {
                     policy_repo,
                     employee_repo: deps.employee_repo.as_ref(),
                     leave_repo: deps.leave_request_repo.as_ref(),
+                    employee_ids,
+                    employment_to_employee: &employment_to_employee,
                 })
                 .await?
             }
@@ -124,6 +162,8 @@ impl AttendanceHandler {
                     policy_repo,
                     employee_repo: deps.employee_repo.as_ref(),
                     leave_repo: deps.leave_request_repo.as_ref(),
+                    employee_ids,
+                    employment_to_employee: &employment_to_employee,
                 })
                 .await?
             }
@@ -188,6 +228,8 @@ struct CalculateBatchArgs<'a> {
     policy_repo: &'a dyn crate::repositories::AttendancePolicyRepository,
     employee_repo: &'a dyn crate::repositories::EmployeeRepository,
     leave_repo: &'a dyn crate::repositories::leave_request_repository::LeaveRequestRepository,
+    employee_ids: &'a [Uuid],
+    employment_to_employee: &'a HashMap<Uuid, Uuid>,
 }
 
 impl AttendanceHandler {
@@ -195,14 +237,14 @@ impl AttendanceHandler {
     #[allow(clippy::too_many_lines)]
     async fn calculate_summary(args: CalculateBatchArgs<'_>) -> Result<String, String> {
         let mut summaries: Vec<AttendanceSummary> = Vec::new();
-        let emp_ids: Vec<Uuid> = args.schedules.iter().map(|s| s.employee_id).collect();
+        let emp_ids = args.employee_ids;
 
         // Batch fetch leave data
         let leave_data = args
             .leave_repo
             .get_batch_leave_days(
                 &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
-                &emp_ids,
+                emp_ids,
                 args.start_date,
                 args.end_date,
             )
@@ -212,7 +254,7 @@ impl AttendanceHandler {
         // Batch fetch working conditions for all employees (eliminates N+1)
         let conditions_map = PolicyResolverService::resolve_attendance_rules_batch(
             args.employee_repo,
-            &emp_ids,
+            emp_ids,
             args.workspace_id,
             args.start_date,
             args.end_date,
@@ -222,7 +264,7 @@ impl AttendanceHandler {
 
         let attendance_rules_map = PolicyResolverService::resolve_attendance_policy_batch(
             args.policy_repo,
-            &emp_ids,
+            emp_ids,
             args.workspace_id,
             args.start_date, // Using start_date as proxy for the report period
         )
@@ -230,20 +272,26 @@ impl AttendanceHandler {
         .map_err(|e| format!("Failed to fetch attendance rules: {e}"))?;
 
         for emp_sched in args.schedules {
+            let employee_id = args
+                .employment_to_employee
+                .get(&emp_sched.employment_id)
+                .copied()
+                .unwrap_or_else(Uuid::nil);
+
             let entries = args
                 .entries_map
-                .get(&emp_sched.employee_id)
+                .get(&emp_sched.employment_id)
                 .map_or_else(Default::default, std::vec::Vec::as_slice);
             let mut total_std_units = 0i32;
             let mut total_ot_units = 0i32;
 
             // Get this employee's conditions once
             let emp_conditions = conditions_map
-                .get(&emp_sched.employee_id)
+                .get(&employee_id)
                 .map_or_else(Default::default, std::vec::Vec::as_slice);
 
             let emp_attendance_rules = attendance_rules_map
-                .get(&emp_sched.employee_id)
+                .get(&employee_id)
                 .cloned()
                 .unwrap_or_else(|| crate::models::AttendanceRules {
                     work_unit_minutes: 30,
@@ -348,12 +396,12 @@ impl AttendanceHandler {
             }
 
             summaries.push(AttendanceSummary {
-                employee_id: emp_sched.employee_id,
+                employment_id: emp_sched.employment_id,
                 employee_name: emp_sched.full_name.clone(),
                 employee_id_number: emp_sched.employee_id_number.clone(),
                 total_std_units,
                 total_ot_units,
-                total_leave_days: leave_data.get(&emp_sched.employee_id).copied().unwrap_or(0),
+                total_leave_days: leave_data.get(&employee_id).copied().unwrap_or(0),
                 unit_type: crate::models::enums::TimekeepingUnit::DAY,
                 unit_coefficient_hours: f64::from(emp_attendance_rules.work_unit_minutes) / 60.0,
                 computed_std_hours: f64::from(total_std_units)
@@ -370,12 +418,12 @@ impl AttendanceHandler {
     #[allow(clippy::too_many_lines)]
     async fn calculate_detail(args: CalculateBatchArgs<'_>) -> Result<String, String> {
         let mut reports: Vec<DailyAttendanceReport> = Vec::new();
-        let emp_ids: Vec<Uuid> = args.schedules.iter().map(|s| s.employee_id).collect();
+        let emp_ids = args.employee_ids;
 
         // Batch fetch working conditions for all employees (eliminates N+1)
         let conditions_map = PolicyResolverService::resolve_attendance_rules_batch(
             args.employee_repo,
-            &emp_ids,
+            emp_ids,
             args.workspace_id,
             args.start_date,
             args.end_date,
@@ -385,7 +433,7 @@ impl AttendanceHandler {
 
         let attendance_rules_map = PolicyResolverService::resolve_attendance_policy_batch(
             args.policy_repo,
-            &emp_ids,
+            emp_ids,
             args.workspace_id,
             args.start_date, // Using start_date as proxy for the report period
         )
@@ -396,7 +444,7 @@ impl AttendanceHandler {
             .leave_repo
             .get_approved_leave_details(
                 &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
-                &emp_ids,
+                emp_ids,
                 args.start_date,
                 args.end_date,
             )
@@ -407,18 +455,24 @@ impl AttendanceHandler {
             leave_details_map.keys().copied().collect();
 
         for emp_sched in args.schedules {
+            let employee_id = args
+                .employment_to_employee
+                .get(&emp_sched.employment_id)
+                .copied()
+                .unwrap_or_else(Uuid::nil);
+
             let entries = args
                 .entries_map
-                .get(&emp_sched.employee_id)
+                .get(&emp_sched.employment_id)
                 .map_or_else(Default::default, std::vec::Vec::as_slice);
 
             // Get this employee's conditions once
             let emp_conditions = conditions_map
-                .get(&emp_sched.employee_id)
+                .get(&employee_id)
                 .map_or_else(Default::default, std::vec::Vec::as_slice);
 
             let emp_attendance_rules = attendance_rules_map
-                .get(&emp_sched.employee_id)
+                .get(&employee_id)
                 .cloned()
                 .unwrap_or_else(|| crate::models::AttendanceRules {
                     work_unit_minutes: 30,
@@ -432,11 +486,9 @@ impl AttendanceHandler {
 
             for daily in &emp_sched.schedules {
                 let date = daily.date;
-                let is_on_leave = leave_date_set.contains(&(emp_sched.employee_id, date));
+                let is_on_leave = leave_date_set.contains(&(employee_id, date));
                 let is_leave_paid = if is_on_leave {
-                    leave_details_map
-                        .get(&(emp_sched.employee_id, date))
-                        .copied()
+                    leave_details_map.get(&(employee_id, date)).copied()
                 } else {
                     None
                 };
@@ -577,7 +629,7 @@ impl AttendanceHandler {
 
                 reports.push(DailyAttendanceReport {
                     date,
-                    employee_id: emp_sched.employee_id,
+                    employment_id: emp_sched.employment_id,
                     employee_name: emp_sched.full_name.clone(),
                     employee_id_number: emp_sched.employee_id_number.clone(),
                     shift_symbol: daily.shift_symbol.clone(),
@@ -713,7 +765,7 @@ mod tests {
     fn test_summary_serialization() {
         let summaries = vec![
             AttendanceSummary {
-                employee_id: Uuid::new_v4(),
+                employment_id: Uuid::new_v4(),
                 employee_name: "Alice".to_string(),
                 employee_id_number: String::new(),
                 total_std_units: 140,
@@ -725,7 +777,7 @@ mod tests {
                 computed_ot_hours: 20.0,
             },
             AttendanceSummary {
-                employee_id: Uuid::new_v4(),
+                employment_id: Uuid::new_v4(),
                 employee_name: "Bob".to_string(),
                 employee_id_number: String::new(),
                 total_std_units: 152,
@@ -751,7 +803,7 @@ mod tests {
     fn test_detail_report_serialization() {
         let reports = vec![DailyAttendanceReport {
             date: NaiveDate::from_ymd_opt(2026, 1, 15).unwrap(),
-            employee_id: Uuid::new_v4(),
+            employment_id: Uuid::new_v4(),
             employee_name: "Charlie".to_string(),
             employee_id_number: "EMP001".to_string(),
             shift_symbol: None,
@@ -834,7 +886,7 @@ mod tests {
         // UTC 2026-01-15 02:00 → Ho_Chi_Minh 2026-01-15 09:00
         let entry_jan15_morning = TimeEntry::new(
             Uuid::new_v4(),
-            entry_jan15_early.employee_id(),
+            entry_jan15_early.employment_id(),
             entry_jan15_early.workspace_id(),
             None,
             chrono::Utc.with_ymd_and_hms(2026, 1, 15, 2, 0, 0).unwrap(),
@@ -850,7 +902,7 @@ mod tests {
         // UTC 2026-01-15 18:00 → Ho_Chi_Minh 2026-01-16 01:00 (next day!)
         let entry_jan16 = TimeEntry::new(
             Uuid::new_v4(),
-            entry_jan15_early.employee_id(),
+            entry_jan15_early.employment_id(),
             entry_jan15_early.workspace_id(),
             None,
             chrono::Utc.with_ymd_and_hms(2026, 1, 15, 18, 0, 0).unwrap(),
@@ -1084,7 +1136,7 @@ mod tests {
             .returning(|_, _, _, _, _| Box::pin(async move { Ok(vec![]) }));
         builder
             .time_entry_repo
-            .expect_get_workspace_time_entries_batch()
+            .expect_get_workspace_time_entries_batch_by_employments()
             .returning(|_, _, _, _| Ok(HashMap::new()));
         builder
             .leave_request_repo
@@ -1092,7 +1144,7 @@ mod tests {
             .returning(|_, _, _, _| Box::pin(async move { Ok(HashMap::new()) }));
         builder
             .employee_repo
-            .expect_get_working_conditions_batch()
+            .expect_get_working_conditions_batch_by_employments()
             .returning(|_, _, _, _| Ok(Default::default()));
         builder
             .policy_repo
@@ -1207,7 +1259,7 @@ mod tests {
 
         let sched_date = NaiveDate::from_ymd_opt(2026, 1, 15).unwrap();
         let schedule = crate::models::EmployeeSchedule {
-            employee_id: emp_id,
+            employment_id: emp_id,
             full_name: "Test User".to_string(),
             employee_id_number: "EMP01".to_string(),
             schedules: vec![crate::models::EffectiveSchedule {
@@ -1263,7 +1315,7 @@ mod tests {
 
         builder
             .time_entry_repo
-            .expect_get_workspace_time_entries_batch()
+            .expect_get_workspace_time_entries_batch_by_employments()
             .returning(move |_, _, _, _| {
                 let mut map = HashMap::new();
                 map.insert(emp_id, vec![entry.clone()]);
@@ -1276,7 +1328,7 @@ mod tests {
             .returning(|_, _, _, _| Box::pin(async move { Ok(HashMap::new()) }));
         builder
             .employee_repo
-            .expect_get_working_conditions_batch()
+            .expect_get_working_conditions_batch_by_employments()
             .returning(|_, _, _, _| Ok(Default::default()));
         builder
             .policy_repo
@@ -1392,7 +1444,7 @@ mod tests {
 
         let sched_date = NaiveDate::from_ymd_opt(2026, 1, 15).unwrap();
         let schedule = crate::models::EmployeeSchedule {
-            employee_id: emp_id,
+            employment_id: emp_id,
             full_name: "Test User".to_string(),
             employee_id_number: "EMP01".to_string(),
             schedules: vec![crate::models::EffectiveSchedule {
@@ -1448,7 +1500,7 @@ mod tests {
 
         builder
             .time_entry_repo
-            .expect_get_workspace_time_entries_batch()
+            .expect_get_workspace_time_entries_batch_by_employments()
             .returning(move |_, _, _, _| {
                 let mut map = HashMap::new();
                 map.insert(emp_id, vec![entry.clone()]);
@@ -1466,7 +1518,7 @@ mod tests {
 
         builder
             .employee_repo
-            .expect_get_working_conditions_batch()
+            .expect_get_working_conditions_batch_by_employments()
             .returning(|_, _, _, _| Ok(Default::default()));
         builder
             .policy_repo

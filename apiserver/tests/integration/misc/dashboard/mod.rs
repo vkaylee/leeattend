@@ -619,7 +619,7 @@ async fn test_attendance_trend_includes_present_and_late() {
         .await;
 
     crate::test_execute!(&_db.diesel_pools.api,
-        "INSERT INTO shift_rosters (employee_id, shift_id, date, status, id) VALUES ($1, $2, $3, 'confirmed', $4)",
+        "INSERT INTO shift_rosters (employment_id, shift_id, date, status, id) VALUES ($1, $2, $3, 'confirmed', $4)",
         diesel::sql_types::Uuid, emp_id,
         diesel::sql_types::Uuid, shift_id,
         diesel::sql_types::Date, today,
@@ -934,7 +934,7 @@ async fn test_workspace_stats_detects_late_today() {
         .await;
 
     crate::test_execute!(&pool.api,
-        "INSERT INTO shift_rosters (employee_id, shift_id, date, status) VALUES ($1, $2, $3, 'confirmed')",
+        "INSERT INTO shift_rosters (employment_id, shift_id, date, status) VALUES ($1, $2, $3, 'confirmed')",
         diesel::sql_types::Uuid, emp_id,
         diesel::sql_types::Uuid, shift_id,
         diesel::sql_types::Date, today
@@ -1002,7 +1002,7 @@ async fn test_overtime_trend_returns_correct_structure() {
     crate::test_execute!(
         &pool.api,
         r"INSERT INTO attendance_daily_summaries
-           (workspace_id, employee_id, date, system_detected_ot_minutes, approved_ot_minutes)
+           (workspace_id, employment_id, date, system_detected_ot_minutes, approved_ot_minutes)
            VALUES ($1, $2, $3, 60, 30)",
         diesel::sql_types::Uuid,
         ws_id,

@@ -23,7 +23,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
     async fn get_summary(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         date: NaiveDate,
     ) -> Result<Option<AttendanceDailySummary>, AppError> {
         let workspace_id = auth_token.workspace_id();
@@ -40,7 +40,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
 
         ads::attendance_daily_summaries
             .filter(ads::workspace_id.eq(workspace_id))
-            .filter(ads::employee_id.eq(employee_id))
+            .filter(ads::employment_id.eq(employment_id))
             .filter(ads::date.eq(date))
             .first::<AttendanceDailySummaryEntity>(&mut *conn)
             .await
@@ -80,7 +80,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
     async fn upsert_calculated_summary(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         date: NaiveDate,
         actual_work_minutes: i32,
         system_detected_ot_minutes: i32,
@@ -102,7 +102,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         diesel::insert_into(ads::attendance_daily_summaries)
             .values((
                 ads::workspace_id.eq(workspace_id),
-                ads::employee_id.eq(employee_id),
+                ads::employment_id.eq(employment_id),
                 ads::date.eq(date),
                 ads::actual_work_minutes.eq(actual_work_minutes),
                 ads::system_detected_ot_minutes.eq(system_detected_ot_minutes),
@@ -110,7 +110,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
                 ads::is_holiday.eq(is_holiday),
                 ads::holiday_name.eq(holiday_name),
             ))
-            .on_conflict((ads::employee_id, ads::date))
+            .on_conflict((ads::employment_id, ads::date))
             .do_update()
             .set((
                 ads::actual_work_minutes.eq(excluded(ads::actual_work_minutes)),
@@ -135,7 +135,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
     async fn claim_ot(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         date: NaiveDate,
         claimed_minutes: i32,
         reason: Option<String>,
@@ -152,7 +152,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
 
         let rows = diesel::update(ads::attendance_daily_summaries)
             .filter(ads::workspace_id.eq(workspace_id))
-            .filter(ads::employee_id.eq(employee_id))
+            .filter(ads::employment_id.eq(employment_id))
             .filter(ads::date.eq(date))
             .filter(
                 ads::ot_status
@@ -175,7 +175,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
     async fn approve_ot(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         date: NaiveDate,
         approved_minutes: i32,
         manager_note: Option<String>,
@@ -193,7 +193,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
 
         let rows = diesel::update(ads::attendance_daily_summaries)
             .filter(ads::workspace_id.eq(workspace_id))
-            .filter(ads::employee_id.eq(employee_id))
+            .filter(ads::employment_id.eq(employment_id))
             .filter(ads::date.eq(date))
             .filter(ads::ot_status.eq(OtStatus::PendingManager))
             .set((
@@ -213,7 +213,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
     async fn upsert_paper_ot(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         date: NaiveDate,
         claimed_minutes: i32,
         reason: String,
@@ -237,7 +237,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
             .values((
                 ads::id.eq(Uuid::new_v4()),
                 ads::workspace_id.eq(workspace_id),
-                ads::employee_id.eq(employee_id),
+                ads::employment_id.eq(employment_id),
                 ads::date.eq(date),
                 ads::claimed_ot_minutes.eq(claimed_minutes),
                 ads::ot_reason.eq(reason),
@@ -249,7 +249,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
                 ads::actual_work_minutes.eq(0),
                 ads::system_detected_ot_minutes.eq(0),
             ))
-            .on_conflict((ads::employee_id, ads::date))
+            .on_conflict((ads::employment_id, ads::date))
             .do_update()
             .set((
                 ads::claimed_ot_minutes.eq(excluded(ads::claimed_ot_minutes)),
@@ -270,7 +270,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
     async fn get_batch_ot_statuses(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_ids: &[Uuid],
+        employment_ids: &[Uuid],
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<std::collections::HashMap<(Uuid, NaiveDate), String>, AppError> {
@@ -286,10 +286,10 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
 
         let rows = ads::attendance_daily_summaries
             .filter(ads::workspace_id.eq(workspace_id))
-            .filter(ads::employee_id.eq_any(employee_ids))
+            .filter(ads::employment_id.eq_any(employment_ids))
             .filter(ads::date.ge(start_date))
             .filter(ads::date.le(end_date))
-            .select((ads::employee_id, ads::date, ads::ot_status))
+            .select((ads::employment_id, ads::date, ads::ot_status))
             .load::<(Uuid, NaiveDate, OtStatus)>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -312,7 +312,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
     async fn get_summaries(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Option<Uuid>,
+        employment_id: Option<Uuid>,
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<Vec<AttendanceDailySummary>, AppError> {
@@ -332,14 +332,14 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
             .filter(ads::date.le(end_date))
             .into_boxed();
 
-        if let Some(eid) = employee_id {
-            query = query.filter(ads::employee_id.eq(eid));
+        if let Some(eid) = employment_id {
+            query = query.filter(ads::employment_id.eq(eid));
         }
 
         use crate::models::diesel::attendance_daily_summary::AttendanceDailySummaryEntity;
 
         query
-            .order_by((ads::date.asc(), ads::employee_id.asc()))
+            .order_by((ads::date.asc(), ads::employment_id.asc()))
             .load::<AttendanceDailySummaryEntity>(&mut *conn)
             .await
             .map(|list| list.into_iter().map(Into::into).collect())
@@ -349,7 +349,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
     async fn get_distinct_work_days_from_summary(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<Vec<NaiveDate>, AppError> {
@@ -365,7 +365,7 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
 
         let rows = ads::attendance_daily_summaries
             .filter(ads::workspace_id.eq(workspace_id))
-            .filter(ads::employee_id.eq(employee_id))
+            .filter(ads::employment_id.eq(employment_id))
             .filter(ads::date.ge(start_date))
             .filter(ads::date.le(end_date))
             .filter(ads::actual_work_minutes.gt(0))
@@ -376,22 +376,5 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(rows)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::diesel_pool::DieselPools;
-
-    #[tokio::test]
-    async fn test_repo_initialization() {
-        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
-        });
-
-        let pools = DieselPools::for_test(&test_db_url);
-        let _repo = DieselAttendanceDailySummaryRepository::new(pools);
-        // DI connection test passes if it compiles
     }
 }

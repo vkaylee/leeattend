@@ -36,7 +36,6 @@ impl FromSql<AdjustmentStatusType, Pg> for AdjustmentStatus {
 #[diesel(table_name = attendance_adjustment_requests)]
 pub struct AttendanceAdjustmentEntity {
     pub id: Uuid,
-    pub employee_id: Uuid,
     pub time_entry_id: Option<Uuid>,
     pub requested_punch_in_time: DateTime<Utc>,
     pub requested_punch_out_time: Option<DateTime<Utc>>,
@@ -47,13 +46,14 @@ pub struct AttendanceAdjustmentEntity {
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
     pub is_break_overtime: bool,
+    pub employment_id: Uuid,
 }
 
 impl From<AttendanceAdjustmentEntity> for AttendanceAdjustmentRequest {
     fn from(val: AttendanceAdjustmentEntity) -> Self {
         AttendanceAdjustmentRequest::new(
             val.id,
-            val.employee_id,
+            val.employment_id,
             val.time_entry_id,
             val.requested_punch_in_time,
             val.requested_punch_out_time,
@@ -72,7 +72,7 @@ impl From<AttendanceAdjustmentEntity> for AttendanceAdjustmentRequest {
 #[diesel(table_name = attendance_adjustment_requests)]
 pub struct NewAttendanceAdjustmentEntity {
     pub id: Uuid,
-    pub employee_id: Uuid,
+    pub employment_id: Uuid,
     pub time_entry_id: Option<Uuid>,
     pub requested_punch_in_time: DateTime<Utc>,
     pub requested_punch_out_time: Option<DateTime<Utc>>,

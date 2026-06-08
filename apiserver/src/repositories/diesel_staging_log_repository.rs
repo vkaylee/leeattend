@@ -221,22 +221,23 @@ impl StagingLogRepository for DieselStagingLogRepository {
         let raw_user_id_owned = raw_user_id.to_string();
         conn.transaction(|conn| {
             Box::pin(async move {
-                use crate::schema::employees;
+                use crate::schema::employments;
 
-                // Verify that employee_id belongs to workspace_id and is active
-                let employee_exists = employees::table
-                    .filter(employees::id.eq(employee_id))
-                    .filter(employees::workspace_id.eq(workspace_id))
-                    .filter(employees::deleted_at.is_null())
-                    .select(employees::id)
+                // Verify that employee has active employment in this workspace
+                let active_employment = employments::table
+                    .filter(employments::employee_id.eq(employee_id))
+                    .filter(employments::workspace_id.eq(workspace_id))
+                    .filter(employments::status.eq("active"))
+                    .filter(employments::deleted_at.is_null())
+                    .select(employments::id)
                     .first::<Uuid>(&mut *conn)
                     .await
                     .optional()
-                    .map_err(|e| AppError::Internal(format!("db check employee: {e}")))?;
+                    .map_err(|e| AppError::Internal(format!("db check active employment: {e}")))?;
 
-                if employee_exists.is_none() {
+                let Some(employment_id) = active_employment else {
                     return Err(AppError::NotFound("error.employee_not_found".to_string()));
-                }
+                };
 
                 let staged_logs = attendance_staging_logs::table
                     .filter(attendance_staging_logs::workspace_id.eq(workspace_id))
@@ -258,7 +259,7 @@ impl StagingLogRepository for DieselStagingLogRepository {
                         |staged| crate::models::diesel::attendance_log::RawAttendanceLogEntity {
                             id: crate::utils::id::new_id(),
                             workspace_id,
-                            employee_id,
+                            employment_id,
                             punch_time: staged.punch_time,
                             source: crate::models::LogSource::Device,
                             device_id: staged.device_id.clone(),
@@ -314,22 +315,23 @@ impl StagingLogRepository for DieselStagingLogRepository {
 
         conn.transaction(|conn| {
             Box::pin(async move {
-                use crate::schema::employees;
+                use crate::schema::employments;
 
-                // Verify that employee_id belongs to workspace_id and is active
-                let employee_exists = employees::table
-                    .filter(employees::id.eq(employee_id))
-                    .filter(employees::workspace_id.eq(workspace_id))
-                    .filter(employees::deleted_at.is_null())
-                    .select(employees::id)
+                // Verify that employee has active employment in this workspace
+                let active_employment = employments::table
+                    .filter(employments::employee_id.eq(employee_id))
+                    .filter(employments::workspace_id.eq(workspace_id))
+                    .filter(employments::status.eq("active"))
+                    .filter(employments::deleted_at.is_null())
+                    .select(employments::id)
                     .first::<Uuid>(&mut *conn)
                     .await
                     .optional()
-                    .map_err(|e| AppError::Internal(format!("db check employee: {e}")))?;
+                    .map_err(|e| AppError::Internal(format!("db check active employment: {e}")))?;
 
-                if employee_exists.is_none() {
+                let Some(employment_id) = active_employment else {
                     return Err(AppError::NotFound("error.employee_not_found".to_string()));
-                }
+                };
 
                 // Use for_update() to lock the row. We don't use nowait() here because it might
                 // not be available or might cause compatibility issues. Just use regular for_update().
@@ -373,7 +375,7 @@ impl StagingLogRepository for DieselStagingLogRepository {
                 let raw_log = RawAttendanceLog::new(
                     crate::utils::id::new_id(),
                     workspace_id,
-                    employee_id,
+                    employment_id,
                     staged.punch_time,
                     LogSource::Device,
                     staged.device_id.clone(),
@@ -387,7 +389,7 @@ impl StagingLogRepository for DieselStagingLogRepository {
                     crate::models::diesel::attendance_log::RawAttendanceLogEntity {
                         id: raw_log.id(),
                         workspace_id: raw_log.workspace_id(),
-                        employee_id: raw_log.employee_id(),
+                        employment_id: raw_log.employment_id(),
                         punch_time: raw_log.punch_time(),
                         source: *raw_log.source(),
                         device_id: raw_log.device_id().map(ToString::to_string),

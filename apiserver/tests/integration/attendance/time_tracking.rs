@@ -43,7 +43,7 @@ async fn test_punch_in_grace_period_enforcement_smoke() {
 
     // Try to punch in at 08:30 -> Should fail (400) because 08:30 < 08:55
     let punch_payload = json!({
-        "employee_id": employee_id,
+        "employment_id": employee_id,
         "entry_type": "work"
     });
 
@@ -123,7 +123,7 @@ async fn test_punch_in_grace_period_enforcement_smoke() {
     // Clean up any accidental punch-in from the first attempt
     crate::test_execute!(
         &factory.diesel_pools.api,
-        "DELETE FROM time_entries WHERE employee_id = $1",
+        "DELETE FROM time_entries WHERE employment_id = $1",
         diesel::sql_types::Uuid,
         employee_id
     );

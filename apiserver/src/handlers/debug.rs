@@ -107,9 +107,9 @@ pub async fn clear_debug_db(
                 match payload.group.as_str() {
                     "attendance" => {
                         let queries = [
-                            "DELETE FROM attendance_adjustment_requests WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
-                            "DELETE FROM time_entries WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
-                            "DELETE FROM raw_attendance_logs WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
+                            "DELETE FROM attendance_adjustment_requests WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
+                            "DELETE FROM time_entries WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
+                            "DELETE FROM raw_attendance_logs WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
                             "DELETE FROM attendance_import_jobs WHERE workspace_id = $1",
                         ];
                         for q in queries {
@@ -137,7 +137,7 @@ pub async fn clear_debug_db(
                     }
                     "rosters" => {
                         let queries = [
-                            "DELETE FROM shift_rosters WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
+                            "DELETE FROM shift_rosters WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
                         ];
                         for q in queries {
                             diesel::sql_query(q)
@@ -149,10 +149,10 @@ pub async fn clear_debug_db(
                     }
                     "employees" => {
                         let queries = [
-                            "DELETE FROM attendance_adjustment_requests WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
-                            "DELETE FROM time_entries WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
-                            "DELETE FROM raw_attendance_logs WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
-                            "DELETE FROM shift_rosters WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
+                            "DELETE FROM attendance_adjustment_requests WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
+                            "DELETE FROM time_entries WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
+                            "DELETE FROM raw_attendance_logs WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
+                            "DELETE FROM shift_rosters WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
                             "DELETE FROM employee_shifts WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
                             "DELETE FROM payslip_incentives WHERE payslip_id IN (SELECT id FROM payslips WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1))",
                             "DELETE FROM payslip_rule_evaluations WHERE payslip_id IN (SELECT id FROM payslips WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1))",
@@ -183,11 +183,11 @@ pub async fn clear_debug_db(
                     }
                     "full_reset" => {
                         let queries = [
-                            "DELETE FROM attendance_adjustment_requests WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
-                            "DELETE FROM time_entries WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
-                            "DELETE FROM raw_attendance_logs WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
+                            "DELETE FROM attendance_adjustment_requests WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
+                            "DELETE FROM time_entries WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
+                            "DELETE FROM raw_attendance_logs WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
                             "DELETE FROM attendance_import_jobs WHERE workspace_id = $1",
-                            "DELETE FROM shift_rosters WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
+                            "DELETE FROM shift_rosters WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
                             "DELETE FROM employee_shifts WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
                             "DELETE FROM employee_working_patterns WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
                             "DELETE FROM payslip_incentives WHERE payslip_id IN (SELECT id FROM payslips WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1))",
@@ -316,8 +316,8 @@ pub async fn clear_debug_db(
                         for (name, code, dept_id) in employees {
                             let emp_id = crate::utils::id::new_id();
                             diesel::sql_query(
-                                "INSERT INTO employees (id, workspace_id, full_name, employee_id_number, original_hire_date, hire_date, is_active) \
-                                 VALUES ($1, $2, $3, $4, CURRENT_DATE, CURRENT_DATE, true)"
+                                "INSERT INTO employees (id, workspace_id, full_name, employee_id_number) \
+                                 VALUES ($1, $2, $3, $4)"
                             )
                             .bind::<diesel::sql_types::Uuid, _>(emp_id)
                             .bind::<diesel::sql_types::Uuid, _>(ws_id)

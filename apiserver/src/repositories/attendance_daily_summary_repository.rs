@@ -10,7 +10,7 @@ pub trait AttendanceDailySummaryRepository: Send + Sync {
     async fn get_summary(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         date: NaiveDate,
     ) -> Result<Option<AttendanceDailySummary>, AppError>;
 
@@ -24,7 +24,7 @@ pub trait AttendanceDailySummaryRepository: Send + Sync {
     async fn upsert_calculated_summary(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         date: NaiveDate,
         actual_work_minutes: i32,
         system_detected_ot_minutes: i32,
@@ -36,7 +36,7 @@ pub trait AttendanceDailySummaryRepository: Send + Sync {
     async fn claim_ot(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         date: NaiveDate,
         claimed_minutes: i32,
         reason: Option<String>,
@@ -45,7 +45,7 @@ pub trait AttendanceDailySummaryRepository: Send + Sync {
     async fn approve_ot(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         date: NaiveDate,
         approved_minutes: i32,
         manager_note: Option<String>,
@@ -56,7 +56,7 @@ pub trait AttendanceDailySummaryRepository: Send + Sync {
     async fn upsert_paper_ot(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         date: NaiveDate,
         claimed_minutes: i32,
         reason: String,
@@ -67,7 +67,7 @@ pub trait AttendanceDailySummaryRepository: Send + Sync {
     async fn get_batch_ot_statuses(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_ids: &[Uuid],
+        employment_ids: &[Uuid],
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<std::collections::HashMap<(Uuid, NaiveDate), String>, AppError>;
@@ -75,7 +75,7 @@ pub trait AttendanceDailySummaryRepository: Send + Sync {
     async fn get_summaries(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Option<Uuid>,
+        employment_id: Option<Uuid>,
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<Vec<AttendanceDailySummary>, AppError>;
@@ -83,7 +83,7 @@ pub trait AttendanceDailySummaryRepository: Send + Sync {
     async fn get_distinct_work_days_from_summary(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<Vec<NaiveDate>, AppError>;

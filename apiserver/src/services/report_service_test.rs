@@ -314,6 +314,7 @@ mod tests {
             &self,
             _a: &crate::diesel_pool::TenantAuthToken,
             _e: &crate::models::Employee,
+            _hire_date: chrono::NaiveDate,
             _r: Option<Uuid>,
             _employer_id: Uuid,
             _primary_location_id: Option<Uuid>,
@@ -331,7 +332,10 @@ mod tests {
             &self,
             _a: &crate::diesel_pool::TenantAuthToken,
             _e: Uuid,
-            _h: NaiveDate,
+            _hire_date: NaiveDate,
+            _employer_id: Uuid,
+            _primary_location_id: Option<Uuid>,
+            _department_id: Option<Uuid>,
         ) -> Result<Option<crate::models::Employee>, AppError> {
             unimplemented!()
         }
@@ -434,10 +438,10 @@ mod tests {
         ) -> Result<Vec<WorkingCondition>, AppError> {
             unimplemented!()
         }
-        async fn get_working_conditions_batch(
+        async fn get_working_conditions_batch_by_employments(
             &self,
             _a: &crate::diesel_pool::TenantAuthToken,
-            _e: &[Uuid],
+            _employment_ids: &[Uuid],
             _s: NaiveDate,
             _en: NaiveDate,
         ) -> Result<std::collections::HashMap<Uuid, Vec<WorkingCondition>>, AppError> {
@@ -669,10 +673,10 @@ mod tests {
         ) -> Result<Option<TimeEntry>, AppError> {
             unimplemented!()
         }
-        async fn get_latest_entry_for_employee(
+        async fn get_latest_entry_for_employment(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _e: Uuid,
+            _employment_id: Uuid,
         ) -> Result<Option<TimeEntry>, AppError> {
             unimplemented!()
         }
@@ -690,10 +694,10 @@ mod tests {
         ) -> Result<(), AppError> {
             unimplemented!()
         }
-        async fn get_employee_time_entries(
+        async fn get_employment_time_entries(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _e: Uuid,
+            _employment_id: Uuid,
             _f: DateTime<Utc>,
             _t: DateTime<Utc>,
         ) -> Result<Vec<TimeEntry>, AppError> {
@@ -715,10 +719,10 @@ mod tests {
         ) -> Result<i64, AppError> {
             unimplemented!()
         }
-        async fn get_workspace_time_entries_batch(
+        async fn get_workspace_time_entries_batch_by_employments(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _e: &[Uuid],
+            _employment_ids: &[Uuid],
             _f: DateTime<Utc>,
             _t: DateTime<Utc>,
         ) -> Result<HashMap<Uuid, Vec<TimeEntry>>, AppError> {
@@ -749,10 +753,10 @@ mod tests {
     struct DummyRosterRepo;
     #[async_trait]
     impl crate::repositories::roster::RosterRepository for DummyRosterRepo {
-        async fn get_employee_rosters_batch(
+        async fn get_employment_rosters_batch(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _employee_ids: &[uuid::Uuid],
+            _employment_ids: &[uuid::Uuid],
             _start_date: chrono::NaiveDate,
             _end_date: chrono::NaiveDate,
         ) -> Result<
@@ -786,10 +790,10 @@ mod tests {
         ) -> Result<Vec<AssignmentHistory>, AppError> {
             unimplemented!()
         }
-        async fn get_employee_rosters(
+        async fn get_employment_rosters(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _e: Uuid,
+            _employment_id: Uuid,
             _s: NaiveDate,
             _en: NaiveDate,
         ) -> Result<Vec<ShiftRoster>, AppError> {
@@ -1204,11 +1208,90 @@ mod tests {
         }
     }
 
+    struct DummyEmploymentRepo;
+    #[async_trait]
+    impl crate::repositories::employment_repository::EmploymentRepository for DummyEmploymentRepo {
+        async fn create_employment(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _req: &crate::models::employment::CreateEmploymentRequest,
+        ) -> Result<crate::models::employment::Employment, AppError> {
+            unimplemented!()
+        }
+
+        async fn get_employment_by_id(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employment_id: Uuid,
+        ) -> Result<Option<crate::models::employment::Employment>, AppError> {
+            unimplemented!()
+        }
+
+        async fn list_employee_employments(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee_id: Uuid,
+        ) -> Result<Vec<crate::models::employment::Employment>, AppError> {
+            Ok(vec![])
+        }
+
+        async fn update_employment(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employment_id: Uuid,
+            _req: &crate::models::employment::UpdateEmploymentRequest,
+        ) -> Result<crate::models::employment::Employment, AppError> {
+            unimplemented!()
+        }
+
+        async fn delete_employment(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employment_id: Uuid,
+        ) -> Result<(), AppError> {
+            unimplemented!()
+        }
+
+        async fn get_active_employment_on_date(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee_id: Uuid,
+            _date: chrono::NaiveDate,
+        ) -> Result<Option<crate::models::employment::Employment>, AppError> {
+            Ok(None)
+        }
+
+        async fn get_active_employments_for_workspace(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+        ) -> Result<Vec<crate::models::employment::Employment>, AppError> {
+            Ok(vec![])
+        }
+
+        async fn get_active_employments_for_employees(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee_ids: &[Uuid],
+            _date: chrono::NaiveDate,
+        ) -> Result<Vec<crate::models::employment::Employment>, AppError> {
+            Ok(vec![])
+        }
+
+        async fn get_employments_for_employees(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee_ids: &[Uuid],
+        ) -> Result<Vec<crate::models::employment::Employment>, AppError> {
+            Ok(vec![])
+        }
+    }
+
     #[tokio::test]
     async fn test_get_daily_attendance_report_early_return_with_mock() {
         let report_service = ReportService::new(ReportServiceArgs {
             workspace_repo: Arc::new(MockWorkspaceRepo),
             employee_repo: Arc::new(MockEmployeeRepo),
+            employment_repo: Arc::new(DummyEmploymentRepo),
             time_entry_repo: Arc::new(DummyTimeEntryRepo),
             roster_repo: Arc::new(DummyRosterRepo),
             policy_repo: Arc::new(DummyPolicyRepo),
@@ -1336,6 +1419,7 @@ mod tests {
             &self,
             _a: &crate::diesel_pool::TenantAuthToken,
             _e: &crate::models::Employee,
+            _hire_date: chrono::NaiveDate,
             _r: Option<Uuid>,
             _employer_id: Uuid,
             _primary_location_id: Option<Uuid>,
@@ -1353,7 +1437,10 @@ mod tests {
             &self,
             _a: &crate::diesel_pool::TenantAuthToken,
             _e: Uuid,
-            _h: NaiveDate,
+            _hire_date: NaiveDate,
+            _employer_id: Uuid,
+            _primary_location_id: Option<Uuid>,
+            _department_id: Option<Uuid>,
         ) -> Result<Option<crate::models::Employee>, AppError> {
             unimplemented!()
         }
@@ -1456,10 +1543,10 @@ mod tests {
         ) -> Result<Vec<WorkingCondition>, AppError> {
             unimplemented!()
         }
-        async fn get_working_conditions_batch(
+        async fn get_working_conditions_batch_by_employments(
             &self,
             _a: &crate::diesel_pool::TenantAuthToken,
-            _e: &[Uuid],
+            _employment_ids: &[Uuid],
             _s: NaiveDate,
             _en: NaiveDate,
         ) -> Result<std::collections::HashMap<Uuid, Vec<WorkingCondition>>, AppError> {
@@ -1663,10 +1750,10 @@ mod tests {
     struct ScheduleRosterRepo;
     #[async_trait]
     impl crate::repositories::roster::RosterRepository for ScheduleRosterRepo {
-        async fn get_employee_rosters_batch(
+        async fn get_employment_rosters_batch(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _employee_ids: &[uuid::Uuid],
+            _employment_ids: &[uuid::Uuid],
             _start_date: chrono::NaiveDate,
             _end_date: chrono::NaiveDate,
         ) -> Result<
@@ -1692,7 +1779,7 @@ mod tests {
             _emp: Option<&Vec<Uuid>>,
         ) -> Result<Vec<EmployeeSchedule>, AppError> {
             Ok(vec![EmployeeSchedule {
-                employee_id: Uuid::nil(),
+                employment_id: Uuid::nil(),
                 employee_id_number: "EMP001".into(),
                 full_name: "Test User".into(),
                 schedules: vec![crate::models::schedule::EffectiveSchedule {
@@ -1725,10 +1812,10 @@ mod tests {
         ) -> Result<Vec<AssignmentHistory>, AppError> {
             unimplemented!()
         }
-        async fn get_employee_rosters(
+        async fn get_employment_rosters(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _e: Uuid,
+            _employment_id: Uuid,
             _s: NaiveDate,
             _en: NaiveDate,
         ) -> Result<Vec<ShiftRoster>, AppError> {
@@ -1798,10 +1885,10 @@ mod tests {
         ) -> Result<Option<TimeEntry>, AppError> {
             unimplemented!()
         }
-        async fn get_latest_entry_for_employee(
+        async fn get_latest_entry_for_employment(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _e: Uuid,
+            _employment_id: Uuid,
         ) -> Result<Option<TimeEntry>, AppError> {
             unimplemented!()
         }
@@ -1819,10 +1906,10 @@ mod tests {
         ) -> Result<(), AppError> {
             unimplemented!()
         }
-        async fn get_employee_time_entries(
+        async fn get_employment_time_entries(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _e: Uuid,
+            _employment_id: Uuid,
             _f: DateTime<Utc>,
             _t: DateTime<Utc>,
         ) -> Result<Vec<TimeEntry>, AppError> {
@@ -1844,10 +1931,10 @@ mod tests {
         ) -> Result<i64, AppError> {
             unimplemented!()
         }
-        async fn get_workspace_time_entries_batch(
+        async fn get_workspace_time_entries_batch_by_employments(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _e: &[Uuid],
+            _employment_ids: &[Uuid],
             _f: DateTime<Utc>,
             _t: DateTime<Utc>,
         ) -> Result<HashMap<Uuid, Vec<TimeEntry>>, AppError> {
@@ -2256,6 +2343,7 @@ mod tests {
         let report_service = ReportService::new(ReportServiceArgs {
             workspace_repo: Arc::new(MockWorkspaceRepo), // Returns valid workspace
             employee_repo: Arc::new(AbsentEmployeeRepo),
+            employment_repo: Arc::new(DummyEmploymentRepo),
             time_entry_repo: Arc::new(EmptyTimeEntryRepo),
             roster_repo: Arc::new(ScheduleRosterRepo),
             policy_repo: Arc::new(EmptyPolicyRepo),
@@ -2283,7 +2371,7 @@ mod tests {
         assert_eq!(result.total, 1);
         assert_eq!(result.data.len(), 1);
         let report_item = &result.data[0];
-        assert_eq!(report_item.employee_id, Uuid::nil());
+        assert_eq!(report_item.employment_id, Uuid::nil());
         assert_eq!(report_item.employee_name, "Test User");
         assert_eq!(report_item.employee_id_number, "EMP001");
 
@@ -2328,10 +2416,10 @@ mod tests {
         ) -> Result<Option<TimeEntry>, AppError> {
             unimplemented!()
         }
-        async fn get_latest_entry_for_employee(
+        async fn get_latest_entry_for_employment(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _e: Uuid,
+            _employment_id: Uuid,
         ) -> Result<Option<TimeEntry>, AppError> {
             unimplemented!()
         }
@@ -2349,10 +2437,10 @@ mod tests {
         ) -> Result<(), AppError> {
             unimplemented!()
         }
-        async fn get_employee_time_entries(
+        async fn get_employment_time_entries(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _e: Uuid,
+            _employment_id: Uuid,
             _f: DateTime<Utc>,
             _t: DateTime<Utc>,
         ) -> Result<Vec<TimeEntry>, AppError> {
@@ -2374,10 +2462,10 @@ mod tests {
         ) -> Result<i64, AppError> {
             unimplemented!()
         }
-        async fn get_workspace_time_entries_batch(
+        async fn get_workspace_time_entries_batch_by_employments(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _e: &[Uuid],
+            _employment_ids: &[Uuid],
             _f: DateTime<Utc>,
             _t: DateTime<Utc>,
         ) -> Result<HashMap<Uuid, Vec<TimeEntry>>, AppError> {
@@ -2428,6 +2516,7 @@ mod tests {
         let report_service = ReportService::new(ReportServiceArgs {
             workspace_repo: Arc::new(MockWorkspaceRepo),
             employee_repo: Arc::new(AbsentEmployeeRepo),
+            employment_repo: Arc::new(DummyEmploymentRepo),
             time_entry_repo: Arc::new(PresentTimeEntryRepo),
             roster_repo: Arc::new(ScheduleRosterRepo),
             policy_repo: Arc::new(EmptyPolicyRepo),
@@ -2455,7 +2544,7 @@ mod tests {
         assert_eq!(result.total, 1);
         assert_eq!(result.data.len(), 1);
         let report_item = &result.data[0];
-        assert_eq!(report_item.employee_id, Uuid::nil());
+        assert_eq!(report_item.employment_id, Uuid::nil());
         assert_eq!(report_item.employee_name, "Test User");
         assert_eq!(report_item.employee_id_number, "EMP001");
         assert_eq!(
@@ -2471,6 +2560,7 @@ mod tests {
         let report_service = ReportService::new(ReportServiceArgs {
             workspace_repo: Arc::new(MockWorkspaceRepo),
             employee_repo: Arc::new(AbsentEmployeeRepo),
+            employment_repo: Arc::new(DummyEmploymentRepo),
             time_entry_repo: Arc::new(PresentTimeEntryRepo),
             roster_repo: Arc::new(ScheduleRosterRepo),
             policy_repo: Arc::new(EmptyPolicyRepo),
@@ -2498,7 +2588,7 @@ mod tests {
         assert_eq!(result.total, 1);
         assert_eq!(result.data.len(), 1);
         let summary_item = &result.data[0];
-        assert_eq!(summary_item.employee_id, Uuid::nil());
+        assert_eq!(summary_item.employment_id, Uuid::nil());
         assert_eq!(summary_item.employee_name, "Test User");
         assert!(summary_item.total_std_units > 0);
         assert_eq!(summary_item.total_leave_days, 0);

@@ -18,7 +18,7 @@ impl SyncHireDateHandler {
             "Starting sync_hire_date job"
         );
 
-        let current_hire_date = match deps
+        let _emp = match deps
             .employee_repo
             .get_employee_by_id(
                 payload.employee_id,
@@ -26,7 +26,7 @@ impl SyncHireDateHandler {
             )
             .await
         {
-            Ok(Some(emp)) => Some(emp.hire_date()),
+            Ok(Some(emp)) => emp,
             Ok(None) => {
                 warn!(
                     employee_id = %payload.employee_id,
@@ -55,77 +55,79 @@ impl SyncHireDateHandler {
             }
         };
 
-        let mut oldest_date = None;
-
         for emp in employments {
+            let employment_id = emp.id();
+            let current_start_date = emp.start_date();
+
             if let Ok(contracts) = deps
                 .contract_repo
                 .list_employee_contracts(
                     &crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
-                    emp.id,
+                    employment_id,
                 )
                 .await
             {
-                if let Some(c_date) = contracts
-                    .into_iter()
-                    .rfind(|c| c.status() != crate::models::enums::ContractStatus::Draft)
-                    .map(|c| c.start_date())
-                {
-                    match oldest_date {
-                        None => oldest_date = Some(c_date),
-                        Some(d) if c_date < d => oldest_date = Some(c_date),
-                        _ => {}
+                let mut oldest_date = None;
+                for c in contracts {
+                    if c.status() != crate::models::enums::ContractStatus::Draft {
+                        let c_date = c.start_date();
+                        match oldest_date {
+                            None => oldest_date = Some(c_date),
+                            Some(d) if c_date < d => oldest_date = Some(c_date),
+                            _ => {}
+                        }
                     }
+                }
+
+                if let Some(earliest_date) = oldest_date {
+                    if current_start_date == earliest_date {
+                        info!(
+                            employment_id = %employment_id,
+                            "Employment start_date is already correctly synced"
+                        );
+                    } else {
+                        info!(
+                            employment_id = %employment_id,
+                            old_start_date = ?current_start_date,
+                            new_start_date = %earliest_date,
+                            "Updating employment start_date based on earliest contract"
+                        );
+
+                        if let Err(e) = deps
+                            .employment_repo
+                            .update_employment(
+                                &crate::diesel_pool::TenantAuthToken::system_override(
+                                    job.workspace_id,
+                                ),
+                                employment_id,
+                                &crate::models::employment::UpdateEmploymentRequest {
+                                    employer_id: None,
+                                    primary_location_id: None,
+                                    department_id: None,
+                                    status: None,
+                                    start_date: Some(earliest_date),
+                                    end_date: None,
+                                    job_title: None,
+                                    employment_type: None,
+                                    manager_employment_id: None,
+                                },
+                            )
+                            .await
+                        {
+                            error!("Failed to update employment start_date: {:?}", e);
+                            return Err(format!("Update error: {e}"));
+                        }
+                    }
+                } else {
+                    warn!(
+                        employment_id = %employment_id,
+                        current_start_date = ?current_start_date,
+                        "No valid contracts found for employment. Leaving start_date unchanged."
+                    );
                 }
             }
         }
-
-        if let Some(earliest_date) = oldest_date {
-            if current_hire_date == Some(earliest_date) {
-                info!("Employee hire_date is already correctly synced");
-                Ok(())
-            } else {
-                info!(
-                    old_hire_date = ?current_hire_date,
-                    new_hire_date = %earliest_date,
-                    "Updating employee hire_date based on earliest contract"
-                );
-
-                match deps
-                    .employee_repo
-                    .update_employee(
-                        payload.employee_id,
-                        &crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
-                        &crate::models::UpdateEmployeeRequest {
-                            user_id: None,
-                            full_name: None,
-                            employee_id_number: None,
-                            hire_date: Some(earliest_date),
-                            termination_date: None,
-                            tags: None,
-                            is_active: None,
-                            max_concurrent_workers: None,
-                            recruitment_source_id: None,
-                            force_transfer: None,
-                        },
-                    )
-                    .await
-                {
-                    Ok(_) => Ok(()),
-                    Err(e) => {
-                        error!("Failed to update employee hire_date: {:?}", e);
-                        Err(format!("Update error: {e}"))
-                    }
-                }
-            }
-        } else {
-            warn!(
-                employee_id = %payload.employee_id,
-                current_hire_date = ?current_hire_date,
-                "No valid contracts found for employee. Leaving hire_date unchanged."
-            );
-            Ok(())
-        }
+        Ok(())
     }
 }
 
@@ -155,39 +157,56 @@ mod tests {
                 None,
                 "Test Employee".to_string(),
                 "EMP001".to_string(),
-                NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
-                NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
-                None,
                 vec![],
-                true,
                 Utc::now(),
                 Utc::now(),
                 None,
             )))
         });
 
-        emp_repo
-            .expect_update_employee()
-            .returning(|_, _, _| Ok(None));
-
         let employment_id = Uuid::new_v4();
+        let employer_id = Uuid::new_v4();
         let mut employment_repo = MockEmploymentRepository::new();
         employment_repo
             .expect_list_employee_employments()
             .returning(move |_, _| {
-                Ok(vec![crate::models::employment::Employment {
-                    id: employment_id,
-                    workspace_id: ws_id,
-                    employee_id: emp_id,
-                    employer_id: Uuid::new_v4(),
-                    primary_location_id: None,
-                    department_id: None,
-                    status: "active".to_string(),
-                    start_date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-                    end_date: None,
-                    created_at: Utc::now(),
-                    updated_at: Utc::now(),
-                }])
+                Ok(vec![crate::models::employment::Employment::new(
+                    employment_id,
+                    ws_id,
+                    emp_id,
+                    employer_id,
+                    None,
+                    None,
+                    "active".to_string(),
+                    NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
+                    None,
+                    None,
+                    "full_time".to_string(),
+                    None,
+                    Utc::now(),
+                    Utc::now(),
+                )])
+            });
+
+        employment_repo
+            .expect_update_employment()
+            .returning(move |_, _, _| {
+                Ok(crate::models::employment::Employment::new(
+                    employment_id,
+                    ws_id,
+                    emp_id,
+                    employer_id,
+                    None,
+                    None,
+                    "active".to_string(),
+                    NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                    None,
+                    None,
+                    "full_time".to_string(),
+                    None,
+                    Utc::now(),
+                    Utc::now(),
+                ))
             });
 
         let mut contract_repo = MockEmployeeContractRepository::new();

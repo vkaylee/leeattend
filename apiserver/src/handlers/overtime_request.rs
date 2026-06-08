@@ -117,13 +117,13 @@ pub async fn create_ot_request(
     for emp_id in req.employees {
         let employment = employments
             .iter()
-            .find(|e| e.employee_id == emp_id)
+            .find(|e| e.employee_id() == emp_id)
             .ok_or_else(|| AppError::not_found(I18nKey::EmploymentNotFound))?;
 
         employees.push(OvertimeRequestEmployee::new(
             crate::utils::id::new_id(),
             request.id(),
-            employment.id,
+            employment.id(),
             "pending".to_string(),
             None,
             None,
@@ -264,7 +264,7 @@ pub async fn submit_for_approval(
         .get_employment_by_id(&ctx.auth_token, beneficiary_employment_id)
         .await?
         .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
-    let beneficiary_employee_id = employment.employee_id;
+    let beneficiary_employee_id = employment.employee_id();
 
     state
         .core()

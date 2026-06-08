@@ -70,7 +70,7 @@ impl PairingService {
             .raw_log_repo
             .has_duplicate_raw_log(
                 log.workspace_id(),
-                log.employee_id(),
+                log.employment_id(),
                 log.id(),
                 log.punch_time(),
             )
@@ -78,9 +78,9 @@ impl PairingService {
 
         if is_duplicate {
             info!(
-                "Deduplicating log {} for employee {}. Found another log with identical timestamp.",
+                "Deduplicating log {} for employment {}. Found another log with identical timestamp.",
                 log.id(),
-                log.employee_id()
+                log.employment_id()
             );
             return Ok(());
         }
@@ -91,7 +91,7 @@ impl PairingService {
         // Step 2a: Get fallback timezone to determine tentative date
         let fallback_tz: Tz = self
             .employee_repo
-            .get_employee_timezone_fallback(&auth_token, log.employee_id())
+            .get_employee_timezone_fallback(&auth_token, log.employment_id())
             .await?;
 
         let tentative_local_dt = log.punch_time().with_timezone(&fallback_tz);
@@ -100,7 +100,7 @@ impl PairingService {
         // Step 2b: Get exact timezone considering secondment assignments for that date
         let tz: Tz = self
             .employee_repo
-            .get_employee_timezone_at_date(&auth_token, log.employee_id(), tentative_date)
+            .get_employee_timezone_at_date(&auth_token, log.employment_id(), tentative_date)
             .await?;
 
         // 3. Determine Local Date
@@ -108,7 +108,7 @@ impl PairingService {
         let local_date = local_dt.date_naive();
 
         // 4. Reprocess that day
-        self.reprocess_daily_attendance(log.workspace_id(), log.employee_id(), local_date, tz)
+        self.reprocess_daily_attendance(log.workspace_id(), log.employment_id(), local_date, tz)
             .await?;
 
         // 5. Reprocess previous day if early in the morning (Overnight checkouts)
@@ -118,7 +118,7 @@ impl PairingService {
                 "Log is early in day ({}), reprocessing previous day {} for overnight checkouts",
                 local_dt, prev_date
             );
-            self.reprocess_daily_attendance(log.workspace_id(), log.employee_id(), prev_date, tz)
+            self.reprocess_daily_attendance(log.workspace_id(), log.employment_id(), prev_date, tz)
                 .await?;
         }
 
@@ -130,13 +130,13 @@ impl PairingService {
     pub async fn reprocess_daily_attendance(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         date: NaiveDate,
         tz: Tz,
     ) -> Result<(), AppError> {
         info!(
             "Reprocessing attendance for emp {} on date {}",
-            employee_id, date
+            employment_id, date
         );
 
         // 1. Fetch effective schedule
@@ -144,7 +144,7 @@ impl PairingService {
             .roster_repo
             .get_effective_shift(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                employee_id,
+                employment_id,
                 date,
             )
             .await?;
@@ -174,9 +174,9 @@ impl PairingService {
 
         let logs = self
             .raw_log_repo
-            .get_employee_logs_in_time_range(
+            .get_employment_logs_in_time_range(
                 workspace_id,
-                employee_id,
+                employment_id,
                 window_start_utc,
                 window_end_utc,
             )
@@ -186,7 +186,7 @@ impl PairingService {
         let filtered_log_events = context.build_log_events(&logs)?;
 
         if filtered_log_events.is_empty() {
-            self.clear_auto_entries(employee_id, workspace_id, start_of_day_utc, next_day_utc)
+            self.clear_auto_entries(employment_id, workspace_id, start_of_day_utc, next_day_utc)
                 .await?;
 
             let summary_svc = crate::services::AttendanceSummaryService::new(
@@ -203,7 +203,7 @@ impl PairingService {
                 },
             );
             let _ = summary_svc
-                .recalculate_daily_summary(workspace_id, employee_id, date)
+                .recalculate_daily_summary(workspace_id, employment_id, date)
                 .await;
 
             return Ok(());
@@ -216,7 +216,7 @@ impl PairingService {
         // 5. Update Database
         let new_entries = context.build_time_entries(
             workspace_id,
-            employee_id,
+            employment_id,
             shift_id_opt,
             sessions,
             &serde_json::json!(traces),
@@ -225,7 +225,7 @@ impl PairingService {
         self.time_entry_repo
             .replace_time_entries(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                employee_id,
+                employment_id,
                 start_of_day_utc,
                 next_day_utc,
                 new_entries,
@@ -247,12 +247,12 @@ impl PairingService {
             },
         );
         if let Err(e) = summary_svc
-            .recalculate_daily_summary(workspace_id, employee_id, date)
+            .recalculate_daily_summary(workspace_id, employment_id, date)
             .await
         {
             tracing::error!(
                 "Failed to recalculate attendance summary for emp {} on {}: {}",
-                employee_id,
+                employment_id,
                 date,
                 e
             );
@@ -262,7 +262,7 @@ impl PairingService {
 
     async fn clear_auto_entries(
         &self,
-        employee_id: Uuid,
+        employment_id: Uuid,
         workspace_id: Uuid,
         start: DateTime<Utc>,
         end: DateTime<Utc>,
@@ -270,7 +270,7 @@ impl PairingService {
         self.time_entry_repo
             .replace_time_entries(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                employee_id,
+                employment_id,
                 start,
                 end,
                 Vec::new(),
@@ -303,6 +303,25 @@ mod tests {
         let mut repo = MockEmploymentRepository::new();
         repo.expect_get_active_employment_on_date()
             .returning(|_, _, _| Ok(None));
+        repo.expect_get_employment_by_id()
+            .returning(|_, employment_id| {
+                Ok(Some(crate::models::employment::Employment::new(
+                    employment_id,
+                    Uuid::new_v4(),
+                    employment_id,
+                    Uuid::new_v4(),
+                    None,
+                    None,
+                    "active".to_string(),
+                    NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+                    None,
+                    None,
+                    "full_time".to_string(),
+                    None,
+                    chrono::Utc::now(),
+                    chrono::Utc::now(),
+                )))
+            });
         repo
     }
 
@@ -477,7 +496,7 @@ mod tests {
 
         let mut mock_raw_repo = MockRawAttendanceLogRepository::new();
         mock_raw_repo
-            .expect_get_employee_logs_in_time_range()
+            .expect_get_employment_logs_in_time_range()
             .times(1)
             .returning(|_, _, _, _| Box::pin(async { Ok(vec![]) }));
 

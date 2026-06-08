@@ -23,12 +23,12 @@ pub trait RawAttendanceLogRepository: Send + Sync {
     async fn get_latest_log(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
     ) -> Result<Option<RawAttendanceLog>, AppError>;
     async fn get_paginated_raw_logs(
         &self,
         workspace_id: Uuid,
-        p_employee_id: Option<Uuid>,
+        p_employment_id: Option<Uuid>,
         p_from: Option<DateTime<Utc>>,
         p_to: Option<DateTime<Utc>>,
         p_limit: i64,
@@ -37,7 +37,7 @@ pub trait RawAttendanceLogRepository: Send + Sync {
     async fn count_raw_logs(
         &self,
         workspace_id: Uuid,
-        p_employee_id: Option<Uuid>,
+        p_employment_id: Option<Uuid>,
         p_from: Option<DateTime<Utc>>,
         p_to: Option<DateTime<Utc>>,
     ) -> Result<i64, AppError>;
@@ -49,14 +49,14 @@ pub trait RawAttendanceLogRepository: Send + Sync {
     async fn has_duplicate_raw_log(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         log_id: Uuid,
         punch_time: DateTime<Utc>,
     ) -> Result<bool, AppError>;
-    async fn get_employee_logs_in_time_range(
+    async fn get_employment_logs_in_time_range(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         start_time: DateTime<Utc>,
         end_time: DateTime<Utc>,
     ) -> Result<Vec<RawAttendanceLog>, AppError>;

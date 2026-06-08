@@ -252,6 +252,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             roster_repo: roster_repo.clone(),
             policy_repo: policy_repo.clone(),
             employee_repo: employee_repo.clone(),
+            employment_repo: employment_repo.clone(),
             attendance_daily_summary_repo: attendance_summary_repo.clone(),
             leave_repo: leave_request_repo.clone(),
             holiday_repo: Arc::new(apiserver::repositories::DieselHolidayRepository::new(
@@ -876,6 +877,7 @@ pub async fn spawn_app_with_factory_extended(
             roster_repo: roster_repo.clone(),
             policy_repo: policy_repo.clone(),
             employee_repo: employee_repo.clone(),
+            employment_repo: employment_repo.clone(),
             attendance_daily_summary_repo: attendance_summary_repo.clone(),
             leave_repo: leave_request_repo.clone(),
             holiday_repo: Arc::new(apiserver::repositories::DieselHolidayRepository::new(
@@ -1538,6 +1540,7 @@ pub async fn setup_app_tower_internal_extended(
             roster_repo: roster_repo.clone(),
             policy_repo: policy_repo.clone(),
             employee_repo: employee_repo.clone(),
+            employment_repo: employment_repo.clone(),
             attendance_daily_summary_repo: Arc::new(
                 apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
                     diesel_pools.clone(),

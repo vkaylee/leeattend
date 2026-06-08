@@ -305,15 +305,11 @@ mod tests {
                 workspace_id: ws_id,
                 user_id: None,
                 employee_id_number: "EMP001".to_string(),
-                is_active: true,
                 created_at: Some(chrono::Utc::now()),
                 updated_at: Some(chrono::Utc::now()),
                 tags: None,
                 full_name: "Test Employee".to_string(),
                 recruitment_source_id: None,
-                hire_date: chrono::NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
-                termination_date: None,
-                original_hire_date: chrono::NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
                 deleted_at: None,
             };
             diesel::insert_into(crate::schema::employees::table)
@@ -321,6 +317,50 @@ mod tests {
                 .execute(&mut *conn)
                 .await
                 .expect("insert employee");
+
+            // Insert Employer
+            let employer_id = Uuid::new_v4();
+            let employer_entity = crate::models::diesel::employer::EmployerEntity {
+                id: employer_id,
+                workspace_id: ws_id,
+                name: "Test Employer".to_string(),
+                tax_code: None,
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
+                legal_address: None,
+                deleted_at: None,
+                parent_id: None,
+                relationship_type: None,
+            };
+            diesel::insert_into(crate::schema::employers::table)
+                .values(&employer_entity)
+                .execute(&mut *conn)
+                .await
+                .expect("insert employer");
+
+            // Insert Employment
+            let employment_entity = crate::models::diesel::employment::EmploymentEntity {
+                id: emp_id,
+                workspace_id: ws_id,
+                employee_id: emp_id,
+                employer_id,
+                primary_location_id: Some(loc_id),
+                department_id: None,
+                status: "active".to_string(),
+                start_date: chrono::NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
+                end_date: None,
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
+                deleted_at: None,
+                job_title: None,
+                employment_type: "full_time".to_string(),
+                manager_employment_id: None,
+            };
+            diesel::insert_into(crate::schema::employments::table)
+                .values(&employment_entity)
+                .execute(&mut *conn)
+                .await
+                .expect("insert employment");
         }
 
         // Drop the connection to release it back to the pool before running repository methods
