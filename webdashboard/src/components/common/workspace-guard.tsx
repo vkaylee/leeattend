@@ -21,12 +21,13 @@ export default function WorkspaceGuard() {
   
 
   useEffect(() => {
-    // Nếu có workspace nhưng chưa có active ID trong localStorage
-    if (!isLoading && workspaces.length > 0 && !activeWsId) {
-      
-      setCurrentWorkspaceId(workspaces[0].id);
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Derived state synced from props; intentional pattern
-      setActiveWsId(workspaces[0].id);
+    if (!isLoading && workspaces.length > 0) {
+      const isValid = workspaces.some((w) => w.id === activeWsId);
+      if (!activeWsId || !isValid) {
+        setCurrentWorkspaceId(workspaces[0].id);
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- Derived state synced from props; intentional pattern
+        setActiveWsId(workspaces[0].id);
+      }
     }
   }, [workspaces, activeWsId, isLoading]);
 

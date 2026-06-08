@@ -11,12 +11,12 @@ use crate::AppState;
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route(
-            "/workspaces/:ws_id/attendance/policies/default",
+            "/workspaces/:ws_id/attendance/rules",
             get(handlers::get_default_attendance_rules)
                 .patch(handlers::update_default_attendance_rules),
         )
         .route(
-            "/workspaces/:ws_id/attendance/policies/default/versions",
+            "/workspaces/:ws_id/attendance/rules/versions",
             get(handlers::list_default_attendance_policy_versions),
         )
         .route(
