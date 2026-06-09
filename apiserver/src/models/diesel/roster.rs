@@ -106,19 +106,19 @@ impl From<ShiftRoster> for ShiftRosterEntity {
 #[diesel(table_name = employee_shifts)]
 pub struct EmployeeShiftEntity {
     pub id: Uuid,
-    pub employee_id: Uuid,
     pub shift_id: Uuid,
     pub start_date: NaiveDate,
     pub end_date: Option<NaiveDate>,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
+    pub employment_id: Uuid,
 }
 
 impl From<EmployeeShiftEntity> for EmployeeShift {
     fn from(entity: EmployeeShiftEntity) -> Self {
         Self {
             id: entity.id,
-            employee_id: entity.employee_id,
+            employment_id: entity.employment_id,
             shift_id: entity.shift_id,
             start_date: entity.start_date,
             end_date: entity.end_date,

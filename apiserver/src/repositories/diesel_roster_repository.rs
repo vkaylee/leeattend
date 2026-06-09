@@ -361,7 +361,7 @@ impl RosterRepository for DieselRosterRepository {
                 -- Fixed Assignments
                 SELECT
                     es.id,
-                    es.employee_id,
+                    emp.employee_id,
                     'fixed'::assignment_history_type as assignment_type,
                     s.name as shift_name,
                     TO_CHAR(es.start_date, 'YYYY-MM-DD') ||
@@ -369,15 +369,15 @@ impl RosterRepository for DieselRosterRepository {
                     es.created_at
                 FROM employee_shifts es
                 JOIN shifts s ON es.shift_id = s.id
-                JOIN employees e ON es.employee_id = e.id
-                WHERE e.workspace_id = $1
+                JOIN employments emp ON es.employment_id = emp.id
+                WHERE emp.workspace_id = $1
 
                 UNION ALL
 
                 -- Pattern Assignments
                 SELECT
                     ewp.id,
-                    ewp.employee_id,
+                    emp.employee_id,
                     'pattern'::assignment_history_type as assignment_type,
                     wp.name as shift_name,
                     TO_CHAR(ewp.start_date, 'YYYY-MM-DD') ||
@@ -385,8 +385,8 @@ impl RosterRepository for DieselRosterRepository {
                     ewp.created_at
                 FROM employee_working_patterns ewp
                 JOIN working_patterns wp ON ewp.pattern_id = wp.id
-                JOIN employees e ON ewp.employee_id = e.id
-                WHERE ewp.workspace_id = $1
+                JOIN employments emp ON ewp.employment_id = emp.id
+                WHERE emp.workspace_id = $1
 
                 UNION ALL
 
@@ -691,10 +691,13 @@ impl RosterRepository for DieselRosterRepository {
                             .eq(crate::schema::working_pattern_details::pattern_id)),
                 )
                 .inner_join(
-                    crate::schema::employees::table.on(crate::schema::employees::id
-                        .eq(crate::schema::employee_working_patterns::employee_id)),
+                    crate::schema::employments::table.on(crate::schema::employments::id
+                        .eq(crate::schema::employee_working_patterns::employment_id)),
                 )
-                .filter(crate::schema::employee_working_patterns::employee_id.eq(employee_id))
+                .filter(
+                    crate::schema::employee_working_patterns::employment_id
+                        .eq(actual_employment_id),
+                )
                 .filter(crate::schema::employee_working_patterns::start_date.le(date))
                 .filter(
                     crate::schema::employee_working_patterns::end_date
@@ -702,7 +705,7 @@ impl RosterRepository for DieselRosterRepository {
                         .or(crate::schema::employee_working_patterns::end_date.ge(date)),
                 )
                 .filter(crate::schema::working_pattern_details::schedule_day.eq(dow))
-                .filter(crate::schema::employees::workspace_id.eq(workspace_id))
+                .filter(crate::schema::employments::workspace_id.eq(workspace_id))
                 .order(crate::schema::employee_working_patterns::created_at.desc())
                 .select((
                     crate::schema::working_pattern_details::shift_id,
@@ -861,25 +864,24 @@ impl RosterRepository for DieselRosterRepository {
         }
 
         // Priority 5: Employee Default Shift
-        let employee_shift: Option<Uuid> =
-            crate::schema::employee_shifts::table
-                .inner_join(crate::schema::employees::table.on(
-                    crate::schema::employees::id.eq(crate::schema::employee_shifts::employee_id),
-                ))
-                .filter(crate::schema::employee_shifts::employee_id.eq(employee_id))
-                .filter(crate::schema::employee_shifts::start_date.le(date))
-                .filter(
-                    crate::schema::employee_shifts::end_date
-                        .is_null()
-                        .or(crate::schema::employee_shifts::end_date.ge(date)),
-                )
-                .filter(crate::schema::employees::workspace_id.eq(workspace_id))
-                .order(crate::schema::employee_shifts::created_at.desc())
-                .select(crate::schema::employee_shifts::shift_id)
-                .first::<Uuid>(&mut *conn)
-                .await
-                .optional()
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let employee_shift: Option<Uuid> = crate::schema::employee_shifts::table
+            .inner_join(crate::schema::employments::table.on(
+                crate::schema::employments::id.eq(crate::schema::employee_shifts::employment_id),
+            ))
+            .filter(crate::schema::employee_shifts::employment_id.eq(actual_employment_id))
+            .filter(crate::schema::employee_shifts::start_date.le(date))
+            .filter(
+                crate::schema::employee_shifts::end_date
+                    .is_null()
+                    .or(crate::schema::employee_shifts::end_date.ge(date)),
+            )
+            .filter(crate::schema::employments::workspace_id.eq(workspace_id))
+            .order(crate::schema::employee_shifts::created_at.desc())
+            .select(crate::schema::employee_shifts::shift_id)
+            .first::<Uuid>(&mut *conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         if let Some(shift) = employee_shift {
             traces.push(ScheduleTrace {

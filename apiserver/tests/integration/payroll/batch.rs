@@ -40,10 +40,24 @@ async fn test_batch_calculate_payroll() {
         diesel::sql_types::Uuid, ws_id
     );
 
+    let emp1_employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp1_id
+    );
+
+    let emp2_employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp2_id
+    );
+
     crate::test_execute!(
         &factory.diesel_pools.api,
-        "INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)",
-        diesel::sql_types::Uuid, emp1_id,
+        "INSERT INTO employee_salary_components (employment_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)",
+        diesel::sql_types::Uuid, emp1_employment_id,
         diesel::sql_types::Uuid, sc_def_id,
         diesel::sql_types::Numeric, Decimal::from(10_000_000),
         diesel::sql_types::Date, chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()
@@ -51,8 +65,8 @@ async fn test_batch_calculate_payroll() {
 
     crate::test_execute!(
         &factory.diesel_pools.api,
-        "INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)",
-        diesel::sql_types::Uuid, emp2_id,
+        "INSERT INTO employee_salary_components (employment_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)",
+        diesel::sql_types::Uuid, emp2_employment_id,
         diesel::sql_types::Uuid, sc_def_id,
         diesel::sql_types::Numeric, Decimal::from(12_000_000),
         diesel::sql_types::Date, chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()

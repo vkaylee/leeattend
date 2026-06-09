@@ -136,6 +136,13 @@ async fn test_working_pattern_crud_lifecycle() {
 
     // 4. Assign pattern to employee
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
+
     let assign_payload = json!({
         "pattern_id": pattern_id,
         "start_date": "2026-01-01"
@@ -145,7 +152,7 @@ async fn test_working_pattern_crud_lifecycle() {
         .clone()
         .oneshot(make_req(
             "POST",
-            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/working-patterns"),
+            &format!("/api/v1/workspaces/{ws_id}/employments/{employment_id}/working-patterns"),
             ws_id,
             owner_id,
             Some(assign_payload),
@@ -163,14 +170,14 @@ async fn test_working_pattern_crud_lifecycle() {
         .unwrap();
     let assignment: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(assignment["pattern_id"], pattern_id);
-    assert_eq!(assignment["employee_id"], emp_id.to_string());
+    assert_eq!(assignment["employment_id"], employment_id.to_string());
 
     // 5. Get employee pattern history
     let response = app
         .clone()
         .oneshot(make_req(
             "GET",
-            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/working-patterns"),
+            &format!("/api/v1/workspaces/{ws_id}/employments/{employment_id}/working-patterns"),
             ws_id,
             owner_id,
             None,
@@ -311,10 +318,29 @@ async fn test_bulk_assign_pattern() {
     let emp2 = factory.employee().with_workspace(ws_id).create().await;
     let emp3 = factory.employee().with_workspace(ws_id).create().await;
 
+    let emp1_employment: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1",
+        diesel::sql_types::Uuid,
+        emp1
+    );
+    let emp2_employment: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1",
+        diesel::sql_types::Uuid,
+        emp2
+    );
+    let emp3_employment: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1",
+        diesel::sql_types::Uuid,
+        emp3
+    );
+
     // Bulk assign
     let bulk_payload = json!({
         "pattern_id": pattern_id,
-        "employee_ids": [emp1, emp2, emp3],
+        "employment_ids": [emp1_employment, emp2_employment, emp3_employment],
         "start_date": "2026-01-01"
     });
 

@@ -182,7 +182,7 @@ pub async fn assign_shift(
         .service()
         .assign_shift(
             ctx.workspace_id,
-            req.employee_id,
+            req.employment_id,
             req.shift_id,
             req.start_date,
             req.end_date,

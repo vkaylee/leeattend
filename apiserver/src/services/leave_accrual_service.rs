@@ -606,6 +606,13 @@ impl LeaveAccrualService {
                 tracing::error!("policy must exist for accrued employee {}", emp.id());
                 continue;
             };
+            let Some(active_emp_id) = emp.active_employment_id() else {
+                tracing::error!(
+                    "active employment must exist for accrued employee {}",
+                    emp.id()
+                );
+                continue;
+            };
             let config = def.rule_config();
             let leave_type_id = def.leave_type_id();
 
@@ -624,7 +631,7 @@ impl LeaveAccrualService {
                 if amount > 0.0 {
                     batch_entries.push(
                         crate::repositories::leave_accrual_log_repository::AccrualBatchEntry {
-                            employee_id: emp.id(),
+                            employment_id: active_emp_id,
                             assignment_id: *assignment_id,
                             leave_type_id,
                             accrual_date: *accrual_date,

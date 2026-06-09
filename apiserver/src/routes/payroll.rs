@@ -22,9 +22,9 @@ pub fn router() -> Router<Arc<AppState>> {
             get(handlers::get_salary_components).post(handlers::create_salary_component),
         )
         .route(
-            "/workspaces/:ws_id/employees/:id/salary-components",
-            get(handlers::get_employee_salary_components)
-                .post(handlers::assign_employee_salary_component),
+            "/workspaces/:ws_id/employments/:id/salary-components",
+            get(handlers::get_employment_salary_components)
+                .post(handlers::assign_employment_salary_component),
         )
         .route(
             "/workspaces/:ws_id/employees/:id/payslips",

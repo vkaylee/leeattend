@@ -44,9 +44,16 @@ async fn test_net_pay_formula_with_zero_deductions() {
         "BASE"
     );
 
+    let employment_id: uuid::Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        employee_id
+    );
+
     crate::test_execute!(&pool.api,
-        "INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)",
-        diesel::sql_types::Uuid, employee_id,
+        "INSERT INTO employee_salary_components (employment_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)",
+        diesel::sql_types::Uuid, employment_id,
         diesel::sql_types::Uuid, component_id,
         diesel::sql_types::Numeric, Decimal::from(2600),
         diesel::sql_types::Date, NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()

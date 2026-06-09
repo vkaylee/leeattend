@@ -104,10 +104,17 @@ async fn test_payroll_holiday_work_with_multiplier() {
         workspace_id
     );
 
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp
+    );
+
     crate::test_execute!(&pool.api,
-        "INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date)
+        "INSERT INTO employee_salary_components (employment_id, component_definition_id, amount, effective_date)
          VALUES ($1, $2, 10000000, $3)",
-        diesel::sql_types::Uuid, emp,
+        diesel::sql_types::Uuid, employment_id,
         diesel::sql_types::Uuid, comp_id,
         diesel::sql_types::Date, first_of_month
     );
@@ -292,10 +299,17 @@ async fn test_payroll_holiday_work_no_credit() {
         workspace_id
     );
 
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp
+    );
+
     crate::test_execute!(&pool.api,
-        "INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date)
+        "INSERT INTO employee_salary_components (employment_id, component_definition_id, amount, effective_date)
          VALUES ($1, $2, 10000000, $3)",
-        diesel::sql_types::Uuid, emp,
+        diesel::sql_types::Uuid, employment_id,
         diesel::sql_types::Uuid, comp_id,
         diesel::sql_types::Date, first_of_month
     );
@@ -466,10 +480,17 @@ async fn test_payroll_holiday_work_unpaid_no_premium() {
         workspace_id
     );
 
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp
+    );
+
     crate::test_execute!(&pool.api,
-        "INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date)
+        "INSERT INTO employee_salary_components (employment_id, component_definition_id, amount, effective_date)
          VALUES ($1, $2, 10000000, $3)",
-        diesel::sql_types::Uuid, emp,
+        diesel::sql_types::Uuid, employment_id,
         diesel::sql_types::Uuid, comp_id,
         diesel::sql_types::Date, first_of_month
     );

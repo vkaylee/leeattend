@@ -63,7 +63,7 @@ describe("EmployeeSalaryConfig", () => {
   };
 
   it("renders employee salary components", async () => {
-    renderWithProviders(<EmployeeSalaryConfig employeeId={mockEmpId} wsId={mockWsId} />);
+    renderWithProviders(<EmployeeSalaryConfig employeeId={mockEmpId} employmentId="employment-123" wsId={mockWsId} />);
 
     expect(await screen.findByText(/Lương cơ bản/i)).toBeInTheDocument();
     expect(screen.getByText(/1[.,]000/)).toBeInTheDocument();
@@ -72,7 +72,7 @@ describe("EmployeeSalaryConfig", () => {
   it("allows adding a new salary component to employee", async () => {
  
     vi.mocked(api.assignEmployeeSalaryComponent).mockResolvedValue({} as unknown as never);
-    renderWithProviders(<EmployeeSalaryConfig employeeId={mockEmpId} wsId={mockWsId} />);
+    renderWithProviders(<EmployeeSalaryConfig employeeId={mockEmpId} employmentId="employment-123" wsId={mockWsId} />);
 
     const addButton = await screen.findByRole("button", { name: /payroll.employee_config.add_btn/i });
     fireEvent.click(addButton);

@@ -145,13 +145,13 @@ pub struct LeavePolicyAssignmentEntity {
 pub struct LeaveAccrualLogEntity {
     pub id: Uuid,
     pub workspace_id: Uuid,
-    pub employee_id: Uuid,
     pub policy_assignment_id: Option<Uuid>,
     pub accrual_date: NaiveDate,
     pub amount: BigDecimal,
     pub notes: Option<String>,
     pub created_at: Option<DateTime<Utc>>,
     pub leave_type_id: Uuid,
+    pub employment_id: Uuid,
 }
 
 // ---------------------------------------------------------------------------
@@ -251,7 +251,7 @@ impl From<LeaveAccrualLogEntity> for LeaveAccrualLog {
         Self::new(
             entity.id,
             entity.workspace_id,
-            entity.employee_id,
+            entity.employment_id,
             entity.policy_assignment_id,
             entity.accrual_date,
             bd_to_dec(&entity.amount),

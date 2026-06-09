@@ -333,13 +333,21 @@ async fn test_employee_pattern_history_isolated_by_workspace() {
     let start_date = NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
     let repo = apiserver::repositories::DieselWorkingPatternRepository::new(diesel_pools.clone());
     use apiserver::repositories::working_pattern_repository::WorkingPatternRepositoryTrait;
-    repo.assign_pattern(ws_a, emp_a, pattern_id, start_date, None, None)
+
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_a
+    );
+
+    repo.assign_pattern(ws_a, employment_id, pattern_id, start_date, None, None)
         .await
         .unwrap();
 
     // Correct workspace → should find 1
     let history_a = repo
-        .get_employee_pattern_history(ws_a, emp_a)
+        .get_employment_pattern_history(ws_a, employment_id)
         .await
         .unwrap();
     assert_eq!(
@@ -350,7 +358,7 @@ async fn test_employee_pattern_history_isolated_by_workspace() {
 
     // Wrong workspace → should find 0
     let history_b = repo
-        .get_employee_pattern_history(ws_b, emp_a)
+        .get_employment_pattern_history(ws_b, employment_id)
         .await
         .unwrap();
     assert_eq!(

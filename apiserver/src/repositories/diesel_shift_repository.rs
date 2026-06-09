@@ -212,10 +212,10 @@ impl ShiftRepository for DieselShiftRepository {
         Ok(())
     }
 
-    async fn assign_employee_shift(
+    async fn assign_employment_shift(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         shift_id: Uuid,
         start_date: NaiveDate,
         end_date: Option<NaiveDate>,
@@ -231,7 +231,7 @@ impl ShiftRepository for DieselShiftRepository {
 
         let new_assignment = EmployeeShiftEntity {
             id: Uuid::new_v4(),
-            employee_id,
+            employment_id,
             shift_id,
             start_date,
             end_date,
@@ -248,10 +248,10 @@ impl ShiftRepository for DieselShiftRepository {
         Ok(())
     }
 
-    async fn get_employee_active_shift(
+    async fn get_employment_active_shift(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         date: NaiveDate,
     ) -> Result<Option<Shift>, AppError> {
         let _workspace_id = auth_token.workspace_id();
@@ -265,7 +265,7 @@ impl ShiftRepository for DieselShiftRepository {
 
         let entity: Option<ShiftEntity> = shifts::table
             .inner_join(employee_shifts::table.on(shifts::id.eq(employee_shifts::shift_id)))
-            .filter(employee_shifts::employee_id.eq(employee_id))
+            .filter(employee_shifts::employment_id.eq(employment_id))
             .filter(employee_shifts::start_date.le(date))
             .filter(
                 employee_shifts::end_date
@@ -315,8 +315,8 @@ impl ShiftRepository for DieselShiftRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
                 diesel::sql_query(
-                    "INSERT INTO employee_shifts (employee_id, shift_id, start_date, end_date)
-                     SELECT employee_id, $2, $3, NULL
+                    "INSERT INTO employee_shifts (employment_id, shift_id, start_date, end_date)
+                     SELECT employment_id, $2, $3, NULL
                      FROM employee_shifts
                      WHERE shift_id = $1 AND end_date = $4",
                 )

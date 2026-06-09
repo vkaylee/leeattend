@@ -145,7 +145,7 @@ describe("api.ts comprehensive tests", () => {
   describe("Time Tracking & Attendance API", () => {
     it("punchIn", async () => {
       mockSuccess({});
-      await api.punchIn("ws-1", { employee_id: "e1" });
+      await api.punchIn("ws-1", { employment_id: "e1" });
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/time/punch-in"), expect.objectContaining({ method: "POST" }));
     });
 
@@ -175,7 +175,7 @@ describe("api.ts comprehensive tests", () => {
 
     it("submitAttendanceAdjustment", async () => {
       mockSuccess({});
-      await api.submitAttendanceAdjustment("ws-1", { employee_id: "e1", requested_punch_in_time: "..." });
+      await api.submitAttendanceAdjustment("ws-1", { employment_id: "e1", requested_punch_in_time: "..." });
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/attendance/adjustments"), expect.objectContaining({ method: "POST" }));
     });
 
@@ -227,7 +227,7 @@ describe("api.ts comprehensive tests", () => {
   describe("Leave API", () => {
     it("submitLeaveRequest", async () => {
       mockSuccess({});
-      await api.submitLeaveRequest("ws-1", { employee_id: "e1", leave_type_id: "lt-1", start_date: "...", end_date: "..." });
+      await api.submitLeaveRequest("ws-1", { employment_id: "e1", leave_type_id: "lt-1", start_date: "...", end_date: "..." });
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/leave/submit"), expect.objectContaining({ method: "POST" }));
     });
 
@@ -341,7 +341,7 @@ describe("api.ts comprehensive tests", () => {
 
     it("assignShift", async () => {
       mockSuccess({});
-      await api.assignShift("ws-1", { employee_id: "e1", shift_id: "s1", start_date: "..." });
+      await api.assignShift("ws-1", { employment_id: "e1", shift_id: "s1", start_date: "..." });
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/shifts/assign"), expect.objectContaining({ method: "POST" }));
     });
   });

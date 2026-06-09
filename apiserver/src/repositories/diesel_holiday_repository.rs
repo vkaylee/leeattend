@@ -401,24 +401,30 @@ impl HolidayRepository for DieselHolidayRepository {
 
                 // 3. Bulk insert accrual logs
                 if !logs.is_empty() {
-                    let log_entities: Vec<crate::models::diesel::leave::LeaveAccrualLogEntity> =
-                        logs.iter()
-                            .map(|(emp_id, leave_type_id, amount, date, notes)| {
-                                let amount_bd =
-                                    BigDecimal::from_str(&amount.to_string()).unwrap_or_default();
-                                crate::models::diesel::leave::LeaveAccrualLogEntity {
-                                    id: Uuid::new_v4(),
-                                    workspace_id,
-                                    employee_id: *emp_id,
-                                    policy_assignment_id: None,
-                                    accrual_date: *date,
-                                    amount: amount_bd,
-                                    notes: Some(notes.clone()),
-                                    created_at: Some(chrono::Utc::now()),
-                                    leave_type_id: *leave_type_id,
-                                }
-                            })
-                            .collect();
+                    let mut log_entities = Vec::new();
+                    for (emp_id, leave_type_id, amount, date, notes) in logs {
+                        let amount_bd =
+                            BigDecimal::from_str(&amount.to_string()).unwrap_or_default();
+                        let employment_id = match resolved_employments.get(emp_id) {
+                            Some(id) => *id,
+                            None => {
+                                return Err(AppError::Internal(format!(
+                                    "No employment found for employee {emp_id}"
+                                )))
+                            }
+                        };
+                        log_entities.push(crate::models::diesel::leave::LeaveAccrualLogEntity {
+                            id: Uuid::new_v4(),
+                            workspace_id,
+                            policy_assignment_id: None,
+                            accrual_date: *date,
+                            amount: amount_bd,
+                            notes: Some(notes.clone()),
+                            created_at: Some(chrono::Utc::now()),
+                            leave_type_id: *leave_type_id,
+                            employment_id,
+                        });
+                    }
 
                     diesel::insert_into(crate::schema::leave_accrual_logs::table)
                         .values(&log_entities)

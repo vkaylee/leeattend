@@ -531,7 +531,7 @@ impl LeavePolicyAssignment {
 pub struct LeaveAccrualLog {
     id: Uuid,
     workspace_id: Uuid,
-    employee_id: Uuid,
+    employment_id: Uuid,
     policy_assignment_id: Option<Uuid>,
     accrual_date: NaiveDate,
     amount: rust_decimal::Decimal,
@@ -545,7 +545,7 @@ impl LeaveAccrualLog {
     pub fn new(
         id: Uuid,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         policy_assignment_id: Option<Uuid>,
         accrual_date: NaiveDate,
         amount: rust_decimal::Decimal,
@@ -556,7 +556,7 @@ impl LeaveAccrualLog {
         Self {
             id,
             workspace_id,
-            employee_id,
+            employment_id,
             policy_assignment_id,
             accrual_date,
             amount,
@@ -574,8 +574,8 @@ impl LeaveAccrualLog {
         self.workspace_id
     }
 
-    pub fn employee_id(&self) -> Uuid {
-        self.employee_id
+    pub fn employment_id(&self) -> Uuid {
+        self.employment_id
     }
 
     pub fn policy_assignment_id(&self) -> Option<Uuid> {

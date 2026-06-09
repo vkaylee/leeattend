@@ -43,10 +43,17 @@ async fn test_calculate_payroll_multi_segment() {
         "BASE"
     );
 
+    let employment_id: uuid::Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        employee_id
+    );
+
     // 2. Assign Salary 1 (Effective from 1st) - $2600
     crate::test_execute!(&pool.api,
-        "INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)",
-        diesel::sql_types::Uuid, employee_id,
+        "INSERT INTO employee_salary_components (employment_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)",
+        diesel::sql_types::Uuid, employment_id,
         diesel::sql_types::Uuid, component_id,
         diesel::sql_types::Numeric, Decimal::from(2600),
         diesel::sql_types::Date, NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()
@@ -54,8 +61,8 @@ async fn test_calculate_payroll_multi_segment() {
 
     // 3. Assign Salary 2 (Effective from 16th) - $5200 (Double)
     crate::test_execute!(&pool.api,
-        "INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)",
-        diesel::sql_types::Uuid, employee_id,
+        "INSERT INTO employee_salary_components (employment_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)",
+        diesel::sql_types::Uuid, employment_id,
         diesel::sql_types::Uuid, component_id,
         diesel::sql_types::Numeric, Decimal::from(5200),
         diesel::sql_types::Date, NaiveDate::from_ymd_opt(2026, 1, 16).unwrap()

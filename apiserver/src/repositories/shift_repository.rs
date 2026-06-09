@@ -43,19 +43,19 @@ pub trait ShiftRepository: Send + Sync {
         id: Uuid,
     ) -> Result<(), AppError>;
 
-    async fn assign_employee_shift(
+    async fn assign_employment_shift(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         shift_id: Uuid,
         start_date: NaiveDate,
         end_date: Option<NaiveDate>,
     ) -> Result<(), AppError>;
 
-    async fn get_employee_active_shift(
+    async fn get_employment_active_shift(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         date: NaiveDate,
     ) -> Result<Option<Shift>, AppError>;
 

@@ -299,21 +299,21 @@ mod tests {
         ) -> Result<crate::models::SalaryComponentDefinition, AppError> {
             unimplemented!()
         }
-        async fn assign_employee_salary_component(
+        async fn assign_employment_salary_component(
             &self,
-            _w: Uuid,
-            _e: Uuid,
-            _c: Uuid,
-            _a: Decimal,
-            _d: NaiveDate,
+            _workspace_id: Uuid,
+            _employment_id: Uuid,
+            _component_definition_id: Uuid,
+            _amount: Decimal,
+            _effective_date: NaiveDate,
         ) -> Result<crate::models::EmployeeSalaryComponent, AppError> {
             unimplemented!()
         }
-        async fn get_employee_salary_components(
+        async fn get_employment_salary_components(
             &self,
-            _w: Uuid,
-            _e: Uuid,
-            _d: NaiveDate,
+            _workspace_id: Uuid,
+            _employment_id: Uuid,
+            _reference_date: NaiveDate,
         ) -> Result<
             Vec<(
                 crate::models::EmployeeSalaryComponent,

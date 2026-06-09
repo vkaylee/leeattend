@@ -196,7 +196,7 @@ pub async fn build_roster_data(
 
     use crate::schema::{
         assignment_rules, employee_department_history, employee_shifts, employee_working_patterns,
-        employees, shifts, working_pattern_details, working_patterns,
+        employees, employments, shifts, working_pattern_details, working_patterns,
     };
 
     // 1. Shifts
@@ -208,13 +208,9 @@ pub async fn build_roster_data(
 
     // 2. Fixed Assignments
     let fixed_rows = employee_shifts::table
-        .filter(
-            employee_shifts::employee_id.eq_any(
-                employees::table
-                    .filter(employees::workspace_id.eq(workspace_id))
-                    .select(employees::id),
-            ),
-        )
+        .inner_join(employments::table)
+        .filter(employments::workspace_id.eq(workspace_id))
+        .select(crate::models::diesel::roster::EmployeeShiftEntity::as_select())
         .order(employee_shifts::created_at.desc())
         .load::<crate::models::diesel::roster::EmployeeShiftEntity>(&mut conn)
         .await
@@ -233,7 +229,7 @@ pub async fn build_roster_data(
         .filter(employee_working_patterns::workspace_id.eq(workspace_id))
         .order(employee_working_patterns::created_at.desc())
         .select((
-            employee_working_patterns::employee_id,
+            employee_working_patterns::employment_id,
             employee_working_patterns::pattern_id,
             employee_working_patterns::start_date,
             employee_working_patterns::end_date,
@@ -332,7 +328,7 @@ pub async fn build_roster_data(
     let mut fixed_assignments: HashMap<Uuid, Vec<RosterFixedAssignment>> = HashMap::new();
     for r in fixed_rows {
         fixed_assignments
-            .entry(r.employee_id)
+            .entry(r.employment_id)
             .or_default()
             .push(RosterFixedAssignment {
                 shift_id: r.shift_id,

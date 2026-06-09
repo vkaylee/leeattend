@@ -60,13 +60,13 @@ impl From<WorkingPatternDetailEntity> for WorkingPatternDetail {
 pub struct EmployeeWorkingPatternEntity {
     pub id: Uuid,
     pub workspace_id: Uuid,
-    pub employee_id: Uuid,
     pub pattern_id: Uuid,
     pub start_date: NaiveDate,
     pub end_date: Option<NaiveDate>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub anchor_date: Option<NaiveDate>,
+    pub employment_id: Uuid,
 }
 
 impl From<EmployeeWorkingPatternEntity> for EmployeeWorkingPattern {
@@ -74,7 +74,7 @@ impl From<EmployeeWorkingPatternEntity> for EmployeeWorkingPattern {
         Self {
             id: entity.id,
             workspace_id: entity.workspace_id,
-            employee_id: entity.employee_id,
+            employment_id: entity.employment_id,
             pattern_id: entity.pattern_id,
             start_date: entity.start_date,
             end_date: entity.end_date,

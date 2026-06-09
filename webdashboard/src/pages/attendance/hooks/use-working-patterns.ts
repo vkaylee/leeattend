@@ -21,6 +21,7 @@ import {
   fetchShifts,
   fetchWorkingPatterns,
   getCurrentWorkspaceId,
+  fetchEmployees,
 } from "@/lib/api";
 
 type BulkAssignPatternRequestLocal = Parameters<typeof bulkAssignPattern>[1];
@@ -235,12 +236,24 @@ export function useWorkingPatterns(): UseWorkingPatternsReturn {
     setAssignAnchorDate(val);
   }, []);
 
+  const { data: employeesData } = useQuery({
+    queryKey: ["employees-all-bulk", wsId],
+    queryFn: () => fetchEmployees(wsId, 1, 1000),
+    enabled: !!wsId,
+  });
+  const employees = employeesData?.data ?? [];
+
   const handleBulkAssign = () => {
     if (selectedPatternId && selectedEmployeeIds.length > 0) {
       const selectedPattern = patterns.find((p) => p.id === selectedPatternId);
       const isRotation = selectedPattern?.pattern_type === "rotation";
+      
+      const employmentIds = selectedEmployeeIds
+        .map(empId => employees.find(e => e.id === empId)?.active_employment_id)
+        .filter((id): id is string => !!id);
+
       bulkAssignMutation.mutate({
-        employee_ids: selectedEmployeeIds,
+        employment_ids: employmentIds,
         pattern_id: selectedPatternId,
         start_date: assignStartDate,
         anchor_date: isRotation ? assignAnchorDate : undefined,

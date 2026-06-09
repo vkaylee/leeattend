@@ -52,7 +52,7 @@ pub fn resolve_effective_shift_from_data<S: ::std::hash::BuildHasher>(
     // P2: Individual Working Pattern — collect ALL matching shifts for the day
     let patterns: Vec<_> = roster_data
         .pattern_assignments
-        .get(&employee_id)
+        .get(&employment_id)
         .map(|v| {
             v.iter()
                 .filter(|a| {
@@ -123,7 +123,7 @@ pub fn resolve_effective_shift_from_data<S: ::std::hash::BuildHasher>(
     // P5: Fixed Assignment (Individual)
     let fixed = roster_data
         .fixed_assignments
-        .get(&employee_id)
+        .get(&employment_id)
         .and_then(|v| {
             v.iter()
                 .find(|a| a.start_date <= date && a.end_date.is_none_or(|ed| ed >= date))

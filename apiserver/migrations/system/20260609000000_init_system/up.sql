@@ -9,7 +9,7 @@ END;
 $$;
 
 CREATE TABLE public.authorized_agents (
-    id character varying(50) NOT NULL,
+    id character varying(50) PRIMARY KEY NOT NULL,
     name character varying(100) NOT NULL,
     token character varying(255) NOT NULL,
     is_trusted boolean DEFAULT false,

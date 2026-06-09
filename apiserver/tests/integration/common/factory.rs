@@ -536,12 +536,23 @@ impl ShiftBuilder {
         start_date: chrono::NaiveDate,
     ) -> Uuid {
         let pool = self.diesel_pools.clone();
+        let ws_id = self
+            .workspace_id
+            .expect("Workspace ID is required to assign shift");
         let shift_id = self.create().await;
-        crate::test_execute!(
+        let employment_id: Uuid = crate::test_query_scalar_uuid!(
             &pool.api,
-            "INSERT INTO employee_shifts (employee_id, shift_id, start_date) VALUES ($1, $2, $3)",
+            "SELECT id FROM employments WHERE employee_id = $1 AND workspace_id = $2 LIMIT 1",
             diesel::sql_types::Uuid,
             employee_id,
+            diesel::sql_types::Uuid,
+            ws_id
+        );
+        crate::test_execute!(
+            &pool.api,
+            "INSERT INTO employee_shifts (employment_id, shift_id, start_date) VALUES ($1, $2, $3)",
+            diesel::sql_types::Uuid,
+            employment_id,
             diesel::sql_types::Uuid,
             shift_id,
             diesel::sql_types::Date,

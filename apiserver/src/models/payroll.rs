@@ -256,7 +256,7 @@ pub struct SalaryComponentDefinition {
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct EmployeeSalaryComponent {
     pub id: Uuid,
-    pub employee_id: Uuid,
+    pub employment_id: Uuid,
     pub component_definition_id: Uuid,
     pub amount: rust_decimal::Decimal,
     pub effective_date: NaiveDate,

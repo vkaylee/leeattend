@@ -42,23 +42,23 @@ pub trait WorkingPatternRepositoryTrait: Send + Sync {
     async fn assign_pattern(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         pattern_id: Uuid,
         start_date: NaiveDate,
         end_date: Option<NaiveDate>,
         anchor_date: Option<NaiveDate>,
     ) -> Result<EmployeeWorkingPattern, AppError>;
 
-    async fn get_employee_pattern_history(
+    async fn get_employment_pattern_history(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
     ) -> Result<Vec<EmployeeWorkingPattern>, AppError>;
 
     async fn bulk_assign_pattern(
         &self,
         workspace_id: Uuid,
-        employee_ids: &[Uuid],
+        employment_ids: &[Uuid],
         pattern_id: Uuid,
         start_date: NaiveDate,
         end_date: Option<NaiveDate>,

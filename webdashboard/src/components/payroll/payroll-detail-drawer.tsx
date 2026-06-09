@@ -118,7 +118,7 @@ export default function PayrollDetailDrawer({
 
   if (!employee) return null;
 
-  const activeEmployment = employments.find(emp => emp.id === employee.active_employment_id);
+  const activeEmployment = employments.find(emp => emp.id === employee.active_employment_id) || employments[0];
   const hireDate = activeEmployment?.start_date ?? "—";
 
   return (
@@ -181,7 +181,7 @@ export default function PayrollDetailDrawer({
               </div>
             ) : (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <EmployeeSalaryConfig employeeId={employee.id} wsId={workspaceId} />
+                <EmployeeSalaryConfig employeeId={employee.id} employmentId={activeEmployment?.id ?? ""} wsId={workspaceId} />
               </div>
             )}
           </main>

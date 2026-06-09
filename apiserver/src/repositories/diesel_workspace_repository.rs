@@ -223,10 +223,9 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                         )
                         .execute(&mut *conn)
                         .await?;
-                        diesel::delete(
-                            employee_shifts::dsl::employee_shifts
-                                .filter(employee_shifts::dsl::employee_id.eq_any(emp_subquery)),
-                        )
+                        diesel::delete(employee_shifts::dsl::employee_shifts.filter(
+                            employee_shifts::dsl::employment_id.eq_any(employment_subquery),
+                        ))
                         .execute(&mut *conn)
                         .await?;
                     }
@@ -257,7 +256,8 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                         .await?;
                         diesel::delete(
                             employee_salary_components::dsl::employee_salary_components.filter(
-                                employee_salary_components::dsl::employee_id.eq_any(emp_subquery),
+                                employee_salary_components::dsl::employment_id
+                                    .eq_any(employment_subquery),
                             ),
                         )
                         .execute(&mut *conn)
@@ -305,10 +305,9 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                         )
                         .execute(&mut *conn)
                         .await?;
-                        diesel::delete(
-                            employee_shifts::dsl::employee_shifts
-                                .filter(employee_shifts::dsl::employee_id.eq_any(emp_subquery)),
-                        )
+                        diesel::delete(employee_shifts::dsl::employee_shifts.filter(
+                            employee_shifts::dsl::employment_id.eq_any(employment_subquery),
+                        ))
                         .execute(&mut *conn)
                         .await?;
                         diesel::delete(
@@ -335,7 +334,8 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                         .await?;
                         diesel::delete(
                             employee_salary_components::dsl::employee_salary_components.filter(
-                                employee_salary_components::dsl::employee_id.eq_any(emp_subquery),
+                                employee_salary_components::dsl::employment_id
+                                    .eq_any(employment_subquery),
                             ),
                         )
                         .execute(&mut *conn)

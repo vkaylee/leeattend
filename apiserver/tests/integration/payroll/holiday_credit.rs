@@ -30,6 +30,13 @@ async fn test_payroll_credits_paid_holiday() {
         .create()
         .await;
 
+    let employment_id: uuid::Uuid = crate::test_query_scalar_uuid!(
+        &diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        employee_id
+    );
+
     // 1. Create 'BASE' component
     let component_id: uuid::Uuid = crate::test_query_scalar_uuid!(
         &diesel_pools.api,
@@ -41,8 +48,8 @@ async fn test_payroll_credits_paid_holiday() {
 
     crate::test_execute!(
         &diesel_pools.api,
-        "INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)",
-        diesel::sql_types::Uuid, employee_id,
+        "INSERT INTO employee_salary_components (employment_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)",
+        diesel::sql_types::Uuid, employment_id,
         diesel::sql_types::Uuid, component_id,
         diesel::sql_types::Numeric, Decimal::from(2600),
         diesel::sql_types::Date, NaiveDate::from_ymd_opt(2026, 5, 1).unwrap()

@@ -5,7 +5,7 @@ use uuid::Uuid;
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct EmployeeShift {
     pub id: Uuid,
-    pub employee_id: Uuid,
+    pub employment_id: Uuid,
     pub shift_id: Uuid,
     pub start_date: NaiveDate,
     pub end_date: Option<NaiveDate>,
@@ -15,7 +15,7 @@ pub struct EmployeeShift {
 
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct AssignShiftRequest {
-    pub employee_id: Uuid,
+    pub employment_id: Uuid,
     pub shift_id: Uuid,
     pub start_date: NaiveDate,
     pub end_date: Option<NaiveDate>,
@@ -282,12 +282,16 @@ mod tests {
     #[test]
     fn test_assign_shift_request_serde() {
         let json = r#"{
-            "employee_id": "00000000-0000-0000-0000-000000000001",
+            "employment_id": "00000000-0000-0000-0000-000000000001",
             "shift_id": "00000000-0000-0000-0000-000000000002",
             "start_date": "2026-01-01",
             "end_date": "2026-12-31"
         }"#;
         let req: AssignShiftRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(
+            req.employment_id,
+            Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap()
+        );
         assert_eq!(req.start_date, NaiveDate::from_ymd_opt(2026, 1, 1).unwrap());
         assert_eq!(
             req.end_date,
@@ -298,11 +302,15 @@ mod tests {
     #[test]
     fn test_assign_shift_request_no_end_date() {
         let json = r#"{
-            "employee_id": "00000000-0000-0000-0000-000000000001",
+            "employment_id": "00000000-0000-0000-0000-000000000001",
             "shift_id": "00000000-0000-0000-0000-000000000002",
             "start_date": "2026-01-01"
         }"#;
         let req: AssignShiftRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(
+            req.employment_id,
+            Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap()
+        );
         assert!(req.end_date.is_none());
     }
 

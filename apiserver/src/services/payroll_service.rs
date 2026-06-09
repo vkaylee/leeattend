@@ -188,11 +188,6 @@ impl PayrollService {
             .pred_opt()
             .ok_or(AppError::Internal("Date calculation error".into()))?;
 
-        let salary_history = self
-            .payroll_repo
-            .get_salary_components_history(workspace_id, employee_id, start_date, end_date)
-            .await?;
-
         let all_dept_history = self
             .department_repo
             .get_employee_department_history(
@@ -213,6 +208,11 @@ impl PayrollService {
         let active_emp_id = employee
             .active_employment_id()
             .ok_or_else(|| AppError::validation_raw("No active employment found"))?;
+
+        let salary_history = self
+            .payroll_repo
+            .get_salary_components_history(workspace_id, active_emp_id, start_date, end_date)
+            .await?;
 
         let emp_id_number = employee.employee_id_number().to_string();
         let emp_tags = Some(employee.tags().to_vec());
@@ -822,16 +822,6 @@ impl PayrollService {
                 .and_hms_opt(0, 0, 0)
                 .unwrap_or_default()
                 .and_utc();
-            let salary_histories = self
-                .payroll_repo
-                .get_salary_components_history_batch(workspace_id, &chunk_ids, start_date, end_date)
-                .await;
-
-            let dept_histories = self
-                .department_repo
-                .get_employee_department_history_batch(token, &chunk_ids)
-                .await;
-
             let employments_history = self
                 .employment_repo
                 .get_employments_for_employees(token, &chunk_ids)
@@ -849,6 +839,21 @@ impl PayrollService {
                     employment_ids.push(emp_ment.id());
                 }
             }
+
+            let salary_histories = self
+                .payroll_repo
+                .get_salary_components_history_batch(
+                    workspace_id,
+                    &employment_ids,
+                    start_date,
+                    end_date,
+                )
+                .await;
+
+            let dept_histories = self
+                .department_repo
+                .get_employee_department_history_batch(token, &chunk_ids)
+                .await;
 
             let time_entries = self
                 .time_entry_repo
@@ -1016,13 +1021,20 @@ impl PayrollService {
                         .copied()
                         .unwrap_or_else(Uuid::new_v4);
 
+                    let salary_history =
+                        if let Some(active_emp_id) = emp_to_active_employment_id.get(&emp_id) {
+                            salary_map.remove(active_emp_id).unwrap_or_default()
+                        } else {
+                            Vec::new()
+                        };
+
                     contexts.push(PayrollContext {
                         employee_id: emp_id,
                         workspace: workspace.clone(),
                         tz,
                         start_date,
                         end_date,
-                        salary_history: salary_map.remove(&emp_id).unwrap_or_default(),
+                        salary_history,
                         all_dept_history,
                         daily_entries_map,
                         holidays_map: holidays_map.clone(),
@@ -1111,7 +1123,7 @@ mod tests {
         (
             crate::models::EmployeeSalaryComponent {
                 id: Uuid::new_v4(),
-                employee_id: Uuid::new_v4(),
+                employment_id: Uuid::new_v4(),
                 component_definition_id: Uuid::new_v4(),
                 amount: Decimal::from(1000),
                 effective_date,

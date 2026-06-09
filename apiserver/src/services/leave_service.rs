@@ -101,10 +101,22 @@ impl LeaveService {
         year: i32,
         leave_type_id: Option<Uuid>,
     ) -> Result<Vec<LeaveHistoryItem>, AppError> {
-        let logs = self
-            .leave_accrual_log_repo
-            .get_employee_leave_history_logs(workspace_id, employee_id, year, leave_type_id)
+        let employments = self
+            .employment_repo
+            .list_employee_employments(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                employee_id,
+            )
             .await?;
+
+        let mut logs = Vec::new();
+        for emp in employments {
+            let emp_logs = self
+                .leave_accrual_log_repo
+                .get_employment_leave_history_logs(workspace_id, emp.id(), year, leave_type_id)
+                .await?;
+            logs.extend(emp_logs);
+        }
 
         let requests = self
             .leave_request_repo
@@ -954,7 +966,7 @@ mod tests {
     impl crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository
         for MockLeaveAccrualLogRepo
     {
-        async fn get_employee_leave_history_logs(
+        async fn get_employment_leave_history_logs(
             &self,
             _w: Uuid,
             _e: Uuid,
@@ -968,7 +980,7 @@ mod tests {
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _workspace_id: Uuid,
-            _employee_id: Uuid,
+            _employment_id: Uuid,
             _assignment_id: Uuid,
             _leave_type_id: Uuid,
             _accrual_date: NaiveDate,
@@ -978,7 +990,7 @@ mod tests {
             Ok(None)
         }
         // Unused
-        async fn find_by_employee_date_type(
+        async fn find_by_employment_date_type(
             &self,
             _e: Uuid,
             _l: Uuid,
@@ -1090,6 +1102,26 @@ mod tests {
 
         let mut mock_employment_repo =
             crate::repositories::employment_repository::MockEmploymentRepository::new();
+        mock_employment_repo
+            .expect_list_employee_employments()
+            .returning(|_, employee_id| {
+                Ok(vec![crate::models::employment::Employment::new(
+                    Uuid::new_v4(),
+                    employee_id,
+                    Uuid::new_v4(),
+                    Uuid::new_v4(),
+                    None,
+                    None,
+                    "active".to_string(),
+                    NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                    None,
+                    None,
+                    "full_time".to_string(),
+                    None,
+                    chrono::Utc::now(),
+                    chrono::Utc::now(),
+                )])
+            });
         if has_emp {
             mock_employment_repo
                 .expect_get_employment_by_id()

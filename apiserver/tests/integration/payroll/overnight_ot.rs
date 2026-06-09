@@ -32,6 +32,13 @@ async fn test_overnight_ot_payroll_calculation() {
         .create()
         .await;
 
+    let employment_id: uuid::Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        employee_id
+    );
+
     // Create BASE component with is_base_for_ot = true
     let component_id: uuid::Uuid = crate::test_query_scalar_uuid!(
         &pool.api,
@@ -45,8 +52,8 @@ async fn test_overnight_ot_payroll_calculation() {
     );
 
     crate::test_execute!(&pool.api,
-        "INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)",
-        diesel::sql_types::Uuid, employee_id,
+        "INSERT INTO employee_salary_components (employment_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)",
+        diesel::sql_types::Uuid, employment_id,
         diesel::sql_types::Uuid, component_id,
         diesel::sql_types::Numeric, Decimal::from(5200),
         diesel::sql_types::Date, NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()
@@ -69,9 +76,9 @@ async fn test_overnight_ot_payroll_calculation() {
     // Assign shift for Jan 5 (night of Jan 5 -> morning Jan 6)
     crate::test_execute!(
         &pool.api,
-        "INSERT INTO employee_shifts (employee_id, shift_id, start_date) VALUES ($1, $2, $3)",
+        "INSERT INTO employee_shifts (employment_id, shift_id, start_date) VALUES ($1, $2, $3)",
         diesel::sql_types::Uuid,
-        employee_id,
+        employment_id,
         diesel::sql_types::Uuid,
         shift_id,
         diesel::sql_types::Date,

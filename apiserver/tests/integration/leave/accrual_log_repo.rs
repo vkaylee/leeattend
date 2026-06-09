@@ -28,13 +28,20 @@ async fn test_leave_accrual_log_repo_crud() {
     // Create employee
     let employee_id = factory.employee().with_workspace(ws_id).create().await;
 
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        employee_id
+    );
+
     let accrual_date = NaiveDate::from_ymd_opt(2024, 5, 1).unwrap();
 
     // 1. Insert Accrual Log
     let log = repo
         .insert_accrual_log(
             ws_id,
-            employee_id,
+            employment_id,
             None, // assignment_id
             accrual_date,
             Decimal::new(15, 1), // 1.5
@@ -45,12 +52,12 @@ async fn test_leave_accrual_log_repo_crud() {
         .unwrap();
 
     assert_eq!(log.amount(), Decimal::new(15, 1));
-    assert_eq!(log.employee_id(), employee_id);
+    assert_eq!(log.employment_id(), employment_id);
     assert_eq!(log.leave_type_id(), leave_type_id);
 
-    // 2. Find by employee, date, type
+    // 2. Find by employment, date, type
     let found = repo
-        .find_by_employee_date_type(employee_id, leave_type_id, accrual_date, ws_id)
+        .find_by_employment_date_type(employment_id, leave_type_id, accrual_date, ws_id)
         .await
         .unwrap();
     assert!(found.is_some());
@@ -70,23 +77,35 @@ async fn test_leave_accrual_log_repo_crud() {
         .unwrap_or_default()
         .contains("(Re-calculated)"));
 
-    // 4. Get Employee Leave History Logs
+    // 4. Get Employment Leave History Logs
     let history = repo
-        .get_employee_leave_history_logs(ws_id, employee_id, 2024, Some(leave_type_id))
+        .get_employment_leave_history_logs(ws_id, employment_id, 2024, Some(leave_type_id))
         .await
         .unwrap();
     assert_eq!(history.len(), 1);
     assert_eq!(history[0].amount, Decimal::new(20, 1));
 
     // 5. Upsert Balance Accrual
-    repo.upsert_balance_accrual(ws_id, employee_id, 2024, leave_type_id, Decimal::new(50, 1))
-        .await
-        .unwrap();
+    repo.upsert_balance_accrual(
+        ws_id,
+        employment_id,
+        2024,
+        leave_type_id,
+        Decimal::new(50, 1),
+    )
+    .await
+    .unwrap();
 
     // 6. Adjust Balance Accrual
-    repo.adjust_balance_accrual(ws_id, employee_id, 2024, leave_type_id, Decimal::new(10, 1))
-        .await
-        .unwrap();
+    repo.adjust_balance_accrual(
+        ws_id,
+        employment_id,
+        2024,
+        leave_type_id,
+        Decimal::new(10, 1),
+    )
+    .await
+    .unwrap();
 
     // Check balance
     let balance_amt: bigdecimal::BigDecimal = crate::test_query_scalar_bigdecimal!(
@@ -149,7 +168,7 @@ async fn test_leave_accrual_log_repo_crud() {
         .persist_accrual(
             &auth_token,
             ws_id,
-            employee_id,
+            employment_id,
             assignment_id,
             leave_type_id,
             persist_date,
@@ -169,7 +188,7 @@ async fn test_leave_accrual_log_repo_crud() {
         .persist_accrual(
             &auth_token,
             ws_id,
-            employee_id,
+            employment_id,
             assignment_id,
             leave_type_id,
             persist_date,
@@ -185,7 +204,7 @@ async fn test_leave_accrual_log_repo_crud() {
         .persist_accrual(
             &auth_token,
             ws_id,
-            employee_id,
+            employment_id,
             assignment_id,
             leave_type_id,
             persist_date,

@@ -149,16 +149,16 @@ impl ShiftService {
     pub async fn assign_shift(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         shift_id: Uuid,
         start_date: NaiveDate,
         end_date: Option<NaiveDate>,
     ) -> Result<(), AppError> {
         match self
             .repo
-            .assign_employee_shift(
+            .assign_employment_shift(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                employee_id,
+                employment_id,
                 shift_id,
                 start_date,
                 end_date,
@@ -312,7 +312,7 @@ mod tests {
             Ok(())
         }
 
-        async fn assign_employee_shift(
+        async fn assign_employment_shift(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _e: Uuid,
@@ -323,7 +323,7 @@ mod tests {
             Ok(())
         }
 
-        async fn get_employee_active_shift(
+        async fn get_employment_active_shift(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _e: Uuid,

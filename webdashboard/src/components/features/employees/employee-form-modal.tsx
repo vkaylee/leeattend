@@ -271,7 +271,7 @@ export default function EmployeeFormModal({
           employers={employers}
           locations={locations ?? []}
           members={members}
-          prefillEnrollmentId={prefillEnrollmentId}
+          prefillEnrollmentId={prefillEnrollmentId ?? ""}
           selectedEmployerId={selectedEmployerId}
           selectedLocationId={selectedLocationId}
           selectedUserId={selectedUserId}

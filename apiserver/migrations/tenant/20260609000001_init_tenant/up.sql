@@ -240,7 +240,7 @@ END;
 $$;
 
 CREATE TABLE public.approval_action_log (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY NOT NULL,
     workspace_id uuid NOT NULL,
     entity_type character varying(50) NOT NULL,
     entity_id uuid NOT NULL,

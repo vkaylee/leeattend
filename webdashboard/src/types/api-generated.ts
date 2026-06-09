@@ -2524,14 +2524,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{workspace_id}/employees/{id}/working-patterns": {
+    "/workspaces/{workspace_id}/employments/{id}/working-patterns": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["get_employee_pattern_history"];
+        get: operations["get_employment_pattern_history"];
         put?: never;
         post: operations["assign_pattern"];
         delete?: never;
@@ -3017,24 +3017,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{ws_id}/employees/{employee_id}/salary-components": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** GET /workspaces/{ws_id}/employees/{employee_id}/salary-components */
-        get: operations["get_employee_salary_components"];
-        put?: never;
-        /** POST /workspaces/{ws_id}/employees/{employee_id}/salary-components */
-        post: operations["assign_employee_salary_component"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/workspaces/{ws_id}/employees/{id}/leave/adjust": {
         parameters: {
             query?: never;
@@ -3095,6 +3077,24 @@ export interface paths {
         put?: never;
         /** POST /workspaces/{ws_id}/employees/{id}/payroll-config */
         post: operations["set_employee_payroll_config"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/employments/{employment_id}/salary-components": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /workspaces/{ws_id}/employments/{employment_id}/salary-components */
+        get: operations["get_employment_salary_components"];
+        put?: never;
+        /** POST /workspaces/{ws_id}/employments/{employment_id}/salary-components */
+        post: operations["assign_employment_salary_component"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3936,7 +3936,7 @@ export interface components {
         };
         AssignShiftRequest: {
             /** Format: uuid */
-            employee_id: string;
+            employment_id: string;
             /** Format: date */
             end_date?: string | null;
             /** Format: uuid */
@@ -4190,7 +4190,7 @@ export interface components {
         BulkAssignPatternRequest: {
             /** Format: date */
             anchor_date?: string | null;
-            employee_ids: string[];
+            employment_ids: string[];
             /** Format: date */
             end_date?: string | null;
             /** Format: uuid */
@@ -4932,7 +4932,7 @@ export interface components {
             /** Format: date */
             effective_date: string;
             /** Format: uuid */
-            employee_id: string;
+            employment_id: string;
             /** Format: uuid */
             id: string;
             /** Format: date-time */
@@ -4951,7 +4951,7 @@ export interface components {
             /** Format: date-time */
             created_at: string;
             /** Format: uuid */
-            employee_id: string;
+            employment_id: string;
             /** Format: date */
             end_date?: string | null;
             /** Format: uuid */
@@ -12192,21 +12192,21 @@ export interface operations {
             };
         };
     };
-    get_employee_pattern_history: {
+    get_employment_pattern_history: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 /** @description Workspace ID */
                 workspace_id: string;
-                /** @description Employee ID */
+                /** @description Employment ID */
                 id: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Employee working pattern history */
+            /** @description Employment working pattern history */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -12224,7 +12224,7 @@ export interface operations {
             path: {
                 /** @description Workspace ID */
                 workspace_id: string;
-                /** @description Employee ID */
+                /** @description Employment ID */
                 id: string;
             };
             cookie?: never;
@@ -12235,7 +12235,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Pattern assigned to employee */
+            /** @description Pattern assigned to employment */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -13378,60 +13378,6 @@ export interface operations {
             };
         };
     };
-    get_employee_salary_components: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Workspace ID */
-                ws_id: string;
-                /** @description Employee ID */
-                employee_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Employee salary components list */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown[];
-                };
-            };
-        };
-    };
-    assign_employee_salary_component: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Workspace ID */
-                ws_id: string;
-                /** @description Employee ID */
-                employee_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AssignSalaryComponentRequest"];
-            };
-        };
-        responses: {
-            /** @description Assigned salary component to employee */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EmployeeSalaryComponent"];
-                };
-            };
-        };
-    };
     adjust_leave_balance: {
         parameters: {
             query?: never;
@@ -13561,6 +13507,60 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EmployeePayrollConfig"];
+                };
+            };
+        };
+    };
+    get_employment_salary_components: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employment ID */
+                employment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Employment salary components list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown[];
+                };
+            };
+        };
+    };
+    assign_employment_salary_component: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employment ID */
+                employment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignSalaryComponentRequest"];
+            };
+        };
+        responses: {
+            /** @description Assigned salary component to employment */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeSalaryComponent"];
                 };
             };
         };

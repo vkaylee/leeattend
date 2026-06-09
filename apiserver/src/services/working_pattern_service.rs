@@ -244,12 +244,12 @@ pub async fn get_pattern_details(
 pub async fn assign_pattern(
     repo: Arc<dyn crate::repositories::working_pattern_repository::WorkingPatternRepositoryTrait>,
     workspace_id: Uuid,
-    employee_id: Uuid,
+    employment_id: Uuid,
     req: AssignPatternRequest,
 ) -> Result<EmployeeWorkingPattern, crate::errors::AppError> {
     repo.assign_pattern(
         workspace_id,
-        employee_id,
+        employment_id,
         req.pattern_id,
         req.start_date,
         req.end_date,
@@ -266,7 +266,7 @@ pub async fn bulk_assign_pattern(
 ) -> Result<BulkAssignResponse, crate::errors::AppError> {
     repo.bulk_assign_pattern(
         workspace_id,
-        &req.employee_ids,
+        &req.employment_ids,
         req.pattern_id,
         req.start_date,
         req.end_date,
@@ -276,12 +276,12 @@ pub async fn bulk_assign_pattern(
 }
 
 #[tracing::instrument(skip_all, err)]
-pub async fn get_employee_pattern_history(
+pub async fn get_employment_pattern_history(
     repo: Arc<dyn crate::repositories::working_pattern_repository::WorkingPatternRepositoryTrait>,
     workspace_id: Uuid,
-    employee_id: Uuid,
+    employment_id: Uuid,
 ) -> Result<Vec<EmployeeWorkingPattern>, crate::errors::AppError> {
-    repo.get_employee_pattern_history(workspace_id, employee_id)
+    repo.get_employment_pattern_history(workspace_id, employment_id)
         .await
 }
 
@@ -491,7 +491,7 @@ mod tests {
         ) -> Result<(), AppError> {
             Ok(())
         }
-        async fn assign_employee_shift(
+        async fn assign_employment_shift(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _e: Uuid,
@@ -501,7 +501,7 @@ mod tests {
         ) -> Result<(), AppError> {
             Ok(())
         }
-        async fn get_employee_active_shift(
+        async fn get_employment_active_shift(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _e: Uuid,
@@ -594,7 +594,7 @@ mod tests {
             Ok(EmployeeWorkingPattern {
                 id: Uuid::new_v4(),
                 workspace_id: ws,
-                employee_id: emp,
+                employment_id: emp,
                 pattern_id: pat,
                 start_date: sd,
                 end_date: ed,
@@ -603,7 +603,7 @@ mod tests {
                 anchor_date: anchor,
             })
         }
-        async fn get_employee_pattern_history(
+        async fn get_employment_pattern_history(
             &self,
             _w: Uuid,
             emp: Uuid,
@@ -611,7 +611,7 @@ mod tests {
             Ok(vec![EmployeeWorkingPattern {
                 id: Uuid::new_v4(),
                 workspace_id: _w,
-                employee_id: emp,
+                employment_id: emp,
                 pattern_id: Uuid::new_v4(),
                 start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
                 end_date: None,
@@ -685,7 +685,7 @@ mod tests {
     async fn test_bulk_assign_pattern() {
         let (repo, _) = make_repos();
         let req = BulkAssignPatternRequest {
-            employee_ids: vec![Uuid::new_v4(), Uuid::new_v4()],
+            employment_ids: vec![Uuid::new_v4(), Uuid::new_v4()],
             pattern_id: Uuid::new_v4(),
             start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             end_date: None,
@@ -699,9 +699,9 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_employee_pattern_history() {
+    async fn test_get_employment_pattern_history() {
         let (repo, _) = make_repos();
-        let result = get_employee_pattern_history(repo, Uuid::new_v4(), Uuid::new_v4())
+        let result = get_employment_pattern_history(repo, Uuid::new_v4(), Uuid::new_v4())
             .await
             .unwrap();
         assert_eq!(result.len(), 1);

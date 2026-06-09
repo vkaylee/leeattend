@@ -38,8 +38,8 @@ pub fn router() -> Router<Arc<AppState>> {
                 .delete(handlers::working_patterns::delete_pattern),
         )
         .route(
-            "/workspaces/:ws_id/employees/:id/working-patterns",
-            get(handlers::working_patterns::get_employee_pattern_history)
+            "/workspaces/:ws_id/employments/:id/working-patterns",
+            get(handlers::working_patterns::get_employment_pattern_history)
                 .post(handlers::working_patterns::assign_pattern),
         )
         // Assignment rules

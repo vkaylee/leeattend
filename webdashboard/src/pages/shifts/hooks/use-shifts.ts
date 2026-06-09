@@ -30,6 +30,7 @@ export function useShifts(): UseShiftsReturn {
   const mutations = useShiftMutations({
     wsId,
     selectedEmployeeId: form.selectedEmployee?.id,
+    selectedEmploymentId: form.selectedEmployee?.active_employment_id ?? undefined,
     onSuccess: (type) => {
       if (type === "assignPattern") {
         form.setSelectedPatternId("");

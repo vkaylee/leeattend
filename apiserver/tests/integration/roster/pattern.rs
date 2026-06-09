@@ -50,10 +50,17 @@ async fn test_roster_pattern_resolution() {
         .unwrap()
         .id;
 
+    let employment_id: uuid::Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        employee_id
+    );
+
     // 4. Assign Pattern to Employee
     repo.assign_pattern(
         workspace_id,
-        employee_id,
+        employment_id,
         pattern_id,
         NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
         None,
@@ -69,7 +76,7 @@ async fn test_roster_pattern_resolution() {
 
     // Check assignment
     let assignments = repo
-        .get_employee_pattern_history(workspace_id, employee_id)
+        .get_employment_pattern_history(workspace_id, employment_id)
         .await
         .unwrap();
     assert_eq!(assignments.len(), 1);

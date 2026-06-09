@@ -150,10 +150,11 @@ function SalaryTableBody({ isLoading, groupedComps, expandedGroups, currencyForm
 
 interface Props {
   employeeId: string;
+  employmentId: string;
   wsId: string;
 }
 
-export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
+export default function EmployeeSalaryConfig({ wsId, employeeId, employmentId }: Props) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -166,7 +167,7 @@ export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
   const [expandedGroups, setExpandedGroups] = useState<Partial<Record<string, boolean>>>({});
 
   const { data: definitions = [] } = useQuery({ queryKey: ["salary-components", wsId], queryFn: () => fetchSalaryComponents(wsId) });
-  const { data: employeeComps = [], isLoading } = useQuery({ queryKey: ["employee-salary-components", employeeId], queryFn: () => fetchEmployeeSalaryComponents(wsId, employeeId) });
+  const { data: employeeComps = [], isLoading } = useQuery({ queryKey: ["employee-salary-components", employmentId], queryFn: () => fetchEmployeeSalaryComponents(wsId, employmentId) });
   const { data: individualConfigs = [], isLoading: isConfigsLoading } = useQuery({ queryKey: ["employee-payroll-configs", employeeId], queryFn: () => fetchEmployeePayrollConfigs(wsId, employeeId) });
 
   const groupedComps = employeeComps.reduce<Partial<Record<string, EmployeeSalaryComponentDetail[]>>>((acc, comp) => {
@@ -189,8 +190,8 @@ export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
   });
 
   const assignMutation = useMutation({
-    mutationFn: (data: { amount: string; component_definition_id: string; effective_date: string; }) => assignEmployeeSalaryComponent(wsId, employeeId, data),
-    onSuccess: () => { toast.success(t("common.success")); void queryClient.invalidateQueries({ queryKey: ["employee-salary-components", employeeId] }); setIsAdding(false); setAmount(""); setSelectedCompId(""); },
+    mutationFn: (data: { amount: string; component_definition_id: string; effective_date: string; }) => assignEmployeeSalaryComponent(wsId, employmentId, data),
+    onSuccess: () => { toast.success(t("common.success")); void queryClient.invalidateQueries({ queryKey: ["employee-salary-components", employmentId] }); setIsAdding(false); setAmount(""); setSelectedCompId(""); },
   });
 
   const handleAssign = (e: React.SyntheticEvent) => {

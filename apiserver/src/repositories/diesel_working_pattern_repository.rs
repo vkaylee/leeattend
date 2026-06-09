@@ -225,7 +225,7 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
     async fn assign_pattern(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         pattern_id: Uuid,
         start_date: NaiveDate,
         end_date: Option<NaiveDate>,
@@ -239,26 +239,26 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        // Check if employee exists and belongs to the workspace of this tenant
-        let employee_exists = crate::schema::employees::table
-            .filter(crate::schema::employees::id.eq(employee_id))
-            .filter(crate::schema::employees::workspace_id.eq(workspace_id))
-            .filter(crate::schema::employees::deleted_at.is_null())
-            .select(crate::schema::employees::id)
+        // Check if employment exists and belongs to the workspace of this tenant
+        let employment_exists = crate::schema::employments::table
+            .filter(crate::schema::employments::id.eq(employment_id))
+            .filter(crate::schema::employments::workspace_id.eq(workspace_id))
+            .filter(crate::schema::employments::deleted_at.is_null())
+            .select(crate::schema::employments::id)
             .first::<Uuid>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db check employee: {e}")))?;
+            .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
 
-        if employee_exists.is_none() {
-            return Err(AppError::NotFound("error.employee_not_found".to_string()));
+        if employment_exists.is_none() {
+            return Err(AppError::NotFound("error.employment_not_found".to_string()));
         }
 
         map_db_err!(
             diesel::insert_into(employee_working_patterns::table)
                 .values((
                     employee_working_patterns::workspace_id.eq(workspace_id),
-                    employee_working_patterns::employee_id.eq(employee_id),
+                    employee_working_patterns::employment_id.eq(employment_id),
                     employee_working_patterns::pattern_id.eq(pattern_id),
                     employee_working_patterns::start_date.eq(start_date),
                     employee_working_patterns::end_date.eq(end_date),
@@ -271,10 +271,10 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
         .map(Into::into)
     }
 
-    async fn get_employee_pattern_history(
+    async fn get_employment_pattern_history(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
     ) -> Result<Vec<EmployeeWorkingPattern>, AppError> {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -287,7 +287,7 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
         map_db_err!(
             employee_working_patterns::table
                 .filter(employee_working_patterns::workspace_id.eq(workspace_id))
-                .filter(employee_working_patterns::employee_id.eq(employee_id))
+                .filter(employee_working_patterns::employment_id.eq(employment_id))
                 .order(employee_working_patterns::start_date.desc())
                 .select(EmployeeWorkingPatternEntity::as_select())
                 .load(&mut *conn)
@@ -299,7 +299,7 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
     async fn bulk_assign_pattern(
         &self,
         workspace_id: Uuid,
-        employee_ids: &[Uuid],
+        employment_ids: &[Uuid],
         pattern_id: Uuid,
         start_date: NaiveDate,
         end_date: Option<NaiveDate>,
@@ -313,25 +313,25 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        // Verify all employee_ids belong to this workspace
-        let valid_count = crate::schema::employees::table
-            .filter(crate::schema::employees::id.eq_any(employee_ids))
-            .filter(crate::schema::employees::workspace_id.eq(workspace_id))
-            .filter(crate::schema::employees::deleted_at.is_null())
+        // Verify all employment_ids belong to this workspace
+        let valid_count = crate::schema::employments::table
+            .filter(crate::schema::employments::id.eq_any(employment_ids))
+            .filter(crate::schema::employments::workspace_id.eq(workspace_id))
+            .filter(crate::schema::employments::deleted_at.is_null())
             .count()
             .get_result::<i64>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db check employees: {e}")))?;
+            .map_err(|e| AppError::Internal(format!("db check employments: {e}")))?;
 
-        if valid_count != employee_ids.len() as i64 {
-            return Err(AppError::NotFound("error.employee_not_found".to_string()));
+        if valid_count != employment_ids.len() as i64 {
+            return Err(AppError::NotFound("error.employment_not_found".to_string()));
         }
 
         let conflicts: Vec<Uuid> = employee_working_patterns::table
             .filter(employee_working_patterns::workspace_id.eq(workspace_id))
             .filter(employee_working_patterns::start_date.eq(start_date))
-            .filter(employee_working_patterns::employee_id.eq_any(employee_ids))
-            .select(employee_working_patterns::employee_id)
+            .filter(employee_working_patterns::employment_id.eq_any(employment_ids))
+            .select(employee_working_patterns::employment_id)
             .load(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -343,12 +343,12 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
             });
         }
 
-        let assignment_records: Vec<_> = employee_ids
+        let assignment_records: Vec<_> = employment_ids
             .iter()
-            .map(|&employee_id| {
+            .map(|&employment_id| {
                 (
                     employee_working_patterns::workspace_id.eq(workspace_id),
-                    employee_working_patterns::employee_id.eq(employee_id),
+                    employee_working_patterns::employment_id.eq(employment_id),
                     employee_working_patterns::pattern_id.eq(pattern_id),
                     employee_working_patterns::start_date.eq(start_date),
                     employee_working_patterns::end_date.eq(end_date),
@@ -366,7 +366,7 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
         }
 
         Ok(BulkAssignResponse {
-            success_count: employee_ids.len(),
+            success_count: employment_ids.len(),
             failed_employees: vec![],
         })
     }
@@ -462,7 +462,7 @@ mod tests {
         assert!(err.is_err());
 
         let err = repo
-            .get_employee_pattern_history(ws_id, Uuid::new_v4())
+            .get_employment_pattern_history(ws_id, Uuid::new_v4())
             .await;
         assert!(err.is_err());
 

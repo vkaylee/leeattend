@@ -36,14 +36,21 @@ async fn test_batch_payroll_handles_many_employees() {
             .create()
             .await;
 
-        // Assign salary to each employee
+        let employment_id: Uuid = crate::test_query_scalar_uuid!(
+            &pool.diesel_pools.api,
+            "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+            diesel::sql_types::Uuid,
+            emp_id
+        );
+
+        // Assign salary to each employee using employment_id
         crate::test_execute!(&pool.diesel_pools.api,
-        "INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)",
-        diesel::sql_types::Uuid, emp_id,
-        diesel::sql_types::Uuid, sc_def_id,
-        diesel::sql_types::Numeric, Decimal::from(5_000_000 + (i * 100_000)),
-        diesel::sql_types::Date, chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()
-    );
+            "INSERT INTO employee_salary_components (employment_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)",
+            diesel::sql_types::Uuid, employment_id,
+            diesel::sql_types::Uuid, sc_def_id,
+            diesel::sql_types::Numeric, Decimal::from(5_000_000 + (i * 100_000)),
+            diesel::sql_types::Date, chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()
+        );
 
         employee_ids.push(emp_id);
     }

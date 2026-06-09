@@ -13,10 +13,10 @@ use crate::models::LeaveAccrualLog;
 #[allow(clippy::too_many_arguments)]
 #[async_trait]
 pub trait LeaveAccrualLogRepository: Send + Sync {
-    /// Find an existing accrual log for a specific employee/leave-type/date.
-    async fn find_by_employee_date_type(
+    /// Find an existing accrual log for a specific employment/leave-type/date.
+    async fn find_by_employment_date_type(
         &self,
-        employee_id: Uuid,
+        employment_id: Uuid,
         leave_type_id: Uuid,
         accrual_date: NaiveDate,
         workspace_id: Uuid,
@@ -32,10 +32,10 @@ pub trait LeaveAccrualLogRepository: Send + Sync {
     /// Fetch the workspace timezone string.
     async fn get_workspace_timezone(&self, workspace_id: Uuid) -> Result<String, AppError>;
 
-    async fn get_employee_leave_history_logs(
+    async fn get_employment_leave_history_logs(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         year: i32,
         leave_type_id: Option<Uuid>,
     ) -> Result<Vec<LeaveHistoryLogItem>, AppError>;
@@ -50,7 +50,7 @@ pub trait LeaveAccrualLogRepository: Send + Sync {
     async fn insert_accrual_log(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         assignment_id: Option<Uuid>,
         accrual_date: NaiveDate,
         amount: Decimal,
@@ -60,7 +60,7 @@ pub trait LeaveAccrualLogRepository: Send + Sync {
     async fn upsert_balance_accrual(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         year: i32,
         leave_type_id: Uuid,
         amount: Decimal,
@@ -69,7 +69,7 @@ pub trait LeaveAccrualLogRepository: Send + Sync {
     async fn adjust_balance_accrual(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         year: i32,
         leave_type_id: Uuid,
         diff: Decimal,
@@ -80,7 +80,7 @@ pub trait LeaveAccrualLogRepository: Send + Sync {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         assignment_id: Uuid,
         leave_type_id: Uuid,
         accrual_date: NaiveDate,
@@ -107,7 +107,7 @@ pub struct ExistingAccrualLog {
 
 /// Entry for batch accrual persistence.
 pub struct AccrualBatchEntry {
-    pub employee_id: Uuid,
+    pub employment_id: Uuid,
     pub assignment_id: Uuid,
     pub leave_type_id: Uuid,
     pub accrual_date: NaiveDate,

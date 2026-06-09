@@ -479,6 +479,7 @@ function DrawerTabContent({
     linkedUser,
     locations,
     t,
+    activeEmployment,
 }: {
     activeDetailTab: DetailTabType;
     employee: Employee;
@@ -493,6 +494,7 @@ function DrawerTabContent({
     linkedUser?: WorkspaceMember;
     locations?: WorkLocation[];
     t: (k: string) => string;
+    activeEmployment?: Employment;
 }) {
     switch (activeDetailTab) {
         case "profile":
@@ -537,7 +539,7 @@ function DrawerTabContent({
                 />
             );
         case "salary":
-            return <EmployeeSalaryConfig employeeId={employee.id} wsId={wsId} />;
+            return <EmployeeSalaryConfig employeeId={employee.id} employmentId={activeEmployment?.id ?? ""} wsId={wsId} />;
         case "policies":
             return <WorkingConditionConfig employeeId={employee.id} />;
         default:
@@ -595,6 +597,13 @@ export default function EmployeeDetailDrawer({
 
     const { data: locations } = useLocations(wsId);
 
+    const { data: employments = [] } = useQuery({
+        queryKey: ["employee-employments", wsId, employee?.id],
+        queryFn: () => employee ? fetchEmployeeEmployments(wsId, employee.id) : Promise.resolve([]),
+        enabled: !!wsId && !!employee?.id,
+    });
+    const activeEmployment = employments.find((e: Employment) => e.status === "active") || employments[0];
+
     if (!employee) return null;
 
     const linkedUser = members?.find((m: WorkspaceMember) => m.user_id === employee.user_id);
@@ -630,6 +639,7 @@ export default function EmployeeDetailDrawer({
                     onTransfer={onTransfer}
                     t={t}
                     wsId={wsId}
+                    activeEmployment={activeEmployment}
                 />
             </div>
         </Sheet>

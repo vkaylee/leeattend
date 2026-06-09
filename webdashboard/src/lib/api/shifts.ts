@@ -41,7 +41,7 @@ export async function updateShift(
 
 export async function assignShift(
   wsId: string,
-  data: { employee_id: string; shift_id: string; start_date: string; end_date?: string | null }
+  data: { employment_id: string; shift_id: string; start_date: string; end_date?: string | null }
 ): Promise<void> {
   await client.POST("/workspaces/{workspace_id}/shifts/assign", {
     params: {

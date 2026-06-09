@@ -23,18 +23,19 @@ import {
 interface UseShiftMutationsProps {
   onSuccess?: (type: string) => void;
   selectedEmployeeId: string | undefined;
+  selectedEmploymentId: string | undefined;
   wsId: string;
 }
 
-export function useShiftMutations({ wsId, selectedEmployeeId, onSuccess }: UseShiftMutationsProps) {
+export function useShiftMutations({ wsId, selectedEmployeeId, selectedEmploymentId, onSuccess }: UseShiftMutationsProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();
 
   const assignPatternMutation = useMutation<EmployeeWorkingPattern, Error, AssignPatternRequest>({
     mutationFn: (data: AssignPatternRequest) => {
-      if (!selectedEmployeeId) return Promise.reject(new Error("No employee selected"));
-      return assignPattern(wsId, selectedEmployeeId, data);
+      if (!selectedEmploymentId) return Promise.reject(new Error("No active employment found"));
+      return assignPattern(wsId, selectedEmploymentId, data);
     },
     onSuccess: () => {
       toast.success(t("shifts.messages.assign_success"));

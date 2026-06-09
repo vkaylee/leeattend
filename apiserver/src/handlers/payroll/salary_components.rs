@@ -73,24 +73,24 @@ pub async fn create_salary_component(
     Ok((StatusCode::CREATED, Json(component)))
 }
 
-/// GET /workspaces/{ws_id}/employees/{employee_id}/salary-components
+/// GET /workspaces/{ws_id}/employments/{employment_id}/salary-components
 #[utoipa::path(
     get,
-    path = "/workspaces/{ws_id}/employees/{employee_id}/salary-components",
+    path = "/workspaces/{ws_id}/employments/{employment_id}/salary-components",
     params(
         ("ws_id" = Uuid, Path, description = "Workspace ID"),
-        ("employee_id" = Uuid, Path, description = "Employee ID")
+        ("employment_id" = Uuid, Path, description = "Employment ID")
     ),
     responses(
-        (status = 200, description = "Employee salary components list", body = [Value])
+        (status = 200, description = "Employment salary components list", body = [Value])
     )
 )]
-pub async fn get_employee_salary_components(
+pub async fn get_employment_salary_components(
     Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<serde_json::Value>>> {
-    let (_, employee_id) = params;
+    let (_, employment_id) = params;
     let _workspace_id = ctx.workspace_id;
 
     // Note: This returns latest components for effective_date = now
@@ -98,7 +98,7 @@ pub async fn get_employee_salary_components(
     let components = state
         .payroll()
         .repo()
-        .get_employee_salary_components(ctx.workspace_id, employee_id, now)
+        .get_employment_salary_components(ctx.workspace_id, employment_id, now)
         .await?;
 
     // Flatten the tuple (Component, Definition) for response
@@ -107,7 +107,7 @@ pub async fn get_employee_salary_components(
         .map(|(c, d)| {
             serde_json::json!({
                 "id": c.id,
-                "employee_id": c.employee_id,
+                "employment_id": c.employment_id,
                 "component_definition_id": c.component_definition_id,
                 "amount": c.amount,
                 "effective_date": c.effective_date,
@@ -120,34 +120,34 @@ pub async fn get_employee_salary_components(
     Ok(Json(response))
 }
 
-/// POST /workspaces/{ws_id}/employees/{employee_id}/salary-components
+/// POST /workspaces/{ws_id}/employments/{employment_id}/salary-components
 #[utoipa::path(
     post,
-    path = "/workspaces/{ws_id}/employees/{employee_id}/salary-components",
+    path = "/workspaces/{ws_id}/employments/{employment_id}/salary-components",
     params(
         ("ws_id" = Uuid, Path, description = "Workspace ID"),
-        ("employee_id" = Uuid, Path, description = "Employee ID")
+        ("employment_id" = Uuid, Path, description = "Employment ID")
     ),
     request_body = AssignSalaryComponentRequest,
     responses(
-        (status = 201, description = "Assigned salary component to employee", body = EmployeeSalaryComponent)
+        (status = 201, description = "Assigned salary component to employment", body = EmployeeSalaryComponent)
     )
 )]
-pub async fn assign_employee_salary_component(
+pub async fn assign_employment_salary_component(
     Path(params): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<AssignSalaryComponentRequest>,
 ) -> AppResult<(StatusCode, Json<EmployeeSalaryComponent>)> {
-    let (_, employee_id) = params;
+    let (_, employment_id) = params;
     let workspace_id = ctx.workspace_id;
 
     let component = state
         .payroll()
         .repo()
-        .assign_employee_salary_component(
+        .assign_employment_salary_component(
             workspace_id,
-            employee_id,
+            employment_id,
             req.component_definition_id,
             req.amount,
             req.effective_date,

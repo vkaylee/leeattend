@@ -30,7 +30,7 @@ pub struct WorkingPatternDetail {
 pub struct EmployeeWorkingPattern {
     pub id: Uuid,
     pub workspace_id: Uuid,
-    pub employee_id: Uuid,
+    pub employment_id: Uuid,
     pub pattern_id: Uuid,
     pub start_date: NaiveDate,
     pub end_date: Option<NaiveDate>,
@@ -64,7 +64,7 @@ pub struct AssignPatternRequest {
 
 #[derive(Debug, Deserialize, Serialize, utoipa::ToSchema)]
 pub struct BulkAssignPatternRequest {
-    pub employee_ids: Vec<Uuid>,
+    pub employment_ids: Vec<Uuid>,
     pub pattern_id: Uuid,
     pub start_date: NaiveDate,
     pub end_date: Option<NaiveDate>,

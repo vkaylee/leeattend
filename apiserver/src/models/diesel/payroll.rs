@@ -122,12 +122,12 @@ pub struct SalaryComponentDefinitionEntity {
 #[diesel(table_name = employee_salary_components)]
 pub struct EmployeeSalaryComponentEntity {
     pub id: Uuid,
-    pub employee_id: Uuid,
     pub component_definition_id: Uuid,
     pub amount: BigDecimal,
     pub effective_date: NaiveDate,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
+    pub employment_id: Uuid,
 }
 
 // ---------------------------------------------------------------------------
@@ -240,7 +240,7 @@ impl From<EmployeeSalaryComponentEntity> for EmployeeSalaryComponent {
     fn from(entity: EmployeeSalaryComponentEntity) -> Self {
         Self {
             id: entity.id,
-            employee_id: entity.employee_id,
+            employment_id: entity.employment_id,
             component_definition_id: entity.component_definition_id,
             amount: bd_to_dec(&entity.amount),
             effective_date: entity.effective_date,

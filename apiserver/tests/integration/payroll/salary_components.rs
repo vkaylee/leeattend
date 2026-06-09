@@ -93,6 +93,13 @@ async fn test_salary_component_crud_lifecycle() {
     // 3. Create employee and assign salary component
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
+
     let assign_body = serde_json::json!({
         "component_definition_id": comp_id,
         "amount": 2000000,
@@ -103,7 +110,7 @@ async fn test_salary_component_crud_lifecycle() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/salary-components"),
+            &format!("/api/v1/workspaces/{ws_id}/employments/{employment_id}/salary-components"),
             ws_id,
             admin_id,
             Some(assign_body.to_string()),
@@ -117,7 +124,7 @@ async fn test_salary_component_crud_lifecycle() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/salary-components"),
+            &format!("/api/v1/workspaces/{ws_id}/employments/{employment_id}/salary-components"),
             ws_id,
             admin_id,
             None,

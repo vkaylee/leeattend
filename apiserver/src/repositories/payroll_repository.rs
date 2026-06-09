@@ -113,19 +113,19 @@ pub trait PayrollRepository: Send + Sync {
         base_group_ids: Option<Vec<Uuid>>,
     ) -> Result<SalaryComponentDefinition, AppError>;
 
-    async fn assign_employee_salary_component(
+    async fn assign_employment_salary_component(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         component_definition_id: Uuid,
         amount: Decimal,
         effective_date: NaiveDate,
     ) -> Result<EmployeeSalaryComponent, AppError>;
 
-    async fn get_employee_salary_components(
+    async fn get_employment_salary_components(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         reference_date: NaiveDate,
     ) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, AppError>;
 
@@ -147,7 +147,7 @@ pub trait PayrollRepository: Send + Sync {
     async fn get_salary_components_history(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, AppError>;
@@ -155,7 +155,7 @@ pub trait PayrollRepository: Send + Sync {
     async fn get_salary_components_history_batch(
         &self,
         workspace_id: Uuid,
-        employee_ids: &[Uuid],
+        employment_ids: &[Uuid],
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<

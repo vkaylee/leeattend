@@ -112,7 +112,7 @@ impl NightlyHousekeepingHandler {
                         "DELETE FROM leave_requests WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = '{tenant_id}' AND status = 'terminated' AND end_date <= CURRENT_DATE - INTERVAL '5 years') AND end_date <= CURRENT_DATE - INTERVAL '5 years'"
                     ));
                     queries.push(format!(
-                        "DELETE FROM leave_accrual_logs WHERE workspace_id = '{tenant_id}' AND employee_id IN (SELECT employee_id FROM employments WHERE workspace_id = '{tenant_id}' AND status = 'terminated' AND end_date <= CURRENT_DATE - INTERVAL '5 years') AND accrual_date <= CURRENT_DATE - INTERVAL '5 years'"
+                        "DELETE FROM leave_accrual_logs WHERE workspace_id = '{tenant_id}' AND employment_id IN (SELECT id FROM employments WHERE workspace_id = '{tenant_id}' AND status = 'terminated' AND end_date <= CURRENT_DATE - INTERVAL '5 years') AND accrual_date <= CURRENT_DATE - INTERVAL '5 years'"
                     ));
 
                     // Anonymize Employee PII for employees terminated >= 1 year ago (GDPR right to erasure)

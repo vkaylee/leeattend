@@ -345,7 +345,7 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
                 diesel::insert_into(leave_accrual_logs::table)
                     .values((
                         leave_accrual_logs::workspace_id.eq(workspace_id),
-                        leave_accrual_logs::employee_id.eq(employee_id),
+                        leave_accrual_logs::employment_id.eq(active_emp_id),
                         leave_accrual_logs::accrual_date.eq(transaction_date),
                         leave_accrual_logs::amount.eq(&amount_bd),
                         leave_accrual_logs::leave_type_id.eq(leave_type_id),

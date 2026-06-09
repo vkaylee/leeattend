@@ -159,7 +159,11 @@ pub async fn calculate_payroll(
     let salary_components = state
         .payroll()
         .repo()
-        .get_employee_salary_components(ctx.workspace_id, employee_id, payslip.period_start)
+        .get_employment_salary_components(
+            ctx.workspace_id,
+            payslip.employment_id,
+            payslip.period_start,
+        )
         .await?
         .into_iter()
         .map(|(component, definition)| SalaryComponentWithDefinition {
@@ -239,7 +243,7 @@ pub async fn get_employee_payslips(
         let salary_components = state
             .payroll()
             .repo()
-            .get_employee_salary_components(ctx.workspace_id, employee_id, p.period_start)
+            .get_employment_salary_components(ctx.workspace_id, p.employment_id, p.period_start)
             .await?
             .into_iter()
             .map(|(component, definition)| SalaryComponentWithDefinition {

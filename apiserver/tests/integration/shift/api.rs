@@ -68,8 +68,14 @@ async fn test_shift_api_lifecycle_smoke() {
 
     // 3. Assign Shift
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
+    let employment_id: uuid::Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
     let assign_req = serde_json::json!({
-        "employee_id": emp_id,
+        "employment_id": employment_id,
         "shift_id": shift_id,
         "start_date": Utc::now().date_naive().to_string()
     });

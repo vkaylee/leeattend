@@ -48,6 +48,13 @@ async fn test_payroll_std_days_source_traceability() {
         diesel::sql_types::Date, NaiveDate::from_ymd_opt(2023, 1, 1).unwrap()
     );
 
+    let employment_id: uuid::Uuid = crate::test_query_scalar_uuid!(
+        &diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        employee_id
+    );
+
     // 2. Setup Base Salary
     let pr = apiserver::repositories::DieselPayrollRepository::new(diesel_pools.clone());
     let base_comp = pr
@@ -60,9 +67,9 @@ async fn test_payroll_std_days_source_traceability() {
         .await
         .unwrap();
 
-    pr.assign_employee_salary_component(
+    pr.assign_employment_salary_component(
         workspace_id,
-        employee_id,
+        employment_id,
         base_comp.id,
         Decimal::from(10_000_000),
         NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),

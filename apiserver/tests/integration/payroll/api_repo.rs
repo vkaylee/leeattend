@@ -118,9 +118,9 @@ async fn test_get_employee_payslips_api() {
     _state
         .payroll()
         .repo()
-        .assign_employee_salary_component(
+        .assign_employment_salary_component(
             ws_id,
-            emp_id,
+            employment_id,
             component_def.id,
             Decimal::from_i32(2000).unwrap(),
             Utc::now().date_naive(),

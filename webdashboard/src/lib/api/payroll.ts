@@ -124,9 +124,9 @@ export async function createSalaryComponent(
   return resData;
 }
 
-export async function fetchEmployeeSalaryComponents(wsId: string, employeeId: string): Promise<EmployeeSalaryComponentDetail[]> {
-  const { data: resData } = await client.GET("/workspaces/{ws_id}/employees/{employee_id}/salary-components", {
-    params: { path: { ws_id: wsId, employee_id: employeeId } }
+export async function fetchEmployeeSalaryComponents(wsId: string, employmentId: string): Promise<EmployeeSalaryComponentDetail[]> {
+  const { data: resData } = await client.GET("/workspaces/{ws_id}/employments/{employment_id}/salary-components", {
+    params: { path: { ws_id: wsId, employment_id: employmentId } }
   });
   if (!resData) throw new Error("No response data");
   return resData as unknown as EmployeeSalaryComponentDetail[];
@@ -134,11 +134,11 @@ export async function fetchEmployeeSalaryComponents(wsId: string, employeeId: st
 
 export async function assignEmployeeSalaryComponent(
   wsId: string,
-  employeeId: string,
+  employmentId: string,
   data: { amount: string; component_definition_id: string; effective_date: string; }
 ): Promise<EmployeeSalaryComponent> {
-  const { data: resData } = await client.POST("/workspaces/{ws_id}/employees/{employee_id}/salary-components", {
-    params: { path: { ws_id: wsId, employee_id: employeeId } },
+  const { data: resData } = await client.POST("/workspaces/{ws_id}/employments/{employment_id}/salary-components", {
+    params: { path: { ws_id: wsId, employment_id: employmentId } },
     body: data
   });
   if (!resData) throw new Error("No response data");

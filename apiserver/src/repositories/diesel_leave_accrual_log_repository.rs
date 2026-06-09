@@ -26,9 +26,9 @@ impl DieselLeaveAccrualLogRepository {
 #[allow(clippy::too_many_lines)]
 #[async_trait]
 impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
-    async fn find_by_employee_date_type(
+    async fn find_by_employment_date_type(
         &self,
-        employee_id: Uuid,
+        employment_id: Uuid,
         leave_type_id: Uuid,
         accrual_date: NaiveDate,
         workspace_id: Uuid,
@@ -42,7 +42,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
         );
 
         let row = leave_accrual_logs::table
-            .filter(leave_accrual_logs::employee_id.eq(employee_id))
+            .filter(leave_accrual_logs::employment_id.eq(employment_id))
             .filter(leave_accrual_logs::leave_type_id.eq(leave_type_id))
             .filter(leave_accrual_logs::accrual_date.eq(accrual_date))
             .filter(leave_accrual_logs::workspace_id.eq(workspace_id))
@@ -102,10 +102,10 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
         Ok(tz)
     }
 
-    async fn get_employee_leave_history_logs(
+    async fn get_employment_leave_history_logs(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         year: i32,
         leave_type_id: Option<Uuid>,
     ) -> Result<Vec<LeaveHistoryLogItem>, AppError> {
@@ -119,9 +119,9 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
 
         let mut query = leave_accrual_logs::table
             .inner_join(leave_types::table)
-            .inner_join(employees::table)
-            .filter(employees::workspace_id.eq(workspace_id))
-            .filter(leave_accrual_logs::employee_id.eq(employee_id))
+            .inner_join(employments::table)
+            .filter(employments::workspace_id.eq(workspace_id))
+            .filter(leave_accrual_logs::employment_id.eq(employment_id))
             .into_boxed();
 
         if let Some(lt_id) = leave_type_id {
@@ -207,7 +207,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
     async fn insert_accrual_log(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         assignment_id: Option<Uuid>,
         accrual_date: NaiveDate,
         amount: Decimal,
@@ -228,14 +228,14 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
             .values((
                 leave_accrual_logs::id.eq(Uuid::new_v4()),
                 leave_accrual_logs::workspace_id.eq(workspace_id),
-                leave_accrual_logs::employee_id.eq(employee_id),
+                leave_accrual_logs::employment_id.eq(employment_id),
                 leave_accrual_logs::policy_assignment_id.eq(assignment_id),
                 leave_accrual_logs::accrual_date.eq(accrual_date),
                 leave_accrual_logs::amount.eq(amount_bd),
                 leave_accrual_logs::leave_type_id.eq(leave_type_id),
             ))
             .on_conflict((
-                leave_accrual_logs::employee_id,
+                leave_accrual_logs::employment_id,
                 leave_accrual_logs::leave_type_id,
                 leave_accrual_logs::accrual_date,
             ))
@@ -251,7 +251,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
     async fn upsert_balance_accrual(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         year: i32,
         leave_type_id: Uuid,
         amount: Decimal,
@@ -267,26 +267,10 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
         let amount_bd = bigdecimal::BigDecimal::from_str(&amount.to_string())
             .map_err(|e| AppError::Internal(format!("BigDecimal conversion failed: {e}")))?;
 
-        // Find active/latest employment
-        let active_employment = employments::table
-            .filter(employments::workspace_id.eq(workspace_id))
-            .filter(employments::employee_id.eq(employee_id))
-            .filter(employments::deleted_at.is_null())
-            .order(employments::start_date.desc())
-            .select(employments::id)
-            .first::<Uuid>(&mut *conn)
-            .await
-            .optional()
-            .map_err(|e| AppError::Internal(format!("db check active employment: {e}")))?;
-
-        let Some(active_emp_id) = active_employment else {
-            return Err(AppError::NotFound("error.employment_not_found".to_string()));
-        };
-
         diesel::insert_into(leave_balances::table)
             .values((
                 leave_balances::id.eq(Uuid::new_v4()),
-                leave_balances::employment_id.eq(active_emp_id),
+                leave_balances::employment_id.eq(employment_id),
                 leave_balances::year.eq(year),
                 leave_balances::leave_type_id.eq(leave_type_id),
                 leave_balances::entitlement.eq(0),
@@ -313,7 +297,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
     async fn adjust_balance_accrual(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         year: i32,
         leave_type_id: Uuid,
         diff: Decimal,
@@ -329,24 +313,8 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
         let diff_bd = bigdecimal::BigDecimal::from_str(&diff.to_string())
             .map_err(|e| AppError::Internal(format!("BigDecimal conversion failed: {e}")))?;
 
-        // Find active/latest employment
-        let active_employment = employments::table
-            .filter(employments::workspace_id.eq(workspace_id))
-            .filter(employments::employee_id.eq(employee_id))
-            .filter(employments::deleted_at.is_null())
-            .order(employments::start_date.desc())
-            .select(employments::id)
-            .first::<Uuid>(&mut *conn)
-            .await
-            .optional()
-            .map_err(|e| AppError::Internal(format!("db check active employment: {e}")))?;
-
-        let Some(active_emp_id) = active_employment else {
-            return Err(AppError::NotFound("error.employment_not_found".to_string()));
-        };
-
         diesel::update(leave_balances::table)
-            .filter(leave_balances::employment_id.eq(active_emp_id))
+            .filter(leave_balances::employment_id.eq(employment_id))
             .filter(leave_balances::year.eq(year))
             .filter(leave_balances::leave_type_id.eq(leave_type_id))
             .set((
@@ -364,7 +332,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         assignment_id: Uuid,
         leave_type_id: Uuid,
         accrual_date: NaiveDate,
@@ -384,24 +352,8 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
 
         conn.transaction(|conn| {
             Box::pin(async move {
-                // Find active/latest employment
-                let active_employment = employments::table
-                    .filter(employments::workspace_id.eq(workspace_id))
-                    .filter(employments::employee_id.eq(employee_id))
-                    .filter(employments::deleted_at.is_null())
-                    .order(employments::start_date.desc())
-                    .select(employments::id)
-                    .first::<Uuid>(&mut *conn)
-                    .await
-                    .optional()
-                    .map_err(|e| AppError::Internal(format!("db check active employment: {e}")))?;
-
-                let Some(active_emp_id) = active_employment else {
-                    return Err(AppError::NotFound("error.employment_not_found".to_string()));
-                };
-
                 let row = leave_accrual_logs::table
-                    .filter(leave_accrual_logs::employee_id.eq(employee_id))
+                    .filter(leave_accrual_logs::employment_id.eq(employment_id))
                     .filter(leave_accrual_logs::leave_type_id.eq(leave_type_id))
                     .filter(leave_accrual_logs::accrual_date.eq(accrual_date))
                     .filter(leave_accrual_logs::workspace_id.eq(workspace_id))
@@ -437,7 +389,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
                         diesel::update(leave_balances::table)
-                            .filter(leave_balances::employment_id.eq(active_emp_id))
+                            .filter(leave_balances::employment_id.eq(employment_id))
                             .filter(leave_balances::year.eq(year))
                             .filter(leave_balances::leave_type_id.eq(leave_type_id))
                             .set((
@@ -458,14 +410,14 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                         .values((
                             leave_accrual_logs::id.eq(log_id),
                             leave_accrual_logs::workspace_id.eq(workspace_id),
-                            leave_accrual_logs::employee_id.eq(employee_id),
+                            leave_accrual_logs::employment_id.eq(employment_id),
                             leave_accrual_logs::policy_assignment_id.eq(assignment_id),
                             leave_accrual_logs::accrual_date.eq(accrual_date),
                             leave_accrual_logs::amount.eq(amount_bd.clone()),
                             leave_accrual_logs::leave_type_id.eq(leave_type_id),
                         ))
                         .on_conflict((
-                            leave_accrual_logs::employee_id,
+                            leave_accrual_logs::employment_id,
                             leave_accrual_logs::leave_type_id,
                             leave_accrual_logs::accrual_date,
                         ))
@@ -479,7 +431,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                         diesel::insert_into(leave_balances::table)
                             .values((
                                 leave_balances::id.eq(Uuid::new_v4()),
-                                leave_balances::employment_id.eq(active_emp_id),
+                                leave_balances::employment_id.eq(employment_id),
                                 leave_balances::year.eq(year),
                                 leave_balances::leave_type_id.eq(leave_type_id),
                                 leave_balances::entitlement.eq(0),
@@ -530,7 +482,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
             .iter()
             .map(|e| {
                 (
-                    e.employee_id,
+                    e.employment_id,
                     e.assignment_id,
                     e.leave_type_id,
                     e.accrual_date,
@@ -542,46 +494,11 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
         conn.transaction(|conn| {
             Box::pin(async move {
                 let mut all_logs = Vec::new();
-                let emp_ids: Vec<Uuid> = entries_owned.iter().map(|e| e.0).collect();
 
-                // Fetch latest active/non-deleted employment for each employee in emp_ids
-                let employments_list = employments::table
-                    .filter(employments::workspace_id.eq(workspace_id))
-                    .filter(employments::employee_id.eq_any(&emp_ids))
-                    .filter(employments::deleted_at.is_null())
-                    .load::<crate::models::diesel::employment::EmploymentEntity>(&mut *conn)
-                    .await
-                    .map_err(|e| AppError::Internal(format!("db fetch employments: {e}")))?;
-
-                // Map employee_id -> employment_id (taking the one with latest start_date)
-                use std::collections::HashMap;
-                let mut employee_to_employment = HashMap::new();
-                for emp in employments_list {
-                    employee_to_employment
-                        .entry(emp.employee_id)
-                        .or_insert_with(Vec::new)
-                        .push(emp);
-                }
-
-                let mut resolved_employments = HashMap::new();
-                for (emp_id, mut list) in employee_to_employment {
-                    list.sort_by_key(|e| std::cmp::Reverse(e.start_date));
-                    if let Some(latest) = list.as_slice().first() {
-                        resolved_employments.insert(emp_id, latest.id);
-                    }
-                }
-
-                for (employee_id, assignment_id, leave_type_id, accrual_date, amount) in
+                for (employment_id, assignment_id, leave_type_id, accrual_date, amount) in
                     &entries_owned
                 {
-                    let active_emp_id = match resolved_employments.get(employee_id) {
-                        Some(id) => *id,
-                        None => {
-                            return Err(AppError::NotFound(
-                                "error.employment_not_found".to_string(),
-                            ))
-                        }
-                    };
+                    let active_emp_id = *employment_id;
 
                     use rust_decimal::prelude::FromPrimitive;
                     let decimal_amount =
@@ -594,7 +511,7 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
 
                     // Check for existing log
                     let row = leave_accrual_logs::table
-                        .filter(leave_accrual_logs::employee_id.eq(employee_id))
+                        .filter(leave_accrual_logs::employment_id.eq(employment_id))
                         .filter(leave_accrual_logs::leave_type_id.eq(leave_type_id))
                         .filter(leave_accrual_logs::accrual_date.eq(accrual_date))
                         .filter(leave_accrual_logs::workspace_id.eq(workspace_id))
@@ -652,14 +569,14 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
                             .values((
                                 leave_accrual_logs::id.eq(log_id),
                                 leave_accrual_logs::workspace_id.eq(workspace_id),
-                                leave_accrual_logs::employee_id.eq(employee_id),
+                                leave_accrual_logs::employment_id.eq(active_emp_id),
                                 leave_accrual_logs::policy_assignment_id.eq(assignment_id),
                                 leave_accrual_logs::accrual_date.eq(accrual_date),
                                 leave_accrual_logs::amount.eq(amount_bd.clone()),
                                 leave_accrual_logs::leave_type_id.eq(leave_type_id),
                             ))
                             .on_conflict((
-                                leave_accrual_logs::employee_id,
+                                leave_accrual_logs::employment_id,
                                 leave_accrual_logs::leave_type_id,
                                 leave_accrual_logs::accrual_date,
                             ))
@@ -736,7 +653,7 @@ mod tests {
         let dec = Decimal::new(1, 0);
 
         let err = repo
-            .find_by_employee_date_type(emp_id, lt_id, date, ws_id)
+            .find_by_employment_date_type(emp_id, lt_id, date, ws_id)
             .await;
         assert!(err.is_err());
 
@@ -749,7 +666,7 @@ mod tests {
         assert!(err.is_err());
 
         let err = repo
-            .get_employee_leave_history_logs(ws_id, emp_id, 2024, None)
+            .get_employment_leave_history_logs(ws_id, emp_id, 2024, None)
             .await;
         assert!(err.is_err());
 

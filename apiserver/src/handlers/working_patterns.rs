@@ -101,14 +101,14 @@ pub async fn get_pattern_details(
 
 #[utoipa::path(
     post,
-    path = "/workspaces/{workspace_id}/employees/{id}/working-patterns",
+    path = "/workspaces/{workspace_id}/employments/{id}/working-patterns",
     request_body = AssignPatternRequest,
     responses(
-        (status = 200, description = "Pattern assigned to employee", body = EmployeeWorkingPattern)
+        (status = 200, description = "Pattern assigned to employment", body = EmployeeWorkingPattern)
     ),
     params(
         ("workspace_id" = Uuid, Path, description = "Workspace ID"),
-        ("id" = Uuid, Path, description = "Employee ID")
+        ("id" = Uuid, Path, description = "Employment ID")
     )
 )]
 pub async fn assign_pattern(
@@ -117,12 +117,12 @@ pub async fn assign_pattern(
     ctx: MemberContext,
     Json(req): Json<AssignPatternRequest>,
 ) -> AppResult<Json<EmployeeWorkingPattern>> {
-    let (_ws_id, employee_id) = params;
+    let (_ws_id, employment_id) = params;
     ctx.require_permission(Permission::PatternsAssign)?;
     let assignment = service::assign_pattern(
         Arc::clone(state.shifts().working_pattern_repo()),
         ctx.workspace_id,
-        employee_id,
+        employment_id,
         req,
     )
     .await?;
@@ -167,25 +167,25 @@ pub async fn bulk_assign_pattern(
 
 #[utoipa::path(
     get,
-    path = "/workspaces/{workspace_id}/employees/{id}/working-patterns",
+    path = "/workspaces/{workspace_id}/employments/{id}/working-patterns",
     responses(
-        (status = 200, description = "Employee working pattern history", body = [EmployeeWorkingPattern])
+        (status = 200, description = "Employment working pattern history", body = [EmployeeWorkingPattern])
     ),
     params(
         ("workspace_id" = Uuid, Path, description = "Workspace ID"),
-        ("id" = Uuid, Path, description = "Employee ID")
+        ("id" = Uuid, Path, description = "Employment ID")
     )
 )]
-pub async fn get_employee_pattern_history(
+pub async fn get_employment_pattern_history(
     State(state): State<Arc<AppState>>,
     Path(params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<EmployeeWorkingPattern>>> {
-    let (_ws_id, employee_id) = params;
-    let history = service::get_employee_pattern_history(
+    let (_ws_id, employment_id) = params;
+    let history = service::get_employment_pattern_history(
         Arc::clone(state.shifts().working_pattern_repo()),
         ctx.workspace_id,
-        employee_id,
+        employment_id,
     )
     .await?;
     Ok(Json(history))

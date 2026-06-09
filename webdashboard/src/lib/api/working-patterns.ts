@@ -61,12 +61,12 @@ export async function fetchPatternDetails(wsId: string, patternId: string): Prom
 
 export async function assignPattern(
   wsId: string, 
-  employeeId: string, 
+  employmentId: string, 
   data: AssignPatternRequest
 ): Promise<EmployeeWorkingPattern> {
-  const { data: result } = await client.POST("/workspaces/{workspace_id}/employees/{id}/working-patterns", {
+  const { data: result } = await client.POST("/workspaces/{workspace_id}/employments/{id}/working-patterns", {
     params: {
-      path: { workspace_id: wsId, id: employeeId },
+      path: { workspace_id: wsId, id: employmentId },
     },
     body: data,
   });
@@ -90,11 +90,11 @@ export async function bulkAssignPattern(
 
 export async function fetchEmployeePatternHistory(
   wsId: string, 
-  employeeId: string
+  employmentId: string
 ): Promise<EmployeeWorkingPattern[]> {
-  const { data } = await client.GET("/workspaces/{workspace_id}/employees/{id}/working-patterns", {
+  const { data } = await client.GET("/workspaces/{workspace_id}/employments/{id}/working-patterns", {
     params: {
-      path: { workspace_id: wsId, id: employeeId },
+      path: { workspace_id: wsId, id: employmentId },
     },
   });
   if (!data) throw new Error("No response data");

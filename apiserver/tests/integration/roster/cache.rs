@@ -105,6 +105,19 @@ async fn test_fixed_assignments_grouped_by_employee() {
     let emp_a = factory.employee().with_workspace(ws).create().await;
     let emp_b = factory.employee().with_workspace(ws).create().await;
 
+    let emp_a_employment: uuid::Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1",
+        diesel::sql_types::Uuid,
+        emp_a
+    );
+    let emp_b_employment: uuid::Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1",
+        diesel::sql_types::Uuid,
+        emp_b
+    );
+
     let start = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
     let start2 = NaiveDate::from_ymd_opt(2026, 2, 1).unwrap();
 
@@ -128,11 +141,11 @@ async fn test_fixed_assignments_grouped_by_employee() {
     let data = build_roster_data(&diesel_pools, ws).await.unwrap();
 
     assert_eq!(data.fixed_assignments.len(), 2, "two employees");
-    assert_eq!(data.fixed_assignments[&emp_a].len(), 2);
-    assert_eq!(data.fixed_assignments[&emp_b].len(), 1);
+    assert_eq!(data.fixed_assignments[&emp_a_employment].len(), 2);
+    assert_eq!(data.fixed_assignments[&emp_b_employment].len(), 1);
 
     // Verify the assignment fields
-    let assignment = &data.fixed_assignments[&emp_b][0];
+    let assignment = &data.fixed_assignments[&emp_b_employment][0];
     assert_eq!(assignment.start_date, start);
     assert!(assignment.end_date.is_none());
 }

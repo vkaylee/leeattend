@@ -171,6 +171,13 @@ async fn test_working_pattern_assign_to_employee() {
     let pattern_id = pattern["id"].as_str().unwrap();
 
     // Assign pattern to employee
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
+
     let assign_body = serde_json::json!({
         "pattern_id": pattern_id,
         "start_date": "2026-01-01"
@@ -180,7 +187,7 @@ async fn test_working_pattern_assign_to_employee() {
         .clone()
         .oneshot(req(
             "POST",
-            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/working-patterns"),
+            &format!("/api/v1/workspaces/{ws_id}/employments/{employment_id}/working-patterns"),
             ws_id,
             admin_id,
             Some(assign_body.to_string()),
@@ -194,7 +201,7 @@ async fn test_working_pattern_assign_to_employee() {
         .clone()
         .oneshot(req(
             "GET",
-            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/working-patterns"),
+            &format!("/api/v1/workspaces/{ws_id}/employments/{employment_id}/working-patterns"),
             ws_id,
             admin_id,
             None,
