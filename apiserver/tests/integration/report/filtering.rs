@@ -67,6 +67,13 @@ async fn test_daily_report_employee_filtering() {
             ),
         });
 
+    let emp1_employment_id: uuid::Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp1
+    );
+
     // Filter by emp1
     let result_1 = report_service
         .get_daily_attendance_report(apiserver::services::report_service::AttendanceReportArgs {
@@ -82,7 +89,7 @@ async fn test_daily_report_employee_filtering() {
         .await
         .expect("Failed to get report");
     assert_eq!(result_1.data.len(), 1);
-    assert_eq!(result_1.data[0].employment_id, emp1);
+    assert_eq!(result_1.data[0].employment_id, emp1_employment_id);
 
     // Filter by emp2, emp3
     let result_23 = report_service

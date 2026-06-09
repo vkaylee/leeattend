@@ -73,10 +73,23 @@ async fn test_handler_claims_staged_logs_for_employee() {
     assert_eq!(pending_after, 0, "Staged log should be claimed");
 
     // 4. Verify raw log was created for this employee
-    let raw_logs =
-        helpers::get_paginated_raw_logs(&diesel_pools, ws_id, Some(emp_id), None, None, 10, 0)
-            .await
-            .unwrap();
+    let emp_employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
+    let raw_logs = helpers::get_paginated_raw_logs(
+        &diesel_pools,
+        ws_id,
+        Some(emp_employment_id),
+        None,
+        None,
+        10,
+        0,
+    )
+    .await
+    .unwrap();
     assert_eq!(raw_logs.len(), 1, "One raw log should exist");
     assert_eq!(raw_logs[0].punch_time.timestamp(), punch_time.timestamp());
 }
@@ -178,10 +191,23 @@ async fn test_handler_claims_multiple_staged_logs() {
         .unwrap();
     assert_eq!(pending_after, 0, "All staged logs should be claimed");
 
-    let raw_logs =
-        helpers::get_paginated_raw_logs(&diesel_pools, ws_id, Some(emp_id), None, None, 10, 0)
-            .await
-            .unwrap();
+    let emp_employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
+    let raw_logs = helpers::get_paginated_raw_logs(
+        &diesel_pools,
+        ws_id,
+        Some(emp_employment_id),
+        None,
+        None,
+        10,
+        0,
+    )
+    .await
+    .unwrap();
     assert_eq!(raw_logs.len(), 3, "Three raw logs should exist");
 }
 
@@ -259,9 +285,22 @@ async fn test_handler_only_claims_matching_employee() {
     );
 
     // Employee A should have a raw log
-    let raw_logs_a =
-        helpers::get_paginated_raw_logs(&diesel_pools, ws_id, Some(emp_a_id), None, None, 10, 0)
-            .await
-            .unwrap();
+    let emp_a_employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_a_id
+    );
+    let raw_logs_a = helpers::get_paginated_raw_logs(
+        &diesel_pools,
+        ws_id,
+        Some(emp_a_employment_id),
+        None,
+        None,
+        10,
+        0,
+    )
+    .await
+    .unwrap();
     assert_eq!(raw_logs_a.len(), 1, "Employee A should have 1 raw log");
 }

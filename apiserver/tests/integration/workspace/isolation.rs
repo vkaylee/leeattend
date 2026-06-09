@@ -48,12 +48,19 @@ async fn test_get_employee_time_entries_isolated_by_workspace() {
     let start = now - Duration::hours(24);
     let end = now + Duration::hours(1);
 
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_a
+    );
+
     // Query with correct workspace → should find 1 entry
     let repo = apiserver::repositories::DieselTimeEntryRepository::new(diesel_pools.clone());
     let entries_a = repo
         .get_employment_time_entries(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_a),
-            emp_a,
+            employment_id,
             start,
             end,
         )
@@ -69,7 +76,7 @@ async fn test_get_employee_time_entries_isolated_by_workspace() {
     let entries_b = repo
         .get_employment_time_entries(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_b),
-            emp_a,
+            employment_id,
             start,
             end,
         )
@@ -101,13 +108,20 @@ async fn test_get_latest_active_entry_isolated_by_workspace() {
         .create()
         .await;
 
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_a
+    );
+
     let repo = Arc::new(DieselTimeEntryRepository::new(diesel_pools.clone()));
 
     // Correct workspace → should find the active entry
     let active_a = repo
         .get_latest_active_entry(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_a),
-            emp_a,
+            employment_id,
         )
         .await
         .unwrap();
@@ -120,7 +134,7 @@ async fn test_get_latest_active_entry_isolated_by_workspace() {
     let active_b = repo
         .get_latest_active_entry(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_b),
-            emp_a,
+            employment_id,
         )
         .await
         .unwrap();
@@ -152,31 +166,38 @@ async fn test_get_workspace_time_entries_batch_isolated() {
     let start = now - Duration::hours(24);
     let end = now + Duration::hours(1);
 
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_a
+    );
+
     // Batch query with correct workspace
     let repo = apiserver::repositories::DieselTimeEntryRepository::new(diesel_pools.clone());
     let batch_a = repo
         .get_workspace_time_entries_batch_by_employments(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_a),
-            &[emp_a],
+            &[employment_id],
             start,
             end,
         )
         .await
         .unwrap();
-    assert_eq!(batch_a.get(&emp_a).map_or(0, std::vec::Vec::len), 1);
+    assert_eq!(batch_a.get(&employment_id).map_or(0, std::vec::Vec::len), 1);
 
     // Batch query with wrong workspace
     let batch_b = repo
         .get_workspace_time_entries_batch_by_employments(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_b),
-            &[emp_a],
+            &[employment_id],
             start,
             end,
         )
         .await
         .unwrap();
     assert_eq!(
-        batch_b.get(&emp_a).map_or(0, std::vec::Vec::len),
+        batch_b.get(&employment_id).map_or(0, std::vec::Vec::len),
         0,
         "Batch query should return 0 entries for wrong workspace"
     );

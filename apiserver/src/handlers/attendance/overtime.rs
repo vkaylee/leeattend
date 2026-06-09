@@ -61,12 +61,16 @@ pub async fn claim_ot(
         check_claim_behalf_scope(&state, &ctx, employee_id).await?;
     }
 
+    let active_employment_id = employee
+        .active_employment_id()
+        .ok_or_else(|| AppError::validation_raw("No active employment found"))?;
+
     state
         .attendance()
         .summary_service()
         .claim_ot(
             ctx.workspace_id,
-            employee_id,
+            active_employment_id,
             req.date,
             req.claimed_minutes,
             req.reason,
@@ -76,7 +80,7 @@ pub async fn claim_ot(
     let summary = state
         .attendance()
         .attendance_daily_summary_repo()
-        .get_summary(&ctx.auth_token, employee_id, req.date)
+        .get_summary(&ctx.auth_token, active_employment_id, req.date)
         .await?
         .ok_or_else(|| AppError::not_found(I18nKey::AttendanceSummaryNotFound))?;
 
@@ -137,12 +141,23 @@ pub async fn approve_ot(
         _ => return Err(AppError::validation(I18nKey::InvalidStatus)),
     };
 
+    let employee = state
+        .employees()
+        .repo()
+        .get_employee_by_id(employee_id, &ctx.auth_token)
+        .await?
+        .ok_or_else(|| AppError::not_found(I18nKey::EmployeeNotFound))?;
+
+    let active_employment_id = employee
+        .active_employment_id()
+        .ok_or_else(|| AppError::validation_raw("No active employment found"))?;
+
     state
         .attendance()
         .summary_service()
         .approve_ot(
             ctx.workspace_id,
-            employee_id,
+            active_employment_id,
             req.date,
             req.approved_minutes,
             req.manager_note,
@@ -204,12 +219,29 @@ pub async fn get_attendance_summaries(
         Some(my_id)
     };
 
+    let target_employment_id = if let Some(emp_id) = target_employee_id {
+        let employee = state
+            .employees()
+            .repo()
+            .get_employee_by_id(emp_id, &ctx.auth_token)
+            .await?
+            .ok_or_else(|| AppError::not_found(I18nKey::EmployeeNotFound))?;
+
+        let active_emp_id = employee.active_employment_id();
+        if active_emp_id.is_none() {
+            return Ok(Json(vec![]));
+        }
+        active_emp_id
+    } else {
+        None
+    };
+
     let summaries = state
         .attendance()
         .attendance_daily_summary_repo()
         .get_summaries(
             &ctx.auth_token,
-            target_employee_id,
+            target_employment_id,
             query.start_date,
             query.end_date,
         )

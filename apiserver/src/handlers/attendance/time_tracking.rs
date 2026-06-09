@@ -8,9 +8,10 @@ use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::errors::AppResult;
+use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{PunchInRequest, PunchOutRequest, TimeEntry, UpdateTimeEntryRequest};
+use crate::utils::i18n::I18nKey;
 use crate::AppState;
 
 #[derive(Debug, Deserialize, utoipa::IntoParams)]
@@ -74,13 +75,24 @@ pub async fn punch_out(
     let (_workspace_id, employee_id) = params;
     let workspace_id = ctx.workspace_id;
 
+    let employee = state
+        .employees()
+        .repo()
+        .get_employee_by_id(employee_id, &ctx.auth_token)
+        .await?
+        .ok_or_else(|| AppError::not_found(I18nKey::EmployeeNotFound))?;
+
+    let active_employment_id = employee
+        .active_employment_id()
+        .ok_or_else(|| AppError::validation_raw("No active employment found"))?;
+
     let entry = state
         .attendance()
         .time_tracking_service()
         .punch(
             state.attendance().log_service().as_ref(),
             workspace_id,
-            employee_id,
+            active_employment_id,
             req.note().map(String::from),
         )
         .await?;
@@ -110,10 +122,21 @@ pub async fn get_time_history(
     let (_workspace_id, employee_id) = params;
     let workspace_id = ctx.workspace_id;
 
+    let employee = state
+        .employees()
+        .repo()
+        .get_employee_by_id(employee_id, &ctx.auth_token)
+        .await?
+        .ok_or_else(|| AppError::not_found(I18nKey::EmployeeNotFound))?;
+
+    let active_employment_id = employee
+        .active_employment_id()
+        .ok_or_else(|| AppError::validation_raw("No active employment found"))?;
+
     let entries = state
         .attendance()
         .time_tracking_service()
-        .get_employee_history(workspace_id, employee_id, query.start, query.end)
+        .get_employee_history(workspace_id, active_employment_id, query.start, query.end)
         .await?;
 
     Ok(Json(entries))

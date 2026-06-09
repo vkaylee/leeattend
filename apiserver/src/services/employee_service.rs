@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use chrono::Utc;
+use chrono::{Datelike, Utc};
 use uuid::Uuid;
 
 use crate::utils::id::new_id;
@@ -10,28 +10,146 @@ use crate::models::{
     CreateEmployeeRequest, CreateWorkingConditionRequest, Employee, RehireEmployeeRequest,
     UpdateEmployeeRequest, WorkingCondition,
 };
-use crate::repositories::{department_repository::DepartmentRepository, EmployeeRepository};
+use crate::repositories::{
+    department_repository::DepartmentRepository, EmployeeRepository, EmploymentRepository,
+};
 
 pub struct EmployeeService {
     repo: Arc<dyn EmployeeRepository>,
+    employment_repo: Arc<dyn EmploymentRepository>,
     dept_repo: Arc<dyn DepartmentRepository>,
     user_repo: Arc<dyn crate::repositories::user_repository::UserRepository>,
     staging_repo: Arc<dyn crate::repositories::staging_log_repository::StagingLogRepository>,
+    leave_balance_repo:
+        Arc<dyn crate::repositories::leave_balance_repository::LeaveBalanceRepository>,
+}
+
+fn dates_overlap(
+    s1: chrono::NaiveDate,
+    e1: Option<chrono::NaiveDate>,
+    s2: chrono::NaiveDate,
+    e2: Option<chrono::NaiveDate>,
+) -> bool {
+    let overlap_start = std::cmp::max(s1, s2);
+    let overlap_end = match (e1, e2) {
+        (Some(d1), Some(d2)) => Some(std::cmp::min(d1, d2)),
+        (Some(d1), None) => Some(d1),
+        (None, Some(d2)) => Some(d2),
+        (None, None) => None,
+    };
+
+    match overlap_end {
+        Some(end) => overlap_start <= end,
+        None => true,
+    }
 }
 
 impl EmployeeService {
     pub fn new(
         repo: Arc<dyn EmployeeRepository>,
+        employment_repo: Arc<dyn EmploymentRepository>,
         dept_repo: Arc<dyn DepartmentRepository>,
         user_repo: Arc<dyn crate::repositories::user_repository::UserRepository>,
         staging_repo: Arc<dyn crate::repositories::staging_log_repository::StagingLogRepository>,
+        leave_balance_repo: Arc<
+            dyn crate::repositories::leave_balance_repository::LeaveBalanceRepository,
+        >,
     ) -> Self {
         Self {
             repo,
+            employment_repo,
             dept_repo,
             user_repo,
             staging_repo,
+            leave_balance_repo,
         }
+    }
+
+    #[tracing::instrument(skip_all, err)]
+    pub async fn create_employment(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        req: &crate::models::employment::CreateEmploymentRequest,
+    ) -> Result<crate::models::employment::Employment, AppError> {
+        let _workspace_id = auth_token.workspace_id();
+
+        // 1. Conflict check for primary employment
+        if req.employment_type == "primary" {
+            let existing = self
+                .employment_repo
+                .list_employee_employments(auth_token, req.employee_id)
+                .await?;
+
+            for emp in existing {
+                if emp.employment_type() == "primary"
+                    && dates_overlap(
+                        req.start_date,
+                        req.end_date,
+                        emp.start_date(),
+                        emp.end_date(),
+                    )
+                {
+                    return Err(AppError::conflict(
+                        crate::utils::i18n::I18nKey::OverlappingEmployment,
+                    ));
+                }
+            }
+        }
+
+        // 2. Delegate to repo
+        self.employment_repo
+            .create_employment(auth_token, req)
+            .await
+    }
+
+    #[tracing::instrument(skip_all, err)]
+    pub async fn update_employment(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employment_id: Uuid,
+        req: &crate::models::employment::UpdateEmploymentRequest,
+    ) -> Result<crate::models::employment::Employment, AppError> {
+        let _workspace_id = auth_token.workspace_id();
+
+        let current_emp = self
+            .employment_repo
+            .get_employment_by_id(auth_token, employment_id)
+            .await?
+            .ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::EmploymentNotFound))?;
+
+        let target_type = req
+            .employment_type
+            .as_deref()
+            .unwrap_or_else(|| current_emp.employment_type());
+        let target_start = req.start_date.unwrap_or_else(|| current_emp.start_date());
+        let target_end = match &req.end_date {
+            Some(opt_d) => *opt_d,
+            None => current_emp.end_date(),
+        };
+
+        if target_type == "primary" {
+            let existing = self
+                .employment_repo
+                .list_employee_employments(auth_token, current_emp.employee_id())
+                .await?;
+
+            for emp in existing {
+                if emp.id() == employment_id {
+                    continue;
+                }
+                if emp.employment_type() == "primary"
+                    && dates_overlap(target_start, target_end, emp.start_date(), emp.end_date())
+                {
+                    return Err(AppError::conflict(
+                        crate::utils::i18n::I18nKey::OverlappingEmployment,
+                    ));
+                }
+            }
+        }
+
+        self.employment_repo
+            .update_employment(auth_token, employment_id, req)
+            .await
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -49,8 +167,12 @@ impl EmployeeService {
             .await?
             .ok_or(AppError::NotFound("Employee not found".into()))?;
 
+        let active_employment_id = emp
+            .active_employment_id()
+            .ok_or_else(|| AppError::validation(crate::utils::i18n::I18nKey::NoActiveEmployment))?;
+
         self.repo
-            .get_working_conditions(auth_token, emp.id(), page, limit)
+            .get_working_conditions(auth_token, active_employment_id, page, limit)
             .await
     }
 
@@ -68,9 +190,13 @@ impl EmployeeService {
             .await?
             .ok_or(AppError::NotFound("Employee not found".into()))?;
 
+        let active_employment_id = emp
+            .active_employment_id()
+            .ok_or_else(|| AppError::validation(crate::utils::i18n::I18nKey::NoActiveEmployment))?;
+
         let condition = WorkingCondition::new(
             new_id(),
-            emp.id(),
+            active_employment_id,
             req.type_,
             req.minute_allowance,
             req.is_paid,
@@ -99,9 +225,13 @@ impl EmployeeService {
             .await?
             .ok_or(AppError::NotFound("Employee not found".into()))?;
 
+        let active_employment_id = emp
+            .active_employment_id()
+            .ok_or_else(|| AppError::validation(crate::utils::i18n::I18nKey::NoActiveEmployment))?;
+
         let deleted = self
             .repo
-            .delete_working_condition(auth_token, condition_id, emp.id())
+            .delete_working_condition(auth_token, condition_id, active_employment_id)
             .await?;
 
         if !deleted {
@@ -340,6 +470,98 @@ impl EmployeeService {
             )
             .await
     }
+
+    #[tracing::instrument(skip_all, err)]
+    pub async fn terminate_employment(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employment_id: Uuid,
+        termination_date: chrono::NaiveDate,
+    ) -> Result<crate::models::employment::Employment, AppError> {
+        // 1. Get employment details
+        let employment = self
+            .employment_repo
+            .get_employment_by_id(auth_token, employment_id)
+            .await?
+            .ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::EmploymentNotFound))?;
+
+        // 2. Validate termination state & date
+        if employment.status() == "terminated" {
+            return Err(AppError::validation(
+                crate::utils::i18n::I18nKey::Validation,
+            ));
+        }
+
+        if termination_date < employment.start_date() {
+            return Err(AppError::validation(
+                crate::utils::i18n::I18nKey::Validation,
+            ));
+        }
+
+        // 3. Update the employment status and end date to database
+        let update_req = crate::models::employment::UpdateEmploymentRequest {
+            employer_id: None,
+            primary_location_id: None,
+            department_id: None,
+            status: Some("terminated".to_string()),
+            start_date: None,
+            end_date: Some(Some(termination_date)),
+            job_title: None,
+            employment_type: None,
+            manager_employment_id: None,
+        };
+
+        let updated_employment = self
+            .employment_repo
+            .update_employment(auth_token, employment_id, &update_req)
+            .await?;
+
+        // 4. Calculate prorated leave balance for the year of termination
+        let year = termination_date.year();
+        let start_of_year = chrono::NaiveDate::from_ymd_opt(year, 1, 1)
+            .ok_or_else(|| AppError::Internal("Invalid start of year".to_string()))?;
+        let end_of_year = chrono::NaiveDate::from_ymd_opt(year, 12, 31)
+            .ok_or_else(|| AppError::Internal("Invalid end of year".to_string()))?;
+
+        // Effective start date is the maximum of start of year or employment start date
+        let eff_start = std::cmp::max(start_of_year, employment.start_date());
+
+        // Days worked in the year
+        let days_worked = (termination_date - eff_start).num_days() + 1;
+        let total_days = (end_of_year - start_of_year).num_days() + 1;
+
+        let proration_fraction = days_worked as f64 / total_days as f64;
+
+        // Fetch existing leave balances for this employee
+        let balances = self
+            .leave_balance_repo
+            .get_employee_balances(auth_token, employment.employee_id(), year)
+            .await?;
+
+        // Prorate entitlement for each leave balance and persist
+        for emp_bal in balances {
+            let prorated_entitlement =
+                (f64::from(emp_bal.entitlement) * proration_fraction).round() as i32;
+
+            let balance = crate::models::LeaveBalance::new(
+                Uuid::new_v4(), // The on_conflict logic will match employment_id/leave_type_id/year
+                employment_id,
+                emp_bal.leave_type_id,
+                year,
+                prorated_entitlement,
+                rust_decimal::Decimal::from_f64_retain(emp_bal.accrued_amount).unwrap_or_default(),
+                emp_bal.carried_over,
+                chrono::Utc::now(),
+                chrono::Utc::now(),
+            );
+
+            self.leave_balance_repo
+                .upsert_leave_balance(auth_token, &balance)
+                .await?;
+        }
+
+        Ok(updated_employment)
+    }
 }
 
 #[cfg(test)]
@@ -363,8 +585,10 @@ mod tests {
     // ── Test Helpers ─────────────────────────────────────────────────
 
     fn make_employee(ws: Uuid) -> Employee {
+        let emp_id = Uuid::new_v4();
+        let employment_id = Uuid::new_v4();
         Employee::new(
-            Uuid::new_v4(),
+            emp_id,
             ws,
             None,
             "Test Employee".into(),
@@ -374,6 +598,7 @@ mod tests {
             Utc::now(),
             None,
         )
+        .with_employment_info(Some(employment_id), None, None)
     }
 
     fn make_working_condition(emp_id: Uuid) -> WorkingCondition {
@@ -1264,73 +1489,79 @@ mod tests {
         }
     }
 
+    use crate::repositories::staging_log_repository::{StagingLog, StagingLogRepository};
+
+    struct NopStagingRepo;
+    #[async_trait::async_trait]
+    impl StagingLogRepository for NopStagingRepo {
+        async fn create_staging_log(
+            &self,
+            _workspace_id: uuid::Uuid,
+            _device_id: Option<String>,
+            _raw_user_id: &str,
+            _punch_time: chrono::DateTime<chrono::Utc>,
+            _raw_data: Option<serde_json::Value>,
+            _fingerprint: &str,
+        ) -> Result<bool, crate::errors::AppError> {
+            Ok(false)
+        }
+        async fn get_pending_staged_logs(
+            &self,
+            _workspace_id: uuid::Uuid,
+            _employee_id_number: &str,
+        ) -> Result<Vec<StagingLog>, crate::errors::AppError> {
+            Ok(vec![])
+        }
+        async fn update_staging_status(
+            &self,
+            _id: uuid::Uuid,
+            _workspace_id: uuid::Uuid,
+            _status: &str,
+        ) -> Result<bool, crate::errors::AppError> {
+            Ok(false)
+        }
+        async fn get_pending_staging_logs(
+            &self,
+            _workspace_id: uuid::Uuid,
+            _limit: i64,
+        ) -> Result<Vec<StagingLog>, crate::errors::AppError> {
+            Ok(vec![])
+        }
+        async fn count_pending_staging_logs(
+            &self,
+            _workspace_id: uuid::Uuid,
+        ) -> Result<i64, crate::errors::AppError> {
+            Ok(0)
+        }
+        async fn claim_staged_logs(
+            &self,
+            _workspace_id: uuid::Uuid,
+            _raw_user_id: &str,
+            _employee_id: uuid::Uuid,
+        ) -> Result<u64, crate::errors::AppError> {
+            Ok(0)
+        }
+        async fn resolve_staging_log(
+            &self,
+            _log_id: uuid::Uuid,
+            _workspace_id: uuid::Uuid,
+            _employee_id: uuid::Uuid,
+        ) -> Result<crate::models::RawAttendanceLog, crate::errors::AppError> {
+            Err(crate::errors::AppError::NotFound("nop".into()))
+        }
+    }
+
     /// Helper: create a service backed by the mock (pool is unused in mock-only paths).
     fn make_service(mock: MockEmployeeRepo) -> EmployeeService {
-        use crate::repositories::staging_log_repository::{StagingLog, StagingLogRepository};
-        struct NopStagingRepo;
-        #[async_trait::async_trait]
-        impl StagingLogRepository for NopStagingRepo {
-            async fn create_staging_log(
-                &self,
-                _workspace_id: uuid::Uuid,
-                _device_id: Option<String>,
-                _raw_user_id: &str,
-                _punch_time: chrono::DateTime<chrono::Utc>,
-                _raw_data: Option<serde_json::Value>,
-                _fingerprint: &str,
-            ) -> Result<bool, crate::errors::AppError> {
-                Ok(false)
-            }
-            async fn get_pending_staged_logs(
-                &self,
-                _workspace_id: uuid::Uuid,
-                _employee_id_number: &str,
-            ) -> Result<Vec<StagingLog>, crate::errors::AppError> {
-                Ok(vec![])
-            }
-            async fn update_staging_status(
-                &self,
-                _id: uuid::Uuid,
-                _workspace_id: uuid::Uuid,
-                _status: &str,
-            ) -> Result<bool, crate::errors::AppError> {
-                Ok(false)
-            }
-            async fn get_pending_staging_logs(
-                &self,
-                _workspace_id: uuid::Uuid,
-                _limit: i64,
-            ) -> Result<Vec<StagingLog>, crate::errors::AppError> {
-                Ok(vec![])
-            }
-            async fn count_pending_staging_logs(
-                &self,
-                _workspace_id: uuid::Uuid,
-            ) -> Result<i64, crate::errors::AppError> {
-                Ok(0)
-            }
-            async fn claim_staged_logs(
-                &self,
-                _workspace_id: uuid::Uuid,
-                _raw_user_id: &str,
-                _employee_id: uuid::Uuid,
-            ) -> Result<u64, crate::errors::AppError> {
-                Ok(0)
-            }
-            async fn resolve_staging_log(
-                &self,
-                _log_id: uuid::Uuid,
-                _workspace_id: uuid::Uuid,
-                _employee_id: uuid::Uuid,
-            ) -> Result<crate::models::RawAttendanceLog, crate::errors::AppError> {
-                Err(crate::errors::AppError::NotFound("nop".into()))
-            }
-        }
         EmployeeService::new(
             Arc::new(mock),
+            Arc::new(crate::repositories::employment_repository::MockEmploymentRepository::new()),
             Arc::new(NopDepartmentRepo),
             Arc::new(NopUserRepo),
             Arc::new(NopStagingRepo),
+            Arc::new(
+                crate::repositories::leave_balance_repository::MockLeaveBalanceRepository::new(),
+            ),
         )
     }
 
@@ -1522,7 +1753,7 @@ mod tests {
         assert_eq!(wc.type_(), "early_leave");
         assert_eq!(wc.minute_allowance(), 30);
         assert!(!wc.is_paid());
-        assert_eq!(wc.employment_id(), emp.id());
+        assert_eq!(wc.employment_id(), emp.active_employment_id().unwrap());
     }
 
     // ── Tests: delete_working_condition ──────────────────────────────
@@ -1797,5 +2028,109 @@ mod tests {
             )
             .await;
         assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
+    }
+
+    #[tokio::test]
+    async fn test_terminate_employment_success() -> Result<(), Box<dyn std::error::Error>> {
+        let ws = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+        let employment_id = Uuid::new_v4();
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(ws);
+        let start_date = NaiveDate::from_ymd_opt(2026, 1, 1).ok_or("invalid start_date")?;
+        let termination_date =
+            NaiveDate::from_ymd_opt(2026, 6, 30).ok_or("invalid termination_date")?;
+
+        // 1. Mock Employment
+        let mock_emp = crate::models::employment::Employment::new(
+            employment_id,
+            ws,
+            emp_id,
+            Uuid::new_v4(),
+            None,
+            None,
+            "active".to_string(),
+            start_date,
+            None,
+            None,
+            "primary".to_string(),
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
+
+        let mut mock_employment_repo =
+            crate::repositories::employment_repository::MockEmploymentRepository::new();
+        let mock_emp_clone = mock_emp.clone();
+        mock_employment_repo
+            .expect_get_employment_by_id()
+            .returning(move |_, _| Ok(Some(mock_emp_clone.clone())));
+
+        let mock_emp_terminated = crate::models::employment::Employment::new(
+            employment_id,
+            ws,
+            emp_id,
+            Uuid::new_v4(),
+            None,
+            None,
+            "terminated".to_string(),
+            start_date,
+            Some(termination_date),
+            None,
+            "primary".to_string(),
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
+        mock_employment_repo
+            .expect_update_employment()
+            .returning(move |_, _, _| Ok(mock_emp_terminated.clone()));
+
+        // 2. Mock Leave Balances
+        let mut mock_leave_balance_repo =
+            crate::repositories::leave_balance_repository::MockLeaveBalanceRepository::new();
+        let leave_type_id = Uuid::new_v4();
+        let mock_balances = vec![crate::models::EmployeeLeaveBalance {
+            leave_type_id,
+            leave_type_code: "AL".to_string(),
+            leave_type_name: "Annual Leave".to_string(),
+            is_paid: true,
+            entitlement: 12,
+            accrued_amount: 0.0,
+            carried_over: 0,
+            used: 0,
+            remaining: 12.0,
+        }];
+        mock_leave_balance_repo
+            .expect_get_employee_balances()
+            .returning(move |_, _, _| Ok(mock_balances.clone()));
+
+        mock_leave_balance_repo
+            .expect_upsert_leave_balance()
+            .returning(|_, balance| {
+                // Assert that entitlement has been prorated.
+                // From 2026-01-01 to 2026-06-30 is 181 days. 181 / 365 * 12 = 5.95 -> round to 6.
+                assert_eq!(balance.entitlement(), 6);
+                Ok(())
+            });
+
+        // 3. Create service and run
+        let svc = EmployeeService::new(
+            Arc::new(MockEmployeeRepo::empty()),
+            Arc::new(mock_employment_repo),
+            Arc::new(NopDepartmentRepo),
+            Arc::new(NopUserRepo),
+            Arc::new(NopStagingRepo),
+            Arc::new(mock_leave_balance_repo),
+        );
+
+        let res = svc
+            .terminate_employment(&auth_token, employment_id, termination_date)
+            .await;
+
+        assert!(res.is_ok());
+        let updated = res?;
+        assert_eq!(updated.status(), "terminated");
+        assert_eq!(updated.end_date(), Some(termination_date));
+        Ok(())
     }
 }

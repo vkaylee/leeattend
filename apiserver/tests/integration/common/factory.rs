@@ -425,7 +425,7 @@ impl EmployeeBuilder {
             crate::test_execute!(
                 &self.diesel_pools.api,
                 "INSERT INTO employments (id, workspace_id, employee_id, employer_id, primary_location_id, status, start_date, employment_type, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, 'active', $6, 'full_time', NOW(), NOW())",
-                diesel::sql_types::Uuid, employee_id,
+                diesel::sql_types::Uuid, Uuid::new_v4(),
                 diesel::sql_types::Uuid, workspace_id,
                 diesel::sql_types::Uuid, employee_id,
                 diesel::sql_types::Uuid, employer_id,

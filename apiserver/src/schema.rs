@@ -973,12 +973,10 @@ diesel::table! {
         date_of_birth -> Nullable<Date>,
         #[max_length = 10]
         gender -> Nullable<Varchar>,
-        #[max_length = 50]
-        national_id -> Nullable<Varchar>,
+        national_id -> Nullable<Text>,
         #[max_length = 100]
         bank_name -> Nullable<Varchar>,
-        #[max_length = 50]
-        bank_account_number -> Nullable<Varchar>,
+        bank_account_number -> Nullable<Text>,
         #[max_length = 100]
         bank_branch -> Nullable<Varchar>,
         created_at -> Timestamptz,

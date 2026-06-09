@@ -227,6 +227,9 @@ impl LeaveImportChunkHandler {
             employment_repo,
             roster_repo,
             leave_accrual_log_repo,
+            Arc::clone(&deps.workspace_config_repo),
+            Arc::clone(&deps.user_repo),
+            Arc::clone(&deps.workspace_repo),
         );
 
         let strategy = LeaveImportStrategy {

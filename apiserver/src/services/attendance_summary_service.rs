@@ -25,7 +25,7 @@ use crate::utils::chrono_helpers::local_to_utc as local_midnight_to_utc;
 
 pub struct EnterPaperOtArgs {
     pub workspace_id: Uuid,
-    pub employee_id: Uuid,
+    pub employment_id: Uuid,
     pub date: NaiveDate,
     pub claimed_minutes: i32,
     pub reason: String,
@@ -547,7 +547,7 @@ impl AttendanceSummaryService {
     pub async fn claim_ot(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         date: NaiveDate,
         claimed_minutes: i32,
         reason: Option<String>,
@@ -557,7 +557,7 @@ impl AttendanceSummaryService {
         let rows_affected = summary_repo
             .claim_ot(
                 &TenantAuthToken::system_override(workspace_id),
-                employee_id,
+                employment_id,
                 date,
                 claimed_minutes,
                 reason,
@@ -574,7 +574,7 @@ impl AttendanceSummaryService {
     pub async fn approve_ot(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         date: NaiveDate,
         approved_minutes: i32,
         manager_note: Option<String>,
@@ -585,7 +585,7 @@ impl AttendanceSummaryService {
         let rows_affected = summary_repo
             .approve_ot(
                 &TenantAuthToken::system_override(workspace_id),
-                employee_id,
+                employment_id,
                 date,
                 approved_minutes,
                 manager_note,
@@ -610,7 +610,7 @@ impl AttendanceSummaryService {
         let existing = summary_repo
             .get_summary(
                 &TenantAuthToken::system_override(args.workspace_id),
-                args.employee_id,
+                args.employment_id,
                 args.date,
             )
             .await?;
@@ -631,7 +631,7 @@ impl AttendanceSummaryService {
         let result = summary_repo
             .upsert_paper_ot(
                 &TenantAuthToken::system_override(args.workspace_id),
-                args.employee_id,
+                args.employment_id,
                 args.date,
                 args.claimed_minutes,
                 args.reason,
@@ -922,7 +922,7 @@ mod tests {
         fn paper_ot_args(claimed: i32, allow_exceed: bool) -> EnterPaperOtArgs {
             EnterPaperOtArgs {
                 workspace_id: Uuid::new_v4(),
-                employee_id: Uuid::new_v4(),
+                employment_id: Uuid::new_v4(),
                 date: dummy_date(),
                 claimed_minutes: claimed,
                 reason: "OT".to_string(),

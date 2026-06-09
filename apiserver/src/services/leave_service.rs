@@ -13,7 +13,10 @@ use crate::models::{
 use crate::repositories::leave_balance_repository::LeaveBalanceRepository;
 use crate::repositories::leave_request_repository::LeaveRequestRepository;
 use crate::repositories::roster::RosterRepository;
+use crate::repositories::workspace_config_repository::WorkspaceConfigRepository;
+use crate::repositories::workspace_repository::WorkspaceRepository;
 use crate::repositories::EmployeeRepository;
+use crate::repositories::UserRepository;
 use rust_decimal::prelude::ToPrimitive;
 
 pub struct LeaveService {
@@ -21,10 +24,12 @@ pub struct LeaveService {
     leave_request_repo: Arc<dyn LeaveRequestRepository>,
     employee_repo: Arc<dyn EmployeeRepository>,
     employment_repo: Arc<dyn crate::repositories::EmploymentRepository>,
-    #[allow(dead_code)]
     roster_repo: Arc<dyn RosterRepository>,
     leave_accrual_log_repo:
         Arc<dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository>,
+    workspace_config_repo: Arc<dyn WorkspaceConfigRepository>,
+    user_repo: Arc<dyn UserRepository>,
+    workspace_repo: Arc<dyn WorkspaceRepository>,
 }
 
 impl LeaveService {
@@ -37,6 +42,9 @@ impl LeaveService {
         leave_accrual_log_repo: Arc<
             dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
         >,
+        workspace_config_repo: Arc<dyn WorkspaceConfigRepository>,
+        user_repo: Arc<dyn UserRepository>,
+        workspace_repo: Arc<dyn WorkspaceRepository>,
     ) -> Self {
         Self {
             leave_balance_repo,
@@ -45,6 +53,9 @@ impl LeaveService {
             employment_repo,
             roster_repo,
             leave_accrual_log_repo,
+            workspace_config_repo,
+            user_repo,
+            workspace_repo,
         }
     }
 
@@ -314,6 +325,10 @@ impl LeaveService {
             self.apply_leave_to_roster(workspace_id, &request).await?;
         }
 
+        // Check conflicts (handles auto-cancel and notifications)
+        self.check_and_handle_conflicts(workspace_id, &request)
+            .await?;
+
         Ok(request)
     }
 
@@ -373,6 +388,19 @@ impl LeaveService {
         // If approved, update roster
         if req.status == LeaveStatus::Approved {
             self.apply_leave_to_roster(workspace_id, &request).await?;
+
+            // Fetch the updated request object to pass to the conflict checker (with status = Approved)
+            let updated_request = self
+                .leave_request_repo
+                .get_leave_request_by_id(
+                    &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                    request_id,
+                )
+                .await?
+                .ok_or(AppError::NotFound("Not found after status update".into()))?;
+
+            self.check_and_handle_conflicts(workspace_id, &updated_request)
+                .await?;
         }
 
         Ok(())
@@ -414,6 +442,177 @@ impl LeaveService {
                 status,
             )
             .await
+    }
+
+    async fn check_and_handle_conflicts(
+        &self,
+        workspace_id: Uuid,
+        req: &LeaveRequest,
+    ) -> Result<(), AppError> {
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
+
+        // 1. Get employee ID from employment
+        let employment = self
+            .employment_repo
+            .get_employment_by_id(&auth_token, req.employment_id())
+            .await?
+            .ok_or_else(|| AppError::NotFound("Employment not found".into()))?;
+        let employee_id = employment.employee_id();
+
+        // 2. Fetch other leave requests of the employee
+        let other_requests = self
+            .leave_request_repo
+            .get_employee_leave_requests(&auth_token, employee_id)
+            .await?;
+
+        // Filter for conflicting leave requests (Approved or PreApproved, overlapping dates, excluding self)
+        let mut conflicting_leaves = Vec::new();
+        for r in other_requests {
+            if r.id() == req.id() {
+                continue;
+            }
+            if r.status() == LeaveStatus::Approved || r.status() == LeaveStatus::PreApproved {
+                // Overlap check
+                if r.start_date() <= req.end_date() && r.end_date() >= req.start_date() {
+                    conflicting_leaves.push(r);
+                }
+            }
+        }
+
+        // 3. Fetch rosters for the date range
+        let rosters = self
+            .roster_repo
+            .get_employment_rosters(
+                &auth_token,
+                req.employment_id(),
+                req.start_date(),
+                req.end_date(),
+            )
+            .await?;
+
+        // Filter for conflicting shift rosters (has shift_id scheduled)
+        let mut conflicting_shifts = Vec::new();
+        for roster in rosters {
+            if roster.shift_id.is_some() {
+                conflicting_shifts.push(roster);
+            }
+        }
+
+        // If no conflict, we are done
+        if conflicting_leaves.is_empty() && conflicting_shifts.is_empty() {
+            return Ok(());
+        }
+
+        // 4. Get workspace conflict policy
+        let config_entry = self
+            .workspace_config_repo
+            .get_effective_config(
+                &auth_token,
+                workspace_id,
+                "leave.conflict_policy",
+                "workspace",
+                None,
+                req.start_date(),
+            )
+            .await?;
+
+        let policy = config_entry
+            .and_then(|entry| entry.value_text().map(ToString::to_string))
+            .unwrap_or_else(|| "notify".to_string());
+
+        // 5. Handle conflict based on policy and current request status
+        // Note: auto_cancel policy only cancels if the incoming request is Approved or PreApproved.
+        // If the incoming request is Pending, we always fall back to notify to warn HR before they approve.
+        if policy == "auto_cancel"
+            && (req.status() == LeaveStatus::Approved || req.status() == LeaveStatus::PreApproved)
+        {
+            // Cancel conflicting leave requests
+            for old_req in &conflicting_leaves {
+                self.leave_request_repo
+                    .cancel_leave_request(&auth_token, old_req.id())
+                    .await?;
+            }
+            // If there's a shift conflict, we still notify because we can't cancel the shift
+            if !conflicting_shifts.is_empty() {
+                self.send_conflict_notifications(workspace_id, req, Vec::new(), conflicting_shifts)
+                    .await?;
+            }
+        } else {
+            // Otherwise, policy is notify, or request is Pending: send notifications
+            self.send_conflict_notifications(
+                workspace_id,
+                req,
+                conflicting_leaves,
+                conflicting_shifts,
+            )
+            .await?;
+        }
+
+        Ok(())
+    }
+
+    async fn send_conflict_notifications(
+        &self,
+        workspace_id: Uuid,
+        req: &LeaveRequest,
+        conflicting_leaves: Vec<LeaveRequest>,
+        conflicting_shifts: Vec<crate::models::ShiftRoster>,
+    ) -> Result<(), AppError> {
+        let mut user_ids_to_notify = std::collections::HashSet::new();
+
+        // 1. Notify the submitter of the request
+        if let Some(user_id) = req.requested_by_user_id() {
+            user_ids_to_notify.insert(user_id);
+        }
+
+        // 2. Notify all admins/HR
+        let admins = self
+            .workspace_repo
+            .get_admins_with_permissions(workspace_id, &["leave.approve", "leave.manage"])
+            .await
+            .unwrap_or_default();
+
+        for admin_id in admins {
+            user_ids_to_notify.insert(admin_id);
+        }
+
+        // 3. Format message content
+        let mut content_parts = Vec::new();
+        if !conflicting_leaves.is_empty() {
+            let count = conflicting_leaves.len();
+            content_parts.push(format!("trùng với {count} đơn nghỉ phép khác đã duyệt"));
+        }
+        if !conflicting_shifts.is_empty() {
+            let count = conflicting_shifts.len();
+            content_parts.push(format!("trùng với {count} ca làm việc đã phân công"));
+        }
+
+        let details = content_parts.join(" và ");
+        let title = "Xung đột lịch nghỉ phép".to_string();
+        let content = format!(
+            "Yêu cầu nghỉ phép từ ngày {} đến {} {details}",
+            req.start_date().format("%d/%m/%Y"),
+            req.end_date().format("%d/%m/%Y")
+        );
+        let link = "/workspace/leaves".to_string();
+
+        // 4. Create notification records
+        for target_user_id in user_ids_to_notify {
+            let notification = crate::models::Notification {
+                id: Uuid::new_v4(),
+                user_id: target_user_id,
+                r#type: "leave_conflict".to_string(),
+                title: title.clone(),
+                content: content.clone(),
+                is_read: false,
+                link: Some(link.clone()),
+                created_at: Utc::now(),
+            };
+
+            self.user_repo.create_notification(&notification).await?;
+        }
+
+        Ok(())
     }
 }
 
@@ -744,7 +943,7 @@ mod tests {
             _s: NaiveDate,
             _en: NaiveDate,
         ) -> Result<Vec<ShiftRoster>, AppError> {
-            unimplemented!()
+            Ok(vec![])
         }
     }
 
@@ -918,6 +1117,16 @@ mod tests {
                 .returning(|_, _| Ok(None));
         }
 
+        let mut mock_workspace_config_repo =
+            crate::repositories::workspace_config_repository::MockWorkspaceConfigRepository::new();
+        mock_workspace_config_repo
+            .expect_get_effective_config()
+            .returning(|_, _, _, _, _, _| Box::pin(async move { Ok(None) }));
+
+        let mock_user_repo = crate::repositories::user_repository::MockUserRepository::new();
+        let mock_workspace_repo =
+            crate::repositories::workspace_repository::MockWorkspaceRepository::new();
+
         (
             LeaveService::new(
                 bal_repo.clone(),
@@ -926,6 +1135,9 @@ mod tests {
                 Arc::new(mock_employment_repo),
                 ros_repo.clone(),
                 log_repo.clone(),
+                Arc::new(mock_workspace_config_repo),
+                Arc::new(mock_user_repo),
+                Arc::new(mock_workspace_repo),
             ),
             bal_repo,
             req_repo,
@@ -1514,5 +1726,312 @@ mod tests {
             .unwrap();
 
         assert!(*req_repo.update_called.lock().unwrap());
+    }
+
+    #[tokio::test]
+    async fn test_leave_conflict_auto_cancel() -> Result<(), Box<dyn std::error::Error>> {
+        let employee_id = Uuid::new_v4();
+        let employment_id = Uuid::new_v4();
+        let workspace_id = Uuid::new_v4();
+        let leave_type_id = Uuid::new_v4();
+
+        // 1. Mock employment repo
+        let emp_repo = crate::repositories::employee::MockEmployeeRepository::new();
+        let mut employment_repo =
+            crate::repositories::employment_repository::MockEmploymentRepository::new();
+        let dummy_employment = crate::models::employment::Employment::new(
+            employment_id,
+            workspace_id,
+            employee_id,
+            Uuid::new_v4(),
+            None,
+            None,
+            "active".to_string(),
+            NaiveDate::from_ymd_opt(2024, 1, 1).ok_or("date")?,
+            None,
+            None,
+            "full_time".to_string(),
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
+        employment_repo
+            .expect_get_employment_by_id()
+            .returning(move |_, _| Ok(Some(dummy_employment.clone())));
+
+        // 2. Mock leave request repo
+        let mut req_repo =
+            crate::repositories::leave_request_repository::MockLeaveRequestRepository::new();
+
+        // Incoming request
+        let incoming_req = LeaveRequest::new(
+            Uuid::new_v4(),
+            employment_id,
+            leave_type_id,
+            NaiveDate::from_ymd_opt(2024, 6, 10).ok_or("date")?,
+            NaiveDate::from_ymd_opt(2024, 6, 12).ok_or("date")?,
+            None,
+            LeaveStatus::Approved,
+            LeaveDurationType::FullDay,
+            None,
+            None,
+            Some(Uuid::new_v4()),
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
+
+        // Conflicting request
+        let conflicting_req = LeaveRequest::new(
+            Uuid::new_v4(),
+            employment_id,
+            leave_type_id,
+            NaiveDate::from_ymd_opt(2024, 6, 11).ok_or("date")?,
+            NaiveDate::from_ymd_opt(2024, 6, 11).ok_or("date")?,
+            None,
+            LeaveStatus::Approved,
+            LeaveDurationType::FullDay,
+            None,
+            None,
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
+        let conflicting_req_id = conflicting_req.id();
+
+        // Mock requests query: return the conflicting request (and self, which is ignored)
+        let other_requests = vec![incoming_req.clone(), conflicting_req.clone()];
+        let other_requests_clone = other_requests.clone();
+        req_repo
+            .expect_get_employee_leave_requests()
+            .returning(move |_, _| {
+                let val = other_requests_clone.clone();
+                Box::pin(async move { Ok(val) })
+            });
+
+        // Expect cancel call on conflicting request
+        req_repo
+            .expect_cancel_leave_request()
+            .withf(move |_, &id| id == conflicting_req_id)
+            .times(1)
+            .returning(|_, _| Box::pin(async move { Ok(()) }));
+
+        // 3. Mock roster repo: returns no roster conflicts
+        let mut ros_repo = crate::repositories::roster::MockRosterRepository::new();
+        ros_repo
+            .expect_get_employment_rosters()
+            .returning(|_, _, _, _| Box::pin(async move { Ok(vec![]) }));
+
+        // 4. Mock config repo: returns "auto_cancel" policy
+        let mut config_repo =
+            crate::repositories::workspace_config_repository::MockWorkspaceConfigRepository::new();
+        let config_entry = crate::models::WorkspaceConfigEntry::new(
+            Uuid::new_v4(),
+            workspace_id,
+            "workspace".to_string(),
+            None,
+            "leave.conflict_policy".to_string(),
+            None,
+            None,
+            Some("auto_cancel".to_string()),
+            None,
+            None,
+            NaiveDate::from_ymd_opt(1970, 1, 1).ok_or("date")?,
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
+        let config_entry_clone = config_entry.clone();
+        config_repo
+            .expect_get_effective_config()
+            .returning(move |_, _, _, _, _, _| {
+                let val = config_entry_clone.clone();
+                Box::pin(async move { Ok(Some(val)) })
+            });
+
+        // 5. Unused mocks
+        let bal_repo =
+            crate::repositories::leave_balance_repository::MockLeaveBalanceRepository::new();
+        let log_repo =
+            crate::repositories::leave_accrual_log_repository::MockLeaveAccrualLogRepository::new();
+        let user_repo = crate::repositories::user_repository::MockUserRepository::new();
+        let workspace_repo =
+            crate::repositories::workspace_repository::MockWorkspaceRepository::new();
+
+        let svc = LeaveService::new(
+            Arc::new(bal_repo),
+            Arc::new(req_repo),
+            Arc::new(emp_repo),
+            Arc::new(employment_repo),
+            Arc::new(ros_repo),
+            Arc::new(log_repo),
+            Arc::new(config_repo),
+            Arc::new(user_repo),
+            Arc::new(workspace_repo),
+        );
+
+        svc.check_and_handle_conflicts(workspace_id, &incoming_req)
+            .await?;
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_leave_conflict_notify() -> Result<(), Box<dyn std::error::Error>> {
+        let employee_id = Uuid::new_v4();
+        let employment_id = Uuid::new_v4();
+        let workspace_id = Uuid::new_v4();
+        let leave_type_id = Uuid::new_v4();
+        let requester_user_id = Uuid::new_v4();
+        let admin_user_id = Uuid::new_v4();
+
+        // 1. Mock employment repo
+        let emp_repo = crate::repositories::employee::MockEmployeeRepository::new();
+        let mut employment_repo =
+            crate::repositories::employment_repository::MockEmploymentRepository::new();
+        let dummy_employment = crate::models::employment::Employment::new(
+            employment_id,
+            workspace_id,
+            employee_id,
+            Uuid::new_v4(),
+            None,
+            None,
+            "active".to_string(),
+            NaiveDate::from_ymd_opt(2024, 1, 1).ok_or("date")?,
+            None,
+            None,
+            "full_time".to_string(),
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
+        employment_repo
+            .expect_get_employment_by_id()
+            .returning(move |_, _| Ok(Some(dummy_employment.clone())));
+
+        // 2. Mock leave request repo
+        let mut req_repo =
+            crate::repositories::leave_request_repository::MockLeaveRequestRepository::new();
+
+        // Incoming request (Pending)
+        let incoming_req = LeaveRequest::new(
+            Uuid::new_v4(),
+            employment_id,
+            leave_type_id,
+            NaiveDate::from_ymd_opt(2024, 6, 10).ok_or("date")?,
+            NaiveDate::from_ymd_opt(2024, 6, 12).ok_or("date")?,
+            None,
+            LeaveStatus::Pending,
+            LeaveDurationType::FullDay,
+            None,
+            None,
+            Some(requester_user_id),
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
+
+        // Conflicting request
+        let conflicting_req = LeaveRequest::new(
+            Uuid::new_v4(),
+            employment_id,
+            leave_type_id,
+            NaiveDate::from_ymd_opt(2024, 6, 11).ok_or("date")?,
+            NaiveDate::from_ymd_opt(2024, 6, 11).ok_or("date")?,
+            None,
+            LeaveStatus::Approved,
+            LeaveDurationType::FullDay,
+            None,
+            None,
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
+
+        // Mock requests query
+        let other_requests = vec![incoming_req.clone(), conflicting_req.clone()];
+        let other_requests_clone = other_requests.clone();
+        req_repo
+            .expect_get_employee_leave_requests()
+            .returning(move |_, _| {
+                let val = other_requests_clone.clone();
+                Box::pin(async move { Ok(val) })
+            });
+
+        // Expect NO cancel calls because status is Pending and policy is notify
+        req_repo.expect_cancel_leave_request().never();
+
+        // 3. Mock roster repo: returns no roster conflicts
+        let mut ros_repo = crate::repositories::roster::MockRosterRepository::new();
+        ros_repo
+            .expect_get_employment_rosters()
+            .returning(|_, _, _, _| Box::pin(async move { Ok(vec![]) }));
+
+        // 4. Mock config repo: returns "notify" policy
+        let mut config_repo =
+            crate::repositories::workspace_config_repository::MockWorkspaceConfigRepository::new();
+        let config_entry = crate::models::WorkspaceConfigEntry::new(
+            Uuid::new_v4(),
+            workspace_id,
+            "workspace".to_string(),
+            None,
+            "leave.conflict_policy".to_string(),
+            None,
+            None,
+            Some("notify".to_string()),
+            None,
+            None,
+            NaiveDate::from_ymd_opt(1970, 1, 1).ok_or("date")?,
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
+        let config_entry_clone = config_entry.clone();
+        config_repo
+            .expect_get_effective_config()
+            .returning(move |_, _, _, _, _, _| {
+                let val = config_entry_clone.clone();
+                Box::pin(async move { Ok(Some(val)) })
+            });
+
+        // 5. Mock workspace repo: return list of admins
+        let mut workspace_repo =
+            crate::repositories::workspace_repository::MockWorkspaceRepository::new();
+        workspace_repo
+            .expect_get_admins_with_permissions()
+            .returning(move |_, _| Box::pin(async move { Ok(vec![admin_user_id]) }));
+
+        // 6. Mock user repo: expects 2 create_notification calls (one for submitter, one for admin)
+        let mut user_repo = crate::repositories::user_repository::MockUserRepository::new();
+        user_repo
+            .expect_create_notification()
+            .times(2)
+            .returning(|_| Ok(()));
+
+        let bal_repo =
+            crate::repositories::leave_balance_repository::MockLeaveBalanceRepository::new();
+        let log_repo =
+            crate::repositories::leave_accrual_log_repository::MockLeaveAccrualLogRepository::new();
+
+        let svc = LeaveService::new(
+            Arc::new(bal_repo),
+            Arc::new(req_repo),
+            Arc::new(emp_repo),
+            Arc::new(employment_repo),
+            Arc::new(ros_repo),
+            Arc::new(log_repo),
+            Arc::new(config_repo),
+            Arc::new(user_repo),
+            Arc::new(workspace_repo),
+        );
+
+        svc.check_and_handle_conflicts(workspace_id, &incoming_req)
+            .await?;
+
+        Ok(())
     }
 }

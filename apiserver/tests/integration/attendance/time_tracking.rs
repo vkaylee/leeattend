@@ -12,6 +12,7 @@ use chrono_tz::Tz;
 use serde_json::json;
 use std::sync::Arc;
 use tower::ServiceExt;
+use uuid::Uuid;
 
 #[tokio::test]
 async fn test_punch_in_grace_period_enforcement_smoke() {
@@ -39,11 +40,18 @@ async fn test_punch_in_grace_period_enforcement_smoke() {
         .assign_to_employee(employee_id, test_date)
         .await;
 
+    let emp_employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        employee_id
+    );
+
     let token = AuthService::generate_token(user_id, "test_secret_tower", 3600).unwrap();
 
     // Try to punch in at 08:30 -> Should fail (400) because 08:30 < 08:55
     let punch_payload = json!({
-        "employment_id": employee_id,
+        "employment_id": emp_employment_id,
         "entry_type": "work"
     });
 
@@ -117,7 +125,17 @@ async fn test_punch_in_grace_period_enforcement_smoke() {
 
     // Only assert if we didn't wrap around midnight within 4 hours
     if test_start_time > real_now.time() {
-        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        if response.status() != StatusCode::BAD_REQUEST {
+            let status = response.status();
+            let body_bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+                .await
+                .unwrap();
+            let body_str = String::from_utf8_lossy(&body_bytes);
+            panic!(
+                "Expected BAD_REQUEST, got status: {}, body: {}",
+                status, body_str
+            );
+        }
     }
 
     // Clean up any accidental punch-in from the first attempt
@@ -125,7 +143,7 @@ async fn test_punch_in_grace_period_enforcement_smoke() {
         &factory.diesel_pools.api,
         "DELETE FROM time_entries WHERE employment_id = $1",
         diesel::sql_types::Uuid,
-        employee_id
+        emp_employment_id
     );
 
     // Now update shift to have a large grace period (6 hours)
@@ -146,5 +164,15 @@ async fn test_punch_in_grace_period_enforcement_smoke() {
         .unwrap();
 
     let response2 = app.clone().oneshot(req2).await.unwrap();
-    assert_eq!(response2.status(), StatusCode::CREATED);
+    if response2.status() != StatusCode::CREATED {
+        let status = response2.status();
+        let body_bytes = axum::body::to_bytes(response2.into_body(), 1024 * 1024)
+            .await
+            .unwrap();
+        let body_str = String::from_utf8_lossy(&body_bytes);
+        panic!(
+            "Expected CREATED, got status: {}, body: {}",
+            status, body_str
+        );
+    }
 }

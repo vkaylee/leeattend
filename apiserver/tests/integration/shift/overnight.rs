@@ -21,6 +21,12 @@ async fn test_overnight_shift_pairing() {
         .create_with_owner(user_id)
         .await;
     let employee_id = factory.employee().with_workspace(ws_id).create().await;
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        employee_id
+    );
 
     // 1. Overnight Shift: 22:00 -> 06:00
     let shift_id = factory
@@ -76,7 +82,7 @@ async fn test_overnight_shift_pairing() {
     let raw_log_in = apiserver::models::RawAttendanceLog::new(
         Uuid::new_v4(),
         ws_id,
-        employee_id,
+        employment_id,
         punch_in_utc,
         LogSource::Device,
         None,
@@ -90,7 +96,7 @@ async fn test_overnight_shift_pairing() {
     let raw_log_out = apiserver::models::RawAttendanceLog::new(
         Uuid::new_v4(),
         ws_id,
-        employee_id,
+        employment_id,
         punch_out_utc,
         LogSource::Device,
         None,
@@ -144,7 +150,7 @@ async fn test_overnight_shift_pairing() {
             )),
         },
     )
-    .reprocess_daily_attendance(ws_id, employee_id, shift_date, tz)
+    .reprocess_daily_attendance(ws_id, employment_id, shift_date, tz)
     .await
     .unwrap();
 
@@ -153,7 +159,7 @@ async fn test_overnight_shift_pairing() {
     let entries = repo
         .get_employment_time_entries(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            employee_id,
+            employment_id,
             shift_date.and_hms_opt(0, 0, 0).unwrap().and_utc(),
             (shift_date + Duration::days(1))
                 .and_hms_opt(23, 59, 59)

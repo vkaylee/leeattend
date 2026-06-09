@@ -54,7 +54,7 @@ pub async fn enter_paper_ot(
     ctx.require_permission(Permission::OvertimePaperUpload)?;
 
     // 2. Validate employee exists in workspace
-    let _employee = state
+    let employee = state
         .employees()
         .repo()
         .get_employee_by_id(employee_id, &ctx.auth_token)
@@ -66,6 +66,10 @@ pub async fn enter_paper_ot(
         return Err(AppError::validation(I18nKey::MinutesGreaterThanZero));
     }
 
+    let active_employment_id = employee
+        .active_employment_id()
+        .ok_or_else(|| AppError::validation_raw("No active employment found"))?;
+
     // 4. Call service
     let result = state
         .attendance()
@@ -73,7 +77,7 @@ pub async fn enter_paper_ot(
         .enter_paper_ot(
             crate::services::attendance_summary_service::EnterPaperOtArgs {
                 workspace_id: ctx.workspace_id,
-                employee_id,
+                employment_id: active_employment_id,
                 date: req.date,
                 claimed_minutes: req.claimed_minutes,
                 reason: req.reason,
@@ -309,7 +313,7 @@ pub async fn bulk_upload_paper_ot(
             .enter_paper_ot(
                 crate::services::attendance_summary_service::EnterPaperOtArgs {
                     workspace_id: ctx.workspace_id,
-                    employee_id: active_employment_id,
+                    employment_id: active_employment_id,
                     date,
                     claimed_minutes: minutes,
                     reason,

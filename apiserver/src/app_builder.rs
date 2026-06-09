@@ -31,6 +31,18 @@ impl AppState {
 
         // Dev seed data removed — first registered user gets platform_admin automatically.
 
+        let crypto_service = if let Ok(keys_json) = std::env::var("ENCRYPTION_KEYS_JSON") {
+            let crypto = crate::crypto::CryptoService::from_json(&keys_json)
+                .map_err(|e| format!("Invalid ENCRYPTION_KEYS_JSON: {e}"))?;
+            Some(Arc::new(crypto))
+        } else {
+            let app_env = std::env::var("APP_ENV").unwrap_or_else(|_| "development".to_string());
+            if app_env == "production" {
+                return Err("ENCRYPTION_KEYS_JSON must be set in production".into());
+            }
+            None
+        };
+
         let agent_manager = AgentManager::new(
             redis_pool
                 .clone()
@@ -53,8 +65,9 @@ impl AppState {
             agent_manager.clone(),
         ));
         let employee_repo: Arc<dyn crate::repositories::employee::EmployeeRepository> = Arc::new(
-            crate::repositories::diesel_employee_repository::DieselEmployeeRepository::new(
+            crate::repositories::diesel_employee_repository::DieselEmployeeRepository::new_with_crypto(
                 diesel_pools.clone(),
+                crypto_service.clone(),
             ),
         );
         let employment_repo: Arc<dyn crate::repositories::EmploymentRepository> = Arc::new(
@@ -75,11 +88,18 @@ impl AppState {
         > = Arc::new(crate::repositories::DieselStagingLogRepository::new(
             diesel_pools.clone(),
         ));
+        let leave_balance_repo: Arc<
+            dyn crate::repositories::leave_balance_repository::LeaveBalanceRepository,
+        > = Arc::new(crate::repositories::DieselLeaveBalanceRepository::new(
+            diesel_pools.clone(),
+        ));
         let employee_service = Arc::new(crate::services::EmployeeService::new(
             Arc::clone(&employee_repo),
+            Arc::clone(&employment_repo),
             Arc::clone(&department_repo),
             Arc::clone(&user_repo),
             Arc::clone(&staging_repo),
+            Arc::clone(&leave_balance_repo),
         ));
         let contract_repo = Arc::new(crate::repositories::DieselEmployeeContractRepository::new(
             diesel_pools.clone(),
@@ -250,16 +270,20 @@ impl AppState {
                 system_db_cluster_repo.clone(),
                 diesel_pools.clone(),
             ));
-        let leave_balance_repo: Arc<
-            dyn crate::repositories::leave_balance_repository::LeaveBalanceRepository,
-        > = Arc::new(crate::repositories::DieselLeaveBalanceRepository::new(
-            diesel_pools.clone(),
-        ));
+        // leave_balance_repo already instantiated earlier in this function
         let leave_accrual_log_repo: Arc<
             dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
         > = Arc::new(crate::repositories::DieselLeaveAccrualLogRepository::new(
             diesel_pools.clone(),
         ));
+        let workspace_config_repo: Arc<
+            dyn crate::repositories::workspace_config_repository::WorkspaceConfigRepository,
+        > = Arc::new(
+            crate::repositories::diesel_workspace_config_repository::DieselWorkspaceConfigRepository::new(
+                diesel_pools.clone(),
+            ),
+        );
+
         let leave_service = Arc::new(crate::services::leave_service::LeaveService::new(
             Arc::clone(&leave_balance_repo),
             Arc::clone(&leave_request_repo),
@@ -267,6 +291,9 @@ impl AppState {
             Arc::clone(&employment_repo),
             Arc::clone(&roster_repo),
             Arc::clone(&leave_accrual_log_repo),
+            Arc::clone(&workspace_config_repo),
+            Arc::clone(&user_repo),
+            Arc::clone(&workspace_repo),
         ));
         let shift_swap_repo: Arc<
             dyn crate::repositories::shift_swap_repository::ShiftSwapRepository,
@@ -351,9 +378,6 @@ impl AppState {
         > = Arc::new(crate::repositories::DieselSalaryBaseRepository::new(
             diesel_pools.clone(),
         ));
-
-        let workspace_config_repo: Arc<dyn crate::repositories::workspace_config_repository::WorkspaceConfigRepository> =
-            Arc::new(crate::repositories::diesel_workspace_config_repository::DieselWorkspaceConfigRepository::new(diesel_pools.clone()));
 
         let approval_workflow_repo: Arc<dyn crate::repositories::approval_workflow_repository::ApprovalWorkflowRepository> =
             Arc::new(crate::repositories::diesel_approval_workflow_repository::DieselApprovalWorkflowRepository::new(diesel_pools.clone()));
@@ -497,7 +521,10 @@ impl AppState {
                 Arc::clone(&workspace_repo),
                 Arc::clone(&department_repo),
                 Arc::clone(&staging_repo),
-                crate::worker::deps::WorkerDeps::new(&diesel_pools),
+                crate::worker::deps::WorkerDeps::new_with_crypto(
+                    &diesel_pools,
+                    crypto_service.clone(),
+                ),
                 Some(Arc::clone(&attendance_service)),
             ),
         );
@@ -568,8 +595,9 @@ impl AppState {
         let recruitment_repo: Arc<
             dyn crate::repositories::employee::EmployeeRecruitmentRepository,
         > = Arc::new(
-            crate::repositories::diesel_employee_repository::DieselEmployeeRepository::new(
+            crate::repositories::diesel_employee_repository::DieselEmployeeRepository::new_with_crypto(
                 diesel_pools.clone(),
+                crypto_service.clone(),
             ),
         );
         let recruitment_service = Arc::new(crate::services::RecruitmentService::new(Arc::clone(
@@ -663,18 +691,7 @@ impl AppState {
                 }),
                 tenant_manager,
                 tenant_provisioner.clone(),
-                if let Ok(keys_json) = std::env::var("ENCRYPTION_KEYS_JSON") {
-                    let crypto = crate::crypto::CryptoService::from_json(&keys_json)
-                        .map_err(|e| format!("Invalid ENCRYPTION_KEYS_JSON: {e}"))?;
-                    Some(Arc::new(crypto))
-                } else {
-                    let app_env =
-                        std::env::var("APP_ENV").unwrap_or_else(|_| "development".to_string());
-                    if app_env == "production" {
-                        return Err("ENCRYPTION_KEYS_JSON must be set in production".into());
-                    }
-                    None
-                },
+                crypto_service,
                 system_db_cluster_repo.clone(),
             ),
         ));

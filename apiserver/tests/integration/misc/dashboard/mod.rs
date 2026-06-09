@@ -618,9 +618,16 @@ async fn test_attendance_trend_includes_present_and_late() {
         .create()
         .await;
 
+    let emp_employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &_db.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
+
     crate::test_execute!(&_db.diesel_pools.api,
         "INSERT INTO shift_rosters (employment_id, shift_id, date, status, id) VALUES ($1, $2, $3, 'confirmed', $4)",
-        diesel::sql_types::Uuid, emp_id,
+        diesel::sql_types::Uuid, emp_employment_id,
         diesel::sql_types::Uuid, shift_id,
         diesel::sql_types::Date, today,
         diesel::sql_types::Uuid, Uuid::new_v4()
@@ -933,9 +940,16 @@ async fn test_workspace_stats_detects_late_today() {
         .create()
         .await;
 
+    let emp_employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
+
     crate::test_execute!(&pool.api,
         "INSERT INTO shift_rosters (employment_id, shift_id, date, status) VALUES ($1, $2, $3, 'confirmed')",
-        diesel::sql_types::Uuid, emp_id,
+        diesel::sql_types::Uuid, emp_employment_id,
         diesel::sql_types::Uuid, shift_id,
         diesel::sql_types::Date, today
     );
@@ -998,6 +1012,13 @@ async fn test_overtime_trend_returns_correct_structure() {
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
     let today = Utc::now().date_naive();
 
+    let emp_employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
+
     // Insert a summary row with overtime data
     crate::test_execute!(
         &pool.api,
@@ -1007,7 +1028,7 @@ async fn test_overtime_trend_returns_correct_structure() {
         diesel::sql_types::Uuid,
         ws_id,
         diesel::sql_types::Uuid,
-        emp_id,
+        emp_employment_id,
         diesel::sql_types::Date,
         today
     );

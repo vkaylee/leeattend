@@ -43,11 +43,20 @@ pub struct WorkerDeps {
     pub user_repo: Arc<dyn crate::repositories::UserRepository>,
     pub system_repo: Arc<dyn crate::repositories::SystemRepository>,
     pub outbox_repo: Arc<dyn OutboxJobRepository>,
+    pub workspace_config_repo: Arc<dyn crate::repositories::workspace_config_repository::WorkspaceConfigRepository>,
 }
 
 impl WorkerDeps {
     /// Build all worker-scoped repositories from Diesel connection pools.
     pub fn new(diesel: &crate::diesel_pool::DieselPools) -> Self {
+        Self::new_with_crypto(diesel, None)
+    }
+
+    /// Build all worker-scoped repositories with custom crypto service.
+    pub fn new_with_crypto(
+        diesel: &crate::diesel_pool::DieselPools,
+        crypto_service: Option<std::sync::Arc<crate::crypto::CryptoService>>,
+    ) -> Self {
         Self {
             time_entry_repo: Arc::new(crate::repositories::DieselTimeEntryRepository::new(
                 diesel.clone(),
@@ -58,9 +67,12 @@ impl WorkerDeps {
             policy_repo: Arc::new(crate::repositories::DieselAttendancePolicyRepository::new(
                 diesel.clone(),
             )),
-            employee_repo: Arc::new(crate::repositories::DieselEmployeeRepository::new(
-                diesel.clone(),
-            )),
+            employee_repo: Arc::new(
+                crate::repositories::DieselEmployeeRepository::new_with_crypto(
+                    diesel.clone(),
+                    crypto_service,
+                ),
+            ),
             raw_log_repo: Arc::new(crate::repositories::DieselRawAttendanceLogRepository::new(
                 diesel.clone(),
             )),
@@ -122,6 +134,9 @@ impl WorkerDeps {
             outbox_repo: Arc::new(crate::repositories::DieselOutboxJobRepository::new(
                 diesel.clone(),
             )),
+            workspace_config_repo: Arc::new(
+                crate::repositories::diesel_workspace_config_repository::DieselWorkspaceConfigRepository::new(diesel.clone()),
+            ),
         }
     }
 

@@ -42,10 +42,17 @@ async fn test_working_condition_crud() {
         .create()
         .await;
 
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &test_db.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
+
     // Create a working condition
     let wc = WorkingCondition::new(
         Uuid::new_v4(),
-        emp_id,
+        employment_id,
         "late_arrival".to_string(),
         15,
         true,
@@ -64,7 +71,7 @@ async fn test_working_condition_crud() {
     let conditions = repo
         .get_working_conditions(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp_id,
+            employment_id,
             1,
             50,
         )
@@ -80,7 +87,7 @@ async fn test_working_condition_crud() {
         .delete_working_condition(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             wc.id(),
-            emp_id,
+            employment_id,
         )
         .await
         .unwrap();
@@ -90,7 +97,7 @@ async fn test_working_condition_crud() {
     let conditions = repo
         .get_working_conditions(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp_id,
+            employment_id,
             1,
             50,
         )
@@ -108,12 +115,19 @@ async fn test_delete_nonexistent_working_condition_returns_false() {
     let ws_id = factory.workspace().create_with_owner(user_id).await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &test_db.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
+
     let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
     let deleted = repo
         .delete_working_condition(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
             Uuid::new_v4(),
-            emp_id,
+            employment_id,
         )
         .await
         .unwrap();

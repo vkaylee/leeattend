@@ -32,10 +32,17 @@ async fn test_attendance_logs_include_employee_details() -> Result<(), Box<dyn s
         .create()
         .await;
 
+    let emp_employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
+
     // 1. Create a TimeEntry
     let entry = TimeEntry::new(
         Uuid::new_v4(),
-        emp_id,
+        emp_employment_id,
         ws_id,
         None,
         Utc::now(),
@@ -73,7 +80,7 @@ async fn test_attendance_logs_include_employee_details() -> Result<(), Box<dyn s
     let raw_log = RawAttendanceLog::new(
         Uuid::new_v4(),
         ws_id,
-        emp_id,
+        emp_employment_id,
         Utc::now(),
         LogSource::Device,
         Some(device_id.to_string()),

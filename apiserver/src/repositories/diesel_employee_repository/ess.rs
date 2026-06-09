@@ -46,7 +46,23 @@ impl EmployeeSelfServiceRepository for DieselEmployeeRepository {
             .optional()
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        Ok(result.map(Into::into))
+        if let Some(mut entity) = result {
+            if let Some(crypto) = &self.crypto_service {
+                if let Some(ref enc_nat_id) = entity.national_id {
+                    if let Ok(decrypted) = crypto.decrypt(enc_nat_id) {
+                        entity.national_id = Some(decrypted);
+                    }
+                }
+                if let Some(ref enc_bank_acc) = entity.bank_account_number {
+                    if let Ok(decrypted) = crypto.decrypt(enc_bank_acc) {
+                        entity.bank_account_number = Some(decrypted);
+                    }
+                }
+            }
+            Ok(Some(entity.into()))
+        } else {
+            Ok(None)
+        }
     }
 
     async fn upsert_employee_profile(
@@ -81,16 +97,32 @@ impl EmployeeSelfServiceRepository for DieselEmployeeRepository {
             ));
         }
 
-        let result: EmployeeProfileEntity = diesel::insert_into(employee_profiles::table)
+        let mut encrypted_national_id = req.national_id.clone();
+        let mut encrypted_bank_account_number = req.bank_account_number.clone();
+
+        if let Some(crypto) = &self.crypto_service {
+            if let Some(ref nat_id) = req.national_id {
+                if let Ok(encrypted) = crypto.encrypt(nat_id) {
+                    encrypted_national_id = Some(encrypted);
+                }
+            }
+            if let Some(ref bank_acc) = req.bank_account_number {
+                if let Ok(encrypted) = crypto.encrypt(bank_acc) {
+                    encrypted_bank_account_number = Some(encrypted);
+                }
+            }
+        }
+
+        let mut result: EmployeeProfileEntity = diesel::insert_into(employee_profiles::table)
             .values((
                 employee_profiles::employee_id.eq(employee_id),
                 employee_profiles::phone.eq(&req.phone),
                 employee_profiles::address.eq(&req.address),
                 employee_profiles::date_of_birth.eq(req.date_of_birth),
                 employee_profiles::gender.eq(&req.gender),
-                employee_profiles::national_id.eq(&req.national_id),
+                employee_profiles::national_id.eq(&encrypted_national_id),
                 employee_profiles::bank_name.eq(&req.bank_name),
-                employee_profiles::bank_account_number.eq(&req.bank_account_number),
+                employee_profiles::bank_account_number.eq(&encrypted_bank_account_number),
                 employee_profiles::bank_branch.eq(&req.bank_branch),
             ))
             .on_conflict(employee_profiles::employee_id)
@@ -141,6 +173,19 @@ impl EmployeeSelfServiceRepository for DieselEmployeeRepository {
             .get_result(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        if let Some(crypto) = &self.crypto_service {
+            if let Some(ref enc_nat_id) = result.national_id {
+                if let Ok(decrypted) = crypto.decrypt(enc_nat_id) {
+                    result.national_id = Some(decrypted);
+                }
+            }
+            if let Some(ref enc_bank_acc) = result.bank_account_number {
+                if let Ok(decrypted) = crypto.decrypt(enc_bank_acc) {
+                    result.bank_account_number = Some(decrypted);
+                }
+            }
+        }
 
         Ok(result.into())
     }

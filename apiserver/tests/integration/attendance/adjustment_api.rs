@@ -18,10 +18,16 @@ async fn test_attendance_adjustment_lifecycle_smoke() {
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
+    let emp_employment_id: uuid::Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
 
     // 1. Create Adjustment
     let req_body = serde_json::json!({
-        "employment_id": emp_id,
+        "employment_id": emp_employment_id,
         "requested_punch_in_time": Utc::now().to_rfc3339(),
         "is_break_overtime": false,
         "reason": "Forgot punch"

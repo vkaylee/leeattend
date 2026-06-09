@@ -96,10 +96,16 @@ async fn test_upload_attendance_csv_api() {
     assert!(completed, "CSV Job did not complete");
 
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&_test_db.url());
+    let emp_employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
     let entries = helpers::get_employment_time_entries(
         &diesel_pools,
         ws_id,
-        emp_id,
+        emp_employment_id,
         chrono::Utc::now() - chrono::Duration::days(30),
         chrono::Utc::now() + chrono::Duration::days(30),
     )

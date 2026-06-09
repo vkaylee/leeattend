@@ -171,10 +171,21 @@ pub async fn force_reprocess_attendance(
         )));
     }
 
+    let employee = state
+        .employees()
+        .repo()
+        .get_employee_by_id(employee_id, &ctx.auth_token)
+        .await?
+        .ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound))?;
+
+    let active_employment_id = employee
+        .active_employment_id()
+        .ok_or_else(|| AppError::validation_raw("No active employment found"))?;
+
     let tz: chrono_tz::Tz = state
         .employees()
         .repo()
-        .get_employee_timezone_fallback(&ctx.auth_token, employee_id)
+        .get_employee_timezone_fallback(&ctx.auth_token, active_employment_id)
         .await?;
 
     let mut curr_date = query.start_date;
@@ -182,7 +193,7 @@ pub async fn force_reprocess_attendance(
         state
             .attendance()
             .pairing_service()
-            .reprocess_daily_attendance(ctx.workspace_id, employee_id, curr_date, tz)
+            .reprocess_daily_attendance(ctx.workspace_id, active_employment_id, curr_date, tz)
             .await
             .map_err(|e| AppError::from(format!("Processing failed for {curr_date}: {e}")))?;
 

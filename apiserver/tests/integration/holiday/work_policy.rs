@@ -777,7 +777,7 @@ async fn test_leave_kept_partial_work() {
             ),
         },
     )
-    .recalculate_daily_summary(workspace_id, emp, today)
+    .recalculate_daily_summary(workspace_id, emp_employment_id, today)
     .await
     .expect("Recalculate failed");
 
@@ -1030,7 +1030,7 @@ async fn test_leave_reversal_only_system() {
             ),
         },
     )
-    .recalculate_daily_summary(workspace_id, emp, today)
+    .recalculate_daily_summary(workspace_id, emp_employment_id, today)
     .await
     .expect("Recalculate failed");
 

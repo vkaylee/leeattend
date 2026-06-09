@@ -333,44 +333,89 @@ async fn register_workspace_tenants_and_migrate(
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Query workspaces from system DB via direct connection
     let primary_url = db_config.primary_url.clone();
-    let workspaces: Vec<(Uuid, Option<String>)> = match tokio::task::spawn_blocking(move || {
-        use diesel::sql_types::{Nullable, Text, Uuid as UuidSql};
-        use diesel::{Connection, QueryableByName, RunQueryDsl};
+    let (workspaces, supavisor_tenants): (Vec<(Uuid, Option<String>)>, Vec<String>) =
+        match tokio::task::spawn_blocking(move || {
+            use diesel::sql_types::{Nullable, Text, Uuid as UuidSql};
+            use diesel::{Connection, QueryableByName, RunQueryDsl};
 
-        #[derive(QueryableByName)]
-        struct WsRow {
-            #[diesel(sql_type = UuidSql)]
-            id: Uuid,
-            #[diesel(sql_type = Nullable<Text>)]
-            custom_db_url_encrypted: Option<String>,
+            #[derive(QueryableByName)]
+            struct WsRow {
+                #[diesel(sql_type = UuidSql)]
+                id: Uuid,
+                #[diesel(sql_type = Nullable<Text>)]
+                custom_db_url_encrypted: Option<String>,
+            }
+
+            #[derive(QueryableByName)]
+            struct TenantRow {
+                #[diesel(sql_type = Text)]
+                external_id: String,
+            }
+
+            let mut conn = diesel::PgConnection::establish(&primary_url)
+                .map_err(|e| format!("Failed to connect: {e}"))?;
+
+            let workspaces =
+                diesel::sql_query("SELECT id, custom_db_url_encrypted FROM workspaces")
+                    .load::<WsRow>(&mut conn)
+                    .map(|r| {
+                        r.into_iter()
+                            .map(|w| (w.id, w.custom_db_url_encrypted))
+                            .collect()
+                    })
+                    .map_err(|e| format!("Failed to query workspaces: {e}"))?;
+
+            let supavisor_tenants = diesel::sql_query("SELECT external_id FROM _supavisor.tenants")
+                .load::<TenantRow>(&mut conn)
+                .map(|rows| {
+                    rows.into_iter()
+                        .map(|r| r.external_id)
+                        .collect::<Vec<String>>()
+                })
+                .unwrap_or_else(|e| {
+                    tracing::warn!(
+                        "Failed to query _supavisor.tenants (Supavisor might not be enabled): {e}"
+                    );
+                    Vec::new()
+                });
+
+            Ok::<_, String>((workspaces, supavisor_tenants))
+        })
+        .await
+        {
+            Ok(Ok(r)) => r,
+            Ok(Err(e)) => {
+                tracing::warn!("{e} — skipping tenant registration");
+                return Ok(());
+            }
+            Err(e) => {
+                tracing::error!("Failed to spawn blocking task for workspace query: {e}");
+                return Ok(());
+            }
+        };
+
+    let active_tenant_ids: std::collections::HashSet<String> = workspaces
+        .iter()
+        .map(|(ws_id, _)| format!("tenant_{}", ws_id.to_string().replace('-', "")))
+        .collect();
+
+    let stale_tenants: Vec<String> = supavisor_tenants
+        .into_iter()
+        .filter(|t| t.starts_with("tenant_") && !active_tenant_ids.contains(t))
+        .collect();
+
+    if !stale_tenants.is_empty() {
+        tracing::info!(
+            "Found {} stale Supavisor tenants to clean up",
+            stale_tenants.len()
+        );
+        for tenant_id in stale_tenants {
+            tracing::info!("Deleting stale Supavisor tenant: {tenant_id}");
+            if let Err(e) = tenant_manager.delete_tenant(&tenant_id).await {
+                tracing::warn!("Failed to delete stale Supavisor tenant {tenant_id}: {e}");
+            }
         }
-
-        let mut conn = diesel::PgConnection::establish(&primary_url)
-            .map_err(|e| format!("Failed to connect: {e}"))?;
-
-        let workspaces = diesel::sql_query("SELECT id, custom_db_url_encrypted FROM workspaces")
-            .load::<WsRow>(&mut conn)
-            .map(|r| {
-                r.into_iter()
-                    .map(|w| (w.id, w.custom_db_url_encrypted))
-                    .collect()
-            })
-            .map_err(|e| format!("Failed to query workspaces: {e}"))?;
-
-        Ok::<_, String>(workspaces)
-    })
-    .await
-    {
-        Ok(Ok(r)) => r,
-        Ok(Err(e)) => {
-            tracing::warn!("{e} — skipping tenant registration");
-            return Ok(());
-        }
-        Err(e) => {
-            tracing::error!("Failed to spawn blocking task for workspace query: {e}");
-            return Ok(());
-        }
-    };
+    }
 
     if workspaces.is_empty() {
         tracing::info!("No workspaces — skipping tenant registration and migrations");

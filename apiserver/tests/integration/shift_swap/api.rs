@@ -88,11 +88,24 @@ async fn setup() -> SwapTestSetup {
     // Assign rosters for a specific date
     let swap_date = Utc::now().date_naive() + chrono::Duration::days(1);
 
+    let emp_a_employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &_db.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_a
+    );
+    let emp_b_employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &_db.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_b
+    );
+
     // Employee A → Morning shift
     crate::test_execute!(&_db.diesel_pools.api,
         "INSERT INTO shift_rosters (id, employment_id, shift_id, date, status) VALUES ($1, $2, $3, $4, 'active')",
         diesel::sql_types::Uuid, Uuid::new_v4(),
-        diesel::sql_types::Uuid, emp_a,
+        diesel::sql_types::Uuid, emp_a_employment_id,
         diesel::sql_types::Uuid, shift_morning,
         diesel::sql_types::Date, swap_date
     );
@@ -101,7 +114,7 @@ async fn setup() -> SwapTestSetup {
     crate::test_execute!(&_db.diesel_pools.api,
         "INSERT INTO shift_rosters (id, employment_id, shift_id, date, status) VALUES ($1, $2, $3, $4, 'active')",
         diesel::sql_types::Uuid, Uuid::new_v4(),
-        diesel::sql_types::Uuid, emp_b,
+        diesel::sql_types::Uuid, emp_b_employment_id,
         diesel::sql_types::Uuid, shift_evening,
         diesel::sql_types::Date, swap_date
     );

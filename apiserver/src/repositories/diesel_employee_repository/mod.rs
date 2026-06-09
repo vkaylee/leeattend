@@ -10,11 +10,25 @@ pub use assignments::*;
 
 pub struct DieselEmployeeRepository {
     diesel_pools: crate::diesel_pool::DieselPools,
+    crypto_service: Option<std::sync::Arc<crate::crypto::CryptoService>>,
 }
 
 impl DieselEmployeeRepository {
     pub fn new(diesel_pools: crate::diesel_pool::DieselPools) -> Self {
-        Self { diesel_pools }
+        Self {
+            diesel_pools,
+            crypto_service: None,
+        }
+    }
+
+    pub fn new_with_crypto(
+        diesel_pools: crate::diesel_pool::DieselPools,
+        crypto_service: Option<std::sync::Arc<crate::crypto::CryptoService>>,
+    ) -> Self {
+        Self {
+            diesel_pools,
+            crypto_service,
+        }
     }
 }
 

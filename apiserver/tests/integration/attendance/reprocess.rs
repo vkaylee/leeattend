@@ -20,6 +20,12 @@ async fn test_force_reprocess_attendance_api() {
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
+    let emp_employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
 
     let base_date = NaiveDate::from_ymd_opt(2026, 1, 14).unwrap();
     // Use UTC times that result in the SAME DAY for Asia/Ho_Chi_Minh (UTC+7)
@@ -35,7 +41,7 @@ async fn test_force_reprocess_attendance_api() {
         let raw_log = RawAttendanceLog::new(
             Uuid::new_v4(),
             ws_id,
-            emp_id,
+            emp_employment_id,
             punch_time,
             LogSource::Manual,
             None,
@@ -61,7 +67,7 @@ async fn test_force_reprocess_attendance_api() {
     let entries = time_entry_repo
         .get_employment_time_entries(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp_id,
+            emp_employment_id,
             start_dt,
             end_dt,
         )
@@ -94,7 +100,7 @@ async fn test_force_reprocess_attendance_api() {
     let entries = time_entry_repo
         .get_employment_time_entries(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp_id,
+            emp_employment_id,
             start_dt,
             end_dt,
         )
@@ -115,6 +121,18 @@ async fn test_force_reprocess_all_attendance_api() {
     let ws_id = factory.workspace().create_with_owner(user_id).await;
     let emp_id_1 = factory.employee().with_workspace(ws_id).create().await;
     let emp_id_2 = factory.employee().with_workspace(ws_id).create().await;
+    let emp_employment_id_1: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id_1
+    );
+    let emp_employment_id_2: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id_2
+    );
 
     let base_date = NaiveDate::from_ymd_opt(2026, 1, 14).unwrap();
     // Use UTC times that result in the SAME DAY for Asia/Ho_Chi_Minh (UTC+7)
@@ -124,13 +142,16 @@ async fn test_force_reprocess_all_attendance_api() {
     let end_time = Utc.with_ymd_and_hms(2026, 1, 14, 10, 0, 0).unwrap();
 
     // 1. Create raw logs WITHOUT processing them (bypass service) for BOTH employees
-    for emp_id in [emp_id_1, emp_id_2] {
+    for (emp_id, emp_employment_id) in [
+        (emp_id_1, emp_employment_id_1),
+        (emp_id_2, emp_employment_id_2),
+    ] {
         let logs = vec![start_time, end_time];
         for punch_time in logs {
             let raw_log = RawAttendanceLog::new(
                 Uuid::new_v4(),
                 ws_id,
-                emp_id,
+                emp_employment_id,
                 punch_time,
                 LogSource::Manual,
                 None,
@@ -151,11 +172,14 @@ async fn test_force_reprocess_all_attendance_api() {
     use apiserver::repositories::time_entry_repository::TimeEntryRepository;
     let start_dt = base_date.and_hms_opt(0, 0, 0).unwrap().and_utc();
     let end_dt = base_date.and_hms_opt(23, 59, 59).unwrap().and_utc();
-    for emp_id in [emp_id_1, emp_id_2] {
+    for (emp_id, emp_employment_id) in [
+        (emp_id_1, emp_employment_id_1),
+        (emp_id_2, emp_employment_id_2),
+    ] {
         let entries = time_entry_repo
             .get_employment_time_entries(
                 &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-                emp_id,
+                emp_employment_id,
                 start_dt,
                 end_dt,
             )
@@ -263,11 +287,14 @@ async fn test_force_reprocess_all_attendance_api() {
     assert_eq!(meta.status, apiserver::queue::JobStatus::Completed);
 
     // 7. Verify time_entries are now created correctly for both employees
-    for emp_id in [emp_id_1, emp_id_2] {
+    for (emp_id, emp_employment_id) in [
+        (emp_id_1, emp_employment_id_1),
+        (emp_id_2, emp_employment_id_2),
+    ] {
         let entries = time_entry_repo
             .get_employment_time_entries(
                 &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-                emp_id,
+                emp_employment_id,
                 start_dt,
                 end_dt,
             )

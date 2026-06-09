@@ -39,6 +39,20 @@ impl ReprocessAttendanceHandler {
         );
 
         let auth_token = crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id);
+        let employee = deps
+            .employee_repo
+            .get_employee_by_id(payload.employee_id, &auth_token)
+            .await
+            .map_err(|e| e.to_string())?
+            .ok_or_else(|| format!("Employee not found: {}", payload.employee_id))?;
+
+        let active_employment_id = employee.active_employment_id().ok_or_else(|| {
+            format!(
+                "No active employment found for employee: {}",
+                payload.employee_id
+            )
+        })?;
+
         // Initialize pairing service from shared deps
         let pairing_service = crate::services::pairing_service::PairingService::new(
             crate::services::pairing_service::PairingServiceArgs {
@@ -64,12 +78,17 @@ impl ReprocessAttendanceHandler {
         while current_date <= end_date {
             let tz: Tz = deps
                 .employee_repo
-                .get_employee_timezone_at_date(&auth_token, payload.employee_id, current_date)
+                .get_employee_timezone_at_date(&auth_token, active_employment_id, current_date)
                 .await
                 .unwrap_or(chrono_tz::UTC);
 
             match pairing_service
-                .reprocess_daily_attendance(job.workspace_id, payload.employee_id, current_date, tz)
+                .reprocess_daily_attendance(
+                    job.workspace_id,
+                    active_employment_id,
+                    current_date,
+                    tz,
+                )
                 .await
             {
                 Ok(()) => success_count += 1,
@@ -168,7 +187,24 @@ mod tests {
         builder.time_entry_repo = time_entry_repo;
         builder.daily_summary_repo = daily_summary_repo;
 
+        let employment_id = Uuid::new_v4();
         let mut emp_repo = crate::repositories::employee::MockEmployeeRepository::new();
+        emp_repo.expect_get_employee_by_id().returning(move |_, _| {
+            Ok(Some(
+                crate::models::Employee::new(
+                    emp_id,
+                    ws_id,
+                    None,
+                    "Test Employee".to_string(),
+                    "EMP001".to_string(),
+                    vec![],
+                    Utc::now(),
+                    Utc::now(),
+                    None,
+                )
+                .with_employment_info(Some(employment_id), None, None),
+            ))
+        });
         emp_repo
             .expect_get_employee_timezone_fallback()
             .returning(|_, _| Ok(chrono_tz::UTC));

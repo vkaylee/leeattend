@@ -228,6 +228,12 @@ async fn test_claim_ot_delegated_success() {
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
 
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
+    let emp_employment_id: uuid::Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
 
     let date = NaiveDate::from_ymd_opt(2026, 1, 20).unwrap();
     crate::test_execute!(
@@ -235,7 +241,7 @@ async fn test_claim_ot_delegated_success() {
         "INSERT INTO attendance_daily_summaries (id, workspace_id, employment_id, date, actual_work_minutes, system_detected_ot_minutes, ot_status, created_at, updated_at) VALUES ($1, $2, $3, $4, 500, 60, $5::ot_status_type, NOW(), NOW())",
         diesel::sql_types::Uuid, uuid::Uuid::new_v4(),
         diesel::sql_types::Uuid, ws_id,
-        diesel::sql_types::Uuid, emp_id,
+        diesel::sql_types::Uuid, emp_employment_id,
         diesel::sql_types::Date, date,
         diesel::sql_types::Text, "pending_employee"
     );
@@ -393,12 +399,18 @@ async fn test_behalf_assignments_crud_and_claims() {
 
     // Prepare claim date & daily summary for target employee
     let date = NaiveDate::from_ymd_opt(2026, 1, 20).unwrap();
+    let target_emp_employment_id: uuid::Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        target_emp_id
+    );
     crate::test_execute!(
         &factory.diesel_pools.api,
         "INSERT INTO attendance_daily_summaries (id, workspace_id, employment_id, date, actual_work_minutes, system_detected_ot_minutes, ot_status, created_at, updated_at) VALUES ($1, $2, $3, $4, 500, 60, $5::ot_status_type, NOW(), NOW())",
         diesel::sql_types::Uuid, uuid::Uuid::new_v4(),
         diesel::sql_types::Uuid, ws_id,
-        diesel::sql_types::Uuid, target_emp_id,
+        diesel::sql_types::Uuid, target_emp_employment_id,
         diesel::sql_types::Date, date,
         diesel::sql_types::Text, "pending_employee"
     );
@@ -537,12 +549,18 @@ async fn test_behalf_assignments_department_claims() {
 
     // Prepare claim date & daily summary for target employee
     let date = NaiveDate::from_ymd_opt(2026, 1, 20).unwrap();
+    let target_emp_employment_id: uuid::Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        target_emp_id
+    );
     crate::test_execute!(
         &factory.diesel_pools.api,
         "INSERT INTO attendance_daily_summaries (id, workspace_id, employment_id, date, actual_work_minutes, system_detected_ot_minutes, ot_status, created_at, updated_at) VALUES ($1, $2, $3, $4, 500, 60, $5::ot_status_type, NOW(), NOW())",
         diesel::sql_types::Uuid, uuid::Uuid::new_v4(),
         diesel::sql_types::Uuid, ws_id,
-        diesel::sql_types::Uuid, target_emp_id,
+        diesel::sql_types::Uuid, target_emp_employment_id,
         diesel::sql_types::Date, date,
         diesel::sql_types::Text, "pending_employee"
     );

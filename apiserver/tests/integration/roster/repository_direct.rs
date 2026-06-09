@@ -34,6 +34,12 @@ async fn test_upsert_roster_insert_and_update() {
 
     let ws_id = factory.workspace().create().await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
     let shift_id = factory
         .shift()
         .with_workspace(ws_id)
@@ -45,7 +51,7 @@ async fn test_upsert_roster_insert_and_update() {
     // Insert
     let roster_in = ShiftRoster {
         id: Uuid::new_v4(),
-        employment_id: emp_id,
+        employment_id,
         shift_id: Some(shift_id),
         date,
         status: "confirmed".to_string(),
@@ -60,7 +66,7 @@ async fn test_upsert_roster_insert_and_update() {
         )
         .await
         .unwrap();
-    assert_eq!(inserted.employment_id, emp_id);
+    assert_eq!(inserted.employment_id, employment_id);
     assert_eq!(inserted.shift_id, Some(shift_id));
     assert_eq!(inserted.date, date);
     assert_eq!(inserted.notes.as_deref(), Some("Initial"));
@@ -74,7 +80,7 @@ async fn test_upsert_roster_insert_and_update() {
         .await;
     let roster_update = ShiftRoster {
         id: Uuid::new_v4(), // different ID, but same (employee_id, date) conflict key
-        employment_id: emp_id,
+        employment_id,
         shift_id: Some(shift_id2),
         date,
         status: "confirmed".to_string(),
@@ -103,11 +109,17 @@ async fn test_upsert_roster_day_off() {
 
     let ws_id = factory.workspace().create().await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
     let date = NaiveDate::from_ymd_opt(2026, 3, 15).unwrap();
 
     let roster_off = ShiftRoster {
         id: Uuid::new_v4(),
-        employment_id: emp_id,
+        employment_id,
         shift_id: None, // Day off
         date,
         status: "confirmed".to_string(),
@@ -138,6 +150,12 @@ async fn test_get_employee_rosters_date_range() {
 
     let ws_id = factory.workspace().create().await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
     let shift_id = factory.shift().with_workspace(ws_id).create().await;
 
     // Insert 3 entries: Mar 1, 5, 10
@@ -145,7 +163,7 @@ async fn test_get_employee_rosters_date_range() {
         let date = NaiveDate::from_ymd_opt(2026, 3, day).unwrap();
         let r = ShiftRoster {
             id: Uuid::new_v4(),
-            employment_id: emp_id,
+            employment_id,
             shift_id: Some(shift_id),
             date,
             status: "confirmed".to_string(),
@@ -167,7 +185,7 @@ async fn test_get_employee_rosters_date_range() {
     let result = repo
         .get_employment_rosters(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp_id,
+            employment_id,
             start,
             end,
         )
@@ -182,7 +200,7 @@ async fn test_get_employee_rosters_date_range() {
     let all = repo
         .get_employment_rosters(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp_id,
+            employment_id,
             start_full,
             end_full,
         )
@@ -201,13 +219,19 @@ async fn test_get_employee_rosters_empty() {
 
     let ws_id = factory.workspace().create().await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
 
     let start = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
     let end = NaiveDate::from_ymd_opt(2026, 12, 31).unwrap();
     let result = repo
         .get_employment_rosters(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp_id,
+            employment_id,
             start,
             end,
         )
@@ -226,13 +250,19 @@ async fn test_delete_roster() {
 
     let ws_id = factory.workspace().create().await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
     let shift_id = factory.shift().with_workspace(ws_id).create().await;
     let date = NaiveDate::from_ymd_opt(2026, 3, 10).unwrap();
 
     // Insert then delete
     let r = ShiftRoster {
         id: Uuid::new_v4(),
-        employment_id: emp_id,
+        employment_id,
         shift_id: Some(shift_id),
         date,
         status: "confirmed".to_string(),
@@ -248,7 +278,7 @@ async fn test_delete_roster() {
     .unwrap();
     repo.delete_roster(
         &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-        emp_id,
+        employment_id,
         date,
     )
     .await
@@ -260,7 +290,7 @@ async fn test_delete_roster() {
     let remaining = repo
         .get_employment_rosters(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp_id,
+            employment_id,
             start,
             end,
         )
@@ -280,12 +310,18 @@ async fn test_delete_nonexistent_roster_is_no_op() {
 
     let ws_id = factory.workspace().create().await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
     let date = NaiveDate::from_ymd_opt(2026, 6, 15).unwrap();
 
     // Should not error
     repo.delete_roster(
         &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-        emp_id,
+        employment_id,
         date,
     )
     .await
@@ -302,6 +338,12 @@ async fn test_bulk_upsert_roster() {
 
     let ws_id = factory.workspace().create().await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
     let shift_a = factory
         .shift()
         .with_workspace(ws_id)
@@ -335,7 +377,7 @@ async fn test_bulk_upsert_roster() {
 
     repo.bulk_upsert_roster(
         &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-        emp_id,
+        employment_id,
         items,
     )
     .await
@@ -346,7 +388,7 @@ async fn test_bulk_upsert_roster() {
     let rosters = repo
         .get_employment_rosters(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp_id,
+            employment_id,
             start,
             end,
         )
@@ -369,6 +411,12 @@ async fn test_bulk_upsert_overwrites_existing() {
 
     let ws_id = factory.workspace().create().await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
     let shift_old = factory
         .shift()
         .with_workspace(ws_id)
@@ -386,7 +434,7 @@ async fn test_bulk_upsert_overwrites_existing() {
     // Insert first entry
     let r = ShiftRoster {
         id: Uuid::new_v4(),
-        employment_id: emp_id,
+        employment_id,
         shift_id: Some(shift_old),
         date,
         status: "confirmed".to_string(),
@@ -409,7 +457,7 @@ async fn test_bulk_upsert_overwrites_existing() {
     }];
     repo.bulk_upsert_roster(
         &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-        emp_id,
+        employment_id,
         items,
     )
     .await
@@ -420,7 +468,7 @@ async fn test_bulk_upsert_overwrites_existing() {
     let rosters = repo
         .get_employment_rosters(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp_id,
+            employment_id,
             start,
             end,
         )
@@ -444,6 +492,12 @@ async fn test_get_assignment_history_includes_roster_entries() {
 
     let ws_id = factory.workspace().create().await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
     let shift_id = factory
         .shift()
         .with_workspace(ws_id)
@@ -454,7 +508,7 @@ async fn test_get_assignment_history_includes_roster_entries() {
     // Create a roster entry
     let r = ShiftRoster {
         id: Uuid::new_v4(),
-        employment_id: emp_id,
+        employment_id,
         shift_id: Some(shift_id),
         date: NaiveDate::from_ymd_opt(2026, 3, 10).unwrap(),
         status: "confirmed".to_string(),
@@ -515,13 +569,19 @@ async fn test_get_assignment_history_respects_limit() {
 
     let ws_id = factory.workspace().create().await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
     let shift_id = factory.shift().with_workspace(ws_id).create().await;
 
     // Create 5 roster entries
     for day in 1..=5 {
         let r = ShiftRoster {
             id: Uuid::new_v4(),
-            employment_id: emp_id,
+            employment_id,
             shift_id: Some(shift_id),
             date: NaiveDate::from_ymd_opt(2026, 5, day).unwrap(),
             status: "confirmed".to_string(),
@@ -557,6 +617,12 @@ async fn test_get_effective_shift_from_roster() {
 
     let ws_id = factory.workspace().create().await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
     let shift_id = factory
         .shift()
         .with_workspace(ws_id)
@@ -568,7 +634,7 @@ async fn test_get_effective_shift_from_roster() {
     // Assign via roster (P1 — highest priority)
     let r = ShiftRoster {
         id: Uuid::new_v4(),
-        employment_id: emp_id,
+        employment_id,
         shift_id: Some(shift_id),
         date,
         status: "confirmed".to_string(),
@@ -586,7 +652,7 @@ async fn test_get_effective_shift_from_roster() {
     let (resolved_shift, traces) = repo
         .get_effective_shift(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp_id,
+            employment_id,
             date,
         )
         .await
@@ -605,12 +671,18 @@ async fn test_get_effective_shift_no_assignment_returns_none() {
 
     let ws_id = factory.workspace().create().await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
     let date = NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
 
     let (resolved_shift, traces) = repo
         .get_effective_shift(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp_id,
+            employment_id,
             date,
         )
         .await
@@ -627,6 +699,12 @@ async fn test_get_effective_shift_fixed_assignment() {
 
     let ws_id = factory.workspace().create().await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
     let start = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
 
     // Assign a fixed shift (P5)
@@ -641,7 +719,7 @@ async fn test_get_effective_shift_fixed_assignment() {
     let (resolved_shift, traces) = repo
         .get_effective_shift(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp_id,
+            employment_id,
             date,
         )
         .await

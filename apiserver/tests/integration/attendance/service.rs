@@ -121,7 +121,9 @@ async fn test_process_log_success_with_timezone() {
         )
         .await;
 
-    assert!(result.is_ok());
+    if let Err(e) = &result {
+        panic!("result was Err: {:?}", e);
+    }
     assert!(result.unwrap());
 
     // Verify in DB

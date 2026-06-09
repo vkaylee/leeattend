@@ -1235,7 +1235,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             SELECT wl.timezone as timezone
             FROM employments emp
             JOIN work_locations wl ON wl.id = emp.primary_location_id
-            WHERE emp.employee_id = $1 AND emp.workspace_id = $2
+            WHERE (emp.employee_id = $1 OR emp.id = $1) AND emp.workspace_id = $2
             ORDER BY CASE WHEN emp.status = 'active' THEN 0 ELSE 1 END, emp.start_date DESC
             LIMIT 1
         ";
@@ -1287,7 +1287,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             ) as timezone
             FROM employments emp
             JOIN work_locations primary_wl ON primary_wl.id = emp.primary_location_id
-            WHERE emp.employee_id = $1 AND emp.workspace_id = $2
+            WHERE (emp.employee_id = $1 OR emp.id = $1) AND emp.workspace_id = $2
             ORDER BY CASE WHEN emp.status = 'active' THEN 0 ELSE 1 END, emp.start_date DESC
             LIMIT 1
         ";

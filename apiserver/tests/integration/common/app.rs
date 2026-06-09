@@ -15,6 +15,13 @@ use apiserver::AppState;
 use std::sync::Arc;
 use uuid::Uuid;
 
+fn get_test_crypto_service() -> Option<Arc<apiserver::crypto::CryptoService>> {
+    let mut keys = std::collections::HashMap::new();
+    keys.insert("test_key".to_string(), [0u8; 32]);
+    let crypto = apiserver::crypto::CryptoService::new("test_key".to_string(), keys).unwrap();
+    Some(Arc::new(crypto))
+}
+
 pub struct DummyTenantProvisioner;
 #[async_trait::async_trait]
 impl TenantProvisionerTrait for DummyTenantProvisioner {
@@ -203,13 +210,18 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     let employment_repo = Arc::new(apiserver::repositories::DieselEmploymentRepository::new(
         diesel_pools.clone(),
     ));
+    let leave_balance_repo_for_svc = Arc::new(
+        apiserver::repositories::DieselLeaveBalanceRepository::new(diesel_pools.clone()),
+    );
     let employee_service = Arc::new(apiserver::services::EmployeeService::new(
         employee_repo.clone(),
+        employment_repo.clone(),
         Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
             diesel_pools.clone(),
         )),
         user_repo.clone(),
         staging_repo.clone(),
+        leave_balance_repo_for_svc,
     ));
     let time_entry_repo: Arc<
         dyn apiserver::repositories::time_entry_repository::TimeEntryRepository,
@@ -426,6 +438,9 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         employment_repo.clone(),
         roster_repo.clone(),
         leave_accrual_log_repo.clone(),
+        workspace_config_repo.clone(),
+        user_repo.clone(),
+        workspace_repo.clone(),
     ));
     let shift_swap_service = Arc::new(
         apiserver::services::shift_swap_service::ShiftSwapService::new(
@@ -806,13 +821,18 @@ pub async fn spawn_app_with_factory_extended(
     let employment_repo = Arc::new(apiserver::repositories::DieselEmploymentRepository::new(
         diesel_pools.clone(),
     ));
+    let leave_balance_repo_for_svc = Arc::new(
+        apiserver::repositories::DieselLeaveBalanceRepository::new(diesel_pools.clone()),
+    );
     let employee_service = Arc::new(apiserver::services::EmployeeService::new(
         employee_repo.clone(),
+        employment_repo.clone(),
         Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
             diesel_pools.clone(),
         )),
         user_repo.clone(),
         staging_repo.clone(),
+        leave_balance_repo_for_svc,
     ));
     let time_entry_repo: Arc<
         dyn apiserver::repositories::time_entry_repository::TimeEntryRepository,
@@ -1051,6 +1071,9 @@ pub async fn spawn_app_with_factory_extended(
         employment_repo.clone(),
         roster_repo.clone(),
         leave_accrual_log_repo.clone(),
+        workspace_config_repo.clone(),
+        user_repo.clone(),
+        workspace_repo.clone(),
     ));
     let shift_swap_service = Arc::new(
         apiserver::services::shift_swap_service::ShiftSwapService::new(
@@ -1468,13 +1491,18 @@ pub async fn setup_app_tower_internal_extended(
     let employment_repo = Arc::new(apiserver::repositories::DieselEmploymentRepository::new(
         diesel_pools.clone(),
     ));
+    let leave_balance_repo_for_svc = Arc::new(
+        apiserver::repositories::DieselLeaveBalanceRepository::new(diesel_pools.clone()),
+    );
     let employee_service = Arc::new(apiserver::services::EmployeeService::new(
         employee_repo.clone(),
+        employment_repo.clone(),
         Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
             diesel_pools.clone(),
         )),
         user_repo.clone(),
         staging_repo.clone(),
+        leave_balance_repo_for_svc,
     ));
     let time_entry_repo: Arc<
         dyn apiserver::repositories::time_entry_repository::TimeEntryRepository,
@@ -1725,6 +1753,9 @@ pub async fn setup_app_tower_internal_extended(
         employment_repo.clone(),
         roster_repo.clone(),
         leave_accrual_log_repo.clone(),
+        workspace_config_repo.clone(),
+        user_repo.clone(),
+        workspace_repo.clone(),
     ));
     let shift_swap_service = Arc::new(
         apiserver::services::shift_swap_service::ShiftSwapService::new(

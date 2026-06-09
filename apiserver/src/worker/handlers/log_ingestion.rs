@@ -109,6 +109,8 @@ mod tests {
         let ws_id = Uuid::new_v4();
         let emp_id = Uuid::new_v4();
 
+        let employment_id = Uuid::new_v4();
+
         // Mock Employee repo to return an active employee
         let mut emp_repo = crate::repositories::employee::MockEmployeeRepository::new();
         emp_repo
@@ -127,7 +129,8 @@ mod tests {
                     chrono::Utc::now(),
                     chrono::Utc::now(),
                     None,
-                );
+                )
+                .with_employment_info(Some(employment_id), None, None);
                 Ok(Some(emp))
             });
 

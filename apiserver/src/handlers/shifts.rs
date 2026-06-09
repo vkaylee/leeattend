@@ -33,7 +33,7 @@ pub struct EmployeeRostersQuery {
 async fn reprocess_after_roster_change(
     state: &AppState,
     workspace_id: Uuid,
-    employee_id: Uuid,
+    employment_id: Uuid,
     date: NaiveDate,
 ) {
     let tz_str = match state
@@ -50,11 +50,11 @@ async fn reprocess_after_roster_change(
     if let Err(e) = state
         .attendance()
         .pairing_service()
-        .reprocess_daily_attendance(workspace_id, employee_id, date, tz)
+        .reprocess_daily_attendance(workspace_id, employment_id, date, tz)
         .await
     {
         tracing::error!(
-            employee_id = %employee_id,
+            employment_id = %employment_id,
             date = %date,
             "Failed to reprocess attendance after roster change: {e}"
         );
@@ -296,10 +296,20 @@ pub async fn get_employee_rosters(
         .and_then(|s| NaiveDate::parse_from_str(s, "%Y-%m-%d").ok())
         .unwrap_or_else(|| start_date + chrono::Duration::days(30));
 
+    let emp = state
+        .employees()
+        .repo()
+        .get_employee_by_id(employee_id, &ctx.auth_token)
+        .await?
+        .ok_or_else(|| AppError::not_found(I18nKey::EmployeeNotFound))?;
+    let active_employment_id = emp
+        .active_employment_id()
+        .ok_or_else(|| AppError::validation(I18nKey::NoActiveEmployment))?;
+
     let rosters = state
         .shifts()
         .roster_repo()
-        .get_employment_rosters(&ctx.auth_token, employee_id, start_date, end_date)
+        .get_employment_rosters(&ctx.auth_token, active_employment_id, start_date, end_date)
         .await?;
 
     Ok(Json(rosters))
@@ -325,9 +335,20 @@ pub async fn upsert_roster(
 ) -> AppResult<Json<ShiftRoster>> {
     let (_workspace_id, employee_id) = params;
     ctx.require_permission(Permission::RostersManage)?;
+
+    let emp = state
+        .employees()
+        .repo()
+        .get_employee_by_id(employee_id, &ctx.auth_token)
+        .await?
+        .ok_or_else(|| AppError::not_found(I18nKey::EmployeeNotFound))?;
+    let active_employment_id = emp
+        .active_employment_id()
+        .ok_or_else(|| AppError::validation(I18nKey::NoActiveEmployment))?;
+
     let roster = ShiftRoster {
         id: crate::utils::id::new_id(),
-        employment_id: employee_id,
+        employment_id: active_employment_id,
         shift_id: req.shift_id,
         date: req.date,
         status: "confirmed".to_string(),
@@ -346,7 +367,7 @@ pub async fn upsert_roster(
         cache.invalidate(ctx.workspace_id).await;
     }
 
-    reprocess_after_roster_change(&state, ctx.workspace_id, employee_id, req.date).await;
+    reprocess_after_roster_change(&state, ctx.workspace_id, active_employment_id, req.date).await;
 
     Ok(Json(saved))
 }
@@ -371,11 +392,22 @@ pub async fn bulk_upsert_roster(
 ) -> AppResult<StatusCode> {
     let (_workspace_id, employee_id) = params;
     ctx.require_permission(Permission::RostersManage)?;
+
+    let emp = state
+        .employees()
+        .repo()
+        .get_employee_by_id(employee_id, &ctx.auth_token)
+        .await?
+        .ok_or_else(|| AppError::not_found(I18nKey::EmployeeNotFound))?;
+    let active_employment_id = emp
+        .active_employment_id()
+        .ok_or_else(|| AppError::validation(I18nKey::NoActiveEmployment))?;
+
     let dates: Vec<NaiveDate> = req.items.iter().map(|i| i.date).collect();
     state
         .shifts()
         .roster_repo()
-        .bulk_upsert_roster(&ctx.auth_token, employee_id, req.items)
+        .bulk_upsert_roster(&ctx.auth_token, active_employment_id, req.items)
         .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
@@ -383,7 +415,7 @@ pub async fn bulk_upsert_roster(
     }
 
     for date in dates {
-        reprocess_after_roster_change(&state, ctx.workspace_id, employee_id, date).await;
+        reprocess_after_roster_change(&state, ctx.workspace_id, active_employment_id, date).await;
     }
 
     Ok(StatusCode::OK)
@@ -408,17 +440,28 @@ pub async fn delete_roster(
 ) -> AppResult<StatusCode> {
     let (_workspace_id, employee_id, date) = params;
     ctx.require_permission(Permission::RostersManage)?;
+
+    let emp = state
+        .employees()
+        .repo()
+        .get_employee_by_id(employee_id, &ctx.auth_token)
+        .await?
+        .ok_or_else(|| AppError::not_found(I18nKey::EmployeeNotFound))?;
+    let active_employment_id = emp
+        .active_employment_id()
+        .ok_or_else(|| AppError::validation(I18nKey::NoActiveEmployment))?;
+
     state
         .shifts()
         .roster_repo()
-        .delete_roster(&ctx.auth_token, employee_id, date)
+        .delete_roster(&ctx.auth_token, active_employment_id, date)
         .await?;
 
     if let Some(cache) = state.infra().roster_cache() {
         cache.invalidate(ctx.workspace_id).await;
     }
 
-    reprocess_after_roster_change(&state, ctx.workspace_id, employee_id, date).await;
+    reprocess_after_roster_change(&state, ctx.workspace_id, active_employment_id, date).await;
 
     Ok(StatusCode::NO_CONTENT)
 }

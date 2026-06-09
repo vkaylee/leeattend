@@ -198,7 +198,7 @@ impl AttendanceMatcher {
                                         Some(s.is_break_auto_deduct()),
                                         Some(s.allow_early_ot()),
                                         args.attendance_rules.early_arrival_strategy,
-                                        entry.is_break_overtime(),
+                                        s.break_is_overtime() || entry.is_break_overtime(),
                                     ),
                                 );
 
@@ -1282,5 +1282,146 @@ mod tests {
         assert_eq!(result.ot_units, 4); // 2 hours = 4 units
                                         // 2 hours OT * 10 hourly_rate * 2.0 multiplier = 40.0
         assert_eq!(result.ot_pay, Decimal::new(40, 0));
+    }
+
+    #[tokio::test]
+    async fn test_process_segment_attendance_with_shift_break_is_overtime(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let employee_id = Uuid::new_v4();
+        let ws_id = Uuid::new_v4();
+        let shift_id = Uuid::new_v4();
+
+        let workspace = test_workspace(ws_id);
+
+        let date = Utc::now().date_naive();
+        // Time entry: 09:00 to 18:00 (matching 9-18 shift)
+        // Employee took no break (actual break minutes = 0)
+        let punch_in = date.and_hms_opt(9, 0, 0).ok_or("invalid time")?.and_utc();
+        let punch_out = date.and_hms_opt(18, 0, 0).ok_or("invalid time")?.and_utc();
+
+        let entry = TimeEntry::new(
+            Uuid::new_v4(),
+            employee_id,
+            ws_id,
+            None,
+            punch_in,
+            Some(punch_out),
+            Some(540),
+            false,
+            "work".to_string(),
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
+
+        let mut daily_entries_map = HashMap::new();
+        daily_entries_map.insert(date, vec![entry]);
+
+        // Define shift: 09:00 to 18:00, 1 hour (60 min) break, break_is_overtime = true
+        let shift = RosterShift::new(
+            "Day Shift".to_string(),
+            Some("D".to_string()),
+            NaiveTime::from_hms_opt(9, 0, 0).ok_or("invalid start time")?,
+            NaiveTime::from_hms_opt(18, 0, 0).ok_or("invalid end time")?,
+            60,
+            Some(NaiveTime::from_hms_opt(12, 0, 0).ok_or("invalid break start")?),
+            Some(NaiveTime::from_hms_opt(13, 0, 0).ok_or("invalid break end")?),
+            true,
+            0,
+            false,
+            true, // break_is_overtime = true
+            None,
+        );
+
+        let mut shifts = HashMap::new();
+        shifts.insert(shift_id, shift);
+
+        let roster_data = RosterData {
+            shifts,
+            ..Default::default()
+        };
+
+        let employment_id = Uuid::new_v4();
+        let employer_id = Uuid::new_v4();
+        let employment = crate::models::employment::Employment::new(
+            employment_id,
+            ws_id,
+            employee_id,
+            employer_id,
+            None,
+            None,
+            "active".to_string(),
+            date - chrono::Duration::days(10),
+            None,
+            None,
+            "full_time".to_string(),
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
+
+        let mut payroll_roster_map = HashMap::new();
+        payroll_roster_map.insert((employment_id, date), Some(shift_id));
+
+        let attendance_rules = AttendanceRules {
+            work_unit_minutes: 30,
+            rounding_policy: "floor".to_string(),
+            early_arrival_strategy: EarlyArrivalStrategy::Block,
+        };
+
+        let ctx = PayrollContext {
+            employee_id,
+            workspace,
+            tz: chrono_tz::UTC,
+            start_date: date,
+            end_date: date,
+            salary_history: vec![],
+            all_dept_history: vec![],
+            daily_entries_map,
+            holidays_map: HashMap::new(),
+            roster_data: Arc::new(roster_data),
+            emp_id_number: "EMP001".to_string(),
+            emp_tags: None,
+            payroll_roster_map,
+            working_conditions: vec![],
+            attendance_policy: attendance_rules.clone(),
+            emp_payroll_configs: vec![],
+            ws_payroll_settings_history: vec![],
+            department_payroll_configs: HashMap::new(),
+            overtime_data:
+                crate::repositories::overtime_policy_repository::WorkspaceOvertimeData::default(),
+            active_contracts: vec![],
+            active_assignments: vec![],
+            active_employments: vec![employment],
+            primary_location_id: Uuid::new_v4(),
+        };
+
+        let std_config = crate::domain::policy::resolver::StandardMonthConfig::new(
+            Decimal::new(22, 0),
+            Decimal::new(8, 0),
+            "workspace".to_string(),
+        );
+
+        let mut policy_cache = HashMap::new();
+        let overtime_policy_repo = MockOvertimePolicyRepository;
+
+        let args = ProcessSegmentAttendanceArgs {
+            ctx: &ctx,
+            seg_start: date,
+            seg_end: date,
+            segment_total_base: Decimal::new(1000, 0),
+            segment_ot_base: Decimal::new(1000, 0),
+            std_config: &std_config,
+            attendance_rules: &attendance_rules,
+            seg_units_per_day: Decimal::new(16, 0),
+            policy_cache: &mut policy_cache,
+            overtime_policy_repo: &overtime_policy_repo,
+        };
+
+        let result = AttendanceMatcher::process_segment_attendance(args).await;
+        assert_eq!(result.std_units, 16);
+        assert_eq!(result.ot_units, 2);
+        Ok(())
     }
 }

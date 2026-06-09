@@ -191,12 +191,23 @@ impl ShiftSwapService {
             return Err(AppError::Validation("Invalid request".into()));
         }
 
+        let req_emp_unwrapped =
+            req_emp.ok_or_else(|| AppError::Validation("Invalid request".into()))?;
+        let tgt_emp_unwrapped =
+            tgt_emp.ok_or_else(|| AppError::Validation("Invalid request".into()))?;
+        let req_employment_id = req_emp_unwrapped
+            .active_employment_id()
+            .ok_or_else(|| AppError::Validation("No active employment for requester".into()))?;
+        let tgt_employment_id = tgt_emp_unwrapped
+            .active_employment_id()
+            .ok_or_else(|| AppError::Validation("No active employment for target".into()))?;
+
         // Look up current effective shifts for both employees
         let (requester_shift_id, _) = self
             .roster_repo
             .get_effective_shift(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                req.requester_id,
+                req_employment_id,
                 req.swap_date,
             )
             .await
@@ -209,7 +220,7 @@ impl ShiftSwapService {
             .roster_repo
             .get_effective_shift(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                req.target_id,
+                tgt_employment_id,
                 req.swap_date,
             )
             .await
@@ -299,10 +310,34 @@ impl ShiftSwapService {
         if new_status == ShiftSwapStatus::Approved {
             let now = Utc::now();
 
+            let req_emp = self
+                .employee_repo
+                .get_employee_by_id(
+                    request.requester_id(),
+                    &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                )
+                .await?
+                .ok_or_else(|| AppError::Validation("Requester employee not found".into()))?;
+            let tgt_emp = self
+                .employee_repo
+                .get_employee_by_id(
+                    request.target_id(),
+                    &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                )
+                .await?
+                .ok_or_else(|| AppError::Validation("Target employee not found".into()))?;
+
+            let req_employment_id = req_emp
+                .active_employment_id()
+                .ok_or_else(|| AppError::Validation("No active employment for requester".into()))?;
+            let tgt_employment_id = tgt_emp
+                .active_employment_id()
+                .ok_or_else(|| AppError::Validation("No active employment for target".into()))?;
+
             // Requester gets target's shift
             let requester_roster = ShiftRoster {
                 id: Uuid::new_v4(),
-                employment_id: request.requester_id(),
+                employment_id: req_employment_id,
                 shift_id: request.target_shift_id(),
                 date: request.swap_date(),
                 status: "active".to_string(),
@@ -314,7 +349,7 @@ impl ShiftSwapService {
             // Target gets requester's shift
             let target_roster = ShiftRoster {
                 id: Uuid::new_v4(),
-                employment_id: request.target_id(),
+                employment_id: tgt_employment_id,
                 shift_id: request.requester_shift_id(),
                 date: request.swap_date(),
                 status: "active".to_string(),
@@ -394,16 +429,34 @@ impl ShiftSwapService {
             )
             .await?;
 
-        if target_emp.is_none_or(|e| !e.is_active()) {
+        if target_emp.as_ref().is_none_or(|e| !e.is_active()) {
             return Err(AppError::Validation("Invalid request".into()));
         }
+
+        let target_emp_unwrapped =
+            target_emp.ok_or_else(|| AppError::Validation("Invalid request".into()))?;
+        let req_emp = self
+            .employee_repo
+            .get_employee_by_id(
+                requester_employee_id,
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+            )
+            .await?
+            .ok_or_else(|| AppError::Validation("Requester employee not found".into()))?;
+
+        let req_employment_id = req_emp
+            .active_employment_id()
+            .ok_or_else(|| AppError::Validation("No active employment for requester".into()))?;
+        let tgt_employment_id = target_emp_unwrapped
+            .active_employment_id()
+            .ok_or_else(|| AppError::Validation("No active employment for target".into()))?;
 
         // Look up effective shifts
         let (requester_shift_id, _) = self
             .roster_repo
             .get_effective_shift(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                requester_employee_id,
+                req_employment_id,
                 req.swap_date,
             )
             .await
@@ -416,7 +469,7 @@ impl ShiftSwapService {
             .roster_repo
             .get_effective_shift(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                req.target_id,
+                tgt_employment_id,
                 req.swap_date,
             )
             .await
@@ -646,6 +699,7 @@ mod tests {
             Utc::now(),
             None,
         )
+        .with_employment_info(Some(Uuid::new_v4()), None, None)
     }
 
     fn dummy_swap_request() -> ShiftSwapRequest {
@@ -786,10 +840,16 @@ mod tests {
                 Box::pin(async move { Ok(roster) })
             });
 
+        let mut employee_repo = MockEmployeeRepository::new();
+        employee_repo
+            .expect_get_employee_by_id()
+            .times(2)
+            .returning(|_, _| Ok(Some(dummy_employee())));
+
         let service = build_service(
             swap_repo,
             roster_repo,
-            MockEmployeeRepository::new(),
+            employee_repo,
             MockShiftRepository::new(),
             MockPayrollRepository::new(),
         );

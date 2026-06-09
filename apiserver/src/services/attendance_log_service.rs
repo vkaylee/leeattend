@@ -255,13 +255,17 @@ impl AttendanceLogService {
             }
         };
 
+        let active_employment_id = employee.active_employment_id().ok_or_else(|| {
+            crate::errors::AppError::validation(crate::utils::i18n::I18nKey::NoActiveEmployment)
+        })?;
+
         // 3. Create RawAttendanceLog
         let (punch, status) = Self::extract_punch_status(raw_data.as_ref());
 
         let raw_log = RawAttendanceLog::new(
             new_id(),
             args.workspace_id,
-            employee.id(),
+            active_employment_id,
             punch_time,
             args.source,
             args.device_id,

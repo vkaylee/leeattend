@@ -70,6 +70,13 @@ async fn test_summary_records_holiday_flag_after_recalculate() {
         .create()
         .await;
 
+    let employment_id: uuid::Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp
+    );
+
     // Trigger recalculation directly via service
     apiserver::services::AttendanceSummaryService::new(
         apiserver::services::attendance_summary_service::AttendanceSummaryServiceArgs {
@@ -106,14 +113,14 @@ async fn test_summary_records_holiday_flag_after_recalculate() {
             ),
         },
     )
-    .recalculate_daily_summary(workspace_id, emp, today)
+    .recalculate_daily_summary(workspace_id, employment_id, today)
     .await
     .expect("Recalculate failed");
 
     let repo =
         apiserver::repositories::DieselAttendanceDailySummaryRepository::new(diesel_pools.clone());
     let summaries = apiserver::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository::get_summaries(
-        &repo, &apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id), Some(emp), today, today
+        &repo, &apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id), Some(employment_id), today, today
     ).await.unwrap();
 
     let summary = summaries.into_iter().next().unwrap();

@@ -96,7 +96,7 @@ pub async fn create_employment(
 
     let emp = state
         .employees()
-        .employment_repo()
+        .service()
         .create_employment(&ctx.auth_token, &payload)
         .await?;
 
@@ -127,7 +127,7 @@ pub async fn update_employment(
 
     let emp = state
         .employees()
-        .employment_repo()
+        .service()
         .update_employment(&ctx.auth_token, employment_id, &payload)
         .await?;
 
