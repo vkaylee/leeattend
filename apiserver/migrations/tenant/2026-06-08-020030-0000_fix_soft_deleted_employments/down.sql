@@ -1,0 +1,1 @@
+-- No-op: fix migration does not alter schema and does not need to rollback data backfills.
