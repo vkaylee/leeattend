@@ -427,7 +427,7 @@ function BehalfAssignmentsEmptyState({
 
 export function BehalfAssignmentsTab({
   wsId,
-  assignmentType,
+  assignmentType = "ot",
 }: {
   wsId: string;
   assignmentType?: "ot" | "leave" | "attendance_adjustment" | "overtime_request";
