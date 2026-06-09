@@ -1,0 +1,1 @@
+-- Down migration for init_system (empty)

@@ -5,7 +5,7 @@ impl crate::diesel_pool::core::DieselPools {
         use diesel::Connection;
         use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 
-        // Force compile to detect new migrations
+        // Force compile to detect new migrations (last touched: 2026-06-09 v4)
         pub const SYSTEM_MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations/system");
 
         let mut conn = diesel::PgConnection::establish(&config.primary_url).map_err(|e| {
@@ -63,8 +63,9 @@ impl crate::diesel_pool::core::DieselPools {
         use diesel::Connection;
         use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 
+        // force recompile of system migrations
         pub const SYSTEM_MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations/system");
-        // force recompile to pick up new tenant migrations
+        // force recompile of tenant migrations
         pub const TENANT_MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations/tenant");
 
         let mut conn = diesel::PgConnection::establish(&config.primary_url).map_err(|e| {

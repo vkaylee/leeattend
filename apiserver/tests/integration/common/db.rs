@@ -109,7 +109,7 @@ impl TestDatabase {
                     worker_acquire_timeout_secs: 5,
                     tenant_max_conn: 1,
                 },
-            );
+            ).expect("Failed to run migrations for manual fallback");
 
             {
                 let mut dbs = get_active_dbs().lock().unwrap();
