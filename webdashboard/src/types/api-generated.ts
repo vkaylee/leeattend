@@ -4002,7 +4002,7 @@ export interface components {
             /** Format: date-time */
             created_at: string;
             /** Format: uuid */
-            employee_id: string;
+            employment_id: string;
             /** Format: uuid */
             id: string;
             is_break_overtime: boolean;
@@ -4035,7 +4035,7 @@ export interface components {
             /** Format: date */
             date: string;
             /** Format: uuid */
-            employee_id: string;
+            employment_id: string;
             entered_via?: string | null;
             holiday_name?: string | null;
             /** Format: uuid */
@@ -4203,7 +4203,7 @@ export interface components {
             success_count: number;
         };
         BulkOtEntryError: {
-            employee_id: string;
+            employment_id: string;
             error_message: string;
             line_number: number;
         };
@@ -4257,7 +4257,7 @@ export interface components {
         };
         CreateAttendanceAdjustmentRequest: {
             /** Format: uuid */
-            employee_id: string;
+            employment_id: string;
             is_break_overtime: boolean;
             reason?: string | null;
             /** Format: date-time */
@@ -4392,8 +4392,12 @@ export interface components {
             employee_id: string;
             /** Format: uuid */
             employer_id: string;
+            employment_type: string;
             /** Format: date */
             end_date?: string | null;
+            job_title?: string | null;
+            /** Format: uuid */
+            manager_employment_id?: string | null;
             /** Format: uuid */
             primary_location_id?: string | null;
             /** Format: date */
@@ -4507,7 +4511,7 @@ export interface components {
             /** Format: date */
             date: string;
             /** Format: uuid */
-            employee_id: string;
+            employment_id: string;
             notes?: string | null;
             /** Format: uuid */
             shift_id?: string | null;
@@ -4740,18 +4744,11 @@ export interface components {
             /** Format: uuid */
             employer_id?: string | null;
             full_name: string;
-            /** Format: date */
-            hire_date: string;
             /** Format: uuid */
             id: string;
-            is_active: boolean;
-            /** Format: date */
-            original_hire_date: string;
             /** Format: uuid */
             primary_location_id?: string | null;
             tags: string[];
-            /** Format: date */
-            termination_date?: string | null;
             /** Format: date-time */
             updated_at: string;
             /** Format: uuid */
@@ -4942,9 +4939,9 @@ export interface components {
             updated_at: string;
         };
         EmployeeSchedule: {
-            /** Format: uuid */
-            employee_id: string;
             employee_id_number: string;
+            /** Format: uuid */
+            employment_id: string;
             full_name: string;
             schedules: components["schemas"]["EffectiveSchedule"][];
         };
@@ -4993,10 +4990,14 @@ export interface components {
             employee_id: string;
             /** Format: uuid */
             employer_id: string;
+            employment_type: string;
             /** Format: date */
             end_date?: string | null;
             /** Format: uuid */
             id: string;
+            job_title?: string | null;
+            /** Format: uuid */
+            manager_employment_id?: string | null;
             /** Format: uuid */
             primary_location_id?: string | null;
             /** Format: date */
@@ -5920,7 +5921,7 @@ export interface components {
         };
         PunchInRequest: {
             /** Format: uuid */
-            employee_id: string;
+            employment_id: string;
             entry_type?: string | null;
             is_break_overtime?: boolean | null;
             note?: string | null;
@@ -5967,8 +5968,14 @@ export interface components {
             password: string;
         };
         RehireEmployeeRequest: {
+            /** Format: uuid */
+            department_id?: string | null;
+            /** Format: uuid */
+            employer_id: string;
             /** Format: date */
             hire_date: string;
+            /** Format: uuid */
+            primary_location_id?: string | null;
         };
         /**
          * @description Report format type.
@@ -6114,7 +6121,7 @@ export interface components {
             /** Format: date */
             date: string;
             /** Format: uuid */
-            employee_id: string;
+            employment_id: string;
             /** Format: uuid */
             id: string;
             notes?: string | null;
@@ -6288,7 +6295,7 @@ export interface components {
             /** Format: int32 */
             duration_minutes?: number | null;
             /** Format: uuid */
-            employee_id: string;
+            employment_id: string;
             entry_type: string;
             generation_metadata?: unknown;
             /** Format: uuid */
@@ -6465,16 +6472,11 @@ export interface components {
             employee_id_number?: null | components["schemas"]["String"];
             force_transfer?: boolean | null;
             full_name?: string | null;
-            /** Format: date */
-            hire_date?: string | null;
-            is_active?: boolean | null;
             /** Format: int32 */
             max_concurrent_workers?: number | null;
             /** Format: uuid */
             recruitment_source_id?: string | null;
             tags?: string[] | null;
-            /** Format: date */
-            termination_date?: string | null;
             /** Format: uuid */
             user_id?: string | null;
         };
@@ -6491,8 +6493,12 @@ export interface components {
             department_id?: string | null;
             /** Format: uuid */
             employer_id?: string | null;
+            employment_type?: string | null;
             /** Format: date */
             end_date?: string | null;
+            job_title?: string | null;
+            /** Format: uuid */
+            manager_employment_id?: string | null;
             /** Format: uuid */
             primary_location_id?: string | null;
             /** Format: date */
@@ -6713,7 +6719,7 @@ export interface components {
         };
         WorkingCondition: {
             /** Format: uuid */
-            employee_id: string;
+            employment_id: string;
             /** Format: date */
             end_date?: string | null;
             /** Format: uuid */

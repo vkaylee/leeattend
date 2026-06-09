@@ -19,7 +19,7 @@ interface Props {
 interface UploadResult {
   errors: {
     line_number: number;
-    employee_id: string;
+    employment_id: string;
     error_message: string;
   }[];
   failed_count: number;
@@ -211,7 +211,7 @@ function ErrorDetailsTable({ onDownloadErrorReport, t, uploadResult }: ErrorDeta
                   {error_.line_number}
                 </td>
                 <td className="px-4 py-2 text-xs font-mono text-slate-600 dark:text-slate-300">
-                  {error_.employee_id}
+                  {error_.employment_id}
                 </td>
                 <td className="px-4 py-2 text-xs text-rose-600 dark:text-rose-300">
                   {error_.error_message}
@@ -244,9 +244,9 @@ E002,2026-01-28,90,Urgent order completion`;
 function downloadErrorReport(uploadResult: UploadResult) {
   if (uploadResult.errors.length === 0) return;
 
-  const headers = "line_number,employee_id,error_message";
+  const headers = "line_number,employment_id,error_message";
   const rows = uploadResult.errors
-    .map(e => `${e.line_number.toString()},${e.employee_id},"${e.error_message}"`)
+    .map(e => `${e.line_number.toString()},${e.employment_id},"${e.error_message}"`)
     .join("\n");
 
   const csvContent = `${headers}\n${rows}`;

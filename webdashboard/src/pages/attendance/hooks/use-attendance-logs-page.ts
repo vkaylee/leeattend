@@ -161,7 +161,12 @@ export function useAttendanceLogsPage() {
   const { employees: _employees } = useAllEmployees(wsId);
   const employeeMap = useMemo(() => {
     const map = new Map<string, Employee>();
-    _employees.forEach((emp) => map.set(emp.id, emp));
+    _employees.forEach((emp) => {
+      map.set(emp.id, emp);
+      if (emp.active_employment_id) {
+        map.set(emp.active_employment_id, emp);
+      }
+    });
     return map;
   }, [_employees]);
 
@@ -169,8 +174,8 @@ export function useAttendanceLogsPage() {
   const { dismissMutation, resolveMutation } = useAttendanceMutations(wsId);
   const { getDeviceName } = useAttendanceDevices(wsId);
 
-  const getEmployeeName = useCallback((log: RawAttendanceLog) => log.employee_full_name ?? employeeMap.get(log.employee_id)?.full_name ?? t("common.system"), [employeeMap, t]);
-  const getEmployeeID = useCallback((log: RawAttendanceLog) => log.employee_id_number ?? employeeMap.get(log.employee_id)?.employee_id_number ?? "", [employeeMap]);
+  const getEmployeeName = useCallback((log: RawAttendanceLog) => log.employee_full_name ?? employeeMap.get(log.employee_id || log.employment_id)?.full_name ?? t("common.system"), [employeeMap, t]);
+  const getEmployeeID = useCallback((log: RawAttendanceLog) => log.employee_id_number ?? employeeMap.get(log.employee_id || log.employment_id)?.employee_id_number ?? "", [employeeMap]);
 
   const loadMoreRef = useInfiniteScroll<HTMLTableRowElement>({ hasNextPage, isFetchingNextPage, fetchNextPage: () => { void fetchNextPage(); } });
   const loadMoreStagingRef = useInfiniteScroll<HTMLTableRowElement>({ hasNextPage: hasNextStagingPage, isFetchingNextPage: isFetchingNextStagingPage, fetchNextPage: () => { void fetchNextStagingPage(); } });

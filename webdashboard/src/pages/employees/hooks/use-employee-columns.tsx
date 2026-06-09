@@ -79,8 +79,8 @@ export const useEmployeeColumns = ({
     },
     {
       render: (emp) => (
-        <StatusBadge variant={emp.is_active ? "success" : "neutral"}>
-          {emp.is_active ? t("employees.table.active").toUpperCase() : t("employees.table.terminated").toUpperCase()}
+        <StatusBadge variant={emp.active_employment_id ? "success" : "neutral"}>
+          {emp.active_employment_id ? t("employees.table.active").toUpperCase() : t("employees.table.terminated").toUpperCase()}
         </StatusBadge>
       ),
       cellClassName: "py-6 text-center",

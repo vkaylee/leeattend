@@ -15,7 +15,7 @@ import {
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { Department, Employee, WorkspaceMember } from "@/lib/api";
+import type { Department, Employee, WorkspaceMember, Employment } from "@/lib/api";
 import type { WorkLocation } from "@/lib/api-generated/models";
 
 import PermissionGate from "@/components/common/permission-gate";
@@ -26,7 +26,7 @@ import { Combobox } from "@/components/ui/combobox";
 import Sheet from "@/components/ui/sheet";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
-import { fetchWorkspaceMembers, updateEmployee, fetchEmployeeEmployments, updateEmployeeEmployment } from "@/lib/api";
+import { fetchWorkspaceMembers, fetchEmployeeEmployments, updateEmployeeEmployment } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useLocations } from "@/pages/settings/hooks/use-locations";
 
@@ -83,7 +83,7 @@ function DrawerHeader({
                         <div className="flex items-center gap-3">
                             <span className="text-primary-600 dark:text-primary-400 font-mono text-xs font-bold tracking-widest uppercase bg-white dark:bg-slate-900 px-3 py-1 rounded-full border border-primary-100 dark:border-primary-800 shadow-sm">{employee.employee_id_number}</span>
                             <div className="w-1.5 h-1.5 bg-slate-200 dark:bg-slate-600 rounded-full" />
-                            <span className={cn("text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border shadow-sm", employee.is_active ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800' : 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800 opacity-60')}>{employee.is_active ? t("employees.table.active").toUpperCase() : t("employees.table.terminated").toUpperCase()}</span>
+                            <span className={cn("text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border shadow-sm", employee.active_employment_id ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800' : 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800 opacity-60')}>{employee.active_employment_id ? t("employees.table.active").toUpperCase() : t("employees.table.terminated").toUpperCase()}</span>
                         </div>
                     </div>
                 </div>
@@ -127,7 +127,7 @@ function ProfileActions({
                 <Button className="flex items-center justify-center gap-3 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all text-xs uppercase tracking-widest shadow-sm active:scale-95 h-auto" data-testid="employees-btn-edit" onClick={() => { onEdit(employee); }} type="button" variant="outline"><Pencil size={18} /> {t("employees.details.edit_profile").toUpperCase()}</Button>
             </PermissionGate>
             <PermissionGate permission="employees:update">
-                {employee.is_active ? (
+                {employee.active_employment_id ? (
                     <Button className="flex items-center justify-center gap-3 py-4 bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 font-bold rounded-2xl hover:bg-rose-100 dark:bg-rose-900 transition-all text-xs uppercase tracking-widest active:scale-95 shadow-sm shadow-rose-900/5 h-auto" data-testid="employees-btn-terminate" onClick={() => { onTerminate(employee); }} type="button" variant="destructive"><Trash2 size={18} /> {t("employees.details.terminate").toUpperCase()}</Button>
                 ) : (
                     <Button className="flex items-center justify-center gap-3 py-4 bg-primary-600 text-white font-bold rounded-2xl hover:bg-primary-700 transition-all text-xs uppercase tracking-widest shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 h-auto" data-testid="employees-btn-rehire" onClick={() => { onRehire(employee); }} type="button" variant="primary"><UserPlus size={18} /> {t("employees.details.rehire").toUpperCase()}</Button>
@@ -310,24 +310,29 @@ function UserSection({
 }
 
 function HireDatesSection({
-    employee,
+    employments,
     formatDate,
     t
 }: {
-    employee: Employee;
+    employments: Employment[];
     formatDate: (date: string) => string;
     t: (k: string) => string;
 }) {
+    const sortedEmployments = [...employments].sort((a, b) => a.start_date.localeCompare(b.start_date));
+    const originalHireDate = sortedEmployments[0]?.start_date ?? "";
+    const activeOrLatestEmployment = employments.find(e => e.status === "active") || sortedEmployments[sortedEmployments.length - 1];
+    const hireDate = activeOrLatestEmployment?.start_date ?? "";
+
     return (
         <section className="space-y-5">
             <div className="grid grid-cols-2 gap-6">
                 <div>
                     <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 px-2 mb-5 opacity-70"><Calendar className="text-emerald-500" size={14} /> {t("employees.details.original_hire_date").toUpperCase()}</span>
-                    <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] font-bold text-slate-800 dark:text-slate-100 text-2xl tracking-tighter shadow-inner uppercase font-mono">{employee.original_hire_date ? formatDate(employee.original_hire_date) : formatDate(employee.hire_date)}</div>
+                    <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] font-bold text-slate-800 dark:text-slate-100 text-2xl tracking-tighter shadow-inner uppercase font-mono">{originalHireDate ? formatDate(originalHireDate) : "—"}</div>
                 </div>
                 <div>
                     <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 px-2 mb-5 opacity-70"><Calendar className="text-emerald-500" size={14} /> {t("employees.table.hire_date").toUpperCase()}</span>
-                    <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] font-bold text-slate-800 dark:text-slate-100 text-2xl tracking-tighter shadow-inner uppercase font-mono">{formatDate(employee.hire_date)}</div>
+                    <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] font-bold text-slate-800 dark:text-slate-100 text-2xl tracking-tighter shadow-inner uppercase font-mono">{hireDate ? formatDate(hireDate) : "—"}</div>
                 </div>
             </div>
         </section>
@@ -426,6 +431,7 @@ function ProfileTab({
             />
 
             <LocationSection
+                activeLocationId={activeLocationId}
                 currentLocation={currentLocation}
                 employee={employee}
                 handleSaveLocation={handleSaveLocation}
@@ -434,7 +440,6 @@ function ProfileTab({
                 selectedLocationId={selectedLocationId}
                 setIsEditingLocation={setIsEditingLocation}
                 setSelectedLocationId={setSelectedLocationId}
-                activeLocationId={activeLocationId}
                 t={t}
                 updateLocationMutation={updateLocationMutation}
             />
@@ -447,7 +452,7 @@ function ProfileTab({
 
             <GridWrap>
                 <HireDatesSection
-                    employee={employee}
+                    employments={employments}
                     formatDate={formatDate}
                     t={t}
                 />

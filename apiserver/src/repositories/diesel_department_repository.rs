@@ -13,6 +13,20 @@ use crate::models::{Department, DepartmentPayrollConfig, EmployeeDepartmentHisto
 use crate::repositories::department_repository::DepartmentRepository;
 use crate::schema::departments;
 
+const ACTIVE_EMPLOYEE_COUNT_SQL: &str = r"
+    COALESCE((
+        SELECT COUNT(DISTINCT e.id) FROM employees e
+        JOIN employments em ON em.employee_id = e.id AND em.status = 'active' AND em.deleted_at IS NULL
+        WHERE e.workspace_id = departments.workspace_id
+          AND (
+              SELECT department_id FROM employee_department_history edh
+              WHERE edh.employee_id = e.id
+              ORDER BY edh.effective_date DESC
+              LIMIT 1
+          ) = departments.id
+    ), 0)
+";
+
 #[derive(Debug, Queryable, QueryableByName)]
 pub struct DepartmentWithCountEntity {
     #[diesel(sql_type = diesel::sql_types::Uuid)]
@@ -122,11 +136,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .filter(departments::deleted_at.is_null())
             .select((
                 departments::all_columns,
-                diesel::dsl::sql::<diesel::sql_types::BigInt>(
-                    r"COALESCE((SELECT COUNT(DISTINCT e.id) FROM employees e
-                 JOIN (SELECT DISTINCT ON (employee_id) employee_id, department_id FROM employee_department_history ORDER BY employee_id, effective_date DESC) edh ON e.id = edh.employee_id
-                 WHERE edh.department_id = departments.id AND EXISTS (SELECT 1 FROM employments em WHERE em.employee_id = e.id AND em.status = 'active' AND em.deleted_at IS NULL) AND e.workspace_id = departments.workspace_id), 0)",
-                ),
+                diesel::dsl::sql::<diesel::sql_types::BigInt>(ACTIVE_EMPLOYEE_COUNT_SQL),
             ))
             .first::<(DieselDepartment, i64)>(&mut *conn)
             .await
@@ -163,11 +173,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .filter(departments::deleted_at.is_null())
             .select((
                 departments::all_columns,
-                diesel::dsl::sql::<diesel::sql_types::BigInt>(
-                    r"COALESCE((SELECT COUNT(DISTINCT e.id) FROM employees e
-                 JOIN (SELECT DISTINCT ON (employee_id) employee_id, department_id FROM employee_department_history ORDER BY employee_id, effective_date DESC) edh ON e.id = edh.employee_id
-                 WHERE edh.department_id = departments.id AND EXISTS (SELECT 1 FROM employments em WHERE em.employee_id = e.id AND em.status = 'active' AND em.deleted_at IS NULL) AND e.workspace_id = departments.workspace_id), 0)",
-                ),
+                diesel::dsl::sql::<diesel::sql_types::BigInt>(ACTIVE_EMPLOYEE_COUNT_SQL),
             ))
             .first::<(DieselDepartment, i64)>(&mut *conn)
             .await
@@ -332,11 +338,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .filter(departments::deleted_at.is_null())
             .select((
                 departments::all_columns,
-                diesel::dsl::sql::<diesel::sql_types::BigInt>(
-                    r"COALESCE((SELECT COUNT(DISTINCT e.id) FROM employees e
-                 JOIN (SELECT DISTINCT ON (employee_id) employee_id, department_id FROM employee_department_history ORDER BY employee_id, effective_date DESC) edh ON e.id = edh.employee_id
-                 WHERE edh.department_id = departments.id AND EXISTS (SELECT 1 FROM employments em WHERE em.employee_id = e.id AND em.status = 'active' AND em.deleted_at IS NULL) AND e.workspace_id = departments.workspace_id), 0)",
-                ),
+                diesel::dsl::sql::<diesel::sql_types::BigInt>(ACTIVE_EMPLOYEE_COUNT_SQL),
             ))
             .first::<(DieselDepartment, i64)>(&mut *conn)
             .await
@@ -403,11 +405,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .filter(departments::deleted_at.is_null())
             .select((
                 departments::all_columns,
-                diesel::dsl::sql::<diesel::sql_types::BigInt>(
-                    r"COALESCE((SELECT COUNT(DISTINCT e.id) FROM employees e
-                  JOIN (SELECT DISTINCT ON (employee_id) employee_id, department_id FROM employee_department_history ORDER BY employee_id, effective_date DESC) edh ON e.id = edh.employee_id
-                  WHERE edh.department_id = departments.id AND EXISTS (SELECT 1 FROM employments em WHERE em.employee_id = e.id AND em.status = 'active' AND em.deleted_at IS NULL) AND e.workspace_id = departments.workspace_id), 0)",
-                ),
+                diesel::dsl::sql::<diesel::sql_types::BigInt>(ACTIVE_EMPLOYEE_COUNT_SQL),
             ))
             .order(departments::name)
             .limit(limit)

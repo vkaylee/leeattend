@@ -1,4 +1,5 @@
 import * as Dialog from "@radix-ui/react-dialog";
+import { useQuery } from "@tanstack/react-query";
 import { 
   X, 
   History, 
@@ -13,6 +14,7 @@ import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { useWorkspace } from "@/hooks/use-workspace";
+import { fetchEmployeeEmployments } from "@/lib/api";
 import { Employee, Payslip, AttendanceAdjustmentRequest } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
@@ -62,7 +64,7 @@ function PayrollDetailHeader({ employee }: { employee: Employee; }) {
   );
 }
 
-function PayrollDetailSummary({ employee, payslips, canReadSensitive }: { employee: Employee; payslips: Payslip[]; canReadSensitive: boolean; }) {
+function PayrollDetailSummary({ employee, payslips, canReadSensitive, hireDate }: { employee: Employee; payslips: Payslip[]; canReadSensitive: boolean; hireDate: string; }) {
   const { t } = useTranslation();
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -85,7 +87,7 @@ function PayrollDetailSummary({ employee, payslips, canReadSensitive }: { employ
           </div>
           <div>
             <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] mb-1 opacity-70" variant="p">{t("employees.hire_date")}</Typography>
-            <Typography className="text-2xl font-bold text-slate-700 dark:text-slate-200 font-mono tracking-tighter" variant="p">{employee.hire_date}</Typography>
+            <Typography className="text-2xl font-bold text-slate-700 dark:text-slate-200 font-mono tracking-tighter" variant="p">{hireDate}</Typography>
           </div>
        </div>
     </div>
@@ -108,7 +110,16 @@ export default function PayrollDetailDrawer({
   const canReadSensitive = hasPermission("payroll:sensitive:read");
   const [activeTab, setActiveTab] = useState<"history" | "config">("history");
 
+  const { data: employments = [] } = useQuery({
+    queryKey: ["employments", workspaceId, employee?.id],
+    queryFn: () => employee ? fetchEmployeeEmployments(workspaceId, employee.id) : Promise.resolve([]),
+    enabled: isOpen && !!employee && !!workspaceId,
+  });
+
   if (!employee) return null;
+
+  const activeEmployment = employments.find(emp => emp.id === employee.active_employment_id);
+  const hireDate = activeEmployment?.start_date ?? "—";
 
   return (
     <Dialog.Root onOpenChange={onClose} open={isOpen}>
@@ -149,6 +160,7 @@ export default function PayrollDetailDrawer({
                 <PayrollDetailSummary 
                   canReadSensitive={canReadSensitive}
                   employee={employee}
+                  hireDate={hireDate}
                   payslips={payslips}
                 />
 

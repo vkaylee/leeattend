@@ -54,6 +54,36 @@ const mockMembers = [
 vi.mock("@/lib/api", () => ({
     fetchWorkspaceMembers: vi.fn(() => Promise.resolve(mockMembers)),
     updateEmployee: vi.fn(() => Promise.resolve({})),
+    fetchEmployeeEmployments: vi.fn((wsId, employeeId) => {
+        if (employeeId === "emp-2") {
+            return Promise.resolve([
+                {
+                    id: "employment-2",
+                    employee_id: "emp-2",
+                    status: "terminated",
+                    primary_location_id: "loc-1",
+                    start_date: "2024-06-15",
+                }
+            ]);
+        }
+        return Promise.resolve([
+            {
+                id: "employment-old",
+                employee_id: "emp-1",
+                status: "terminated",
+                primary_location_id: "loc-1",
+                start_date: "2020-01-01",
+            },
+            {
+                id: "employment-1",
+                employee_id: "emp-1",
+                status: "active",
+                primary_location_id: "loc-1",
+                start_date: "2024-06-15",
+            }
+        ]);
+    }),
+    updateEmployeeEmployment: vi.fn(() => Promise.resolve({})),
 }));
 vi.mock("@/pages/settings/hooks/use-locations", () => ({
     useLocations: () => ({
@@ -89,6 +119,7 @@ const mockEmployee: Employee = {
     employee_id_number: "EMP-001",
     workspace_id: "ws-1",
     is_active: true,
+    active_employment_id: "employment-1",
     original_hire_date: "2020-01-01", hire_date: "2024-06-15",
     created_at: "2024-06-15T00:00:00Z",
     updated_at: "2024-06-15T00:00:00Z",
@@ -100,6 +131,7 @@ const terminatedEmployee: Employee = {
     id: "emp-2",
     full_name: "Bob Tran",
     is_active: false,
+    active_employment_id: undefined,
 };
 
 const linkedEmployee: Employee = {
@@ -264,17 +296,20 @@ describe("EmployeeDetailDrawer", () => {
 
     // ── Work Location section ────────────────────────────────────
 
-    it("displays current work location", () => {
+    it("displays current work location", async () => {
         renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
-        expect(screen.getByText("Tokyo HQ")).toBeDefined();
+        expect(await screen.findByText("Tokyo HQ")).toBeDefined();
         expect(screen.getByText("Asia/Tokyo")).toBeDefined();
         expect(screen.getByText("HQ")).toBeDefined();
     });
 
     it("switches to edit mode and saves new location", async () => {
         const user = userEvent.setup();
-        const { updateEmployee } = await import("@/lib/api");
+        const { updateEmployeeEmployment } = await import("@/lib/api");
         renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
+
+        // Wait for employment query to finish loading location details
+        expect(await screen.findByText("Tokyo HQ")).toBeDefined();
 
         // Click Edit
         await user.click(screen.getByText(/common.edit/i));
@@ -287,7 +322,7 @@ describe("EmployeeDetailDrawer", () => {
         // Click Save
         await user.click(screen.getByText(/SAVE/i));
 
-        expect(updateEmployee).toHaveBeenCalledWith("ws-1", "emp-1", { primary_location_id: "loc-2" });
+        expect(updateEmployeeEmployment).toHaveBeenCalledWith("ws-1", "emp-1", "employment-1", { primary_location_id: "loc-2" });
     });
 
     // ── Close ──────────────────────────────────────────────────
@@ -304,16 +339,16 @@ describe("EmployeeDetailDrawer", () => {
 
     // ── Hire date ──────────────────────────────────────────────
 
-    it("displays formatted hire date", () => {
+    it("displays formatted hire date", async () => {
         renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
-        expect(screen.getByText("2024-06-15")).toBeDefined();
+        expect(await screen.findByText("2024-06-15")).toBeDefined();
     });
 
     // ── Linked user section ────────────────────────────────────
 
     it("shows dash when employee has no linked user", () => {
         renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
-        expect(screen.getByText("—")).toBeDefined();
+        expect(screen.getAllByText("—").length).toBeGreaterThan(0);
     });
 
     it("shows linked user name and email when employee has a user_id", async () => {

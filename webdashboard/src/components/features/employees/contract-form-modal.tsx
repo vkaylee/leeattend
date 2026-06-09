@@ -142,7 +142,7 @@ export default function ContractFormModal({
         reset({
           contract_type: "probation",
           status: "active",
-          start_date: employee?.hire_date ?? new Date().toISOString().split("T")[0],
+          start_date: activeEmployment?.start_date ?? new Date().toISOString().split("T")[0],
           end_date: "",
           contract_number: "",
           notes: "",
@@ -150,7 +150,7 @@ export default function ContractFormModal({
         });
       }
     }
-  }, [isOpen, editingContract, reset, employee?.hire_date]);
+  }, [isOpen, editingContract, reset, activeEmployment?.start_date]);
 
   const onSubmit = async (data: ContractFormValues) => {
     try {

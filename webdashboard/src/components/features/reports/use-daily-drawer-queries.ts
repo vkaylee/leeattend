@@ -82,7 +82,7 @@ export function useDailyDrawerQueries({
     const adjustmentMap = useMemo(() => {
         const map: Record<string, AttendanceAdjustmentRequest> = {};
         pendingAdjustments?.forEach((request) => {
-            const key = `${request.employee_id}-${request.requested_date}`;
+            const key = `${request.employment_id}-${request.requested_date}`;
             map[key] = request;
         });
         return map;

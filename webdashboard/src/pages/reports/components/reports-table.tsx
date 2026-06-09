@@ -94,12 +94,12 @@ export function ReportsTable(props: ReportsTableProps) {
         hasNextPage={hasNextPage}
         isFetchingNextPage={isFetchingNextPage}
         isLoading={isLoading}
-        itemKey={(row) => row.employee_id}
+        itemKey={(row) => row.employment_id}
         items={filteredData}
         maxHeightClass=""
         onKeyDownRef={keyDownRef}
         onSearchChange={setSearchQuery}
-        onSelect={(row) => { handleEmployeeClick(row.employee_id, row.employee_name); }}
+        onSelect={(row) => { handleEmployeeClick(row.employee_id ?? "", row.employee_name); }}
         resetDeps={[searchQuery, filterMode, specificMonth, dateRange]}
         rowIdPrefix="summary-row"
         searchInputRef={searchInputRef}

@@ -365,7 +365,12 @@
       "preview_title": "排班预览",
       "shift_duration": "总时长",
       "shift_name_label": "班次名称",
-      "working_hours": "实际工时"
+      "working_hours": "实际工时",
+      "location": "分支机构 / 地点",
+      "global_scope": "全局 / 共享",
+      "select_location": "选择工作地点",
+      "employer": "雇主子公司范围",
+      "select_employer": "选择雇主"
     },
     "messages": {
       "assign_success": "员工班次分配成功。",

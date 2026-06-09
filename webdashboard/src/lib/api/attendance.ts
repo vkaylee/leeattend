@@ -16,7 +16,7 @@ import {
 
 export async function punchIn(
   wsId: string,
-  data: { employee_id: string; entry_type?: string; note?: string },
+  data: { employment_id: string; entry_type?: string; note?: string },
 ): Promise<TimeEntry> {
   const { data: resData } = await client.POST("/workspaces/{workspace_id}/time/punch-in", {
     params: {
@@ -82,7 +82,7 @@ export async function deleteTimeEntry(wsId: string, id: string): Promise<void> {
 export async function submitAttendanceAdjustment(
   wsId: string,
   data: {
-    employee_id: string;
+    employment_id: string;
     time_entry_id?: string;
     requested_punch_in_time: string;
     requested_punch_out_time?: string;
@@ -386,7 +386,7 @@ export async function bulkUploadPaperOt(
   failed_count: number;
   errors: {
     line_number: number;
-    employee_id: string;
+    employment_id: string;
     error_message: string;
   }[];
 }> {
@@ -708,7 +708,7 @@ export async function adminConfirmAttendance(
     const punchOut = row.actual_punch_out ?? row.scheduled_end ?? undefined;
 
     const adjustment = await submitAttendanceAdjustment(wsId, {
-      employee_id: row.employee_id,
+      employment_id: row.employment_id,
       requested_punch_in_time: toDatetime(row.date, punchIn),
       requested_punch_out_time: punchOut
         ? toDatetime(row.date, punchOut)

@@ -1,10 +1,13 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { vi, describe, it, expect, beforeEach } from "vitest";
 import React from "react";
 
+import userEvent from "@testing-library/user-event";
+import { vi, describe, it, expect, beforeEach } from "vitest";
+
+import Button from "@/components/ui/button";
 import * as api from "@/lib/api";
+
 import TimeSettings from "../time-settings";
 
 vi.mock("react-i18next", () => ({
@@ -36,7 +39,7 @@ vi.mock("@/components/features/attendance/policy-assignments-section", () => ({
 vi.mock("../time-settings/bulk-reprocess", () => ({
   BulkReprocessSection: ({ setShowReprocessConfirm }: any) => (
     <div data-testid="bulk-reprocess-section">
-      <button data-testid="reprocess-trigger" onClick={() => setShowReprocessConfirm(true)}>Reprocess</button>
+      <Button data-testid="reprocess-trigger" onClick={() => setShowReprocessConfirm(true)}>Reprocess</Button>
     </div>
   )
 }));
@@ -50,9 +53,9 @@ vi.mock("../time-settings/create-version-modal", () => ({
     if (!isOpen) return null;
     return (
       <div data-testid="create-version-modal">
-        <button data-testid="modal-save" onClick={onSave}>Save</button>
-        <button data-testid="modal-close" onClick={onClose}>Close</button>
-        <button data-testid="modal-change-unit" onClick={() => setWorkUnit(30)}>Change Unit</button>
+        <Button data-testid="modal-save" onClick={onSave}>Save</Button>
+        <Button data-testid="modal-close" onClick={onClose}>Close</Button>
+        <Button data-testid="modal-change-unit" onClick={() => setWorkUnit(30)}>Change Unit</Button>
       </div>
     );
   }
@@ -63,8 +66,8 @@ vi.mock("../time-settings/reprocess-modal", () => ({
     if (!isOpen) return null;
     return (
       <div data-testid="reprocess-modal">
-        <button data-testid="reprocess-submit" onClick={onSubmit}>Submit</button>
-        <button data-testid="reprocess-close" onClick={onClose}>Close</button>
+        <Button data-testid="reprocess-submit" onClick={onSubmit}>Submit</Button>
+        <Button data-testid="reprocess-close" onClick={onClose}>Close</Button>
       </div>
     );
   }

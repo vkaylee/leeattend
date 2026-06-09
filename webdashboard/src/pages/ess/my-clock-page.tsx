@@ -66,7 +66,7 @@ export default function MyClockPage() {
       const punchOutTime = toUTCISO(data.date, data.punchOut, tz);
 
       await submitAttendanceAdjustment(wsId, {
-        employee_id: employee.id,
+        employment_id: employee.active_employment_id ?? "",
         reason: data.reason,
         requested_punch_in_time: punchInTime,
         requested_punch_out_time: punchOutTime,

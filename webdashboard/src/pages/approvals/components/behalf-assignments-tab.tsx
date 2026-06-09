@@ -19,9 +19,9 @@ interface AddAssignmentFormProps {
   departmentOptions: { description?: string | null; label: string; value: string }[];
   isCreating: boolean;
   onCancel: () => void;
+  onSelectAssigneeEmployee: (emp: Employee | null) => void;
   onSubmit: (e: React.SyntheticEvent) => void;
   setAssigneeId: (id: string) => void;
-  onSelectAssigneeEmployee: (emp: Employee | null) => void;
   setTargetDepartmentId: (id: string) => void;
   setTargetEmployeeId: (id: string) => void;
   setTargetType: (type: "employee" | "department") => void;
@@ -427,7 +427,7 @@ function BehalfAssignmentsEmptyState({
 
 export function BehalfAssignmentsTab({
   wsId,
-  assignmentType = "ot",
+  assignmentType,
 }: {
   wsId: string;
   assignmentType?: "ot" | "leave" | "attendance_adjustment" | "overtime_request";
@@ -576,9 +576,9 @@ export function BehalfAssignmentsTab({
           onCancel={() => {
             setIsOpen(false);
           }}
+          onSelectAssigneeEmployee={setSelectedAssigneeEmployee}
           onSubmit={handleCreate}
           setAssigneeId={setAssigneeId}
-          onSelectAssigneeEmployee={setSelectedAssigneeEmployee}
           setTargetDepartmentId={setTargetDepartmentId}
           setTargetEmployeeId={setTargetEmployeeId}
           setTargetType={setTargetType}

@@ -10,6 +10,7 @@ import {
   getCurrentWorkspaceId,
   AssignmentRuleConditions,
 } from "@/lib/api";
+
 import { useAssignmentRulesData } from "./use-assignment-rules-data";
 
 export function useAssignmentRuleForm(ruleId?: string) {
@@ -116,19 +117,19 @@ export function useAssignmentRuleForm(ruleId?: string) {
     employers,
     locations,
     name,
-    setName: (val: string) => handleFieldChange(setName, val),
+    setName: (val: string) => { handleFieldChange(setName, val); },
     patternId,
-    setPatternId: (val: string) => handleFieldChange(setPatternId, val),
+    setPatternId: (val: string) => { handleFieldChange(setPatternId, val); },
     priority,
-    setPriority: (val: number) => handleFieldChange(setPriority, val),
+    setPriority: (val: number) => { handleFieldChange(setPriority, val); },
     conditions,
     setConditions: handleConditionsChange,
     startDate,
-    setStartDate: (val: string) => handleFieldChange(setStartDate, val),
+    setStartDate: (val: string) => { handleFieldChange(setStartDate, val); },
     endDate,
-    setEndDate: (val: string) => handleFieldChange(setEndDate, val),
+    setEndDate: (val: string) => { handleFieldChange(setEndDate, val); },
     isIndefinite,
-    setIsIndefinite: (val: boolean) => handleFieldChange(setIsIndefinite, val),
+    setIsIndefinite: (val: boolean) => { handleFieldChange(setIsIndefinite, val); },
     handleSubmit,
     isPending: createMutation.isPending || updateMutation.isPending,
     isDirty,

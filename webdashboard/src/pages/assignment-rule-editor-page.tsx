@@ -122,6 +122,7 @@ export default function AssignmentRuleEditorPage() {
           conditions={conditions}
           departments={departments}
           employers={employers}
+          endDate={endDate}
           isIndefinite={isIndefinite}
           locations={locations}
           name={name}
@@ -129,14 +130,13 @@ export default function AssignmentRuleEditorPage() {
           patterns={patterns}
           priority={priority}
           setConditions={setConditions}
+          setEndDate={setEndDate}
           setIsIndefinite={setIsIndefinite}
           setName={setName}
           setPatternId={setPatternId}
           setPriority={setPriority}
-          startDate={startDate}
           setStartDate={setStartDate}
-          endDate={endDate}
-          setEndDate={setEndDate}
+          startDate={startDate}
         />
       </div>
 

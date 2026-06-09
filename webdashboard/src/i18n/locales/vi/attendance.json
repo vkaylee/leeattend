@@ -365,7 +365,12 @@
       "preview_title": "Xem trước sơ đồ ca",
       "shift_duration": "Tổng thời gian ca",
       "shift_name_label": "Tên ca",
-      "working_hours": "Công thực tế"
+      "working_hours": "Công thực tế",
+      "location": "Chi nhánh / Địa điểm Scope",
+      "global_scope": "Toàn cục / Dùng chung",
+      "select_location": "Chọn địa điểm làm việc",
+      "employer": "Pháp nhân / Công ty Scope",
+      "select_employer": "Chọn pháp nhân trực thuộc"
     },
     "messages": {
       "assign_success": "Đã gán ca làm việc cho nhân viên thành công.",

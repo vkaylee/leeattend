@@ -47,8 +47,8 @@ export default function AssignmentRulesPage() {
       <AssignmentRulesTable
         departments={departments}
         employers={employers}
-        locations={locations}
         isLoading={rulesLoading}
+        locations={locations}
         onDelete={handleDelete}
         onEdit={(rule) => {
           void navigate({ to: `/assignment-rules/${rule.id}/edit` });

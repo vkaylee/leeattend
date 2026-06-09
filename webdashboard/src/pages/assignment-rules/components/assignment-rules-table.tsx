@@ -10,8 +10,8 @@ import { AssignmentRuleRow } from "./assignment-rule-row";
 interface AssignmentRulesTableProps {
   departments: { id: string; name: string }[] | undefined;
   employers: { id: string; name: string }[] | undefined;
-  locations: { id: string; name: string }[] | undefined;
   isLoading: boolean;
+  locations: { id: string; name: string }[] | undefined;
   onDelete: (id: string) => void;
   onEdit: (rule: AssignmentRule) => void;
   patterns: { id: string; name: string }[] | undefined;
@@ -47,8 +47,8 @@ export const AssignmentRulesTable: React.FC<AssignmentRulesTableProps> = ({
             <AssignmentRuleRow
               departments={departments}
               employers={employers}
-              locations={locations}
               key={rule.id}
+              locations={locations}
               onDelete={onDelete}
               onEdit={onEdit}
               patterns={patterns}

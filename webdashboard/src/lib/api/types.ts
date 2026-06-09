@@ -70,8 +70,9 @@ export interface RawAttendanceLog {
   device_id?: string;
   device_name?: string;
   employee_full_name?: string;
-  employee_id: string;
+  employee_id?: string;
   employee_id_number?: string;
+  employment_id: string;
  
   id: string;
   punch_time: string;
@@ -121,9 +122,10 @@ export type AttendanceReportSort =
 export interface AttendanceSummary {
   computed_ot_hours: number;
   computed_std_hours: number;
-  employee_id: string;
+  employee_id?: string;
   employee_id_number?: string;
   employee_name: string;
+  employment_id: string;
   total_leave_days: number;
   total_ot_units: number;
   total_std_units: number;
@@ -147,8 +149,9 @@ export interface DailyAttendanceReport {
   computed_ot_hours: number;
   computed_std_hours: number;
   date: string;
-  employee_id: string;
+  employee_id?: string;
   employee_name: string;
+  employment_id: string;
   generation_metadata?: unknown;
   holiday_name?: string | null;
   is_break_auto_deduct: boolean | null;
@@ -371,6 +374,7 @@ export type ScheduleTrace = components["schemas"]["ScheduleTrace"];
 export type EffectiveSchedule = components["schemas"]["EffectiveSchedule"];
 export type EmployeeSchedule = Omit<components["schemas"]["EmployeeSchedule"], "employee_id_number"> & {
   employee_id_number?: string;
+  employee_id?: string;
 };
 export type AssignmentHistory = components["schemas"]["AssignmentHistory"];
 export type LeaveHistoryItem = components["schemas"]["LeaveHistoryItem"];

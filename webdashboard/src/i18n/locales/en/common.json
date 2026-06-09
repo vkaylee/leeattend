@@ -577,6 +577,12 @@
           "created_at": "Created At"
         }
       },
+      "time": {
+        "error_title": "Failed to Load Time Settings",
+        "error_desc": "An unexpected error occurred while fetching the settings rules. Please try again.",
+        "missing_title": "No Data Found",
+        "missing_desc": "Workspace details or default rules are not configured for this workspace."
+      },
       "tabs": {
         "overtime_policy": "Overtime Policy",
         "localization": "Localization",
@@ -1579,6 +1585,7 @@
     "scope_type_department": "Department",
     "scope_type_none": "None",
     "unknown_employee": "Unknown Employee",
+    "unknown_department": "Unknown Department",
     "assignee_labels": {
       "ot": "Authorized Claimant",
       "overtime_request": "Authorized Submitter",

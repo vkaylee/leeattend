@@ -6,9 +6,9 @@ import Button from "@/components/ui/button";
 export interface OtSummary {
   claimed_ot_minutes: number;
   date: string;
-  employee_id: string;
   employee_id_number?: string;
   employee_name?: string;
+  employment_id: string;
   entered_via?: string | null;
   id: string;
   ot_reason?: string | null;
@@ -74,7 +74,7 @@ export function OtApprovalsTable({
               <td className="px-8 py-6">
                 <div className="flex flex-col">
                   <span className="font-bold text-sm text-slate-800 dark:text-slate-200">
-                    {summary.employee_name ?? summary.employee_id}
+                    {summary.employee_name ?? summary.employment_id}
                   </span>
                   {!!summary.employee_id_number && (
                     <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 uppercase tracking-tight">

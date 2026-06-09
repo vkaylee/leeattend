@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { UserPlus } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -6,11 +6,12 @@ import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 
 import Button from "@/components/ui/button";
+import { Combobox } from "@/components/ui/combobox";
 import FormField from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
-import { rehireEmployee, Employee } from "@/lib/api";
+import { rehireEmployee, fetchEmployers, Employee } from "@/lib/api";
 
 interface RehireEmployeeModalProps {
   employeeId: string | null;
@@ -30,9 +31,16 @@ export default function RehireEmployeeModal({
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();
+  const [selectedEmployerId, setSelectedEmployerId] = React.useState("");
+
+  const { data: employers = [] } = useQuery({
+    queryKey: ["employers", wsId],
+    queryFn: () => fetchEmployers(wsId),
+    enabled: !!wsId && isOpen,
+  });
 
   const rehireMutation = useMutation({
-    mutationFn: (data: { hire_date: string }) => {
+    mutationFn: (data: { hire_date: string; employer_id: string }) => {
       if (!employeeId) throw new Error("No employee selected");
       return rehireEmployee(wsId, employeeId, data);
     },
@@ -47,8 +55,15 @@ export default function RehireEmployeeModal({
 
   const handleRehireSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!selectedEmployerId) {
+      toast.error("Vui lòng chọn pháp nhân trực thuộc");
+      return;
+    }
     const formData = new FormData(e.currentTarget);
-    rehireMutation.mutate({ hire_date: formData.get("hire_date") as string });
+    rehireMutation.mutate({
+      hire_date: formData.get("hire_date") as string,
+      employer_id: selectedEmployerId,
+    });
   };
 
   return (
@@ -67,6 +82,24 @@ export default function RehireEmployeeModal({
           </Typography>
         </div>
         <form className="space-y-8" onSubmit={handleRehireSubmit}>
+          <div className="space-y-3 px-1">
+            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]" htmlFor="rehire-form-employer-combobox">
+              Pháp nhân trực thuộc
+            </label>
+            <Combobox
+              clearOnEscape
+              data-testid="rehire-form-employer-combobox"
+              id="rehire-form-employer-combobox"
+              onChange={setSelectedEmployerId}
+              options={employers.map((emp) => ({
+                value: emp.id,
+                label: emp.name,
+                description: emp.tax_code ? `MST: ${emp.tax_code}` : undefined,
+              }))}
+              placeholder="Chọn pháp nhân trực thuộc"
+              value={selectedEmployerId}
+            />
+          </div>
           <FormField
             defaultValue={format(new Date(), "yyyy-MM-dd")}
             label={t("employees.rehire.rehire_date")}

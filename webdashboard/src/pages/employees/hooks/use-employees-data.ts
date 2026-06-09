@@ -9,6 +9,7 @@ import {
   Employee,
   fetchDepartments,
   fetchEmployeeDepartmentHistory,
+  updateEmployeeEmployment,
 } from "@/lib/api";
 
 import type { SortKey, SortDir } from "./use-employees-state";
@@ -104,6 +105,19 @@ export const useEmployeesData = ({
     },
   });
 
+  const terminateMutation = useMutation({
+    mutationFn: (data: { employeeId: string; employmentId: string; endDate: string }) =>
+      updateEmployeeEmployment(wsId, data.employeeId, data.employmentId, {
+        status: "terminated",
+        end_date: data.endDate,
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["employees", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["deptHistory"] });
+      toast.success(t("common.success"));
+    },
+  });
+
   return {
     employees,
     totalItems,
@@ -111,6 +125,7 @@ export const useEmployeesData = ({
     deptHistory,
 
     updateMutation,
+    terminateMutation,
     isLoading,
     isFetching,
     isPlaceholderData,

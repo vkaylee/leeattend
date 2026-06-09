@@ -43,6 +43,17 @@ vi.mock("../../lib/api", () => ({
     rehireEmployee: vi.fn(),
     fetchMyPermissions: vi.fn(),
     fetchWorkspaceMembers: vi.fn().mockResolvedValue([]),
+    fetchEmployeeEmployments: vi.fn((wsId, empId) => Promise.resolve([
+        {
+            id: `employment-id-${empId}`,
+            employee_id: empId,
+            employer_id: "employer-1",
+            primary_location_id: "location-1",
+            start_date: "2025-01-01",
+            status: "active"
+        }
+    ])),
+    updateEmployeeEmployment: vi.fn(() => Promise.resolve({})),
 }));
 
 // Override i18n
@@ -74,6 +85,7 @@ const mockEmployee = (id: string, name: string, active = true, department?: stri
     full_name: name,
     employee_id_number: `EMP-${id}`,
     workspace_id: "test-ws-id",
+    active_employment_id: active ? `employment-id-${id}` : undefined,
     is_active: active,
     original_hire_date: "2020-01-01", hire_date: "2025-01-01",
     created_at: "2025-01-01T00:00:00Z",
@@ -303,10 +315,11 @@ describe("EmployeesPage", () => {
         fireEvent.click(confirmModalButton);
 
         await waitFor(() => {
-            expect(api.updateEmployee).toHaveBeenCalledWith(
+            expect(api.updateEmployeeEmployment).toHaveBeenCalledWith(
                 "test-ws-id", 
                 "1", 
-                expect.objectContaining({ is_active: false })
+                "employment-id-1",
+                expect.objectContaining({ status: "terminated" })
             );
         });
     });

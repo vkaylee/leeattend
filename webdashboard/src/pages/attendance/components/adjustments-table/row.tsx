@@ -39,10 +39,10 @@ export function AdjustmentsTableRow({
           </div>
           <div>
             <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none mb-1">
-              {getEmployeeName(request.employee_id)}
+              {getEmployeeName(request.employment_id)}
             </div>
             <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-bold uppercase opacity-70">
-              ID: {getEmployeeID(request.employee_id)}
+              ID: {getEmployeeID(request.employment_id)}
             </div>
           </div>
         </div>

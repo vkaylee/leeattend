@@ -39,7 +39,7 @@ vi.mock("@tanstack/react-router", () => ({
 vi.mock("@/hooks/use-behalf-employees", () => ({
   useBehalfEmployees: vi.fn(() => ({
     employees: [
-      { id: "emp-1", full_name: "John Doe", employee_id_number: "EMP001", is_active: true }
+      { id: "emp-1", full_name: "John Doe", employee_id_number: "EMP001", is_active: true, active_employment_id: "employment-1" }
     ],
     hasAssignments: true,
     isLoading: false,
@@ -184,7 +184,7 @@ describe("AttendanceAdjustmentsPage", () => {
 
     // 4. Fill form
     const selectElement = screen.getByTestId("mock-employee-search");
-    await user.selectOptions(selectElement, "emp-1");
+    await user.selectOptions(selectElement, "employment-1");
 
     const dateInput = screen.getByLabelText(/common.work_day/i);
     await user.clear(dateInput);

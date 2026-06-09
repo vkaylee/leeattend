@@ -365,7 +365,12 @@
       "preview_title": "Visual Shift Schedule Preview",
       "shift_duration": "Shift Duration",
       "shift_name_label": "Shift Name",
-      "working_hours": "Net Working Hours"
+      "working_hours": "Net Working Hours",
+      "location": "Location Scope",
+      "global_scope": "Global / Shared",
+      "select_location": "Select work location",
+      "employer": "Employer Subsidiary Scope",
+      "select_employer": "Select employer"
     },
     "messages": {
       "assign_success": "Shift assigned to employee successfully.",

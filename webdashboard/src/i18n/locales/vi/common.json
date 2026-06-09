@@ -577,6 +577,12 @@
           "created_at": "Ngày tạo"
         }
       },
+      "time": {
+        "error_title": "Không thể tải cấu hình thời gian",
+        "error_desc": "Đã xảy ra lỗi không mong muốn khi tải các quy tắc cấu hình. Vui lòng thử lại.",
+        "missing_title": "Không tìm thấy dữ liệu",
+        "missing_desc": "Thông tin không gian làm việc hoặc các quy tắc mặc định chưa được cấu hình."
+      },
       "tabs": {
         "overtime_policy": "Chính sách tăng ca",
         "localization": "Định dạng & Ngôn ngữ",
@@ -1579,6 +1585,7 @@
     "scope_type_department": "Bộ phận",
     "scope_type_none": "Không",
     "unknown_employee": "Nhân viên không xác định",
+    "unknown_department": "Phòng ban không xác định",
     "assignee_labels": {
       "ot": "Người được ủy quyền Claim",
       "overtime_request": "Người được ủy quyền Yêu cầu Pre-OT",

@@ -168,7 +168,7 @@ describe("MyClockPage", () => {
 
     await waitFor(() => {
       expect(mockSubmit).toHaveBeenCalledWith("ws-123", {
-        employee_id: "emp-1",
+        employment_id: "employment-123",
         reason: "Forgot",
         requested_punch_in_time: "2026-05-01T08:00Z",
         requested_punch_out_time: "2026-05-01T17:00Z",

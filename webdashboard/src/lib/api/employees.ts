@@ -1,3 +1,5 @@
+import { components } from "@/types/api-generated";
+
 import type {
   Employee,
   EmploymentPeriod,
@@ -6,7 +8,6 @@ import type {
   Employment,
 } from "./types";
 
-import { components } from "@/types/api-generated";
 import { client } from "./client";
 
 export * from "./employee-phases";
@@ -45,8 +46,8 @@ export async function searchEmployees(
   const {
     wsId,
     query,
-    page = 1,
-    limit = 50,
+    page,
+    limit,
     sortBy,
     sortDir,
     departmentIds,
@@ -91,7 +92,12 @@ export async function fetchEmploymentHistory(
 export async function rehireEmployee(
   wsId: string,
   id: string,
-  data: { hire_date: string }
+  data: {
+    hire_date: string;
+    employer_id: string;
+    department_id?: string | null;
+    primary_location_id?: string | null;
+  }
 ): Promise<Employee> {
   const { data: result } = await client.POST("/workspaces/{workspace_id}/employees/{id}/rehire", {
     params: {
@@ -176,7 +182,7 @@ export async function fetchEmployeeEmployments(
     },
   });
   if (!data) throw new Error("No response data");
-  return data as unknown as Employment[];
+  return data;
 }
 
 export async function updateEmployeeEmployment(
@@ -192,5 +198,5 @@ export async function updateEmployeeEmployment(
     body,
   });
   if (!data) throw new Error("No response data");
-  return data as unknown as Employment;
+  return data;
 }

@@ -594,6 +594,12 @@
           "created_at": "创建于"
         }
       },
+      "time": {
+        "error_title": "无法加载时间设置",
+        "error_desc": "获取设置规则时发生意外错误。请重试。",
+        "missing_title": "未找到数据",
+        "missing_desc": "未为此工作区配置工作区详情或默认规则。"
+      },
       "layout": {
         "control_panel": "控制面板",
         "workspace": "工作空间",
@@ -1579,6 +1585,7 @@
     "scope_type_department": "部门",
     "scope_type_none": "无",
     "unknown_employee": "未知员工",
+    "unknown_department": "未知部门",
     "assignee_labels": {
       "ot": "被授权申报人",
       "overtime_request": "被授权加班申请人",

@@ -107,6 +107,19 @@ vi.mock("@/lib/api", async (importOriginal) => {
   return {
     ...actual,
     fetchAttendanceReport: vi.fn(),
+    fetchEmployees: vi.fn(() => Promise.resolve({
+      data: [
+        { id: "EMP-001", active_employment_id: "EMP-001" },
+        { id: "EMP-002", active_employment_id: "EMP-002" },
+        { id: "EMP-101", active_employment_id: "EMP-101" },
+        { id: "EMP-102", active_employment_id: "EMP-102" },
+        { id: "EMP-103", active_employment_id: "EMP-103" },
+        { id: "EMP-104", active_employment_id: "EMP-104" }
+      ],
+      total: 6,
+      page: 1,
+      limit: 1000
+    }))
   };
 });
 
@@ -117,7 +130,7 @@ vi.mock("../approvals/components/behalf-assignments-tab", () => ({
 const mockSummaries = [
   {
     id: "summary-1",
-    employee_id: "EMP-001",
+    employment_id: "EMP-001",
     date: "2026-05-01",
     claimed_ot_minutes: 120,
     system_detected_ot_minutes: 60,
@@ -127,7 +140,7 @@ const mockSummaries = [
   },
   {
     id: "summary-2",
-    employee_id: "EMP-002",
+    employment_id: "EMP-002",
     date: "2026-05-02",
     claimed_ot_minutes: 60,
     system_detected_ot_minutes: 60,
@@ -284,6 +297,7 @@ describe("OtApprovalsPage", () => {
         data: [
           {
             employee_id: "EMP-101",
+            employment_id: "EMP-101",
             employee_name: "John Doe",
             employee_id_number: "JD101",
             date: "2026-05-10",
@@ -293,6 +307,7 @@ describe("OtApprovalsPage", () => {
           },
           {
             employee_id: "EMP-102",
+            employment_id: "EMP-102",
             employee_name: "Jane Smith",
             employee_id_number: "JS102",
             date: "2026-05-11",
@@ -302,6 +317,7 @@ describe("OtApprovalsPage", () => {
           },
           {
             employee_id: "EMP-103",
+            employment_id: "EMP-103",
             employee_name: "Bob Johnson",
             employee_id_number: "BJ103",
             date: "2026-05-12",
@@ -311,6 +327,7 @@ describe("OtApprovalsPage", () => {
           },
           {
             employee_id: "EMP-104",
+            employment_id: "EMP-104",
             employee_name: "Alice Brown",
             employee_id_number: "AB104",
             date: "2026-05-13",

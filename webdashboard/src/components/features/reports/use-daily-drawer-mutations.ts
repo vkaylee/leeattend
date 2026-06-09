@@ -11,6 +11,7 @@ import {
 } from "@/lib/api";
 
 interface UseDailyDrawerMutationsProps {
+    employeeId?: string;
     onConfirmSuccess: () => void;
     onReprocessSuccess: () => void;
     onResolveSuccess: () => void;
@@ -19,6 +20,7 @@ interface UseDailyDrawerMutationsProps {
 
 export function useDailyDrawerMutations({
     workspaceId,
+    employeeId,
     onReprocessSuccess,
     onConfirmSuccess,
     onResolveSuccess,
@@ -60,7 +62,7 @@ export function useDailyDrawerMutations({
 
     const approveOtMutation = useMutation({
         mutationFn: ({ row, action }: { row: DailyAttendanceReport; action: "approved" | "rejected" }) =>
-            approveOt(workspaceId, row.employee_id, {
+            approveOt(workspaceId, row.employee_id || employeeId || "", {
                 date: row.date,
                 approved_minutes: Math.round(row.computed_ot_hours * 60),
                 status: action,
@@ -80,11 +82,12 @@ export function useDailyDrawerMutations({
 
     const resolveUnscheduledMutation = useMutation({
         mutationFn: async ({ row, shiftId }: { row: DailyAttendanceReport; shiftId: string }) => {
-            await upsertRoster(workspaceId, row.employee_id, {
+            const empId = row.employee_id || employeeId || "";
+            await upsertRoster(workspaceId, empId, {
                 date: row.date,
                 shift_id: shiftId,
             });
-            await reprocessAttendance(workspaceId, row.employee_id, row.date, row.date);
+            await reprocessAttendance(workspaceId, empId, row.date, row.date);
         },
         onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: ["attendance-report"] });

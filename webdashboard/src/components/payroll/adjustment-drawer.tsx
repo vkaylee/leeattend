@@ -15,6 +15,7 @@ import { useToast } from "../ui/toast";
 interface AdjustmentDrawerProps {
   employeeId: string;
   employeeName: string;
+  employmentId: string;
   isOpen: boolean;
   onAdjustmentResolved?: () => void;
   onClose: () => void;
@@ -24,6 +25,7 @@ export default function AdjustmentDrawer({
   isOpen,
   onClose,
   employeeId,
+  employmentId,
   employeeName,
   onAdjustmentResolved
 }: AdjustmentDrawerProps) {
@@ -39,7 +41,7 @@ export default function AdjustmentDrawer({
     enabled: isOpen && !!wsId,
   });
 
-  const employeeAdjustments = adjustments.filter(adj => adj.employee_id === employeeId);
+  const employeeAdjustments = adjustments.filter(adj => adj.employment_id === employmentId);
 
   const resolveMutation = useMutation({
     mutationFn: (data: { id: string; status: "approved" | "rejected" }) => 

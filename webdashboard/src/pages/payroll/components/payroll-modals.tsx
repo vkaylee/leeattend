@@ -58,6 +58,7 @@ export const PayrollModals: React.FC<PayrollModalsProps> = ({
         <AdjustmentDrawer
           employeeId={employee.id}
           employeeName={employee.full_name}
+          employmentId={employee.active_employment_id ?? ""}
           isOpen={isAdjustmentDrawerOpen}
           onAdjustmentResolved={onAdjustmentResolved}
           onClose={onCloseAdjustmentDrawer}

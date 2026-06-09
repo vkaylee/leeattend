@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 
 import { addMonths, endOfMonth, format, startOfMonth, subMonths } from "date-fns";
 
-import type { AttendanceDailySummary, DailyAttendanceReport } from "@/lib/api";
+import type { AttendanceDailySummary, DailyAttendanceReport, Employee, PaginatedResponse } from "@/lib/api";
 
 import { BulkUploadOtDialog } from "@/components/approvals/bulk-upload-ot-dialog";
 import { ConfirmClaimsDialog } from "@/components/approvals/confirm-claims-dialog";
@@ -18,7 +18,7 @@ import { Typography } from "@/components/ui/typography";
 import { useApproveOt, useAttendanceSummaries, useEnterPaperOt } from "@/hooks/use-attendance";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { useWorkspace } from "@/hooks/use-workspace";
-import { fetchAttendanceReport } from "@/lib/api";
+import { fetchAttendanceReport, fetchEmployees } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 import type { OtSummary } from "./components/ot-approvals-table";
@@ -34,8 +34,8 @@ type ReportRow = DailyAttendanceReport & { employee_id_number?: string };
 function getEmployeeMap(reportData: ReportRow[]): Map<string, { idNumber: string; name: string }> {
   const map = new Map<string, { idNumber: string; name: string }>();
   for (const r of reportData) {
-    if (r.employee_id) {
-      map.set(r.employee_id, {
+    if (r.employment_id) {
+      map.set(r.employment_id, {
         name: r.employee_name || "",
         idNumber: r.employee_id_number ?? "",
       });
@@ -53,10 +53,10 @@ function getPendingSummaries(
     .filter((s) => s.ot_status === "pending_manager")
     .filter((s) => sourceFilter === "all" || s.entered_via === sourceFilter)
     .map((s) => {
-      const emp = employeeMap.get(s.employee_id);
+      const emp = employeeMap.get(s.employment_id);
       return {
         ...s,
-        employee_name: emp?.name ?? s.employee_id,
+        employee_name: emp?.name ?? s.employment_id,
         employee_id_number: emp?.idNumber ?? "",
       };
     });
@@ -132,6 +132,22 @@ export default function OtApprovalsPage() {
   const { isLoading, refetch, summaries } = useAttendanceSummaries(startDate, endDate);
   const { approveOt, isProcessing } = useApproveOt();
 
+  const { data: employeesData } = useQuery<PaginatedResponse<Employee>>({
+    queryKey: ["employees-list-all", workspace?.id],
+    queryFn: () => workspace?.id ? fetchEmployees(workspace.id, 1, 1000) : Promise.resolve({ data: [], limit: 0, page: 0, total: 0 }),
+    enabled: !!workspace?.id,
+  });
+
+  const employmentToEmployeeMap = useMemo(() => {
+    const map = new Map<string, string>();
+    employeesData?.data.forEach((emp: Employee) => {
+      if (emp.active_employment_id) {
+        map.set(emp.active_employment_id, emp.id);
+      }
+    });
+    return map;
+  }, [employeesData]);
+
   const { data: reportResponse, isLoading: isReportLoading, refetch: refetchReport } = useQuery({
     queryKey: ["attendance-report", workspace?.id, startDate, endDate, "daily"],
     queryFn: () => {
@@ -162,14 +178,19 @@ export default function OtApprovalsPage() {
   const pendingSummaries = getPendingSummaries(summaries, sourceFilter, employeeMap);
 
   const handleApprove = async (
-    summary: { claimed_ot_minutes: number; date: string; employee_id: string },
+    summary: OtSummary,
     approved: boolean
   ) => {
+    const employeeId = employmentToEmployeeMap.get(summary.employment_id);
+    if (!employeeId) {
+      toast.error("Không tìm thấy thông tin nhân viên hoạt động");
+      return;
+    }
     try {
       await approveOt({
         approved_minutes: approved ? summary.claimed_ot_minutes : 0,
         date: summary.date,
-        employeeId: summary.employee_id,
+        employeeId,
         manager_note: approved ? "Approved via Manager Portal" : "Rejected via Manager Portal",
         status: approved ? "approved" : "rejected",
       });
@@ -208,6 +229,7 @@ export default function OtApprovalsPage() {
       />
 
       <AddPhotoDialog
+        employeeId={photoTargetSummary ? employmentToEmployeeMap.get(photoTargetSummary.employment_id) : undefined}
         onOpenChange={(open) => { if (!open) setPhotoTargetSummary(null); }}
         onSuccess={() => {
           void refetch();
@@ -291,7 +313,7 @@ interface TabContentRendererProps {
   canApprove: boolean;
   canCreateOnBehalf: boolean;
   handleApprove: (
-    summary: { claimed_ot_minutes: number; date: string; employee_id: string },
+    summary: OtSummary,
     approved: boolean
   ) => Promise<void>;
   isLoading: boolean;
@@ -310,7 +332,7 @@ interface TabContentRendererProps {
 interface PostOtTabContentProps {
   canApprove: boolean;
   handleApprove: (
-    summary: { claimed_ot_minutes: number; date: string; employee_id: string },
+    summary: OtSummary,
     approved: boolean
   ) => Promise<void>;
   isLoading: boolean;
@@ -425,11 +447,13 @@ function AddPhotoDialog({
   onOpenChange,
   summary,
   onSuccess,
+  employeeId,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   summary: OtSummary | null;
   onSuccess?: () => void;
+  employeeId?: string;
 }) {
   const { t } = useTranslation();
   const toast = useToast();
@@ -453,10 +477,14 @@ function AddPhotoDialog({
       setError("Please select a photo");
       return;
     }
+    if (!employeeId) {
+      setError("Không tìm thấy thông tin nhân viên");
+      return;
+    }
     setError(null);
     try {
       await enterPaperOt({
-        employeeId: summary.employee_id,
+        employeeId,
         date: summary.date,
         claimed_minutes: summary.claimed_ot_minutes,
         reason: summary.ot_reason ?? "Paper OT Claim",
@@ -608,18 +636,18 @@ function DelegatedClaimsTab({
 
   const isAllFilteredSelected = useMemo(() => {
     if (filteredRows.length === 0) return false;
-    return filteredRows.every((r) => selectedRows.has(`${r.employee_id}-${r.date}`));
+    return filteredRows.every((r) => selectedRows.has(`${r.employment_id}-${r.date}`));
   }, [filteredRows, selectedRows]);
 
   const toggleSelectAll = () => {
     const next = new Set(selectedRows);
     if (isAllFilteredSelected) {
       for (const r of filteredRows) {
-        next.delete(`${r.employee_id}-${r.date}`);
+        next.delete(`${r.employment_id}-${r.date}`);
       }
     } else {
       for (const r of filteredRows) {
-        next.add(`${r.employee_id}-${r.date}`);
+        next.add(`${r.employment_id}-${r.date}`);
       }
     }
     setSelectedRows(next);
@@ -641,7 +669,7 @@ function DelegatedClaimsTab({
     }
 
     const selectedList = claimableRows.filter((r) =>
-      selectedRows.has(`${r.employee_id}-${r.date}`)
+      selectedRows.has(`${r.employment_id}-${r.date}`)
     );
     setActiveRowsToClaim(selectedList);
     setConfirmClaimsOpen(true);
@@ -766,7 +794,7 @@ function DelegatedClaimsTab({
               </tr>
             ) : (
               filteredRows.map((row) => {
-                const key = `${row.employee_id}-${row.date}`;
+                const key = `${row.employment_id}-${row.date}`;
                 const isChecked = selectedRows.has(key);
                 return (
                   <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors" key={key}>
@@ -840,7 +868,7 @@ function DelegatedClaimsTab({
         initialReasons={reasons}
         onOpenChange={setConfirmClaimsOpen}
         onSuccess={() => {
-          const claimedKeys = new Set(activeRowsToClaim.map((r) => `${r.employee_id}-${r.date}`));
+          const claimedKeys = new Set(activeRowsToClaim.map((r) => `${r.employment_id}-${r.date}`));
           setSelectedRows((prev) => {
             const next = new Set(prev);
             for (const key of claimedKeys) {

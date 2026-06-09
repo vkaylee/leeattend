@@ -68,7 +68,7 @@ export function usePayrollData({
 
   const employeeAdjustments = useMemo(() => {
     if (!selectedEmployee) return [];
-    return allAdjustments.filter(adj => adj.employee_id === selectedEmployee.id);
+    return allAdjustments.filter(adj => adj.employment_id === selectedEmployee.active_employment_id);
   }, [selectedEmployee, allAdjustments]);
 
   return {

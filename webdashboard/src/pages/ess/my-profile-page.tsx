@@ -1,4 +1,8 @@
 
+import { useQuery } from "@tanstack/react-query";
+
+import { fetchEmployeeEmployments, getCurrentWorkspaceId } from "@/lib/api";
+
 import { AddContactModal } from "./components/add-contact-modal";
 import { BankDetailsSection } from "./components/bank-details-section";
 import { EmergencyContactsSection } from "./components/emergency-contacts-section";
@@ -31,18 +35,32 @@ export default function MyProfilePage() {
     ConfirmationDialog,
   } = useMyProfilePage();
 
+  const wsId = getCurrentWorkspaceId() ?? "";
+  const { data: employments = [] } = useQuery({
+    queryKey: ["employments", wsId, employee?.id],
+    queryFn: () => employee ? fetchEmployeeEmployments(wsId, employee.id) : Promise.resolve([]),
+    enabled: !!employee && !!wsId,
+  });
+
   if (isLoading) return <LoadingState />;
 
   if (isError || !employee) {
     return <ErrorState t={t} />;
   }
 
+  const activeEmployment = employments.find(emp => emp.id === employee.active_employment_id);
+  const hireDate = activeEmployment?.start_date ?? "—";
+
   return (
     <div className="space-y-10 animate-in fade-in duration-700 pb-20">
       <Header activeTab={activeTab} setActiveTab={setActiveTab} t={t} />
 
       <div className="animate-in slide-in-from-bottom-8 duration-700">
-        <ProfileHero employee={employee} />
+        <ProfileHero employee={{
+          employee_id_number: employee.employee_id_number,
+          full_name: employee.full_name,
+          hire_date: hireDate,
+        }} />
 
         {activeTab === "personal" && (
           <PersonalInfoSection

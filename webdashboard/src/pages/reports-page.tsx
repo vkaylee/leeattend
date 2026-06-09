@@ -91,7 +91,7 @@ export default function ReportsPage() {
       />
 
       <ReportExportDialog
-        employeeIds={searchQuery && filteredData.length > 0 ? filteredData.map(d => d.employee_id) : undefined}
+        employeeIds={searchQuery && filteredData.length > 0 ? filteredData.map(d => d.employee_id).filter((id): id is string => !!id) : undefined}
         endDate={dateRange.end}
         isOpen={isExportDialogOpen}
         onClose={() => { setIsExportDialogOpen(false); }}

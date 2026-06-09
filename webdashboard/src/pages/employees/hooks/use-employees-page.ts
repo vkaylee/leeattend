@@ -34,7 +34,7 @@ export function useEmployeesPage() {
     wsId,
   });
 
-  const { handleTerminate } = useEmployeeActions({ confirm, updateMutation: data.updateMutation });
+  const { handleTerminate } = useEmployeeActions({ confirm, terminateMutation: data.terminateMutation });
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const focusSearch = () => { setTimeout(() => { searchInputRef.current?.focus(); }, 100); };

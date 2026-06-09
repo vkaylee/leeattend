@@ -239,12 +239,16 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
       }
     });
     return list.map(emp => {
-      const existing = monthSchedules?.find((s) => s.employee_id === emp.id);
+      const existing = monthSchedules?.find((s) => s.employment_id === emp.active_employment_id);
       if (existing) {
-        return existing;
+        return {
+          ...existing,
+          employee_id: emp.id,
+        };
       }
       return {
         employee_id: emp.id,
+        employment_id: emp.active_employment_id ?? "",
         full_name: emp.full_name,
         schedules: []
       };
@@ -254,7 +258,7 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
   const filteredSchedules = useMemo(() => {
     if (selectedEmployeeIds.length === 0) return [];
     return combinedSchedules.filter(schedule => 
-      selectedEmployeeIds.includes(schedule.employee_id)
+      selectedEmployeeIds.includes(schedule.employee_id ?? "")
     );
   }, [combinedSchedules, selectedEmployeeIds]);
 
@@ -317,7 +321,7 @@ export function MonthlyRosterGrid({ hook }: MonthlyRosterGridProps) {
     setSelectedCells(() => {
       const next = new Set(dragSnapshot);
       for (let i = minEmpIdx; i <= maxEmpIdx; i++) {
-        const empId = filteredSchedules[i].employee_id;
+        const empId = filteredSchedules[i].employee_id ?? "";
         for (let j = minDayIdx; j <= maxDayIdx; j++) {
           const dStr = format(monthDays[j], "yyyy-MM-dd");
           next.add(`${empId}:${dStr}`);
@@ -833,7 +837,7 @@ const RosterGridTable = memo(function RosterGridTable({
           {monthSchedules.map(empSchedule => (
             <tr
               className="border-b border-slate-100 dark:border-slate-800 last:border-b-0 hover:bg-slate-50/30 dark:hover:bg-slate-850/10"
-              key={empSchedule.employee_id}
+              key={empSchedule.employee_id ?? empSchedule.employment_id}
             >
               <td className="sticky left-0 bg-white dark:bg-slate-900 border-r border-slate-100 dark:border-slate-800 px-4 py-3 font-bold text-xs text-slate-700 dark:text-slate-300 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.02)] min-w-[160px] truncate">
                 <div className="flex items-center gap-2">
@@ -846,7 +850,7 @@ const RosterGridTable = memo(function RosterGridTable({
 
               {monthDays.map(day => {
                 const dateStr = format(day, "yyyy-MM-dd");
-                const cellKey = `${empSchedule.employee_id}:${dateStr}`;
+                const cellKey = `${empSchedule.employee_id ?? ""}:${dateStr}`;
                 const isSelected = selectedCells.has(cellKey);
                 const daySchedule = empSchedule.schedules.find((s) => s.date === dateStr);
                 const cellData = computeCellData(daySchedule, isSelected, shifts);
@@ -855,7 +859,7 @@ const RosterGridTable = memo(function RosterGridTable({
                   <RosterCell
                     cellStyles={cellData.cellStyles}
                     dateStr={dateStr}
-                    employeeId={empSchedule.employee_id}
+                    employeeId={empSchedule.employee_id ?? ""}
                     endTime={cellData.endTime}
                     hasShift={cellData.hasShift}
                     hasTraces={cellData.hasTraces}

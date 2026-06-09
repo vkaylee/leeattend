@@ -31,9 +31,7 @@ export function createMockEmployee(overrides?: Partial<Employee>): Employee {
     id: "emp-123",
     employee_id_number: "EMP001",
     full_name: "John Doe",
-    hire_date: new Date().toISOString(),
-    original_hire_date: new Date().toISOString(),
-    is_active: true,
+    active_employment_id: "employment-123",
     workspace_id: "ws-123",
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -77,7 +75,7 @@ export function createMockLeaveType(overrides?: Partial<LeaveType>): LeaveType {
 export function createMockAttendanceAdjustment(overrides?: Partial<AttendanceAdjustmentRequest>): AttendanceAdjustmentRequest {
   return {
     id: "adj-123",
-    employee_id: "emp-123",
+    employment_id: "employment-123",
     is_break_overtime: false,
     requested_punch_in_time: "2023-10-01T09:00:00Z",
     status: "pending",
@@ -118,7 +116,7 @@ export function createMockUseMyClockReturn(overrides?: Partial<UseMyClockReturn>
     isPunching: false,
     punch: async () => Promise.resolve({
       id: 'entry-123',
-      employee_id: 'emp-123',
+      employment_id: 'employment-123',
       entry_type: 'regular',
       is_break_overtime: false,
       punch_in_time: new Date().toISOString(),

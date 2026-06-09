@@ -47,6 +47,18 @@ vi.mock("@/lib/api", () => ({
     createEmployee: vi.fn(),
     updateEmployee: vi.fn(),
     fetchWorkspaceMembers: vi.fn(() => Promise.resolve(mockMembers)),
+    fetchEmployers: vi.fn(() => Promise.resolve([])),
+    fetchEmployeeEmployments: vi.fn(() => Promise.resolve([
+        {
+            id: "employment-1",
+            employee_id: "emp-1",
+            employer_id: "employer-1",
+            primary_location_id: "location-1",
+            start_date: "2024-06-15",
+            status: "active"
+        }
+    ])),
+    updateEmployeeEmployment: vi.fn(() => Promise.resolve({})),
 }));
 
 
@@ -101,7 +113,7 @@ describe("EmployeeFormModal", () => {
         expect(screen.getByTestId("employees-form-active-checkbox")).toBeDefined();
     });
 
-    it("renders form fields in edit mode with pre-filled values", () => {
+    it("renders form fields in edit mode with pre-filled values", async () => {
         renderWithClient(
             <EmployeeFormModal {...defaultProps} editingEmployee={mockEmployee} />
         );
@@ -112,7 +124,9 @@ describe("EmployeeFormModal", () => {
         expect((idInput as HTMLInputElement).value).toBe("EMP-001");
 
         const hireInput = screen.getByTestId("employees-form-hire-date-input");
-        expect((hireInput as HTMLInputElement).value).toBe("2024-06-15");
+        await waitFor(() => {
+            expect((hireInput as HTMLInputElement).value).toBe("2024-06-15");
+        });
     });
 
     it("shows user combobox with linked user in edit mode", async () => {

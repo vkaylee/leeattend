@@ -10,21 +10,21 @@ interface AssignmentRuleFormProps {
   conditions: AssignmentRuleConditions;
   departments: { id: string; name: string }[] | undefined;
   employers: { id: string; name: string }[] | undefined;
+  endDate: string;
+  isIndefinite: boolean;
   locations: { id: string; name: string }[] | undefined;
   name: string;
   patternId: string;
   patterns: { id: string; name: string }[] | undefined;
   priority: number;
   setConditions: (conditions: AssignmentRuleConditions) => void;
+  setEndDate: (date: string) => void;
+  setIsIndefinite: (isIndefinite: boolean) => void;
   setName: (name: string) => void;
   setPatternId: (id: string) => void;
   setPriority: (priority: number) => void;
-  startDate: string;
   setStartDate: (date: string) => void;
-  endDate: string;
-  setEndDate: (date: string) => void;
-  isIndefinite: boolean;
-  setIsIndefinite: (isIndefinite: boolean) => void;
+  startDate: string;
 }
 
 export const AssignmentRuleForm: React.FC<AssignmentRuleFormProps> = ({
@@ -122,8 +122,8 @@ export const AssignmentRuleForm: React.FC<AssignmentRuleFormProps> = ({
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("rules.form.end_date", "Ngày kết thúc")}</label>
             <input
-              disabled={isIndefinite}
               className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-xl px-4 py-2 text-sm font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 disabled:opacity-50 disabled:bg-slate-100 dark:disabled:bg-slate-800 transition-all"
+              disabled={isIndefinite}
               onChange={(e) => { setEndDate(e.target.value); }}
               type="date"
               value={endDate}

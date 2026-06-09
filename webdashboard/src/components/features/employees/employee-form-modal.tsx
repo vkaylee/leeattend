@@ -13,7 +13,7 @@ import { Combobox } from "@/components/ui/combobox";
 import FormField from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
-import { createEmployee, updateEmployee, fetchWorkspaceMembers, Employee, fetchEmployers, Employer, fetchEmployeeEmployments, updateEmployeeEmployment } from "@/lib/api";
+import { createEmployee, updateEmployee, fetchWorkspaceMembers, Employee, Employment, fetchEmployers, Employer, fetchEmployeeEmployments, updateEmployeeEmployment } from "@/lib/api";
 import { useLocations } from "@/pages/settings/hooks/use-locations";
 
 interface EmployeeFormModalProps {
@@ -57,6 +57,7 @@ function useEmployeeMutations(wsId: string, onClose: () => void, onSuccess?: () 
 
 function EmployeeFormInputs({
   editingEmployee,
+  activeEmployment,
   prefillEnrollmentId,
   members,
   selectedUserId,
@@ -70,6 +71,7 @@ function EmployeeFormInputs({
   t,
 }: {
   editingEmployee: Employee | null;
+  activeEmployment?: Employment;
   prefillEnrollmentId: string;
   members: WorkspaceMember[];
   selectedUserId: string;
@@ -101,7 +103,7 @@ function EmployeeFormInputs({
       />
       <FormField
         data-testid="employees-form-hire-date-input"
-        defaultValue={editingEmployee?.hire_date}
+        defaultValue={activeEmployment?.start_date}
         label={t("employees.form.hire_date")}
         name="hire_date"
         required
@@ -164,7 +166,7 @@ function EmployeeFormInputs({
         <input
           className="w-7 h-7 text-primary-600 dark:text-primary-400 rounded-xl border-slate-200 dark:border-slate-700 focus:ring-primary-500 transition-all cursor-pointer shadow-inner"
           data-testid="employees-form-active-checkbox"
-          defaultChecked={editingEmployee ? editingEmployee.is_active : true}
+          defaultChecked={editingEmployee ? !!editingEmployee.active_employment_id : true}
           id="is_active"
           name="is_active"
           type="checkbox"
@@ -185,7 +187,7 @@ export default function EmployeeFormModal({
   onClose,
   editingEmployee,
   wsId,
-  prefillEnrollmentId = "",
+  prefillEnrollmentId,
   onSuccess,
 }: EmployeeFormModalProps) {
   const { t } = useTranslation();
@@ -264,6 +266,7 @@ export default function EmployeeFormModal({
     >
       <form className="space-y-8 pt-4 animate-in fade-in duration-500" onSubmit={handleSubmit}>
         <EmployeeFormInputs
+          activeEmployment={activeEmployment}
           editingEmployee={editingEmployee}
           employers={employers}
           locations={locations ?? []}

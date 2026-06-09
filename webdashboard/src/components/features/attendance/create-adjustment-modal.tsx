@@ -50,7 +50,7 @@ function useCreateAdjustmentForm({ wsId, timezone, onClose }: CreateAdjustmentFo
 
   const submitMutation = useMutation({
     mutationFn: (data: {
-      employee_id: string;
+      employment_id: string;
       is_break_overtime?: boolean;
       reason?: string;
       requested_punch_in_time: string;
@@ -80,7 +80,7 @@ function useCreateAdjustmentForm({ wsId, timezone, onClose }: CreateAdjustmentFo
       const punchOutTime = punchOut ? toUTCISO(date, punchOut, timezone) : undefined;
 
       submitMutation.mutate({
-        employee_id: selectedEmpId,
+        employment_id: selectedEmpId,
         requested_punch_in_time: punchInTime,
         requested_punch_out_time: punchOutTime,
         is_break_overtime: isBreakOvertime,
@@ -137,10 +137,12 @@ export function CreateAdjustmentModal({
     setSelectedEmpId,
   } = useCreateAdjustmentForm({ onClose, timezone, wsId });
 
-  const behalfOptions = behalfEmployees.map(emp => ({
-    value: emp.id,
-    label: `${emp.full_name} (${emp.employee_id_number})`,
-  }));
+  const behalfOptions = behalfEmployees
+    .filter(emp => !!emp.active_employment_id)
+    .map(emp => ({
+      value: emp.active_employment_id!,
+      label: `${emp.full_name} (${emp.employee_id_number})`,
+    }));
 
   return (
     <Modal

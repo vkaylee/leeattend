@@ -65,7 +65,7 @@ export const AssignmentRuleConditionsList: React.FC<AssignmentRuleConditionsList
       ))}
 
       {/* Specific Employee IDs */}
-      {conditions.employee_id_numbers && conditions.employee_id_numbers.length > 0 && (
+      {!!conditions.employee_id_numbers && conditions.employee_id_numbers.length > 0 && (
         <span className="bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-300 px-3 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest border border-indigo-100 dark:border-indigo-800 flex items-center gap-2 shadow-sm dark:shadow-black/10" title={conditions.employee_id_numbers.join(", ")}>
           <Users className="opacity-50" size={12} /> {conditions.employee_id_numbers.length} EMPLOYEES
         </span>

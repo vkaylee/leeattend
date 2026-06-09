@@ -54,13 +54,13 @@ export function useAttendanceAdjustmentsPage() {
     document.body.removeChild(link);
   };
 
-  const getEmployeeName = (id: string) => {
-    const emp = employees.find((e) => e.id === id);
+  const getEmployeeName = (employmentId: string) => {
+    const emp = employees.find((e) => e.active_employment_id === employmentId);
     return emp ? emp.full_name : "Unknown";
   };
 
-  const getEmployeeID = (id: string) => {
-    const emp = employees.find((e) => e.id === id);
+  const getEmployeeID = (employmentId: string) => {
+    const emp = employees.find((e) => e.active_employment_id === employmentId);
     return emp ? emp.employee_id_number : "N/A";
   };
 

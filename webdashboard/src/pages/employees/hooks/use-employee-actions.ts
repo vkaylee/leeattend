@@ -8,13 +8,14 @@ import { ConfirmOptions } from "@/hooks/use-confirm";
 
 interface UseEmployeeActionsProps {
   confirm: (options: ConfirmOptions) => Promise<boolean>;
-  updateMutation: { mutate: (data: { id: string; employee: Partial<Employee> }) => void };
+  terminateMutation: { mutate: (data: { employeeId: string; employmentId: string; endDate: string }) => void };
 }
 
-export function useEmployeeActions({ confirm, updateMutation }: UseEmployeeActionsProps) {
+export function useEmployeeActions({ confirm, terminateMutation }: UseEmployeeActionsProps) {
   const { t } = useTranslation();
 
   const handleTerminate = async (emp: Employee) => {
+    if (!emp.active_employment_id) return;
     const ok = await confirm({
       message: t("employees.details.terminate_confirm"),
       title: t("common.warning", { defaultValue: "Warning" }),
@@ -22,12 +23,10 @@ export function useEmployeeActions({ confirm, updateMutation }: UseEmployeeActio
     });
     
     if (ok) {
-      updateMutation.mutate({ 
-        id: emp.id, 
-        employee: { 
-          is_active: false, 
-          termination_date: format(new Date(), 'yyyy-MM-dd') 
-        } 
+      terminateMutation.mutate({ 
+        employeeId: emp.id, 
+        employmentId: emp.active_employment_id,
+        endDate: format(new Date(), 'yyyy-MM-dd') 
       });
     }
   };
