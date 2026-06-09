@@ -356,6 +356,7 @@ impl ReportService {
                 reports.push(DailyAttendanceReport {
                     date,
                     employment_id: emp_sched.employment_id,
+                    employee_id,
                     employee_name: emp_sched.full_name.clone(),
                     employee_id_number: emp_sched.employee_id_number.clone(),
                     shift_symbol: daily.shift_symbol.clone(),

@@ -120,7 +120,7 @@ function DepartmentChips({
         className={cn(
           "px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all border h-auto",
           selectedDepartmentId === null
-            ? "bg-primary-600 dark:bg-primary-500 text-white border-primary-600 dark:border-primary-500 shadow-lg shadow-primary-500/20"
+            ? "bg-primary-600 dark:bg-primary-500 text-white border-primary-600 dark:border-primary-500 shadow-lg shadow-primary-500/20 hover:bg-primary-700 dark:hover:bg-primary-600 hover:text-white"
             : "bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-primary-300 dark:hover:border-primary-700 hover:text-primary-600 dark:hover:text-primary-400"
         )}
         onClick={() => { onDepartmentChange(null); }}
@@ -133,7 +133,7 @@ function DepartmentChips({
           className={cn(
             "px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all border h-auto",
             selectedDepartmentId === dept.id
-              ? "bg-primary-600 dark:bg-primary-500 text-white border-primary-600 dark:border-primary-500 shadow-lg shadow-primary-500/20"
+              ? "bg-primary-600 dark:bg-primary-500 text-white border-primary-600 dark:border-primary-500 shadow-lg shadow-primary-500/20 hover:bg-primary-700 dark:hover:bg-primary-600 hover:text-white"
               : "bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-primary-300 dark:hover:border-primary-700 hover:text-primary-600 dark:hover:text-primary-400"
           )}
           key={dept.id}

@@ -391,6 +391,7 @@ mod tests {
     fn test_merge_summary_with_data() {
         let summaries1 = vec![AttendanceSummary {
             employment_id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
             employee_name: "Charlie Brown".to_string(),
             employee_id_number: "EMP003".to_string(),
             total_std_units: 160,
@@ -403,6 +404,7 @@ mod tests {
         }];
         let summaries2 = vec![AttendanceSummary {
             employment_id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
             employee_name: "Alice Smith".to_string(),
             employee_id_number: "EMP001".to_string(),
             total_std_units: 152,
@@ -444,6 +446,7 @@ mod tests {
         let report1 = DailyAttendanceReport {
             date: NaiveDate::from_ymd_opt(2026, 1, 2).unwrap(),
             employment_id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
             employee_name: "Bob Jones".to_string(),
             employee_id_number: "EMP002".to_string(),
             shift_symbol: None,
@@ -473,6 +476,7 @@ mod tests {
         let report2 = DailyAttendanceReport {
             date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
             employment_id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
             employee_name: "Alice Smith".to_string(),
             employee_id_number: "EMP001".to_string(),
             shift_symbol: None,
@@ -554,6 +558,7 @@ mod tests {
         let s1 = vec![
             AttendanceSummary {
                 employment_id: Uuid::new_v4(),
+                employee_id: Uuid::new_v4(),
                 employee_name: "A".to_string(),
                 employee_id_number: "ID-A".to_string(),
                 total_std_units: 160,
@@ -566,6 +571,7 @@ mod tests {
             },
             AttendanceSummary {
                 employment_id: Uuid::new_v4(),
+                employee_id: Uuid::new_v4(),
                 employee_name: "B".to_string(),
                 employee_id_number: "ID-B".to_string(),
                 total_std_units: 120,
@@ -579,6 +585,7 @@ mod tests {
         ];
         let s2 = vec![AttendanceSummary {
             employment_id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
             employee_name: "C".to_string(),
             employee_id_number: "ID-C".to_string(),
             total_std_units: 80,
@@ -622,6 +629,7 @@ mod tests {
         let make_report = |name: &str, day: u32| DailyAttendanceReport {
             date: NaiveDate::from_ymd_opt(2026, 1, day).unwrap(),
             employment_id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
             employee_name: name.to_string(),
             employee_id_number: "EMP001".to_string(),
             shift_symbol: None,
@@ -688,6 +696,7 @@ mod tests {
     fn test_attendance_summary_serialization_preserves_employee_id_number() {
         let summary = AttendanceSummary {
             employment_id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
             employee_name: "Alice".to_string(),
             employee_id_number: "EMP-001".to_string(),
             total_std_units: 160,
@@ -709,6 +718,7 @@ mod tests {
         let report = DailyAttendanceReport {
             date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
             employment_id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
             employee_name: "Bob".to_string(),
             employee_id_number: "EMP-002".to_string(),
             shift_symbol: None,
@@ -781,6 +791,7 @@ mod tests {
         queue.expect_get_all_results().returning(move |_| {
             let summary = AttendanceSummary {
                 employment_id: Uuid::new_v4(),
+                employee_id: Uuid::new_v4(),
                 employee_name: "Mocked Emp".to_string(),
                 employee_id_number: "MOCK-001".to_string(),
                 total_std_units: 8,
@@ -909,6 +920,7 @@ mod tests {
             let report = DailyAttendanceReport {
                 date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
                 employment_id: Uuid::new_v4(),
+                employee_id: Uuid::new_v4(),
                 employee_name: "Mocked Emp".to_string(),
                 employee_id_number: "MOCK-001".to_string(),
                 shift_symbol: Some("HC".to_string()),

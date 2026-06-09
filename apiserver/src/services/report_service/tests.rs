@@ -39,6 +39,7 @@ fn make_report(has_punch_in: bool, has_shift: bool) -> DailyAttendanceReport {
     DailyAttendanceReport {
         date,
         employment_id: Uuid::new_v4(),
+        employee_id: Uuid::new_v4(),
         employee_name: "Test Employee".to_string(),
         employee_id_number: "EMP001".to_string(),
         shift_symbol: None,

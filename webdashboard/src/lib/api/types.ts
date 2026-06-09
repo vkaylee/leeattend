@@ -122,7 +122,7 @@ export type AttendanceReportSort =
 export interface AttendanceSummary {
   computed_ot_hours: number;
   computed_std_hours: number;
-  employee_id?: string;
+  employee_id: string;
   employee_id_number?: string;
   employee_name: string;
   employment_id: string;
@@ -149,7 +149,7 @@ export interface DailyAttendanceReport {
   computed_ot_hours: number;
   computed_std_hours: number;
   date: string;
-  employee_id?: string;
+  employee_id: string;
   employee_name: string;
   employment_id: string;
   generation_metadata?: unknown;

@@ -287,6 +287,7 @@ impl ReportService {
                 let coeff = f64::from(work_unit_minutes) / 60.0;
                 AttendanceSummary {
                     employment_id: active_emp_id,
+                    employee_id: emp.id,
                     employee_name: emp.full_name.clone(),
                     employee_id_number: emp.employee_id_number.clone(),
                     total_std_units: std,

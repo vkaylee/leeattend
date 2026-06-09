@@ -145,6 +145,7 @@ mod tests {
         let summaries = vec![
             AttendanceSummary {
                 employment_id: Uuid::new_v4(),
+                employee_id: Uuid::new_v4(),
                 employee_name: "Alice Smith".to_string(),
                 employee_id_number: String::new(),
                 total_std_units: 140,
@@ -157,6 +158,7 @@ mod tests {
             },
             AttendanceSummary {
                 employment_id: Uuid::new_v4(),
+                employee_id: Uuid::new_v4(),
                 employee_name: "Bob Jones".to_string(),
                 employee_id_number: String::new(),
                 total_std_units: 152,
@@ -210,6 +212,7 @@ mod tests {
             DailyAttendanceReport {
                 date: NaiveDate::from_ymd_opt(2026, 1, 15).ok_or("Invalid date")?,
                 employment_id: emp_alice,
+                employee_id: emp_alice,
                 employee_name: "Alice Smith".to_string(),
                 employee_id_number: "EMP001".to_string(),
                 shift_symbol: None,
@@ -239,6 +242,7 @@ mod tests {
             DailyAttendanceReport {
                 date: NaiveDate::from_ymd_opt(2026, 1, 16).ok_or("Invalid date")?,
                 employment_id: emp_alice,
+                employee_id: emp_alice,
                 employee_name: "Alice Smith".to_string(),
                 employee_id_number: "EMP001".to_string(),
                 shift_symbol: None,
@@ -268,6 +272,7 @@ mod tests {
             DailyAttendanceReport {
                 date: NaiveDate::from_ymd_opt(2026, 1, 17).ok_or("Invalid date")?,
                 employment_id: emp_alice,
+                employee_id: emp_alice,
                 employee_name: "Alice Smith".to_string(),
                 employee_id_number: "EMP001".to_string(),
                 shift_symbol: Some("HC".to_string()),
@@ -297,6 +302,7 @@ mod tests {
             DailyAttendanceReport {
                 date: NaiveDate::from_ymd_opt(2026, 1, 18).ok_or("Invalid date")?,
                 employment_id: emp_alice,
+                employee_id: emp_alice,
                 employee_name: "Alice Smith".to_string(),
                 employee_id_number: "EMP001".to_string(),
                 shift_symbol: Some("HC".to_string()),
@@ -350,6 +356,7 @@ mod tests {
             DailyAttendanceReport {
                 date: NaiveDate::from_ymd_opt(2026, 1, 1).ok_or("Invalid date")?,
                 employment_id: emp_id,
+                employee_id: emp_id,
                 employee_name: "John Holiday".to_string(),
                 employee_id_number: "EMP002".to_string(),
                 shift_symbol: Some("N".to_string()),
@@ -379,6 +386,7 @@ mod tests {
             DailyAttendanceReport {
                 date: NaiveDate::from_ymd_opt(2026, 1, 2).ok_or("Invalid date")?,
                 employment_id: emp_id,
+                employee_id: emp_id,
                 employee_name: "John Holiday".to_string(),
                 employee_id_number: "EMP002".to_string(),
                 shift_symbol: Some("N".to_string()),
@@ -408,6 +416,7 @@ mod tests {
             DailyAttendanceReport {
                 date: NaiveDate::from_ymd_opt(2026, 1, 3).ok_or("Invalid date")?,
                 employment_id: emp_id,
+                employee_id: emp_id,
                 employee_name: "John Holiday".to_string(),
                 employee_id_number: "EMP002".to_string(),
                 shift_symbol: Some("N".to_string()),
@@ -508,6 +517,7 @@ mod tests {
         let reports = vec![DailyAttendanceReport {
             date: NaiveDate::from_ymd_opt(2026, 1, 15).ok_or("Invalid date")?,
             employment_id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
             employee_name: "Test Employee".to_string(),
             employee_id_number: "EMP001".to_string(),
             shift_symbol: None,
@@ -585,6 +595,7 @@ mod tests {
         let reports = vec![DailyAttendanceReport {
             date: NaiveDate::from_ymd_opt(2026, 1, 15).unwrap(),
             employment_id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
             employee_name: "John Doe".to_string(),
             employee_id_number: "EMP101".to_string(),
             shift_symbol: Some("HC".to_string()),
@@ -691,6 +702,7 @@ mod tests {
 
         let summaries = vec![AttendanceSummary {
             employment_id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
             employee_name: "Alice Smith".to_string(),
             employee_id_number: "EMP001".to_string(),
             total_std_units: 160,

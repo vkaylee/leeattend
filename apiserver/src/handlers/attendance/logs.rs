@@ -46,13 +46,29 @@ pub async fn get_attendance_logs(
     let page = query.page.unwrap_or(1).max(1);
     let offset = (page - 1) * limit;
 
+    let target_employment_id = if let Some(emp_id) = query.employee_id {
+        let active_id = if let Some(employee) = state
+            .employees()
+            .repo()
+            .get_employee_by_id(emp_id, &ctx.auth_token)
+            .await?
+        {
+            employee.active_employment_id()
+        } else {
+            None
+        };
+        Some(active_id.unwrap_or_else(Uuid::nil))
+    } else {
+        None
+    };
+
     let logs = state
         .attendance()
         .time_entry_repo()
         .get_paginated_logs(
             &ctx.auth_token,
             crate::models::TimeEntryLogFilter::new(
-                query.employee_id,
+                target_employment_id,
                 query.from,
                 query.to,
                 limit,
@@ -64,7 +80,7 @@ pub async fn get_attendance_logs(
     let total = state
         .attendance()
         .time_entry_repo()
-        .count_logs(&ctx.auth_token, query.employee_id, query.from, query.to)
+        .count_logs(&ctx.auth_token, target_employment_id, query.from, query.to)
         .await?;
 
     Ok(Json(serde_json::json!({
@@ -98,12 +114,28 @@ pub async fn get_raw_attendance_logs(
     let page = query.page.unwrap_or(1).max(1);
     let offset = (page - 1) * limit;
 
+    let target_employment_id = if let Some(emp_id) = query.employee_id {
+        let active_id = if let Some(employee) = state
+            .employees()
+            .repo()
+            .get_employee_by_id(emp_id, &ctx.auth_token)
+            .await?
+        {
+            employee.active_employment_id()
+        } else {
+            None
+        };
+        Some(active_id.unwrap_or_else(Uuid::nil))
+    } else {
+        None
+    };
+
     let logs = state
         .attendance()
         .raw_log_repo()
         .get_paginated_raw_logs(
             workspace_id,
-            query.employee_id,
+            target_employment_id,
             query.from,
             query.to,
             limit,
@@ -114,7 +146,7 @@ pub async fn get_raw_attendance_logs(
     let total = state
         .attendance()
         .raw_log_repo()
-        .count_raw_logs(ctx.workspace_id, query.employee_id, query.from, query.to)
+        .count_raw_logs(ctx.workspace_id, target_employment_id, query.from, query.to)
         .await?;
 
     Ok(Json(serde_json::json!({

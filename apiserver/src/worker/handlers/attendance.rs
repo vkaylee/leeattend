@@ -397,6 +397,7 @@ impl AttendanceHandler {
 
             summaries.push(AttendanceSummary {
                 employment_id: emp_sched.employment_id,
+                employee_id,
                 employee_name: emp_sched.full_name.clone(),
                 employee_id_number: emp_sched.employee_id_number.clone(),
                 total_std_units,
@@ -630,6 +631,7 @@ impl AttendanceHandler {
                 reports.push(DailyAttendanceReport {
                     date,
                     employment_id: emp_sched.employment_id,
+                    employee_id,
                     employee_name: emp_sched.full_name.clone(),
                     employee_id_number: emp_sched.employee_id_number.clone(),
                     shift_symbol: daily.shift_symbol.clone(),
@@ -766,6 +768,7 @@ mod tests {
         let summaries = vec![
             AttendanceSummary {
                 employment_id: Uuid::new_v4(),
+                employee_id: Uuid::new_v4(),
                 employee_name: "Alice".to_string(),
                 employee_id_number: String::new(),
                 total_std_units: 140,
@@ -778,6 +781,7 @@ mod tests {
             },
             AttendanceSummary {
                 employment_id: Uuid::new_v4(),
+                employee_id: Uuid::new_v4(),
                 employee_name: "Bob".to_string(),
                 employee_id_number: String::new(),
                 total_std_units: 152,
@@ -802,9 +806,10 @@ mod tests {
     #[test]
     fn test_detail_report_serialization() {
         let reports = vec![DailyAttendanceReport {
-            date: NaiveDate::from_ymd_opt(2026, 1, 15).unwrap(),
+            date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
             employment_id: Uuid::new_v4(),
-            employee_name: "Charlie".to_string(),
+            employee_id: Uuid::new_v4(),
+            employee_name: "Alice".to_string(),
             employee_id_number: "EMP001".to_string(),
             shift_symbol: None,
             shift_name: None,

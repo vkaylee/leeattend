@@ -123,6 +123,7 @@ pub struct ApproveAttendanceAdjustmentRequest {
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct AttendanceSummary {
     pub employment_id: Uuid,
+    pub employee_id: Uuid,
     pub employee_name: String,
     #[serde(default)]
     pub employee_id_number: String,
@@ -152,6 +153,7 @@ pub struct ScheduleTrace {
 pub struct DailyAttendanceReport {
     pub date: NaiveDate,
     pub employment_id: Uuid,
+    pub employee_id: Uuid,
     pub employee_name: String,
     pub employee_id_number: String,
     pub shift_symbol: Option<String>,
@@ -391,6 +393,7 @@ mod tests {
     fn test_attendance_summary_backward_compatibility() {
         let old_json = json!({
             "employment_id": Uuid::new_v4(),
+            "employee_id": Uuid::new_v4(),
             "employee_name": "Test User",
             "employee_id_number": "EMP001",
             "total_std_units": 160,
@@ -411,6 +414,7 @@ mod tests {
     fn test_attendance_summary_multi_unit_serialization() {
         let summary = AttendanceSummary {
             employment_id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
             employee_name: "Test User".to_string(),
             employee_id_number: "EMP001".to_string(),
             total_std_units: 160,
