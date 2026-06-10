@@ -130,6 +130,7 @@ impl SupavisorTenantPoolManager {
 }
 
 impl SupavisorTenantPoolManager {
+    #[allow(clippy::too_many_lines)]
     async fn get_or_create_pool(&self, workspace_id: &Uuid) -> Result<DieselPool, AppError> {
         // Fast path
         {
@@ -227,7 +228,13 @@ impl SupavisorTenantPoolManager {
             &db_password,
             db_name_opt.as_deref(),
         );
-        let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(tenant_url);
+        let mut manager_config =
+            diesel_async::pooled_connection::ManagerConfig::<AsyncPgConnection>::default();
+        manager_config.recycling_method = diesel_async::pooled_connection::RecyclingMethod::Fast;
+        let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new_with_config(
+            tenant_url,
+            manager_config,
+        );
         let pool = Pool::builder(manager)
             .max_size(self.max_size)
             .wait_timeout(Some(Duration::from_secs(5)))

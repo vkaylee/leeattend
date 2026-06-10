@@ -86,7 +86,12 @@ impl DieselPools {
 
         let (api_tx_url, worker_sess_url, _) = config.resolve_pool_urls();
 
-        let api_manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(api_tx_url);
+        let mut api_config =
+            diesel_async::pooled_connection::ManagerConfig::<AsyncPgConnection>::default();
+        api_config.recycling_method = diesel_async::pooled_connection::RecyclingMethod::Fast;
+        let api_manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new_with_config(
+            api_tx_url, api_config,
+        );
         let api_pool = Pool::builder(api_manager)
             .max_size(config.api_max_conn as usize)
             .wait_timeout(Some(Duration::from_secs(config.api_acquire_timeout_secs)))
@@ -95,8 +100,13 @@ impl DieselPools {
             .build()
             .map_err(|e| AppError::Internal(format!("Failed to create API Diesel pool: {e}")))?;
 
-        let worker_manager =
-            AsyncDieselConnectionManager::<AsyncPgConnection>::new(worker_sess_url);
+        let mut worker_config =
+            diesel_async::pooled_connection::ManagerConfig::<AsyncPgConnection>::default();
+        worker_config.recycling_method = diesel_async::pooled_connection::RecyclingMethod::Fast;
+        let worker_manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new_with_config(
+            worker_sess_url,
+            worker_config,
+        );
         let worker_pool = Pool::builder(worker_manager)
             .max_size(config.worker_max_conn as usize)
             .wait_timeout(Some(Duration::from_secs(
@@ -131,7 +141,13 @@ impl DieselPools {
     }
 
     pub fn for_test(url: &str) -> Self {
-        let api_manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(url.to_string());
+        let mut api_config =
+            diesel_async::pooled_connection::ManagerConfig::<AsyncPgConnection>::default();
+        api_config.recycling_method = diesel_async::pooled_connection::RecyclingMethod::Fast;
+        let api_manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new_with_config(
+            url.to_string(),
+            api_config,
+        );
         let api_pool = Pool::builder(api_manager)
             .max_size(5)
             .build()
@@ -141,8 +157,13 @@ impl DieselPools {
                 )))
             });
 
-        let worker_manager =
-            AsyncDieselConnectionManager::<AsyncPgConnection>::new(url.to_string());
+        let mut worker_config =
+            diesel_async::pooled_connection::ManagerConfig::<AsyncPgConnection>::default();
+        worker_config.recycling_method = diesel_async::pooled_connection::RecyclingMethod::Fast;
+        let worker_manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new_with_config(
+            url.to_string(),
+            worker_config,
+        );
         let worker_pool = Pool::builder(worker_manager)
             .max_size(5)
             .build()

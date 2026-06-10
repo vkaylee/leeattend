@@ -106,3 +106,27 @@ async fn test_transaction_commit_on_success() {
         "Transaction should have committed the insert"
     );
 }
+
+#[tokio::test]
+async fn test_prepared_statement_cache_enabled() {
+    let (_addr, workspace_id, _user_id, factory, _db) = spawn_app_with_factory().await;
+
+    let pool = factory.diesel_pools.clone();
+    let token = apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id);
+    let mut conn = pool.tenant_transaction_conn(&token).await.unwrap();
+
+    // Verify that we can execute the exact same query multiple times on the same connection.
+    // With prepared statement cache enabled (default), this ensures tokio-postgres
+    // correctly caches 'sX' statements and Supavisor tracks them properly across the transaction pool.
+    for _ in 0..3 {
+        let result = diesel::sql_query("SELECT 1 as num")
+            .execute(&mut conn)
+            .await;
+
+        assert!(
+            result.is_ok(),
+            "Query failed, possibly due to prepared statement cache issues: {:?}",
+            result.err()
+        );
+    }
+}

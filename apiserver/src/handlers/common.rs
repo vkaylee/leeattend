@@ -430,7 +430,7 @@ pub async fn health_check() -> AppResult<Json<GenericResponse>> {
 pub async fn readiness_check(
     axum::extract::State(state): axum::extract::State<Arc<AppState>>,
 ) -> impl axum::response::IntoResponse {
-    use diesel_async::RunQueryDsl;
+    use diesel_async::SimpleAsyncConnection;
 
     let mut db_status = "ok";
     let mut redis_status = "ok";
@@ -439,7 +439,7 @@ pub async fn readiness_check(
     // Check DB
     match state.infra().diesel().api.get().await {
         Ok(mut conn) => {
-            if let Err(e) = diesel::sql_query("SELECT 1").execute(&mut *conn).await {
+            if let Err(e) = conn.batch_execute("SELECT 1").await {
                 tracing::error!("Readiness DB ping failed: {:?}", e);
                 db_status = "error";
                 has_error = true;
