@@ -1265,6 +1265,7 @@ mod tests {
         let sched_date = NaiveDate::from_ymd_opt(2026, 1, 15).unwrap();
         let schedule = crate::models::EmployeeSchedule {
             employment_id: emp_id,
+            employee_id: Uuid::new_v4(),
             full_name: "Test User".to_string(),
             employee_id_number: "EMP01".to_string(),
             schedules: vec![crate::models::EffectiveSchedule {
@@ -1450,6 +1451,7 @@ mod tests {
         let sched_date = NaiveDate::from_ymd_opt(2026, 1, 15).unwrap();
         let schedule = crate::models::EmployeeSchedule {
             employment_id: emp_id,
+            employee_id: Uuid::new_v4(),
             full_name: "Test User".to_string(),
             employee_id_number: "EMP01".to_string(),
             schedules: vec![crate::models::EffectiveSchedule {

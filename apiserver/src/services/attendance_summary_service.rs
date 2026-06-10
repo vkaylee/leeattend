@@ -1097,6 +1097,7 @@ mod tests {
                     Box::pin(async move {
                         Ok(vec![crate::models::EmployeeSchedule {
                             employment_id: employee_id,
+                            employee_id,
                             employee_id_number: "EMP001".to_string(),
                             full_name: "John Doe".to_string(),
                             schedules: vec![crate::models::EffectiveSchedule {
@@ -1258,6 +1259,7 @@ mod tests {
                     Box::pin(async move {
                         Ok(vec![crate::models::EmployeeSchedule {
                             employment_id: employee_id,
+                            employee_id,
                             employee_id_number: "EMP001".to_string(),
                             full_name: "John Doe".to_string(),
                             schedules: vec![crate::models::EffectiveSchedule {
@@ -1415,6 +1417,7 @@ mod tests {
                     Box::pin(async move {
                         Ok(vec![crate::models::EmployeeSchedule {
                             employment_id: employee_id,
+                            employee_id,
                             employee_id_number: "EMP001".to_string(),
                             full_name: "John Doe".to_string(),
                             schedules: vec![crate::models::EffectiveSchedule {
@@ -1572,6 +1575,7 @@ mod tests {
                     Box::pin(async move {
                         Ok(vec![crate::models::EmployeeSchedule {
                             employment_id: employee_id,
+                            employee_id,
                             employee_id_number: "EMP001".to_string(),
                             full_name: "John Doe".to_string(),
                             schedules: vec![crate::models::EffectiveSchedule {
@@ -1685,6 +1689,7 @@ mod tests {
                     Box::pin(async move {
                         Ok(vec![crate::models::EmployeeSchedule {
                             employment_id: employee_id,
+                            employee_id,
                             employee_id_number: "EMP001".to_string(),
                             full_name: "John Doe".to_string(),
                             schedules: vec![crate::models::EffectiveSchedule {

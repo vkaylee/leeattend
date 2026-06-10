@@ -107,6 +107,7 @@ pub struct EffectiveSchedule {
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct EmployeeSchedule {
     pub employment_id: Uuid,
+    pub employee_id: Uuid,
     pub employee_id_number: String,
     pub full_name: String,
     pub schedules: Vec<EffectiveSchedule>,

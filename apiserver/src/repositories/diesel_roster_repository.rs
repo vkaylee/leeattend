@@ -325,6 +325,7 @@ impl RosterRepository for DieselRosterRepository {
 
             result.push(EmployeeSchedule {
                 employment_id: emp_id,
+                employee_id,
                 employee_id_number: emp_id_number.clone(),
                 full_name: emp_full_name.clone(),
                 schedules: daily_schedules,
@@ -963,5 +964,60 @@ mod tests {
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselRosterRepository::new(pools);
         // DI connection test passes if it compiles
+    }
+
+    #[tokio::test]
+    async fn test_repo_methods_error_handling() {
+        let bad_url = "postgres://invalid:invalid@localhost:12345/invalid_db";
+        let pools = DieselPools::for_test(bad_url);
+        let repo = DieselRosterRepository::new(pools);
+        let ws_id = Uuid::new_v4();
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(ws_id);
+        let date = chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
+
+        let err = repo
+            .get_workspace_schedules(None, &auth_token, date, date, None)
+            .await;
+        assert!(err.is_err());
+
+        let err = repo.get_assignment_history(&auth_token, 10).await;
+        assert!(err.is_err());
+
+        let err = repo
+            .get_employment_rosters(&auth_token, Uuid::new_v4(), date, date)
+            .await;
+        assert!(err.is_err());
+
+        let err = repo
+            .get_employment_rosters_batch(&auth_token, &[Uuid::new_v4()], date, date)
+            .await;
+        assert!(err.is_err());
+
+        let roster = crate::models::ShiftRoster {
+            id: Uuid::new_v4(),
+            employment_id: Uuid::new_v4(),
+            shift_id: None,
+            date,
+            status: "confirmed".to_string(),
+            notes: None,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        };
+        let err = repo.upsert_roster(&auth_token, &roster).await;
+        assert!(err.is_err());
+
+        let err = repo
+            .bulk_upsert_roster(&auth_token, Uuid::new_v4(), vec![])
+            .await;
+        assert!(err.is_err());
+
+        let err = repo.get_effective_shift(&auth_token, Uuid::new_v4(), date).await;
+        assert!(err.is_err());
+
+        let err = repo.delete_roster(&auth_token, Uuid::new_v4(), date).await;
+        assert!(err.is_err());
+
+        let err = repo.get_raw_roster_data(ws_id).await;
+        assert!(err.is_err());
     }
 }

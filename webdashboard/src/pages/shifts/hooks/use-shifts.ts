@@ -82,7 +82,7 @@ export function useShifts(): UseShiftsReturn {
     // Handled by updateShiftMutation
   };
 
-  const employeeSchedule = data.allSchedules?.find(s => s.employee_id === form.selectedEmployee?.id);
+  const employeeSchedule = data.allSchedules?.find(s => s.employment_id === form.selectedEmployee?.active_employment_id);
 
   return {
     ...form,

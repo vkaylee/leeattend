@@ -1780,6 +1780,7 @@ mod tests {
         ) -> Result<Vec<EmployeeSchedule>, AppError> {
             Ok(vec![EmployeeSchedule {
                 employment_id: Uuid::nil(),
+                employee_id: Uuid::nil(),
                 employee_id_number: "EMP001".into(),
                 full_name: "Test User".into(),
                 schedules: vec![crate::models::schedule::EffectiveSchedule {
