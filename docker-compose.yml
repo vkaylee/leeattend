@@ -97,7 +97,7 @@ services:
       - RESERVE_POOL_TIMEOUT=5
       - MAX_PREPARED_STATEMENTS=250
       - ADMIN_USERS=tenant_user,postgres
-      - AUTH_TYPE=trust
+      - AUTH_TYPE=scram-sha-256
     healthcheck:
       <<: *healthcheck-base
       test: ["CMD", "pg_isready", "-h", "localhost", "-p", "6543"]
@@ -124,7 +124,7 @@ services:
       - RESERVE_POOL_SIZE=5
       - RESERVE_POOL_TIMEOUT=5
       - ADMIN_USERS=tenant_user,postgres
-      - AUTH_TYPE=trust
+      - AUTH_TYPE=scram-sha-256
     healthcheck:
       <<: *healthcheck-base
       test: ["CMD", "pg_isready", "-h", "localhost", "-p", "5452"]
@@ -152,7 +152,7 @@ services:
       - RESERVE_POOL_TIMEOUT=5
       - MAX_PREPARED_STATEMENTS=250
       - ADMIN_USERS=tenant_user,postgres
-      - AUTH_TYPE=trust
+      - AUTH_TYPE=scram-sha-256
     healthcheck:
       <<: *healthcheck-base
       test: ["CMD", "pg_isready", "-h", "localhost", "-p", "6543"]
@@ -179,7 +179,7 @@ services:
       - RESERVE_POOL_SIZE=5
       - RESERVE_POOL_TIMEOUT=5
       - ADMIN_USERS=tenant_user,postgres
-      - AUTH_TYPE=trust
+      - AUTH_TYPE=scram-sha-256
     healthcheck:
       <<: *healthcheck-base
       test: ["CMD", "pg_isready", "-h", "localhost", "-p", "5452"]
