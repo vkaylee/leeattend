@@ -22,6 +22,8 @@ export default function ReportsPage() {
     selectedDepartmentId,
     selectedEmployee,
     sortBy,
+    employeeStatus,
+    setEmployeeStatus,
     departments,
     quickStats,
     filteredData,
@@ -78,6 +80,8 @@ export default function ReportsPage() {
         setSearchQuery={setSearchQuery}
         sortBy={sortBy}
         specificMonth={specificMonth}
+        employeeStatus={employeeStatus}
+        onEmployeeStatusChange={setEmployeeStatus}
       />
 
       <EmployeeDailyDrawer

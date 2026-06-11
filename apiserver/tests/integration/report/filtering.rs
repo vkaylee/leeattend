@@ -85,6 +85,7 @@ async fn test_daily_report_employee_filtering() {
             employee_ids: Some(vec![emp1]),
             department_id: None,
             sort: None,
+            employee_status: None,
         })
         .await
         .expect("Failed to get report");
@@ -102,8 +103,150 @@ async fn test_daily_report_employee_filtering() {
             employee_ids: Some(vec![emp2, emp3]),
             department_id: None,
             sort: None,
+            employee_status: None,
         })
         .await
         .expect("Failed to get report");
     assert_eq!(result_23.data.len(), 2);
+}
+
+#[tokio::test]
+async fn test_attendance_report_resigned_employee_filtering() {
+    let test_db = TestDatabase::new().await;
+    let pool = test_db.diesel_pools.clone();
+    let factory = TestFactory::new(pool.clone());
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
+
+    let workspace_id = factory.workspace().create().await;
+
+    // Create emp1: will remain active
+    let emp1 = factory
+        .employee()
+        .with_workspace(workspace_id)
+        .create()
+        .await;
+
+    // Create emp2: will be terminated/resigned
+    let emp2 = factory
+        .employee()
+        .with_workspace(workspace_id)
+        .create()
+        .await;
+
+    // Modify emp2's employment to be terminated on 2026-01-15
+    crate::test_execute!(
+        &pool.api,
+        "UPDATE employments SET status = 'terminated', end_date = '2026-01-15'::date WHERE employee_id = $1",
+        diesel::sql_types::Uuid,
+        emp2
+    );
+
+    let report_service =
+        ReportService::new(apiserver::services::report_service::ReportServiceArgs {
+            time_entry_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselTimeEntryRepository::new(diesel_pools.clone()),
+            ),
+            roster_repo: std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
+                diesel_pools.clone(),
+            )),
+            policy_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselAttendancePolicyRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
+            employee_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
+            ),
+            employment_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselEmploymentRepository::new(diesel_pools.clone()),
+            ),
+            attendance_daily_summary_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
+            leave_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselLeaveRequestRepository::new(diesel_pools.clone()),
+            ),
+            holiday_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselHolidayRepository::new(diesel_pools.clone()),
+            ),
+            workspace_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselWorkspaceRepository::new(diesel_pools.clone()),
+            ),
+        });
+
+    // Case 1: Report date range is [2026-01-01, 2026-01-31], status filter is "active"
+    // emp2 resigned on 2026-01-15 (within the range), so emp2 must be included!
+    let range_jan = report_service
+        .get_daily_attendance_report(apiserver::services::report_service::AttendanceReportArgs {
+            workspace_id,
+            start_date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            end_date: NaiveDate::from_ymd_opt(2026, 1, 31).unwrap(),
+            page: None,
+            limit: None,
+            employee_ids: None,
+            department_id: None,
+            sort: None,
+            employee_status: Some("active".to_string()),
+        })
+        .await
+        .expect("Failed to get report");
+    // Both employees must be active in January
+    assert_eq!(range_jan.data.len(), 62);
+
+    // Case 2: Report date range is [2026-02-01, 2026-02-28], status filter is "active"
+    // emp2 resigned on 2026-01-15 (before the start of range), so emp2 must be excluded!
+    let range_feb_active = report_service
+        .get_daily_attendance_report(apiserver::services::report_service::AttendanceReportArgs {
+            workspace_id,
+            start_date: NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
+            end_date: NaiveDate::from_ymd_opt(2026, 2, 28).unwrap(),
+            page: None,
+            limit: None,
+            employee_ids: None,
+            department_id: None,
+            sort: None,
+            employee_status: Some("active".to_string()),
+        })
+        .await
+        .expect("Failed to get report");
+    // Only emp1 should show up (28 days * 1 employee = 28)
+    assert_eq!(range_feb_active.data.len(), 28);
+
+    // Case 3: Report date range is [2026-02-01, 2026-02-28], status filter is "all"
+    // Both employees must be included regardless of resignation (28 days * 2 employees = 56)
+    let range_feb_all = report_service
+        .get_daily_attendance_report(apiserver::services::report_service::AttendanceReportArgs {
+            workspace_id,
+            start_date: NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
+            end_date: NaiveDate::from_ymd_opt(2026, 2, 28).unwrap(),
+            page: None,
+            limit: None,
+            employee_ids: None,
+            department_id: None,
+            sort: None,
+            employee_status: Some("all".to_string()),
+        })
+        .await
+        .expect("Failed to get report");
+    assert_eq!(range_feb_all.data.len(), 56);
+
+    // Case 4: Report date range is [2026-02-01, 2026-02-28], status filter is "terminated"
+    // Only emp2 (terminated) should show up (28 days * 1 employee = 28)
+    let range_feb_terminated = report_service
+        .get_daily_attendance_report(apiserver::services::report_service::AttendanceReportArgs {
+            workspace_id,
+            start_date: NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
+            end_date: NaiveDate::from_ymd_opt(2026, 2, 28).unwrap(),
+            page: None,
+            limit: None,
+            employee_ids: None,
+            department_id: None,
+            sort: None,
+            employee_status: Some("terminated".to_string()),
+        })
+        .await
+        .expect("Failed to get report");
+    assert_eq!(range_feb_terminated.data.len(), 28);
 }

@@ -61,6 +61,7 @@ export function useReportsFilters() {
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string | null>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<{ id: string; name: string } | null>(null);
   const [sortBy, setSortBy] = useState<AttendanceReportSort | undefined>(undefined);
+  const [employeeStatus, setEmployeeStatus] = useState<string>("active");
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const keyDownRef = useRef<((e: React.KeyboardEvent<HTMLInputElement>) => void) | null>(null);
@@ -76,6 +77,7 @@ export function useReportsFilters() {
     selectedDepartmentId, setSelectedDepartmentId,
     selectedEmployee, setSelectedEmployee,
     sortBy, setSortBy,
+    employeeStatus, setEmployeeStatus,
     searchInputRef,
     keyDownRef,
     focusSearch

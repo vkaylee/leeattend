@@ -847,111 +847,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/system/tenants": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * GET /system/tenants
-         *     Retrieves the list of all tenants registered in Supavisor.
-         */
-        get: operations["list_tenants"];
-        put?: never;
-        /**
-         * POST /system/tenants
-         *     Creates a new tenant (and optionally a physical DB) and registers it in Supavisor.
-         */
-        post: operations["create_tenant"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/system/tenants/stale": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * GET /system/tenants/stale
-         *     Compares registered Supavisor tenants against active workspaces to
-         *     identify orphaned (stale) tenant configurations.
-         */
-        get: operations["list_stale_tenants"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/system/tenants/{tenant_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * DELETE /system/tenants/{tenant_id}
-         *     Removes a tenant from Supavisor connection pool.
-         */
-        delete: operations["delete_tenant_handler"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/system/tenants/{tenant_id}/database": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * PUT /system/tenants/{tenant_id}/database
-         *     Updates a tenant's database connection URL and registers it in Supavisor.
-         */
-        put: operations["update_tenant_database"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/system/tenants/{tenant_id}/stats": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * GET /system/tenants/{tenant_id}/stats
-         *     Retrieves tenant configuration and stats from Supavisor API.
-         */
-        get: operations["get_tenant_stats"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/system/users/{user_id}/roles": {
         parameters: {
             query?: never;
@@ -4561,17 +4456,6 @@ export interface components {
             /** Format: uuid */
             target_id: string;
         };
-        CreateTenantRequest: {
-            /**
-             * @description The database connection URL for this tenant (BYOD).
-             *     The database must already exist. The system will run migrations on it.
-             */
-            database_url: string;
-            /** Format: int32 */
-            pool_size?: number | null;
-            /** Format: uuid */
-            workspace_id: string;
-        };
         CreateWorkLocationRequest: {
             address?: string | null;
             is_headquarters?: boolean | null;
@@ -4939,6 +4823,8 @@ export interface components {
             updated_at: string;
         };
         EmployeeSchedule: {
+            /** Format: uuid */
+            employee_id: string;
             employee_id_number: string;
             /** Format: uuid */
             employment_id: string;
@@ -6598,9 +6484,6 @@ export interface components {
             name: string;
             report_symbol?: string | null;
             start_time: string;
-        };
-        UpdateTenantDbRequest: {
-            database_url: string;
         };
         UpdateTimeEntryRequest: {
             entry_type?: string | null;
@@ -8362,137 +8245,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SystemRoleInfo"][];
-                };
-            };
-        };
-    };
-    list_tenants: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description List of registered tenants */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    create_tenant: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateTenantRequest"];
-            };
-        };
-        responses: {
-            /** @description Tenant created and registered successfully */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    list_stale_tenants: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description List of stale/orphaned tenants */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    delete_tenant_handler: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Tenant ID */
-                tenant_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Tenant deleted successfully */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    update_tenant_database: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Tenant ID */
-                tenant_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateTenantDbRequest"];
-            };
-        };
-        responses: {
-            /** @description Tenant database URL updated successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    get_tenant_stats: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Tenant ID */
-                tenant_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Tenant configuration and statistics */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
                 };
             };
         };
@@ -11407,6 +11159,7 @@ export interface operations {
                 sort?: string | null;
                 employee_ids?: string | null;
                 department_id?: string | null;
+                employee_status?: string | null;
             };
             header?: never;
             path: {

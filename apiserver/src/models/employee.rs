@@ -25,6 +25,8 @@ pub struct EmployeePaginationArgs<'a> {
     pub page: i64,
     pub limit: i64,
     pub sort_desc: bool,
+    pub active_during: Option<(NaiveDate, NaiveDate)>,
+    pub status_filter: Option<String>,
 }
 
 // ── Recruitment Source Models ───────────────────────────────────────

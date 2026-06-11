@@ -65,27 +65,27 @@ export interface CreateTenantRequestPayload {
 }
 
 export async function fetchSystemTenants(): Promise<SystemTenant[]> {
-  const { data: resData } = await client.GET("/system/tenants");
+  const { data: resData } = await client.GET("/system/tenants" as any, {} as any);
   if (!resData) throw new Error("No response data");
   return resData as unknown as SystemTenant[];
 }
 
 export async function fetchStaleTenants(): Promise<SystemTenant[]> {
-  const { data: resData } = await client.GET("/system/tenants/stale");
+  const { data: resData } = await client.GET("/system/tenants/stale" as any, {} as any);
   if (!resData) throw new Error("No response data");
   return resData as unknown as SystemTenant[];
 }
 
 export async function createSystemTenant(request: CreateTenantRequestPayload): Promise<void> {
-  await client.POST("/system/tenants", {
+  await client.POST("/system/tenants" as any, {
     body: request as never
-  });
+  } as any);
 }
 
 export async function deleteSystemTenant(tenantId: string): Promise<void> {
-  await client.DELETE("/system/tenants/{tenant_id}", {
+  await client.DELETE("/system/tenants/{tenant_id}" as any, {
     params: { path: { tenant_id: tenantId } }
-  });
+  } as any);
 }
 
 export interface TenantConfig {
@@ -111,18 +111,18 @@ export interface TenantConnectionStats {
 }
 
 export async function fetchSystemTenantStats(tenantId: string): Promise<TenantConnectionStats> {
-  const { data: resData } = await client.GET("/system/tenants/{tenant_id}/stats", {
+  const { data: resData } = await client.GET("/system/tenants/{tenant_id}/stats" as any, {
     params: { path: { tenant_id: tenantId } }
-  });
+  } as any);
   if (!resData) throw new Error("No response data");
   return resData as unknown as TenantConnectionStats;
 }
 
 export async function updateTenantDatabase(tenantId: string, customDbUrl: string): Promise<void> {
-  await client.PUT("/system/tenants/{tenant_id}/database", {
+  await client.PUT("/system/tenants/{tenant_id}/database" as any, {
     params: { path: { tenant_id: tenantId } },
     body: { database_url: customDbUrl } as never
-  });
+  } as any);
 }
 
 export interface SystemDbCluster {

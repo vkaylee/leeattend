@@ -122,6 +122,8 @@ impl ReportService {
                     page,
                     limit,
                     sort_desc: false,
+                    active_during: Some((args.start_date, args.end_date)),
+                    status_filter: args.employee_status.clone(),
                 },
             )
             .await

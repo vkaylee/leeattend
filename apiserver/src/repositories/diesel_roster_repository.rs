@@ -57,12 +57,19 @@ impl RosterRepository for DieselRosterRepository {
         let mut query = crate::schema::employees::table
             .inner_join(crate::schema::employments::table)
             .filter(crate::schema::employees::workspace_id.eq(workspace_id))
-            .filter(crate::schema::employments::status.eq("active"))
             .filter(crate::schema::employments::deleted_at.is_null())
             .into_boxed();
 
         if let Some(ids) = employment_ids {
             query = query.filter(crate::schema::employments::id.eq_any(ids));
+        } else {
+            query = query
+                .filter(crate::schema::employments::start_date.le(end_date))
+                .filter(
+                    crate::schema::employments::end_date
+                        .is_null()
+                        .or(crate::schema::employments::end_date.ge(start_date)),
+                );
         }
 
         let employees_entities_raw = query

@@ -1444,6 +1444,13 @@
       "hour": "时",
       "minute": "分"
     },
+    "filters": {
+      "status": {
+        "active": "仅在职",
+        "terminated": "已离职",
+        "all": "全部员工"
+      }
+    },
     "messages": {
       "generating": "正在生成报告...",
       "no_data": "该期间内未找到数据。"

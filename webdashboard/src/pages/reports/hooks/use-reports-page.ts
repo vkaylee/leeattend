@@ -37,6 +37,8 @@ export interface UseReportsPageReturn {
   searchQuery: string;
   selectedDepartmentId: string | null;
   selectedEmployee: { id: string; name: string } | null;
+  employeeStatus: string;
+  setEmployeeStatus: (v: string) => void;
   setIsExportDialogOpen: (v: boolean) => void;
   setSearchQuery: (v: string) => void;
   setSelectedDepartmentId: (v: string | null) => void;
@@ -59,6 +61,7 @@ export function useReportsPage(): UseReportsPageReturn {
     selectedDepartmentId, setSelectedDepartmentId,
     selectedEmployee, setSelectedEmployee,
     sortBy, setSortBy,
+    employeeStatus, setEmployeeStatus,
     searchInputRef,
     keyDownRef,
     focusSearch
@@ -80,6 +83,7 @@ export function useReportsPage(): UseReportsPageReturn {
     dateRange,
     sortBy,
     selectedDepartmentId,
+    employeeStatus,
   });
 
   const {
@@ -124,6 +128,8 @@ export function useReportsPage(): UseReportsPageReturn {
     searchQuery,
     selectedDepartmentId,
     selectedEmployee,
+    employeeStatus,
+    setEmployeeStatus,
     setIsExportDialogOpen,
     setSearchQuery,
     setSelectedDepartmentId,

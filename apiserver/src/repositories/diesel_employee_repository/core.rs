@@ -359,6 +359,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
     ) -> Result<(Vec<EmployeeBasicInfo>, i64), AppError> {
         let workspace_id = auth_token.workspace_id();
         use crate::schema::employee_department_history;
+        use crate::schema::employments;
 
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -372,6 +373,48 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             .filter(employees::workspace_id.eq(workspace_id))
             .filter(employees::deleted_at.is_null())
             .into_boxed();
+
+        let status = args.status_filter.as_deref().unwrap_or("active");
+        match status {
+            "active" => {
+                if let Some((start, end)) = args.active_during {
+                    count_query = count_query.filter(diesel::dsl::exists(
+                        employments::table
+                            .filter(employments::employee_id.eq(employees::id))
+                            .filter(employments::deleted_at.is_null())
+                            .filter(employments::start_date.le(end))
+                            .filter(
+                                employments::status.eq("active").or(employments::status
+                                    .eq("terminated")
+                                    .and(employments::end_date.ge(start))),
+                            ),
+                    ));
+                } else {
+                    count_query = count_query.filter(diesel::dsl::exists(
+                        employments::table
+                            .filter(employments::employee_id.eq(employees::id))
+                            .filter(employments::deleted_at.is_null())
+                            .filter(employments::status.eq("active")),
+                    ));
+                }
+            }
+            "terminated" => {
+                count_query = count_query.filter(diesel::dsl::exists(
+                    employments::table
+                        .filter(employments::employee_id.eq(employees::id))
+                        .filter(employments::deleted_at.is_null())
+                        .filter(employments::status.eq("terminated")),
+                ));
+            }
+            "all" => {
+                count_query = count_query.filter(diesel::dsl::exists(
+                    employments::table
+                        .filter(employments::employee_id.eq(employees::id))
+                        .filter(employments::deleted_at.is_null()),
+                ));
+            }
+            _ => {}
+        }
 
         if let Some(dept_id) = args.department_id {
             count_query = count_query.filter(diesel::dsl::exists(
@@ -399,6 +442,47 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             .filter(employees::workspace_id.eq(workspace_id))
             .filter(employees::deleted_at.is_null())
             .into_boxed();
+
+        match status {
+            "active" => {
+                if let Some((start, end)) = args.active_during {
+                    data_query = data_query.filter(diesel::dsl::exists(
+                        employments::table
+                            .filter(employments::employee_id.eq(employees::id))
+                            .filter(employments::deleted_at.is_null())
+                            .filter(employments::start_date.le(end))
+                            .filter(
+                                employments::status.eq("active").or(employments::status
+                                    .eq("terminated")
+                                    .and(employments::end_date.ge(start))),
+                            ),
+                    ));
+                } else {
+                    data_query = data_query.filter(diesel::dsl::exists(
+                        employments::table
+                            .filter(employments::employee_id.eq(employees::id))
+                            .filter(employments::deleted_at.is_null())
+                            .filter(employments::status.eq("active")),
+                    ));
+                }
+            }
+            "terminated" => {
+                data_query = data_query.filter(diesel::dsl::exists(
+                    employments::table
+                        .filter(employments::employee_id.eq(employees::id))
+                        .filter(employments::deleted_at.is_null())
+                        .filter(employments::status.eq("terminated")),
+                ));
+            }
+            "all" => {
+                data_query = data_query.filter(diesel::dsl::exists(
+                    employments::table
+                        .filter(employments::employee_id.eq(employees::id))
+                        .filter(employments::deleted_at.is_null()),
+                ));
+            }
+            _ => {}
+        }
 
         if let Some(dept_id) = args.department_id {
             data_query = data_query.filter(diesel::dsl::exists(

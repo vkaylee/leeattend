@@ -25,6 +25,7 @@ pub struct AttendanceReportArgs {
     pub employee_ids: Option<Vec<Uuid>>,
     pub department_id: Option<Uuid>,
     pub sort: Option<AttendanceReportSort>,
+    pub employee_status: Option<String>,
 }
 
 pub struct CalculateDayUnitsArgs<'a, 'b> {

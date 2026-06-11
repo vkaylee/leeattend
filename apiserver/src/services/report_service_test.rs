@@ -1309,6 +1309,7 @@ mod tests {
             employee_ids: None,
             department_id: None,
             sort: None,
+            employee_status: None,
         };
 
         // When we call get_daily_attendance_report, it will hit WorkspaceRepo (succeeds)
@@ -2362,6 +2363,7 @@ mod tests {
             employee_ids: None,
             department_id: None,
             sort: None,
+            employee_status: None,
         };
 
         let result = report_service
@@ -2535,6 +2537,7 @@ mod tests {
             employee_ids: None,
             department_id: None,
             sort: None,
+            employee_status: None,
         };
 
         let result = report_service
@@ -2579,6 +2582,7 @@ mod tests {
             employee_ids: None,
             department_id: None,
             sort: None,
+            employee_status: None,
         };
 
         let result = report_service

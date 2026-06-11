@@ -32,6 +32,8 @@ interface ReportsTableProps {
   setSearchQuery: (q: string) => void;
   sortBy: AttendanceReportSort | undefined;
   specificMonth: { month: number; year: number };
+  employeeStatus: string;
+  onEmployeeStatusChange: (status: string) => void;
 }
 
 export function ReportsTable(props: ReportsTableProps) {
@@ -59,6 +61,8 @@ export function ReportsTable(props: ReportsTableProps) {
     setSearchQuery,
     sortBy,
     specificMonth,
+    employeeStatus,
+    onEmployeeStatusChange,
   } = props;
 
   const reportColumns = useMemo(() => getReportColumns({
@@ -83,8 +87,9 @@ export function ReportsTable(props: ReportsTableProps) {
         searchQuery={searchQuery}
         selectedDepartmentId={selectedDepartmentId}
         specificMonth={specificMonth}
-        statsSlot={<ReportsStats quickStats={quickStats} />}
         t={t}
+        employeeStatus={employeeStatus}
+        onEmployeeStatusChange={onEmployeeStatusChange}
       />
       <NavigableList<AttendanceSummary>
         className="animate-in slide-in-from-bottom-8 duration-700"
@@ -92,6 +97,7 @@ export function ReportsTable(props: ReportsTableProps) {
         emptyMessage={t("reports.messages.no_data")}
         fetchNextPage={fetchNextPage}
         hasNextPage={hasNextPage}
+        headerSlot={<div className="flex items-center gap-3 shrink-0"><ReportsStats quickStats={quickStats} /></div>}
         isFetchingNextPage={isFetchingNextPage}
         isLoading={isLoading}
         itemKey={(row) => row.employment_id}

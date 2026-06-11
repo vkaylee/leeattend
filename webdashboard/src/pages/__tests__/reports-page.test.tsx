@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, within } from "@testing-library/react";
 import React from "react";
 
 import userEvent from "@testing-library/user-event";
@@ -603,7 +603,8 @@ describe("ReportsPage", () => {
     });
 
     // Verify that clicking "All" clears the department filter (null is passed)
-    const allChip = await screen.findByRole("button", { name: /all|tất cả/i });
+    const chipsContainer = await screen.findByTestId("department-chips");
+    const allChip = await within(chipsContainer).findByRole("button", { name: /all|tất cả/i });
  
     await user.click(allChip);
 

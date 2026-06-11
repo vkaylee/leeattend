@@ -26,8 +26,9 @@ interface ReportFiltersProps {
   searchQuery: string;
   selectedDepartmentId: string | null;
   specificMonth: { month: number; year: number };
-  statsSlot?: React.ReactNode;
   t: (key: string) => string;
+  employeeStatus: string;
+  onEmployeeStatusChange: (status: string) => void;
 }
 
 function FilterModeSelector({
@@ -102,6 +103,37 @@ function FilterModeSelector({
   );
 }
 
+function StatusFilterSelector({
+  employeeStatus,
+  onEmployeeStatusChange,
+  t,
+}: {
+  employeeStatus: string;
+  onEmployeeStatusChange: (status: string) => void;
+  t: ReportFiltersProps["t"];
+}) {
+  const options = ["active", "terminated", "all"] as const;
+  return (
+    <div className="flex items-center bg-slate-100 dark:bg-slate-700/50 rounded-[1.5rem] p-1.5 shadow-inner border border-slate-200 dark:border-slate-700/50">
+      {options.map(status => (
+        <Button
+          className={cn(
+            "px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all h-auto",
+            employeeStatus === status
+              ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
+              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+          )}
+          key={status}
+          onClick={() => { onEmployeeStatusChange(status); }}
+          variant="ghost"
+        >
+          {t(`reports.filters.status.${status}`).toUpperCase()}
+        </Button>
+      ))}
+    </div>
+  );
+}
+
 function DepartmentChips({
   departments,
   onDepartmentChange,
@@ -157,16 +189,18 @@ export default function ReportFilters({
   onSpecificMonthChange,
   selectedDepartmentId,
   specificMonth,
-  statsSlot,
   t,
+  employeeStatus,
+  onEmployeeStatusChange,
 }: ReportFiltersProps) {
   return (
     <>
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8">
         <div className="flex flex-col md:flex-row md:items-center gap-6 bg-white dark:bg-slate-900 p-3 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-900/5">
           <FilterModeSelector filterMode={filterMode} onFilterModeChange={onFilterModeChange} onSpecificMonthChange={onSpecificMonthChange} specificMonth={specificMonth} t={t} />
+          <div className="hidden md:block w-px h-8 bg-slate-200 dark:bg-slate-800 self-center" />
+          <StatusFilterSelector employeeStatus={employeeStatus} onEmployeeStatusChange={onEmployeeStatusChange} t={t} />
         </div>
-        {statsSlot ? <div className="flex items-center gap-3 shrink-0">{statsSlot}</div> : null}
       </div>
 
       {departments && departments.length > 0 ? (

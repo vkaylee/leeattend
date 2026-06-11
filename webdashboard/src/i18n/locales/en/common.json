@@ -1456,6 +1456,13 @@
       "hour": "Hour",
       "minute": "Minute"
     },
+    "filters": {
+      "status": {
+        "active": "Active Only",
+        "terminated": "Terminated",
+        "all": "All Employees"
+      }
+    },
     "messages": {
       "generating": "Generating report...",
       "no_data": "No data found for this period."

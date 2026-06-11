@@ -1456,6 +1456,13 @@
       "hour": "Giờ",
       "minute": "Phút"
     },
+    "filters": {
+      "status": {
+        "active": "Đang làm việc",
+        "terminated": "Đã nghỉ việc",
+        "all": "Tất cả nhân sự"
+      }
+    },
     "messages": {
       "generating": "Đang tạo báo cáo...",
       "no_data": "Không có dữ liệu trong khoảng thời gian này."

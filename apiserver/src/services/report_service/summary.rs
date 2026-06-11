@@ -56,6 +56,8 @@ impl ReportService {
                         page: 1,
                         limit: 1,
                         sort_desc,
+                        active_during: Some((args.start_date, args.end_date)),
+                        status_filter: args.employee_status.clone(),
                     },
                 )
                 .await
@@ -77,6 +79,8 @@ impl ReportService {
                             page: 1,
                             limit: total,
                             sort_desc,
+                            active_during: Some((args.start_date, args.end_date)),
+                            status_filter: args.employee_status.clone(),
                         },
                     )
                     .await
@@ -96,6 +100,8 @@ impl ReportService {
                         page,
                         limit,
                         sort_desc,
+                        active_during: Some((args.start_date, args.end_date)),
+                        status_filter: args.employee_status.clone(),
                     },
                 )
                 .await
