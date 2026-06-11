@@ -89,7 +89,7 @@ services:
       retries: 5
 
   pgbouncer_tx:
-    image: docker.io/edoburu/pgbouncer:latest
+    image: docker.io/edoburu/pgbouncer:v1.25.2-p0
     profiles:
       - infra-pooler
     networks:
@@ -97,9 +97,22 @@ services:
     depends_on:
       db_system:
         condition: service_healthy
-    volumes:
-      - ${PROJECT_ROOT}/infrastructure/pgbouncer/pgbouncer_tx_test.ini:/etc/pgbouncer/pgbouncer.ini:ro
-      - ${PROJECT_ROOT}/infrastructure/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
+    environment:
+      - DB_HOST=db_system
+      - DB_PORT=5432
+      - DB_USER=test_user
+      - DB_PASSWORD=test_password
+      - DB_NAME=*
+      - LISTEN_PORT=6543
+      - POOL_MODE=transaction
+      - MAX_CLIENT_CONN=2000
+      - DEFAULT_POOL_SIZE=50
+      - MIN_POOL_SIZE=10
+      - RESERVE_POOL_SIZE=5
+      - RESERVE_POOL_TIMEOUT=5
+      - MAX_PREPARED_STATEMENTS=250
+      - ADMIN_USERS=tenant_test_user,test_user,postgres
+      - AUTH_TYPE=trust
     healthcheck:
       test: ["CMD", "pg_isready", "-h", "localhost", "-p", "6543"]
       interval: 5s
@@ -107,7 +120,7 @@ services:
       retries: 5
 
   pgbouncer_sess:
-    image: docker.io/edoburu/pgbouncer:latest
+    image: docker.io/edoburu/pgbouncer:v1.25.2-p0
     profiles:
       - infra-pooler
     networks:
@@ -115,9 +128,82 @@ services:
     depends_on:
       db_system:
         condition: service_healthy
-    volumes:
-      - ${PROJECT_ROOT}/infrastructure/pgbouncer/pgbouncer_sess_test.ini:/etc/pgbouncer/pgbouncer.ini:ro
-      - ${PROJECT_ROOT}/infrastructure/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
+    environment:
+      - DB_HOST=db_system
+      - DB_PORT=5432
+      - DB_USER=test_user
+      - DB_PASSWORD=test_password
+      - DB_NAME=*
+      - LISTEN_PORT=5452
+      - POOL_MODE=session
+      - MAX_CLIENT_CONN=2000
+      - DEFAULT_POOL_SIZE=50
+      - MIN_POOL_SIZE=10
+      - RESERVE_POOL_SIZE=5
+      - RESERVE_POOL_TIMEOUT=5
+      - ADMIN_USERS=tenant_test_user,test_user,postgres
+      - AUTH_TYPE=trust
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "5452"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  pgbouncer_tenant_tx:
+    image: docker.io/edoburu/pgbouncer:v1.25.2-p0
+    profiles:
+      - infra-pooler
+    networks:
+      - test_net
+    depends_on:
+      db_workspace:
+        condition: service_healthy
+    environment:
+      - DB_HOST=db_workspace
+      - DB_PORT=5432
+      - DB_USER=tenant_test_user
+      - DB_PASSWORD=tenant_test_password
+      - DB_NAME=*
+      - LISTEN_PORT=6543
+      - POOL_MODE=transaction
+      - MAX_CLIENT_CONN=2000
+      - DEFAULT_POOL_SIZE=50
+      - MIN_POOL_SIZE=10
+      - RESERVE_POOL_SIZE=5
+      - RESERVE_POOL_TIMEOUT=5
+      - MAX_PREPARED_STATEMENTS=250
+      - ADMIN_USERS=tenant_test_user,postgres
+      - AUTH_TYPE=trust
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "6543"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  pgbouncer_tenant_sess:
+    image: docker.io/edoburu/pgbouncer:v1.25.2-p0
+    profiles:
+      - infra-pooler
+    networks:
+      - test_net
+    depends_on:
+      db_workspace:
+        condition: service_healthy
+    environment:
+      - DB_HOST=db_workspace
+      - DB_PORT=5432
+      - DB_USER=tenant_test_user
+      - DB_PASSWORD=tenant_test_password
+      - DB_NAME=*
+      - LISTEN_PORT=5452
+      - POOL_MODE=session
+      - MAX_CLIENT_CONN=2000
+      - DEFAULT_POOL_SIZE=50
+      - MIN_POOL_SIZE=10
+      - RESERVE_POOL_SIZE=5
+      - RESERVE_POOL_TIMEOUT=5
+      - ADMIN_USERS=tenant_test_user,postgres
+      - AUTH_TYPE=trust
     healthcheck:
       test: ["CMD", "pg_isready", "-h", "localhost", "-p", "5452"]
       interval: 5s
@@ -181,6 +267,8 @@ services:
       <<: *rust-env-base
       DATABASE_POOLER_TX_URL: postgres://test_user:test_password@pgbouncer_tx:6543/test_database
       DATABASE_POOLER_SESS_URL: postgres://test_user:test_password@pgbouncer_sess:5452/test_database
+      DATABASE_TENANT_POOLER_TX_URL: postgres://tenant_test_user:tenant_test_password@pgbouncer_tenant_tx:6543/tenant_test_db
+      DATABASE_TENANT_POOLER_SESS_URL: postgres://tenant_test_user:tenant_test_password@pgbouncer_tenant_sess:5452/tenant_test_db
       DB_POOLER_TYPE: pgbouncer
       REDIS_URL: redis://redis:6379
       STORAGE_DIR: /workspace/apiserver/storage

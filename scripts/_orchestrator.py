@@ -282,7 +282,7 @@ class Orchestrator:
     ) -> None:
         run_p = subparsers.add_parser("run", help="Run toolbox command", parents=[parent_parser])
         run_p.add_argument("tool", choices=list(self.tool_map.keys()), help="Tool to run")
-        run_p.add_argument("--pooler", action="store_true", help="Enable Supavisor pooler")
+        run_p.add_argument("--pooler", action="store_true", help="Enable connection pooler")
         run_p.add_argument("args", nargs=argparse.REMAINDER, help="Arguments for the tool")
 
     def run(self) -> None:
@@ -558,19 +558,11 @@ class Orchestrator:
         tool_args = args.args
 
         if getattr(args, "pooler", False):
-            is_pgbouncer = os.environ.get("DB_POOLER_TYPE") == "pgbouncer"
-            if is_pgbouncer:
-                pooler_host = os.environ.get("SUPAVISOR_HOST", "pgbouncer_tx")
-                pooler_port = os.environ.get("SUPAVISOR_PORT", "6543")
-                os.environ["DATABASE_POOLER_URL"] = (
-                    f"postgres://test_user:test_password@{pooler_host}:{pooler_port}/test_database"
-                )
-            else:
-                supavisor_host = os.environ.get("SUPAVISOR_HOST", "supavisor")
-                supavisor_port = os.environ.get("SUPAVISOR_PORT", "6543")
-                os.environ["DATABASE_POOLER_URL"] = (
-                    f"postgres://test_user.test_database:test_password@{supavisor_host}:{supavisor_port}/test_database"
-                )
+            pooler_host = os.environ.get("SUPAVISOR_HOST", "pgbouncer_tx")
+            pooler_port = os.environ.get("SUPAVISOR_PORT", "6543")
+            os.environ["DATABASE_POOLER_URL"] = (
+                f"postgres://test_user:test_password@{pooler_host}:{pooler_port}/test_database"
+            )
             self.env_vars["DATABASE_POOLER_URL"] = os.environ["DATABASE_POOLER_URL"]
 
         # Resolve target service dynamically based on context
@@ -611,34 +603,7 @@ class Orchestrator:
                 log_info(f"🔹 Bringing up backend dependencies for {tool}...")
                 _lifecycle_up("infra-db")
 
-                if os.environ.get("POOLER") == "true" and tool_args and tool_args[0] == "prepare":
-                    # Ensure migrations are run so the _supavisor schema exists before supavisor boots
-                    log_info(
-                        "ℹ️ 🔹 Running migrations before starting pooler..."
-                    )  # pragma: no cover
-                    self.execute_safe(  # pragma: no cover
-                        [
-                            *self.compose_engine,
-                            "-p",
-                            self.env_vars.get("COMPOSE_PROJECT_NAME", "leeattend-test"),
-                            "--profile",
-                            "int-api",
-                            "--profile",
-                            "infra-db",
-                            "run",
-                            "-T",
-                            "--rm",
-                            "--workdir",
-                            "/workspace/apiserver",
-                            "--entrypoint",
-                            "diesel",
-                            "apiserver",
-                            "migration",
-                            "run",
-                        ]
-                    )
-
-                log_info("ℹ️ 🔹 Bringing up backend dependencies for supavisor pooler...")
+                log_info("ℹ️ 🔹 Bringing up backend dependencies for connection pooler...")
                 _lifecycle_up("infra-pooler")
             compose_cmd.extend(["--profile", "int-api"])
             if needs_db:

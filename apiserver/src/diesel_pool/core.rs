@@ -116,12 +116,12 @@ impl DieselPools {
 
         #[allow(clippy::clone_on_ref_ptr)]
         let tenant_tx_manager = Arc::new(TenantPoolManager::new(
-            api_tx_url.to_string(),
+            config.tenant_pooler_tx_url.clone(),
             config.tenant_max_conn as usize,
         ));
 
         let tenant_sess_manager = Arc::new(TenantPoolManager::new(
-            worker_sess_url.to_string(), // sess_url was returned as the second element in resolve_pool_urls
+            config.tenant_pooler_sess_url.clone(),
             config.tenant_max_conn as usize,
         ));
 
@@ -205,6 +205,8 @@ mod tests {
             primary_url: "postgres://postgres:postgres@localhost:5432/test_db".to_string(),
             pooler_tx_url: String::new(),
             pooler_sess_url: String::new(),
+            tenant_pooler_tx_url: String::new(),
+            tenant_pooler_sess_url: String::new(),
             reader_url: None,
             api_max_conn: 1,
             worker_max_conn: 1,

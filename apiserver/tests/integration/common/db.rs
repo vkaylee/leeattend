@@ -102,6 +102,8 @@ impl TestDatabase {
                     primary_url: db_url.clone(),
                     pooler_tx_url: "".to_string(),
                     pooler_sess_url: "".to_string(),
+                    tenant_pooler_tx_url: "".to_string(),
+                    tenant_pooler_sess_url: "".to_string(),
                     reader_url: None,
                     api_max_conn: 1,
                     api_acquire_timeout_secs: 5,

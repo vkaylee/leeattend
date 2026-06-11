@@ -7,6 +7,10 @@ pub struct DbPoolConfig {
     pub pooler_tx_url: String,
     /// Session Pooler URL (Port 5452)
     pub pooler_sess_url: String,
+    /// Tenant Transaction Pooler URL
+    pub tenant_pooler_tx_url: String,
+    /// Tenant Session Pooler URL
+    pub tenant_pooler_sess_url: String,
     /// Optional read-replica URL. Falls back to `pooler_tx_url` then `primary_url`.
     pub reader_url: Option<String>,
 
@@ -58,6 +62,20 @@ impl DbPoolConfig {
             })?;
         validate_db_url(&pooler_sess_url, "DB_POOLER_SESS_URL")?;
 
+        let tenant_pooler_tx_url = std::env::var("DB_TENANT_POOLER_TX_URL")
+            .or_else(|_| std::env::var("DATABASE_TENANT_POOLER_TX_URL"))
+            .ok()
+            .filter(|s| !s.trim().is_empty())
+            .unwrap_or_else(|| pooler_tx_url.clone());
+        validate_db_url(&tenant_pooler_tx_url, "DB_TENANT_POOLER_TX_URL")?;
+
+        let tenant_pooler_sess_url = std::env::var("DB_TENANT_POOLER_SESS_URL")
+            .or_else(|_| std::env::var("DATABASE_TENANT_POOLER_SESS_URL"))
+            .ok()
+            .filter(|s| !s.trim().is_empty())
+            .unwrap_or_else(|| pooler_sess_url.clone());
+        validate_db_url(&tenant_pooler_sess_url, "DB_TENANT_POOLER_SESS_URL")?;
+
         let reader_url = std::env::var("DB_READER_URL")
             .or_else(|_| std::env::var("DATABASE_READER_URL"))
             .ok()
@@ -70,6 +88,8 @@ impl DbPoolConfig {
             primary_url,
             pooler_tx_url,
             pooler_sess_url,
+            tenant_pooler_tx_url,
+            tenant_pooler_sess_url,
             reader_url,
             api_max_conn: env_parse("DB_API_MAX_CONN", 20),
             api_acquire_timeout_secs: env_parse("DB_API_ACQUIRE_TIMEOUT_SECS", 5),
@@ -126,6 +146,10 @@ mod tests {
             ("DB_POOLER_TX_URL", pool_tx),
             ("DATABASE_POOLER_SESS_URL", pool_sess),
             ("DB_POOLER_SESS_URL", pool_sess),
+            ("DATABASE_TENANT_POOLER_TX_URL", None),
+            ("DB_TENANT_POOLER_TX_URL", None),
+            ("DATABASE_TENANT_POOLER_SESS_URL", None),
+            ("DB_TENANT_POOLER_SESS_URL", None),
             ("DATABASE_READER_URL", reader),
             ("DB_READER_URL", reader),
             ("DB_API_MAX_CONN", None),
