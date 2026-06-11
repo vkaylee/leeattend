@@ -10,7 +10,6 @@ use apiserver::agent_manager::AgentManager;
 use apiserver::create_app;
 use apiserver::services::tenant_provisioner::TenantProvisionerTrait;
 use apiserver::services::AttendanceLogService;
-use apiserver::supavisor::TenantManager;
 use apiserver::AppState;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -81,28 +80,6 @@ impl apiserver::repositories::system_db_cluster_repository::SystemDbClusterRepos
     ) -> Result<apiserver::models::system_db_cluster::SystemDbCluster, apiserver::errors::AppError>
     {
         unimplemented!()
-    }
-}
-
-pub struct DummyTenantManager;
-#[async_trait::async_trait]
-impl TenantManager for DummyTenantManager {
-    async fn init_tenant(&self) {}
-    async fn delete_tenant(&self, _workspace_id: &str) -> Result<(), apiserver::errors::AppError> {
-        Ok(())
-    }
-    async fn register_tenant_dynamic(
-        &self,
-        _workspace_id: &str,
-        _db_config: &serde_json::Value,
-    ) -> Result<(), apiserver::errors::AppError> {
-        Ok(())
-    }
-    async fn get_tenant(
-        &self,
-        _tenant_id: &str,
-    ) -> Result<serde_json::Value, apiserver::errors::AppError> {
-        Ok(serde_json::json!({}))
     }
 }
 
@@ -421,7 +398,6 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             workspace_repo.clone(),
             user_repo.clone(),
             std::sync::Arc::new(DummyTenantProvisioner),
-            std::sync::Arc::new(DummyTenantManager),
             std::sync::Arc::new(DummySystemDbClusterRepository),
             diesel_pools.clone(),
         ),
@@ -716,7 +692,6 @@ pub async fn spawn_app() -> (String, TestDatabase) {
                 Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(r))
                     as Arc<dyn apiserver::repositories::queue_repository::QueueRepository>
             }),
-            Arc::new(apiserver::supavisor::NoopTenantManager),
             std::sync::Arc::new(DummyTenantProvisioner),
             std::env::var("ENCRYPTION_KEYS_JSON")
                 .ok()
@@ -745,13 +720,11 @@ pub async fn spawn_app() -> (String, TestDatabase) {
 /// App spawn with factory - returns address, `workspace_id`, `user_id`, factory, and `TestDatabase`
 #[allow(dead_code)]
 pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestDatabase) {
-    spawn_app_with_factory_extended(Arc::new(apiserver::supavisor::NoopTenantManager)).await
+    spawn_app_with_factory_extended().await
 }
 
 #[allow(dead_code)]
-pub async fn spawn_app_with_factory_extended(
-    tenant_manager: Arc<dyn apiserver::supavisor::TenantManager>,
-) -> (String, Uuid, Uuid, TestFactory, TestDatabase) {
+pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFactory, TestDatabase) {
     init_tracing();
     tracing::info!("spawn_app_with_factory_extended: creating TestDatabase");
     let test_db = TestDatabase::new().await;
@@ -1054,7 +1027,6 @@ pub async fn spawn_app_with_factory_extended(
             workspace_repo.clone(),
             user_repo.clone(),
             std::sync::Arc::new(DummyTenantProvisioner),
-            std::sync::Arc::new(DummyTenantManager),
             std::sync::Arc::new(DummySystemDbClusterRepository),
             diesel_pools.clone(),
         ),
@@ -1349,7 +1321,6 @@ pub async fn spawn_app_with_factory_extended(
                 Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(r))
                     as Arc<dyn apiserver::repositories::queue_repository::QueueRepository>
             }),
-            tenant_manager,
             std::sync::Arc::new(DummyTenantProvisioner),
             std::env::var("ENCRYPTION_KEYS_JSON")
                 .ok()
@@ -1427,13 +1398,11 @@ pub async fn setup_app_tower_without_redis(
 pub async fn setup_app_tower_internal(
     use_redis: bool,
 ) -> (TestDatabase, TestFactory, Arc<AppState>, axum::Router) {
-    setup_app_tower_internal_extended(use_redis, Arc::new(apiserver::supavisor::NoopTenantManager))
-        .await
+    setup_app_tower_internal_extended(use_redis).await
 }
 
 pub async fn setup_app_tower_internal_extended(
     use_redis: bool,
-    tenant_manager: Arc<dyn apiserver::supavisor::TenantManager>,
 ) -> (TestDatabase, TestFactory, Arc<AppState>, axum::Router) {
     init_tracing();
     let test_db = TestDatabase::new().await;
@@ -1736,7 +1705,6 @@ pub async fn setup_app_tower_internal_extended(
             workspace_repo.clone(),
             user_repo.clone(),
             std::sync::Arc::new(DummyTenantProvisioner),
-            std::sync::Arc::new(DummyTenantManager),
             std::sync::Arc::new(DummySystemDbClusterRepository),
             diesel_pools.clone(),
         ),
@@ -2035,7 +2003,6 @@ pub async fn setup_app_tower_internal_extended(
                 Arc::new(apiserver::repositories::queue_repository::RedisQueueRepository::new(r))
                     as Arc<dyn apiserver::repositories::queue_repository::QueueRepository>
             }),
-            tenant_manager,
             std::sync::Arc::new(DummyTenantProvisioner),
             std::env::var("ENCRYPTION_KEYS_JSON")
                 .ok()

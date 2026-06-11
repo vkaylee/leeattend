@@ -636,7 +636,6 @@ pub struct InfraState {
     cache: Option<Arc<dyn crate::repositories::CacheRepository>>,
     roster_cache: Option<Arc<crate::cache::RosterCache>>,
     queue: Option<Arc<dyn crate::repositories::queue_repository::QueueRepository>>,
-    tenant_manager: Arc<dyn crate::supavisor::TenantManager>,
     tenant_provisioner: Arc<dyn crate::services::tenant_provisioner::TenantProvisionerTrait>,
     crypto_service: Option<Arc<crate::crypto::CryptoService>>,
     system_db_cluster_repo: Arc<dyn crate::repositories::SystemDbClusterRepository>,
@@ -649,7 +648,6 @@ impl InfraState {
         cache: Option<Arc<dyn crate::repositories::CacheRepository>>,
         roster_cache: Option<Arc<crate::cache::RosterCache>>,
         queue: Option<Arc<dyn crate::repositories::queue_repository::QueueRepository>>,
-        tenant_manager: Arc<dyn crate::supavisor::TenantManager>,
         tenant_provisioner: Arc<dyn crate::services::tenant_provisioner::TenantProvisionerTrait>,
         crypto_service: Option<Arc<crate::crypto::CryptoService>>,
         system_db_cluster_repo: Arc<dyn crate::repositories::SystemDbClusterRepository>,
@@ -660,7 +658,6 @@ impl InfraState {
             cache,
             roster_cache,
             queue,
-            tenant_manager,
             tenant_provisioner,
             crypto_service,
             system_db_cluster_repo,
@@ -687,10 +684,6 @@ impl InfraState {
         &self,
     ) -> Option<&Arc<dyn crate::repositories::queue_repository::QueueRepository>> {
         self.queue.as_ref()
-    }
-
-    pub fn tenant_manager(&self) -> &Arc<dyn crate::supavisor::TenantManager> {
-        &self.tenant_manager
     }
 
     pub fn tenant_provisioner(

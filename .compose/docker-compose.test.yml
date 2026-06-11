@@ -88,8 +88,8 @@ services:
       timeout: 5s
       retries: 5
 
-  supavisor:
-    image: docker.io/supabase/supavisor:2.7.4
+  pgbouncer_tx:
+    image: docker.io/edoburu/pgbouncer:latest
     profiles:
       - infra-pooler
     networks:
@@ -97,23 +97,29 @@ services:
     depends_on:
       db_system:
         condition: service_healthy
-    environment:
-      - DATABASE_URL=ecto://test_user:test_password@db_system:5432/test_database
-      - CLUSTER_POSTGRES=true
-      - SECRET_KEY_BASE=this_is_a_64_character_secret_key_base_that_needs_to_be_long_enough_12345678901234
-      - VAULT_ENC_KEY=this-is-a-32-character-secret-32
-      - API_JWT_SECRET=your-super-secret-jwt-token-with-at-least-32-bytes-long
-      - PORT=4000
-      - PROXY_PORT_TRANSACTION=6543
-      - PROXY_PORT_SESSION=5452
-      - REGION=local
-    command: >
-      sh -c "
-      /app/bin/migrate &&
-      exec /app/bin/server
-      "
+    volumes:
+      - ${PROJECT_ROOT}/infrastructure/pgbouncer/pgbouncer_tx_test.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ${PROJECT_ROOT}/infrastructure/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
     healthcheck:
-      test: [ "CMD", "curl", "-s", "-f", "-o", "/dev/null", "http://localhost:4000/api/health" ]
+      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "6543"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  pgbouncer_sess:
+    image: docker.io/edoburu/pgbouncer:latest
+    profiles:
+      - infra-pooler
+    networks:
+      - test_net
+    depends_on:
+      db_system:
+        condition: service_healthy
+    volumes:
+      - ${PROJECT_ROOT}/infrastructure/pgbouncer/pgbouncer_sess_test.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ${PROJECT_ROOT}/infrastructure/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "5452"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -173,14 +179,9 @@ services:
     working_dir: /workspace/apiserver
     environment:
       <<: *rust-env-base
-      DATABASE_URL: postgres://test_user:test_password@db_system:5432/test_database
-      DATABASE_POOLER_TX_URL: postgres://test_user.${SUPAVISOR_TENANT_ID:-test_database}:test_password@${SUPAVISOR_HOST:-supavisor}:6543/test_database
-      DATABASE_POOLER_SESS_URL: postgres://test_user.${SUPAVISOR_TENANT_ID:-test_database}:test_password@${SUPAVISOR_HOST:-supavisor}:5452/test_database
-      SUPAVISOR_API_URL: http://${SUPAVISOR_HOST:-supavisor}:${SUPAVISOR_API_PORT:-4000}
-      SUPAVISOR_TENANT_ID: ${SUPAVISOR_TENANT_ID:-}
-      SUPAVISOR_POOL_SIZE: ${SUPAVISOR_POOL_SIZE:-20}
-      SUPAVISOR_IP_VERSION: v4
-      API_JWT_SECRET: ${SUPAVISOR_API_JWT:-your-super-secret-jwt-token-with-at-least-32-bytes-long}
+      DATABASE_POOLER_TX_URL: postgres://test_user:test_password@pgbouncer_tx:6543/test_database
+      DATABASE_POOLER_SESS_URL: postgres://test_user:test_password@pgbouncer_sess:5452/test_database
+      DB_POOLER_TYPE: pgbouncer
       REDIS_URL: redis://redis:6379
       STORAGE_DIR: /workspace/apiserver/storage
     volumes:

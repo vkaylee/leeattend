@@ -21,7 +21,6 @@ pub mod shifts;
 pub mod system_admin;
 pub mod system_auth;
 pub mod system_db_clusters;
-pub mod system_tenants;
 pub mod worker_monitor;
 pub mod working_patterns;
 pub mod workspaces;

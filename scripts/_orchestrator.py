@@ -558,11 +558,19 @@ class Orchestrator:
         tool_args = args.args
 
         if getattr(args, "pooler", False):
-            supavisor_host = os.environ.get("SUPAVISOR_HOST", "supavisor")
-            supavisor_port = os.environ.get("SUPAVISOR_PORT", "6543")
-            os.environ["DATABASE_POOLER_URL"] = (
-                f"postgres://test_user.test_database:test_password@{supavisor_host}:{supavisor_port}/test_database"
-            )
+            is_pgbouncer = os.environ.get("DB_POOLER_TYPE") == "pgbouncer"
+            if is_pgbouncer:
+                pooler_host = os.environ.get("SUPAVISOR_HOST", "pgbouncer_tx")
+                pooler_port = os.environ.get("SUPAVISOR_PORT", "6543")
+                os.environ["DATABASE_POOLER_URL"] = (
+                    f"postgres://test_user:test_password@{pooler_host}:{pooler_port}/test_database"
+                )
+            else:
+                supavisor_host = os.environ.get("SUPAVISOR_HOST", "supavisor")
+                supavisor_port = os.environ.get("SUPAVISOR_PORT", "6543")
+                os.environ["DATABASE_POOLER_URL"] = (
+                    f"postgres://test_user.test_database:test_password@{supavisor_host}:{supavisor_port}/test_database"
+                )
             self.env_vars["DATABASE_POOLER_URL"] = os.environ["DATABASE_POOLER_URL"]
 
         # Resolve target service dynamically based on context

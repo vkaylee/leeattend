@@ -1,6 +1,3 @@
-use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
-use serde::{Deserialize, Serialize};
-use serde_json::json;
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex, OnceLock};
 use tokio_postgres::NoTls;
@@ -55,17 +52,6 @@ impl E2eTestDatabase {
 
         Self::init_trap();
 
-        let api_url = std::env::var("SUPAVISOR_API_URL")
-            .unwrap_or_else(|_| "http://supavisor:4000".to_string());
-
-        let client = reqwest::Client::new();
-        if client.get(&api_url).send().await.is_err() {
-            println!(
-                "Supavisor API is unreachable at {api_url}. Skipping E2E test database creation."
-            );
-            return None;
-        }
-
         // 1. Create Physical Database via Direct Connection
         let connection = Self::connect_with_retries(&admin_url).await;
         let sql = format!("CREATE DATABASE \"{db_name}\" TEMPLATE leeattend_test_template");
@@ -111,22 +97,16 @@ impl E2eTestDatabase {
         // Sleep to ensure postgres fully flushes the new database to its catalog
         tokio::time::sleep(std::time::Duration::from_millis(500)).await;
 
-        // 2. Register Tenant in Supavisor
-        Self::register_tenant(&db_name, &tenant_id).await;
-
-        // 3. Connect via Supavisor Pooler
-        let supavisor_port = std::env::var("SUPAVISOR_PORT").unwrap_or_else(|_| "5452".to_string());
-        let supavisor_host =
-            std::env::var("SUPAVISOR_HOST").unwrap_or_else(|_| "supavisor".to_string());
-
+        // 2. Connect via PgBouncer Session Pooler
         let parsed_url = reqwest::Url::parse(&base_url).unwrap();
         let pooler_user = parsed_url.username().to_string();
         let pooler_pass = parsed_url.password().unwrap_or("").to_string();
 
-        // Supavisor connection string: postgres://{user}.{tenant}:{password}@{host}:{port}/{dbname}
-        let pooler_url = format!(
-            "postgres://{pooler_user}.{tenant_id}:{pooler_pass}@{supavisor_host}:{supavisor_port}/{db_name}"
-        );
+        let pooler_host =
+            std::env::var("SUPAVISOR_HOST").unwrap_or_else(|_| "pgbouncer_sess".to_string());
+        let pooler_port = std::env::var("SUPAVISOR_PORT").unwrap_or_else(|_| "5452".to_string());
+        let pooler_url =
+            format!("postgres://{pooler_user}:{pooler_pass}@{pooler_host}:{pooler_port}/{db_name}");
 
         let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&pooler_url);
         Some(Self {
@@ -154,140 +134,6 @@ impl E2eTestDatabase {
         panic!("Failed to connect to Postgres admin after 5 retries");
     }
 
-    async fn register_tenant(db_name: &str, tenant_id: &str) {
-        let api_url = std::env::var("SUPAVISOR_API_URL")
-            .unwrap_or_else(|_| "http://supavisor:4000".to_string());
-        let jwt_secret = std::env::var("API_JWT_SECRET").unwrap_or_else(|_| {
-            "your-super-secret-jwt-token-with-at-least-32-bytes-long".to_string()
-        });
-
-        let token = Self::generate_jwt(&jwt_secret);
-        let payload = Self::build_payload(db_name);
-
-        let client = reqwest::Client::new();
-        let url = format!("{}/api/tenants/{tenant_id}", api_url.trim_end_matches('/'));
-
-        let mut attempt = 0;
-        loop {
-            let resp = client
-                .put(&url)
-                .header("Authorization", format!("Bearer {token}"))
-                .json(&payload)
-                .send()
-                .await
-                .expect("Failed to reach Supavisor API");
-
-            let status = resp.status();
-            let body = resp.text().await.unwrap_or_default();
-
-            if status.is_success() || status.as_u16() == 409 {
-                // Sleep a tiny bit to ensure Supavisor propagates the new tenant config internally
-                tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-                return;
-            }
-
-            if attempt >= 5 {
-                println!("Supavisor Registration Failed. Payload: {payload}");
-                println!("Supavisor Registration Failed. Body: {body}");
-                panic!("Failed to register tenant after retries. Status: {status}. Body: {body}");
-            }
-
-            // If it's a 500 error, it might be because Supavisor's internal cluster registry is still initializing
-            println!(
-                "Supavisor returned {status}. Retrying in 2 seconds... (Attempt {})",
-                attempt + 1
-            );
-            tokio::time::sleep(std::time::Duration::from_millis(2000)).await;
-            attempt += 1;
-        }
-    }
-
-    async fn delete_tenant(tenant_id: &str) {
-        let api_url = std::env::var("SUPAVISOR_API_URL")
-            .unwrap_or_else(|_| "http://supavisor:4000".to_string());
-        let jwt_secret = std::env::var("API_JWT_SECRET").unwrap_or_else(|_| {
-            "your-super-secret-jwt-token-with-at-least-32-bytes-long".to_string()
-        });
-        let token = Self::generate_jwt(&jwt_secret);
-
-        let client = reqwest::Client::new();
-        let url = format!("{}/api/tenants/{tenant_id}", api_url.trim_end_matches('/'));
-
-        let _ = client
-            .delete(&url)
-            .header("Authorization", format!("Bearer {token}"))
-            .send()
-            .await;
-    }
-
-    fn generate_jwt(secret: &str) -> String {
-        #[derive(Debug, Serialize, Deserialize)]
-        struct Claims {
-            iat: usize,
-            exp: usize,
-        }
-        let iat = chrono::Utc::now().timestamp() as usize;
-        let claims = Claims {
-            iat,
-            exp: iat + 3600,
-        };
-        encode(
-            &Header::new(Algorithm::HS256),
-            &claims,
-            &EncodingKey::from_secret(secret.as_bytes()),
-        )
-        .unwrap()
-    }
-
-    fn build_payload(db_name: &str) -> serde_json::Value {
-        let base_url = std::env::var("DATABASE_URL").unwrap();
-        let parsed_url = reqwest::Url::parse(&base_url).unwrap();
-
-        let db_user = parsed_url.username().to_string();
-        let db_password = parsed_url.password().unwrap_or("").to_string();
-        let db_host = parsed_url.host_str().unwrap_or("db").to_string();
-        let db_port = parsed_url.port().unwrap_or(5432);
-
-        let mut tenant_map = serde_json::Map::new();
-        tenant_map.insert("db_host".to_string(), json!(db_host));
-        tenant_map.insert("db_port".to_string(), json!(db_port));
-        tenant_map.insert("db_database".to_string(), json!(db_name));
-        tenant_map.insert("ip_version".to_string(), json!("auto"));
-        tenant_map.insert("enforce_ssl".to_string(), json!(false));
-
-        let auth_query = std::env::var("SUPAVISOR_AUTH_QUERY").ok();
-        let has_auth_query = auth_query
-            .as_ref()
-            .map(|v| !v.is_empty() && v != "none")
-            .unwrap_or(false);
-
-        if has_auth_query {
-            tenant_map.insert("require_user".to_string(), json!(false));
-            if let Some(query) = auth_query {
-                tenant_map.insert("auth_query".to_string(), json!(query));
-            }
-        } else {
-            tenant_map.insert("require_user".to_string(), json!(true));
-        }
-
-        tenant_map.insert(
-            "users".to_string(),
-            json!([
-                {
-                    "db_user": &db_user,
-                    "db_password": &db_password,
-                    "pool_size": 10,
-                    "mode_type": "session",
-                    "is_manager": true
-                }
-            ]),
-        );
-
-        json!({
-            "tenant": tenant_map
-        })
-    }
-
     fn init_trap() {
         SIGNAL_HANDLER_INITIALIZED.get_or_init(|| {
             tokio::spawn(async move {
@@ -313,8 +159,6 @@ impl E2eTestDatabase {
         tenant_id: &str,
         admin_url: &str,
     ) -> Result<(), tokio_postgres::Error> {
-        Self::delete_tenant(tenant_id).await;
-
         let mut url_parts: Vec<&str> = admin_url.split('/').collect();
         url_parts.pop();
         let base_admin_url = format!("{}/postgres", url_parts.join("/"));

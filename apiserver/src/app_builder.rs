@@ -23,7 +23,6 @@ impl AppState {
     pub async fn build(
         diesel_pools: crate::diesel_pool::DieselPools,
         redis_pool: Option<RedisPool>,
-        tenant_manager: Arc<dyn crate::supavisor::TenantManager>,
     ) -> Result<(Arc<Self>, AppWorkers), Box<dyn std::error::Error>> {
         // Use API pool for application-level initialization (HTTP handlers, CRUD)
         // Use Worker pool for background services (patient timeout, won't starve API)
@@ -266,7 +265,6 @@ impl AppState {
                 workspace_repo.clone(),
                 user_repo.clone(),
                 tenant_provisioner.clone(),
-                tenant_manager.clone(),
                 system_db_cluster_repo.clone(),
                 diesel_pools.clone(),
             ));
@@ -689,7 +687,6 @@ impl AppState {
                     Arc::new(crate::repositories::queue_repository::RedisQueueRepository::new(r))
                         as Arc<dyn crate::repositories::queue_repository::QueueRepository>
                 }),
-                tenant_manager,
                 tenant_provisioner.clone(),
                 crypto_service,
                 system_db_cluster_repo.clone(),

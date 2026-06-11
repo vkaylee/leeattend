@@ -1,6 +1,6 @@
 use crate::diesel_pool::config::DbPoolConfig;
 use crate::diesel_pool::tenant_manager::{
-    SupavisorTenantPoolManager, TenantAuthToken, TenantConnectionProvider, TestTenantPoolManager,
+    TenantAuthToken, TenantConnectionProvider, TenantPoolManager, TestTenantPoolManager,
 };
 use crate::errors::AppError;
 use diesel_async::pooled_connection::deadpool::{Object, Pool};
@@ -74,10 +74,7 @@ impl DieselPools {
         Ok(SessionConn(conn))
     }
 
-    pub fn connect(
-        config: &DbPoolConfig,
-        tenant_manager: std::sync::Arc<dyn crate::supavisor::TenantManager>,
-    ) -> Result<Self, AppError> {
+    pub fn connect(config: &DbPoolConfig) -> Result<Self, AppError> {
         tracing::info!(
             api_max = config.api_max_conn,
             worker_max = config.worker_max_conn,
@@ -118,16 +115,14 @@ impl DieselPools {
             .map_err(|e| AppError::Internal(format!("Failed to create Worker Diesel pool: {e}")))?;
 
         #[allow(clippy::clone_on_ref_ptr)]
-        let tenant_tx_manager = Arc::new(SupavisorTenantPoolManager::new(
+        let tenant_tx_manager = Arc::new(TenantPoolManager::new(
             api_tx_url.to_string(),
             config.tenant_max_conn as usize,
-            tenant_manager.clone(),
         ));
 
-        let tenant_sess_manager = Arc::new(SupavisorTenantPoolManager::new(
+        let tenant_sess_manager = Arc::new(TenantPoolManager::new(
             worker_sess_url.to_string(), // sess_url was returned as the second element in resolve_pool_urls
             config.tenant_max_conn as usize,
-            tenant_manager,
         ));
 
         tracing::info!("Diesel pools connected successfully");
@@ -199,8 +194,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_connect() {
-        use crate::supavisor::client::NoopTenantManager;
-
         // This won't actually try to connect if the driver parses the URL successfully,
         // but it will initialize the pool builder. We just use a valid-looking URL.
         std::env::set_var(
@@ -220,7 +213,7 @@ mod tests {
             worker_acquire_timeout_secs: 1,
         };
 
-        let result = DieselPools::connect(&config, Arc::new(NoopTenantManager));
+        let result = DieselPools::connect(&config);
 
         // As long as the URLs are well-formed, it will return Ok
         assert!(result.is_ok());

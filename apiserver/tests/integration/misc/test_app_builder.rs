@@ -2,7 +2,6 @@ use crate::common::app::create_test_redis_pool;
 use crate::common::db::TestDatabase;
 use apiserver::diesel_pool::DieselPools;
 use apiserver::state::AppState;
-use apiserver::supavisor::NoopTenantManager;
 use std::sync::Arc;
 
 #[tokio::test]
@@ -10,10 +9,9 @@ async fn test_app_state_build_works() {
     let test_db = TestDatabase::new().await;
     let diesel_pools = DieselPools::for_test(&test_db.url());
     let redis_pool = create_test_redis_pool().await;
-    let tenant_manager = Arc::new(NoopTenantManager);
 
     // Call build
-    let build_result = AppState::build(diesel_pools, redis_pool, tenant_manager).await;
+    let build_result = AppState::build(diesel_pools, redis_pool).await;
     assert!(
         build_result.is_ok(),
         "Failed to build AppState: {:?}",

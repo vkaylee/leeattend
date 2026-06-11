@@ -80,14 +80,7 @@ impl DbPoolConfig {
     }
 
     pub fn resolve_pool_urls(&self) -> (&str, &str, &str) {
-        // Enforce Session Pooler for all pools.
-        // `tokio-postgres` numbers prepared statements sequentially (`s0`, `s1`, etc.) per client connection.
-        // In Transaction Mode, Supavisor mixes these connections across backends, causing namespace collisions
-        // (e.g. `prepared statement "s11" already exists` or `does not exist`) because `s11` on Client A
-        // is a different query than `s11` on Client B.
-        // Until Supavisor supports isolating statement names or `tokio-postgres` supports unnamed statements,
-        // we MUST use the Session Pooler to maintain a 1:1 mapping between client and backend.
-        let api_worker_url = &self.pooler_sess_url;
+        let api_worker_url = &self.pooler_tx_url;
         let reader_url = self.reader_url.as_deref().unwrap_or(api_worker_url);
         let sess_url = &self.pooler_sess_url;
 
@@ -175,9 +168,9 @@ mod tests {
         assert_eq!(config.api_max_conn, 20);
 
         let (api_tx, sess, reader) = config.resolve_pool_urls();
-        assert_eq!(api_tx, "postgres://pooler:pass@localhost:5452/db");
+        assert_eq!(api_tx, "postgres://pooler:pass@localhost:6543/db");
         assert_eq!(sess, "postgres://pooler:pass@localhost:5452/db");
-        assert_eq!(reader, "postgres://pooler:pass@localhost:5452/db"); // Fallback to sess url
+        assert_eq!(reader, "postgres://pooler:pass@localhost:6543/db");
     }
 
     #[test]

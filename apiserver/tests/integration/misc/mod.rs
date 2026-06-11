@@ -11,7 +11,6 @@ mod jobs;
 mod pagination_enforcement;
 mod repo_pagination;
 mod schema_isolation;
-pub mod system_tenants;
 mod test_app_builder;
 mod test_debug_handler;
 mod test_tenant_provisioner;

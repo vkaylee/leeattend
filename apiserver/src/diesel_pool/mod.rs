@@ -7,6 +7,3 @@ pub use config::*;
 pub use core::*;
 
 pub use tenant_manager::*;
-
-#[cfg(test)]
-mod tests;

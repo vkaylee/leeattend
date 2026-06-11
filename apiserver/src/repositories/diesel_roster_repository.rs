@@ -1011,7 +1011,9 @@ mod tests {
             .await;
         assert!(err.is_err());
 
-        let err = repo.get_effective_shift(&auth_token, Uuid::new_v4(), date).await;
+        let err = repo
+            .get_effective_shift(&auth_token, Uuid::new_v4(), date)
+            .await;
         assert!(err.is_err());
 
         let err = repo.delete_roster(&auth_token, Uuid::new_v4(), date).await;

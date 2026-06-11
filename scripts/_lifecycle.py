@@ -95,7 +95,7 @@ def lifecycle_up(mode: str = "all") -> bool:
         containers_to_check.append(f"{project_name}_bun_init_1")
         timeout = 120
     elif mode == "infra-pooler":
-        containers_to_check.append(f"{project_name}_supavisor_1")  # pragma: no cover
+        containers_to_check.append(f"{project_name}_pgbouncer_tx_1")  # pragma: no cover
         timeout = 60  # pragma: no cover
     elif mode == "infra-db":  # pragma: no cover
         containers_to_check.append(f"{project_name}_db_init_1")  # pragma: no cover
@@ -246,7 +246,7 @@ def sweep_stale_environments() -> None:
 # when compose down fails to stop PID 1 (e.g. tail -f /dev/null ignoring SIGTERM)
 _PROFILE_CONTAINERS: dict[str, list[str]] = {
     "frontend": ["bun_init", "webdashboard"],
-    "backend": ["apiserver", "agent-main", "db_system", "db_init", "redis", "supavisor"],
+    "backend": ["apiserver", "agent-main", "db_system", "db_init", "redis", "pgbouncer_tx", "pgbouncer_sess"],
 }
 
 

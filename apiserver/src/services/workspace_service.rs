@@ -8,13 +8,10 @@ use std::sync::Arc;
 
 use crate::repositories::system_db_cluster_repository::SystemDbClusterRepository;
 use crate::services::tenant_provisioner::TenantProvisionerTrait;
-use crate::supavisor::TenantManager;
-
 pub struct WorkspaceService {
     workspace_repo: Arc<dyn WorkspaceRepository>,
     user_repo: Arc<dyn UserRepository>,
     tenant_provisioner: Arc<dyn TenantProvisionerTrait>,
-    tenant_manager: Arc<dyn TenantManager>,
     system_db_cluster_repo: Arc<dyn SystemDbClusterRepository>,
     diesel_pools: crate::diesel_pool::DieselPools,
 }
@@ -24,7 +21,6 @@ impl WorkspaceService {
         workspace_repo: Arc<dyn WorkspaceRepository>,
         user_repo: Arc<dyn UserRepository>,
         tenant_provisioner: Arc<dyn TenantProvisionerTrait>,
-        tenant_manager: Arc<dyn TenantManager>,
         system_db_cluster_repo: Arc<dyn SystemDbClusterRepository>,
         diesel_pools: crate::diesel_pool::DieselPools,
     ) -> Self {
@@ -32,7 +28,6 @@ impl WorkspaceService {
             workspace_repo,
             user_repo,
             tenant_provisioner,
-            tenant_manager,
             system_db_cluster_repo,
             diesel_pools,
         }
@@ -123,27 +118,7 @@ impl WorkspaceService {
             .provision_tenant_db(&id, &final_db_url)
             .await?;
 
-        // 4. Register Tenant with Supavisor connection pooler.
-        // The tenant_id must match the format produced by diesel_pool::get_tenant_url(),
-        // which constructs tenant_<uuid-without-hyphens>. Using the raw UUID with hyphens
-        // causes a mismatch when the API connects via Supavisor.
-        let tenant_id_alias = format!("tenant_{}", id.to_string().replace('-', ""));
-        let payload_opt = crate::supavisor::build_tenant_payload(
-            &new_db_url,
-            crate::supavisor::TenantPayloadOptions {
-                tenant_id: Some(tenant_id_alias.clone()),
-                pool_size: None,
-                is_master: false,
-            },
-        );
-
-        if let Some((tenant_id, payload)) = payload_opt {
-            self.tenant_manager
-                .register_tenant_dynamic(&tenant_id, &payload)
-                .await?;
-        }
-
-        // 5. Encrypt the final database URL so ALL workspaces are treated as BYOD in the database
+        // 4. Encrypt the final database URL so ALL workspaces are treated as BYOD in the database
         let final_encrypted_url = if let Some(encrypted) = custom_db_url_encrypted {
             encrypted
         } else {
@@ -158,7 +133,7 @@ impl WorkspaceService {
             }
         };
 
-        // 6. Create workspace with owner using repository
+        // 5. Create workspace with owner using repository
         let ws = self
             .workspace_repo
             .create_workspace_with_owner(id, name, owner_id, Some(final_encrypted_url))
@@ -727,47 +702,19 @@ mod tests {
         }
     }
 
-    struct MockTenantManager {
-        registered: std::sync::Mutex<Vec<(String, serde_json::Value)>>,
-    }
-
-    impl MockTenantManager {
-        fn new() -> Self {
-            Self {
-                registered: std::sync::Mutex::new(Vec::new()),
-            }
-        }
-    }
-
-    #[async_trait]
-    impl crate::supavisor::TenantManager for MockTenantManager {
-        async fn init_tenant(&self) {}
-        async fn delete_tenant(&self, _tenant_id: &str) -> crate::errors::AppResult<()> {
-            Ok(())
-        }
-        async fn register_tenant_dynamic(
-            &self,
-            tenant_id: &str,
-            payload: &serde_json::Value,
-        ) -> crate::errors::AppResult<()> {
-            self.registered
-                .lock()
-                .unwrap()
-                .push((tenant_id.to_string(), payload.clone()));
-            Ok(())
-        }
-        async fn get_tenant(
-            &self,
-            _tenant_id: &str,
-        ) -> crate::errors::AppResult<serde_json::Value> {
-            Ok(serde_json::json!({}))
-        }
-    }
-
     fn build_service(user_exists: bool) -> WorkspaceService {
-        build_service_with_tenant_manager(
-            user_exists,
-            std::sync::Arc::new(MockTenantManager::new()),
+        WorkspaceService::new(
+            std::sync::Arc::new(MockWorkspaceRepo {
+                workspace: Some(dummy_workspace()),
+                primary_role: Some(Uuid::new_v4()),
+            }),
+            std::sync::Arc::new(MockUserRepo { user_exists }),
+            std::sync::Arc::new(MockTenantProvisioner),
+            std::sync::Arc::new(MockSystemDbClusterRepo),
+            crate::diesel_pool::DieselPools::for_test(
+                &std::env::var("DATABASE_URL")
+                    .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/db".to_string()),
+            ),
         )
     }
 
@@ -817,26 +764,6 @@ mod tests {
         }
     }
 
-    fn build_service_with_tenant_manager(
-        user_exists: bool,
-        tenant_manager: std::sync::Arc<dyn crate::supavisor::TenantManager>,
-    ) -> WorkspaceService {
-        WorkspaceService::new(
-            std::sync::Arc::new(MockWorkspaceRepo {
-                workspace: Some(dummy_workspace()),
-                primary_role: Some(Uuid::new_v4()),
-            }),
-            std::sync::Arc::new(MockUserRepo { user_exists }),
-            std::sync::Arc::new(MockTenantProvisioner),
-            tenant_manager,
-            std::sync::Arc::new(MockSystemDbClusterRepo),
-            crate::diesel_pool::DieselPools::for_test(
-                &std::env::var("DATABASE_URL")
-                    .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/db".to_string()),
-            ),
-        )
-    }
-
     struct FailingMockTenantProvisioner;
     #[async_trait]
     impl crate::services::tenant_provisioner::TenantProvisionerTrait for FailingMockTenantProvisioner {
@@ -859,7 +786,6 @@ mod tests {
             }),
             std::sync::Arc::new(MockUserRepo { user_exists: true }),
             std::sync::Arc::new(FailingMockTenantProvisioner),
-            std::sync::Arc::new(MockTenantManager::new()),
             std::sync::Arc::new(MockSystemDbClusterRepo),
             crate::diesel_pool::DieselPools::for_test(
                 &std::env::var("DATABASE_URL")
@@ -917,53 +843,6 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(ws.name(), "Acme Corp");
-    }
-
-    #[tokio::test]
-    async fn test_create_workspace_registers_tenant_with_supavisor() {
-        let tenant_manager = std::sync::Arc::new(MockTenantManager::new());
-        let svc = build_service_with_tenant_manager(true, tenant_manager.clone());
-
-        let ws = svc
-            .create_workspace(
-                Uuid::new_v4(),
-                "Acme Corp",
-                Uuid::new_v4(),
-                Some("postgres://test_user:test_password@localhost:5432/tenant_db".to_string()),
-                None,
-            )
-            .await
-            .unwrap();
-
-        let registered = tenant_manager.registered.lock().unwrap();
-        assert_eq!(
-            registered.len(),
-            1,
-            "should have registered exactly one tenant with Supavisor"
-        );
-        let (tenant_id, payload) = &registered[0];
-        // Tenant ID must match the format produced by diesel_pool::get_tenant_url() —
-        // tenant_<uuid-without-hyphens> — not the raw UUID.
-        let expected_tenant_id = format!("tenant_{}", ws.id().to_string().replace('-', ""));
-        assert_eq!(
-            tenant_id, &expected_tenant_id,
-            "tenant_id must use the same format as diesel_pool::get_tenant_url()"
-        );
-        // Verify payload contains expected Supavisor tenant config
-        let tenant = payload
-            .get("tenant")
-            .expect("payload should have 'tenant' key");
-        assert!(tenant.get("db_host").is_some(), "should have db_host");
-        assert!(tenant.get("db_port").is_some(), "should have db_port");
-        assert!(
-            tenant.get("db_database").is_some(),
-            "should have db_database"
-        );
-        let db_name = tenant["db_database"].as_str().unwrap();
-        assert!(
-            db_name.starts_with("tenant_"),
-            "db_database should start with 'tenant_': got {db_name}"
-        );
     }
 
     #[tokio::test]

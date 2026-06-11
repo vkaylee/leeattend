@@ -1,4 +1,4 @@
-FROM supabase/supavisor:latest
+FROM ghcr.io/supabase/supavisor:2.9.7
 
 # You can add custom initialization scripts or healthchecks here if needed.
 # Supavisor listens on PORT (default 4000) for Management API

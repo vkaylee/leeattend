@@ -159,32 +159,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 1. System migrations must run via direct connection before Supavisor is available
     DieselPools::run_system_migrations(&db_config)?;
 
-    // 2. Initialize Supavisor pooler — system tenant must be registered before pools connect
-    let tenant_manager: std::sync::Arc<dyn apiserver::supavisor::TenantManager> =
-        match apiserver::supavisor::SupavisorTenantManager::new() {
-            Ok(mgr) => std::sync::Arc::new(mgr),
-            Err(e) => {
-                if cfg!(debug_assertions) {
-                    tracing::warn!("⚠️ Supavisor variables not fully set ({:?}) — falling back to NoopTenantManager for development.", e);
-                    std::sync::Arc::new(apiserver::supavisor::NoopTenantManager)
-                } else {
-                    return Err(Box::<dyn std::error::Error>::from(e));
-                }
-            }
-        };
-    tenant_manager.init_tenant().await;
+    // 2. Connect pools (API/worker/tenant all go through PgBouncer)
+    let diesel_pools = DieselPools::connect(&db_config)?;
 
-    // 3. Connect pools (API/worker/tenant all go through Supavisor)
-    let diesel_pools = DieselPools::connect(&db_config, std::sync::Arc::clone(&tenant_manager))?;
-
-    // 4. Register existing workspace tenants with Supavisor, then run pending migrations & reconcile
-    register_workspace_tenants_and_migrate(
-        &db_config,
-        &diesel_pools,
-        &*tenant_manager,
-        backup_cache,
-    )
-    .await?;
+    // 3. Run pending migrations & reconcile
+    register_workspace_tenants_and_migrate(&db_config, &diesel_pools, backup_cache).await?;
 
     // ╔═══════════════════════════════════════════════════════════════╗
     // ║  POOL ASSIGNMENT RULES                                       ║
@@ -202,7 +181,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let redis_pool = init_redis().await;
     tracing::info!("Redis initialization complete");
 
-    let (state, workers) = AppState::build(diesel_pools, redis_pool, tenant_manager).await?;
+    let (state, workers) = AppState::build(diesel_pools, redis_pool).await?;
 
     let app = create_app(std::sync::Arc::clone(&state));
 
@@ -322,103 +301,56 @@ async fn init_redis() -> Option<RedisPool> {
     }
 }
 
-/// Register all existing workspace tenants with Supavisor, then run pending
-/// tenant migrations. Called once at startup after pools are connected.
+/// Run pending tenant migrations. Called once at startup after pools are connected.
 #[allow(clippy::too_many_lines)]
 async fn register_workspace_tenants_and_migrate(
     db_config: &DbPoolConfig,
     diesel_pools: &DieselPools,
-    tenant_manager: &dyn apiserver::supavisor::TenantManager,
     backup_cache: std::collections::HashMap<Uuid, (String, String, rust_decimal::Decimal)>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Query workspaces from system DB via direct connection
     let primary_url = db_config.primary_url.clone();
-    let (workspaces, supavisor_tenants): (Vec<(Uuid, Option<String>)>, Vec<String>) =
-        match tokio::task::spawn_blocking(move || {
-            use diesel::sql_types::{Nullable, Text, Uuid as UuidSql};
-            use diesel::{Connection, QueryableByName, RunQueryDsl};
+    let workspaces: Vec<(Uuid, Option<String>)> = match tokio::task::spawn_blocking(move || {
+        use diesel::sql_types::{Nullable, Text, Uuid as UuidSql};
+        use diesel::{Connection, QueryableByName, RunQueryDsl};
 
-            #[derive(QueryableByName)]
-            struct WsRow {
-                #[diesel(sql_type = UuidSql)]
-                id: Uuid,
-                #[diesel(sql_type = Nullable<Text>)]
-                custom_db_url_encrypted: Option<String>,
-            }
-
-            #[derive(QueryableByName)]
-            struct TenantRow {
-                #[diesel(sql_type = Text)]
-                external_id: String,
-            }
-
-            let mut conn = diesel::PgConnection::establish(&primary_url)
-                .map_err(|e| format!("Failed to connect: {e}"))?;
-
-            let workspaces =
-                diesel::sql_query("SELECT id, custom_db_url_encrypted FROM workspaces")
-                    .load::<WsRow>(&mut conn)
-                    .map(|r| {
-                        r.into_iter()
-                            .map(|w| (w.id, w.custom_db_url_encrypted))
-                            .collect()
-                    })
-                    .map_err(|e| format!("Failed to query workspaces: {e}"))?;
-
-            let supavisor_tenants = diesel::sql_query("SELECT external_id FROM _supavisor.tenants")
-                .load::<TenantRow>(&mut conn)
-                .map(|rows| {
-                    rows.into_iter()
-                        .map(|r| r.external_id)
-                        .collect::<Vec<String>>()
-                })
-                .unwrap_or_else(|e| {
-                    tracing::warn!(
-                        "Failed to query _supavisor.tenants (Supavisor might not be enabled): {e}"
-                    );
-                    Vec::new()
-                });
-
-            Ok::<_, String>((workspaces, supavisor_tenants))
-        })
-        .await
-        {
-            Ok(Ok(r)) => r,
-            Ok(Err(e)) => {
-                tracing::warn!("{e} — skipping tenant registration");
-                return Ok(());
-            }
-            Err(e) => {
-                tracing::error!("Failed to spawn blocking task for workspace query: {e}");
-                return Ok(());
-            }
-        };
-
-    let active_tenant_ids: std::collections::HashSet<String> = workspaces
-        .iter()
-        .map(|(ws_id, _)| format!("tenant_{}", ws_id.to_string().replace('-', "")))
-        .collect();
-
-    let stale_tenants: Vec<String> = supavisor_tenants
-        .into_iter()
-        .filter(|t| t.starts_with("tenant_") && !active_tenant_ids.contains(t))
-        .collect();
-
-    if !stale_tenants.is_empty() {
-        tracing::info!(
-            "Found {} stale Supavisor tenants to clean up",
-            stale_tenants.len()
-        );
-        for tenant_id in stale_tenants {
-            tracing::info!("Deleting stale Supavisor tenant: {tenant_id}");
-            if let Err(e) = tenant_manager.delete_tenant(&tenant_id).await {
-                tracing::warn!("Failed to delete stale Supavisor tenant {tenant_id}: {e}");
-            }
+        #[derive(QueryableByName)]
+        struct WsRow {
+            #[diesel(sql_type = UuidSql)]
+            id: Uuid,
+            #[diesel(sql_type = Nullable<Text>)]
+            custom_db_url_encrypted: Option<String>,
         }
-    }
+
+        let mut conn = diesel::PgConnection::establish(&primary_url)
+            .map_err(|e| format!("Failed to connect: {e}"))?;
+
+        let workspaces = diesel::sql_query("SELECT id, custom_db_url_encrypted FROM workspaces")
+            .load::<WsRow>(&mut conn)
+            .map(|r| {
+                r.into_iter()
+                    .map(|w| (w.id, w.custom_db_url_encrypted))
+                    .collect()
+            })
+            .map_err(|e| format!("Failed to query workspaces: {e}"))?;
+
+        Ok::<_, String>(workspaces)
+    })
+    .await
+    {
+        Ok(Ok(r)) => r,
+        Ok(Err(e)) => {
+            tracing::warn!("{e} — skipping tenant migrations");
+            return Ok(());
+        }
+        Err(e) => {
+            tracing::error!("Failed to spawn blocking task for workspace query: {e}");
+            return Ok(());
+        }
+    };
 
     if workspaces.is_empty() {
-        tracing::info!("No workspaces — skipping tenant registration and migrations");
+        tracing::info!("No workspaces — skipping tenant migrations");
         return Ok(());
     }
 
@@ -437,8 +369,6 @@ async fn register_workspace_tenants_and_migrate(
     let mut migration_targets: Vec<(Uuid, String)> = Vec::new();
 
     for (ws_id, custom_db_url_encrypted) in workspaces {
-        let db_name = format!("tenant_{}", ws_id.to_string().replace('-', ""));
-
         let tenant_url = if let Some(encrypted) = custom_db_url_encrypted {
             if let Some(crypto) = &crypto_service {
                 crypto.decrypt(&encrypted).unwrap_or(encrypted)
@@ -447,39 +377,13 @@ async fn register_workspace_tenants_and_migrate(
             }
         } else {
             tracing::warn!(
-                "Workspace {} missing custom_db_url_encrypted! Skipping registration.",
+                "Workspace {} missing custom_db_url_encrypted! Skipping migration.",
                 ws_id
             );
             continue;
         };
 
-        let Some((_, payload)) = apiserver::supavisor::build_tenant_payload(
-            &tenant_url,
-            apiserver::supavisor::TenantPayloadOptions {
-                tenant_id: Some(db_name.clone()),
-                pool_size: None,
-                is_master: false,
-            },
-        ) else {
-            tracing::warn!("Failed to build tenant payload for {}", db_name);
-            continue;
-        };
-
-        if let Err(e) = tenant_manager
-            .register_tenant_dynamic(&db_name, &payload)
-            .await
-        {
-            tracing::warn!(
-                workspace_id = %ws_id,
-                error = %e,
-                "Failed to register tenant with Supavisor — will retry on next startup"
-            );
-            continue;
-        }
-
-        // Resolve migration URL via the session pool manager — it knows whether
-        // to route through Supavisor (prod) or connect directly (dev), and uses
-        // the tenant's own credentials extracted from `tenant_url`.
+        // Resolve migration URL via the session pool manager.
         let migration_url = match diesel_pools
             .tenants_sess
             .resolve_migration_url(&ws_id, &tenant_url)

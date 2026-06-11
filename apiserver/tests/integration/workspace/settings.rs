@@ -7,7 +7,6 @@ use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
 use apiserver::services::tenant_provisioner::TenantProvisionerTrait;
 use apiserver::services::workspace_service::WorkspaceService;
-use apiserver::supavisor::TenantManager;
 use reqwest::StatusCode;
 use uuid::Uuid;
 
@@ -70,28 +69,6 @@ impl apiserver::repositories::system_db_cluster_repository::SystemDbClusterRepos
     ) -> Result<apiserver::models::system_db_cluster::SystemDbCluster, apiserver::errors::AppError>
     {
         unimplemented!()
-    }
-}
-
-struct DummyTenantManager;
-#[async_trait::async_trait]
-impl TenantManager for DummyTenantManager {
-    async fn init_tenant(&self) {}
-    async fn delete_tenant(&self, _workspace_id: &str) -> Result<(), apiserver::errors::AppError> {
-        Ok(())
-    }
-    async fn register_tenant_dynamic(
-        &self,
-        _workspace_id: &str,
-        _db_config: &serde_json::Value,
-    ) -> Result<(), apiserver::errors::AppError> {
-        Ok(())
-    }
-    async fn get_tenant(
-        &self,
-        _tenant_id: &str,
-    ) -> Result<serde_json::Value, apiserver::errors::AppError> {
-        Ok(serde_json::json!({}))
     }
 }
 
@@ -170,7 +147,6 @@ async fn test_update_workspace_time_format() {
         workspace_repo.clone(),
         user_repo.clone(),
         std::sync::Arc::new(DummyTenantProvisioner),
-        std::sync::Arc::new(DummyTenantManager),
         std::sync::Arc::new(DummySystemDbClusterRepository),
         diesel_pools.clone(),
     )
@@ -223,7 +199,6 @@ async fn test_update_workspace_all_fields() {
         workspace_repo.clone(),
         user_repo.clone(),
         std::sync::Arc::new(DummyTenantProvisioner),
-        std::sync::Arc::new(DummyTenantManager),
         std::sync::Arc::new(DummySystemDbClusterRepository),
         diesel_pools.clone(),
     )
@@ -271,7 +246,6 @@ async fn test_update_workspace_no_fields() {
         workspace_repo.clone(),
         user_repo.clone(),
         std::sync::Arc::new(DummyTenantProvisioner),
-        std::sync::Arc::new(DummyTenantManager),
         std::sync::Arc::new(DummySystemDbClusterRepository),
         diesel_pools.clone(),
     )
@@ -336,7 +310,6 @@ async fn test_update_workspace_syncs_headquarters_timezone() {
         workspace_repo.clone(),
         user_repo.clone(),
         std::sync::Arc::new(DummyTenantProvisioner),
-        std::sync::Arc::new(DummyTenantManager),
         std::sync::Arc::new(DummySystemDbClusterRepository),
         diesel_pools.clone(),
     )
