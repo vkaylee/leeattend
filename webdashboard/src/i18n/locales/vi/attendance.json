@@ -359,6 +359,9 @@
       "allow_early_ot_help": "Tính thời gian làm việc trước ca là tăng ca sớm (Early OT)",
       "max_early_ot": "Giới hạn tăng ca sớm tối đa (phút)",
       "max_early_ot_required": "Vui lòng nhập số phút giới hạn lớn hơn 0.",
+      "early_arrival_notice_block": "⚠️ Lưu ý: Quy tắc đến sớm của Workspace hiện đang được cấu hình là 'Chặn chấm công sớm'. Cài đặt Tăng ca sớm (Early OT) này sẽ không có hiệu lực đối với nhân viên.",
+      "early_arrival_notice_clamp": "ℹ️ Quy tắc đến sớm của Workspace hiện là 'Giới hạn OT sớm'. Thời gian tính tăng ca sớm (nếu bật) sẽ bị giới hạn tối đa bằng số phút Grace Period của ca (hiện tại là {{grace}} phút).",
+      "early_arrival_notice_allow": "ℹ️ Quy tắc đến sớm của Workspace hiện là 'Cho phép mọi lúc'. Thời gian tăng ca sớm sẽ được tính đầy đủ kể từ lúc check-in.",
       "basic_info": "Thông tin cơ bản",
       "edit_description": "Cập nhật cấu hình hoặc thay đổi giờ làm",
       "ot_grace_config": "Cấu hình đi muộn & Tăng ca",
@@ -572,7 +575,8 @@
       "step_rules": "2. Cấu hình Quy tắc",
       "select_target_type": "Chọn {{type}}",
       "search_placeholder": "Tìm kiếm {{type}}...",
-      "save_button": "LƯU GHI ĐÈ"
+      "save_button": "LƯU GHI ĐÈ",
+      "override_notice": "Lưu ý: Các thiết lập dưới đây sẽ ghi đè cấu hình mặc định của Workspace dành riêng cho đối tượng này kể từ ngày hiệu lực."
     },
     "messages": {
       "delete_success": "Đã xóa ghi đè chính sách",

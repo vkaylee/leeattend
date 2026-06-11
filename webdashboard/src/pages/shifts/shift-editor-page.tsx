@@ -60,6 +60,7 @@ export default function ShiftEditorPage() {
     handleSubmit,
     isSaveDisabled,
     blocker,
+    workspaceRules,
   } = useShiftEditor(shiftId);
 
   const { data: locations } = useQuery({
@@ -320,6 +321,32 @@ export default function ShiftEditorPage() {
                   <span className={`inline-block h-4 w-4 transform rounded-full bg-white dark:bg-slate-900 transition-transform ${allowEarlyOt ? 'translate-x-6' : 'translate-x-1'}`} />
                 </div>
               </div>
+
+              {/* Workspace Inheritance Notice */}
+              {workspaceRules?.early_arrival_strategy === "block" && (
+                <div className="text-xs bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 flex items-start gap-2.5 text-amber-600 dark:text-amber-400 animate-in fade-in slide-in-from-top-1 duration-250">
+                  <Info size={14} className="mt-0.5 shrink-0" />
+                  <span>
+                    {t("shifts.modal.early_arrival_notice_block")}
+                  </span>
+                </div>
+              )}
+              {workspaceRules?.early_arrival_strategy === "clamp" && (
+                <div className="text-xs bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 flex items-start gap-2.5 text-blue-600 dark:text-blue-400 animate-in fade-in slide-in-from-top-1 duration-250">
+                  <Info size={14} className="mt-0.5 shrink-0" />
+                  <span>
+                    {t("shifts.modal.early_arrival_notice_clamp", { grace: shiftGrace })}
+                  </span>
+                </div>
+              )}
+              {workspaceRules?.early_arrival_strategy === "allow" && (
+                <div className="text-xs bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 flex items-start gap-2.5 text-emerald-600 dark:text-emerald-450 animate-in fade-in slide-in-from-top-1 duration-250">
+                  <Info size={14} className="mt-0.5 shrink-0" />
+                  <span>
+                    {t("shifts.modal.early_arrival_notice_allow")}
+                  </span>
+                </div>
+              )}
 
               {allowEarlyOt ? (
                 <div className="space-y-2 pt-3 border-t border-slate-200/50 dark:border-slate-700/50 animate-in fade-in slide-in-from-top-2 duration-300">

@@ -15,6 +15,7 @@ import {
   fetchShifts,
   createShift,
   updateShift,
+  fetchDefaultAttendanceRules,
 } from "@/lib/api";
 
 export function useShiftEditor(shiftId?: string) {
@@ -72,6 +73,12 @@ export function useShiftEditor(shiftId?: string) {
     queryKey: ["shifts", wsId],
     queryFn: () => fetchShifts(wsId),
     enabled: !!wsId && isEditMode,
+  });
+
+  const { data: workspaceRules } = useQuery({
+    queryKey: ["attendance-rules", wsId],
+    queryFn: () => (wsId ? fetchDefaultAttendanceRules(wsId) : Promise.reject(new Error("No workspace ID"))),
+    enabled: !!wsId,
   });
 
   const editingShift = shifts?.find((s) => s.id === shiftId) ?? null;
@@ -234,5 +241,6 @@ export function useShiftEditor(shiftId?: string) {
     isDirty,
     setIsDirty,
     blocker,
+    workspaceRules,
   };
 }

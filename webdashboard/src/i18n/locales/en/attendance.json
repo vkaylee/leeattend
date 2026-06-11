@@ -359,6 +359,9 @@
       "allow_early_ot_help": "Count working time before shift start as early overtime (Early OT)",
       "max_early_ot": "Maximum Early OT (minutes)",
       "max_early_ot_required": "Please enter a limit greater than 0.",
+      "early_arrival_notice_block": "⚠️ Note: Workspace's Early Arrival Policy is currently set to 'Block early arrival'. This Early OT configuration will not take effect.",
+      "early_arrival_notice_clamp": "ℹ️ Workspace's Early Arrival Policy is currently set to 'Clamp early OT'. Early OT hours (if allowed) will be capped at the shift's Grace Period (currently {{grace}} min).",
+      "early_arrival_notice_allow": "ℹ️ Workspace's Early Arrival Policy is currently set to 'Allow all'. Early OT hours will be fully calculated from check-in.",
       "basic_info": "Basic Info",
       "edit_description": "Update config or change hours",
       "ot_grace_config": "Overtime & Grace Period Configuration",
@@ -572,7 +575,8 @@
       "step_rules": "2. Configure Rules",
       "select_target_type": "Select {{type}}",
       "search_placeholder": "Search {{type}}...",
-      "save_button": "SAVE OVERRIDE"
+      "save_button": "SAVE OVERRIDE",
+      "override_notice": "Note: The settings below will override the default workspace configuration for this target starting from the effective date."
     },
     "messages": {
       "delete_success": "Policy override removed",

@@ -357,8 +357,11 @@
       "report_symbol_placeholder": "例: S8, T8, FX...",
       "allow_early_ot": "允许提前加班",
       "allow_early_ot_help": "将班次开始前的动作计算为提前加班 (Early OT)",
-      "max_early_ot": "最大提前加班限制 (分钟)",
+      "max_early_ot": "最大提前加班限制 (分)",
       "max_early_ot_required": "请输入大于 0.0 的限制数。",
+      "early_arrival_notice_block": "⚠️ 注意：工作空间的早到政策当前配置为“阻止早到”。此提前加班 (Early OT) 配置将不会对员工生效。",
+      "early_arrival_notice_clamp": "ℹ️ 工作空间的早到政策当前配置为“钳位早到”。提前加班时间（如果允许）将被限制在班次宽限期（当前为 {{grace}} 分钟）内。",
+      "early_arrival_notice_allow": "ℹ️ 工作空间的早到政策当前配置为“允许所有”。提前加班时间将从签到时间起完整计算。",
       "basic_info": "基本信息",
       "edit_description": "更新配置或修改工时",
       "ot_grace_config": "加班与宽限期配置",
@@ -572,7 +575,8 @@
       "step_rules": "2. 配置规则",
       "select_target_type": "选择 {{type}}",
       "search_placeholder": "搜索 {{type}}...",
-      "save_button": "保存覆盖"
+      "save_button": "保存覆盖",
+      "override_notice": "注意：以下设置自生效日期起，将覆盖该目标对象的默认工作空间配置。"
     },
     "messages": {
       "delete_success": "政策覆盖已移除",
