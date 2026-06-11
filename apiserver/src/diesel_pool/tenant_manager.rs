@@ -25,14 +25,16 @@ pub trait TenantConnectionProvider: Send + Sync {
 
 pub struct TenantPoolManager {
     base_url: String,
+    system_db_url: String,
     max_size: usize,
     pools: RwLock<HashMap<Uuid, DieselPool>>,
 }
 
 impl TenantPoolManager {
-    pub fn new(base_url: String, max_size: usize) -> Self {
+    pub fn new(base_url: String, system_db_url: String, max_size: usize) -> Self {
         Self {
             base_url,
+            system_db_url,
             max_size,
             pools: RwLock::new(HashMap::new()),
         }
@@ -112,7 +114,7 @@ impl TenantPoolManager {
             }
         }
 
-        let primary_url = self.base_url.clone();
+        let system_url = self.system_db_url.clone();
         let ws_id = *workspace_id;
 
         let fetched_url: Result<Option<String>, String> = tokio::task::spawn_blocking(move || {
@@ -125,7 +127,7 @@ impl TenantPoolManager {
                 custom_db_url_encrypted: Option<String>,
             }
 
-            let mut conn = PgConnection::establish(&primary_url).map_err(|e| e.to_string())?;
+            let mut conn = PgConnection::establish(&system_url).map_err(|e| e.to_string())?;
 
             let rows =
                 diesel::sql_query("SELECT custom_db_url_encrypted FROM workspaces WHERE id = $1")
@@ -262,6 +264,7 @@ mod tests {
     #[test]
     fn test_get_tenant_url_direct_mode() {
         let manager = TenantPoolManager::new(
+            "postgres://admin:pass@localhost:5432/leeattend".to_string(),
             "postgres://admin:pass@localhost:5432/leeattend".to_string(),
             5,
         );
