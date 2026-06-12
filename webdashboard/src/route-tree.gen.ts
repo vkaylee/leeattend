@@ -22,6 +22,7 @@ import { Route as AuthenticatedWorkspaceShiftSwapsRouteImport } from "./routes/_
 import { Route as AuthenticatedWorkspaceReportsRouteImport } from "./routes/_authenticated/_workspace/reports"
 import { Route as AuthenticatedWorkspaceProfileRouteImport } from "./routes/_authenticated/_workspace/profile"
 import { Route as AuthenticatedWorkspacePayrollRouteImport } from "./routes/_authenticated/_workspace/payroll"
+import { Route as AuthenticatedWorkspaceOrgChartRouteImport } from "./routes/_authenticated/_workspace/org-chart"
 import { Route as AuthenticatedWorkspaceNotificationsRouteImport } from "./routes/_authenticated/_workspace/notifications"
 import { Route as AuthenticatedWorkspaceMembersRouteImport } from "./routes/_authenticated/_workspace/members"
 import { Route as AuthenticatedWorkspaceLeaveRequestsRouteImport } from "./routes/_authenticated/_workspace/leave-requests"
@@ -161,6 +162,16 @@ const AuthenticatedWorkspacePayrollRoute =
     getParentRoute: () => AuthenticatedWorkspaceRoute,
   } as any).lazy(() =>
     import("./routes/_authenticated/_workspace/payroll.lazy").then(
+      (d) => d.Route,
+    ),
+  )
+const AuthenticatedWorkspaceOrgChartRoute =
+  AuthenticatedWorkspaceOrgChartRouteImport.update({
+    id: "/org-chart",
+    path: "/org-chart",
+    getParentRoute: () => AuthenticatedWorkspaceRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/org-chart.lazy").then(
       (d) => d.Route,
     ),
   )
@@ -662,6 +673,7 @@ export interface FileRoutesByFullPath {
   "/leave-requests": typeof AuthenticatedWorkspaceLeaveRequestsRoute
   "/members": typeof AuthenticatedWorkspaceMembersRoute
   "/notifications": typeof AuthenticatedWorkspaceNotificationsRoute
+  "/org-chart": typeof AuthenticatedWorkspaceOrgChartRoute
   "/payroll": typeof AuthenticatedWorkspacePayrollRoute
   "/profile": typeof AuthenticatedWorkspaceProfileRoute
   "/reports": typeof AuthenticatedWorkspaceReportsRoute
@@ -723,6 +735,7 @@ export interface FileRoutesByTo {
   "/leave-requests": typeof AuthenticatedWorkspaceLeaveRequestsRoute
   "/members": typeof AuthenticatedWorkspaceMembersRoute
   "/notifications": typeof AuthenticatedWorkspaceNotificationsRoute
+  "/org-chart": typeof AuthenticatedWorkspaceOrgChartRoute
   "/payroll": typeof AuthenticatedWorkspacePayrollRoute
   "/profile": typeof AuthenticatedWorkspaceProfileRoute
   "/reports": typeof AuthenticatedWorkspaceReportsRoute
@@ -784,6 +797,7 @@ export interface FileRoutesById {
   "/_authenticated/_workspace/leave-requests": typeof AuthenticatedWorkspaceLeaveRequestsRoute
   "/_authenticated/_workspace/members": typeof AuthenticatedWorkspaceMembersRoute
   "/_authenticated/_workspace/notifications": typeof AuthenticatedWorkspaceNotificationsRoute
+  "/_authenticated/_workspace/org-chart": typeof AuthenticatedWorkspaceOrgChartRoute
   "/_authenticated/_workspace/payroll": typeof AuthenticatedWorkspacePayrollRoute
   "/_authenticated/_workspace/profile": typeof AuthenticatedWorkspaceProfileRoute
   "/_authenticated/_workspace/reports": typeof AuthenticatedWorkspaceReportsRoute
@@ -849,6 +863,7 @@ export interface FileRouteTypes {
     | "/leave-requests"
     | "/members"
     | "/notifications"
+    | "/org-chart"
     | "/payroll"
     | "/profile"
     | "/reports"
@@ -910,6 +925,7 @@ export interface FileRouteTypes {
     | "/leave-requests"
     | "/members"
     | "/notifications"
+    | "/org-chart"
     | "/payroll"
     | "/profile"
     | "/reports"
@@ -970,6 +986,7 @@ export interface FileRouteTypes {
     | "/_authenticated/_workspace/leave-requests"
     | "/_authenticated/_workspace/members"
     | "/_authenticated/_workspace/notifications"
+    | "/_authenticated/_workspace/org-chart"
     | "/_authenticated/_workspace/payroll"
     | "/_authenticated/_workspace/profile"
     | "/_authenticated/_workspace/reports"
@@ -1117,6 +1134,13 @@ declare module "@tanstack/react-router" {
       path: "/payroll"
       fullPath: "/payroll"
       preLoaderRoute: typeof AuthenticatedWorkspacePayrollRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceRoute
+    }
+    "/_authenticated/_workspace/org-chart": {
+      id: "/_authenticated/_workspace/org-chart"
+      path: "/org-chart"
+      fullPath: "/org-chart"
+      preLoaderRoute: typeof AuthenticatedWorkspaceOrgChartRouteImport
       parentRoute: typeof AuthenticatedWorkspaceRoute
     }
     "/_authenticated/_workspace/notifications": {
@@ -1649,6 +1673,7 @@ interface AuthenticatedWorkspaceRouteChildren {
   AuthenticatedWorkspaceLeaveRequestsRoute: typeof AuthenticatedWorkspaceLeaveRequestsRoute
   AuthenticatedWorkspaceMembersRoute: typeof AuthenticatedWorkspaceMembersRoute
   AuthenticatedWorkspaceNotificationsRoute: typeof AuthenticatedWorkspaceNotificationsRoute
+  AuthenticatedWorkspaceOrgChartRoute: typeof AuthenticatedWorkspaceOrgChartRoute
   AuthenticatedWorkspacePayrollRoute: typeof AuthenticatedWorkspacePayrollRoute
   AuthenticatedWorkspaceProfileRoute: typeof AuthenticatedWorkspaceProfileRoute
   AuthenticatedWorkspaceReportsRoute: typeof AuthenticatedWorkspaceReportsRoute
@@ -1683,6 +1708,7 @@ const AuthenticatedWorkspaceRouteChildren: AuthenticatedWorkspaceRouteChildren =
     AuthenticatedWorkspaceMembersRoute: AuthenticatedWorkspaceMembersRoute,
     AuthenticatedWorkspaceNotificationsRoute:
       AuthenticatedWorkspaceNotificationsRoute,
+    AuthenticatedWorkspaceOrgChartRoute: AuthenticatedWorkspaceOrgChartRoute,
     AuthenticatedWorkspacePayrollRoute: AuthenticatedWorkspacePayrollRoute,
     AuthenticatedWorkspaceProfileRoute: AuthenticatedWorkspaceProfileRoute,
     AuthenticatedWorkspaceReportsRoute: AuthenticatedWorkspaceReportsRoute,

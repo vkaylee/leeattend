@@ -1,5 +1,7 @@
 {
   "departments": {
+    "virtual_root_name": "TỔ CHỨC",
+    "virtual_root_description": "Sơ đồ phòng ban doanh nghiệp",
     "title": "Phòng ban",
     "subtitle": "Quản lý cơ cấu tổ chức và sơ đồ quản lý",
     "add_btn": "Thêm phòng ban",
@@ -7,6 +9,7 @@
     "active_employees_label": "Nhân viên đang hoạt động",
     "not_assigned": "Chưa gán",
     "default_pattern_label": "Lịch làm việc mặc định",
+    "parent_label": "Phòng ban cha",
     "messages": {
       "no_departments": "Chưa có phòng ban nào được tạo.",
       "confirm_delete": "Xóa phòng ban này?",
@@ -18,6 +21,10 @@
     "all_managers": "Tất cả quản lý",
     "view_grid": "Dạng lưới",
     "view_list": "Dạng danh sách",
+    "view_chart": "Sơ đồ tổ chức",
+    "chart_subtitle": "Sơ đồ cấu trúc cây thư mục tổ chức phòng ban và nhân sự",
+    "expand_all": "Mở rộng tất cả",
+    "collapse_all": "Thu gọn tất cả",
     "columns": {
       "name": "Tên phòng ban",
       "desc": "Mô tả",
@@ -30,6 +37,7 @@
       "name_placeholder": "Ví dụ: Kỹ thuật, Nhân sự...",
       "desc_placeholder": "Nhập mô tả ngắn về chức năng phòng ban...",
       "manager_placeholder": "Chọn quản lý...",
+      "parent_placeholder": "Chọn phòng ban cha...",
       "pattern_placeholder": "Chọn lịch làm việc mặc định..."
     },
     "modal": {

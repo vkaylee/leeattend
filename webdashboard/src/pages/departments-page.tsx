@@ -214,19 +214,23 @@ export default function DepartmentsPage() {
                 <th className="px-8 py-5 border-b border-slate-50 dark:border-slate-800 text-right"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+            <tbody>
               {filteredDepartments.map((dept) => {
-                const manager = employees.find(e => e.id === dept.manager_id);
+                const manager = employees.find((e) => e.id === dept.manager_id);
                 return (
-                  <tr 
-                    key={dept.id} 
-                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group cursor-pointer"
+                  <tr
+                    key={dept.id}
                     onClick={() => setSelectedDeptForDetail(dept)}
+                    className="border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/10 cursor-pointer transition-colors group"
                   >
                     <td className="px-8 py-6">
-                      <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase flex items-center gap-3">
-                        <Building2 size={16} className="text-primary-500" />
-                        {dept.name}
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-primary-50 dark:bg-primary-950/50 flex items-center justify-center text-primary-500 dark:text-primary-400 shadow-inner group-hover:scale-110 transition-transform">
+                          <Building2 size={16} />
+                        </div>
+                        <span className="font-bold text-slate-800 dark:text-slate-200 text-xs uppercase tracking-tight">
+                          {dept.name}
+                        </span>
                       </div>
                     </td>
                     <td className="px-8 py-6 max-w-xs truncate text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-tight opacity-65 leading-relaxed italic">
@@ -295,6 +299,7 @@ export default function DepartmentsPage() {
       />
 
       <DepartmentFormModal
+        departments={departments}
         editingDept={editingDept}
         employees={employees}
         isOpen={isModalOpen}

@@ -19,6 +19,7 @@ export const ROUTES = {
   HOME: "/",
   EMPLOYEES: "/employees",
   DEPARTMENTS: "/departments",
+  ORG_CHART: "/org-chart",
   PEOPLE: "/workspace/people",
   MEMBERS: "/members",
   NOTIFICATIONS: "/notifications",

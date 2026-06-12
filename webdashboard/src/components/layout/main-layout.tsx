@@ -159,6 +159,8 @@ export default function MainLayout() {
   const currentWsId = getCurrentWorkspaceId();
   const currentWorkspace = workspaces.find(ws => ws.id === currentWsId);
 
+  const isOrgChart = location.pathname.endsWith("/org-chart");
+
   return (
     <div className="flex min-h-screen bg-background text-foreground font-sans relative overflow-x-hidden">
       <SidebarOverlay isOpen={isSidebarOpen} onClose={() => { setIsSidebarOpen(false); }} />
@@ -183,8 +185,8 @@ export default function MainLayout() {
           onToggleCollapsed={toggleCollapsed}
         />
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-10 relative scroll-smooth">
-          <div className="max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both" key={location.pathname}>
+        <main className={cn("flex-1 relative scroll-smooth", isOrgChart ? "overflow-hidden p-0" : "overflow-y-auto p-4 md:p-8 lg:p-10")}>
+          <div className={cn(isOrgChart ? "w-full h-full animate-in fade-in duration-500" : "max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both")} key={location.pathname}>
             <Outlet />
           </div>
         </main>

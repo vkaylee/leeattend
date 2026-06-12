@@ -1,5 +1,7 @@
 {
   "departments": {
+    "virtual_root_name": "企业架构",
+    "virtual_root_description": "企业部门架构图",
     "title": "部门",
     "subtitle": "管理组织结构和管理层级",
     "add_btn": "添加部门",
@@ -7,6 +9,7 @@
     "active_employees_label": "在职员工",
     "not_assigned": "未分配",
     "default_pattern_label": "默认工作模式",
+    "parent_label": "上级部门",
     "messages": {
       "no_departments": "尚未创建部门。",
       "confirm_delete": "删除此部门？",
@@ -18,6 +21,10 @@
     "all_managers": "所有经理",
     "view_grid": "网格视图",
     "view_list": "列表视图",
+    "view_chart": "架构图",
+    "chart_subtitle": "组织架构与部门人员树状层级关系图",
+    "expand_all": "展开全部",
+    "collapse_all": "收起全部",
     "columns": {
       "name": "部门名称",
       "desc": "描述",
@@ -30,6 +37,7 @@
       "name_placeholder": "例：技术部、人事部...",
       "desc_placeholder": "输入部门职能的简短描述...",
       "manager_placeholder": "选择经理...",
+      "parent_placeholder": "选择上级部门...",
       "pattern_placeholder": "选择默认工作模式..."
     },
     "modal": {

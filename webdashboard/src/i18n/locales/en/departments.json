@@ -1,5 +1,7 @@
 {
   "departments": {
+    "virtual_root_name": "ORGANIZATION",
+    "virtual_root_description": "Corporate department hierarchy",
     "title": "Departments",
     "subtitle": "Manage organizational structure and management hierarchy",
     "add_btn": "Add Department",
@@ -7,6 +9,7 @@
     "active_employees_label": "Active Employees",
     "not_assigned": "Not assigned",
     "default_pattern_label": "Default Working Pattern",
+    "parent_label": "Parent Department",
     "messages": {
       "no_departments": "No departments created yet.",
       "confirm_delete": "Delete this department?",
@@ -18,6 +21,10 @@
     "all_managers": "All managers",
     "view_grid": "Grid view",
     "view_list": "List view",
+    "view_chart": "Org Chart",
+    "chart_subtitle": "Visual organization hierarchy tree",
+    "expand_all": "Expand All",
+    "collapse_all": "Collapse All",
     "columns": {
       "name": "Department Name",
       "desc": "Description",
@@ -30,6 +37,7 @@
       "name_placeholder": "Ex: Technical, HR...",
       "desc_placeholder": "Enter a short description of department functions...",
       "manager_placeholder": "Select manager...",
+      "parent_placeholder": "Select parent department...",
       "pattern_placeholder": "Select default working pattern..."
     },
     "modal": {
