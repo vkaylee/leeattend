@@ -190,16 +190,39 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     let leave_balance_repo_for_svc = Arc::new(
         apiserver::repositories::DieselLeaveBalanceRepository::new(diesel_pools.clone()),
     );
-    let employee_service = Arc::new(apiserver::services::EmployeeService::new(
+    let lifecycle_repo: Arc<dyn apiserver::repositories::LifecycleChecklistRepository> = Arc::new(
+        apiserver::repositories::DieselLifecycleChecklistRepository::new(diesel_pools.clone()),
+    );
+    let lifecycle_service = Arc::new(apiserver::services::LifecycleService::new(
+        lifecycle_repo.clone(),
         employee_repo.clone(),
         employment_repo.clone(),
-        Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
-            diesel_pools.clone(),
-        )),
         user_repo.clone(),
-        staging_repo.clone(),
-        leave_balance_repo_for_svc,
+        workspace_repo.clone(),
     ));
+    let payroll_repo: Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> =
+        Arc::new(apiserver::repositories::DieselPayrollRepository::new(
+            diesel_pools.clone(),
+        ));
+    let employer_repo = Arc::new(apiserver::repositories::DieselEmployerRepository::new(
+        diesel_pools.clone(),
+    ));
+
+    let employee_service = Arc::new(
+        apiserver::services::EmployeeService::new(
+            employee_repo.clone(),
+            employment_repo.clone(),
+            Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
+                diesel_pools.clone(),
+            )),
+            user_repo.clone(),
+            staging_repo.clone(),
+            leave_balance_repo_for_svc,
+        )
+        .with_lifecycle(lifecycle_service.clone())
+        .with_payroll(payroll_repo.clone())
+        .with_employer(employer_repo.clone()),
+    );
     let time_entry_repo: Arc<
         dyn apiserver::repositories::time_entry_repository::TimeEntryRepository,
     > = Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
@@ -321,10 +344,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             None, // log_svc
         ),
     );
-    let payroll_repo: Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> =
-        Arc::new(apiserver::repositories::DieselPayrollRepository::new(
-            diesel_pools.clone(),
-        ));
+    let payroll_repo = payroll_repo.clone();
     let payroll_rule_repo: Arc<
         dyn apiserver::repositories::payroll_rule_repository::PayrollRuleRepository,
     > = Arc::new(apiserver::repositories::DieselPayrollRuleRepository::new(
@@ -348,11 +368,16 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     let overtime_request_service = Arc::new(apiserver::services::OvertimeRequestService::new(
         overtime_request_repo.clone(),
     ));
-    let employer_repo = Arc::new(apiserver::repositories::DieselEmployerRepository::new(
-        diesel_pools.clone(),
-    ));
+    let employer_repo = employer_repo.clone();
     let employer_service = Arc::new(apiserver::services::EmployerService::new(
         employer_repo.clone(),
+        audit_repo.clone(),
+    ));
+    let custom_field_repo: Arc<dyn apiserver::repositories::CustomFieldRepository> = Arc::new(
+        apiserver::repositories::DieselCustomFieldRepository::new(diesel_pools.clone()),
+    );
+    let custom_field_service = Arc::new(apiserver::services::CustomFieldService::new(
+        custom_field_repo.clone(),
         audit_repo.clone(),
     ));
 
@@ -674,6 +699,10 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             Arc::new(apiserver::repositories::DieselLocationRepository::new(diesel_pools.clone())),
             employer_service.clone(),
             employer_repo.clone(),
+            custom_field_service.clone(),
+            custom_field_repo.clone(),
+            lifecycle_service,
+            lifecycle_repo,
         ),
         apiserver::AgentState::new(
             agent_manager,
@@ -797,16 +826,39 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
     let leave_balance_repo_for_svc = Arc::new(
         apiserver::repositories::DieselLeaveBalanceRepository::new(diesel_pools.clone()),
     );
-    let employee_service = Arc::new(apiserver::services::EmployeeService::new(
+    let lifecycle_repo: Arc<dyn apiserver::repositories::LifecycleChecklistRepository> = Arc::new(
+        apiserver::repositories::DieselLifecycleChecklistRepository::new(diesel_pools.clone()),
+    );
+    let lifecycle_service = Arc::new(apiserver::services::LifecycleService::new(
+        lifecycle_repo.clone(),
         employee_repo.clone(),
         employment_repo.clone(),
-        Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
-            diesel_pools.clone(),
-        )),
         user_repo.clone(),
-        staging_repo.clone(),
-        leave_balance_repo_for_svc,
+        workspace_repo.clone(),
     ));
+    let payroll_repo: Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> =
+        Arc::new(apiserver::repositories::DieselPayrollRepository::new(
+            diesel_pools.clone(),
+        ));
+    let employer_repo = Arc::new(apiserver::repositories::DieselEmployerRepository::new(
+        diesel_pools.clone(),
+    ));
+
+    let employee_service = Arc::new(
+        apiserver::services::EmployeeService::new(
+            employee_repo.clone(),
+            employment_repo.clone(),
+            Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
+                diesel_pools.clone(),
+            )),
+            user_repo.clone(),
+            staging_repo.clone(),
+            leave_balance_repo_for_svc,
+        )
+        .with_lifecycle(lifecycle_service.clone())
+        .with_payroll(payroll_repo.clone())
+        .with_employer(employer_repo.clone()),
+    );
     let time_entry_repo: Arc<
         dyn apiserver::repositories::time_entry_repository::TimeEntryRepository,
     > = Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
@@ -950,10 +1002,7 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
             None, // log_svc
         ),
     );
-    let payroll_repo: Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> =
-        Arc::new(apiserver::repositories::DieselPayrollRepository::new(
-            diesel_pools.clone(),
-        ));
+    let payroll_repo = payroll_repo.clone();
     let payroll_rule_repo: Arc<
         dyn apiserver::repositories::payroll_rule_repository::PayrollRuleRepository,
     > = Arc::new(apiserver::repositories::DieselPayrollRuleRepository::new(
@@ -977,11 +1026,16 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
     let overtime_request_service = Arc::new(apiserver::services::OvertimeRequestService::new(
         overtime_request_repo.clone(),
     ));
-    let employer_repo = Arc::new(apiserver::repositories::DieselEmployerRepository::new(
-        diesel_pools.clone(),
-    ));
+    let employer_repo = employer_repo.clone();
     let employer_service = Arc::new(apiserver::services::EmployerService::new(
         employer_repo.clone(),
+        audit_repo.clone(),
+    ));
+    let custom_field_repo: Arc<dyn apiserver::repositories::CustomFieldRepository> = Arc::new(
+        apiserver::repositories::DieselCustomFieldRepository::new(diesel_pools.clone()),
+    );
+    let custom_field_service = Arc::new(apiserver::services::CustomFieldService::new(
+        custom_field_repo.clone(),
         audit_repo.clone(),
     ));
 
@@ -1303,6 +1357,10 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
             Arc::new(apiserver::repositories::DieselLocationRepository::new(diesel_pools.clone())),
             employer_service.clone(),
             employer_repo.clone(),
+            custom_field_service.clone(),
+            custom_field_repo.clone(),
+            lifecycle_service,
+            lifecycle_repo,
         ),
         apiserver::AgentState::new(
             agent_manager,
@@ -1463,16 +1521,39 @@ pub async fn setup_app_tower_internal_extended(
     let leave_balance_repo_for_svc = Arc::new(
         apiserver::repositories::DieselLeaveBalanceRepository::new(diesel_pools.clone()),
     );
-    let employee_service = Arc::new(apiserver::services::EmployeeService::new(
+    let lifecycle_repo: Arc<dyn apiserver::repositories::LifecycleChecklistRepository> = Arc::new(
+        apiserver::repositories::DieselLifecycleChecklistRepository::new(diesel_pools.clone()),
+    );
+    let lifecycle_service = Arc::new(apiserver::services::LifecycleService::new(
+        lifecycle_repo.clone(),
         employee_repo.clone(),
         employment_repo.clone(),
-        Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
-            diesel_pools.clone(),
-        )),
         user_repo.clone(),
-        staging_repo.clone(),
-        leave_balance_repo_for_svc,
+        workspace_repo.clone(),
     ));
+    let payroll_repo: Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> =
+        Arc::new(apiserver::repositories::DieselPayrollRepository::new(
+            diesel_pools.clone(),
+        ));
+    let employer_repo = Arc::new(apiserver::repositories::DieselEmployerRepository::new(
+        diesel_pools.clone(),
+    ));
+
+    let employee_service = Arc::new(
+        apiserver::services::EmployeeService::new(
+            employee_repo.clone(),
+            employment_repo.clone(),
+            Arc::new(apiserver::repositories::DieselDepartmentRepository::new(
+                diesel_pools.clone(),
+            )),
+            user_repo.clone(),
+            staging_repo.clone(),
+            leave_balance_repo_for_svc,
+        )
+        .with_lifecycle(lifecycle_service.clone())
+        .with_payroll(payroll_repo.clone())
+        .with_employer(employer_repo.clone()),
+    );
     let time_entry_repo: Arc<
         dyn apiserver::repositories::time_entry_repository::TimeEntryRepository,
     > = Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
@@ -1628,10 +1709,7 @@ pub async fn setup_app_tower_internal_extended(
             None, // log_svc
         ),
     );
-    let payroll_repo: Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> =
-        Arc::new(apiserver::repositories::DieselPayrollRepository::new(
-            diesel_pools.clone(),
-        ));
+    let payroll_repo = payroll_repo.clone();
     let payroll_rule_repo: Arc<
         dyn apiserver::repositories::payroll_rule_repository::PayrollRuleRepository,
     > = Arc::new(apiserver::repositories::DieselPayrollRuleRepository::new(
@@ -1655,11 +1733,16 @@ pub async fn setup_app_tower_internal_extended(
     let overtime_request_service = Arc::new(apiserver::services::OvertimeRequestService::new(
         overtime_request_repo.clone(),
     ));
-    let employer_repo = Arc::new(apiserver::repositories::DieselEmployerRepository::new(
-        diesel_pools.clone(),
-    ));
+    let employer_repo = employer_repo.clone();
     let employer_service = Arc::new(apiserver::services::EmployerService::new(
         employer_repo.clone(),
+        audit_repo.clone(),
+    ));
+    let custom_field_repo: Arc<dyn apiserver::repositories::CustomFieldRepository> = Arc::new(
+        apiserver::repositories::DieselCustomFieldRepository::new(diesel_pools.clone()),
+    );
+    let custom_field_service = Arc::new(apiserver::services::CustomFieldService::new(
+        custom_field_repo.clone(),
         audit_repo.clone(),
     ));
 
@@ -1985,6 +2068,10 @@ pub async fn setup_app_tower_internal_extended(
             Arc::new(apiserver::repositories::DieselLocationRepository::new(diesel_pools.clone())),
             employer_service.clone(),
             employer_repo.clone(),
+            custom_field_service.clone(),
+            custom_field_repo.clone(),
+            lifecycle_service,
+            lifecycle_repo,
         ),
         apiserver::AgentState::new(
             agent_manager,

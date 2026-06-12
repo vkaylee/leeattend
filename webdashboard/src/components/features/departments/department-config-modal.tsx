@@ -10,6 +10,7 @@ import TemporalConfigTable from "@/components/common/temporal-config-table";
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { fetchDepartmentPayrollConfigs, setDepartmentPayrollConfig } from "@/lib/api";
+import { CustomFieldSection } from "@/components/custom-fields/custom-field-section";
 
 export interface DepartmentConfigModalProps {
   editingDept: Department | null;
@@ -63,6 +64,9 @@ export function DepartmentConfigModal({ editingDept, isOpen, onClose, wsId, t }:
           records={deptConfigs as TemporalConfigRecord[]} 
           title={t("payroll.settings.std_days_history")} 
         />
+        {editingDept?.id && (
+          <CustomFieldSection entityId={editingDept.id} entityType="department" />
+        )}
         <div className="pt-8 border-t border-slate-50 dark:border-slate-800 flex justify-end"><Button onClick={onClose} size="lg" variant="secondary">{t("common.close").toUpperCase()}</Button></div>
       </div>
     </Modal>

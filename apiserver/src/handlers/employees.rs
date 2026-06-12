@@ -4,7 +4,7 @@ use crate::handlers::common::{self, MemberContext};
 use crate::models::{
     CreateEmployeeRequest, CreateWorkingConditionRequest, Employee, EmployeeDepartmentHistory,
     PaginatedResponse, PaginationParams, RehireEmployeeRequest, TransferEmployeeRequest,
-    UpdateEmployeeRequest, WorkingCondition,
+    UpdateEmployeeRequest, WorkingCondition, CompensationHistoryResponse,
 };
 use crate::utils::i18n::I18nKey;
 use crate::AppState;
@@ -161,7 +161,52 @@ pub async fn get_employees(
                 .collect()
         })
         .filter(|v: &Vec<Uuid>| !v.is_empty());
-    let (data, total) = state
+
+    let mut filter_ids = None;
+    if let Some(ref cf_filters_str) = query.custom_field_filters {
+        if !cf_filters_str.is_empty() {
+            let definitions = state
+                .core()
+                .custom_field_service()
+                .list_definitions(ctx.workspace_id, Some("employee".to_string()))
+                .await?;
+            let def_map: std::collections::HashMap<String, Uuid> = definitions
+                .into_iter()
+                .map(|def| (def.field_key().to_string(), def.id()))
+                .collect();
+
+            let mut current_intersect: Option<std::collections::HashSet<Uuid>> = None;
+            for filter_part in cf_filters_str.split(',') {
+                let parts: Vec<&str> = filter_part.splitn(2, ':').collect();
+                if parts.len() == 2 {
+                    let key = parts[0].trim();
+                    let val = parts[1].trim().to_string();
+                    if let Some(&def_id) = def_map.get(key) {
+                        let matching_entity_ids = state
+                            .core()
+                            .custom_field_service()
+                            .find_entity_ids_by_value(ctx.workspace_id, def_id, val)
+                            .await?;
+                        let matching_set: std::collections::HashSet<Uuid> =
+                            matching_entity_ids.into_iter().collect();
+                        if let Some(ref mut set) = current_intersect {
+                            *set = set.intersection(&matching_set).copied().collect();
+                        } else {
+                            current_intersect = Some(matching_set);
+                        }
+                    }
+                }
+            }
+
+            if let Some(set) = current_intersect {
+                filter_ids = Some(set.into_iter().collect::<Vec<Uuid>>());
+            } else {
+                filter_ids = Some(vec![]);
+            }
+        }
+    }
+
+    let (mut data, total) = state
         .employees()
         .service()
         .get_all_employees(
@@ -174,9 +219,24 @@ pub async fn get_employees(
                 sort_dir: query.sort_dir,
                 department_ids,
                 permission: query.permission,
+                filter_ids,
             },
         )
         .await?;
+
+    if !data.is_empty() {
+        let entity_ids: Vec<Uuid> = data.iter().map(Employee::id).collect();
+        let mut custom_fields_map = state
+            .core()
+            .custom_field_service()
+            .get_values_for_entities(ctx.workspace_id, &entity_ids)
+            .await?;
+        for emp in &mut data {
+            if let Some(fields) = custom_fields_map.remove(&emp.id()) {
+                *emp = emp.clone().with_custom_fields(fields);
+            }
+        }
+    }
 
     Ok(Json(PaginatedResponse {
         data,
@@ -206,12 +266,21 @@ pub async fn get_employee(
     let (_workspace_id, id) = params;
     let _workspace_id = ctx.workspace_id;
 
-    let employee = state
+    let mut employee = state
         .employees()
         .service()
         .get_employee_by_id(id, &ctx.auth_token)
         .await
         .map_err(|_e| AppError::not_found(I18nKey::EmployeeNotFound))?;
+
+    let custom_fields = state
+        .core()
+        .custom_field_service()
+        .get_values_for_entity(ctx.workspace_id, id)
+        .await?;
+
+    employee = employee.with_custom_fields(custom_fields);
+
     Ok(Json(employee))
 }
 
@@ -386,4 +455,40 @@ pub async fn transfer_employee(
         .transfer_employee(id, &ctx.auth_token, req)
         .await?;
     Ok(Json(history))
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct CompensationHistoryQuery {
+    pub employment_id: Option<Uuid>,
+}
+
+#[utoipa::path(
+    get,
+    path = "/workspaces/{workspace_id}/employees/{id}/compensation-history",
+    responses(
+        (status = 200, description = "Successfully retrieved employee compensation history", body = CompensationHistoryResponse)
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Employee ID"),
+        ("employment_id" = Option<Uuid>, Query, description = "Optional filter by employment ID")
+    )
+)]
+#[tracing::instrument(skip(state, ctx))]
+pub async fn get_compensation_history(
+    Path(params): Path<(Uuid, Uuid)>,
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+    Query(query): Query<CompensationHistoryQuery>,
+) -> AppResult<Json<crate::models::CompensationHistoryResponse>> {
+    let (_workspace_id, id) = params;
+    ctx.require_permission(Permission::EmployeesRead)?;
+    
+    let timeline = state
+        .employees()
+        .service()
+        .get_compensation_history(&ctx.auth_token, id, query.employment_id)
+        .await?;
+
+    Ok(Json(crate::models::CompensationHistoryResponse { timeline }))
 }

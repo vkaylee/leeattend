@@ -25,3 +25,4 @@ export * from "./locations";
 export { overtimeRequestsApi } from "./overtime-requests";
 export { fetchMyBehalfTargets } from "./behalf-targets";
 export type { BehalfDomain } from "./behalf-targets";
+export * from "./custom-fields";

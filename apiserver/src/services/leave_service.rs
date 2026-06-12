@@ -1208,6 +1208,7 @@ mod tests {
                     sort_dir: None,
                     department_id: None,
                     permission: None,
+                    custom_field_filters: None,
                 },
             )
             .await

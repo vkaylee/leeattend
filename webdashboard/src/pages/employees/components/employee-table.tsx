@@ -8,6 +8,7 @@ import type { Employee, Department } from "../../../lib/api/types";
 import type { SortKey, SortDir } from "../hooks/use-employees-page";
 
 import { useEmployeeColumns } from "../hooks/use-employee-columns";
+import { CustomFieldsFilterPopover } from "@/components/custom-fields/custom-fields-filter-popover";
 
 interface EmployeeTableProps {
   departments: Department[] | undefined;
@@ -30,6 +31,8 @@ interface EmployeeTableProps {
   toggleDeptFilter: (id: string) => void;
   toggleSort: (key: SortKey) => void;
   totalItems: number;
+  customFieldFilters: Record<string, string>;
+  setCustomFieldFilters: (filters: Record<string, string>) => void;
 }
 
 export function EmployeeTable(props: EmployeeTableProps) {
@@ -54,6 +57,8 @@ export function EmployeeTable(props: EmployeeTableProps) {
     sortKey,
     toggleDeptFilter,
     toggleSort,
+    customFieldFilters,
+    setCustomFieldFilters,
   } = props;
 
   const employeeColumns = useEmployeeColumns({
@@ -82,7 +87,13 @@ export function EmployeeTable(props: EmployeeTableProps) {
         maxHeightClass=""
         onSearchChange={setSearchTerm}
         onSelect={setSelectedEmployee}
-        resetDeps={[searchTerm, filterDeptIds, sortKey, sortDir]}
+        resetDeps={[searchTerm, filterDeptIds, sortKey, sortDir, customFieldFilters]}
+        headerSlot={
+          <CustomFieldsFilterPopover
+            customFieldFilters={customFieldFilters}
+            setCustomFieldFilters={setCustomFieldFilters}
+          />
+        }
         rowIdPrefix="employee-row"
         searchInputRef={searchInputRef}
         searchPlaceholder={t("employees.search_placeholder")}

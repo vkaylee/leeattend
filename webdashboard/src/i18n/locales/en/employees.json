@@ -188,6 +188,7 @@
       "not_assigned_dept": "Not assigned to a department",
       "salary_benefits": "Salary & Benefits",
       "special_policies": "Special Policies",
+      "compensation_history": "Compensation History",
       "update": "Update",
       "current": "Current",
       "no_salary_history": "No salary history",
@@ -288,6 +289,30 @@
       "effective_date": "Effective Date",
       "cancel": "Cancel",
       "submit": "Update Salary"
+    },
+    "compensation": {
+      "timeline_title": "Compensation History & Timeline",
+      "timeline_subtitle": "Track changes in employee's base salary and allowances over time",
+      "effective_date": "Effective Date",
+      "change_type": "Change Type",
+      "total_compensation": "Total Compensation",
+      "no_history": "No compensation history records found.",
+      "components": "Salary Components",
+      "amount": "Amount",
+      "types": {
+        "initial": "Initial Salary",
+        "promotion": "Promotion",
+        "adjustment": "Salary Adjustment",
+        "transfer": "Department Transfer"
+      },
+      "delta": {
+        "increase": "+{{amount}} Increase",
+        "decrease": "-{{amount}} Decrease",
+        "no_change": "No Change"
+      },
+      "details": {
+        "previous_total": "Previous Total: {{amount}}"
+      }
     },
     "select_workspace": "Please select a Workspace",
     "hire_date": "Hire Date",

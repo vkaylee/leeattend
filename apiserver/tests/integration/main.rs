@@ -26,6 +26,7 @@ pub mod ess;
 pub mod feature_flags;
 pub mod holiday;
 pub mod leave;
+pub mod lifecycle;
 pub mod misc;
 pub mod monitor;
 pub mod notifications;

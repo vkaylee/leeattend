@@ -29,6 +29,9 @@ export default function EmployeesPage() {
         filterDeptIds={page.filterDeptIds}
         setFilterDeptIds={page.setFilterDeptIds}
         toggleDeptFilter={page.toggleDeptFilter}
+        customFieldFilters={page.customFieldFilters}
+        setCustomFieldFilters={page.setCustomFieldFilters}
+        updateCustomFieldFilter={page.updateCustomFieldFilter}
       />
 
       <EmployeeTable
@@ -52,6 +55,8 @@ export default function EmployeesPage() {
         toggleDeptFilter={page.toggleDeptFilter}
         toggleSort={page.toggleSort}
         totalItems={page.totalItems}
+        customFieldFilters={page.customFieldFilters}
+        setCustomFieldFilters={page.setCustomFieldFilters}
       />
 
       <EmployeeOverlays {...page} />

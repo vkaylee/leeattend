@@ -224,7 +224,7 @@ pub struct PaginatedWorkspaceRoles {
 pub async fn get_workspace_roles(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    axum::extract::Query(query): axum::extract::Query<crate::models::PaginationParams>,
+    axum::extract::Query(query): axum::extract::Query<PaginationParams>,
 ) -> AppResult<Json<crate::models::PaginatedResponse<WorkspaceRole>>> {
     // No permission gate — role list is non-sensitive metadata that every
     // workspace member needs in order to resolve role names on the People page.

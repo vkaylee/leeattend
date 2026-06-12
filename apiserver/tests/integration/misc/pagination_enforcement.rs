@@ -111,6 +111,12 @@ const GET_LIST_WHITELIST: &[&str] = &[
     "get_my_leave_behalf_targets",
     "get_my_adjustment_behalf_targets",
     "get_my_request_behalf_targets",
+    "list_definitions",
+    "get_values",
+    "list_templates",
+    "list_template_items",
+    "list_checklists",
+    "get_my_tasks",
 ];
 
 fn visit_dirs(dir: &Path, files: &mut Vec<PathBuf>) -> std::io::Result<()> {

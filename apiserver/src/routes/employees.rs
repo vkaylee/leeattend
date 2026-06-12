@@ -39,6 +39,10 @@ pub fn router() -> Router<Arc<AppState>> {
             "/workspaces/:ws_id/employees/:id/departments",
             get(handlers::get_employee_department_history).post(handlers::transfer_employee),
         )
+        .route(
+            "/workspaces/:ws_id/employees/:id/compensation-history",
+            get(handlers::get_compensation_history),
+        )
         // Employee Contracts (v1 prefix as requested)
         .route(
             "/workspaces/:ws_id/employees/:employee_id/contracts",

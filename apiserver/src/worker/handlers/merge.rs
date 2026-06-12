@@ -138,15 +138,22 @@ impl MergeHandler {
             |dr| (dr.start, dr.end),
         );
 
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(meta.workspace_id);
+
         // 5. Merge results and generate Excel
         let (excel_data, file_name, total_records) = match meta.report_type {
-            Some(ReportType::Summary) => Self::merge_summary_results(
-                &batch_results,
-                &workspace_name,
-                date_range,
-                parent_job_id,
-                &excel_msgs,
-            )?,
+            Some(ReportType::Summary) => {
+                Self::merge_summary_results(
+                    &batch_results,
+                    &workspace_name,
+                    date_range,
+                    parent_job_id,
+                    &excel_msgs,
+                    deps,
+                    &auth_token,
+                )
+                .await?
+            }
             Some(ReportType::Detail) => {
                 let work_unit_minutes = job
                     .merge_payload()
@@ -159,7 +166,10 @@ impl MergeHandler {
                     &workspace_tz,
                     work_unit_minutes,
                     &excel_msgs,
-                )?
+                    deps,
+                    &auth_token,
+                )
+                .await?
             }
             None => {
                 return Err(AppError::Internal(
@@ -251,12 +261,14 @@ impl MergeHandler {
     }
 
     /// Merge summary results from all batches.
-    fn merge_summary_results(
+    async fn merge_summary_results(
         batch_results: &[(String, String)],
         workspace_name: &str,
         date_range: (NaiveDate, NaiveDate),
         parent_job_id: uuid::Uuid,
         msgs: &ExcelReportMessages,
+        deps: &crate::worker::WorkerDeps,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> AppResult<(Vec<u8>, String, usize)> {
         let mut all_summaries: Vec<AttendanceSummary> = Vec::new();
 
@@ -274,9 +286,87 @@ impl MergeHandler {
             "Merged summary results"
         );
 
+        // Fetch custom field definitions and values
+        let all_definitions = deps
+            .custom_field_repo
+            .list_definitions(auth_token, None)
+            .await?;
+        let exportable_definitions: Vec<_> = all_definitions
+            .into_iter()
+            .filter(crate::models::CustomFieldDefinition::is_exportable)
+            .collect();
+
+        let mut cf_headers = Vec::new();
+        let mut cf_values_map = std::collections::HashMap::new();
+
+        if !exportable_definitions.is_empty() && !all_summaries.is_empty() {
+            let mut entity_ids = Vec::new();
+            for s in &all_summaries {
+                entity_ids.push(s.employee_id);
+                entity_ids.push(s.employment_id);
+            }
+
+            let values_map = deps
+                .custom_field_repo
+                .get_values_for_entities(auth_token, &entity_ids)
+                .await?;
+
+            cf_headers = exportable_definitions
+                .iter()
+                .map(|d| d.field_label().to_string())
+                .collect();
+
+            for summary in &all_summaries {
+                let mut row_values = Vec::new();
+                for def in &exportable_definitions {
+                    let lookup_id = match def.entity_type() {
+                        "employee" => Some(summary.employee_id),
+                        "employment" => Some(summary.employment_id),
+                        _ => None,
+                    };
+
+                    let mut found_val_str = String::new();
+                    if let Some(id) = lookup_id {
+                        if let Some(pairs) = values_map.get(&id) {
+                            if let Some((val, _)) = pairs.iter().find(|(_, d)| d.id() == def.id()) {
+                                found_val_str = match def.field_type() {
+                                    "text" | "select" | "url" | "email" | "phone" => {
+                                        val.value_text().unwrap_or("").to_string()
+                                    }
+                                    "number" => val
+                                        .value_number()
+                                        .map(|n| n.to_string())
+                                        .unwrap_or_default(),
+                                    "date" => {
+                                        val.value_date().map(|d| d.to_string()).unwrap_or_default()
+                                    }
+                                    "boolean" => {
+                                        val.value_bool().map(|b| b.to_string()).unwrap_or_default()
+                                    }
+                                    "multiselect" => val
+                                        .value_json()
+                                        .map(ToString::to_string)
+                                        .unwrap_or_default(),
+                                    _ => String::new(),
+                                };
+                            }
+                        }
+                    }
+                    row_values.push(found_val_str);
+                }
+                cf_values_map.insert(summary.employee_id, row_values);
+            }
+        }
+
         // Generate Excel
-        let excel_data =
-            ExcelWriter::write_summary(&all_summaries, workspace_name, date_range, msgs)?;
+        let excel_data = ExcelWriter::write_summary(
+            &all_summaries,
+            workspace_name,
+            date_range,
+            msgs,
+            &cf_headers,
+            &cf_values_map,
+        )?;
 
         let total_records = all_summaries.len();
 
@@ -290,7 +380,7 @@ impl MergeHandler {
     }
 
     /// Merge detail results from all batches.
-    fn merge_detail_results(
+    async fn merge_detail_results(
         batch_results: &[(String, String)],
         workspace_name: &str,
         date_range: (NaiveDate, NaiveDate),
@@ -298,6 +388,8 @@ impl MergeHandler {
         timezone: &str,
         work_unit_minutes: i32,
         msgs: &ExcelReportMessages,
+        deps: &crate::worker::WorkerDeps,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> AppResult<(Vec<u8>, String, usize)> {
         let mut all_reports: Vec<DailyAttendanceReport> = Vec::new();
 
@@ -316,6 +408,78 @@ impl MergeHandler {
 
         info!(total_records = all_reports.len(), "Merged detail results");
 
+        // Fetch custom field definitions and values
+        let all_definitions = deps
+            .custom_field_repo
+            .list_definitions(auth_token, None)
+            .await?;
+        let exportable_definitions: Vec<_> = all_definitions
+            .into_iter()
+            .filter(crate::models::CustomFieldDefinition::is_exportable)
+            .collect();
+
+        let mut cf_headers = Vec::new();
+        let mut cf_values_map = std::collections::HashMap::new();
+
+        if !exportable_definitions.is_empty() && !all_reports.is_empty() {
+            let mut entity_ids = Vec::new();
+            for r in &all_reports {
+                entity_ids.push(r.employee_id);
+                entity_ids.push(r.employment_id);
+            }
+
+            let values_map = deps
+                .custom_field_repo
+                .get_values_for_entities(auth_token, &entity_ids)
+                .await?;
+
+            cf_headers = exportable_definitions
+                .iter()
+                .map(|d| d.field_label().to_string())
+                .collect();
+
+            for report in &all_reports {
+                let mut row_values = Vec::new();
+                for def in &exportable_definitions {
+                    let lookup_id = match def.entity_type() {
+                        "employee" => Some(report.employee_id),
+                        "employment" => Some(report.employment_id),
+                        _ => None,
+                    };
+
+                    let mut found_val_str = String::new();
+                    if let Some(id) = lookup_id {
+                        if let Some(pairs) = values_map.get(&id) {
+                            if let Some((val, _)) = pairs.iter().find(|(_, d)| d.id() == def.id()) {
+                                found_val_str = match def.field_type() {
+                                    "text" | "select" | "url" | "email" | "phone" => {
+                                        val.value_text().unwrap_or("").to_string()
+                                    }
+                                    "number" => val
+                                        .value_number()
+                                        .map(|n| n.to_string())
+                                        .unwrap_or_default(),
+                                    "date" => {
+                                        val.value_date().map(|d| d.to_string()).unwrap_or_default()
+                                    }
+                                    "boolean" => {
+                                        val.value_bool().map(|b| b.to_string()).unwrap_or_default()
+                                    }
+                                    "multiselect" => val
+                                        .value_json()
+                                        .map(ToString::to_string)
+                                        .unwrap_or_default(),
+                                    _ => String::new(),
+                                };
+                            }
+                        }
+                    }
+                    row_values.push(found_val_str);
+                }
+                cf_values_map.insert(report.employee_id, row_values);
+            }
+        }
+
         // Generate Excel
         let excel_data = ExcelWriter::write_detail(
             &all_reports,
@@ -324,6 +488,8 @@ impl MergeHandler {
             timezone,
             work_unit_minutes,
             msgs,
+            &cf_headers,
+            &cf_values_map,
         )?;
 
         let total_records = all_reports.len();
@@ -356,14 +522,19 @@ impl MergeHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::diesel_pool::TenantAuthToken;
     use uuid::Uuid;
 
     fn en_msgs() -> ExcelReportMessages {
         ExcelReportMessages::for_lang("en")
     }
 
-    #[test]
-    fn test_merge_summary_empty_batches() {
+    #[tokio::test]
+    async fn test_merge_summary_empty_batches() {
+        use crate::worker::test_utils::MockWorkerDepsBuilder;
+        let deps = MockWorkerDepsBuilder::new().build();
+        let auth_token = TenantAuthToken::system_override(Uuid::new_v4());
+
         let batch_results: Vec<(String, String)> = vec![
             ("batch_00000".to_string(), "[]".to_string()),
             ("batch_00001".to_string(), "[]".to_string()),
@@ -378,7 +549,10 @@ mod tests {
             ),
             Uuid::new_v4(),
             &en_msgs(),
-        );
+            &deps,
+            &auth_token,
+        )
+        .await;
 
         assert!(result.is_ok());
         let (data, name, count) = result.unwrap();
@@ -387,8 +561,12 @@ mod tests {
         assert_eq!(count, 0);
     }
 
-    #[test]
-    fn test_merge_summary_with_data() {
+    #[tokio::test]
+    async fn test_merge_summary_with_data() {
+        use crate::worker::test_utils::MockWorkerDepsBuilder;
+        let deps = MockWorkerDepsBuilder::new().build();
+        let auth_token = TenantAuthToken::system_override(Uuid::new_v4());
+
         let summaries1 = vec![AttendanceSummary {
             employment_id: Uuid::new_v4(),
             employee_id: Uuid::new_v4(),
@@ -436,13 +614,20 @@ mod tests {
             ),
             Uuid::new_v4(),
             &en_msgs(),
-        );
+            &deps,
+            &auth_token,
+        )
+        .await;
 
         assert!(result.is_ok());
     }
 
-    #[test]
-    fn test_merge_detail_sorting() {
+    #[tokio::test]
+    async fn test_merge_detail_sorting() {
+        use crate::worker::test_utils::MockWorkerDepsBuilder;
+        let deps = MockWorkerDepsBuilder::new().build();
+        let auth_token = TenantAuthToken::system_override(Uuid::new_v4());
+
         let report1 = DailyAttendanceReport {
             date: NaiveDate::from_ymd_opt(2026, 1, 2).unwrap(),
             employment_id: Uuid::new_v4(),
@@ -526,13 +711,20 @@ mod tests {
             "UTC",
             30,
             &en_msgs(),
-        );
+            &deps,
+            &auth_token,
+        )
+        .await;
 
         assert!(result.is_ok());
     }
 
-    #[test]
-    fn test_invalid_json_handling() {
+    #[tokio::test]
+    async fn test_invalid_json_handling() {
+        use crate::worker::test_utils::MockWorkerDepsBuilder;
+        let deps = MockWorkerDepsBuilder::new().build();
+        let auth_token = TenantAuthToken::system_override(Uuid::new_v4());
+
         let batch_results: Vec<(String, String)> =
             vec![("batch_00000".to_string(), "invalid json".to_string())];
 
@@ -545,7 +737,10 @@ mod tests {
             ),
             Uuid::new_v4(),
             &en_msgs(),
-        );
+            &deps,
+            &auth_token,
+        )
+        .await;
 
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("Parse error"));
@@ -553,8 +748,12 @@ mod tests {
 
     /// Optimization #9: total_records must equal the actual number of deserialized records,
     /// not a fragile string match count.
-    #[test]
-    fn test_merge_summary_returns_accurate_total_records() {
+    #[tokio::test]
+    async fn test_merge_summary_returns_accurate_total_records() {
+        use crate::worker::test_utils::MockWorkerDepsBuilder;
+        let deps = MockWorkerDepsBuilder::new().build();
+        let auth_token = TenantAuthToken::system_override(Uuid::new_v4());
+
         let s1 = vec![
             AttendanceSummary {
                 employment_id: Uuid::new_v4(),
@@ -617,15 +816,22 @@ mod tests {
             ),
             Uuid::new_v4(),
             &en_msgs(),
+            &deps,
+            &auth_token,
         )
+        .await
         .unwrap();
 
         assert_eq!(total_records, 3, "Should be 2 + 1 = 3 total records");
     }
 
     /// Verify detail merge also returns accurate total_records.
-    #[test]
-    fn test_merge_detail_returns_accurate_total_records() {
+    #[tokio::test]
+    async fn test_merge_detail_returns_accurate_total_records() {
+        use crate::worker::test_utils::MockWorkerDepsBuilder;
+        let deps = MockWorkerDepsBuilder::new().build();
+        let auth_token = TenantAuthToken::system_override(Uuid::new_v4());
+
         let make_report = |name: &str, day: u32| DailyAttendanceReport {
             date: NaiveDate::from_ymd_opt(2026, 1, day).unwrap(),
             employment_id: Uuid::new_v4(),
@@ -686,7 +892,10 @@ mod tests {
             "UTC",
             30,
             &en_msgs(),
+            &deps,
+            &auth_token,
         )
+        .await
         .unwrap();
 
         assert_eq!(total_records, 4, "Should be 3 + 1 = 4 total records");

@@ -63,6 +63,13 @@ impl AppState {
             Arc::clone(&agent_repo),
             agent_manager.clone(),
         ));
+        let payroll_repo: Arc<dyn crate::repositories::payroll_repository::PayrollRepository> =
+            Arc::new(crate::repositories::DieselPayrollRepository::new(
+                diesel_pools.clone(),
+            ));
+        let employer_repo: Arc<dyn crate::repositories::EmployerRepository> = Arc::new(
+            crate::repositories::DieselEmployerRepository::new(diesel_pools.clone()),
+        );
         let employee_repo: Arc<dyn crate::repositories::employee::EmployeeRepository> = Arc::new(
             crate::repositories::diesel_employee_repository::DieselEmployeeRepository::new_with_crypto(
                 diesel_pools.clone(),
@@ -92,14 +99,29 @@ impl AppState {
         > = Arc::new(crate::repositories::DieselLeaveBalanceRepository::new(
             diesel_pools.clone(),
         ));
-        let employee_service = Arc::new(crate::services::EmployeeService::new(
+        let lifecycle_repo: Arc<dyn crate::repositories::LifecycleChecklistRepository> = Arc::new(
+            crate::repositories::DieselLifecycleChecklistRepository::new(diesel_pools.clone()),
+        );
+        let lifecycle_service = Arc::new(crate::services::LifecycleService::new(
+            Arc::clone(&lifecycle_repo),
             Arc::clone(&employee_repo),
             Arc::clone(&employment_repo),
-            Arc::clone(&department_repo),
             Arc::clone(&user_repo),
-            Arc::clone(&staging_repo),
-            Arc::clone(&leave_balance_repo),
+            Arc::clone(&workspace_repo),
         ));
+        let employee_service = Arc::new(
+            crate::services::EmployeeService::new(
+                Arc::clone(&employee_repo),
+                Arc::clone(&employment_repo),
+                Arc::clone(&department_repo),
+                Arc::clone(&user_repo),
+                Arc::clone(&staging_repo),
+                Arc::clone(&leave_balance_repo),
+            )
+            .with_lifecycle(Arc::clone(&lifecycle_service))
+            .with_payroll(Arc::clone(&payroll_repo))
+            .with_employer(Arc::clone(&employer_repo)),
+        );
         let contract_repo = Arc::new(crate::repositories::DieselEmployeeContractRepository::new(
             diesel_pools.clone(),
         ));
@@ -136,10 +158,7 @@ impl AppState {
         > = Arc::new(crate::repositories::DieselLeaveRequestRepository::new(
             diesel_pools.clone(),
         ));
-        let payroll_repo: Arc<dyn crate::repositories::payroll_repository::PayrollRepository> =
-            Arc::new(crate::repositories::DieselPayrollRepository::new(
-                diesel_pools.clone(),
-            ));
+        let payroll_repo = Arc::clone(&payroll_repo);
         let holiday_repo: Arc<dyn crate::repositories::holiday_repository::HolidayRepository> =
             Arc::new(crate::repositories::DieselHolidayRepository::new(
                 diesel_pools.clone(),
@@ -427,13 +446,19 @@ impl AppState {
             audit_repo.clone(),
         ));
 
-        let employer_repo: Arc<dyn crate::repositories::EmployerRepository> = Arc::new(
-            crate::repositories::DieselEmployerRepository::new(diesel_pools.clone()),
-        );
+        let employer_repo = Arc::clone(&employer_repo);
 
         let employer_service = Arc::new(crate::services::EmployerService::new(
             employer_repo.clone(),
             audit_repo.clone(),
+        ));
+
+        let custom_field_repo: Arc<dyn crate::repositories::CustomFieldRepository> = Arc::new(
+            crate::repositories::DieselCustomFieldRepository::new(diesel_pools.clone()),
+        );
+        let custom_field_service = Arc::new(crate::services::CustomFieldService::new(
+            Arc::clone(&custom_field_repo),
+            Arc::clone(&audit_repo),
         ));
 
         let roster_provider: Arc<dyn crate::services::payroll_service::RosterDataProvider> =
@@ -673,6 +698,10 @@ impl AppState {
                 location_repo,
                 employer_service,
                 employer_repo,
+                custom_field_service,
+                custom_field_repo,
+                lifecycle_service,
+                lifecycle_repo,
             ),
             crate::AgentState::new(agent_manager, agent_service, agent_repo),
             crate::InfraState::new(

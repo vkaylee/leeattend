@@ -9,6 +9,9 @@ interface EmployeeFilterChipsProps {
   filterDeptIds: string[];
   setFilterDeptIds: (ids: string[]) => void;
   toggleDeptFilter: (id: string) => void;
+  customFieldFilters: Record<string, string>;
+  setCustomFieldFilters: (filters: Record<string, string>) => void;
+  updateCustomFieldFilter: (key: string, val: string) => void;
 }
 
 export function EmployeeFilterChips({
@@ -16,17 +19,25 @@ export function EmployeeFilterChips({
   departments,
   toggleDeptFilter,
   setFilterDeptIds,
+  customFieldFilters,
+  setCustomFieldFilters,
+  updateCustomFieldFilter,
 }: EmployeeFilterChipsProps) {
   const { t } = useTranslation();
 
-  if (filterDeptIds.length === 0 || !departments) return null;
+  const activeCfKeys = Object.keys(customFieldFilters);
+  const hasActiveFilters = filterDeptIds.length > 0 || activeCfKeys.length > 0;
+
+  if (!hasActiveFilters) return null;
 
   return (
     <div className="flex items-center gap-2 flex-wrap animate-in slide-in-from-top-4 duration-300" data-testid="active-filter-chips">
       <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mr-1">
         {t("employees.filtering_by", "Đang lọc")}
       </span>
-      {filterDeptIds.map((id) => {
+      
+      {/* Department Chips */}
+      {departments && filterDeptIds.map((id) => {
         const dept = departments.find((d) => d.id === id);
         if (!dept) return null;
         return (
@@ -43,9 +54,30 @@ export function EmployeeFilterChips({
           </Button>
         );
       })}
+
+      {/* Custom Field Chips */}
+      {activeCfKeys.map((key) => {
+        const val = customFieldFilters[key];
+        return (
+          <Button
+            className="h-auto w-auto px-3 py-1 bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 rounded-full text-[10px] font-bold uppercase tracking-wide border border-amber-100 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900 transition-colors group shadow-none"
+            key={key}
+            onClick={() => { updateCustomFieldFilter(key, ""); }}
+            variant="ghost"
+          >
+            <span className="opacity-80 font-mono">{key}:</span>
+            <span>{val}</span>
+            <X className="opacity-40 group-hover:opacity-100 transition-opacity" size={10} />
+          </Button>
+        );
+      })}
+
       <Button
         className="h-auto w-auto p-0 text-[10px] font-bold text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 uppercase tracking-wide transition-colors ml-1 border-none shadow-none hover:bg-transparent"
-        onClick={() => { setFilterDeptIds([]); }}
+        onClick={() => {
+          setFilterDeptIds([]);
+          setCustomFieldFilters({});
+        }}
         variant="ghost"
       >
         {t("employees.clear_all", "Xóa tất cả")}

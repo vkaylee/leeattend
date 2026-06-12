@@ -32,6 +32,7 @@ export function useEmployeesPage() {
     sortDir: state.sortDir,
     sortKey: state.sortKey,
     wsId,
+    customFieldFilters: state.customFieldFilters,
   });
 
   const { handleTerminate } = useEmployeeActions({ confirm, terminateMutation: data.terminateMutation });

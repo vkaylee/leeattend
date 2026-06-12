@@ -309,6 +309,36 @@ pub struct SalaryComponentWithDefinition {
     pub definition: SalaryComponentDefinition,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
+pub struct CompensationEmploymentContext {
+    pub id: Uuid,
+    pub employer_name: String,
+    pub department_name: Option<String>,
+    pub job_title: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
+pub struct CompensationChangeDetails {
+    pub previous_total: Option<rust_decimal::Decimal>,
+    pub delta: rust_decimal::Decimal,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
+pub struct CompensationTimelineEvent {
+    pub effective_date: NaiveDate,
+    pub employment: CompensationEmploymentContext,
+    pub components: Vec<SalaryComponentWithDefinition>,
+    pub total_compensation: rust_decimal::Decimal,
+    pub change_type: String, // "initial" | "promotion" | "adjustment" | "transfer"
+    pub change_details: CompensationChangeDetails,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
+pub struct CompensationHistoryResponse {
+    pub timeline: Vec<CompensationTimelineEvent>,
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;

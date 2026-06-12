@@ -206,6 +206,12 @@ pub trait PayrollRepository: Send + Sync {
         department_id: Uuid,
         date: NaiveDate,
     ) -> Result<Option<crate::models::DepartmentPayrollConfig>, AppError>;
+
+    async fn get_salary_components_history_for_employments(
+        &self,
+        workspace_id: Uuid,
+        employment_ids: &[Uuid],
+    ) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, AppError>;
 }
 
 #[derive(Debug)]

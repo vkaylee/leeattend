@@ -3,6 +3,8 @@ pub mod assignment_rules;
 pub mod attendance;
 pub mod auth;
 pub mod common;
+pub mod custom_fields;
+pub use custom_fields::*;
 
 pub mod debug;
 pub mod employees;
@@ -53,3 +55,5 @@ pub mod leave_types;
 pub mod recruitment_sources;
 pub mod shift_swaps;
 pub use employments::*;
+pub mod lifecycle_checklists;
+pub use lifecycle_checklists::*;

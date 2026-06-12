@@ -188,6 +188,7 @@
       "not_assigned_dept": "Chưa được gán phòng ban",
       "salary_benefits": "Mức lương & Đãi ngộ",
       "special_policies": "Chính sách đặc biệt",
+      "compensation_history": "Lịch sử lương",
       "update": "Cập nhật",
       "current": "Hiện tại",
       "no_salary_history": "Chưa có lịch sử lương",
@@ -288,6 +289,30 @@
       "effective_date": "Ngày hiệu lực",
       "cancel": "Hủy",
       "submit": "Cập nhật lương"
+    },
+    "compensation": {
+      "timeline_title": "Lịch sử Lương & Đãi ngộ",
+      "timeline_subtitle": "Theo dõi sự thay đổi về lương cơ bản và các khoản phụ cấp của nhân viên theo thời gian",
+      "effective_date": "Ngày hiệu lực",
+      "change_type": "Loại thay đổi",
+      "total_compensation": "Tổng lương",
+      "no_history": "Chưa có lịch sử lương.",
+      "components": "Chi tiết thành phần lương",
+      "amount": "Số tiền",
+      "types": {
+        "initial": "Lương khởi điểm",
+        "promotion": "Thăng chức",
+        "adjustment": "Điều chỉnh lương",
+        "transfer": "Điều chuyển bộ phận"
+      },
+      "delta": {
+        "increase": "Tăng +{{amount}}",
+        "decrease": "Giảm -{{amount}}",
+        "no_change": "Không thay đổi"
+      },
+      "details": {
+        "previous_total": "Tổng lương trước đó: {{amount}}"
+      }
     },
     "select_workspace": "Vui lòng chọn Không gian làm việc",
     "hire_date": "Ngày vào làm",

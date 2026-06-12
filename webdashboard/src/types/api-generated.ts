@@ -2307,6 +2307,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workspaces/{workspace_id}/employees/{id}/compensation-history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_compensation_history"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workspaces/{workspace_id}/employees/{id}/conditions": {
         parameters: {
             query?: never;
@@ -2860,6 +2876,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workspaces/{ws_id}/custom-fields/definitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_definitions"];
+        put?: never;
+        post: operations["create_definition"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/custom-fields/definitions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_definition"];
+        put?: never;
+        post?: never;
+        delete: operations["delete_definition"];
+        options?: never;
+        head?: never;
+        patch: operations["update_definition"];
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/custom-fields/values/{entity_type}/{entity_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_values"];
+        put: operations["set_values"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workspaces/{ws_id}/departments/{id}/payroll-config": {
         parameters: {
             query?: never;
@@ -2972,6 +3036,22 @@ export interface paths {
         put?: never;
         /** POST /workspaces/{ws_id}/employees/{id}/payroll-config */
         post: operations["set_employee_payroll_config"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/employments/{emp_id}/lifecycle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_checklists"];
+        put?: never;
+        post: operations["create_checklist"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3251,6 +3331,118 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/lifecycle-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_templates"];
+        put?: never;
+        post: operations["create_template"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/lifecycle-templates/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_template"];
+        put?: never;
+        post?: never;
+        delete: operations["delete_template"];
+        options?: never;
+        head?: never;
+        patch: operations["update_template"];
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/lifecycle-templates/{id}/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_template_items"];
+        put?: never;
+        post: operations["create_template_item"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/lifecycle-templates/{tid}/items/{iid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_template_item"];
+        put: operations["update_template_item"];
+        post?: never;
+        delete: operations["delete_template_item"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/lifecycle/my-tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_my_tasks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/lifecycle/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_checklist"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{ws_id}/lifecycle/{id}/items/{iid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["update_item_status"];
         trace?: never;
     };
     "/workspaces/{ws_id}/overtime/policies": {
@@ -4111,16 +4303,50 @@ export interface components {
         BulkRosterRequest: {
             items: components["schemas"]["RosterItem"][];
         };
+        BulkSetCustomFieldValuesRequest: {
+            values: components["schemas"]["SetCustomFieldValueRequest"][];
+        };
         ChangePasswordRequest: {
             new_password: string;
             old_password: string;
         };
+        /** @enum {string} */
+        ChecklistAssigneeType: "hr_manager" | "direct_manager" | "it_admin" | "employee" | "specific_user";
+        /** @enum {string} */
+        ChecklistCategory: "hr_admin" | "it_setup" | "documentation" | "training" | "equipment";
+        /** @enum {string} */
+        ChecklistItemStatus: "pending" | "completed" | "skipped" | "overdue";
+        /** @enum {string} */
+        ChecklistStatus: "in_progress" | "completed" | "cancelled";
         ClaimOtRequest: {
             /** Format: int32 */
             claimed_minutes: number;
             /** Format: date */
             date: string;
             reason?: string | null;
+        };
+        CompensationChangeDetails: {
+            delta: string;
+            previous_total?: string | null;
+        };
+        CompensationEmploymentContext: {
+            department_name?: string | null;
+            employer_name: string;
+            /** Format: uuid */
+            id: string;
+            job_title?: string | null;
+        };
+        CompensationHistoryResponse: {
+            timeline: components["schemas"]["CompensationTimelineEvent"][];
+        };
+        CompensationTimelineEvent: {
+            change_details: components["schemas"]["CompensationChangeDetails"];
+            change_type: string;
+            components: components["schemas"]["SalaryComponentWithDefinition"][];
+            /** Format: date */
+            effective_date: string;
+            employment: components["schemas"]["CompensationEmploymentContext"];
+            total_compensation: string;
         };
         ConfigValue: {
             /** Format: int32 */
@@ -4188,6 +4414,10 @@ export interface components {
             /** Format: uuid */
             target_employee_id?: string | null;
         };
+        CreateChecklistRequest: {
+            /** Format: uuid */
+            template_id: string;
+        };
         CreateContractRequest: {
             /** Format: uuid */
             assign_phase_id?: string | null;
@@ -4203,6 +4433,22 @@ export interface components {
             notes?: string | null;
             /** Format: date */
             start_date: string;
+        };
+        CreateCustomFieldDefinitionRequest: {
+            default_value?: string | null;
+            /** Format: int32 */
+            display_order: number;
+            entity_type: string;
+            field_key: string;
+            field_label: string;
+            field_type: string;
+            is_exportable: boolean;
+            is_filterable: boolean;
+            is_required: boolean;
+            is_visible_to_employee: boolean;
+            options?: unknown;
+            section_name?: string | null;
+            validation_rules?: unknown;
         };
         CreateDbClusterRequest: {
             admin_database_url: string;
@@ -4345,6 +4591,25 @@ export interface components {
             is_paid: boolean;
             name: string;
             policy_config?: null | components["schemas"]["LeaveTypeConfig"];
+        };
+        CreateLifecycleChecklistTemplateItemRequest: {
+            assignee_type: components["schemas"]["ChecklistAssigneeType"];
+            /** Format: uuid */
+            assignee_user_id?: string | null;
+            category: components["schemas"]["ChecklistCategory"];
+            description?: string | null;
+            /** Format: int32 */
+            display_order: number;
+            /** Format: int32 */
+            due_days_offset: number;
+            is_required: boolean;
+            title: string;
+        };
+        CreateLifecycleChecklistTemplateRequest: {
+            checklist_type: components["schemas"]["LifecycleChecklistType"];
+            description?: string | null;
+            is_default: boolean;
+            name: string;
         };
         CreateOvertimeRequestPayload: {
             /** Format: uuid */
@@ -4502,6 +4767,38 @@ export interface components {
              */
             scope_type?: components["schemas"]["RoleScopeType"];
         };
+        CustomFieldDefinition: {
+            /** Format: date-time */
+            created_at: string;
+            default_value?: string | null;
+            /** Format: int32 */
+            display_order: number;
+            entity_type: string;
+            field_key: string;
+            field_label: string;
+            field_type: string;
+            /** Format: uuid */
+            id: string;
+            is_exportable: boolean;
+            is_filterable: boolean;
+            is_required: boolean;
+            is_visible_to_employee: boolean;
+            options?: unknown;
+            section_name?: string | null;
+            /** Format: date-time */
+            updated_at: string;
+            validation_rules?: unknown;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        CustomFieldValueResponse: {
+            /** Format: uuid */
+            definition_id: string;
+            field_key: string;
+            field_label: string;
+            field_type: string;
+            value?: unknown;
+        };
         DashboardPreferences: {
             active_view: string;
             collapsed_sections: unknown;
@@ -4526,6 +4823,7 @@ export interface components {
             active_employee_count: number;
             /** Format: date-time */
             created_at: string;
+            custom_fields?: components["schemas"]["CustomFieldValueResponse"][] | null;
             description?: string | null;
             /** Format: uuid */
             id: string;
@@ -4623,6 +4921,7 @@ export interface components {
             active_employment_id?: string | null;
             /** Format: date-time */
             created_at: string;
+            custom_fields?: components["schemas"]["CustomFieldValueResponse"][] | null;
             department_name?: string | null;
             employee_id_number: string;
             /** Format: uuid */
@@ -4870,6 +5169,7 @@ export interface components {
         Employment: {
             /** Format: date-time */
             created_at: string;
+            custom_fields?: components["schemas"]["CustomFieldValueResponse"][] | null;
             /** Format: uuid */
             department_id?: string | null;
             /** Format: uuid */
@@ -5316,6 +5616,117 @@ export interface components {
             negative_balance_limit?: number | null;
             requires_document?: boolean;
         };
+        LifecycleChecklist: {
+            checklist_type: components["schemas"]["LifecycleChecklistType"];
+            /** Format: date-time */
+            completed_at?: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            created_by?: string | null;
+            /** Format: uuid */
+            employment_id: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            progress_percent: number;
+            /** Format: date-time */
+            started_at: string;
+            status: components["schemas"]["ChecklistStatus"];
+            /** Format: uuid */
+            template_id?: string | null;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        LifecycleChecklistItem: {
+            /** Format: uuid */
+            assignee_user_id?: string | null;
+            category: components["schemas"]["ChecklistCategory"];
+            /** Format: uuid */
+            checklist_id: string;
+            /** Format: date-time */
+            completed_at?: string | null;
+            /** Format: uuid */
+            completed_by?: string | null;
+            /** Format: date-time */
+            created_at: string;
+            description?: string | null;
+            /** Format: int32 */
+            display_order: number;
+            /** Format: date */
+            due_date?: string | null;
+            /** Format: uuid */
+            id: string;
+            is_required: boolean;
+            notes?: string | null;
+            status: components["schemas"]["ChecklistItemStatus"];
+            /** Format: uuid */
+            template_item_id?: string | null;
+            title: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        LifecycleChecklistResponse: {
+            checklist_type: components["schemas"]["LifecycleChecklistType"];
+            /** Format: date-time */
+            completed_at?: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            created_by?: string | null;
+            /** Format: uuid */
+            employment_id: string;
+            /** Format: uuid */
+            id: string;
+            items: components["schemas"]["LifecycleChecklistItem"][];
+            /** Format: int32 */
+            progress_percent: number;
+            /** Format: date-time */
+            started_at: string;
+            status: components["schemas"]["ChecklistStatus"];
+            /** Format: uuid */
+            template_id?: string | null;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        LifecycleChecklistTemplate: {
+            checklist_type: components["schemas"]["LifecycleChecklistType"];
+            /** Format: date-time */
+            created_at: string;
+            description?: string | null;
+            /** Format: uuid */
+            id: string;
+            is_active: boolean;
+            is_default: boolean;
+            name: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        LifecycleChecklistTemplateItem: {
+            assignee_type: components["schemas"]["ChecklistAssigneeType"];
+            /** Format: uuid */
+            assignee_user_id?: string | null;
+            category: components["schemas"]["ChecklistCategory"];
+            description?: string | null;
+            /** Format: int32 */
+            display_order: number;
+            /** Format: int32 */
+            due_days_offset: number;
+            /** Format: uuid */
+            id: string;
+            is_required: boolean;
+            /** Format: uuid */
+            template_id: string;
+            title: string;
+        };
+        /** @enum {string} */
+        LifecycleChecklistType: "onboarding" | "offboarding" | "transfer" | "probation_end";
         /** @enum {string} */
         LogSource: "device" | "import" | "manual";
         LoginRequest: {
@@ -5788,6 +6199,20 @@ export interface components {
             check_out: number;
             time_slot: string;
         };
+        PendingTaskResponse: {
+            category: components["schemas"]["ChecklistCategory"];
+            /** Format: uuid */
+            checklist_id: string;
+            checklist_type: components["schemas"]["LifecycleChecklistType"];
+            description?: string | null;
+            /** Format: date */
+            due_date?: string | null;
+            employee_name: string;
+            /** Format: uuid */
+            id: string;
+            is_required: boolean;
+            title: string;
+        };
         PolicyAssignmentResponse: {
             id: string;
             rules: components["schemas"]["AttendanceRules"];
@@ -5956,6 +6381,11 @@ export interface components {
             bonus_amount: number;
             /** Format: int32 */
             months: number;
+        };
+        SetCustomFieldValueRequest: {
+            /** Format: uuid */
+            definition_id: string;
+            value?: unknown;
         };
         SetDepartmentPayrollConfigRequest: {
             /** Format: date */
@@ -6296,6 +6726,10 @@ export interface components {
             success_cooldown_secs?: number | null;
             token?: string | null;
         };
+        UpdateChecklistItemStatusRequest: {
+            notes?: string | null;
+            status: components["schemas"]["ChecklistItemStatus"];
+        };
         UpdateContractRequest: {
             contract_number?: string | null;
             contract_type?: null | components["schemas"]["ContractType"];
@@ -6307,6 +6741,19 @@ export interface components {
             /** Format: date */
             start_date?: string | null;
             status?: null | components["schemas"]["ContractStatus"];
+        };
+        UpdateCustomFieldDefinitionRequest: {
+            default_value?: string | null;
+            /** Format: int32 */
+            display_order?: number | null;
+            field_label?: string | null;
+            is_exportable?: boolean | null;
+            is_filterable?: boolean | null;
+            is_required?: boolean | null;
+            is_visible_to_employee?: boolean | null;
+            options?: unknown;
+            section_name?: string | null;
+            validation_rules?: unknown;
         };
         UpdateDashboardPreferences: {
             active_view?: string | null;
@@ -6423,6 +6870,25 @@ export interface components {
         };
         UpdateLeaveTypeConfigRequest: {
             policy_config: components["schemas"]["LeaveTypeConfig"];
+        };
+        UpdateLifecycleChecklistTemplateItemRequest: {
+            assignee_type?: null | components["schemas"]["ChecklistAssigneeType"];
+            /** Format: uuid */
+            assignee_user_id?: string | null;
+            category?: null | components["schemas"]["ChecklistCategory"];
+            description?: string | null;
+            /** Format: int32 */
+            display_order?: number | null;
+            /** Format: int32 */
+            due_days_offset?: number | null;
+            is_required?: boolean | null;
+            title?: string | null;
+        };
+        UpdateLifecycleChecklistTemplateRequest: {
+            description?: string | null;
+            is_active?: boolean | null;
+            is_default?: boolean | null;
+            name?: string | null;
         };
         UpdateMemberRoleRequest: {
             /** Format: uuid */
@@ -9543,6 +10009,7 @@ export interface operations {
                 sort_dir?: string | null;
                 department_id?: string | null;
                 permission?: string | null;
+                custom_field_filters?: string | null;
             };
             header?: never;
             path: {
@@ -9910,6 +10377,7 @@ export interface operations {
                 sort_dir?: string | null;
                 department_id?: string | null;
                 permission?: string | null;
+                custom_field_filters?: string | null;
             };
             header?: never;
             path: {
@@ -10392,6 +10860,7 @@ export interface operations {
                 sort_dir?: string | null;
                 department_id?: string | null;
                 permission?: string | null;
+                custom_field_filters?: string | null;
             };
             header?: never;
             path: {
@@ -11048,6 +11517,7 @@ export interface operations {
                 sort_dir?: string | null;
                 department_id?: string | null;
                 permission?: string | null;
+                custom_field_filters?: string | null;
             };
             header?: never;
             path: {
@@ -11181,19 +11651,21 @@ export interface operations {
     };
     get_workspace_roles: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number | null;
+                limit?: number | null;
+                q?: string | null;
+                year?: number | null;
+                sort_by?: string | null;
+                sort_dir?: string | null;
+                department_id?: string | null;
+                permission?: string | null;
+                custom_field_filters?: string | null;
+            };
             header?: never;
             path: {
                 /** @description Workspace ID */
                 ws_id: string;
-                page: number | null;
-                limit: number | null;
-                q: string | null;
-                year: number | null;
-                sort_by: string | null;
-                sort_dir: string | null;
-                department_id: string | null;
-                permission: string | null;
             };
             cookie?: never;
         };
@@ -11540,6 +12012,7 @@ export interface operations {
                 sort_dir?: string | null;
                 department_id?: string | null;
                 permission?: string | null;
+                custom_field_filters?: string | null;
             };
             header?: never;
             path: {
@@ -11665,6 +12138,34 @@ export interface operations {
             };
         };
     };
+    get_compensation_history: {
+        parameters: {
+            query?: {
+                /** @description Optional filter by employment ID */
+                employment_id?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Employee ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successfully retrieved employee compensation history */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompensationHistoryResponse"];
+                };
+            };
+        };
+    };
     get_working_conditions: {
         parameters: {
             query?: {
@@ -11676,6 +12177,7 @@ export interface operations {
                 sort_dir?: string | null;
                 department_id?: string | null;
                 permission?: string | null;
+                custom_field_filters?: string | null;
             };
             header?: never;
             path: {
@@ -13022,6 +13524,193 @@ export interface operations {
             };
         };
     };
+    list_definitions: {
+        parameters: {
+            query?: {
+                entity_type?: string | null;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of definitions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomFieldDefinition"][];
+                };
+            };
+        };
+    };
+    create_definition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCustomFieldDefinitionRequest"];
+            };
+        };
+        responses: {
+            /** @description Definition created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomFieldDefinition"];
+                };
+            };
+        };
+    };
+    get_definition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Definition ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Definition details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomFieldDefinition"];
+                };
+            };
+        };
+    };
+    delete_definition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Definition ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Definition deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_definition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Definition ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateCustomFieldDefinitionRequest"];
+            };
+        };
+        responses: {
+            /** @description Definition updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomFieldDefinition"];
+                };
+            };
+        };
+    };
+    get_values: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Entity type ('employee', 'employment', 'department') */
+                entity_type: string;
+                /** @description Entity ID */
+                entity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of values with definitions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomFieldValueResponse"][];
+                };
+            };
+        };
+    };
+    set_values: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Entity type ('employee', 'employment', 'department') */
+                entity_type: string;
+                /** @description Entity ID */
+                entity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkSetCustomFieldValuesRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated list of values with definitions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomFieldValueResponse"][];
+                };
+            };
+        };
+    };
     get_department_payroll_configs: {
         parameters: {
             query?: never;
@@ -13264,6 +13953,60 @@ export interface operations {
             };
         };
     };
+    list_checklists: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employment ID */
+                emp_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of checklists for employment */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LifecycleChecklistResponse"][];
+                };
+            };
+        };
+    };
+    create_checklist: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employment ID */
+                emp_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateChecklistRequest"];
+            };
+        };
+        responses: {
+            /** @description Checklist started */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LifecycleChecklistResponse"];
+                };
+            };
+        };
+    };
     get_employment_salary_components: {
         parameters: {
             query?: never;
@@ -13406,6 +14149,7 @@ export interface operations {
                 sort_dir?: string | null;
                 department_id?: string | null;
                 permission?: string | null;
+                custom_field_filters?: string | null;
             };
             header?: never;
             path: {
@@ -13750,6 +14494,351 @@ export interface operations {
                 };
                 content: {
                     "application/octet-stream": number[];
+                };
+            };
+        };
+    };
+    list_templates: {
+        parameters: {
+            query?: {
+                checklist_type?: null | components["schemas"]["LifecycleChecklistType"];
+            };
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of active templates */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LifecycleChecklistTemplate"][];
+                };
+            };
+        };
+    };
+    create_template: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateLifecycleChecklistTemplateRequest"];
+            };
+        };
+        responses: {
+            /** @description Template created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LifecycleChecklistTemplate"];
+                };
+            };
+        };
+    };
+    get_template: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Template ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Template details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LifecycleChecklistTemplate"];
+                };
+            };
+        };
+    };
+    delete_template: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Template ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Template deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_template: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Template ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateLifecycleChecklistTemplateRequest"];
+            };
+        };
+        responses: {
+            /** @description Template updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LifecycleChecklistTemplate"];
+                };
+            };
+        };
+    };
+    list_template_items: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Template ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of items for template */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LifecycleChecklistTemplateItem"][];
+                };
+            };
+        };
+    };
+    create_template_item: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Template ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateLifecycleChecklistTemplateItemRequest"];
+            };
+        };
+        responses: {
+            /** @description Template item created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LifecycleChecklistTemplateItem"];
+                };
+            };
+        };
+    };
+    get_template_item: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Template ID */
+                tid: string;
+                /** @description Template Item ID */
+                iid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Template item details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LifecycleChecklistTemplateItem"];
+                };
+            };
+        };
+    };
+    update_template_item: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Template ID */
+                tid: string;
+                /** @description Template Item ID */
+                iid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateLifecycleChecklistTemplateItemRequest"];
+            };
+        };
+        responses: {
+            /** @description Template item updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LifecycleChecklistTemplateItem"];
+                };
+            };
+        };
+    };
+    delete_template_item: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Template ID */
+                tid: string;
+                /** @description Template Item ID */
+                iid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Template item deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_my_tasks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pending checklist tasks for logged-in user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PendingTaskResponse"][];
+                };
+            };
+        };
+    };
+    get_checklist: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Checklist ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Checklist details with items */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LifecycleChecklistResponse"];
+                };
+            };
+        };
+    };
+    update_item_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Checklist ID */
+                id: string;
+                /** @description Checklist Item ID */
+                iid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateChecklistItemStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description Item status updated, returns parent checklist details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LifecycleChecklistResponse"];
                 };
             };
         };

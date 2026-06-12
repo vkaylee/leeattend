@@ -30,13 +30,17 @@ import { fetchWorkspaceMembers, fetchEmployeeEmployments, updateEmployeeEmployme
 import { cn } from "@/lib/utils";
 import { useLocations } from "@/pages/settings/hooks/use-locations";
 
+import { CustomFieldSection } from "@/components/custom-fields/custom-field-section";
+import CompensationHistoryTab from "@/pages/employees/compensation-history-tab";
+import EmployeeLifecycleTab from "@/pages/employees/lifecycle-tab";
+
 import EmployeeAssignmentsTab from "./employee-assignments-tab";
 import EmployeeContractsTab from "./employee-contracts-tab";
 import EmployeePhasesTab from "./employee-phases-tab";
 
 
-type DetailTabType = "profile" | "contracts" | "phases" | "assignments" | "salary" | "policies";
-const TAB_ORDER: DetailTabType[] = ["profile", "contracts", "phases", "assignments", "salary", "policies"];
+type DetailTabType = "profile" | "contracts" | "phases" | "assignments" | "salary" | "compensation" | "policies" | "lifecycle";
+const TAB_ORDER: DetailTabType[] = ["profile", "contracts", "phases", "assignments", "salary", "compensation", "policies", "lifecycle"];
 const SCROLL_STEP = 80;
 
 interface DeptHistoryEntry {
@@ -97,7 +101,9 @@ function DrawerHeader({
                     { id: "phases", label: "Hành trình" },
                     { id: "assignments", label: "Phái cử" },
                     { id: "salary", label: t("employees.details.salary_benefits") },
-                    { id: "policies", label: t("employees.details.special_policies") }
+                    { id: "compensation", label: t("employees.details.compensation_history") },
+                    { id: "policies", label: t("employees.details.special_policies") },
+                    { id: "lifecycle", label: "Checklist" }
                 ].map(tab => (
                     <Button className={cn("px-5 py-2.5 shrink-0 whitespace-nowrap rounded-[18px] text-[10px] font-bold uppercase tracking-widest transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 h-auto shadow-none border border-transparent", activeDetailTab === tab.id ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-transparent")} data-testid={`employees-tab-${tab.id}`} key={tab.id} onClick={() => { setActiveDetailTab(tab.id as DetailTabType); }} type="button" variant="ghost">{tab.label.toUpperCase()}</Button>
                 ))}
@@ -457,6 +463,12 @@ function ProfileTab({
                     t={t}
                 />
             </GridWrap>
+
+            <CustomFieldSection entityId={employee.id} entityType="employee" />
+
+            {activeEmployment?.id && (
+                <CustomFieldSection entityId={activeEmployment.id} entityType="employment" />
+            )}
         </div>
     );
 }
@@ -540,8 +552,19 @@ function DrawerTabContent({
             );
         case "salary":
             return <EmployeeSalaryConfig employeeId={employee.id} employmentId={activeEmployment?.id ?? ""} wsId={wsId} />;
+        case "compensation":
+            return (
+                <CompensationHistoryTab
+                    employeeId={employee.id}
+                    employmentId={activeEmployment?.id}
+                    wsId={wsId}
+                    formatDate={formatDate}
+                />
+            );
         case "policies":
             return <WorkingConditionConfig employeeId={employee.id} />;
+        case "lifecycle":
+            return <EmployeeLifecycleTab employmentId={activeEmployment?.id} wsId={wsId} />;
         default:
             return null;
     }

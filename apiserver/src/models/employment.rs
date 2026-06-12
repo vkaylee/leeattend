@@ -1,3 +1,4 @@
+use crate::models::custom_field::CustomFieldValueResponse;
 use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -18,6 +19,8 @@ pub struct Employment {
     manager_employment_id: Option<Uuid>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    custom_fields: Option<Vec<CustomFieldValueResponse>>,
 }
 
 impl Employment {
@@ -53,6 +56,7 @@ impl Employment {
             manager_employment_id,
             created_at,
             updated_at,
+            custom_fields: None,
         }
     }
 
@@ -61,6 +65,14 @@ impl Employment {
     }
     pub fn workspace_id(&self) -> Uuid {
         self.workspace_id
+    }
+    pub fn custom_fields(&self) -> Option<&[CustomFieldValueResponse]> {
+        self.custom_fields.as_deref()
+    }
+    #[must_use]
+    pub fn with_custom_fields(mut self, custom_fields: Vec<CustomFieldValueResponse>) -> Self {
+        self.custom_fields = Some(custom_fields);
+        self
     }
     pub fn employee_id(&self) -> Uuid {
         self.employee_id

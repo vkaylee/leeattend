@@ -5,6 +5,7 @@ use crate::repositories::attendance_adjustment_repository::MockAttendanceAdjustm
 use crate::repositories::attendance_daily_summary_repository::MockAttendanceDailySummaryRepository;
 use crate::repositories::attendance_log_error_repository::MockAttendanceLogErrorRepository;
 use crate::repositories::attendance_policy_repository::MockAttendancePolicyRepository;
+use crate::repositories::custom_field_repository::MockCustomFieldRepository;
 use crate::repositories::department_repository::MockDepartmentRepository;
 use crate::repositories::employee::MockEmployeeRepository;
 use crate::repositories::employee_contract_repository::MockEmployeeContractRepository;
@@ -187,6 +188,7 @@ pub struct MockWorkerDepsBuilder {
     pub outbox_repo: crate::repositories::outbox_job_repository::MockOutboxJobRepository,
     pub workspace_config_repo:
         crate::repositories::workspace_config_repository::MockWorkspaceConfigRepository,
+    pub custom_field_repo: MockCustomFieldRepository,
 }
 
 impl Default for MockWorkerDepsBuilder {
@@ -276,6 +278,11 @@ impl MockWorkerDepsBuilder {
                 Ok(employees)
             });
 
+        let mut custom_field_repo = MockCustomFieldRepository::new();
+        custom_field_repo
+            .expect_list_definitions()
+            .returning(|_, _| Box::pin(async move { Ok(vec![]) }));
+
         Self {
             time_entry_repo: MockTimeEntryRepository::new(),
             roster_repo: MockRosterRepository::new(),
@@ -304,6 +311,7 @@ impl MockWorkerDepsBuilder {
             workspace_config_repo:
                 crate::repositories::workspace_config_repository::MockWorkspaceConfigRepository::new(
                 ),
+            custom_field_repo,
         }
     }
 
@@ -334,6 +342,7 @@ impl MockWorkerDepsBuilder {
             system_repo: Arc::new(self.system_repo),
             outbox_repo: Arc::new(self.outbox_repo),
             workspace_config_repo: Arc::new(self.workspace_config_repo),
+            custom_field_repo: Arc::new(self.custom_field_repo),
         }
     }
 }

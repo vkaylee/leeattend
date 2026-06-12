@@ -188,6 +188,7 @@
       "not_assigned_dept": "未分配部门",
       "salary_benefits": "薪资与福利",
       "special_policies": "特殊政策",
+      "compensation_history": "薪资历史",
       "update": "更新",
       "current": "当前",
       "no_salary_history": "无薪资历史",
@@ -288,6 +289,30 @@
       "effective_date": "生效日期",
       "cancel": "取消",
       "submit": "更新薪资"
+    },
+    "compensation": {
+      "timeline_title": "薪资与福利历史记录",
+      "timeline_subtitle": "跟踪员工基本工资和各类津贴随时间的变化情况",
+      "effective_date": "生效日期",
+      "change_type": "变更类型",
+      "total_compensation": "总薪资",
+      "no_history": "暂无薪资历史记录。",
+      "components": "薪资组成部分详情",
+      "amount": "金额",
+      "types": {
+        "initial": "起步薪资",
+        "promotion": "晋升",
+        "adjustment": "薪资调整",
+        "transfer": "部门调动"
+      },
+      "delta": {
+        "increase": "增加 +{{amount}}",
+        "decrease": "减少 -{{amount}}",
+        "no_change": "无变更"
+      },
+      "details": {
+        "previous_total": "先前总薪资: {{amount}}"
+      }
     },
     "select_workspace": "请选择工作区",
     "hire_date": "入职日期",

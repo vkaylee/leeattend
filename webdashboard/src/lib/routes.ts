@@ -77,5 +77,7 @@ export const ROUTES = {
     OVERTIME: "/workspace/settings/overtime",
     LOCATIONS: "/workspace/settings/locations",
     WORKFLOWS: "/workspace/settings/workflows",
+    CUSTOM_FIELDS: "/workspace/settings/custom-fields",
+    LIFECYCLE_TEMPLATES: "/workspace/settings/lifecycle-templates",
   },
 } as const;

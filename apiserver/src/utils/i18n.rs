@@ -112,6 +112,13 @@ pub const ALL_KEYS: &[&str] = &[
     "error.rehire_date_invalid",
     "error.no_active_employment",
     "error.overlapping_employment",
+    "error.custom_field_not_found",
+    "error.template_not_found",
+    "error.template_item_not_found",
+    "error.template_name_empty",
+    "error.template_item_title_empty",
+    "error.checklist_not_found",
+    "error.checklist_item_not_found",
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -222,6 +229,13 @@ pub enum I18nKey {
     RehireDateInvalid,
     NoActiveEmployment,
     OverlappingEmployment,
+    CustomFieldNotFound,
+    TemplateNotFound,
+    TemplateItemNotFound,
+    TemplateNameEmpty,
+    TemplateItemTitleEmpty,
+    ChecklistNotFound,
+    ChecklistItemNotFound,
 }
 
 impl I18nKey {
@@ -334,6 +348,13 @@ impl I18nKey {
             Self::RehireDateInvalid => "error.rehire_date_invalid",
             Self::NoActiveEmployment => "error.no_active_employment",
             Self::OverlappingEmployment => "error.overlapping_employment",
+            Self::CustomFieldNotFound => "error.custom_field_not_found",
+            Self::TemplateNotFound => "error.template_not_found",
+            Self::TemplateItemNotFound => "error.template_item_not_found",
+            Self::TemplateNameEmpty => "error.template_name_empty",
+            Self::TemplateItemTitleEmpty => "error.template_item_title_empty",
+            Self::ChecklistNotFound => "error.checklist_not_found",
+            Self::ChecklistItemNotFound => "error.checklist_item_not_found",
         }
     }
 }
@@ -538,6 +559,13 @@ fn lookup_en(key: &str) -> Option<&'static str> {
         "error.rehire_date_invalid" => Some("Rehire date must be after termination date"),
         "error.no_active_employment" => Some("No active employment found for employee"),
         "error.overlapping_employment" => Some("Overlapping primary employments are not allowed"),
+        "error.custom_field_not_found" => Some("Custom field not found"),
+        "error.template_not_found" => Some("Lifecycle checklist template not found"),
+        "error.template_item_not_found" => Some("Lifecycle checklist template item not found"),
+        "error.template_name_empty" => Some("Template name cannot be empty"),
+        "error.template_item_title_empty" => Some("Item title cannot be empty"),
+        "error.checklist_not_found" => Some("Lifecycle checklist not found"),
+        "error.checklist_item_not_found" => Some("Lifecycle checklist item not found"),
         _ => None,
     }
 }
@@ -652,6 +680,13 @@ fn lookup_vi(key: &str) -> Option<&'static str> {
         "error.rehire_date_invalid" => Some("Ngày tái tuyển dụng phải sau ngày chấm dứt hợp đồng"),
         "error.no_active_employment" => Some("Không tìm thấy hợp đồng lao động đang hoạt động cho nhân viên"),
         "error.overlapping_employment" => Some("Không cho phép các mối quan hệ công việc chính trùng lặp thời gian"),
+        "error.custom_field_not_found" => Some("Không tìm thấy trường tùy chỉnh"),
+        "error.template_not_found" => Some("Không tìm thấy mẫu danh sách kiểm tra vòng đời"),
+        "error.template_item_not_found" => Some("Không tìm thấy mục mẫu danh sách kiểm tra vòng đời"),
+        "error.template_name_empty" => Some("Tên mẫu không được để trống"),
+        "error.template_item_title_empty" => Some("Tiêu đề mục không được để trống"),
+        "error.checklist_not_found" => Some("Không tìm thấy danh sách kiểm tra vòng đời"),
+        "error.checklist_item_not_found" => Some("Không tìm thấy mục danh sách kiểm tra vòng đời"),
         _ => None,
     }
 }
@@ -770,6 +805,13 @@ fn lookup_zh(key: &str) -> Option<&'static str> {
         "error.rehire_date_invalid" => Some("重新雇佣日期必须在解雇日期之后"),
         "error.no_active_employment" => Some("没有为员工找到处于活动状态的雇佣关系"),
         "error.overlapping_employment" => Some("不允许重叠的主要雇佣关系"),
+        "error.custom_field_not_found" => Some("未找到自定义字段"),
+        "error.template_not_found" => Some("未找到生命周期清单模板"),
+        "error.template_item_not_found" => Some("未找到生命周期清单模板项"),
+        "error.template_name_empty" => Some("模板名称不能为空"),
+        "error.template_item_title_empty" => Some("项目标题不能为空"),
+        "error.checklist_not_found" => Some("未找到生命周期清单"),
+        "error.checklist_item_not_found" => Some("未找到生命周期清单项"),
         _ => None,
     }
 }
@@ -944,6 +986,13 @@ mod tests {
             I18nKey::RehireDateInvalid,
             I18nKey::NoActiveEmployment,
             I18nKey::OverlappingEmployment,
+            I18nKey::CustomFieldNotFound,
+            I18nKey::TemplateNotFound,
+            I18nKey::TemplateItemNotFound,
+            I18nKey::TemplateNameEmpty,
+            I18nKey::TemplateItemTitleEmpty,
+            I18nKey::ChecklistNotFound,
+            I18nKey::ChecklistItemNotFound,
         ];
 
         for variant in &variants {

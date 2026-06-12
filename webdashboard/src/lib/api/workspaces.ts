@@ -77,14 +77,6 @@ export async function fetchWorkspaceRoles(wsId: string): Promise<WorkspaceRole[]
     params: {
       path: {
         ws_id: wsId,
-        page: null,
-        limit: null,
-        q: null,
-        year: null,
-        sort_by: null,
-        sort_dir: null,
-        department_id: null,
-        permission: null
       }
     }
   });

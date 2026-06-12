@@ -485,6 +485,10 @@ pub struct CoreState {
     location_repo: Arc<dyn crate::repositories::LocationRepository>,
     employer_service: Arc<crate::services::EmployerService>,
     employer_repo: Arc<dyn crate::repositories::EmployerRepository>,
+    custom_field_service: Arc<crate::services::CustomFieldService>,
+    custom_field_repo: Arc<dyn crate::repositories::CustomFieldRepository>,
+    lifecycle_service: Arc<crate::services::LifecycleService>,
+    lifecycle_repo: Arc<dyn crate::repositories::LifecycleChecklistRepository>,
 }
 
 impl CoreState {
@@ -508,6 +512,10 @@ impl CoreState {
         location_repo: Arc<dyn crate::repositories::LocationRepository>,
         employer_service: Arc<crate::services::EmployerService>,
         employer_repo: Arc<dyn crate::repositories::EmployerRepository>,
+        custom_field_service: Arc<crate::services::CustomFieldService>,
+        custom_field_repo: Arc<dyn crate::repositories::CustomFieldRepository>,
+        lifecycle_service: Arc<crate::services::LifecycleService>,
+        lifecycle_repo: Arc<dyn crate::repositories::LifecycleChecklistRepository>,
     ) -> Self {
         Self {
             auth_service,
@@ -525,6 +533,10 @@ impl CoreState {
             location_repo,
             employer_service,
             employer_repo,
+            custom_field_service,
+            custom_field_repo,
+            lifecycle_service,
+            lifecycle_repo,
         }
     }
 
@@ -593,6 +605,22 @@ impl CoreState {
 
     pub fn employer_repo(&self) -> &Arc<dyn crate::repositories::EmployerRepository> {
         &self.employer_repo
+    }
+
+    pub fn custom_field_service(&self) -> &Arc<crate::services::CustomFieldService> {
+        &self.custom_field_service
+    }
+
+    pub fn custom_field_repo(&self) -> &Arc<dyn crate::repositories::CustomFieldRepository> {
+        &self.custom_field_repo
+    }
+
+    pub fn lifecycle_service(&self) -> &Arc<crate::services::LifecycleService> {
+        &self.lifecycle_service
+    }
+
+    pub fn lifecycle_repo(&self) -> &Arc<dyn crate::repositories::LifecycleChecklistRepository> {
+        &self.lifecycle_repo
     }
 }
 

@@ -805,6 +805,48 @@ diesel::table! {
 }
 
 diesel::table! {
+    custom_field_definitions (id) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        #[max_length = 50]
+        entity_type -> Varchar,
+        #[max_length = 100]
+        field_key -> Varchar,
+        field_label -> Text,
+        #[max_length = 20]
+        field_type -> Varchar,
+        options -> Nullable<Jsonb>,
+        default_value -> Nullable<Text>,
+        is_required -> Bool,
+        is_visible_to_employee -> Bool,
+        is_filterable -> Bool,
+        is_exportable -> Bool,
+        display_order -> Int4,
+        #[max_length = 100]
+        section_name -> Nullable<Varchar>,
+        validation_rules -> Nullable<Jsonb>,
+        deleted_at -> Nullable<Timestamptz>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    custom_field_values (id) {
+        id -> Uuid,
+        definition_id -> Uuid,
+        entity_id -> Uuid,
+        value_text -> Nullable<Text>,
+        value_number -> Nullable<Numeric>,
+        value_date -> Nullable<Date>,
+        value_bool -> Nullable<Bool>,
+        value_json -> Nullable<Jsonb>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     dashboard_preferences (id) {
         id -> Uuid,
         user_id -> Uuid,
@@ -1217,6 +1259,82 @@ diesel::table! {
         created_at -> Timestamptz,
         policy_config -> Jsonb,
         deleted_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    lifecycle_checklist_items (id) {
+        id -> Uuid,
+        checklist_id -> Uuid,
+        template_item_id -> Nullable<Uuid>,
+        title -> Text,
+        description -> Nullable<Text>,
+        #[max_length = 50]
+        category -> Varchar,
+        assignee_user_id -> Nullable<Uuid>,
+        is_required -> Bool,
+        due_date -> Nullable<Date>,
+        #[max_length = 20]
+        status -> Varchar,
+        completed_at -> Nullable<Timestamptz>,
+        completed_by -> Nullable<Uuid>,
+        notes -> Nullable<Text>,
+        display_order -> Int4,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    lifecycle_checklist_template_items (id) {
+        id -> Uuid,
+        template_id -> Uuid,
+        title -> Text,
+        description -> Nullable<Text>,
+        #[max_length = 50]
+        category -> Varchar,
+        #[max_length = 20]
+        assignee_type -> Varchar,
+        assignee_user_id -> Nullable<Uuid>,
+        is_required -> Bool,
+        due_days_offset -> Int4,
+        display_order -> Int4,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    lifecycle_checklist_templates (id) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        name -> Text,
+        description -> Nullable<Text>,
+        #[max_length = 20]
+        checklist_type -> Varchar,
+        is_default -> Bool,
+        is_active -> Bool,
+        deleted_at -> Nullable<Timestamptz>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    lifecycle_checklists (id) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        employment_id -> Uuid,
+        template_id -> Nullable<Uuid>,
+        #[max_length = 20]
+        checklist_type -> Varchar,
+        #[max_length = 20]
+        status -> Varchar,
+        progress_percent -> Int4,
+        started_at -> Timestamptz,
+        completed_at -> Nullable<Timestamptz>,
+        created_by -> Nullable<Uuid>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
     }
 }
 
@@ -1895,6 +2013,7 @@ diesel::joinable!(attendance_policy_assignments -> attendance_policies (policy_i
 diesel::joinable!(attendance_policy_versions -> attendance_policies (policy_id));
 diesel::joinable!(behalf_assignments -> departments (target_department_id));
 diesel::joinable!(behalf_assignments -> employees (target_employee_id));
+diesel::joinable!(custom_field_values -> custom_field_definitions (definition_id));
 diesel::joinable!(departments -> employees (manager_id));
 diesel::joinable!(departments -> working_patterns (default_working_pattern_id));
 diesel::joinable!(employee_assignments -> employments (employment_id));
@@ -1926,6 +2045,10 @@ diesel::joinable!(leave_policy_assignments -> leave_policy_definitions (policy_i
 diesel::joinable!(leave_policy_definitions -> leave_types (leave_type_id));
 diesel::joinable!(leave_requests -> employments (employment_id));
 diesel::joinable!(leave_requests -> leave_types (leave_type_id));
+diesel::joinable!(lifecycle_checklist_items -> lifecycle_checklist_template_items (template_item_id));
+diesel::joinable!(lifecycle_checklist_items -> lifecycle_checklists (checklist_id));
+diesel::joinable!(lifecycle_checklist_template_items -> lifecycle_checklist_templates (template_id));
+diesel::joinable!(lifecycle_checklists -> lifecycle_checklist_templates (template_id));
 diesel::joinable!(member_extra_roles -> users (user_id));
 diesel::joinable!(member_extra_roles -> workspace_roles (role_id));
 diesel::joinable!(member_extra_roles -> workspaces (workspace_id));
@@ -2012,6 +2135,8 @@ diesel::allow_tables_to_appear_in_same_query!(
     audit_logs_y2026m12,
     authorized_agents,
     behalf_assignments,
+    custom_field_definitions,
+    custom_field_values,
     dashboard_preferences,
     departments,
     devices,
@@ -2036,6 +2161,10 @@ diesel::allow_tables_to_appear_in_same_query!(
     leave_policy_definitions,
     leave_requests,
     leave_types,
+    lifecycle_checklist_items,
+    lifecycle_checklist_template_items,
+    lifecycle_checklist_templates,
+    lifecycle_checklists,
     member_extra_roles,
     notifications,
     outbox_jobs,

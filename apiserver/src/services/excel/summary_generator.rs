@@ -4,13 +4,17 @@ use crate::services::import_messages::ExcelReportMessages;
 use crate::utils::excel_format_utils::ExcelFormatUtils;
 use chrono::NaiveDate;
 use rust_xlsxwriter::Workbook;
+use uuid::Uuid;
 
+#[allow(clippy::implicit_hasher)]
 pub fn generate(
     workbook: &mut Workbook,
     summaries: &[AttendanceSummary],
     workspace_name: &str,
     date_range: (NaiveDate, NaiveDate),
     msgs: &ExcelReportMessages,
+    custom_field_headers: &[String],
+    custom_field_values_map: &std::collections::HashMap<Uuid, Vec<String>>,
 ) -> crate::errors::AppResult<()> {
     let worksheet = workbook.add_worksheet().set_name(msgs.summary_sheet_name)?;
 
@@ -35,8 +39,18 @@ pub fn generate(
     )?;
 
     let headers = msgs.summary_headers;
+    let last_col = headers.len() as u16;
     for (col, header) in headers.iter().enumerate() {
         worksheet.write_string_with_format(3, col as u16, *header, &header_format)?;
+    }
+
+    for (col_idx, cf_header) in custom_field_headers.iter().enumerate() {
+        worksheet.write_string_with_format(
+            3,
+            last_col + col_idx as u16,
+            cf_header,
+            &header_format,
+        )?;
     }
 
     for (idx, summary) in summaries.iter().enumerate() {
@@ -50,12 +64,22 @@ pub fn generate(
             summary.total_leave_days as f64,
             &number_format,
         )?;
+
+        if let Some(cf_vals) = custom_field_values_map.get(&summary.employee_id) {
+            for (col_idx, val) in cf_vals.iter().enumerate() {
+                worksheet.write_string(row, last_col + col_idx as u16, val)?;
+            }
+        }
     }
 
     worksheet.set_column_width(0, 35)?;
     worksheet.set_column_width(1, 15)?;
     worksheet.set_column_width(2, 15)?;
     worksheet.set_column_width(3, 18)?;
+
+    for col_idx in 0..custom_field_headers.len() {
+        worksheet.set_column_width(last_col + col_idx as u16, 18)?;
+    }
 
     Ok(())
 }

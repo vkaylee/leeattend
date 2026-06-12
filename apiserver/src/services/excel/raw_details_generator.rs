@@ -1,13 +1,14 @@
 use chrono::NaiveDate;
 use chrono_tz::Tz;
 use rust_xlsxwriter::{Color, Format, FormatAlign, Workbook};
+use uuid::Uuid;
 
 use super::utils::{format_datetime, format_period_label, format_time};
 use crate::models::DailyAttendanceReport;
 use crate::services::import_messages::ExcelReportMessages;
 use crate::utils::excel_format_utils::ExcelFormatUtils;
 
-#[allow(clippy::too_many_lines)]
+#[allow(clippy::too_many_lines, clippy::implicit_hasher)]
 pub fn generate(
     workbook: &mut Workbook,
     reports: &[DailyAttendanceReport],
@@ -15,6 +16,8 @@ pub fn generate(
     date_range: (NaiveDate, NaiveDate),
     tz: Tz,
     msgs: &ExcelReportMessages,
+    custom_field_headers: &[String],
+    custom_field_values_map: &std::collections::HashMap<Uuid, Vec<String>>,
 ) -> crate::errors::AppResult<()> {
     let worksheet = workbook
         .add_worksheet()
@@ -69,8 +72,13 @@ pub fn generate(
 
     // Headers (row 3)
     let headers = msgs.detail_headers;
+    let last_col = headers.len() as u16;
     for (col, header) in headers.iter().enumerate() {
         worksheet.write_string_with_format(3, col as u16, *header, &header_fmt)?;
+    }
+
+    for (col_idx, cf_header) in custom_field_headers.iter().enumerate() {
+        worksheet.write_string_with_format(3, last_col + col_idx as u16, cf_header, &header_fmt)?;
     }
 
     // Data rows (row 4+)
@@ -131,6 +139,13 @@ pub fn generate(
 
         // Holiday column (col 11)
         worksheet.write_string(row, 11, report.holiday_name.as_deref().unwrap_or(""))?;
+
+        // Write custom field values
+        if let Some(cf_vals) = custom_field_values_map.get(&report.employee_id) {
+            for (col_idx, val) in cf_vals.iter().enumerate() {
+                worksheet.write_string(row, last_col + col_idx as u16, val)?;
+            }
+        }
     }
 
     // Auto-fit all column widths to content

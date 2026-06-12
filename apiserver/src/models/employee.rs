@@ -3,6 +3,7 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::models::custom_field::CustomFieldValueResponse;
 use crate::models::enums::RecruitmentSourceType;
 
 // ── Filter Models ───────────────────────────────────────────────────
@@ -16,6 +17,7 @@ pub struct EmployeeFilterOptions {
     pub sort_dir: Option<String>,
     pub department_ids: Option<Vec<Uuid>>,
     pub permission: Option<String>,
+    pub filter_ids: Option<Vec<Uuid>>,
 }
 
 #[derive(Debug, Clone)]
@@ -225,6 +227,8 @@ pub struct Employee {
     active_employment_id: Option<Uuid>,
     employer_id: Option<Uuid>,
     primary_location_id: Option<Uuid>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    custom_fields: Option<Vec<CustomFieldValueResponse>>,
 }
 
 impl Employee {
@@ -252,6 +256,7 @@ impl Employee {
             active_employment_id: None,
             employer_id: None,
             primary_location_id: None,
+            custom_fields: None,
         }
     }
 
@@ -261,6 +266,16 @@ impl Employee {
 
     pub fn workspace_id(&self) -> Uuid {
         self.workspace_id
+    }
+
+    pub fn custom_fields(&self) -> Option<&[CustomFieldValueResponse]> {
+        self.custom_fields.as_deref()
+    }
+
+    #[must_use]
+    pub fn with_custom_fields(mut self, custom_fields: Vec<CustomFieldValueResponse>) -> Self {
+        self.custom_fields = Some(custom_fields);
+        self
     }
 
     pub fn user_id(&self) -> Option<Uuid> {

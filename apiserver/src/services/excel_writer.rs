@@ -17,6 +17,8 @@ use crate::services::import_messages::ExcelReportMessages;
 pub const EXCEL_CONTENT_TYPE: &str =
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
+use uuid::Uuid;
+
 /// Excel writer for attendance reports.
 pub struct ExcelWriter;
 
@@ -27,10 +29,20 @@ impl ExcelWriter {
         workspace_name: &str,
         date_range: (NaiveDate, NaiveDate),
         msgs: &ExcelReportMessages,
+        custom_field_headers: &[String],
+        custom_field_values_map: &std::collections::HashMap<Uuid, Vec<String>>,
     ) -> crate::errors::AppResult<Vec<u8>> {
         let mut workbook = Workbook::new();
 
-        summary_generator::generate(&mut workbook, summaries, workspace_name, date_range, msgs)?;
+        summary_generator::generate(
+            &mut workbook,
+            summaries,
+            workspace_name,
+            date_range,
+            msgs,
+            custom_field_headers,
+            custom_field_values_map,
+        )?;
 
         workbook
             .save_to_buffer()
@@ -45,6 +57,8 @@ impl ExcelWriter {
         timezone: &str,
         work_unit_minutes: i32,
         msgs: &ExcelReportMessages,
+        custom_field_headers: &[String],
+        custom_field_values_map: &std::collections::HashMap<Uuid, Vec<String>>,
     ) -> crate::errors::AppResult<Vec<u8>> {
         let tz: Tz = crate::utils::tz::parse_workspace_tz(timezone);
         let mut workbook = Workbook::new();
@@ -66,6 +80,8 @@ impl ExcelWriter {
             date_range,
             tz,
             msgs,
+            custom_field_headers,
+            custom_field_values_map,
         )?;
 
         guide_generator::generate(&mut workbook, msgs)?;
@@ -100,6 +116,8 @@ mod tests {
                 NaiveDate::from_ymd_opt(2026, 1, 31).ok_or("Invalid end date")?,
             ),
             &en_msgs(),
+            &[],
+            &std::collections::HashMap::new(),
         );
         assert!(result.is_ok());
         let data = result?;
@@ -179,6 +197,8 @@ mod tests {
                 NaiveDate::from_ymd_opt(2026, 1, 31).ok_or("Invalid end date")?,
             ),
             &en_msgs(),
+            &[],
+            &std::collections::HashMap::new(),
         );
         assert!(result.is_ok());
         assert!(result?.len() > 100);
@@ -197,6 +217,8 @@ mod tests {
             "UTC",
             30,
             &en_msgs(),
+            &[],
+            &std::collections::HashMap::new(),
         );
         assert!(result.is_ok());
         let data = result?;
@@ -341,6 +363,8 @@ mod tests {
             "Asia/Ho_Chi_Minh",
             30,
             &en_msgs(),
+            &[],
+            &std::collections::HashMap::new(),
         );
         assert!(result.is_ok());
         let data = result?;
@@ -455,6 +479,8 @@ mod tests {
             "Asia/Ho_Chi_Minh",
             30,
             &en_msgs(),
+            &[],
+            &std::collections::HashMap::new(),
         );
         assert!(result.is_ok());
         let data = result?;
@@ -557,11 +583,21 @@ mod tests {
             "Asia/Ho_Chi_Minh",
             30,
             &en_msgs(),
+            &[],
+            &std::collections::HashMap::new(),
         );
         assert!(result.is_ok());
 
-        let result =
-            ExcelWriter::write_detail(&reports, "W", date_range, "Invalid/TZ", 30, &en_msgs());
+        let result = ExcelWriter::write_detail(
+            &reports,
+            "W",
+            date_range,
+            "Invalid/TZ",
+            30,
+            &en_msgs(),
+            &[],
+            &std::collections::HashMap::new(),
+        );
         assert!(result.is_ok());
 
         Ok(())
@@ -636,6 +672,8 @@ mod tests {
             "UTC",
             30,
             &ExcelReportMessages::for_lang("en"),
+            &[],
+            &std::collections::HashMap::new(),
         )?;
 
         let mut wb_en: Xlsx<_> = Xlsx::new(Cursor::new(&bytes_en))?;
@@ -661,6 +699,8 @@ mod tests {
             "Asia/Ho_Chi_Minh",
             30,
             &ExcelReportMessages::for_lang("vi"),
+            &[],
+            &std::collections::HashMap::new(),
         )?;
 
         let mut wb_vi: Xlsx<_> = Xlsx::new(Cursor::new(&bytes_vi))?;
@@ -682,6 +722,8 @@ mod tests {
             "Asia/Shanghai",
             30,
             &ExcelReportMessages::for_lang("zh"),
+            &[],
+            &std::collections::HashMap::new(),
         )?;
 
         let mut wb_zh: Xlsx<_> = Xlsx::new(Cursor::new(&bytes_zh))?;
@@ -725,6 +767,8 @@ mod tests {
             "EN Workspace",
             date_range,
             &ExcelReportMessages::for_lang("en"),
+            &[],
+            &std::collections::HashMap::new(),
         )?;
 
         let mut wb_en: Xlsx<_> = Xlsx::new(Cursor::new(&bytes_en))?;
@@ -746,6 +790,8 @@ mod tests {
             "VI Workspace",
             date_range,
             &ExcelReportMessages::for_lang("vi"),
+            &[],
+            &std::collections::HashMap::new(),
         )?;
 
         let mut wb_vi: Xlsx<_> = Xlsx::new(Cursor::new(&bytes_vi))?;

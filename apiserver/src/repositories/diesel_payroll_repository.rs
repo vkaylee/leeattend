@@ -846,6 +846,40 @@ impl PayrollRepository for DieselPayrollRepository {
             .collect())
     }
 
+    async fn get_salary_components_history_for_employments(
+        &self,
+        workspace_id: Uuid,
+        employment_ids: &[Uuid],
+    ) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, AppError> {
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await?,
+        );
+
+        let rows = employee_salary_components::table
+            .inner_join(salary_component_definitions::table)
+            .filter(employee_salary_components::employment_id.eq_any(employment_ids))
+            .filter(salary_component_definitions::workspace_id.eq(workspace_id))
+            .order((
+                employee_salary_components::employment_id,
+                employee_salary_components::effective_date.asc(),
+                employee_salary_components::created_at.asc(),
+            ))
+            .load::<(
+                EmployeeSalaryComponentEntity,
+                SalaryComponentDefinitionEntity,
+            )>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(rows
+            .into_iter()
+            .map(|(esc, scd)| (esc.into(), scd.into()))
+            .collect())
+    }
+
     async fn create_payslip(&self, payslip: &Payslip) -> Result<Payslip, AppError> {
         use std::str::FromStr;
         let mut conn = crate::diesel_pool::TransactionConn(

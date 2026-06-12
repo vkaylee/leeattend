@@ -10,6 +10,7 @@ export const useEmployeesState = () => {
   const [filterDeptIds, setFilterDeptIds] = useState<string[]>([]);
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [customFieldFilters, setCustomFieldFilters] = useState<Record<string, string>>({});
   const debouncedSearch = useDebounce(searchTerm, 500);
 
   const toggleSort = (key: SortKey) => {
@@ -27,6 +28,18 @@ export const useEmployeesState = () => {
     );
   };
 
+  const updateCustomFieldFilter = (key: string, val: string) => {
+    setCustomFieldFilters((prev) => {
+      const next = { ...prev };
+      if (!val.trim()) {
+        delete next[key];
+      } else {
+        next[key] = val;
+      }
+      return next;
+    });
+  };
+
   return {
     searchTerm,
     setSearchTerm,
@@ -36,6 +49,9 @@ export const useEmployeesState = () => {
     setSortKey,
     sortDir,
     setSortDir,
+    customFieldFilters,
+    setCustomFieldFilters,
+    updateCustomFieldFilter,
     debouncedSearch,
     toggleSort,
     toggleDeptFilter,

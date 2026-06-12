@@ -6,6 +6,7 @@ import type {
   EmployeeDepartmentHistory,
   PaginatedResponse,
   Employment,
+  CompensationHistoryResponse,
 } from "./types";
 
 import { client } from "./client";
@@ -38,6 +39,7 @@ export interface SearchEmployeesParams {
   sortBy?: string;
   sortDir?: string;
   wsId: string;
+  customFieldFilters?: string;
 }
 
 export async function searchEmployees(
@@ -52,6 +54,7 @@ export async function searchEmployees(
     sortDir,
     departmentIds,
     permission,
+    customFieldFilters,
   } = params;
 
   const { data } = await client.GET("/workspaces/{workspace_id}/employees", {
@@ -65,6 +68,7 @@ export async function searchEmployees(
         sort_dir: sortDir ?? undefined,
         department_id: (departmentIds && departmentIds.length > 0) ? departmentIds.join(",") : undefined,
         permission: permission ?? undefined,
+        custom_field_filters: customFieldFilters ?? undefined,
       },
     },
   });
@@ -196,6 +200,21 @@ export async function updateEmployeeEmployment(
       path: { ws_id: wsId, employee_id: employeeId, employment_id: employmentId },
     },
     body,
+  });
+  if (!data) throw new Error("No response data");
+  return data;
+}
+
+export async function fetchCompensationHistory(
+  wsId: string,
+  employeeId: string,
+  employmentId?: string
+): Promise<CompensationHistoryResponse> {
+  const { data } = await client.GET("/workspaces/{workspace_id}/employees/{id}/compensation-history", {
+    params: {
+      path: { workspace_id: wsId, id: employeeId },
+      query: { employment_id: employmentId || undefined } as any,
+    },
   });
   if (!data) throw new Error("No response data");
   return data;

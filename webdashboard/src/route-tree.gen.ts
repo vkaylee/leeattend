@@ -58,10 +58,12 @@ import { Route as AuthenticatedWorkspaceWorkspaceSettingsOverviewRouteImport } f
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsOvertimeRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/overtime"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsOrganizationRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/organization"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsLocationsRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/locations"
+import { Route as AuthenticatedWorkspaceWorkspaceSettingsLifecycleTemplatesRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/lifecycle-templates"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsLeaveRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/leave"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsHolidaysRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/holidays"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsGeneralRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/general"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsDangerRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/danger"
+import { Route as AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/custom-fields"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsConnectivityRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/connectivity"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsBillingRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/billing"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/audit-logs"
@@ -503,6 +505,16 @@ const AuthenticatedWorkspaceWorkspaceSettingsLocationsRoute =
       (d) => d.Route,
     ),
   )
+const AuthenticatedWorkspaceWorkspaceSettingsLifecycleTemplatesRoute =
+  AuthenticatedWorkspaceWorkspaceSettingsLifecycleTemplatesRouteImport.update({
+    id: "/lifecycle-templates",
+    path: "/lifecycle-templates",
+    getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/workspace/settings/lifecycle-templates.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute =
   AuthenticatedWorkspaceWorkspaceSettingsLeaveRouteImport.update({
     id: "/leave",
@@ -540,6 +552,16 @@ const AuthenticatedWorkspaceWorkspaceSettingsDangerRoute =
     getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsRoute,
   } as any).lazy(() =>
     import("./routes/_authenticated/_workspace/workspace/settings/danger.lazy").then(
+      (d) => d.Route,
+    ),
+  )
+const AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute =
+  AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRouteImport.update({
+    id: "/custom-fields",
+    path: "/custom-fields",
+    getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/workspace/settings/custom-fields.lazy").then(
       (d) => d.Route,
     ),
   )
@@ -680,10 +702,12 @@ export interface FileRoutesByFullPath {
   "/workspace/settings/audit-logs": typeof AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute
   "/workspace/settings/billing": typeof AuthenticatedWorkspaceWorkspaceSettingsBillingRoute
   "/workspace/settings/connectivity": typeof AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute
+  "/workspace/settings/custom-fields": typeof AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute
   "/workspace/settings/danger": typeof AuthenticatedWorkspaceWorkspaceSettingsDangerRoute
   "/workspace/settings/general": typeof AuthenticatedWorkspaceWorkspaceSettingsGeneralRoute
   "/workspace/settings/holidays": typeof AuthenticatedWorkspaceWorkspaceSettingsHolidaysRoute
   "/workspace/settings/leave": typeof AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute
+  "/workspace/settings/lifecycle-templates": typeof AuthenticatedWorkspaceWorkspaceSettingsLifecycleTemplatesRoute
   "/workspace/settings/locations": typeof AuthenticatedWorkspaceWorkspaceSettingsLocationsRoute
   "/workspace/settings/organization": typeof AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute
   "/workspace/settings/overtime": typeof AuthenticatedWorkspaceWorkspaceSettingsOvertimeRoute
@@ -737,10 +761,12 @@ export interface FileRoutesByTo {
   "/workspace/settings/audit-logs": typeof AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute
   "/workspace/settings/billing": typeof AuthenticatedWorkspaceWorkspaceSettingsBillingRoute
   "/workspace/settings/connectivity": typeof AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute
+  "/workspace/settings/custom-fields": typeof AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute
   "/workspace/settings/danger": typeof AuthenticatedWorkspaceWorkspaceSettingsDangerRoute
   "/workspace/settings/general": typeof AuthenticatedWorkspaceWorkspaceSettingsGeneralRoute
   "/workspace/settings/holidays": typeof AuthenticatedWorkspaceWorkspaceSettingsHolidaysRoute
   "/workspace/settings/leave": typeof AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute
+  "/workspace/settings/lifecycle-templates": typeof AuthenticatedWorkspaceWorkspaceSettingsLifecycleTemplatesRoute
   "/workspace/settings/locations": typeof AuthenticatedWorkspaceWorkspaceSettingsLocationsRoute
   "/workspace/settings/organization": typeof AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute
   "/workspace/settings/overtime": typeof AuthenticatedWorkspaceWorkspaceSettingsOvertimeRoute
@@ -801,10 +827,12 @@ export interface FileRoutesById {
   "/_authenticated/_workspace/workspace/settings/audit-logs": typeof AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute
   "/_authenticated/_workspace/workspace/settings/billing": typeof AuthenticatedWorkspaceWorkspaceSettingsBillingRoute
   "/_authenticated/_workspace/workspace/settings/connectivity": typeof AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute
+  "/_authenticated/_workspace/workspace/settings/custom-fields": typeof AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute
   "/_authenticated/_workspace/workspace/settings/danger": typeof AuthenticatedWorkspaceWorkspaceSettingsDangerRoute
   "/_authenticated/_workspace/workspace/settings/general": typeof AuthenticatedWorkspaceWorkspaceSettingsGeneralRoute
   "/_authenticated/_workspace/workspace/settings/holidays": typeof AuthenticatedWorkspaceWorkspaceSettingsHolidaysRoute
   "/_authenticated/_workspace/workspace/settings/leave": typeof AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute
+  "/_authenticated/_workspace/workspace/settings/lifecycle-templates": typeof AuthenticatedWorkspaceWorkspaceSettingsLifecycleTemplatesRoute
   "/_authenticated/_workspace/workspace/settings/locations": typeof AuthenticatedWorkspaceWorkspaceSettingsLocationsRoute
   "/_authenticated/_workspace/workspace/settings/organization": typeof AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute
   "/_authenticated/_workspace/workspace/settings/overtime": typeof AuthenticatedWorkspaceWorkspaceSettingsOvertimeRoute
@@ -864,10 +892,12 @@ export interface FileRouteTypes {
     | "/workspace/settings/audit-logs"
     | "/workspace/settings/billing"
     | "/workspace/settings/connectivity"
+    | "/workspace/settings/custom-fields"
     | "/workspace/settings/danger"
     | "/workspace/settings/general"
     | "/workspace/settings/holidays"
     | "/workspace/settings/leave"
+    | "/workspace/settings/lifecycle-templates"
     | "/workspace/settings/locations"
     | "/workspace/settings/organization"
     | "/workspace/settings/overtime"
@@ -921,10 +951,12 @@ export interface FileRouteTypes {
     | "/workspace/settings/audit-logs"
     | "/workspace/settings/billing"
     | "/workspace/settings/connectivity"
+    | "/workspace/settings/custom-fields"
     | "/workspace/settings/danger"
     | "/workspace/settings/general"
     | "/workspace/settings/holidays"
     | "/workspace/settings/leave"
+    | "/workspace/settings/lifecycle-templates"
     | "/workspace/settings/locations"
     | "/workspace/settings/organization"
     | "/workspace/settings/overtime"
@@ -984,10 +1016,12 @@ export interface FileRouteTypes {
     | "/_authenticated/_workspace/workspace/settings/audit-logs"
     | "/_authenticated/_workspace/workspace/settings/billing"
     | "/_authenticated/_workspace/workspace/settings/connectivity"
+    | "/_authenticated/_workspace/workspace/settings/custom-fields"
     | "/_authenticated/_workspace/workspace/settings/danger"
     | "/_authenticated/_workspace/workspace/settings/general"
     | "/_authenticated/_workspace/workspace/settings/holidays"
     | "/_authenticated/_workspace/workspace/settings/leave"
+    | "/_authenticated/_workspace/workspace/settings/lifecycle-templates"
     | "/_authenticated/_workspace/workspace/settings/locations"
     | "/_authenticated/_workspace/workspace/settings/organization"
     | "/_authenticated/_workspace/workspace/settings/overtime"
@@ -1354,6 +1388,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsLocationsRouteImport
       parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRoute
     }
+    "/_authenticated/_workspace/workspace/settings/lifecycle-templates": {
+      id: "/_authenticated/_workspace/workspace/settings/lifecycle-templates"
+      path: "/lifecycle-templates"
+      fullPath: "/workspace/settings/lifecycle-templates"
+      preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsLifecycleTemplatesRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRoute
+    }
     "/_authenticated/_workspace/workspace/settings/leave": {
       id: "/_authenticated/_workspace/workspace/settings/leave"
       path: "/leave"
@@ -1380,6 +1421,13 @@ declare module "@tanstack/react-router" {
       path: "/danger"
       fullPath: "/workspace/settings/danger"
       preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsDangerRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRoute
+    }
+    "/_authenticated/_workspace/workspace/settings/custom-fields": {
+      id: "/_authenticated/_workspace/workspace/settings/custom-fields"
+      path: "/custom-fields"
+      fullPath: "/workspace/settings/custom-fields"
+      preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRouteImport
       parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRoute
     }
     "/_authenticated/_workspace/workspace/settings/connectivity": {
@@ -1553,10 +1601,12 @@ interface AuthenticatedWorkspaceWorkspaceSettingsRouteChildren {
   AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute
   AuthenticatedWorkspaceWorkspaceSettingsBillingRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsBillingRoute
   AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute
+  AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute
   AuthenticatedWorkspaceWorkspaceSettingsDangerRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsDangerRoute
   AuthenticatedWorkspaceWorkspaceSettingsGeneralRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsGeneralRoute
   AuthenticatedWorkspaceWorkspaceSettingsHolidaysRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsHolidaysRoute
   AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute
+  AuthenticatedWorkspaceWorkspaceSettingsLifecycleTemplatesRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsLifecycleTemplatesRoute
   AuthenticatedWorkspaceWorkspaceSettingsLocationsRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsLocationsRoute
   AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute
   AuthenticatedWorkspaceWorkspaceSettingsOvertimeRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsOvertimeRoute
@@ -1577,6 +1627,8 @@ const AuthenticatedWorkspaceWorkspaceSettingsRouteChildren: AuthenticatedWorkspa
       AuthenticatedWorkspaceWorkspaceSettingsBillingRoute,
     AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute:
       AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute,
+    AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute:
+      AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute,
     AuthenticatedWorkspaceWorkspaceSettingsDangerRoute:
       AuthenticatedWorkspaceWorkspaceSettingsDangerRoute,
     AuthenticatedWorkspaceWorkspaceSettingsGeneralRoute:
@@ -1585,6 +1637,8 @@ const AuthenticatedWorkspaceWorkspaceSettingsRouteChildren: AuthenticatedWorkspa
       AuthenticatedWorkspaceWorkspaceSettingsHolidaysRoute,
     AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute:
       AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute,
+    AuthenticatedWorkspaceWorkspaceSettingsLifecycleTemplatesRoute:
+      AuthenticatedWorkspaceWorkspaceSettingsLifecycleTemplatesRoute,
     AuthenticatedWorkspaceWorkspaceSettingsLocationsRoute:
       AuthenticatedWorkspaceWorkspaceSettingsLocationsRoute,
     AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute:

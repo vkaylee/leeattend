@@ -154,6 +154,17 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             options.sort_dir.as_deref(),
         );
 
+        let filter_sql = if let Some(ref ids) = options.filter_ids {
+            if ids.is_empty() {
+                " AND FALSE".to_string()
+            } else {
+                let ids_str: Vec<String> = ids.iter().map(|id| format!("'{id}'")).collect();
+                format!(" AND e.id IN ({})", ids_str.join(","))
+            }
+        } else {
+            String::new()
+        };
+
         let count_dept_param = if search_sql.has_search { "$3" } else { "$2" };
         let dept_filter = format!(
             " AND ({count_dept_param}::uuid[] IS NULL OR (\
@@ -172,7 +183,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
 
         let where_clause = &search_sql.where_clause;
         let count_sql = format!(
-            "SELECT COUNT(*)::bigint as count FROM employees e {where_clause}{dept_filter}{perm_filter}"
+            "SELECT COUNT(*)::bigint as count FROM employees e {where_clause}{dept_filter}{perm_filter}{filter_sql}"
         );
 
         let count_search_param = if search_sql.has_search {
@@ -243,7 +254,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         let where_clause = &search_sql.where_clause;
         let order_clause = &search_sql.order_clause;
         let sql = format!(
-            "{EMPLOYEE_SELECT_QUERY} {dept_join} {where_clause}{data_dept_filter}{data_perm_filter} {order_clause} LIMIT $3 OFFSET $4"
+            "{EMPLOYEE_SELECT_QUERY} {dept_join} {where_clause}{data_dept_filter}{data_perm_filter}{filter_sql} {order_clause} LIMIT $3 OFFSET $4"
         );
 
         let (search_str_1, search_str_2) = if search_sql.has_search {

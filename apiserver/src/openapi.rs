@@ -86,6 +86,7 @@ use utoipa::OpenApi;
         crate::handlers::rehire_employee,
         crate::handlers::get_employee_department_history,
         crate::handlers::transfer_employee,
+        crate::handlers::get_compensation_history,
 
         crate::handlers::employee_contracts::list_employee_contracts,
         crate::handlers::employee_contracts::get_contract,
@@ -373,6 +374,32 @@ use utoipa::OpenApi;
 
         // Jobs Paths
         crate::handlers::jobs::get_generic_job_status,
+
+        // Custom Fields Paths
+        crate::handlers::custom_fields::create_definition,
+        crate::handlers::custom_fields::get_definition,
+        crate::handlers::custom_fields::list_definitions,
+        crate::handlers::custom_fields::update_definition,
+        crate::handlers::custom_fields::delete_definition,
+        crate::handlers::custom_fields::get_values,
+        crate::handlers::custom_fields::set_values,
+
+        // Lifecycle Checklists
+        crate::handlers::lifecycle_checklists::get_my_tasks,
+        crate::handlers::lifecycle_checklists::list_templates,
+        crate::handlers::lifecycle_checklists::create_template,
+        crate::handlers::lifecycle_checklists::get_template,
+        crate::handlers::lifecycle_checklists::update_template,
+        crate::handlers::lifecycle_checklists::delete_template,
+        crate::handlers::lifecycle_checklists::list_template_items,
+        crate::handlers::lifecycle_checklists::create_template_item,
+        crate::handlers::lifecycle_checklists::get_template_item,
+        crate::handlers::lifecycle_checklists::update_template_item,
+        crate::handlers::lifecycle_checklists::delete_template_item,
+        crate::handlers::lifecycle_checklists::list_checklists,
+        crate::handlers::lifecycle_checklists::create_checklist,
+        crate::handlers::lifecycle_checklists::get_checklist,
+        crate::handlers::lifecycle_checklists::update_item_status,
     ),
     components(
         schemas(
@@ -642,6 +669,10 @@ use utoipa::OpenApi;
             DepartmentPayrollConfig,
             EmployeePayrollConfig,
             SalaryComponentWithDefinition,
+            CompensationEmploymentContext,
+            CompensationChangeDetails,
+            CompensationTimelineEvent,
+            CompensationHistoryResponse,
             crate::handlers::salary_bases::SalaryBasesResponse,
             crate::handlers::salary_bases::CreateBaseRequest,
             crate::handlers::salary_bases::AssignMemberRequest,
@@ -687,6 +718,33 @@ use utoipa::OpenApi;
             CreateAuthorizedAgentRequest,
             TrustAgentRequest,
             UpdateAuthorizedAgentRequest,
+
+            // Custom Fields Schemas
+            CustomFieldDefinition,
+            CreateCustomFieldDefinitionRequest,
+            UpdateCustomFieldDefinitionRequest,
+            SetCustomFieldValueRequest,
+            BulkSetCustomFieldValuesRequest,
+            CustomFieldValueResponse,
+
+            // Lifecycle Checklists
+            CreateChecklistRequest,
+            LifecycleChecklistResponse,
+            PendingTaskResponse,
+            LifecycleChecklistTemplate,
+            LifecycleChecklistTemplateItem,
+            LifecycleChecklistType,
+            ChecklistCategory,
+            ChecklistAssigneeType,
+            ChecklistStatus,
+            ChecklistItemStatus,
+            CreateLifecycleChecklistTemplateRequest,
+            UpdateLifecycleChecklistTemplateRequest,
+            CreateLifecycleChecklistTemplateItemRequest,
+            UpdateLifecycleChecklistTemplateItemRequest,
+            UpdateChecklistItemStatusRequest,
+            LifecycleChecklistItem,
+            LifecycleChecklist,
         )
     ),
     tags(

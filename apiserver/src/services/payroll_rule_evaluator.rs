@@ -392,6 +392,13 @@ mod tests {
         ) -> Result<Option<crate::models::DepartmentPayrollConfig>, AppError> {
             Ok(None)
         }
+        async fn get_salary_components_history_for_employments(
+            &self,
+            _workspace_id: Uuid,
+            _employment_ids: &[Uuid],
+        ) -> Result<Vec<(crate::models::EmployeeSalaryComponent, crate::models::SalaryComponentDefinition)>, AppError> {
+            Ok(vec![])
+        }
     }
 
     fn make_date() -> NaiveDate {

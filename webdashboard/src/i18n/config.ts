@@ -14,6 +14,7 @@ export const namespaces = [
   'leave',
   'settings',
   'system_roles',
+  'custom_fields',
 ];
 
 export const lazyLoadBackend: BackendModule = {

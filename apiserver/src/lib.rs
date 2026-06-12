@@ -308,6 +308,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .merge(routes::auth::router(&state))
         .merge(routes::workspaces::router())
         .merge(routes::employees::router())
+        .merge(routes::custom_fields::router())
         .merge(routes::time_tracking::router())
         .merge(routes::leaves::router())
         .merge(routes::attendance::router())
@@ -317,6 +318,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .merge(routes::ess::router())
         .merge(routes::feature_flags::router())
         .merge(routes::notifications::router())
+        .merge(routes::lifecycle::router())
         // System-level RBAC routes (PlatformAdmin + Support)
         .merge(routes::system::router());
 

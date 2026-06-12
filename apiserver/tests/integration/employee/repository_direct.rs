@@ -1022,6 +1022,7 @@ async fn test_get_all_employees_with_filters() {
         sort_dir: Some("asc".to_string()),
         department_ids: None,
         permission: None,
+        filter_ids: None,
     };
     let (all, count) = repo.get_all_employees(&auth_token, opts_all).await.unwrap();
     assert_eq!(count, 3);
@@ -1037,6 +1038,7 @@ async fn test_get_all_employees_with_filters() {
         sort_dir: None,
         department_ids: None,
         permission: None,
+        filter_ids: None,
     };
     let (search_res, count) = repo
         .get_all_employees(&auth_token, opts_search)
@@ -1122,6 +1124,7 @@ async fn test_get_all_employees_filtered_by_permission() {
         sort_dir: Some("asc".to_string()),
         department_ids: None,
         permission: Some("overtime:claim_on_behalf".to_string()),
+        filter_ids: None,
     };
 
     let (employees, count) = repo.get_all_employees(&auth_token, opts).await.unwrap();

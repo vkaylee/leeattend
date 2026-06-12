@@ -45,11 +45,26 @@ pub async fn get_departments(
     let page = query.page.unwrap_or(1).max(1);
     let limit = query.limit.unwrap_or(50).clamp(1, 3000);
 
-    let (departments, total) = state
+    let (mut departments, total) = state
         .payroll()
         .department_repo()
         .get_departments(&ctx.auth_token, page, limit)
         .await?;
+
+    if !departments.is_empty() {
+        let entity_ids: Vec<Uuid> = departments.iter().map(Department::id).collect();
+        let mut custom_fields_map = state
+            .core()
+            .custom_field_service()
+            .get_values_for_entities(ctx.workspace_id, &entity_ids)
+            .await?;
+        for d in &mut departments {
+            if let Some(fields) = custom_fields_map.remove(&d.id()) {
+                *d = d.clone().with_custom_fields(fields);
+            }
+        }
+    }
+
     Ok(Json(PaginatedResponse {
         data: departments,
         total: total as usize,
@@ -78,11 +93,18 @@ pub async fn create_department(
     Json(req): Json<CreateDepartmentRequest>,
 ) -> AppResult<impl IntoResponse> {
     ctx.require_permission(Permission::DepartmentsCreate)?;
-    let dept = state
+    let mut dept = state
         .payroll()
         .department_repo()
         .create_department(&ctx.auth_token, req.name, req.description, req.manager_id)
         .await?;
+
+    let custom_fields = state
+        .core()
+        .custom_field_service()
+        .get_values_for_entity(ctx.workspace_id, dept.id())
+        .await?;
+    dept = dept.with_custom_fields(custom_fields);
 
     Ok((StatusCode::CREATED, Json(dept)))
 }
@@ -110,11 +132,18 @@ pub async fn update_department(
 ) -> AppResult<Json<Department>> {
     let (_, id) = __path_params;
     ctx.require_permission(Permission::DepartmentsUpdate)?;
-    let dept = state
+    let mut dept = state
         .payroll()
         .department_repo()
         .update_department(&ctx.auth_token, id, req)
         .await?;
+
+    let custom_fields = state
+        .core()
+        .custom_field_service()
+        .get_values_for_entity(ctx.workspace_id, id)
+        .await?;
+    dept = dept.with_custom_fields(custom_fields);
 
     Ok(Json(dept))
 }

@@ -13,6 +13,8 @@ import {
   Settings2,
   MapPin,
   Workflow,
+  Braces,
+  ClipboardList,
 } from "lucide-react";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -57,6 +59,13 @@ const getWorkspaceGroup = (t: TFunction): SettingItem[] => [
     icon: <MapPin className="w-4 h-4" />,
     label: t("settings.categories.locations", { defaultValue: "Locations" }),
     path: ROUTES.SETTINGS.LOCATIONS,
+    permissions: ["workspace:settings:read"],
+  },
+  {
+    description: t("description", { ns: "custom_fields", defaultValue: "Manage custom fields for employees, employments, and departments." }),
+    icon: <Braces className="w-4 h-4" />,
+    label: t("title", { ns: "custom_fields", defaultValue: "Custom Fields" }),
+    path: ROUTES.SETTINGS.CUSTOM_FIELDS,
     permissions: ["workspace:settings:read"],
   },
 ];
@@ -127,6 +136,13 @@ const getOperationsGroup = (t: TFunction): SettingItem[] => [
     label: t("settings.categories.workflows", { defaultValue: "Approval Workflows" }),
     path: ROUTES.SETTINGS.WORKFLOWS,
     permissions: ["workspace:settings:read", "approval_workflows:read"],
+  },
+  {
+    description: t("settings.categories.lifecycle_desc", { defaultValue: "Manage onboarding and offboarding checklist templates" }),
+    icon: <ClipboardList className="w-4 h-4" />,
+    label: t("settings.categories.lifecycle", { defaultValue: "Lifecycle Checklists" }),
+    path: ROUTES.SETTINGS.LIFECYCLE_TEMPLATES,
+    permissions: ["workspace:settings:read"],
   },
 ];
 

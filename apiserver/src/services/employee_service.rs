@@ -22,6 +22,9 @@ pub struct EmployeeService {
     staging_repo: Arc<dyn crate::repositories::staging_log_repository::StagingLogRepository>,
     leave_balance_repo:
         Arc<dyn crate::repositories::leave_balance_repository::LeaveBalanceRepository>,
+    lifecycle_service: Option<Arc<crate::services::lifecycle_service::LifecycleService>>,
+    payroll_repo: Option<Arc<dyn crate::repositories::payroll_repository::PayrollRepository>>,
+    employer_repo: Option<Arc<dyn crate::repositories::EmployerRepository>>,
 }
 
 fn dates_overlap(
@@ -62,7 +65,37 @@ impl EmployeeService {
             user_repo,
             staging_repo,
             leave_balance_repo,
+            lifecycle_service: None,
+            payroll_repo: None,
+            employer_repo: None,
         }
+    }
+
+    #[must_use]
+    pub fn with_lifecycle(
+        mut self,
+        lifecycle_service: Arc<crate::services::lifecycle_service::LifecycleService>,
+    ) -> Self {
+        self.lifecycle_service = Some(lifecycle_service);
+        self
+    }
+
+    #[must_use]
+    pub fn with_payroll(
+        mut self,
+        payroll_repo: Arc<dyn crate::repositories::payroll_repository::PayrollRepository>,
+    ) -> Self {
+        self.payroll_repo = Some(payroll_repo);
+        self
+    }
+
+    #[must_use]
+    pub fn with_employer(
+        mut self,
+        employer_repo: Arc<dyn crate::repositories::EmployerRepository>,
+    ) -> Self {
+        self.employer_repo = Some(employer_repo);
+        self
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -305,6 +338,28 @@ impl EmployeeService {
             );
         }
 
+        // Trigger onboarding checklist if lifecycle service is registered
+        if let Some(ref lifecycle_service) = self.lifecycle_service {
+            if let Ok(employments) = self
+                .employment_repo
+                .list_employee_employments(auth_token, employee.id())
+                .await
+            {
+                if let Some(emp) = employments.first() {
+                    if let Err(e) = lifecycle_service
+                        .auto_trigger_onboarding(workspace_id, emp.id(), None)
+                        .await
+                    {
+                        tracing::warn!(
+                            "Failed to auto-trigger onboarding checklist for employee {}: {:?}",
+                            employee.id(),
+                            e
+                        );
+                    }
+                }
+            }
+        }
+
         Ok(employee)
     }
 
@@ -516,6 +571,20 @@ impl EmployeeService {
             .update_employment(auth_token, employment_id, &update_req)
             .await?;
 
+        // Trigger offboarding checklist if lifecycle service is registered
+        if let Some(ref lifecycle_service) = self.lifecycle_service {
+            if let Err(e) = lifecycle_service
+                .auto_trigger_offboarding(auth_token.workspace_id(), employment_id, None)
+                .await
+            {
+                tracing::warn!(
+                    "Failed to auto-trigger offboarding checklist for employment {}: {:?}",
+                    employment_id,
+                    e
+                );
+            }
+        }
+
         // 4. Calculate prorated leave balance for the year of termination
         let year = termination_date.year();
         let start_of_year = chrono::NaiveDate::from_ymd_opt(year, 1, 1)
@@ -561,6 +630,165 @@ impl EmployeeService {
         }
 
         Ok(updated_employment)
+    }
+
+    #[tracing::instrument(skip_all, err)]
+    pub async fn get_compensation_history(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_id: Uuid,
+        filter_employment_id: Option<Uuid>,
+    ) -> Result<Vec<crate::models::CompensationTimelineEvent>, AppError> {
+        let workspace_id = auth_token.workspace_id();
+        let payroll_repo = self.payroll_repo.as_ref().ok_or_else(|| {
+            AppError::Internal("Payroll repository is not configured on EmployeeService".to_string())
+        })?;
+        let employer_repo = self.employer_repo.as_ref().ok_or_else(|| {
+            AppError::Internal("Employer repository is not configured on EmployeeService".to_string())
+        })?;
+
+        // 1. Fetch all employments for this employee
+        let mut employments = self
+            .employment_repo
+            .list_employee_employments(auth_token, employee_id)
+            .await?;
+
+        // 2. Filter employments if requested
+        if let Some(target_id) = filter_employment_id {
+            employments.retain(|e| e.id() == target_id);
+        }
+
+        if employments.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let employment_ids: Vec<Uuid> = employments.iter().map(|e| e.id()).collect();
+
+        // 3. Fetch all salary component changes for these employments
+        let components_history = payroll_repo
+            .get_salary_components_history_for_employments(workspace_id, &employment_ids)
+            .await?;
+
+        // 4. Resolve employer names to avoid N+1 queries
+        let mut employer_ids: Vec<Uuid> = employments.iter().map(|e| e.employer_id()).collect();
+        employer_ids.sort();
+        employer_ids.dedup();
+        
+        let mut employer_names = std::collections::HashMap::new();
+        for emp_id in employer_ids {
+            if let Some(employer) = employer_repo.get_employer_by_id(auth_token, emp_id).await? {
+                employer_names.insert(emp_id, employer.name.to_string());
+            }
+        }
+
+        // 5. Resolve department names to avoid N+1 queries
+        let mut dept_ids: Vec<Uuid> = employments.iter().filter_map(|e| e.department_id()).collect();
+        dept_ids.sort();
+        dept_ids.dedup();
+
+        let mut department_names = std::collections::HashMap::new();
+        for d_id in dept_ids {
+            if let Some(dept) = self.dept_repo.get_department_by_id(auth_token, d_id).await? {
+                department_names.insert(d_id, dept.name().to_string());
+            }
+        }
+
+        // Map employments by ID for quick lookup
+        let employments_map: std::collections::HashMap<Uuid, &crate::models::employment::Employment> =
+            employments.iter().map(|e| (e.id(), e)).collect();
+
+        // Identify distinct chronological keys (employment_id, effective_date)
+        let mut timeline_keys: Vec<(Uuid, chrono::NaiveDate)> = components_history
+            .iter()
+            .map(|(esc, _)| (esc.employment_id, esc.effective_date))
+            .collect();
+        timeline_keys.sort_by(|a, b| a.1.cmp(&b.1).then_with(|| a.0.cmp(&b.0)));
+        timeline_keys.dedup();
+
+        let mut active_components: std::collections::HashMap<
+            Uuid,
+            std::collections::HashMap<Uuid, (crate::models::EmployeeSalaryComponent, crate::models::SalaryComponentDefinition)>,
+        > = std::collections::HashMap::new();
+
+        let mut timeline_events = Vec::new();
+        let mut previous_total: Option<rust_decimal::Decimal> = None;
+        let mut previous_employment_id: Option<Uuid> = None;
+
+        for (emp_id, eff_date) in timeline_keys {
+            let emp = match employments_map.get(&emp_id) {
+                Some(e) => e,
+                None => continue,
+            };
+
+            let emp_components = active_components.entry(emp_id).or_insert_with(std::collections::HashMap::new);
+
+            for (esc, scd) in &components_history {
+                if esc.employment_id == emp_id && esc.effective_date == eff_date {
+                    emp_components.insert(esc.component_definition_id, (esc.clone(), scd.clone()));
+                }
+            }
+
+            let mut event_components: Vec<crate::models::SalaryComponentWithDefinition> = emp_components
+                .values()
+                .map(|(esc, scd)| crate::models::SalaryComponentWithDefinition {
+                    component: esc.clone(),
+                    definition: scd.clone(),
+                })
+                .collect();
+
+            event_components.sort_by(|a, b| a.definition.code.cmp(&b.definition.code));
+
+            let total_compensation: rust_decimal::Decimal = event_components
+                .iter()
+                .map(|c| c.component.amount)
+                .sum();
+
+            let change_type = if previous_total.is_none() {
+                "initial".to_string()
+            } else if Some(emp_id) != previous_employment_id {
+                "transfer".to_string()
+            } else {
+                "adjustment".to_string()
+            };
+
+            let delta = match previous_total {
+                Some(prev) => total_compensation - prev,
+                None => total_compensation,
+            };
+
+            let employer_name = employer_names
+                .get(&emp.employer_id())
+                .cloned()
+                .unwrap_or_else(|| "Unknown Employer".to_string());
+            let department_name = emp.department_id().and_then(|id| department_names.get(&id).cloned());
+
+            let event = crate::models::CompensationTimelineEvent {
+                effective_date: eff_date,
+                employment: crate::models::CompensationEmploymentContext {
+                    id: emp_id,
+                    employer_name,
+                    department_name,
+                    job_title: emp.job_title().map(|s| s.to_string()),
+                },
+                components: event_components,
+                total_compensation,
+                change_type,
+                change_details: crate::models::CompensationChangeDetails {
+                    previous_total,
+                    delta,
+                },
+            };
+
+            timeline_events.push(event);
+
+            previous_total = Some(total_compensation);
+            previous_employment_id = Some(emp_id);
+        }
+
+        // Return newest first
+        timeline_events.reverse();
+
+        Ok(timeline_events)
     }
 }
 

@@ -6,6 +6,7 @@ import { DashboardErrorBanner } from "@/components/features/dashboard/dashboard-
 import { DashboardHeader } from "@/components/features/dashboard/dashboard-header";
 import { DashboardHrTab } from "@/components/features/dashboard/dashboard-hr-tab";
 import { DashboardSystemTab } from "@/components/features/dashboard/dashboard-system-tab";
+import PendingTasksWidget from "@/components/features/dashboard/pending-tasks-widget";
 import { useAgentsStatus } from "@/hooks/use-agents";
 import { useCurrency } from "@/hooks/use-currency";
 import { useDashboardStats } from "@/hooks/use-dashboard";
@@ -63,6 +64,8 @@ export default function DashboardPage() {
         activeView={activeView} setActiveView={setActiveView} setCustomizeOpen={() => { setCustomizeOpen(true); }}
         setShowSystemTab={setShowSystemTab} showSystemTab={showSystemTab} t={t}
       />
+
+      <PendingTasksWidget />
 
       <div className="animate-in slide-in-from-bottom-4 duration-700">
         {!showSystemTab ? (

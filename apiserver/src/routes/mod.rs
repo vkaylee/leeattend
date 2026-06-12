@@ -1,10 +1,12 @@
 pub mod attendance;
 pub mod auth;
+pub mod custom_fields;
 pub mod dashboard;
 pub mod employees;
 pub mod ess;
 pub mod feature_flags;
 pub mod leaves;
+pub mod lifecycle;
 pub mod notifications;
 pub mod payroll;
 pub mod reports;

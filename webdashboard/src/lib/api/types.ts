@@ -221,6 +221,12 @@ export type Payslip = components["schemas"]["Payslip"] & {
   salary_components?: SalaryComponentWithDefinition[];
 };
 
+export type CompensationHistoryResponse = components["schemas"]["CompensationHistoryResponse"];
+export type CompensationTimelineEvent = components["schemas"]["CompensationTimelineEvent"];
+export type CompensationChangeDetails = components["schemas"]["CompensationChangeDetails"];
+export type CompensationEmploymentContext = components["schemas"]["CompensationEmploymentContext"];
+
+
 export interface RuleCondition {
   metric: string;
   operator: string;
@@ -511,3 +517,31 @@ export type OvertimeRequestDetail = components["schemas"]["OvertimeRequestDetail
 export type CreateOvertimeRequestPayload = components["schemas"]["CreateOvertimeRequestPayload"];
 export type BehalfAssignment = components["schemas"]["BehalfAssignment"];
 export type CreateBehalfAssignmentRequest = components["schemas"]["CreateBehalfAssignmentRequest"];
+
+// --- Custom Fields Models ---
+export type CustomFieldDefinition = components["schemas"]["CustomFieldDefinition"];
+export type CreateCustomFieldDefinitionRequest = components["schemas"]["CreateCustomFieldDefinitionRequest"];
+export type UpdateCustomFieldDefinitionRequest = components["schemas"]["UpdateCustomFieldDefinitionRequest"];
+export type SetCustomFieldValueRequest = components["schemas"]["SetCustomFieldValueRequest"];
+export type BulkSetCustomFieldValuesRequest = components["schemas"]["BulkSetCustomFieldValuesRequest"];
+export type CustomFieldValueResponse = components["schemas"]["CustomFieldValueResponse"];
+
+// --- Lifecycle Onboarding/Offboarding Models ---
+export type LifecycleChecklistTemplate = components["schemas"]["LifecycleChecklistTemplate"];
+export type CreateLifecycleChecklistTemplateRequest = components["schemas"]["CreateLifecycleChecklistTemplateRequest"];
+export type UpdateLifecycleChecklistTemplateRequest = components["schemas"]["UpdateLifecycleChecklistTemplateRequest"];
+export type LifecycleChecklistTemplateItem = components["schemas"]["LifecycleChecklistTemplateItem"];
+export type CreateLifecycleChecklistTemplateItemRequest = components["schemas"]["CreateLifecycleChecklistTemplateItemRequest"];
+export type UpdateLifecycleChecklistTemplateItemRequest = components["schemas"]["UpdateLifecycleChecklistTemplateItemRequest"];
+export type LifecycleChecklistResponse = components["schemas"]["LifecycleChecklistResponse"];
+export type LifecycleChecklistItem = components["schemas"]["LifecycleChecklistItem"];
+export type ChecklistItemStatus = components["schemas"]["ChecklistItemStatus"];
+export type CreateChecklistRequest = components["schemas"]["CreateChecklistRequest"];
+export type PendingTaskResponse = components["schemas"]["PendingTaskResponse"];
+export type UpdateChecklistItemStatusRequest = components["schemas"]["UpdateChecklistItemStatusRequest"];
+export type ChecklistCategory = components["schemas"]["ChecklistCategory"];
+export type ChecklistAssigneeType = components["schemas"]["ChecklistAssigneeType"];
+export type ChecklistStatus = components["schemas"]["ChecklistStatus"];
+export type LifecycleChecklistType = components["schemas"]["LifecycleChecklistType"];
+
+

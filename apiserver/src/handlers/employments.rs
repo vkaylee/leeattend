@@ -34,11 +34,25 @@ pub async fn list_employee_employments(
 ) -> AppResult<Json<Vec<Employment>>> {
     let (_ws_id, employee_id) = params;
 
-    let list = state
+    let mut list = state
         .employees()
         .employment_repo()
         .list_employee_employments(&ctx.auth_token, employee_id)
         .await?;
+
+    if !list.is_empty() {
+        let entity_ids: Vec<Uuid> = list.iter().map(Employment::id).collect();
+        let mut custom_fields_map = state
+            .core()
+            .custom_field_service()
+            .get_values_for_entities(ctx.workspace_id, &entity_ids)
+            .await?;
+        for emp in &mut list {
+            if let Some(fields) = custom_fields_map.remove(&emp.id()) {
+                *emp = emp.clone().with_custom_fields(fields);
+            }
+        }
+    }
 
     Ok(Json(list))
 }
@@ -63,12 +77,20 @@ pub async fn get_employment(
 ) -> AppResult<Json<Employment>> {
     let (_ws_id, _employee_id, employment_id) = params;
 
-    let emp = state
+    let mut emp = state
         .employees()
         .employment_repo()
         .get_employment_by_id(&ctx.auth_token, employment_id)
         .await?
         .ok_or_else(|| AppError::not_found(I18nKey::EmploymentNotFound))?;
+
+    let custom_fields = state
+        .core()
+        .custom_field_service()
+        .get_values_for_entity(ctx.workspace_id, employment_id)
+        .await?;
+
+    emp = emp.with_custom_fields(custom_fields);
 
     Ok(Json(emp))
 }
@@ -94,11 +116,19 @@ pub async fn create_employment(
 ) -> AppResult<(StatusCode, Json<Employment>)> {
     let (_ws_id, _employee_id) = params;
 
-    let emp = state
+    let mut emp = state
         .employees()
         .service()
         .create_employment(&ctx.auth_token, &payload)
         .await?;
+
+    let custom_fields = state
+        .core()
+        .custom_field_service()
+        .get_values_for_entity(ctx.workspace_id, emp.id())
+        .await?;
+
+    emp = emp.with_custom_fields(custom_fields);
 
     Ok((StatusCode::CREATED, Json(emp)))
 }
@@ -125,11 +155,19 @@ pub async fn update_employment(
 ) -> AppResult<Json<Employment>> {
     let (_ws_id, _employee_id, employment_id) = params;
 
-    let emp = state
+    let mut emp = state
         .employees()
         .service()
         .update_employment(&ctx.auth_token, employment_id, &payload)
         .await?;
+
+    let custom_fields = state
+        .core()
+        .custom_field_service()
+        .get_values_for_entity(ctx.workspace_id, employment_id)
+        .await?;
+
+    emp = emp.with_custom_fields(custom_fields);
 
     Ok(Json(emp))
 }

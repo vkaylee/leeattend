@@ -142,6 +142,7 @@ async fn test_get_all_employees_includes_department_name() {
                 sort_dir: None,
                 department_ids: None,
                 permission: None,
+                filter_ids: None,
             },
         )
         .await
