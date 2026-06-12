@@ -106,9 +106,7 @@ describe("PayrollRulesManager", () => {
     const codeInput = screen.getByPlaceholderText(/BHXH/i);
     await user.type(codeInput, "HI");
 
-    // The label has an SVG icon inside, so getByLabelText might fail if not matched correctly.
-    // Let's find by role and then check for "Rate"
-    const rateInput = screen.getByRole("spinbutton");
+    const rateInput = screen.getByRole("dialog").querySelector("#rule-rate") as HTMLInputElement;
     await user.clear(rateInput);
     await user.type(rateInput, "1.5");
 

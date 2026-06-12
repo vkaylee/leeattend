@@ -66,30 +66,60 @@ function RuleBasicFields({
           </select>
         </div>
       </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="space-y-3 px-1">
+          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-applies-to">Applies To</label>
+          <select className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all uppercase tracking-tight shadow-sm" id="rule-applies-to" onChange={e => { setFormData({...formData, applies_to: e.target.value as "employee" | "employer"}); }} required value={formData.applies_to}>
+            <option value="employee">Employee (Người lao động đóng)</option>
+            <option value="employer">Employer (Doanh nghiệp đóng thêm)</option>
+          </select>
+        </div>
+        <div className="space-y-3 px-1">
+          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-display-order">Display Order</label>
+          <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all tracking-tight shadow-sm" id="rule-display-order" min="1" onChange={e => { setFormData({...formData, display_order: parseInt(e.target.value) || 1}); }} required type="number" value={formData.display_order ?? 1} />
+        </div>
+      </div>
     </>
   );
 }
 
 function PercentageConfig({ formData, setFormData, bases }: { formData: Partial<PayrollRuleDefinition>; setFormData: (data: Partial<PayrollRuleDefinition>) => void; bases: SalaryBaseGroup[]; }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-      <div className="space-y-3">
-        <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1" htmlFor="rule-rate"><Percent size={12}/> Rate (%)</label>
-        <input className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm" id="rule-rate" onChange={e => { setFormData({...formData, rule_config: {...(formData.rule_config as Record<string, unknown>), rate: parseFloat(e.target.value)}}); }} required step="0.01" type="number" value={((formData.rule_config as { rate?: number } | undefined)?.rate) ?? ""} />
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="space-y-3">
+          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1" htmlFor="rule-rate"><Percent size={12}/> Rate (%)</label>
+          <input className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm" id="rule-rate" onChange={e => { setFormData({...formData, rule_config: {...(formData.rule_config as Record<string, unknown>), rate: parseFloat(e.target.value)}}); }} required step="0.01" type="number" value={((formData.rule_config as { rate?: number } | undefined)?.rate) ?? ""} />
+        </div>
+        <div className="space-y-3">
+          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-calc-base">Calculation Base</label>
+          <select className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm uppercase tracking-tight" id="rule-calc-base" onChange={e => { setFormData({...formData, rule_config: {...(formData.rule_config as Record<string, unknown>), base: e.target.value}}); }} required value={((formData.rule_config as { base?: string } | undefined)?.base) ?? "gross"}>
+            {bases.map(b => (
+              <option key={b.slug} value={b.slug}>{b.name}</option>
+            ))}
+            {bases.length === 0 ? (
+              <>
+                <option value="gross">Gross Salary (Total)</option>
+                <option value="taxable_income">Taxable Income</option>
+              </>
+            ) : null}
+          </select>
+        </div>
       </div>
       <div className="space-y-3">
-        <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-calc-base">Calculation Base</label>
-        <select className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm uppercase tracking-tight" id="rule-calc-base" onChange={e => { setFormData({...formData, rule_config: {...(formData.rule_config as Record<string, unknown>), base: e.target.value}}); }} required value={((formData.rule_config as { base?: string } | undefined)?.base) ?? "gross"}>
-          {bases.map(b => (
-            <option key={b.slug} value={b.slug}>{b.name}</option>
-          ))}
-          {bases.length === 0 ? (
-            <>
-              <option value="gross">Gross Salary (Total)</option>
-              <option value="taxable_income">Taxable Income</option>
-            </>
-          ) : null}
-        </select>
+        <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-cap">Cap Amount (Giới hạn trần tối đa - ₫)</label>
+        <input className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm" id="rule-cap" onChange={e => {
+          const val = e.target.value ? parseFloat(e.target.value) : undefined;
+          setFormData({
+            ...formData,
+            rule_config: {
+              ...(formData.rule_config as Record<string, unknown>),
+              cap_amount: val
+            }
+          });
+        }} placeholder="Để trống nếu không có giới hạn trần đóng (e.g. 4048000)" type="number" value={((formData.rule_config as { cap_amount?: number } | undefined)?.cap_amount) ?? ""} />
+        <Typography className="text-xs text-slate-500 dark:text-slate-400 mt-2 ml-1 italic" variant="p">Nếu số tiền khấu trừ tính theo tỷ lệ vượt quá mức trần này, hệ thống sẽ lấy đúng bằng mức trần này.</Typography>
       </div>
     </div>
   );
@@ -224,10 +254,28 @@ interface RuleRowProps {
 
 function getRuleSubtitle(rule: PayrollRuleDefinition): string {
   const parts: string[] = [rule.category, rule.calculation_method];
-  if (rule.calculation_method === "percentage" && rule.rule_config && typeof rule.rule_config === "object" && 'rate' in rule.rule_config) {
-    parts.push(`(${String((rule.rule_config as { rate: number }).rate)}%)`);
-  } else if (rule.calculation_method === "fixed") {
-    parts.push("(Fixed Amount)");
+  if (rule.calculation_method === "percentage" && rule.rule_config && typeof rule.rule_config === "object") {
+    const config = rule.rule_config as { rate?: number; cap_amount?: number; base?: string };
+    if (config.rate !== undefined) {
+      let details = `${config.rate}%`;
+      if (config.base) {
+        details += ` on ${config.base}`;
+      }
+      if (config.cap_amount !== undefined && config.cap_amount !== null) {
+        details += ` • Cap: ${config.cap_amount.toLocaleString()} ₫`;
+      }
+      parts.push(`(${details})`);
+    }
+  } else if (rule.calculation_method === "fixed" && rule.rule_config && typeof rule.rule_config === "object") {
+    const config = rule.rule_config as { amount?: number };
+    if (config.amount !== undefined) {
+      parts.push(`(${config.amount.toLocaleString()} ₫)`);
+    }
+  } else if (rule.calculation_method === "tiered" && rule.rule_config && typeof rule.rule_config === "object") {
+    const config = rule.rule_config as { base?: string };
+    if (config.base) {
+      parts.push(`(on ${config.base})`);
+    }
   }
   return parts.join(" • ");
 }
