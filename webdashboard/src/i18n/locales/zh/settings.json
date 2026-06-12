@@ -476,7 +476,25 @@
         "tax_code_label": "纳税识别号",
         "tax_code_placeholder": "请输入纳税识别号",
         "legal_address_label": "法定地址",
-        "legal_address_placeholder": "请输入法定地址"
+        "legal_address_placeholder": "请输入法定地址",
+        "section_general": "基本信息",
+        "section_legal": "法律信息",
+        "business_type_label": "企业类型",
+        "business_type_placeholder": "请选择类型...",
+        "registration_number_label": "工商注册号",
+        "registration_number_placeholder": "请输入注册号...",
+        "incorporation_date_label": "成立日期",
+        "section_contact": "联系与财务信息",
+        "phone_label": "电话号码",
+        "phone_placeholder": "请输入电话号码...",
+        "email_label": "电子邮箱",
+        "email_placeholder": "请输入电子邮箱...",
+        "website_label": "官方网站",
+        "website_placeholder": "https://example.com",
+        "country_code_label": "国家代码 (ISO 3166-1 alpha-3)",
+        "country_code_placeholder": "例如: VNM, USA",
+        "currency_code_label": "货币代码 (例如: VND, USD)",
+        "currency_code_placeholder": "例如: VND, USD"
       },
       "error_name_required": "名称为必填项"
     }

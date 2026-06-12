@@ -476,7 +476,25 @@
         "tax_code_label": "Tax Code",
         "tax_code_placeholder": "Enter tax code",
         "legal_address_label": "Legal Address",
-        "legal_address_placeholder": "Enter legal address"
+        "legal_address_placeholder": "Enter legal address",
+        "section_general": "General Information",
+        "section_legal": "Legal Information",
+        "business_type_label": "Business Type",
+        "business_type_placeholder": "Select type...",
+        "registration_number_label": "Registration Number",
+        "registration_number_placeholder": "Enter registration number...",
+        "incorporation_date_label": "Incorporation Date",
+        "section_contact": "Contact & Financial Information",
+        "phone_label": "Phone Number",
+        "phone_placeholder": "Enter phone number...",
+        "email_label": "Email Address",
+        "email_placeholder": "Enter email address...",
+        "website_label": "Website",
+        "website_placeholder": "https://example.com",
+        "country_code_label": "Country Code (ISO 3166-1 alpha-3)",
+        "country_code_placeholder": "e.g., VNM, USA",
+        "currency_code_label": "Currency Code (e.g., VND, USD)",
+        "currency_code_placeholder": "e.g., VND, USD"
       },
       "error_name_required": "Name is required"
     }

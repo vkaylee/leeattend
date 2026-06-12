@@ -476,7 +476,25 @@
         "tax_code_label": "Mã số thuế",
         "tax_code_placeholder": "Nhập mã số thuế",
         "legal_address_label": "Địa chỉ pháp lý",
-        "legal_address_placeholder": "Nhập địa chỉ pháp lý"
+        "legal_address_placeholder": "Nhập địa chỉ pháp lý",
+        "section_general": "Thông tin chung",
+        "section_legal": "Thông tin pháp lý",
+        "business_type_label": "Loại hình doanh nghiệp",
+        "business_type_placeholder": "Chọn loại hình...",
+        "registration_number_label": "Số đăng ký kinh doanh",
+        "registration_number_placeholder": "Nhập số ĐKKD...",
+        "incorporation_date_label": "Ngày thành lập",
+        "section_contact": "Thông tin liên hệ & Tài chính",
+        "phone_label": "Số điện thoại",
+        "phone_placeholder": "Nhập số điện thoại...",
+        "email_label": "Địa chỉ email",
+        "email_placeholder": "Nhập địa chỉ email...",
+        "website_label": "Trang web",
+        "website_placeholder": "https://example.com",
+        "country_code_label": "Mã quốc gia (ISO 3166-1 alpha-3)",
+        "country_code_placeholder": "Ví dụ: VNM, USA",
+        "currency_code_label": "Mã tiền tệ (Ví dụ: VND, USD)",
+        "currency_code_placeholder": "Ví dụ: VND, USD"
       },
       "error_name_required": "Yêu cầu nhập tên"
     }
