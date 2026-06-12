@@ -312,7 +312,9 @@
       },
       "details": {
         "previous_total": "先前总薪资: {{amount}}"
-      }
+      },
+      "no_history_desc": "更新后，员工薪资历史和津贴明细将显示在此处。",
+      "fetch_error": "无法加载薪资历史。"
     },
     "select_workspace": "请选择工作区",
     "hire_date": "入职日期",

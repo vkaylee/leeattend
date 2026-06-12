@@ -310,7 +310,9 @@
       "locations": "Work Locations",
       "locations_desc": "Manage physical branches and locations.",
       "workflows": "Approval Workflows",
-      "workflows_desc": "Manage approval workflows for requests."
+      "workflows_desc": "Manage approval workflows for requests.",
+      "lifecycle": "Lifecycle Checklists",
+      "lifecycle_desc": "Manage onboarding and offboarding checklist templates"
     },
     "locations": {
       "add": "Add Location",
@@ -496,7 +498,14 @@
         "currency_code_label": "Currency Code (e.g., VND, USD)",
         "currency_code_placeholder": "e.g., VND, USD"
       },
-      "error_name_required": "Name is required"
-    }
+      "error_name_required": "Name is required",
+      "incorporation_date": "Incorporation Date",
+      "registration_number": "Registration No.",
+      "financial": "Financial Region",
+      "error_country_code_invalid": "Country code must be exactly 3 characters (e.g., VNM, USA)",
+      "error_currency_code_invalid": "Currency code must be exactly 3 characters (e.g., VND, USD)"
+    },
+    "expand_sidebar": "Expand sidebar",
+    "collapse_sidebar": "Collapse sidebar"
   }
 }

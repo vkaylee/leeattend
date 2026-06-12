@@ -310,7 +310,9 @@
       "locations": "办公地点",
       "locations_desc": "管理物理分支机构和办公地点。",
       "workflows": "审批工作流",
-      "workflows_desc": "管理各类申请的审批流程"
+      "workflows_desc": "管理各类申请的审批流程",
+      "lifecycle": "入离职流程清单",
+      "lifecycle_desc": "管理入职和离职清单模板"
     },
     "locations": {
       "add": "添加地点",
@@ -496,7 +498,14 @@
         "currency_code_label": "货币代码 (例如: VND, USD)",
         "currency_code_placeholder": "例如: VND, USD"
       },
-      "error_name_required": "名称为必填项"
-    }
+      "error_name_required": "名称为必填项",
+      "incorporation_date": "成立日期",
+      "registration_number": "登记号",
+      "financial": "财务区域",
+      "error_country_code_invalid": "国家代码必须恰好是3个字符（例如：VNM、USA）",
+      "error_currency_code_invalid": "货币代码必须恰好是3个字符（例如：VND、USD）"
+    },
+    "expand_sidebar": "展开侧边栏",
+    "collapse_sidebar": "收起侧边栏"
   }
 }

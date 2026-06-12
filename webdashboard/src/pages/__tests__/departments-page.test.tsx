@@ -141,8 +141,10 @@ describe("DepartmentsPage", () => {
     // Wait for data to load
     await screen.findByText("Engineering");
 
-    // Use title which we added during modernization
-    const editButton = await screen.findByTitle(/common.edit/i);
+    // Open actions dropdown menu and click Edit
+    const actionsButton = await screen.findByRole("button", { name: /departments.columns.actions/i });
+    await user.click(actionsButton);
+    const editButton = await screen.findByText(/common.edit/i);
     await user.click(editButton);
 
     const nameInput = await screen.findByLabelText(/departments.form.name_label/i);
@@ -167,7 +169,10 @@ describe("DepartmentsPage", () => {
 
     await screen.findByText("Engineering");
     
-    const deleteButton = await screen.findByTitle(/common.delete/i);
+    // Open actions dropdown menu and click Delete
+    const actionsButton = await screen.findByRole("button", { name: /departments.columns.actions/i });
+    await user.click(actionsButton);
+    const deleteButton = await screen.findByText(/common.delete/i);
     await user.click(deleteButton);
 
     // Confirm the useConfirm modal
@@ -186,8 +191,10 @@ describe("DepartmentsPage", () => {
     // Wait for departments to load
     await screen.findByText("Engineering");
     
-    // Open edit modal
-    const editButton = await screen.findByTitle(/common.edit/i);
+    // Open edit modal via actions dropdown
+    const actionsButton = await screen.findByRole("button", { name: /departments.columns.actions/i });
+    await user.click(actionsButton);
+    const editButton = await screen.findByText(/common.edit/i);
     await user.click(editButton);
     
     // Find the hidden select element used for the combobox

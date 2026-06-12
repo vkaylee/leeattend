@@ -310,7 +310,9 @@
       "locations": "Địa điểm",
       "locations_desc": "Quản lý các chi nhánh và địa điểm làm việc.",
       "workflows": "Quy trình duyệt",
-      "workflows_desc": "Quản lý quy trình phê duyệt các yêu cầu."
+      "workflows_desc": "Quản lý quy trình phê duyệt các yêu cầu.",
+      "lifecycle": "Quy trình Nhân sự",
+      "lifecycle_desc": "Quản lý các mẫu danh sách việc cần làm khi tiếp nhận và bàn giao nhân sự"
     },
     "locations": {
       "add": "Thêm địa điểm",
@@ -496,7 +498,14 @@
         "currency_code_label": "Mã tiền tệ (Ví dụ: VND, USD)",
         "currency_code_placeholder": "Ví dụ: VND, USD"
       },
-      "error_name_required": "Yêu cầu nhập tên"
-    }
+      "error_name_required": "Yêu cầu nhập tên",
+      "incorporation_date": "Thành lập",
+      "registration_number": "ĐKKD",
+      "financial": "Khu vực tài chính",
+      "error_country_code_invalid": "Mã quốc gia phải gồm đúng 3 ký tự (Ví dụ: VNM, USA)",
+      "error_currency_code_invalid": "Mã tiền tệ phải gồm đúng 3 ký tự (Ví dụ: VND, USD)"
+    },
+    "expand_sidebar": "Mở rộng thanh bên",
+    "collapse_sidebar": "Thu gọn thanh bên"
   }
 }

@@ -10,7 +10,20 @@
     "messages": {
       "no_departments": "Chưa có phòng ban nào được tạo.",
       "confirm_delete": "Xóa phòng ban này?",
-      "empty_desc": "Tổ chức chưa có phòng ban nào. Hãy bắt đầu bằng cách tạo cấu hình đầu tiên."
+      "empty_desc": "Tổ chức chưa có phòng ban nào. Hãy bắt đầu bằng cách tạo cấu hình đầu tiên.",
+      "no_results": "Không tìm thấy phòng ban nào phù hợp với điều kiện tìm kiếm."
+    },
+    "search_placeholder": "Tìm kiếm phòng ban...",
+    "filter_manager_label": "Lọc theo quản lý",
+    "all_managers": "Tất cả quản lý",
+    "view_grid": "Dạng lưới",
+    "view_list": "Dạng danh sách",
+    "columns": {
+      "name": "Tên phòng ban",
+      "desc": "Mô tả",
+      "manager": "Trưởng phòng",
+      "employees": "Số nhân viên",
+      "actions": "Thao tác"
     },
     "form": {
       "name_label": "Tên phòng ban",
@@ -24,6 +37,12 @@
       "edit_title": "Sửa phòng ban",
       "subtitle": "Cơ cấu tổ chức",
       "submit_btn": "Tạo phòng ban"
+    },
+    "drawer": {
+      "title": "Chi tiết phòng ban",
+      "tab_employees": "Nhân sự",
+      "tab_settings": "Cấu hình",
+      "empty_employees": "Chưa có nhân viên nào trong phòng ban này."
     },
     "label": "Phòng ban"
   }

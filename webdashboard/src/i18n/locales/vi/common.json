@@ -609,7 +609,8 @@
         "operations": "Vận hành",
         "security_system": "An ninh & Hệ thống",
         "access": "Truy cập"
-      }
+      },
+      "notes_title": "Lưu ý"
     },
     "logout": "Đăng xuất",
     "switch_workspace": "Chuyển cơ sở",
@@ -1203,7 +1204,9 @@
     "key": "Key",
     "scope": "Scope",
     "value": "Value",
-    "not_assigned": "Chưa gán"
+    "not_assigned": "Chưa gán",
+    "reset": "Đặt lại",
+    "no_title": "Không có chức danh"
   },
   "dashboard": {
     "title": "Bảng điều khiển",
@@ -1328,6 +1331,14 @@
       "summary": "Tóm tắt hôm nay",
       "charts": "Biểu đồ phân tích",
       "actions": "Thao tác nhanh"
+    },
+    "lifecycle": {
+      "due": "Hạn chót: {{date}}",
+      "overdue": "Quá hạn: {{date}}",
+      "pending_tasks_title": "NHIỆM VỤ ĐANG CHỜ",
+      "task_completed_failed": "Hoàn thành nhiệm vụ thất bại",
+      "task_completed_success": "Đã đánh dấu hoàn thành nhiệm vụ",
+      "task_for_employee": "Dành cho {{name}}"
     }
   },
   "auth": {

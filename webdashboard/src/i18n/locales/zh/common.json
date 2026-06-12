@@ -609,7 +609,8 @@
         "operations": "运营",
         "security_system": "安全与系统",
         "access": "访问控制"
-      }
+      },
+      "notes_title": "注意"
     },
     "logout": "退出登录",
     "switch_workspace": "切换工作空间",
@@ -1203,7 +1204,9 @@
     "key": "Key",
     "scope": "Scope",
     "value": "Value",
-    "not_assigned": "未分配"
+    "not_assigned": "未分配",
+    "reset": "重置",
+    "no_title": "无职位"
   },
   "dashboard": {
     "title": "仪表板",
@@ -1328,6 +1331,14 @@
       "summary": "摘要",
       "charts": "图表",
       "actions": "操作"
+    },
+    "lifecycle": {
+      "due": "截止日期: {{date}}",
+      "overdue": "已逾期: {{date}}",
+      "pending_tasks_title": "待办任务",
+      "task_completed_failed": "完成任务失败",
+      "task_completed_success": "任务已标记为完成",
+      "task_for_employee": "针对 {{name}}"
     }
   },
   "auth": {

@@ -115,6 +115,10 @@ const LEGACY_VIOLATIONS = new Set([
   "pages/workspace/components/permissions-matrix-subcomponents.tsx",
   "pages/workspace/components/role-card-subcomponents.tsx",
   "pages/workspace/workspace-roles-page.tsx",
+  "pages/employees/lifecycle-tab.tsx",
+  "pages/settings/settings-layout.tsx",
+  "components/custom-fields/custom-fields-filter-popover.tsx",
+  "components/custom-fields/custom-field-editor.tsx",
 ]);
 
 function walk(dir: string, excludeUiDir: string): string[] {

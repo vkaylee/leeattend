@@ -10,7 +10,20 @@
     "messages": {
       "no_departments": "尚未创建部门。",
       "confirm_delete": "删除此部门？",
-      "empty_desc": "组织中没有部门。从创建第一个部门开始。"
+      "empty_desc": "组织中没有部门。从创建第一个部门开始。",
+      "no_results": "没有找到符合搜索条件的部门。"
+    },
+    "search_placeholder": "搜索部门...",
+    "filter_manager_label": "按经理过滤",
+    "all_managers": "所有经理",
+    "view_grid": "网格视图",
+    "view_list": "列表视图",
+    "columns": {
+      "name": "部门名称",
+      "desc": "描述",
+      "manager": "经理",
+      "employees": "在职员工",
+      "actions": "操作"
     },
     "form": {
       "name_label": "部门名称",
@@ -24,6 +37,12 @@
       "edit_title": "编辑部门",
       "subtitle": "组织结构",
       "submit_btn": "创建部门"
+    },
+    "drawer": {
+      "title": "部门详情",
+      "tab_employees": "在职员工",
+      "tab_settings": "配置",
+      "empty_employees": "该部门中尚无员工。"
     },
     "label": "部门"
   }

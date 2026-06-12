@@ -312,7 +312,9 @@
       },
       "details": {
         "previous_total": "Tổng lương trước đó: {{amount}}"
-      }
+      },
+      "no_history_desc": "Dữ liệu lịch sử lương và các thành phần phụ cấp của nhân viên sẽ xuất hiện tại đây khi được cập nhật.",
+      "fetch_error": "Không thể tải lịch sử lương."
     },
     "select_workspace": "Vui lòng chọn Không gian làm việc",
     "hire_date": "Ngày vào làm",

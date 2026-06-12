@@ -4,6 +4,8 @@ import { render, screen, fireEvent } from "@testing-library/react";
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+import { ToastProvider } from "../../components/ui/toast";
+
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ children, to }: { children: React.ReactNode; to: string }) => <a href={to}>{children}</a>,
 }));
@@ -133,9 +135,11 @@ describe("DashboardPage", () => {
 
   const renderComponent = () => {
     return render(
-      <QueryClientProvider client={queryClient}>
-        <DashboardPage />
-      </QueryClientProvider>
+      <ToastProvider>
+        <QueryClientProvider client={queryClient}>
+          <DashboardPage />
+        </QueryClientProvider>
+      </ToastProvider>
     );
   };
 

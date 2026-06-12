@@ -38,6 +38,12 @@ vi.mock("../employee-phases-tab", () => ({
 vi.mock("../employee-assignments-tab", () => ({
     default: () => <div data-testid="assignments-tab">AssignmentsTab</div>,
 }));
+vi.mock("@/pages/employees/compensation-history-tab", () => ({
+    default: () => <div data-testid="compensation-tab">CompensationTab</div>,
+}));
+vi.mock("@/pages/employees/lifecycle-tab", () => ({
+    default: () => <div data-testid="lifecycle-tab">LifecycleTab</div>,
+}));
 
 const mockMembers = [
     {
@@ -52,6 +58,7 @@ const mockMembers = [
 ];
 
 vi.mock("@/lib/api", () => ({
+    getCurrentWorkspaceId: vi.fn(() => "ws-1"),
     fetchWorkspaceMembers: vi.fn(() => Promise.resolve(mockMembers)),
     updateEmployee: vi.fn(() => Promise.resolve({})),
     fetchEmployeeEmployments: vi.fn((wsId, employeeId) => {
@@ -378,8 +385,8 @@ describe("EmployeeDetailDrawer", () => {
         await user.keyboard("{ArrowRight}");
         expect(screen.getByTestId("salary-config")).toBeDefined();
 
-        // ArrowRight → Policies
-        await user.keyboard("{ArrowRight}");
+        // ArrowRight → Compensation → Policies
+        await user.keyboard("{ArrowRight}{ArrowRight}");
         expect(screen.getByTestId("working-condition")).toBeDefined();
     });
 
@@ -400,18 +407,18 @@ describe("EmployeeDetailDrawer", () => {
         const user = userEvent.setup();
         renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
 
-        // On Profile → ArrowLeft → should wrap to Policies (last tab)
+        // On Profile → ArrowLeft → should wrap to Lifecycle (last tab)
         await user.keyboard("{ArrowLeft}");
-        expect(screen.getByTestId("working-condition")).toBeDefined();
+        expect(screen.getByTestId("lifecycle-tab")).toBeDefined();
     });
 
     it("ArrowRight wraps from last tab to first tab", async () => {
         const user = userEvent.setup();
         renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
 
-        // Navigate to Policies (last tab): Profile(0) -> Contracts(1) -> Phases(2) -> Assignments(3) -> Salary(4) -> Policies(5)
-        await user.keyboard("{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}");
-        expect(screen.getByTestId("working-condition")).toBeDefined();
+        // Navigate to Lifecycle (last tab): Profile(0) -> Contracts(1) -> Phases(2) -> Assignments(3) -> Salary(4) -> Compensation(5) -> Policies(6) -> Lifecycle(7)
+        await user.keyboard("{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}");
+        expect(screen.getByTestId("lifecycle-tab")).toBeDefined();
 
         // ArrowRight → should wrap to Profile
         await user.keyboard("{ArrowRight}");

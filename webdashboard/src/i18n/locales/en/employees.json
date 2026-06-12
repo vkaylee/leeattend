@@ -312,7 +312,9 @@
       },
       "details": {
         "previous_total": "Previous Total: {{amount}}"
-      }
+      },
+      "no_history_desc": "Employee salary history and allowance details will appear here once updated.",
+      "fetch_error": "Failed to load compensation history."
     },
     "select_workspace": "Please select a Workspace",
     "hire_date": "Hire Date",

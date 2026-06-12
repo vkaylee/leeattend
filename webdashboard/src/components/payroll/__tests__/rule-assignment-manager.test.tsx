@@ -41,7 +41,8 @@ vi.mock("@/components/ui/modal", () => {
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string, fallback?: string) => fallback ?? key,
+    t: (key: string, fallback?: string | Record<string, unknown>) => typeof fallback === "string" ? fallback : key,
+    i18n: { language: "en" },
   }),
 }));
 

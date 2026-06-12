@@ -1,11 +1,12 @@
 import type { TFunction } from "i18next";
 
-import { Pencil, Trash2, Building2, UserCircle, Users, Calculator } from "lucide-react";
+import { Pencil, Trash2, Building2, UserCircle, Users, Calculator, MoreHorizontal } from "lucide-react";
 import React from "react";
 
 import type { Department, Employee } from "@/lib/api";
 
 import Button from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
 
@@ -13,12 +14,13 @@ export interface DepartmentCardProps {
   deleteMutationMutate: (id: string) => void;
   dept: Department;
   employees: Employee[];
+  onClick: () => void;
   onConfig: (dept: Department) => void;
   onEdit: (dept: Department) => void;
   t: TFunction;
 }
 
-export function DepartmentCard({ dept, employees, onEdit, onConfig, deleteMutationMutate, t }: DepartmentCardProps) {
+export function DepartmentCard({ dept, employees, onEdit, onConfig, deleteMutationMutate, onClick, t }: DepartmentCardProps) {
   const { confirm, ConfirmationDialog } = useConfirm();
 
   const handleDelete = async () => {
@@ -32,11 +34,52 @@ export function DepartmentCard({ dept, employees, onEdit, onConfig, deleteMutati
 
   return (
     <>
-      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-10 rounded-[2.5rem] shadow-sm hover:shadow-2xl hover:shadow-primary-100/10 hover:scale-[1.02] transition-all group relative overflow-hidden flex flex-col">
-        <div className="absolute top-0 right-0 p-8 flex gap-3 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
-          <Button className="hover:text-emerald-600 dark:hover:text-emerald-300" icon={<Calculator size={18} />} onClick={() => { onConfig(dept); }} size="icon" title={t("payroll.settings.title")} variant="outline" />
-          <Button className="hover:text-primary-600 dark:hover:text-primary-400" icon={<Pencil size={18} />} onClick={() => { onEdit(dept); }} size="icon" title={t("common.edit")} variant="outline" />
-          <Button className="hover:text-rose-600 dark:hover:text-rose-300" icon={<Trash2 size={18} />} onClick={() => { void handleDelete(); }} size="icon" title={t("common.delete")} variant="outline" />
+      <div 
+        className="cursor-pointer text-left bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-10 rounded-[2.5rem] shadow-sm hover:shadow-2xl hover:shadow-primary-100/10 hover:scale-[1.02] transition-all group relative overflow-hidden flex flex-col focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+        onClick={(e) => {
+          if ((e.target as HTMLElement).closest("[data-actions-menu]")) {
+            return;
+          }
+          onClick();
+        }}
+        onKeyDown={(e) => {
+          if ((e.target as HTMLElement).closest("[data-actions-menu]")) {
+            return;
+          }
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onClick();
+          }
+        }}
+        role="button"
+        tabIndex={0}
+      >
+        <div className="absolute top-0 right-0 p-8 z-10" data-actions-menu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                aria-label={t("departments.columns.actions")}
+                className="hover:text-primary-600 dark:hover:text-primary-400"
+                icon={<MoreHorizontal size={18} />}
+                size="icon"
+                variant="outline"
+              />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => { onConfig(dept); }}>
+                <Calculator className="mr-2 h-4 w-4" />
+                {t("payroll.settings.title")}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { onEdit(dept); }}>
+                <Pencil className="mr-2 h-4 w-4" />
+                {t("common.edit")}
+              </DropdownMenuItem>
+              <DropdownMenuItem className="text-rose-600 dark:text-rose-400" onClick={() => { void handleDelete(); }}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                {t("common.delete")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <div className="bg-primary-50 dark:bg-primary-950 w-16 h-16 rounded-[1.5rem] flex items-center justify-center text-primary-600 dark:text-primary-400 mb-8 shadow-inner border border-primary-100 dark:border-primary-800/50 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">

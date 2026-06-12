@@ -609,7 +609,8 @@
         "operations": "Operations",
         "security_system": "Security & System",
         "access": "Access"
-      }
+      },
+      "notes_title": "Note"
     },
     "logout": "Logout",
     "switch_workspace": "Switch Workspace",
@@ -1203,7 +1204,9 @@
     "key": "Key",
     "scope": "Scope",
     "value": "Value",
-    "not_assigned": "Not assigned"
+    "not_assigned": "Not assigned",
+    "reset": "Reset",
+    "no_title": "No Title"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -1328,6 +1331,14 @@
       "summary": "Today's Summary",
       "charts": "Analysis Charts",
       "actions": "Quick Actions"
+    },
+    "lifecycle": {
+      "due": "Due: {{date}}",
+      "overdue": "Overdue: {{date}}",
+      "pending_tasks_title": "YOUR PENDING TASKS",
+      "task_completed_failed": "Failed to complete task",
+      "task_completed_success": "Task marked as completed",
+      "task_for_employee": "For {{name}}"
     }
   },
   "auth": {
