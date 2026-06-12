@@ -4511,12 +4511,21 @@ export interface components {
             user_id?: string | null;
         };
         CreateEmployerRequest: {
+            business_type?: string | null;
+            country_code?: string | null;
+            currency_code?: string | null;
+            email?: string | null;
+            /** Format: date */
+            incorporation_date?: string | null;
             legal_address?: string | null;
             name: string;
             /** Format: uuid */
             parent_id?: string | null;
+            phone?: string | null;
+            registration_number?: string | null;
             relationship_type?: string | null;
             tax_code?: string | null;
+            website?: string | null;
         };
         CreateEmploymentPhaseDefinitionRequest: {
             description?: string | null;
@@ -5151,18 +5160,27 @@ export interface components {
             workspace_id: string;
         };
         Employer: {
+            business_type?: string | null;
+            country_code?: string | null;
             /** Format: date-time */
             created_at: string;
+            currency_code?: string | null;
+            email?: string | null;
             /** Format: uuid */
             id: string;
+            /** Format: date */
+            incorporation_date?: string | null;
             legal_address?: string | null;
             name: string;
             /** Format: uuid */
             parent_id?: string | null;
+            phone?: string | null;
+            registration_number?: string | null;
             relationship_type?: string | null;
             tax_code?: string | null;
             /** Format: date-time */
             updated_at: string;
+            website?: string | null;
             /** Format: uuid */
             workspace_id: string;
         };
@@ -6814,12 +6832,21 @@ export interface components {
             user_id?: string | null;
         };
         UpdateEmployerRequest: {
+            business_type?: string | null;
+            country_code?: string | null;
+            currency_code?: string | null;
+            email?: string | null;
+            /** Format: date */
+            incorporation_date?: string | null;
             legal_address?: string | null;
             name?: string | null;
             /** Format: uuid */
             parent_id?: string | null;
+            phone?: string | null;
+            registration_number?: string | null;
             relationship_type?: string | null;
             tax_code?: string | null;
+            website?: string | null;
         };
         UpdateEmploymentRequest: {
             /** Format: uuid */

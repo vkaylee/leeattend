@@ -1,6 +1,6 @@
 import type { TFunction } from "i18next";
 
-import { Briefcase, FileText, MapPin, Pencil, Trash2, Users } from "lucide-react";
+import { Briefcase, FileText, MapPin, Pencil, Trash2, Users, Globe, Mail, Phone, Calendar, Coins } from "lucide-react";
 import React from "react";
 
 import type { Employer, Employee } from "@/lib/api/types";
@@ -17,6 +17,7 @@ export interface EmployerCardProps {
   t: TFunction;
 }
 
+// eslint-disable-next-line max-lines-per-function, complexity
 export function EmployerCard({ employer, employees, onEdit, onDelete, t }: EmployerCardProps) {
   const { confirm, ConfirmationDialog } = useConfirm();
 
@@ -37,7 +38,7 @@ export function EmployerCard({ employer, employees, onEdit, onDelete, t }: Emplo
 
   return (
     <>
-      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-10 rounded-[2.5rem] shadow-sm hover:shadow-2xl hover:shadow-primary-100/10 hover:scale-[1.02] transition-all group relative overflow-hidden flex flex-col min-h-[300px]">
+      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-10 rounded-[2.5rem] shadow-sm hover:shadow-2xl hover:shadow-primary-100/10 hover:scale-[1.02] transition-all group relative overflow-hidden flex flex-col min-h-[350px]">
         {/* Actions overlay visible on hover */}
         <div className="absolute top-0 right-0 p-8 flex gap-3 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
           <Button
@@ -72,7 +73,7 @@ export function EmployerCard({ employer, employees, onEdit, onDelete, t }: Emplo
         </Typography>
 
         <div className="space-y-4 mb-8">
-          {/* Tax Code */}
+          {/* Tax Code & Business Type */}
           <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
             <FileText className="w-4 h-4 text-slate-400 shrink-0" />
             <span className="text-xs font-semibold tracking-tight">
@@ -80,8 +81,86 @@ export function EmployerCard({ employer, employees, onEdit, onDelete, t }: Emplo
               <span className="font-bold text-slate-700 dark:text-slate-300">
                 {employer.tax_code ?? t("common.not_assigned", { defaultValue: "Chưa thiết lập" })}
               </span>
+              {!!employer.business_type && (
+                <span className="ml-2 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] font-bold uppercase tracking-tight text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                  {employer.business_type}
+                </span>
+              )}
             </span>
           </div>
+
+          {/* Registration Number & Incorporation Date */}
+          {(!!employer.registration_number || !!employer.incorporation_date) && (
+            <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
+              <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+              <span className="text-xs font-semibold tracking-tight">
+                {!!employer.incorporation_date && (
+                  <span>
+                    {t("settings.employers.incorporation_date", { defaultValue: "Thành lập" })}:{" "}
+                    <span className="font-medium text-slate-700 dark:text-slate-300 mr-2">{employer.incorporation_date}</span>
+                  </span>
+                )}
+                {!!employer.registration_number && (
+                  <span>
+                    {t("settings.employers.registration_number", { defaultValue: "ĐKKD" })}:{" "}
+                    <span className="font-bold text-slate-700 dark:text-slate-300">{employer.registration_number}</span>
+                  </span>
+                )}
+              </span>
+            </div>
+          )}
+
+          {/* Contact (Phone/Email) */}
+          {(!!employer.phone || !!employer.email) && (
+            <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
+              {employer.phone ? (
+                <Phone className="w-4 h-4 text-slate-400 shrink-0" />
+              ) : (
+                <Mail className="w-4 h-4 text-slate-400 shrink-0" />
+              )}
+              <span className="text-xs font-semibold tracking-tight">
+                {employer.phone && employer.email ? (
+                  <span className="font-medium text-slate-700 dark:text-slate-300">
+                    {employer.phone} | {employer.email}
+                  </span>
+                ) : (
+                  <span className="font-medium text-slate-700 dark:text-slate-300">
+                    {employer.phone ?? employer.email}
+                  </span>
+                )}
+              </span>
+            </div>
+          )}
+
+          {/* Website */}
+          {!!employer.website && (
+            <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
+              <Globe className="w-4 h-4 text-slate-400 shrink-0" />
+              <span className="text-xs font-semibold tracking-tight">
+                <a
+                  className="font-medium text-primary-600 dark:text-primary-400 hover:underline"
+                  href={employer.website.startsWith("http") ? employer.website : `https://${employer.website}`}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  {employer.website}
+                </a>
+              </span>
+            </div>
+          )}
+
+          {/* Country & Currency */}
+          {(!!employer.country_code || !!employer.currency_code) && (
+            <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
+              <Coins className="w-4 h-4 text-slate-400 shrink-0" />
+              <span className="text-xs font-semibold tracking-tight">
+                {t("settings.employers.financial", { defaultValue: "Khu vực tài chính" })}:{" "}
+                <span className="font-bold text-slate-700 dark:text-slate-300 uppercase">
+                  {employer.country_code ?? "—"} ({employer.currency_code ?? "VND"})
+                </span>
+              </span>
+            </div>
+          )}
 
           {/* Legal Address */}
           <div className="flex items-start gap-3 text-slate-500 dark:text-slate-400">
