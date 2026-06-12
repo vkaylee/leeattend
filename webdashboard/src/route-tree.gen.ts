@@ -54,7 +54,6 @@ import { Route as AuthenticatedWorkspaceWorkspaceSettingsTimeRouteImport } from 
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsRolesRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/roles"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsPermissionsRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/permissions"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsPayrollRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/payroll"
-import { Route as AuthenticatedWorkspaceWorkspaceSettingsOverviewRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/overview"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsOvertimeRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/overtime"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsOrganizationRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/organization"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsLocationsRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/locations"
@@ -465,16 +464,6 @@ const AuthenticatedWorkspaceWorkspaceSettingsPayrollRoute =
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceWorkspaceSettingsOverviewRoute =
-  AuthenticatedWorkspaceWorkspaceSettingsOverviewRouteImport.update({
-    id: "/overview",
-    path: "/overview",
-    getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsRoute,
-  } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/workspace/settings/overview.lazy").then(
-      (d) => d.Route,
-    ),
-  )
 const AuthenticatedWorkspaceWorkspaceSettingsOvertimeRoute =
   AuthenticatedWorkspaceWorkspaceSettingsOvertimeRouteImport.update({
     id: "/overtime",
@@ -711,7 +700,6 @@ export interface FileRoutesByFullPath {
   "/workspace/settings/locations": typeof AuthenticatedWorkspaceWorkspaceSettingsLocationsRoute
   "/workspace/settings/organization": typeof AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute
   "/workspace/settings/overtime": typeof AuthenticatedWorkspaceWorkspaceSettingsOvertimeRoute
-  "/workspace/settings/overview": typeof AuthenticatedWorkspaceWorkspaceSettingsOverviewRoute
   "/workspace/settings/payroll": typeof AuthenticatedWorkspaceWorkspaceSettingsPayrollRoute
   "/workspace/settings/permissions": typeof AuthenticatedWorkspaceWorkspaceSettingsPermissionsRoute
   "/workspace/settings/roles": typeof AuthenticatedWorkspaceWorkspaceSettingsRolesRoute
@@ -770,7 +758,6 @@ export interface FileRoutesByTo {
   "/workspace/settings/locations": typeof AuthenticatedWorkspaceWorkspaceSettingsLocationsRoute
   "/workspace/settings/organization": typeof AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute
   "/workspace/settings/overtime": typeof AuthenticatedWorkspaceWorkspaceSettingsOvertimeRoute
-  "/workspace/settings/overview": typeof AuthenticatedWorkspaceWorkspaceSettingsOverviewRoute
   "/workspace/settings/payroll": typeof AuthenticatedWorkspaceWorkspaceSettingsPayrollRoute
   "/workspace/settings/permissions": typeof AuthenticatedWorkspaceWorkspaceSettingsPermissionsRoute
   "/workspace/settings/roles": typeof AuthenticatedWorkspaceWorkspaceSettingsRolesRoute
@@ -836,7 +823,6 @@ export interface FileRoutesById {
   "/_authenticated/_workspace/workspace/settings/locations": typeof AuthenticatedWorkspaceWorkspaceSettingsLocationsRoute
   "/_authenticated/_workspace/workspace/settings/organization": typeof AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute
   "/_authenticated/_workspace/workspace/settings/overtime": typeof AuthenticatedWorkspaceWorkspaceSettingsOvertimeRoute
-  "/_authenticated/_workspace/workspace/settings/overview": typeof AuthenticatedWorkspaceWorkspaceSettingsOverviewRoute
   "/_authenticated/_workspace/workspace/settings/payroll": typeof AuthenticatedWorkspaceWorkspaceSettingsPayrollRoute
   "/_authenticated/_workspace/workspace/settings/permissions": typeof AuthenticatedWorkspaceWorkspaceSettingsPermissionsRoute
   "/_authenticated/_workspace/workspace/settings/roles": typeof AuthenticatedWorkspaceWorkspaceSettingsRolesRoute
@@ -901,7 +887,6 @@ export interface FileRouteTypes {
     | "/workspace/settings/locations"
     | "/workspace/settings/organization"
     | "/workspace/settings/overtime"
-    | "/workspace/settings/overview"
     | "/workspace/settings/payroll"
     | "/workspace/settings/permissions"
     | "/workspace/settings/roles"
@@ -960,7 +945,6 @@ export interface FileRouteTypes {
     | "/workspace/settings/locations"
     | "/workspace/settings/organization"
     | "/workspace/settings/overtime"
-    | "/workspace/settings/overview"
     | "/workspace/settings/payroll"
     | "/workspace/settings/permissions"
     | "/workspace/settings/roles"
@@ -1025,7 +1009,6 @@ export interface FileRouteTypes {
     | "/_authenticated/_workspace/workspace/settings/locations"
     | "/_authenticated/_workspace/workspace/settings/organization"
     | "/_authenticated/_workspace/workspace/settings/overtime"
-    | "/_authenticated/_workspace/workspace/settings/overview"
     | "/_authenticated/_workspace/workspace/settings/payroll"
     | "/_authenticated/_workspace/workspace/settings/permissions"
     | "/_authenticated/_workspace/workspace/settings/roles"
@@ -1360,13 +1343,6 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsPayrollRouteImport
       parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRoute
     }
-    "/_authenticated/_workspace/workspace/settings/overview": {
-      id: "/_authenticated/_workspace/workspace/settings/overview"
-      path: "/overview"
-      fullPath: "/workspace/settings/overview"
-      preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsOverviewRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRoute
-    }
     "/_authenticated/_workspace/workspace/settings/overtime": {
       id: "/_authenticated/_workspace/workspace/settings/overtime"
       path: "/overtime"
@@ -1610,7 +1586,6 @@ interface AuthenticatedWorkspaceWorkspaceSettingsRouteChildren {
   AuthenticatedWorkspaceWorkspaceSettingsLocationsRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsLocationsRoute
   AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute
   AuthenticatedWorkspaceWorkspaceSettingsOvertimeRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsOvertimeRoute
-  AuthenticatedWorkspaceWorkspaceSettingsOverviewRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsOverviewRoute
   AuthenticatedWorkspaceWorkspaceSettingsPayrollRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsPayrollRoute
   AuthenticatedWorkspaceWorkspaceSettingsPermissionsRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsPermissionsRoute
   AuthenticatedWorkspaceWorkspaceSettingsRolesRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRolesRoute
@@ -1645,8 +1620,6 @@ const AuthenticatedWorkspaceWorkspaceSettingsRouteChildren: AuthenticatedWorkspa
       AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute,
     AuthenticatedWorkspaceWorkspaceSettingsOvertimeRoute:
       AuthenticatedWorkspaceWorkspaceSettingsOvertimeRoute,
-    AuthenticatedWorkspaceWorkspaceSettingsOverviewRoute:
-      AuthenticatedWorkspaceWorkspaceSettingsOverviewRoute,
     AuthenticatedWorkspaceWorkspaceSettingsPayrollRoute:
       AuthenticatedWorkspaceWorkspaceSettingsPayrollRoute,
     AuthenticatedWorkspaceWorkspaceSettingsPermissionsRoute:

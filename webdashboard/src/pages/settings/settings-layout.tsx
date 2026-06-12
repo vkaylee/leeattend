@@ -184,7 +184,7 @@ export default function SettingsLayout() {
   };
 
   const isActive = (path: string) => {
-    if (path === ROUTES.SETTINGS.OVERVIEW && location.pathname === ROUTES.SETTINGS.ROOT) return true;
+    if (path === ROUTES.SETTINGS.GENERAL && location.pathname === ROUTES.SETTINGS.ROOT) return true;
     return location.pathname.startsWith(path);
   };
 

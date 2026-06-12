@@ -35,13 +35,6 @@ export interface SettingItem {
 const getWorkspaceGroup = (t: TFunction): SettingItem[] => [
   {
     description: t("settings.categories.general_desc"),
-    icon: <Building2 className="w-4 h-4" />,
-    label: t("common.overview"),
-    path: ROUTES.SETTINGS.OVERVIEW,
-    permissions: ["workspace:settings:read"],
-  },
-  {
-    description: t("settings.categories.general_desc"),
     icon: <Settings2 className="w-4 h-4" />,
     label: t("settings.categories.general"),
     path: ROUTES.SETTINGS.GENERAL,

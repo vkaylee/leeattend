@@ -6,7 +6,8 @@ export const Route = createFileRoute(
   beforeLoad: () => {
     // eslint-disable-next-line @typescript-eslint/only-throw-error -- TanStack Router redirect pattern
     throw redirect({
-      to: "/workspace/settings/overview",
+      to: "/workspace/settings/general",
     });
   },
 });
+
