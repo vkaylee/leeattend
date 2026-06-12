@@ -738,21 +738,19 @@ impl RosterRepository for DieselRosterRepository {
         // Priority 3: Dynamic Assignment Rules
         let employee_full = crate::schema::employees::table
             .inner_join(crate::schema::employments::table)
-            .left_join(
-                crate::schema::employee_department_history::table.on(
-                    crate::schema::employee_department_history::employee_id
-                        .eq(crate::schema::employees::id)
-                        .and(crate::schema::employee_department_history::effective_date.le(date)),
-                ),
-            )
             .filter(crate::schema::employees::id.eq(employee_id))
             .filter(crate::schema::employees::workspace_id.eq(workspace_id))
             .filter(crate::schema::employments::deleted_at.is_null())
-            .order(crate::schema::employee_department_history::effective_date.desc())
+            .filter(crate::schema::employments::start_date.le(date))
+            .filter(
+                crate::schema::employments::end_date
+                    .is_null()
+                    .or(crate::schema::employments::end_date.ge(date)),
+            )
             .select((
                 crate::schema::employees::employee_id_number,
                 crate::schema::employees::tags,
-                crate::schema::employee_department_history::department_id.nullable(),
+                crate::schema::employments::department_id,
                 crate::schema::employments::primary_location_id,
             ))
             .first::<(

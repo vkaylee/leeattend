@@ -17,24 +17,25 @@ async fn setup_db() -> (
     (test_db, factory, diesel_pools)
 }
 
-/// Helper: assign an employee to a department via `employee_department_history`.
+/// Helper: assign an employee to a department via repository transfer.
 async fn transfer(
     pool: &apiserver::diesel_pool::DieselPools,
     employee_id: Uuid,
     department_id: Uuid,
     date: NaiveDate,
 ) {
-    crate::test_execute!(
+    let ws_id: Uuid = crate::test_query_scalar_uuid!(
         &pool.api,
-        "INSERT INTO employee_department_history (employee_id, department_id, effective_date) \
-         VALUES ($1, $2, $3)",
+        "SELECT workspace_id AS id FROM employments WHERE employee_id = $1 LIMIT 1",
         diesel::sql_types::Uuid,
-        employee_id,
-        diesel::sql_types::Uuid,
-        department_id,
-        diesel::sql_types::Date,
-        date
+        employee_id
     );
+    let auth_token = apiserver::diesel_pool::TenantAuthToken::system_override(ws_id);
+    let repo = apiserver::repositories::DieselDepartmentRepository::new(pool.clone());
+    use apiserver::repositories::department_repository::DepartmentRepository;
+    repo.transfer_employee(&auth_token, employee_id, department_id, date, None)
+        .await
+        .unwrap();
 }
 
 /// Helper: deactivate an employee.

@@ -266,10 +266,13 @@ async fn test_claim_ot_delegated_success() {
 
     crate::test_execute!(
         &factory.diesel_pools.api,
-        "INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $3, CURRENT_DATE), ($2, $3, CURRENT_DATE)",
-        diesel::sql_types::Uuid, emp_id,
-        diesel::sql_types::Uuid, clerk_emp_id,
-        diesel::sql_types::Uuid, dept_id
+        "UPDATE employments SET department_id = $2 WHERE employee_id IN ($1, $3)",
+        diesel::sql_types::Uuid,
+        emp_id,
+        diesel::sql_types::Uuid,
+        dept_id,
+        diesel::sql_types::Uuid,
+        clerk_emp_id
     );
 
     crate::test_execute!(
@@ -329,10 +332,13 @@ async fn test_claim_ot_delegated_forbidden() {
 
     crate::test_execute!(
         &factory.diesel_pools.api,
-        "INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $3, CURRENT_DATE), ($2, $3, CURRENT_DATE)",
-        diesel::sql_types::Uuid, emp_id,
-        diesel::sql_types::Uuid, normal_emp_id,
-        diesel::sql_types::Uuid, dept_id
+        "UPDATE employments SET department_id = $2 WHERE employee_id IN ($1, $3)",
+        diesel::sql_types::Uuid,
+        emp_id,
+        diesel::sql_types::Uuid,
+        dept_id,
+        diesel::sql_types::Uuid,
+        normal_emp_id
     );
 
     crate::test_execute!(
@@ -518,9 +524,11 @@ async fn test_behalf_assignments_department_claims() {
     // Link target employee to department
     crate::test_execute!(
         &factory.diesel_pools.api,
-        "INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $2, CURRENT_DATE)",
-        diesel::sql_types::Uuid, target_emp_id,
-        diesel::sql_types::Uuid, dept_id
+        "UPDATE employments SET department_id = $2 WHERE employee_id = $1",
+        diesel::sql_types::Uuid,
+        target_emp_id,
+        diesel::sql_types::Uuid,
+        dept_id
     );
 
     // Create clerk user & employee

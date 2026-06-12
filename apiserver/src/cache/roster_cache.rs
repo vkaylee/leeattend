@@ -195,8 +195,8 @@ pub async fn build_roster_data(
         .map_err(|e| format!("db connection: {e}"))?;
 
     use crate::schema::{
-        assignment_rules, employee_department_history, employee_shifts, employee_working_patterns,
-        employees, employments, shifts, working_pattern_details, working_patterns,
+        assignment_rules, employee_shifts, employee_working_patterns, employees, employments,
+        shifts, working_pattern_details, working_patterns,
     };
 
     // 1. Shifts
@@ -288,15 +288,25 @@ pub async fn build_roster_data(
         .map_err(|e| format!("rule_patterns: {e}"))?;
 
     // 8. Dept History
-    let dept_history_rows = employee_department_history::table
+    let dept_history_rows = employments::table
         .filter(
-            employee_department_history::employee_id.eq_any(
+            employments::employee_id.eq_any(
                 employees::table
                     .filter(employees::workspace_id.eq(workspace_id))
                     .select(employees::id),
             ),
         )
-        .order(employee_department_history::effective_date.desc())
+        .filter(employments::deleted_at.is_null())
+        .filter(employments::department_id.is_not_null())
+        .order(employments::start_date.desc())
+        .select((
+            employments::id,
+            employments::employee_id,
+            employments::department_id.assume_not_null(),
+            employments::start_date,
+            employments::notes,
+            employments::created_at,
+        ))
         .load::<EmployeeDepartmentHistoryEntity>(&mut conn)
         .await
         .map_err(|e| format!("dept_history: {e}"))?;

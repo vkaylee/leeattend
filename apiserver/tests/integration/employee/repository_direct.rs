@@ -1135,3 +1135,323 @@ async fn test_get_all_employees_filtered_by_permission() {
     assert!(names.contains(&"Allowed Emp".to_string()));
     assert!(!names.contains(&"Forbidden Emp".to_string()));
 }
+
+#[tokio::test]
+async fn test_temporal_segment_splitting_and_propagation() {
+    use apiserver::repositories::department_repository::DepartmentRepository;
+    use apiserver::repositories::DieselDepartmentRepository;
+
+    let (test_db, factory) = setup_db().await;
+    let pool = test_db.diesel_pools.clone();
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+    let auth_token = apiserver::diesel_pool::TenantAuthToken::system_override(ws_id);
+
+    let dept_a = factory
+        .department()
+        .with_workspace(ws_id)
+        .with_name("Dept A")
+        .create()
+        .await;
+    let dept_b = factory
+        .department()
+        .with_workspace(ws_id)
+        .with_name("Dept B")
+        .create()
+        .await;
+    let dept_c = factory
+        .department()
+        .with_workspace(ws_id)
+        .with_name("Dept C")
+        .create()
+        .await;
+
+    let hq_loc_id = {
+        let mut conn = pool.tenants_tx.get_connection(&ws_id).await.unwrap();
+        use apiserver::schema::work_locations::dsl::*;
+        use diesel::prelude::*;
+        use diesel_async::RunQueryDsl;
+        work_locations
+            .filter(workspace_id.eq(ws_id))
+            .filter(is_headquarters.eq(true))
+            .select(id)
+            .first::<uuid::Uuid>(&mut *conn)
+            .await
+            .unwrap()
+    };
+
+    let test_employer_id = {
+        let mut conn = pool.tenants_tx.get_connection(&ws_id).await.unwrap();
+        use apiserver::schema::employers::dsl::*;
+        use diesel::prelude::*;
+        use diesel_async::RunQueryDsl;
+        employers
+            .filter(workspace_id.eq(ws_id))
+            .select(id)
+            .first::<uuid::Uuid>(&mut *conn)
+            .await
+            .unwrap()
+    };
+
+    // Create an employee. By default, factory.employee() creates a starting active segment.
+    let emp_id = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_full_name("Temporal Test Subject")
+        .create()
+        .await;
+
+    // Set the initial employment segment explicitly in DB
+    {
+        let mut conn = pool.tenants_tx.get_connection(&ws_id).await.unwrap();
+        use apiserver::schema::employments::dsl::*;
+        use diesel::prelude::*;
+        use diesel_async::RunQueryDsl;
+        diesel::update(employments.filter(employee_id.eq(emp_id)))
+            .set((
+                start_date.eq(NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()),
+                end_date.eq(None::<NaiveDate>),
+                department_id.eq(Some(dept_a)),
+            ))
+            .execute(&mut *conn)
+            .await
+            .unwrap();
+    }
+
+    let dep_repo = DieselDepartmentRepository::new(pool.clone());
+
+    // ----------------------------------------------------
+    // Scenario 1: Standard retroactive transfer causing a split
+    // Transfer to dept_b on 2026-02-01.
+    // Expected segments:
+    // 1. 2026-01-01 -> 2026-01-31 (dept_a)
+    // 2. 2026-02-01 -> None (dept_b)
+    // ----------------------------------------------------
+    let _history_entry = dep_repo
+        .transfer_employee(
+            &auth_token,
+            emp_id,
+            dept_b,
+            NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
+            Some("Retro transfer to B".to_string()),
+        )
+        .await
+        .unwrap();
+
+    let get_segs = || {
+        let pool = pool.clone();
+        async move {
+            let mut conn = pool.tenants_tx.get_connection(&ws_id).await.unwrap();
+            use apiserver::schema::employments::dsl::*;
+            use diesel::prelude::*;
+            use diesel_async::RunQueryDsl;
+            employments
+                .filter(employee_id.eq(emp_id))
+                .filter(deleted_at.is_null())
+                .order(start_date.asc())
+                .load::<apiserver::models::diesel::employment::EmploymentEntity>(&mut *conn)
+                .await
+                .unwrap()
+        }
+    };
+
+    let segs = get_segs().await;
+    assert_eq!(segs.len(), 2, "Should have split into 2 segments");
+
+    assert_eq!(
+        segs[0].start_date,
+        NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()
+    );
+    assert_eq!(
+        segs[0].end_date,
+        Some(NaiveDate::from_ymd_opt(2026, 1, 31).unwrap())
+    );
+    assert_eq!(segs[0].department_id, Some(dept_a));
+
+    assert_eq!(
+        segs[1].start_date,
+        NaiveDate::from_ymd_opt(2026, 2, 1).unwrap()
+    );
+    assert_eq!(segs[1].end_date, None);
+    assert_eq!(segs[1].department_id, Some(dept_b));
+    assert_eq!(segs[1].notes.as_deref(), Some("Retro transfer to B"));
+
+    // ----------------------------------------------------
+    // Scenario 2: Transfer on exact start date of Segment 2 (no split)
+    // Transfer to dept_c on 2026-02-01.
+    // Expected: Segment 2 department is updated to dept_c, still 2 segments.
+    // ----------------------------------------------------
+    let _ = dep_repo
+        .transfer_employee(
+            &auth_token,
+            emp_id,
+            dept_c,
+            NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
+            Some("Corrected transfer to C".to_string()),
+        )
+        .await
+        .unwrap();
+
+    let segs = get_segs().await;
+    assert_eq!(segs.len(), 2, "Should still have 2 segments (no new split)");
+
+    assert_eq!(
+        segs[0].start_date,
+        NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()
+    );
+    assert_eq!(
+        segs[0].end_date,
+        Some(NaiveDate::from_ymd_opt(2026, 1, 31).unwrap())
+    );
+    assert_eq!(segs[0].department_id, Some(dept_a));
+
+    assert_eq!(
+        segs[1].start_date,
+        NaiveDate::from_ymd_opt(2026, 2, 1).unwrap()
+    );
+    assert_eq!(segs[1].end_date, None);
+    assert_eq!(segs[1].department_id, Some(dept_c));
+    assert_eq!(segs[1].notes.as_deref(), Some("Corrected transfer to C"));
+
+    // ----------------------------------------------------
+    // Scenario 3: Complex Retroactive Split and Propagation
+    // Let's set up 4 segments manually to test propagation & override:
+    // Seg 1: 2026-01-01 -> 2026-01-31 (dept_a)
+    // Seg 2: 2026-02-01 -> 2026-03-31 (dept_c)
+    // Seg 3: 2026-04-01 -> 2026-05-31 (dept_c)  <-- inherited
+    // Seg 4: 2026-06-01 -> None       (dept_a)  <-- override (different from dept_c)
+    // ----------------------------------------------------
+    {
+        let mut conn = pool.tenants_tx.get_connection(&ws_id).await.unwrap();
+        use apiserver::schema::employments::dsl::*;
+        use diesel::prelude::*;
+        use diesel_async::RunQueryDsl;
+        // Delete existing segments
+        diesel::delete(employments.filter(employee_id.eq(emp_id)))
+            .execute(&mut *conn)
+            .await
+            .unwrap();
+
+        let make_seg = |start: NaiveDate, end: Option<NaiveDate>, dept: Uuid| {
+            apiserver::models::diesel::employment::EmploymentEntity {
+                id: Uuid::new_v4(),
+                workspace_id: ws_id,
+                employee_id: emp_id,
+                employer_id: test_employer_id,
+                primary_location_id: Some(hq_loc_id),
+                department_id: Some(dept),
+                status: "active".to_string(),
+                start_date: start,
+                end_date: end,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+                deleted_at: None,
+                job_title: None,
+                employment_type: "full_time".to_string(),
+                manager_employment_id: None,
+                notes: None,
+            }
+        };
+
+        let s1 = make_seg(
+            NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            Some(NaiveDate::from_ymd_opt(2026, 1, 31).unwrap()),
+            dept_a,
+        );
+        let s2 = make_seg(
+            NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
+            Some(NaiveDate::from_ymd_opt(2026, 3, 31).unwrap()),
+            dept_c,
+        );
+        let s3 = make_seg(
+            NaiveDate::from_ymd_opt(2026, 4, 1).unwrap(),
+            Some(NaiveDate::from_ymd_opt(2026, 5, 31).unwrap()),
+            dept_c,
+        );
+        let s4 = make_seg(NaiveDate::from_ymd_opt(2026, 6, 1).unwrap(), None, dept_a);
+
+        diesel::insert_into(employments)
+            .values(&vec![s1, s2, s3, s4])
+            .execute(&mut *conn)
+            .await
+            .unwrap();
+    }
+
+    // Now, transfer to dept_b starting from 2026-03-01 (middle of Seg 2).
+    // This should:
+    // 1. Split Seg 2 into:
+    //    - Seg 2a: 2026-02-01 -> 2026-02-28 (dept_c)
+    //    - Seg 2b: 2026-03-01 -> 2026-03-31 (dept_b)
+    // 2. Propagate dept_b to Seg 3 (because its department was dept_c, which is the old department of Seg 2).
+    // 3. Stop propagation at Seg 4 (because its department is dept_a, which does not match dept_c).
+    let _ = dep_repo
+        .transfer_employee(
+            &auth_token,
+            emp_id,
+            dept_b,
+            NaiveDate::from_ymd_opt(2026, 3, 1).unwrap(),
+            Some("Retro split & propagate".to_string()),
+        )
+        .await
+        .unwrap();
+
+    let segs = get_segs().await;
+    assert_eq!(segs.len(), 5, "Timeline should now contain 5 segments");
+
+    assert_eq!(
+        segs[0].start_date,
+        NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()
+    );
+    assert_eq!(
+        segs[0].end_date,
+        Some(NaiveDate::from_ymd_opt(2026, 1, 31).unwrap())
+    );
+    assert_eq!(segs[0].department_id, Some(dept_a));
+
+    assert_eq!(
+        segs[1].start_date,
+        NaiveDate::from_ymd_opt(2026, 2, 1).unwrap()
+    );
+    assert_eq!(
+        segs[1].end_date,
+        Some(NaiveDate::from_ymd_opt(2026, 2, 28).unwrap())
+    );
+    assert_eq!(segs[1].department_id, Some(dept_c));
+
+    assert_eq!(
+        segs[2].start_date,
+        NaiveDate::from_ymd_opt(2026, 3, 1).unwrap()
+    );
+    assert_eq!(
+        segs[2].end_date,
+        Some(NaiveDate::from_ymd_opt(2026, 3, 31).unwrap())
+    );
+    assert_eq!(segs[2].department_id, Some(dept_b));
+    assert_eq!(segs[2].notes.as_deref(), Some("Retro split & propagate"));
+
+    assert_eq!(
+        segs[3].start_date,
+        NaiveDate::from_ymd_opt(2026, 4, 1).unwrap()
+    );
+    assert_eq!(
+        segs[3].end_date,
+        Some(NaiveDate::from_ymd_opt(2026, 5, 31).unwrap())
+    );
+    assert_eq!(
+        segs[3].department_id,
+        Some(dept_b),
+        "Propagation failed for Segment 3"
+    );
+
+    assert_eq!(
+        segs[4].start_date,
+        NaiveDate::from_ymd_opt(2026, 6, 1).unwrap()
+    );
+    assert_eq!(segs[4].end_date, None);
+    assert_eq!(
+        segs[4].department_id,
+        Some(dept_a),
+        "Override was not preserved for Segment 4"
+    );
+}

@@ -15,25 +15,25 @@ async fn setup_db() -> (TestDatabase, TestFactory) {
     (test_db, factory)
 }
 
-/// Helper: insert a row in `employee_department_history` to assign an employee
-/// to a department.
+/// Helper: assign an employee to a department via repository transfer.
 async fn transfer(
     pool: &apiserver::diesel_pool::DieselPools,
     employee_id: Uuid,
     department_id: Uuid,
     date: NaiveDate,
 ) {
-    crate::test_execute!(
+    let ws_id: Uuid = crate::test_query_scalar_uuid!(
         &pool.api,
-        "INSERT INTO employee_department_history (employee_id, department_id, effective_date) \
-         VALUES ($1, $2, $3)",
+        "SELECT workspace_id AS id FROM employments WHERE employee_id = $1 LIMIT 1",
         diesel::sql_types::Uuid,
-        employee_id,
-        diesel::sql_types::Uuid,
-        department_id,
-        diesel::sql_types::Date,
-        date
+        employee_id
     );
+    let auth_token = apiserver::diesel_pool::TenantAuthToken::system_override(ws_id);
+    let repo = apiserver::repositories::DieselDepartmentRepository::new(pool.clone());
+    use apiserver::repositories::department_repository::DepartmentRepository;
+    repo.transfer_employee(&auth_token, employee_id, department_id, date, None)
+        .await
+        .unwrap();
 }
 
 // ── get_employee_by_id ──────────────────────────────────────────────
@@ -290,4 +290,58 @@ async fn test_get_active_employees_includes_department_name() {
         .unwrap();
     assert_eq!(actives.len(), 1);
     assert_eq!(actives[0].department_name().as_deref(), Some("Operations"));
+}
+
+#[tokio::test]
+async fn test_get_paginated_employee_ids_filters_by_department() {
+    let (test_db, factory) = setup_db().await;
+    let pool = test_db.diesel_pools.clone();
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+    let emp_id = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_full_name("Dept Employee")
+        .create()
+        .await;
+
+    let _other_emp_id = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_full_name("Other Employee")
+        .create()
+        .await;
+
+    let dept_id = factory
+        .department()
+        .with_workspace(ws_id)
+        .with_name("Engineering")
+        .create()
+        .await;
+
+    let today = chrono::Utc::now().date_naive();
+    transfer(&pool, emp_id, dept_id, today).await;
+
+    let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
+    let token = apiserver::diesel_pool::TenantAuthToken::system_override(ws_id);
+
+    let (employees, count) = repo
+        .get_paginated_employee_ids(
+            &token,
+            apiserver::models::EmployeePaginationArgs {
+                filter_ids: None,
+                department_id: Some(dept_id),
+                page: 1,
+                limit: 50,
+                sort_desc: false,
+                active_during: Some((today, today)),
+                status_filter: Some("active".to_string()),
+            },
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(count, 1);
+    assert_eq!(employees[0].id, emp_id);
 }

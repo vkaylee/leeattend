@@ -130,8 +130,9 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
                       (a.assignee_type = 'employee' AND a.assignee_id = e.id)
                       OR (a.assignee_type = 'workspace')
                       OR (a.assignee_type = 'department' AND a.assignee_id = (
-                        SELECT department_id FROM employee_department_history
-                        WHERE employee_id = e.id ORDER BY effective_date DESC LIMIT 1
+                        SELECT department_id FROM employments
+                        WHERE employee_id = e.id AND workspace_id = $1 AND deleted_at IS NULL
+                        ORDER BY start_date DESC, id DESC LIMIT 1
                       ))
                     )
                 )
@@ -181,8 +182,9 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
                   AND (
                     (a.assignee_type = 'employee' AND a.assignee_id = e_inner.id) OR
                     (a.assignee_type = 'department' AND a.assignee_id = (
-                        SELECT department_id FROM employee_department_history
-                        WHERE employee_id = e_inner.id ORDER BY effective_date DESC LIMIT 1
+                        SELECT department_id FROM employments
+                        WHERE employee_id = e_inner.id AND workspace_id = $1 AND deleted_at IS NULL
+                        ORDER BY start_date DESC, id DESC LIMIT 1
                     )) OR
                     (a.assignee_type = 'workspace')
                   )

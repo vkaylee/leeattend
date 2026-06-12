@@ -52,6 +52,7 @@ impl super::EmploymentRepository for DieselEmploymentRepository {
             job_title: req.job_title.clone(),
             employment_type: req.employment_type.clone(),
             manager_employment_id: req.manager_employment_id,
+            notes: None,
         };
 
         let inserted = diesel::insert_into(employments)
@@ -137,6 +138,7 @@ impl super::EmploymentRepository for DieselEmploymentRepository {
             job_title: req.job_title.clone(),
             employment_type: req.employment_type.clone(),
             manager_employment_id: req.manager_employment_id,
+            notes: None,
             updated_at: Some(Utc::now()),
         };
 

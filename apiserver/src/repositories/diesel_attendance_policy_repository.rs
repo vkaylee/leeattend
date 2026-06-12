@@ -80,10 +80,12 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
             r"
             WITH dept_history AS (
                 SELECT department_id
-                FROM employee_department_history
+                FROM employments
                 WHERE employee_id = $2
-                  AND effective_date <= ($3::timestamptz)::date
-                ORDER BY effective_date DESC
+                  AND deleted_at IS NULL
+                  AND start_date <= ($3::timestamptz)::date
+                  AND (end_date IS NULL OR end_date >= ($3::timestamptz)::date)
+                ORDER BY start_date DESC
                 LIMIT 1
             ),
             user_policy AS (
@@ -190,10 +192,12 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                 SELECT i.employee_id,
                     (
                         SELECT department_id
-                        FROM employee_department_history
+                        FROM employments
                         WHERE employee_id = i.employee_id
-                          AND effective_date <= ($3::timestamptz)::date
-                        ORDER BY effective_date DESC
+                          AND deleted_at IS NULL
+                          AND start_date <= ($3::timestamptz)::date
+                          AND (end_date IS NULL OR end_date >= ($3::timestamptz)::date)
+                        ORDER BY start_date DESC
                         LIMIT 1
                     ) as department_id
                 FROM inputs i

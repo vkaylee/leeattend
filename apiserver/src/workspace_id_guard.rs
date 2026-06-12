@@ -171,17 +171,7 @@ mod tests {
         // Department repo: some queries via department_id which has workspace FK
         (
             "department_repository.rs",
-            "employee_department_history",
-            "department_id has workspace FK",
-        ),
-        (
-            "department_repository.rs",
             "department_payroll_configs",
-            "department_id has workspace FK",
-        ),
-        (
-            "diesel_department_repository.rs",
-            "employee_department_history",
             "department_id has workspace FK",
         ),
         (
@@ -580,7 +570,6 @@ mod tests {
                         "payslip_incentives",
                         "payroll_incentive_tiers",
                         "employee_salary_components",
-                        "employee_department_history",
                         "overtime_rules",
                     ]
                     .contains(table),

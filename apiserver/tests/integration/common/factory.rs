@@ -415,11 +415,13 @@ impl EmployeeBuilder {
 
             let employee_id = crate::test_query_scalar_uuid!(
                 &self.diesel_pools.api,
-                "INSERT INTO employees (workspace_id, user_id, full_name, employee_id_number) VALUES ($1, $2, $3, $4) RETURNING id",
+                "INSERT INTO employees (workspace_id, user_id, full_name, employee_id_number, hire_date, original_hire_date) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
                 diesel::sql_types::Uuid, workspace_id,
                 diesel::sql_types::Nullable<diesel::sql_types::Uuid>, self.user_id,
                 diesel::sql_types::Text, self.full_name,
-                diesel::sql_types::Text, normalized_id
+                diesel::sql_types::Text, normalized_id,
+                diesel::sql_types::Date, self.hire_date,
+                diesel::sql_types::Date, self.hire_date
             );
 
             crate::test_execute!(

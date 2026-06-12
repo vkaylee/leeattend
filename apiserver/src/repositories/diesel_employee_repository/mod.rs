@@ -39,26 +39,22 @@ pub const EMPLOYEE_SELECT_QUERY: &str = r"
         d_cur.name as department_name, emp_cur.primary_location_id, emp_cur.employer_id, emp_cur.id as active_employment_id
     FROM employees e
     LEFT JOIN (
-        SELECT DISTINCT ON (employee_id) employee_id, department_id
-        FROM employee_department_history
-        ORDER BY employee_id, effective_date DESC
-    ) edh_cur ON e.id = edh_cur.employee_id
-    LEFT JOIN departments d_cur ON edh_cur.department_id = d_cur.id
-    LEFT JOIN (
-        SELECT DISTINCT ON (employee_id) employee_id, employer_id, primary_location_id, id
+        SELECT DISTINCT ON (employee_id) employee_id, employer_id, primary_location_id, department_id, id
         FROM employments
-        WHERE status = 'active' AND deleted_at IS NULL AND CURRENT_DATE BETWEEN start_date AND COALESCE(end_date, '9999-12-31'::date)
-        ORDER BY employee_id, start_date DESC
+        WHERE deleted_at IS NULL
+        ORDER BY employee_id, start_date DESC, id DESC
     ) emp_cur ON e.id = emp_cur.employee_id
+    LEFT JOIN departments d_cur ON emp_cur.department_id = d_cur.id
 ";
 
 pub const EMPLOYEE_DEPT_JOIN: &str = r"
     LEFT JOIN (
         SELECT DISTINCT ON (employee_id) employee_id, department_id
-        FROM employee_department_history
-        ORDER BY employee_id, effective_date DESC
-    ) edh_sort ON e.id = edh_sort.employee_id
-    LEFT JOIN departments d_sort ON edh_sort.department_id = d_sort.id AND d_sort.workspace_id = e.workspace_id
+        FROM employments
+        WHERE deleted_at IS NULL
+        ORDER BY employee_id, start_date DESC, id DESC
+    ) emp_sort ON e.id = emp_sort.employee_id
+    LEFT JOIN departments d_sort ON emp_sort.department_id = d_sort.id AND d_sort.workspace_id = e.workspace_id
 ";
 
 struct EmployeeSearchSql {

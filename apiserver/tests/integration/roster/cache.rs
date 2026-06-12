@@ -166,11 +166,15 @@ async fn test_dept_history_populated() {
     let emp = factory.employee().with_workspace(ws).create().await;
     let eff_date = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
 
-    crate::test_execute!(&pool.api,
-        "INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $2, $3)",
-        diesel::sql_types::Uuid, emp,
-        diesel::sql_types::Uuid, dept,
-        diesel::sql_types::Date, eff_date
+    crate::test_execute!(
+        &pool.api,
+        "UPDATE employments SET department_id = $2, start_date = $3 WHERE employee_id = $1",
+        diesel::sql_types::Uuid,
+        emp,
+        diesel::sql_types::Uuid,
+        dept,
+        diesel::sql_types::Date,
+        eff_date
     );
 
     let data = build_roster_data(&diesel_pools, ws).await.unwrap();

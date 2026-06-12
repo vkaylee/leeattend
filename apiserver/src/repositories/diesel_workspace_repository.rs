@@ -169,14 +169,14 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
 
                 use crate::schema::{
                     attendance_adjustment_requests, attendance_import_jobs, departments,
-                    employee_assignments, employee_contracts, employee_department_history,
-                    employee_salary_components, employee_shifts, employees, employments,
-                    leave_accrual_logs, leave_balances, leave_policy_assignments,
-                    leave_policy_definitions, leave_requests, payslips, raw_attendance_logs,
-                    salary_component_definitions, shift_rosters, shifts, time_entries,
+                    employee_assignments, employee_contracts, employee_salary_components,
+                    employee_shifts, employees, employments, leave_accrual_logs, leave_balances,
+                    leave_policy_assignments, leave_policy_definitions, leave_requests, payslips,
+                    raw_attendance_logs, salary_component_definitions, shift_rosters, shifts,
+                    time_entries,
                 };
 
-                let emp_subquery = employees::dsl::employees
+                let _emp_subquery = employees::dsl::employees
                     .filter(employees::dsl::workspace_id.eq(ws_id))
                     .select(employees::dsl::id);
 
@@ -347,13 +347,6 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                         .execute(&mut *conn)
                         .await?;
 
-                        diesel::delete(
-                            employee_department_history::dsl::employee_department_history.filter(
-                                employee_department_history::dsl::employee_id.eq_any(emp_subquery),
-                            ),
-                        )
-                        .execute(&mut *conn)
-                        .await?;
                         diesel::delete(
                             leave_policy_assignments::dsl::leave_policy_assignments
                                 .filter(leave_policy_assignments::dsl::workspace_id.eq(ws_id)),

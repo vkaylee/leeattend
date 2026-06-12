@@ -15,15 +15,12 @@ use crate::schema::departments;
 
 const ACTIVE_EMPLOYEE_COUNT_SQL: &str = r"
     COALESCE((
-        SELECT COUNT(DISTINCT e.id) FROM employees e
-        JOIN employments em ON em.employee_id = e.id AND em.status = 'active' AND em.deleted_at IS NULL
-        WHERE e.workspace_id = departments.workspace_id
-          AND (
-              SELECT department_id FROM employee_department_history edh
-              WHERE edh.employee_id = e.id
-              ORDER BY edh.effective_date DESC
-              LIMIT 1
-          ) = departments.id
+        SELECT COUNT(DISTINCT em.employee_id) FROM employments em
+        WHERE em.workspace_id = departments.workspace_id
+          AND em.status = 'active'
+          AND em.deleted_at IS NULL
+          AND em.department_id = departments.id
+          AND CURRENT_DATE BETWEEN em.start_date AND COALESCE(em.end_date, '9999-12-31'::date)
     ), 0)
 ";
 
@@ -74,8 +71,8 @@ pub struct EmployeeDepartmentHistoryEntity {
     pub effective_date: NaiveDate,
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
     pub notes: Option<String>,
-    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>)]
-    pub created_at: Option<chrono::DateTime<Utc>>,
+    #[diesel(sql_type = diesel::sql_types::Timestamptz)]
+    pub created_at: chrono::DateTime<Utc>,
 }
 
 impl From<EmployeeDepartmentHistoryEntity> for EmployeeDepartmentHistory {
@@ -86,7 +83,7 @@ impl From<EmployeeDepartmentHistoryEntity> for EmployeeDepartmentHistory {
             entity.department_id,
             entity.effective_date,
             entity.notes,
-            entity.created_at.unwrap_or_else(Utc::now),
+            entity.created_at,
         )
     }
 }
@@ -432,6 +429,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
         Ok((data, total))
     }
 
+    #[allow(clippy::too_many_lines)]
     async fn transfer_employee(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -444,24 +442,121 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .diesel_pools
             .tenant_transaction_conn(auth_token)
             .await?;
-        let _workspace_id = auth_token.workspace_id();
 
-        use crate::schema::employee_department_history;
+        use crate::models::diesel::employment::EmploymentEntity;
+        use crate::schema::employments;
+        use diesel_async::AsyncConnection;
 
-        let entity: EmployeeDepartmentHistoryEntity =
-            diesel::insert_into(employee_department_history::table)
-                .values((
-                    employee_department_history::employee_id.eq(employee_id),
-                    employee_department_history::department_id.eq(department_id),
-                    employee_department_history::effective_date.eq(effective_date),
-                    employee_department_history::notes.eq(notes),
-                ))
-                .returning(employee_department_history::all_columns)
-                .get_result(&mut *conn)
-                .await
-                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+        let notes_to_return = notes.clone();
 
-        Ok(entity.into())
+        let res_history_id = conn
+            .transaction::<_, AppError, _>(|conn| {
+                Box::pin(async move {
+                    let segments: Vec<EmploymentEntity> = employments::table
+                        .filter(employments::employee_id.eq(employee_id))
+                        .filter(employments::deleted_at.is_null())
+                        .order(employments::start_date.asc())
+                        .load::<EmploymentEntity>(conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                    let active_idx = segments.iter().position(|s| {
+                        s.start_date <= effective_date
+                            && s.end_date.is_none_or(|end| end >= effective_date)
+                    });
+
+                    let Some(active_idx) = active_idx else {
+                        return Err(AppError::Internal(
+                            "No active employment segment found on this date".to_string(),
+                        ));
+                    };
+
+                    let old_dept_id = segments[active_idx].department_id;
+                    let target_id = segments[active_idx].id;
+
+                    let segment_id_to_return = if segments[active_idx].start_date == effective_date
+                    {
+                        diesel::update(employments::table.filter(employments::id.eq(target_id)))
+                            .set((
+                                employments::department_id.eq(Some(department_id)),
+                                employments::notes.eq(notes.clone()),
+                                employments::updated_at.eq(Utc::now()),
+                            ))
+                            .execute(conn)
+                            .await
+                            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                        target_id
+                    } else {
+                        let prev_end_date = effective_date
+                            .pred_opt()
+                            .ok_or_else(|| AppError::Internal("Invalid date".to_string()))?;
+                        diesel::update(employments::table.filter(employments::id.eq(target_id)))
+                            .set((
+                                employments::end_date.eq(Some(prev_end_date)),
+                                employments::updated_at.eq(Utc::now()),
+                            ))
+                            .execute(conn)
+                            .await
+                            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                        let new_emp_id = Uuid::new_v4();
+                        let active_seg = &segments[active_idx];
+                        let new_seg = EmploymentEntity {
+                            id: new_emp_id,
+                            workspace_id: active_seg.workspace_id,
+                            employee_id: active_seg.employee_id,
+                            employer_id: active_seg.employer_id,
+                            primary_location_id: active_seg.primary_location_id,
+                            department_id: Some(department_id),
+                            status: active_seg.status.clone(),
+                            start_date: effective_date,
+                            end_date: active_seg.end_date,
+                            created_at: Utc::now(),
+                            updated_at: Utc::now(),
+                            deleted_at: None,
+                            job_title: active_seg.job_title.clone(),
+                            employment_type: active_seg.employment_type.clone(),
+                            manager_employment_id: active_seg.manager_employment_id,
+                            notes: notes.clone(),
+                        };
+                        diesel::insert_into(employments::table)
+                            .values(&new_seg)
+                            .execute(conn)
+                            .await
+                            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                        new_emp_id
+                    };
+
+                    for seg in segments.iter().skip(active_idx + 1) {
+                        if seg.department_id == old_dept_id {
+                            diesel::update(employments::table.filter(employments::id.eq(seg.id)))
+                                .set((
+                                    employments::department_id.eq(Some(department_id)),
+                                    employments::updated_at.eq(Utc::now()),
+                                ))
+                                .execute(conn)
+                                .await
+                                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                        } else {
+                            break;
+                        }
+                    }
+
+                    Ok(segment_id_to_return)
+                })
+            })
+            .await?;
+
+        Ok(EmployeeDepartmentHistory::new(
+            res_history_id,
+            employee_id,
+            department_id,
+            effective_date,
+            notes_to_return,
+            Utc::now(),
+        ))
     }
 
     async fn get_employee_department_history(
@@ -475,16 +570,23 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .await?;
         let workspace_id = auth_token.workspace_id();
 
-        use crate::schema::{employee_department_history, employees};
+        use crate::schema::{employees, employments};
 
-        let results: Vec<EmployeeDepartmentHistoryEntity> = employee_department_history::table
-            .inner_join(
-                employees::table.on(employees::id.eq(employee_department_history::employee_id)),
-            )
-            .filter(employee_department_history::employee_id.eq(employee_id))
+        let results: Vec<EmployeeDepartmentHistoryEntity> = employments::table
+            .inner_join(employees::table.on(employees::id.eq(employments::employee_id)))
+            .filter(employments::employee_id.eq(employee_id))
             .filter(employees::workspace_id.eq(workspace_id))
-            .select(employee_department_history::all_columns)
-            .order(employee_department_history::effective_date.desc())
+            .filter(employments::deleted_at.is_null())
+            .filter(employments::department_id.is_not_null())
+            .select((
+                employments::id,
+                employments::employee_id,
+                employments::department_id.assume_not_null(),
+                employments::start_date,
+                employments::notes,
+                employments::created_at,
+            ))
+            .order(employments::start_date.desc())
             .load(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -503,19 +605,23 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .await?;
         let workspace_id = auth_token.workspace_id();
 
-        use crate::schema::{employee_department_history, employees};
+        use crate::schema::{employees, employments};
 
-        let results: Vec<EmployeeDepartmentHistoryEntity> = employee_department_history::table
-            .inner_join(
-                employees::table.on(employees::id.eq(employee_department_history::employee_id)),
-            )
-            .filter(employee_department_history::employee_id.eq_any(employee_ids))
+        let results: Vec<EmployeeDepartmentHistoryEntity> = employments::table
+            .inner_join(employees::table.on(employees::id.eq(employments::employee_id)))
+            .filter(employments::employee_id.eq_any(employee_ids))
             .filter(employees::workspace_id.eq(workspace_id))
-            .select(employee_department_history::all_columns)
-            .order((
-                employee_department_history::employee_id,
-                employee_department_history::effective_date.desc(),
+            .filter(employments::deleted_at.is_null())
+            .filter(employments::department_id.is_not_null())
+            .select((
+                employments::id,
+                employments::employee_id,
+                employments::department_id.assume_not_null(),
+                employments::start_date,
+                employments::notes,
+                employments::created_at,
             ))
+            .order((employments::employee_id, employments::start_date.desc()))
             .load(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -542,18 +648,30 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .await?;
         let workspace_id = auth_token.workspace_id();
 
-        use crate::schema::{employee_department_history, employees};
+        use crate::schema::{employees, employments};
 
         let today = Utc::now().date_naive();
-        let result: Option<EmployeeDepartmentHistoryEntity> = employee_department_history::table
-            .inner_join(
-                employees::table.on(employees::id.eq(employee_department_history::employee_id)),
-            )
-            .filter(employee_department_history::employee_id.eq(employee_id))
+        let result: Option<EmployeeDepartmentHistoryEntity> = employments::table
+            .inner_join(employees::table.on(employees::id.eq(employments::employee_id)))
+            .filter(employments::employee_id.eq(employee_id))
             .filter(employees::workspace_id.eq(workspace_id))
-            .filter(employee_department_history::effective_date.le(today))
-            .select(employee_department_history::all_columns)
-            .order(employee_department_history::effective_date.desc())
+            .filter(employments::deleted_at.is_null())
+            .filter(employments::department_id.is_not_null())
+            .filter(employments::start_date.le(today))
+            .filter(
+                employments::end_date
+                    .is_null()
+                    .or(employments::end_date.ge(today)),
+            )
+            .select((
+                employments::id,
+                employments::employee_id,
+                employments::department_id.assume_not_null(),
+                employments::start_date,
+                employments::notes,
+                employments::created_at,
+            ))
+            .order(employments::start_date.desc())
             .first(&mut *conn)
             .await
             .optional()
@@ -573,20 +691,32 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .await?;
         let workspace_id = auth_token.workspace_id();
 
-        use crate::schema::{employee_department_history, employees};
+        use crate::schema::{employees, employments};
 
         let today = Utc::now().date_naive();
-        let results: Vec<EmployeeDepartmentHistoryEntity> = employee_department_history::table
-            .inner_join(
-                employees::table.on(employees::id.eq(employee_department_history::employee_id)),
-            )
+        let results: Vec<EmployeeDepartmentHistoryEntity> = employments::table
+            .inner_join(employees::table.on(employees::id.eq(employments::employee_id)))
             .filter(employees::workspace_id.eq(workspace_id))
-            .filter(employee_department_history::employee_id.eq_any(employee_ids))
-            .filter(employee_department_history::effective_date.le(today))
-            .select(employee_department_history::all_columns)
+            .filter(employments::employee_id.eq_any(employee_ids))
+            .filter(employments::deleted_at.is_null())
+            .filter(employments::department_id.is_not_null())
+            .filter(employments::start_date.le(today))
+            .filter(
+                employments::end_date
+                    .is_null()
+                    .or(employments::end_date.ge(today)),
+            )
+            .select((
+                employments::id,
+                employments::employee_id,
+                employments::department_id.assume_not_null(),
+                employments::start_date,
+                employments::notes,
+                employments::created_at,
+            ))
             .order((
-                employee_department_history::employee_id.asc(),
-                employee_department_history::effective_date.desc(),
+                employments::employee_id.asc(),
+                employments::start_date.desc(),
             ))
             .load(&mut *conn)
             .await
@@ -594,8 +724,6 @@ impl DepartmentRepository for DieselDepartmentRepository {
 
         let mut map = std::collections::HashMap::new();
         for entity in results {
-            // Because they are ordered by employee_id ASC and effective_date DESC,
-            // the first one we encounter for a given employee_id is their current department.
             map.entry(entity.employee_id)
                 .or_insert_with(|| entity.into());
         }

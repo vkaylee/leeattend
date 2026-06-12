@@ -167,7 +167,6 @@ pub async fn clear_debug_db(
                             "DELETE FROM employee_emergency_contacts WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
                             "DELETE FROM employee_documents WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
                             "DELETE FROM employee_profiles WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
-                            "DELETE FROM employee_department_history WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
                             "DELETE FROM employee_assignments WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
                             "DELETE FROM employee_contracts WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
                             "DELETE FROM employments WHERE workspace_id = $1",
@@ -203,7 +202,6 @@ pub async fn clear_debug_db(
                             "DELETE FROM employee_emergency_contacts WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
                             "DELETE FROM employee_documents WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
                             "DELETE FROM employee_profiles WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
-                            "DELETE FROM employee_department_history WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
                             "DELETE FROM employee_assignments WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
                             "DELETE FROM employee_contracts WHERE employment_id IN (SELECT id FROM employments WHERE workspace_id = $1)",
                             "DELETE FROM employments WHERE workspace_id = $1",
@@ -316,8 +314,8 @@ pub async fn clear_debug_db(
                         for (name, code, dept_id) in employees {
                             let emp_id = crate::utils::id::new_id();
                             diesel::sql_query(
-                                "INSERT INTO employees (id, workspace_id, full_name, employee_id_number) \
-                                 VALUES ($1, $2, $3, $4)"
+                                "INSERT INTO employees (id, workspace_id, full_name, employee_id_number, hire_date, original_hire_date) \
+                                 VALUES ($1, $2, $3, $4, CURRENT_DATE, CURRENT_DATE)"
                             )
                             .bind::<diesel::sql_types::Uuid, _>(emp_id)
                             .bind::<diesel::sql_types::Uuid, _>(ws_id)
@@ -338,14 +336,6 @@ pub async fn clear_debug_db(
                             .bind::<diesel::sql_types::Uuid, _>(employer.id)
                             .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(Some(loc.id))
                             .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(Some(dept_id))
-                            .execute(conn)
-                            .await
-                            .map_err(|_e| AppError::service_unavailable(I18nKey::ServiceUnavailable))?;
-
-                            diesel::sql_query("INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $2, CURRENT_DATE)"
-                            )
-                            .bind::<diesel::sql_types::Uuid, _>(emp_id)
-                            .bind::<diesel::sql_types::Uuid, _>(dept_id)
                             .execute(conn)
                             .await
                             .map_err(|_e| AppError::service_unavailable(I18nKey::ServiceUnavailable))?;

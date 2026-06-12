@@ -465,7 +465,9 @@ async fn test_process_holiday_leave_insufficient_balance() {
         .send()
         .await
         .unwrap();
-    assert_eq!(resp.status(), StatusCode::OK);
+    let status = resp.status();
+    let body_text = resp.text().await.unwrap();
+    assert_eq!(status, StatusCode::OK, "Response: {}", body_text);
 
     // Should NOT have created a leave request (balance insufficient)
     let leave_count: i64 = crate::test_query_scalar_i64!(

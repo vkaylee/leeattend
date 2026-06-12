@@ -23,6 +23,7 @@ pub struct EmploymentEntity {
     pub job_title: Option<String>,
     pub employment_type: String,
     pub manager_employment_id: Option<Uuid>,
+    pub notes: Option<String>,
 }
 
 impl From<EmploymentEntity> for Employment {
@@ -58,5 +59,6 @@ pub struct UpdateDieselEmployment {
     pub job_title: Option<String>,
     pub employment_type: Option<String>,
     pub manager_employment_id: Option<Option<Uuid>>,
+    pub notes: Option<Option<String>>,
     pub updated_at: Option<DateTime<Utc>>,
 }

@@ -156,10 +156,11 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
 
         let count_dept_param = if search_sql.has_search { "$3" } else { "$2" };
         let dept_filter = format!(
-            " AND ({count_dept_param}::uuid[] IS NULL OR EXISTS (\
-                SELECT 1 FROM employee_department_history edh \
-                WHERE edh.employee_id = e.id AND edh.department_id = ANY({count_dept_param})\
-            ))"
+            " AND ({count_dept_param}::uuid[] IS NULL OR (\
+                SELECT department_id FROM employments emp \
+                WHERE emp.employee_id = e.id AND emp.deleted_at IS NULL \
+                ORDER BY emp.start_date DESC, emp.id DESC LIMIT 1 \
+            ) = ANY({count_dept_param}))"
         );
 
         let perm_filter = if user_ids.is_some() {
@@ -221,10 +222,11 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
 
         let total = total_row.count;
 
-        let data_dept_filter = " AND ($6::uuid[] IS NULL OR EXISTS (\
-            SELECT 1 FROM employee_department_history edh \
-            WHERE edh.employee_id = e.id AND edh.department_id = ANY($6)\
-        ))";
+        let data_dept_filter = " AND ($6::uuid[] IS NULL OR (\
+            SELECT department_id FROM employments emp \
+            WHERE emp.employee_id = e.id AND emp.deleted_at IS NULL \
+            ORDER BY emp.start_date DESC, emp.id DESC LIMIT 1 \
+        ) = ANY($6))";
 
         let data_perm_filter = if user_ids.is_some() {
             " AND e.user_id = ANY($7)"
@@ -358,7 +360,6 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         args: EmployeePaginationArgs<'_>,
     ) -> Result<(Vec<EmployeeBasicInfo>, i64), AppError> {
         let workspace_id = auth_token.workspace_id();
-        use crate::schema::employee_department_history;
         use crate::schema::employments;
 
         let mut conn = crate::diesel_pool::TransactionConn(
@@ -417,11 +418,28 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         }
 
         if let Some(dept_id) = args.department_id {
-            count_query = count_query.filter(diesel::dsl::exists(
-                employee_department_history::table
-                    .filter(employee_department_history::employee_id.eq(employees::id))
-                    .filter(employee_department_history::department_id.eq(dept_id)),
-            ));
+            if let Some((start, end)) = args.active_during {
+                count_query = count_query.filter(diesel::dsl::exists(
+                    employments::table
+                        .filter(employments::employee_id.eq(employees::id))
+                        .filter(employments::deleted_at.is_null())
+                        .filter(employments::department_id.eq(dept_id))
+                        .filter(employments::start_date.le(end))
+                        .filter(
+                            employments::status.eq("active").or(employments::status
+                                .eq("terminated")
+                                .and(employments::end_date.ge(start))),
+                        ),
+                ));
+            } else {
+                count_query = count_query.filter(diesel::dsl::exists(
+                    employments::table
+                        .filter(employments::employee_id.eq(employees::id))
+                        .filter(employments::deleted_at.is_null())
+                        .filter(employments::department_id.eq(dept_id))
+                        .filter(employments::status.eq("active")),
+                ));
+            }
         }
 
         if let Some(ids) = args.filter_ids {
@@ -485,11 +503,28 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         }
 
         if let Some(dept_id) = args.department_id {
-            data_query = data_query.filter(diesel::dsl::exists(
-                employee_department_history::table
-                    .filter(employee_department_history::employee_id.eq(employees::id))
-                    .filter(employee_department_history::department_id.eq(dept_id)),
-            ));
+            if let Some((start, end)) = args.active_during {
+                data_query = data_query.filter(diesel::dsl::exists(
+                    employments::table
+                        .filter(employments::employee_id.eq(employees::id))
+                        .filter(employments::deleted_at.is_null())
+                        .filter(employments::department_id.eq(dept_id))
+                        .filter(employments::start_date.le(end))
+                        .filter(
+                            employments::status.eq("active").or(employments::status
+                                .eq("terminated")
+                                .and(employments::end_date.ge(start))),
+                        ),
+                ));
+            } else {
+                data_query = data_query.filter(diesel::dsl::exists(
+                    employments::table
+                        .filter(employments::employee_id.eq(employees::id))
+                        .filter(employments::deleted_at.is_null())
+                        .filter(employments::department_id.eq(dept_id))
+                        .filter(employments::status.eq("active")),
+                ));
+            }
         }
 
         if let Some(ids) = args.filter_ids {
@@ -546,9 +581,9 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         let query = r"
             WITH latest_history AS (
                 SELECT employee_id, department_id,
-                       ROW_NUMBER() OVER (PARTITION BY employee_id ORDER BY effective_date DESC) as rn
-                FROM employee_department_history
-                WHERE effective_date <= $2
+                       ROW_NUMBER() OVER (PARTITION BY employee_id ORDER BY start_date DESC) as rn
+                FROM employments
+                WHERE deleted_at IS NULL AND start_date <= $2 AND (end_date IS NULL OR end_date >= $2)
             )
             SELECT e.id AS employee_id,
                    lh.department_id AS department_id,
@@ -741,6 +776,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                     job_title: None,
                     employment_type: "full_time".to_string(),
                     manager_employment_id: None,
+                    notes: None,
                 };
 
                 diesel::insert_into(employments::table)
@@ -843,6 +879,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                     job_title: None,
                     employment_type: "full_time".to_string(),
                     manager_employment_id: None,
+                    notes: None,
                 };
 
                 diesel::insert_into(employments::table)
@@ -951,6 +988,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                     job_title: None,
                     employment_type: "full_time".to_string(),
                     manager_employment_id: None,
+                    notes: None,
                     created_at: chrono::Utc::now(),
                     updated_at: chrono::Utc::now(),
                     deleted_at: None,
@@ -1172,6 +1210,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                                 job_title: None,
                                 employment_type: "full_time".to_string(),
                                 manager_employment_id: None,
+                                notes: None,
                             },
                         );
                         contracts_to_insert.push(
@@ -1234,7 +1273,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         user_id: Uuid,
     ) -> Result<Vec<Uuid>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        use crate::schema::employee_department_history;
+        use crate::schema::employments;
 
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -1244,18 +1283,19 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        let result: Vec<Uuid> = employees::table
-            .inner_join(employee_department_history::table)
-            .select(employee_department_history::department_id)
+        let result: Vec<Option<Uuid>> = employees::table
+            .inner_join(employments::table)
+            .select(employments::department_id)
             .filter(employees::workspace_id.eq(workspace_id))
             .filter(employees::deleted_at.is_null())
+            .filter(employments::deleted_at.is_null())
             .filter(employees::user_id.eq(user_id))
             .distinct()
             .load(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        Ok(result)
+        Ok(result.into_iter().flatten().collect())
     }
 
     async fn get_employee_id_by_user_id(

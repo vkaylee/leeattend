@@ -305,18 +305,14 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
 
         let dept_id = leave_requests::table
             .inner_join(employments::table)
-            .inner_join(
-                employee_department_history::table
-                    .on(employments::employee_id.eq(employee_department_history::employee_id)),
-            )
             .filter(leave_requests::id.eq(request_id))
             .filter(employments::workspace_id.eq(workspace_id))
-            .order(employee_department_history::effective_date.desc())
-            .select(employee_department_history::department_id)
-            .first::<Uuid>(&mut *conn)
+            .select(employments::department_id)
+            .first::<Option<Uuid>>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?
+            .flatten();
 
         Ok(dept_id)
     }

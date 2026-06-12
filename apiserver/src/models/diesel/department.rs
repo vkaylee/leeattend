@@ -15,6 +15,7 @@ pub struct DieselDepartment {
     pub updated_at: Option<DateTime<Utc>>,
     pub std_working_days: Option<bigdecimal::BigDecimal>,
     pub deleted_at: Option<DateTime<Utc>>,
+    pub default_working_pattern_id: Option<Uuid>,
 }
 
 impl From<DieselDepartment> for crate::models::Department {
@@ -51,14 +52,15 @@ pub struct UpdateDieselDepartment {
 }
 
 #[derive(Queryable, Selectable, Identifiable, Clone, Debug)]
-#[diesel(table_name = crate::schema::employee_department_history)]
+#[diesel(table_name = crate::schema::employments)]
 pub struct DieselEmployeeDepartmentHistory {
     pub id: Uuid,
     pub employee_id: Uuid,
-    pub department_id: Uuid,
+    pub department_id: Option<Uuid>,
+    #[diesel(column_name = start_date)]
     pub effective_date: chrono::NaiveDate,
     pub notes: Option<String>,
-    pub created_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
 }
 
 impl From<DieselEmployeeDepartmentHistory> for crate::models::EmployeeDepartmentHistory {
@@ -66,10 +68,10 @@ impl From<DieselEmployeeDepartmentHistory> for crate::models::EmployeeDepartment
         crate::models::EmployeeDepartmentHistory::new(
             val.id,
             val.employee_id,
-            val.department_id,
+            val.department_id.unwrap_or_default(),
             val.effective_date,
             val.notes,
-            val.created_at.unwrap_or_else(Utc::now),
+            val.created_at,
         )
     }
 }
@@ -97,6 +99,7 @@ mod tests {
             updated_at: Some(now),
             std_working_days: Some(bigdecimal::BigDecimal::from_str("22.5").unwrap()),
             deleted_at: None,
+            default_working_pattern_id: None,
         };
 
         let dept: crate::models::Department = diesel_dept.into();
@@ -125,6 +128,7 @@ mod tests {
             updated_at: None,
             std_working_days: None,
             deleted_at: None,
+            default_working_pattern_id: None,
         };
 
         let dept: crate::models::Department = diesel_dept.into();
@@ -144,10 +148,10 @@ mod tests {
         let diesel_history = DieselEmployeeDepartmentHistory {
             id,
             employee_id: emp_id,
-            department_id: dept_id,
+            department_id: Some(dept_id),
             effective_date: effective,
             notes: Some("Transfer".to_string()),
-            created_at: Some(now),
+            created_at: now,
         };
 
         let history: crate::models::EmployeeDepartmentHistory = diesel_history.into();

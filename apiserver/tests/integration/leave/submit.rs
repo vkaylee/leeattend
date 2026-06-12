@@ -44,8 +44,7 @@ async fn assign_to_department(
 ) {
     crate::test_execute!(
         &pool.api,
-        "INSERT INTO employee_department_history (employee_id, department_id, effective_date)
-         VALUES ($1, $2, CURRENT_DATE)",
+        "UPDATE employments SET department_id = $2 WHERE employee_id = $1",
         diesel::sql_types::Uuid,
         employee_id,
         diesel::sql_types::Uuid,

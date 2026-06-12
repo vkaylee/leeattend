@@ -11,10 +11,7 @@ use crate::models::diesel::overtime_policy::{
 };
 use crate::models::{OvertimePolicy, OvertimeRule};
 use crate::repositories::overtime_policy_repository::OvertimePolicyRepositoryTrait;
-use crate::schema::{
-    employee_department_history, overtime_policy_assignments, overtime_policy_definitions,
-    overtime_rules,
-};
+use crate::schema::{overtime_policy_assignments, overtime_policy_definitions, overtime_rules};
 
 pub struct DieselOvertimePolicyRepository {
     diesel_pools: DieselPools,
@@ -183,19 +180,21 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
             return Ok(Some(policy_id));
         }
 
+        use crate::schema::employments;
+
         // 2. Department Override
         let dept_policy: Option<Uuid> = overtime_policy_assignments::table
-            .inner_join(
-                employee_department_history::table
-                    .on(employee_department_history::employee_id.eq(employee_id)),
-            )
+            .inner_join(employments::table.on(employments::employee_id.eq(employee_id)))
             .filter(overtime_policy_assignments::workspace_id.eq(workspace_id))
             .filter(overtime_policy_assignments::assignee_type.eq("department"))
+            .filter(employments::deleted_at.is_null())
+            .filter(employments::department_id.eq(overtime_policy_assignments::assignee_id))
+            .filter(employments::start_date.le(date))
             .filter(
-                employee_department_history::department_id
-                    .eq(overtime_policy_assignments::assignee_id.assume_not_null()),
+                employments::end_date
+                    .is_null()
+                    .or(employments::end_date.ge(date)),
             )
-            .filter(employee_department_history::effective_date.le(date))
             .filter(overtime_policy_assignments::effective_from.le(date))
             .filter(
                 overtime_policy_assignments::effective_to
@@ -203,7 +202,7 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
                     .or(overtime_policy_assignments::effective_to.ge(date)),
             )
             .order((
-                employee_department_history::effective_date.desc(),
+                employments::start_date.desc(),
                 overtime_policy_assignments::created_at.desc(),
             ))
             .select(overtime_policy_assignments::policy_id)

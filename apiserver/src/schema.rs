@@ -830,6 +830,7 @@ diesel::table! {
         updated_at -> Nullable<Timestamptz>,
         std_working_days -> Nullable<Numeric>,
         deleted_at -> Nullable<Timestamptz>,
+        default_working_pattern_id -> Nullable<Uuid>,
     }
 }
 
@@ -895,17 +896,6 @@ diesel::table! {
         updated_at -> Timestamptz,
         deleted_at -> Nullable<Timestamptz>,
         employment_id -> Uuid,
-    }
-}
-
-diesel::table! {
-    employee_department_history (id) {
-        id -> Uuid,
-        employee_id -> Uuid,
-        department_id -> Uuid,
-        effective_date -> Date,
-        notes -> Nullable<Text>,
-        created_at -> Nullable<Timestamptz>,
     }
 }
 
@@ -1036,6 +1026,10 @@ diesel::table! {
         full_name -> Varchar,
         recruitment_source_id -> Nullable<Uuid>,
         deleted_at -> Nullable<Timestamptz>,
+        hire_date -> Date,
+        original_hire_date -> Date,
+        termination_date -> Nullable<Date>,
+        is_active -> Bool,
     }
 }
 
@@ -1093,6 +1087,7 @@ diesel::table! {
         #[max_length = 50]
         employment_type -> Varchar,
         manager_employment_id -> Nullable<Uuid>,
+        notes -> Nullable<Text>,
     }
 }
 
@@ -1901,11 +1896,10 @@ diesel::joinable!(attendance_policy_versions -> attendance_policies (policy_id))
 diesel::joinable!(behalf_assignments -> departments (target_department_id));
 diesel::joinable!(behalf_assignments -> employees (target_employee_id));
 diesel::joinable!(departments -> employees (manager_id));
+diesel::joinable!(departments -> working_patterns (default_working_pattern_id));
 diesel::joinable!(employee_assignments -> employments (employment_id));
 diesel::joinable!(employee_contracts -> employee_documents (document_id));
 diesel::joinable!(employee_contracts -> employments (employment_id));
-diesel::joinable!(employee_department_history -> departments (department_id));
-diesel::joinable!(employee_department_history -> employees (employee_id));
 diesel::joinable!(employee_documents -> employees (employee_id));
 diesel::joinable!(employee_emergency_contacts -> employees (employee_id));
 diesel::joinable!(employee_phases -> employees (employee_id));
@@ -2023,7 +2017,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     devices,
     employee_assignments,
     employee_contracts,
-    employee_department_history,
     employee_documents,
     employee_emergency_contacts,
     employee_phases,

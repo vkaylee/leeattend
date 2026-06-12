@@ -60,8 +60,17 @@ impl HolidayLeaveService {
     /// - If balance >= 1.0: creates auto-approved leave request + audit log
     /// - If balance < 1.0: marks as unpaid
     #[tracing::instrument(skip_all, err)]
-    #[allow(clippy::too_many_lines)]
     pub async fn process_holiday_leave(
+        &self,
+        workspace_id: Uuid,
+        holiday: &Holiday,
+    ) -> Result<Vec<HolidayLeaveResult>, crate::errors::AppError> {
+        self.process_holiday_leave_inner(workspace_id, holiday)
+            .await
+    }
+
+    #[allow(clippy::too_many_lines)]
+    async fn process_holiday_leave_inner(
         &self,
         workspace_id: Uuid,
         holiday: &Holiday,

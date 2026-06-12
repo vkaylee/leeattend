@@ -74,10 +74,15 @@ pub struct EmployeeEntity {
     pub full_name: String,
     pub recruitment_source_id: Option<Uuid>,
     pub deleted_at: Option<DateTime<Utc>>,
+    pub hire_date: chrono::NaiveDate,
+    pub original_hire_date: chrono::NaiveDate,
+    pub termination_date: Option<chrono::NaiveDate>,
+    pub is_active: bool,
 }
 
 impl From<Employee> for EmployeeEntity {
     fn from(val: Employee) -> Self {
+        let hire = val.created_at().date_naive();
         EmployeeEntity {
             id: val.id(),
             workspace_id: val.workspace_id(),
@@ -89,6 +94,10 @@ impl From<Employee> for EmployeeEntity {
             full_name: val.full_name().to_string(),
             recruitment_source_id: None,
             deleted_at: None,
+            is_active: val.is_active(),
+            hire_date: hire,
+            termination_date: None,
+            original_hire_date: hire,
         }
     }
 }

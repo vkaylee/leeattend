@@ -42,10 +42,13 @@ async fn test_payroll_std_days_source_traceability() {
     // Assign employee to department
     crate::test_execute!(
         &diesel_pools.api,
-        "INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $2, $3)",
-        diesel::sql_types::Uuid, employee_id,
-        diesel::sql_types::Uuid, dept_id,
-        diesel::sql_types::Date, NaiveDate::from_ymd_opt(2023, 1, 1).unwrap()
+        "UPDATE employments SET department_id = $2, start_date = $3 WHERE employee_id = $1",
+        diesel::sql_types::Uuid,
+        employee_id,
+        diesel::sql_types::Uuid,
+        dept_id,
+        diesel::sql_types::Date,
+        NaiveDate::from_ymd_opt(2023, 1, 1).unwrap()
     );
 
     let employment_id: uuid::Uuid = crate::test_query_scalar_uuid!(

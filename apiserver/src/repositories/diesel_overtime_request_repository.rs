@@ -305,12 +305,16 @@ mod tests {
                 workspace_id: ws_id,
                 user_id: None,
                 employee_id_number: "EMP001".to_string(),
+                is_active: true,
                 created_at: Some(chrono::Utc::now()),
                 updated_at: Some(chrono::Utc::now()),
                 tags: None,
                 full_name: "Test Employee".to_string(),
                 recruitment_source_id: None,
                 deleted_at: None,
+                hire_date: chrono::Utc::now().date_naive(),
+                termination_date: None,
+                original_hire_date: chrono::Utc::now().date_naive(),
             };
             diesel::insert_into(crate::schema::employees::table)
                 .values(&employee_entity)
@@ -355,6 +359,7 @@ mod tests {
                 job_title: None,
                 employment_type: "full_time".to_string(),
                 manager_employment_id: None,
+                notes: None,
             };
             diesel::insert_into(crate::schema::employments::table)
                 .values(&employment_entity)

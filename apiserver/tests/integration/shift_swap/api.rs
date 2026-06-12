@@ -621,7 +621,7 @@ async fn test_same_shift_swap_rejected() {
     let emp_c = Uuid::new_v4();
     crate::test_execute!(
         &s._db.diesel_pools.api,
-        "INSERT INTO employees (id, workspace_id, full_name, employee_id_number, created_at, updated_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        "INSERT INTO employees (id, workspace_id, full_name, employee_id_number, hire_date, original_hire_date, created_at, updated_at) VALUES ($1, $2, $3, $4, CURRENT_DATE, CURRENT_DATE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
         diesel::sql_types::Uuid, emp_c,
         diesel::sql_types::Uuid, s.workspace_id,
         diesel::sql_types::Text, "Employee C",

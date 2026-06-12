@@ -45,15 +45,15 @@ class Colors:
 
 
 def log_info(msg: str) -> None:
-    print(f"{Colors.BLUE}{Colors.BOLD}ℹ️ {msg}{Colors.NC}", flush=True)
+    print(f"{Colors.BLUE}{Colors.BOLD}ℹ️ {msg}{Colors.NC}", file=sys.stderr, flush=True)
 
 
 def log_success(msg: str) -> None:
-    print(f"{Colors.GREEN}{Colors.BOLD}✅ {msg}{Colors.NC}", flush=True)
+    print(f"{Colors.GREEN}{Colors.BOLD}✅ {msg}{Colors.NC}", file=sys.stderr, flush=True)
 
 
 def log_warn(msg: str) -> None:
-    print(f"{Colors.YELLOW}{Colors.BOLD}⚠️ {msg}{Colors.NC}", flush=True)
+    print(f"{Colors.YELLOW}{Colors.BOLD}⚠️ {msg}{Colors.NC}", file=sys.stderr, flush=True)
 
 
 def log_error(msg: str, file: typing.TextIO = sys.stderr) -> None:

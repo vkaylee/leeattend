@@ -22,18 +22,18 @@ from contextlib import contextmanager
 # ─────────────────────────────────────────────────────────────────────
 
 # Local dev DB urls
-LEGACY_DB_URL = os.getenv("LEGACY_DB_URL", "postgres://postgres:postgres@localhost:5433/railway")
+LEGACY_DB_URL = os.getenv("LEGACY_DB_URL", "postgres://tenant_user:tenant_password@localhost:5435/legacy_db")
 WORKSPACE_DB_URL = os.getenv(
     "WORKSPACE_DB_URL", "postgres://tenant_user:tenant_password@localhost:5435/tenant_db"
 )
 
 # Workspace mapping
 OLD_WORKSPACE_UUID = uuid.UUID("6e913c39-24f3-45b5-877d-e307c3e10c88")
-NEW_WORKSPACE_UUID = uuid.UUID("019e61c5-eb60-7c51-ab7a-ac15b6918c8c")
+NEW_WORKSPACE_UUID = uuid.UUID("019e632f-26b4-7660-956e-62b13870a145")
 
 # User mapping
 OLD_USER_UUID = uuid.UUID("019e07e0-9f95-7203-8191-ed3995e78495")
-NEW_USER_UUID = uuid.UUID("019e61c5-32b9-72f2-8f4e-a317d01b8d12")
+NEW_USER_UUID = uuid.UUID("019e632f-0444-7f21-b48a-c2a955950c8c")
 
 # Tables to skip (managed by system DB or schema migrations)
 SKIP_TABLES = {

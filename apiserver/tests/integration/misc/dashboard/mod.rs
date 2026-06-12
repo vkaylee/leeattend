@@ -339,11 +339,15 @@ async fn test_unexcused_absences_returns_data_with_absent_employees() {
     let today = Utc::now().date_naive();
 
     // Assign employee to department
-    crate::test_execute!(&_db.diesel_pools.api,
-        "INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $2, $3)",
-        diesel::sql_types::Uuid, emp_id,
-        diesel::sql_types::Uuid, dept_id,
-        diesel::sql_types::Date, today - Duration::days(30)
+    crate::test_execute!(
+        &_db.diesel_pools.api,
+        "UPDATE employments SET department_id = $2, start_date = $3 WHERE employee_id = $1",
+        diesel::sql_types::Uuid,
+        emp_id,
+        diesel::sql_types::Uuid,
+        dept_id,
+        diesel::sql_types::Date,
+        today - Duration::days(30)
     );
 
     // Assign a shift so they are expected to work today
@@ -435,11 +439,15 @@ async fn test_unexcused_absences_group_by_employee() {
     let today = Utc::now().date_naive();
 
     // Assign employee to department
-    crate::test_execute!(&_db.diesel_pools.api,
-        "INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $2, $3)",
-        diesel::sql_types::Uuid, emp_id,
-        diesel::sql_types::Uuid, dept_id,
-        diesel::sql_types::Date, today - Duration::days(30)
+    crate::test_execute!(
+        &_db.diesel_pools.api,
+        "UPDATE employments SET department_id = $2, start_date = $3 WHERE employee_id = $1",
+        diesel::sql_types::Uuid,
+        emp_id,
+        diesel::sql_types::Uuid,
+        dept_id,
+        diesel::sql_types::Date,
+        today - Duration::days(30)
     );
 
     // Assign a shift so they are expected to work today
@@ -776,11 +784,15 @@ async fn test_department_attendance_returns_data_with_present_employees() {
     let today = Utc::now().date_naive();
 
     // Assign employee to department
-    crate::test_execute!(&_db.diesel_pools.api,
-        "INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $2, $3)",
-        diesel::sql_types::Uuid, emp_id,
-        diesel::sql_types::Uuid, dept_id,
-        diesel::sql_types::Date, today - Duration::days(30)
+    crate::test_execute!(
+        &_db.diesel_pools.api,
+        "UPDATE employments SET department_id = $2, start_date = $3 WHERE employee_id = $1",
+        diesel::sql_types::Uuid,
+        emp_id,
+        diesel::sql_types::Uuid,
+        dept_id,
+        diesel::sql_types::Date,
+        today - Duration::days(30)
     );
 
     // Create time entry for today
