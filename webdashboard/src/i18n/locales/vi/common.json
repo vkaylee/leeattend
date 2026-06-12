@@ -584,6 +584,9 @@
         "missing_desc": "Thông tin không gian làm việc hoặc các quy tắc mặc định chưa được cấu hình."
       },
       "tabs": {
+        "rules_policies": "Quy định & Chính sách",
+        "salary_structures": "Thành phần & Công thức",
+        "incentives_benefits": "Chế độ đãi ngộ",
         "overtime_policy": "Chính sách tăng ca",
         "localization": "Định dạng & Ngôn ngữ",
         "appearance": "Giao diện",

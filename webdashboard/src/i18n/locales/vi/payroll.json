@@ -224,7 +224,54 @@
         "name": "Thu Nhập Chịu Thuế",
         "description": "Quỹ thu nhập dùng làm căn cứ tính Thuế Thu Nhập Cá Nhân (TNCN)"
       }
-    }
+    },
+    "statutory_rules": {
+      "title": "Quy định pháp lý",
+      "subtitle": "Quản lý các khoản khấu trừ pháp lý và quy tắc động",
+      "add_rule": "Thêm Quy tắc",
+      "create_rule_desc": "Tạo một quy tắc tính lương mới",
+      "no_rules": "Chưa cấu hình quy định pháp lý nào",
+      "code": "Mã (Code)",
+      "category": "Danh mục",
+      "calc_method": "Phương pháp Tính",
+      "applies_to": "Đối tượng đóng",
+      "display_order": "Thứ tự Hiển thị",
+      "logic_config": "Cấu hình Logic",
+      "rate": "Tỷ lệ (%)",
+      "calc_base": "Cơ sở Tính toán",
+      "cap_amount": "Mức trần đóng",
+      "cap_amount_placeholder": "Bỏ trống nếu không có mức trần đóng (Ví dụ: 4048000)",
+      "cap_amount_guide": "Nếu số tiền khấu trừ tính theo tỷ lệ vượt quá mức trần này, hệ thống sẽ lấy đúng bằng mức trần này.",
+      "fixed_amount": "Số tiền Cố định",
+      "tier_base_amount": "Cơ sở phân cấp",
+      "tier_bracket_note": "Lưu ý: Các bậc phân cấp (Ví dụ: 0-5M, 5-10M) sẽ được cấu hình sau khi tạo quy tắc.",
+      "mandatory_rule": "Quy tắc Bắt buộc",
+      "mandatory_rule_desc": "Không thể bỏ qua theo mặc định",
+      "mandatory": "BẮT BUỘC",
+      "optional": "TÙY CHỌN",
+      "categories": {
+        "statutory_deduction": "Khấu trừ Pháp lý",
+        "allowance": "Phụ cấp",
+        "bonus": "Thưởng",
+        "deduction": "Khấu trừ"
+      },
+      "methods": {
+        "percentage": "Tỷ lệ phần trăm",
+        "fixed": "Cố định",
+        "tiered": "Phân cấp (Ví dụ: Bậc thuế)"
+      },
+      "applies": {
+        "employee": "Người lao động đóng",
+        "employer": "Doanh nghiệp đóng thêm"
+      },
+      "active_assignments_count": "Có {{count}} phân bổ đang hoạt động trên các phạm vi"
+    },
+    "scope_employee": "Nhân viên",
+    "scope_department": "Phòng ban",
+    "scope_workspace": "Toàn hệ thống",
+    "scope_level_employee": "Cấp nhân viên",
+    "scope_level_department": "Cấp phòng ban",
+    "scope_level_workspace": "Cấp workspace"
   },
   "payroll_rules": {
     "scope_workspace": "Toàn Không gian làm việc",

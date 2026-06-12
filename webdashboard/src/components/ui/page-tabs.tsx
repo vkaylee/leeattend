@@ -9,6 +9,7 @@ export interface PageTab {
   icon?: React.ReactNode;
   id: string;
   label: string;
+  testId?: string;
 }
 
 export interface PageTabsProps {
@@ -74,6 +75,7 @@ export function PageTabs({ tabs, activeTab, onTabChange, className }: PageTabsPr
               "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all duration-200 whitespace-nowrap shadow-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:outline-none",
               activeClasses
             )}
+            data-testid={tab.testId}
             key={tab.id}
             onClick={() => {
               onTabChange(tab.id);

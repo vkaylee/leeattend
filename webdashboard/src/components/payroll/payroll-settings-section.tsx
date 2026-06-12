@@ -45,38 +45,36 @@ export default function PayrollSettingsSection({ wsId }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white dark:bg-slate-900 p-8 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm">
-        <TemporalConfigTable
-          isLoading={isHistoryLoading}
-          onSave={handleSavePolicy}
-           records={history.map(h => ({
-            std_working_days: parseFloat(h.fixed_std_days),
-            hours_per_day: parseFloat(h.hours_per_day),
-            max_ot_hours_per_day: h.max_ot_hours_per_day ? parseFloat(h.max_ot_hours_per_day) : null,
-            max_ot_hours_per_month: h.max_ot_hours_per_month ? parseFloat(h.max_ot_hours_per_month) : null,
-            effective_date: h.effective_date
-          }))}
-          title={t("common.payroll.settings.title")}
-        />
+      <TemporalConfigTable
+        isLoading={isHistoryLoading}
+        onSave={handleSavePolicy}
+         records={history.map(h => ({
+          std_working_days: parseFloat(h.fixed_std_days),
+          hours_per_day: parseFloat(h.hours_per_day),
+          max_ot_hours_per_day: h.max_ot_hours_per_day ? parseFloat(h.max_ot_hours_per_day) : null,
+          max_ot_hours_per_month: h.max_ot_hours_per_month ? parseFloat(h.max_ot_hours_per_month) : null,
+          effective_date: h.effective_date
+        }))}
+        title={t("common.payroll.settings.title")}
+      />
 
-        <div className="mt-8 p-6 bg-blue-50 dark:bg-blue-950/50 border border-blue-100 dark:border-blue-800 rounded-2xl flex gap-4">
-          <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 shrink-0">
-            <ShieldAlert size={20} />
-          </div>
-          <div className="text-xs text-blue-800 leading-relaxed font-medium">
-            <Typography className="font-bold uppercase tracking-widest mb-1 text-blue-900" variant="p">{t("common.payroll.settings.note_title")}</Typography>
-            <Typography className="opacity-80" variant="p">{t("common.payroll.settings.note_desc")}</Typography>
-          </div>
+      <div className="mt-8 p-6 bg-blue-50 dark:bg-blue-950/50 border border-blue-100 dark:border-blue-800 rounded-2xl flex gap-4">
+        <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 shrink-0">
+          <ShieldAlert size={20} />
         </div>
+        <div className="text-xs text-blue-800 leading-relaxed font-medium">
+          <Typography className="font-bold uppercase tracking-widest mb-1 text-blue-900" variant="p">{t("common.settings.notes_title", "Note") || t("common.payroll.settings.note_title")}</Typography>
+          <Typography className="opacity-80" variant="p">{t("common.payroll.settings.note_desc")}</Typography>
+        </div>
+      </div>
 
-        <div className="mt-4 p-6 bg-amber-50 dark:bg-amber-950/50 border border-amber-100 dark:border-amber-800 rounded-2xl flex gap-4">
-          <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900 flex items-center justify-center text-amber-600 dark:text-amber-300 shrink-0">
-            <Clock size={20} />
-          </div>
-          <div className="text-xs text-amber-800 leading-relaxed font-medium">
-            <Typography className="font-bold uppercase tracking-widest mb-1 text-amber-900" variant="p">{t("payroll.settings.max_ot_guide_title")}</Typography>
-            <Typography className="opacity-80" variant="p">{t("payroll.settings.max_ot_guide_desc")}</Typography>
-          </div>
+      <div className="mt-4 p-6 bg-amber-50 dark:bg-amber-950/50 border border-amber-100 dark:border-amber-800 rounded-2xl flex gap-4">
+        <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900 flex items-center justify-center text-amber-600 dark:text-amber-300 shrink-0">
+          <Clock size={20} />
+        </div>
+        <div className="text-xs text-amber-800 leading-relaxed font-medium">
+          <Typography className="font-bold uppercase tracking-widest mb-1 text-amber-900" variant="p">{t("payroll.settings.max_ot_guide_title")}</Typography>
+          <Typography className="opacity-80" variant="p">{t("payroll.settings.max_ot_guide_desc")}</Typography>
         </div>
       </div>
     </div>

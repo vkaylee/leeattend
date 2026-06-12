@@ -535,6 +535,9 @@
         "leave": "休假管理"
       },
       "tabs": {
+        "rules_policies": "规则与政策",
+        "salary_structures": "薪资结构",
+        "incentives_benefits": "福利与激励",
         "general": "常规配置",
         "patterns": "工作模式",
         "rules": "自动分配规则",

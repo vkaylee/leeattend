@@ -53,8 +53,7 @@ export default function RuleAssignmentManager({
               {t("payroll_rules.rule_assignments", "Rule Assignments")}
             </Typography>
             <Typography className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1 opacity-70" variant="p">
-              {totalCount} active{" "}
-              {totalCount === 1 ? "assignment" : "assignments"} across all scopes
+              {t("payroll.statutory_rules.active_assignments_count", { count: totalCount })}
             </Typography>
           </div>
         </div>

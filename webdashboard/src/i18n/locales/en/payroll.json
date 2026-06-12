@@ -224,7 +224,54 @@
         "name": "Taxable Income",
         "description": "Base for calculating personal income tax (PIT)"
       }
-    }
+    },
+    "statutory_rules": {
+      "title": "Statutory Rules",
+      "subtitle": "Manage dynamic statutory deductions and rules",
+      "add_rule": "Add Rule",
+      "create_rule_desc": "Create a new payroll rule",
+      "no_rules": "No Statutory Rules Configured",
+      "code": "Code",
+      "category": "Category",
+      "calc_method": "Calculation Method",
+      "applies_to": "Applies To",
+      "display_order": "Display Order",
+      "logic_config": "Logic Configuration",
+      "rate": "Rate (%)",
+      "calc_base": "Calculation Base",
+      "cap_amount": "Cap Amount",
+      "cap_amount_placeholder": "Leave empty if there is no cap limit",
+      "cap_amount_guide": "If the calculated deduction exceeds this cap, the cap amount will be used.",
+      "fixed_amount": "Fixed Amount",
+      "tier_base_amount": "Tier Base Amount",
+      "tier_bracket_note": "Note: Tier brackets (e.g. 0-5M, 5-10M) will be configured after creating the rule.",
+      "mandatory_rule": "Mandatory Rule",
+      "mandatory_rule_desc": "Cannot be bypassed by default",
+      "mandatory": "MANDATORY",
+      "optional": "OPTIONAL",
+      "categories": {
+        "statutory_deduction": "Statutory Deduction",
+        "allowance": "Allowance",
+        "bonus": "Bonus",
+        "deduction": "Deduction"
+      },
+      "methods": {
+        "percentage": "Percentage",
+        "fixed": "Fixed",
+        "tiered": "Tiered (e.g. Tax Brackets)"
+      },
+      "applies": {
+        "employee": "Employee",
+        "employer": "Employer"
+      },
+      "active_assignments_count": "{{count}} active assignment(s) across all scopes"
+    },
+    "scope_employee": "Employee",
+    "scope_department": "Department",
+    "scope_workspace": "Workspace",
+    "scope_level_employee": "Employee Level",
+    "scope_level_department": "Department Level",
+    "scope_level_workspace": "Workspace Level"
   },
   "payroll_rules": {
     "scope_workspace": "Workspace Wide",

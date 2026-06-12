@@ -224,7 +224,54 @@
         "name": "应纳税所得额",
         "description": "计算个人所得税 (PIT) 的基数"
       }
-    }
+    },
+    "statutory_rules": {
+      "title": "法定规则",
+      "subtitle": "管理动态法定扣除额和规则",
+      "add_rule": "添加规则",
+      "create_rule_desc": "创建新的工资规则",
+      "no_rules": "未配置法定规则",
+      "code": "代码",
+      "category": "类别",
+      "calc_method": "计算方法",
+      "applies_to": "适用对象",
+      "display_order": "显示顺序",
+      "logic_config": "逻辑配置",
+      "rate": "比率 (%)",
+      "calc_base": "计算基数",
+      "cap_amount": "上限金额",
+      "cap_amount_placeholder": "若无上限则留空 (例如: 4048000)",
+      "cap_amount_guide": "如果按比例计算的扣除额超过此上限，系统将采用此上限值。",
+      "fixed_amount": "固定金额",
+      "tier_base_amount": "分级基准金额",
+      "tier_bracket_note": "注：分级区间 (例如: 0-5M, 5-10M) 将在规则创建后进行配置。",
+      "mandatory_rule": "强制规则",
+      "mandatory_rule_desc": "默认情况下不能跳过",
+      "mandatory": "强制",
+      "optional": "可选",
+      "categories": {
+        "statutory_deduction": "法定扣除",
+        "allowance": "津贴",
+        "bonus": "奖金",
+        "deduction": "扣款"
+      },
+      "methods": {
+        "percentage": "百分比",
+        "fixed": "固定金额",
+        "tiered": "分级 (例如: 税率级距)"
+      },
+      "applies": {
+        "employee": "员工缴纳",
+        "employer": "雇主缴纳"
+      },
+      "active_assignments_count": "在所有范围内有 {{count}} 个有效分配"
+    },
+    "scope_employee": "员工",
+    "scope_department": "部门",
+    "scope_workspace": "工作区",
+    "scope_level_employee": "员工级别",
+    "scope_level_department": "部门级别",
+    "scope_level_workspace": "工作区级别"
   },
   "payroll_rules": {
     "scope_workspace": "工作区范围",

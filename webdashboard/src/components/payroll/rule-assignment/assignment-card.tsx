@@ -8,6 +8,8 @@ import { Typography } from "@/components/ui/typography";
 import { PayrollRuleAssignment, Department } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
+import { useTranslation } from "react-i18next";
+
 export const SCOPE_ICONS = {
   workspace: Globe,
   department: Building,
@@ -35,8 +37,8 @@ export const SCOPE_COLORS = {
   },
 } as const;
 
-function formatDate(d: string) {
-  return new Date(d).toLocaleDateString("vi-VN", {
+function formatDate(d: string, lang: string) {
+  return new Date(d).toLocaleDateString(lang === "vi" ? "vi-VN" : lang === "zh" ? "zh-CN" : "en-US", {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -65,6 +67,7 @@ export function AssignmentCard({
   setDeletingId, 
   handleDelete 
 }: AssignmentCardProps) {
+  const { i18n } = useTranslation();
   const colors = SCOPE_COLORS[scope];
   const Icon = SCOPE_ICONS[scope];
 
@@ -109,9 +112,9 @@ export function AssignmentCard({
           <div className="flex items-center gap-3 mt-1.5 flex-wrap">
             <span className="flex items-center gap-1 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
               <Calendar className="opacity-50" size={10} />
-              {formatDate(a.effective_from)}
+              {formatDate(a.effective_from, i18n.language)}
               {a.effective_to
-                ? ` → ${formatDate(a.effective_to)}`
+                ? ` → ${formatDate(a.effective_to, i18n.language)}`
                 : " → ∞"}
             </span>
             {!!a.override_config && (

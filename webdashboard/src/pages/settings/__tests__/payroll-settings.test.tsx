@@ -49,6 +49,7 @@ describe("PayrollSettings Page", () => {
     vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("ws-1");
     render(<PayrollSettings />);
 
+    fireEvent.click(screen.getByTestId("payroll-group-formulas"));
     fireEvent.click(screen.getByTestId("payroll-tab-components"));
     await waitFor(() => {
       expect(screen.getByTestId("salary-component-manager")).toBeDefined();
@@ -59,6 +60,7 @@ describe("PayrollSettings Page", () => {
     vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("ws-1");
     render(<PayrollSettings />);
 
+    fireEvent.click(screen.getByTestId("payroll-group-formulas"));
     fireEvent.click(screen.getByTestId("payroll-tab-bases"));
     await waitFor(() => {
       expect(screen.getByTestId("salary-base-group-manager")).toBeDefined();
@@ -69,6 +71,7 @@ describe("PayrollSettings Page", () => {
     vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("ws-1");
     render(<PayrollSettings />);
 
+    fireEvent.click(screen.getByTestId("payroll-group-benefits"));
     fireEvent.click(screen.getByTestId("payroll-tab-incentives"));
     await waitFor(() => {
       expect(screen.getByTestId("bonus-policy-manager")).toBeDefined();
@@ -79,6 +82,7 @@ describe("PayrollSettings Page", () => {
     vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("ws-1");
     render(<PayrollSettings />);
 
+    fireEvent.click(screen.getByTestId("payroll-group-benefits"));
     fireEvent.click(screen.getByTestId("payroll-tab-overtime"));
     await waitFor(() => {
       expect(screen.getByTestId("overtime-policy-manager")).toBeDefined();
@@ -89,6 +93,7 @@ describe("PayrollSettings Page", () => {
     vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("ws-1");
     render(<PayrollSettings />);
 
+    fireEvent.click(screen.getByTestId("payroll-group-core"));
     fireEvent.click(screen.getByTestId("payroll-tab-rules"));
     await waitFor(() => {
       expect(screen.getByTestId("payroll-rules-manager")).toBeDefined();

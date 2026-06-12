@@ -584,6 +584,9 @@
         "missing_desc": "Workspace details or default rules are not configured for this workspace."
       },
       "tabs": {
+        "rules_policies": "Rules & Policies",
+        "salary_structures": "Salary Structures",
+        "incentives_benefits": "Incentives & Benefits",
         "overtime_policy": "Overtime Policy",
         "localization": "Localization",
         "appearance": "Appearance",

@@ -35,23 +35,23 @@ function RuleBasicFields({
           <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all tracking-tight shadow-sm" id="rule-name" onChange={e => { setFormData({...formData, name: e.target.value}); }} placeholder="Social Insurance" required type="text" value={formData.name} />
         </div>
         <div className="space-y-3 px-1">
-          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-code">Code</label>
+          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-code">{t("payroll.statutory_rules.code")}</label>
           <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-mono font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all tracking-tight shadow-sm" id="rule-code" onChange={e => { setFormData({...formData, code: e.target.value.toUpperCase()}); }} placeholder="BHXH" required type="text" value={formData.code} />
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-3 px-1">
-          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-category">Category</label>
+          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-category">{t("payroll.statutory_rules.category")}</label>
           <select className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all uppercase tracking-tight shadow-sm" id="rule-category" onChange={e => { setFormData({...formData, category: e.target.value as "statutory_deduction" | "allowance" | "bonus" | "deduction"}); }} required value={formData.category}>
-            <option value="statutory_deduction">Statutory Deduction</option>
-            <option value="allowance">Allowance</option>
-            <option value="bonus">Bonus</option>
-            <option value="deduction">Deduction</option>
+            <option value="statutory_deduction">{t("payroll.statutory_rules.categories.statutory_deduction")}</option>
+            <option value="allowance">{t("payroll.statutory_rules.categories.allowance")}</option>
+            <option value="bonus">{t("payroll.statutory_rules.categories.bonus")}</option>
+            <option value="deduction">{t("payroll.statutory_rules.categories.deduction")}</option>
           </select>
         </div>
         <div className="space-y-3 px-1">
-          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-calc">Calculation Method</label>
+          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-calc">{t("payroll.statutory_rules.calc_method")}</label>
           <select className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all uppercase tracking-tight shadow-sm" id="rule-calc" onChange={e => {
             const method = e.target.value as "percentage" | "fixed" | "tiered";
             let newConfig = {};
@@ -60,23 +60,23 @@ function RuleBasicFields({
             else newConfig = { base: "taxable_income" };
             setFormData({...formData, calculation_method: method, rule_config: newConfig});
           }} required value={formData.calculation_method}>
-            <option value="percentage">Percentage</option>
-            <option value="fixed">Fixed</option>
-            <option value="tiered">Tiered (e.g. Tax Brackets)</option>
+            <option value="percentage">{t("payroll.statutory_rules.methods.percentage")}</option>
+            <option value="fixed">{t("payroll.statutory_rules.methods.fixed")}</option>
+            <option value="tiered">{t("payroll.statutory_rules.methods.tiered")}</option>
           </select>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-3 px-1">
-          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-applies-to">Applies To</label>
+          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-applies-to">{t("payroll.statutory_rules.applies_to")}</label>
           <select className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all uppercase tracking-tight shadow-sm" id="rule-applies-to" onChange={e => { setFormData({...formData, applies_to: e.target.value as "employee" | "employer"}); }} required value={formData.applies_to}>
-            <option value="employee">Employee (Người lao động đóng)</option>
-            <option value="employer">Employer (Doanh nghiệp đóng thêm)</option>
+            <option value="employee">{t("payroll.statutory_rules.applies.employee")}</option>
+            <option value="employer">{t("payroll.statutory_rules.applies.employer")}</option>
           </select>
         </div>
         <div className="space-y-3 px-1">
-          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-display-order">Display Order</label>
+          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-display-order">{t("payroll.statutory_rules.display_order")}</label>
           <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all tracking-tight shadow-sm" id="rule-display-order" min="1" onChange={e => { setFormData({...formData, display_order: parseInt(e.target.value) || 1}); }} required type="number" value={formData.display_order ?? 1} />
         </div>
       </div>
@@ -85,15 +85,16 @@ function RuleBasicFields({
 }
 
 function PercentageConfig({ formData, setFormData, bases }: { formData: Partial<PayrollRuleDefinition>; setFormData: (data: Partial<PayrollRuleDefinition>) => void; bases: SalaryBaseGroup[]; }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-3">
-          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1" htmlFor="rule-rate"><Percent size={12}/> Rate (%)</label>
+          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1" htmlFor="rule-rate"><Percent size={12}/> {t("payroll.statutory_rules.rate")}</label>
           <input className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm" id="rule-rate" onChange={e => { setFormData({...formData, rule_config: {...(formData.rule_config as Record<string, unknown>), rate: parseFloat(e.target.value)}}); }} required step="0.01" type="number" value={((formData.rule_config as { rate?: number } | undefined)?.rate) ?? ""} />
         </div>
         <div className="space-y-3">
-          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-calc-base">Calculation Base</label>
+          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-calc-base">{t("payroll.statutory_rules.calc_base")}</label>
           <select className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm uppercase tracking-tight" id="rule-calc-base" onChange={e => { setFormData({...formData, rule_config: {...(formData.rule_config as Record<string, unknown>), base: e.target.value}}); }} required value={((formData.rule_config as { base?: string } | undefined)?.base) ?? "gross"}>
             {bases.map(b => (
               <option key={b.slug} value={b.slug}>{b.name}</option>
@@ -108,7 +109,7 @@ function PercentageConfig({ formData, setFormData, bases }: { formData: Partial<
         </div>
       </div>
       <div className="space-y-3">
-        <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-cap">Cap Amount (Giới hạn trần tối đa - ₫)</label>
+        <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-cap">{t("payroll.statutory_rules.cap_amount")}</label>
         <input className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm" id="rule-cap" onChange={e => {
           const val = e.target.value ? parseFloat(e.target.value) : undefined;
           setFormData({
@@ -118,18 +119,19 @@ function PercentageConfig({ formData, setFormData, bases }: { formData: Partial<
               cap_amount: val
             }
           });
-        }} placeholder="Để trống nếu không có giới hạn trần đóng (e.g. 4048000)" type="number" value={((formData.rule_config as { cap_amount?: number } | undefined)?.cap_amount) ?? ""} />
-        <Typography className="text-xs text-slate-500 dark:text-slate-400 mt-2 ml-1 italic" variant="p">Nếu số tiền khấu trừ tính theo tỷ lệ vượt quá mức trần này, hệ thống sẽ lấy đúng bằng mức trần này.</Typography>
+        }} placeholder={t("payroll.statutory_rules.cap_amount_placeholder")} type="number" value={((formData.rule_config as { cap_amount?: number } | undefined)?.cap_amount) ?? ""} />
+        <Typography className="text-xs text-slate-500 dark:text-slate-400 mt-2 ml-1 italic" variant="p">{t("payroll.statutory_rules.cap_amount_guide")}</Typography>
       </div>
     </div>
   );
 }
 
 function FixedConfig({ formData, setFormData }: { formData: Partial<PayrollRuleDefinition>; setFormData: (data: Partial<PayrollRuleDefinition>) => void; }) {
+  const { t } = useTranslation();
   return (
     <div className="grid grid-cols-1 gap-8">
       <div className="space-y-3">
-        <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-fixed">Fixed Amount (₫)</label>
+        <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-fixed">{t("payroll.statutory_rules.fixed_amount")}</label>
         <input className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm" id="rule-fixed" onChange={e => { setFormData({...formData, rule_config: {...(formData.rule_config as Record<string, unknown>), amount: parseFloat(e.target.value)}}); }} required type="number" value={((formData.rule_config as { amount?: number } | undefined)?.amount) ?? ""} />
       </div>
     </div>
@@ -137,10 +139,11 @@ function FixedConfig({ formData, setFormData }: { formData: Partial<PayrollRuleD
 }
 
 function TieredConfig({ formData, setFormData, bases }: { formData: Partial<PayrollRuleDefinition>; setFormData: (data: Partial<PayrollRuleDefinition>) => void; bases: SalaryBaseGroup[]; }) {
+  const { t } = useTranslation();
   return (
     <div className="grid grid-cols-1 gap-8">
       <div className="space-y-3">
-        <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-tier-base">Tier Base Amount</label>
+        <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-tier-base">{t("payroll.statutory_rules.tier_base_amount")}</label>
         <select className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm uppercase tracking-tight" id="rule-tier-base" onChange={e => { setFormData({...formData, rule_config: {...(formData.rule_config as Record<string, unknown>), base: e.target.value}}); }} required value={((formData.rule_config as { base?: string } | undefined)?.base) ?? "taxable_income"}>
           {bases.map(b => (
             <option key={b.slug} value={b.slug}>{b.name}</option>
@@ -152,7 +155,7 @@ function TieredConfig({ formData, setFormData, bases }: { formData: Partial<Payr
             </>
           ) : null}
         </select>
-        <Typography className="text-xs text-slate-500 dark:text-slate-400 mt-2 ml-1 italic" variant="p">Note: Tier brackets (e.g. 0-5M, 5-10M) will be configured after creating the rule.</Typography>
+        <Typography className="text-xs text-slate-500 dark:text-slate-400 mt-2 ml-1 italic" variant="p">{t("payroll.statutory_rules.tier_bracket_note")}</Typography>
       </div>
     </div>
   );
@@ -167,11 +170,12 @@ function RuleLogicConfig({
   setFormData: (data: Partial<PayrollRuleDefinition>) => void;
   bases: SalaryBaseGroup[];
 }) {
+  const { t } = useTranslation();
   return (
     <div className="bg-slate-50 dark:bg-slate-800/50 p-8 rounded-[2rem] border border-slate-100 dark:border-slate-800 space-y-6">
       <div className="flex items-center gap-3 mb-2">
         <Calculator className="text-primary-600 dark:text-primary-400" size={18} />
-        <Typography className="font-bold text-slate-700 dark:text-slate-200 text-sm uppercase tracking-widest" variant="h3">Logic Configuration</Typography>
+        <Typography className="font-bold text-slate-700 dark:text-slate-200 text-sm uppercase tracking-widest" variant="h3">{t("payroll.statutory_rules.logic_config")}</Typography>
       </div>
       
       {formData.calculation_method === "percentage" ? (
@@ -220,7 +224,7 @@ function PayrollRuleForm({
 
       <div className="space-y-5">
         {[
-          { key: "is_mandatory", label: "Mandatory Rule", desc: "Cannot be bypassed by default", icon: CheckCircle2 }
+          { key: "is_mandatory", label: t("payroll.statutory_rules.mandatory_rule"), desc: t("payroll.statutory_rules.mandatory_rule_desc"), icon: CheckCircle2 }
         ].map(field => (
           <React.Fragment key={field.key}>
             {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- dynamic id */}
@@ -252,8 +256,22 @@ interface RuleRowProps {
   wsId: string;
 }
 
-function getRuleSubtitle(rule: PayrollRuleDefinition): string {
-  const parts: string[] = [rule.category, rule.calculation_method];
+function getRuleSubtitle(rule: PayrollRuleDefinition, t: any): string {
+  const categoryLabel = rule.category === "statutory_deduction"
+    ? t("payroll.statutory_rules.categories.statutory_deduction", "Statutory Deduction")
+    : rule.category === "allowance"
+    ? t("payroll.statutory_rules.categories.allowance", "Allowance")
+    : rule.category === "bonus"
+    ? t("payroll.statutory_rules.categories.bonus", "Bonus")
+    : t("payroll.statutory_rules.categories.deduction", "Deduction");
+
+  const methodLabel = rule.calculation_method === "percentage"
+    ? t("payroll.statutory_rules.methods.percentage", "Percentage")
+    : rule.calculation_method === "fixed"
+    ? t("payroll.statutory_rules.methods.fixed", "Fixed")
+    : t("payroll.statutory_rules.methods.tiered", "Tiered");
+
+  const parts: string[] = [categoryLabel, methodLabel];
   if (rule.calculation_method === "percentage" && rule.rule_config && typeof rule.rule_config === "object") {
     const config = rule.rule_config as { rate?: number; cap_amount?: number; base?: string };
     if (config.rate !== undefined) {
@@ -281,14 +299,16 @@ function getRuleSubtitle(rule: PayrollRuleDefinition): string {
 }
 
 function RuleStatusBadge({ isMandatory }: { isMandatory: boolean }) {
+  const { t } = useTranslation();
   return (
     <span className={cn("text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-full border shadow-sm", isMandatory ? 'bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 border-rose-100 dark:border-rose-800' : 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800 opacity-60')}>
-      {isMandatory ? "MANDATORY" : "OPTIONAL"}
+      {isMandatory ? t("payroll.statutory_rules.mandatory") : t("payroll.statutory_rules.optional")}
     </span>
   );
 }
 
 function RuleRow({ rule, expandedRuleId, setExpandedRuleId, wsId }: RuleRowProps) {
+  const { t } = useTranslation();
   const isExpanded = expandedRuleId === rule.id;
   const toggleExpand = () => {
     setExpandedRuleId(isExpanded ? null : rule.id);
@@ -300,6 +320,10 @@ function RuleRow({ rule, expandedRuleId, setExpandedRuleId, wsId }: RuleRowProps
       toggleExpand();
     }
   };
+
+  const appliesToLabel = rule.applies_to === "employee"
+    ? t("payroll.statutory_rules.applies.employee")
+    : t("payroll.statutory_rules.applies.employer");
 
   return (
     <div className="border-b border-slate-50 dark:border-slate-800/50 last:border-0">
@@ -315,7 +339,7 @@ function RuleRow({ rule, expandedRuleId, setExpandedRuleId, wsId }: RuleRowProps
           <div>
             <Typography className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none" variant="p">{rule.name}</Typography>
             <Typography className="text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-2 opacity-70" variant="p">
-              {getRuleSubtitle(rule)}
+              {getRuleSubtitle(rule, t)}
             </Typography>
           </div>
         </div>
@@ -323,7 +347,7 @@ function RuleRow({ rule, expandedRuleId, setExpandedRuleId, wsId }: RuleRowProps
         <div className="flex items-center gap-10">
           <div className="flex flex-col items-end gap-2">
             <RuleStatusBadge isMandatory={rule.is_mandatory} />
-            <span className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-50 italic">{rule.applies_to.toUpperCase()}</span>
+            <span className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-50 italic">{appliesToLabel}</span>
           </div>
           <Button className="p-2.5 bg-white dark:bg-slate-900 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all opacity-0 group-hover:opacity-100 active:scale-90" onClick={(e: React.MouseEvent) => { e.stopPropagation(); }} variant="ghost"><Trash2 size={18} /></Button>
         </div>
@@ -354,13 +378,13 @@ export default function PayrollRulesManager({ wsId }: Props) {
   const bases = basesResponse?.groups;
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden animate-in fade-in duration-700">
-      <div className="p-10 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/30 px-12">
+    <div className="animate-in fade-in duration-700 space-y-6">
+      <div className="flex items-center justify-between pb-6 border-b border-slate-100 dark:border-slate-800">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-[1.25rem] bg-rose-50 dark:bg-rose-950 flex items-center justify-center text-rose-600 dark:text-rose-300 shadow-inner border border-rose-100 dark:border-rose-800/50"><FileText size={24} /></div>
           <div>
-            <Typography className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase leading-none" variant="h2">Statutory Rules</Typography>
-            <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1.5 opacity-70" variant="p">Manage dynamic statutory deductions and rules</Typography>
+            <Typography className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase leading-none" variant="h2">{t("payroll.statutory_rules.title")}</Typography>
+            <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1.5 opacity-70" variant="p">{t("payroll.statutory_rules.subtitle")}</Typography>
           </div>
         </div>
         <Button className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95" onClick={() => { setIsModalOpen(true); }} variant="ghost"><Plus size={18} /> {t("common.add").toUpperCase()}</Button>
@@ -372,7 +396,7 @@ export default function PayrollRulesManager({ wsId }: Props) {
         ) : rules?.length === 0 ? (
           <div className="p-32 text-center bg-slate-50 dark:bg-slate-800/30 m-8 rounded-[3rem] border-2 border-dashed border-slate-100 dark:border-slate-800 flex flex-col items-center">
             <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm mb-4 border border-slate-100 dark:border-slate-800"><FileText className="text-slate-200 dark:text-slate-700" size={32} /></div>
-            <Typography className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest" variant="p">No Statutory Rules Configured</Typography>
+            <Typography className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest" variant="p">{t("payroll.statutory_rules.no_rules")}</Typography>
           </div>
         ) : (
           rules?.map((rule) => (
@@ -387,7 +411,7 @@ export default function PayrollRulesManager({ wsId }: Props) {
         )}
       </div>
 
-      <Modal icon={<FileText size={24} />} isOpen={isModalOpen} maxWidth="lg" onClose={() => { setIsModalOpen(false); }} subtitle="Create a new payroll rule" title="Add Rule">
+      <Modal icon={<FileText size={24} />} isOpen={isModalOpen} maxWidth="lg" onClose={() => { setIsModalOpen(false); }} subtitle={t("payroll.statutory_rules.create_rule_desc")} title={t("payroll.statutory_rules.add_rule")}>
         <PayrollRuleForm 
           bases={bases ?? []} 
           onCancel={() => { setIsModalOpen(false); }} 
