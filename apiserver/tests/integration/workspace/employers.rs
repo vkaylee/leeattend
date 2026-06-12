@@ -42,6 +42,14 @@ async fn test_employers_crud() {
         legal_address: Some("123 Corporate Way".to_string()),
         parent_id: None,
         relationship_type: None,
+        business_type: Some("llc".to_string()),
+        registration_number: Some("REG999".to_string()),
+        phone: Some("+123456789".to_string()),
+        email: Some("corp@test.com".to_string()),
+        website: Some("https://test.com".to_string()),
+        incorporation_date: Some(chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()),
+        country_code: Some("USA".to_string()),
+        currency_code: Some("USD".to_string()),
     };
 
     let res = client
@@ -60,6 +68,14 @@ async fn test_employers_crud() {
     assert_eq!(employer_1["name"], "Test Employer Corp");
     assert_eq!(employer_1["tax_code"], "MST-999888");
     assert_eq!(employer_1["legal_address"], "123 Corporate Way");
+    assert_eq!(employer_1["business_type"], "llc");
+    assert_eq!(employer_1["registration_number"], "REG999");
+    assert_eq!(employer_1["phone"], "+123456789");
+    assert_eq!(employer_1["email"], "corp@test.com");
+    assert_eq!(employer_1["website"], "https://test.com");
+    assert_eq!(employer_1["incorporation_date"], "2026-01-01");
+    assert_eq!(employer_1["country_code"], "USA");
+    assert_eq!(employer_1["currency_code"], "USD");
 
     // 3. Get employer details by ID
     let res = client
@@ -75,6 +91,7 @@ async fn test_employers_crud() {
     let fetched: Value = res.json().await.unwrap();
     assert_eq!(fetched["name"], "Test Employer Corp");
     assert_eq!(fetched["tax_code"], "MST-999888");
+    assert_eq!(fetched["business_type"], "llc");
 
     // 4. Update the Employer
     let update_payload = UpdateEmployerRequest {
@@ -83,6 +100,14 @@ async fn test_employers_crud() {
         legal_address: Some("456 Executive Blvd".to_string()),
         parent_id: None,
         relationship_type: None,
+        business_type: Some("corporation".to_string()),
+        registration_number: Some("REG888".to_string()),
+        phone: Some("+987654321".to_string()),
+        email: Some("updated@test.com".to_string()),
+        website: Some("https://updated.com".to_string()),
+        incorporation_date: Some(chrono::NaiveDate::from_ymd_opt(2026, 2, 2).unwrap()),
+        country_code: Some("VNM".to_string()),
+        currency_code: Some("VND".to_string()),
     };
 
     let res = client
@@ -100,6 +125,14 @@ async fn test_employers_crud() {
     assert_eq!(updated["name"], "Updated Employer Corp");
     assert_eq!(updated["tax_code"], "MST-111222");
     assert_eq!(updated["legal_address"], "456 Executive Blvd");
+    assert_eq!(updated["business_type"], "corporation");
+    assert_eq!(updated["registration_number"], "REG888");
+    assert_eq!(updated["phone"], "+987654321");
+    assert_eq!(updated["email"], "updated@test.com");
+    assert_eq!(updated["website"], "https://updated.com");
+    assert_eq!(updated["incorporation_date"], "2026-02-02");
+    assert_eq!(updated["country_code"], "VNM");
+    assert_eq!(updated["currency_code"], "VND");
 
     // 5. Try to get a non-existent employer (should be 404)
     let fake_id = Uuid::new_v4();
@@ -189,6 +222,14 @@ async fn test_employer_hierarchy() {
         legal_address: Some("1 Parent Rd".to_string()),
         parent_id: None,
         relationship_type: None,
+        business_type: None,
+        registration_number: None,
+        phone: None,
+        email: None,
+        website: None,
+        incorporation_date: None,
+        country_code: None,
+        currency_code: None,
     };
     let res = client
         .post(&format!(
@@ -210,6 +251,14 @@ async fn test_employer_hierarchy() {
         legal_address: Some("2 Child Rd".to_string()),
         parent_id: Some(Uuid::parse_str(&parent_id).unwrap()),
         relationship_type: Some("subsidiary".to_string()),
+        business_type: None,
+        registration_number: None,
+        phone: None,
+        email: None,
+        website: None,
+        incorporation_date: None,
+        country_code: None,
+        currency_code: None,
     };
     let res = client
         .post(&format!(
@@ -244,6 +293,14 @@ async fn test_employer_hierarchy() {
         legal_address: None,
         parent_id: Some(other_parent_id),
         relationship_type: Some("subsidiary".to_string()),
+        business_type: None,
+        registration_number: None,
+        phone: None,
+        email: None,
+        website: None,
+        incorporation_date: None,
+        country_code: None,
+        currency_code: None,
     };
     let res = client
         .post(&format!(
@@ -264,6 +321,14 @@ async fn test_employer_hierarchy() {
         legal_address: None,
         parent_id: Some(Some(Uuid::parse_str(&child_id).unwrap())),
         relationship_type: Some(Some("subsidiary".to_string())),
+        business_type: None,
+        registration_number: None,
+        phone: None,
+        email: None,
+        website: None,
+        incorporation_date: None,
+        country_code: None,
+        currency_code: None,
     };
     let res = client
         .put(&format!(
@@ -283,6 +348,14 @@ async fn test_employer_hierarchy() {
         legal_address: None,
         parent_id: Some(Some(Uuid::parse_str(&child_id).unwrap())),
         relationship_type: None,
+        business_type: None,
+        registration_number: None,
+        phone: None,
+        email: None,
+        website: None,
+        incorporation_date: None,
+        country_code: None,
+        currency_code: None,
     };
     let res = client
         .put(&format!(
@@ -302,6 +375,14 @@ async fn test_employer_hierarchy() {
         legal_address: None,
         parent_id: Some(None),
         relationship_type: Some(None),
+        business_type: None,
+        registration_number: None,
+        phone: None,
+        email: None,
+        website: None,
+        incorporation_date: None,
+        country_code: None,
+        currency_code: None,
     };
     let res = client
         .put(&format!(
@@ -316,4 +397,91 @@ async fn test_employer_hierarchy() {
     let updated_child: Value = res.json().await.unwrap();
     assert!(updated_child["parent_id"].is_null());
     assert!(updated_child["relationship_type"].is_null());
+}
+
+#[tokio::test]
+async fn test_employer_invalid_validations() {
+    let (address, workspace_id, user_id, _factory, _db) = spawn_app_with_factory().await;
+    let client = reqwest::Client::new();
+
+    // 1. Invalid Email
+    let bad_email_payload = CreateEmployerRequest {
+        name: "Bad Email Corp".to_string(),
+        tax_code: None,
+        legal_address: None,
+        parent_id: None,
+        relationship_type: None,
+        business_type: None,
+        registration_number: None,
+        phone: None,
+        email: Some("invalid-email".to_string()),
+        website: None,
+        incorporation_date: None,
+        country_code: None,
+        currency_code: None,
+    };
+    let res = client
+        .post(&format!(
+            "{address}/api/v1/workspaces/{workspace_id}/employers"
+        ))
+        .header("X-User-Id", user_id.to_string())
+        .json(&bad_email_payload)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+
+    // 2. Invalid Country Code (too short)
+    let bad_country_payload = CreateEmployerRequest {
+        name: "Bad Country Corp".to_string(),
+        tax_code: None,
+        legal_address: None,
+        parent_id: None,
+        relationship_type: None,
+        business_type: None,
+        registration_number: None,
+        phone: None,
+        email: None,
+        website: None,
+        incorporation_date: None,
+        country_code: Some("US".to_string()),
+        currency_code: None,
+    };
+    let res = client
+        .post(&format!(
+            "{address}/api/v1/workspaces/{workspace_id}/employers"
+        ))
+        .header("X-User-Id", user_id.to_string())
+        .json(&bad_country_payload)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+
+    // 3. Invalid Currency Code (too long)
+    let bad_currency_payload = CreateEmployerRequest {
+        name: "Bad Currency Corp".to_string(),
+        tax_code: None,
+        legal_address: None,
+        parent_id: None,
+        relationship_type: None,
+        business_type: None,
+        registration_number: None,
+        phone: None,
+        email: None,
+        website: None,
+        incorporation_date: None,
+        country_code: None,
+        currency_code: Some("USDD".to_string()),
+    };
+    let res = client
+        .post(&format!(
+            "{address}/api/v1/workspaces/{workspace_id}/employers"
+        ))
+        .header("X-User-Id", user_id.to_string())
+        .json(&bad_currency_payload)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::BAD_REQUEST);
 }

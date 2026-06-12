@@ -1091,6 +1091,21 @@ diesel::table! {
         parent_id -> Nullable<Uuid>,
         #[max_length = 100]
         relationship_type -> Nullable<Varchar>,
+        #[max_length = 50]
+        business_type -> Nullable<Varchar>,
+        #[max_length = 100]
+        registration_number -> Nullable<Varchar>,
+        #[max_length = 20]
+        phone -> Nullable<Varchar>,
+        #[max_length = 255]
+        email -> Nullable<Varchar>,
+        #[max_length = 255]
+        website -> Nullable<Varchar>,
+        incorporation_date -> Nullable<Date>,
+        #[max_length = 3]
+        country_code -> Nullable<Varchar>,
+        #[max_length = 3]
+        currency_code -> Nullable<Varchar>,
     }
 }
 

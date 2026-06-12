@@ -335,6 +335,14 @@ mod tests {
                 deleted_at: None,
                 parent_id: None,
                 relationship_type: None,
+                business_type: None,
+                registration_number: None,
+                phone: None,
+                email: None,
+                website: None,
+                incorporation_date: None,
+                country_code: None,
+                currency_code: None,
             };
             diesel::insert_into(crate::schema::employers::table)
                 .values(&employer_entity)

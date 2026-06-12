@@ -48,6 +48,16 @@ impl EmployerService {
         self.validate_parent_employer(workspace_id, None, data.parent_id)
             .await?;
 
+        if let Some(ref email) = data.email {
+            validate_email(email)?;
+        }
+        if let Some(ref country) = data.country_code {
+            validate_country_code(country)?;
+        }
+        if let Some(ref currency) = data.currency_code {
+            validate_currency_code(currency)?;
+        }
+
         let auth_token = TenantAuthToken::system_override(workspace_id);
         let employer = self.repo.create_employer(&auth_token, data).await?;
 
@@ -62,7 +72,18 @@ impl EmployerService {
             target_user_id: None,
             target_resource_id: Some(employer.id),
             action: "employer.created",
-            details: Some(json!({ "name": employer.name, "tax_code": employer.tax_code })),
+            details: Some(json!({
+                "name": employer.name,
+                "tax_code": employer.tax_code,
+                "business_type": employer.business_type,
+                "registration_number": employer.registration_number,
+                "phone": employer.phone,
+                "email": employer.email,
+                "website": employer.website,
+                "incorporation_date": employer.incorporation_date,
+                "country_code": employer.country_code,
+                "currency_code": employer.currency_code,
+            })),
             headers: &empty_headers,
         })
         .await;
@@ -82,6 +103,16 @@ impl EmployerService {
                 .await?;
         }
 
+        if let Some(ref email) = data.email {
+            validate_email(email)?;
+        }
+        if let Some(ref country) = data.country_code {
+            validate_country_code(country)?;
+        }
+        if let Some(ref currency) = data.currency_code {
+            validate_currency_code(currency)?;
+        }
+
         let auth_token = TenantAuthToken::system_override(workspace_id);
         let employer = self.repo.update_employer(&auth_token, id, data).await?;
 
@@ -96,7 +127,18 @@ impl EmployerService {
             target_user_id: None,
             target_resource_id: Some(employer.id),
             action: "employer.updated",
-            details: Some(json!({ "name": employer.name, "tax_code": employer.tax_code })),
+            details: Some(json!({
+                "name": employer.name,
+                "tax_code": employer.tax_code,
+                "business_type": employer.business_type,
+                "registration_number": employer.registration_number,
+                "phone": employer.phone,
+                "email": employer.email,
+                "website": employer.website,
+                "incorporation_date": employer.incorporation_date,
+                "country_code": employer.country_code,
+                "currency_code": employer.currency_code,
+            })),
             headers: &empty_headers,
         })
         .await;
@@ -199,4 +241,50 @@ impl EmployerService {
 
         Ok(())
     }
+}
+
+// --- Service Validation Helpers ---
+
+fn validate_email(email: &str) -> Result<(), AppError> {
+    let trimmed = email.trim();
+    if trimmed.is_empty() || trimmed.len() > 254 {
+        return Err(AppError::validation(I18nKey::InvalidEmailFormat));
+    }
+
+    let parts: Vec<&str> = trimmed.splitn(2, '@').collect();
+    if parts.len() != 2 {
+        return Err(AppError::validation(I18nKey::InvalidEmailFormat));
+    }
+
+    let (local, domain) = (parts[0], parts[1]);
+    if local.is_empty() || local.len() > 64 {
+        return Err(AppError::validation(I18nKey::InvalidEmailFormat));
+    }
+
+    if domain.is_empty()
+        || !domain.contains('.')
+        || domain.starts_with('.')
+        || domain.ends_with('.')
+        || domain.contains("..")
+    {
+        return Err(AppError::validation(I18nKey::InvalidEmailFormat));
+    }
+
+    Ok(())
+}
+
+fn validate_country_code(code: &str) -> Result<(), AppError> {
+    let code = code.trim();
+    if code.len() != 3 || !code.chars().all(|c| c.is_ascii_alphabetic()) {
+        return Err(AppError::validation_raw("Country code must be a 3-character ISO 3166-1 alpha-3 code."));
+    }
+    Ok(())
+}
+
+fn validate_currency_code(code: &str) -> Result<(), AppError> {
+    let code = code.trim();
+    if code.len() != 3 || !code.chars().all(|c| c.is_ascii_alphabetic()) {
+        return Err(AppError::validation_raw("Currency code must be a 3-character uppercase string."));
+    }
+    Ok(())
 }

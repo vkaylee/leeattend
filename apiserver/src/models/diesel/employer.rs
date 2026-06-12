@@ -28,6 +28,14 @@ pub struct EmployerEntity {
     pub deleted_at: Option<DateTime<Utc>>,
     pub parent_id: Option<Uuid>,
     pub relationship_type: Option<String>,
+    pub business_type: Option<String>,
+    pub registration_number: Option<String>,
+    pub phone: Option<String>,
+    pub email: Option<String>,
+    pub website: Option<String>,
+    pub incorporation_date: Option<chrono::NaiveDate>,
+    pub country_code: Option<String>,
+    pub currency_code: Option<String>,
 }
 
 impl From<EmployerEntity> for Employer {
@@ -42,6 +50,14 @@ impl From<EmployerEntity> for Employer {
             updated_at: entity.updated_at,
             parent_id: entity.parent_id,
             relationship_type: entity.relationship_type,
+            business_type: entity.business_type,
+            registration_number: entity.registration_number,
+            phone: entity.phone,
+            email: entity.email,
+            website: entity.website,
+            incorporation_date: entity.incorporation_date,
+            country_code: entity.country_code,
+            currency_code: entity.currency_code,
         }
     }
 }
@@ -66,6 +82,14 @@ mod tests {
             deleted_at: None,
             parent_id: None,
             relationship_type: None,
+            business_type: Some("llc".to_string()),
+            registration_number: Some("REG123".to_string()),
+            phone: Some("+123456789".to_string()),
+            email: Some("employer@test.com".to_string()),
+            website: Some("https://test.com".to_string()),
+            incorporation_date: Some(chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap()),
+            country_code: Some("VNM".to_string()),
+            currency_code: Some("VND".to_string()),
         };
 
         let employer: Employer = entity.into();
@@ -78,5 +102,13 @@ mod tests {
         assert_eq!(employer.updated_at, now);
         assert_eq!(employer.parent_id, None);
         assert_eq!(employer.relationship_type, None);
+        assert_eq!(employer.business_type, Some("llc".to_string()));
+        assert_eq!(employer.registration_number, Some("REG123".to_string()));
+        assert_eq!(employer.phone, Some("+123456789".to_string()));
+        assert_eq!(employer.email, Some("employer@test.com".to_string()));
+        assert_eq!(employer.website, Some("https://test.com".to_string()));
+        assert_eq!(employer.incorporation_date, Some(chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap()));
+        assert_eq!(employer.country_code, Some("VNM".to_string()));
+        assert_eq!(employer.currency_code, Some("VND".to_string()));
     }
 }

@@ -45,6 +45,14 @@ impl EmployerRepository for DieselEmployerRepository {
             deleted_at: None,
             parent_id: data.parent_id,
             relationship_type: data.relationship_type,
+            business_type: data.business_type,
+            registration_number: data.registration_number,
+            phone: data.phone,
+            email: data.email,
+            website: data.website,
+            incorporation_date: data.incorporation_date,
+            country_code: data.country_code,
+            currency_code: data.currency_code,
         };
 
         let result = diesel::insert_into(employers::table)
@@ -168,6 +176,30 @@ impl EmployerRepository for DieselEmployerRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?;
             }
             existing.relationship_type = rel_opt;
+        }
+        if data.business_type.is_some() || data.business_type.is_none() {
+            existing.business_type = data.business_type;
+        }
+        if data.registration_number.is_some() || data.registration_number.is_none() {
+            existing.registration_number = data.registration_number;
+        }
+        if data.phone.is_some() || data.phone.is_none() {
+            existing.phone = data.phone;
+        }
+        if data.email.is_some() || data.email.is_none() {
+            existing.email = data.email;
+        }
+        if data.website.is_some() || data.website.is_none() {
+            existing.website = data.website;
+        }
+        if data.incorporation_date.is_some() || data.incorporation_date.is_none() {
+            existing.incorporation_date = data.incorporation_date;
+        }
+        if data.country_code.is_some() || data.country_code.is_none() {
+            existing.country_code = data.country_code;
+        }
+        if data.currency_code.is_some() || data.currency_code.is_none() {
+            existing.currency_code = data.currency_code;
         }
         existing.updated_at = Utc::now();
 
