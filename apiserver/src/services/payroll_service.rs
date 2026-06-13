@@ -278,9 +278,9 @@ impl PayrollService {
             .and_utc();
         let policy_version = self
             .policy_repo
-            .get_employee_effective_policy(
+            .get_employment_effective_policy(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                employee_id,
+                active_emp_id,
                 effective_time,
             )
             .await?;
@@ -885,7 +885,11 @@ impl PayrollService {
 
             let policies_res = self
                 .policy_repo
-                .get_employee_effective_policies_batch(token, &chunk_employee_ids, effective_time)
+                .get_employment_effective_policies_batch(
+                    token,
+                    &chunk_employment_ids,
+                    effective_time,
+                )
                 .await;
 
             let contracts_res = self
@@ -993,8 +997,9 @@ impl PayrollService {
                         payroll_roster_map.insert((r.employment_id, r.date), r.shift_id);
                     }
 
-                    let working_conditions = conditions_map.remove(employment_id).unwrap_or_default();
-                    let attendance_policy = match policies_map.remove(&emp_id) {
+                    let working_conditions =
+                        conditions_map.remove(employment_id).unwrap_or_default();
+                    let attendance_policy = match policies_map.remove(employment_id) {
                         Some(pv) => pv.rules,
                         None => crate::models::AttendanceRules {
                             work_unit_minutes: 30,
@@ -1003,7 +1008,8 @@ impl PayrollService {
                         },
                     };
 
-                    let emp_payroll_configs = emp_configs_map.remove(employment_id).unwrap_or_default();
+                    let emp_payroll_configs =
+                        emp_configs_map.remove(employment_id).unwrap_or_default();
                     let all_dept_history = dept_map.remove(&emp_id).unwrap_or_default();
                     let mut emp_dept_payroll_configs = HashMap::new();
                     for dh in &all_dept_history {
@@ -1017,34 +1023,40 @@ impl PayrollService {
                         .copied()
                         .unwrap_or_else(Uuid::new_v4);
 
-                    let salary_history =
-                        salary_map.remove(employment_id).unwrap_or_default();
+                    let salary_history = salary_map.remove(employment_id).unwrap_or_default();
 
-                    contexts.push((*employment_id, PayrollContext {
-                        employee_id: emp_id,
-                        workspace: workspace.clone(),
-                        tz,
-                        start_date,
-                        end_date,
-                        salary_history,
-                        all_dept_history,
-                        daily_entries_map,
-                        holidays_map: holidays_map.clone(),
-                        roster_data: Arc::clone(&roster_data),
-                        emp_id_number: employee.employee_id_number().to_string(),
-                        emp_tags: Some(employee.tags().to_vec()),
-                        payroll_roster_map,
-                        working_conditions,
-                        attendance_policy,
-                        emp_payroll_configs,
-                        ws_payroll_settings_history: ws_payroll_settings_history.clone(),
-                        department_payroll_configs: emp_dept_payroll_configs,
-                        overtime_data: overtime_data.clone(),
-                        active_contracts: contracts_map.remove(&emp_id).unwrap_or_default(),
-                        active_assignments: assignments_map.remove(employment_id).unwrap_or_default(),
-                        active_employments: emp_to_employments.remove(&emp_id).unwrap_or_default(),
-                        primary_location_id,
-                    }));
+                    contexts.push((
+                        *employment_id,
+                        PayrollContext {
+                            employee_id: emp_id,
+                            workspace: workspace.clone(),
+                            tz,
+                            start_date,
+                            end_date,
+                            salary_history,
+                            all_dept_history,
+                            daily_entries_map,
+                            holidays_map: holidays_map.clone(),
+                            roster_data: Arc::clone(&roster_data),
+                            emp_id_number: employee.employee_id_number().to_string(),
+                            emp_tags: Some(employee.tags().to_vec()),
+                            payroll_roster_map,
+                            working_conditions,
+                            attendance_policy,
+                            emp_payroll_configs,
+                            ws_payroll_settings_history: ws_payroll_settings_history.clone(),
+                            department_payroll_configs: emp_dept_payroll_configs,
+                            overtime_data: overtime_data.clone(),
+                            active_contracts: contracts_map.remove(&emp_id).unwrap_or_default(),
+                            active_assignments: assignments_map
+                                .remove(employment_id)
+                                .unwrap_or_default(),
+                            active_employments: emp_to_employments
+                                .remove(&emp_id)
+                                .unwrap_or_default(),
+                            primary_location_id,
+                        },
+                    ));
                 }
             }
 

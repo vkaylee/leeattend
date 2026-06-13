@@ -137,8 +137,9 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
         let entries = workspace_config_entries::table
             .filter(workspace_config_entries::workspace_id.eq(workspace_id))
             .filter(
-                workspace_config_entries::scope_type.eq("employment")
-                    .and(workspace_config_entries::scope_id.eq(employment_id))
+                workspace_config_entries::scope_type
+                    .eq("employment")
+                    .and(workspace_config_entries::scope_id.eq(employment_id)),
             )
             .filter(workspace_config_entries::effective_from.le(date))
             .load::<crate::models::WorkspaceConfigEntry>(&mut *conn)
@@ -204,8 +205,9 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
         let entries = workspace_config_entries::table
             .filter(workspace_config_entries::workspace_id.eq(workspace_id))
             .filter(
-                workspace_config_entries::scope_type.eq("employment")
-                    .and(workspace_config_entries::scope_id.eq(employment_id))
+                workspace_config_entries::scope_type
+                    .eq("employment")
+                    .and(workspace_config_entries::scope_id.eq(employment_id)),
             )
             .load::<crate::models::WorkspaceConfigEntry>(&mut *conn)
             .await
@@ -269,9 +271,7 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
 
         let entries = workspace_config_entries::table
             .filter(workspace_config_entries::workspace_id.eq(workspace_id))
-            .filter(
-                workspace_config_entries::scope_type.eq("employment")
-            )
+            .filter(workspace_config_entries::scope_type.eq("employment"))
             .filter(workspace_config_entries::scope_id.eq_any(employment_ids))
             .load::<crate::models::WorkspaceConfigEntry>(&mut *conn)
             .await

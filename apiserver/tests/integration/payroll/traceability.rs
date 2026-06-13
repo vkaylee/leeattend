@@ -335,7 +335,7 @@ async fn test_payroll_std_days_source_traceability() {
     employee_repo
         .upsert_employee_payroll_config(
             &apiserver::diesel_pool::TenantAuthToken::system_override(workspace_id),
-            employee_id,
+            employment_id,
             Decimal::from(20),
             Decimal::from(8),
             NaiveDate::from_ymd_opt(2024, 4, 1).unwrap(),

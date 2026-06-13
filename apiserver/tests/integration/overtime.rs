@@ -432,11 +432,19 @@ async fn test_overtime_request_behalf_assignments() {
 
     assert_eq!(res.status(), StatusCode::FORBIDDEN);
 
-    // 2. Admin creates behalf assignment: Team Lead -> emp1
+    // 2. Admin creates behalf assignment: Team Lead -> emp1 with matching employer_id
+    let emp1_employer_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT employer_id AS id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp1_emp_id
+    );
+
     let behalf_payload = serde_json::json!({
         "assignee_user_id": team_lead_user_id,
         "target_employee_id": emp1_emp_id,
-        "target_department_id": null
+        "target_department_id": null,
+        "employer_id": emp1_employer_id
     });
 
     let res = admin_client
@@ -452,7 +460,7 @@ async fn test_overtime_request_behalf_assignments() {
 
     assert_eq!(res.status(), StatusCode::OK);
     let assignment: serde_json::Value = res.json().await.unwrap();
-    let assignment_id = assignment["id"].as_str().unwrap();
+    let mut assignment_id = assignment["id"].as_str().unwrap().to_string();
 
     // 3. Team Lead lists behalf assignments
     let res = admin_client
@@ -516,6 +524,91 @@ async fn test_overtime_request_behalf_assignments() {
         .unwrap();
 
     assert_eq!(res.status(), StatusCode::FORBIDDEN);
+
+    // Delete the first valid assignment temporarily
+    let res = admin_client
+        .delete(&format!(
+            "{}/api/v1/workspaces/{}/overtime/requests/behalf-assignments/{}",
+            app_addr, admin_ws_id, assignment_id
+        ))
+        .header("X-Workspace-Id", admin_ws_id.to_string())
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+
+    // 5b. Create a behalf assignment with a different/wrong employer_id
+    let wrong_employer_id = Uuid::new_v4();
+    crate::test_execute!(
+        &factory.diesel_pools.api,
+        "INSERT INTO employers (id, workspace_id, name, tax_code, legal_address, created_at, updated_at) VALUES ($1, $2, 'Wrong Test Employer', 'TAX-WRONG', 'Wrong Address', NOW(), NOW())",
+        diesel::sql_types::Uuid, wrong_employer_id,
+        diesel::sql_types::Uuid, admin_ws_id
+    );
+
+    let wrong_behalf_payload = serde_json::json!({
+        "assignee_user_id": team_lead_user_id,
+        "target_employee_id": emp1_emp_id,
+        "target_department_id": null,
+        "employer_id": wrong_employer_id
+    });
+
+    let res = admin_client
+        .post(&format!(
+            "{}/api/v1/workspaces/{}/overtime/requests/behalf-assignments",
+            app_addr, admin_ws_id
+        ))
+        .header("X-Workspace-Id", admin_ws_id.to_string())
+        .json(&wrong_behalf_payload)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), StatusCode::OK);
+    let wrong_assignment: serde_json::Value = res.json().await.unwrap();
+    let wrong_assignment_id = wrong_assignment["id"].as_str().unwrap();
+
+    // Team Lead tries to create a Pre-OT request for emp1, but it should fail (StatusCode::FORBIDDEN)
+    // because the matching assignment (by target_employee_id) has a wrong employer_id constraint!
+    let res = team_lead_client
+        .post(&format!(
+            "{}/api/v1/workspaces/{}/overtime/requests",
+            app_addr, admin_ws_id
+        ))
+        .header("X-Workspace-Id", admin_ws_id.to_string())
+        .json(&ot_payload_emp1)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), StatusCode::FORBIDDEN);
+
+    // Clean up wrong assignment
+    let res = admin_client
+        .delete(&format!(
+            "{}/api/v1/workspaces/{}/overtime/requests/behalf-assignments/{}",
+            app_addr, admin_ws_id, wrong_assignment_id
+        ))
+        .header("X-Workspace-Id", admin_ws_id.to_string())
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+
+    // Restore the valid assignment for subsequent steps
+    let res = admin_client
+        .post(&format!(
+            "{}/api/v1/workspaces/{}/overtime/requests/behalf-assignments",
+            app_addr, admin_ws_id
+        ))
+        .header("X-Workspace-Id", admin_ws_id.to_string())
+        .json(&behalf_payload)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+    let assignment: serde_json::Value = res.json().await.unwrap();
+    assignment_id = assignment["id"].as_str().unwrap().to_string();
 
     // 6. Team Lead cannot create Pre-OT request for both emp1 and emp2 (all-or-nothing validation)
     let ot_payload_both = serde_json::json!({

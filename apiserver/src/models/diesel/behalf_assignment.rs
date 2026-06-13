@@ -9,12 +9,13 @@ use uuid::Uuid;
 pub struct BehalfAssignmentEntity {
     pub id: Uuid,
     pub workspace_id: Uuid,
-    pub assignee_user_id: Uuid,
     pub target_employee_id: Option<Uuid>,
     pub target_department_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub assignment_type: String,
+    pub assignee_user_id: Uuid,
+    pub employer_id: Option<Uuid>,
 }
 
 impl From<BehalfAssignmentEntity> for BehalfAssignment {
@@ -28,6 +29,7 @@ impl From<BehalfAssignmentEntity> for BehalfAssignment {
             entity.assignment_type,
             entity.created_at,
             entity.updated_at,
+            entity.employer_id,
         )
     }
 }

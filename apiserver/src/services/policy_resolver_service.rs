@@ -73,6 +73,33 @@ impl PolicyResolverService {
         }
     }
 
+    pub async fn resolve_attendance_policy_by_employment(
+        policy_repo: &dyn AttendancePolicyRepository,
+        employment_id: Uuid,
+        workspace_id: Uuid,
+        date: NaiveDate,
+    ) -> Result<AttendanceRules, AppError> {
+        let effective_time = date.and_hms_opt(0, 0, 0).unwrap_or_default().and_utc();
+
+        let policy_version = policy_repo
+            .get_employment_effective_policy(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                employment_id,
+                effective_time,
+            )
+            .await?;
+
+        if let Some(pv) = policy_version {
+            Ok(pv.rules)
+        } else {
+            Ok(AttendanceRules {
+                work_unit_minutes: 30,
+                rounding_policy: "floor".to_string(),
+                early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
+            })
+        }
+    }
+
     pub async fn resolve_attendance_policy_batch(
         policy_repo: &dyn AttendancePolicyRepository,
         employee_ids: &[Uuid],
@@ -112,6 +139,45 @@ impl PolicyResolverService {
         Ok(result)
     }
 
+    pub async fn resolve_attendance_policy_batch_by_employment(
+        policy_repo: &dyn AttendancePolicyRepository,
+        employment_ids: &[Uuid],
+        workspace_id: Uuid,
+        date: NaiveDate,
+    ) -> Result<HashMap<Uuid, AttendanceRules>, AppError> {
+        if employment_ids.is_empty() {
+            return Ok(HashMap::new());
+        }
+
+        let effective_time = date.and_hms_opt(0, 0, 0).unwrap_or_default().and_utc();
+
+        let versions = policy_repo
+            .get_employment_effective_policies_batch(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                employment_ids,
+                effective_time,
+            )
+            .await?;
+
+        let mut result = HashMap::with_capacity(employment_ids.len());
+        for &id in employment_ids {
+            if let Some(pv) = versions.get(&id) {
+                result.insert(id, pv.rules.clone());
+            } else {
+                result.insert(
+                    id,
+                    AttendanceRules {
+                        work_unit_minutes: 30,
+                        rounding_policy: "floor".to_string(),
+                        early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
+                    },
+                );
+            }
+        }
+
+        Ok(result)
+    }
+
     pub async fn resolve_attendance_rules(
         policy_repo: &dyn AttendancePolicyRepository,
         employee_repo: &dyn crate::repositories::employee::EmployeeRepository,
@@ -128,6 +194,38 @@ impl PolicyResolverService {
             .get_working_conditions_at(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
                 employee_id,
+                date,
+            )
+            .await?;
+
+        Ok(PolicyResolver::resolve_attendance_rules_pure(
+            &attendance_rules,
+            conditions,
+            date,
+        ))
+    }
+
+    pub async fn resolve_attendance_rules_by_employment(
+        policy_repo: &dyn AttendancePolicyRepository,
+        employee_repo: &dyn crate::repositories::employee::EmployeeRepository,
+        employment_id: Uuid,
+        workspace_id: Uuid,
+        date: NaiveDate,
+    ) -> Result<PolicyRules, AppError> {
+        // 1. Get Attendance Policy rules by employment_id
+        let attendance_rules = Self::resolve_attendance_policy_by_employment(
+            policy_repo,
+            employment_id,
+            workspace_id,
+            date,
+        )
+        .await?;
+
+        // 2. Get Employee Special Conditions by employment_id
+        let conditions = employee_repo
+            .get_working_conditions_at(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                employment_id,
                 date,
             )
             .await?;
@@ -179,6 +277,24 @@ impl PolicyResolverService {
         Ok(result)
     }
 
+    pub async fn resolve_attendance_rules_batch_by_employment(
+        employee_repo: &dyn crate::repositories::employee::EmployeeRepository,
+        employment_ids: &[Uuid],
+        workspace_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<HashMap<Uuid, Vec<WorkingCondition>>, AppError> {
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
+        employee_repo
+            .get_working_conditions_batch_by_employments(
+                &auth_token,
+                employment_ids,
+                start_date,
+                end_date,
+            )
+            .await
+    }
+
     pub async fn resolve_with_shift_overrides(
         policy_repo: &dyn AttendancePolicyRepository,
         employee_repo: &dyn crate::repositories::employee::EmployeeRepository,
@@ -191,6 +307,38 @@ impl PolicyResolverService {
             policy_repo,
             employee_repo,
             employee_id,
+            workspace_id,
+            date,
+        )
+        .await;
+
+        let rules = rules_res.unwrap_or_else(|_| {
+            PolicyRules::new(
+                overrides.grace_period_minutes().unwrap_or(0),
+                0,
+                false,
+                overrides.early_arrival_strategy(),
+                overrides.is_break_auto_deduct().unwrap_or(false),
+                overrides.is_break_overtime(),
+                overrides.allow_early_ot().unwrap_or(false),
+            )
+        });
+
+        PolicyResolver::apply_shift_overrides(rules, overrides)
+    }
+
+    pub async fn resolve_with_shift_overrides_by_employment(
+        policy_repo: &dyn AttendancePolicyRepository,
+        employee_repo: &dyn crate::repositories::employee::EmployeeRepository,
+        employment_id: Uuid,
+        workspace_id: Uuid,
+        date: NaiveDate,
+        overrides: &ShiftPolicyOverrides,
+    ) -> PolicyRules {
+        let rules_res = Self::resolve_attendance_rules_by_employment(
+            policy_repo,
+            employee_repo,
+            employment_id,
             workspace_id,
             date,
         )

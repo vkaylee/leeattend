@@ -75,7 +75,9 @@ pub async fn set_employee_payroll_config(
         .repo()
         .get_employee_by_id(employee_id, &ctx.auth_token)
         .await?
-        .ok_or_else(|| crate::errors::AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound))?;
+        .ok_or_else(|| {
+            crate::errors::AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound)
+        })?;
     let employment_id = employee
         .active_employment_id()
         .ok_or_else(|| crate::errors::AppError::validation_raw("No active employment found"))?;
@@ -146,7 +148,9 @@ pub async fn get_employee_payroll_configs(
         .repo()
         .get_employee_by_id(employee_id, &ctx.auth_token)
         .await?
-        .ok_or_else(|| crate::errors::AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound))?;
+        .ok_or_else(|| {
+            crate::errors::AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound)
+        })?;
     let employment_id = employee
         .active_employment_id()
         .ok_or_else(|| crate::errors::AppError::validation_raw("No active employment found"))?;
@@ -159,4 +163,3 @@ pub async fn get_employee_payroll_configs(
 
     Ok(Json(configs))
 }
-

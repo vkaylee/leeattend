@@ -589,6 +589,7 @@ pub async fn create_behalf_assignment_handler(
             req.target_employee_id,
             req.target_department_id,
             domain_type,
+            req.employer_id,
         )
         .await
 }
@@ -974,6 +975,7 @@ mod tests {
             "leave_request".to_string(),
             chrono::Utc::now(),
             chrono::Utc::now(),
+            None,
         )
     }
 

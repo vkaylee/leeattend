@@ -801,6 +801,7 @@ diesel::table! {
         #[max_length = 50]
         assignment_type -> Varchar,
         assignee_user_id -> Uuid,
+        employer_id -> Nullable<Uuid>,
     }
 }
 
@@ -2028,6 +2029,7 @@ diesel::joinable!(attendance_policy_assignments -> attendance_policies (policy_i
 diesel::joinable!(attendance_policy_versions -> attendance_policies (policy_id));
 diesel::joinable!(behalf_assignments -> departments (target_department_id));
 diesel::joinable!(behalf_assignments -> employees (target_employee_id));
+diesel::joinable!(behalf_assignments -> employers (employer_id));
 diesel::joinable!(custom_field_values -> custom_field_definitions (definition_id));
 diesel::joinable!(departments -> employees (manager_id));
 diesel::joinable!(departments -> working_patterns (default_working_pattern_id));

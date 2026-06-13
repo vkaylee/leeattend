@@ -900,6 +900,22 @@ mod tests {
         ) -> Result<HashMap<Uuid, AttendancePolicyVersion>, AppError> {
             unimplemented!()
         }
+        async fn get_employment_effective_policy(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _e: Uuid,
+            _t: DateTime<Utc>,
+        ) -> Result<Option<AttendancePolicyVersion>, AppError> {
+            unimplemented!()
+        }
+        async fn get_employment_effective_policies_batch(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _e: &[Uuid],
+            _t: DateTime<Utc>,
+        ) -> Result<HashMap<Uuid, AttendancePolicyVersion>, AppError> {
+            unimplemented!()
+        }
         async fn get_default_policy_rules(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -2076,6 +2092,22 @@ mod tests {
             unimplemented!()
         }
         async fn get_employee_effective_policies_batch(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _e: &[Uuid],
+            _t: DateTime<Utc>,
+        ) -> Result<HashMap<Uuid, AttendancePolicyVersion>, AppError> {
+            Ok(HashMap::new())
+        }
+        async fn get_employment_effective_policy(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _e: Uuid,
+            _t: DateTime<Utc>,
+        ) -> Result<Option<AttendancePolicyVersion>, AppError> {
+            unimplemented!()
+        }
+        async fn get_employment_effective_policies_batch(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _e: &[Uuid],

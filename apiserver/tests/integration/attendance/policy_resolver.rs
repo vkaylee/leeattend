@@ -150,7 +150,6 @@ async fn test_resolve_attendance_policy_hierarchy() {
         diesel::sql_types::Uuid, user_policy_id,
         diesel::sql_types::Uuid, employee_id
     );
-
     let rules = PolicyResolverService::resolve_attendance_policy(
         &policy_repo,
         employee_id,
@@ -161,4 +160,58 @@ async fn test_resolve_attendance_policy_hierarchy() {
     .unwrap();
     assert_eq!(rules.work_unit_minutes, 30, "Should be overridden by USER");
     assert_eq!(rules.early_arrival_strategy, EarlyArrivalStrategy::Clamp);
+
+    // === CASE 4: Employment Override Policy ===
+    let employment_id = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        employee_id
+    );
+
+    let employment_policy_id = Uuid::new_v4();
+    crate::test_execute!(&pool.api,
+        "INSERT INTO attendance_policies (id, workspace_id, name, is_default) VALUES ($1, $2, 'Employment Policy', false)",
+        diesel::sql_types::Uuid, employment_policy_id,
+        diesel::sql_types::Uuid, ws_id
+    );
+
+    crate::test_execute!(&pool.api,
+        "INSERT INTO attendance_policy_versions (policy_id, rules, valid_from) VALUES ($1, $2, '2000-01-01 00:00:00+00')",
+        diesel::sql_types::Uuid, employment_policy_id,
+        diesel::sql_types::Jsonb, serde_json::json!({ "work_unit_minutes": 40, "rounding_policy": "nearest", "early_arrival_strategy": "allow" })
+    );
+
+    crate::test_execute!(&pool.api,
+        "INSERT INTO attendance_policy_assignments (policy_id, target_type, target_id, valid_from) VALUES ($1, 'EMPLOYMENT', $2, '2026-05-20 00:00:00+00')",
+        diesel::sql_types::Uuid, employment_policy_id,
+        diesel::sql_types::Uuid, employment_id
+    );
+
+    // Verify resolve_attendance_policy_by_employment resolves to employment level
+    let rules = PolicyResolverService::resolve_attendance_policy_by_employment(
+        &policy_repo,
+        employment_id,
+        ws_id,
+        test_date,
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        rules.work_unit_minutes, 40,
+        "Should be overridden by EMPLOYMENT"
+    );
+    assert_eq!(rules.early_arrival_strategy, EarlyArrivalStrategy::Allow);
+
+    // Verify resolve_attendance_policy_batch_by_employment
+    let batch_rules = PolicyResolverService::resolve_attendance_policy_batch_by_employment(
+        &policy_repo,
+        &[employment_id],
+        ws_id,
+        test_date,
+    )
+    .await
+    .unwrap();
+    let emp_rules = batch_rules.get(&employment_id).unwrap();
+    assert_eq!(emp_rules.work_unit_minutes, 40);
 }

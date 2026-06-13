@@ -81,12 +81,19 @@ async fn test_set_and_get_department_payroll_config() {
 
 #[tokio::test]
 async fn test_set_and_get_employee_payroll_config() {
-    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+    let (test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
 
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
     let emp_id: Uuid = factory.employee().with_workspace(ws_id).create().await;
+
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &test_db.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
 
     // POST: Create an employee payroll config
     let body = json!({
@@ -137,7 +144,7 @@ async fn test_set_and_get_employee_payroll_config() {
         configs[0]["std_working_days"] == json!("20")
             || configs[0]["std_working_days"] == json!("20.00")
     );
-    assert_eq!(configs[0]["employee_id"], json!(emp_id.to_string()));
+    assert_eq!(configs[0]["employment_id"], json!(employment_id.to_string()));
 }
 
 #[tokio::test]

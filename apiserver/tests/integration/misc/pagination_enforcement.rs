@@ -89,6 +89,7 @@ const GET_LIST_WHITELIST: &[&str] = &[
     "get_generic_job_status",
     "get_employment_phase_definitions",
     "get_employee_phases",
+    "get_employment_phases",
     "get_recruitment_source_breakdown",
     "get_turnover_analytics",
     "get_assignment_rules",

@@ -92,14 +92,24 @@ async fn test_employment_phase_repo_crud() {
     let end_date_2 = NaiveDate::from_ymd_opt(2025, 4, 1).unwrap();
 
     let phase2 = repo
-        .assign_phase(ws_id, employment_id, def2.id, start_date_2, end_date_2, None)
+        .assign_phase(
+            ws_id,
+            employment_id,
+            def2.id,
+            start_date_2,
+            end_date_2,
+            None,
+        )
         .await
         .unwrap();
 
     assert_eq!(phase2.status, "active");
 
     // 5. Get Employment Phases
-    let phases = repo.get_employment_phases(ws_id, employment_id).await.unwrap();
+    let phases = repo
+        .get_employment_phases(ws_id, employment_id)
+        .await
+        .unwrap();
     assert_eq!(phases.len(), 2);
 
     // The first phase should now be "completed"

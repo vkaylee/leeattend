@@ -222,7 +222,7 @@ pub async fn get_employee_phases(
     Path(__path_params): Path<(Uuid, Uuid)>,
 ) -> Result<Json<Vec<EmployeePhase>>, AppError> {
     let (_ws_id, emp_id) = __path_params;
-    
+
     let employee = state
         .employees()
         .repo()

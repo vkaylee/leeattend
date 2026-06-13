@@ -143,6 +143,13 @@ async fn test_payroll_config_upsert_and_lookup() {
     let ws_id = factory.workspace().create_with_owner(user_id).await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &test_db.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
+
     let effective = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
 
     let repo = DieselEmployeeRepository::new(test_db.diesel_pools.clone());
@@ -151,7 +158,7 @@ async fn test_payroll_config_upsert_and_lookup() {
     let config = repo
         .upsert_employee_payroll_config(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp_id,
+            employment_id,
             Decimal::from(22),
             Decimal::from(8),
             effective,
@@ -166,7 +173,7 @@ async fn test_payroll_config_upsert_and_lookup() {
     let updated = repo
         .upsert_employee_payroll_config(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp_id,
+            employment_id,
             Decimal::from(20),
             Decimal::from(7),
             effective,
@@ -180,7 +187,7 @@ async fn test_payroll_config_upsert_and_lookup() {
     let found = repo
         .get_employee_payroll_config_at(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp_id,
+            employment_id,
             effective,
         )
         .await
@@ -193,7 +200,7 @@ async fn test_payroll_config_upsert_and_lookup() {
     let not_found = repo
         .get_employee_payroll_config_at(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp_id,
+            employment_id,
             before,
         )
         .await
@@ -210,6 +217,13 @@ async fn test_payroll_config_returns_closest_effective() {
     let ws_id = factory.workspace().create_with_owner(user_id).await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &test_db.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
+
     // Insert two configs with different effective dates
     let jan = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
     let jul = NaiveDate::from_ymd_opt(2026, 7, 1).unwrap();
@@ -218,7 +232,7 @@ async fn test_payroll_config_returns_closest_effective() {
 
     repo.upsert_employee_payroll_config(
         &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-        emp_id,
+        employment_id,
         Decimal::from(22),
         Decimal::from(8),
         jan,
@@ -227,7 +241,7 @@ async fn test_payroll_config_returns_closest_effective() {
     .unwrap();
     repo.upsert_employee_payroll_config(
         &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-        emp_id,
+        employment_id,
         Decimal::from(20),
         Decimal::from(7),
         jul,
@@ -240,7 +254,7 @@ async fn test_payroll_config_returns_closest_effective() {
     let config = repo
         .get_employee_payroll_config_at(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp_id,
+            employment_id,
             march,
         )
         .await
@@ -253,7 +267,7 @@ async fn test_payroll_config_returns_closest_effective() {
     let config = repo
         .get_employee_payroll_config_at(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp_id,
+            employment_id,
             august,
         )
         .await

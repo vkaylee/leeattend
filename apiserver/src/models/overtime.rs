@@ -223,6 +223,7 @@ pub struct BehalfAssignment {
     assignment_type: String,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
+    employer_id: Option<Uuid>,
     // Optional joined details for client optimization
     assignee_name: Option<String>,
     assignee_employee_id_number: Option<String>,
@@ -242,6 +243,7 @@ impl BehalfAssignment {
         assignment_type: String,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
+        employer_id: Option<Uuid>,
     ) -> Self {
         Self {
             id,
@@ -252,6 +254,7 @@ impl BehalfAssignment {
             assignment_type,
             created_at,
             updated_at,
+            employer_id,
             assignee_name: None,
             assignee_employee_id_number: None,
             target_employee_name: None,
@@ -331,6 +334,10 @@ impl BehalfAssignment {
     pub fn set_target_department_name(&mut self, val: Option<String>) {
         self.target_department_name = val;
     }
+
+    pub fn employer_id(&self) -> Option<Uuid> {
+        self.employer_id
+    }
 }
 
 #[derive(Debug, Deserialize, Clone, ToSchema)]
@@ -338,4 +345,5 @@ pub struct CreateBehalfAssignmentRequest {
     pub assignee_user_id: Uuid,
     pub target_employee_id: Option<Uuid>,
     pub target_department_id: Option<Uuid>,
+    pub employer_id: Option<Uuid>,
 }

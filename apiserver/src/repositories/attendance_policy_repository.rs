@@ -21,6 +21,20 @@ pub trait AttendancePolicyRepository: Send + Sync {
         effective_time: DateTime<Utc>,
     ) -> Result<std::collections::HashMap<Uuid, AttendancePolicyVersion>, AppError>;
 
+    async fn get_employment_effective_policy(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employment_id: Uuid,
+        effective_time: DateTime<Utc>,
+    ) -> Result<Option<AttendancePolicyVersion>, AppError>;
+
+    async fn get_employment_effective_policies_batch(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employment_ids: &[Uuid],
+        effective_time: DateTime<Utc>,
+    ) -> Result<std::collections::HashMap<Uuid, AttendancePolicyVersion>, AppError>;
+
     async fn get_default_policy_rules(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

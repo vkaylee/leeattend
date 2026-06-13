@@ -12,6 +12,7 @@ pub trait BehalfAssignmentRepository: Send + Sync {
         target_employee_id: Option<Uuid>,
         target_department_id: Option<Uuid>,
         assignment_type: &str,
+        employer_id: Option<Uuid>,
     ) -> AppResult<BehalfAssignment>;
 
     async fn delete_assignment(&self, workspace_id: Uuid, id: Uuid) -> AppResult<u64>;

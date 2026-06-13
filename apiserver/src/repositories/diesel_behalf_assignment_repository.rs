@@ -29,6 +29,7 @@ impl BehalfAssignmentRepository for DieselBehalfAssignmentRepository {
         target_employee_id: Option<Uuid>,
         target_department_id: Option<Uuid>,
         assignment_type: &str,
+        employer_id: Option<Uuid>,
     ) -> AppResult<BehalfAssignment> {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -56,6 +57,7 @@ impl BehalfAssignmentRepository for DieselBehalfAssignmentRepository {
                 behalf_assignments::target_employee_id.eq(target_employee_id),
                 behalf_assignments::target_department_id.eq(target_department_id),
                 behalf_assignments::assignment_type.eq(assignment_type),
+                behalf_assignments::employer_id.eq(employer_id),
             ))
             .returning(BehalfAssignmentEntity::as_returning())
             .get_result(&mut *conn)
@@ -207,11 +209,33 @@ impl BehalfAssignmentRepository for DieselBehalfAssignmentRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
+        // Fetch target employee's active employer_id
+        let target_employer_id: Option<Uuid> = crate::schema::employments::table
+            .filter(crate::schema::employments::workspace_id.eq(workspace_id))
+            .filter(crate::schema::employments::employee_id.eq(target_employee_id))
+            .filter(crate::schema::employments::status.eq("active"))
+            .filter(crate::schema::employments::deleted_at.is_null())
+            .select(crate::schema::employments::employer_id)
+            .first(&mut *conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
         let mut query = behalf_assignments::table
             .filter(behalf_assignments::workspace_id.eq(workspace_id))
             .filter(behalf_assignments::assignee_user_id.eq(assignee_user_id))
             .filter(behalf_assignments::assignment_type.eq(assignment_type))
             .into_boxed();
+
+        if let Some(emp_employer_id) = target_employer_id {
+            query = query.filter(
+                behalf_assignments::employer_id
+                    .is_null()
+                    .or(behalf_assignments::employer_id.eq(emp_employer_id)),
+            );
+        } else {
+            query = query.filter(behalf_assignments::employer_id.is_null());
+        }
 
         if let Some(dept_id) = target_department_id {
             query = query.filter(
