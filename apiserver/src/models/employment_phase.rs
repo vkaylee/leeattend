@@ -20,7 +20,8 @@ pub struct EmploymentPhaseDefinition {
 pub struct EmployeePhase {
     pub id: Uuid,
     pub workspace_id: Uuid,
-    pub employee_id: Uuid,
+    #[serde(alias = "employee_id")]
+    pub employment_id: Uuid,
     pub phase_definition_id: Uuid,
     pub start_date: NaiveDate,
     pub end_date: NaiveDate,

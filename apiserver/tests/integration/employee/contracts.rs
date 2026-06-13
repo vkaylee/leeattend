@@ -227,9 +227,9 @@ async fn test_explicitly_assign_employment_phase_during_contract_creation() {
     // Verify that the Employee was assigned to the explicit phase
     let phase_count: i64 = crate::test_query_scalar_i64!(
         &pool.api,
-        "SELECT COUNT(*) AS count FROM employee_phases WHERE employee_id = $1",
+        "SELECT COUNT(*) AS count FROM employee_phases WHERE employment_id = $1",
         diesel::sql_types::Uuid,
-        emp_id
+        employment_id
     );
 
     // There should be 1 phase assigned to the employee
@@ -240,9 +240,9 @@ async fn test_explicitly_assign_employment_phase_during_contract_creation() {
 
     let assigned_def_id: Uuid = crate::test_query_scalar_uuid!(
         &pool.api,
-        "SELECT phase_definition_id AS id FROM employee_phases WHERE employee_id = $1",
+        "SELECT phase_definition_id AS id FROM employee_phases WHERE employment_id = $1",
         diesel::sql_types::Uuid,
-        emp_id
+        employment_id
     );
 
     assert_eq!(assigned_def_id, phase_def_id);

@@ -47,3 +47,38 @@ export async function updateEmployeePhaseStatus(
   if (!result) throw new Error("No response data");
   return result;
 }
+
+export async function fetchEmploymentAssignedPhases(wsId: string, employmentId: string): Promise<EmployeePhase[]> {
+  const { data } = await client.GET("/v1/workspaces/{ws_id}/employments/{employment_id}/phases", {
+    params: { path: { ws_id: wsId, employment_id: employmentId } }
+  });
+  if (!data) throw new Error("No response data");
+  return data as unknown as EmployeePhase[];
+}
+
+export async function assignEmploymentPhase(
+  wsId: string,
+  employmentId: string,
+  data: { phase_definition_id: string; start_date: string; end_date: string; override_config?: unknown }
+): Promise<EmployeePhase> {
+  const { data: result } = await client.POST("/v1/workspaces/{ws_id}/employments/{employment_id}/phases", {
+    params: { path: { ws_id: wsId, employment_id: employmentId } },
+    body: data as unknown as never
+  });
+  if (!result) throw new Error("No response data");
+  return result as unknown as EmployeePhase;
+}
+
+export async function updateEmploymentPhaseStatus(
+  wsId: string,
+  employmentId: string,
+  phaseId: string,
+  data: { status: string; evaluation_notes?: string }
+): Promise<EmployeePhase> {
+  const { data: result } = await client.PUT("/v1/workspaces/{ws_id}/employments/{employment_id}/phases/{phase_id}/status", {
+    params: { path: { ws_id: wsId, employment_id: employmentId, phase_id: phaseId } },
+    body: data
+  });
+  if (!result) throw new Error("No response data");
+  return result as unknown as EmployeePhase;
+}

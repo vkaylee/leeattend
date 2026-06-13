@@ -224,7 +224,7 @@ pub trait EmployeePayrollConfigRepository: Send + Sync {
     async fn upsert_employee_payroll_config(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         std_working_days: Decimal,
         hours_per_day: Decimal,
         effective_date: NaiveDate,
@@ -233,20 +233,20 @@ pub trait EmployeePayrollConfigRepository: Send + Sync {
     async fn get_employee_payroll_config_at(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         date: NaiveDate,
     ) -> Result<Option<EmployeePayrollConfig>, AppError>;
 
     async fn get_employee_payroll_configs(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
     ) -> Result<Vec<EmployeePayrollConfig>, AppError>;
 
     async fn get_employee_payroll_configs_batch(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_ids: &[Uuid],
+        employment_ids: &[Uuid],
     ) -> Result<std::collections::HashMap<Uuid, Vec<EmployeePayrollConfig>>, AppError>;
 }
 
@@ -565,7 +565,7 @@ mockall::mock! {
         async fn upsert_employee_payroll_config(
             &self,
             auth_token: &crate::diesel_pool::TenantAuthToken,
-            employee_id: Uuid,
+            employment_id: Uuid,
             std_working_days: Decimal,
             hours_per_day: Decimal,
             effective_date: NaiveDate,
@@ -573,18 +573,18 @@ mockall::mock! {
         async fn get_employee_payroll_config_at(
             &self,
             auth_token: &crate::diesel_pool::TenantAuthToken,
-            employee_id: Uuid,
+            employment_id: Uuid,
             date: NaiveDate,
         ) -> Result<Option<EmployeePayrollConfig>, AppError>;
         async fn get_employee_payroll_configs(
             &self,
             auth_token: &crate::diesel_pool::TenantAuthToken,
-            employee_id: Uuid,
+            employment_id: Uuid,
         ) -> Result<Vec<EmployeePayrollConfig>, AppError>;
         async fn get_employee_payroll_configs_batch(
             &self,
             auth_token: &crate::diesel_pool::TenantAuthToken,
-            employee_ids: &[Uuid],
+            employment_ids: &[Uuid],
         ) -> Result<std::collections::HashMap<Uuid, Vec<EmployeePayrollConfig>>, AppError>;
     }
 

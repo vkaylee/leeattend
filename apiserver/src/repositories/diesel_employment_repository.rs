@@ -285,4 +285,28 @@ impl super::EmploymentRepository for DieselEmploymentRepository {
 
         Ok(list.into_iter().map(Into::into).collect())
     }
+
+    async fn get_employments_by_ids(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employment_ids_val: &[Uuid],
+    ) -> Result<Vec<Employment>, AppError> {
+        use crate::schema::employments::dsl::*;
+
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await?,
+        );
+
+        let list = employments
+            .filter(workspace_id.eq(auth_token.workspace_id()))
+            .filter(id.eq_any(employment_ids_val))
+            .filter(deleted_at.is_null())
+            .load::<EmploymentEntity>(&mut *conn)
+            .await?;
+
+        Ok(list.into_iter().map(Into::into).collect())
+    }
 }

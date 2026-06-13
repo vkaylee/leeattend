@@ -309,6 +309,9 @@ use utoipa::OpenApi;
         crate::handlers::employment_phases::assign_employee_phase,
         crate::handlers::employment_phases::update_employee_phase_status,
         crate::handlers::employment_phases::get_employee_phases,
+        crate::handlers::employment_phases::assign_employment_phase,
+        crate::handlers::employment_phases::update_employment_phase_status,
+        crate::handlers::employment_phases::get_employment_phases,
 
         // Recruitment Sources Paths
         crate::handlers::recruitment_sources::get_recruitment_sources,

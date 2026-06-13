@@ -69,12 +69,23 @@ pub async fn set_employee_payroll_config(
     Json(req): Json<SetEmployeePayrollConfigRequest>,
 ) -> AppResult<(StatusCode, Json<EmployeePayrollConfig>)> {
     let (_, employee_id) = params;
+    // Resolve active employment_id from employee_id
+    let employee = state
+        .employees()
+        .repo()
+        .get_employee_by_id(employee_id, &ctx.auth_token)
+        .await?
+        .ok_or_else(|| crate::errors::AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound))?;
+    let employment_id = employee
+        .active_employment_id()
+        .ok_or_else(|| crate::errors::AppError::validation_raw("No active employment found"))?;
+
     let config = state
         .employees()
         .repo()
         .upsert_employee_payroll_config(
             &ctx.auth_token,
-            employee_id,
+            employment_id,
             req.std_working_days,
             req.hours_per_day,
             req.effective_date,
@@ -129,11 +140,23 @@ pub async fn get_employee_payroll_configs(
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<EmployeePayrollConfig>>> {
     let (_, employee_id) = params;
+    // Resolve active employment_id from employee_id
+    let employee = state
+        .employees()
+        .repo()
+        .get_employee_by_id(employee_id, &ctx.auth_token)
+        .await?
+        .ok_or_else(|| crate::errors::AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound))?;
+    let employment_id = employee
+        .active_employment_id()
+        .ok_or_else(|| crate::errors::AppError::validation_raw("No active employment found"))?;
+
     let configs = state
         .employees()
         .repo()
-        .get_employee_payroll_configs(&ctx.auth_token, employee_id)
+        .get_employee_payroll_configs(&ctx.auth_token, employment_id)
         .await?;
 
     Ok(Json(configs))
 }
+

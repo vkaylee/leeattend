@@ -74,7 +74,7 @@ async fn test_batch_calculate_payroll() {
 
     // 3. Test Batch Calculation
     let req_body = BatchCalculatePayrollRequest {
-        employee_ids: vec![emp1_id, emp2_id],
+        employment_ids: vec![emp1_employment_id, emp2_employment_id],
         year: 2026,
         month: 1,
     };

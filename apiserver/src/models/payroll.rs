@@ -155,13 +155,18 @@ pub struct PayslipResponse {
 
 #[derive(Debug, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct BatchCalculatePayrollRequest {
-    pub employee_ids: Vec<Uuid>,
+    /// Employment IDs to calculate payroll for.
+    /// Accepts `employee_ids` as alias during transition period.
+    #[serde(alias = "employee_ids")]
+    pub employment_ids: Vec<Uuid>,
     pub year: i32,
     pub month: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct BatchCalculateResult {
+    pub employment_id: Uuid,
+    /// Kept for backward compatibility during FE transition.
     pub employee_id: Uuid,
     pub status: String, // "success" or "error"
     pub payslip: Option<Payslip>,
@@ -234,7 +239,7 @@ pub struct DepartmentPayrollConfig {
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct EmployeePayrollConfig {
     pub id: Uuid,
-    pub employee_id: Uuid,
+    pub employment_id: Uuid,
     #[serde(with = "serde_decimal_as_str")]
     pub std_working_days: rust_decimal::Decimal,
     #[serde(with = "serde_decimal_as_str")]
@@ -374,7 +379,7 @@ mod tests {
     #[test]
     fn test_batch_calculate_payroll_request_serde() {
         let json = r#"{
-            "employee_ids": [
+            "employment_ids": [
                 "00000000-0000-0000-0000-000000000001",
                 "00000000-0000-0000-0000-000000000002"
             ],
@@ -382,14 +387,29 @@ mod tests {
             "month": 3
         }"#;
         let req: BatchCalculatePayrollRequest = serde_json::from_str(json).unwrap();
-        assert_eq!(req.employee_ids.len(), 2);
+        assert_eq!(req.employment_ids.len(), 2);
         assert_eq!(req.year, 2026);
         assert_eq!(req.month, 3);
     }
 
     #[test]
+    fn test_batch_calculate_payroll_request_backward_compat() {
+        // Tests serde alias: old FE sending employee_ids still works
+        let json = r#"{
+            "employee_ids": [
+                "00000000-0000-0000-0000-000000000001"
+            ],
+            "year": 2026,
+            "month": 6
+        }"#;
+        let req: BatchCalculatePayrollRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.employment_ids.len(), 1);
+    }
+
+    #[test]
     fn test_batch_calculate_result_success() {
         let result = BatchCalculateResult {
+            employment_id: Uuid::new_v4(),
             employee_id: Uuid::new_v4(),
             status: "success".to_string(),
             payslip: None,
@@ -405,6 +425,7 @@ mod tests {
     #[test]
     fn test_batch_calculate_result_error() {
         let result = BatchCalculateResult {
+            employment_id: Uuid::new_v4(),
             employee_id: Uuid::new_v4(),
             status: "error".to_string(),
             payslip: None,

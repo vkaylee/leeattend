@@ -14,13 +14,13 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
     async fn upsert_employee_payroll_config(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         std_working_days: rust_decimal::Decimal,
         hours_per_day: rust_decimal::Decimal,
         effective_date: chrono::NaiveDate,
     ) -> Result<crate::models::EmployeePayrollConfig, AppError> {
         let workspace_id = auth_token.workspace_id();
-        use crate::schema::{employees, workspace_config_entries};
+        use crate::schema::{employments, workspace_config_entries};
 
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -30,19 +30,18 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        // Check if employee exists and belongs to the workspace of this tenant
-        let employee_exists = employees::table
-            .filter(employees::id.eq(employee_id))
-            .filter(employees::workspace_id.eq(workspace_id))
-            .filter(employees::deleted_at.is_null())
-            .select(employees::id)
+        // Check if employment exists and belongs to the workspace of this tenant
+        let employment_exists = employments::table
+            .filter(employments::id.eq(employment_id))
+            .filter(employments::workspace_id.eq(workspace_id))
+            .select(employments::id)
             .first::<Uuid>(&mut *conn)
             .await
             .optional()
-            .map_err(|e| AppError::Internal(format!("db check employee: {e}")))?;
+            .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
 
-        if employee_exists.is_none() {
-            return Err(AppError::NotFound("error.employee_not_found".to_string()));
+        if employment_exists.is_none() {
+            return Err(AppError::NotFound("error.employment_not_found".to_string()));
         }
 
         let keys_and_values = vec![
@@ -55,8 +54,8 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
         for (key, val) in keys_and_values {
             let existing = workspace_config_entries::table
                 .filter(workspace_config_entries::workspace_id.eq(workspace_id))
-                .filter(workspace_config_entries::scope_type.eq("employee"))
-                .filter(workspace_config_entries::scope_id.eq(employee_id))
+                .filter(workspace_config_entries::scope_type.eq("employment"))
+                .filter(workspace_config_entries::scope_id.eq(employment_id))
                 .filter(workspace_config_entries::config_key.eq(key))
                 .filter(workspace_config_entries::effective_from.eq(effective_date))
                 .first::<crate::models::WorkspaceConfigEntry>(&mut *conn)
@@ -85,8 +84,8 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
                 let entry = crate::models::WorkspaceConfigEntry::new(
                     id,
                     workspace_id,
-                    "employee".to_string(),
-                    Some(employee_id),
+                    "employment".to_string(),
+                    Some(employment_id),
                     key.to_string(),
                     None,
                     Some(val),
@@ -109,7 +108,7 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
 
         Ok(crate::models::EmployeePayrollConfig {
             id: first_id,
-            employee_id,
+            employment_id,
             std_working_days,
             hours_per_day,
             effective_date,
@@ -120,11 +119,11 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
     async fn get_employee_payroll_config_at(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
         date: chrono::NaiveDate,
     ) -> Result<Option<crate::models::EmployeePayrollConfig>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        use crate::schema::{employees, workspace_config_entries};
+        use crate::schema::workspace_config_entries;
 
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -134,24 +133,13 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        let employee_exists = employees::table
-            .filter(employees::id.eq(employee_id))
-            .filter(employees::workspace_id.eq(workspace_id))
-            .filter(employees::deleted_at.is_null())
-            .select(employees::id)
-            .first::<Uuid>(&mut *conn)
-            .await
-            .optional()
-            .map_err(|e| AppError::Internal(format!("db check employee: {e}")))?;
-
-        if employee_exists.is_none() {
-            return Ok(None);
-        }
-
+        // Query both old "employee" scope and new "employment" scope for backward compat
         let entries = workspace_config_entries::table
             .filter(workspace_config_entries::workspace_id.eq(workspace_id))
-            .filter(workspace_config_entries::scope_type.eq("employee"))
-            .filter(workspace_config_entries::scope_id.eq(employee_id))
+            .filter(
+                workspace_config_entries::scope_type.eq("employment")
+                    .and(workspace_config_entries::scope_id.eq(employment_id))
+            )
             .filter(workspace_config_entries::effective_from.le(date))
             .load::<crate::models::WorkspaceConfigEntry>(&mut *conn)
             .await
@@ -189,7 +177,7 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
 
         Ok(Some(crate::models::EmployeePayrollConfig {
             id: entry_id,
-            employee_id,
+            employment_id,
             std_working_days: fixed_std_days.unwrap_or_else(|| rust_decimal::Decimal::from(0)),
             hours_per_day: hours_per_day.unwrap_or_else(|| rust_decimal::Decimal::from(0)),
             effective_date,
@@ -200,7 +188,7 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
     async fn get_employee_payroll_configs(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_id: Uuid,
+        employment_id: Uuid,
     ) -> Result<Vec<crate::models::EmployeePayrollConfig>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = crate::diesel_pool::TransactionConn(
@@ -211,26 +199,14 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        use crate::schema::{employees, workspace_config_entries};
-
-        let employee_exists = employees::table
-            .filter(employees::id.eq(employee_id))
-            .filter(employees::workspace_id.eq(workspace_id))
-            .filter(employees::deleted_at.is_null())
-            .select(employees::id)
-            .first::<Uuid>(&mut *conn)
-            .await
-            .optional()
-            .map_err(|e| AppError::Internal(format!("db check employee: {e}")))?;
-
-        if employee_exists.is_none() {
-            return Ok(Vec::new());
-        }
+        use crate::schema::workspace_config_entries;
 
         let entries = workspace_config_entries::table
             .filter(workspace_config_entries::workspace_id.eq(workspace_id))
-            .filter(workspace_config_entries::scope_type.eq("employee"))
-            .filter(workspace_config_entries::scope_id.eq(employee_id))
+            .filter(
+                workspace_config_entries::scope_type.eq("employment")
+                    .and(workspace_config_entries::scope_id.eq(employment_id))
+            )
             .load::<crate::models::WorkspaceConfigEntry>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
@@ -261,7 +237,7 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
             if fixed_std_days.is_some() || hours_per_day.is_some() {
                 configs.push(crate::models::EmployeePayrollConfig {
                     id: entry_id,
-                    employee_id,
+                    employment_id,
                     std_working_days: fixed_std_days
                         .unwrap_or_else(|| rust_decimal::Decimal::from(0)),
                     hours_per_day: hours_per_day.unwrap_or_else(|| rust_decimal::Decimal::from(0)),
@@ -277,7 +253,7 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
     async fn get_employee_payroll_configs_batch(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        employee_ids: &[Uuid],
+        employment_ids: &[Uuid],
     ) -> Result<std::collections::HashMap<Uuid, Vec<crate::models::EmployeePayrollConfig>>, AppError>
     {
         let workspace_id = auth_token.workspace_id();
@@ -293,25 +269,27 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
 
         let entries = workspace_config_entries::table
             .filter(workspace_config_entries::workspace_id.eq(workspace_id))
-            .filter(workspace_config_entries::scope_type.eq("employee"))
-            .filter(workspace_config_entries::scope_id.eq_any(employee_ids))
+            .filter(
+                workspace_config_entries::scope_type.eq("employment")
+            )
+            .filter(workspace_config_entries::scope_id.eq_any(employment_ids))
             .load::<crate::models::WorkspaceConfigEntry>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let mut employee_entries: std::collections::HashMap<
+        let mut employment_entries: std::collections::HashMap<
             Uuid,
             Vec<crate::models::WorkspaceConfigEntry>,
         > = std::collections::HashMap::new();
         for entry in entries {
             if let Some(emp_id) = entry.scope_id() {
-                employee_entries.entry(emp_id).or_default().push(entry);
+                employment_entries.entry(emp_id).or_default().push(entry);
             }
         }
 
         let mut map = std::collections::HashMap::new();
-        for &employee_id in employee_ids {
-            if let Some(entries) = employee_entries.get(&employee_id) {
+        for &employment_id in employment_ids {
+            if let Some(entries) = employment_entries.get(&employment_id) {
                 let mut dates: Vec<chrono::NaiveDate> = entries
                     .iter()
                     .map(crate::models::WorkspaceConfigEntry::effective_from)
@@ -338,7 +316,7 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
                     if fixed_std_days.is_some() || hours_per_day.is_some() {
                         configs.push(crate::models::EmployeePayrollConfig {
                             id: entry_id,
-                            employee_id,
+                            employment_id,
                             std_working_days: fixed_std_days
                                 .unwrap_or_else(|| rust_decimal::Decimal::from(0)),
                             hours_per_day: hours_per_day
@@ -348,9 +326,9 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
                         });
                     }
                 }
-                map.insert(employee_id, configs);
+                map.insert(employment_id, configs);
             } else {
-                map.insert(employee_id, Vec::new());
+                map.insert(employment_id, Vec::new());
             }
         }
 

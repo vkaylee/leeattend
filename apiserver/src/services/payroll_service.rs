@@ -266,7 +266,7 @@ impl PayrollService {
             .employee_repo
             .get_working_conditions(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                employee_id,
+                active_emp_id,
                 1,
                 3000,
             )
@@ -299,7 +299,7 @@ impl PayrollService {
             .employee_repo
             .get_employee_payroll_configs(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                employee_id,
+                active_emp_id,
             )
             .await?;
 
@@ -340,7 +340,7 @@ impl PayrollService {
             .employee_repo
             .list_employee_assignments(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                employee_id,
+                active_emp_id,
             )
             .await?;
 
@@ -740,7 +740,7 @@ impl PayrollService {
     #[allow(clippy::too_many_lines)]
     pub async fn calculate_batch_payslips(
         &self,
-        employee_ids: Vec<Uuid>,
+        employment_ids: Vec<Uuid>,
         workspace_id: Uuid,
         year: i32,
         month: u32,
@@ -815,36 +815,34 @@ impl PayrollService {
         };
 
         let mut results = Vec::new();
-        for chunk in employee_ids.chunks(50) {
-            let chunk_ids = chunk.to_vec();
+        for chunk in employment_ids.chunks(50) {
+            let chunk_employment_ids = chunk.to_vec();
 
             let effective_time = start_date
                 .and_hms_opt(0, 0, 0)
                 .unwrap_or_default()
                 .and_utc();
+
+            // Resolve employments → employee mapping
             let employments_history = self
                 .employment_repo
-                .get_employments_for_employees(token, &chunk_ids)
+                .get_employments_by_ids(token, &chunk_employment_ids)
                 .await
                 .unwrap_or_default();
 
-            let mut emp_to_active_employment_id = HashMap::new();
-            let mut employment_ids = Vec::new();
+            let mut employment_to_employee: HashMap<Uuid, Uuid> = HashMap::new();
+            let mut employee_ids_set = std::collections::BTreeSet::new();
             for emp_ment in &employments_history {
-                if emp_ment.status() == "active"
-                    && emp_ment.start_date() <= start_date
-                    && emp_ment.end_date().is_none_or(|end| end >= start_date)
-                {
-                    emp_to_active_employment_id.insert(emp_ment.employee_id(), emp_ment.id());
-                    employment_ids.push(emp_ment.id());
-                }
+                employment_to_employee.insert(emp_ment.id(), emp_ment.employee_id());
+                employee_ids_set.insert(emp_ment.employee_id());
             }
+            let chunk_employee_ids: Vec<Uuid> = employee_ids_set.into_iter().collect();
 
             let salary_histories = self
                 .payroll_repo
                 .get_salary_components_history_batch(
                     workspace_id,
-                    &employment_ids,
+                    &chunk_employment_ids,
                     start_date,
                     end_date,
                 )
@@ -852,14 +850,14 @@ impl PayrollService {
 
             let dept_histories = self
                 .department_repo
-                .get_employee_department_history_batch(token, &chunk_ids)
+                .get_employee_department_history_batch(token, &chunk_employee_ids)
                 .await;
 
             let time_entries = self
                 .time_entry_repo
                 .get_workspace_time_entries_batch_by_employments(
                     token,
-                    &employment_ids,
+                    &chunk_employment_ids,
                     start_dt,
                     end_dt,
                 )
@@ -867,19 +865,19 @@ impl PayrollService {
 
             let employees_res = self
                 .employee_repo
-                .get_employees_by_ids(&chunk_ids, token)
+                .get_employees_by_ids(&chunk_employee_ids, token)
                 .await;
 
             let rosters = self
                 .roster_repo
-                .get_employment_rosters_batch(token, &employment_ids, start_date, end_date)
+                .get_employment_rosters_batch(token, &chunk_employment_ids, start_date, end_date)
                 .await;
 
             let conditions_res = self
                 .employee_repo
                 .get_working_conditions_batch_by_employments(
                     token,
-                    &employment_ids,
+                    &chunk_employment_ids,
                     start_date,
                     end_date,
                 )
@@ -887,17 +885,17 @@ impl PayrollService {
 
             let policies_res = self
                 .policy_repo
-                .get_employee_effective_policies_batch(token, &chunk_ids, effective_time)
+                .get_employee_effective_policies_batch(token, &chunk_employee_ids, effective_time)
                 .await;
 
             let contracts_res = self
                 .contract_repo
-                .list_contracts_batch(token, &chunk_ids)
+                .list_contracts_batch(token, &chunk_employee_ids)
                 .await;
 
             let assignments_res = self
                 .employee_repo
-                .list_assignments_batch(token, &chunk_ids)
+                .list_assignments_batch(token, &chunk_employment_ids)
                 .await;
 
             let mut employees = match employees_res {
@@ -913,28 +911,22 @@ impl PayrollService {
 
             let mut time_map = HashMap::new();
             if let Ok(entries) = time_entries {
-                for (emp_id, employment_id) in &emp_to_active_employment_id {
-                    if let Some(list) = entries.get(employment_id) {
-                        time_map.insert(*emp_id, list.clone());
-                    }
+                for (employment_id, list) in entries {
+                    time_map.insert(employment_id, list);
                 }
             }
 
             let mut roster_map = HashMap::new();
             if let Ok(r) = rosters {
-                for (emp_id, employment_id) in &emp_to_active_employment_id {
-                    if let Some(list) = r.get(employment_id) {
-                        roster_map.insert(*emp_id, list.clone());
-                    }
+                for (employment_id, list) in r {
+                    roster_map.insert(employment_id, list);
                 }
             }
 
             let mut conditions_map = HashMap::new();
             if let Ok(c) = conditions_res {
-                for (emp_id, employment_id) in &emp_to_active_employment_id {
-                    if let Some(list) = c.get(employment_id) {
-                        conditions_map.insert(*emp_id, list.clone());
-                    }
+                for (employment_id, list) in c {
+                    conditions_map.insert(employment_id, list);
                 }
             }
 
@@ -958,7 +950,7 @@ impl PayrollService {
 
             let mut emp_configs_map: HashMap<Uuid, Vec<crate::models::EmployeePayrollConfig>> =
                 self.employee_repo
-                    .get_employee_payroll_configs_batch(token, &chunk_ids)
+                    .get_employee_payroll_configs_batch(token, &chunk_employment_ids)
                     .await
                     .unwrap_or_default();
 
@@ -980,24 +972,28 @@ impl PayrollService {
             }
 
             let mut contexts = Vec::new();
-            for emp_id in chunk_ids {
+            for employment_id in &chunk_employment_ids {
+                let emp_id = match employment_to_employee.get(employment_id) {
+                    Some(id) => *id,
+                    None => continue,
+                };
                 if let Some(employee) = employees.remove(&emp_id) {
                     let mut daily_entries_map: HashMap<NaiveDate, Vec<crate::models::TimeEntry>> =
                         HashMap::new();
-                    if let Some(entries) = time_map.remove(&emp_id) {
+                    if let Some(entries) = time_map.remove(employment_id) {
                         for entry in entries {
                             let local_date = entry.punch_in_time().with_timezone(&tz).date_naive();
                             daily_entries_map.entry(local_date).or_default().push(entry);
                         }
                     }
 
-                    let emp_rosters = roster_map.remove(&emp_id).unwrap_or_default();
+                    let emp_rosters = roster_map.remove(employment_id).unwrap_or_default();
                     let mut payroll_roster_map = HashMap::new();
                     for r in emp_rosters {
                         payroll_roster_map.insert((r.employment_id, r.date), r.shift_id);
                     }
 
-                    let working_conditions = conditions_map.remove(&emp_id).unwrap_or_default();
+                    let working_conditions = conditions_map.remove(employment_id).unwrap_or_default();
                     let attendance_policy = match policies_map.remove(&emp_id) {
                         Some(pv) => pv.rules,
                         None => crate::models::AttendanceRules {
@@ -1007,7 +1003,7 @@ impl PayrollService {
                         },
                     };
 
-                    let emp_payroll_configs = emp_configs_map.remove(&emp_id).unwrap_or_default();
+                    let emp_payroll_configs = emp_configs_map.remove(employment_id).unwrap_or_default();
                     let all_dept_history = dept_map.remove(&emp_id).unwrap_or_default();
                     let mut emp_dept_payroll_configs = HashMap::new();
                     for dh in &all_dept_history {
@@ -1022,13 +1018,9 @@ impl PayrollService {
                         .unwrap_or_else(Uuid::new_v4);
 
                     let salary_history =
-                        if let Some(active_emp_id) = emp_to_active_employment_id.get(&emp_id) {
-                            salary_map.remove(active_emp_id).unwrap_or_default()
-                        } else {
-                            Vec::new()
-                        };
+                        salary_map.remove(employment_id).unwrap_or_default();
 
-                    contexts.push(PayrollContext {
+                    contexts.push((*employment_id, PayrollContext {
                         employee_id: emp_id,
                         workspace: workspace.clone(),
                         tz,
@@ -1049,15 +1041,15 @@ impl PayrollService {
                         department_payroll_configs: emp_dept_payroll_configs,
                         overtime_data: overtime_data.clone(),
                         active_contracts: contracts_map.remove(&emp_id).unwrap_or_default(),
-                        active_assignments: assignments_map.remove(&emp_id).unwrap_or_default(),
+                        active_assignments: assignments_map.remove(employment_id).unwrap_or_default(),
                         active_employments: emp_to_employments.remove(&emp_id).unwrap_or_default(),
                         primary_location_id,
-                    });
+                    }));
                 }
             }
 
             let chunk_results: Vec<_> = stream::iter(contexts)
-                .map(|ctx| {
+                .map(|(employment_id, ctx)| {
                     let emp_id = ctx.employee_id;
                     let svc = Self {
                         payroll_repo: Arc::clone(&self.payroll_repo),
@@ -1078,12 +1070,14 @@ impl PayrollService {
                     async move {
                         match svc.calculate_payslip_with_context(ctx).await {
                             Ok(payslip) => crate::models::BatchCalculateResult {
+                                employment_id,
                                 employee_id: emp_id,
                                 status: "success".to_string(),
                                 payslip: Some(payslip),
                                 error_message: None,
                             },
                             Err(status) => crate::models::BatchCalculateResult {
+                                employment_id,
                                 employee_id: emp_id,
                                 status: "error".to_string(),
                                 payslip: None,

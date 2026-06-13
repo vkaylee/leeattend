@@ -16,6 +16,12 @@ async fn test_employment_phase_repo_crud() {
 
     // Create employee
     let employee_id = factory.employee().with_workspace(ws_id).create().await;
+    let employment_id = crate::test_query_scalar_uuid!(
+        &_test_db.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        employee_id
+    );
 
     let rule_config = serde_json::json!({ "max_duration": 90 });
 
@@ -64,7 +70,7 @@ async fn test_employment_phase_repo_crud() {
     let phase = repo
         .assign_phase(
             ws_id,
-            employee_id,
+            employment_id,
             def.id,
             start_date,
             end_date,
@@ -86,14 +92,14 @@ async fn test_employment_phase_repo_crud() {
     let end_date_2 = NaiveDate::from_ymd_opt(2025, 4, 1).unwrap();
 
     let phase2 = repo
-        .assign_phase(ws_id, employee_id, def2.id, start_date_2, end_date_2, None)
+        .assign_phase(ws_id, employment_id, def2.id, start_date_2, end_date_2, None)
         .await
         .unwrap();
 
     assert_eq!(phase2.status, "active");
 
-    // 5. Get Employee Phases
-    let phases = repo.get_employee_phases(ws_id, employee_id).await.unwrap();
+    // 5. Get Employment Phases
+    let phases = repo.get_employment_phases(ws_id, employment_id).await.unwrap();
     assert_eq!(phases.len(), 2);
 
     // The first phase should now be "completed"
@@ -104,7 +110,7 @@ async fn test_employment_phase_repo_crud() {
     let updated = repo
         .update_phase_status(
             ws_id,
-            employee_id,
+            employment_id,
             phase2.id,
             "terminated",
             Some("Terminated early"),

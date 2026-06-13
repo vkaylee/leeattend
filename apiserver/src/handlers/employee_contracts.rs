@@ -170,7 +170,7 @@ pub async fn create_contract(
             .employment_phase_repo()
             .assign_phase(
                 workspace_id,
-                employee_id,
+                contract.employment_id(),
                 phase_id,
                 contract.start_date(),
                 end_date,

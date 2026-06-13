@@ -1179,14 +1179,14 @@ mod tests {
         async fn upsert_employee_payroll_config(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-            employee_id: Uuid,
+            employment_id: Uuid,
             std_working_days: Decimal,
             hours_per_day: Decimal,
             effective_date: NaiveDate,
         ) -> Result<crate::models::EmployeePayrollConfig, AppError> {
             Ok(crate::models::EmployeePayrollConfig {
                 id: Uuid::new_v4(),
-                employee_id,
+                employment_id,
                 std_working_days,
                 hours_per_day,
                 effective_date,

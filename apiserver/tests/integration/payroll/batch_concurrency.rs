@@ -26,7 +26,7 @@ async fn test_batch_payroll_handles_many_employees() {
     );
 
     // Create 15 employees to exercise concurrency limit (buffer_unordered(10))
-    let mut employee_ids = Vec::new();
+    let mut employment_ids = Vec::new();
     for i in 1..=15 {
         let emp_id = factory
             .employee()
@@ -52,12 +52,12 @@ async fn test_batch_payroll_handles_many_employees() {
             diesel::sql_types::Date, chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()
         );
 
-        employee_ids.push(emp_id);
+        employment_ids.push(employment_id);
     }
 
     // Batch calculate payroll for all 15 employees
     let req_body = BatchCalculatePayrollRequest {
-        employee_ids: employee_ids.clone(),
+        employment_ids: employment_ids.clone(),
         year: 2026,
         month: 1,
     };

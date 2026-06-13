@@ -1353,6 +1353,34 @@ mod tests {
                 })
                 .collect())
         }
+
+        async fn get_employments_by_ids(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            employment_ids: &[Uuid],
+        ) -> Result<Vec<crate::models::employment::Employment>, AppError> {
+            Ok(employment_ids
+                .iter()
+                .map(|&id| {
+                    crate::models::employment::Employment::new(
+                        id,
+                        Uuid::nil(),
+                        Uuid::nil(),
+                        Uuid::nil(),
+                        None,
+                        None,
+                        "active".to_string(),
+                        NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+                        None,
+                        None,
+                        "full_time".to_string(),
+                        None,
+                        chrono::Utc::now(),
+                        chrono::Utc::now(),
+                    )
+                })
+                .collect())
+        }
     }
 
     #[tokio::test]

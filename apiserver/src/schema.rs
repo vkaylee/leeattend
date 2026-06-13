@@ -981,7 +981,6 @@ diesel::table! {
     employee_phases (id) {
         id -> Uuid,
         workspace_id -> Uuid,
-        employee_id -> Uuid,
         phase_definition_id -> Uuid,
         start_date -> Date,
         end_date -> Date,
@@ -992,6 +991,7 @@ diesel::table! {
         completed_at -> Nullable<Timestamptz>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        employment_id -> Uuid,
     }
 }
 
@@ -2036,8 +2036,8 @@ diesel::joinable!(employee_contracts -> employee_documents (document_id));
 diesel::joinable!(employee_contracts -> employments (employment_id));
 diesel::joinable!(employee_documents -> employees (employee_id));
 diesel::joinable!(employee_emergency_contacts -> employees (employee_id));
-diesel::joinable!(employee_phases -> employees (employee_id));
 diesel::joinable!(employee_phases -> employment_phase_definitions (phase_definition_id));
+diesel::joinable!(employee_phases -> employments (employment_id));
 diesel::joinable!(employee_profiles -> employees (employee_id));
 diesel::joinable!(employee_salary_components -> employments (employment_id));
 diesel::joinable!(employee_salary_components -> salary_component_definitions (component_definition_id));

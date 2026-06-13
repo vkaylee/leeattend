@@ -125,12 +125,22 @@ pub async fn assign_employee_phase(
     let (_ws_id, emp_id) = __path_params;
     ctx.require_permission(Permission::EmploymentPhasesManage)?;
 
+    let employee = state
+        .employees()
+        .repo()
+        .get_employee_by_id(emp_id, &ctx.auth_token)
+        .await?
+        .ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound))?;
+    let employment_id = employee
+        .active_employment_id()
+        .ok_or_else(|| AppError::validation_raw("No active employment found"))?;
+
     let phase = state
         .employees()
         .employment_phase_repo()
         .assign_phase(
             ctx.workspace_id,
-            emp_id,
+            employment_id,
             payload.phase_definition_id,
             payload.start_date,
             payload.end_date,
@@ -166,12 +176,22 @@ pub async fn update_employee_phase_status(
     let (_ws_id, emp_id, phase_id) = __path_params;
     ctx.require_permission(Permission::EmploymentPhasesManage)?;
 
+    let employee = state
+        .employees()
+        .repo()
+        .get_employee_by_id(emp_id, &ctx.auth_token)
+        .await?
+        .ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound))?;
+    let employment_id = employee
+        .active_employment_id()
+        .ok_or_else(|| AppError::validation_raw("No active employment found"))?;
+
     let phase = state
         .employees()
         .employment_phase_repo()
         .update_phase_status(
             ctx.workspace_id,
-            emp_id,
+            employment_id,
             phase_id,
             &payload.status,
             payload.evaluation_notes.as_deref(),
@@ -202,10 +222,131 @@ pub async fn get_employee_phases(
     Path(__path_params): Path<(Uuid, Uuid)>,
 ) -> Result<Json<Vec<EmployeePhase>>, AppError> {
     let (_ws_id, emp_id) = __path_params;
+    
+    let employee = state
+        .employees()
+        .repo()
+        .get_employee_by_id(emp_id, &ctx.auth_token)
+        .await?
+        .ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound))?;
+    let employment_id = employee
+        .active_employment_id()
+        .ok_or_else(|| AppError::validation_raw("No active employment found"))?;
+
     let phases = state
         .employees()
         .employment_phase_repo()
-        .get_employee_phases(ctx.workspace_id, emp_id)
+        .get_employment_phases(ctx.workspace_id, employment_id)
+        .await?;
+
+    Ok(Json(phases))
+}
+
+#[utoipa::path(
+    post,
+    path = "/v1/workspaces/{ws_id}/employments/{employment_id}/phases",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("employment_id" = Uuid, Path, description = "Employment ID")
+    ),
+    request_body = AssignEmployeePhaseRequest,
+    responses(
+        (status = 200, description = "Employment phase assigned", body = EmployeePhase)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
+pub async fn assign_employment_phase(
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+    Path(__path_params): Path<(Uuid, Uuid)>,
+    Json(payload): Json<AssignEmployeePhaseRequest>,
+) -> Result<Json<EmployeePhase>, AppError> {
+    let (_ws_id, employment_id) = __path_params;
+    ctx.require_permission(Permission::EmploymentPhasesManage)?;
+
+    let phase = state
+        .employees()
+        .employment_phase_repo()
+        .assign_phase(
+            ctx.workspace_id,
+            employment_id,
+            payload.phase_definition_id,
+            payload.start_date,
+            payload.end_date,
+            payload.override_config.as_ref(),
+        )
+        .await?;
+
+    Ok(Json(phase))
+}
+
+#[utoipa::path(
+    put,
+    path = "/v1/workspaces/{ws_id}/employments/{employment_id}/phases/{phase_id}/status",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("employment_id" = Uuid, Path, description = "Employment ID"),
+        ("phase_id" = Uuid, Path, description = "Phase ID")
+    ),
+    request_body = UpdateEmployeePhaseStatusRequest,
+    responses(
+        (status = 200, description = "Employment phase status updated", body = EmployeePhase)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
+pub async fn update_employment_phase_status(
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+    Path(__path_params): Path<(Uuid, Uuid, Uuid)>,
+    Json(payload): Json<UpdateEmployeePhaseStatusRequest>,
+) -> Result<Json<EmployeePhase>, AppError> {
+    let (_ws_id, employment_id, phase_id) = __path_params;
+    ctx.require_permission(Permission::EmploymentPhasesManage)?;
+
+    let phase = state
+        .employees()
+        .employment_phase_repo()
+        .update_phase_status(
+            ctx.workspace_id,
+            employment_id,
+            phase_id,
+            &payload.status,
+            payload.evaluation_notes.as_deref(),
+            ctx.user_id,
+        )
+        .await?;
+
+    Ok(Json(phase))
+}
+
+#[utoipa::path(
+    get,
+    path = "/v1/workspaces/{ws_id}/employments/{employment_id}/phases",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("employment_id" = Uuid, Path, description = "Employment ID")
+    ),
+    responses(
+        (status = 200, description = "List of employment phases", body = Vec<EmployeePhase>)
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
+pub async fn get_employment_phases(
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+    Path(__path_params): Path<(Uuid, Uuid)>,
+) -> Result<Json<Vec<EmployeePhase>>, AppError> {
+    let (_ws_id, employment_id) = __path_params;
+    let phases = state
+        .employees()
+        .employment_phase_repo()
+        .get_employment_phases(ctx.workspace_id, employment_id)
         .await?;
 
     Ok(Json(phases))

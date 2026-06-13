@@ -61,7 +61,7 @@ pub async fn calculate_batch_payroll(
     let response = state
         .payroll()
         .service()
-        .calculate_batch_payslips(req.employee_ids, ctx.workspace_id, req.year, req.month)
+        .calculate_batch_payslips(req.employment_ids, ctx.workspace_id, req.year, req.month)
         .await;
     Ok(Json(response))
 }

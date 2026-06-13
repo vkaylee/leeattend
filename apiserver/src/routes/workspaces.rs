@@ -114,6 +114,15 @@ pub fn router() -> Router<Arc<AppState>> {
             "/workspaces/:ws_id/employees/:user_id/phases/:phase_id/status",
             put(handlers::employment_phases::update_employee_phase_status),
         )
+        .route(
+            "/workspaces/:ws_id/employments/:employment_id/phases",
+            get(handlers::employment_phases::get_employment_phases)
+                .post(handlers::employment_phases::assign_employment_phase),
+        )
+        .route(
+            "/workspaces/:ws_id/employments/:employment_id/phases/:phase_id/status",
+            put(handlers::employment_phases::update_employment_phase_status),
+        )
         // Payroll Rules
         .route(
             "/workspaces/:ws_id/payroll-rules",

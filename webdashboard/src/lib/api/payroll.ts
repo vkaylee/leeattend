@@ -241,7 +241,7 @@ export async function setDepartmentPayrollConfig(wsId: string, deptId: string, d
   return resData;
 }
 
-export async function calculateBatchPayslips(wsId: string, data: { employee_ids: string[]; year: number; month: number }): Promise<{ results: BatchCalculateResult[] }> {
+export async function calculateBatchPayslips(wsId: string, data: { employment_ids: string[]; year: number; month: number }): Promise<{ results: BatchCalculateResult[] }> {
   const { data: resData } = await client.POST("/workspaces/{ws_id}/payroll/calculate-batch", {
     params: { path: { ws_id: wsId } },
     body: data

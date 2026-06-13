@@ -62,4 +62,10 @@ pub trait EmploymentRepository: Send + Sync {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employee_ids: &[Uuid],
     ) -> Result<Vec<Employment>, AppError>;
+
+    async fn get_employments_by_ids(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employment_ids: &[Uuid],
+    ) -> Result<Vec<Employment>, AppError>;
 }

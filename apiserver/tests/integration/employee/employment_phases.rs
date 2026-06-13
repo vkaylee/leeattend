@@ -22,6 +22,12 @@ async fn test_employment_phases_crud_api() {
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
     let employee_id = factory.employee().with_workspace(ws_id).create().await;
+    let employment_id = crate::test_query_scalar_uuid!(
+        &_test_db.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        employee_id
+    );
 
     // 1. Create a Phase Definition (Probation)
     let def_payload = json!({
@@ -130,9 +136,9 @@ async fn test_employment_phases_crud_api() {
     let pool = _test_db.diesel_pools.clone();
     let phase_count: i64 = crate::test_query_scalar_i64!(
         &pool.api,
-        "SELECT COUNT(*) AS count FROM employee_phases WHERE employee_id = $1",
+        "SELECT COUNT(*) AS count FROM employee_phases WHERE employment_id = $1",
         diesel::sql_types::Uuid,
-        employee_id
+        employment_id
     );
 
     assert_eq!(phase_count, 2);
@@ -158,17 +164,17 @@ async fn test_employment_phases_crud_api() {
 
     let p2_status: String = crate::test_query_scalar_string!(
         &pool.api,
-        "SELECT status::text AS val FROM employee_phases WHERE employee_id = $1 AND id != $2",
+        "SELECT status::text AS val FROM employee_phases WHERE employment_id = $1 AND id != $2",
         diesel::sql_types::Uuid,
-        employee_id,
+        employment_id,
         diesel::sql_types::Uuid,
         Uuid::parse_str(&assignment_id_1).unwrap()
     );
     let p2_end_date: String = crate::test_query_scalar_string!(
         &pool.api,
-        "SELECT end_date::text AS val FROM employee_phases WHERE employee_id = $1 AND id != $2",
+        "SELECT end_date::text AS val FROM employee_phases WHERE employment_id = $1 AND id != $2",
         diesel::sql_types::Uuid,
-        employee_id,
+        employment_id,
         diesel::sql_types::Uuid,
         Uuid::parse_str(&assignment_id_1).unwrap()
     );

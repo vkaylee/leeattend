@@ -106,7 +106,7 @@ impl DieselEmploymentPhaseRepository {
     pub async fn assign_phase(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         phase_definition_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
@@ -133,7 +133,7 @@ impl DieselEmploymentPhaseRepository {
                         employee_phases::table.filter(
                             employee_phases::workspace_id
                                 .eq(workspace_id)
-                                .and(employee_phases::employee_id.eq(employee_id))
+                                .and(employee_phases::employment_id.eq(employment_id))
                                 .and(employee_phases::status.eq("active"))
                                 .and(employee_phases::start_date.le(start_date)),
                         ),
@@ -153,7 +153,7 @@ impl DieselEmploymentPhaseRepository {
                     let new_entity = EmployeePhaseEntity {
                         id: crate::utils::id::new_id(),
                         workspace_id,
-                        employee_id,
+                        employment_id,
                         phase_definition_id,
                         start_date,
                         end_date,
@@ -184,7 +184,7 @@ impl DieselEmploymentPhaseRepository {
     pub async fn update_phase_status(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
         phase_id: Uuid,
         status: &str,
         evaluation_notes: Option<&str>,
@@ -203,7 +203,7 @@ impl DieselEmploymentPhaseRepository {
                 employee_phases::id
                     .eq(phase_id)
                     .and(employee_phases::workspace_id.eq(workspace_id))
-                    .and(employee_phases::employee_id.eq(employee_id)),
+                    .and(employee_phases::employment_id.eq(employment_id)),
             ),
         )
         .set((
@@ -225,10 +225,10 @@ impl DieselEmploymentPhaseRepository {
             .ok_or_else(|| AppError::not_found(I18nKey::EmployeePhaseNotFound))
     }
 
-    pub async fn get_employee_phases(
+    pub async fn get_employment_phases(
         &self,
         workspace_id: Uuid,
-        employee_id: Uuid,
+        employment_id: Uuid,
     ) -> Result<Vec<EmployeePhase>, AppError> {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -242,7 +242,7 @@ impl DieselEmploymentPhaseRepository {
             .filter(
                 employee_phases::workspace_id
                     .eq(workspace_id)
-                    .and(employee_phases::employee_id.eq(employee_id)),
+                    .and(employee_phases::employment_id.eq(employment_id)),
             )
             .order((
                 employee_phases::start_date.asc(),
@@ -250,7 +250,7 @@ impl DieselEmploymentPhaseRepository {
             ))
             .load::<EmployeePhaseEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("Failed to fetch employee phases: {e}")))?;
+            .map_err(|e| AppError::Internal(format!("Failed to fetch employment phases: {e}")))?;
 
         Ok(entities.into_iter().map(Into::into).collect())
     }

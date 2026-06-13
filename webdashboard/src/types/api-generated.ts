@@ -1703,6 +1703,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/workspaces/{ws_id}/employments/{employment_id}/phases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_employment_phases"];
+        put?: never;
+        post: operations["assign_employment_phase"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{ws_id}/employments/{employment_id}/phases/{phase_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["update_employment_phase_status"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/workspaces/{ws_id}/feature-flags": {
         parameters: {
             query?: never;
@@ -4236,7 +4268,11 @@ export interface components {
             workspace_id: string;
         };
         BatchCalculatePayrollRequest: {
-            employee_ids: string[];
+            /**
+             * @description Employment IDs to calculate payroll for.
+             *     Accepts `employee_ids` as alias during transition period.
+             */
+            employment_ids: string[];
             /** Format: int32 */
             month: number;
             /** Format: int32 */
@@ -4246,8 +4282,13 @@ export interface components {
             results: components["schemas"]["BatchCalculateResult"][];
         };
         BatchCalculateResult: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description Kept for backward compatibility during FE transition.
+             */
             employee_id: string;
+            /** Format: uuid */
+            employment_id: string;
             error_message?: string | null;
             payslip?: null | components["schemas"]["Payslip"];
             status: string;
@@ -5065,7 +5106,7 @@ export interface components {
             /** Format: date */
             effective_date: string;
             /** Format: uuid */
-            employee_id: string;
+            employment_id: string;
             hours_per_day: string;
             /** Format: uuid */
             id: string;
@@ -5077,7 +5118,7 @@ export interface components {
             /** Format: date-time */
             created_at: string;
             /** Format: uuid */
-            employee_id: string;
+            employment_id: string;
             /** Format: date */
             end_date: string;
             /** Format: uuid */
@@ -10576,6 +10617,91 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EmploymentPhaseDefinition"];
+                };
+            };
+        };
+    };
+    get_employment_phases: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employment ID */
+                employment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of employment phases */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeePhase"][];
+                };
+            };
+        };
+    };
+    assign_employment_phase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employment ID */
+                employment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignEmployeePhaseRequest"];
+            };
+        };
+        responses: {
+            /** @description Employment phase assigned */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeePhase"];
+                };
+            };
+        };
+    };
+    update_employment_phase_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Employment ID */
+                employment_id: string;
+                /** @description Phase ID */
+                phase_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateEmployeePhaseStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description Employment phase status updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeePhase"];
                 };
             };
         };

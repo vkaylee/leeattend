@@ -42,7 +42,6 @@ impl From<EmploymentPhaseDefinitionEntity> for EmploymentPhaseDefinition {
 pub struct EmployeePhaseEntity {
     pub id: Uuid,
     pub workspace_id: Uuid,
-    pub employee_id: Uuid,
     pub phase_definition_id: Uuid,
     pub start_date: NaiveDate,
     pub end_date: NaiveDate,
@@ -53,6 +52,7 @@ pub struct EmployeePhaseEntity {
     pub completed_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub employment_id: Uuid,
 }
 
 impl From<EmployeePhaseEntity> for EmployeePhase {
@@ -60,7 +60,7 @@ impl From<EmployeePhaseEntity> for EmployeePhase {
         EmployeePhase {
             id: val.id,
             workspace_id: val.workspace_id,
-            employee_id: val.employee_id,
+            employment_id: val.employment_id,
             phase_definition_id: val.phase_definition_id,
             start_date: val.start_date,
             end_date: val.end_date,

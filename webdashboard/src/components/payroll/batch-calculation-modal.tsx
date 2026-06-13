@@ -120,7 +120,7 @@ export default function BatchCalculationModal({
 
   const batchMutation = useMutation({
     mutationFn: (data: { year: number; month: number }) => 
-      calculateBatchPayslips(workspaceId, { employee_ids: employeeIds, year: data.year, month: data.month }),
+      calculateBatchPayslips(workspaceId, { employment_ids: employeeIds, year: data.year, month: data.month }),
     onSuccess: (data) => {
       setResults(data.results);
       void queryClient.invalidateQueries({ queryKey: ["payslips"] });
