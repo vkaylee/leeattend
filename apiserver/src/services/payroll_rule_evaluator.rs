@@ -396,7 +396,13 @@ mod tests {
             &self,
             _workspace_id: Uuid,
             _employment_ids: &[Uuid],
-        ) -> Result<Vec<(crate::models::EmployeeSalaryComponent, crate::models::SalaryComponentDefinition)>, AppError> {
+        ) -> Result<
+            Vec<(
+                crate::models::EmployeeSalaryComponent,
+                crate::models::SalaryComponentDefinition,
+            )>,
+            AppError,
+        > {
             Ok(vec![])
         }
     }

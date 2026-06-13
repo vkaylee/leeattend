@@ -195,11 +195,14 @@ async fn test_compensation_history_api() {
             &format!("/api/v1/workspaces/{ws_id}/employments/{employment_id}/salary-components"),
             ws_id,
             admin_id,
-            Some(serde_json::json!({
-                "component_definition_id": basic_id,
-                "amount": 10000000,
-                "effective_date": "2026-01-01"
-            }).to_string()),
+            Some(
+                serde_json::json!({
+                    "component_definition_id": basic_id,
+                    "amount": 10000000,
+                    "effective_date": "2026-01-01"
+                })
+                .to_string(),
+            ),
         ))
         .await
         .unwrap();
@@ -212,11 +215,14 @@ async fn test_compensation_history_api() {
             &format!("/api/v1/workspaces/{ws_id}/employments/{employment_id}/salary-components"),
             ws_id,
             admin_id,
-            Some(serde_json::json!({
-                "component_definition_id": house_id,
-                "amount": 2000000,
-                "effective_date": "2026-01-01"
-            }).to_string()),
+            Some(
+                serde_json::json!({
+                    "component_definition_id": house_id,
+                    "amount": 2000000,
+                    "effective_date": "2026-01-01"
+                })
+                .to_string(),
+            ),
         ))
         .await
         .unwrap();
@@ -230,11 +236,14 @@ async fn test_compensation_history_api() {
             &format!("/api/v1/workspaces/{ws_id}/employments/{employment_id}/salary-components"),
             ws_id,
             admin_id,
-            Some(serde_json::json!({
-                "component_definition_id": basic_id,
-                "amount": 12000000,
-                "effective_date": "2026-06-01"
-            }).to_string()),
+            Some(
+                serde_json::json!({
+                    "component_definition_id": basic_id,
+                    "amount": 12000000,
+                    "effective_date": "2026-06-01"
+                })
+                .to_string(),
+            ),
         ))
         .await
         .unwrap();
@@ -261,16 +270,31 @@ async fn test_compensation_history_api() {
     // Event 1 (newest, 2026-06-01)
     let event1 = &timeline[0];
     assert_eq!(event1["effective_date"].as_str().unwrap(), "2026-06-01");
-    assert_eq!(event1["total_compensation"].as_str().unwrap(), "14000000.00");
+    assert_eq!(
+        event1["total_compensation"].as_str().unwrap(),
+        "14000000.00"
+    );
     assert_eq!(event1["change_type"].as_str().unwrap(), "adjustment");
-    assert_eq!(event1["change_details"]["delta"].as_str().unwrap(), "2000000.00");
-    assert_eq!(event1["change_details"]["previous_total"].as_str().unwrap(), "12000000.00");
+    assert_eq!(
+        event1["change_details"]["delta"].as_str().unwrap(),
+        "2000000.00"
+    );
+    assert_eq!(
+        event1["change_details"]["previous_total"].as_str().unwrap(),
+        "12000000.00"
+    );
 
     // Event 2 (initial, 2026-01-01)
     let event2 = &timeline[1];
     assert_eq!(event2["effective_date"].as_str().unwrap(), "2026-01-01");
-    assert_eq!(event2["total_compensation"].as_str().unwrap(), "12000000.00");
+    assert_eq!(
+        event2["total_compensation"].as_str().unwrap(),
+        "12000000.00"
+    );
     assert_eq!(event2["change_type"].as_str().unwrap(), "initial");
-    assert_eq!(event2["change_details"]["delta"].as_str().unwrap(), "12000000.00");
+    assert_eq!(
+        event2["change_details"]["delta"].as_str().unwrap(),
+        "12000000.00"
+    );
     assert!(event2["change_details"]["previous_total"].is_null());
 }

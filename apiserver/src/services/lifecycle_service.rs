@@ -102,7 +102,9 @@ impl LifecycleService {
         data: CreateLifecycleChecklistTemplateItemRequest,
     ) -> Result<LifecycleChecklistTemplateItem, AppError> {
         if data.title.trim().is_empty() {
-            return Err(AppError::Validation("error.template_item_title_empty".into()));
+            return Err(AppError::Validation(
+                "error.template_item_title_empty".into(),
+            ));
         }
         let auth_token = TenantAuthToken::system_override(workspace_id);
         // Verify template exists

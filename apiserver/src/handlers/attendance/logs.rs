@@ -186,7 +186,7 @@ pub async fn force_reprocess_attendance(
     ctx: MemberContext,
     Query(query): Query<ReprocessQuery>,
 ) -> AppResult<StatusCode> {
-    let (_, employee_id) = __path_params;
+    let (_, path_id) = __path_params;
     ctx.require_permission(Permission::AttendanceReprocess)?;
 
     const MAX_REPROCESS_DAYS: i64 = 90;
@@ -203,12 +203,57 @@ pub async fn force_reprocess_attendance(
         )));
     }
 
-    let employee = state
+    // Accept both employee_id and employment_id for resilience.
+    // Try employee_id first; if not found, fall back to employment_id lookup.
+    tracing::info!(
+        path_id = %path_id,
+        workspace_id = %ctx.workspace_id,
+        auth_workspace = %ctx.auth_token.workspace_id(),
+        "Reprocess: looking up employee"
+    );
+
+    let emp_result = state
         .employees()
         .repo()
-        .get_employee_by_id(employee_id, &ctx.auth_token)
-        .await?
-        .ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound))?;
+        .get_employee_by_id(path_id, &ctx.auth_token)
+        .await;
+
+    tracing::info!(
+        path_id = %path_id,
+        found = emp_result.as_ref().map(Option::is_some).unwrap_or(false),
+        err = ?emp_result.as_ref().err(),
+        "Reprocess: employee lookup result"
+    );
+
+    let employee = if let Some(emp) = emp_result? {
+        emp
+    } else {
+        let employment_result = state
+            .employees()
+            .employment_repo()
+            .get_employment_by_id(&ctx.auth_token, path_id)
+            .await;
+
+        tracing::info!(
+            path_id = %path_id,
+            found_employment = employment_result.as_ref().map(Option::is_some).unwrap_or(false),
+            err = ?employment_result.as_ref().err(),
+            "Reprocess: employment fallback result"
+        );
+
+        if let Some(employment) = employment_result? {
+            state
+                .employees()
+                .repo()
+                .get_employee_by_id(employment.employee_id(), &ctx.auth_token)
+                .await?
+                .ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound))?
+        } else {
+            return Err(AppError::not_found(
+                crate::utils::i18n::I18nKey::EmployeeNotFound,
+            ));
+        }
+    };
 
     let active_employment_id = employee
         .active_employment_id()

@@ -107,7 +107,10 @@ mod tests {
         assert_eq!(employer.phone, Some("+123456789".to_string()));
         assert_eq!(employer.email, Some("employer@test.com".to_string()));
         assert_eq!(employer.website, Some("https://test.com".to_string()));
-        assert_eq!(employer.incorporation_date, Some(chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap()));
+        assert_eq!(
+            employer.incorporation_date,
+            Some(chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap())
+        );
         assert_eq!(employer.country_code, Some("VNM".to_string()));
         assert_eq!(employer.currency_code, Some("VND".to_string()));
     }

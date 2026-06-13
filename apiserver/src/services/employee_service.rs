@@ -632,6 +632,7 @@ impl EmployeeService {
         Ok(updated_employment)
     }
 
+    #[allow(clippy::too_many_lines)]
     #[tracing::instrument(skip_all, err)]
     pub async fn get_compensation_history(
         &self,
@@ -641,10 +642,14 @@ impl EmployeeService {
     ) -> Result<Vec<crate::models::CompensationTimelineEvent>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let payroll_repo = self.payroll_repo.as_ref().ok_or_else(|| {
-            AppError::Internal("Payroll repository is not configured on EmployeeService".to_string())
+            AppError::Internal(
+                "Payroll repository is not configured on EmployeeService".to_string(),
+            )
         })?;
         let employer_repo = self.employer_repo.as_ref().ok_or_else(|| {
-            AppError::Internal("Employer repository is not configured on EmployeeService".to_string())
+            AppError::Internal(
+                "Employer repository is not configured on EmployeeService".to_string(),
+            )
         })?;
 
         // 1. Fetch all employments for this employee
@@ -662,7 +667,10 @@ impl EmployeeService {
             return Ok(Vec::new());
         }
 
-        let employment_ids: Vec<Uuid> = employments.iter().map(|e| e.id()).collect();
+        let employment_ids: Vec<Uuid> = employments
+            .iter()
+            .map(crate::models::employment::Employment::id)
+            .collect();
 
         // 3. Fetch all salary component changes for these employments
         let components_history = payroll_repo
@@ -670,32 +678,44 @@ impl EmployeeService {
             .await?;
 
         // 4. Resolve employer names to avoid N+1 queries
-        let mut employer_ids: Vec<Uuid> = employments.iter().map(|e| e.employer_id()).collect();
+        let mut employer_ids: Vec<Uuid> = employments
+            .iter()
+            .map(crate::models::employment::Employment::employer_id)
+            .collect();
         employer_ids.sort();
         employer_ids.dedup();
-        
+
         let mut employer_names = std::collections::HashMap::new();
         for emp_id in employer_ids {
             if let Some(employer) = employer_repo.get_employer_by_id(auth_token, emp_id).await? {
-                employer_names.insert(emp_id, employer.name.to_string());
+                employer_names.insert(emp_id, employer.name.clone());
             }
         }
 
         // 5. Resolve department names to avoid N+1 queries
-        let mut dept_ids: Vec<Uuid> = employments.iter().filter_map(|e| e.department_id()).collect();
+        let mut dept_ids: Vec<Uuid> = employments
+            .iter()
+            .filter_map(crate::models::employment::Employment::department_id)
+            .collect();
         dept_ids.sort();
         dept_ids.dedup();
 
         let mut department_names = std::collections::HashMap::new();
         for d_id in dept_ids {
-            if let Some(dept) = self.dept_repo.get_department_by_id(auth_token, d_id).await? {
+            if let Some(dept) = self
+                .dept_repo
+                .get_department_by_id(auth_token, d_id)
+                .await?
+            {
                 department_names.insert(d_id, dept.name().to_string());
             }
         }
 
         // Map employments by ID for quick lookup
-        let employments_map: std::collections::HashMap<Uuid, &crate::models::employment::Employment> =
-            employments.iter().map(|e| (e.id(), e)).collect();
+        let employments_map: std::collections::HashMap<
+            Uuid,
+            &crate::models::employment::Employment,
+        > = employments.iter().map(|e| (e.id(), e)).collect();
 
         // Identify distinct chronological keys (employment_id, effective_date)
         let mut timeline_keys: Vec<(Uuid, chrono::NaiveDate)> = components_history
@@ -707,7 +727,13 @@ impl EmployeeService {
 
         let mut active_components: std::collections::HashMap<
             Uuid,
-            std::collections::HashMap<Uuid, (crate::models::EmployeeSalaryComponent, crate::models::SalaryComponentDefinition)>,
+            std::collections::HashMap<
+                Uuid,
+                (
+                    crate::models::EmployeeSalaryComponent,
+                    crate::models::SalaryComponentDefinition,
+                ),
+            >,
         > = std::collections::HashMap::new();
 
         let mut timeline_events = Vec::new();
@@ -715,12 +741,11 @@ impl EmployeeService {
         let mut previous_employment_id: Option<Uuid> = None;
 
         for (emp_id, eff_date) in timeline_keys {
-            let emp = match employments_map.get(&emp_id) {
-                Some(e) => e,
-                None => continue,
+            let Some(emp) = employments_map.get(&emp_id) else {
+                continue;
             };
 
-            let emp_components = active_components.entry(emp_id).or_insert_with(std::collections::HashMap::new);
+            let emp_components = active_components.entry(emp_id).or_default();
 
             for (esc, scd) in &components_history {
                 if esc.employment_id == emp_id && esc.effective_date == eff_date {
@@ -728,20 +753,19 @@ impl EmployeeService {
                 }
             }
 
-            let mut event_components: Vec<crate::models::SalaryComponentWithDefinition> = emp_components
-                .values()
-                .map(|(esc, scd)| crate::models::SalaryComponentWithDefinition {
-                    component: esc.clone(),
-                    definition: scd.clone(),
-                })
-                .collect();
+            let mut event_components: Vec<crate::models::SalaryComponentWithDefinition> =
+                emp_components
+                    .values()
+                    .map(|(esc, scd)| crate::models::SalaryComponentWithDefinition {
+                        component: esc.clone(),
+                        definition: scd.clone(),
+                    })
+                    .collect();
 
             event_components.sort_by(|a, b| a.definition.code.cmp(&b.definition.code));
 
-            let total_compensation: rust_decimal::Decimal = event_components
-                .iter()
-                .map(|c| c.component.amount)
-                .sum();
+            let total_compensation: rust_decimal::Decimal =
+                event_components.iter().map(|c| c.component.amount).sum();
 
             let change_type = if previous_total.is_none() {
                 "initial".to_string()
@@ -760,7 +784,9 @@ impl EmployeeService {
                 .get(&emp.employer_id())
                 .cloned()
                 .unwrap_or_else(|| "Unknown Employer".to_string());
-            let department_name = emp.department_id().and_then(|id| department_names.get(&id).cloned());
+            let department_name = emp
+                .department_id()
+                .and_then(|id| department_names.get(&id).cloned());
 
             let event = crate::models::CompensationTimelineEvent {
                 effective_date: eff_date,
@@ -768,7 +794,7 @@ impl EmployeeService {
                     id: emp_id,
                     employer_name,
                     department_name,
-                    job_title: emp.job_title().map(|s| s.to_string()),
+                    job_title: emp.job_title().map(std::string::ToString::to_string),
                 },
                 components: event_components,
                 total_compensation,

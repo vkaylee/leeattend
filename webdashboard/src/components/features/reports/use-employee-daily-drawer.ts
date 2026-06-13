@@ -78,7 +78,7 @@ export function useEmployeeDailyDrawer({
 
     const handleReprocessClick = (row: DailyAttendanceReport) => {
         setConfirmDialog({
-            show: true, employeeId: row.employee_id || employeeId, employeeName: row.employee_name, date: row.date,
+            show: true, employeeId, employeeName: row.employee_name, date: row.date,
         });
     };
 
@@ -95,7 +95,7 @@ export function useEmployeeDailyDrawer({
     const handleConfirmSubmit = ({ punchIn, punchOut, reason }: { punchIn: string; punchOut: string; reason: string }) => {
         if (!confirmModalData) return;
         const { row, existingRequest } = confirmModalData;
-        setConfirmingRow(`${row.employee_id || employeeId}-${row.date}`);
+        setConfirmingRow(`${employeeId}-${row.date}`);
 
         if (existingRequest) {
             confirmMutation.mutate({ row, existingRequestId: existingRequest.id });

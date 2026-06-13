@@ -310,3 +310,116 @@ async fn test_force_reprocess_all_attendance_api() {
         assert_eq!(entries[0].punch_out_time(), Some(end_time));
     }
 }
+
+#[tokio::test]
+async fn test_force_reprocess_attendance_no_location_fallback_api() {
+    let (test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let user_id = factory.user().create().await;
+    // Create workspace with a specific timezone
+    let ws_id = factory
+        .workspace()
+        .with_timezone("Asia/Ho_Chi_Minh")
+        .create_with_owner(user_id)
+        .await;
+    let emp_id = factory.employee().with_workspace(ws_id).create().await;
+    let emp_employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &factory.diesel_pools.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
+
+    // Set primary_location_id to NULL so that get_employee_timezone methods fall back to workspace timezone
+    crate::test_execute!(
+        &factory.diesel_pools.api,
+        "UPDATE employments SET primary_location_id = NULL WHERE id = $1",
+        diesel::sql_types::Uuid,
+        emp_employment_id
+    );
+
+    let base_date = NaiveDate::from_ymd_opt(2026, 5, 1).unwrap();
+    // Use UTC times that result in the SAME DAY for Asia/Ho_Chi_Minh (UTC+7)
+    // 01:00 UTC = 08:00 Local
+    // 10:00 UTC = 17:00 Local
+    let start_time = Utc.with_ymd_and_hms(2026, 5, 1, 1, 0, 0).unwrap();
+    let end_time = Utc.with_ymd_and_hms(2026, 5, 1, 10, 0, 0).unwrap();
+
+    // 1. Create raw logs WITHOUT processing them (bypass service)
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
+    let logs = vec![start_time, end_time];
+    for punch_time in logs {
+        let raw_log = RawAttendanceLog::new(
+            Uuid::new_v4(),
+            ws_id,
+            emp_employment_id,
+            punch_time,
+            LogSource::Manual,
+            None,
+            None,
+            -1,
+            -1,
+            Utc::now(),
+        );
+        helpers::create_raw_log(&diesel_pools, &raw_log)
+            .await
+            .unwrap();
+    }
+
+    let time_entry_repo =
+        apiserver::repositories::DieselTimeEntryRepository::new(diesel_pools.clone());
+
+    let start_dt = base_date.and_hms_opt(0, 0, 0).unwrap().and_utc();
+    let end_dt = base_date.and_hms_opt(23, 59, 59).unwrap().and_utc();
+
+    use apiserver::repositories::time_entry_repository::TimeEntryRepository;
+
+    // 2. Verify time_entries are initially empty
+    let entries = time_entry_repo
+        .get_employment_time_entries(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            emp_employment_id,
+            start_dt,
+            end_dt,
+        )
+        .await
+        .unwrap();
+    assert!(
+        entries.is_empty(),
+        "Entries should be empty before reprocessing"
+    );
+
+    // 3. Call the reprocess endpoint
+    let res = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/workspaces/{ws_id}/attendance/reprocess/{emp_id}?start_date={base_date}&end_date={base_date}"
+                ))
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), StatusCode::OK);
+
+    // 4. Verify time_entries are now created correctly (verifying fallback worked)
+    let entries = time_entry_repo
+        .get_employment_time_entries(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            emp_employment_id,
+            start_dt,
+            end_dt,
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(entries.len(), 1, "One time entry should have been created");
+    assert_eq!(entries[0].punch_in_time(), start_time);
+    assert_eq!(entries[0].punch_out_time(), Some(end_time));
+}

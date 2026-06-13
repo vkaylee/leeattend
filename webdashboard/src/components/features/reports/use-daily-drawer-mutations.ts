@@ -62,7 +62,7 @@ export function useDailyDrawerMutations({
 
     const approveOtMutation = useMutation({
         mutationFn: ({ row, action }: { row: DailyAttendanceReport; action: "approved" | "rejected" }) =>
-            approveOt(workspaceId, row.employee_id || employeeId || "", {
+            approveOt(workspaceId, employeeId ?? "", {
                 date: row.date,
                 approved_minutes: Math.round(row.computed_ot_hours * 60),
                 status: action,
@@ -82,7 +82,7 @@ export function useDailyDrawerMutations({
 
     const resolveUnscheduledMutation = useMutation({
         mutationFn: async ({ row, shiftId }: { row: DailyAttendanceReport; shiftId: string }) => {
-            const empId = row.employee_id || employeeId || "";
+            const empId = employeeId ?? "";
             await upsertRoster(workspaceId, empId, {
                 date: row.date,
                 shift_id: shiftId,

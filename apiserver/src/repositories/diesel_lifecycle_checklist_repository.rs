@@ -165,7 +165,7 @@ impl LifecycleChecklistRepository for DieselLifecycleChecklistRepository {
                     .filter(lifecycle_checklist_templates::deleted_at.is_null())
                     .first::<LifecycleChecklistTemplateEntity>(conn)
                     .await
-                    .map_err(|_| AppError::NotFound("error.template_not_found".into()))?;
+                    .map_err(|_err| AppError::NotFound("error.template_not_found".into()))?;
 
                 // If is_default is changing to true, unset others first
                 if data.is_default == Some(true) {
@@ -379,7 +379,7 @@ impl LifecycleChecklistRepository for DieselLifecycleChecklistRepository {
             .select(lifecycle_checklist_template_items::all_columns)
             .first::<LifecycleChecklistTemplateItemEntity>(&mut *conn)
             .await
-            .map_err(|_| AppError::NotFound("error.template_item_not_found".into()))?;
+            .map_err(|_err| AppError::NotFound("error.template_item_not_found".into()))?;
 
         if let Some(title) = data.title {
             existing.title = title;

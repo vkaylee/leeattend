@@ -1375,17 +1375,47 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             LIMIT 1
         ";
 
-        let row: TzRow = diesel::sql_query(query)
+        let row_result = diesel::sql_query(query)
             .bind::<diesel::sql_types::Uuid, _>(employee_id)
             .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-            .get_result(&mut *conn)
-            .await
-            .map_err(|e| match e {
-                diesel::result::Error::NotFound => AppError::not_found(I18nKey::EmployeeNotFound),
-                _ => AppError::Internal(format!("db: {e}")),
-            })?;
+            .get_result::<TzRow>(&mut *conn)
+            .await;
 
-        Ok(crate::utils::tz::parse_workspace_tz(&row.timezone))
+        let tz_str = match row_result {
+            Ok(row) => row.timezone,
+            Err(diesel::result::Error::NotFound) => {
+                // Fallback to workspace timezone from system DB
+                let mut system_conn = self
+                    .diesel_pools
+                    .api
+                    .get()
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db api pool: {e}")))?;
+
+                #[derive(diesel::QueryableByName)]
+                struct WorkspaceTz {
+                    #[diesel(sql_type = diesel::sql_types::Text)]
+                    timezone: String,
+                }
+
+                let ws_tz: Result<WorkspaceTz, _> =
+                    diesel::sql_query("SELECT timezone::text FROM workspaces WHERE id = $1")
+                        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+                        .get_result(&mut *system_conn)
+                        .await;
+
+                match ws_tz {
+                    Ok(w) => w.timezone,
+                    Err(e) => {
+                        tracing::warn!("Failed to query workspace timezone fallback for workspace_id={}: {:?}. Defaulting to UTC.", workspace_id, e);
+                        "UTC".to_string()
+                    }
+                }
+            }
+            Err(e) => return Err(AppError::Internal(format!("db: {e}"))),
+        };
+
+        Ok(crate::utils::tz::parse_workspace_tz(&tz_str))
     }
 
     async fn get_employee_timezone_at_date(
@@ -1427,18 +1457,48 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             LIMIT 1
         ";
 
-        let row: TzRow = diesel::sql_query(query)
+        let row_result = diesel::sql_query(query)
             .bind::<diesel::sql_types::Uuid, _>(employee_id)
             .bind::<diesel::sql_types::Uuid, _>(workspace_id)
             .bind::<diesel::sql_types::Date, _>(tentative_date)
-            .get_result(&mut *conn)
-            .await
-            .map_err(|e| match e {
-                diesel::result::Error::NotFound => AppError::not_found(I18nKey::EmployeeNotFound),
-                _ => AppError::Internal(format!("db: {e}")),
-            })?;
+            .get_result::<TzRow>(&mut *conn)
+            .await;
 
-        Ok(crate::utils::tz::parse_workspace_tz(&row.timezone))
+        let tz_str = match row_result {
+            Ok(row) => row.timezone,
+            Err(diesel::result::Error::NotFound) => {
+                // Fallback to workspace timezone from system DB
+                let mut system_conn = self
+                    .diesel_pools
+                    .api
+                    .get()
+                    .await
+                    .map_err(|e| AppError::Internal(format!("db api pool: {e}")))?;
+
+                #[derive(diesel::QueryableByName)]
+                struct WorkspaceTz {
+                    #[diesel(sql_type = diesel::sql_types::Text)]
+                    timezone: String,
+                }
+
+                let ws_tz: Result<WorkspaceTz, _> =
+                    diesel::sql_query("SELECT timezone::text FROM workspaces WHERE id = $1")
+                        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+                        .get_result(&mut *system_conn)
+                        .await;
+
+                match ws_tz {
+                    Ok(w) => w.timezone,
+                    Err(e) => {
+                        tracing::warn!("Failed to query workspace timezone fallback for workspace_id={}: {:?}. Defaulting to UTC.", workspace_id, e);
+                        "UTC".to_string()
+                    }
+                }
+            }
+            Err(e) => return Err(AppError::Internal(format!("db: {e}"))),
+        };
+
+        Ok(crate::utils::tz::parse_workspace_tz(&tz_str))
     }
 
     async fn get_headquarters_location_id(

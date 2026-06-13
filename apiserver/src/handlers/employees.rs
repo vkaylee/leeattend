@@ -2,9 +2,9 @@ use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::{self, MemberContext};
 use crate::models::{
-    CreateEmployeeRequest, CreateWorkingConditionRequest, Employee, EmployeeDepartmentHistory,
-    PaginatedResponse, PaginationParams, RehireEmployeeRequest, TransferEmployeeRequest,
-    UpdateEmployeeRequest, WorkingCondition, CompensationHistoryResponse,
+    CompensationHistoryResponse, CreateEmployeeRequest, CreateWorkingConditionRequest, Employee,
+    EmployeeDepartmentHistory, PaginatedResponse, PaginationParams, RehireEmployeeRequest,
+    TransferEmployeeRequest, UpdateEmployeeRequest, WorkingCondition,
 };
 use crate::utils::i18n::I18nKey;
 use crate::AppState;
@@ -483,12 +483,14 @@ pub async fn get_compensation_history(
 ) -> AppResult<Json<crate::models::CompensationHistoryResponse>> {
     let (_workspace_id, id) = params;
     ctx.require_permission(Permission::EmployeesRead)?;
-    
+
     let timeline = state
         .employees()
         .service()
         .get_compensation_history(&ctx.auth_token, id, query.employment_id)
         .await?;
 
-    Ok(Json(crate::models::CompensationHistoryResponse { timeline }))
+    Ok(Json(crate::models::CompensationHistoryResponse {
+        timeline,
+    }))
 }

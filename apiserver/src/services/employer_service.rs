@@ -276,7 +276,9 @@ fn validate_email(email: &str) -> Result<(), AppError> {
 fn validate_country_code(code: &str) -> Result<(), AppError> {
     let code = code.trim();
     if code.len() != 3 || !code.chars().all(|c| c.is_ascii_alphabetic()) {
-        return Err(AppError::validation_raw("Country code must be a 3-character ISO 3166-1 alpha-3 code."));
+        return Err(AppError::validation_raw(
+            "Country code must be a 3-character ISO 3166-1 alpha-3 code.",
+        ));
     }
     Ok(())
 }
@@ -284,7 +286,9 @@ fn validate_country_code(code: &str) -> Result<(), AppError> {
 fn validate_currency_code(code: &str) -> Result<(), AppError> {
     let code = code.trim();
     if code.len() != 3 || !code.chars().all(|c| c.is_ascii_alphabetic()) {
-        return Err(AppError::validation_raw("Currency code must be a 3-character uppercase string."));
+        return Err(AppError::validation_raw(
+            "Currency code must be a 3-character uppercase string.",
+        ));
     }
     Ok(())
 }

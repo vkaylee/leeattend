@@ -338,7 +338,6 @@ pub struct CompensationHistoryResponse {
     pub timeline: Vec<CompensationTimelineEvent>,
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
