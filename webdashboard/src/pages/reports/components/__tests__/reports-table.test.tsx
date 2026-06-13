@@ -3,7 +3,7 @@ import React from "react";
 
 import { describe, it, expect, vi } from "vitest";
 
-import { AttendanceSummary, Department } from "@/lib/api/types";
+import { AttendanceSummary, Department, Employer } from "@/lib/api/types";
 
 import { ReportsTable } from "../reports-table";
 
@@ -25,6 +25,9 @@ describe("ReportsTable", () => {
   const defaultProps = {
     dateRange: { start: "2024-03-01", end: "2024-03-31" },
     departments: mockDepartments,
+    employers: [] as Employer[],
+    selectedEmployerId: null,
+    handleEmployerChange: vi.fn(),
     fetchNextPage: vi.fn(),
     filteredData: [] as AttendanceSummary[],
     filterMode: "this_month" as const,
@@ -45,6 +48,8 @@ describe("ReportsTable", () => {
     setSearchQuery: vi.fn(),
     sortBy: undefined,
     specificMonth: { month: 3, year: 2024 },
+    employeeStatus: "active",
+    onEmployeeStatusChange: vi.fn(),
   };
 
   it("renders ReportFilters and NavigableList as siblings in a flex-col container to prevent layout squashing", () => {

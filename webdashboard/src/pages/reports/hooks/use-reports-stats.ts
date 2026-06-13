@@ -11,6 +11,7 @@ interface UseReportsStatsProps {
   sortBy: AttendanceReportSort | undefined;
   wsId: string | null;
   employeeStatus?: string;
+  selectedEmployerId: string | null;
 }
 
 export function useReportsStats({
@@ -19,10 +20,11 @@ export function useReportsStats({
   sortBy,
   employeeIdsFilter,
   selectedDepartmentId,
-  employeeStatus
+  employeeStatus,
+  selectedEmployerId
 }: UseReportsStatsProps) {
   const { data: allStatsResponse } = useQuery<PaginatedResponse<AttendanceSummary>>({
-    queryKey: ["attendance-report-stats", wsId, dateRange, "summary", sortBy, employeeIdsFilter, selectedDepartmentId, employeeStatus],
+    queryKey: ["attendance-report-stats", wsId, dateRange, "summary", sortBy, employeeIdsFilter, selectedDepartmentId, employeeStatus, selectedEmployerId],
     queryFn: () => {
       if (!wsId) return Promise.reject(new Error("No workspace ID"));
       return fetchAttendanceReport({
@@ -36,6 +38,7 @@ export function useReportsStats({
         employeeIds: employeeIdsFilter,
         departmentId: selectedDepartmentId,
         employeeStatus,
+        employerId: selectedEmployerId,
       }) as Promise<PaginatedResponse<AttendanceSummary>>;
     },
     enabled: !!wsId,

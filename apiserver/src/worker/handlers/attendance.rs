@@ -70,6 +70,18 @@ impl AttendanceHandler {
 
         let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
 
+        // Fetch all employers to get names
+        let (employers, _) = deps
+            .employer_repo
+            .get_employers(&auth_token, 1, 1000)
+            .await
+            .map_err(|e| format!("Failed to fetch employers: {e}"))?;
+
+        let employer_name_map: HashMap<Uuid, String> = employers
+            .into_iter()
+            .map(|emp| (emp.id, emp.name))
+            .collect();
+
         // Fetch employments to build active employment mappings
         let employments = deps
             .employment_repo
@@ -77,28 +89,33 @@ impl AttendanceHandler {
             .await
             .map_err(|e| format!("Failed to fetch employments: {e}"))?;
 
-        // Map employee_id -> active employment_id
-        let mut emp_to_active_employment = HashMap::new();
         // Map employment_id -> employee_id
         let mut employment_to_employee = HashMap::new();
+        // Map employment_id -> (employer_id, employer_name)
+        let mut employment_to_employer = HashMap::new();
+        let mut employment_ids = Vec::new();
 
         for emp in &employments {
             employment_to_employee.insert(emp.id(), emp.employee_id());
-            let is_matching_end_date = emp.end_date().is_none_or(|end| end >= start_date);
-            if emp.status() == "active" || is_matching_end_date {
-                emp_to_active_employment.insert(emp.employee_id(), emp.id());
+            let is_overlapping =
+                emp.start_date() <= end_date && emp.end_date().is_none_or(|end| end >= start_date);
+
+            if is_overlapping {
+                employment_ids.push(emp.id());
+                let employer_id = emp.employer_id();
+                let employer_name = employer_name_map.get(&employer_id).cloned();
+                employment_to_employer.insert(emp.id(), (employer_id, employer_name));
             }
         }
-        for emp in &employments {
-            emp_to_active_employment
-                .entry(emp.employee_id())
-                .or_insert_with(|| emp.id());
-        }
 
-        let employment_ids: Vec<Uuid> = employee_ids
-            .iter()
-            .filter_map(|emp_id| emp_to_active_employment.get(emp_id).copied())
-            .collect();
+        if employment_ids.is_empty() {
+            for emp in &employments {
+                employment_ids.push(emp.id());
+                let employer_id = emp.employer_id();
+                let employer_name = employer_name_map.get(&employer_id).cloned();
+                employment_to_employer.insert(emp.id(), (employer_id, employer_name));
+            }
+        }
 
         // 3. Fetch schedules AND time entries sequentially (prevent DB pool exhaustion)
         let schedules_result = deps
@@ -147,6 +164,7 @@ impl AttendanceHandler {
                     leave_repo: deps.leave_request_repo.as_ref(),
                     employee_ids,
                     employment_to_employee: &employment_to_employee,
+                    employment_to_employer: &employment_to_employer,
                 })
                 .await?
             }
@@ -164,6 +182,7 @@ impl AttendanceHandler {
                     leave_repo: deps.leave_request_repo.as_ref(),
                     employee_ids,
                     employment_to_employee: &employment_to_employee,
+                    employment_to_employer: &employment_to_employer,
                 })
                 .await?
             }
@@ -230,6 +249,7 @@ struct CalculateBatchArgs<'a> {
     leave_repo: &'a dyn crate::repositories::leave_request_repository::LeaveRequestRepository,
     employee_ids: &'a [Uuid],
     employment_to_employee: &'a HashMap<Uuid, Uuid>,
+    employment_to_employer: &'a HashMap<Uuid, (Uuid, Option<String>)>,
 }
 
 impl AttendanceHandler {
@@ -395,6 +415,13 @@ impl AttendanceHandler {
                 }
             }
 
+            let (employer_id, employer_name) = args
+                .employment_to_employer
+                .get(&emp_sched.employment_id)
+                .cloned()
+                .map(|(id, name)| (Some(id), name))
+                .unwrap_or((None, None));
+
             summaries.push(AttendanceSummary {
                 employment_id: emp_sched.employment_id,
                 employee_id,
@@ -409,6 +436,8 @@ impl AttendanceHandler {
                     * (f64::from(emp_attendance_rules.work_unit_minutes) / 60.0),
                 computed_ot_hours: f64::from(total_ot_units)
                     * (f64::from(emp_attendance_rules.work_unit_minutes) / 60.0),
+                employer_id,
+                employer_name,
             });
         }
 
@@ -461,6 +490,11 @@ impl AttendanceHandler {
                 .get(&emp_sched.employment_id)
                 .copied()
                 .unwrap_or_else(Uuid::nil);
+
+            let employer_name = args
+                .employment_to_employer
+                .get(&emp_sched.employment_id)
+                .and_then(|(_, name)| name.clone());
 
             let entries = args
                 .entries_map
@@ -661,6 +695,7 @@ impl AttendanceHandler {
                     holiday_name: daily.holiday_name.clone(),
                     generation_metadata: combined_metadata,
                     is_leave_paid,
+                    employer_name: employer_name.clone(),
                 });
             }
         }
@@ -778,6 +813,8 @@ mod tests {
                 unit_coefficient_hours: 8.0,
                 computed_std_hours: 140.0,
                 computed_ot_hours: 20.0,
+                employer_id: None,
+                employer_name: None,
             },
             AttendanceSummary {
                 employment_id: Uuid::new_v4(),
@@ -791,6 +828,8 @@ mod tests {
                 unit_coefficient_hours: 8.0,
                 computed_std_hours: 152.0,
                 computed_ot_hours: 0.0,
+                employer_id: None,
+                employer_name: None,
             },
         ];
 
@@ -834,6 +873,7 @@ mod tests {
             holiday_name: None,
             generation_metadata: None,
             is_leave_paid: None,
+            employer_name: None,
         }];
 
         let json = serde_json::to_string(&reports).unwrap();
@@ -1136,6 +1176,11 @@ mod tests {
         let mut builder = MockWorkerDepsBuilder::new();
 
         builder
+            .employer_repo
+            .expect_get_employers()
+            .returning(|_, _, _| Ok((vec![], 0)));
+
+        builder
             .roster_repo
             .expect_get_workspace_schedules()
             .returning(|_, _, _, _, _| Box::pin(async move { Ok(vec![]) }));
@@ -1261,6 +1306,11 @@ mod tests {
         ));
 
         let mut builder = MockWorkerDepsBuilder::new();
+
+        builder
+            .employer_repo
+            .expect_get_employers()
+            .returning(|_, _, _| Ok((vec![], 0)));
 
         let sched_date = NaiveDate::from_ymd_opt(2026, 1, 15).unwrap();
         let schedule = crate::models::EmployeeSchedule {
@@ -1447,6 +1497,11 @@ mod tests {
         ));
 
         let mut builder = MockWorkerDepsBuilder::new();
+
+        builder
+            .employer_repo
+            .expect_get_employers()
+            .returning(|_, _, _| Ok((vec![], 0)));
 
         let sched_date = NaiveDate::from_ymd_opt(2026, 1, 15).unwrap();
         let schedule = crate::models::EmployeeSchedule {

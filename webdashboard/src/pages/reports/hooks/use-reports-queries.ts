@@ -16,6 +16,7 @@ interface UseReportsQueriesProps {
   sortBy: AttendanceReportSort | undefined;
   wsId: string | null;
   employeeStatus?: string;
+  selectedEmployerId: string | null;
 }
 
 export function useReportsQueries({
@@ -25,8 +26,9 @@ export function useReportsQueries({
   sortBy,
   selectedDepartmentId,
   employeeStatus,
+  selectedEmployerId,
 }: UseReportsQueriesProps) {
-  const { workspace, departments } = useReportsMetadata({ wsId });
+  const { workspace, departments, employers } = useReportsMetadata({ wsId });
   const { employeeIdsFilter } = useReportsEmployeeSearch({ wsId, debouncedSearch });
 
   const {
@@ -36,7 +38,7 @@ export function useReportsQueries({
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery<PaginatedResponse<AttendanceSummary>>({
-    queryKey: ["attendance-report", wsId, dateRange, "summary", PAGE_SIZE, sortBy, employeeIdsFilter, selectedDepartmentId, employeeStatus],
+    queryKey: ["attendance-report", wsId, dateRange, "summary", PAGE_SIZE, sortBy, employeeIdsFilter, selectedDepartmentId, employeeStatus, selectedEmployerId],
     queryFn: ({ pageParam }) => {
       if (!wsId) return Promise.reject(new Error("No workspace ID"));
       return fetchAttendanceReport({
@@ -50,6 +52,7 @@ export function useReportsQueries({
         employeeIds: employeeIdsFilter,
         departmentId: selectedDepartmentId,
         employeeStatus,
+        employerId: selectedEmployerId,
       }) as Promise<PaginatedResponse<AttendanceSummary>>;
     },
     getNextPageParam: (lastPage, allPages) => {
@@ -74,11 +77,13 @@ export function useReportsQueries({
     employeeIdsFilter,
     selectedDepartmentId,
     employeeStatus,
+    selectedEmployerId,
   });
 
   return {
     workspace,
     departments,
+    employers,
     reportPages,
     isLoading,
     fetchNextPage,

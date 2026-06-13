@@ -579,6 +579,8 @@ mod tests {
             unit_coefficient_hours: 8.0,
             computed_std_hours: 160.0,
             computed_ot_hours: 0.0,
+            employer_id: None,
+            employer_name: None,
         }];
         let summaries2 = vec![AttendanceSummary {
             employment_id: Uuid::new_v4(),
@@ -592,6 +594,8 @@ mod tests {
             unit_coefficient_hours: 8.0,
             computed_std_hours: 152.0,
             computed_ot_hours: 0.0,
+            employer_id: None,
+            employer_name: None,
         }];
 
         let batch_results: Vec<(String, String)> = vec![
@@ -657,6 +661,7 @@ mod tests {
             holiday_name: None,
             generation_metadata: None,
             is_leave_paid: None,
+            employer_name: None,
         };
         let report2 = DailyAttendanceReport {
             date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
@@ -687,6 +692,7 @@ mod tests {
             holiday_name: None,
             generation_metadata: None,
             is_leave_paid: None,
+            employer_name: None,
         };
 
         let batch_results: Vec<(String, String)> = vec![
@@ -767,6 +773,8 @@ mod tests {
                 unit_coefficient_hours: 8.0,
                 computed_std_hours: 160.0,
                 computed_ot_hours: 0.0,
+                employer_id: None,
+                employer_name: None,
             },
             AttendanceSummary {
                 employment_id: Uuid::new_v4(),
@@ -780,6 +788,8 @@ mod tests {
                 unit_coefficient_hours: 8.0,
                 computed_std_hours: 120.0,
                 computed_ot_hours: 0.0,
+                employer_id: None,
+                employer_name: None,
             },
         ];
         let s2 = vec![AttendanceSummary {
@@ -794,6 +804,8 @@ mod tests {
             unit_coefficient_hours: 8.0,
             computed_std_hours: 80.0,
             computed_ot_hours: 0.0,
+            employer_id: None,
+            employer_name: None,
         }];
 
         let batch_results = vec![
@@ -861,6 +873,7 @@ mod tests {
             holiday_name: None,
             generation_metadata: None,
             is_leave_paid: None,
+            employer_name: None,
         };
 
         let b1 = vec![
@@ -915,6 +928,8 @@ mod tests {
             unit_coefficient_hours: 8.0,
             computed_std_hours: 160.0,
             computed_ot_hours: 0.0,
+            employer_id: None,
+            employer_name: None,
         };
         let json = serde_json::to_string(&summary).unwrap();
         assert!(json.contains("EMP-001"));
@@ -953,6 +968,7 @@ mod tests {
             holiday_name: None,
             generation_metadata: None,
             is_leave_paid: None,
+            employer_name: None,
         };
         let json = serde_json::to_string(&report).unwrap();
         assert!(json.contains("EMP-002"));
@@ -1010,6 +1026,8 @@ mod tests {
                 unit_coefficient_hours: 8.0,
                 computed_std_hours: 8.0,
                 computed_ot_hours: 0.0,
+                employer_id: None,
+                employer_name: None,
             };
             let json = serde_json::to_string(&vec![summary]).unwrap();
             Ok(vec![
@@ -1155,6 +1173,7 @@ mod tests {
                 holiday_name: None,
                 generation_metadata: None,
                 is_leave_paid: None,
+                employer_name: None,
             };
             let json = serde_json::to_string(&vec![report]).unwrap();
             Ok(vec![

@@ -112,65 +112,133 @@ impl ReportService {
         let page = args.page.unwrap_or(1);
         let limit = args.limit.unwrap_or(20);
 
-        let (paginated_employees, total_employees) = self
-            .employee_repo
-            .get_paginated_employee_ids(
-                &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
-                crate::models::EmployeePaginationArgs {
-                    filter_ids: args.employee_ids.as_ref(),
-                    department_id: args.department_id,
-                    page,
-                    limit,
-                    sort_desc: false,
-                    active_during: Some((args.start_date, args.end_date)),
-                    status_filter: args.employee_status.clone(),
-                },
-            )
-            .await
-            .map_err(|e| {
-                tracing::error!("Error fetching paginated employees: {}", e);
-                AppError::Internal("Internal error".into())
-            })?;
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id);
 
-        if paginated_employees.is_empty() {
-            return Ok(PaginatedResponse {
-                data: Vec::new(),
-                total: total_employees as usize,
-                page,
-                limit,
-            });
+        let (paginated_employees, total_employees, employments, paginated_employment_ids) =
+            if let Some(specific_employment_id) = args.employment_id {
+                let emp = self
+                    .employment_repo
+                    .get_employment_by_id(&auth_token, specific_employment_id)
+                    .await?
+                    .ok_or_else(|| AppError::NotFound("error.not_found".into()))?;
+
+                let employee = self
+                    .employee_repo
+                    .get_employees_by_ids(&[emp.employee_id()], &auth_token)
+                    .await?
+                    .into_iter()
+                    .next()
+                    .map(|e| crate::repositories::employee::EmployeeBasicInfo {
+                        id: e.id(),
+                        full_name: e.full_name().to_string(),
+                        employee_id_number: e.employee_id_number().to_string(),
+                    })
+                    .ok_or_else(|| AppError::NotFound("error.not_found".into()))?;
+
+                (
+                    vec![employee],
+                    1i64,
+                    vec![emp],
+                    vec![specific_employment_id],
+                )
+            } else {
+                let (paginated_employees, total_employees) = self
+                    .employee_repo
+                    .get_paginated_employee_ids(
+                        &auth_token,
+                        crate::models::EmployeePaginationArgs {
+                            filter_ids: args.employee_ids.as_ref(),
+                            department_id: args.department_id,
+                            page,
+                            limit,
+                            sort_desc: false,
+                            active_during: Some((args.start_date, args.end_date)),
+                            status_filter: args.employee_status.clone(),
+                        },
+                    )
+                    .await
+                    .map_err(|e| {
+                        tracing::error!("Error fetching paginated employees: {}", e);
+                        AppError::Internal("Internal error".into())
+                    })?;
+
+                if paginated_employees.is_empty() {
+                    return Ok(PaginatedResponse {
+                        data: Vec::new(),
+                        total: total_employees as usize,
+                        page,
+                        limit,
+                    });
+                }
+
+                let emp_ids: Vec<Uuid> = paginated_employees.iter().map(|e| e.id).collect();
+
+                let employments = self
+                    .employment_repo
+                    .get_employments_for_employees(&auth_token, &emp_ids)
+                    .await?;
+
+                // Filter by employer_id if provided
+                let employments: Vec<_> = if let Some(employer_id) = args.employer_id {
+                    employments
+                        .into_iter()
+                        .filter(|emp| emp.employer_id() == employer_id)
+                        .collect()
+                } else {
+                    employments
+                };
+
+                let mut paginated_employment_ids = Vec::new();
+                for &employee_id in &emp_ids {
+                    let mut emp_employments: Vec<_> = employments
+                        .iter()
+                        .filter(|e| e.employee_id() == employee_id)
+                        .collect();
+
+                    if emp_employments.is_empty() {
+                        continue;
+                    }
+
+                    let overlapping: Vec<_> = emp_employments
+                        .iter()
+                        .filter(|emp| {
+                            emp.start_date() <= args.end_date
+                                && emp.end_date().is_none_or(|end| end >= args.start_date)
+                        })
+                        .collect();
+
+                    if overlapping.is_empty() {
+                        // Fallback to the latest employment
+                        emp_employments.sort_by(|a, b| {
+                            b.start_date()
+                                .cmp(&a.start_date())
+                                .then_with(|| b.id().cmp(&a.id()))
+                        });
+                        if let Some(latest) = emp_employments.first() {
+                            paginated_employment_ids.push(latest.id());
+                        }
+                    } else {
+                        for emp in overlapping {
+                            paginated_employment_ids.push(emp.id());
+                        }
+                    }
+                }
+
+                (
+                    paginated_employees,
+                    total_employees,
+                    employments,
+                    paginated_employment_ids,
+                )
+            };
+
+        // Map employment_id -> employee_id
+        let mut employment_to_employee = std::collections::HashMap::new();
+        for emp in &employments {
+            employment_to_employee.insert(emp.id(), emp.employee_id());
         }
 
         let emp_ids: Vec<Uuid> = paginated_employees.iter().map(|e| e.id).collect();
-
-        // Fetch employments to build maps
-        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id);
-        let employments = self
-            .employment_repo
-            .get_employments_for_employees(&auth_token, &emp_ids)
-            .await?;
-
-        // Map employee_id -> active employment_id
-        let mut emp_to_active_employment = std::collections::HashMap::new();
-        // Map employment_id -> employee_id
-        let mut employment_to_employee = std::collections::HashMap::new();
-
-        for emp in &employments {
-            employment_to_employee.insert(emp.id(), emp.employee_id());
-            if emp.status() == "active" || emp.end_date().is_none_or(|end| end >= args.start_date) {
-                emp_to_active_employment.insert(emp.employee_id(), emp.id());
-            }
-        }
-        for emp in &employments {
-            emp_to_active_employment
-                .entry(emp.employee_id())
-                .or_insert_with(|| emp.id());
-        }
-
-        let paginated_employment_ids: Vec<Uuid> = emp_ids
-            .iter()
-            .filter_map(|emp_id| emp_to_active_employment.get(emp_id).copied())
-            .collect();
 
         let schedules = self
             .roster_repo
@@ -239,6 +307,15 @@ impl ReportService {
             args.end_date,
         )
         .await?;
+
+        // Fetch all employers to get names
+        let (employers, _) = self
+            .employer_repo
+            .get_employers(&auth_token, 1, 1000)
+            .await?;
+
+        let employer_name_map: std::collections::HashMap<Uuid, String> =
+            employers.into_iter().map(|e| (e.id, e.name)).collect();
 
         let mut reports = Vec::new();
 
@@ -355,6 +432,12 @@ impl ReportService {
                     Some(serde_json::Value::Object(metadata_map))
                 };
 
+                let employer_id = employments
+                    .iter()
+                    .find(|e| e.id() == emp_sched.employment_id)
+                    .map(crate::models::Employment::employer_id);
+                let employer_name = employer_id.and_then(|id| employer_name_map.get(&id).cloned());
+
                 reports.push(DailyAttendanceReport {
                     date,
                     employment_id: emp_sched.employment_id,
@@ -388,6 +471,7 @@ impl ReportService {
                     holiday_name: holiday_entry.map(|h| h.name().to_string()),
                     generation_metadata: combined_metadata,
                     is_leave_paid,
+                    employer_name,
                 });
             }
         }

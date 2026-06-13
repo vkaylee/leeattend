@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { fetchDepartments, fetchWorkspace } from "@/lib/api";
+import { fetchDepartments, fetchWorkspace, fetchEmployers } from "@/lib/api";
 
 interface UseReportsMetadataProps {
   wsId: string | null;
@@ -25,5 +25,14 @@ export function useReportsMetadata({ wsId }: UseReportsMetadataProps) {
     enabled: !!wsId,
   });
 
-  return { workspace, departments };
+  const { data: employers } = useQuery({
+    queryKey: ["employers", wsId],
+    queryFn: () => {
+      if (!wsId) return Promise.reject(new Error("No workspace ID"));
+      return fetchEmployers(wsId);
+    },
+    enabled: !!wsId,
+  });
+
+  return { workspace, departments, employers };
 }

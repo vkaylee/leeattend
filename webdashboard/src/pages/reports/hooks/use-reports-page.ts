@@ -5,6 +5,7 @@ import {
   AttendanceReportSort,
   AttendanceSummary,
   Department,
+  Employer,
   getCurrentWorkspaceId,
 } from "@/lib/api";
 
@@ -17,11 +18,13 @@ export type { FilterMode };
 export interface UseReportsPageReturn {
   dateRange: { end: string; start: string };
   departments: Department[] | undefined;
+  employers: Employer[] | undefined;
   fetchNextPage: () => Promise<unknown>;
   filteredData: AttendanceSummary[];
   filterMode: FilterMode;
   handleDateRangeChange: (newRange: { end: string; start: string }) => void;
   handleDepartmentChange: (departmentId: string | null) => void;
+  handleEmployerChange: (employerId: string | null) => void;
   handleDrawerClose: () => void;
   handleEmployeeClick: (employeeId: string, employeeName: string) => void;
   handleFilterModeChange: (mode: FilterMode) => void;
@@ -36,7 +39,8 @@ export interface UseReportsPageReturn {
   searchInputRef: React.RefObject<HTMLInputElement | null>;
   searchQuery: string;
   selectedDepartmentId: string | null;
-  selectedEmployee: { id: string; name: string } | null;
+  selectedEmployerId: string | null;
+  selectedEmployee: { id: string; name: string; employmentId?: string } | null;
   employeeStatus: string;
   setEmployeeStatus: (v: string) => void;
   setIsExportDialogOpen: (v: boolean) => void;
@@ -59,6 +63,7 @@ export function useReportsPage(): UseReportsPageReturn {
     searchQuery, setSearchQuery,
     isExportDialogOpen, setIsExportDialogOpen,
     selectedDepartmentId, setSelectedDepartmentId,
+    selectedEmployerId, setSelectedEmployerId,
     selectedEmployee, setSelectedEmployee,
     sortBy, setSortBy,
     employeeStatus, setEmployeeStatus,
@@ -71,6 +76,7 @@ export function useReportsPage(): UseReportsPageReturn {
 
   const {
     departments,
+    employers,
     isLoading,
     fetchNextPage,
     hasNextPage,
@@ -84,6 +90,7 @@ export function useReportsPage(): UseReportsPageReturn {
     sortBy,
     selectedDepartmentId,
     employeeStatus,
+    selectedEmployerId,
   });
 
   const {
@@ -91,6 +98,7 @@ export function useReportsPage(): UseReportsPageReturn {
     handleSpecificMonthChange,
     handleDateRangeChange,
     handleDepartmentChange,
+    handleEmployerChange,
     handleSort,
     handleEmployeeClick,
     handleDrawerClose
@@ -99,6 +107,7 @@ export function useReportsPage(): UseReportsPageReturn {
     setDateRange,
     setSpecificMonth,
     setSelectedDepartmentId,
+    setSelectedEmployerId,
     setSortBy,
     setSelectedEmployee,
     sortBy,
@@ -108,11 +117,13 @@ export function useReportsPage(): UseReportsPageReturn {
   return {
     dateRange,
     departments,
+    employers,
     fetchNextPage,
     filteredData,
     filterMode,
     handleDateRangeChange,
     handleDepartmentChange,
+    handleEmployerChange,
     handleDrawerClose,
     handleEmployeeClick,
     handleFilterModeChange,
@@ -127,6 +138,7 @@ export function useReportsPage(): UseReportsPageReturn {
     searchInputRef,
     searchQuery,
     selectedDepartmentId,
+    selectedEmployerId,
     selectedEmployee,
     employeeStatus,
     setEmployeeStatus,

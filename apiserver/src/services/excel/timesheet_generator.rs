@@ -62,14 +62,18 @@ pub fn generate(
         cur += Duration::days(1);
     }
 
-    // Group by employee name (BTreeMap keys are sorted).
-    // Value: (employee_id_number, BTreeMap of per-day DayCell data)
-    let mut emp_days: BTreeMap<&str, (String, BTreeMap<NaiveDate, DayCell>)> = BTreeMap::new();
+    // Group by employee name and employer name (BTreeMap keys are sorted).
+    // Value: BTreeMap of per-day DayCell data
+    let mut emp_days: BTreeMap<(String, Option<String>, String), BTreeMap<NaiveDate, DayCell>> =
+        BTreeMap::new();
     for r in reports {
-        let entry = emp_days
-            .entry(r.employee_name.as_str())
-            .or_insert_with(|| (r.employee_id_number.clone(), BTreeMap::new()));
-        entry.1.insert(
+        let key = (
+            r.employee_name.clone(),
+            r.employer_name.clone(),
+            r.employee_id_number.clone(),
+        );
+        let day_map = emp_days.entry(key).or_default();
+        day_map.insert(
             r.date,
             DayCell {
                 std_work_units: r.std_work_units,
@@ -86,23 +90,25 @@ pub fn generate(
         );
     }
 
-    // Header row (row 3): Employee ID | Employee | day numbers
+    // Header row (row 3): Employee ID | Employee | Employer | day numbers
     worksheet.write_string_with_format(3, 0, msgs.timesheet_emp_id_header, &header_fmt)?;
     worksheet.write_string_with_format(3, 1, msgs.timesheet_emp_header, &header_fmt)?;
+    worksheet.write_string_with_format(3, 2, msgs.timesheet_employer_header, &header_fmt)?;
     for (i, date) in dates.iter().enumerate() {
         worksheet.write_string_with_format(
             3,
-            (i + 2) as u16,
+            (i + 3) as u16,
             date.day().to_string(),
             &header_fmt,
         )?;
     }
 
     // Data rows (row 4+)
-    for (row_idx, (name, (emp_id_number, day_map))) in emp_days.iter().enumerate() {
+    for (row_idx, ((name, employer_name, emp_id_number), day_map)) in emp_days.iter().enumerate() {
         let row = (row_idx + 4) as u32;
         worksheet.write_string(row, 0, emp_id_number.as_str())?;
-        worksheet.write_string(row, 1, *name)?;
+        worksheet.write_string(row, 1, name.as_str())?;
+        worksheet.write_string(row, 2, employer_name.as_deref().unwrap_or(""))?;
 
         for (day_idx, date) in dates.iter().enumerate() {
             if let Some(cell) = day_map.get(date) {
@@ -193,7 +199,7 @@ pub fn generate(
                     (t, f)
                 };
 
-                worksheet.write_string_with_format(row, (day_idx + 2) as u16, &text, fmt)?;
+                worksheet.write_string_with_format(row, (day_idx + 3) as u16, &text, fmt)?;
             }
         }
     }
@@ -201,8 +207,8 @@ pub fn generate(
     // Auto-fit all column widths to content
     worksheet.autofit();
 
-    // Freeze panes: row 4 (first data), col 1 (first day col)
-    let _ = worksheet.set_freeze_panes(4, 1);
+    // Freeze panes: row 4 (first data), col 3 (first day col)
+    let _ = worksheet.set_freeze_panes(4, 3);
 
     Ok(())
 }

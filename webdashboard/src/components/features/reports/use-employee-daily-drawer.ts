@@ -12,21 +12,24 @@ import { useDailyDrawerModalState, createIsoFromLocal } from "./use-daily-drawer
 interface UseEmployeeDailyDrawerProps {
     dateRange: { start: string; end: string };
     employeeId: string;
+    employmentId?: string;
     isOpen: boolean;
     workspaceId: string;
 }
 
-export function useEmployeeDailyDrawer({
-    isOpen,
-    workspaceId,
-    employeeId,
-    dateRange,
-}: UseEmployeeDailyDrawerProps) {
+export function useEmployeeDailyDrawer(props: UseEmployeeDailyDrawerProps) {
+    const { isOpen, workspaceId, employeeId, dateRange, employmentId = "" } = props;
     const [viewMode, setViewMode] = useState<"daily" | "raw">("daily");
+    const [selectedEmploymentId, setSelectedEmploymentId] = useState<string>(employmentId);
 
-    // Reset to daily tab whenever the drawer is (re-)opened
+    // Reset to daily tab and initial employment whenever the drawer is (re-)opened
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional
-    useEffect(() => { if (isOpen) setViewMode("daily"); }, [isOpen]);
+    useEffect(() => {
+        if (isOpen) {
+            setViewMode("daily");
+            setSelectedEmploymentId(employmentId);
+        }
+    }, [isOpen, employmentId]);
 
     const [expandedDebugRows, setExpandedDebugRows] = useState<Set<string>>(new Set());
     const [reprocessingRow, setReprocessingRow] = useState<string | null>(null);
@@ -42,7 +45,7 @@ export function useEmployeeDailyDrawer({
         isLoading, reportData, adjustmentMap, shifts, rawLogsData, rawLogsLoading,
         hasNextPage, isFetchingNextPage, fetchNextPage, totalStdHours, totalOtHours,
     } = useDailyDrawerQueries({
-        workspaceId, employeeId, dateRange, isOpen, viewMode,
+        workspaceId, employeeId, dateRange, isOpen, viewMode, employmentId: selectedEmploymentId,
     });
 
     const toggleExpandRow = (rowKey: string) => {
@@ -110,6 +113,7 @@ export function useEmployeeDailyDrawer({
     };
 
     return {
+        selectedEmploymentId, setSelectedEmploymentId,
         viewMode, setViewMode, expandedDebugRows, toggleExpandRow, reprocessingRow, confirmingRow,
         confirmDialog, setConfirmDialog, confirmModalData, setConfirmModalData, resolveModalData, setResolveModalData,
         reportData, isLoading, rawLogsData, rawLogsLoading, hasNextPage, isFetchingNextPage, fetchNextPage,

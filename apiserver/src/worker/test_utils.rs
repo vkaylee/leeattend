@@ -189,6 +189,7 @@ pub struct MockWorkerDepsBuilder {
     pub workspace_config_repo:
         crate::repositories::workspace_config_repository::MockWorkspaceConfigRepository,
     pub custom_field_repo: MockCustomFieldRepository,
+    pub employer_repo: crate::repositories::employer_repository::MockEmployerRepository,
 }
 
 impl Default for MockWorkerDepsBuilder {
@@ -312,6 +313,7 @@ impl MockWorkerDepsBuilder {
                 crate::repositories::workspace_config_repository::MockWorkspaceConfigRepository::new(
                 ),
             custom_field_repo,
+            employer_repo: crate::repositories::employer_repository::MockEmployerRepository::new(),
         }
     }
 
@@ -343,6 +345,7 @@ impl MockWorkerDepsBuilder {
             outbox_repo: Arc::new(self.outbox_repo),
             workspace_config_repo: Arc::new(self.workspace_config_repo),
             custom_field_repo: Arc::new(self.custom_field_repo),
+            employer_repo: Arc::new(self.employer_repo),
         }
     }
 }

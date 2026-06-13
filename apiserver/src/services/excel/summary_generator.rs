@@ -56,11 +56,12 @@ pub fn generate(
     for (idx, summary) in summaries.iter().enumerate() {
         let row = (idx + 4) as u32;
         worksheet.write_string(row, 0, &summary.employee_name)?;
-        worksheet.write_number_with_format(row, 1, summary.computed_std_hours, &number_format)?;
-        worksheet.write_number_with_format(row, 2, summary.computed_ot_hours, &number_format)?;
+        worksheet.write_string(row, 1, summary.employer_name.as_deref().unwrap_or(""))?;
+        worksheet.write_number_with_format(row, 2, summary.computed_std_hours, &number_format)?;
+        worksheet.write_number_with_format(row, 3, summary.computed_ot_hours, &number_format)?;
         worksheet.write_number_with_format(
             row,
-            3,
+            4,
             summary.total_leave_days as f64,
             &number_format,
         )?;
@@ -73,9 +74,10 @@ pub fn generate(
     }
 
     worksheet.set_column_width(0, 35)?;
-    worksheet.set_column_width(1, 15)?;
+    worksheet.set_column_width(1, 25)?;
     worksheet.set_column_width(2, 15)?;
-    worksheet.set_column_width(3, 18)?;
+    worksheet.set_column_width(3, 15)?;
+    worksheet.set_column_width(4, 18)?;
 
     for col_idx in 0..custom_field_headers.len() {
         worksheet.set_column_width(last_col + col_idx as u16, 18)?;

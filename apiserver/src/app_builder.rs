@@ -210,6 +210,7 @@ impl AppState {
                 leave_repo: Arc::clone(&leave_request_repo),
                 holiday_repo: Arc::clone(&holiday_repo),
                 workspace_repo: Arc::clone(&workspace_repo),
+                employer_repo: Arc::clone(&employer_repo),
             },
         ));
         let stats_repo: Arc<

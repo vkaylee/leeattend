@@ -131,6 +131,8 @@ export interface AttendanceSummary {
   total_std_units: number;
   unit_coefficient_hours: number;
   unit_type: 'DAY' | 'SHIFT' | 'HOUR' | 'MINUTE';
+  employer_id?: string;
+  employer_name?: string;
 }
 
 export type AuditLog = Omit<components["schemas"]["AuditLog"], "actor_id" | "target_user_id"> & {

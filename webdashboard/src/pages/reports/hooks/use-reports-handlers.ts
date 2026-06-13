@@ -9,7 +9,8 @@ interface UseReportsHandlersProps {
   setDateRange: (range: { start: string; end: string }) => void;
   setFilterMode: (mode: FilterMode) => void;
   setSelectedDepartmentId: (id: string | null) => void;
-  setSelectedEmployee: (v: { id: string; name: string } | null) => void;
+  setSelectedEmployerId: (id: string | null) => void;
+  setSelectedEmployee: (v: { id: string; name: string; employmentId?: string } | null) => void;
   setSortBy: (v: AttendanceReportSort | undefined) => void;
   setSpecificMonth: (val: { month: number; year: number }) => void;
   sortBy: AttendanceReportSort | undefined;
@@ -20,6 +21,7 @@ export function useReportsHandlers({
   setDateRange,
   setSpecificMonth,
   setSelectedDepartmentId,
+  setSelectedEmployerId,
   setSortBy,
   setSelectedEmployee,
   sortBy,
@@ -54,6 +56,11 @@ export function useReportsHandlers({
     focusSearch();
   };
 
+  const handleEmployerChange = (employerId: string | null) => {
+    setSelectedEmployerId(employerId);
+    focusSearch();
+  };
+
   const handleSort = (field: "leave_days" | "name" | "ot_hours" | "total_hours" | "work_hours") => {
     const defaultDesc = field !== "name";
     const descKey = `${field}_desc` as AttendanceReportSort;
@@ -65,8 +72,8 @@ export function useReportsHandlers({
     }
   };
 
-  const handleEmployeeClick = (employeeId: string, employeeName: string) => {
-    setSelectedEmployee({ id: employeeId, name: employeeName });
+  const handleEmployeeClick = (employeeId: string, employeeName: string, employmentId?: string) => {
+    setSelectedEmployee({ id: employeeId, name: employeeName, employmentId });
   };
 
   const handleDrawerClose = () => {
@@ -79,6 +86,7 @@ export function useReportsHandlers({
     handleSpecificMonthChange,
     handleDateRangeChange,
     handleDepartmentChange,
+    handleEmployerChange,
     handleSort,
     handleEmployeeClick,
     handleDrawerClose

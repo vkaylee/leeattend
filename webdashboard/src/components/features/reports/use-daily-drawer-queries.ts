@@ -14,6 +14,7 @@ import { formatHours } from "@/lib/utils/attendance";
 interface UseDailyDrawerQueriesProps {
     dateRange: { start: string; end: string };
     employeeId: string;
+    employmentId?: string;
     isOpen: boolean;
     viewMode: "daily" | "raw";
     workspaceId: string;
@@ -22,12 +23,13 @@ interface UseDailyDrawerQueriesProps {
 export function useDailyDrawerQueries({
     workspaceId,
     employeeId,
+    employmentId,
     dateRange,
     isOpen,
     viewMode,
 }: UseDailyDrawerQueriesProps) {
     const { data: reportResponse, isLoading } = useQuery({
-        queryKey: ["attendance-report", workspaceId, dateRange, "daily", 1, 100, undefined, [employeeId]],
+        queryKey: ["attendance-report", workspaceId, dateRange, "daily", 1, 100, undefined, [employeeId], employmentId],
         queryFn: () =>
             fetchAttendanceReport({
                 wsId: workspaceId,
@@ -37,6 +39,7 @@ export function useDailyDrawerQueries({
                 page: 1,
                 limit: 100,
                 employeeIds: [employeeId],
+                employmentId: employmentId || undefined,
             }),
         enabled: isOpen && !!workspaceId && !!employeeId,
     });

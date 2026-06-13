@@ -65,6 +65,7 @@ fn make_report(has_punch_in: bool, has_shift: bool) -> DailyAttendanceReport {
         holiday_name: None,
         generation_metadata: None,
         is_leave_paid: None,
+        employer_name: None,
     }
 }
 

@@ -129,28 +129,65 @@ impl ReportService {
             .get_employments_for_employees(&auth_token, &emp_ids)
             .await?;
 
-        // Map employee_id -> active employment_id
-        let mut emp_to_active_employment = std::collections::HashMap::new();
+        // Filter employments by employer_id / employment_id if provided
+        let employments: Vec<_> = employments
+            .into_iter()
+            .filter(|emp| {
+                if let Some(employer_id) = args.employer_id {
+                    if emp.employer_id() != employer_id {
+                        return false;
+                    }
+                }
+                if let Some(employment_id) = args.employment_id {
+                    if emp.id() != employment_id {
+                        return false;
+                    }
+                }
+                true
+            })
+            .collect();
+
         // Map employment_id -> employee_id
         let mut employment_to_employee = std::collections::HashMap::new();
-
         for emp in &employments {
             employment_to_employee.insert(emp.id(), emp.employee_id());
-            let is_matching_end_date = emp.end_date().is_none_or(|end| end >= args.start_date);
-            if emp.status() == "active" || is_matching_end_date {
-                emp_to_active_employment.insert(emp.employee_id(), emp.id());
-            }
-        }
-        for emp in &employments {
-            emp_to_active_employment
-                .entry(emp.employee_id())
-                .or_insert_with(|| emp.id());
         }
 
-        let paginated_employment_ids: Vec<Uuid> = emp_ids
-            .iter()
-            .filter_map(|emp_id| emp_to_active_employment.get(emp_id).copied())
-            .collect();
+        let mut paginated_employment_ids = Vec::new();
+        for &employee_id in &emp_ids {
+            let mut emp_employments: Vec<_> = employments
+                .iter()
+                .filter(|e| e.employee_id() == employee_id)
+                .collect();
+
+            if emp_employments.is_empty() {
+                continue;
+            }
+
+            let overlapping: Vec<_> = emp_employments
+                .iter()
+                .filter(|emp| {
+                    emp.start_date() <= args.end_date
+                        && emp.end_date().is_none_or(|end| end >= args.start_date)
+                })
+                .collect();
+
+            if overlapping.is_empty() {
+                // Fallback to the latest employment
+                emp_employments.sort_by(|a, b| {
+                    b.start_date()
+                        .cmp(&a.start_date())
+                        .then_with(|| b.id().cmp(&a.id()))
+                });
+                if let Some(latest) = emp_employments.first() {
+                    paginated_employment_ids.push(latest.id());
+                }
+            } else {
+                for emp in overlapping {
+                    paginated_employment_ids.push(emp.id());
+                }
+            }
+        }
 
         let schedules = self
             .roster_repo
@@ -279,33 +316,64 @@ impl ReportService {
             );
         }
 
-        let mut results: Vec<AttendanceSummary> = paginated_employees
-            .iter()
-            .map(|emp| {
-                let active_emp_id = emp_to_active_employment
-                    .get(&emp.id)
-                    .copied()
-                    .unwrap_or(emp.id);
-                let (std, ot, work_unit_minutes) = employee_totals
-                    .get(&active_emp_id)
-                    .copied()
-                    .unwrap_or((0, 0, 30));
-                let coeff = f64::from(work_unit_minutes) / 60.0;
-                AttendanceSummary {
-                    employment_id: active_emp_id,
-                    employee_id: emp.id,
-                    employee_name: emp.full_name.clone(),
-                    employee_id_number: emp.employee_id_number.clone(),
-                    total_std_units: std,
-                    total_ot_units: ot,
-                    total_leave_days: leave_data.get(&emp.id).copied().unwrap_or(0),
-                    unit_type: crate::models::enums::TimekeepingUnit::DAY,
-                    unit_coefficient_hours: coeff,
-                    computed_std_hours: f64::from(std) * coeff,
-                    computed_ot_hours: f64::from(ot) * coeff,
-                }
-            })
-            .collect();
+        // Fetch all employers to get names
+        let (employers, _) = self
+            .employer_repo
+            .get_employers(&auth_token, 1, 1000)
+            .await?;
+
+        let employer_name_map: HashMap<Uuid, String> =
+            employers.into_iter().map(|e| (e.id, e.name)).collect();
+
+        // Create a map from employee_id to EmployeeBasicInfo info so we can lookup full name & employee_id_number
+        let employee_map: HashMap<Uuid, &crate::repositories::employee::EmployeeBasicInfo> =
+            paginated_employees
+                .iter()
+                .map(|emp| (emp.id, emp))
+                .collect();
+
+        let mut results = Vec::new();
+
+        for &employment_id in &paginated_employment_ids {
+            let employee_id = employment_to_employee
+                .get(&employment_id)
+                .copied()
+                .unwrap_or_else(Uuid::nil);
+
+            let Some(emp_info) = employee_map.get(&employee_id) else {
+                continue;
+            };
+
+            let (std, ot, work_unit_minutes) = employee_totals
+                .get(&employment_id)
+                .copied()
+                .unwrap_or((0, 0, 30));
+
+            let coeff = f64::from(work_unit_minutes) / 60.0;
+
+            let employer_id = employments
+                .iter()
+                .find(|e| e.id() == employment_id)
+                .map(crate::models::Employment::employer_id);
+
+            let employer_name = employer_id.and_then(|id| employer_name_map.get(&id).cloned());
+
+            results.push(AttendanceSummary {
+                employment_id,
+                employee_id,
+                employee_name: emp_info.full_name.clone(),
+                employee_id_number: emp_info.employee_id_number.clone(),
+                total_std_units: std,
+                total_ot_units: ot,
+                total_leave_days: leave_data.get(&employee_id).copied().unwrap_or(0),
+                unit_type: crate::models::enums::TimekeepingUnit::DAY,
+                unit_coefficient_hours: coeff,
+                computed_std_hours: f64::from(std) * coeff,
+                computed_ot_hours: f64::from(ot) * coeff,
+                employer_id,
+                employer_name,
+            });
+        }
 
         if let Some(s) = &args.sort {
             match s {

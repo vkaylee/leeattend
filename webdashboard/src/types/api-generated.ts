@@ -11657,6 +11657,8 @@ export interface operations {
                 employee_ids?: string | null;
                 department_id?: string | null;
                 employee_status?: string | null;
+                employer_id?: string | null;
+                employment_id?: string | null;
             };
             header?: never;
             path: {

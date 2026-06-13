@@ -59,7 +59,8 @@ export function useReportsFilters() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string | null>(null);
-  const [selectedEmployee, setSelectedEmployee] = useState<{ id: string; name: string } | null>(null);
+  const [selectedEmployerId, setSelectedEmployerId] = useState<string | null>(null);
+  const [selectedEmployee, setSelectedEmployee] = useState<{ id: string; name: string; employmentId?: string } | null>(null);
   const [sortBy, setSortBy] = useState<AttendanceReportSort | undefined>(undefined);
   const [employeeStatus, setEmployeeStatus] = useState<string>("active");
 
@@ -75,6 +76,7 @@ export function useReportsFilters() {
     searchQuery, setSearchQuery,
     isExportDialogOpen, setIsExportDialogOpen,
     selectedDepartmentId, setSelectedDepartmentId,
+    selectedEmployerId, setSelectedEmployerId,
     selectedEmployee, setSelectedEmployee,
     sortBy, setSortBy,
     employeeStatus, setEmployeeStatus,

@@ -87,27 +87,28 @@ pub fn generate(
         worksheet.write_string(row, 0, report.date.to_string())?;
         worksheet.write_string(row, 1, &report.employee_id_number)?;
         worksheet.write_string(row, 2, &report.employee_name)?;
+        worksheet.write_string(row, 3, report.employer_name.as_deref().unwrap_or(""))?;
         worksheet.write_string_with_format(
             row,
-            3,
+            4,
             format_time(report.scheduled_start),
             &time_fmt,
         )?;
-        worksheet.write_string_with_format(row, 4, format_time(report.scheduled_end), &time_fmt)?;
+        worksheet.write_string_with_format(row, 5, format_time(report.scheduled_end), &time_fmt)?;
         worksheet.write_string_with_format(
             row,
-            5,
+            6,
             format_datetime(report.actual_punch_in, tz),
             &time_fmt,
         )?;
         worksheet.write_string_with_format(
             row,
-            6,
+            7,
             format_datetime(report.actual_punch_out, tz),
             &time_fmt,
         )?;
-        worksheet.write_number(row, 7, report.computed_std_hours)?;
-        worksheet.write_number(row, 8, report.computed_ot_hours)?;
+        worksheet.write_number(row, 8, report.computed_std_hours)?;
+        worksheet.write_number(row, 9, report.computed_ot_hours)?;
         let ot_status_label = match report.ot_claim_status.as_deref() {
             Some("pending_employee" | "pendingemployee") => msgs.ot_status_pending_employee,
             Some("pending_manager" | "pendingmanager") => msgs.ot_status_pending_manager,
@@ -115,7 +116,7 @@ pub fn generate(
             Some("rejected") => msgs.ot_status_rejected,
             _ => "-",
         };
-        worksheet.write_string(row, 9, ot_status_label)?;
+        worksheet.write_string(row, 10, ot_status_label)?;
 
         let (status_label, status_fmt) = match report.status.as_str() {
             "present" => (msgs.status_present, &status_present),
@@ -135,10 +136,10 @@ pub fn generate(
             "unscheduled" => (msgs.status_unscheduled, &time_fmt),
             other => (other, &time_fmt),
         };
-        worksheet.write_string_with_format(row, 10, status_label, status_fmt)?;
+        worksheet.write_string_with_format(row, 11, status_label, status_fmt)?;
 
-        // Holiday column (col 11)
-        worksheet.write_string(row, 11, report.holiday_name.as_deref().unwrap_or(""))?;
+        // Holiday column (col 12)
+        worksheet.write_string(row, 12, report.holiday_name.as_deref().unwrap_or(""))?;
 
         // Write custom field values
         if let Some(cf_vals) = custom_field_values_map.get(&report.employee_id) {

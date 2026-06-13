@@ -273,6 +273,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             workspace_repo: Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
                 diesel_pools.clone(),
             )),
+            employer_repo: employer_repo.clone(),
         },
     ));
     let pairing_service = Arc::new(apiserver::services::pairing_service::PairingService::new(
@@ -931,6 +932,7 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
             workspace_repo: Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
                 diesel_pools.clone(),
             )),
+            employer_repo: employer_repo.clone(),
         },
     ));
     let pairing_service = Arc::new(apiserver::services::pairing_service::PairingService::new(
@@ -1633,6 +1635,7 @@ pub async fn setup_app_tower_internal_extended(
             workspace_repo: Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
                 diesel_pools.clone(),
             )),
+            employer_repo: employer_repo.clone(),
         },
     ));
     let pairing_service = Arc::new(apiserver::services::pairing_service::PairingService::new(

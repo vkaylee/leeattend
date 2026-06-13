@@ -24,6 +24,8 @@ pub struct AttendanceReportQuery {
     pub employee_ids: Option<String>,
     pub department_id: Option<uuid::Uuid>,
     pub employee_status: Option<String>,
+    pub employer_id: Option<uuid::Uuid>,
+    pub employment_id: Option<uuid::Uuid>,
 }
 
 #[utoipa::path(
@@ -199,6 +201,8 @@ pub async fn get_attendance_report(
                 department_id,
                 sort: None,
                 employee_status: params.employee_status.clone(),
+                employer_id: params.employer_id,
+                employment_id: params.employment_id,
             })
             .await?;
 
@@ -220,6 +224,8 @@ pub async fn get_attendance_report(
                     department_id,
                     sort,
                     employee_status: params.employee_status.clone(),
+                    employer_id: params.employer_id,
+                    employment_id: params.employment_id,
                 },
             )
             .await?;

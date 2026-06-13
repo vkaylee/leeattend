@@ -17,6 +17,55 @@ mod tests {
     use uuid::Uuid;
 
     // Create manual mocks for the repositories
+    struct MockEmployerRepo;
+    #[async_trait]
+    impl crate::repositories::EmployerRepository for MockEmployerRepo {
+        async fn create_employer(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _data: crate::models::CreateEmployerRequest,
+        ) -> Result<crate::models::Employer, AppError> {
+            unimplemented!()
+        }
+        async fn get_employer_by_id(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _id: Uuid,
+        ) -> Result<Option<crate::models::Employer>, AppError> {
+            unimplemented!()
+        }
+        async fn get_employers(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _page: i64,
+            _limit: i64,
+        ) -> Result<(Vec<crate::models::Employer>, i64), AppError> {
+            Ok((Vec::new(), 0))
+        }
+        async fn update_employer(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _id: Uuid,
+            _data: crate::models::UpdateEmployerRequest,
+        ) -> Result<crate::models::Employer, AppError> {
+            unimplemented!()
+        }
+        async fn delete_employer(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _id: Uuid,
+        ) -> Result<(), AppError> {
+            unimplemented!()
+        }
+        async fn count_employees_by_employer(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _id: Uuid,
+        ) -> Result<i64, AppError> {
+            unimplemented!()
+        }
+    }
+
     struct MockWorkspaceRepo;
     #[async_trait]
     impl crate::repositories::workspace_repository::WorkspaceRepository for MockWorkspaceRepo {
@@ -1280,9 +1329,29 @@ mod tests {
         async fn get_employments_for_employees(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _employee_ids: &[Uuid],
+            employee_ids: &[Uuid],
         ) -> Result<Vec<crate::models::employment::Employment>, AppError> {
-            Ok(vec![])
+            Ok(employee_ids
+                .iter()
+                .map(|&employee_id| {
+                    crate::models::employment::Employment::new(
+                        Uuid::nil(),
+                        Uuid::nil(),
+                        employee_id,
+                        Uuid::nil(),
+                        None,
+                        None,
+                        "active".to_string(),
+                        NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+                        None,
+                        None,
+                        "full_time".to_string(),
+                        None,
+                        chrono::Utc::now(),
+                        chrono::Utc::now(),
+                    )
+                })
+                .collect())
         }
     }
 
@@ -1298,6 +1367,7 @@ mod tests {
             leave_repo: Arc::new(DummyLeaveRepo),
             attendance_daily_summary_repo: Arc::new(DummyDailySummaryRepo),
             holiday_repo: Arc::new(DummyHolidayRepo),
+            employer_repo: Arc::new(MockEmployerRepo),
         });
 
         let args = AttendanceReportArgs {
@@ -1310,6 +1380,8 @@ mod tests {
             department_id: None,
             sort: None,
             employee_status: None,
+            employer_id: None,
+            employment_id: None,
         };
 
         // When we call get_daily_attendance_report, it will hit WorkspaceRepo (succeeds)
@@ -2352,6 +2424,7 @@ mod tests {
             leave_repo: Arc::new(EmptyLeaveRepo),
             attendance_daily_summary_repo: Arc::new(EmptyDailySummaryRepo),
             holiday_repo: Arc::new(EmptyHolidayRepo),
+            employer_repo: Arc::new(MockEmployerRepo),
         });
 
         let args = AttendanceReportArgs {
@@ -2364,6 +2437,8 @@ mod tests {
             department_id: None,
             sort: None,
             employee_status: None,
+            employer_id: None,
+            employment_id: None,
         };
 
         let result = report_service
@@ -2526,6 +2601,7 @@ mod tests {
             leave_repo: Arc::new(EmptyLeaveRepo),
             attendance_daily_summary_repo: Arc::new(EmptyDailySummaryRepo),
             holiday_repo: Arc::new(EmptyHolidayRepo),
+            employer_repo: Arc::new(MockEmployerRepo),
         });
 
         let args = AttendanceReportArgs {
@@ -2538,6 +2614,8 @@ mod tests {
             department_id: None,
             sort: None,
             employee_status: None,
+            employer_id: None,
+            employment_id: None,
         };
 
         let result = report_service
@@ -2571,6 +2649,7 @@ mod tests {
             leave_repo: Arc::new(EmptyLeaveRepo),
             attendance_daily_summary_repo: Arc::new(EmptyDailySummaryRepo),
             holiday_repo: Arc::new(EmptyHolidayRepo),
+            employer_repo: Arc::new(MockEmployerRepo),
         });
 
         let args = AttendanceReportArgs {
@@ -2583,6 +2662,8 @@ mod tests {
             department_id: None,
             sort: None,
             employee_status: None,
+            employer_id: None,
+            employment_id: None,
         };
 
         let result = report_service

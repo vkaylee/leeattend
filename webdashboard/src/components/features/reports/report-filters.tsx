@@ -1,7 +1,7 @@
-import { Calendar, CalendarRange, Building2 } from "lucide-react";
+import { Calendar, CalendarRange, Building2, Briefcase } from "lucide-react";
 import React from "react";
 
-import type { Department } from "@/lib/api/types";
+import type { Department, Employer } from "@/lib/api/types";
 
 import { MonthYearPicker } from "@/components/common/month-year-picker";
 import Button from "@/components/ui/button";
@@ -15,6 +15,9 @@ import { cn } from "@/lib/utils";
 interface ReportFiltersProps {
   dateRange: { start: string; end: string };
   departments?: Department[];
+  employers?: Employer[];
+  selectedEmployerId?: string | null;
+  onEmployerChange?: (employerId: string | null) => void;
   filterMode: "this_month" | "last_month" | "custom" | "specific_month";
   onDateRangeChange: (range: { start: string; end: string }) => void;
   onDepartmentChange: (departmentId: string | null) => void;
@@ -179,9 +182,77 @@ function DepartmentChips({
   );
 }
 
+function EmployerFilterSelector({
+  employers,
+  selectedEmployerId,
+  onEmployerChange,
+  t,
+}: {
+  employers?: Employer[];
+  selectedEmployerId?: string | null;
+  onEmployerChange?: (employerId: string | null) => void;
+  t: ReportFiltersProps["t"];
+}) {
+  if (!employers || employers.length === 0) return null;
+
+  const selectedEmployer = employers.find(emp => emp.id === selectedEmployerId);
+
+  return (
+    <div className="flex items-center bg-slate-100 dark:bg-slate-700/50 rounded-[1.5rem] p-1.5 shadow-inner border border-slate-200 dark:border-slate-700/50">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all h-auto text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+            variant="ghost"
+          >
+            <Briefcase size={14} />
+            {selectedEmployer ? selectedEmployer.name : t("reports.all_employers").toUpperCase()}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="start"
+          className="w-64 p-2 rounded-[2rem] shadow-premium-2xl border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/95 backdrop-blur-xl max-h-80 overflow-y-auto"
+          sideOffset={8}
+        >
+          <Button
+            className={cn(
+              "w-full justify-start text-left px-4 py-2.5 rounded-xl text-xs font-bold transition-all h-auto mb-1",
+              selectedEmployerId === null
+                ? "bg-primary-50 dark:bg-primary-950/30 text-primary-600 dark:text-primary-400"
+                : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+            )}
+            onClick={() => onEmployerChange?.(null)}
+            variant="ghost"
+          >
+            {t("reports.all_employers")}
+          </Button>
+          {employers.map((emp) => (
+            <Button
+              className={cn(
+                "w-full justify-start text-left px-4 py-2.5 rounded-xl text-xs font-bold transition-all h-auto mb-1",
+                selectedEmployerId === emp.id
+                  ? "bg-primary-50 dark:bg-primary-950/30 text-primary-600 dark:text-primary-400"
+                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+              )}
+              key={emp.id}
+              onClick={() => onEmployerChange?.(emp.id)}
+              variant="ghost"
+            >
+              {emp.name}
+            </Button>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
+
 export default function ReportFilters({
   dateRange,
   departments,
+  employers,
+  selectedEmployerId,
+  onEmployerChange,
   filterMode,
   onDateRangeChange,
   onDepartmentChange,
@@ -200,6 +271,12 @@ export default function ReportFilters({
           <FilterModeSelector filterMode={filterMode} onFilterModeChange={onFilterModeChange} onSpecificMonthChange={onSpecificMonthChange} specificMonth={specificMonth} t={t} />
           <div className="hidden md:block w-px h-8 bg-slate-200 dark:bg-slate-800 self-center" />
           <StatusFilterSelector employeeStatus={employeeStatus} onEmployeeStatusChange={onEmployeeStatusChange} t={t} />
+          {employers && employers.length > 0 && (
+            <>
+              <div className="hidden md:block w-px h-8 bg-slate-200 dark:bg-slate-800 self-center" />
+              <EmployerFilterSelector employers={employers} selectedEmployerId={selectedEmployerId} onEmployerChange={onEmployerChange} t={t} />
+            </>
+          )}
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 import type { TFunction } from "i18next";
 
-import { CalendarCheck, FileBarChart, Clock } from "lucide-react";
+import { CalendarCheck, FileBarChart, Clock, Briefcase, ChevronDown } from "lucide-react";
 import React, { useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -8,6 +8,11 @@ import type { DailyAttendanceReport, AttendanceAdjustmentRequest, Shift } from "
 
 import Button from "@/components/ui/button";
 import Sheet from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useDebug } from "@/context/debug-context";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
@@ -22,6 +27,8 @@ interface EmployeeDailyDrawerProps {
     dateRange: { start: string; end: string };
     employeeId: string;
     employeeName: string;
+    employmentId?: string;
+    employments?: { employmentId: string; employerName: string; employeeIdNumber?: string }[];
     isOpen: boolean;
     onClose: () => void;
     workspaceId: string;
@@ -35,11 +42,68 @@ interface EmployeeDailyDrawerHeaderProps {
     totalOtHours: string | number;
     totalStdHours: string | number;
     viewMode: "daily" | "raw";
+    employments?: { employmentId: string; employerName: string; employeeIdNumber?: string }[];
+    selectedEmploymentId?: string;
+    onEmploymentChange: (id: string) => void;
 }
 
-function EmployeeDailyDrawerHeader({ viewMode, setViewMode, isLoading, reportData, totalStdHours, totalOtHours, t }: EmployeeDailyDrawerHeaderProps) {
+function EmployeeDailyDrawerHeader({
+    viewMode,
+    setViewMode,
+    isLoading,
+    reportData,
+    totalStdHours,
+    totalOtHours,
+    t,
+    employments = [],
+    selectedEmploymentId = "",
+    onEmploymentChange,
+}: EmployeeDailyDrawerHeaderProps) {
     return (
         <>
+            {employments.length > 1 && (
+                <div className="mr-4">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                className="flex items-center gap-1.5 px-4 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all h-auto"
+                                variant="ghost"
+                            >
+                                <Briefcase size={12} className="text-primary-500" />
+                                <span>
+                                    {employments.find(e => e.employmentId === selectedEmploymentId)?.employerName ?? t("common.employer")}
+                                </span>
+                                <ChevronDown size={12} className="opacity-50" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                            align="start"
+                            className="w-64 p-2 rounded-2xl shadow-premium border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/95 backdrop-blur-xl"
+                            sideOffset={8}
+                        >
+                            {employments.map((emp) => (
+                                <Button
+                                    className={`w-full justify-start text-left px-3 py-2 rounded-xl text-xs font-bold transition-all h-auto mb-1 ${
+                                        selectedEmploymentId === emp.employmentId
+                                            ? "bg-primary-50 dark:bg-primary-950/30 text-primary-600 dark:text-primary-400"
+                                            : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                                    }`}
+                                    key={emp.employmentId}
+                                    onClick={() => onEmploymentChange(emp.employmentId)}
+                                    variant="ghost"
+                                >
+                                    <div className="flex flex-col">
+                                        <span>{emp.employerName}</span>
+                                        {emp.employeeIdNumber && (
+                                            <span className="text-[9px] text-slate-400 font-mono mt-0.5">{emp.employeeIdNumber}</span>
+                                        )}
+                                    </div>
+                                </Button>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+            )}
             <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1 border border-slate-200 dark:border-slate-700">
                 <Button
                     className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all h-auto ${viewMode === "daily"
@@ -206,6 +270,9 @@ export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
                         totalOtHours={data.totalOtHours}
                         totalStdHours={data.totalStdHours}
                         viewMode={data.viewMode}
+                        employments={props.employments}
+                        selectedEmploymentId={data.selectedEmploymentId}
+                        onEmploymentChange={data.setSelectedEmploymentId}
                     />
                 }
                 isOpen={isOpen}

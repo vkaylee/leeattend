@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import NavigableList from "@/components/common/navigable-list";
 import ReportFilters from "@/components/features/reports/report-filters";
-import { AttendanceSummary, AttendanceReportSort, Department } from "@/lib/api/types";
+import { AttendanceSummary, AttendanceReportSort, Department, Employer } from "@/lib/api/types";
 
 import { FilterMode } from "../hooks/use-reports-page";
 import { ReportsStats } from "./reports-stats";
@@ -12,12 +12,15 @@ import { getReportColumns } from "./reports-table/columns";
 interface ReportsTableProps {
   dateRange: { end: string; start: string };
   departments: Department[] | undefined;
+  employers: Employer[] | undefined;
+  selectedEmployerId: string | null;
+  handleEmployerChange: (id: string | null) => void;
   fetchNextPage: () => void;
   filteredData: AttendanceSummary[];
   filterMode: FilterMode;
   handleDateRangeChange: (range: { end: string; start: string }) => void;
   handleDepartmentChange: (id: string | null) => void;
-  handleEmployeeClick: (employeeId: string, employeeName: string) => void;
+  handleEmployeeClick: (employeeId: string, employeeName: string, employmentId?: string) => void;
   handleFilterModeChange: (mode: FilterMode) => void;
   handleSort: (field: "leave_days" | "name" | "ot_hours" | "total_hours" | "work_hours") => void;
   handleSpecificMonthChange: (m: number, y: number) => void;
@@ -41,6 +44,9 @@ export function ReportsTable(props: ReportsTableProps) {
   const {
     dateRange,
     departments,
+    employers,
+    selectedEmployerId,
+    handleEmployerChange,
     fetchNextPage,
     filteredData,
     filterMode,
@@ -76,6 +82,9 @@ export function ReportsTable(props: ReportsTableProps) {
       <ReportFilters
         dateRange={dateRange}
         departments={departments}
+        employers={employers}
+        selectedEmployerId={selectedEmployerId}
+        onEmployerChange={handleEmployerChange}
         filterMode={filterMode}
         onDateRangeChange={handleDateRangeChange}
         onDepartmentChange={handleDepartmentChange}
@@ -105,7 +114,7 @@ export function ReportsTable(props: ReportsTableProps) {
         maxHeightClass=""
         onKeyDownRef={keyDownRef}
         onSearchChange={setSearchQuery}
-        onSelect={(row) => { handleEmployeeClick(row.employee_id ?? "", row.employee_name); }}
+        onSelect={(row) => { handleEmployeeClick(row.employee_id ?? "", row.employee_name, row.employment_id); }}
         resetDeps={[searchQuery, filterMode, specificMonth, dateRange]}
         rowIdPrefix="summary-row"
         searchInputRef={searchInputRef}

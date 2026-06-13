@@ -138,6 +138,10 @@ pub struct AttendanceSummary {
     pub computed_std_hours: f64,
     #[serde(default)]
     pub computed_ot_hours: f64,
+    #[serde(default)]
+    pub employer_id: Option<Uuid>,
+    #[serde(default)]
+    pub employer_name: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
@@ -187,6 +191,8 @@ pub struct DailyAttendanceReport {
     pub generation_metadata: Option<serde_json::Value>,
     #[serde(default)]
     pub is_leave_paid: Option<bool>,
+    #[serde(default)]
+    pub employer_name: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -408,6 +414,8 @@ mod tests {
         assert!((summary.unit_coefficient_hours - 0.0).abs() < f64::EPSILON);
         assert!((summary.computed_std_hours - 0.0).abs() < f64::EPSILON);
         assert!((summary.computed_ot_hours - 0.0).abs() < f64::EPSILON);
+        assert_eq!(summary.employer_id, None);
+        assert_eq!(summary.employer_name, None);
     }
 
     #[test]
@@ -424,6 +432,8 @@ mod tests {
             unit_coefficient_hours: 8.0,
             computed_std_hours: 1280.0,
             computed_ot_hours: 160.0,
+            employer_id: None,
+            employer_name: None,
         };
 
         let serialized = serde_json::to_string(&summary).unwrap();

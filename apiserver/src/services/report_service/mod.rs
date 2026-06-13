@@ -26,6 +26,8 @@ pub struct AttendanceReportArgs {
     pub department_id: Option<Uuid>,
     pub sort: Option<AttendanceReportSort>,
     pub employee_status: Option<String>,
+    pub employer_id: Option<Uuid>,
+    pub employment_id: Option<Uuid>,
 }
 
 pub struct CalculateDayUnitsArgs<'a, 'b> {
@@ -52,6 +54,7 @@ pub struct ReportService {
         Arc<dyn crate::repositories::leave_request_repository::LeaveRequestRepository>,
     pub(crate) workspace_repo: Arc<dyn WorkspaceRepository>,
     pub(crate) holiday_repo: Arc<dyn HolidayRepository>,
+    pub(crate) employer_repo: Arc<dyn crate::repositories::EmployerRepository>,
 }
 
 pub struct ReportServiceArgs {
@@ -64,6 +67,7 @@ pub struct ReportServiceArgs {
     pub leave_repo: Arc<dyn crate::repositories::leave_request_repository::LeaveRequestRepository>,
     pub workspace_repo: Arc<dyn WorkspaceRepository>,
     pub holiday_repo: Arc<dyn HolidayRepository>,
+    pub employer_repo: Arc<dyn crate::repositories::EmployerRepository>,
 }
 
 impl ReportService {
@@ -78,6 +82,7 @@ impl ReportService {
             leave_repo: args.leave_repo,
             workspace_repo: args.workspace_repo,
             holiday_repo: args.holiday_repo,
+            employer_repo: args.employer_repo,
         }
     }
 }

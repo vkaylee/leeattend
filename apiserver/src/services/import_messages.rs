@@ -278,14 +278,15 @@ pub struct ExcelReportMessages {
     pub period_label: &'static str,
 
     // Summary headers
-    pub summary_headers: [&'static str; 4],
+    pub summary_headers: [&'static str; 5],
 
     // Timesheet matrix headers
     pub timesheet_emp_id_header: &'static str,
     pub timesheet_emp_header: &'static str,
+    pub timesheet_employer_header: &'static str,
 
     // Raw details headers
-    pub detail_headers: [&'static str; 12],
+    pub detail_headers: [&'static str; 13],
 
     // Guide page translations
     pub guide_title: &'static str,
@@ -333,13 +334,15 @@ impl ExcelReportMessages {
             timesheet_title_tpl: "Timesheet View - {workspace}",
             raw_details_title_tpl: "Raw Details - {workspace}",
             period_label: "Period: {start} to {end}",
-            summary_headers: ["Employee Name", "Std Hours", "OT Hours", "Total Leave Days"],
+            summary_headers: ["Employee Name", "Employer", "Std Hours", "OT Hours", "Total Leave Days"],
             timesheet_emp_id_header: "Employee ID",
             timesheet_emp_header: "Employee",
+            timesheet_employer_header: "Employer",
             detail_headers: [
                 "Date",
                 "Employee ID",
                 "Employee Name",
+                "Employer",
                 "Scheduled Start",
                 "Scheduled End",
                 "Actual In",
@@ -390,16 +393,19 @@ impl ExcelReportMessages {
             period_label: "Kỳ: {start} đến {end}",
             summary_headers: [
                 "Tên nhân viên",
+                "Công ty",
                 "Giờ công chuẩn",
                 "Giờ tăng ca",
                 "Tổng ngày nghỉ",
             ],
             timesheet_emp_id_header: "Mã NV",
             timesheet_emp_header: "Nhân viên",
+            timesheet_employer_header: "Công ty",
             detail_headers: [
                 "Ngày",
                 "Mã NV",
                 "Tên nhân viên",
+                "Công ty",
                 "Giờ bắt đầu",
                 "Giờ kết thúc",
                 "Giờ vào thực tế",
@@ -448,13 +454,15 @@ impl ExcelReportMessages {
             timesheet_title_tpl: "考勤表 - {workspace}",
             raw_details_title_tpl: "考勤明细 - {workspace}",
             period_label: "期间: {start} 至 {end}",
-            summary_headers: ["员工姓名", "标准工时", "加班工时", "请假天数"],
+            summary_headers: ["员工姓名", "雇主", "标准工时", "加班工时", "请假天数"],
             timesheet_emp_id_header: "员工编号",
             timesheet_emp_header: "员工",
+            timesheet_employer_header: "雇主",
             detail_headers: [
                 "日期",
                 "员工编号",
                 "员工姓名",
+                "雇主",
                 "排班开始",
                 "排班结束",
                 "实际签到",
@@ -598,7 +606,7 @@ mod tests {
         assert_eq!(msgs.raw_details_sheet_name, "Raw Details");
         assert_eq!(msgs.summary_headers[0], "Employee Name");
         assert_eq!(msgs.detail_headers[0], "Date");
-        assert_eq!(msgs.detail_headers.len(), 12);
+        assert_eq!(msgs.detail_headers.len(), 13);
     }
 
     #[test]

@@ -45,6 +45,7 @@ pub struct WorkerDeps {
     pub outbox_repo: Arc<dyn OutboxJobRepository>,
     pub workspace_config_repo: Arc<dyn crate::repositories::workspace_config_repository::WorkspaceConfigRepository>,
     pub custom_field_repo: Arc<dyn crate::repositories::CustomFieldRepository>,
+    pub employer_repo: Arc<dyn crate::repositories::EmployerRepository>,
 }
 
 impl WorkerDeps {
@@ -139,6 +140,9 @@ impl WorkerDeps {
                 crate::repositories::diesel_workspace_config_repository::DieselWorkspaceConfigRepository::new(diesel.clone()),
             ),
             custom_field_repo: Arc::new(crate::repositories::DieselCustomFieldRepository::new(
+                diesel.clone(),
+            )),
+            employer_repo: Arc::new(crate::repositories::DieselEmployerRepository::new(
                 diesel.clone(),
             )),
         }

@@ -20,11 +20,13 @@ export default function ReportsPage() {
     isExportDialogOpen,
     setIsExportDialogOpen,
     selectedDepartmentId,
+    selectedEmployerId,
     selectedEmployee,
     sortBy,
     employeeStatus,
     setEmployeeStatus,
     departments,
+    employers,
     quickStats,
     filteredData,
     isLoading,
@@ -37,10 +39,24 @@ export default function ReportsPage() {
     handleSpecificMonthChange,
     handleDateRangeChange,
     handleDepartmentChange,
+    handleEmployerChange,
     handleSort,
     handleEmployeeClick,
     handleDrawerClose,
   } = useReportsPage();
+
+  const clickedEmployeeSummaryRows = React.useMemo(() => {
+    if (!selectedEmployee?.id) return [];
+    return filteredData.filter(row => row.employee_id === selectedEmployee.id);
+  }, [filteredData, selectedEmployee?.id]);
+
+  const clickedEmployments = React.useMemo(() => {
+    return clickedEmployeeSummaryRows.map(row => ({
+      employmentId: row.employment_id,
+      employerName: row.employer_name ?? "Default Employer",
+      employeeIdNumber: row.employee_id_number,
+    }));
+  }, [clickedEmployeeSummaryRows]);
 
   if (!wsId) {
     return (
@@ -60,6 +76,9 @@ export default function ReportsPage() {
       <ReportsTable
         dateRange={dateRange}
         departments={departments}
+        employers={employers}
+        selectedEmployerId={selectedEmployerId}
+        handleEmployerChange={handleEmployerChange}
         fetchNextPage={fetchNextPage}
         filteredData={filteredData}
         filterMode={filterMode}
@@ -88,6 +107,8 @@ export default function ReportsPage() {
         dateRange={dateRange}
         employeeId={selectedEmployee?.id ?? ""}
         employeeName={selectedEmployee?.name ?? ""}
+        employmentId={selectedEmployee?.employmentId ?? ""}
+        employments={clickedEmployments}
         isOpen={!!selectedEmployee}
         key={selectedEmployee?.id ?? "closed"}
         onClose={handleDrawerClose}
