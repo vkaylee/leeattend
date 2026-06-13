@@ -15,6 +15,7 @@ interface ClaimItem {
   employee_id: string;
   employee_id_number: string;
   employee_name: string;
+  employment_id: string;
   reason: string;
 }
 
@@ -54,10 +55,11 @@ export function useConfirmClaimsForm({
     if (open) {
       setClaims(
         selectedRows.map((r) => {
-          const key = `${r.employee_id ?? ""}-${r.date}`;
+          const key = `${r.employment_id}-${r.date}`;
           const computed_minutes = Math.round((r.computed_ot_hours) * 60);
           return {
-            employee_id: r.employee_id ?? "",
+            employee_id: r.employee_id,
+            employment_id: r.employment_id,
             date: r.date,
             employee_name: r.employee_name,
             employee_id_number: r.employee_id_number ?? "",

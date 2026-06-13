@@ -135,13 +135,13 @@ export const overtimeRequestsApi = {
   },
 
   employeeConsent: async (workspaceId: string, id: string, payload: {
-    employee_id: string;
+    employment_id: string;
     status: ConsentStatus;
     decline_reason?: string;
   }): Promise<void> => {
     await client.POST("/v1/workspaces/{ws_id}/overtime/requests/{id}/consent/{emp_id}", {
       params: {
-        path: { ws_id: workspaceId, id, emp_id: payload.employee_id },
+        path: { ws_id: workspaceId, id, emp_id: payload.employment_id },
       },
       body: {
               status: payload.status,
@@ -150,10 +150,10 @@ export const overtimeRequestsApi = {
     });
   },
 
-  getMyAssignments: async (employeeId: string): Promise<MyOvertimeAssignment[]> => {
+  getMyAssignments: async (employmentId: string): Promise<MyOvertimeAssignment[]> => {
     const { data } = await (client.GET as any)("/v1/workspaces/{ws_id}/payroll/overtime/assignments", {
       params: {
-        path: { employeeId },
+        path: { employmentId },
       },
     });
     if (!data) throw new Error("No response data");

@@ -9,7 +9,7 @@ export const overtimeRequestKeys = {
   list: (workspaceId: string, params?: Record<string, unknown>) => [...overtimeRequestKeys.lists(workspaceId), { params }] as const,
   details: () => [...overtimeRequestKeys.all, 'detail'] as const,
   detail: (workspaceId: string, id: string) => [...overtimeRequestKeys.details(), workspaceId, id] as const,
-  assignments: (employeeId: string) => [...overtimeRequestKeys.all, 'assignments', employeeId] as const,
+  assignments: (employmentId: string) => [...overtimeRequestKeys.all, 'assignments', employmentId] as const,
   quotas: () => ['overtime-quotas'] as const,
   quotaSummaries: (workspaceId: string, month: string) => [...overtimeRequestKeys.quotas(), workspaceId, 'summary', month] as const,
   quotaDetail: (workspaceId: string, employeeId: string, date: string) => [...overtimeRequestKeys.quotas(), workspaceId, employeeId, date] as const,
@@ -104,10 +104,10 @@ export const useEmployeeConsent = () => {
   const { workspace } = useWorkspace();
 
   return useMutation({
-    mutationFn: ({ id, employee_id, status, decline_reason }: { id: string; employee_id: string; status: ConsentStatus; decline_reason?: string }) => {
+    mutationFn: ({ id, employment_id, status, decline_reason }: { id: string; employment_id: string; status: ConsentStatus; decline_reason?: string }) => {
       const workspaceId = workspace?.id;
       if (!workspaceId) throw new Error('No workspace ID');
-      return overtimeRequestsApi.employeeConsent(workspaceId, id, { employee_id, status, decline_reason });
+      return overtimeRequestsApi.employeeConsent(workspaceId, id, { employment_id, status, decline_reason });
     },
     onSuccess: (_, variables) => {
       const workspaceId = workspace?.id;
@@ -115,19 +115,19 @@ export const useEmployeeConsent = () => {
       if (workspaceId) {
         void queryClient.invalidateQueries({ queryKey: overtimeRequestKeys.detail(workspaceId, variables.id) });
       }
-      void queryClient.invalidateQueries({ queryKey: overtimeRequestKeys.assignments(variables.employee_id) });
+      void queryClient.invalidateQueries({ queryKey: overtimeRequestKeys.assignments(variables.employment_id) });
     },
   });
 };
 
-export const useMyOtAssignments = (employeeId?: string) => {
+export const useMyOtAssignments = (employmentId?: string) => {
   return useQuery({
-    queryKey: overtimeRequestKeys.assignments(employeeId ?? ''),
+    queryKey: overtimeRequestKeys.assignments(employmentId ?? ''),
     queryFn: () => {
-      if (!employeeId) throw new Error('No employee ID');
-      return overtimeRequestsApi.getMyAssignments(employeeId);
+      if (!employmentId) throw new Error('No employment ID');
+      return overtimeRequestsApi.getMyAssignments(employmentId);
     },
-    enabled: !!employeeId,
+    enabled: !!employmentId,
   });
 };
 

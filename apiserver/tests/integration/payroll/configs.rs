@@ -144,7 +144,10 @@ async fn test_set_and_get_employee_payroll_config() {
         configs[0]["std_working_days"] == json!("20")
             || configs[0]["std_working_days"] == json!("20.00")
     );
-    assert_eq!(configs[0]["employment_id"], json!(employment_id.to_string()));
+    assert_eq!(
+        configs[0]["employment_id"],
+        json!(employment_id.to_string())
+    );
 }
 
 #[tokio::test]

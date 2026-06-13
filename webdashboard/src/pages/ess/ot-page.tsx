@@ -21,7 +21,7 @@ export default function EssOtPage() {
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
-  const { data: assignments, isLoading: loadingAssignments } = useMyOtAssignments(employeeId);
+  const { data: assignments, isLoading: loadingAssignments } = useMyOtAssignments(employee?.active_employment_id ?? undefined);
   const { data: quota, isLoading: loadingQuota } = useEmployeeQuota(employeeId ?? "", new Date().toISOString().split("T")[0]);
 
   if (!wsId || !employeeId) return null;

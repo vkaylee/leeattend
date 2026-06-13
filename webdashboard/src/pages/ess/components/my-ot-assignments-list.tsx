@@ -189,9 +189,9 @@ export function MyOtAssignmentsList({
   const { mutate: consent, isPending: isConsenting } = useEmployeeConsent();
   const { mutate: cancel, isPending: isCanceling } = useCancelOvertimeRequest();
 
-  const handleConsent = (id: string, employeeId: string, status: "accepted" | "declined") => {
+  const handleConsent = (id: string, employmentId: string, status: "accepted" | "declined") => {
     consent(
-      { id, employee_id: employeeId, status },
+      { id, employment_id: employmentId, status },
       {
         onSuccess: () => {
           toast.success(status === "accepted" ? "Overtime accepted" : "Overtime declined");

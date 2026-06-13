@@ -28,6 +28,7 @@ interface ClaimItem {
   employee_id: string;
   employee_id_number: string;
   employee_name: string;
+  employment_id: string;
   reason: string;
 }
 
@@ -138,7 +139,7 @@ function ClaimRow({
   t,
 }: ClaimRowProps) {
   return (
-    <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors" key={`${claim.employee_id}-${claim.date}`}>
+    <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors" key={`${claim.employment_id}-${claim.date}`}>
       <td className="p-3 pl-4">
         <div className="flex flex-col">
           <span className="font-bold text-xs text-slate-800 dark:text-slate-200">
@@ -239,7 +240,7 @@ function ClaimsFormView({
                   handleMinutesChange={handleMinutesChange}
                   handleReasonChange={handleReasonChange}
                   idx={idx}
-                  key={`${claim.employee_id}-${claim.date}`}
+                  key={`${claim.employment_id}-${claim.date}`}
                   t={t}
                 />
               ))}
@@ -362,7 +363,7 @@ function DiscrepancyWarningsView({
           const diff = c.claimed_minutes - c.computed_minutes;
           const diffSign = diff > 0 ? `+${diff}` : `${diff}`;
           return (
-            <div className="p-4 flex items-center justify-between text-xs hover:bg-slate-50/50 dark:hover:bg-slate-800/10 transition-colors" key={`${c.employee_id}-${c.date}`}>
+            <div className="p-4 flex items-center justify-between text-xs hover:bg-slate-50/50 dark:hover:bg-slate-800/10 transition-colors" key={`${c.employment_id}-${c.date}`}>
               <div>
                 <Typography className="font-bold text-slate-800 dark:text-slate-200" variant="p">
                   {c.employee_name}
