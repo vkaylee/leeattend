@@ -3,6 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import React, { memo } from "react";
 
 import { Typography } from "@/components/ui/typography";
+import { useAnimatedCounter } from "@/hooks/use-animated-counter";
 import { cn } from "@/lib/utils";
 
 
@@ -36,6 +37,11 @@ const StatCard = memo(function StatCard({
   size = "sm",
   className,
 }: StatCardProps) {
+  const animatedValue = useAnimatedCounter(
+    typeof value === "number" ? value : 0,
+    { duration: 800, enabled: !isLoading && typeof value === "number" },
+  );
+  const displayValue = isLoading ? "..." : (typeof value === "number" ? animatedValue : value);
   if (size === "lg") {
     return (
       <div
@@ -64,7 +70,7 @@ const StatCard = memo(function StatCard({
             )}
             variant="h2"
           >
-            {isLoading ? "..." : value}
+            {displayValue}
           </Typography>
         </div>
       </div>
@@ -97,7 +103,7 @@ const StatCard = memo(function StatCard({
         )}
         variant="h2"
       >
-        {isLoading ? "..." : value}
+        {displayValue}
       </Typography>
       <Icon className="absolute -right-4 -bottom-4 w-20 sm:w-24 h-20 sm:h-24 text-slate-50 dark:text-slate-800 opacity-10 -rotate-12 group-hover:rotate-0 transition-transform duration-1000" />
     </div>

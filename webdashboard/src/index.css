@@ -213,3 +213,27 @@
 .dark .roster-scrollbar::-webkit-scrollbar-thumb {
   @apply bg-slate-700 hover:bg-primary-500 active:bg-primary-600;
 }
+
+/* Toast progress bar countdown */
+@keyframes toast-progress {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+/* Pulse highlight for new/updated data rows */
+@keyframes pulse-highlight {
+  0% { background-color: rgb(16 185 129 / 0.15); }
+  100% { background-color: transparent; }
+}
+
+.animate-pulse-highlight {
+  animation: pulse-highlight 2s ease-out forwards;
+}
+
+/* Accessibility: disable custom animations for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-highlight,
+  .animate-enter {
+    animation: none !important;
+  }
+}

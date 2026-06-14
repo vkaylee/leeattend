@@ -2,6 +2,8 @@ import { CheckCircle2, XCircle, Info, AlertTriangle, X } from 'lucide-react';
 import React, { createContext, useContext, useState, useCallback, ReactNode, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
+const TOAST_DURATION_MS = 5000;
+
 type ToastType = 'success' | 'error' | 'info' | 'warning';
 
 interface Toast {
@@ -21,36 +23,60 @@ export interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
+/** Tracks remaining time for each toast so hover-pause can resume correctly */
+interface ToastTimer {
+  remaining: number;
+  startedAt: number;
+  timeout: ReturnType<typeof setTimeout>;
+}
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const timeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const timers = useRef<Map<string, ToastTimer>>(new Map());
 
   const remove = useCallback((id: string) => {
-    setToasts((previous) => previous.filter((t) => t.id !== id));
-    const timeout = timeouts.current.get(id);
-    if (timeout) {
-      clearTimeout(timeout);
-      timeouts.current.delete(id);
+    setToasts((previous) => previous.filter((toast) => toast.id !== id));
+    const timer = timers.current.get(id);
+    if (timer) {
+      clearTimeout(timer.timeout);
+      timers.current.delete(id);
     }
   }, []);
+
+  const pauseTimer = useCallback((id: string) => {
+    const timer = timers.current.get(id);
+    if (!timer) return;
+    clearTimeout(timer.timeout);
+    const elapsed = Date.now() - timer.startedAt;
+    timer.remaining = Math.max(0, timer.remaining - elapsed);
+  }, []);
+
+  const resumeTimer = useCallback((id: string) => {
+    const timer = timers.current.get(id);
+    if (!timer) return;
+    timer.startedAt = Date.now();
+    timer.timeout = setTimeout(() => { remove(id); }, timer.remaining);
+  }, [remove]);
 
   const show = useCallback((message: string, type: ToastType = 'info', title?: string) => {
     const id = Math.random().toString(36).substring(2, 9);
     setToasts((previous) => [...previous, { id, type, message, title }]);
     
-    // Tự động đóng sau 5 giây
-    const timeoutId = setTimeout(() => { remove(id); }, 5000);
-    timeouts.current.set(id, timeoutId);
+    const timeout = setTimeout(() => { remove(id); }, TOAST_DURATION_MS);
+    timers.current.set(id, {
+      remaining: TOAST_DURATION_MS,
+      startedAt: Date.now(),
+      timeout,
+    });
   }, [remove]);
 
   // Cleanup on unmount
   useEffect(() => {
-    const currentTimeouts = timeouts.current;
+    const currentTimers = timers.current;
     return () => {
-      currentTimeouts.forEach((timeout) => { clearTimeout(timeout); });
-      currentTimeouts.clear();
+      currentTimers.forEach((timer) => { clearTimeout(timer.timeout); });
+      currentTimers.clear();
     };
   }, []);
 
@@ -64,14 +90,34 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div className="fixed bottom-8 right-8 z-[9999] flex flex-col gap-3 pointer-events-none max-w-sm w-full">
         {toasts.map((toast) => (
-          <ToastItem key={toast.id} onClose={() => { remove(toast.id); }} toast={toast} />
+          <ToastItem
+            key={toast.id}
+            onClose={() => { remove(toast.id); }}
+            onPause={() => { pauseTimer(toast.id); }}
+            onResume={() => { resumeTimer(toast.id); }}
+            toast={toast}
+          />
         ))}
       </div>
     </ToastContext.Provider>
   );
 }
 
-function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
+const progressColors: Record<ToastType, string> = {
+  success: 'bg-emerald-500',
+  error: 'bg-rose-500',
+  info: 'bg-blue-500',
+  warning: 'bg-amber-500',
+};
+
+function ToastItem({ toast, onClose, onPause, onResume }: {
+  toast: Toast;
+  onClose: () => void;
+  onPause: () => void;
+  onResume: () => void;
+}) {
+  const [isPaused, setIsPaused] = useState(false);
+
   const icons = {
     success: <CheckCircle2 className="w-5 h-5 text-emerald-500" />,
     error: <XCircle className="w-5 h-5 text-rose-500" />,
@@ -86,9 +132,21 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
     warning: 'bg-amber-50 border-amber-100 dark:bg-amber-950 dark:border-amber-900',
   };
 
+  const handleMouseEnter = () => {
+    setIsPaused(true);
+    onPause();
+  };
+
+  const handleMouseLeave = () => {
+    setIsPaused(false);
+    onResume();
+  };
+
   return (
     <div 
-      className={`pointer-events-auto flex items-start gap-4 p-4 rounded-[24px] border shadow-xl shadow-slate-200/50 dark:shadow-black/30 animate-in slide-in-from-right-8 duration-300 ${bgColors[toast.type]}`}
+      className={`pointer-events-auto flex items-start gap-4 p-4 rounded-[24px] border shadow-xl shadow-slate-200/50 dark:shadow-black/30 animate-in slide-in-from-right-8 duration-300 relative overflow-hidden ${bgColors[toast.type]}`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       role="status"
     >
       <div className="shrink-0 mt-0.5">{icons[toast.type]}</div>
@@ -99,6 +157,17 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
       <button className="shrink-0 p-1 hover:bg-white/50 dark:hover:bg-slate-700/50 rounded-lg transition-colors" onClick={onClose}>
         <X className="w-4 h-4 text-slate-500 dark:text-slate-400" />
       </button>
+
+      {/* Progress bar — counts down the auto-dismiss timer */}
+      <div className="absolute bottom-0 left-0 right-0 h-[3px] overflow-hidden">
+        <div
+          className={`h-full rounded-b-[24px] opacity-60 ${progressColors[toast.type]}`}
+          style={{
+            animation: `toast-progress ${TOAST_DURATION_MS}ms linear forwards`,
+            animationPlayState: isPaused ? 'paused' : 'running',
+          }}
+        />
+      </div>
     </div>
   );
 }

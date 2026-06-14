@@ -4,6 +4,7 @@ import { type TFunction } from "i18next";
 
 import CollapsibleSection from "@/components/features/dashboard/collapsible-section";
 import StatCard from "@/components/ui/stat-card";
+import StaggerChildren from "@/components/ui/stagger-children";
 import { type WorkspaceStats } from "@/hooks/use-dashboard";
 
 interface HrKpiCardsProps {
@@ -31,7 +32,7 @@ export function HrKpiCards({ hrStats, isLoading, isCollapsed, onToggle, t }: HrK
       onToggle={onToggle}
       title={t("dashboard.sections.summary")}
     >
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">
+      <StaggerChildren delay={80} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">
         {stats.map((stat, index) => (
           <StatCard
             colorClasses={stat.color}
@@ -43,7 +44,7 @@ export function HrKpiCards({ hrStats, isLoading, isCollapsed, onToggle, t }: HrK
             value={stat.value ?? 0}
           />
         ))}
-      </div>
+      </StaggerChildren>
     </CollapsibleSection>
   );
 }
