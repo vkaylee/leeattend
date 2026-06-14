@@ -402,17 +402,18 @@ mod tests {
 
         let redis_url =
             std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379/0".to_string());
-        let redis_pool = match tokio::time::timeout(
+        let redis_pool = if let Ok(Ok(p)) = tokio::time::timeout(
             std::time::Duration::from_secs(2),
             RedisPool::new(&redis_url),
         )
         .await
         {
-            Ok(Ok(p)) => Some(p),
-            _ => {
-                println!("Redis not available, skipping rate limiter matched path integration assertions");
-                return;
-            }
+            Some(p)
+        } else {
+            println!(
+                "Redis not available, skipping rate limiter matched path integration assertions"
+            );
+            return;
         };
 
         let config = RateLimitConfig {

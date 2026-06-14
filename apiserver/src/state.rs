@@ -36,6 +36,7 @@ use crate::services::pairing_service::PairingService;
 use crate::services::payroll_service::PayrollService;
 use crate::services::shift_service::ShiftService;
 use crate::services::shift_swap_service::ShiftSwapService;
+use crate::services::signature_service::SignatureService;
 use crate::services::workspace_service::WorkspaceService;
 use crate::services::{
     AgentService, AttendanceLogService, AttendanceSummaryService, EmployeeService,
@@ -489,9 +490,11 @@ pub struct CoreState {
     custom_field_repo: Arc<dyn crate::repositories::CustomFieldRepository>,
     lifecycle_service: Arc<crate::services::LifecycleService>,
     lifecycle_repo: Arc<dyn crate::repositories::LifecycleChecklistRepository>,
+    signature_service: Arc<SignatureService>,
 }
 
 impl CoreState {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         auth_service: Arc<AuthService>,
         workspace_service: Arc<WorkspaceService>,
@@ -516,6 +519,7 @@ impl CoreState {
         custom_field_repo: Arc<dyn crate::repositories::CustomFieldRepository>,
         lifecycle_service: Arc<crate::services::LifecycleService>,
         lifecycle_repo: Arc<dyn crate::repositories::LifecycleChecklistRepository>,
+        signature_service: Arc<SignatureService>,
     ) -> Self {
         Self {
             auth_service,
@@ -537,6 +541,7 @@ impl CoreState {
             custom_field_repo,
             lifecycle_service,
             lifecycle_repo,
+            signature_service,
         }
     }
 
@@ -621,6 +626,10 @@ impl CoreState {
 
     pub fn lifecycle_repo(&self) -> &Arc<dyn crate::repositories::LifecycleChecklistRepository> {
         &self.lifecycle_repo
+    }
+
+    pub fn signature_service(&self) -> &Arc<SignatureService> {
+        &self.signature_service
     }
 }
 
@@ -746,6 +755,8 @@ impl InfraState {
     }
 }
 
+use crate::services::storage::{FileService, StorageResolver};
+
 // ── Composed AppState ──────────────────────────────────────────────
 
 pub struct AppState {
@@ -758,6 +769,9 @@ pub struct AppState {
     core: CoreState,
     agents: AgentState,
     infra: InfraState,
+    storage: Arc<StorageResolver>,
+    file_service: Arc<FileService>,
+    scanner: Arc<dyn crate::services::storage::VirusScanner>,
 }
 
 impl AppState {
@@ -771,6 +785,9 @@ impl AppState {
         core: CoreState,
         agents: AgentState,
         infra: InfraState,
+        storage: Arc<StorageResolver>,
+        file_service: Arc<FileService>,
+        scanner: Arc<dyn crate::services::storage::VirusScanner>,
     ) -> Self {
         Self {
             employees,
@@ -782,6 +799,9 @@ impl AppState {
             core,
             agents,
             infra,
+            storage,
+            file_service,
+            scanner,
         }
     }
 
@@ -819,5 +839,17 @@ impl AppState {
 
     pub fn infra(&self) -> &InfraState {
         &self.infra
+    }
+
+    pub fn storage(&self) -> &Arc<StorageResolver> {
+        &self.storage
+    }
+
+    pub fn file_service(&self) -> &Arc<FileService> {
+        &self.file_service
+    }
+
+    pub fn scanner(&self) -> &Arc<dyn crate::services::storage::VirusScanner> {
+        &self.scanner
     }
 }

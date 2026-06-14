@@ -355,6 +355,7 @@ impl HolidayRepository for DieselHolidayRepository {
                                 approved_by_user_id: r.approved_by_user_id(),
                                 created_at: Some(r.created_at()),
                                 updated_at: Some(r.updated_at()),
+                                attachment_file_ids: None,
                             })
                             .collect();
 

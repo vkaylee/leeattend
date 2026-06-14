@@ -20,6 +20,8 @@ pub mod report_export;
 pub mod report_websocket;
 pub mod salary_bases;
 pub mod shifts;
+pub mod signatures;
+pub mod storage_config;
 pub mod system_admin;
 pub mod system_auth;
 pub mod system_db_clusters;
@@ -57,3 +59,14 @@ pub mod shift_swaps;
 pub use employments::*;
 pub mod lifecycle_checklists;
 pub use lifecycle_checklists::*;
+pub mod files;
+pub use files::*;
+
+pub mod document_folders;
+pub use document_folders::*;
+
+pub mod document_acknowledgements;
+pub use document_acknowledgements::*;
+
+pub mod document_templates;
+pub use document_templates::*;

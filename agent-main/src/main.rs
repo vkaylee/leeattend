@@ -36,6 +36,23 @@
     clippy::disallowed_methods,
     clippy::disallowed_types
 )]
+// Allow unwrap and expect in test code
+#![cfg_attr(
+    test,
+    allow(
+        clippy::unwrap_used,
+        clippy::expect_used,
+        clippy::panic,
+        clippy::ref_option_ref,
+        clippy::unimplemented,
+        clippy::manual_strip,
+        clippy::if_same_then_else,
+        clippy::float_cmp,
+        clippy::module_inception,
+        clippy::used_underscore_binding,
+        clippy::default_trait_access
+    )
+)]
 
 mod cli;
 

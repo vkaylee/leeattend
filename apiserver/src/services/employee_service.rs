@@ -1661,6 +1661,7 @@ mod tests {
                 None,
                 None,
                 None,
+                None,
             )))
         }
         async fn update_password_hash(

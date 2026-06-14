@@ -985,6 +985,72 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/ess/documents/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_pending_documents_handler"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ess/documents/{id}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["acknowledge_document_handler"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ess/workspaces/{workspace_id}/signatures/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** [ESS] Lấy danh sách yêu cầu Ký đang chờ duyệt của Employee */
+        get: operations["get_pending_signatures"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ess/workspaces/{workspace_id}/signatures/{request_id}/sign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** [ESS] Gửi Chữ ký (Ký nhận) */
+        post: operations["sign_document"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/notifications": {
         parameters: {
             query?: never;
@@ -1091,6 +1157,55 @@ export interface paths {
         get: operations["get_config"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspace_id}/documents/{document_id}/signature-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** [API] Yêu cầu Ký tài liệu */
+        post: operations["create_signature_request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspace_id}/settings/storage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_storage_config"];
+        put: operations["upsert_storage_config"];
+        post?: never;
+        delete: operations["delete_storage_config"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspace_id}/settings/storage/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["test_storage_config"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1575,6 +1690,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/workspaces/{ws_id}/documents/distributions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["distribute_document_handler"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{ws_id}/documents/folders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_folders_handler"];
+        put?: never;
+        post: operations["create_folder_handler"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{ws_id}/documents/folders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["rename_folder_handler"];
+        post?: never;
+        delete: operations["delete_folder_handler"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{ws_id}/documents/templates/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["preview_template_handler"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{ws_id}/documents/templates/{id}/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["generate_document_from_template_handler"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/workspaces/{ws_id}/employees/upload": {
         parameters: {
             query?: never;
@@ -1788,6 +1983,118 @@ export interface paths {
         head?: never;
         /** PATCH /workspaces/:ws_id/feature-flags/:id */
         patch: operations["update_feature_flag"];
+        trace?: never;
+    };
+    "/v1/workspaces/{ws_id}/files/by-owner/{owner_type}/{owner_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_files_by_owner_handler"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{ws_id}/files/presigned": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["create_upload_url_handler"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{ws_id}/files/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["upload_file_handler"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{ws_id}/files/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_file_metadata_handler"];
+        put: operations["update_file_handler"];
+        post?: never;
+        delete: operations["delete_file_handler"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{ws_id}/files/{id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["download_file_handler"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{ws_id}/files/{id}/url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_file_url_handler"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{ws_id}/files/{id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_file_versions_handler"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/v1/workspaces/{ws_id}/leave/behalf-assignments": {
@@ -3887,6 +4194,15 @@ export interface components {
             message: string;
             status: string;
         };
+        AcknowledgementDto: {
+            /** Format: uuid */
+            document_id: string;
+            /** Format: uuid */
+            employee_id: string;
+            /** Format: uuid */
+            id: string;
+            status: string;
+        };
         AddMemberRequest: {
             email: string;
             /** Format: uuid */
@@ -4302,6 +4618,8 @@ export interface components {
             /** Format: date-time */
             created_at: string;
             /** Format: uuid */
+            employer_id?: string | null;
+            /** Format: uuid */
             id: string;
             /** Format: uuid */
             target_department_id?: string | null;
@@ -4450,6 +4768,8 @@ export interface components {
         CreateBehalfAssignmentRequest: {
             /** Format: uuid */
             assignee_user_id: string;
+            /** Format: uuid */
+            employer_id?: string | null;
             /** Format: uuid */
             target_department_id?: string | null;
             /** Format: uuid */
@@ -4601,6 +4921,11 @@ export interface components {
             enabled?: boolean;
             flag_key: string;
             metadata?: unknown;
+        };
+        CreateFolderRequest: {
+            name: string;
+            /** Format: uuid */
+            parent_folder_id?: string | null;
         };
         /** @description Request payload for creating a new holiday. */
         CreateHolidayRequest: {
@@ -4771,6 +5096,37 @@ export interface components {
             /** Format: uuid */
             target_id: string;
         };
+        CreateSignatureRequestPayload: {
+            /** Format: uuid */
+            document_id: string;
+            /** Format: uuid */
+            signer_id: string;
+        };
+        CreateStorageConfigRequest: {
+            access_key: string;
+            bucket_name: string;
+            endpoint_url: string;
+            /** Format: int64 */
+            max_file_size: number;
+            path_prefix?: string | null;
+            /** Format: int32 */
+            presigned_ttl_secs: number;
+            region: string;
+            secret_key: string;
+            use_path_style: boolean;
+        };
+        CreateUploadUrlRequest: {
+            category: components["schemas"]["FileCategory"];
+            /** Format: int64 */
+            expires_in_secs?: number | null;
+            file_name: string;
+            /** Format: int64 */
+            file_size: number;
+            mime_type: string;
+            /** Format: uuid */
+            owner_id: string;
+            owner_type: components["schemas"]["FileOwnerType"];
+        };
         CreateWorkLocationRequest: {
             address?: string | null;
             is_headquarters?: boolean | null;
@@ -4937,6 +5293,18 @@ export interface components {
             /** Format: date-time */
             last_sync?: string | null;
             status: string;
+        };
+        DistributeDocumentRequest: {
+            /** Format: uuid */
+            document_id: string;
+            target_employee_ids: string[];
+        };
+        DocumentFolderDto: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: uuid */
+            parent_folder_id?: string | null;
         };
         /** @enum {string} */
         EarlyArrivalStrategy: "allow" | "block" | "clamp";
@@ -5354,6 +5722,10 @@ export interface components {
             enabled: boolean;
             key: string;
         };
+        /** @enum {string} */
+        FileCategory: "EmployeeAvatar" | "WorkspaceLogo" | "AttendancePhoto" | "EmployeeDoc" | "Contract" | "LeaveAttachment" | "Payslip" | "ReportExport" | "OnboardingAttachment" | "ImportFile" | "Policy" | "TemplateOutput" | "UserAvatar" | "SystemAsset";
+        /** @enum {string} */
+        FileOwnerType: "Employee" | "Employment" | "LeaveRequest" | "Workspace" | "User" | "System" | "Payroll";
         FullPayslipResponse: components["schemas"]["Payslip"] & {
             incentives: components["schemas"]["IncentiveEvaluationResult"][];
             rule_evaluations: components["schemas"]["PayslipRuleEvaluation"][];
@@ -6347,6 +6719,9 @@ export interface components {
             /** Format: uuid */
             primary_location_id?: string | null;
         };
+        RenameFolderRequest: {
+            name: string;
+        };
         /**
          * @description Report format type.
          * @enum {string}
@@ -6426,6 +6801,8 @@ export interface components {
             component: components["schemas"]["EmployeeSalaryComponent"];
             definition: components["schemas"]["SalaryComponentDefinition"];
         };
+        /** @enum {string} */
+        ScanStatus: "Pending" | "Clean" | "Infected" | "Skipped";
         ScheduleTrace: {
             /** Format: int32 */
             priority: number;
@@ -6564,6 +6941,30 @@ export interface components {
         };
         /** @enum {string} */
         ShiftSwapStatus: "pending_target" | "pending_admin" | "approved" | "rejected" | "cancelled";
+        SignDocumentPayload: {
+            ip_address?: string | null;
+            signature_image_base64: string;
+            user_agent?: string | null;
+        };
+        SignatureRequest: {
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            document_id: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            signed_at?: string | null;
+            /** Format: uuid */
+            signer_id: string;
+            status: components["schemas"]["SignatureStatus"];
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        /** @enum {string} */
+        SignatureStatus: "pending" | "signed" | "declined" | "canceled";
         StagingLogResponse: {
             /** Format: date-time */
             created_at: string;
@@ -6586,6 +6987,17 @@ export interface components {
             page: number;
             /** Format: int64 */
             total: number;
+        };
+        StorageConfigResponse: {
+            access_key_masked: string;
+            bucket_name: string;
+            endpoint_url: string;
+            /** Format: uuid */
+            id: string;
+            is_active: boolean;
+            path_prefix?: string | null;
+            region: string;
+            use_path_style: boolean;
         };
         String: string;
         SubmitLeaveRequest: {
@@ -6664,6 +7076,17 @@ export interface components {
          * @enum {string}
          */
         TaskType: "attendance_report" | "payroll_report" | "merge_results" | "leave_accrual" | "log_ingestion" | "reprocess_attendance" | "claim_staged_logs" | "leave_import" | "nightly_housekeeping" | "employee_import" | "employee_import_chunk" | "leave_import_chunk" | "finalize_import" | "expiring_contracts_check" | "sync_employee_hire_date";
+        TemplatePreviewRequest: {
+            /** Format: uuid */
+            employee_id: string;
+            manual_variables?: {
+                [key: string]: string;
+            } | null;
+            template_content: string;
+        };
+        TemplatePreviewResponse: {
+            filled_content: string;
+        };
         TimeEntry: {
             /** Format: date-time */
             created_at: string;
@@ -7019,6 +7442,20 @@ export interface components {
             report_symbol?: string | null;
             start_time: string;
         };
+        UpdateStorageConfigRequest: {
+            access_key?: string | null;
+            bucket_name?: string | null;
+            endpoint_url?: string | null;
+            is_active?: boolean | null;
+            /** Format: int64 */
+            max_file_size?: number | null;
+            path_prefix?: string | null;
+            /** Format: int32 */
+            presigned_ttl_secs?: number | null;
+            region?: string | null;
+            secret_key?: string | null;
+            use_path_style?: boolean | null;
+        };
         UpdateTimeEntryRequest: {
             entry_type?: string | null;
             note?: string | null;
@@ -7084,6 +7521,8 @@ export interface components {
             work_unit_minutes: number;
         };
         UserResponse: {
+            /** Format: uuid */
+            avatar_file_id?: string | null;
             avatar_url?: string | null;
             bio?: string | null;
             /** Format: date-time */
@@ -7219,6 +7658,41 @@ export interface components {
             value_int?: number | null;
             value_json?: unknown;
             value_text?: string | null;
+            /** Format: uuid */
+            workspace_id: string;
+        };
+        WorkspaceFile: {
+            category: components["schemas"]["FileCategory"];
+            content_hash?: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            expires_at?: string | null;
+            file_name: string;
+            /** Format: int64 */
+            file_size: number;
+            /** Format: uuid */
+            folder_id?: string | null;
+            /** Format: uuid */
+            id: string;
+            is_active: boolean;
+            is_latest: boolean;
+            mime_type: string;
+            /** Format: uuid */
+            owner_id: string;
+            owner_type: components["schemas"]["FileOwnerType"];
+            /** Format: uuid */
+            parent_file_id?: string | null;
+            scan_status: components["schemas"]["ScanStatus"];
+            /** Format: date-time */
+            scanned_at?: string | null;
+            storage_key: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: uuid */
+            uploaded_by?: string | null;
+            /** Format: int32 */
+            version: number;
             /** Format: uuid */
             workspace_id: string;
         };
@@ -8986,6 +9460,94 @@ export interface operations {
             };
         };
     };
+    get_pending_documents_handler: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pending documents for the logged in user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcknowledgementDto"][];
+                };
+            };
+        };
+    };
+    acknowledge_document_handler: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Acknowledgement ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Document acknowledged */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_pending_signatures: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of pending signature requests */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignatureRequest"][];
+                };
+            };
+        };
+    };
+    sign_document: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignDocumentPayload"];
+            };
+        };
+        responses: {
+            /** @description Signature accepted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignatureRequest"];
+                };
+            };
+        };
+    };
     get_notifications: {
         parameters: {
             query?: {
@@ -9170,6 +9732,127 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ResolvedConfig"];
+                };
+            };
+        };
+    };
+    create_signature_request: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSignatureRequestPayload"];
+            };
+        };
+        responses: {
+            /** @description Signature request created */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignatureRequest"];
+                };
+            };
+        };
+    };
+    get_storage_config: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Returns storage config */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StorageConfigResponse"];
+                };
+            };
+        };
+    };
+    upsert_storage_config: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateStorageConfigRequest"];
+            };
+        };
+        responses: {
+            /** @description Config created or updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StorageConfigResponse"];
+                };
+            };
+        };
+    };
+    delete_storage_config: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Config deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    test_storage_config: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateStorageConfigRequest"];
+            };
+        };
+        responses: {
+            /** @description Test result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": boolean;
                 };
             };
         };
@@ -10178,6 +10861,187 @@ export interface operations {
             };
         };
     };
+    distribute_document_handler: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DistributeDocumentRequest"];
+            };
+        };
+        responses: {
+            /** @description Document distributed successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_folders_handler: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List folders */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentFolderDto"][];
+                };
+            };
+        };
+    };
+    create_folder_handler: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateFolderRequest"];
+            };
+        };
+        responses: {
+            /** @description Folder created */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentFolderDto"];
+                };
+            };
+        };
+    };
+    rename_folder_handler: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Folder ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RenameFolderRequest"];
+            };
+        };
+        responses: {
+            /** @description Folder renamed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentFolderDto"];
+                };
+            };
+        };
+    };
+    delete_folder_handler: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Folder ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Folder deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    preview_template_handler: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TemplatePreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Template preview generated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplatePreviewResponse"];
+                };
+            };
+        };
+    };
+    generate_document_from_template_handler: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Template File ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TemplatePreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Document generated from template */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     upload_employee_excel: {
         parameters: {
             query?: never;
@@ -10903,6 +11767,233 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    list_files_by_owner_handler: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Owner Type (e.g. employee, user) */
+                owner_type: string;
+                /** @description Owner ID */
+                owner_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Files retrieved successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceFile"][];
+                };
+            };
+        };
+    };
+    create_upload_url_handler: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateUploadUrlRequest"];
+            };
+        };
+        responses: {
+            /** @description Presigned URL generated successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    upload_file_handler: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": string;
+            };
+        };
+        responses: {
+            /** @description File uploaded successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceFile"];
+                };
+            };
+        };
+    };
+    get_file_metadata_handler: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description File ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description File metadata retrieved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceFile"];
+                };
+            };
+        };
+    };
+    update_file_handler: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description File ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": string;
+            };
+        };
+        responses: {
+            /** @description File version updated successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceFile"];
+                };
+            };
+        };
+    };
+    delete_file_handler: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description File ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description File soft deleted successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    download_file_handler: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description File ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description File downloaded successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_file_url_handler: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description File ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Presigned URL generated successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_file_versions_handler: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description File ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description File version history retrieved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceFile"][];
+                };
             };
         };
     };

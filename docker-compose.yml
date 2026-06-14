@@ -208,6 +208,14 @@ services:
       - RUST_LOG=${RUST_LOG:-info}
       - STORAGE_DIR=/app/storage
       - ENCRYPTION_KEYS_JSON=${ENCRYPTION_KEYS_JSON}
+      - S3_ENDPOINT_URL=http://minio:9000
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME:-leeattend-files}
+      - S3_ACCESS_KEY=${MINIO_ROOT_USER:-leeattend}
+      - S3_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - S3_REGION=${S3_REGION:-us-east-1}
+      - S3_USE_PATH_STYLE=${S3_USE_PATH_STYLE:-true}
+      - FILE_PROXY_THRESHOLD_BYTES=${FILE_PROXY_THRESHOLD_BYTES:-1048576}
+      - PRESIGNED_URL_TTL_SECS=${PRESIGNED_URL_TTL_SECS:-900}
     restart: always
     networks:
       - backend_net
@@ -221,6 +229,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      minio:
+        condition: service_healthy
       pgbouncer_tx:
         condition: service_healthy
       pgbouncer_sess:
@@ -233,6 +243,23 @@ services:
       <<: *healthcheck-base
       test: "wget -qO- http://localhost:3000/api/v1/health > /dev/null || exit 1"
 
+  minio:
+    image: quay.io/minio/minio:latest
+    restart: always
+    networks:
+      - backend_net
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-leeattend}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      <<: *healthcheck-base
+      test: ["CMD", "mc", "ready", "local"]
 
   webdashboard:
     image: localhost/leeattend_webdashboard
@@ -270,3 +297,4 @@ services:
 
 volumes:
   apiserver_storage:
+  minio_data:

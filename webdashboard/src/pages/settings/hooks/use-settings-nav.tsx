@@ -15,6 +15,7 @@ import {
   Workflow,
   Braces,
   ClipboardList,
+  Database,
 } from "lucide-react";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -153,6 +154,13 @@ const getSystemGroup = (t: TFunction): SettingItem[] => [
     label: t("common.logs"),
     path: ROUTES.SETTINGS.AUDIT_LOGS,
     permissions: ["workspace:settings:read", "infra:monitor"],
+  },
+  {
+    description: t("settings.categories.storage_desc", { defaultValue: "Manage storage providers and file configuration" }),
+    icon: <Database className="w-4 h-4" />,
+    label: t("settings.categories.storage", { defaultValue: "Storage" }),
+    path: ROUTES.SETTINGS.STORAGE,
+    permissions: ["workspace:settings:read"],
   },
 ];
 

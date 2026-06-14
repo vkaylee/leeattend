@@ -2,6 +2,7 @@ export * from "./config";
 export * from "./types";
 export * from "./helpers";
 export * from "./auth";
+export * from "./documents";
 export * from "./agents";
 export * from "./workspaces";
 export * from "./employees";

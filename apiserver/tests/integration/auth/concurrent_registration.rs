@@ -38,6 +38,7 @@ async fn test_concurrent_registration_platform_admin_assignment() {
                 None,
                 None,
                 None,
+                None,
             );
 
             // Call the atomic transaction method

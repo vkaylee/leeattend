@@ -263,6 +263,7 @@ pub struct EmployeeProfileEntity {
     pub bank_branch: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub avatar_file_id: Option<Uuid>,
 }
 
 impl From<EmployeeProfileEntity> for crate::models::EmployeeProfile {

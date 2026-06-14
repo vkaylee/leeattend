@@ -39,6 +39,7 @@ impl UserRepository for DieselUserRepository {
             avatar_url: user.avatar_url().map(String::from),
             bio: user.bio().map(String::from),
             preferred_language: user.preferred_language().map(String::from),
+            avatar_file_id: user.avatar_file_id(),
         };
 
         diesel::insert_into(users::table)
@@ -68,6 +69,7 @@ impl UserRepository for DieselUserRepository {
             avatar_url: user.avatar_url().map(String::from),
             bio: user.bio().map(String::from),
             preferred_language: user.preferred_language().map(String::from),
+            avatar_file_id: user.avatar_file_id(),
         };
 
         let is_first = conn

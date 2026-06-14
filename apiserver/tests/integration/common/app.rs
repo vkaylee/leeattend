@@ -578,6 +578,60 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         recruitment_repo,
     ));
 
+    let s3_config = apiserver::services::storage::S3Config {
+        endpoint_url: "http://localhost:9000".to_string(),
+        region: "us-east-1".to_string(),
+        bucket_name: "test-bucket".to_string(),
+        access_key: "minioadmin".to_string(),
+        secret_key: "minioadmin".to_string(),
+        use_path_style: true,
+    };
+    let central_storage = Arc::new(
+        apiserver::services::storage::S3Storage::new(s3_config)
+            .await
+            .unwrap(),
+    );
+    let crypto_service = {
+        let dev_keys_json = r#"{
+            "active_key": "v1",
+            "keys": {
+                "v1": "MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE="
+            }
+        }"#;
+        Arc::new(apiserver::crypto::CryptoService::from_json(dev_keys_json).unwrap())
+    };
+    let storage_config_repo = Arc::new(
+        apiserver::repositories::storage_config_repo::StorageConfigRepository::new(
+            diesel_pools.api.clone(),
+            crypto_service,
+        ),
+    );
+    let storage_resolver = Arc::new(apiserver::services::storage::StorageResolver::new(
+        central_storage,
+        storage_config_repo,
+    ));
+    let file_repo = Arc::new(
+        apiserver::repositories::diesel_file_repository::DieselFileRepository::new(
+            diesel_pools.clone(),
+        ),
+    );
+    let file_service = Arc::new(apiserver::services::storage::FileService::new(
+        storage_resolver.clone(),
+        file_repo.clone(),
+    ));
+    let signature_repo = Arc::new(
+        apiserver::repositories::diesel_signature_repository::DieselSignatureRepository::new(
+            Arc::new(diesel_pools.clone()),
+        ),
+    );
+    let signature_service = Arc::new(
+        apiserver::services::signature_service::SignatureService::new(
+            signature_repo,
+            file_service.clone(),
+        ),
+    );
+    let scan_service = apiserver::services::storage::ScanProvider::build();
+
     let state = Arc::new(AppState::new(
         apiserver::EmployeeState::new(
             employee_service,
@@ -704,6 +758,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             custom_field_repo.clone(),
             lifecycle_service,
             lifecycle_repo,
+            signature_service.clone(),
         ),
         apiserver::AgentState::new(
             agent_manager,
@@ -732,6 +787,9 @@ pub async fn spawn_app() -> (String, TestDatabase) {
                 }),
             Arc::new(apiserver::repositories::diesel_system_db_cluster_repository::DieselSystemDbClusterRepository::new(diesel_pools.clone())),
         ),
+        storage_resolver.clone(),
+        file_service.clone(),
+        scan_service.clone(),
     ));
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
@@ -1237,6 +1295,60 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
         recruitment_repo,
     ));
 
+    let s3_config = apiserver::services::storage::S3Config {
+        endpoint_url: "http://localhost:9000".to_string(),
+        region: "us-east-1".to_string(),
+        bucket_name: "test-bucket".to_string(),
+        access_key: "minioadmin".to_string(),
+        secret_key: "minioadmin".to_string(),
+        use_path_style: true,
+    };
+    let central_storage = Arc::new(
+        apiserver::services::storage::S3Storage::new(s3_config)
+            .await
+            .unwrap(),
+    );
+    let crypto_service = {
+        let dev_keys_json = r#"{
+            "active_key": "v1",
+            "keys": {
+                "v1": "MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE="
+            }
+        }"#;
+        Arc::new(apiserver::crypto::CryptoService::from_json(dev_keys_json).unwrap())
+    };
+    let storage_config_repo = Arc::new(
+        apiserver::repositories::storage_config_repo::StorageConfigRepository::new(
+            diesel_pools.api.clone(),
+            crypto_service,
+        ),
+    );
+    let storage_resolver = Arc::new(apiserver::services::storage::StorageResolver::new(
+        central_storage,
+        storage_config_repo,
+    ));
+    let file_repo = Arc::new(
+        apiserver::repositories::diesel_file_repository::DieselFileRepository::new(
+            diesel_pools.clone(),
+        ),
+    );
+    let file_service = Arc::new(apiserver::services::storage::FileService::new(
+        storage_resolver.clone(),
+        file_repo.clone(),
+    ));
+    let signature_repo = Arc::new(
+        apiserver::repositories::diesel_signature_repository::DieselSignatureRepository::new(
+            Arc::new(diesel_pools.clone()),
+        ),
+    );
+    let signature_service = Arc::new(
+        apiserver::services::signature_service::SignatureService::new(
+            signature_repo,
+            file_service.clone(),
+        ),
+    );
+    let scan_service = apiserver::services::storage::ScanProvider::build();
+
     let state = Arc::new(AppState::new(
         apiserver::EmployeeState::new(
             employee_service,
@@ -1363,6 +1475,7 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
             custom_field_repo.clone(),
             lifecycle_service,
             lifecycle_repo,
+            signature_service.clone(),
         ),
         apiserver::AgentState::new(
             agent_manager,
@@ -1391,6 +1504,9 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
                 }),
             Arc::new(apiserver::repositories::diesel_system_db_cluster_repository::DieselSystemDbClusterRepository::new(diesel_pools.clone())),
         ),
+        storage_resolver.clone(),
+        file_service.clone(),
+        scan_service.clone(),
     ));
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
@@ -1945,6 +2061,60 @@ pub async fn setup_app_tower_internal_extended(
         recruitment_repo,
     ));
 
+    let s3_config = apiserver::services::storage::S3Config {
+        endpoint_url: "http://localhost:9000".to_string(),
+        region: "us-east-1".to_string(),
+        bucket_name: "test-bucket".to_string(),
+        access_key: "minioadmin".to_string(),
+        secret_key: "minioadmin".to_string(),
+        use_path_style: true,
+    };
+    let central_storage = Arc::new(
+        apiserver::services::storage::S3Storage::new(s3_config)
+            .await
+            .unwrap(),
+    );
+    let crypto_service = {
+        let dev_keys_json = r#"{
+            "active_key": "v1",
+            "keys": {
+                "v1": "MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE="
+            }
+        }"#;
+        Arc::new(apiserver::crypto::CryptoService::from_json(dev_keys_json).unwrap())
+    };
+    let storage_config_repo = Arc::new(
+        apiserver::repositories::storage_config_repo::StorageConfigRepository::new(
+            diesel_pools.api.clone(),
+            crypto_service,
+        ),
+    );
+    let storage_resolver = Arc::new(apiserver::services::storage::StorageResolver::new(
+        central_storage,
+        storage_config_repo,
+    ));
+    let file_repo = Arc::new(
+        apiserver::repositories::diesel_file_repository::DieselFileRepository::new(
+            diesel_pools.clone(),
+        ),
+    );
+    let file_service = Arc::new(apiserver::services::storage::FileService::new(
+        storage_resolver.clone(),
+        file_repo.clone(),
+    ));
+    let signature_repo = Arc::new(
+        apiserver::repositories::diesel_signature_repository::DieselSignatureRepository::new(
+            Arc::new(diesel_pools.clone()),
+        ),
+    );
+    let signature_service = Arc::new(
+        apiserver::services::signature_service::SignatureService::new(
+            signature_repo,
+            file_service.clone(),
+        ),
+    );
+    let scan_service = apiserver::services::storage::ScanProvider::build();
+
     let app_state = Arc::new(AppState::new(
         apiserver::EmployeeState::new(
             employee_service,
@@ -2075,6 +2245,7 @@ pub async fn setup_app_tower_internal_extended(
             custom_field_repo.clone(),
             lifecycle_service,
             lifecycle_repo,
+            signature_service.clone(),
         ),
         apiserver::AgentState::new(
             agent_manager,
@@ -2103,6 +2274,9 @@ pub async fn setup_app_tower_internal_extended(
                 }),
             Arc::new(apiserver::repositories::diesel_system_db_cluster_repository::DieselSystemDbClusterRepository::new(diesel_pools.clone())),
         ),
+        storage_resolver.clone(),
+        file_service.clone(),
+        scan_service.clone(),
     ));
 
     let app = apiserver::create_app(app_state.clone());

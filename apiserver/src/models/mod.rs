@@ -1,3 +1,4 @@
+pub mod storage_config;
 // ==============================================================================
 // models/mod.rs — Domain-split model modules
 // ==============================================================================
@@ -22,6 +23,7 @@ pub mod employment_phase;
 pub mod enums;
 pub mod ess;
 pub mod feature_flag;
+pub mod file;
 pub mod holiday;
 pub mod leave;
 pub mod lifecycle_checklist;
@@ -36,11 +38,13 @@ pub mod salary_base;
 pub mod schedule;
 pub mod shift;
 pub mod shift_swap;
+pub mod signature;
 pub mod system_db_cluster;
 pub mod time_tracking;
 pub mod work_location;
 pub mod workspace;
 pub mod workspace_config;
+
 // Re-export everything to maintain backward compatibility with all consumers
 pub use agent::*;
 pub use approval_workflow::*;
@@ -58,6 +62,7 @@ pub use employment_phase::*;
 pub use enums::*;
 pub use ess::*;
 pub use feature_flag::*;
+pub use file::*;
 pub use holiday::*;
 pub use leave::*;
 pub use lifecycle_checklist::*;

@@ -13,6 +13,7 @@ pub struct User {
     avatar_url: Option<String>,
     bio: Option<String>,
     preferred_language: Option<String>,
+    avatar_file_id: Option<Uuid>,
 }
 
 impl User {
@@ -26,6 +27,7 @@ impl User {
         avatar_url: Option<String>,
         bio: Option<String>,
         preferred_language: Option<String>,
+        avatar_file_id: Option<Uuid>,
     ) -> Self {
         Self {
             id,
@@ -36,6 +38,7 @@ impl User {
             avatar_url,
             bio,
             preferred_language,
+            avatar_file_id,
         }
     }
 
@@ -70,6 +73,10 @@ impl User {
     pub fn preferred_language(&self) -> Option<&str> {
         self.preferred_language.as_deref()
     }
+
+    pub fn avatar_file_id(&self) -> Option<Uuid> {
+        self.avatar_file_id
+    }
 }
 
 impl std::fmt::Debug for User {
@@ -83,6 +90,7 @@ impl std::fmt::Debug for User {
             .field("avatar_url", &self.avatar_url)
             .field("bio", &self.bio)
             .field("preferred_language", &self.preferred_language)
+            .field("avatar_file_id", &self.avatar_file_id)
             .finish()
     }
 }
@@ -130,6 +138,7 @@ pub struct UserResponse {
     pub created_at: DateTime<Utc>,
     #[serde(default)]
     pub system_roles: Vec<String>,
+    pub avatar_file_id: Option<Uuid>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
@@ -184,6 +193,7 @@ mod tests {
             None,
             None,
             Some("en".to_string()),
+            None,
         );
 
         let debug_str = format!("{user:?}");
@@ -248,6 +258,7 @@ mod tests {
             Some("http://avatar.url".to_string()),
             Some("My Bio".to_string()),
             Some("vi".to_string()),
+            None,
         );
 
         assert_eq!(user.id(), id);
@@ -258,6 +269,7 @@ mod tests {
         assert_eq!(user.avatar_url(), Some("http://avatar.url"));
         assert_eq!(user.bio(), Some("My Bio"));
         assert_eq!(user.preferred_language(), Some("vi"));
+        assert_eq!(user.avatar_file_id(), None);
     }
 
     #[test]

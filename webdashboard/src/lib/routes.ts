@@ -80,5 +80,6 @@ export const ROUTES = {
     WORKFLOWS: "/workspace/settings/workflows",
     CUSTOM_FIELDS: "/workspace/settings/custom-fields",
     LIFECYCLE_TEMPLATES: "/workspace/settings/lifecycle-templates",
+    STORAGE: "/workspace/settings/storage",
   },
 } as const;

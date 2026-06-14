@@ -63,6 +63,7 @@ pub struct LeaveRequestEntity {
     pub duration_type: String,
     pub start_time: Option<NaiveTime>,
     pub end_time: Option<NaiveTime>,
+    pub attachment_file_ids: Option<Vec<Option<Uuid>>>,
 }
 
 // ---------------------------------------------------------------------------

@@ -5,6 +5,26 @@ use utoipa::OpenApi;
 #[derive(OpenApi)]
 #[openapi(
     paths(
+        crate::handlers::create_upload_url_handler,
+        crate::handlers::upload_file_handler,
+        crate::handlers::get_file_url_handler,
+        crate::handlers::download_file_handler,
+        crate::handlers::get_file_metadata_handler,
+        crate::handlers::update_file_handler,
+        crate::handlers::delete_file_handler,
+        crate::handlers::list_file_versions_handler,
+        crate::handlers::list_files_by_owner_handler,
+
+        // Documents
+        crate::handlers::document_folders::list_folders_handler,
+        crate::handlers::document_folders::create_folder_handler,
+        crate::handlers::document_folders::rename_folder_handler,
+        crate::handlers::document_folders::delete_folder_handler,
+        crate::handlers::document_acknowledgements::distribute_document_handler,
+        crate::handlers::document_acknowledgements::get_pending_documents_handler,
+        crate::handlers::document_acknowledgements::acknowledge_document_handler,
+        crate::handlers::document_templates::preview_template_handler,
+        crate::handlers::document_templates::generate_document_from_template_handler,
         crate::handlers::get_devices,
         crate::handlers::get_agents,
         crate::handlers::attendance::time_tracking::punch_in,
@@ -16,6 +36,12 @@ use utoipa::OpenApi;
         crate::handlers::workspace_config::get_config,
         crate::handlers::workspace_config::upsert_config,
         crate::handlers::workspace_config::delete_config,
+
+        // Workspace Storage
+        crate::handlers::storage_config::get_storage_config,
+        crate::handlers::storage_config::upsert_storage_config,
+        crate::handlers::storage_config::delete_storage_config,
+        crate::handlers::storage_config::test_storage_config,
 
         // Auth Paths
         crate::handlers::register,
@@ -273,6 +299,12 @@ use utoipa::OpenApi;
         crate::handlers::workspaces::permissions::revoke_extra_permission,
         crate::handlers::workspaces::permissions::get_available_permissions,
 
+
+        // E-Signatures Paths
+        crate::handlers::signatures::create_signature_request,
+        crate::handlers::signatures::get_pending_signatures,
+        crate::handlers::signatures::sign_document,
+
         // Workspace Roles Paths
         crate::handlers::workspaces::roles::get_member_roles,
         crate::handlers::workspaces::roles::assign_extra_role,
@@ -406,6 +438,17 @@ use utoipa::OpenApi;
     ),
     components(
         schemas(
+            crate::handlers::CreateUploadUrlRequest,
+
+            // Document Schemas
+            crate::handlers::document_folders::DocumentFolderDto,
+            crate::handlers::document_folders::CreateFolderRequest,
+            crate::handlers::document_folders::RenameFolderRequest,
+            crate::handlers::document_acknowledgements::DistributeDocumentRequest,
+            crate::handlers::document_acknowledgements::AcknowledgementDto,
+            crate::handlers::document_templates::TemplatePreviewRequest,
+            crate::handlers::document_templates::TemplatePreviewResponse,
+
             Device,
             CreateDeviceRequest,
             UpdateDeviceRequest,
@@ -428,6 +471,11 @@ use utoipa::OpenApi;
             ConfigValue,
             crate::handlers::workspace_config::UpsertConfigRequest,
 
+            // Workspace Storage Schemas
+            crate::handlers::storage_config::StorageConfigResponse,
+            crate::handlers::storage_config::CreateStorageConfigRequest,
+            crate::handlers::storage_config::UpdateStorageConfigRequest,
+
             // Notifications Schemas
             Notification,
             NotificationCursorRequest,
@@ -443,6 +491,11 @@ use utoipa::OpenApi;
             // Workspace Permissions Schemas
             MemberExtraPermission,
             AssignPermissionRequest,
+
+            // E-Signatures Schemas
+            crate::models::signature::SignatureRequest,
+            crate::models::signature::CreateSignatureRequestPayload,
+            crate::models::signature::SignDocumentPayload,
 
             // Workspace Roles Schemas
             crate::handlers::workspaces::roles::CreateWorkspaceRoleRequest,

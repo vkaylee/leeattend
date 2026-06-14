@@ -91,6 +91,7 @@ impl crate::diesel_pool::core::DieselPools {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::disallowed_methods)]
     use std::fs;
     use std::path::Path;
 
@@ -143,8 +144,7 @@ mod tests {
 
         if !migrations_path.exists() {
             println!(
-                "Migrations directory not found at {:?}, skipping static check",
-                migrations_path
+                "Migrations directory not found at {migrations_path:?}, skipping static check"
             );
             return;
         }
@@ -166,14 +166,12 @@ mod tests {
                         // List of checks for non-transactional SQL commands in Postgres
                         if content_lower.contains("concurrently") {
                             errors.push(format!(
-                                "File {:?} contains 'CONCURRENTLY' which cannot be run over a Transaction Pooler (e.g. PgBouncer/Supavisor transaction mode). Please use regular CREATE/DROP INDEX or run it manually.",
-                                path
+                                "File {path:?} contains 'CONCURRENTLY' which cannot be run over a Transaction Pooler (e.g. PgBouncer/Supavisor transaction mode). Please use regular CREATE/DROP INDEX or run it manually."
                             ));
                         }
                         if content_lower.contains("vacuum") {
                             errors.push(format!(
-                                "File {:?} contains 'VACUUM' which cannot be run inside a transaction block (required for Transaction Poolers).",
-                                path
+                                "File {path:?} contains 'VACUUM' which cannot be run inside a transaction block (required for Transaction Poolers)."
                             ));
                         }
                         if content_lower.contains("create database")
@@ -181,8 +179,7 @@ mod tests {
                             || content_lower.contains("alter database")
                         {
                             errors.push(format!(
-                                "File {:?} contains DATABASE DDL (CREATE/DROP/ALTER DATABASE) which is not allowed in tenant migrations.",
-                                path
+                                "File {path:?} contains DATABASE DDL (CREATE/DROP/ALTER DATABASE) which is not allowed in tenant migrations."
                             ));
                         }
                         if content_lower.contains("create tablespace")
@@ -190,14 +187,12 @@ mod tests {
                             || content_lower.contains("alter tablespace")
                         {
                             errors.push(format!(
-                                "File {:?} contains TABLESPACE DDL which is not allowed in tenant migrations.",
-                                path
+                                "File {path:?} contains TABLESPACE DDL which is not allowed in tenant migrations."
                             ));
                         }
                         if content_lower.contains("reindex system") {
                             errors.push(format!(
-                                "File {:?} contains REINDEX SYSTEM which is not allowed in tenant migrations.",
-                                path
+                                "File {path:?} contains REINDEX SYSTEM which is not allowed in tenant migrations."
                             ));
                         }
                     }
@@ -210,7 +205,7 @@ mod tests {
 
         if !errors.is_empty() {
             let error_msg = errors.join("\n");
-            panic!("Tenant migration safety check failed:\n{}", error_msg);
+            panic!("Tenant migration safety check failed:\n{error_msg}");
         }
     }
 }

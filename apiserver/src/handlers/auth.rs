@@ -175,6 +175,7 @@ pub async fn register(
         None,
         None,
         None,
+        None,
     );
 
     // 4. Create User and auto-assign platform_admin atomically
@@ -208,6 +209,7 @@ pub async fn register(
         preferred_language: user.preferred_language().map(String::from),
         created_at: user.created_at(),
         system_roles: vec![],
+        avatar_file_id: user.avatar_file_id(),
     };
 
     // 7. Generate access token (stateless, no DB write needed)
@@ -362,6 +364,7 @@ pub async fn login(
         preferred_language: user.preferred_language().map(String::from),
         created_at: user.created_at(),
         system_roles: vec![],
+        avatar_file_id: user.avatar_file_id(),
     };
 
     let access_token = AuthService::generate_token(user.id(), state.core().jwt_secret(), 15)?;
@@ -610,6 +613,7 @@ pub async fn get_me(
         preferred_language: user.preferred_language().map(String::from),
         created_at: user.created_at(),
         system_roles,
+        avatar_file_id: user.avatar_file_id(),
     }))
 }
 
@@ -670,6 +674,7 @@ pub async fn update_me(
         preferred_language: user.preferred_language().map(String::from),
         created_at: user.created_at(),
         system_roles: vec![],
+        avatar_file_id: user.avatar_file_id(),
     }))
 }
 
@@ -703,6 +708,7 @@ pub async fn get_users(
             preferred_language: u.preferred_language().map(String::from),
             created_at: u.created_at(),
             system_roles: vec![],
+            avatar_file_id: u.avatar_file_id(),
         })
         .collect();
 

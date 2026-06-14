@@ -250,12 +250,11 @@ mod tests {
 
         // Check if database is available by attempting to get a connection.
         // If it is not available (e.g. during offline unit tests), we skip the rest of the test.
-        let mut conn = match pools.tenant_transaction_conn(&auth_token).await {
-            Ok(c) => c,
-            Err(_) => {
-                println!("Database not available, skipping integration assertions");
-                return;
-            }
+        let mut conn = if let Ok(c) = pools.tenant_transaction_conn(&auth_token).await {
+            c
+        } else {
+            println!("Database not available, skipping integration assertions");
+            return;
         };
 
         // 1. Arrange: Insert workspace, location, and employee to satisfy foreign key constraints

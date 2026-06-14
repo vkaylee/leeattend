@@ -33,14 +33,14 @@ import { useLocations } from "@/pages/settings/hooks/use-locations";
 import { CustomFieldSection } from "@/components/custom-fields/custom-field-section";
 import CompensationHistoryTab from "@/pages/employees/compensation-history-tab";
 import EmployeeLifecycleTab from "@/pages/employees/lifecycle-tab";
+import { EmployeeDocumentsTab } from "@/pages/employees/employee-documents-tab";
 
 import EmployeeAssignmentsTab from "./employee-assignments-tab";
 import EmployeeContractsTab from "./employee-contracts-tab";
 import EmployeePhasesTab from "./employee-phases-tab";
 
-
-type DetailTabType = "profile" | "contracts" | "phases" | "assignments" | "salary" | "compensation" | "policies" | "lifecycle";
-const TAB_ORDER: DetailTabType[] = ["profile", "contracts", "phases", "assignments", "salary", "compensation", "policies", "lifecycle"];
+type DetailTabType = "profile" | "documents" | "contracts" | "phases" | "assignments" | "salary" | "compensation" | "policies" | "lifecycle";
+const TAB_ORDER: DetailTabType[] = ["profile", "documents", "contracts", "phases", "assignments", "salary", "compensation", "policies", "lifecycle"];
 const SCROLL_STEP = 80;
 
 interface DeptHistoryEntry {
@@ -97,6 +97,7 @@ function DrawerHeader({
             <div className="flex overflow-x-auto scrollbar-hide bg-white dark:bg-slate-900/50 p-1.5 rounded-[22px] border border-slate-200 dark:border-slate-700/50 shadow-inner w-full max-w-full relative">
                 {[
                     { id: "profile", label: t("common.profile") },
+                    { id: "documents", label: "Tài liệu & Hồ sơ" },
                     { id: "contracts", label: "Hợp đồng" },
                     { id: "phases", label: "Hành trình" },
                     { id: "assignments", label: "Phái cử" },
@@ -524,6 +525,12 @@ function DrawerTabContent({
                     onTransfer={onTransfer}
                     t={t}
                     wsId={wsId}
+                />
+            );
+        case "documents":
+            return (
+                <EmployeeDocumentsTab
+                    employeeId={employee.id}
                 />
             );
         case "contracts":

@@ -197,6 +197,7 @@ impl AuthService {
                 preferred_language: user.preferred_language().map(String::from),
                 created_at: user.created_at(),
                 system_roles,
+                avatar_file_id: user.avatar_file_id(),
             },
         })
     }

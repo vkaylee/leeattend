@@ -34,6 +34,8 @@ pub mod report_service;
 pub mod rule_evaluator;
 pub mod shift_service;
 pub mod shift_swap_service;
+pub mod signature_service;
+pub mod template_service;
 pub mod tenant_provisioner;
 pub mod time_tracking_service;
 pub mod working_pattern_service;
@@ -74,6 +76,7 @@ pub use auth_service::AuthService;
 pub use holiday_leave_service::HolidayLeaveService;
 pub mod outbox_job_service;
 pub use outbox_job_service::OutboxJobService;
+pub mod storage;
 
 #[cfg(test)]
 mod attendance_calculator_tests;

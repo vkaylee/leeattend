@@ -1546,12 +1546,11 @@ mod tests {
         let ws_id = Uuid::new_v4();
         let token = crate::diesel_pool::TenantAuthToken::system_override(ws_id);
 
-        let mut conn = match pools.tenant_transaction_conn(&token).await {
-            Ok(c) => c,
-            Err(_) => {
-                println!("Database not available, skipping integration assertions");
-                return;
-            }
+        let mut conn = if let Ok(c) = pools.tenant_transaction_conn(&token).await {
+            c
+        } else {
+            println!("Database not available, skipping integration assertions");
+            return;
         };
 
         // Insert Workspace to satisfy FK constraints

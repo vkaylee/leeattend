@@ -118,6 +118,11 @@ const GET_LIST_WHITELIST: &[&str] = &[
     "list_template_items",
     "list_checklists",
     "get_my_tasks",
+    "get_pending_documents_handler",
+    "list_folders_handler",
+    "get_pending_signatures",
+    "list_file_versions_handler",
+    "list_files_by_owner_handler",
 ];
 
 fn visit_dirs(dir: &Path, files: &mut Vec<PathBuf>) -> std::io::Result<()> {

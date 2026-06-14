@@ -35,6 +35,24 @@
     clippy::disallowed_types,
     clippy::disallowed_methods
 )]
+// Allow unwrap and expect in test code
+#![cfg_attr(
+    test,
+    allow(
+        clippy::unwrap_used,
+        clippy::expect_used,
+        clippy::panic,
+        clippy::ref_option_ref,
+        clippy::disallowed_macros,
+        clippy::unimplemented,
+        clippy::manual_strip,
+        clippy::if_same_then_else,
+        clippy::float_cmp,
+        clippy::module_inception,
+        clippy::used_underscore_binding,
+        clippy::default_trait_access
+    )
+)]
 
 pub mod adaptive_polling;
 pub mod central_client;

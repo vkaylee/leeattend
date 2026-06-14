@@ -15,6 +15,7 @@ pub struct AppWorkers {
     pub job_worker_handle: Option<JoinHandle<()>>,
     pub scheduler_handle: Option<JoinHandle<()>>,
     pub outbox_sweep_handle: Option<JoinHandle<()>>,
+    pub file_scan_scheduler_handle: Option<JoinHandle<()>>,
     pub job_worker_token: CancellationToken,
 }
 
@@ -39,7 +40,12 @@ impl AppState {
             if app_env == "production" {
                 return Err("ENCRYPTION_KEYS_JSON must be set in production".into());
             }
-            None
+            // In development / testing, generate a dummy CryptoService
+            let mut keys = std::collections::HashMap::new();
+            keys.insert("v1".to_string(), [0u8; 32]);
+            let crypto = crate::crypto::CryptoService::new("v1".to_string(), keys)
+                .map_err(|e| format!("Failed to create dummy CryptoService: {e}"))?;
+            Some(Arc::new(crypto))
         };
 
         let agent_manager = AgentManager::new(
@@ -628,6 +634,70 @@ impl AppState {
             &recruitment_repo,
         )));
 
+        // Initialize central storage and resolver
+        let crypto_inner = crypto_service
+            .clone()
+            .ok_or("CryptoService is required for StorageConfig")?;
+        let storage_config_repo = Arc::new(
+            crate::repositories::storage_config_repo::StorageConfigRepository::new(
+                diesel_pools.api.clone(),
+                crypto_inner,
+            ),
+        );
+        let app_env = std::env::var("APP_ENV").unwrap_or_else(|_| "development".to_string());
+        if app_env != "production" {
+            if std::env::var("S3_ENDPOINT_URL").is_err() {
+                std::env::set_var("S3_ENDPOINT_URL", "http://localhost:9000");
+            }
+            if std::env::var("S3_BUCKET_NAME").is_err() {
+                std::env::set_var("S3_BUCKET_NAME", "leeattend");
+            }
+            if std::env::var("S3_ACCESS_KEY").is_err() {
+                std::env::set_var("S3_ACCESS_KEY", "minioadmin");
+            }
+            if std::env::var("S3_SECRET_KEY").is_err() {
+                std::env::set_var("S3_SECRET_KEY", "minioadmin");
+            }
+        }
+
+        let central_storage =
+            Arc::new(crate::services::storage::s3_storage::S3Storage::from_env().await?);
+        let storage_resolver = Arc::new(crate::services::storage::resolver::StorageResolver::new(
+            central_storage,
+            storage_config_repo,
+        ));
+        let file_repo = Arc::new(
+            crate::repositories::diesel_file_repository::DieselFileRepository::new(
+                diesel_pools.clone(),
+            ),
+        );
+        let file_service = Arc::new(crate::services::storage::file_service::FileService::new(
+            storage_resolver.clone(),
+            file_repo.clone(),
+        ));
+
+        let signature_repo = Arc::new(
+            crate::repositories::diesel_signature_repository::DieselSignatureRepository::new(
+                Arc::new(diesel_pools.clone()),
+            ),
+        );
+        let signature_service =
+            Arc::new(crate::services::signature_service::SignatureService::new(
+                signature_repo,
+                file_service.clone(),
+            ));
+
+        let scan_service = crate::services::storage::ScanProvider::build();
+
+        let file_scan_scheduler = crate::worker::file_scan_scheduler::FileScanScheduler::new(
+            file_repo,
+            file_service.clone(),
+            scan_service.clone(),
+            workspace_repo.clone(),
+        );
+        let file_scan_scheduler_handle =
+            Some(file_scan_scheduler.start(worker_cancel_token.clone()));
+
         let state = Arc::new(AppState::new(
             crate::EmployeeState::new(
                 employee_service,
@@ -703,6 +773,7 @@ impl AppState {
                 custom_field_repo,
                 lifecycle_service,
                 lifecycle_repo,
+                signature_service,
             ),
             crate::AgentState::new(agent_manager, agent_service, agent_repo),
             crate::InfraState::new(
@@ -721,6 +792,9 @@ impl AppState {
                 crypto_service,
                 system_db_cluster_repo.clone(),
             ),
+            storage_resolver,
+            file_service,
+            scan_service.clone(),
         ));
 
         let workers = AppWorkers {
@@ -728,6 +802,7 @@ impl AppState {
             job_worker_handle: worker_handle,
             scheduler_handle,
             outbox_sweep_handle,
+            file_scan_scheduler_handle,
             job_worker_token: worker_cancel_token,
         };
 

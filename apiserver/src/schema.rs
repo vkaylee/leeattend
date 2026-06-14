@@ -1014,6 +1014,7 @@ diesel::table! {
         bank_branch -> Nullable<Varchar>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        avatar_file_id -> Nullable<Uuid>,
     }
 }
 
@@ -1261,6 +1262,7 @@ diesel::table! {
         start_time -> Nullable<Time>,
         end_time -> Nullable<Time>,
         employment_id -> Uuid,
+        attachment_file_ids -> Nullable<Array<Nullable<Uuid>>>,
     }
 }
 
@@ -1793,6 +1795,33 @@ diesel::table! {
 }
 
 diesel::table! {
+    storage_configs (id) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        #[max_length = 255]
+        endpoint_url -> Varchar,
+        #[max_length = 50]
+        region -> Varchar,
+        #[max_length = 100]
+        bucket_name -> Varchar,
+        #[max_length = 255]
+        path_prefix -> Nullable<Varchar>,
+        #[max_length = 500]
+        access_key_enc -> Varchar,
+        #[max_length = 500]
+        secret_key_enc -> Varchar,
+        #[max_length = 50]
+        encryption_key_version -> Varchar,
+        use_path_style -> Bool,
+        presigned_ttl_secs -> Int4,
+        max_file_size -> Int8,
+        is_active -> Bool,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     system_audit_logs (id) {
         id -> Uuid,
         actor_id -> Nullable<Uuid>,
@@ -1817,6 +1846,35 @@ diesel::table! {
         max_tenants -> Int4,
         active_tenants -> Int4,
         is_active -> Bool,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    system_files (id) {
+        id -> Uuid,
+        #[max_length = 255]
+        file_name -> Varchar,
+        #[max_length = 500]
+        storage_key -> Varchar,
+        file_size -> Int8,
+        #[max_length = 100]
+        mime_type -> Varchar,
+        #[max_length = 64]
+        content_hash -> Nullable<Varchar>,
+        #[max_length = 50]
+        category -> Varchar,
+        #[max_length = 50]
+        owner_type -> Varchar,
+        owner_id -> Uuid,
+        uploaded_by -> Nullable<Uuid>,
+        is_active -> Bool,
+        #[max_length = 20]
+        scan_status -> Varchar,
+        version -> Int4,
+        parent_file_id -> Nullable<Uuid>,
+        is_latest -> Bool,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
     }
@@ -1873,6 +1931,7 @@ diesel::table! {
         bio -> Nullable<Text>,
         #[max_length = 10]
         preferred_language -> Nullable<Varchar>,
+        avatar_file_id -> Nullable<Uuid>,
     }
 }
 
@@ -2018,6 +2077,79 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    workspace_files (id) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        #[max_length = 255]
+        file_name -> Varchar,
+        #[max_length = 500]
+        storage_key -> Varchar,
+        file_size -> Int8,
+        #[max_length = 100]
+        mime_type -> Varchar,
+        #[max_length = 64]
+        content_hash -> Nullable<Varchar>,
+        #[max_length = 50]
+        category -> Varchar,
+        folder_id -> Nullable<Uuid>,
+        #[max_length = 50]
+        owner_type -> Varchar,
+        owner_id -> Uuid,
+        uploaded_by -> Nullable<Uuid>,
+        is_active -> Bool,
+        expires_at -> Nullable<Timestamptz>,
+        #[max_length = 20]
+        scan_status -> Varchar,
+        scanned_at -> Nullable<Timestamptz>,
+        version -> Int4,
+        parent_file_id -> Nullable<Uuid>,
+        is_latest -> Bool,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    document_folders (id) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        #[max_length = 255]
+        name -> Varchar,
+        parent_folder_id -> Nullable<Uuid>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    signature_requests (id) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        document_id -> Uuid,
+        signer_id -> Uuid,
+        #[max_length = 50]
+        status -> Varchar,
+        signed_at -> Nullable<Timestamptz>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    file_acknowledgements (id) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        document_id -> Uuid,
+        employee_id -> Uuid,
+        #[max_length = 50]
+        status -> Varchar,
+        acknowledged_at -> Nullable<Timestamptz>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
 diesel::joinable!(approval_workflow_instances -> approval_workflows (workflow_id));
 diesel::joinable!(approval_workflow_steps -> approval_workflows (workflow_id));
 diesel::joinable!(approval_workflow_tasks -> approval_workflow_instances (instance_id));
@@ -2094,10 +2226,12 @@ diesel::joinable!(shift_rosters -> employments (employment_id));
 diesel::joinable!(shift_rosters -> shifts (shift_id));
 diesel::joinable!(shifts -> employers (employer_id));
 diesel::joinable!(shifts -> work_locations (location_id));
+diesel::joinable!(storage_configs -> workspaces (workspace_id));
 diesel::joinable!(system_audit_logs -> users (actor_id));
 diesel::joinable!(time_entries -> employments (employment_id));
 diesel::joinable!(time_entries -> shifts (shift_id));
 diesel::joinable!(user_system_roles -> system_roles (role_id));
+diesel::joinable!(users -> system_files (avatar_file_id));
 diesel::joinable!(working_conditions -> employments (employment_id));
 diesel::joinable!(working_pattern_details -> shifts (shift_id));
 diesel::joinable!(working_pattern_details -> working_patterns (pattern_id));
@@ -2107,6 +2241,18 @@ diesel::joinable!(workspace_members -> users (user_id));
 diesel::joinable!(workspace_members -> workspace_roles (role_id));
 diesel::joinable!(workspace_members -> workspaces (workspace_id));
 diesel::joinable!(workspace_role_permissions -> workspace_roles (role_id));
+
+diesel::joinable!(workspace_files -> workspaces (workspace_id));
+diesel::joinable!(workspace_files -> document_folders (folder_id));
+diesel::joinable!(employee_profiles -> workspace_files (avatar_file_id));
+
+diesel::joinable!(document_folders -> workspaces (workspace_id));
+diesel::joinable!(signature_requests -> workspaces (workspace_id));
+diesel::joinable!(signature_requests -> workspace_files (document_id));
+diesel::joinable!(signature_requests -> employees (signer_id));
+diesel::joinable!(file_acknowledgements -> workspaces (workspace_id));
+diesel::joinable!(file_acknowledgements -> workspace_files (document_id));
+diesel::joinable!(file_acknowledgements -> employees (employee_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     approval_action_log,
@@ -2210,8 +2356,10 @@ diesel::allow_tables_to_appear_in_same_query!(
     shift_rosters,
     shift_swap_requests,
     shifts,
+    storage_configs,
     system_audit_logs,
     system_db_clusters,
+    system_files,
     system_roles,
     time_entries,
     user_system_roles,
@@ -2225,5 +2373,9 @@ diesel::allow_tables_to_appear_in_same_query!(
     workspace_members,
     workspace_role_permissions,
     workspace_roles,
+    workspace_files,
+    document_folders,
+    signature_requests,
+    file_acknowledgements,
     workspaces,
 );

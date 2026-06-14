@@ -79,6 +79,7 @@ pub struct UserEntity {
     pub avatar_url: Option<String>,
     pub bio: Option<String>,
     pub preferred_language: Option<String>,
+    pub avatar_file_id: Option<Uuid>,
 }
 
 impl From<UserEntity> for User {
@@ -92,6 +93,7 @@ impl From<UserEntity> for User {
             entity.avatar_url,
             entity.bio,
             entity.preferred_language,
+            entity.avatar_file_id,
         )
     }
 }

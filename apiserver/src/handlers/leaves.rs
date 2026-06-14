@@ -694,6 +694,8 @@ pub async fn upload_leave_excel(
     ctx.require_permission(Permission::LeaveRequestsSubmit)?;
 
     let path = crate::utils::upload::extract_uploaded_file(
+        &state,
+        Some(&ctx.auth_token),
         &mut multipart,
         "file",
         crate::utils::upload::MAX_UPLOAD_FILE_SIZE,

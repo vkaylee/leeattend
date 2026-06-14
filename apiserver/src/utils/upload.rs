@@ -18,6 +18,8 @@ pub const MAX_UPLOAD_FILE_SIZE: usize = 10 * 1024 * 1024;
 /// * `max_size` — maximum allowed file size in bytes
 /// * `sub_dir` — subdirectory under STORAGE_DIR (e.g. `"imports"`)
 pub async fn extract_uploaded_file(
+    state: &crate::AppState,
+    auth_token: Option<&crate::diesel_pool::TenantAuthToken>,
     multipart: &mut Multipart,
     field_name: &str,
     max_size: usize,
@@ -33,6 +35,10 @@ pub async fn extract_uploaded_file(
         let name = field.name().unwrap_or("").to_string();
         if name == field_name {
             let file_name = field.file_name().unwrap_or("upload.xlsx").to_string();
+            let mime_type = field
+                .content_type()
+                .unwrap_or("application/octet-stream")
+                .to_string();
             let data = field
                 .bytes()
                 .await
@@ -44,11 +50,44 @@ pub async fn extract_uploaded_file(
                 ));
             }
 
+            // Write to local disk for backward compatibility (Calamine parsing)
             let base_dir = crate::utils::get_storage_dir();
             let dir = format!("{base_dir}/{sub_dir}");
             tokio::fs::create_dir_all(&dir).await?;
             let path = format!("{}/{}_{}", dir, crate::utils::id::new_id(), file_name);
-            tokio::fs::write(&path, data).await?;
+            tokio::fs::write(&path, data.clone()).await?;
+
+            // Delegate to FileService (S3) instead of legacy direct upload
+            if let Some(token) = auth_token {
+                let _ = state
+                    .file_service()
+                    .upload_file(
+                        token,
+                        crate::models::file::FileOwnerType::Workspace,
+                        token.workspace_id(),
+                        crate::models::file::FileCategory::ImportFile,
+                        &file_name,
+                        &mime_type,
+                        data.clone(),
+                        None,
+                        None,
+                    )
+                    .await;
+            } else {
+                let _ = state
+                    .file_service()
+                    .upload_system_file(
+                        crate::models::file::FileOwnerType::System,
+                        uuid::Uuid::nil(),
+                        crate::models::file::FileCategory::SystemAsset,
+                        &file_name,
+                        &mime_type,
+                        data.clone(),
+                        None,
+                    )
+                    .await;
+            }
+
             file_path = Some(PathBuf::from(path));
         }
     }

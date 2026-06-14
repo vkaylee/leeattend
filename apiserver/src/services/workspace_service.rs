@@ -583,6 +583,7 @@ mod tests {
                     None,
                     None,
                     None,
+                    None,
                 )))
             } else {
                 Ok(None)
@@ -628,6 +629,7 @@ mod tests {
                 "hash".into(),
                 Utc::now(),
                 full_name,
+                None,
                 None,
                 None,
                 None,

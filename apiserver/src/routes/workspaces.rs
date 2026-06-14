@@ -177,6 +177,17 @@ pub fn router() -> Router<Arc<AppState>> {
             get(handlers::workspace_config::get_config)
                 .delete(handlers::workspace_config::delete_config),
         )
+        // Storage Configs
+        .route(
+            "/workspaces/:ws_id/settings/storage",
+            get(handlers::storage_config::get_storage_config)
+                .put(handlers::storage_config::upsert_storage_config)
+                .delete(handlers::storage_config::delete_storage_config),
+        )
+        .route(
+            "/workspaces/:ws_id/settings/storage/test",
+            post(handlers::storage_config::test_storage_config),
+        )
         // Approval Workflows
         .route(
             "/workspaces/:ws_id/approval-workflows",
