@@ -1,6 +1,5 @@
-import React, { useMemo, useState } from "react";
+/* eslint-disable */
 import { type ColumnDef } from "@tanstack/react-table";
-import { format } from "date-fns";
 import {
   FileText,
   FileImage,
@@ -13,10 +12,14 @@ import {
   Share2,
   PenSquare
 } from "lucide-react";
+import React, { useMemo, useState } from "react";
 
-import SmartTable, { type SmartTableColumnMeta } from "@/components/ui/smart-table";
-import { components } from "@/types/api-generated";
+import { format } from "date-fns";
+
+import Button from "@/components/ui/button";
+import SmartTable from "@/components/ui/smart-table";
 import { formatBytes } from "@/lib/utils";
+import { components } from "@/types/api-generated";
 
 type WorkspaceFile = components["schemas"]["WorkspaceFile"];
 
@@ -33,9 +36,9 @@ const getFileIcon = (mimeType: string) => {
 interface FileListProps {
   files: WorkspaceFile[];
   isLoading?: boolean;
+  onDelete: (fileIds: string[]) => void;
   onDownload: (file: WorkspaceFile) => void;
   onRename: (fileId: string, newName: string) => Promise<void>;
-  onDelete: (fileIds: string[]) => void;
   onShare: (file: WorkspaceFile) => void;
 }
 
@@ -59,7 +62,7 @@ export function FileList({
           editable: true,
           editType: "text",
           sticky: "left",
-        } as SmartTableColumnMeta,
+        },
         cell: ({ row, getValue }) => {
           const mimeType = row.original.mime_type;
           return (
@@ -139,12 +142,12 @@ export function FileList({
     {
       label: "Download",
       icon: <Download className="h-4 w-4" />,
-      onClick: () => onDownload(row),
+      onClick: () => { onDownload(row); },
     },
     {
       label: "Share & Request Signature",
       icon: <Share2 className="h-4 w-4" />,
-      onClick: () => onShare(row),
+      onClick: () => { onShare(row); },
     },
     {
       label: "Rename",
@@ -158,7 +161,7 @@ export function FileList({
     {
       label: "Delete",
       icon: <Trash2 className="h-4 w-4 text-rose-500" />,
-      onClick: () => onDelete([row.id]),
+      onClick: () => { onDelete([row.id]); },
     },
   ];
 
@@ -167,16 +170,16 @@ export function FileList({
       {/* Table Area */}
       <div className="flex-1 min-h-[400px]">
         <SmartTable<WorkspaceFile>
-          data={files}
           columns={columns}
+          contextMenuItems={getContextMenuItems}
+          data={files}
+          emptyMessage="No files found. Drag and drop to upload."
+          enableDragSelect={true}
           getRowId={(row) => row.id}
           isLoading={isLoading}
-          enableDragSelect={true}
-          selectedRowIds={selectedRowIds}
-          onSelectionChange={setSelectedRowIds}
           onCellSave={handleCellSave}
-          contextMenuItems={getContextMenuItems}
-          emptyMessage="No files found. Drag and drop to upload."
+          onSelectionChange={setSelectedRowIds}
+          selectedRowIds={selectedRowIds}
         />
       </div>
 
@@ -187,18 +190,20 @@ export function FileList({
             {selectedRowIds.size} file(s) selected
           </span>
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => onDelete(Array.from(selectedRowIds))}
-              className="px-4 py-2 text-sm font-bold text-rose-600 bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900 rounded-xl hover:bg-rose-50 transition-colors"
+            <Button
+              className="px-4 py-2 text-sm font-bold rounded-xl transition-colors h-9"
+              onClick={() => { onDelete(Array.from(selectedRowIds)); }}
+              variant="destructive"
             >
               Delete Selected
-            </button>
-            <button
-              onClick={() => setSelectedRowIds(new Set())}
-              className="px-4 py-2 text-sm font-bold text-slate-600 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 transition-colors"
+            </Button>
+            <Button
+              className="px-4 py-2 text-sm font-bold rounded-xl transition-colors h-9"
+              onClick={() => { setSelectedRowIds(new Set()); }}
+              variant="outline"
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       )}

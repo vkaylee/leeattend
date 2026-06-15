@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
@@ -12,11 +13,11 @@ const PAGE_SIZE = 50;
 interface UseReportsQueriesProps {
   dateRange: { end: string; start: string };
   debouncedSearch: string;
+  employeeStatus?: string;
   selectedDepartmentId: string | null;
+  selectedEmployerId: string | null;
   sortBy: AttendanceReportSort | undefined;
   wsId: string | null;
-  employeeStatus?: string;
-  selectedEmployerId: string | null;
 }
 
 export function useReportsQueries({

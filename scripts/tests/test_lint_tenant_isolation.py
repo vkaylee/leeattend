@@ -58,21 +58,31 @@ def test_extract_methods() -> None:
 @patch("lint_tenant_isolation.Path")
 @patch("sys.exit")
 def test_main_success(mock_exit: MagicMock, mock_path_cls: MagicMock) -> None:
-    # Set up mocks for repo_dir
     mock_repo_dir = MagicMock()
     mock_repo_dir.exists.return_value = True
+    mock_worker_dir = MagicMock()
+    mock_worker_dir.exists.return_value = False
+
+    mock_path_cls.side_effect = lambda *args, **kwargs: (
+        mock_repo_dir
+        if "repositories" in str(args[0])
+        else mock_worker_dir
+        if "worker" in str(args[0])
+        else MagicMock()
+    )
 
     # We have one mock diesel repo file and one system repo file to skip
     mock_file = MagicMock()
     mock_file.is_file.return_value = True
     mock_file.name = "diesel_some_repository.rs"
+    mock_file.parent = mock_repo_dir
 
     mock_sys_file = MagicMock()
     mock_sys_file.is_file.return_value = True
     mock_sys_file.name = "diesel_system_repository.rs"
+    mock_sys_file.parent = mock_repo_dir
 
-    mock_repo_dir.iterdir.return_value = [mock_file, mock_sys_file]
-    mock_path_cls.return_value = mock_repo_dir
+    mock_repo_dir.rglob.return_value = [mock_file, mock_sys_file]
 
     # Mock file reading
     repo_file_content = """
@@ -90,10 +100,7 @@ def test_main_success(mock_exit: MagicMock, mock_path_cls: MagicMock) -> None:
     }
     """
 
-    mock_opened_file = mock_open(read_data=repo_file_content)
-    mock_filepath = MagicMock()
-    mock_filepath.open = mock_opened_file
-    mock_repo_dir.__truediv__.return_value = mock_filepath
+    mock_file.open = mock_open(read_data=repo_file_content)
 
     lint_tenant_isolation.main()
 
@@ -103,16 +110,25 @@ def test_main_success(mock_exit: MagicMock, mock_path_cls: MagicMock) -> None:
 @patch("lint_tenant_isolation.Path")
 @patch("sys.exit")
 def test_main_failure(mock_exit: MagicMock, mock_path_cls: MagicMock) -> None:
-    # Set up mocks for repo_dir
     mock_repo_dir = MagicMock()
     mock_repo_dir.exists.return_value = True
+    mock_worker_dir = MagicMock()
+    mock_worker_dir.exists.return_value = False
+
+    mock_path_cls.side_effect = lambda *args, **kwargs: (
+        mock_repo_dir
+        if "repositories" in str(args[0])
+        else mock_worker_dir
+        if "worker" in str(args[0])
+        else MagicMock()
+    )
 
     mock_file = MagicMock()
     mock_file.is_file.return_value = True
     mock_file.name = "diesel_some_repository.rs"
+    mock_file.parent = mock_repo_dir
 
-    mock_repo_dir.iterdir.return_value = [mock_file]
-    mock_path_cls.return_value = mock_repo_dir
+    mock_repo_dir.rglob.return_value = [mock_file]
 
     # Query is made on table but workspace_id is not checked in the query
     repo_file_content = """
@@ -127,10 +143,7 @@ def test_main_failure(mock_exit: MagicMock, mock_path_cls: MagicMock) -> None:
     }
     """
 
-    mock_opened_file = mock_open(read_data=repo_file_content)
-    mock_filepath = MagicMock()
-    mock_filepath.open = mock_opened_file
-    mock_repo_dir.__truediv__.return_value = mock_filepath
+    mock_file.open = mock_open(read_data=repo_file_content)
 
     lint_tenant_isolation.main()
 
@@ -140,16 +153,25 @@ def test_main_failure(mock_exit: MagicMock, mock_path_cls: MagicMock) -> None:
 @patch("lint_tenant_isolation.Path")
 @patch("sys.exit")
 def test_main_warning(mock_exit: MagicMock, mock_path_cls: MagicMock) -> None:
-    # Set up mocks for repo_dir
     mock_repo_dir = MagicMock()
     mock_repo_dir.exists.return_value = True
+    mock_worker_dir = MagicMock()
+    mock_worker_dir.exists.return_value = False
+
+    mock_path_cls.side_effect = lambda *args, **kwargs: (
+        mock_repo_dir
+        if "repositories" in str(args[0])
+        else mock_worker_dir
+        if "worker" in str(args[0])
+        else MagicMock()
+    )
 
     mock_file = MagicMock()
     mock_file.is_file.return_value = True
     mock_file.name = "diesel_some_repository.rs"
+    mock_file.parent = mock_repo_dir
 
-    mock_repo_dir.iterdir.return_value = [mock_file]
-    mock_path_cls.return_value = mock_repo_dir
+    mock_repo_dir.rglob.return_value = [mock_file]
 
     # TenantAuthToken passed but no queries exist and no workspace reference
     repo_file_content = """
@@ -163,10 +185,7 @@ def test_main_warning(mock_exit: MagicMock, mock_path_cls: MagicMock) -> None:
     }
     """
 
-    mock_opened_file = mock_open(read_data=repo_file_content)
-    mock_filepath = MagicMock()
-    mock_filepath.open = mock_opened_file
-    mock_repo_dir.__truediv__.return_value = mock_filepath
+    mock_file.open = mock_open(read_data=repo_file_content)
 
     lint_tenant_isolation.main()
 
@@ -176,16 +195,25 @@ def test_main_warning(mock_exit: MagicMock, mock_path_cls: MagicMock) -> None:
 @patch("lint_tenant_isolation.Path")
 @patch("sys.exit")
 def test_main_query_no_workspace_ref(mock_exit: MagicMock, mock_path_cls: MagicMock) -> None:
-    # Set up mocks for repo_dir
     mock_repo_dir = MagicMock()
     mock_repo_dir.exists.return_value = True
+    mock_worker_dir = MagicMock()
+    mock_worker_dir.exists.return_value = False
+
+    mock_path_cls.side_effect = lambda *args, **kwargs: (
+        mock_repo_dir
+        if "repositories" in str(args[0])
+        else mock_worker_dir
+        if "worker" in str(args[0])
+        else MagicMock()
+    )
 
     mock_file = MagicMock()
     mock_file.is_file.return_value = True
     mock_file.name = "diesel_some_repository.rs"
+    mock_file.parent = mock_repo_dir
 
-    mock_repo_dir.iterdir.return_value = [mock_file]
-    mock_path_cls.return_value = mock_repo_dir
+    mock_repo_dir.rglob.return_value = [mock_file]
 
     # Query is made on table but has_workspace_ref is False (no workspace_id or auth_token in body)
     repo_file_content = """
@@ -200,10 +228,7 @@ def test_main_query_no_workspace_ref(mock_exit: MagicMock, mock_path_cls: MagicM
     }
     """
 
-    mock_opened_file = mock_open(read_data=repo_file_content)
-    mock_filepath = MagicMock()
-    mock_filepath.open = mock_opened_file
-    mock_repo_dir.__truediv__.return_value = mock_filepath
+    mock_file.open = mock_open(read_data=repo_file_content)
 
     lint_tenant_isolation.main()
 
@@ -215,8 +240,54 @@ def test_main_query_no_workspace_ref(mock_exit: MagicMock, mock_path_cls: MagicM
 def test_main_dir_missing(mock_exit: MagicMock, mock_path_cls: MagicMock) -> None:
     mock_repo_dir = MagicMock()
     mock_repo_dir.exists.return_value = False
-    mock_path_cls.return_value = mock_repo_dir
+    mock_worker_dir = MagicMock()
+    mock_worker_dir.exists.return_value = False
+
+    mock_path_cls.side_effect = lambda *args, **kwargs: (
+        mock_repo_dir
+        if "repositories" in str(args[0])
+        else mock_worker_dir
+        if "worker" in str(args[0])
+        else MagicMock()
+    )
 
     lint_tenant_isolation.main()
 
     mock_exit.assert_called_once_with(1)
+
+
+def test_find_files_to_scan() -> None:
+    mock_repo_dir = MagicMock()
+    mock_repo_dir.exists.return_value = True
+
+    mock_mod_file = MagicMock()
+    mock_mod_file.is_file.return_value = True
+    mock_mod_file.name = "mod.rs"
+    mock_mod_file.parent = mock_repo_dir
+
+    mock_diesel_file = MagicMock()
+    mock_diesel_file.is_file.return_value = True
+    mock_diesel_file.name = "diesel_some.rs"
+    mock_diesel_file.parent = mock_repo_dir
+
+    mock_other_file = MagicMock()
+    mock_other_file.is_file.return_value = True
+    mock_other_file.name = "other.rs"
+    mock_other_file.parent = MagicMock()
+
+    mock_repo_dir.rglob.return_value = [mock_mod_file, mock_diesel_file, mock_other_file]
+
+    mock_worker_dir = MagicMock()
+    mock_worker_dir.exists.return_value = True
+    mock_worker_file = MagicMock()
+    mock_worker_file.is_file.return_value = True
+    mock_worker_file.name = "worker.rs"
+    mock_worker_dir.rglob.return_value = [mock_worker_file]
+
+    files = lint_tenant_isolation.find_files_to_scan(mock_repo_dir, mock_worker_dir)
+
+    assert mock_diesel_file in files
+    assert mock_other_file in files
+    assert mock_worker_file in files
+    assert mock_mod_file not in files
+    assert len(files) == 3

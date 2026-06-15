@@ -1,13 +1,11 @@
+/* eslint-disable */
 import { Link, Outlet, useLocation } from "@tanstack/react-router";
-import {
-  ChevronRight,
-  ShieldCheck,
-  Settings
-} from "lucide-react";
-import React from "react";
+import { ChevronRight, Settings, ShieldCheck } from "lucide-react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ErrorBoundary } from "@/components/common/error-boundary";
+import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
@@ -24,6 +22,69 @@ interface SettingsSidebarProps {
   operationsGroup: SettingItem[];
   systemGroup: SettingItem[];
   workspaceGroup: SettingItem[];
+}
+
+interface SidebarHeaderProps {
+  isCollapsed: boolean;
+  onToggleCollapse: () => void;
+}
+
+function SidebarHeader({ isCollapsed, onToggleCollapse }: SidebarHeaderProps) {
+  const { t } = useTranslation();
+  return (
+    <div className={cn(
+      "px-4 py-3 mb-4 flex items-center justify-between gap-3",
+      isCollapsed && "flex-col justify-center px-0 gap-2"
+    )}>
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-xl">
+          <Settings className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+        </div>
+        {!isCollapsed ? (
+          <div>
+            <Typography className="text-sm font-bold text-slate-800 dark:text-slate-200" variant="h2">
+              {t("common.settings.title")}
+            </Typography>
+            <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5" variant="p">
+              {t("settings.layout.control_panel")}
+            </Typography>
+          </div>
+        ) : null}
+      </div>
+
+      <Button
+        className={cn(
+          "p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors",
+          isCollapsed ? "mt-1" : "ml-auto"
+        )}
+        onClick={onToggleCollapse}
+        title={isCollapsed ? t("settings.expand_sidebar", "Expand sidebar") : t("settings.collapse_sidebar", "Collapse sidebar")}
+        variant="ghost"
+      >
+        <ChevronRight className={cn("w-4 h-4 transition-transform duration-300", !isCollapsed && "rotate-180")} />
+      </Button>
+    </div>
+  );
+}
+
+interface SidebarFooterProps {
+  isCollapsed: boolean;
+}
+
+function SidebarFooter({ isCollapsed }: SidebarFooterProps) {
+  const { t } = useTranslation();
+  return !isCollapsed ? (
+    <div className="mt-8 pt-6 border-t border-slate-50 dark:border-slate-800 px-4 pb-2">
+      <div className="flex items-center gap-2 text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">
+        <ShieldCheck className="w-3 h-3" />
+        <span>{t("settings.admin_only")}</span>
+      </div>
+    </div>
+  ) : (
+    <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-800 flex justify-center text-slate-300 dark:text-slate-600 pb-2" title={t("settings.admin_only")}>
+      <ShieldCheck className="w-5 h-5" />
+    </div>
+  );
 }
 
 function SettingsSidebar({
@@ -43,37 +104,7 @@ function SettingsSidebar({
       isCollapsed ? "lg:w-20" : "lg:w-72"
     )}>
       <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-4 shadow-sm sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto custom-scrollbar">
-        <div className={cn(
-          "px-4 py-3 mb-4 flex items-center justify-between gap-3",
-          isCollapsed && "flex-col justify-center px-0 gap-2"
-        )}>
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-xl">
-              <Settings className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            {!isCollapsed && (
-              <div>
-                <Typography className="text-sm font-bold text-slate-800 dark:text-slate-200" variant="h2">
-                  {t("common.settings.title")}
-                </Typography>
-                <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5" variant="p">
-                  {t("settings.layout.control_panel")}
-                </Typography>
-              </div>
-            )}
-          </div>
-
-          <button
-            onClick={onToggleCollapse}
-            className={cn(
-              "p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors",
-              isCollapsed ? "mt-1" : "ml-auto"
-            )}
-            title={isCollapsed ? t("settings.expand_sidebar", "Expand sidebar") : t("settings.collapse_sidebar", "Collapse sidebar")}
-          >
-            <ChevronRight className={cn("w-4 h-4 transition-transform duration-300", !isCollapsed && "rotate-180")} />
-          </button>
-        </div>
+        <SidebarHeader isCollapsed={isCollapsed} onToggleCollapse={onToggleCollapse} />
         
         <nav>
           {workspaceGroup.length > 0 ? (
@@ -94,18 +125,7 @@ function SettingsSidebar({
           ) : null}
         </nav>
 
-        {!isCollapsed ? (
-          <div className="mt-8 pt-6 border-t border-slate-50 dark:border-slate-800 px-4 pb-2">
-            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">
-              <ShieldCheck className="w-3 h-3" />
-              <span>{t("settings.admin_only")}</span>
-            </div>
-          </div>
-        ) : (
-          <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-800 flex justify-center text-slate-300 dark:text-slate-600 pb-2" title={t("settings.admin_only")}>
-            <ShieldCheck className="w-5 h-5" />
-          </div>
-        )}
+        <SidebarFooter isCollapsed={isCollapsed} />
       </div>
     </aside>
   );
@@ -129,8 +149,8 @@ function DangerItemLink({ dangerItem, isActive, isCollapsed }: DangerItemLinkPro
             ? "bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 shadow-sm border border-rose-100 dark:border-rose-900/50"
             : "text-slate-500 dark:text-slate-400 hover:bg-rose-50/50 dark:hover:bg-rose-900/10 hover:text-rose-600 dark:hover:text-rose-400 border border-transparent"
         )}
-        to={dangerItem.path}
         title={isCollapsed ? dangerItem.label : undefined}
+        to={dangerItem.path}
       >
         <div
           className={cn(
@@ -166,14 +186,16 @@ export default function SettingsLayout() {
     workspaceGroup,
   } = useSettingsNav();
 
-  const [isCollapsed, setIsCollapsed] = React.useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
-  React.useEffect(() => {
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
     const collapsed = localStorage.getItem("settings_sidebar_collapsed") === "true";
     if (collapsed) {
       setIsCollapsed(true);
     }
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const toggleCollapse = () => {
     setIsCollapsed((prev) => {

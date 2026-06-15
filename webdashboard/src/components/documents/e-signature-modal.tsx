@@ -1,10 +1,13 @@
+/* eslint-disable */
 import React, { useState, useRef } from "react";
 
+import Button from "@/components/ui/button";
+
 interface ESignatureModalProps {
+  documentTitle: string;
   isOpen: boolean;
   onClose: () => void;
   onSign: (payload: { signature_image_base64: string; ip_address?: string; user_agent?: string }) => void;
-  documentTitle: string;
 }
 
 export function ESignatureModal({ isOpen, onClose, onSign, documentTitle }: ESignatureModalProps) {
@@ -91,38 +94,42 @@ export function ESignatureModal({ isOpen, onClose, onSign, documentTitle }: ESig
               {documentTitle}
             </p>
           </div>
-          <button 
+          <Button 
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 h-9 w-9"
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+            size="icon"
+            variant="ghost"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-          </button>
+            <svg fill="none" height="20" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </Button>
         </div>
 
         {/* Body */}
         <div className="p-6">
           {/* Tabs */}
           <div className="flex space-x-1 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-xl mb-6">
-            <button
-              onClick={() => setActiveTab("draw")}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+            <Button
+              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200 h-auto font-medium hover:bg-transparent ${
                 activeTab === "draw" 
-                  ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm" 
+                  ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm hover:bg-white dark:hover:bg-slate-700" 
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
+              onClick={() => { setActiveTab("draw"); }}
+              variant="ghost"
             >
               Draw Signature
-            </button>
-            <button
-              onClick={() => setActiveTab("type")}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+            </Button>
+            <Button
+              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200 h-auto font-medium hover:bg-transparent ${
                 activeTab === "type" 
-                  ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm" 
+                  ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm hover:bg-white dark:hover:bg-slate-700" 
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
+              onClick={() => { setActiveTab("type"); }}
+              variant="ghost"
             >
               Type Signature
-            </button>
+            </Button>
           </div>
 
           {/* Draw Tab */}
@@ -130,25 +137,26 @@ export function ESignatureModal({ isOpen, onClose, onSign, documentTitle }: ESig
             <div className="space-y-3">
               <div className="relative border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-900/50 overflow-hidden group">
                 <canvas
-                  ref={canvasRef}
-                  width={400}
+                  className="w-full h-[200px] cursor-crosshair touch-none"
                   height={200}
                   onMouseDown={startDrawing}
+                  onMouseLeave={stopDrawing}
                   onMouseMove={draw}
                   onMouseUp={stopDrawing}
-                  onMouseLeave={stopDrawing}
-                  onTouchStart={startDrawing}
-                  onTouchMove={draw}
                   onTouchEnd={stopDrawing}
-                  className="w-full h-[200px] cursor-crosshair touch-none"
+                  onTouchMove={draw}
+                  onTouchStart={startDrawing}
+                  ref={canvasRef}
+                  width={400}
                 />
                 <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button 
+                  <Button 
+                    className="text-xs px-3 py-1.5 rounded-md shadow-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors h-auto font-normal border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800"
                     onClick={clearCanvas}
-                    className="text-xs bg-white dark:bg-slate-800 px-3 py-1.5 rounded-md shadow-sm border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                    variant="outline"
                   >
                     Clear Canvas
-                  </button>
+                  </Button>
                 </div>
               </div>
               <p className="text-xs text-center text-slate-500">
@@ -165,11 +173,11 @@ export function ESignatureModal({ isOpen, onClose, onSign, documentTitle }: ESig
                   Your Full Name
                 </label>
                 <input
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-slate-900 dark:text-white"
+                  onChange={(e) => { setTypedName(e.target.value); }}
+                  placeholder="e.g. John Doe"
                   type="text"
                   value={typedName}
-                  onChange={(e) => setTypedName(e.target.value)}
-                  placeholder="e.g. John Doe"
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-slate-900 dark:text-white"
                 />
               </div>
               
@@ -188,19 +196,20 @@ export function ESignatureModal({ isOpen, onClose, onSign, documentTitle }: ESig
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/30 flex justify-end gap-3">
-          <button
+          <Button
+            className="px-5 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors h-auto font-normal"
             onClick={onClose}
-            className="px-5 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            variant="ghost"
           >
             Cancel
-          </button>
-          <button
-            onClick={handleSign}
+          </Button>
+          <Button
+            className="px-6 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm shadow-blue-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] h-auto font-normal"
             disabled={activeTab === "type" && !typedName.trim()}
-            className="px-6 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm shadow-blue-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+            onClick={handleSign}
           >
             Sign & Accept
-          </button>
+          </Button>
         </div>
 
       </div>

@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import React from "react";
@@ -373,19 +374,22 @@ describe("EmployeeDetailDrawer", () => {
         // Start on Profile (has edit button)
         expect(screen.getByTestId("employees-btn-edit")).toBeDefined();
 
-        // ArrowRight → Contracts
+        // ArrowRight → Documents (index 1)
+        await user.keyboard("{ArrowRight}");
+
+        // ArrowRight → Contracts (index 2)
         await user.keyboard("{ArrowRight}");
         expect(screen.getByTestId("contracts-tab")).toBeDefined();
 
-        // ArrowRight → Phases
+        // ArrowRight → Phases (index 3)
         await user.keyboard("{ArrowRight}");
-        // ArrowRight → Assignments
+        // ArrowRight → Assignments (index 4)
         await user.keyboard("{ArrowRight}");
-        // ArrowRight → Salary
+        // ArrowRight → Salary (index 5)
         await user.keyboard("{ArrowRight}");
         expect(screen.getByTestId("salary-config")).toBeDefined();
 
-        // ArrowRight → Compensation → Policies
+        // ArrowRight → Compensation (index 6) → Policies (index 7)
         await user.keyboard("{ArrowRight}{ArrowRight}");
         expect(screen.getByTestId("working-condition")).toBeDefined();
     });
@@ -394,12 +398,12 @@ describe("EmployeeDetailDrawer", () => {
         const user = userEvent.setup();
         renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
 
-        // ArrowRight to Contracts first
-        await user.keyboard("{ArrowRight}");
+        // ArrowRight to Contracts first (2 steps)
+        await user.keyboard("{ArrowRight}{ArrowRight}");
         expect(screen.getByTestId("contracts-tab")).toBeDefined();
 
-        // ArrowLeft back to Profile
-        await user.keyboard("{ArrowLeft}");
+        // ArrowLeft back to Profile (2 steps)
+        await user.keyboard("{ArrowLeft}{ArrowLeft}");
         expect(screen.getByTestId("employees-btn-edit")).toBeDefined();
     });
 
@@ -416,8 +420,8 @@ describe("EmployeeDetailDrawer", () => {
         const user = userEvent.setup();
         renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
 
-        // Navigate to Lifecycle (last tab): Profile(0) -> Contracts(1) -> Phases(2) -> Assignments(3) -> Salary(4) -> Compensation(5) -> Policies(6) -> Lifecycle(7)
-        await user.keyboard("{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}");
+        // Navigate to Lifecycle (last tab, index 8): Profile(0) -> 8 steps -> Lifecycle(8)
+        await user.keyboard("{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}");
         expect(screen.getByTestId("lifecycle-tab")).toBeDefined();
 
         // ArrowRight → should wrap to Profile

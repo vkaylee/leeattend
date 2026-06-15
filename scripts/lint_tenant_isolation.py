@@ -44,25 +44,16 @@ def extract_methods(file_content: str) -> list[dict[str, Any]]:
     return methods
 
 
-def main() -> None:
-    print("🔍 Running Multi-Tenancy Isolation Linter...")
-    repo_dir = Path("apiserver/src/repositories")
-    worker_dir = Path("apiserver/src/worker")
-    
+def find_files_to_scan(repo_dir: Path, worker_dir: Path) -> list[Path]:
     files_to_scan = []
-    
-    if repo_dir.exists():
-        for p in repo_dir.rglob("*.rs"):
-            if p.is_file():
-                if p.name == "mod.rs":
-                    continue
-                is_sub_dir = p.parent != repo_dir
-                if is_sub_dir or p.name.startswith("diesel_"):
-                    files_to_scan.append(p)
-    else:
-        print(f"❌ ERROR: Directory {repo_dir} not found.")
-        sys.exit(1)
-        return
+
+    for p in repo_dir.rglob("*.rs"):
+        if p.is_file():
+            if p.name == "mod.rs":
+                continue
+            is_sub_dir = p.parent != repo_dir
+            if is_sub_dir or p.name.startswith("diesel_"):
+                files_to_scan.append(p)
 
     if worker_dir.exists():
         for p in worker_dir.rglob("*.rs"):
@@ -70,6 +61,21 @@ def main() -> None:
                 files_to_scan.append(p)
     else:
         print(f"⚠️ WARNING: Directory {worker_dir} not found.")
+
+    return files_to_scan
+
+
+def main() -> None:
+    print("🔍 Running Multi-Tenancy Isolation Linter...")
+    repo_dir = Path("apiserver/src/repositories")
+    worker_dir = Path("apiserver/src/worker")
+
+    if not repo_dir.exists():
+        print(f"❌ ERROR: Directory {repo_dir} not found.")
+        sys.exit(1)
+        return
+
+    files_to_scan = find_files_to_scan(repo_dir, worker_dir)
 
     errors = 0
     warnings = 0

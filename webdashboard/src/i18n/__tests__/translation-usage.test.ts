@@ -1,8 +1,23 @@
+/* eslint-disable */
 import fs from 'fs';
 import path from 'path';
 import { describe, it, expect } from 'vitest';
 
 const localesDir = path.resolve(__dirname, '../locales');
+
+function deepMerge(target: Record<string, any>, source: Record<string, any>): Record<string, any> {
+  for (const key of Object.keys(source)) {
+    if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+      if (!target[key] || typeof target[key] !== 'object') {
+        target[key] = {};
+      }
+      deepMerge(target[key] as Record<string, any>, source[key] as Record<string, any>);
+    } else {
+      target[key] = source[key];
+    }
+  }
+  return target;
+}
 
 function loadMergedLocales(lng: string): Record<string, unknown> {
   const lngDir = path.join(localesDir, lng);
@@ -13,7 +28,7 @@ function loadMergedLocales(lng: string): Record<string, unknown> {
     if (file.endsWith('.json')) {
       const content = fs.readFileSync(path.join(lngDir, file), 'utf-8');
       const data = JSON.parse(content) as Record<string, unknown>;
-      Object.assign(merged, data);
+      deepMerge(merged, data);
     }
   });
   

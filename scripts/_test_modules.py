@@ -55,6 +55,7 @@ def leeattend_run_lint(component_filter: str = "", mode: str = "all") -> bool:
 
         # Add custom Python linters (run on host as apiserver container lacks Python)
         import sys
+
         clean_code_cmd = [sys.executable, "scripts/lint_clean_code.py"]
         tasks.append(("rust-backend-clean-code-linter", "apiserver", clean_code_cmd))
 

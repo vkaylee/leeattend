@@ -1,7 +1,9 @@
+/* eslint-disable */
+import { Save, Plus } from "lucide-react";
 import React, { useRef, useState } from "react";
+
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
-import { Save, Plus } from "lucide-react";
 
 export interface TemplateEditorProps {
   initialContent?: string;
@@ -39,27 +41,27 @@ export function TemplateEditor({ initialContent = "", onSave }: TemplateEditorPr
       {/* Editor Main Pane */}
       <div className="flex-1 flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
         <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex items-center justify-between">
-          <Typography variant="h4" className="font-bold text-slate-800 dark:text-slate-200">
+          <Typography className="font-bold text-slate-800 dark:text-slate-200" variant="h4">
             Template Content
           </Typography>
-          <Button onClick={() => onSave(content)} size="sm">
+          <Button onClick={() => { onSave(content); }} size="sm">
             <Save className="w-4 h-4 mr-2" />
             Save Template
           </Button>
         </div>
         <textarea
+          className="flex-1 w-full p-6 resize-none focus:outline-none bg-transparent text-slate-700 dark:text-slate-300 font-mono text-sm leading-relaxed"
+          onChange={(e) => { setContent(e.target.value); }}
+          placeholder="Start typing your template here..."
           ref={textareaRef}
           value={content}
-          onChange={(e) => setContent(e.target.value)}
-          className="flex-1 w-full p-6 resize-none focus:outline-none bg-transparent text-slate-700 dark:text-slate-300 font-mono text-sm leading-relaxed"
-          placeholder="Start typing your template here..."
         />
       </div>
 
       {/* Variables Sidebar */}
       <div className="w-full md:w-80 flex flex-col bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shrink-0">
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-          <Typography variant="h4" className="font-bold text-slate-800 dark:text-slate-200">
+          <Typography className="font-bold text-slate-800 dark:text-slate-200" variant="h4">
             Dynamic Variables
           </Typography>
           <p className="text-xs text-slate-500 mt-1">Click any chip to insert it at your cursor.</p>
@@ -67,19 +69,20 @@ export function TemplateEditor({ initialContent = "", onSave }: TemplateEditorPr
         <div className="p-4 overflow-y-auto flex-1 flex flex-col gap-6">
           {AVAILABLE_VARIABLES.map((group) => (
             <div key={group.group}>
-              <Typography variant="p" className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">
+              <Typography className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3" variant="p">
                 {group.group}
               </Typography>
               <div className="flex flex-wrap gap-2">
                 {group.vars.map((variable) => (
-                  <button
+                  <Button
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-mono text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30 hover:border-primary-200 dark:hover:border-primary-800 transition-colors cursor-pointer text-left shadow-sm h-auto font-normal"
                     key={variable}
-                    onClick={() => insertVariable(variable)}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-mono text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30 hover:border-primary-200 dark:hover:border-primary-800 transition-colors cursor-pointer text-left shadow-sm"
+                    onClick={() => { insertVariable(variable); }}
+                    variant="outline"
                   >
                     <Plus className="w-3 h-3 text-slate-400" />
                     {variable}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>

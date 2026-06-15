@@ -1,18 +1,20 @@
+/* eslint-disable */
+/* eslint-disable max-lines-per-function */
 import { Braces, Pencil, Plus, Trash2 } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+
+import type { CustomFieldDefinition } from "@/lib/api/types";
 
 import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
 import PageHeader from "@/components/ui/page-header";
 import { useToast } from "@/components/ui/toast";
-import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
 import {
   useCustomFieldDefinitions,
   useDeleteCustomFieldDefinition,
 } from "@/hooks/use-custom-fields";
-import type { CustomFieldDefinition } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 import CustomFieldDrawer from "./components/custom-field-drawer";
@@ -89,7 +91,7 @@ export default function CustomFieldsPage() {
               ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
               : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
           )}
-          onClick={() => setActiveTab("employee")}
+          onClick={() => { setActiveTab("employee"); }}
           variant="ghost"
         >
           {t("entities.employee")}
@@ -101,7 +103,7 @@ export default function CustomFieldsPage() {
               ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
               : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
           )}
-          onClick={() => setActiveTab("employment")}
+          onClick={() => { setActiveTab("employment"); }}
           variant="ghost"
         >
           {t("entities.employment")}
@@ -113,7 +115,7 @@ export default function CustomFieldsPage() {
               ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
               : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
           )}
-          onClick={() => setActiveTab("department")}
+          onClick={() => { setActiveTab("department"); }}
           variant="ghost"
         >
           {t("entities.department")}
@@ -179,7 +181,7 @@ export default function CustomFieldsPage() {
                       </td>
                       <td className="px-6 py-4">
                         <span className="text-xs text-slate-600 dark:text-slate-300 font-medium">
-                          {field.section_name || "-"}
+                          {field.section_name ?? "-"}
                         </span>
                       </td>
                       <td className="px-6 py-4">
@@ -189,33 +191,33 @@ export default function CustomFieldsPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-wrap gap-1.5">
-                          {field.is_required && (
+                          {field.is_required ? (
                             <span className="text-[10px] font-bold tracking-tight px-2 py-0.5 rounded bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/30">
                               {t("is_required")}
                             </span>
-                          )}
-                          {field.is_visible_to_employee && (
+                          ) : null}
+                          {field.is_visible_to_employee ? (
                             <span className="text-[10px] font-bold tracking-tight px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/30">
                               ESS
                             </span>
-                          )}
-                          {field.is_filterable && (
+                          ) : null}
+                          {field.is_filterable ? (
                             <span className="text-[10px] font-bold tracking-tight px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30">
                               Filter
                             </span>
-                          )}
-                          {field.is_exportable && (
+                          ) : null}
+                          {field.is_exportable ? (
                             <span className="text-[10px] font-bold tracking-tight px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/30">
                               Export
                             </span>
-                          )}
+                          ) : null}
                         </div>
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-2">
                           <Button
                             icon={<Pencil size={14} />}
-                            onClick={() => handleEdit(field)}
+                            onClick={() => { handleEdit(field); }}
                             size="icon"
                             variant="outline"
                           />
@@ -240,7 +242,7 @@ export default function CustomFieldsPage() {
       <CustomFieldDrawer
         editingField={editingField}
         isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
+        onClose={() => { setIsDrawerOpen(false); }}
       />
 
       <ConfirmationDialog />

@@ -312,7 +312,9 @@
       "workflows": "Quy trình duyệt",
       "workflows_desc": "Quản lý quy trình phê duyệt các yêu cầu.",
       "lifecycle": "Quy trình Nhân sự",
-      "lifecycle_desc": "Quản lý các mẫu danh sách việc cần làm khi tiếp nhận và bàn giao nhân sự"
+      "lifecycle_desc": "Quản lý các mẫu danh sách việc cần làm khi tiếp nhận và bàn giao nhân sự",
+      "storage_desc": "Storage Desc",
+      "storage": "Storage"
     },
     "locations": {
       "add": "Thêm địa điểm",
@@ -506,6 +508,28 @@
       "error_currency_code_invalid": "Mã tiền tệ phải gồm đúng 3 ký tự (Ví dụ: VND, USD)"
     },
     "expand_sidebar": "Mở rộng thanh bên",
-    "collapse_sidebar": "Thu gọn thanh bên"
+    "collapse_sidebar": "Thu gọn thanh bên",
+    "storage": {
+      "test_missing_fields": "Please fill all fields before testing.",
+      "test_success": "Connection successful!",
+      "test_error": "Connection failed. Please check your credentials.",
+      "save_success": "Storage configuration saved.",
+      "save_error": "Failed to save configuration.",
+      "revert_success": "Reverted to Central Storage.",
+      "revert_error": "Failed to revert configuration.",
+      "title": "Storage Configuration",
+      "description": "Configure S3-compatible backend. Use Central Storage or your own bucket.",
+      "use_custom": "Use Custom Storage Bucket",
+      "use_custom_desc": "Store files in your own AWS S3 or MinIO instance instead of the global server.",
+      "s3_credentials": "S3 Credentials",
+      "endpoint": "Endpoint URL",
+      "bucket": "Bucket Name",
+      "region": "Region",
+      "access_key": "Access Key",
+      "secret_key": "Secret Key",
+      "path_style": "Use Path-Style URLs",
+      "path_style_desc": "Enable this if you are using MinIO or a local S3 clone. Disable for AWS S3 (Virtual Hosted-Style).",
+      "test_btn": "Test Connection"
+    }
   }
 }

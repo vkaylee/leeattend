@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { Link } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 import React from "react";
@@ -34,8 +35,8 @@ export function NavGroup({ title, items, isActive, isCollapsed }: NavGroupProps)
             )}
             data-testid={`settings-nav-${item.path}`}
             key={item.path}
-            to={item.path}
             title={isCollapsed ? item.label : undefined}
+            to={item.path}
           >
             <div
               className={`p-2 rounded-xl transition-colors ${

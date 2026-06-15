@@ -75,7 +75,11 @@
     "modal": {
       "import_title": "从文件导入打卡记录"
     },
-    "view_reports": "查看摘要报告"
+    "view_reports": "查看摘要报告",
+    "context": {
+      "copy_id": "Copy Employee ID",
+      "copy_time": "Copy Punch Time"
+    }
   },
   "attendance_import": {
     "subtitle": "批量数据导入",

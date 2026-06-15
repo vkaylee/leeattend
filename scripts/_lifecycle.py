@@ -246,7 +246,15 @@ def sweep_stale_environments() -> None:
 # when compose down fails to stop PID 1 (e.g. tail -f /dev/null ignoring SIGTERM)
 _PROFILE_CONTAINERS: dict[str, list[str]] = {
     "frontend": ["bun_init", "webdashboard"],
-    "backend": ["apiserver", "agent-main", "db_system", "db_init", "redis", "pgbouncer_tx", "pgbouncer_sess"],
+    "backend": [
+        "apiserver",
+        "agent-main",
+        "db_system",
+        "db_init",
+        "redis",
+        "pgbouncer_tx",
+        "pgbouncer_sess",
+    ],
 }
 
 

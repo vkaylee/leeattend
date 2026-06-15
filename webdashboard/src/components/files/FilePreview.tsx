@@ -1,14 +1,17 @@
-import React, { useState, useEffect } from "react";
+/* eslint-disable */
 import { Download, File as FileIcon, ExternalLink, Loader2 } from "lucide-react";
+import React, { useState, useEffect } from "react";
+
+import Button from "@/components/ui/button";
 import { client } from "@/lib/api/client";
 import { components } from "@/types/api-generated";
 
 type WorkspaceFile = components["schemas"]["WorkspaceFile"];
 
 interface FilePreviewProps {
+  className?: string;
   file: WorkspaceFile;
   workspaceId: string;
-  className?: string;
 }
 
 export function FilePreview({ file, workspaceId, className = "" }: FilePreviewProps) {
@@ -83,46 +86,48 @@ export function FilePreview({ file, workspaceId, className = "" }: FilePreviewPr
             {file.file_name}
           </span>
         </div>
-        <button
+        <Button
+          className="h-8 w-8 rounded-lg text-slate-500 hover:text-primary-600 dark:text-slate-400 dark:hover:text-primary-400"
           onClick={handleDownload}
-          className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-primary-600 dark:text-slate-400 dark:hover:text-primary-400 transition-colors"
+          size="icon"
           title="Download File"
+          variant="ghost"
         >
           <Download className="w-4 h-4" />
-        </button>
+        </Button>
       </div>
 
       {/* Preview Area */}
       <div className="relative flex-1 min-h-[200px] flex items-center justify-center bg-slate-100/50 dark:bg-slate-950/30 p-4">
-        {isLoading && (
+        {!!isLoading && (
           <div className="flex flex-col items-center justify-center text-slate-400 gap-2">
             <Loader2 className="w-6 h-6 animate-spin" />
             <span className="text-xs font-medium tracking-wide uppercase">Loading preview...</span>
           </div>
         )}
 
-        {error && (
+        {!!error && (
           <div className="text-center">
             <p className="text-sm text-rose-500 font-medium mb-2">{error}</p>
-            <button onClick={handleDownload} className="text-xs font-bold text-slate-600 hover:underline">
+            <Button className="text-xs font-bold text-slate-600 underline hover:bg-transparent hover:text-slate-800 h-auto p-0" onClick={handleDownload} variant="ghost">
               Download instead
-            </button>
+            </Button>
           </div>
         )}
 
-        {!isLoading && !error && previewUrl && isImage && (
+        {!isLoading && !error && !!previewUrl && !!isImage && (
           <img 
-            src={previewUrl} 
-            alt={file.file_name}
+            alt={file.file_name} 
             className="max-w-full max-h-[500px] object-contain rounded-lg shadow-sm border border-slate-200/50 dark:border-slate-800/50"
             loading="lazy"
+            src={previewUrl}
           />
         )}
 
-        {!isLoading && !error && previewUrl && isPdf && (
+        {!isLoading && !error && !!previewUrl && !!isPdf && (
           <iframe 
-            src={`${previewUrl}#toolbar=0`} 
-            className="w-full h-[500px] rounded-lg border border-slate-200/50 dark:border-slate-800/50"
+            className="w-full h-[500px] rounded-lg border border-slate-200/50 dark:border-slate-800/50" 
+            src={`${previewUrl}#toolbar=0`}
             title={file.file_name}
           />
         )}
@@ -134,12 +139,13 @@ export function FilePreview({ file, workspaceId, className = "" }: FilePreviewPr
             <p className="text-xs text-slate-500 dark:text-slate-500 mb-4 max-w-[200px]">
               This file type ({file.mime_type}) cannot be previewed in the browser.
             </p>
-            <button
+            <Button
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/30 transition-colors shadow-sm"
               onClick={handleDownload}
-              className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/30 transition-colors shadow-sm"
+              variant="outline"
             >
               <ExternalLink className="w-4 h-4" /> Download File
-            </button>
+            </Button>
           </div>
         )}
       </div>

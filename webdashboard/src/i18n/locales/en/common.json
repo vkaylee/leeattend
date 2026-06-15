@@ -454,7 +454,11 @@
       "assignee_type": "Assignee Type",
       "select_policy": "Select Policy",
       "select_policy_placeholder": "-- Choose Policy --",
-      "effective_from": "Effective From"
+      "effective_from": "Effective From",
+      "validation": {
+        "base_pay_positive": "Base pay must be a positive number",
+        "status_invalid": "Status must be draft, finalized, or paid"
+      }
     },
     "agents": {
       "title": "Agent Management",
@@ -1213,7 +1217,11 @@
     "value": "Value",
     "not_assigned": "Not assigned",
     "reset": "Reset",
-    "no_title": "No Title"
+    "no_title": "No Title",
+    "copied": "Copied to clipboard",
+    "saved": "Saved change successfully",
+    "view": "View Details",
+    "deselect": "Deselect"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -1679,5 +1687,11 @@
   },
   "behalf": {
     "no_assignments_configured": "No behalf assignments configured"
+  },
+  "errors": {
+    "upload_failed": "Upload Failed",
+    "presigned_url_failed": "Presigned Url Failed",
+    "s3_upload_failed": "S3 Upload Failed",
+    "network_error": "Network Error"
   }
 }

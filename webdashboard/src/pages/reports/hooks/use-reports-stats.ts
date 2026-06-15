@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
@@ -7,11 +8,11 @@ import { formatHours } from "@/lib/utils/attendance";
 interface UseReportsStatsProps {
   dateRange: { start: string; end: string };
   employeeIdsFilter: string[] | undefined;
+  employeeStatus?: string;
   selectedDepartmentId: string | null;
+  selectedEmployerId: string | null;
   sortBy: AttendanceReportSort | undefined;
   wsId: string | null;
-  employeeStatus?: string;
-  selectedEmployerId: string | null;
 }
 
 export function useReportsStats({

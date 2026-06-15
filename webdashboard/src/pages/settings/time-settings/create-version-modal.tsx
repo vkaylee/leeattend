@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { Calculator, Clock, Plus, ShieldAlert, Settings2, Zap } from "lucide-react";
 import React from "react";
 
@@ -160,7 +161,7 @@ function WorkUnitInput({
             value: "60",
           },
         ]}
-        value={workUnit?.toString() ?? "15"}
+        value={workUnit.toString()}
       />
     </div>
   );

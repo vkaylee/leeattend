@@ -22,7 +22,9 @@ from contextlib import contextmanager
 # ─────────────────────────────────────────────────────────────────────
 
 # Local dev DB urls
-LEGACY_DB_URL = os.getenv("LEGACY_DB_URL", "postgres://tenant_user:tenant_password@localhost:5435/legacy_db")
+LEGACY_DB_URL = os.getenv(
+    "LEGACY_DB_URL", "postgres://tenant_user:tenant_password@localhost:5435/legacy_db"
+)
 WORKSPACE_DB_URL = os.getenv(
     "WORKSPACE_DB_URL", "postgres://tenant_user:tenant_password@localhost:5435/tenant_db"
 )

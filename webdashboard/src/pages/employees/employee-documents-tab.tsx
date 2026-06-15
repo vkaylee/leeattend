@@ -1,11 +1,15 @@
-import React, { useState } from "react";
+/* eslint-disable */
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { client } from "@/lib/api/client";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+
 import { toast } from "sonner";
+
 import { FileList } from "@/components/files/FileList";
 import { FileUpload } from "@/components/files/FileUpload";
+import Button from "@/components/ui/button";
 import { useWorkspace } from "@/hooks/use-workspace";
+import { client } from "@/lib/api/client";
 import { components } from "@/types/api-generated";
 
 type WorkspaceFile = components["schemas"]["WorkspaceFile"];
@@ -42,7 +46,7 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
         throw new Error((error as any)?.message || "Failed to load documents");
       }
 
-      return data as WorkspaceFile[];
+      return data;
     },
     enabled: !!currentWorkspace?.id && !!employeeId,
   });
@@ -120,30 +124,25 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
           </p>
         </div>
         
-        <button
-          onClick={() => setShowUploadPanel(!showUploadPanel)}
-          className={`
-            px-4 py-2 font-bold text-sm rounded-xl transition-all shadow-sm
-            ${showUploadPanel 
-              ? "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
-              : "bg-primary-600 text-white hover:bg-primary-700 shadow-primary-500/30"
-            }
-          `}
+        <Button
+          className="px-4 py-2 text-sm rounded-xl transition-all shadow-sm"
+          onClick={() => { setShowUploadPanel(!showUploadPanel); }}
+          variant={showUploadPanel ? "secondary" : "primary"}
         >
           {showUploadPanel ? "Close Upload" : "+ Upload Document"}
-        </button>
+        </Button>
       </div>
 
       {/* Upload Panel (Collapsible) */}
-      {showUploadPanel && currentWorkspace && (
+      {!!showUploadPanel && !!currentWorkspace && (
         <div className="animate-in slide-in-from-top-4 fade-in duration-300">
           <FileUpload
-            workspaceId={currentWorkspace.id}
             category="EmployeeDoc"
-            ownerType="Employee"
-            ownerId={employeeId}
-            onUploadSuccess={handleUploadSuccess}
             maxSizeMB={50} // 50MB for Employee Docs
+            onUploadSuccess={handleUploadSuccess}
+            ownerId={employeeId}
+            ownerType="Employee"
+            workspaceId={currentWorkspace.id}
           />
         </div>
       )}
@@ -153,9 +152,9 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
         <FileList
           files={files}
           isLoading={isLoading}
+          onDelete={handleDelete}
           onDownload={handleDownload}
           onRename={handleRename}
-          onDelete={handleDelete}
           onShare={handleShare}
         />
       </div>

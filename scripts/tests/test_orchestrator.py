@@ -286,7 +286,7 @@ def test_log_warn(orchestrator, capsys) -> None:
     """Test log_warn function."""
     _orchestrator.log_warn("test warning")
     captured = capsys.readouterr()
-    assert "test warning" in captured.out
+    assert "test warning" in captured.err
 
 
 @patch("subprocess.run")

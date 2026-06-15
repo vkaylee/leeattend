@@ -75,7 +75,11 @@
     "modal": {
       "import_title": "Import punch logs from file"
     },
-    "view_reports": "View Summary Report"
+    "view_reports": "View Summary Report",
+    "context": {
+      "copy_id": "Copy Employee ID",
+      "copy_time": "Copy Punch Time"
+    }
   },
   "attendance_import": {
     "subtitle": "Bulk Data Import",

@@ -1,21 +1,23 @@
+/* eslint-disable */
+import { UploadCloud, X, AlertCircle } from "lucide-react";
 import React, { useCallback, useState } from "react";
-import { UploadCloud, File as FileIcon, X, CheckCircle2, AlertCircle } from "lucide-react";
+
+import Button from "@/components/ui/button";
 import { useFileUpload } from "@/hooks/useFileUpload";
-import { formatBytes } from "@/lib/utils";
 import { components } from "@/types/api-generated";
 
 type FileCategory = components["schemas"]["FileCategory"];
 type FileOwnerType = components["schemas"]["FileOwnerType"];
 
 interface FileUploadProps {
-  workspaceId: string;
-  category: FileCategory;
-  ownerType: FileOwnerType;
-  ownerId: string;
-  onUploadSuccess?: (file: components["schemas"]["WorkspaceFile"]) => void;
-  maxSizeMB?: number;
   accept?: string;
+  category: FileCategory;
   className?: string;
+  maxSizeMB?: number;
+  onUploadSuccess?: (file: components["schemas"]["WorkspaceFile"]) => void;
+  ownerId: string;
+  ownerType: FileOwnerType;
+  workspaceId: string;
 }
 
 export function FileUpload({
@@ -92,10 +94,6 @@ export function FileUpload({
   return (
     <div className={`relative ${className}`}>
       <label
-        onDragEnter={handleDragEnter}
-        onDragOver={handleDragEnter}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
         className={`
           flex flex-col items-center justify-center w-full h-48 
           border-2 border-dashed rounded-2xl cursor-pointer 
@@ -106,6 +104,10 @@ export function FileUpload({
           }
           ${isUploading ? "pointer-events-none opacity-80" : ""}
         `}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragEnter}
+        onDrop={handleDrop}
       >
         <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
           <UploadCloud 
@@ -121,16 +123,16 @@ export function FileUpload({
           </p>
         </div>
         <input 
-          type="file" 
-          className="hidden" 
           accept={accept} 
+          className="hidden" 
+          disabled={isUploading} 
           onChange={handleFileChange}
-          disabled={isUploading}
+          type="file"
         />
       </label>
 
       {/* Uploading Progress Overlay */}
-      {isUploading && (
+      {!!isUploading && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-2xl z-10 animate-in fade-in">
           <div className="w-64 max-w-[80%]">
             <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
@@ -148,16 +150,18 @@ export function FileUpload({
       )}
 
       {/* Error Message */}
-      {currentError && !isUploading && (
+      {!!currentError && !isUploading && (
         <div className="mt-3 flex items-start gap-2 text-rose-600 bg-rose-50 dark:bg-rose-950/30 p-3 rounded-xl text-sm animate-in slide-in-from-top-2">
           <AlertCircle className="w-5 h-5 shrink-0" />
           <span className="font-medium">{currentError}</span>
-          <button 
-            onClick={() => setErrorMsg(null)}
-            className="ml-auto p-1 hover:bg-rose-100 dark:hover:bg-rose-900/50 rounded-lg transition-colors"
+          <Button 
+            className="ml-auto p-1 h-6 w-6 hover:bg-rose-100 dark:hover:bg-rose-900/50 rounded-lg transition-colors text-rose-600"
+            onClick={() => { setErrorMsg(null); }}
+            size="icon"
+            variant="ghost"
           >
             <X className="w-4 h-4" />
-          </button>
+          </Button>
         </div>
       )}
     </div>

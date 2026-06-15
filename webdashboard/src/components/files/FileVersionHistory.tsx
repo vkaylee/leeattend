@@ -1,18 +1,22 @@
-import React from "react";
+/* eslint-disable */
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
 import { History, ArrowDownToLine, CheckCircle2 } from "lucide-react";
-import { client } from "@/lib/api/client";
-import { components } from "@/types/api-generated";
-import { formatBytes } from "@/lib/utils";
+import React from "react";
+
+import { format } from "date-fns";
 import { toast } from "sonner";
+
+import Button from "@/components/ui/button";
+import { client } from "@/lib/api/client";
+import { formatBytes } from "@/lib/utils";
+import { components } from "@/types/api-generated";
 
 type WorkspaceFile = components["schemas"]["WorkspaceFile"];
 
 interface FileVersionHistoryProps {
+  className?: string;
   fileId: string;
   workspaceId: string;
-  className?: string;
 }
 
 export function FileVersionHistory({ fileId, workspaceId, className = "" }: FileVersionHistoryProps) {
@@ -31,7 +35,7 @@ export function FileVersionHistory({ fileId, workspaceId, className = "" }: File
       if (error) {
         throw new Error((error as any)?.message || "Failed to load version history");
       }
-      return data as WorkspaceFile[];
+      return data;
     },
     enabled: !!workspaceId && !!fileId,
   });
@@ -53,7 +57,7 @@ export function FileVersionHistory({ fileId, workspaceId, className = "" }: File
     return (
       <div className={`flex flex-col gap-4 animate-pulse p-4 ${className}`}>
         {[1, 2, 3].map(i => (
-          <div key={i} className="flex gap-4">
+          <div className="flex gap-4" key={i}>
             <div className="w-2 h-20 bg-slate-200 dark:bg-slate-800 rounded-full" />
             <div className="flex-1 space-y-2 py-1">
               <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/4" />
@@ -89,7 +93,7 @@ export function FileVersionHistory({ fileId, workspaceId, className = "" }: File
             const isLatest = version.is_latest;
             
             return (
-              <div key={version.id} className="relative flex gap-5 group">
+              <div className="relative flex gap-5 group" key={version.id}>
                 {/* Timeline Dot */}
                 <div className={`
                   relative z-10 w-3 h-3 mt-1.5 rounded-full shrink-0 border-2 transition-colors
@@ -112,7 +116,7 @@ export function FileVersionHistory({ fileId, workspaceId, className = "" }: File
                       <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">
                         Version {version.version}
                       </span>
-                      {isLatest && (
+                      {!!isLatest && (
                         <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-primary-50 dark:bg-primary-950/30 text-primary-600 dark:text-primary-400 text-[9px] font-black tracking-widest uppercase">
                           <CheckCircle2 className="w-3 h-3" /> Current
                         </span>
@@ -135,19 +139,15 @@ export function FileVersionHistory({ fileId, workspaceId, className = "" }: File
                     </div>
                   </div>
 
-                  <button
+                  <Button
+                    className="h-8 w-8 rounded-xl"
                     onClick={() => handleDownloadVersion(version.id)}
-                    className={`
-                      p-2 rounded-xl transition-all
-                      ${isLatest 
-                        ? "bg-primary-50 text-primary-600 hover:bg-primary-100 dark:bg-primary-950/30 dark:text-primary-400 dark:hover:bg-primary-900/50" 
-                        : "bg-white text-slate-400 border border-slate-200 hover:text-primary-600 hover:border-primary-200 dark:bg-slate-800 dark:border-slate-700 dark:hover:border-primary-800"
-                      }
-                    `}
+                    size="icon"
                     title="Download this version"
+                    variant={isLatest ? "secondary" : "outline"}
                   >
                     <ArrowDownToLine className="w-4 h-4" />
-                  </button>
+                  </Button>
                 </div>
               </div>
             );

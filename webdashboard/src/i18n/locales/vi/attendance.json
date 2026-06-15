@@ -75,7 +75,11 @@
     "modal": {
       "import_title": "Nhập nhật ký quẹt thẻ từ file"
     },
-    "view_reports": "Xem Báo Cáo Tổng Hợp"
+    "view_reports": "Xem Báo Cáo Tổng Hợp",
+    "context": {
+      "copy_id": "Copy Employee ID",
+      "copy_time": "Copy Punch Time"
+    }
   },
   "attendance_import": {
     "subtitle": "Nhập dữ liệu hàng loạt",
