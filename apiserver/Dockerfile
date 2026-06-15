@@ -38,7 +38,7 @@ CMD ["cargo", "watch", "-x", "run"]
 FROM chef AS test
 ENV SCCACHE_DIR=/sccache
 ENV RUSTFLAGS="--sysroot /usr/local/rustup/toolchains/stable-x86_64-unknown-linux-gnu -Ctarget-feature=+crt-static -Clink-self-contained=yes -Cprefer-dynamic=no -L/usr/local/musl/lib -C link-arg=-lssl -C link-arg=-lcrypto -C link-arg=-lz -C link-arg=-lc -C link-arg=-z -C link-arg=notext"
-RUN apt-get update && apt-get install -y postgresql-client && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y postgresql-client clang && rm -rf /var/lib/apt/lists/*
 RUN cargo install diesel_cli --locked --no-default-features --features postgres
 RUN curl -LsSf https://get.nexte.st/0.9.133/linux | tar zxf - -C /usr/local/bin
 # Coverage tooling: llvm-cov requires llvm-tools-preview component + cargo-llvm-cov binary

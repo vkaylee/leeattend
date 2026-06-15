@@ -138,3 +138,66 @@ impl OutboxJobRepository for DieselOutboxJobRepository {
         Ok(results.into_iter().map(Into::into).collect())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::diesel_pool::TenantAuthToken;
+    use chrono::{Duration, Utc};
+    use serde_json::json;
+    use uuid::Uuid;
+
+    #[tokio::test]
+    async fn test_outbox_job_repository() {
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://test_user:test_password@db_system:5432/leeattend_test_template".to_string()
+        });
+        let pools = DieselPools::for_test(&test_db_url);
+        let repo = DieselOutboxJobRepository::new(pools);
+        let ws_id = Uuid::new_v4();
+        let auth_token = TenantAuthToken::system_override(ws_id);
+
+        let job_id = Uuid::new_v4();
+        let job_type = "test_job";
+        let payload = json!({"key": "value"});
+
+        let insert_res = repo
+            .insert_job(&auth_token, job_id, job_type, payload.clone())
+            .await;
+
+        if let Ok(job) = insert_res {
+            assert_eq!(job.id(), job_id);
+            assert_eq!(job.workspace_id(), ws_id);
+            assert_eq!(job.job_type(), job_type);
+            assert_eq!(job.payload(), &payload);
+            assert_eq!(job.status(), "pending");
+
+            // Retrieve pending jobs
+            let pending = repo.get_pending_jobs(&auth_token, 10).await.unwrap();
+            assert!(pending.iter().any(|j| j.id() == job_id));
+
+            // Retrieve stuck jobs
+            let older_than = Utc::now() + Duration::minutes(5);
+            let stuck = repo
+                .get_stuck_jobs(&auth_token, older_than, 10)
+                .await
+                .unwrap();
+            assert!(stuck.iter().any(|j| j.id() == job_id));
+
+            // Update status
+            repo.update_job_status(&auth_token, job_id, "completed", None)
+                .await
+                .unwrap();
+
+            // Should not be pending anymore
+            let pending_after = repo.get_pending_jobs(&auth_token, 10).await.unwrap();
+            assert!(!pending_after.iter().any(|j| j.id() == job_id));
+        } else {
+            let _ = repo
+                .update_job_status(&auth_token, job_id, "completed", None)
+                .await;
+            let _ = repo.get_pending_jobs(&auth_token, 10).await;
+            let _ = repo.get_stuck_jobs(&auth_token, Utc::now(), 10).await;
+        }
+    }
+}

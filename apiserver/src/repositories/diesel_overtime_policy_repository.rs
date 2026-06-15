@@ -337,16 +337,200 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::diesel_pool::DieselPools;
+    use crate::diesel_pool::{DieselPools, TenantAuthToken};
+    use chrono::{NaiveDate, NaiveTime};
+    use uuid::Uuid;
 
     #[tokio::test]
-    async fn test_repo_initialization() {
+    async fn test_overtime_policy_repository_flow() {
         let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            "postgres://user:pass@localhost:5432/leeattend_test_db".to_string()
+            "postgres://test_user:test_password@db_system:5432/leeattend_test_template".to_string()
         });
 
         let pools = DieselPools::for_test(&test_db_url);
-        let _repo = DieselOvertimePolicyRepository::new(pools);
-        // DI connection test passes if it compiles
+        let repo = DieselOvertimePolicyRepository::new(pools.clone());
+        let ws_id = Uuid::new_v4();
+        let token = TenantAuthToken::system_override(ws_id);
+
+        let mut conn = if let Ok(c) = pools.tenant_transaction_conn(&token).await {
+            c
+        } else {
+            println!("Database not available, skipping integration assertions");
+            return;
+        };
+
+        // 1. Insert Workspace to satisfy FK constraints
+        let workspace_entity = crate::models::diesel::core::WorkspaceEntity {
+            id: ws_id,
+            name: "Test Workspace".to_string(),
+            created_at: Some(chrono::Utc::now()),
+            date_format: "YYYY-MM-DD".to_string(),
+            time_format: "HH:mm".to_string(),
+            timezone: "UTC".to_string(),
+            theme_primary_color: None,
+            default_language: "en".to_string(),
+            logo_url: None,
+            tagline: None,
+            custom_db_url_encrypted: None,
+        };
+        diesel::insert_into(crate::schema::workspaces::table)
+            .values(&workspace_entity)
+            .execute(&mut *conn)
+            .await
+            .expect("insert workspace");
+
+        // 2. Create policy definitions
+        let policy = repo
+            .create_policy_definition(ws_id, "Standard OT", Some("Standard rules"))
+            .await
+            .unwrap();
+        assert_eq!(policy.name(), "Standard OT");
+
+        let list = repo.get_policy_definitions(ws_id).await.unwrap();
+        assert!(list.iter().any(|p| p.id() == policy.id()));
+
+        // 3. Add rules
+        let rule = OvertimeRule::new(
+            Uuid::new_v4(),
+            policy.id(),
+            1,                                 // priority
+            rust_decimal::Decimal::new(15, 1), // multiplier = 1.5
+            NaiveTime::from_hms_opt(8, 0, 0),  // start
+            NaiveTime::from_hms_opt(17, 0, 0), // end
+            127,                               // days of week
+            false,                             // is holiday
+            None,
+            None,
+        );
+        let added_rule = repo.add_rule(ws_id, &rule).await.unwrap();
+        assert_eq!(added_rule.priority(), 1);
+
+        // 4. Retrieve policy with rules
+        let policy_with_rules = repo
+            .get_policy_with_rules(ws_id, policy.id())
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(policy_with_rules.0.id(), policy.id());
+        assert_eq!(policy_with_rules.1.len(), 1);
+
+        // 5. Assign policy to Workspace (default fallback)
+        let assign_date = NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
+        repo.create_policy_assignment(ws_id, "workspace", None, policy.id(), assign_date)
+            .await
+            .unwrap();
+
+        // 6. Setup Employer, Department, and Employee to test override flows
+        let employer_id = Uuid::new_v4();
+        let dept_id = Uuid::new_v4();
+        let employee_id = Uuid::new_v4();
+        let employment_id = Uuid::new_v4();
+
+        // Insert Employer
+        diesel::sql_query("INSERT INTO employers (id, workspace_id, name, created_at, updated_at) VALUES ($1, $2, $3, $4, $5)")
+            .bind::<diesel::sql_types::Uuid, _>(employer_id)
+            .bind::<diesel::sql_types::Uuid, _>(ws_id)
+            .bind::<diesel::sql_types::Text, _>("Test Employer")
+            .bind::<diesel::sql_types::Timestamptz, _>(chrono::Utc::now())
+            .bind::<diesel::sql_types::Timestamptz, _>(chrono::Utc::now())
+            .execute(&mut *conn)
+            .await
+            .expect("insert employer");
+
+        // Insert Department
+        diesel::sql_query("INSERT INTO departments (id, workspace_id, name, created_at, updated_at) VALUES ($1, $2, $3, $4, $5)")
+            .bind::<diesel::sql_types::Uuid, _>(dept_id)
+            .bind::<diesel::sql_types::Uuid, _>(ws_id)
+            .bind::<diesel::sql_types::Text, _>("Test Dept")
+            .bind::<diesel::sql_types::Timestamptz, _>(chrono::Utc::now())
+            .bind::<diesel::sql_types::Timestamptz, _>(chrono::Utc::now())
+            .execute(&mut *conn)
+            .await
+            .expect("insert dept");
+
+        // Insert Employee
+        diesel::sql_query("INSERT INTO employees (id, workspace_id, employee_id_number, full_name, hire_date, original_hire_date, is_active) VALUES ($1, $2, $3, $4, $5, $6, $7)")
+            .bind::<diesel::sql_types::Uuid, _>(employee_id)
+            .bind::<diesel::sql_types::Uuid, _>(ws_id)
+            .bind::<diesel::sql_types::Text, _>("EMP-OT-TEST")
+            .bind::<diesel::sql_types::Text, _>("Test OT Employee")
+            .bind::<diesel::sql_types::Date, _>(assign_date)
+            .bind::<diesel::sql_types::Date, _>(assign_date)
+            .bind::<diesel::sql_types::Bool, _>(true)
+            .execute(&mut *conn)
+            .await
+            .expect("insert employee");
+
+        // Insert Employment
+        diesel::sql_query("INSERT INTO employments (id, workspace_id, employee_id, employer_id, department_id, status, start_date, created_at, updated_at, employment_type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)")
+            .bind::<diesel::sql_types::Uuid, _>(employment_id)
+            .bind::<diesel::sql_types::Uuid, _>(ws_id)
+            .bind::<diesel::sql_types::Uuid, _>(employee_id)
+            .bind::<diesel::sql_types::Uuid, _>(employer_id)
+            .bind::<diesel::sql_types::Uuid, _>(dept_id)
+            .bind::<diesel::sql_types::Text, _>("active")
+            .bind::<diesel::sql_types::Date, _>(assign_date)
+            .bind::<diesel::sql_types::Timestamptz, _>(chrono::Utc::now())
+            .bind::<diesel::sql_types::Timestamptz, _>(chrono::Utc::now())
+            .bind::<diesel::sql_types::Text, _>("full_time")
+            .execute(&mut *conn)
+            .await
+            .expect("insert employment");
+
+        // 7. Resolve workspace fallback policy
+        let resolved = repo
+            .resolve_policy_for_employee(employee_id, ws_id, assign_date)
+            .await
+            .unwrap();
+        assert_eq!(resolved, Some(policy.id()));
+
+        // 8. Assign Department Override policy and resolve
+        let policy_dept = repo
+            .create_policy_definition(ws_id, "Dept OT", Some("Dept rules"))
+            .await
+            .unwrap();
+        repo.create_policy_assignment(
+            ws_id,
+            "department",
+            Some(dept_id),
+            policy_dept.id(),
+            assign_date,
+        )
+        .await
+        .unwrap();
+
+        let resolved_dept = repo
+            .resolve_policy_for_employee(employee_id, ws_id, assign_date)
+            .await
+            .unwrap();
+        assert_eq!(resolved_dept, Some(policy_dept.id()));
+
+        // 9. Assign Employee Override policy and resolve
+        let policy_emp = repo
+            .create_policy_definition(ws_id, "Emp OT", Some("Emp rules"))
+            .await
+            .unwrap();
+        repo.create_policy_assignment(
+            ws_id,
+            "employee",
+            Some(employee_id),
+            policy_emp.id(),
+            assign_date,
+        )
+        .await
+        .unwrap();
+
+        let resolved_emp = repo
+            .resolve_policy_for_employee(employee_id, ws_id, assign_date)
+            .await
+            .unwrap();
+        assert_eq!(resolved_emp, Some(policy_emp.id()));
+
+        // 10. Get Workspace Overtime Data
+        let data = repo.get_workspace_overtime_data(ws_id).await.unwrap();
+        assert!(data.policies.contains_key(&policy.id()));
+        assert!(data.policies.contains_key(&policy_dept.id()));
+        assert!(data.policies.contains_key(&policy_emp.id()));
+        assert_eq!(data.assignments.len(), 3);
     }
 }

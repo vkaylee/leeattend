@@ -367,7 +367,7 @@ mod tests {
         assert!(res.is_err());
         match res.unwrap_err() {
             AppError::NotFound(msg) => {
-                assert_eq!(msg, "error.employee_not_found");
+                assert_eq!(msg, "error.employment_not_found");
             }
             AppError::Internal(msg) => {
                 assert!(

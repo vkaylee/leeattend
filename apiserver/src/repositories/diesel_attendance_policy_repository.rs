@@ -1133,10 +1133,24 @@ mod tests {
         // Insert a policy assignment
         let assignment_id = Uuid::new_v4();
         let target_id = Uuid::new_v4();
+
+        // Insert an employee to satisfy FK trigger check on public.employees
+        diesel::sql_query("INSERT INTO employees (id, workspace_id, employee_id_number, full_name, hire_date, original_hire_date, is_active) VALUES ($1, $2, $3, $4, $5, $6, $7)")
+            .bind::<diesel::sql_types::Uuid, _>(target_id)
+            .bind::<diesel::sql_types::Uuid, _>(ws_id)
+            .bind::<diesel::sql_types::Text, _>("EMP-TEST-999")
+            .bind::<diesel::sql_types::Text, _>("Test Employee")
+            .bind::<diesel::sql_types::Date, _>(chrono::Utc::now().date_naive())
+            .bind::<diesel::sql_types::Date, _>(chrono::Utc::now().date_naive())
+            .bind::<diesel::sql_types::Bool, _>(true)
+            .execute(&mut *conn)
+            .await
+            .expect("insert employee");
+
         diesel::sql_query("INSERT INTO attendance_policy_assignments (id, policy_id, target_type, target_id, valid_from, valid_to, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)")
             .bind::<diesel::sql_types::Uuid, _>(assignment_id)
             .bind::<diesel::sql_types::Uuid, _>(policy_id)
-            .bind::<diesel::sql_types::Text, _>("employee")
+            .bind::<diesel::sql_types::Text, _>("USER")
             .bind::<diesel::sql_types::Uuid, _>(target_id)
             .bind::<diesel::sql_types::Timestamptz, _>(chrono::Utc::now())
             .bind::<diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>, _>(None::<chrono::DateTime<chrono::Utc>>)

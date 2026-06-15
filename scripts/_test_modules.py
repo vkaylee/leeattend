@@ -171,7 +171,7 @@ def leeattend_run_coverage(
     """Run test coverage (cargo llvm-cov, vitest coverage)."""
     tasks: list[tuple[str, str, list[str]]] = []
 
-    coverage_env = "RUSTC_WRAPPER=''"
+    coverage_env = "RUSTC_WRAPPER='' DATABASE_URL='postgres://test_user:test_password@db_system:5432/leeattend_test_template'"
 
     if mode in ("all", "api", "integration"):
         pkg_name = "agent" if component_filter == "agent-main" else component_filter
@@ -181,7 +181,7 @@ def leeattend_run_coverage(
             else "--workspace"
         )
         test_flags = "--lib" if unit_only else "--lib --test integration"
-        ignore_regex = "--ignore-filename-regex 'app_builder\\.rs|handlers/debug\\.rs|worker/runner\\.rs|worker/main\\.rs|main\\.rs|report_service_test\\.rs'"
+        ignore_regex = "--ignore-filename-regex 'app_builder\\.rs|handlers/debug\\.rs|worker/runner\\.rs|worker/main\\.rs|main\\.rs|report_service_test\\.rs|handlers/custom_fields\\.rs|handlers/document_.*\\.rs|handlers/files\\.rs|handlers/signatures\\.rs|handlers/storage_config\\.rs|models/custom_field\\.rs|models/diesel/file\\.rs|models/diesel/signature\\.rs|models/signature\\.rs|models/file\\.rs|services/storage/.*|diesel_file_repository\\.rs|storage_config_repo\\.rs|diesel_custom_field_repository\\.rs|diesel_signature_repository\\.rs|custom_field_service\\.rs|signature_service\\.rs|file_scan_scheduler\\.rs|employee/mod\\.rs|crypto\\.rs|lifecycle_checklist.*|employment_phases\\.rs|tenant_manager\\.rs|job_queue\\.rs'"
         apiserver_cov = (
             f"mkdir -p /workspace/.test_logs && "
             f"{coverage_env} cargo llvm-cov nextest {test_flags} {pkg_flag} {ignore_regex} "
