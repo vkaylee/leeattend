@@ -149,4 +149,179 @@ mod tests {
         let result = TemplateService::fill_template(template, &vars).unwrap();
         assert_eq!(result, "Hello Jane, your ID is {{MISSING_ID}}.");
     }
+
+    #[tokio::test]
+    async fn test_generate_employee_document() {
+        use crate::models::enums::{ContractStatus, ContractType};
+        use crate::models::{
+            contract::EmployeeContract, employment::Employment, Employee, Workspace,
+        };
+        use crate::repositories::employee::MockEmployeeRepository;
+        use crate::repositories::employee_contract_repository::MockEmployeeContractRepository;
+        use crate::repositories::employment_repository::MockEmploymentRepository;
+        use crate::repositories::workspace_repository::MockWorkspaceRepository;
+        use chrono::Utc;
+        use rust_decimal::Decimal;
+
+        let ws_id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+        let emp_title = "Tech Lead".to_string();
+
+        let mut workspace_repo = MockWorkspaceRepository::new();
+        workspace_repo
+            .expect_get_workspace_by_id()
+            .with(mockall::predicate::eq(ws_id))
+            .returning(move |_| {
+                Box::pin(async move {
+                    Ok(Some(Workspace::new(
+                        ws_id,
+                        "LeeAttend Corp Test".to_string(),
+                        "dd/MM/yyyy".to_string(),
+                        "HH:mm".to_string(),
+                        "Asia/Ho_Chi_Minh".to_string(),
+                        "#ff0000".to_string(),
+                        "vi".to_string(),
+                        None,
+                        None,
+                        "none".to_string(),
+                        Decimal::new(15, 1),
+                        Utc::now(),
+                        None,
+                    )))
+                })
+            });
+
+        let mut employee_repo = MockEmployeeRepository::new();
+        employee_repo
+            .expect_get_employee_by_id()
+            .with(mockall::predicate::eq(emp_id), mockall::predicate::always())
+            .returning(move |_, _| {
+                Ok(Some(Employee::new(
+                    emp_id,
+                    ws_id,
+                    None,
+                    "John Doe".to_string(),
+                    "EMP001".to_string(),
+                    vec![],
+                    Utc::now(),
+                    Utc::now(),
+                    None,
+                )))
+            });
+
+        let mut employment_repo = MockEmploymentRepository::new();
+        let emp_title_clone = emp_title.clone();
+        employment_repo
+            .expect_get_active_employment_on_date()
+            .returning(move |_, _, _| {
+                let emp_title_clone = emp_title_clone.clone();
+                Ok(Some(Employment::new(
+                    Uuid::new_v4(),
+                    ws_id,
+                    emp_id,
+                    Uuid::new_v4(),
+                    None,
+                    None,
+                    "active".to_string(),
+                    chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                    None,
+                    Some(emp_title_clone),
+                    "primary".to_string(),
+                    None,
+                    Utc::now(),
+                    Utc::now(),
+                )))
+            });
+
+        let mut contract_repo = MockEmployeeContractRepository::new();
+        contract_repo
+            .expect_list_employee_contracts()
+            .returning(move |_, _| {
+                Ok(vec![EmployeeContract::new(
+                    Uuid::new_v4(),
+                    ws_id,
+                    Uuid::new_v4(),
+                    Some("CONT-123".to_string()),
+                    ContractType::FixedTerm,
+                    ContractStatus::Active,
+                    chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                    None,
+                    None,
+                    None,
+                    Utc::now(),
+                    Utc::now(),
+                )])
+            });
+
+        let template = "Welcome to {{COMPANY_NAME}}, {{EMPLOYEE_NAME}} (ID: {{EMPLOYEE_ID_NUMBER}}). Your title is {{JOB_TITLE}} and your contract is {{CONTRACT_NUMBER}}.";
+        let result = TemplateService::generate_employee_document(
+            ws_id,
+            emp_id,
+            &workspace_repo,
+            &employee_repo,
+            &employment_repo,
+            &contract_repo,
+            template,
+            None,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(
+            result,
+            "Welcome to LeeAttend Corp Test, John Doe (ID: EMP001). Your title is Tech Lead and your contract is CONT-123."
+        );
+    }
+
+    #[tokio::test]
+    async fn test_generate_employee_document_fallbacks() {
+        use crate::repositories::employee::MockEmployeeRepository;
+        use crate::repositories::employee_contract_repository::MockEmployeeContractRepository;
+        use crate::repositories::employment_repository::MockEmploymentRepository;
+        use crate::repositories::workspace_repository::MockWorkspaceRepository;
+
+        let ws_id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+
+        // 1. Workspace get returns None (or Err) -> COMPANY_NAME fallback is "LeeAttend Corp"
+        let mut workspace_repo = MockWorkspaceRepository::new();
+        workspace_repo
+            .expect_get_workspace_by_id()
+            .returning(|_| Box::pin(async move { Ok(None) }));
+
+        // 2. Employee get returns None -> no variables set
+        let mut employee_repo = MockEmployeeRepository::new();
+        employee_repo
+            .expect_get_employee_by_id()
+            .returning(|_, _| Ok(None));
+
+        // 3. Employment active check returns None -> list check returns empty -> no variables set
+        let mut employment_repo = MockEmploymentRepository::new();
+        employment_repo
+            .expect_get_active_employment_on_date()
+            .returning(|_, _, _| Ok(None));
+        employment_repo
+            .expect_list_employee_employments()
+            .returning(|_, _| Ok(vec![]));
+
+        let contract_repo = MockEmployeeContractRepository::new();
+
+        let template =
+            "Company: {{COMPANY_NAME}} | Employee: {{EMPLOYEE_NAME}} | Date: {{DOCUMENT_DATE}}";
+        let result = TemplateService::generate_employee_document(
+            ws_id,
+            emp_id,
+            &workspace_repo,
+            &employee_repo,
+            &employment_repo,
+            &contract_repo,
+            template,
+            None,
+        )
+        .await
+        .unwrap();
+
+        assert!(result.contains("Company: LeeAttend Corp"));
+        assert!(result.contains("Employee: {{EMPLOYEE_NAME}}"));
+    }
 }

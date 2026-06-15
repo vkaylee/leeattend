@@ -254,4 +254,89 @@ mod tests {
         assert!(!debug_str.contains("0987654321"));
         assert!(debug_str.contains("098****321"));
     }
+
+    #[test]
+    fn test_create_employee_profile_request_debug_masks_pii() {
+        let req = CreateEmployeeProfileRequest {
+            phone: Some("0987654321".to_string()),
+            address: Some("123 Street Name".to_string()),
+            date_of_birth: Some(NaiveDate::from_ymd_opt(1990, 1, 1).unwrap()),
+            gender: Some("Male".to_string()),
+            national_id: Some("123456789".to_string()),
+            bank_name: Some("Test Bank".to_string()),
+            bank_account_number: Some("1234567890".to_string()),
+            bank_branch: Some("Branch Name".to_string()),
+        };
+
+        let debug_str = format!("{req:?}");
+        assert!(!debug_str.contains("0987654321"));
+        assert!(debug_str.contains("098****321"));
+        assert!(!debug_str.contains("123 Street Name"));
+        assert!(!debug_str.contains("1990-01-01"));
+        assert!(!debug_str.contains("123456789"));
+        assert!(!debug_str.contains("1234567890"));
+        assert!(debug_str.contains("******7890"));
+    }
+
+    #[test]
+    fn test_update_employee_profile_request_debug_masks_pii() {
+        let req = UpdateEmployeeProfileRequest {
+            phone: Some("0987654321".to_string()),
+            address: Some("123 Street Name".to_string()),
+            date_of_birth: Some(NaiveDate::from_ymd_opt(1990, 1, 1).unwrap()),
+            gender: Some("Male".to_string()),
+            national_id: Some("123456789".to_string()),
+            bank_name: Some("Test Bank".to_string()),
+            bank_account_number: Some("1234567890".to_string()),
+            bank_branch: Some("Branch Name".to_string()),
+        };
+
+        let debug_str = format!("{req:?}");
+        assert!(!debug_str.contains("0987654321"));
+        assert!(debug_str.contains("098****321"));
+        assert!(!debug_str.contains("123456789"));
+        assert!(!debug_str.contains("1234567890"));
+        assert!(debug_str.contains("******7890"));
+    }
+
+    #[test]
+    fn test_create_emergency_contact_request_debug_masks_pii() {
+        let req = CreateEmergencyContactRequest {
+            contact_name: "John Doe".to_string(),
+            relationship: "Brother".to_string(),
+            phone: "0987654321".to_string(),
+            is_primary: Some(true),
+        };
+
+        let debug_str = format!("{req:?}");
+        assert!(debug_str.contains("John Doe"));
+        assert!(!debug_str.contains("0987654321"));
+        assert!(debug_str.contains("098****321"));
+    }
+
+    #[test]
+    fn test_other_ess_models() {
+        let doc = EmployeeDocument {
+            id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
+            workspace_id: Uuid::new_v4(),
+            document_type: "id_card".to_string(),
+            file_name: "id.png".to_string(),
+            file_path: "/path/to/file".to_string(),
+            file_size: 1024,
+            mime_type: "image/png".to_string(),
+            expires_at: Some(NaiveDate::from_ymd_opt(2030, 1, 1).unwrap()),
+            is_active: true,
+            uploaded_by: Some(Uuid::new_v4()),
+            created_at: Utc::now(),
+        };
+
+        assert_eq!(doc.file_name, "id.png");
+
+        let req = UploadDocumentRequest {
+            document_type: "contract".to_string(),
+            expires_at: None,
+        };
+        assert_eq!(req.document_type, "contract");
+    }
 }

@@ -359,3 +359,322 @@ impl PolicyResolverService {
         PolicyResolver::apply_shift_overrides(rules, overrides)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::EarlyArrivalStrategy;
+    use crate::repositories::attendance_policy_repository::MockAttendancePolicyRepository;
+    use crate::repositories::employee::MockEmployeeRepository;
+    use crate::repositories::payroll_repository::MockPayrollRepository;
+    use chrono::NaiveDate;
+    use std::collections::HashMap;
+    use uuid::Uuid;
+
+    #[tokio::test]
+    async fn test_resolve_standard_month() {
+        let ws_id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+        let dept_id = Uuid::new_v4();
+        let date = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
+
+        let mut employee_repo = MockEmployeeRepository::new();
+        employee_repo
+            .expect_get_employee_payroll_config_at()
+            .returning(|_, _, _| Ok(None));
+
+        let mut payroll_repo = MockPayrollRepository::new();
+        payroll_repo
+            .expect_get_department_payroll_config_at()
+            .returning(|_, _, _| Ok(None));
+        payroll_repo
+            .expect_get_payroll_settings_at()
+            .returning(|_, _| Ok(None));
+
+        let res = PolicyResolverService::resolve_standard_month(
+            &employee_repo,
+            &payroll_repo,
+            emp_id,
+            Some(dept_id),
+            ws_id,
+            date,
+        )
+        .await;
+        assert!(res.is_ok());
+
+        // Test without department
+        let res_no_dept = PolicyResolverService::resolve_standard_month(
+            &employee_repo,
+            &payroll_repo,
+            emp_id,
+            None,
+            ws_id,
+            date,
+        )
+        .await;
+        assert!(res_no_dept.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_resolve_attendance_policy() {
+        let ws_id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+        let date = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
+
+        let mut policy_repo = MockAttendancePolicyRepository::new();
+        policy_repo
+            .expect_get_employee_effective_policy()
+            .returning(|_, _, _| Ok(None));
+
+        let rules =
+            PolicyResolverService::resolve_attendance_policy(&policy_repo, emp_id, ws_id, date)
+                .await
+                .unwrap();
+
+        assert_eq!(rules.work_unit_minutes, 30);
+        assert_eq!(rules.rounding_policy, "floor");
+    }
+
+    #[tokio::test]
+    async fn test_resolve_attendance_policy_by_employment() {
+        let ws_id = Uuid::new_v4();
+        let employment_id = Uuid::new_v4();
+        let date = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
+
+        let mut policy_repo = MockAttendancePolicyRepository::new();
+        policy_repo
+            .expect_get_employment_effective_policy()
+            .returning(|_, _, _| Ok(None));
+
+        let rules = PolicyResolverService::resolve_attendance_policy_by_employment(
+            &policy_repo,
+            employment_id,
+            ws_id,
+            date,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(rules.work_unit_minutes, 30);
+    }
+
+    #[tokio::test]
+    async fn test_resolve_attendance_policy_batch() {
+        let ws_id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+        let date = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
+
+        let mut policy_repo = MockAttendancePolicyRepository::new();
+        // Empty batch
+        let res_empty =
+            PolicyResolverService::resolve_attendance_policy_batch(&policy_repo, &[], ws_id, date)
+                .await
+                .unwrap();
+        assert!(res_empty.is_empty());
+
+        policy_repo
+            .expect_get_employee_effective_policies_batch()
+            .returning(|_, _, _| Ok(HashMap::new()));
+
+        let res = PolicyResolverService::resolve_attendance_policy_batch(
+            &policy_repo,
+            &[emp_id],
+            ws_id,
+            date,
+        )
+        .await
+        .unwrap();
+        assert_eq!(res.len(), 1);
+        assert_eq!(res.get(&emp_id).unwrap().work_unit_minutes, 30);
+    }
+
+    #[tokio::test]
+    async fn test_resolve_attendance_policy_batch_by_employment() {
+        let ws_id = Uuid::new_v4();
+        let employment_id = Uuid::new_v4();
+        let date = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
+
+        let mut policy_repo = MockAttendancePolicyRepository::new();
+        // Empty batch
+        let res_empty = PolicyResolverService::resolve_attendance_policy_batch_by_employment(
+            &policy_repo,
+            &[],
+            ws_id,
+            date,
+        )
+        .await
+        .unwrap();
+        assert!(res_empty.is_empty());
+
+        policy_repo
+            .expect_get_employment_effective_policies_batch()
+            .returning(|_, _, _| Ok(HashMap::new()));
+
+        let res = PolicyResolverService::resolve_attendance_policy_batch_by_employment(
+            &policy_repo,
+            &[employment_id],
+            ws_id,
+            date,
+        )
+        .await
+        .unwrap();
+        assert_eq!(res.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_resolve_attendance_rules() {
+        let ws_id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+        let date = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
+
+        let mut policy_repo = MockAttendancePolicyRepository::new();
+        policy_repo
+            .expect_get_employee_effective_policy()
+            .returning(|_, _, _| Ok(None));
+
+        let mut employee_repo = MockEmployeeRepository::new();
+        employee_repo
+            .expect_get_working_conditions_at()
+            .returning(|_, _, _| Ok(vec![]));
+
+        let rules = PolicyResolverService::resolve_attendance_rules(
+            &policy_repo,
+            &employee_repo,
+            emp_id,
+            ws_id,
+            date,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(rules.grace_period_minutes(), 15);
+    }
+
+    #[tokio::test]
+    async fn test_resolve_attendance_rules_by_employment() {
+        let ws_id = Uuid::new_v4();
+        let employment_id = Uuid::new_v4();
+        let date = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
+
+        let mut policy_repo = MockAttendancePolicyRepository::new();
+        policy_repo
+            .expect_get_employment_effective_policy()
+            .returning(|_, _, _| Ok(None));
+
+        let mut employee_repo = MockEmployeeRepository::new();
+        employee_repo
+            .expect_get_working_conditions_at()
+            .returning(|_, _, _| Ok(vec![]));
+
+        let rules = PolicyResolverService::resolve_attendance_rules_by_employment(
+            &policy_repo,
+            &employee_repo,
+            employment_id,
+            ws_id,
+            date,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(rules.grace_period_minutes(), 15);
+    }
+
+    #[tokio::test]
+    async fn test_resolve_attendance_rules_batch() {
+        let ws_id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+        let date = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
+
+        let mut employee_repo = MockEmployeeRepository::new();
+        employee_repo
+            .expect_get_employees_by_ids()
+            .returning(|_, _| Ok(vec![]));
+        employee_repo
+            .expect_get_working_conditions_batch_by_employments()
+            .returning(|_, _, _, _| Ok(HashMap::new()));
+
+        let res = PolicyResolverService::resolve_attendance_rules_batch(
+            &employee_repo,
+            &[emp_id],
+            ws_id,
+            date,
+            date,
+        )
+        .await
+        .unwrap();
+
+        assert!(res.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_resolve_attendance_rules_batch_by_employment() {
+        let ws_id = Uuid::new_v4();
+        let employment_id = Uuid::new_v4();
+        let date = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
+
+        let mut employee_repo = MockEmployeeRepository::new();
+        employee_repo
+            .expect_get_working_conditions_batch_by_employments()
+            .returning(|_, _, _, _| Ok(HashMap::new()));
+
+        let res = PolicyResolverService::resolve_attendance_rules_batch_by_employment(
+            &employee_repo,
+            &[employment_id],
+            ws_id,
+            date,
+            date,
+        )
+        .await
+        .unwrap();
+
+        assert!(res.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_resolve_with_shift_overrides() {
+        let ws_id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+        let date = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
+
+        let mut policy_repo = MockAttendancePolicyRepository::new();
+        policy_repo
+            .expect_get_employee_effective_policy()
+            .returning(|_, _, _| Ok(None));
+
+        let mut employee_repo = MockEmployeeRepository::new();
+        employee_repo
+            .expect_get_working_conditions_at()
+            .returning(|_, _, _| Ok(vec![]));
+
+        let overrides =
+            ShiftPolicyOverrides::new(Some(10), None, None, EarlyArrivalStrategy::Allow, false);
+        let rules = PolicyResolverService::resolve_with_shift_overrides(
+            &policy_repo,
+            &employee_repo,
+            emp_id,
+            ws_id,
+            date,
+            &overrides,
+        )
+        .await;
+
+        assert_eq!(rules.grace_period_minutes(), 10);
+
+        // Test resolve_with_shift_overrides_by_employment
+        let mut policy_repo_emp = MockAttendancePolicyRepository::new();
+        policy_repo_emp
+            .expect_get_employment_effective_policy()
+            .returning(|_, _, _| Ok(None));
+
+        let rules_emp = PolicyResolverService::resolve_with_shift_overrides_by_employment(
+            &policy_repo_emp,
+            &employee_repo,
+            Uuid::new_v4(),
+            ws_id,
+            date,
+            &overrides,
+        )
+        .await;
+        assert_eq!(rules_emp.grace_period_minutes(), 10);
+    }
+}

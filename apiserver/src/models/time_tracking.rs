@@ -396,3 +396,162 @@ impl UpdateTimeEntryRequest {
         self.note.as_deref()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::{TimeZone, Utc};
+    use uuid::Uuid;
+
+    #[test]
+    fn test_time_entry_log_filter() {
+        let emp_id = Uuid::new_v4();
+        let from = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
+        let to = Utc.with_ymd_and_hms(2026, 1, 31, 23, 59, 59).unwrap();
+        let filter = TimeEntryLogFilter::new(Some(emp_id), Some(from), Some(to), 10, 20);
+
+        assert_eq!(filter.employment_id(), Some(emp_id));
+        assert_eq!(filter.from(), Some(from));
+        assert_eq!(filter.to(), Some(to));
+        assert_eq!(filter.limit(), 10);
+        assert_eq!(filter.offset(), 20);
+    }
+
+    #[test]
+    fn test_time_entry() {
+        let id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+        let ws_id = Uuid::new_v4();
+        let shift_id = Uuid::new_v4();
+        let now = Utc::now();
+        let mut entry = TimeEntry::new(
+            id,
+            emp_id,
+            ws_id,
+            Some(shift_id),
+            now,
+            None,
+            None,
+            false,
+            "work".to_string(),
+            Some("Note".to_string()),
+            Some(serde_json::json!({"test": true})),
+            now,
+            now,
+        );
+
+        assert_eq!(entry.id(), id);
+        assert_eq!(entry.employment_id(), emp_id);
+        assert_eq!(entry.workspace_id(), ws_id);
+        assert_eq!(entry.shift_id(), Some(shift_id));
+        assert_eq!(entry.punch_in_time(), now);
+        assert_eq!(entry.punch_out_time(), None);
+        assert_eq!(entry.duration_minutes(), None);
+        assert!(!entry.is_break_overtime());
+        assert_eq!(entry.entry_type(), "work");
+        assert_eq!(entry.note(), Some("Note"));
+        assert_eq!(
+            entry.generation_metadata(),
+            Some(&serde_json::json!({"test": true}))
+        );
+        assert_eq!(entry.created_at(), now);
+        assert_eq!(entry.updated_at(), now);
+
+        let later = now + chrono::Duration::hours(4);
+        entry.set_punch_in_time(now);
+        entry.set_punch_out_time(Some(later));
+        assert_eq!(entry.duration_minutes(), Some(240));
+
+        entry.set_is_break_overtime(true);
+        assert!(entry.is_break_overtime());
+
+        entry.set_entry_type("break".to_string());
+        assert_eq!(entry.entry_type(), "break");
+
+        entry.set_note(None);
+        assert_eq!(entry.note(), None);
+
+        entry.set_punch_out_time(None);
+        assert_eq!(entry.duration_minutes(), None);
+    }
+
+    #[test]
+    fn test_time_entry_with_employee() {
+        let id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+        let ws_id = Uuid::new_v4();
+        let shift_id = Uuid::new_v4();
+        let now = Utc::now();
+        let entry = TimeEntryWithEmployee::new(
+            id,
+            emp_id,
+            ws_id,
+            Some(shift_id),
+            now,
+            Some(now),
+            Some(0),
+            false,
+            "work".to_string(),
+            Some("Note".to_string()),
+            None,
+            now,
+            now,
+            "John Doe".to_string(),
+            "EMP001".to_string(),
+        );
+
+        assert_eq!(entry.id(), id);
+        assert_eq!(entry.employment_id(), emp_id);
+        assert_eq!(entry.workspace_id(), ws_id);
+        assert_eq!(entry.shift_id(), Some(shift_id));
+        assert_eq!(entry.punch_in_time(), now);
+        assert_eq!(entry.punch_out_time(), Some(now));
+        assert_eq!(entry.duration_minutes(), Some(0));
+        assert!(!entry.is_break_overtime());
+        assert_eq!(entry.entry_type(), "work");
+        assert_eq!(entry.note(), Some("Note"));
+        assert_eq!(entry.generation_metadata(), None);
+        assert_eq!(entry.created_at(), now);
+        assert_eq!(entry.updated_at(), now);
+        assert_eq!(entry.employee_full_name(), "John Doe");
+        assert_eq!(entry.employee_id_number(), "EMP001");
+    }
+
+    #[test]
+    fn test_punch_in_request() {
+        let emp_id = Uuid::new_v4();
+        let req = PunchInRequest::new(
+            emp_id,
+            Some("work".to_string()),
+            Some(true),
+            Some("Note".to_string()),
+        );
+
+        assert_eq!(req.employment_id(), emp_id);
+        assert_eq!(req.entry_type(), Some("work"));
+        assert_eq!(req.is_break_overtime(), Some(true));
+        assert_eq!(req.note(), Some("Note"));
+    }
+
+    #[test]
+    fn test_punch_out_request() {
+        let req = PunchOutRequest::new(Some("Note".to_string()));
+        assert_eq!(req.note(), Some("Note"));
+    }
+
+    #[test]
+    fn test_update_time_entry_request() {
+        let now = Utc::now();
+        let req = UpdateTimeEntryRequest::new(
+            Some(now),
+            Some(now),
+            Some("work".to_string()),
+            Some("Note".to_string()),
+        );
+
+        assert_eq!(req.punch_in_time(), Some(now));
+        assert_eq!(req.punch_out_time(), Some(now));
+        assert_eq!(req.entry_type(), Some("work"));
+        assert_eq!(req.note(), Some("Note"));
+    }
+}

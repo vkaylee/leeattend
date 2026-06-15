@@ -168,3 +168,158 @@ async fn test_create_overlapping_primary_employments_fails() {
         "Should return conflict when patching start_date to cause overlap"
     );
 }
+
+#[tokio::test]
+async fn test_employment_crud_lifecycle() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+    let emp_id = factory.employee().with_workspace(ws_id).create().await;
+
+    let employer_id = Uuid::new_v4();
+    crate::test_execute!(
+        &_test_db.diesel_pools.api,
+        "INSERT INTO employers (id, workspace_id, name, tax_code, legal_address, created_at, updated_at) VALUES ($1, $2, 'Test Employer', 'MST-1', 'Addr', NOW(), NOW())",
+        diesel::sql_types::Uuid,
+        employer_id,
+        diesel::sql_types::Uuid,
+        ws_id
+    );
+
+    // 1. POST - Create Employment
+    let payload = json!({
+        "employee_id": emp_id.to_string(),
+        "employer_id": employer_id.to_string(),
+        "status": "active",
+        "start_date": "2026-01-01",
+        "end_date": "2026-12-31",
+        "employment_type": "primary",
+        "job_title": "Software Engineer"
+    });
+
+    let res = app
+        .clone()
+        .oneshot(make_req(
+            "POST",
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/employments"),
+            ws_id,
+            user_id,
+            Some(payload),
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), StatusCode::CREATED);
+
+    let body = axum::body::to_bytes(res.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let created: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    let employment_id = created["id"].as_str().unwrap().to_string();
+
+    // 2. GET - List Employments
+    let res_list = app
+        .clone()
+        .oneshot(make_req(
+            "GET",
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/employments"),
+            ws_id,
+            user_id,
+            None,
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(res_list.status(), StatusCode::OK);
+
+    let body_list = axum::body::to_bytes(res_list.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let list: serde_json::Value = serde_json::from_slice(&body_list).unwrap();
+    assert!(list.is_array());
+    assert!(!list.as_array().unwrap().is_empty());
+
+    // 3. GET - Detail Employment
+    let res_detail = app
+        .clone()
+        .oneshot(make_req(
+            "GET",
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/employments/{employment_id}"),
+            ws_id,
+            user_id,
+            None,
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(res_detail.status(), StatusCode::OK);
+
+    let body_detail = axum::body::to_bytes(res_detail.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let detail: serde_json::Value = serde_json::from_slice(&body_detail).unwrap();
+    assert_eq!(detail["job_title"].as_str().unwrap(), "Software Engineer");
+
+    // 4. GET - Detail NotFound
+    let res_not_found = app
+        .clone()
+        .oneshot(make_req(
+            "GET",
+            &format!(
+                "/api/v1/workspaces/{ws_id}/employees/{emp_id}/employments/{}",
+                Uuid::new_v4()
+            ),
+            ws_id,
+            user_id,
+            None,
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(res_not_found.status(), StatusCode::NOT_FOUND);
+
+    // 5. PATCH - Update Employment
+    let update_payload = json!({
+        "job_title": "Senior Software Engineer"
+    });
+
+    let res_update = app
+        .clone()
+        .oneshot(make_req(
+            "PATCH",
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/employments/{employment_id}"),
+            ws_id,
+            user_id,
+            Some(update_payload),
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(res_update.status(), StatusCode::OK);
+
+    let body_update = axum::body::to_bytes(res_update.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let updated: serde_json::Value = serde_json::from_slice(&body_update).unwrap();
+    assert_eq!(
+        updated["job_title"].as_str().unwrap(),
+        "Senior Software Engineer"
+    );
+
+    // 6. DELETE - Soft Delete Employment
+    let res_delete = app
+        .clone()
+        .oneshot(make_req(
+            "DELETE",
+            &format!("/api/v1/workspaces/{ws_id}/employees/{emp_id}/employments/{employment_id}"),
+            ws_id,
+            user_id,
+            None,
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(res_delete.status(), StatusCode::NO_CONTENT);
+}
