@@ -1028,32 +1028,32 @@ async fn test_get_all_employees_with_filters() {
     let auth_token = apiserver::diesel_pool::TenantAuthToken::system_override(ws_id);
 
     // No filters
-    let opts_all = apiserver::models::EmployeeFilterOptions {
-        limit: 10,
-        page: 1,
-        search_query: None,
-        sort_by: Some("full_name".to_string()),
-        sort_dir: Some("asc".to_string()),
-        department_ids: None,
-        permission: None,
-        filter_ids: None,
-    };
+    let opts_all = apiserver::models::EmployeeFilterOptions::new(
+        None,
+        1,
+        10,
+        Some("full_name".to_string()),
+        Some("asc".to_string()),
+        None,
+        None,
+        None,
+    );
     let (all, count) = repo.get_all_employees(&auth_token, opts_all).await.unwrap();
     assert_eq!(count, 3);
     assert_eq!(all.len(), 3);
     assert_eq!(all[0].full_name(), "Alice Alpha"); // sorted ascending
 
     // Filter by search
-    let opts_search = apiserver::models::EmployeeFilterOptions {
-        limit: 10,
-        page: 1,
-        search_query: Some("Alpha".to_string()),
-        sort_by: None,
-        sort_dir: None,
-        department_ids: None,
-        permission: None,
-        filter_ids: None,
-    };
+    let opts_search = apiserver::models::EmployeeFilterOptions::new(
+        Some("Alpha".to_string()),
+        1,
+        10,
+        None,
+        None,
+        None,
+        None,
+        None,
+    );
     let (search_res, count) = repo
         .get_all_employees(&auth_token, opts_search)
         .await
@@ -1130,16 +1130,16 @@ async fn test_get_all_employees_filtered_by_permission() {
     let auth_token = apiserver::diesel_pool::TenantAuthToken::system_override(ws_id);
 
     // Query with permission filter
-    let opts = apiserver::models::EmployeeFilterOptions {
-        limit: 10,
-        page: 1,
-        search_query: None,
-        sort_by: Some("full_name".to_string()),
-        sort_dir: Some("asc".to_string()),
-        department_ids: None,
-        permission: Some("overtime:claim_on_behalf".to_string()),
-        filter_ids: None,
-    };
+    let opts = apiserver::models::EmployeeFilterOptions::new(
+        None,
+        1,
+        10,
+        Some("full_name".to_string()),
+        Some("asc".to_string()),
+        None,
+        Some("overtime:claim_on_behalf".to_string()),
+        None,
+    );
 
     let (employees, count) = repo.get_all_employees(&auth_token, opts).await.unwrap();
 

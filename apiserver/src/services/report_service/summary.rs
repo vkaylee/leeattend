@@ -50,15 +50,15 @@ impl ReportService {
                 .employee_repo
                 .get_paginated_employee_ids(
                     &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
-                    crate::models::EmployeePaginationArgs {
-                        filter_ids: args.employee_ids.as_ref(),
-                        department_id: args.department_id,
-                        page: 1,
-                        limit: 1,
+                    crate::models::EmployeePaginationArgs::new(
+                        args.employee_ids.as_ref(),
+                        args.department_id,
+                        1,
+                        1,
                         sort_desc,
-                        active_during: Some((args.start_date, args.end_date)),
-                        status_filter: args.employee_status.clone(),
-                    },
+                        Some((args.start_date, args.end_date)),
+                        args.employee_status.clone(),
+                    ),
                 )
                 .await
                 .map_err(|e| {
@@ -73,15 +73,15 @@ impl ReportService {
                     .employee_repo
                     .get_paginated_employee_ids(
                         &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
-                        crate::models::EmployeePaginationArgs {
-                            filter_ids: args.employee_ids.as_ref(),
-                            department_id: args.department_id,
-                            page: 1,
-                            limit: total,
+                        crate::models::EmployeePaginationArgs::new(
+                            args.employee_ids.as_ref(),
+                            args.department_id,
+                            1,
+                            total,
                             sort_desc,
-                            active_during: Some((args.start_date, args.end_date)),
-                            status_filter: args.employee_status.clone(),
-                        },
+                            Some((args.start_date, args.end_date)),
+                            args.employee_status.clone(),
+                        ),
                     )
                     .await
                     .map_err(|e| {
@@ -94,15 +94,15 @@ impl ReportService {
             self.employee_repo
                 .get_paginated_employee_ids(
                     &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
-                    crate::models::EmployeePaginationArgs {
-                        filter_ids: args.employee_ids.as_ref(),
-                        department_id: args.department_id,
+                    crate::models::EmployeePaginationArgs::new(
+                        args.employee_ids.as_ref(),
+                        args.department_id,
                         page,
                         limit,
                         sort_desc,
-                        active_during: Some((args.start_date, args.end_date)),
-                        status_filter: args.employee_status.clone(),
-                    },
+                        Some((args.start_date, args.end_date)),
+                        args.employee_status.clone(),
+                    ),
                 )
                 .await
                 .map_err(|e| {

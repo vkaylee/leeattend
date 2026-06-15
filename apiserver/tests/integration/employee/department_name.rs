@@ -134,16 +134,9 @@ async fn test_get_all_employees_includes_department_name() {
     let (employees, total) = repo
         .get_all_employees(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            apiserver::models::EmployeeFilterOptions {
-                search_query: None,
-                page: 1,
-                limit: 50,
-                sort_by: None,
-                sort_dir: None,
-                department_ids: None,
-                permission: None,
-                filter_ids: None,
-            },
+            apiserver::models::EmployeeFilterOptions::new(
+                None, 1, 50, None, None, None, None, None,
+            ),
         )
         .await
         .unwrap();
@@ -330,15 +323,15 @@ async fn test_get_paginated_employee_ids_filters_by_department() {
     let (employees, count) = repo
         .get_paginated_employee_ids(
             &token,
-            apiserver::models::EmployeePaginationArgs {
-                filter_ids: None,
-                department_id: Some(dept_id),
-                page: 1,
-                limit: 50,
-                sort_desc: false,
-                active_during: Some((today, today)),
-                status_filter: Some("active".to_string()),
-            },
+            apiserver::models::EmployeePaginationArgs::new(
+                None,
+                Some(dept_id),
+                1,
+                50,
+                false,
+                Some((today, today)),
+                Some("active".to_string()),
+            ),
         )
         .await
         .unwrap();

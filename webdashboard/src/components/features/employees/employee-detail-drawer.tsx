@@ -1,70 +1,28 @@
-import { useQuery, useMutation, useQueryClient  } from "@tanstack/react-query";
-import {
-    Building2,
-    Calendar,
-    Pencil,
-    Trash2,
-    User,
-    UserPlus,
-    X,
-    MapPin,
-    Check,
-    Globe,
-    Clock,
-    FolderOpen,
-    FileText,
-    Milestone,
-    ArrowLeftRight,
-    DollarSign,
-    History,
-    Settings,
-    CheckSquare,
-    ChevronDown,
-} from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-
 import type { Department, Employee, WorkspaceMember, Employment } from "@/lib/api";
-import type { WorkLocation } from "@/lib/api-generated/models";
-
-import PermissionGate from "@/components/common/permission-gate";
-import WorkingConditionConfig from "@/components/employees/working-condition-config";
-import EmployeeSalaryConfig from "@/components/payroll/employee-salary-config";
-import Button from "@/components/ui/button";
-import { Combobox } from "@/components/ui/combobox";
-import Sheet from "@/components/ui/sheet";
-import { useToast } from "@/components/ui/toast";
-import { Typography } from "@/components/ui/typography";
-import { fetchWorkspaceMembers, fetchEmployeeEmployments, updateEmployeeEmployment } from "@/lib/api";
-import { cn } from "@/lib/utils";
+import { fetchWorkspaceMembers, fetchEmployeeEmployments } from "@/lib/api";
 import { useLocations } from "@/pages/settings/hooks/use-locations";
 
+import Sheet from "@/components/ui/sheet";
 import { CustomFieldSection } from "@/components/custom-fields/custom-field-section";
 import CompensationHistoryTab from "@/pages/employees/compensation-history-tab";
 import EmployeeLifecycleTab from "@/pages/employees/lifecycle-tab";
 import { EmployeeDocumentsTab } from "@/pages/employees/employee-documents-tab";
+import WorkingConditionConfig from "@/components/employees/working-condition-config";
+import EmployeeSalaryConfig from "@/components/payroll/employee-salary-config";
 
 import EmployeeAssignmentsTab from "./employee-assignments-tab";
 import EmployeeContractsTab from "./employee-contracts-tab";
 import EmployeePhasesTab from "./employee-phases-tab";
+import DrawerHeader, { DetailTabType } from "./drawer-header";
+import ProfileTab from "./profile-tab";
+import type { DeptHistoryEntry } from "./profile-sections";
 
-type DetailTabType = "profile" | "documents" | "contracts" | "phases" | "assignments" | "salary" | "compensation" | "policies" | "lifecycle";
 const TAB_ORDER: DetailTabType[] = ["profile", "documents", "contracts", "phases", "assignments", "salary", "compensation", "policies", "lifecycle"];
 const SCROLL_STEP = 80;
-
-interface DeptHistoryEntry {
-    department_id: string;
-    effective_date: string;
- 
-}
- 
 
 interface EmployeeDetailDrawerProps {
     departments?: Department[];
@@ -78,469 +36,6 @@ interface EmployeeDetailDrawerProps {
     onTerminate: (employee: Employee) => void;
     onTransfer: (departmentId: string) => void;
     wsId: string;
-}
-
-function DrawerHeader({
-    employee,
-    onClose,
-    activeDetailTab,
-    setActiveDetailTab,
-    t
-}: {
-    activeDetailTab: DetailTabType;
-    employee: Employee;
-    onClose: () => void;
-    setActiveDetailTab: (tab: DetailTabType) => void;
-    t: (k: string) => string;
-}) {
-    const tabs = [
-        { id: "profile" as DetailTabType, label: t("common.profile"), icon: User },
-        { id: "documents" as DetailTabType, label: "Tài liệu & Hồ sơ", icon: FolderOpen },
-        { id: "contracts" as DetailTabType, label: "Hợp đồng", icon: FileText },
-        { id: "phases" as DetailTabType, label: "Hành trình", icon: Milestone },
-        { id: "assignments" as DetailTabType, label: "Phái cử", icon: ArrowLeftRight },
-        { id: "salary" as DetailTabType, label: t("employees.details.salary_benefits"), icon: DollarSign },
-        { id: "compensation" as DetailTabType, label: t("employees.details.compensation_history"), icon: History },
-        { id: "policies" as DetailTabType, label: t("employees.details.special_policies"), icon: Settings },
-        { id: "lifecycle" as DetailTabType, label: "Checklist", icon: CheckSquare }
-    ];
-    const activeTabObj = tabs.find(tab => tab.id === activeDetailTab) || tabs[0];
-
-    return (
-        <div className="sticky top-0 z-20 p-10 border-b border-slate-50 dark:border-slate-800 bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-sm shadow-sm">
-            <div className="flex justify-between items-start mb-8">
-                <div className="flex items-center gap-6">
-                    <div className="w-20 h-20 bg-primary-600 text-white rounded-[2rem] flex items-center justify-center font-bold text-3xl shadow-xl shadow-primary-100 dark:shadow-black/30 border-4 border-white rotate-3 group hover:rotate-0 transition-transform duration-500 uppercase">{employee.full_name[0]}</div>
-                    <div>
-                        <Typography className="text-3xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter uppercase leading-none mb-2" variant="h2">{employee.full_name}</Typography>
-                        <div className="flex items-center gap-3">
-                            <span className="text-primary-600 dark:text-primary-400 font-mono text-xs font-bold tracking-widest uppercase bg-white dark:bg-slate-900 px-3 py-1 rounded-full border border-primary-100 dark:border-primary-800 shadow-sm">{employee.employee_id_number}</span>
-                            <div className="w-1.5 h-1.5 bg-slate-200 dark:bg-slate-600 rounded-full" />
-                            <span className={cn("text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border shadow-sm", employee.active_employment_id ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800' : 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800 opacity-60')}>{employee.active_employment_id ? t("employees.table.active").toUpperCase() : t("employees.table.terminated").toUpperCase()}</span>
-                        </div>
-                    </div>
-                </div>
-                <Button className="p-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-[1.25rem] transition-all shadow-md active:scale-90 border border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 h-auto w-auto shadow-none" onClick={onClose} size="icon" type="button" variant="ghost"><X size={24} /></Button>
-            </div>
-
-            {/* Desktop Navigation Tabs */}
-            <div className="hidden md:flex overflow-x-auto scrollbar-hide bg-white dark:bg-slate-900/50 p-1.5 rounded-[22px] border border-slate-200 dark:border-slate-700/50 shadow-inner w-full max-w-full relative">
-                {tabs.map(tab => (
-                    <Button className={cn("px-5 py-2.5 shrink-0 whitespace-nowrap rounded-[18px] text-[10px] font-bold uppercase tracking-widest transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 h-auto shadow-none border border-transparent", activeDetailTab === tab.id ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-transparent")} data-testid={`employees-tab-${tab.id}`} key={tab.id} onClick={() => { setActiveDetailTab(tab.id as DetailTabType); }} type="button" variant="ghost">{tab.label.toUpperCase()}</Button>
-                ))}
-            </div>
-
-            {/* Mobile Navigation Dropdown */}
-            <div className="flex md:hidden w-full relative">
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button
-                            className="w-full flex items-center justify-between px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/50 rounded-[18px] shadow-sm text-[10px] font-bold uppercase tracking-widest text-slate-700 dark:text-slate-200 transition-all hover:bg-slate-50 dark:hover:bg-slate-800 h-auto"
-                            type="button"
-                            variant="ghost"
-                        >
-                            <span className="flex items-center gap-3">
-                                {React.createElement(activeTabObj.icon, { size: 14, className: "text-primary-500" })}
-                                {activeTabObj.label.toUpperCase()}
-                            </span>
-                            <ChevronDown className="text-slate-400 dark:text-slate-500 transition-transform duration-200" size={14} />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-[calc(100vw-5rem)] max-w-md max-h-[300px] overflow-y-auto rounded-2xl shadow-xl">
-                        {tabs.map((tab) => (
-                            <DropdownMenuItem
-                                className={cn(
-                                    "flex items-center gap-3 px-5 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all",
-                                    activeDetailTab === tab.id
-                                        ? "bg-primary-50 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400"
-                                        : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                                )}
-                                key={tab.id}
-                                onClick={() => {
-                                    setActiveDetailTab(tab.id);
-                                }}
-                            >
-                                {React.createElement(tab.icon, {
-                                    size: 12,
-                                    className: cn(
-                                        activeDetailTab === tab.id
-                                            ? "text-primary-500"
-                                            : "text-slate-400 dark:text-slate-500"
-                                    ),
-                                })}
-                                {tab.label.toUpperCase()}
-                            </DropdownMenuItem>
-                        ))}
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </div>
-        </div>
-    );
-}
-
-
-
-function ProfileActions({
-    employee,
-    onEdit,
-    onTerminate,
-    onRehire,
-    t
-}: {
-    employee: Employee;
-    onEdit: (e: Employee) => void;
-    onRehire: (e: Employee) => void;
-    onTerminate: (e: Employee) => void;
-    t: (k: string) => string;
-}) {
-    return (
-        <div className="grid grid-cols-2 gap-6">
-            <PermissionGate permission="employees:update">
-                <Button className="flex items-center justify-center gap-3 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all text-xs uppercase tracking-widest shadow-sm active:scale-95 h-auto" data-testid="employees-btn-edit" onClick={() => { onEdit(employee); }} type="button" variant="outline"><Pencil size={18} /> {t("employees.details.edit_profile").toUpperCase()}</Button>
-            </PermissionGate>
-            <PermissionGate permission="employees:update">
-                {employee.active_employment_id ? (
-                    <Button className="flex items-center justify-center gap-3 py-4 bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 font-bold rounded-2xl hover:bg-rose-100 dark:bg-rose-900 transition-all text-xs uppercase tracking-widest active:scale-95 shadow-sm shadow-rose-900/5 h-auto" data-testid="employees-btn-terminate" onClick={() => { onTerminate(employee); }} type="button" variant="destructive"><Trash2 size={18} /> {t("employees.details.terminate").toUpperCase()}</Button>
-                ) : (
-                    <Button className="flex items-center justify-center gap-3 py-4 bg-primary-600 text-white font-bold rounded-2xl hover:bg-primary-700 transition-all text-xs uppercase tracking-widest shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 h-auto" data-testid="employees-btn-rehire" onClick={() => { onRehire(employee); }} type="button" variant="primary"><UserPlus size={18} /> {t("employees.details.rehire").toUpperCase()}</Button>
-                )}
-            </PermissionGate>
-        </div>
-    );
-}
-
-function DepartmentSection({
-    deptHistory,
-    departments,
-    onTransfer,
-    formatDate,
-    t
-}: {
-    deptHistory?: DeptHistoryEntry[];
-    departments?: Department[];
-    onTransfer: (id: string) => void;
-    formatDate: (date: string) => string;
-    t: (k: string) => string;
-}) {
-    return (
-        <section className="space-y-5">
-            <div className="flex justify-between items-center px-2">
-                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 opacity-70"><Building2 className="text-primary-500" size={14} /> {t("employees.details.current_dept").toUpperCase()}</span>
-                <PermissionGate permission="employees:update">
-                    <Button className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:underline active:scale-90 h-auto shadow-none border-none p-0" onClick={() => { onTransfer(deptHistory?.[0]?.department_id ?? ""); }} type="button" variant="ghost">{t("employees.details.transfer").toUpperCase()}</Button>
-                </PermissionGate>
-            </div>
-            <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] group hover:bg-white dark:hover:bg-slate-900 hover:shadow-xl hover:shadow-primary-100/10 transition-all shadow-inner relative overflow-hidden">
-                {deptHistory && deptHistory.length > 0 ? (
-                    <div>
-                        <div className="font-bold text-slate-700 dark:text-slate-200 text-2xl tracking-tighter uppercase leading-none mb-3">{departments?.find(d => d.id === deptHistory[0].department_id)?.name}</div>
-                        <div className="flex items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest opacity-70"><Calendar className="text-primary-400" size={12} /> {t("employees.transfer.effective_date")}: {formatDate(deptHistory[0].effective_date)}</div>
-                    </div>
-                ) : (<div className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest italic opacity-60">{t("employees.details.not_assigned_dept")}</div>)}
-                <Building2 className="absolute -right-8 -bottom-8 w-32 h-32 text-slate-700 dark:text-slate-200 opacity-5 -rotate-12 group-hover:rotate-0 transition-transform duration-700" />
-            </div>
-        </section>
-    );
-}
-
-function LocationDisplay({
-    isEditingLocation,
-    selectedLocationId,
-    setSelectedLocationId,
-    locations,
-    currentLocation,
-    setIsEditingLocation,
-}: {
-    isEditingLocation: boolean;
-    selectedLocationId: string;
-    setSelectedLocationId: (v: string) => void;
-    locations?: WorkLocation[];
-    currentLocation?: WorkLocation;
-    setIsEditingLocation: (v: boolean) => void;
-}) {
-    if (isEditingLocation) {
-        return (
-            <div className="relative z-10">
-                <Combobox
-                    clearOnEscape
-                    data-testid="profile-location-combobox"
-                    onChange={setSelectedLocationId}
-                    options={(locations ?? []).map((loc) => ({
-                        value: loc.id,
-                        label: loc.name,
-                        description: loc.is_headquarters ? "Headquarters" : loc.timezone,
-                    }))}
-                    placeholder="Chọn địa điểm làm việc mới"
-                    value={selectedLocationId}
-                />
-                <div className="mt-3 flex gap-2">
-                    <Button className="text-xs uppercase tracking-widest rounded-lg px-4" onClick={() => { setIsEditingLocation(false); }} size="sm" type="button" variant="ghost">Cancel</Button>
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <div>
-            <div className="font-bold text-slate-700 dark:text-slate-200 text-2xl tracking-tighter uppercase leading-none mb-3 flex items-center gap-2">
-                {currentLocation?.name ?? "Unknown Location"}
-                {currentLocation?.is_headquarters ? (
-                    <span className="bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-300 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-widest border border-rose-200 dark:border-rose-800">HQ</span>
-                ) : null}
-            </div>
-            <div className="flex items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest opacity-70 group/tz cursor-help relative inline-flex">
-                <Clock className="text-rose-400" size={12} /> {currentLocation?.timezone ?? "No Timezone"}
-                <div className="absolute opacity-0 invisible group-hover/tz:opacity-100 group-hover/tz:visible transition-all bottom-full left-0 mb-2 whitespace-nowrap bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-800 px-3 py-1.5 rounded-lg text-xs font-mono shadow-lg border border-slate-700 dark:border-slate-300">
-                    Timezone set for {currentLocation?.name}
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function LocationSection({
-    employee,
-    locations,
-    isEditingLocation,
-    setIsEditingLocation,
-    selectedLocationId,
-    setSelectedLocationId,
-    updateLocationMutation,
-    handleSaveLocation,
-    currentLocation,
-    activeLocationId,
-    t
-}: {
-    employee: Employee;
-    locations?: WorkLocation[];
-    isEditingLocation: boolean;
-    setIsEditingLocation: (v: boolean) => void;
-    selectedLocationId: string;
-    setSelectedLocationId: (v: string) => void;
-    updateLocationMutation: { isPending: boolean };
-    handleSaveLocation: () => void;
-    currentLocation?: WorkLocation;
-    activeLocationId: string;
-    t: (k: string) => string;
-}) {
-    return (
-        <section className="space-y-5">
-            <div className="flex justify-between items-center px-2">
-                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 opacity-70"><MapPin className="text-rose-500" size={14} /> WORK LOCATION</span>
-                <PermissionGate permission="employees:update">
-                    {!isEditingLocation ? (
-                        <Button className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:underline active:scale-90 h-auto shadow-none border-none p-0" onClick={() => { setIsEditingLocation(true); setSelectedLocationId(activeLocationId); }} type="button" variant="ghost">{t("common.edit").toUpperCase()}</Button>
-                    ) : (
-                        <Button className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest hover:underline active:scale-90 h-auto shadow-none border-none p-0 flex items-center gap-1" disabled={updateLocationMutation.isPending} onClick={handleSaveLocation} type="button" variant="ghost"><Check size={12}/> SAVE</Button>
-                    )}
-                </PermissionGate>
-            </div>
-            <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] group hover:bg-white dark:hover:bg-slate-900 hover:shadow-xl hover:shadow-rose-100/10 transition-all shadow-inner relative overflow-hidden">
-                <LocationDisplay
-                    currentLocation={currentLocation}
-                    isEditingLocation={isEditingLocation}
-                    locations={locations}
-                    selectedLocationId={selectedLocationId}
-                    setIsEditingLocation={setIsEditingLocation}
-                    setSelectedLocationId={setSelectedLocationId}
-                />
-                <Globe className="absolute -right-8 -bottom-8 w-32 h-32 text-slate-700 dark:text-slate-200 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all duration-700" />
-            </div>
-        </section>
-    );
-}
-
-function UserSection({
-    linkedUser,
-    employee,
-    t
-}: {
-    linkedUser?: WorkspaceMember;
-    employee: Employee;
-    t: (k: string) => string;
-}) {
-    return (
-        <section className="space-y-5">
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 px-2 opacity-70"><User className="text-primary-500" size={14} /> {t("common.user").toUpperCase()}</span>
-            <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] group hover:bg-white dark:hover:bg-slate-900 hover:shadow-xl hover:shadow-primary-100/10 transition-all shadow-inner relative overflow-hidden">
-                {linkedUser ? (
-                    <div>
-                        <div className="font-bold text-slate-700 dark:text-slate-200 text-lg tracking-tight uppercase leading-none mb-1">{linkedUser.full_name ?? linkedUser.email}</div>
-                        <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest opacity-70">{linkedUser.email}</div>
-                    </div>
-                ) : employee.user_id ? (
-                    <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                        <div className="text-xs text-amber-600 dark:text-amber-400 font-bold uppercase tracking-widest italic">{t("common.loading")}</div>
-                    </div>
-                ) : (
-                    <div className="text-slate-300 dark:text-slate-600 font-bold text-xl tracking-tighter uppercase font-mono">—</div>
-                )}
-            </div>
-        </section>
-    );
-}
-
-function HireDatesSection({
-    employments,
-    formatDate,
-    t
-}: {
-    employments: Employment[];
-    formatDate: (date: string) => string;
-    t: (k: string) => string;
-}) {
-    const sortedEmployments = [...employments].sort((a, b) => a.start_date.localeCompare(b.start_date));
-    const originalHireDate = sortedEmployments[0]?.start_date ?? "";
-    const activeOrLatestEmployment = employments.find(e => e.status === "active") || sortedEmployments[sortedEmployments.length - 1];
-    const hireDate = activeOrLatestEmployment?.start_date ?? "";
-
-    return (
-        <section className="space-y-5">
-            <div className="grid grid-cols-2 gap-6">
-                <div>
-                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 px-2 mb-5 opacity-70"><Calendar className="text-emerald-500" size={14} /> {t("employees.details.original_hire_date").toUpperCase()}</span>
-                    <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] font-bold text-slate-800 dark:text-slate-100 text-2xl tracking-tighter shadow-inner uppercase font-mono">{originalHireDate ? formatDate(originalHireDate) : "—"}</div>
-                </div>
-                <div>
-                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 px-2 mb-5 opacity-70"><Calendar className="text-emerald-500" size={14} /> {t("employees.table.hire_date").toUpperCase()}</span>
-                    <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] font-bold text-slate-800 dark:text-slate-100 text-2xl tracking-tighter shadow-inner uppercase font-mono">{hireDate ? formatDate(hireDate) : "—"}</div>
-                </div>
-            </div>
-        </section>
-    );
-}
-
-function ProfileTab({
-    departments,
-    deptHistory,
-    employee,
-    locations,
-    wsId,
-    formatDate,
-    linkedUser,
-    onEdit,
-    onRehire,
-    onTerminate,
-    onTransfer,
-    t
-}: {
-    departments?: Department[];
-    deptHistory?: DeptHistoryEntry[];
-    employee: Employee;
-    locations?: WorkLocation[];
-    wsId: string;
-    formatDate: (date: string) => string;
-    linkedUser: WorkspaceMember | undefined;
-    onEdit: (e: Employee) => void;
-    onRehire: (e: Employee) => void;
-    onTerminate: (e: Employee) => void;
-    onTransfer: (id: string) => void;
-    t: (k: string) => string;
-}) {
-    const queryClient = useQueryClient();
-    const toast = useToast();
-    const [isEditingLocation, setIsEditingLocation] = useState(false);
-    const [selectedLocationId, setSelectedLocationId] = useState("");
-
-    const { data: employments = [] } = useQuery({
-        queryKey: ["employee-employments", wsId, employee.id],
-        queryFn: () => fetchEmployeeEmployments(wsId, employee.id),
-        enabled: !!wsId && !!employee.id,
-    });
-    const activeEmployment = employments.find(e => e.status === "active") || employments[0];
-    const activeLocationId = activeEmployment?.primary_location_id ?? "";
-
-    useEffect(() => {
-        if (activeLocationId) {
-            setSelectedLocationId(activeLocationId);
-        }
-    }, [activeLocationId]);
-
-    const updateLocationMutation = useMutation({
-        mutationFn: (locationId: string) => {
-            if (!activeEmployment) return Promise.reject(new Error("No active employment found"));
-            return updateEmployeeEmployment(wsId, employee.id, activeEmployment.id, { primary_location_id: locationId });
-        },
-        onSuccess: () => {
-            void queryClient.invalidateQueries({ queryKey: ["employee-employments", wsId, employee.id] });
-            void queryClient.invalidateQueries({ queryKey: ["employees", wsId] });
-            setIsEditingLocation(false);
-            toast.success(t("common.success"));
-        },
-        onError: () => {
-            toast.error("Failed to update location");
-            setSelectedLocationId(activeLocationId);
-        }
-    });
-
-    const handleSaveLocation = () => {
-        if (selectedLocationId !== activeLocationId) {
-            updateLocationMutation.mutate(selectedLocationId);
-        } else {
-            setIsEditingLocation(false);
-        }
-    };
-
-    const currentLocation = locations?.find(l => l.id === activeLocationId);
-
-    return (
-        <div className="space-y-10">
-            <ProfileActions
-                employee={employee}
-                onEdit={onEdit}
-                onRehire={onRehire}
-                onTerminate={onTerminate}
-                t={t}
-            />
-
-            <DepartmentSection
-                departments={departments}
-                deptHistory={deptHistory}
-                formatDate={formatDate}
-                onTransfer={onTransfer}
-                t={t}
-            />
-
-            <LocationSection
-                activeLocationId={activeLocationId}
-                currentLocation={currentLocation}
-                employee={employee}
-                handleSaveLocation={handleSaveLocation}
-                isEditingLocation={isEditingLocation}
-                locations={locations}
-                selectedLocationId={selectedLocationId}
-                setIsEditingLocation={setIsEditingLocation}
-                setSelectedLocationId={setSelectedLocationId}
-                t={t}
-                updateLocationMutation={updateLocationMutation}
-            />
-
-            <UserSection
-                employee={employee}
-                linkedUser={linkedUser}
-                t={t}
-            />
-
-            <GridWrap>
-                <HireDatesSection
-                    employments={employments}
-                    formatDate={formatDate}
-                    t={t}
-                />
-            </GridWrap>
-
-            <CustomFieldSection entityId={employee.id} entityType="employee" />
-
-            {activeEmployment?.id && (
-                <CustomFieldSection entityId={activeEmployment.id} entityType="employment" />
-            )}
-        </div>
-    );
-}
-
-function GridWrap({ children }: { children: React.ReactNode }) {
-    return <div className="w-full">{children}</div>;
 }
 
 function DrawerTabContent({
@@ -570,7 +65,7 @@ function DrawerTabContent({
     onTerminate: (e: Employee) => void;
     onTransfer: (id: string) => void;
     linkedUser?: WorkspaceMember;
-    locations?: WorkLocation[];
+    locations?: any[];
     t: (k: string) => string;
     activeEmployment?: Employment;
 }) {
@@ -593,46 +88,17 @@ function DrawerTabContent({
                 />
             );
         case "documents":
-            return (
-                <EmployeeDocumentsTab
-                    employeeId={employee.id}
-                />
-            );
+            return <EmployeeDocumentsTab employeeId={employee.id} />;
         case "contracts":
-            return (
-                <EmployeeContractsTab
-                    employeeId={employee.id}
-                    formatDate={formatDate}
-                    wsId={wsId}
-                />
-            );
+            return <EmployeeContractsTab employeeId={employee.id} formatDate={formatDate} wsId={wsId} />;
         case "phases":
-            return (
-                <EmployeePhasesTab
-                    employeeId={employee.id}
-                    formatDate={formatDate}
-                    wsId={wsId}
-                />
-            );
+            return <EmployeePhasesTab employeeId={employee.id} formatDate={formatDate} wsId={wsId} />;
         case "assignments":
-            return (
-                <EmployeeAssignmentsTab
-                    employeeId={employee.id}
-                    formatDate={formatDate}
-                    wsId={wsId}
-                />
-            );
+            return <EmployeeAssignmentsTab employeeId={employee.id} formatDate={formatDate} wsId={wsId} />;
         case "salary":
             return <EmployeeSalaryConfig employeeId={employee.id} employmentId={activeEmployment?.id ?? ""} wsId={wsId} />;
         case "compensation":
-            return (
-                <CompensationHistoryTab
-                    employeeId={employee.id}
-                    employmentId={activeEmployment?.id}
-                    wsId={wsId}
-                    formatDate={formatDate}
-                />
-            );
+            return <CompensationHistoryTab employeeId={employee.id} employmentId={activeEmployment?.id} wsId={wsId} formatDate={formatDate} />;
         case "policies":
             return <WorkingConditionConfig employeeId={employee.id} />;
         case "lifecycle":
@@ -659,7 +125,6 @@ export default function EmployeeDetailDrawer({
     const [activeDetailTab, setActiveDetailTab] = useState<DetailTabType>("profile");
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    // Arrow keys: left/right = switch tabs, up/down = scroll content
     useEffect(() => {
         if (!isOpen) return;
         const handleKeyDown = (e: KeyboardEvent) => {

@@ -211,16 +211,16 @@ pub async fn get_employees(
         .service()
         .get_all_employees(
             &ctx.auth_token,
-            crate::models::EmployeeFilterOptions {
-                search_query: query.q,
+            crate::models::EmployeeFilterOptions::new(
+                query.q,
                 page,
                 limit,
-                sort_by: query.sort_by,
-                sort_dir: query.sort_dir,
+                query.sort_by,
+                query.sort_dir,
                 department_ids,
-                permission: query.permission,
+                query.permission,
                 filter_ids,
-            },
+            ),
         )
         .await?;
 

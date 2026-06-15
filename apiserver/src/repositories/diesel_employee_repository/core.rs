@@ -124,7 +124,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         use crate::repositories::workspace_repository::WorkspaceRepository;
         use diesel::sql_types::{Array, BigInt, Nullable, Text};
 
-        let user_ids = if let Some(ref permission) = options.permission {
+        let user_ids = if let Some(permission) = options.permission() {
             let workspace_repo =
                 crate::repositories::diesel_workspace_repository::DieselWorkspaceRepository::new(
                     self.diesel_pools.clone(),
@@ -149,12 +149,12 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         );
 
         let search_sql = build_employee_search_sql(
-            options.search_query.as_deref(),
-            options.sort_by.as_deref(),
-            options.sort_dir.as_deref(),
+            options.search_query(),
+            options.sort_by(),
+            options.sort_dir(),
         );
 
-        let filter_sql = if let Some(ref ids) = options.filter_ids {
+        let filter_sql = if let Some(ids) = options.filter_ids() {
             if ids.is_empty() {
                 " AND FALSE".to_string()
             } else {
@@ -188,8 +188,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
 
         let count_search_param = if search_sql.has_search {
             let raw_q = options
-                .search_query
-                .as_deref()
+                .search_query()
                 .unwrap_or_default()
                 .trim()
                 .to_string();
@@ -198,7 +197,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             None
         };
 
-        let dept_ids = options.department_ids.clone();
+        let dept_ids = options.department_ids().map(ToOwned::to_owned);
 
         let total_row: CountRow = match (search_sql.has_search, &user_ids) {
             (true, Some(ids)) => diesel::sql_query(&count_sql)
@@ -259,8 +258,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
 
         let (search_str_1, search_str_2) = if search_sql.has_search {
             let raw_q = options
-                .search_query
-                .as_deref()
+                .search_query()
                 .unwrap_or_default()
                 .trim()
                 .to_string();
@@ -269,16 +267,18 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             (None, None)
         };
 
-        let offset = (options.page - 1) * options.limit;
+        let offset = (options.page() - 1) * options.limit();
 
         let employee_rows: Vec<EmployeeRow> = if let Some(ref ids) = user_ids {
             diesel::sql_query(&sql)
                 .bind::<UuidType, _>(workspace_id)
                 .bind::<Nullable<Text>, _>(search_str_1)
-                .bind::<BigInt, _>(options.limit)
+                .bind::<BigInt, _>(options.limit())
                 .bind::<BigInt, _>(offset)
                 .bind::<Nullable<Text>, _>(search_str_2)
-                .bind::<Nullable<Array<UuidType>>, _>(options.department_ids)
+                .bind::<Nullable<Array<UuidType>>, _>(
+                    options.department_ids().map(ToOwned::to_owned),
+                )
                 .bind::<Array<UuidType>, _>(ids)
                 .load(&mut *conn)
                 .await
@@ -286,10 +286,12 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             diesel::sql_query(&sql)
                 .bind::<UuidType, _>(workspace_id)
                 .bind::<Nullable<Text>, _>(search_str_1)
-                .bind::<BigInt, _>(options.limit)
+                .bind::<BigInt, _>(options.limit())
                 .bind::<BigInt, _>(offset)
                 .bind::<Nullable<Text>, _>(search_str_2)
-                .bind::<Nullable<Array<UuidType>>, _>(options.department_ids)
+                .bind::<Nullable<Array<UuidType>>, _>(
+                    options.department_ids().map(ToOwned::to_owned),
+                )
                 .load(&mut *conn)
                 .await
         }
@@ -386,10 +388,10 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             .filter(employees::deleted_at.is_null())
             .into_boxed();
 
-        let status = args.status_filter.as_deref().unwrap_or("active");
+        let status = args.status_filter().unwrap_or("active");
         match status {
             "active" => {
-                if let Some((start, end)) = args.active_during {
+                if let Some((start, end)) = args.active_during() {
                     count_query = count_query.filter(diesel::dsl::exists(
                         employments::table
                             .filter(employments::employee_id.eq(employees::id))
@@ -428,8 +430,8 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             _ => {}
         }
 
-        if let Some(dept_id) = args.department_id {
-            if let Some((start, end)) = args.active_during {
+        if let Some(dept_id) = args.department_id() {
+            if let Some((start, end)) = args.active_during() {
                 count_query = count_query.filter(diesel::dsl::exists(
                     employments::table
                         .filter(employments::employee_id.eq(employees::id))
@@ -453,7 +455,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             }
         }
 
-        if let Some(ids) = args.filter_ids {
+        if let Some(ids) = args.filter_ids() {
             count_query = count_query.filter(employees::id.eq_any(ids));
         }
 
@@ -474,7 +476,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
 
         match status {
             "active" => {
-                if let Some((start, end)) = args.active_during {
+                if let Some((start, end)) = args.active_during() {
                     data_query = data_query.filter(diesel::dsl::exists(
                         employments::table
                             .filter(employments::employee_id.eq(employees::id))
@@ -513,8 +515,8 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             _ => {}
         }
 
-        if let Some(dept_id) = args.department_id {
-            if let Some((start, end)) = args.active_during {
+        if let Some(dept_id) = args.department_id() {
+            if let Some((start, end)) = args.active_during() {
                 data_query = data_query.filter(diesel::dsl::exists(
                     employments::table
                         .filter(employments::employee_id.eq(employees::id))
@@ -538,17 +540,17 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             }
         }
 
-        if let Some(ids) = args.filter_ids {
+        if let Some(ids) = args.filter_ids() {
             data_query = data_query.filter(employees::id.eq_any(ids.clone()));
         }
 
-        if args.sort_desc {
+        if args.sort_desc() {
             data_query = data_query.order(employees::created_at.desc());
         } else {
             data_query = data_query.order(employees::created_at.asc());
         }
 
-        let offset = (args.page - 1) * args.limit;
+        let offset = (args.page() - 1) * args.limit();
 
         let result: Vec<EmployeeBasicInfo> = data_query
             .select((
@@ -556,7 +558,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                 employees::full_name,
                 employees::employee_id_number,
             ))
-            .limit(args.limit)
+            .limit(args.limit())
             .offset(offset)
             .load(&mut *conn)
             .await

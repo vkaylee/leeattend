@@ -10,25 +10,179 @@ use crate::models::enums::RecruitmentSourceType;
 
 #[derive(Debug, Clone, Default)]
 pub struct EmployeeFilterOptions {
-    pub search_query: Option<String>,
-    pub page: i64,
-    pub limit: i64,
-    pub sort_by: Option<String>,
-    pub sort_dir: Option<String>,
-    pub department_ids: Option<Vec<Uuid>>,
-    pub permission: Option<String>,
-    pub filter_ids: Option<Vec<Uuid>>,
+    search_query: Option<String>,
+    page: i64,
+    limit: i64,
+    sort_by: Option<String>,
+    sort_dir: Option<String>,
+    department_ids: Option<Vec<Uuid>>,
+    permission: Option<String>,
+    filter_ids: Option<Vec<Uuid>>,
+}
+
+impl EmployeeFilterOptions {
+    pub fn new(
+        search_query: Option<String>,
+        page: i64,
+        limit: i64,
+        sort_by: Option<String>,
+        sort_dir: Option<String>,
+        department_ids: Option<Vec<Uuid>>,
+        permission: Option<String>,
+        filter_ids: Option<Vec<Uuid>>,
+    ) -> Self {
+        Self {
+            search_query,
+            page,
+            limit,
+            sort_by,
+            sort_dir,
+            department_ids,
+            permission,
+            filter_ids,
+        }
+    }
+
+    #[must_use]
+    pub fn with_search_query(mut self, q: Option<String>) -> Self {
+        self.search_query = q;
+        self
+    }
+
+    #[must_use]
+    pub fn with_page(mut self, p: i64) -> Self {
+        self.page = p;
+        self
+    }
+
+    #[must_use]
+    pub fn with_limit(mut self, l: i64) -> Self {
+        self.limit = l;
+        self
+    }
+
+    #[must_use]
+    pub fn with_sort_by(mut self, s: Option<String>) -> Self {
+        self.sort_by = s;
+        self
+    }
+
+    #[must_use]
+    pub fn with_sort_dir(mut self, d: Option<String>) -> Self {
+        self.sort_dir = d;
+        self
+    }
+
+    #[must_use]
+    pub fn with_department_ids(mut self, depts: Option<Vec<Uuid>>) -> Self {
+        self.department_ids = depts;
+        self
+    }
+
+    #[must_use]
+    pub fn with_permission(mut self, perm: Option<String>) -> Self {
+        self.permission = perm;
+        self
+    }
+
+    #[must_use]
+    pub fn with_filter_ids(mut self, ids: Option<Vec<Uuid>>) -> Self {
+        self.filter_ids = ids;
+        self
+    }
+
+    pub fn search_query(&self) -> Option<&str> {
+        self.search_query.as_deref()
+    }
+
+    pub fn page(&self) -> i64 {
+        self.page
+    }
+
+    pub fn limit(&self) -> i64 {
+        self.limit
+    }
+
+    pub fn sort_by(&self) -> Option<&str> {
+        self.sort_by.as_deref()
+    }
+
+    pub fn sort_dir(&self) -> Option<&str> {
+        self.sort_dir.as_deref()
+    }
+
+    pub fn department_ids(&self) -> Option<&[Uuid]> {
+        self.department_ids.as_deref()
+    }
+
+    pub fn permission(&self) -> Option<&str> {
+        self.permission.as_deref()
+    }
+
+    pub fn filter_ids(&self) -> Option<&[Uuid]> {
+        self.filter_ids.as_deref()
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct EmployeePaginationArgs<'a> {
-    pub filter_ids: Option<&'a Vec<Uuid>>,
-    pub department_id: Option<Uuid>,
-    pub page: i64,
-    pub limit: i64,
-    pub sort_desc: bool,
-    pub active_during: Option<(NaiveDate, NaiveDate)>,
-    pub status_filter: Option<String>,
+    filter_ids: Option<&'a Vec<Uuid>>,
+    department_id: Option<Uuid>,
+    page: i64,
+    limit: i64,
+    sort_desc: bool,
+    active_during: Option<(NaiveDate, NaiveDate)>,
+    status_filter: Option<String>,
+}
+
+impl<'a> EmployeePaginationArgs<'a> {
+    pub fn new(
+        filter_ids: Option<&'a Vec<Uuid>>,
+        department_id: Option<Uuid>,
+        page: i64,
+        limit: i64,
+        sort_desc: bool,
+        active_during: Option<(NaiveDate, NaiveDate)>,
+        status_filter: Option<String>,
+    ) -> Self {
+        Self {
+            filter_ids,
+            department_id,
+            page,
+            limit,
+            sort_desc,
+            active_during,
+            status_filter,
+        }
+    }
+
+    pub fn filter_ids(&self) -> Option<&'a Vec<Uuid>> {
+        self.filter_ids
+    }
+
+    pub fn department_id(&self) -> Option<Uuid> {
+        self.department_id
+    }
+
+    pub fn page(&self) -> i64 {
+        self.page
+    }
+
+    pub fn limit(&self) -> i64 {
+        self.limit
+    }
+
+    pub fn sort_desc(&self) -> bool {
+        self.sort_desc
+    }
+
+    pub fn active_during(&self) -> Option<(NaiveDate, NaiveDate)> {
+        self.active_during
+    }
+
+    pub fn status_filter(&self) -> Option<&str> {
+        self.status_filter.as_deref()
+    }
 }
 
 // ── Recruitment Source Models ───────────────────────────────────────

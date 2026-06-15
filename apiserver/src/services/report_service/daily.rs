@@ -146,15 +146,15 @@ impl ReportService {
                     .employee_repo
                     .get_paginated_employee_ids(
                         &auth_token,
-                        crate::models::EmployeePaginationArgs {
-                            filter_ids: args.employee_ids.as_ref(),
-                            department_id: args.department_id,
+                        crate::models::EmployeePaginationArgs::new(
+                            args.employee_ids.as_ref(),
+                            args.department_id,
                             page,
                             limit,
-                            sort_desc: false,
-                            active_during: Some((args.start_date, args.end_date)),
-                            status_filter: args.employee_status.clone(),
-                        },
+                            false,
+                            Some((args.start_date, args.end_date)),
+                            args.employee_status.clone(),
+                        ),
                     )
                     .await
                     .map_err(|e| {

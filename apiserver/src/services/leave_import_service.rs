@@ -133,11 +133,9 @@ impl ImportStrategy for LeaveImportStrategy {
         job: &AttendanceImportJob,
         _rows: &[Self::RowData],
     ) -> Result<(), crate::errors::AppError> {
-        let options = crate::models::EmployeeFilterOptions {
-            page: 1,
-            limit: 100_000,
-            ..Default::default()
-        };
+        let options = crate::models::EmployeeFilterOptions::default()
+            .with_page(1)
+            .with_limit(100_000);
         let (emps, _) = deps
             .employee_repo
             .get_all_employees(
