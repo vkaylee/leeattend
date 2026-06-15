@@ -673,6 +673,7 @@ mod tests {
             active_assignments: vec![],
             active_employments: vec![],
             primary_location_id: Uuid::new_v4(),
+            ot_base_component_ids: std::collections::HashSet::new(),
         };
 
         let std_config = crate::domain::policy::resolver::StandardMonthConfig::new(
@@ -813,6 +814,7 @@ mod tests {
             active_assignments: vec![],
             active_employments: vec![employment],
             primary_location_id: Uuid::new_v4(),
+            ot_base_component_ids: std::collections::HashSet::new(),
         };
 
         let std_config = crate::domain::policy::resolver::StandardMonthConfig::new(
@@ -904,6 +906,7 @@ mod tests {
             active_assignments: vec![],
             active_employments: vec![],
             primary_location_id: Uuid::new_v4(),
+            ot_base_component_ids: std::collections::HashSet::new(),
         };
 
         let std_config = crate::domain::policy::resolver::StandardMonthConfig::new(
@@ -1063,6 +1066,7 @@ mod tests {
             active_assignments: vec![],
             active_employments: vec![employment],
             primary_location_id: Uuid::new_v4(),
+            ot_base_component_ids: std::collections::HashSet::new(),
         };
 
         let std_config = crate::domain::policy::resolver::StandardMonthConfig::new(
@@ -1249,6 +1253,7 @@ mod tests {
             active_assignments: vec![],
             active_employments: vec![employment],
             primary_location_id: Uuid::new_v4(),
+            ot_base_component_ids: std::collections::HashSet::new(),
         };
 
         let std_config = crate::domain::policy::resolver::StandardMonthConfig::new(
@@ -1395,6 +1400,7 @@ mod tests {
             active_assignments: vec![],
             active_employments: vec![employment],
             primary_location_id: Uuid::new_v4(),
+            ot_base_component_ids: std::collections::HashSet::new(),
         };
 
         let std_config = crate::domain::policy::resolver::StandardMonthConfig::new(

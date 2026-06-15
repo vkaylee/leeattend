@@ -38,15 +38,18 @@ pub struct TemplatePreviewResponse {
     )
 )]
 pub async fn preview_template_handler(
-    State(_state): State<Arc<AppState>>,
-    _ctx: MemberContext,
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
     Path(_ws_id): Path<Uuid>,
     Json(payload): Json<TemplatePreviewRequest>,
 ) -> AppResult<Json<TemplatePreviewResponse>> {
-    // In actual implementation, we would query Employee/Employment details here.
-    // For now, use the TemplateService logic with mock/manual variables.
-
     let content = TemplateService::generate_employee_document(
+        ctx.workspace_id,
+        payload.employee_id,
+        state.core().workspace_repo().as_ref(),
+        state.employees().repo().as_ref(),
+        state.employees().employment_repo().as_ref(),
+        state.employees().contract_repo().as_ref(),
         &payload.template_content,
         payload.manual_variables,
     )

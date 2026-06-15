@@ -53,6 +53,7 @@ pub struct PayrollContext {
         HashMap<Uuid, Vec<crate::models::DepartmentPayrollConfig>>,
     pub(crate) overtime_data:
         crate::repositories::overtime_policy_repository::WorkspaceOvertimeData,
+    pub(crate) ot_base_component_ids: std::collections::HashSet<Uuid>,
     #[allow(dead_code)]
     pub(crate) active_contracts: Vec<crate::models::contract::EmployeeContract>,
     pub(crate) active_assignments: Vec<crate::models::employee_assignment::EmployeeAssignment>,
@@ -360,6 +361,29 @@ impl PayrollService {
             .list_employee_employments(&auth_token, employee_id)
             .await?;
 
+        let groups = self
+            .salary_base_repo
+            .get_groups(workspace_id)
+            .await
+            .unwrap_or_default();
+        let ot_group_id = groups.iter().find(|g| g.slug == "ot_base").map(|g| g.id);
+
+        let mut ot_base_component_ids = std::collections::HashSet::new();
+        if let Some(group_id) = ot_group_id {
+            if let Ok(members) = self.salary_base_repo.get_group_members(workspace_id).await {
+                for member in members {
+                    if member.base_group_id == group_id {
+                        ot_base_component_ids.insert(member.component_definition_id);
+                    }
+                }
+            }
+        } else {
+            // Fallback for tests or unseeded workspaces: treat all components as part of OT base
+            for (_, scd) in &salary_history {
+                ot_base_component_ids.insert(scd.id);
+            }
+        }
+
         Ok(PayrollContext {
             employee_id,
             workspace,
@@ -380,6 +404,7 @@ impl PayrollService {
             ws_payroll_settings_history,
             department_payroll_configs,
             overtime_data,
+            ot_base_component_ids,
             active_contracts,
             active_assignments,
             active_employments,
@@ -483,9 +508,9 @@ impl PayrollService {
             for (esc, scd) in ctx.salary_history.iter().rev() {
                 if !processed_def_ids.contains(&scd.id) && esc.effective_date <= seg_start {
                     segment_total_base += esc.amount;
-                    // TODO: In the future, check if scd belongs to "ot_base" group.
-                    // For now, we assume all components contribute to OT base.
-                    segment_ot_base += esc.amount;
+                    if ctx.ot_base_component_ids.contains(&scd.id) {
+                        segment_ot_base += esc.amount;
+                    }
                     processed_def_ids.insert(scd.id);
                 }
             }
@@ -975,6 +1000,24 @@ impl PayrollService {
                     .push(emp_ment.clone());
             }
 
+            let groups = self
+                .salary_base_repo
+                .get_groups(workspace_id)
+                .await
+                .unwrap_or_default();
+            let ot_group_id = groups.iter().find(|g| g.slug == "ot_base").map(|g| g.id);
+
+            let mut ot_base_component_ids = std::collections::HashSet::new();
+            if let Some(group_id) = ot_group_id {
+                if let Ok(members) = self.salary_base_repo.get_group_members(workspace_id).await {
+                    for member in members {
+                        if member.base_group_id == group_id {
+                            ot_base_component_ids.insert(member.component_definition_id);
+                        }
+                    }
+                }
+            }
+
             let mut contexts = Vec::new();
             for employment_id in &chunk_employment_ids {
                 let emp_id = match employment_to_employee.get(employment_id) {
@@ -1024,6 +1067,15 @@ impl PayrollService {
                         .unwrap_or_else(Uuid::new_v4);
 
                     let salary_history = salary_map.remove(employment_id).unwrap_or_default();
+                    let ot_base_comp_ids = if ot_base_component_ids.is_empty() {
+                        let mut fallback = std::collections::HashSet::new();
+                        for (_, scd) in &salary_history {
+                            fallback.insert(scd.id);
+                        }
+                        fallback
+                    } else {
+                        ot_base_component_ids.clone()
+                    };
 
                     contexts.push((
                         *employment_id,
@@ -1047,6 +1099,7 @@ impl PayrollService {
                             ws_payroll_settings_history: ws_payroll_settings_history.clone(),
                             department_payroll_configs: emp_dept_payroll_configs,
                             overtime_data: overtime_data.clone(),
+                            ot_base_component_ids: ot_base_comp_ids,
                             active_contracts: contracts_map.remove(&emp_id).unwrap_or_default(),
                             active_assignments: assignments_map
                                 .remove(employment_id)
@@ -1167,6 +1220,13 @@ mod tests {
         )>,
         all_dept_history: Vec<crate::models::EmployeeDepartmentHistory>,
     ) -> PayrollContext {
+        let ot_base_component_ids = {
+            let mut ids = std::collections::HashSet::new();
+            for (_, scd) in &salary_history {
+                ids.insert(scd.id);
+            }
+            ids
+        };
         PayrollContext {
             employee_id: Uuid::new_v4(),
             workspace: crate::models::Workspace::new(
@@ -1215,6 +1275,7 @@ mod tests {
                 policies: HashMap::new(),
                 assignments: Vec::new(),
             },
+            ot_base_component_ids,
             active_contracts: Vec::new(),
             active_assignments: Vec::new(),
             active_employments: Vec::new(),

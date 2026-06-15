@@ -1,6 +1,10 @@
 use crate::errors::AppError;
+use crate::repositories::{
+    EmployeeContractRepository, EmployeeRepository, EmploymentRepository, WorkspaceRepository,
+};
 use regex::Regex;
 use std::collections::HashMap;
+use uuid::Uuid;
 
 pub struct TemplateService;
 
@@ -31,22 +35,83 @@ impl TemplateService {
     }
 
     /// Fetches necessary employee data and uses `fill_template` to generate the document.
-    #[allow(clippy::unused_async)]
     pub async fn generate_employee_document(
-        // TODO: In the next iteration, we will inject state to query repos
-        // state: &std::sync::Arc<crate::AppState>,
-        // employee_id: uuid::Uuid,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        workspace_repo: &dyn WorkspaceRepository,
+        employee_repo: &dyn EmployeeRepository,
+        employment_repo: &dyn EmploymentRepository,
+        contract_repo: &dyn EmployeeContractRepository,
         template_content: &str,
         variables_override: Option<HashMap<String, String>>,
     ) -> Result<String, AppError> {
         let mut variables = HashMap::new();
 
-        // Default mocked variables for now (until connected to DB repos)
-        variables.insert("COMPANY_NAME".to_string(), "LeeAttend Corp".to_string());
-        variables.insert(
-            "DOCUMENT_DATE".to_string(),
-            chrono::Utc::now().format("%d/%m/%Y").to_string(),
-        );
+        // 1. Fetch Workspace
+        if let Ok(Some(workspace)) = workspace_repo.get_workspace_by_id(workspace_id).await {
+            variables.insert("COMPANY_NAME".to_string(), workspace.name().to_string());
+        } else {
+            variables.insert("COMPANY_NAME".to_string(), "LeeAttend Corp".to_string());
+        }
+
+        // 2. Fetch Employee
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
+        if let Ok(Some(employee)) = employee_repo
+            .get_employee_by_id(employee_id, &auth_token)
+            .await
+        {
+            variables.insert(
+                "EMPLOYEE_NAME".to_string(),
+                employee.full_name().to_string(),
+            );
+            variables.insert(
+                "EMPLOYEE_ID_NUMBER".to_string(),
+                employee.employee_id_number().to_string(),
+            );
+        }
+
+        // 3. Fetch Employment (Active on today or fallback to first employment in list)
+        let today = chrono::Utc::now().date_naive();
+        let employment = if let Ok(Some(emp)) = employment_repo
+            .get_active_employment_on_date(&auth_token, employee_id, today)
+            .await
+        {
+            Some(emp)
+        } else if let Ok(employments) = employment_repo
+            .list_employee_employments(&auth_token, employee_id)
+            .await
+        {
+            employments.into_iter().next()
+        } else {
+            None
+        };
+
+        if let Some(emp) = employment {
+            variables.insert(
+                "HIRE_DATE".to_string(),
+                emp.start_date().format("%d/%m/%Y").to_string(),
+            );
+            if let Some(title) = emp.job_title() {
+                variables.insert("JOB_TITLE".to_string(), title.to_string());
+            }
+
+            // 4. Fetch Contract (Active/First contract for this employment)
+            if let Ok(contracts) = contract_repo
+                .list_employee_contracts(&auth_token, emp.id())
+                .await
+            {
+                if let Some(contract) = contracts.first() {
+                    if let Some(num) = contract.contract_number() {
+                        variables.insert("CONTRACT_NUMBER".to_string(), num.to_string());
+                    }
+                }
+            }
+        }
+
+        // Default fallback if not already populated
+        variables
+            .entry("DOCUMENT_DATE".to_string())
+            .or_insert_with(|| chrono::Utc::now().format("%d/%m/%Y").to_string());
 
         // Merge overrides
         if let Some(overrides) = variables_override {
