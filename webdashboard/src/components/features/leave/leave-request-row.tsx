@@ -1,10 +1,11 @@
 import type { TFunction } from "i18next";
 
-import { CheckCircle2, XCircle, ShieldCheck, MessageSquare, Sun, Moon, Timer } from "lucide-react";
+import { CheckCircle2, XCircle, ShieldCheck, MessageSquare, Sun, Moon, Timer, Paperclip } from "lucide-react";
 import React from "react";
 
 import type { fetchWorkspaceLeaveRequests } from "@/lib/api";
 import type { Employee, LeaveType } from "@/lib/api/types";
+import { useWorkspace } from "@/hooks/use-workspace";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
@@ -19,6 +20,7 @@ export interface LeaveRequestRowProps {
   onApprove: (id: string, status: string) => void;
   request: LeaveRequestItem;
   t: TFunction;
+  onPreviewAttachment?: (fileUrl: string, title: string) => void;
 }
 
 function getDurationBadgeStyle(type: string | null) {
@@ -131,7 +133,17 @@ function ActionsCell({
   );
 }
 
-export function LeaveRequestRow({ request, emp, leaveTypes, formatDate, t, onApprove }: LeaveRequestRowProps) {
+export function LeaveRequestRow({
+  request,
+  emp,
+  leaveTypes,
+  formatDate,
+  t,
+  onApprove,
+  onPreviewAttachment,
+}: LeaveRequestRowProps) {
+  const { workspace } = useWorkspace();
+  const wsId = workspace?.id ?? "";
   const leaveTypeName = (leaveTypes.find(tOption => tOption.id === request.leave_type_id)?.name ?? "Unknown").toUpperCase();
 
   return (
@@ -160,6 +172,24 @@ export function LeaveRequestRow({ request, emp, leaveTypes, formatDate, t, onApp
             &quot;{request.reason ?? t("common.no_description")}&quot;
           </Typography>
         </div>
+        {request.attachment_file_ids && request.attachment_file_ids.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {request.attachment_file_ids.map((fileId, index) => {
+              if (!fileId) return null;
+              return (
+                <button
+                  key={fileId}
+                  type="button"
+                  onClick={() => onPreviewAttachment?.(`/api/v1/workspaces/${wsId}/files/${fileId}/download`, `Leave Attachment #${index + 1}`)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-750 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/40 dark:text-indigo-400 border border-indigo-150 dark:border-indigo-900/50 transition-colors cursor-pointer"
+                >
+                  <Paperclip className="w-3 h-3" />
+                  <span>Doc #{index + 1}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </td>
       <td className="px-8 py-6 text-center">
         <span className={cn(
@@ -173,3 +203,4 @@ export function LeaveRequestRow({ request, emp, leaveTypes, formatDate, t, onApp
     </tr>
   );
 }
+

@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { History, Info, Loader2 } from "lucide-react";
+import { History, Info, Loader2, X } from "lucide-react";
+import { FileUpload } from "@/components/files/FileUpload";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -37,6 +38,8 @@ function useCreateAdjustmentForm({ wsId, timezone, onClose }: CreateAdjustmentFo
   const [punchOut, setPunchOut] = useState<string>("17:00");
   const [isBreakOvertime, setIsBreakOvertime] = useState<boolean>(false);
   const [reason, setReason] = useState<string>("");
+  const [attachmentFileIds, setAttachmentFileIds] = useState<string[]>([]);
+  const [ownerId] = useState<string>(() => crypto.randomUUID());
 
   const handleClose = () => {
     setSelectedEmpId("");
@@ -45,6 +48,7 @@ function useCreateAdjustmentForm({ wsId, timezone, onClose }: CreateAdjustmentFo
     setPunchOut("17:00");
     setIsBreakOvertime(false);
     setReason("");
+    setAttachmentFileIds([]);
     onClose();
   };
 
@@ -55,6 +59,7 @@ function useCreateAdjustmentForm({ wsId, timezone, onClose }: CreateAdjustmentFo
       reason?: string;
       requested_punch_in_time: string;
       requested_punch_out_time?: string;
+      attachment_file_ids?: string[];
     }) => submitAttendanceAdjustment(wsId, data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["attendance-adjustments"] });
@@ -85,6 +90,7 @@ function useCreateAdjustmentForm({ wsId, timezone, onClose }: CreateAdjustmentFo
         requested_punch_out_time: punchOutTime,
         is_break_overtime: isBreakOvertime,
         reason,
+        attachment_file_ids: attachmentFileIds,
       });
     } catch (e: unknown) {
       const err = e as { message?: string };
@@ -108,6 +114,9 @@ function useCreateAdjustmentForm({ wsId, timezone, onClose }: CreateAdjustmentFo
     setPunchOut,
     setReason,
     setSelectedEmpId,
+    attachmentFileIds,
+    setAttachmentFileIds,
+    ownerId,
   };
 }
 
@@ -135,6 +144,9 @@ export function CreateAdjustmentModal({
     setPunchOut,
     setReason,
     setSelectedEmpId,
+    attachmentFileIds,
+    setAttachmentFileIds,
+    ownerId,
   } = useCreateAdjustmentForm({ onClose, timezone, wsId });
 
   const behalfOptions = behalfEmployees
@@ -251,6 +263,42 @@ export function CreateAdjustmentModal({
             required
             value={reason}
           />
+        </div>
+
+        <div className="space-y-3 px-1">
+          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">
+            {t("attendance.adjustment.attachment", "ATTACHMENT (PDF ONLY)")}
+          </label>
+          <FileUpload
+            workspaceId={wsId}
+            category="AttendanceAdjustmentAttachment"
+            ownerType="AttendanceAdjustment"
+            ownerId={ownerId}
+            accept="application/pdf"
+            maxSizeMB={20}
+            onUploadSuccess={(file) => {
+              setAttachmentFileIds([...attachmentFileIds, file.id]);
+            }}
+          />
+          {attachmentFileIds.length > 0 && (
+            <div className="mt-3 space-y-2">
+              {attachmentFileIds.map((id, index) => (
+                <div key={id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-105 dark:border-slate-800 text-xs animate-in slide-in-from-top-1">
+                  <span className="font-mono text-slate-700 dark:text-slate-350">Document #{index + 1} ({id})</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="p-1 h-6 w-6 text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-900/50 rounded-lg transition-colors border-none"
+                    onClick={() => {
+                      setAttachmentFileIds(attachmentFileIds.filter(fId => fId !== id));
+                    }}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="pt-6 grid grid-cols-2 gap-5 border-t border-slate-50 dark:border-slate-800">

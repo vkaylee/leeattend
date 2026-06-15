@@ -44,6 +44,7 @@ pub struct CreateOvertimeRequestPayload {
     pub planned_minutes: i32,
     pub reason: String,
     pub employees: Vec<Uuid>,
+    pub attachment_file_ids: Option<Vec<Uuid>>,
 }
 
 #[derive(serde::Serialize, utoipa::ToSchema)]
@@ -87,6 +88,8 @@ pub async fn create_ot_request(
         }
     }
 
+    let attachment_file_ids = req.attachment_file_ids.map(|ids| ids.into_iter().map(Some).collect());
+
     let request = OvertimeRequest::new(
         crate::utils::id::new_id(),
         ctx.workspace_id,
@@ -105,6 +108,7 @@ pub async fn create_ot_request(
         None,
         chrono::Utc::now(),
         chrono::Utc::now(),
+        attachment_file_ids,
     );
 
     let employments = state

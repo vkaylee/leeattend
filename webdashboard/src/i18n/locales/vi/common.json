@@ -1643,6 +1643,7 @@
       "assignee_help_ot": "Chọn nhân viên được phép gửi yêu cầu Claim hộ trong không gian làm việc.",
       "assignee_help_overtime_request": "Chọn nhân viên được phép gửi yêu cầu Pre-OT hộ trong không gian làm việc.",
       "assignee_help_leave": "Chọn nhân viên được phép gửi yêu cầu nghỉ phép hộ trong không gian làm việc.",
+      "assignee_help_adjustment": "Chọn nhân viên được phép gửi yêu cầu điều chỉnh công hộ trong không gian làm việc.",
       "target_type_label": "Loại phạm vi mục tiêu",
       "target_type_employee": "Nhân viên",
       "target_type_department": "Bộ phận",
@@ -1661,6 +1662,7 @@
       "desc_ot": "Cấu hình những nhân viên được ủy quyền gửi claim ngoài giờ thay cho nhân viên cụ thể hoặc toàn bộ bộ phận.",
       "desc_overtime_request": "Cấu hình những nhân viên được ủy quyền yêu cầu Pre-OT thay cho nhân viên cụ thể hoặc toàn bộ bộ phận.",
       "desc_leave": "Cấu hình những nhân viên được ủy quyền yêu cầu nghỉ phép thay cho nhân viên cụ thể hoặc toàn bộ bộ phận.",
+      "desc_adjustment": "Cấu hình những nhân viên được ủy quyền yêu cầu điều chỉnh công thay cho nhân viên cụ thể hoặc toàn bộ bộ phận.",
       "add_btn": "Thêm phân quyền"
     },
     "empty": {

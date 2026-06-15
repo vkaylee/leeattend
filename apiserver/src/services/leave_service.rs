@@ -304,6 +304,8 @@ impl LeaveService {
             (LeaveStatus::Pending, None)
         };
 
+        let attachment_file_ids = req.attachment_file_ids.map(|ids| ids.into_iter().map(Some).collect());
+
         let request = LeaveRequest::new(
             Uuid::new_v4(),
             req.employment_id,
@@ -319,6 +321,7 @@ impl LeaveService {
             approved_by,
             Utc::now(),
             Utc::now(),
+            attachment_file_ids,
         );
 
         self.leave_request_repo
@@ -1273,6 +1276,7 @@ mod tests {
             start_time: None,
             end_time: None,
             reason: None,
+            attachment_file_ids: None,
         };
         let err = svc
             .submit_leave_request(Uuid::new_v4(), Uuid::new_v4(), req, false)
@@ -1293,6 +1297,7 @@ mod tests {
             start_time: None,
             end_time: None,
             reason: None,
+            attachment_file_ids: None,
         };
         let err = svc
             .submit_leave_request(Uuid::new_v4(), Uuid::new_v4(), req, false)
@@ -1313,6 +1318,7 @@ mod tests {
             start_time: None,
             end_time: None,
             reason: None,
+            attachment_file_ids: None,
         };
         let res = svc
             .submit_leave_request(Uuid::new_v4(), Uuid::new_v4(), req, true)
@@ -1332,6 +1338,7 @@ mod tests {
             start_time: None,
             end_time: None,
             reason: None,
+            attachment_file_ids: None,
         };
         let err = svc
             .submit_leave_request(Uuid::new_v4(), Uuid::new_v4(), req, false)
@@ -1354,6 +1361,7 @@ mod tests {
             start_time: None,
             end_time: None,
             reason: None,
+            attachment_file_ids: None,
         };
         let err = svc
             .submit_leave_request(Uuid::new_v4(), Uuid::new_v4(), req.clone(), false)
@@ -1420,6 +1428,7 @@ mod tests {
             None,
             Utc::now(),
             Utc::now(),
+            None,
         );
         *req_repo.leave_request.lock().unwrap() = Some(mock_req);
 
@@ -1451,6 +1460,7 @@ mod tests {
             None,
             Utc::now(),
             Utc::now(),
+            None,
         );
         *req_repo.leave_request.lock().unwrap() = Some(mock_req);
         let req = crate::models::ApproveLeaveRequest {
@@ -1565,6 +1575,7 @@ mod tests {
             start_time: None,
             end_time: None,
             reason: None,
+            attachment_file_ids: None,
         };
 
         let res = svc
@@ -1597,6 +1608,7 @@ mod tests {
             start_time: Some(NaiveTime::from_hms_opt(10, 0, 0).unwrap()),
             end_time: Some(NaiveTime::from_hms_opt(14, 0, 0).unwrap()),
             reason: None,
+            attachment_file_ids: None,
         };
 
         let res = svc
@@ -1632,6 +1644,7 @@ mod tests {
             None,
             Utc::now(),
             Utc::now(),
+            None,
         );
         *req_repo.leave_request.lock().unwrap() = Some(mock_req);
 
@@ -1670,6 +1683,7 @@ mod tests {
             None,
             Utc::now(),
             Utc::now(),
+            None,
         );
         *req_repo.leave_request.lock().unwrap() = Some(mock_req);
 
@@ -1707,6 +1721,7 @@ mod tests {
             None,
             Utc::now(),
             Utc::now(),
+            None,
         );
         *req_repo.leave_request.lock().unwrap() = Some(mock_req);
 
@@ -1747,6 +1762,7 @@ mod tests {
             None,
             Utc::now(),
             Utc::now(),
+            None,
         );
         let request_id = mock_req.id();
         *req_repo.leave_request.lock().unwrap() = Some(mock_req);
@@ -1812,6 +1828,7 @@ mod tests {
             None,
             Utc::now(),
             Utc::now(),
+            None,
         );
 
         // Conflicting request
@@ -1830,6 +1847,7 @@ mod tests {
             None,
             Utc::now(),
             Utc::now(),
+            None,
         );
         let conflicting_req_id = conflicting_req.id();
 
@@ -1964,6 +1982,7 @@ mod tests {
             None,
             Utc::now(),
             Utc::now(),
+            None,
         );
 
         // Conflicting request
@@ -1982,6 +2001,7 @@ mod tests {
             None,
             Utc::now(),
             Utc::now(),
+            None,
         );
 
         // Mock requests query

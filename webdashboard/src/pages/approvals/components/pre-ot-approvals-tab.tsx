@@ -1,4 +1,4 @@
-import { CheckCircle, ArrowRight, Check, X } from "lucide-react";
+import { CheckCircle, ArrowRight, Check, X, Paperclip } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -8,7 +8,15 @@ import { Typography } from "@/components/ui/typography";
 import { useProcessApproval } from "@/hooks/use-approval-workflows";
 import { useOvertimeRequests } from "@/hooks/use-overtime-requests";
 
-export function PreOtApprovalsTab({ wsId: _wsId, canApprove }: { wsId: string; canApprove: boolean }) {
+export function PreOtApprovalsTab({ 
+  wsId, 
+  canApprove,
+  onPreviewAttachment,
+}: { 
+  wsId: string; 
+  canApprove: boolean;
+  onPreviewAttachment?: (fileUrl: string, title: string) => void;
+}) {
   const { t } = useTranslation(["common", "attendance"]);
   const toast = useToast();
   // Fetch pending requests specifically for Pre-OT approval
@@ -98,6 +106,24 @@ export function PreOtApprovalsTab({ wsId: _wsId, canApprove }: { wsId: string; c
                 </span>
               </div>
             </div>
+            {req.attachment_file_ids && req.attachment_file_ids.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {req.attachment_file_ids.map((fileId: string | null, index: number) => {
+                  if (!fileId) return null;
+                  return (
+                    <button
+                      key={fileId}
+                      type="button"
+                      onClick={() => onPreviewAttachment?.(`/api/v1/workspaces/${wsId}/files/${fileId}/download`, `Pre-OT Attachment #${index + 1}`)}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-750 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/40 dark:text-indigo-400 border border-indigo-150 dark:border-indigo-900/50 transition-colors cursor-pointer"
+                    >
+                      <Paperclip className="w-3 h-3" />
+                      <span>Doc #{index + 1}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
           
           <div className="flex flex-col items-end justify-center gap-2 shrink-0">

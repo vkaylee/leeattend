@@ -22,6 +22,7 @@ pub struct LeaveRequest {
     approved_by_user_id: Option<Uuid>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
+    pub attachment_file_ids: Option<Vec<Option<Uuid>>>,
 }
 
 impl LeaveRequest {
@@ -41,6 +42,7 @@ impl LeaveRequest {
         approved_by_user_id: Option<Uuid>,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
+        attachment_file_ids: Option<Vec<Option<Uuid>>>,
     ) -> Self {
         Self {
             id,
@@ -57,6 +59,7 @@ impl LeaveRequest {
             approved_by_user_id,
             created_at,
             updated_at,
+            attachment_file_ids,
         }
     }
 
@@ -115,6 +118,10 @@ impl LeaveRequest {
     pub fn updated_at(&self) -> DateTime<Utc> {
         self.updated_at
     }
+
+    pub fn attachment_file_ids(&self) -> Option<&[Option<Uuid>]> {
+        self.attachment_file_ids.as_deref()
+    }
 }
 
 /// Response wrapper with leave type details for API responses
@@ -172,6 +179,7 @@ pub struct SubmitLeaveRequest {
     pub start_time: Option<NaiveTime>,
     #[serde(default)]
     pub end_time: Option<NaiveTime>,
+    pub attachment_file_ids: Option<Vec<Uuid>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, utoipa::ToSchema)]

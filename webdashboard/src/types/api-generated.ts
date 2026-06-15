@@ -4434,6 +4434,7 @@ export interface components {
         AttendanceAdjustmentRequest: {
             /** Format: uuid */
             approved_by_user_id?: string | null;
+            attachment_file_ids?: (string | null)[] | null;
             /** Format: date-time */
             created_at: string;
             /** Format: uuid */
@@ -4736,6 +4737,7 @@ export interface components {
             start_date?: string | null;
         };
         CreateAttendanceAdjustmentRequest: {
+            attachment_file_ids?: string[] | null;
             /** Format: uuid */
             employment_id: string;
             is_break_overtime: boolean;
@@ -4987,6 +4989,7 @@ export interface components {
             name: string;
         };
         CreateOvertimeRequestPayload: {
+            attachment_file_ids?: string[] | null;
             /** Format: uuid */
             department_id?: string | null;
             employees: string[];
@@ -5723,9 +5726,9 @@ export interface components {
             key: string;
         };
         /** @enum {string} */
-        FileCategory: "EmployeeAvatar" | "WorkspaceLogo" | "AttendancePhoto" | "EmployeeDoc" | "Contract" | "LeaveAttachment" | "Payslip" | "ReportExport" | "OnboardingAttachment" | "ImportFile" | "Policy" | "TemplateOutput" | "UserAvatar" | "SystemAsset";
+        FileCategory: "EmployeeAvatar" | "WorkspaceLogo" | "AttendancePhoto" | "EmployeeDoc" | "Contract" | "LeaveAttachment" | "Payslip" | "ReportExport" | "OnboardingAttachment" | "ImportFile" | "Policy" | "TemplateOutput" | "UserAvatar" | "SystemAsset" | "AttendanceAdjustmentAttachment" | "OvertimeRequestAttachment" | "OtClaimAttachment";
         /** @enum {string} */
-        FileOwnerType: "Employee" | "Employment" | "LeaveRequest" | "Workspace" | "User" | "System" | "Payroll";
+        FileOwnerType: "Employee" | "Employment" | "LeaveRequest" | "Workspace" | "User" | "System" | "Payroll" | "AttendanceAdjustment" | "OvertimeRequest" | "AttendanceDailySummary";
         FullPayslipResponse: components["schemas"]["Payslip"] & {
             incentives: components["schemas"]["IncentiveEvaluationResult"][];
             rule_evaluations: components["schemas"]["PayslipRuleEvaluation"][];
@@ -5997,6 +6000,7 @@ export interface components {
         LeaveRequest: {
             /** Format: uuid */
             approved_by_user_id?: string | null;
+            attachment_file_ids?: (string | null)[] | null;
             /** Format: date-time */
             created_at: string;
             duration_type: components["schemas"]["LeaveDurationType"];
@@ -6286,6 +6290,7 @@ export interface components {
             workspace_id: string;
         };
         OvertimeRequest: {
+            attachment_file_ids?: (string | null)[] | null;
             /** Format: date-time */
             created_at: string;
             /** Format: int32 */
@@ -7001,6 +7006,7 @@ export interface components {
         };
         String: string;
         SubmitLeaveRequest: {
+            attachment_file_ids?: string[] | null;
             duration_type?: components["schemas"]["LeaveDurationType"];
             /** Format: uuid */
             employment_id: string;

@@ -500,6 +500,7 @@ impl ImportStrategy for PunchImportStrategy {
                 requested_punch_out_time: None,
                 is_break_overtime: false,
                 reason: Some("Import from Excel/CSV".to_string()),
+                attachment_file_ids: None,
             };
 
             let adj_svc = AttendanceAdjustmentService::new(

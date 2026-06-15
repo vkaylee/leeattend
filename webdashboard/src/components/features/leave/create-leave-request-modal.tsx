@@ -46,10 +46,13 @@ export function CreateLeaveRequestModal({ isOpen, onClose, wsId, leaveTypes, t }
   const [endTime, setEndTime] = useState<string>("");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
+  const [attachmentFileIds, setAttachmentFileIds] = useState<string[]>([]);
+  const [ownerId] = useState<string>(() => crypto.randomUUID());
 
   const handleClose = () => {
     setSelectedEmpId(""); setDurationType("full_day");
     setStartTime(""); setEndTime(""); setStartDate(""); setEndDate("");
+    setAttachmentFileIds([]);
     onClose();
   };
 
@@ -87,13 +90,24 @@ export function CreateLeaveRequestModal({ isOpen, onClose, wsId, leaveTypes, t }
     if (!empIdToUse) { toast.error("Please select an employee"); return; }
     if (!activeEmployment) { toast.error("Không tìm thấy thông tin công việc"); return; }
  
-    const payload: { employment_id: string; leave_type_id: string; start_date: string; end_date: string; reason?: string; duration_type?: LeaveDurationType; start_time?: string; end_time?: string } = {
+    const payload: {
+      employment_id: string;
+      leave_type_id: string;
+      start_date: string;
+      end_date: string;
+      reason?: string;
+      duration_type?: LeaveDurationType;
+      start_time?: string;
+      end_time?: string;
+      attachment_file_ids?: string[];
+    } = {
       employment_id: activeEmployment.id,
       leave_type_id: leaveTypeId,
       start_date: startDate,
       end_date: endDate,
       reason: new FormData(e.currentTarget).get("reason") as string,
       duration_type: durationType,
+      attachment_file_ids: attachmentFileIds,
     };
     if (durationType === "custom_hours" && startTime && endTime) {
       payload.start_time = startTime;
@@ -130,6 +144,10 @@ export function CreateLeaveRequestModal({ isOpen, onClose, wsId, leaveTypes, t }
         startDate={startDate}
         startTime={startTime}
         t={t}
+        wsId={wsId}
+        ownerId={ownerId}
+        attachmentFileIds={attachmentFileIds}
+        setAttachmentFileIds={setAttachmentFileIds}
       />
     </Modal>
   );

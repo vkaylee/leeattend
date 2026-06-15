@@ -33,6 +33,7 @@ pub struct OvertimeRequest {
     reconciled_by: Option<Uuid>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
+    pub attachment_file_ids: Option<Vec<Option<Uuid>>>,
 }
 
 impl OvertimeRequest {
@@ -55,6 +56,7 @@ impl OvertimeRequest {
         reconciled_by: Option<Uuid>,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
+        attachment_file_ids: Option<Vec<Option<Uuid>>>,
     ) -> Self {
         Self {
             id,
@@ -74,6 +76,7 @@ impl OvertimeRequest {
             reconciled_by,
             created_at,
             updated_at,
+            attachment_file_ids,
         }
     }
 
@@ -155,6 +158,10 @@ impl OvertimeRequest {
 
     pub fn updated_at(&self) -> DateTime<Utc> {
         self.updated_at
+    }
+
+    pub fn attachment_file_ids(&self) -> Option<&[Option<Uuid>]> {
+        self.attachment_file_ids.as_deref()
     }
 }
 

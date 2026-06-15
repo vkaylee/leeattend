@@ -189,6 +189,7 @@ impl HolidayLeaveService {
                     None,
                     Utc::now(),
                     Utc::now(),
+                    None,
                 ));
 
                 new_rosters.push(ShiftRoster {

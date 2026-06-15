@@ -21,6 +21,7 @@ interface OtApprovalsTableProps {
   isProcessing: boolean;
   onAddPhoto?: (summary: OtSummary) => void;
   pendingSummaries: OtSummary[];
+  onPreviewAttachment?: (fileUrl: string, title: string) => void;
 }
 
 export function OtApprovalsTable({
@@ -28,6 +29,7 @@ export function OtApprovalsTable({
   isProcessing,
   pendingSummaries,
   onAddPhoto,
+  onPreviewAttachment,
 }: OtApprovalsTableProps) {
   const { t } = useTranslation();
 
@@ -93,7 +95,11 @@ export function OtApprovalsTable({
                 {summary.claimed_ot_minutes}m
               </td>
               <td className="px-8 py-6">
-                <EvidenceCell onAddPhoto={onAddPhoto} summary={summary} />
+                <EvidenceCell 
+                  onAddPhoto={onAddPhoto} 
+                  summary={summary} 
+                  onPreviewAttachment={onPreviewAttachment}
+                />
               </td>
               <td className="px-8 py-6 text-sm text-slate-600 dark:text-slate-300 italic">
                 &quot;{summary.ot_reason}&quot;
@@ -135,9 +141,11 @@ export function OtApprovalsTable({
 function EvidenceCell({
   summary,
   onAddPhoto,
+  onPreviewAttachment,
 }: {
   summary: OtSummary;
   onAddPhoto?: (summary: OtSummary) => void;
+  onPreviewAttachment?: (fileUrl: string, title: string) => void;
 }) {
   const { t } = useTranslation();
 
@@ -147,15 +155,14 @@ function EvidenceCell({
 
   if (summary.paper_form_photo_url) {
     return (
-      <a
-        className="inline-flex items-center gap-1.5 text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline"
-        href={summary.paper_form_photo_url}
-        rel="noopener noreferrer"
-        target="_blank"
+      <button
+        type="button"
+        className="inline-flex items-center gap-1.5 text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline cursor-pointer bg-transparent border-none p-0"
+        onClick={() => onPreviewAttachment?.(summary.paper_form_photo_url!, `OT Claim Evidence - ${summary.employee_name ?? summary.employment_id}`)}
       >
         <Paperclip className="w-3.5 h-3.5" />
         {t("ot_approvals.evidence.view", { defaultValue: "View Photo" })}
-      </a>
+      </button>
     );
   }
 

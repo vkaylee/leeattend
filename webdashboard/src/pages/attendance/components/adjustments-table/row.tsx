@@ -1,4 +1,4 @@
-import { Check, User as UserIcon, X } from "lucide-react";
+import { Check, User as UserIcon, X, Paperclip } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -6,6 +6,7 @@ import Button from "@/components/ui/button";
 import StatusBadge from "@/components/ui/status-badge";
 import { Typography } from "@/components/ui/typography";
 import { AttendanceAdjustmentRequest } from "@/lib/api/types";
+import { useWorkspace } from "@/hooks/use-workspace";
 
 interface AdjustmentsTableRowProps {
   activeTab: string;
@@ -16,6 +17,7 @@ interface AdjustmentsTableRowProps {
   getEmployeeName: (id: string) => string;
   onApprove: (id: string, status: string) => void;
   request: AttendanceAdjustmentRequest;
+  onPreviewAttachment?: (fileUrl: string, title: string) => void;
 }
 
 export function AdjustmentsTableRow({
@@ -27,8 +29,11 @@ export function AdjustmentsTableRow({
   onApprove,
   request,
   canApprove,
+  onPreviewAttachment,
 }: AdjustmentsTableRowProps) {
   const { t } = useTranslation();
+  const { workspace } = useWorkspace();
+  const wsId = workspace?.id ?? "";
 
   return (
     <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group" key={request.id}>
@@ -62,6 +67,24 @@ export function AdjustmentsTableRow({
         <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tight line-clamp-2 italic opacity-70 leading-relaxed" variant="p">
           {request.reason ?? t("common.no_notes")}
         </Typography>
+        {request.attachment_file_ids && request.attachment_file_ids.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {request.attachment_file_ids.map((fileId, index) => {
+              if (!fileId) return null;
+              return (
+                <button
+                  key={fileId}
+                  type="button"
+                  onClick={() => onPreviewAttachment?.(`/api/v1/workspaces/${wsId}/files/${fileId}/download`, `Adjustment Attachment #${index + 1}`)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-750 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/40 dark:text-indigo-400 border border-indigo-150 dark:border-indigo-900/50 transition-colors cursor-pointer"
+                >
+                  <Paperclip className="w-3 h-3" />
+                  <span>Doc #{index + 1}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </td>
       <td className="px-8 py-6 text-center">
         <StatusBadge
@@ -97,3 +120,4 @@ export function AdjustmentsTableRow({
     </tr>
   );
 }
+

@@ -1,5 +1,5 @@
 import { CheckCircle2, Clock, Plus, ShieldCheck, Upload, XCircle } from "lucide-react";
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 
 import { CreateLeaveRequestModal } from "@/components/features/leave/create-leave-request-modal";
 import { LeaveImportBanner } from "@/components/features/leave/leave-import-banner";
@@ -13,6 +13,7 @@ import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { getCurrentWorkspaceId, Employee } from "@/lib/api";
+import { PDFPreviewModal } from "@/components/files/PDFPreviewModal";
 
 import { BehalfAssignmentsTab } from "./approvals/components/behalf-assignments-tab";
 
@@ -20,6 +21,10 @@ export default function LeaveRequestsPage() {
   const wsId = getCurrentWorkspaceId();
   const { formatDate } = useDateTimeFormatter();
   const { hasPermission } = useMyPermissions();
+
+  const [previewFileUrl, setPreviewFileUrl] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState<string>("");
+  const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
   
   const {
     isModalOpen, setIsModalOpen,
@@ -49,50 +54,61 @@ export default function LeaveRequestsPage() {
 
   if (!wsId) return <div className="p-12 text-center text-primary-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("common.select_workspace")}</div>;
 
-  const canManageBehalf = hasPermission("leave:policies:manage");
+  const canManageBehalf = hasPermission("leave:requests:manage_behalf");
 
   const tabs: PageTab[] = [
-    { id: "pending", label: t("common.status_pending"), icon: <Clock size={14} />, colorScheme: "amber" },
-    { id: "approved", label: t("common.status_approved"), icon: <CheckCircle2 size={14} />, colorScheme: "emerald" },
-    { id: "rejected", label: t("common.status_rejected"), icon: <XCircle size={14} />, colorScheme: "rose" },
-    { id: "behalf_assignments", label: t("ot_approvals.tabs.behalf_assignments", { defaultValue: "Behalf" }), icon: <ShieldCheck size={14} />, colorScheme: "violet", hidden: !canManageBehalf },
+    {
+      id: "pending",
+      label: t("leave_requests.tabs.pending").toUpperCase(),
+      icon: <Clock size={14} />,
+      colorScheme: "primary",
+    },
+    {
+      id: "approved",
+      label: t("leave_requests.tabs.approved").toUpperCase(),
+      icon: <CheckCircle2 size={14} />,
+      colorScheme: "amber",
+    },
+    {
+      id: "rejected",
+      label: t("leave_requests.tabs.rejected").toUpperCase(),
+      icon: <XCircle size={14} />,
+      colorScheme: "rose",
+    },
+    {
+      id: "behalf_assignments",
+      label: t("leave_requests.tabs.behalf_assignments", "Behalf Assignments").toUpperCase(),
+      icon: <ShieldCheck size={14} />,
+      colorScheme: "violet",
+      hidden: !canManageBehalf,
+    },
   ];
 
   const tableHeaders = [
-    <th className="px-10 py-6 text-[10px] font-bold text-primary-400 uppercase tracking-[0.25em]" key="emp">{t("common.employee")}</th>,
-    <th className="px-8 py-6 text-[10px] font-bold text-primary-400 uppercase tracking-[0.25em]" key="type">{t("common.type")}</th>,
-    <th className="px-8 py-6 text-[10px] font-bold text-primary-400 uppercase tracking-[0.25em]" key="time">{t("common.time")}</th>,
-    <th className="px-8 py-6 text-[10px] font-bold text-primary-400 uppercase tracking-[0.25em] text-center" key="status">{t("common.status")}</th>,
-    <th className="px-10 py-6 border-b border-primary-100 dark:border-primary-800/50" key="actions"></th>,
+    t("common.employee"),
+    t("common.type"),
+    t("leave_requests.table.details"),
+    t("common.status"),
+    "",
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-8 px-2">
-        <div className="space-y-1">
-          <Typography className="text-5xl font-bold tracking-tighter text-primary-700 dark:text-primary-300 uppercase leading-none" variant="h1">
-            {t("leave_requests.title")}
-          </Typography>
-          <Typography className="text-[10px] font-bold text-primary-400 uppercase tracking-[0.25em] opacity-60" variant="p">
-            {t("leave_requests.subtitle")}
-          </Typography>
-        </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          {activeTab !== "behalf_assignments" && (
-            <>
-              <Button className="bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100 dark:shadow-black/30 text-[10px] px-5 py-3"
-                disabled={importJob?.status === "processing"}
-                onClick={() => { setIsImportModalOpen(true); }}
-                variant="ghost"
-              >
-                <Upload size={16} />
-                {t("leave_requests.upload_btn", "Upload Excel")}
-              </Button>
-              <Button onClick={() => { setIsModalOpen(true); }} variant="ghost">
-                <Plus size={18} /> {t("leave_requests.create_btn").toUpperCase()}
-              </Button>
-            </>
-          )}
+    <div className="space-y-10 animate-in fade-in duration-700 pb-20">
+      <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800 pb-6 px-1">
+        <Typography className="text-3xl font-extrabold text-slate-850 dark:text-slate-100 tracking-tight uppercase" variant="h1">{t("leave_requests.title")}</Typography>
+        <div className="flex gap-4">
+          <Button
+            className="rounded-2xl h-12 text-xs font-bold uppercase tracking-wider shadow-sm"
+            onClick={() => { setIsImportModalOpen(true); }}
+            variant="outline"
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            {t("leave_requests.import_excel")}
+          </Button>
+          <Button className="rounded-2xl h-12 text-xs font-bold uppercase tracking-wider shadow-lg" onClick={() => { setIsModalOpen(true); }} variant="primary">
+            <Plus className="w-4 h-4 mr-2" />
+            {t("leave_requests.add")}
+          </Button>
         </div>
       </div>
 
@@ -121,6 +137,12 @@ export default function LeaveRequestsPage() {
                 onClose={() => { setIsImportModalOpen(false); }}
                 onImportComplete={handleImportComplete}
               />
+              <PDFPreviewModal
+                isOpen={isPreviewOpen}
+                onClose={() => setIsPreviewOpen(false)}
+                fileUrl={previewFileUrl}
+                title={previewTitle}
+              />
             </>
           }
           onTabChange={(id) => { setActiveTab(id as TabType); }}
@@ -135,6 +157,11 @@ export default function LeaveRequestsPage() {
               onApprove={(id, status) => { approveMutation.mutate({ id, status: status as "approved" | "rejected" | "pre_approved" | "pending" | "cancelled" }); }}
               request={request}
               t={t}
+              onPreviewAttachment={(url, title) => {
+                setPreviewFileUrl(url);
+                setPreviewTitle(title);
+                setIsPreviewOpen(true);
+              }}
             />
           ))}
         </ApprovalListLayout>

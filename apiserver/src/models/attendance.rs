@@ -22,6 +22,7 @@ pub struct AttendanceAdjustmentRequest {
     approved_by_user_id: Option<Uuid>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
+    pub attachment_file_ids: Option<Vec<Option<Uuid>>>,
 }
 
 impl AttendanceAdjustmentRequest {
@@ -39,6 +40,7 @@ impl AttendanceAdjustmentRequest {
         approved_by_user_id: Option<Uuid>,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
+        attachment_file_ids: Option<Vec<Option<Uuid>>>,
     ) -> Self {
         Self {
             id,
@@ -53,6 +55,7 @@ impl AttendanceAdjustmentRequest {
             approved_by_user_id,
             created_at,
             updated_at,
+            attachment_file_ids,
         }
     }
 
@@ -103,6 +106,10 @@ impl AttendanceAdjustmentRequest {
     pub fn updated_at(&self) -> DateTime<Utc> {
         self.updated_at
     }
+
+    pub fn attachment_file_ids(&self) -> Option<&[Option<Uuid>]> {
+        self.attachment_file_ids.as_deref()
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, utoipa::ToSchema)]
@@ -113,6 +120,7 @@ pub struct CreateAttendanceAdjustmentRequest {
     pub requested_punch_out_time: Option<DateTime<Utc>>,
     pub is_break_overtime: bool,
     pub reason: Option<String>,
+    pub attachment_file_ids: Option<Vec<Uuid>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, utoipa::ToSchema)]

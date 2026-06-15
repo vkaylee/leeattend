@@ -39,6 +39,9 @@
     "table": {
       "request_time": "Yêu cầu (Vào - Ra)"
     },
+    "tabs": {
+      "behalf_assignments": "Ủy quyền điều chỉnh công"
+    },
     "messages": {
       "no_requests": "Chưa có yêu cầu nào.",
       "no_data": "Hiện tại chưa có yêu cầu điều chỉnh công nào cần xử lý."

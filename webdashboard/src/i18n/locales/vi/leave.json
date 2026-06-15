@@ -76,7 +76,8 @@
     "create_btn": "Tạo yêu cầu",
     "remaining": "Còn",
     "tabs": {
-      "policies": "Chính sách"
+      "policies": "Chính sách",
+      "behalf_assignments": "Ủy quyền nghỉ phép"
     },
     "types": {
       "vacation": "Phép năm",

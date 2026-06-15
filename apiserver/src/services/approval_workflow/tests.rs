@@ -1776,6 +1776,7 @@ mod tests {
             None,
             Utc::now(),
             Utc::now(),
+            None,
         );
         {
             let mut s = state.lock().unwrap();
@@ -1908,6 +1909,7 @@ mod tests {
             None,
             Utc::now(),
             Utc::now(),
+            None,
         );
         {
             let mut s = state.lock().unwrap();

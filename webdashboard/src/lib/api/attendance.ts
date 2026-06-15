@@ -88,11 +88,12 @@ export async function submitAttendanceAdjustment(
     requested_punch_out_time?: string;
     is_break_overtime?: boolean;
     reason?: string;
+    attachment_file_ids?: string[];
   }
 ): Promise<AttendanceAdjustmentRequest> {
   const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/attendance/adjustments", {
     params: { path: { ws_id: wsId } },
-    body: { is_break_overtime: false, ...data }
+    body: { is_break_overtime: false, ...data } as any
   });
   if (!resData) throw new Error("No response data");
   return resData;

@@ -228,6 +228,7 @@ impl ImportStrategy for LeaveImportStrategy {
             duration_type: row.duration_type,
             start_time: None,
             end_time: None,
+            attachment_file_ids: None,
         };
 
         match self

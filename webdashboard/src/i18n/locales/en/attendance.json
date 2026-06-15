@@ -39,6 +39,9 @@
     "table": {
       "request_time": "Request (In - Out)"
     },
+    "tabs": {
+      "behalf_assignments": "Behalf Assignments"
+    },
     "messages": {
       "no_requests": "No requests yet.",
       "no_data": "Currently no attendance adjustment requests need processing."

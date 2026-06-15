@@ -182,6 +182,7 @@ impl From<LeaveRequestEntity> for LeaveRequest {
             entity.approved_by_user_id,
             entity.created_at.unwrap_or_else(Utc::now),
             entity.updated_at.unwrap_or_else(Utc::now),
+            entity.attachment_file_ids,
         )
     }
 }

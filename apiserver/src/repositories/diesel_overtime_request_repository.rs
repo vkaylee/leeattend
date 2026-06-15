@@ -397,6 +397,7 @@ mod tests {
             None,
             chrono::Utc::now(),
             chrono::Utc::now(),
+            None,
         );
 
         let req_employee = OvertimeRequestEmployee::new(
@@ -506,6 +507,7 @@ mod tests {
             None,
             chrono::Utc::now(),
             chrono::Utc::now(),
+            None,
         );
 
         // 1. Assert workspace mismatch error (runnable even without DB availability)
@@ -528,6 +530,7 @@ mod tests {
             None,
             chrono::Utc::now(),
             chrono::Utc::now(),
+            None,
         );
         let create_err = repo
             .create_request(&auth_token, mismatched_request, vec![])

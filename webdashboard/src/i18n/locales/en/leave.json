@@ -76,7 +76,8 @@
     "create_btn": "Create Request",
     "remaining": "Left",
     "tabs": {
-      "policies": "Policies"
+      "policies": "Policies",
+      "behalf_assignments": "Behalf Assignments"
     },
     "types": {
       "vacation": "Annual Leave",

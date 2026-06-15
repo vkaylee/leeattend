@@ -17,13 +17,14 @@ export async function submitLeaveRequest(
     duration_type?: LeaveDurationType;
     start_time?: string;
     end_time?: string;
+    attachment_file_ids?: string[];
   },
 ): Promise<LeaveRequest> {
   const { data: resData } = await client.POST("/workspaces/{ws_id}/leave/submit", {
     params: {
       path: { ws_id: wsId },
     },
-    body: data,
+    body: data as any, // Cast to any temporarily if openapi-typescript generation is pending
   });
   if (!resData) throw new Error("No response data");
   return resData;

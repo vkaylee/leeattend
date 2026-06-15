@@ -1,9 +1,10 @@
 import type { TFunction } from "i18next";
 
-import { Calendar, CalendarDays, FileText, Info, Loader2, Moon, PlayCircle, Sun, Timer } from "lucide-react";
+import { Calendar, CalendarDays, FileText, Info, Loader2, Moon, PlayCircle, Sun, Timer, X } from "lucide-react";
 import React from "react";
 
 import type { Employee, EmployeeLeaveBalance, LeaveDurationType, LeaveType } from "@/lib/api/types";
+import { FileUpload } from "@/components/files/FileUpload";
 
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
@@ -185,6 +186,10 @@ export interface CreateLeaveRequestFormProps {
   startDate: string;
   startTime: string;
   t: TFunction;
+  wsId: string;
+  ownerId: string;
+  attachmentFileIds: string[];
+  setAttachmentFileIds: (ids: string[]) => void;
 }
 
 export function CreateLeaveRequestForm({
@@ -213,6 +218,10 @@ export function CreateLeaveRequestForm({
   startDate,
   startTime,
   t,
+  wsId,
+  ownerId,
+  attachmentFileIds,
+  setAttachmentFileIds,
 }: CreateLeaveRequestFormProps) {
   const empIdToUse = canSubmitOnBehalf ? selectedEmpId : (employee?.id ?? "");
 
@@ -273,6 +282,43 @@ export function CreateLeaveRequestForm({
       )}
 
       <FormField id="leave-reason" inputClassName="text-primary-700 dark:text-primary-300 border-primary-100 dark:border-primary-800/50" label={t("common.reason")} name="reason" placeholder={t("leave_requests.modal.reason_placeholder")} rows={3} type="textarea" />
+      
+      <div className="space-y-3 px-1">
+        <label className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest ml-1">
+          {t("leave_requests.modal.attachment", "ATTACHMENT (PDF ONLY)")}
+        </label>
+        <FileUpload
+          workspaceId={wsId}
+          category="LeaveAttachment"
+          ownerType="LeaveRequest"
+          ownerId={ownerId}
+          accept="application/pdf"
+          maxSizeMB={20}
+          onUploadSuccess={(file) => {
+            setAttachmentFileIds([...attachmentFileIds, file.id]);
+          }}
+        />
+        {attachmentFileIds.length > 0 && (
+          <div className="mt-3 space-y-2">
+            {attachmentFileIds.map((id, index) => (
+              <div key={id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-primary-100 dark:border-primary-800/50 text-xs animate-in slide-in-from-top-1">
+                <span className="font-mono text-primary-750 dark:text-primary-300">Document #{index + 1} ({id})</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="p-1 h-6 w-6 text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-900/50 rounded-lg transition-colors border-none"
+                  onClick={() => {
+                    setAttachmentFileIds(attachmentFileIds.filter(fId => fId !== id));
+                  }}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="pt-6 grid grid-cols-2 gap-6 border-t border-slate-50 dark:border-slate-800">
         <Button onClick={onCancel} size="lg" type="button" variant="outline">{t("common.cancel").toUpperCase()}</Button>
         <Button disabled={isSubmitting} size="lg" type="submit" variant="primary">{t("leave_requests.modal.submit_btn").toUpperCase()}</Button>

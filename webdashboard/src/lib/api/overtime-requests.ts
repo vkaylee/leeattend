@@ -46,6 +46,7 @@ export interface OvertimeRequest {
   updated_at: string;
   workflow_id?: string;
   workspace_id: string;
+  attachment_file_ids?: string[] | null;
 }
 
 export interface OvertimeRequestDetail extends OvertimeRequest {
@@ -75,6 +76,7 @@ export interface CreateOvertimeRequestPayload {
   planned_minutes: number;
   planned_start_time?: string;
   reason: string;
+  attachment_file_ids?: string[];
 }
 
 export interface QuotaSummary {

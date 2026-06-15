@@ -4,12 +4,14 @@ import { useTranslation } from "react-i18next";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { X } from "lucide-react";
 
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useCreateOvertimeRequest } from "@/hooks/use-overtime-requests";
+import { FileUpload } from "@/components/files/FileUpload";
 
 const otRequestSchema = z.object({
   planned_date: z.string().min(1, "Date is required"),
@@ -24,7 +26,7 @@ type OtRequestFormValues = z.infer<typeof otRequestSchema>;
 export function CreateOtRequestModal({
   isOpen,
   onClose,
-  wsId: _wsId,
+  wsId,
   employeeId,
 }: {
   isOpen: boolean;
@@ -35,6 +37,9 @@ export function CreateOtRequestModal({
   const { t } = useTranslation();
   const toast = useToast();
   const { mutateAsync: createRequest, isPending } = useCreateOvertimeRequest();
+
+  const [ownerId] = React.useState<string>(() => crypto.randomUUID());
+  const [attachmentFileIds, setAttachmentFileIds] = React.useState<string[]>([]);
 
   const form = useForm<OtRequestFormValues>({
     resolver: zodResolver(otRequestSchema),
@@ -47,6 +52,12 @@ export function CreateOtRequestModal({
     },
   });
 
+  const handleClose = () => {
+    setAttachmentFileIds([]);
+    form.reset();
+    onClose();
+  };
+
   const onSubmit = async (data: OtRequestFormValues) => {
     try {
       await createRequest({
@@ -56,9 +67,10 @@ export function CreateOtRequestModal({
         planned_minutes: data.planned_minutes,
         reason: data.reason,
         employees: [employeeId],
+        attachment_file_ids: attachmentFileIds,
       });
       toast.success(t("ess.ot.request_success", { defaultValue: "Overtime request created successfully" }));
-      onClose();
+      handleClose();
     } catch (error) {
       console.error(error);
       toast.error(t("common.error"));
@@ -66,7 +78,7 @@ export function CreateOtRequestModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={t("ess.ot.request_title", { defaultValue: "Request Overtime" })}>
+    <Modal isOpen={isOpen} onClose={handleClose} title={t("ess.ot.request_title", { defaultValue: "Request Overtime" })}>
       <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
         <div className="space-y-4">
           <div>
@@ -123,10 +135,46 @@ export function CreateOtRequestModal({
             />
             {!!form.formState.errors.reason && <Typography className="text-rose-500 text-xs mt-1" variant="p">{form.formState.errors.reason.message}</Typography>}
           </div>
+
+          <div className="space-y-3">
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
+              {t("ess.ot.attachment", { defaultValue: "Attachment (PDF ONLY)" })}
+            </label>
+            <FileUpload
+              workspaceId={wsId}
+              category="OvertimeRequestAttachment"
+              ownerType="OvertimeRequest"
+              ownerId={ownerId}
+              accept="application/pdf"
+              maxSizeMB={20}
+              onUploadSuccess={(file) => {
+                setAttachmentFileIds(prev => [...prev, file.id]);
+              }}
+            />
+            {attachmentFileIds.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {attachmentFileIds.map((id, index) => (
+                  <div key={id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
+                    <span className="font-mono text-slate-700 dark:text-slate-350">Document #{index + 1} ({id})</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="p-1 h-6 w-6 text-rose-650 hover:bg-rose-100 dark:hover:bg-rose-950/50 rounded-lg transition-colors border-none shadow-none"
+                      onClick={() => {
+                        setAttachmentFileIds(prev => prev.filter(fId => fId !== id));
+                      }}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-          <Button onClick={onClose} type="button" variant="ghost">
+          <Button onClick={handleClose} type="button" variant="ghost">
             {t("common.cancel")}
           </Button>
           <Button loading={isPending} type="submit" variant="primary">

@@ -17,6 +17,7 @@ interface AdjustmentsTableProps {
   isLoading: boolean;
   onApprove: (id: string, status: string) => void;
   requests: AttendanceAdjustmentRequest[];
+  onPreviewAttachment?: (fileUrl: string, title: string) => void;
 }
 
 export function AdjustmentsTable(props: AdjustmentsTableProps) {
@@ -30,6 +31,7 @@ export function AdjustmentsTable(props: AdjustmentsTableProps) {
     onApprove,
     requests,
     canApprove,
+    onPreviewAttachment,
   } = props;
 
   return (
@@ -54,6 +56,7 @@ export function AdjustmentsTable(props: AdjustmentsTableProps) {
                   key={request.id}
                   onApprove={onApprove}
                   request={request}
+                  onPreviewAttachment={onPreviewAttachment}
                 />
               ))
             )}

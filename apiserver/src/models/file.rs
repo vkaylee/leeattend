@@ -79,6 +79,9 @@ pub enum FileCategory {
     TemplateOutput,
     UserAvatar,
     SystemAsset,
+    AttendanceAdjustmentAttachment,
+    OvertimeRequestAttachment,
+    OtClaimAttachment,
 }
 
 #[derive(
@@ -104,6 +107,9 @@ pub enum FileOwnerType {
     User,
     System,
     Payroll,
+    AttendanceAdjustment,
+    OvertimeRequest,
+    AttendanceDailySummary,
 }
 
 #[derive(
@@ -167,9 +173,12 @@ impl FileCategory {
                     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                 ],
             },
-            Self::LeaveAttachment => CategoryConfig {
+            Self::LeaveAttachment
+            | Self::AttendanceAdjustmentAttachment
+            | Self::OvertimeRequestAttachment
+            | Self::OtClaimAttachment => CategoryConfig {
                 max_size: 20 * 1024 * 1024, // 20MB
-                allowed_mimes: &["application/pdf", "image/jpeg", "image/png", "image/webp"],
+                allowed_mimes: &["application/pdf"],
             },
             Self::Payslip => CategoryConfig {
                 max_size: 10 * 1024 * 1024, // 10MB

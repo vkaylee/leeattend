@@ -163,6 +163,7 @@ diesel::table! {
         updated_at -> Nullable<Timestamptz>,
         is_break_overtime -> Bool,
         employment_id -> Uuid,
+        attachment_file_ids -> Nullable<Array<Nullable<Uuid>>>,
     }
 }
 
@@ -1460,6 +1461,7 @@ diesel::table! {
         reconciled_by -> Nullable<Uuid>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        attachment_file_ids -> Nullable<Array<Nullable<Uuid>>>,
     }
 }
 

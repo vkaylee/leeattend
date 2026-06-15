@@ -71,6 +71,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
                 leave_requests::approved_by_user_id.eq(request.approved_by_user_id()),
                 leave_requests::created_at.eq(request.created_at()),
                 leave_requests::updated_at.eq(request.updated_at()),
+                leave_requests::attachment_file_ids.eq(request.attachment_file_ids()),
             ))
             .execute(&mut *conn)
             .await
@@ -818,6 +819,7 @@ mod tests {
             None,
             Utc::now(),
             Utc::now(),
+            None,
         );
 
         let _ = repo.create_leave_request(&auth_token, &req).await;

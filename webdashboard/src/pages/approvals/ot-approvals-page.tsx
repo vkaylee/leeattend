@@ -20,6 +20,8 @@ import { useMyPermissions } from "@/hooks/use-permissions";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { fetchAttendanceReport, fetchEmployees } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { FileUpload } from "@/components/files/FileUpload";
+import { PDFPreviewModal } from "@/components/files/PDFPreviewModal";
 
 import type { OtSummary } from "./components/ot-approvals-table";
 
@@ -112,6 +114,10 @@ export default function OtApprovalsPage() {
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
   const [activeTab, setActiveTab] = useState<"pre" | "post" | "delegated_claim" | "behalf_assignments">("pre");
   const [tabInitialized, setTabInitialized] = useState(false);
+
+  const [previewFileUrl, setPreviewFileUrl] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState<string>("");
+  const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
 
   useEffect(() => {
     if (!tabInitialized && !permissionsLoading) {
@@ -273,8 +279,20 @@ export default function OtApprovalsPage() {
           setSourceFilter={setSourceFilter}
           sourceFilter={sourceFilter}
           workspace={workspace}
+          onPreviewAttachment={(url, title) => {
+            setPreviewFileUrl(url);
+            setPreviewTitle(title);
+            setIsPreviewOpen(true);
+          }}
         />
       </div>
+
+      <PDFPreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        fileUrl={previewFileUrl}
+        title={previewTitle}
+      />
     </div>
   );
 }
@@ -327,6 +345,7 @@ interface TabContentRendererProps {
   setSourceFilter: (filter: SourceFilter) => void;
   sourceFilter: SourceFilter;
   workspace: { id: string } | null | undefined;
+  onPreviewAttachment?: (fileUrl: string, title: string) => void;
 }
 
 interface PostOtTabContentProps {
@@ -341,6 +360,7 @@ interface PostOtTabContentProps {
   setPhotoTargetSummary: (summary: OtSummary) => void;
   setSourceFilter: (filter: SourceFilter) => void;
   sourceFilter: SourceFilter;
+  onPreviewAttachment?: (fileUrl: string, title: string) => void;
 }
 
 function PostOtTabContent({
@@ -352,6 +372,7 @@ function PostOtTabContent({
   handleApprove,
   isProcessing,
   setPhotoTargetSummary,
+  onPreviewAttachment,
 }: PostOtTabContentProps) {
   if (!canApprove) return null;
   if (isLoading) return <LoadingState />;
@@ -368,6 +389,7 @@ function PostOtTabContent({
           isProcessing={isProcessing}
           onAddPhoto={setPhotoTargetSummary}
           pendingSummaries={pendingSummaries}
+          onPreviewAttachment={onPreviewAttachment}
         />
       )}
     </div>
@@ -390,6 +412,7 @@ function TabContentRenderer({
   sourceFilter,
   refetch,
   refetchReport,
+  onPreviewAttachment,
 }: TabContentRendererProps) {
   if (!workspace) return null;
 
@@ -397,7 +420,11 @@ function TabContentRenderer({
     case "pre":
       return (canApprove || canCreateOnBehalf) ? (
         <ErrorBoundary variant="compact">
-          <PreOtApprovalsTab canApprove={canApprove} wsId={workspace.id} />
+          <PreOtApprovalsTab 
+            canApprove={canApprove} 
+            wsId={workspace.id} 
+            onPreviewAttachment={onPreviewAttachment}
+          />
         </ErrorBoundary>
       ) : null;
     case "post":
@@ -412,6 +439,7 @@ function TabContentRenderer({
             setPhotoTargetSummary={setPhotoTargetSummary}
             setSourceFilter={setSourceFilter}
             sourceFilter={sourceFilter}
+            onPreviewAttachment={onPreviewAttachment}
           />
         </ErrorBoundary>
       );
@@ -457,24 +485,19 @@ function AddPhotoDialog({
 }) {
   const { t } = useTranslation();
   const toast = useToast();
+  const { workspace } = useWorkspace();
   const { enterPaperOt, isSubmitting } = useEnterPaperOt();
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFileName(file.name);
-      setPhotoUrl(`/uploads/mock_${file.name}`);
-    }
-  };
+  const wsId = workspace?.id ?? "";
 
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     if (!summary) return;
     if (!photoUrl) {
-      setError("Please select a photo");
+      setError("Please select and upload a PDF document");
       return;
     }
     if (!employeeId) {
@@ -494,9 +517,9 @@ function AddPhotoDialog({
       setFileName(null);
       onOpenChange(false);
       onSuccess?.();
-      toast.success("Photo evidence attached successfully");
+      toast.success("Document evidence attached successfully");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to upload photo");
+      setError(err instanceof Error ? err.message : "Failed to upload document");
     }
   };
 
@@ -507,10 +530,10 @@ function AddPhotoDialog({
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl rounded-[2rem]">
           <Dialog.Title className="text-xl font-bold text-slate-800 dark:text-slate-100 uppercase tracking-tight flex items-center gap-2">
             <Upload className="w-5 h-5" />
-            {t("ot_approvals.evidence.add", { defaultValue: "Add Photo Evidence" })}
+            {t("ot_approvals.evidence.add", { defaultValue: "Add Document Evidence (PDF)" })}
           </Dialog.Title>
           <Dialog.Description className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            {t("ot_approvals.evidence.description", { defaultValue: "Upload a photo of the signed paper form for this claim." })}
+            {t("ot_approvals.evidence.description", { defaultValue: "Upload a PDF of the signed paper form for this claim." })}
           </Dialog.Description>
 
           <Button
@@ -524,13 +547,13 @@ function AddPhotoDialog({
           <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
-                {t("approvals.paper_ot.photo") || "Paper Form Photo"}
+                {t("approvals.paper_ot.photo") || "Paper Form Document (PDF)"}
               </label>
               {photoUrl ? (
                 <div className="border border-emerald-100 dark:border-emerald-800/50 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-xl p-4 text-center relative group">
                   <FileText className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
-                  <Typography className="text-xs font-semibold text-emerald-800 dark:text-emerald-300" variant="p">
-                    {fileName ?? "paper_form_evidence.png"}
+                  <Typography className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 animate-in fade-in" variant="p">
+                    {fileName ?? "paper_form_evidence.pdf"}
                   </Typography>
                   <Button
                     className="absolute top-2 right-2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full h-auto w-auto shadow-none"
@@ -545,17 +568,19 @@ function AddPhotoDialog({
                   </Button>
                 </div>
               ) : (
-                <div className="relative border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-6 text-center hover:border-primary-400 dark:hover:border-primary-500 transition-colors group cursor-pointer">
-                  <input
-                    accept="image/*"
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    onChange={handleFileChange}
-                    type="file"
+                <div className="w-full">
+                  <FileUpload
+                    workspaceId={wsId}
+                    category="OtClaimAttachment"
+                    ownerType="AttendanceDailySummary"
+                    ownerId={summary?.id ?? ""}
+                    accept="application/pdf"
+                    maxSizeMB={20}
+                    onUploadSuccess={(file) => {
+                      setFileName(file.file_name);
+                      setPhotoUrl(`/api/v1/workspaces/${wsId}/files/${file.id}/download`);
+                    }}
                   />
-                  <Upload className="w-8 h-8 text-slate-400 dark:text-slate-500 mx-auto mb-2 group-hover:text-primary-500 transition-colors" />
-                  <Typography className="text-xs font-semibold text-slate-600 dark:text-slate-300" variant="p">
-                    {t("approvals.paper_ot.upload_prompt") || "Click or drag photo to upload"}
-                  </Typography>
                 </div>
               )}
             </div>

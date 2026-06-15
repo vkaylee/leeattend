@@ -5,6 +5,7 @@ import AttendanceImportDialog from "@/components/features/attendance/attendance-
 import { CreateAdjustmentModal } from "@/components/features/attendance/create-adjustment-modal";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { useWorkspace } from "@/hooks/use-workspace";
+import { PDFPreviewModal } from "@/components/files/PDFPreviewModal";
 
 import { BehalfAssignmentsTab } from "./approvals/components/behalf-assignments-tab";
 import { AdjustmentsHeader } from "./attendance/components/adjustments-header";
@@ -33,6 +34,10 @@ export default function AttendanceAdjustmentsPage() {
 
   const { workspace } = useWorkspace(wsId ?? undefined);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  const [previewFileUrl, setPreviewFileUrl] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState<string>("");
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   if (!wsId) {
     return (
@@ -73,6 +78,11 @@ export default function AttendanceAdjustmentsPage() {
           isLoading={isLoading}
           onApprove={(id, status) => { approveMutation.mutate({ id, status: status as "approved" | "rejected" }); }}
           requests={requests}
+          onPreviewAttachment={(url, title) => {
+            setPreviewFileUrl(url);
+            setPreviewTitle(title);
+            setIsPreviewOpen(true);
+          }}
         />
       )}
 
@@ -105,6 +115,13 @@ export default function AttendanceAdjustmentsPage() {
         onDownloadTemplate={downloadTemplate}
         targetType="adjustment"
         title={t("attendance_confirm.import_excel")}
+      />
+
+      <PDFPreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        fileUrl={previewFileUrl}
+        title={previewTitle}
       />
     </div>
   );

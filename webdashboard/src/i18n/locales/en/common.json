@@ -1643,6 +1643,7 @@
       "assignee_help_ot": "Select the workspace employee who is allowed to claim on behalf.",
       "assignee_help_overtime_request": "Select the workspace employee who is allowed to submit Pre-OT requests on behalf.",
       "assignee_help_leave": "Select the workspace employee who is allowed to submit leave requests on behalf.",
+      "assignee_help_adjustment": "Select the workspace employee who is allowed to submit attendance adjustment requests on behalf.",
       "target_type_label": "Target Scope Type",
       "target_type_employee": "Employee",
       "target_type_department": "Department",
@@ -1661,6 +1662,7 @@
       "desc_ot": "Configure which employees are authorized to claim overtime on behalf of specific employees or entire departments.",
       "desc_overtime_request": "Configure which employees are authorized to request Pre-OT on behalf of specific employees or entire departments.",
       "desc_leave": "Configure which employees are authorized to request leave on behalf of specific employees or entire departments.",
+      "desc_adjustment": "Configure which employees are authorized to request attendance adjustments on behalf of specific employees or entire departments.",
       "add_btn": "Add Assignment"
     },
     "empty": {

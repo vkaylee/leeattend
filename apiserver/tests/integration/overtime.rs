@@ -309,6 +309,7 @@ async fn test_overtime_request_status_serialization() {
             None,
             Utc::now(),
             Utc::now(),
+            None,
         );
 
         // Insert

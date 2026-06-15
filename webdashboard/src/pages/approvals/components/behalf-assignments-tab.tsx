@@ -209,7 +209,9 @@ function AddAssignmentForm({
       ? "behalf_assignments.form.assignee_help_ot"
       : assignmentType === "overtime_request"
         ? "behalf_assignments.form.assignee_help_overtime_request"
-        : "behalf_assignments.form.assignee_help_leave"
+        : assignmentType === "attendance_adjustment"
+          ? "behalf_assignments.form.assignee_help_adjustment"
+          : "behalf_assignments.form.assignee_help_leave"
   );
 
   return (
@@ -352,7 +354,9 @@ function BehalfAssignmentsHeader({
       ? "behalf_assignments.header.title_ot"
       : assignmentType === "overtime_request"
         ? "behalf_assignments.header.title_overtime_request"
-        : "behalf_assignments.header.title_leave"
+        : assignmentType === "attendance_adjustment"
+          ? "behalf_assignments.header.title_adjustment"
+          : "behalf_assignments.header.title_leave"
   );
 
   const description = t(
@@ -360,7 +364,9 @@ function BehalfAssignmentsHeader({
       ? "behalf_assignments.header.desc_ot"
       : assignmentType === "overtime_request"
         ? "behalf_assignments.header.desc_overtime_request"
-        : "behalf_assignments.header.desc_leave"
+        : assignmentType === "attendance_adjustment"
+          ? "behalf_assignments.header.desc_adjustment"
+          : "behalf_assignments.header.desc_leave"
   );
 
   return (

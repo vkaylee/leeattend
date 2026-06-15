@@ -1025,6 +1025,7 @@ mod tests {
                 None,
                 chrono::Utc::now(),
                 chrono::Utc::now(),
+                None,
             )
         }
 
@@ -1489,6 +1490,7 @@ mod tests {
                 None,
                 chrono::Utc::now(),
                 chrono::Utc::now(),
+                None,
             );
             leave_request_repo
                 .expect_get_employee_leave_requests()

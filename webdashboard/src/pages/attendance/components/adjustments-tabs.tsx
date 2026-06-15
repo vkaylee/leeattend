@@ -36,7 +36,7 @@ export function AdjustmentsTabs({ activeTab, setActiveTab, canManageBehalf }: Ad
     },
     {
       id: "behalf_assignments",
-      label: t("ot_approvals.tabs.behalf_assignments", { defaultValue: "Behalf" }),
+      label: t("attendance_confirm.tabs.behalf_assignments", { defaultValue: "Behalf" }),
       icon: <ShieldCheck size={14} />,
       colorScheme: "violet",
       hidden: !canManageBehalf,

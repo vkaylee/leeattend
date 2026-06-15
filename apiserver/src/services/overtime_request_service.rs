@@ -193,6 +193,7 @@ mod tests {
                 None,
                 Utc::now(),
                 Utc::now(),
+                None,
             );
             Ok(Some(req))
         }
@@ -251,6 +252,7 @@ mod tests {
             None,
             Utc::now(),
             Utc::now(),
+            None,
         );
 
         let employee = OvertimeRequestEmployee::new(

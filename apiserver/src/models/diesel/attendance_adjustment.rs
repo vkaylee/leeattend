@@ -47,6 +47,7 @@ pub struct AttendanceAdjustmentEntity {
     pub updated_at: Option<DateTime<Utc>>,
     pub is_break_overtime: bool,
     pub employment_id: Uuid,
+    pub attachment_file_ids: Option<Vec<Option<Uuid>>>,
 }
 
 impl From<AttendanceAdjustmentEntity> for AttendanceAdjustmentRequest {
@@ -64,6 +65,7 @@ impl From<AttendanceAdjustmentEntity> for AttendanceAdjustmentRequest {
             val.approved_by_user_id,
             val.created_at.unwrap_or_else(Utc::now),
             val.updated_at.unwrap_or_else(Utc::now),
+            val.attachment_file_ids,
         )
     }
 }
@@ -82,6 +84,7 @@ pub struct NewAttendanceAdjustmentEntity {
     pub requested_by_user_id: Option<Uuid>,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
+    pub attachment_file_ids: Option<Vec<Option<Uuid>>>,
 }
 
 #[derive(Debug, AsChangeset)]
