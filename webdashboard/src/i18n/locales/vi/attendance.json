@@ -687,6 +687,9 @@
     },
     "shift_swap": {
       "request": "Yêu cầu Đổi ca"
+    },
+    "adjustment": {
+      "attachment": "Minh chứng (chỉ PDF)"
     }
   }
 }

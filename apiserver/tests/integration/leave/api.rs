@@ -74,6 +74,7 @@ async fn test_leave_request_lifecycle_smoke() {
         duration_type: apiserver::models::enums::LeaveDurationType::FullDay,
         start_time: None,
         end_time: None,
+        attachment_file_ids: None,
     };
 
     let response = app

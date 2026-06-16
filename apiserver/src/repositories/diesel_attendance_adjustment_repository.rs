@@ -49,7 +49,7 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
             requested_by_user_id: request.requested_by_user_id(),
             created_at: Some(request.created_at()),
             updated_at: Some(request.updated_at()),
-            attachment_file_ids: request.attachment_file_ids().map(|ids| ids.to_vec()),
+            attachment_file_ids: request.attachment_file_ids().map(<[Option<Uuid>]>::to_vec),
         };
 
         diesel::insert_into(attendance_adjustment_requests::table)

@@ -531,24 +531,24 @@ describe("LeaveRequestsPage", () => {
   });
 
   describe("Behalf Assignments Tab Integration", () => {
-    it("hides Behalf tab by default (without leave:policies:manage permission)", async () => {
+    it("hides Behalf tab by default (without leave:requests:manage_behalf permission)", async () => {
       (globalThis as any).__mockPermissions = ["leave:requests:submit_on_behalf"];
 
       renderPage(queryClient);
       
       await waitFor(() => {
-        expect(screen.queryByText(/Phân Quyền/i)).toBeNull();
+        expect(screen.queryByText(/Ủy quyền nghỉ phép/i)).toBeNull();
       });
     });
 
     it("shows Behalf tab and navigates when user has permission", async () => {
-      (globalThis as any).__mockPermissions = ["leave:policies:manage"];
+      (globalThis as any).__mockPermissions = ["leave:requests:manage_behalf"];
 
       const user = userEvent.setup();
       renderPage(queryClient);
 
       // Verify Behalf tab is visible
-      const behalfTab = await screen.findByText(/Phân Quyền/i);
+      const behalfTab = await screen.findByText(/Ủy quyền nghỉ phép/i);
       expect(behalfTab).toBeDefined();
 
       // Click Behalf tab

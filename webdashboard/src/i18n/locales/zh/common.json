@@ -1643,6 +1643,7 @@
       "assignee_help_ot": "选择被允许代为申报加班的员工。",
       "assignee_help_overtime_request": "选择被允许代为提交 Pre-OT 申请的员工。",
       "assignee_help_leave": "选择被允许代为提交请假申请的员工。",
+      "assignee_help_adjustment": "选择被允许代为提交考勤调整申请的员工。",
       "target_type_label": "目标范围类型",
       "target_type_employee": "员工",
       "target_type_department": "部门",
@@ -1661,6 +1662,7 @@
       "desc_ot": "配置哪些员工有权代表特定员工或整个部门申报加班。",
       "desc_overtime_request": "配置哪些员工有权代表特定员工或整个部门申请 Pre-OT。",
       "desc_leave": "配置哪些员工有权代表特定员工或整个部门申请请假。",
+      "desc_adjustment": "配置哪些员工有权代表特定员工或整个部门申请考勤调整。",
       "add_btn": "添加分配"
     },
     "empty": {

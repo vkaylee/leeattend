@@ -77,7 +77,13 @@
     "remaining": "Còn",
     "tabs": {
       "policies": "Chính sách",
-      "behalf_assignments": "Ủy quyền nghỉ phép"
+      "behalf_assignments": "Ủy quyền nghỉ phép",
+      "pending": "Chờ duyệt",
+      "approved": "Đã duyệt",
+      "rejected": "Đã từ chối"
+    },
+    "table": {
+      "details": "Chi tiết"
     },
     "types": {
       "vacation": "Phép năm",
@@ -141,7 +147,8 @@
       "submit_title": "Gửi yêu cầu nghỉ phép",
       "submit_subtitle": "Quản lý vắng mặt",
       "reason_placeholder": "Nhập lý do nghỉ...",
-      "submit_btn": "Gửi yêu cầu"
+      "submit_btn": "Gửi yêu cầu",
+      "attachment": "Minh chứng (chỉ PDF)"
     },
     "duration": {
       "label": "Loại nghỉ",
@@ -162,7 +169,9 @@
     "upload_success": "Import thành công {{success}} đơn nghỉ",
     "upload_partial": "Thành công {{success}}/{{total}}. {{errors}} dòng lỗi.",
     "upload_failed": "Import thất bại",
-    "download_errors": "Tải file lỗi"
+    "download_errors": "Tải file lỗi",
+    "import_excel": "Import Excel",
+    "add": "Tạo yêu cầu"
   },
   "leave_import": {
     "title": "Import đơn nghỉ phép",

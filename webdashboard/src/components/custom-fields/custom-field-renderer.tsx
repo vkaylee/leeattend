@@ -86,30 +86,43 @@ export const CustomFieldRenderer: React.FC<CustomFieldRendererProps> = ({
       );
 
     case "multiselect": {
+      let list: unknown[] = [];
+      let isParseError = false;
       try {
-        const list = Array.isArray(val)
+        const parsed = Array.isArray(val)
           ? val
           : typeof val === "string"
             ? JSON.parse(val)
             : [];
-        if (!Array.isArray(list) || list.length === 0) {
-          return <span className="text-slate-400 dark:text-slate-600 italic text-xs">—</span>;
+        if (Array.isArray(parsed)) {
+          list = parsed;
+        } else {
+          isParseError = true;
         }
-        return (
-          <div className="flex flex-wrap gap-1.5 max-w-full">
-            {list.map((item, idx) => (
-              <span
-                className="inline-flex items-center px-2.5 py-1 bg-slate-100 dark:bg-slate-800 border border-slate-200/50 dark:border-slate-700/50 text-slate-700 dark:text-slate-300 text-xs font-bold uppercase rounded-lg tracking-tight"
-                key={idx}
-              >
-                {String(item)}
-              </span>
-            ))}
-          </div>
-        );
       } catch {
+        isParseError = true;
+      }
+
+      if (isParseError) {
         return <span className="text-slate-700 dark:text-slate-300 text-sm">{String(val)}</span>;
       }
+
+      if (list.length === 0) {
+        return <span className="text-slate-400 dark:text-slate-600 italic text-xs">—</span>;
+      }
+
+      return (
+        <div className="flex flex-wrap gap-1.5 max-w-full">
+          {list.map((item, idx) => (
+            <span
+              className="inline-flex items-center px-2.5 py-1 bg-slate-100 dark:bg-slate-800 border border-slate-200/50 dark:border-slate-700/50 text-slate-700 dark:text-slate-300 text-xs font-bold uppercase rounded-lg tracking-tight"
+              key={idx}
+            >
+              {String(item)}
+            </span>
+          ))}
+        </div>
+      );
     }
 
     case "number":

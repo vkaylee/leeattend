@@ -76,7 +76,14 @@
     "create_btn": "创建申请",
     "remaining": "剩余",
     "tabs": {
-      "policies": "政策"
+      "policies": "政策",
+      "behalf_assignments": "代办分配",
+      "pending": "待处理",
+      "approved": "已批准",
+      "rejected": "已拒绝"
+    },
+    "table": {
+      "details": "详情"
     },
     "types": {
       "vacation": "年假",
@@ -140,7 +147,8 @@
       "submit_title": "提交请假申请",
       "submit_subtitle": "缺勤管理",
       "reason_placeholder": "输入请假原因...",
-      "submit_btn": "提交申请"
+      "submit_btn": "提交申请",
+      "attachment": "附件 (仅限 PDF)"
     },
     "duration": {
       "label": "请假类型",
@@ -161,7 +169,9 @@
     "upload_success": "成功导入 {{success}} 个请假单",
     "upload_partial": "成功 {{success}}/{{total}}。{{errors}} 行有错误。",
     "upload_failed": "导入失败",
-    "download_errors": "下载错误文件"
+    "download_errors": "下载错误文件",
+    "import_excel": "导入 Excel",
+    "add": "创建申请"
   },
   "leave_import": {
     "title": "导入请假单",

@@ -37,7 +37,9 @@ impl AttendanceAdjustmentService {
         user_id: Uuid,
         req: CreateAttendanceAdjustmentRequest,
     ) -> Result<AttendanceAdjustmentRequest, AppError> {
-        let attachment_file_ids = req.attachment_file_ids.map(|ids| ids.into_iter().map(Some).collect());
+        let attachment_file_ids = req
+            .attachment_file_ids
+            .map(|ids| ids.into_iter().map(Some).collect());
 
         let adjustment = AttendanceAdjustmentRequest::new(
             new_id(),

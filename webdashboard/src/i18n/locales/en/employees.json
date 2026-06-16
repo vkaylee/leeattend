@@ -18,7 +18,8 @@
       "error_zero_minutes": "Minutes must be greater than 0",
       "error_exceeds_system": "Cannot claim more than system detected OT",
       "system_detected": "System Detected",
-      "close": "Close"
+      "close": "Close",
+      "attachment": "Attachment (PDF only)"
     },
     "my_profile": "My Profile",
     "no_employee_linked": "No employee linked",

@@ -443,21 +443,55 @@ async fn test_approval_workflow_repository_direct() {
     };
 
     let (tx_wf, tx_steps) = repo
-        .create_workflow_transactional(&auth_token, new_workflow, vec![new_step])
+        .create_workflow_transactional(&auth_token, new_workflow.clone(), vec![new_step])
         .await
         .unwrap();
     assert_eq!(tx_wf.id, new_wf_id);
     assert_eq!(tx_steps.len(), 1);
 
+    // Call with empty steps to cover line 116
+    let empty_new_wf_id = uuid::Uuid::new_v4();
+    let empty_new_workflow = apiserver::models::ApprovalWorkflow {
+        id: empty_new_wf_id,
+        workspace_id: ws_id,
+        entity_type: "leave_request".to_string(),
+        name: "Empty Tx Workflow".to_string(),
+        description: None,
+        total_steps: 1,
+        is_active: true,
+        created_by: Some(user_id),
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    };
+    let (tx_empty_wf, tx_empty_steps) = repo
+        .create_workflow_transactional(&auth_token, empty_new_workflow, vec![])
+        .await
+        .unwrap();
+    assert_eq!(tx_empty_wf.id, empty_new_wf_id);
+    assert_eq!(tx_empty_steps.len(), 0);
+
     // 10. Transactional Update definition
     let mut updated_tx_wf = tx_wf.clone();
     updated_tx_wf.name = "Tx Workflow Updated".to_string();
+
+    // Call with non-empty steps to cover lines 181-196
+    let step_to_update = apiserver::models::ApprovalWorkflowStep {
+        id: uuid::Uuid::new_v4(),
+        workflow_id: new_wf_id,
+        step_order: 1,
+        step_name: "Tx Step Updated".to_string(),
+        approver_type: "specific_user".to_string(),
+        approver_config: serde_json::json!({}),
+        action_required: "approve".to_string(),
+        can_skip: false,
+        created_at: chrono::Utc::now(),
+    };
     let (updated_tx_wf, updated_tx_steps) = repo
-        .update_workflow_definition_transactional(&auth_token, updated_tx_wf, vec![])
+        .update_workflow_definition_transactional(&auth_token, updated_tx_wf, vec![step_to_update])
         .await
         .unwrap();
     assert_eq!(updated_tx_wf.name, "Tx Workflow Updated");
-    assert_eq!(updated_tx_steps.len(), 0);
+    assert_eq!(updated_tx_steps.len(), 1);
 
     // 11. Create and Update instance
     let entity_id = uuid::Uuid::new_v4();
@@ -564,4 +598,278 @@ async fn test_approval_workflow_repository_direct() {
         .await
         .unwrap();
     assert!(deleted_wf.is_none());
+}
+
+#[tokio::test]
+async fn test_approval_workflow_repository_edge_cases() {
+    let (_test_db, factory, state, _app): (
+        TestDatabase,
+        TestFactory,
+        std::sync::Arc<AppState>,
+        axum::Router,
+    ) = setup_app_tower().await;
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+    let auth_token = apiserver::diesel_pool::TenantAuthToken::system_override(ws_id);
+    let repo = state.core().approval_workflow_repo();
+
+    let mismatched_ws_id = uuid::Uuid::new_v4();
+
+    // 1. Tenant Mismatches
+    let workflow_mismatch = apiserver::models::ApprovalWorkflow {
+        id: uuid::Uuid::new_v4(),
+        workspace_id: mismatched_ws_id,
+        entity_type: "ot_request".to_string(),
+        name: "Mismatch".to_string(),
+        description: None,
+        total_steps: 1,
+        is_active: true,
+        created_by: Some(user_id),
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    };
+
+    // Mismatched ws_id in create_workflow
+    let err = repo
+        .create_workflow(&auth_token, workflow_mismatch.clone())
+        .await
+        .unwrap_err();
+    assert!(matches!(err, apiserver::errors::AppError::Forbidden(_)));
+
+    // Mismatched ws_id in create_workflow_transactional
+    let err = repo
+        .create_workflow_transactional(&auth_token, workflow_mismatch.clone(), vec![])
+        .await
+        .unwrap_err();
+    assert!(matches!(err, apiserver::errors::AppError::Forbidden(_)));
+
+    // Mismatched ws_id in update_workflow_definition_transactional
+    let err = repo
+        .update_workflow_definition_transactional(&auth_token, workflow_mismatch.clone(), vec![])
+        .await
+        .unwrap_err();
+    assert!(matches!(err, apiserver::errors::AppError::Forbidden(_)));
+
+    // Mismatched ws_id in log_action
+    let action_log_mismatch = apiserver::models::ApprovalActionLog {
+        id: uuid::Uuid::new_v4(),
+        workspace_id: mismatched_ws_id,
+        entity_type: "ot_request".to_string(),
+        entity_id: uuid::Uuid::new_v4(),
+        step_order: 1,
+        step_name: None,
+        acted_by_user_id: user_id,
+        action: "approve".to_string(),
+        note: None,
+        acted_at: chrono::Utc::now(),
+    };
+    let err = repo
+        .log_action(&auth_token, action_log_mismatch)
+        .await
+        .unwrap_err();
+    assert!(matches!(err, apiserver::errors::AppError::Forbidden(_)));
+
+    // Mismatched ws_id in create_instance
+    let instance_mismatch = apiserver::models::ApprovalWorkflowInstance {
+        id: uuid::Uuid::new_v4(),
+        workspace_id: mismatched_ws_id,
+        workflow_id: None,
+        entity_type: "ot_request".to_string(),
+        entity_id: uuid::Uuid::new_v4(),
+        status: "pending".to_string(),
+        current_step_order: 1,
+        steps_snapshot: serde_json::json!([]),
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    };
+    let err = repo
+        .create_instance(&auth_token, instance_mismatch)
+        .await
+        .unwrap_err();
+    assert!(matches!(err, apiserver::errors::AppError::Forbidden(_)));
+
+    // 2. create_steps mismatch (step belongs to a non-existent or mismatched workflow)
+    let step = apiserver::models::ApprovalWorkflowStep {
+        id: uuid::Uuid::new_v4(),
+        workflow_id: uuid::Uuid::new_v4(),
+        step_order: 1,
+        step_name: "Step 1".to_string(),
+        approver_type: "department_manager".to_string(),
+        approver_config: serde_json::json!({}),
+        action_required: "approve".to_string(),
+        can_skip: false,
+        created_at: chrono::Utc::now(),
+    };
+    let err = repo
+        .create_steps(&auth_token, vec![step])
+        .await
+        .unwrap_err();
+    assert!(matches!(err, apiserver::errors::AppError::Forbidden(_)));
+
+    // 3. create_tasks mismatch (task belongs to a non-existent instance)
+    let task = apiserver::models::ApprovalWorkflowTask::new(
+        uuid::Uuid::new_v4(),
+        1,
+        "user".to_string(),
+        Some(user_id),
+        Some("Test User".to_string()),
+    );
+    let err = repo
+        .create_tasks(&auth_token, vec![task])
+        .await
+        .unwrap_err();
+    assert!(matches!(err, apiserver::errors::AppError::Forbidden(_)));
+
+    // 4. update_workflow_definition_transactional - NotFound
+    let workflow_not_found = apiserver::models::ApprovalWorkflow {
+        id: uuid::Uuid::new_v4(),
+        workspace_id: ws_id,
+        entity_type: "ot_request".to_string(),
+        name: "Not Found".to_string(),
+        description: None,
+        total_steps: 1,
+        is_active: true,
+        created_by: Some(user_id),
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    };
+    let err = repo
+        .update_workflow_definition_transactional(&auth_token, workflow_not_found.clone(), vec![])
+        .await
+        .unwrap_err();
+    assert!(matches!(err, apiserver::errors::AppError::NotFound(_)));
+
+    // 5. update_workflow - NotFound
+    let err = repo
+        .update_workflow(&auth_token, workflow_not_found.clone())
+        .await
+        .unwrap_err();
+    assert!(matches!(err, apiserver::errors::AppError::NotFound(_)));
+
+    // 6. delete_workflow - NotFound
+    let err = repo
+        .delete_workflow(&auth_token, uuid::Uuid::new_v4())
+        .await
+        .unwrap_err();
+    assert!(matches!(err, apiserver::errors::AppError::NotFound(_)));
+
+    // 7. list_workflows with entity_type = None
+    let wf1_id = uuid::Uuid::new_v4();
+    let wf1 = apiserver::models::ApprovalWorkflow {
+        id: wf1_id,
+        workspace_id: ws_id,
+        entity_type: "ot_request".to_string(),
+        name: "OT Workflow".to_string(),
+        description: None,
+        total_steps: 1,
+        is_active: true,
+        created_by: Some(user_id),
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    };
+    let wf2_id = uuid::Uuid::new_v4();
+    let wf2 = apiserver::models::ApprovalWorkflow {
+        id: wf2_id,
+        workspace_id: ws_id,
+        entity_type: "leave_request".to_string(),
+        name: "Leave Workflow".to_string(),
+        description: None,
+        total_steps: 1,
+        is_active: true,
+        created_by: Some(user_id),
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    };
+    repo.create_workflow(&auth_token, wf1).await.unwrap();
+    repo.create_workflow(&auth_token, wf2).await.unwrap();
+
+    let (list, total) = repo
+        .list_workflows(&auth_token, ws_id, None, 1, 10)
+        .await
+        .unwrap();
+    assert!(total >= 2);
+    assert!(list.iter().any(|w| w.id == wf1_id));
+    assert!(list.iter().any(|w| w.id == wf2_id));
+
+    // 8. get_steps_for_workflows with empty list
+    let empty_steps = repo
+        .get_steps_for_workflows(&auth_token, vec![])
+        .await
+        .unwrap();
+    assert_eq!(empty_steps.len(), 0);
+
+    // 9. get_pending_tasks_for_user with different assignee types
+    let instance = apiserver::models::ApprovalWorkflowInstance {
+        id: uuid::Uuid::new_v4(),
+        workspace_id: ws_id,
+        workflow_id: Some(wf1_id),
+        entity_type: "ot_request".to_string(),
+        entity_id: uuid::Uuid::new_v4(),
+        status: "pending".to_string(),
+        current_step_order: 1,
+        steps_snapshot: serde_json::json!([]),
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    };
+    let created_instance = repo.create_instance(&auth_token, instance).await.unwrap();
+
+    let role_id = uuid::Uuid::new_v4();
+    let dept_id = uuid::Uuid::new_v4();
+
+    let task_role = apiserver::models::ApprovalWorkflowTask::new(
+        created_instance.id,
+        1,
+        "role".to_string(),
+        Some(role_id),
+        None,
+    );
+    let task_perm = apiserver::models::ApprovalWorkflowTask::new(
+        created_instance.id,
+        1,
+        "permission".to_string(),
+        None,
+        Some("approve_overtime".to_string()),
+    );
+    let task_dept = apiserver::models::ApprovalWorkflowTask::new(
+        created_instance.id,
+        1,
+        "department_manager".to_string(),
+        Some(dept_id),
+        None,
+    );
+
+    repo.create_tasks(&auth_token, vec![task_role, task_perm, task_dept])
+        .await
+        .unwrap();
+
+    // Check query by role
+    let tasks = repo
+        .get_pending_tasks_for_user(&auth_token, user_id, vec![role_id], vec![], vec![])
+        .await
+        .unwrap();
+    assert_eq!(tasks.len(), 1);
+    assert_eq!(tasks[0].assignee_type(), "role");
+
+    // Check query by permission
+    let tasks = repo
+        .get_pending_tasks_for_user(
+            &auth_token,
+            user_id,
+            vec![],
+            vec!["approve_overtime".to_string()],
+            vec![],
+        )
+        .await
+        .unwrap();
+    assert_eq!(tasks.len(), 1);
+    assert_eq!(tasks[0].assignee_type(), "permission");
+
+    // Check query by department_manager
+    let tasks = repo
+        .get_pending_tasks_for_user(&auth_token, user_id, vec![], vec![], vec![dept_id])
+        .await
+        .unwrap();
+    assert_eq!(tasks.len(), 1);
+    assert_eq!(tasks[0].assignee_type(), "department_manager");
 }

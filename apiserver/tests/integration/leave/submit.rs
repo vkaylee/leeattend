@@ -122,6 +122,7 @@ async fn test_teamlead_submit_own_dept_auto_approved() {
         duration_type: apiserver::models::enums::LeaveDurationType::FullDay,
         start_time: None,
         end_time: None,
+        attachment_file_ids: None,
     };
 
     let response = app
@@ -217,6 +218,7 @@ async fn test_teamlead_submit_other_dept_forbidden() {
         duration_type: apiserver::models::enums::LeaveDurationType::FullDay,
         start_time: None,
         end_time: None,
+        attachment_file_ids: None,
     };
 
     let response = app
@@ -283,6 +285,7 @@ async fn test_hr_submit_stays_pending() {
         duration_type: apiserver::models::enums::LeaveDurationType::FullDay,
         start_time: None,
         end_time: None,
+        attachment_file_ids: None,
     };
 
     let response = app
@@ -352,6 +355,7 @@ async fn test_employee_submit_forbidden() {
         duration_type: apiserver::models::enums::LeaveDurationType::FullDay,
         start_time: None,
         end_time: None,
+        attachment_file_ids: None,
     };
 
     let response = app
@@ -441,6 +445,7 @@ async fn test_submit_leave_on_behalf_with_assignment() {
         duration_type: apiserver::models::enums::LeaveDurationType::FullDay,
         start_time: None,
         end_time: None,
+        attachment_file_ids: None,
     };
 
     // 1. Without behalf assignment, it should fail with 403 Forbidden

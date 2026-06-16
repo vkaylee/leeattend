@@ -88,7 +88,9 @@ pub async fn create_ot_request(
         }
     }
 
-    let attachment_file_ids = req.attachment_file_ids.map(|ids| ids.into_iter().map(Some).collect());
+    let attachment_file_ids = req
+        .attachment_file_ids
+        .map(|ids| ids.into_iter().map(Some).collect());
 
     let request = OvertimeRequest::new(
         crate::utils::id::new_id(),

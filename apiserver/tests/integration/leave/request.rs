@@ -87,6 +87,7 @@ async fn test_leave_requests_crud() {
         duration_type: apiserver::models::enums::LeaveDurationType::FullDay,
         start_time: None,
         end_time: None,
+        attachment_file_ids: None,
     };
 
     let response = app

@@ -77,7 +77,13 @@
     "remaining": "Left",
     "tabs": {
       "policies": "Policies",
-      "behalf_assignments": "Behalf Assignments"
+      "behalf_assignments": "Behalf Assignments",
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
+    "table": {
+      "details": "Details"
     },
     "types": {
       "vacation": "Annual Leave",
@@ -141,7 +147,8 @@
       "submit_title": "Submit Leave Request",
       "submit_subtitle": "Absence Management",
       "reason_placeholder": "Enter leave reason...",
-      "submit_btn": "Submit Request"
+      "submit_btn": "Submit Request",
+      "attachment": "Attachment (PDF only)"
     },
     "duration": {
       "label": "Duration Type",
@@ -162,7 +169,9 @@
     "upload_success": "Successfully imported {{success}} leave requests",
     "upload_partial": "Success {{success}}/{{total}}. {{errors}} rows with errors.",
     "upload_failed": "Import failed",
-    "download_errors": "Download error file"
+    "download_errors": "Download error file",
+    "import_excel": "Import Excel",
+    "add": "Create Request"
   },
   "leave_import": {
     "title": "Import Leave Requests",

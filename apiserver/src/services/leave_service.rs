@@ -304,7 +304,9 @@ impl LeaveService {
             (LeaveStatus::Pending, None)
         };
 
-        let attachment_file_ids = req.attachment_file_ids.map(|ids| ids.into_iter().map(Some).collect());
+        let attachment_file_ids = req
+            .attachment_file_ids
+            .map(|ids| ids.into_iter().map(Some).collect());
 
         let request = LeaveRequest::new(
             Uuid::new_v4(),

@@ -39,6 +39,9 @@
     "table": {
       "request_time": "请求 (进 - 出)"
     },
+    "tabs": {
+      "behalf_assignments": "代办分配"
+    },
     "messages": {
       "no_requests": "暂无请求。",
       "no_data": "当前没有需要处理的考勤调整请求。"
@@ -684,6 +687,9 @@
     },
     "shift_swap": {
       "request": "申请换班"
+    },
+    "adjustment": {
+      "attachment": "附件 (仅限 PDF)"
     }
   }
 }
