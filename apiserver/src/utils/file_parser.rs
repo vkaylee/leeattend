@@ -265,28 +265,88 @@ pub fn extract_mapped_rows(
     if is_zip_file(file_bytes) {
         let mut reader = Xlsx::new(Cursor::new(file_bytes))
             .map_err(|e| format!("Không thể mở file Excel XLSX: {e}"))?;
-        if let Some(Ok(range)) = reader.worksheet_range_at(0) {
-            let iter = range.rows().enumerate().map(|(idx, r)| {
-                let cols: Vec<String> = r.iter().map(|c| cell_to_string(Some(c))).collect();
-                (idx + 1, cols)
-            });
-            return process_sheet(Box::new(iter));
+        let sheet_names = reader.sheet_names();
+        let mut best_sheet_range = None;
+        let mut max_matched_headers = 0;
+
+        for name in &sheet_names {
+            if let Ok(range) = reader.worksheet_range(name) {
+                if let Some(first_row) = range.rows().next() {
+                    let mut match_count = 0;
+                    for cell in first_row {
+                        let cell_str = cell_to_string(Some(cell));
+                        let norm = normalize_header(&cell_str);
+                        if !norm.is_empty() && expected_normalized.contains(&norm) {
+                            match_count += 1;
+                        }
+                    }
+                    if match_count > max_matched_headers {
+                        max_matched_headers = match_count;
+                        best_sheet_range = Some(range);
+                    }
+                }
+            }
         }
-        return Err("Không thể đọc được sheet đầu tiên của file Excel XLSX.".to_string());
+
+        let range = if let Some(r) = best_sheet_range {
+            r
+        } else if let Some(name) = sheet_names.first() {
+            reader
+                .worksheet_range(name)
+                .map_err(|e| format!("Không thể đọc sheet {name}: {e}"))?
+        } else {
+            return Err("File Excel không chứa bất kỳ sheet nào.".to_string());
+        };
+
+        let iter = range.rows().enumerate().map(|(idx, r)| {
+            let cols: Vec<String> = r.iter().map(|c| cell_to_string(Some(c))).collect();
+            (idx + 1, cols)
+        });
+        return process_sheet(Box::new(iter));
     }
 
     // 2. Try XLS
     if is_xls_file(file_bytes) {
         let mut reader = Xls::new(Cursor::new(file_bytes))
             .map_err(|e| format!("Không thể mở file Excel XLS: {e}"))?;
-        if let Some(Ok(range)) = reader.worksheet_range_at(0) {
-            let iter = range.rows().enumerate().map(|(idx, r)| {
-                let cols: Vec<String> = r.iter().map(|c| cell_to_string(Some(c))).collect();
-                (idx + 1, cols)
-            });
-            return process_sheet(Box::new(iter));
+        let sheet_names = reader.sheet_names();
+        let mut best_sheet_range = None;
+        let mut max_matched_headers = 0;
+
+        for name in &sheet_names {
+            if let Ok(range) = reader.worksheet_range(name) {
+                if let Some(first_row) = range.rows().next() {
+                    let mut match_count = 0;
+                    for cell in first_row {
+                        let cell_str = cell_to_string(Some(cell));
+                        let norm = normalize_header(&cell_str);
+                        if !norm.is_empty() && expected_normalized.contains(&norm) {
+                            match_count += 1;
+                        }
+                    }
+                    if match_count > max_matched_headers {
+                        max_matched_headers = match_count;
+                        best_sheet_range = Some(range);
+                    }
+                }
+            }
         }
-        return Err("Không thể đọc được sheet đầu tiên của file Excel XLS.".to_string());
+
+        let range = if let Some(r) = best_sheet_range {
+            r
+        } else if let Some(name) = sheet_names.first() {
+            reader
+                .worksheet_range(name)
+                .map_err(|e| format!("Không thể đọc sheet {name}: {e}"))?
+        } else {
+            return Err("File Excel không chứa bất kỳ sheet nào.".to_string());
+        };
+
+        let iter = range.rows().enumerate().map(|(idx, r)| {
+            let cols: Vec<String> = r.iter().map(|c| cell_to_string(Some(c))).collect();
+            (idx + 1, cols)
+        });
+        return process_sheet(Box::new(iter));
     }
 
     // 3. Try CSV
@@ -526,5 +586,38 @@ mod tests {
             err_msg.contains("Không thể mở file Excel XLSX"),
             "Error msg was: {err_msg}"
         );
+    }
+
+    #[test]
+    fn test_extract_mapped_rows_multiple_sheets_matches_correct_one() {
+        use rust_xlsxwriter::Workbook;
+
+        let mut workbook = Workbook::new();
+
+        // Add reference sheet first (index 0) with a different set of headers
+        let ref_sheet = workbook.add_worksheet().set_name("Reference").unwrap();
+        ref_sheet.write_string(0, 0, "leave_type_code").unwrap();
+        ref_sheet.write_string(0, 1, "leave_type_name").unwrap();
+        ref_sheet.write_string(1, 0, "vacation").unwrap();
+        ref_sheet.write_string(1, 1, "Annual Leave").unwrap();
+
+        // Add template sheet second (index 1) with correct headers
+        let tpl_sheet = workbook.add_worksheet().set_name("Template").unwrap();
+        tpl_sheet.write_string(0, 0, "employee_code").unwrap();
+        tpl_sheet.write_string(0, 1, "leave_type_code").unwrap();
+        tpl_sheet.write_string(0, 2, "start_date").unwrap();
+        tpl_sheet.write_string(0, 3, "end_date").unwrap();
+        tpl_sheet.write_string(1, 0, "E001").unwrap();
+        tpl_sheet.write_string(1, 1, "vacation").unwrap();
+        tpl_sheet.write_string(1, 2, "2026-04-01").unwrap();
+        tpl_sheet.write_string(1, 3, "2026-04-02").unwrap();
+
+        let bytes = workbook.save_to_buffer().unwrap();
+        let expected = ["employee_code", "leave_type_code", "start_date", "end_date"];
+        let result = extract_mapped_rows(&bytes, &expected).unwrap();
+
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].1.get("employee_code").unwrap(), "E001");
+        assert_eq!(result[0].1.get("leave_type_code").unwrap(), "vacation");
     }
 }
