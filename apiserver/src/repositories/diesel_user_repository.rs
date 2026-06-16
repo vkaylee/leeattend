@@ -220,6 +220,29 @@ impl UserRepository for DieselUserRepository {
         Ok(entity.map(Into::into))
     }
 
+    async fn get_users_by_ids(&self, ids: &[Uuid]) -> Result<Vec<User>, AppError> {
+        if ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        let entities = users::table
+            .filter(users::id.eq_any(ids))
+            .select(UserEntity::as_select())
+            .load::<UserEntity>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(entities.into_iter().map(Into::into).collect())
+    }
+
     async fn update_password_hash(
         &self,
         user_id: Uuid,

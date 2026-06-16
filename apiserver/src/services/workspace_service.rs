@@ -589,6 +589,28 @@ mod tests {
                 Ok(None)
             }
         }
+        async fn get_users_by_ids(
+            &self,
+            ids: &[Uuid],
+        ) -> Result<Vec<crate::models::User>, AppError> {
+            let mut users = Vec::new();
+            if self.user_exists {
+                for id in ids {
+                    users.push(crate::models::User::new(
+                        *id,
+                        "test@example.com".into(),
+                        "hash".into(),
+                        Utc::now(),
+                        Some("Test User".into()),
+                        None,
+                        None,
+                        None,
+                        None,
+                    ));
+                }
+            }
+            Ok(users)
+        }
         async fn create_user(&self, _u: &crate::models::User) -> Result<(), AppError> {
             unimplemented!()
         }

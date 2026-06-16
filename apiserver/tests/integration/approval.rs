@@ -458,7 +458,7 @@ async fn test_approval_workflow_repository_direct() {
         name: "Empty Tx Workflow".to_string(),
         description: None,
         total_steps: 1,
-        is_active: true,
+        is_active: false,
         created_by: Some(user_id),
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
@@ -872,4 +872,229 @@ async fn test_approval_workflow_repository_edge_cases() {
         .unwrap();
     assert_eq!(tasks.len(), 1);
     assert_eq!(tasks[0].assignee_type(), "department_manager");
+}
+
+#[tokio::test]
+async fn test_approval_workflow_repository_forced_db_errors() {
+    let (_test_db, factory, state, _app): (
+        TestDatabase,
+        TestFactory,
+        std::sync::Arc<AppState>,
+        axum::Router,
+    ) = setup_app_tower().await;
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+    let auth_token = apiserver::diesel_pool::TenantAuthToken::system_override(ws_id);
+    let repo = state.core().approval_workflow_repo();
+
+    // 1. Trigger create_workflow check constraint failure (total_steps < 1)
+    let workflow_bad = apiserver::models::ApprovalWorkflow {
+        id: uuid::Uuid::new_v4(),
+        workspace_id: ws_id,
+        entity_type: "ot_request".to_string(),
+        name: "Bad steps".to_string(),
+        description: None,
+        total_steps: 0, // Violates check total_steps >= 1
+        is_active: true,
+        created_by: Some(user_id),
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    };
+    let err = repo
+        .create_workflow(&auth_token, workflow_bad.clone())
+        .await
+        .unwrap_err();
+    assert!(matches!(err, apiserver::errors::AppError::Internal(_)));
+
+    // 2. Trigger create_workflow_transactional workflow insert failure
+    let err = repo
+        .create_workflow_transactional(&auth_token, workflow_bad.clone(), vec![])
+        .await
+        .unwrap_err();
+    assert!(matches!(err, apiserver::errors::AppError::Internal(_)));
+
+    // 3. Create a valid workflow first
+    let valid_wf_id = uuid::Uuid::new_v4();
+    let workflow_valid = apiserver::models::ApprovalWorkflow {
+        id: valid_wf_id,
+        workspace_id: ws_id,
+        entity_type: "ot_request".to_string(),
+        name: "Valid WF".to_string(),
+        description: None,
+        total_steps: 1,
+        is_active: false, // Set is_active: false to avoid violating active unique constraint
+        created_by: Some(user_id),
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    };
+    let _ = repo
+        .create_workflow(&auth_token, workflow_valid.clone())
+        .await
+        .unwrap();
+
+    // 4. Trigger create_steps insert failure (duplicate step_id)
+    let step_id = uuid::Uuid::new_v4();
+    let step = apiserver::models::ApprovalWorkflowStep {
+        id: step_id,
+        workflow_id: valid_wf_id,
+        step_order: 1,
+        step_name: "Step 1".to_string(),
+        approver_type: "department_manager".to_string(),
+        approver_config: serde_json::json!({}),
+        action_required: "approve".to_string(),
+        can_skip: false,
+        created_at: chrono::Utc::now(),
+    };
+    let err = repo
+        .create_steps(&auth_token, vec![step.clone(), step.clone()])
+        .await
+        .unwrap_err();
+    assert!(matches!(err, apiserver::errors::AppError::Internal(_)));
+
+    // 5. Trigger create_workflow_transactional step insert failure
+    let workflow_new = apiserver::models::ApprovalWorkflow {
+        id: uuid::Uuid::new_v4(),
+        workspace_id: ws_id,
+        entity_type: "leave_request".to_string(),
+        name: "New Tx WF".to_string(),
+        description: None,
+        total_steps: 2,
+        is_active: false,
+        created_by: Some(user_id),
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    };
+    let step_new = apiserver::models::ApprovalWorkflowStep {
+        id: step_id, // reuse step_id to trigger primary key violation
+        workflow_id: workflow_new.id,
+        step_order: 1,
+        step_name: "Step 1".to_string(),
+        approver_type: "department_manager".to_string(),
+        approver_config: serde_json::json!({}),
+        action_required: "approve".to_string(),
+        can_skip: false,
+        created_at: chrono::Utc::now(),
+    };
+    let err = repo
+        .create_workflow_transactional(
+            &auth_token,
+            workflow_new.clone(),
+            vec![step_new.clone(), step_new.clone()],
+        )
+        .await
+        .unwrap_err();
+    assert!(matches!(err, apiserver::errors::AppError::Internal(_)));
+
+    // 6. Trigger update_workflow_definition_transactional update workflow failure
+    let mut workflow_to_update_bad = workflow_valid.clone();
+    workflow_to_update_bad.total_steps = 0; // violates constraint on update
+    let err = repo
+        .update_workflow_definition_transactional(&auth_token, workflow_to_update_bad, vec![])
+        .await
+        .unwrap_err();
+    assert!(matches!(err, apiserver::errors::AppError::Internal(_)));
+
+    // 7. Trigger update_workflow_definition_transactional empty steps branch (covers line 187)
+    let (wf_updated, steps_updated) = repo
+        .update_workflow_definition_transactional(&auth_token, workflow_valid.clone(), vec![])
+        .await
+        .unwrap();
+    assert_eq!(steps_updated.len(), 0);
+
+    // 8. Trigger update_workflow_definition_transactional steps insert failure
+    let step_bad = apiserver::models::ApprovalWorkflowStep {
+        id: uuid::Uuid::new_v4(),
+        workflow_id: valid_wf_id,
+        step_order: 1,
+        step_name: "Step 1".to_string(),
+        approver_type: "department_manager".to_string(),
+        approver_config: serde_json::json!({}),
+        action_required: "approve".to_string(),
+        can_skip: false,
+        created_at: chrono::Utc::now(),
+    };
+    let err = repo
+        .update_workflow_definition_transactional(
+            &auth_token,
+            workflow_valid.clone(),
+            vec![step_bad.clone(), step_bad.clone()],
+        )
+        .await
+        .unwrap_err();
+    assert!(matches!(err, apiserver::errors::AppError::Internal(_)));
+
+    // 9. Trigger update_workflow failure (total_steps < 1)
+    let mut workflow_update_direct_bad = workflow_valid.clone();
+    workflow_update_direct_bad.total_steps = 0;
+    let err = repo
+        .update_workflow(&auth_token, workflow_update_direct_bad)
+        .await
+        .unwrap_err();
+    assert!(matches!(err, apiserver::errors::AppError::Internal(_)));
+
+    // 10. Trigger create_instance failure (duplicate instance id)
+    let inst_id = uuid::Uuid::new_v4();
+    let instance = apiserver::models::ApprovalWorkflowInstance {
+        id: inst_id,
+        workspace_id: ws_id,
+        workflow_id: Some(valid_wf_id),
+        entity_type: "ot_request".to_string(),
+        entity_id: uuid::Uuid::new_v4(),
+        status: "pending".to_string(),
+        current_step_order: 1,
+        steps_snapshot: serde_json::json!([]),
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    };
+    let _ = repo
+        .create_instance(&auth_token, instance.clone())
+        .await
+        .unwrap();
+    let err = repo
+        .create_instance(&auth_token, instance.clone())
+        .await
+        .unwrap_err();
+    assert!(matches!(err, apiserver::errors::AppError::Internal(_)));
+
+    // 11. Trigger update_instance length error
+    let mut instance_bad = instance.clone();
+    instance_bad.status = "a".repeat(300);
+    let err = repo
+        .update_instance(&auth_token, instance_bad)
+        .await
+        .unwrap_err();
+    assert!(matches!(err, apiserver::errors::AppError::Internal(_)));
+
+    // 12. Trigger create_tasks failure (duplicate task id)
+    let task = apiserver::models::ApprovalWorkflowTask::new(
+        inst_id,
+        1,
+        "user".to_string(),
+        Some(user_id),
+        Some("Test User".to_string()),
+    );
+    let _ = repo
+        .create_tasks(&auth_token, vec![task.clone()])
+        .await
+        .unwrap();
+    let err = repo
+        .create_tasks(&auth_token, vec![task.clone()])
+        .await
+        .unwrap_err();
+    assert!(matches!(err, apiserver::errors::AppError::Internal(_)));
+
+    // 13. Trigger update_task not found -> AppError::Internal
+    let non_existent_task = apiserver::models::ApprovalWorkflowTask::new(
+        inst_id,
+        2,
+        "user".to_string(),
+        Some(user_id),
+        Some("Non-existent Task".to_string()),
+    );
+    let err = repo
+        .update_task(&auth_token, non_existent_task)
+        .await
+        .unwrap_err();
+    assert!(matches!(err, apiserver::errors::AppError::Internal(_)));
 }

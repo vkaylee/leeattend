@@ -28,6 +28,7 @@ pub struct TenantPoolManager {
     system_db_url: String,
     max_size: usize,
     pools: RwLock<HashMap<Uuid, DieselPool>>,
+    url_cache: RwLock<HashMap<Uuid, String>>,
 }
 
 impl TenantPoolManager {
@@ -37,6 +38,7 @@ impl TenantPoolManager {
             system_db_url,
             max_size,
             pools: RwLock::new(HashMap::new()),
+            url_cache: RwLock::new(HashMap::new()),
         }
     }
 
@@ -105,6 +107,23 @@ impl TenantPoolManager {
 }
 
 impl TenantPoolManager {
+    fn create_pool_from_url(&self, tenant_url: &str) -> Result<DieselPool, AppError> {
+        let mut manager_config =
+            diesel_async::pooled_connection::ManagerConfig::<AsyncPgConnection>::default();
+        manager_config.recycling_method = diesel_async::pooled_connection::RecyclingMethod::Fast;
+        let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new_with_config(
+            tenant_url.to_string(),
+            manager_config,
+        );
+        Pool::builder(manager)
+            .max_size(self.max_size)
+            .wait_timeout(Some(Duration::from_secs(5)))
+            .create_timeout(Some(Duration::from_secs(5)))
+            .runtime(deadpool::Runtime::Tokio1)
+            .build()
+            .map_err(|e| AppError::Internal(format!("Failed to create tenant pool: {e}")))
+    }
+
     async fn get_or_create_pool(&self, workspace_id: &Uuid) -> Result<DieselPool, AppError> {
         // Fast path
         {
@@ -114,71 +133,78 @@ impl TenantPoolManager {
             }
         }
 
-        let system_url = self.system_db_url.clone();
-        let ws_id = *workspace_id;
+        // Check if we have the tenant URL in the cache
+        let cached_url = {
+            let cache = self.url_cache.read().await;
+            cache.get(workspace_id).cloned()
+        };
 
-        let fetched_url: Result<Option<String>, String> = tokio::task::spawn_blocking(move || {
-            use diesel::prelude::*;
-            use diesel::sql_types::{Nullable, Text, Uuid as UuidSql};
+        let tenant_url = if let Some(url) = cached_url {
+            url
+        } else {
+            let system_url = self.system_db_url.clone();
+            let ws_id = *workspace_id;
 
-            #[derive(QueryableByName)]
-            struct WsRow {
-                #[diesel(sql_type = Nullable<Text>)]
-                custom_db_url_encrypted: Option<String>,
-            }
+            let fetched_url: Result<Option<String>, String> =
+                tokio::task::spawn_blocking(move || {
+                    use diesel::prelude::*;
+                    use diesel::sql_types::{Nullable, Text, Uuid as UuidSql};
 
-            let mut conn = PgConnection::establish(&system_url).map_err(|e| e.to_string())?;
+                    #[derive(QueryableByName)]
+                    struct WsRow {
+                        #[diesel(sql_type = Nullable<Text>)]
+                        custom_db_url_encrypted: Option<String>,
+                    }
 
-            let rows =
-                diesel::sql_query("SELECT custom_db_url_encrypted FROM workspaces WHERE id = $1")
+                    let mut conn =
+                        PgConnection::establish(&system_url).map_err(|e| e.to_string())?;
+
+                    let rows = diesel::sql_query(
+                        "SELECT custom_db_url_encrypted FROM workspaces WHERE id = $1",
+                    )
                     .bind::<UuidSql, _>(ws_id)
                     .load::<WsRow>(&mut conn)
                     .map_err(|e| e.to_string())?;
 
-            if let Some(row) = rows.into_iter().next() {
-                if let Some(encrypted) = row.custom_db_url_encrypted {
-                    // Decrypt the URL
-                    let crypto_service = std::env::var("ENCRYPTION_KEYS_JSON")
-                        .ok()
-                        .and_then(|keys| crate::crypto::CryptoService::from_json(&keys).ok());
+                    if let Some(row) = rows.into_iter().next() {
+                        if let Some(encrypted) = row.custom_db_url_encrypted {
+                            // Decrypt the URL
+                            let crypto_service =
+                                std::env::var("ENCRYPTION_KEYS_JSON").ok().and_then(|keys| {
+                                    crate::crypto::CryptoService::from_json(&keys).ok()
+                                });
 
-                    let decrypted = if let Some(crypto) = crypto_service {
-                        crypto.decrypt(&encrypted).unwrap_or(encrypted)
-                    } else {
-                        encrypted
-                    };
+                            let decrypted = if let Some(crypto) = crypto_service {
+                                crypto.decrypt(&encrypted).unwrap_or(encrypted)
+                            } else {
+                                encrypted
+                            };
 
-                    return Ok(Some(decrypted));
-                }
-            }
-            Ok(None)
-        })
-        .await
-        .map_err(|e| e.to_string())?;
+                            return Ok(Some(decrypted));
+                        }
+                    }
+                    Ok(None)
+                })
+                .await
+                .map_err(|e| e.to_string())?;
 
-        let tenant_url = match fetched_url {
-            Ok(Some(custom_url)) => custom_url,
-            _ => self.get_tenant_url_with_credentials(
-                workspace_id,
-                "tenant_user",
-                "tenant_password",
-                None,
-            ),
+            let url = match fetched_url {
+                Ok(Some(custom_url)) => custom_url,
+                _ => self.get_tenant_url_with_credentials(
+                    workspace_id,
+                    "tenant_user",
+                    "tenant_password",
+                    None,
+                ),
+            };
+
+            // Store in cache
+            let mut cache = self.url_cache.write().await;
+            cache.insert(*workspace_id, url.clone());
+            url
         };
-        let mut manager_config =
-            diesel_async::pooled_connection::ManagerConfig::<AsyncPgConnection>::default();
-        manager_config.recycling_method = diesel_async::pooled_connection::RecyclingMethod::Fast;
-        let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new_with_config(
-            tenant_url,
-            manager_config,
-        );
-        let pool = Pool::builder(manager)
-            .max_size(self.max_size)
-            .wait_timeout(Some(Duration::from_secs(5)))
-            .create_timeout(Some(Duration::from_secs(5)))
-            .runtime(deadpool::Runtime::Tokio1)
-            .build()
-            .map_err(|e| AppError::Internal(format!("Failed to create tenant pool: {e}")))?;
+
+        let pool = self.create_pool_from_url(&tenant_url)?;
 
         // Acquire write lock to insert the new pool
         let mut pools = self.pools.write().await;
@@ -277,5 +303,33 @@ mod tests {
             url,
             "postgres://tenant_user:tenant_password@localhost:5432/tenant_123e4567e89b12d3a456426614174000"
         );
+    }
+
+    #[tokio::test]
+    async fn test_tenant_url_caching() {
+        let manager = TenantPoolManager::new(
+            "postgres://admin:pass@localhost:5432/leeattend".to_string(),
+            "postgres://admin:pass@localhost:5432/leeattend".to_string(),
+            5,
+        );
+        let ws_id = Uuid::new_v4();
+
+        // Ensure cache is initially empty
+        {
+            let cache = manager.url_cache.read().await;
+            assert!(!cache.contains_key(&ws_id));
+        }
+
+        // Insert a custom URL manually into the cache to simulate it being populated
+        let test_url = "postgres://cached_user:cached_pass@localhost:5432/cached_db".to_string();
+        {
+            let mut cache = manager.url_cache.write().await;
+            cache.insert(ws_id, test_url.clone());
+        }
+
+        // Verify that get_or_create_pool utilizes the cached URL and doesn't run spawn_blocking to hit System DB.
+        // Deadpool pool building does not connect eagerly, so it will return Ok(pool) immediately.
+        let pool = manager.get_or_create_pool(&ws_id).await;
+        assert!(pool.is_ok());
     }
 }

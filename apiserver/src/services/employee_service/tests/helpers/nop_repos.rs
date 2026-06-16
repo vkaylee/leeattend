@@ -185,6 +185,23 @@ impl UserRepository for NopUserRepo {
             None,
         )))
     }
+    async fn get_users_by_ids(&self, ids: &[Uuid]) -> Result<Vec<User>, AppError> {
+        let mut users = Vec::new();
+        for id in ids {
+            users.push(User::new(
+                *id,
+                "test@example.com".to_string(),
+                "hash".to_string(),
+                chrono::Utc::now(),
+                Some("Test User".to_string()),
+                None,
+                None,
+                None,
+                None,
+            ));
+        }
+        Ok(users)
+    }
     async fn update_password_hash(&self, _u: Uuid, _h: &str) -> Result<(), AppError> {
         unimplemented!()
     }

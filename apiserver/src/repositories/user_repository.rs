@@ -16,6 +16,7 @@ pub trait UserRepository: Send + Sync {
     async fn assign_platform_admin(&self, user_id: Uuid) -> Result<(), AppError>;
     async fn get_user_by_email(&self, email: &str) -> Result<Option<User>, AppError>;
     async fn get_user_by_id(&self, id: Uuid) -> Result<Option<User>, AppError>;
+    async fn get_users_by_ids(&self, ids: &[Uuid]) -> Result<Vec<User>, AppError>;
     async fn update_password_hash(
         &self,
         user_id: Uuid,
