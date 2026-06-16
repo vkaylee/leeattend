@@ -87,15 +87,31 @@ function PartialSuccessState({ importJob, wsId, t }: { importJob: LeaveImportJob
   );
 }
 
-function FailedState({ importJob, t }: { importJob: LeaveImportJob; t: TFunction }) {
+function FailedState({ importJob, wsId, t }: { importJob: LeaveImportJob; wsId: string; t: TFunction }) {
   if (importJob.status !== 'failed') return null;
+  const info = getImportErrorInfo(importJob);
+  const errorCount = info?.error_count ?? 1;
   return (
     <>
       <XCircle className="text-red-500 flex-shrink-0" size={20} />
-      <Typography className="text-sm font-semibold text-red-700 dark:text-red-300" variant="p">
-        {t("leave_requests.upload_failed", "Import thất bại")}
-        {importJob.error_log ? <span className="font-normal ml-2 text-xs opacity-75">— {importJob.error_log.substring(0, 100)}</span> : null}
-      </Typography>
+      <div className="flex items-center gap-3">
+        <Typography className="text-sm font-semibold text-red-700 dark:text-red-300" variant="p">
+          {info
+            ? t("leave_requests.upload_failed_count", "Import thất bại: {{errors}} dòng lỗi.").replace('{{errors}}', String(errorCount))
+            : t("leave_requests.upload_failed", "Import thất bại")
+          }
+          {!info && importJob.error_log ? <span className="font-normal ml-2 text-xs opacity-75">— {importJob.error_log.substring(0, 100)}</span> : null}
+        </Typography>
+        {info?.error_file_path ? (
+          <Button
+            className="flex items-center gap-1.5 text-xs font-bold text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200 underline underline-offset-2 border-none shadow-none h-auto w-auto p-0 hover:bg-transparent"
+            onClick={() => { void downloadLeaveImportErrors(wsId, importJob.id).catch(() => { /* empty */ }); }}
+            variant="ghost"
+          >
+            <Download size={14} /> {t("leave_requests.download_errors", "Tải file lỗi")}
+          </Button>
+        ) : null}
+      </div>
     </>
   );
 }
@@ -127,7 +143,7 @@ export function LeaveImportBanner({ importJob, importBannerDismissed, setImportB
         <ProcessingState importJob={importJob} t={t} />
         <SuccessState importJob={importJob} t={t} />
         <PartialSuccessState importJob={importJob} t={t} wsId={wsId} />
-        <FailedState importJob={importJob} t={t} />
+        <FailedState importJob={importJob} t={t} wsId={wsId} />
       </div>
       {showCloseButton ? (
         <Button 

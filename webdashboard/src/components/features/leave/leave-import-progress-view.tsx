@@ -93,13 +93,42 @@ function PartialSuccessDetails({ info, importJob, t, wsId }: { info: ErrorInfo |
   );
 }
 
-function FailedDetails({ errorLog, t }: { errorLog: string; t: TFunction }) {
+function FailedDetails({ errorLog, importJob, t, wsId }: { errorLog: string; importJob: LeaveImportJob; t: TFunction; wsId: string | null }) {
+  let info: ErrorInfo | null = null;
+  try {
+    info = JSON.parse(errorLog) as ErrorInfo;
+  } catch { /* ignored */ }
+
   return (
     <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-6 border border-rose-200 dark:border-rose-900/50 shadow-sm">
       <Typography className="text-[10px] font-bold text-rose-600 dark:text-rose-400 mb-2 flex items-center gap-2 uppercase tracking-[0.25em]" variant="h4">
         <AlertCircle size={14} /> {t("leave_import.error_detail", "Chi tiết lỗi")}
       </Typography>
-      <Typography className="text-xs text-slate-600 dark:text-slate-400 font-mono" variant="p">{errorLog.substring(0, 200)}</Typography>
+      {info ? (
+        <div className="space-y-3">
+          <Typography className="text-xs text-slate-600 dark:text-slate-400" variant="p">
+            {t("leave_import.failed_detail_count", "Import thất bại: {{errors}} dòng bị lỗi").replace("{{errors}}", String(info.error_count ?? 1))}
+          </Typography>
+          {Boolean(info.error_file_path) && Boolean(wsId) ? (
+            <Button
+              className="border-rose-200 bg-rose-50 text-[10px] text-rose-700 hover:bg-rose-100 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-300 dark:hover:bg-rose-900/50"
+              onClick={() => {
+                if (wsId) {
+                  void downloadLeaveImportErrors(wsId, importJob.id).catch(() => { /* empty */ });
+                }
+              }}
+              size="sm"
+              variant="outline"
+            >
+              <Download size={14} /> {t("leave_import.download_errors", "Tải file lỗi")}
+            </Button>
+          ) : null}
+        </div>
+      ) : (
+        <Typography className="text-xs text-slate-600 dark:text-slate-400 font-mono" variant="p">
+          {errorLog.substring(0, 200)}
+        </Typography>
+      )}
     </div>
   );
 }
@@ -109,7 +138,7 @@ function ErrorDetails({ getErrorInfo, importJob, t, wsId }: { getErrorInfo: (job
     return <PartialSuccessDetails importJob={importJob} info={getErrorInfo(importJob)} t={t} wsId={wsId} />;
   }
   if (importJob.status === "failed" && importJob.error_log) {
-    return <FailedDetails errorLog={importJob.error_log} t={t} />;
+    return <FailedDetails errorLog={importJob.error_log} importJob={importJob} t={t} wsId={wsId} />;
   }
   return null;
 }
