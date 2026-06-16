@@ -360,3 +360,178 @@ async fn test_leave_import_progress_and_error_formatting_api() {
     assert_eq!(error_log_json["success_count"], 4);
     assert_eq!(error_log_json["error_count"], 6);
 }
+
+#[tokio::test]
+async fn test_import_job_timeout_reconciliation_api() {
+    let (test_db, factory, state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+
+    // 1. Create a processing leave import job from 15 minutes ago
+    let leave_job_id = Uuid::new_v4();
+    let old_time = chrono::Utc::now() - chrono::Duration::seconds(900);
+    let leave_import_job = apiserver::models::AttendanceImportJob {
+        id: leave_job_id,
+        workspace_id: ws_id,
+        user_id,
+        status: ImportJobStatus::Processing,
+        total_rows: 5,
+        processed_rows: 2,
+        file_path: None,
+        error_log: None,
+        target_type: apiserver::models::enums::ImportTargetType::LeaveImport,
+        created_at: old_time,
+        updated_at: old_time,
+    };
+
+    state
+        .attendance()
+        .import_repo()
+        .create_job(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            &leave_import_job,
+        )
+        .await
+        .unwrap();
+
+    // Fetch latest leave import job via API and verify it is reconciled to Failed
+    let response = app
+        .clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("GET")
+                .uri(format!("/api/v1/workspaces/{ws_id}/leave/import/latest"))
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body_bytes = axum::body::to_bytes(response.into_body(), 10000)
+        .await
+        .unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+    assert_eq!(json["id"], leave_job_id.to_string());
+    assert_eq!(json["status"], "failed");
+    assert!(json["error_log"].as_str().unwrap().contains("timed out"));
+
+    // Verify database record has also been updated to Failed
+    let db_job = state
+        .attendance()
+        .import_repo()
+        .get_job_by_id(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            leave_job_id,
+        )
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(db_job.status, ImportJobStatus::Failed);
+
+    // 2. Create a processing attendance import job from 15 minutes ago
+    let att_job_id = Uuid::new_v4();
+    let att_import_job = apiserver::models::AttendanceImportJob {
+        id: att_job_id,
+        workspace_id: ws_id,
+        user_id,
+        status: ImportJobStatus::Processing,
+        total_rows: 10,
+        processed_rows: 0,
+        file_path: None,
+        error_log: None,
+        target_type: apiserver::models::enums::ImportTargetType::Log,
+        created_at: old_time,
+        updated_at: old_time,
+    };
+
+    state
+        .attendance()
+        .import_repo()
+        .create_job(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            &att_import_job,
+        )
+        .await
+        .unwrap();
+
+    // Fetch latest attendance import job via API and verify it is reconciled to Failed
+    let response = app
+        .clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("GET")
+                .uri(format!(
+                    "/api/v1/workspaces/{ws_id}/attendance/import-jobs/latest?target_type=log"
+                ))
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body_bytes = axum::body::to_bytes(response.into_body(), 10000)
+        .await
+        .unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+    assert_eq!(json["id"], att_job_id.to_string());
+    assert_eq!(json["status"], "failed");
+
+    // 3. Re-create another processing attendance import job to test get_import_job_status
+    let att_job_id_2 = Uuid::new_v4();
+    let att_import_job_2 = apiserver::models::AttendanceImportJob {
+        id: att_job_id_2,
+        workspace_id: ws_id,
+        user_id,
+        status: ImportJobStatus::Processing,
+        total_rows: 10,
+        processed_rows: 0,
+        file_path: None,
+        error_log: None,
+        target_type: apiserver::models::enums::ImportTargetType::Log,
+        created_at: old_time,
+        updated_at: old_time,
+    };
+
+    state
+        .attendance()
+        .import_repo()
+        .create_job(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            &att_import_job_2,
+        )
+        .await
+        .unwrap();
+
+    // Fetch status of specific attendance import job via API and verify it is reconciled to Failed
+    let response = app
+        .clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("GET")
+                .uri(format!(
+                    "/api/v1/workspaces/{ws_id}/attendance/import-jobs/{att_job_id_2}"
+                ))
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body_bytes = axum::body::to_bytes(response.into_body(), 10000)
+        .await
+        .unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+    assert_eq!(json["id"], att_job_id_2.to_string());
+    assert_eq!(json["status"], "failed");
+}
