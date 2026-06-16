@@ -790,7 +790,22 @@ pub async fn get_latest_leave_import(
 
     if let Some(ref mut job) = job_opt {
         if job.status == crate::models::ImportJobStatus::Processing {
-            if let Some(redis) = state.infra().redis() {
+            let now = chrono::Utc::now();
+            let duration = now - job.updated_at;
+            if duration.num_minutes() > 10 {
+                let _ = repo
+                    .update_job_progress(
+                        &ctx.auth_token,
+                        job.id,
+                        job.processed_rows,
+                        crate::models::enums::ImportJobStatus::Failed,
+                        Some("Import job timed out or background worker restarted.".to_string()),
+                    )
+                    .await;
+                job.status = crate::models::enums::ImportJobStatus::Failed;
+                job.error_log =
+                    Some("Import job timed out or background worker restarted.".to_string());
+            } else if let Some(redis) = state.infra().redis() {
                 let mut conn = redis.conn();
                 let key = format!("import_progress:{}", job.id);
                 if let Ok(Some(count)) = redis::cmd("GET")
