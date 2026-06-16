@@ -55,7 +55,7 @@ export default function LeaveRequestsPage() {
 
   if (!wsId) return <div className="p-12 text-center text-primary-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("common.select_workspace")}</div>;
 
-  const canManageBehalf = hasPermission("leave:requests:manage_behalf");
+  const canManageBehalf = hasPermission("leave:policies:manage");
 
   const tabs: PageTab[] = [
     {

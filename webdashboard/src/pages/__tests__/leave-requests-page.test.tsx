@@ -531,7 +531,7 @@ describe("LeaveRequestsPage", () => {
   });
 
   describe("Behalf Assignments Tab Integration", () => {
-    it("hides Behalf tab by default (without leave:requests:manage_behalf permission)", async () => {
+    it("hides Behalf tab by default (without leave:policies:manage permission)", async () => {
       (globalThis as any).__mockPermissions = ["leave:requests:submit_on_behalf"];
 
       renderPage(queryClient);
@@ -542,7 +542,7 @@ describe("LeaveRequestsPage", () => {
     });
 
     it("shows Behalf tab and navigates when user has permission", async () => {
-      (globalThis as any).__mockPermissions = ["leave:requests:manage_behalf"];
+      (globalThis as any).__mockPermissions = ["leave:policies:manage"];
 
       const user = userEvent.setup();
       renderPage(queryClient);
