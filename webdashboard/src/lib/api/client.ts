@@ -26,9 +26,23 @@ async function extractRequestInfo(
     const method = options.method.toUpperCase();
     if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
       try {
-        const bodyText = await url.clone().text();
-        if (bodyText) {
-          options.body = bodyText;
+        const contentType = url.headers.get("content-type") || "";
+        if (contentType.includes("multipart/form-data")) {
+          const formData = await url.clone().formData();
+          options.body = formData;
+        } else if (
+          contentType.includes("application/json") ||
+          contentType.includes("application/x-www-form-urlencoded") ||
+          contentType.startsWith("text/")
+        ) {
+          const bodyText = await url.clone().text();
+          if (bodyText) {
+            options.body = bodyText;
+          }
+        } else {
+          // For binary payloads (octet-stream, files, etc.)
+          const bodyBlob = await url.clone().blob();
+          options.body = bodyBlob;
         }
       } catch {
         // Ignore if body reading fails

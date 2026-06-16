@@ -150,5 +150,44 @@ describe('client (openapi-fetch adapter)', () => {
         expect.any(Object)
       );
     });
+
+    it('handles Request with FormData (multipart/form-data) body correctly without converting to text', async () => {
+      const mockApiFetch = apiFetch as Mock;
+      mockApiFetch.mockResolvedValue(new Response(JSON.stringify({ data: "ok" }), { status: 200 }));
+
+      const formData = new FormData();
+      formData.append("file", new Blob(["excel-binary"], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), "template.xlsx");
+
+      const request = new Request("http://127.0.0.1:5173/api/v1/workspaces/ws-id/leave/upload-excel", {
+        method: "POST",
+        body: formData,
+      });
+
+      await customFetch(request);
+
+      expect(mockApiFetch).toHaveBeenCalledTimes(1);
+      const calledOptions = mockApiFetch.mock.calls[0][1];
+      expect(calledOptions.method).toBe("POST");
+      expect(calledOptions.body).toBeInstanceOf(FormData);
+    });
+
+    it('handles Request with binary Blob body correctly without converting to text', async () => {
+      const mockApiFetch = apiFetch as Mock;
+      mockApiFetch.mockResolvedValue(new Response(JSON.stringify({ data: "ok" }), { status: 200 }));
+
+      const blob = new Blob(["binary-data"], { type: "application/octet-stream" });
+      const request = new Request("http://127.0.0.1:5173/api/v1/workspaces/ws-id/binary-upload", {
+        method: "POST",
+        body: blob,
+        headers: { "Content-Type": "application/octet-stream" },
+      });
+
+      await customFetch(request);
+
+      expect(mockApiFetch).toHaveBeenCalledTimes(1);
+      const calledOptions = mockApiFetch.mock.calls[0][1];
+      expect(calledOptions.method).toBe("POST");
+      expect(calledOptions.body).toBeInstanceOf(Blob);
+    });
   });
 });
