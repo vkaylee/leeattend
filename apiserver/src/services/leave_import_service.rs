@@ -63,10 +63,11 @@ impl ImportStrategy for LeaveImportStrategy {
         current_line: usize,
         _workspace_tz: chrono_tz::Tz,
     ) -> Result<Self::RowData, crate::errors::AppError> {
-        let emp_id = row_data
+        let raw_emp_id = row_data
             .get("employee_code")
             .map_or("", |s| s.trim())
             .to_string();
+        let emp_id = crate::utils::normalize_employee_id(&raw_emp_id);
         let leave_code = row_data
             .get("leave_type_code")
             .map_or("", |s| s.trim())
