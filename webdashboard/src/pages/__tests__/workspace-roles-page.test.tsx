@@ -1,7 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import React from "react";
-import { MemoryRouter } from "react-router-dom";
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -84,9 +83,7 @@ describe("WorkspaceRolesPage", () => {
     const renderWithProviders = (ui: React.ReactElement) => {
         return render(
             <QueryClientProvider client={queryClient}>
-                <MemoryRouter>
-                    {ui}
-                </MemoryRouter>
+                {ui}
             </QueryClientProvider>
         );
     };

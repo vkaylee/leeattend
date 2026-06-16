@@ -94,12 +94,13 @@ export function CustomFieldsFilterPopover({
               Custom Field Filters
             </span>
             {activeCount > 0 && (
-              <button
-                className="text-[10px] font-bold text-red-500 dark:text-red-400 hover:underline uppercase tracking-wide cursor-pointer"
+              <Button
+                className="text-[10px] font-bold text-red-500 dark:text-red-400 hover:underline uppercase tracking-wide cursor-pointer h-auto p-0"
                 onClick={handleClear}
+                variant="ghost"
               >
                 Clear
-              </button>
+              </Button>
             )}
           </div>
 

@@ -222,9 +222,7 @@ export default tseslint.config(
       // Legacy files violating max-lines limits (> 200 lines)
       'src/hooks/use-dashboard-layout.ts',
       'src/hooks/use-dashboard.ts',
-      'src/hooks/use-ess.ts',
       'src/hooks/use-working-pattern-form.ts',
-      'src/hooks/use-workspace.ts',
       'src/lib/api/attendance.ts',
       'src/lib/api/helpers.ts',
       'src/lib/api/leaves.ts',

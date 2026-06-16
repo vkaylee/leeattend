@@ -1,7 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import React, { Suspense, lazy } from "react";
-import { MemoryRouter } from "react-router-dom";
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -147,9 +146,7 @@ describe("Lazy Route Loading", () => {
         return render(
             <QueryClientProvider client={queryClient}>
                 <ToastProvider>
-                    <MemoryRouter>
-                        {ui}
-                    </MemoryRouter>
+                    {ui}
                 </ToastProvider>
             </QueryClientProvider>
         );

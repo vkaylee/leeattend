@@ -1,6 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -88,9 +87,7 @@ describe('PayrollPage', () => {
     render(
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
-          <BrowserRouter>
-            <PayrollPage />
-          </BrowserRouter>
+          <PayrollPage />
         </ToastProvider>
       </QueryClientProvider>
     );
@@ -140,9 +137,7 @@ describe('PayrollPage', () => {
     render(
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
-          <BrowserRouter>
-            <PayrollPage />
-          </BrowserRouter>
+          <PayrollPage />
         </ToastProvider>
       </QueryClientProvider>
     );

@@ -1,7 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import React from "react";
-import { MemoryRouter } from "react-router-dom";
 
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -101,9 +100,7 @@ describe("WorkspacePermissionsPage", () => {
     const renderPage = () =>
         render(
             <QueryClientProvider client={queryClient}>
-                <MemoryRouter>
-                    <WorkspacePermissionsPage />
-                </MemoryRouter>
+                <WorkspacePermissionsPage />
             </QueryClientProvider>,
         );
 

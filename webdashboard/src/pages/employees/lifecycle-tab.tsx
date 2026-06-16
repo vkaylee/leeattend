@@ -239,16 +239,17 @@ export default function EmployeeLifecycleTab({ employmentId, wsId }: EmployeeLif
                         )}
                       >
                         <div className="flex items-start gap-4 justify-between">
-                          <button
-                            className="text-slate-400 hover:text-primary-600 transition-colors pt-0.5"
+                          <Button
+                            className="text-slate-400 hover:text-primary-600 transition-colors pt-0.5 h-auto p-0"
                             onClick={() => handleToggleItemStatus(item)}
+                            variant="ghost"
                           >
                             {isCompleted ? (
                               <CheckCircle2 className="w-5 h-5 text-emerald-500" />
                             ) : (
                               <Circle className="w-5 h-5" />
                             )}
-                          </button>
+                          </Button>
 
                           <div className="flex-1 space-y-1">
                             <div className="flex items-center gap-2 flex-wrap">
