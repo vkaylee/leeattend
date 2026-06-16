@@ -14,7 +14,7 @@ use crate::models::{
 use crate::repositories::lifecycle_checklist_repository::LifecycleChecklistRepository;
 use crate::schema::{
     employees, employments, lifecycle_checklist_items, lifecycle_checklist_template_items,
-    lifecycle_checklist_templates, lifecycle_checklists, users,
+    lifecycle_checklist_templates, lifecycle_checklists,
 };
 use async_trait::async_trait;
 use chrono::{NaiveDate, Utc};
@@ -721,21 +721,20 @@ impl LifecycleChecklistRepository for DieselLifecycleChecklistRepository {
             .await?;
         let workspace_id = auth_token.workspace_id();
 
-        // Join: lifecycle_checklist_items -> lifecycle_checklists -> employments -> employees -> users (for employee name)
+        // Join: lifecycle_checklist_items -> lifecycle_checklists -> employments -> employees (for employee name)
         let query_results = lifecycle_checklist_items::table
             .inner_join(lifecycle_checklists::table)
             .inner_join(
                 employments::table.on(lifecycle_checklists::employment_id.eq(employments::id)),
             )
             .inner_join(employees::table.on(employments::employee_id.eq(employees::id)))
-            .inner_join(users::table.on(employees::user_id.eq(users::id.nullable())))
             .filter(lifecycle_checklist_items::assignee_user_id.eq(Some(user_id)))
             .filter(lifecycle_checklist_items::status.eq(ChecklistItemStatus::Pending.as_str()))
             .filter(lifecycle_checklists::workspace_id.eq(workspace_id))
             .select((
                 lifecycle_checklist_items::id,
                 lifecycle_checklist_items::checklist_id,
-                users::full_name,
+                employees::full_name,
                 lifecycle_checklists::checklist_type,
                 lifecycle_checklist_items::title,
                 lifecycle_checklist_items::description,
@@ -747,7 +746,7 @@ impl LifecycleChecklistRepository for DieselLifecycleChecklistRepository {
             .load::<(
                 Uuid,              // id
                 Uuid,              // checklist_id
-                Option<String>,    // full_name
+                String,            // full_name
                 String,            // checklist_type
                 String,            // title
                 Option<String>,    // description
@@ -768,7 +767,7 @@ impl LifecycleChecklistRepository for DieselLifecycleChecklistRepository {
                 PendingTaskResponse {
                     id,
                     checklist_id: cl_id,
-                    employee_name: name.unwrap_or_else(|| "Unknown".to_string()),
+                    employee_name: name,
                     checklist_type,
                     title,
                     description: desc,

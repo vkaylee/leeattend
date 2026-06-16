@@ -230,3 +230,133 @@ async fn test_upload_leave_csv_api() {
     // It could be BAD_REQUEST or OK depending on if there are errors. Just check it runs without 500
     assert!(response.status().is_success() || response.status().is_client_error());
 }
+
+#[tokio::test]
+async fn test_leave_import_progress_and_error_formatting_api() {
+    let (test_db, factory, state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+
+    // 1. Create a processing leave import job
+    let job_id = Uuid::new_v4();
+    let import_job = apiserver::models::AttendanceImportJob {
+        id: job_id,
+        workspace_id: ws_id,
+        user_id,
+        status: ImportJobStatus::Processing,
+        total_rows: 10,
+        processed_rows: 0,
+        file_path: None,
+        error_log: None,
+        target_type: apiserver::models::enums::ImportTargetType::LeaveImport,
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    };
+
+    state
+        .attendance()
+        .import_repo()
+        .create_job(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            &import_job,
+        )
+        .await
+        .unwrap();
+
+    // Set progress in Redis
+    if let Some(redis) = state.infra().redis() {
+        let mut conn = redis.conn();
+        let key = format!("import_progress:{}", job_id);
+        let _: () = redis::cmd("SET")
+            .arg(&key)
+            .arg(4)
+            .query_async(&mut conn)
+            .await
+            .unwrap();
+    }
+
+    // 2. Fetch latest leave import job via API and verify processed_rows is fetched from Redis (should be 4)
+    let response = app
+        .clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("GET")
+                .uri(format!("/api/v1/workspaces/{ws_id}/leave/import/latest"))
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body_bytes = axum::body::to_bytes(response.into_body(), 10000)
+        .await
+        .unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+    assert_eq!(json["id"], job_id.to_string());
+    assert_eq!(json["status"], "processing");
+    assert_eq!(json["total_rows"], 10);
+    assert_eq!(json["processed_rows"], 4);
+
+    // 3. Test finalize import with errors formats error_log as JSON
+    // Set error in Redis
+    if let Some(redis) = state.infra().redis() {
+        let mut conn = redis.conn();
+        let key = format!("import_errors:{}", job_id);
+        let _: () = redis::cmd("HSET")
+            .arg(&key)
+            .arg("chunk_1_5")
+            .arg("Some row failed")
+            .query_async(&mut conn)
+            .await
+            .unwrap();
+    }
+
+    // Call FinalizeImportHandler
+    let finalize_job = apiserver::queue::Job::with_priority(
+        job_id,
+        0,
+        apiserver::queue::TaskType::FinalizeImport,
+        ws_id,
+        apiserver::queue::JobPayload::FinalizeImport(apiserver::queue::FinalizeImportPayload {
+            import_job_id: job_id,
+        }),
+        apiserver::queue::JobPriority::High,
+    );
+
+    let cache = Arc::new(apiserver::cache::RedisCache::new(
+        state.infra().redis().unwrap().clone(),
+    ));
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
+    let deps = apiserver::worker::deps::WorkerDeps::new(&diesel_pools);
+
+    let res = apiserver::worker::handlers::FinalizeImportHandler::handle(
+        &finalize_job,
+        &(cache as Arc<dyn apiserver::repositories::CacheRepository>),
+        &deps,
+    )
+    .await;
+    assert!(res.is_ok());
+
+    // Verify error_log in DB is formatted as JSON
+    let finalized_job = state
+        .attendance()
+        .import_repo()
+        .get_job_by_id(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            job_id,
+        )
+        .await
+        .unwrap()
+        .unwrap();
+
+    assert_eq!(finalized_job.status, ImportJobStatus::Completed);
+    let error_log_str = finalized_job.error_log.unwrap();
+    let error_log_json: serde_json::Value = serde_json::from_str(&error_log_str).unwrap();
+    assert_eq!(error_log_json["success_count"], 4);
+    assert_eq!(error_log_json["error_count"], 6);
+}

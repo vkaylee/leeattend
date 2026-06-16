@@ -205,19 +205,9 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
             ImportJobStatus::Failed
         };
 
-        let mut final_log = if errors.is_empty() {
-            None
-        } else {
-            Some(errors.join("\n"))
-        };
-
-        if skipped_rows > 0 {
-            let skip_msg = format!("Đã bỏ qua {skipped_rows} dòng");
-            final_log = Some(match final_log {
-                Some(log) => format!("{log}\n{skip_msg}"),
-                None => skip_msg,
-            });
-        }
+        let mut has_error_file = false;
+        let base_dir = crate::utils::get_storage_dir();
+        let error_file_path = format!("{base_dir}/imports/error_{}.xlsx", self.job.id);
 
         if !failed_rows_data.is_empty() {
             use rust_xlsxwriter::{Color, Format, Workbook};
@@ -250,20 +240,54 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
                 let _ = worksheet.write_string(row, all_headers.len() as u16 - 1, err);
             }
 
-            let base_dir = crate::utils::get_storage_dir();
-            let error_file_path = format!("{base_dir}/imports/error_{}.xlsx", self.job.id);
             if workbook.save(&error_file_path).is_ok() {
+                has_error_file = true;
+            }
+        }
+
+        let final_log = if self.job.target_type
+            == crate::models::enums::ImportTargetType::LeaveImport
+        {
+            if !failed_rows_data.is_empty() || skipped_rows > 0 || !errors.is_empty() {
+                let error_count =
+                    (errors.len() + failed_rows_data.len() + skipped_rows as usize) as i32;
+                let json_log = serde_json::json!({
+                    "success_count": processed_rows,
+                    "error_count": error_count,
+                    "error_file_path": if has_error_file { Some(error_file_path) } else { None },
+                });
+                Some(json_log.to_string())
+            } else {
+                None
+            }
+        } else {
+            let mut log_opt = if errors.is_empty() {
+                None
+            } else {
+                Some(errors.join("\n"))
+            };
+
+            if skipped_rows > 0 {
+                let skip_msg = format!("Đã bỏ qua {skipped_rows} dòng");
+                log_opt = Some(match log_opt {
+                    Some(log) => format!("{log}\n{skip_msg}"),
+                    None => skip_msg,
+                });
+            }
+
+            if has_error_file {
                 let download_link = format!(
                     "/api/v1/workspaces/{}/attendance/import-jobs/{}/error-file",
                     self.job.workspace_id, self.job.id
                 );
                 let link_msg = format!("DL_LINK:{download_link}");
-                final_log = Some(match final_log {
+                log_opt = Some(match log_opt {
                     Some(log) => format!("{link_msg}\n{log}"),
                     None => link_msg,
                 });
             }
-        }
+            log_opt
+        };
 
         if self.is_chunk {
             // Push errors to Redis if any

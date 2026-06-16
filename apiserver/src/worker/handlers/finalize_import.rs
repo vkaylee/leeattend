@@ -37,16 +37,57 @@ impl FinalizeImportHandler {
 
         let errors_map = cache.hgetall(&errors_key).await.unwrap_or_default();
 
-        let mut combined_errors = Vec::new();
-        // Extract values from HashMap (ignoring the chunk field keys)
-        for val in errors_map.values() {
-            combined_errors.push(val.clone());
-        }
-
-        let final_log = if combined_errors.is_empty() {
-            None
+        // Load import job info & cleanup uploaded file
+        let import_job = if let Ok(Some(job_info)) = import_repo
+            .get_job_by_id(
+                &crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
+                payload.import_job_id,
+            )
+            .await
+        {
+            if let Some(file_path) = &job_info.file_path {
+                let _ = tokio::fs::remove_file(file_path).await;
+            }
+            Some(job_info)
         } else {
-            Some(combined_errors.join("\n\n"))
+            None
+        };
+
+        let is_leave_import = import_job
+            .as_ref()
+            .is_some_and(|j| j.target_type == crate::models::enums::ImportTargetType::LeaveImport);
+
+        let final_log = if is_leave_import {
+            let total_rows = import_job.as_ref().map_or(0, |j| j.total_rows);
+            if !errors_map.is_empty() || processed_rows < total_rows {
+                let error_file_path = format!(
+                    "{}/imports/error_{}.xlsx",
+                    crate::utils::get_storage_dir(),
+                    payload.import_job_id
+                );
+                let has_error_file = std::path::Path::new(&error_file_path).exists();
+                let error_count = (total_rows - processed_rows).max(0);
+
+                let json_log = serde_json::json!({
+                    "success_count": processed_rows,
+                    "error_count": error_count,
+                    "error_file_path": if has_error_file { Some(error_file_path) } else { None },
+                });
+                Some(json_log.to_string())
+            } else {
+                None
+            }
+        } else {
+            let mut combined_errors = Vec::new();
+            // Extract values from HashMap (ignoring the chunk field keys)
+            for val in errors_map.values() {
+                combined_errors.push(val.clone());
+            }
+            if combined_errors.is_empty() {
+                None
+            } else {
+                Some(combined_errors.join("\n\n"))
+            }
         };
 
         let status = if final_log.is_none() || processed_rows > 0 {
@@ -74,19 +115,6 @@ impl FinalizeImportHandler {
         let _ = cache
             .delete(&format!("import_total_chunks:{}", payload.import_job_id))
             .await;
-
-        // Cleanup file
-        if let Ok(Some(import_job)) = import_repo
-            .get_job_by_id(
-                &crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
-                payload.import_job_id,
-            )
-            .await
-        {
-            if let Some(file_path) = &import_job.file_path {
-                let _ = tokio::fs::remove_file(file_path).await;
-            }
-        }
 
         tracing::info!(
             import_job_id = %payload.import_job_id,

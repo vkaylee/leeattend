@@ -783,11 +783,29 @@ pub async fn get_latest_leave_import(
 
     let repo = state.attendance().import_repo();
 
-    match repo
+    let mut job_opt = repo
         .get_latest_job(&ctx.auth_token, Some(ImportTargetType::LeaveImport))
         .await
-    {
-        Ok(Some(job)) => Ok(Json(serde_json::json!({
+        .map_err(|e| AppError::Internal(format!("Failed to get latest import job: {e}")))?;
+
+    if let Some(ref mut job) = job_opt {
+        if job.status == crate::models::ImportJobStatus::Processing {
+            if let Some(redis) = state.infra().redis() {
+                let mut conn = redis.conn();
+                let key = format!("import_progress:{}", job.id);
+                if let Ok(Some(count)) = redis::cmd("GET")
+                    .arg(&key)
+                    .query_async::<Option<i32>>(&mut conn)
+                    .await
+                {
+                    job.processed_rows = count;
+                }
+            }
+        }
+    }
+
+    match job_opt {
+        Some(job) => Ok(Json(serde_json::json!({
             "id": job.id.to_string(),
             "status": serde_json::to_value(job.status)
                 .ok()
@@ -799,10 +817,7 @@ pub async fn get_latest_leave_import(
             "created_at": job.created_at.to_rfc3339(),
             "updated_at": job.updated_at.to_rfc3339(),
         }))),
-        Ok(None) => Ok(Json(serde_json::json!(null))),
-        Err(e) => Err(AppError::Internal(format!(
-            "Failed to get latest import job: {e}"
-        ))),
+        None => Ok(Json(serde_json::json!(null))),
     }
 }
 
