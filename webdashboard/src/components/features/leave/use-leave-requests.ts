@@ -41,8 +41,15 @@ export function useLeaveRequests(wsId: string | null) {
   });
 
   const [importJob, setImportJob] = useState<LeaveImportJob | null>(null);
-  const [importBannerDismissed, setImportBannerDismissed] = useState(false);
+  const [importBannerDismissed, setImportBannerDismissedState] = useState(false);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const setImportBannerDismissed = useCallback((dismissed: boolean) => {
+    if (dismissed && importJob && wsId) {
+      localStorage.setItem(`dismissed_leave_import_job_${wsId}`, importJob.id);
+    }
+    setImportBannerDismissedState(dismissed);
+  }, [importJob, wsId]);
 
   useEffect(() => {
     if (!wsId) return;
@@ -52,7 +59,8 @@ export function useLeaveRequests(wsId: string | null) {
         const now = new Date();
         if (now.getTime() - created.getTime() < 24 * 60 * 60 * 1000) {
           setImportJob(job);
-          setImportBannerDismissed(false);
+          const dismissedId = localStorage.getItem(`dismissed_leave_import_job_${wsId}`);
+          setImportBannerDismissedState(dismissedId === job.id);
         }
       }
     }).catch(() => { /* empty */ });
@@ -93,7 +101,7 @@ export function useLeaveRequests(wsId: string | null) {
       void fetchLatestLeaveImport(wsId).then((job) => {
         if (job) {
           setImportJob(job);
-          setImportBannerDismissed(false);
+          setImportBannerDismissedState(false);
         }
       }).catch(() => { /* empty */ });
       void queryClient.invalidateQueries({ queryKey: ["leave-requests"] });

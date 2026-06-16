@@ -1,0 +1,144 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { renderHook, act, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import React from "react";
+
+import { useLeaveRequests } from "../use-leave-requests";
+import * as api from "@/lib/api";
+
+// Mock imports
+vi.mock("@/lib/api", () => ({
+  fetchWorkspaceLeaveRequests: vi.fn().mockResolvedValue([]),
+  approveLeaveRequest: vi.fn().mockResolvedValue({}),
+  fetchLeaveTypes: vi.fn().mockResolvedValue([]),
+  fetchLatestLeaveImport: vi.fn(),
+  getCurrentWorkspaceId: vi.fn().mockReturnValue("ws-test"),
+}));
+
+vi.mock("@/hooks/use-employees", () => ({
+  useAllEmployees: () => ({ employees: [] }),
+}));
+
+vi.mock("@/components/ui/toast", () => ({
+  useToast: () => ({ success: vi.fn(), error: vi.fn() }),
+}));
+
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({ t: (k: string) => k }),
+}));
+
+// Mock localStorage
+const localStorageMock = (() => {
+  let store: Record<string, string> = {};
+  return {
+    getItem: vi.fn((key: string) => store[key] || null),
+    setItem: vi.fn((key: string, value: string) => {
+      store[key] = value.toString();
+    }),
+    removeItem: vi.fn((key: string) => {
+      delete store[key];
+    }),
+    clear: vi.fn(() => {
+      store = {};
+    }),
+  };
+})();
+Object.defineProperty(window, "localStorage", { value: localStorageMock });
+
+const createWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  const Wrapper = ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+  Wrapper.displayName = "QueryClientWrapper";
+  return Wrapper;
+};
+
+describe("useLeaveRequests - Persistent Banner Dismiss", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorageMock.clear();
+  });
+
+  it("should show import banner if job is not dismissed in localStorage", async () => {
+    const mockJob = {
+      id: "job-123",
+      status: "completed",
+      total_rows: 5,
+      processed_rows: 5,
+      error_log: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    (api.fetchLatestLeaveImport as any).mockResolvedValue(mockJob);
+
+    const { result } = renderHook(() => useLeaveRequests("ws-test"), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.importJob).toEqual(mockJob);
+    });
+
+    expect(result.current.importBannerDismissed).toBe(false);
+  });
+
+  it("should hide import banner if job is already dismissed in localStorage", async () => {
+    const mockJob = {
+      id: "job-123",
+      status: "completed",
+      total_rows: 5,
+      processed_rows: 5,
+      error_log: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    (api.fetchLatestLeaveImport as any).mockResolvedValue(mockJob);
+    localStorageMock.setItem("dismissed_leave_import_job_ws-test", "job-123");
+
+    const { result } = renderHook(() => useLeaveRequests("ws-test"), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.importJob).toEqual(mockJob);
+    });
+
+    expect(result.current.importBannerDismissed).toBe(true);
+  });
+
+  it("should persistently dismiss banner when calling setImportBannerDismissed(true)", async () => {
+    const mockJob = {
+      id: "job-123",
+      status: "completed",
+      total_rows: 5,
+      processed_rows: 5,
+      error_log: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    (api.fetchLatestLeaveImport as any).mockResolvedValue(mockJob);
+
+    const { result } = renderHook(() => useLeaveRequests("ws-test"), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.importJob).toEqual(mockJob);
+    });
+
+    expect(result.current.importBannerDismissed).toBe(false);
+
+    act(() => {
+      result.current.setImportBannerDismissed(true);
+    });
+
+    expect(result.current.importBannerDismissed).toBe(true);
+    expect(localStorageMock.setItem).toHaveBeenCalledWith(
+      "dismissed_leave_import_job_ws-test",
+      "job-123"
+    );
+  });
+});
