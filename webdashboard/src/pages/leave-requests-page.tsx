@@ -7,6 +7,7 @@ import LeaveImportDialog from "@/components/features/leave/leave-import-dialog";
 import { LeaveRequestRow } from "@/components/features/leave/leave-request-row";
 import { useLeaveRequests, TabType } from "@/components/features/leave/use-leave-requests";
 import ApprovalListLayout from "@/components/templates/approval-list-layout";
+import { ResilientWidget } from "@/components/common/resilient-widget";
 import Button from "@/components/ui/button";
 import { PageTabs, PageTab } from "@/components/ui/page-tabs";
 import { Typography } from "@/components/ui/typography";
@@ -119,52 +120,56 @@ export default function LeaveRequestsPage() {
       />
 
       {activeTab === "behalf_assignments" && canManageBehalf ? (
-        <BehalfAssignmentsTab assignmentType="leave" wsId={wsId} />
+        <ResilientWidget>
+          <BehalfAssignmentsTab assignmentType="leave" wsId={wsId} />
+        </ResilientWidget>
       ) : (
-        <ApprovalListLayout
-          activeTab={activeTab}
-          banner={<LeaveImportBanner importBannerDismissed={importBannerDismissed} importJob={importJob} setImportBannerDismissed={setImportBannerDismissed} t={t} wsId={wsId} />}
-          emptyMessage={t("leave_requests.messages.no_requests")}
-          hideHeader
-          hideTabs
-          isEmpty={requests.length === 0}
-          isLoading={requestsLoading}
-          modals={
-            <>
-              <CreateLeaveRequestModal isOpen={isModalOpen} leaveTypes={leaveTypes} onClose={() => { setIsModalOpen(false); }} t={t} wsId={wsId} />
-              <LeaveImportDialog
-                isOpen={isImportModalOpen}
-                onClose={() => { setIsImportModalOpen(false); }}
-                onImportComplete={handleImportComplete}
+        <ResilientWidget>
+          <ApprovalListLayout
+            activeTab={activeTab}
+            banner={<LeaveImportBanner importBannerDismissed={importBannerDismissed} importJob={importJob} setImportBannerDismissed={setImportBannerDismissed} t={t} wsId={wsId} />}
+            emptyMessage={t("leave_requests.messages.no_requests")}
+            hideHeader
+            hideTabs
+            isEmpty={requests.length === 0}
+            isLoading={requestsLoading}
+            modals={
+              <>
+                <CreateLeaveRequestModal isOpen={isModalOpen} leaveTypes={leaveTypes} onClose={() => { setIsModalOpen(false); }} t={t} wsId={wsId} />
+                <LeaveImportDialog
+                  isOpen={isImportModalOpen}
+                  onClose={() => { setIsImportModalOpen(false); }}
+                  onImportComplete={handleImportComplete}
+                />
+                <PDFPreviewModal
+                  isOpen={isPreviewOpen}
+                  onClose={() => setIsPreviewOpen(false)}
+                  fileUrl={previewFileUrl}
+                  title={previewTitle}
+                />
+              </>
+            }
+            onTabChange={(id) => { setActiveTab(id as TabType); }}
+            tableHeaders={tableHeaders}
+          >
+            {requests.map((request) => (
+              <LeaveRequestRow
+                emp={employeeMap.get(request.employment_id)}
+                formatDate={formatDate}
+                key={request.id}
+                leaveTypes={leaveTypes}
+                onApprove={(id, status) => { approveMutation.mutate({ id, status: status as "approved" | "rejected" | "pre_approved" | "pending" | "cancelled" }); }}
+                request={request}
+                t={t}
+                onPreviewAttachment={(url, title) => {
+                  setPreviewFileUrl(url);
+                  setPreviewTitle(title);
+                  setIsPreviewOpen(true);
+                }}
               />
-              <PDFPreviewModal
-                isOpen={isPreviewOpen}
-                onClose={() => setIsPreviewOpen(false)}
-                fileUrl={previewFileUrl}
-                title={previewTitle}
-              />
-            </>
-          }
-          onTabChange={(id) => { setActiveTab(id as TabType); }}
-          tableHeaders={tableHeaders}
-        >
-          {requests.map((request) => (
-            <LeaveRequestRow
-              emp={employeeMap.get(request.employment_id)}
-              formatDate={formatDate}
-              key={request.id}
-              leaveTypes={leaveTypes}
-              onApprove={(id, status) => { approveMutation.mutate({ id, status: status as "approved" | "rejected" | "pre_approved" | "pending" | "cancelled" }); }}
-              request={request}
-              t={t}
-              onPreviewAttachment={(url, title) => {
-                setPreviewFileUrl(url);
-                setPreviewTitle(title);
-                setIsPreviewOpen(true);
-              }}
-            />
-          ))}
-        </ApprovalListLayout>
+            ))}
+          </ApprovalListLayout>
+        </ResilientWidget>
       )}
     </div>
   );

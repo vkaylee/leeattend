@@ -3,6 +3,7 @@ import React, { useEffect } from "react";
 import { createPortal } from "react-dom";
 
 import { Typography } from "@/components/ui/typography";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { cn } from "@/lib/utils";
 
 interface ModalProps {
@@ -40,6 +41,8 @@ export default function Modal({
   testId,
   title,
 }: ModalProps) {
+  const containerRef = useFocusTrap(isOpen);
+
   // Prevent scrolling when modal is open
   useEffect(() => {
     if (isOpen) {
@@ -65,6 +68,7 @@ export default function Modal({
           className
         )}
         onClick={(e) => { e.stopPropagation(); }} 
+        ref={containerRef}
         role="dialog"
         style={{ maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
       >

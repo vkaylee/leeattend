@@ -7,6 +7,7 @@ import { DashboardHeader } from "@/components/features/dashboard/dashboard-heade
 import { DashboardHrTab } from "@/components/features/dashboard/dashboard-hr-tab";
 import { DashboardSystemTab } from "@/components/features/dashboard/dashboard-system-tab";
 import PendingTasksWidget from "@/components/features/dashboard/pending-tasks-widget";
+import { ResilientWidget } from "@/components/common/resilient-widget";
 import { useAgentsStatus } from "@/hooks/use-agents";
 import { useCurrency } from "@/hooks/use-currency";
 import { useDashboardStats } from "@/hooks/use-dashboard";
@@ -65,23 +66,29 @@ export default function DashboardPage() {
         setShowSystemTab={setShowSystemTab} showSystemTab={showSystemTab} t={t}
       />
 
-      <PendingTasksWidget />
+      <ResilientWidget>
+        <PendingTasksWidget />
+      </ResilientWidget>
 
       <div className="animate-in slide-in-from-bottom-4 duration-700">
         {!showSystemTab ? (
-          <DashboardHrTab
-            chartElements={chartElements} collapsedSections={collapsedSections}
-            donutData={donutData} formatCurrency={formatCurrency}
-            hasDonutData={hasDonutData} hrStats={hrStats}
-            isLoading={isLoading} t={t}
-            toggleSection={toggleSection} visibleWidgets={visibleWidgets}
-          />
+          <ResilientWidget>
+            <DashboardHrTab
+              chartElements={chartElements} collapsedSections={collapsedSections}
+              donutData={donutData} formatCurrency={formatCurrency}
+              hasDonutData={hasDonutData} hrStats={hrStats}
+              isLoading={isLoading} t={t}
+              toggleSection={toggleSection} visibleWidgets={visibleWidgets}
+            />
+          </ResilientWidget>
         ) : (
-          <DashboardSystemTab
-            activeDevices={activeDevices} agents={agents}
-            devices={devices} formatTime={formatTime}
-            isLoading={isLoading} onlineAgents={onlineAgents} t={t}
-          />
+          <ResilientWidget>
+            <DashboardSystemTab
+              activeDevices={activeDevices} agents={agents}
+              devices={devices} formatTime={formatTime}
+              isLoading={isLoading} onlineAgents={onlineAgents} t={t}
+            />
+          </ResilientWidget>
         )}
       </div>
 

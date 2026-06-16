@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { Typography } from "@/components/ui/typography";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { cn } from "@/lib/utils";
 
 interface SheetProps {
@@ -108,6 +109,7 @@ export default function Sheet({
   hideHeader = false,
 }: SheetProps) {
   const isVisible = useSheetState(isOpen, onClose);
+  const containerRef = useFocusTrap(isOpen);
 
   if (!isVisible && !isOpen) return null;
 
@@ -130,7 +132,7 @@ export default function Sheet({
  
  
       )}>
-        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- Custom interactive element (click-away/backdrop/dropzone); keyboard interaction not applicable */}
+        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/no-noninteractive-element-interactions -- Custom interactive element (click-away/backdrop/dropzone); keyboard interaction not applicable */}
         <div
             className={cn(
               "pointer-events-auto w-screen max-w-md transform transition duration-500 ease-in-out bg-white dark:bg-slate-900 shadow-premium-2xl flex flex-col h-full",
@@ -139,6 +141,9 @@ export default function Sheet({
             )}
           data-testid="sheet-panel"
           onClick={(e) => { e.stopPropagation(); }}
+          ref={containerRef}
+          role="dialog"
+          aria-modal="true"
         >
           {/* Header */}
           {!hideHeader && <SheetHeader headerExtra={headerExtra} onClose={onClose} subtitle={subtitle} title={title} />}
