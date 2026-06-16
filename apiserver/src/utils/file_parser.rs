@@ -22,6 +22,14 @@ pub fn cell_to_string(cell: Option<&Data>) -> String {
     }
 }
 
+fn is_zip_file(bytes: &[u8]) -> bool {
+    bytes.starts_with(&[0x50, 0x4B, 0x03, 0x04])
+}
+
+fn is_xls_file(bytes: &[u8]) -> bool {
+    bytes.starts_with(&[0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1])
+}
+
 /// Extract rows from XLSX, XLS, or CSV.
 /// Returns a Vec of (line_number, columns)
 /// - line_number is 1-indexed, but usually we start at line 2 because of header skip.
@@ -30,7 +38,9 @@ pub fn extract_file_rows(file_bytes: &[u8]) -> Result<Vec<(usize, Vec<String>)>,
     let mut rows = Vec::new();
 
     // 1. Try XLSX
-    if let Ok(mut reader) = Xlsx::new(Cursor::new(file_bytes)) {
+    if is_zip_file(file_bytes) {
+        let mut reader = Xlsx::new(Cursor::new(file_bytes))
+            .map_err(|e| format!("Không thể mở file Excel XLSX: {e}"))?;
         let sheet_names = reader.sheet_names();
         for sheet in sheet_names {
             if let Ok(range) = reader.worksheet_range(&sheet) {
@@ -48,11 +58,13 @@ pub fn extract_file_rows(file_bytes: &[u8]) -> Result<Vec<(usize, Vec<String>)>,
                 }
             }
         }
-        return Err("File is empty or contains only headers.".to_string());
+        return Err("File XLSX trống hoặc chỉ chứa dòng tiêu đề.".to_string());
     }
 
     // 2. Try XLS
-    if let Ok(mut reader) = Xls::new(Cursor::new(file_bytes)) {
+    if is_xls_file(file_bytes) {
+        let mut reader = Xls::new(Cursor::new(file_bytes))
+            .map_err(|e| format!("Không thể mở file Excel XLS: {e}"))?;
         let sheet_names = reader.sheet_names();
         for sheet in sheet_names {
             if let Ok(range) = reader.worksheet_range(&sheet) {
@@ -70,7 +82,7 @@ pub fn extract_file_rows(file_bytes: &[u8]) -> Result<Vec<(usize, Vec<String>)>,
                 }
             }
         }
-        return Err("File is empty or contains only headers.".to_string());
+        return Err("File XLS trống hoặc chỉ chứa dòng tiêu đề.".to_string());
     }
 
     // 3. Try CSV
@@ -250,7 +262,9 @@ pub fn extract_mapped_rows(
     };
 
     // 1. Try XLSX
-    if let Ok(mut reader) = Xlsx::new(Cursor::new(file_bytes)) {
+    if is_zip_file(file_bytes) {
+        let mut reader = Xlsx::new(Cursor::new(file_bytes))
+            .map_err(|e| format!("Không thể mở file Excel XLSX: {e}"))?;
         if let Some(Ok(range)) = reader.worksheet_range_at(0) {
             let iter = range.rows().enumerate().map(|(idx, r)| {
                 let cols: Vec<String> = r.iter().map(|c| cell_to_string(Some(c))).collect();
@@ -258,11 +272,13 @@ pub fn extract_mapped_rows(
             });
             return process_sheet(Box::new(iter));
         }
-        return Err("Không thể đọc được sheet đầu tiên của file Excel.".to_string());
+        return Err("Không thể đọc được sheet đầu tiên của file Excel XLSX.".to_string());
     }
 
     // 2. Try XLS
-    if let Ok(mut reader) = Xls::new(Cursor::new(file_bytes)) {
+    if is_xls_file(file_bytes) {
+        let mut reader = Xls::new(Cursor::new(file_bytes))
+            .map_err(|e| format!("Không thể mở file Excel XLS: {e}"))?;
         if let Some(Ok(range)) = reader.worksheet_range_at(0) {
             let iter = range.rows().enumerate().map(|(idx, r)| {
                 let cols: Vec<String> = r.iter().map(|c| cell_to_string(Some(c))).collect();
@@ -270,7 +286,7 @@ pub fn extract_mapped_rows(
             });
             return process_sheet(Box::new(iter));
         }
-        return Err("Không thể đọc được sheet đầu tiên của file Excel.".to_string());
+        return Err("Không thể đọc được sheet đầu tiên của file Excel XLS.".to_string());
     }
 
     // 3. Try CSV
@@ -495,5 +511,20 @@ mod tests {
         assert_eq!(result[0].1.get("employee_code").unwrap(), "E001");
         assert_eq!(result[0].1.get("department_name").unwrap(), "IT");
         assert_eq!(result[0].1.get("full_name").unwrap(), "Nguyen Van A");
+    }
+
+    #[test]
+    fn test_corrupted_xlsx_returns_xlsx_error() {
+        // Starts with ZIP magic bytes but is invalid ZIP data
+        let corrupted_zip = vec![0x50, 0x4B, 0x03, 0x04, 0x01, 0x02, 0x03];
+        let expected = ["employee_code", "full_name"];
+        let result = extract_mapped_rows(&corrupted_zip, &expected);
+
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err();
+        assert!(
+            err_msg.contains("Không thể mở file Excel XLSX"),
+            "Error msg was: {err_msg}"
+        );
     }
 }
