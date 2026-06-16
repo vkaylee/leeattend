@@ -1005,6 +1005,16 @@ mod tests {
         ) -> Result<Vec<LeaveRequest>, AppError> {
             unimplemented!()
         }
+        async fn get_paginated_workspace_leave_requests(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _status: Option<LeaveStatus>,
+            _employee_id: Option<Uuid>,
+            _limit: i64,
+            _offset: i64,
+        ) -> Result<(Vec<LeaveRequest>, i64), AppError> {
+            unimplemented!()
+        }
         async fn get_approved_leave_breakdown(
             &self,
             _e: Uuid,
@@ -2295,6 +2305,16 @@ mod tests {
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _s: Option<LeaveStatus>,
         ) -> Result<Vec<LeaveRequest>, AppError> {
+            unimplemented!()
+        }
+        async fn get_paginated_workspace_leave_requests(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _status: Option<LeaveStatus>,
+            _employee_id: Option<Uuid>,
+            _limit: i64,
+            _offset: i64,
+        ) -> Result<(Vec<LeaveRequest>, i64), AppError> {
             unimplemented!()
         }
         async fn get_approved_leave_breakdown(

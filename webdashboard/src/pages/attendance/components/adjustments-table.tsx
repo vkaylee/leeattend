@@ -1,6 +1,7 @@
 import React from "react";
 
 import { AttendanceAdjustmentRequest } from "@/lib/api/types";
+import InfiniteScrollSentinel from "@/components/common/infinite-scroll-sentinel";
 
 import { AdjustmentsTableEmpty } from "./adjustments-table/empty-state";
 import { AdjustmentsTableHeader } from "./adjustments-table/header";
@@ -18,6 +19,9 @@ interface AdjustmentsTableProps {
   onApprove: (id: string, status: string) => void;
   requests: AttendanceAdjustmentRequest[];
   onPreviewAttachment?: (fileUrl: string, title: string) => void;
+  hasNextPage?: boolean;
+  isFetchingNextPage?: boolean;
+  loadMoreRef?: React.Ref<HTMLTableRowElement>;
 }
 
 export function AdjustmentsTable(props: AdjustmentsTableProps) {
@@ -32,6 +36,9 @@ export function AdjustmentsTable(props: AdjustmentsTableProps) {
     requests,
     canApprove,
     onPreviewAttachment,
+    hasNextPage,
+    isFetchingNextPage,
+    loadMoreRef,
   } = props;
 
   return (
@@ -45,20 +52,29 @@ export function AdjustmentsTable(props: AdjustmentsTableProps) {
             ) : requests.length === 0 ? (
               <AdjustmentsTableEmpty colSpan={5} />
             ) : (
-              requests.map((request) => (
-                <AdjustmentsTableRow
-                  activeTab={activeTab}
-                  canApprove={canApprove}
-                  formatDate={formatDate}
-                  formatTime={formatTime}
-                  getEmployeeID={getEmployeeID}
-                  getEmployeeName={getEmployeeName}
-                  key={request.id}
-                  onApprove={onApprove}
-                  request={request}
-                  onPreviewAttachment={onPreviewAttachment}
-                />
-              ))
+              <>
+                {requests.map((request) => (
+                  <AdjustmentsTableRow
+                    activeTab={activeTab}
+                    canApprove={canApprove}
+                    formatDate={formatDate}
+                    formatTime={formatTime}
+                    getEmployeeID={getEmployeeID}
+                    getEmployeeName={getEmployeeName}
+                    key={request.id}
+                    onApprove={onApprove}
+                    request={request}
+                    onPreviewAttachment={onPreviewAttachment}
+                  />
+                ))}
+                {hasNextPage && loadMoreRef && (
+                  <InfiniteScrollSentinel
+                    colSpan={5}
+                    isFetchingNextPage={!!isFetchingNextPage}
+                    sentinelRef={loadMoreRef}
+                  />
+                )}
+              </>
             )}
           </tbody>
         </table>

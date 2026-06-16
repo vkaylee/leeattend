@@ -689,7 +689,8 @@
       "request": "Yêu cầu Đổi ca"
     },
     "adjustment": {
-      "attachment": "Minh chứng (chỉ PDF)"
+      "attachment": "Minh chứng (chỉ PDF)",
+      "punch_time": "Thời gian quẹt thẻ"
     }
   }
 }

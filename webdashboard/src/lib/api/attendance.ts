@@ -84,33 +84,41 @@ export async function submitAttendanceAdjustment(
   data: {
     employment_id: string;
     time_entry_id?: string;
-    requested_punch_in_time: string;
-    requested_punch_out_time?: string;
-    is_break_overtime?: boolean;
+    requested_punch_time: string;
     reason?: string;
     attachment_file_ids?: string[];
   }
 ): Promise<AttendanceAdjustmentRequest> {
   const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/attendance/adjustments", {
     params: { path: { ws_id: wsId } },
-    body: { is_break_overtime: false, ...data } as any
+    body: data as any
   });
   if (!resData) throw new Error("No response data");
-  return resData;
+  return resData as unknown as AttendanceAdjustmentRequest;
 }
 
 export async function fetchWorkspaceAttendanceAdjustments(
   wsId: string,
-  status?: string
-): Promise<AttendanceAdjustmentRequest[]> {
+  params?: {
+    status?: string;
+    employee_id?: string;
+    page?: number;
+    limit?: number;
+  }
+): Promise<PaginatedResponse<AttendanceAdjustmentRequest>> {
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/adjustments", {
     params: {
       path: { ws_id: wsId },
-      query: { status: status as unknown as never }
+      query: {
+        status: params?.status,
+        employee_id: params?.employee_id === "all" ? undefined : params?.employee_id,
+        page: params?.page,
+        limit: params?.limit,
+      } as any,
     }
   });
   if (!resData) throw new Error("No response data");
-  return resData;
+  return resData as unknown as PaginatedResponse<AttendanceAdjustmentRequest>;
 }
 
 export async function fetchMyAttendanceAdjustments(
@@ -120,7 +128,7 @@ export async function fetchMyAttendanceAdjustments(
     params: { path: { id: employeeId } }
   });
   if (!resData) throw new Error("No response data");
-  return resData;
+  return resData as unknown as AttendanceAdjustmentRequest[];
 }
 
 export async function approveAttendanceAdjustment(wsId: string, requestId: string, data: { status: "pending" | "approved" | "rejected" }): Promise<void> {
@@ -719,13 +727,19 @@ export async function adminConfirmAttendance(
 
     const adjustment = await submitAttendanceAdjustment(wsId, {
       employment_id: row.employment_id,
-      requested_punch_in_time: toDatetime(row.date, punchIn),
-      requested_punch_out_time: punchOut
-        ? toDatetime(row.date, punchOut)
-        : undefined,
+      requested_punch_time: toDatetime(row.date, punchIn),
       reason: reason ?? "Admin confirmation",
     });
     requestId = adjustment.id;
+
+    if (punchOut) {
+      const adjustmentOut = await submitAttendanceAdjustment(wsId, {
+        employment_id: row.employment_id,
+        requested_punch_time: toDatetime(row.date, punchOut),
+        reason: reason ?? "Admin confirmation",
+      });
+      await approveAttendanceAdjustment(wsId, adjustmentOut.id, { status: "approved" });
+    }
   }
 
   await approveAttendanceAdjustment(wsId, requestId, { status: "approved" });

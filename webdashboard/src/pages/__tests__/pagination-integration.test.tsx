@@ -120,7 +120,7 @@ describe("Pagination Integration Tests", () => {
  
       vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue([]);
  
-      vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([]);
+      vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
 
       renderWithProviders(<PayrollPage />);
 
@@ -136,7 +136,7 @@ describe("Pagination Integration Tests", () => {
  
       vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue([]);
  
-      vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([]);
+      vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
 
       renderWithProviders(<PayrollPage />);
 
@@ -152,7 +152,7 @@ describe("Pagination Integration Tests", () => {
  
       vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue([]);
  
-      vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([]);
+      vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
 
       // Should not crash when rendering with undefined paginated response
       expect(() => {
@@ -192,7 +192,7 @@ describe("Pagination Integration Tests", () => {
  
       vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue([]);
  
-      vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([]);
+      vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
 
       // This should NOT throw "TypeError: employees.forEach is not a function"
       expect(() => {
@@ -224,7 +224,7 @@ describe("Pagination Integration Tests", () => {
  
       vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue([]);
  
-      vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([]);
+      vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
 
       renderWithProviders(<PayrollPage />);
 
@@ -312,7 +312,7 @@ describe("Pagination Integration Tests", () => {
  
       vi.mocked(api.fetchEmployees).mockResolvedValue(mockEmployees);
  
-      vi.mocked(api.fetchWorkspaceLeaveRequests).mockResolvedValue([]);
+      vi.mocked(api.fetchWorkspaceLeaveRequests).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
  
       vi.mocked(api.fetchLeavePolicies).mockResolvedValue([]);
 
@@ -328,7 +328,7 @@ describe("Pagination Integration Tests", () => {
         createPaginatedResponse([], { total: 0 })
       );
  
-      vi.mocked(api.fetchWorkspaceLeaveRequests).mockResolvedValue([]);
+      vi.mocked(api.fetchWorkspaceLeaveRequests).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
  
       vi.mocked(api.fetchLeavePolicies).mockResolvedValue([]);
 
@@ -354,7 +354,7 @@ describe("Pagination Integration Tests", () => {
  
       vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue([]);
  
-      vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([]);
+      vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
 
       // Component should handle gracefully with optional chaining and nullish coalescing
       expect(() => {
@@ -376,7 +376,7 @@ describe("Pagination Integration Tests", () => {
  
       vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue([]);
  
-      vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([]);
+      vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
 
       expect(() => {
         renderWithProviders(<PayrollPage />);
@@ -406,7 +406,7 @@ describe("Pagination Integration Tests", () => {
  
       vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue([]);
  
-      vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([]);
+      vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
 
       // Should handle large response without performance issues
       expect(() => {

@@ -4441,14 +4441,11 @@ export interface components {
             employment_id: string;
             /** Format: uuid */
             id: string;
-            is_break_overtime: boolean;
             reason?: string | null;
             /** Format: uuid */
             requested_by_user_id?: string | null;
             /** Format: date-time */
-            requested_punch_in_time: string;
-            /** Format: date-time */
-            requested_punch_out_time?: string | null;
+            requested_punch_time: string;
             status: components["schemas"]["AdjustmentStatus"];
             /** Format: uuid */
             time_entry_id?: string | null;
@@ -4740,12 +4737,9 @@ export interface components {
             attachment_file_ids?: string[] | null;
             /** Format: uuid */
             employment_id: string;
-            is_break_overtime: boolean;
             reason?: string | null;
             /** Format: date-time */
-            requested_punch_in_time: string;
-            /** Format: date-time */
-            requested_punch_out_time?: string | null;
+            requested_punch_time: string;
             /** Format: uuid */
             time_entry_id?: string | null;
         };
@@ -6385,6 +6379,14 @@ export interface components {
             page: number;
             total: number;
         };
+        PaginatedAttendanceAdjustments: {
+            data: components["schemas"]["AttendanceAdjustmentRequest"][];
+            /** Format: int64 */
+            limit: number;
+            /** Format: int64 */
+            page: number;
+            total: number;
+        };
         PaginatedAuditLogs: {
             data: components["schemas"]["AuditLog"][];
             /** Format: int64 */
@@ -6420,6 +6422,14 @@ export interface components {
         };
         PaginatedEmployers: {
             data: components["schemas"]["Employer"][];
+            /** Format: int64 */
+            limit: number;
+            /** Format: int64 */
+            page: number;
+            total: number;
+        };
+        PaginatedLeaveRequests: {
+            data: components["schemas"]["LeaveRequest"][];
             /** Format: int64 */
             limit: number;
             /** Format: int64 */
@@ -9968,8 +9978,10 @@ export interface operations {
     get_workspace_attendance_adjustments: {
         parameters: {
             query?: {
-                /** @description Status filter */
-                status?: components["schemas"]["AdjustmentStatus"];
+                status?: null | components["schemas"]["AdjustmentStatus"];
+                employee_id?: string | null;
+                page?: number | null;
+                limit?: number | null;
             };
             header?: never;
             path: {
@@ -9986,7 +9998,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AttendanceAdjustmentRequest"][];
+                    "application/json": components["schemas"]["PaginatedAttendanceAdjustments"];
                 };
             };
         };
@@ -15627,6 +15639,9 @@ export interface operations {
         parameters: {
             query?: {
                 status?: null | components["schemas"]["LeaveStatus"];
+                employee_id?: string | null;
+                page?: number | null;
+                limit?: number | null;
             };
             header?: never;
             path: {
@@ -15643,7 +15658,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["LeaveRequest"][];
+                    "application/json": components["schemas"]["PaginatedLeaveRequests"];
                 };
             };
         };

@@ -202,6 +202,83 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         Ok(entities.into_iter().map(Into::into).collect())
     }
 
+    async fn get_paginated_workspace_leave_requests(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        status: Option<LeaveStatus>,
+        employee_id: Option<Uuid>,
+        limit: i64,
+        offset: i64,
+    ) -> Result<(Vec<LeaveRequest>, i64), AppError> {
+        let workspace_id = auth_token.workspace_id();
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        let mut query = leave_requests::table
+            .inner_join(employments::table)
+            .filter(employments::workspace_id.eq(workspace_id))
+            .into_boxed();
+
+        if let Some(s) = status {
+            if s == LeaveStatus::Approved {
+                query = query.filter(
+                    leave_requests::status
+                        .eq(LeaveStatus::Approved)
+                        .or(leave_requests::status.eq(LeaveStatus::PreApproved)),
+                );
+            } else {
+                query = query.filter(leave_requests::status.eq(s));
+            }
+        }
+
+        if let Some(emp_id) = employee_id {
+            query = query.filter(employments::employee_id.eq(emp_id));
+        }
+
+        let total = query
+            .select(diesel::dsl::count(leave_requests::id))
+            .get_result::<i64>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db count: {e}")))?;
+
+        let mut query = leave_requests::table
+            .inner_join(employments::table)
+            .filter(employments::workspace_id.eq(workspace_id))
+            .into_boxed();
+
+        if let Some(s) = status {
+            if s == LeaveStatus::Approved {
+                query = query.filter(
+                    leave_requests::status
+                        .eq(LeaveStatus::Approved)
+                        .or(leave_requests::status.eq(LeaveStatus::PreApproved)),
+                );
+            } else {
+                query = query.filter(leave_requests::status.eq(s));
+            }
+        }
+
+        if let Some(emp_id) = employee_id {
+            query = query.filter(employments::employee_id.eq(emp_id));
+        }
+
+        let entities = query
+            .order(leave_requests::created_at.desc())
+            .select(LeaveRequestEntity::as_select())
+            .limit(limit)
+            .offset(offset)
+            .load::<LeaveRequestEntity>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db load: {e}")))?;
+
+        Ok((entities.into_iter().map(Into::into).collect(), total))
+    }
+
     async fn get_approved_leave_breakdown(
         &self,
         employee_id: Uuid,

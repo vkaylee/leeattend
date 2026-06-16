@@ -62,14 +62,12 @@ export default function MyClockPage() {
 
     try {
       const tz = workspace?.timezone ?? "UTC";
-      const punchInTime = toUTCISO(data.date, data.punchIn, tz);
-      const punchOutTime = toUTCISO(data.date, data.punchOut, tz);
+      const punchTime = toUTCISO(data.date, data.punchTime, tz);
 
       await submitAttendanceAdjustment(wsId, {
         employment_id: employee.active_employment_id ?? "",
         reason: data.reason,
-        requested_punch_in_time: punchInTime,
-        requested_punch_out_time: punchOutTime,
+        requested_punch_time: punchTime,
         time_entry_id: data.timeEntryId,
       });
       toast.success(t("ess.clock.adjustment_requested"));

@@ -175,7 +175,7 @@ describe("api.ts comprehensive tests", () => {
 
     it("submitAttendanceAdjustment", async () => {
       mockSuccess({});
-      await api.submitAttendanceAdjustment("ws-1", { employment_id: "e1", requested_punch_in_time: "..." });
+      await api.submitAttendanceAdjustment("ws-1", { employment_id: "e1", requested_punch_time: "..." });
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/attendance/adjustments"), expect.objectContaining({ method: "POST" }));
     });
 
@@ -200,7 +200,7 @@ describe("api.ts comprehensive tests", () => {
 
     it("fetchWorkspaceAttendanceAdjustments", async () => {
       mockSuccess([]);
-      await api.fetchWorkspaceAttendanceAdjustments("ws-1", "pending");
+      await api.fetchWorkspaceAttendanceAdjustments("ws-1", { status: "pending" });
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/attendance/adjustments?status=pending"), expect.any(Object));
     });
 
@@ -233,7 +233,7 @@ describe("api.ts comprehensive tests", () => {
 
     it("fetchWorkspaceLeaveRequests", async () => {
       mockSuccess([]);
-      await api.fetchWorkspaceLeaveRequests("ws-1", "pending");
+      await api.fetchWorkspaceLeaveRequests("ws-1", { status: "pending" });
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/leave/requests?status=pending"), expect.any(Object));
     });
 

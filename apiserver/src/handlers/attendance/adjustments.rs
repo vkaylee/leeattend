@@ -191,9 +191,20 @@ pub async fn get_my_attendance_adjustments(
     Ok(Json(requests))
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, utoipa::IntoParams)]
 pub struct AdjustmentStatusQuery {
     pub status: Option<AdjustmentStatus>,
+    pub employee_id: Option<Uuid>,
+    pub page: Option<i64>,
+    pub limit: Option<i64>,
+}
+
+#[derive(serde::Serialize, utoipa::ToSchema)]
+pub struct PaginatedAttendanceAdjustments {
+    pub data: Vec<AttendanceAdjustmentRequest>,
+    pub total: usize,
+    pub page: i64,
+    pub limit: i64,
 }
 
 #[utoipa::path(
@@ -201,10 +212,10 @@ pub struct AdjustmentStatusQuery {
     path = "/v1/workspaces/{ws_id}/attendance/adjustments",
     params(
         ("ws_id" = Uuid, Path, description = "Workspace ID"),
-        ("status" = Option<AdjustmentStatus>, Query, description = "Status filter")
+        AdjustmentStatusQuery
     ),
     responses(
-        (status = 200, description = "Workspace adjustments", body = Vec<AttendanceAdjustmentRequest>)
+        (status = 200, description = "Workspace adjustments", body = PaginatedAttendanceAdjustments)
     ),
     security(
         ("bearer_auth" = [])
@@ -215,16 +226,25 @@ pub async fn get_workspace_attendance_adjustments(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Query(query): Query<AdjustmentStatusQuery>,
-) -> AppResult<Json<Vec<AttendanceAdjustmentRequest>>> {
+) -> AppResult<Json<PaginatedAttendanceAdjustments>> {
     let workspace_id = ctx.workspace_id;
 
-    let requests = state
+    let limit = query.limit.unwrap_or(20).clamp(1, 100);
+    let page = query.page.unwrap_or(1).max(1);
+    let offset = (page - 1) * limit;
+
+    let (requests, total) = state
         .attendance()
         .adjustment_service()
-        .get_workspace_requests(workspace_id, query.status)
+        .get_paginated_workspace_requests(workspace_id, query.status, query.employee_id, limit, offset)
         .await?;
 
-    Ok(Json(requests))
+    Ok(Json(PaginatedAttendanceAdjustments {
+        data: requests,
+        total: total as usize,
+        page,
+        limit,
+    }))
 }
 
 // ── Behalf Assignments for Attendance Adjustments ────────────────────

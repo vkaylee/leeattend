@@ -689,7 +689,8 @@
       "request": "申请换班"
     },
     "adjustment": {
-      "attachment": "附件 (仅限 PDF)"
+      "attachment": "附件 (仅限 PDF)",
+      "punch_time": "打卡时间"
     }
   }
 }

@@ -32,16 +32,26 @@ export async function submitLeaveRequest(
 
 export async function fetchWorkspaceLeaveRequests(
   wsId: string,
-  status?: "pending" | "approved" | "rejected" | "cancelled" | "pre_approved"
-): Promise<LeaveRequest[]> {
+  params?: {
+    status?: "pending" | "approved" | "rejected" | "cancelled" | "pre_approved";
+    employee_id?: string;
+    page?: number;
+    limit?: number;
+  }
+): Promise<PaginatedResponse<LeaveRequest>> {
   const { data: resData } = await client.GET("/workspaces/{ws_id}/leave/requests", {
     params: {
       path: { ws_id: wsId },
-      query: { status }
+      query: {
+        status: params?.status,
+        employee_id: params?.employee_id === "all" ? undefined : params?.employee_id,
+        page: params?.page,
+        limit: params?.limit,
+      } as any,
     },
   });
   if (!resData) throw new Error("No response data");
-  return resData;
+  return resData as unknown as PaginatedResponse<LeaveRequest>;
 }
 
 export async function fetchMyLeaveRequests(

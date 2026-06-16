@@ -35,13 +35,16 @@ export default function AdjustmentDrawer({
   const toast = useToast();
   const { formatDate, formatTime } = useDateTimeFormatter();
 
-  const { data: adjustments = [], isLoading } = useQuery({
+  const { data: paginatedAdjustments, isLoading } = useQuery({
     queryKey: ["adjustments", wsId, "pending"],
-    queryFn: () => fetchWorkspaceAttendanceAdjustments(wsId, "pending"),
+    queryFn: () => fetchWorkspaceAttendanceAdjustments(wsId, { status: "pending" }),
     enabled: isOpen && !!wsId,
   });
 
-  const employeeAdjustments = adjustments.filter(adj => adj.employment_id === employmentId);
+  const employeeAdjustments = React.useMemo(() => {
+    const list = paginatedAdjustments?.data ?? [];
+    return list.filter(adj => adj.employment_id === employmentId);
+  }, [paginatedAdjustments, employmentId]);
 
   const resolveMutation = useMutation({
     mutationFn: (data: { id: string; status: "approved" | "rejected" }) => 
@@ -77,7 +80,7 @@ export default function AdjustmentDrawer({
                   <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 shadow-inner group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors"><Calendar size={14} /></div>
                   <div>
                     <Typography className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] leading-none mb-1" variant="p">Requested Date</Typography>
-                    <Typography className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight" variant="p">{formatDate(adj.requested_punch_in_time)}</Typography>
+                    <Typography className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight" variant="p">{formatDate(adj.requested_punch_time)}</Typography>
                   </div>
                 </div>
                 <span className="bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border border-amber-100 dark:border-amber-800 shadow-sm animate-pulse">Pending</span>
@@ -85,15 +88,8 @@ export default function AdjustmentDrawer({
 
               <div className="flex items-center gap-4 mb-6">
                 <div className="flex-1 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl text-center border border-slate-100 dark:border-slate-800 shadow-inner group-hover:bg-white dark:hover:bg-slate-900 transition-colors">
-                  <Typography className="text-[8px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mb-1.5 opacity-70" variant="p">Punch In</Typography>
-                  <Typography className="text-sm font-bold text-slate-700 dark:text-slate-200 font-mono tracking-tighter" variant="p">{formatTime(adj.requested_punch_in_time)}</Typography>
-                </div>
-                <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center shadow-inner"><ArrowRight className="text-slate-300 dark:text-slate-600" size={14} /></div>
-                <div className="flex-1 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl text-center border border-slate-100 dark:border-slate-800 shadow-inner group-hover:bg-white dark:hover:bg-slate-900 transition-colors">
-                  <Typography className="text-[8px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mb-1.5 opacity-70" variant="p">Punch Out</Typography>
-                  <Typography className="text-sm font-bold text-slate-700 dark:text-slate-200 font-mono tracking-tighter" variant="p">
-                    {adj.requested_punch_out_time ? formatTime(adj.requested_punch_out_time) : "--:--"}
-                  </Typography>
+                  <Typography className="text-[8px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mb-1.5 opacity-70" variant="p">Punch Time</Typography>
+                  <Typography className="text-sm font-bold text-slate-700 dark:text-slate-200 font-mono tracking-tighter" variant="p">{formatTime(adj.requested_punch_time)}</Typography>
                 </div>
               </div>
 

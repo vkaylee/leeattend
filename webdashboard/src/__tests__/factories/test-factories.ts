@@ -77,6 +77,7 @@ export function createMockAttendanceAdjustment(overrides?: Partial<AttendanceAdj
     id: "adj-123",
     employment_id: "employment-123",
     is_break_overtime: false,
+    requested_punch_time: "2023-10-01T09:00:00Z",
     requested_punch_in_time: "2023-10-01T09:00:00Z",
     status: "pending",
     created_at: new Date().toISOString(),

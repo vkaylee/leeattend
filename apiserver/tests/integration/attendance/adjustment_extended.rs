@@ -60,7 +60,7 @@ async fn test_get_workspace_adjustments_empty() {
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     let adjustments = body_json(resp).await;
-    assert!(adjustments.as_array().unwrap().is_empty());
+    assert!(adjustments["data"].as_array().unwrap().is_empty());
 }
 
 #[tokio::test]
@@ -84,7 +84,7 @@ async fn test_get_workspace_adjustments_filtered_by_status() {
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     let adjustments = body_json(resp).await;
-    assert!(adjustments.as_array().unwrap().is_empty());
+    assert!(adjustments["data"].as_array().unwrap().is_empty());
 }
 
 #[tokio::test]

@@ -34,7 +34,7 @@ export default function RawLogsTable({
     });
 
     return (
-        <div className="flex-1 min-h-0 relative">
+        <div className="flex-1 min-h-0 relative overflow-auto">
             <Table>
                 <TableHeader className="bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-sm border-b border-slate-100 dark:border-slate-800 sticky top-0 z-10">
                     <TableRow>

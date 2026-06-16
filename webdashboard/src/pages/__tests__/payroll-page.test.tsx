@@ -70,7 +70,7 @@ describe('PayrollPage', () => {
     } as unknown as ReturnType<typeof useWorkspace>);
     vi.mocked(api.fetchEmployeePayslips).mockResolvedValue([]);
     vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue([]);
-    vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([]);
+    vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
     vi.mocked(api.getCurrentWorkspaceId).mockReturnValue('test-ws-id');
   });
 

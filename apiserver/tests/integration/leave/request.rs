@@ -161,7 +161,7 @@ async fn test_leave_requests_crud() {
         .unwrap();
     let body_str = String::from_utf8(body.to_vec()).unwrap();
     let ws_requests: serde_json::Value = serde_json::from_str(&body_str).unwrap();
-    let items = ws_requests.as_array().unwrap();
+    let items = ws_requests["data"].as_array().unwrap();
     assert!(
         !items.is_empty(),
         "Expected workspace requests to not be empty"

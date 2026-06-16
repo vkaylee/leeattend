@@ -98,7 +98,7 @@ describe("EmployeeDailyDrawer", () => {
             total: 1,
         });
  
-        (api.fetchWorkspaceAttendanceAdjustments as import("vitest").Mock).mockResolvedValue([]);
+        (api.fetchWorkspaceAttendanceAdjustments as import("vitest").Mock).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
  
         (api.reprocessAttendance as import("vitest").Mock).mockResolvedValue(true);
  

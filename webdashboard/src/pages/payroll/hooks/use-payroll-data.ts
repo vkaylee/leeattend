@@ -59,12 +59,14 @@ export function usePayrollData({
     enabled: !!selectedEmployee && isDetailDrawerOpen,
   });
 
-  const { data: allAdjustments = [] } = useQuery({
+  const { data: allAdjustmentsResponse } = useQuery({
     queryKey: ["adjustments", wsId, "pending"],
-    queryFn: () => fetchWorkspaceAttendanceAdjustments(wsId, "pending"),
+    queryFn: () => fetchWorkspaceAttendanceAdjustments(wsId, { status: "pending" }),
     enabled: !!wsId,
     placeholderData: keepPreviousData,
   });
+
+  const allAdjustments = useMemo(() => allAdjustmentsResponse?.data ?? [], [allAdjustmentsResponse]);
 
   const employeeAdjustments = useMemo(() => {
     if (!selectedEmployee) return [];

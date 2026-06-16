@@ -153,15 +153,13 @@ diesel::table! {
     attendance_adjustment_requests (id) {
         id -> Uuid,
         time_entry_id -> Nullable<Uuid>,
-        requested_punch_in_time -> Timestamptz,
-        requested_punch_out_time -> Nullable<Timestamptz>,
+        requested_punch_time -> Timestamptz,
         reason -> Nullable<Text>,
         status -> AdjustmentStatusType,
         requested_by_user_id -> Nullable<Uuid>,
         approved_by_user_id -> Nullable<Uuid>,
         created_at -> Nullable<Timestamptz>,
         updated_at -> Nullable<Timestamptz>,
-        is_break_overtime -> Bool,
         employment_id -> Uuid,
         attachment_file_ids -> Nullable<Array<Nullable<Uuid>>>,
     }

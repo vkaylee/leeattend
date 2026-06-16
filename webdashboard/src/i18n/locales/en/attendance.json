@@ -689,7 +689,8 @@
       "request": "Shift Swap Requested"
     },
     "adjustment": {
-      "attachment": "Attachment (PDF only)"
+      "attachment": "Attachment (PDF only)",
+      "punch_time": "Punch Time"
     }
   }
 }

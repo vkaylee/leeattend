@@ -4,7 +4,7 @@ mod tests {
     use crate::errors::AppError;
     use crate::models::{
         ApprovalActionLog, ApprovalWorkflow, ApprovalWorkflowInstance, ApprovalWorkflowStep,
-        ApprovalWorkflowTask, Employee, LeaveStatus, WorkflowInstanceStepSnapshot,
+        ApprovalWorkflowTask, Employee, LeaveRequest, LeaveStatus, WorkflowInstanceStepSnapshot,
         WorkspaceConfigEntry,
     };
     use crate::repositories::{
@@ -1256,6 +1256,16 @@ mod tests {
             _s: Option<LeaveStatus>,
         ) -> Result<Vec<crate::models::LeaveRequest>, AppError> {
             Ok(vec![])
+        }
+        async fn get_paginated_workspace_leave_requests(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _status: Option<LeaveStatus>,
+            _employee_id: Option<Uuid>,
+            _limit: i64,
+            _offset: i64,
+        ) -> Result<(Vec<LeaveRequest>, i64), AppError> {
+            Ok((vec![], 0))
         }
         async fn get_approved_leave_breakdown(
             &self,

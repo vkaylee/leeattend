@@ -3,15 +3,14 @@ import type { TFunction } from "i18next";
 import { CheckCircle2, XCircle, ShieldCheck, MessageSquare, Sun, Moon, Timer, Paperclip } from "lucide-react";
 import React from "react";
 
-import type { fetchWorkspaceLeaveRequests } from "@/lib/api";
-import type { Employee, LeaveType } from "@/lib/api/types";
+import type { Employee, LeaveType, LeaveRequest } from "@/lib/api/types";
 import { useWorkspace } from "@/hooks/use-workspace";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
-type LeaveRequestItem = Awaited<ReturnType<typeof fetchWorkspaceLeaveRequests>>[0];
+type LeaveRequestItem = LeaveRequest;
 
 export interface LeaveRequestRowProps {
   emp?: Employee;

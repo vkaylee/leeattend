@@ -105,7 +105,7 @@ describe("ReportsPage", () => {
       page: 1,
       limit: 50
     } as unknown as PaginatedResponse<AttendanceSummary>));
-    vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([]);
+    vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
     vi.mocked(api.adminConfirmAttendance).mockResolvedValue(undefined);
   });
 

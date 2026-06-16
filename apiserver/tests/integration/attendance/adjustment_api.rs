@@ -28,8 +28,7 @@ async fn test_attendance_adjustment_lifecycle_smoke() {
     // 1. Create Adjustment
     let req_body = serde_json::json!({
         "employment_id": emp_employment_id,
-        "requested_punch_in_time": Utc::now().to_rfc3339(),
-        "is_break_overtime": false,
+        "requested_punch_time": Utc::now().to_rfc3339(),
         "reason": "Forgot punch"
     });
 

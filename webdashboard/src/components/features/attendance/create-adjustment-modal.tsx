@@ -34,9 +34,7 @@ function useCreateAdjustmentForm({ wsId, timezone, onClose }: CreateAdjustmentFo
 
   const [selectedEmpId, setSelectedEmpId] = useState<string>("");
   const [date, setDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
-  const [punchIn, setPunchIn] = useState<string>("08:00");
-  const [punchOut, setPunchOut] = useState<string>("17:00");
-  const [isBreakOvertime, setIsBreakOvertime] = useState<boolean>(false);
+  const [punchTime, setPunchTime] = useState<string>("08:00");
   const [reason, setReason] = useState<string>("");
   const [attachmentFileIds, setAttachmentFileIds] = useState<string[]>([]);
   const [ownerId] = useState<string>(() => crypto.randomUUID());
@@ -44,9 +42,7 @@ function useCreateAdjustmentForm({ wsId, timezone, onClose }: CreateAdjustmentFo
   const handleClose = () => {
     setSelectedEmpId("");
     setDate(format(new Date(), "yyyy-MM-dd"));
-    setPunchIn("08:00");
-    setPunchOut("17:00");
-    setIsBreakOvertime(false);
+    setPunchTime("08:00");
     setReason("");
     setAttachmentFileIds([]);
     onClose();
@@ -55,10 +51,8 @@ function useCreateAdjustmentForm({ wsId, timezone, onClose }: CreateAdjustmentFo
   const submitMutation = useMutation({
     mutationFn: (data: {
       employment_id: string;
-      is_break_overtime?: boolean;
       reason?: string;
-      requested_punch_in_time: string;
-      requested_punch_out_time?: string;
+      requested_punch_time: string;
       attachment_file_ids?: string[];
     }) => submitAttendanceAdjustment(wsId, data),
     onSuccess: () => {
@@ -81,14 +75,11 @@ function useCreateAdjustmentForm({ wsId, timezone, onClose }: CreateAdjustmentFo
     }
 
     try {
-      const punchInTime = toUTCISO(date, punchIn, timezone);
-      const punchOutTime = punchOut ? toUTCISO(date, punchOut, timezone) : undefined;
+      const punchTimeUtc = toUTCISO(date, punchTime, timezone);
 
       submitMutation.mutate({
         employment_id: selectedEmpId,
-        requested_punch_in_time: punchInTime,
-        requested_punch_out_time: punchOutTime,
-        is_break_overtime: isBreakOvertime,
+        requested_punch_time: punchTimeUtc,
         reason,
         attachment_file_ids: attachmentFileIds,
       });
@@ -102,16 +93,12 @@ function useCreateAdjustmentForm({ wsId, timezone, onClose }: CreateAdjustmentFo
     date,
     handleClose,
     handleSubmit,
-    isBreakOvertime,
     isPending: submitMutation.isPending,
-    punchIn,
-    punchOut,
+    punchTime,
     reason,
     selectedEmpId,
     setDate,
-    setIsBreakOvertime,
-    setPunchIn,
-    setPunchOut,
+    setPunchTime,
     setReason,
     setSelectedEmpId,
     attachmentFileIds,
@@ -132,16 +119,12 @@ export function CreateAdjustmentModal({
     date,
     handleClose,
     handleSubmit,
-    isBreakOvertime,
     isPending,
-    punchIn,
-    punchOut,
+    punchTime,
     reason,
     selectedEmpId,
     setDate,
-    setIsBreakOvertime,
-    setPunchIn,
-    setPunchOut,
+    setPunchTime,
     setReason,
     setSelectedEmpId,
     attachmentFileIds,
@@ -206,49 +189,18 @@ export function CreateAdjustmentModal({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="adj-punch-in">
-              {t("common.punch_in")}
-            </label>
-            <input
-              className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono font-bold text-sm text-center text-slate-700 dark:text-slate-200"
-              id="adj-punch-in"
-              onChange={(e) => { setPunchIn(e.target.value); }}
-              required
-              type="time"
-              value={punchIn}
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="adj-punch-out">
-              {t("common.punch_out")}
-            </label>
-            <input
-              className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono font-bold text-sm text-center text-slate-700 dark:text-slate-200"
-              id="adj-punch-out"
-              onChange={(e) => { setPunchOut(e.target.value); }}
-              required
-              type="time"
-              value={punchOut}
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4 py-2 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-inner">
-          <input
-            checked={isBreakOvertime}
-            className="w-6 h-6 text-primary-600 dark:text-primary-400 rounded-xl border-slate-200 dark:border-slate-700 focus:ring-primary-500 transition-all cursor-pointer"
-            id="is_break_overtime"
-            onChange={(e) => { setIsBreakOvertime(e.target.checked); }}
-            type="checkbox"
-          />
-          <label
-            className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest cursor-pointer leading-tight"
-            htmlFor="is_break_overtime"
-          >
-            {t("attendance_confirm.ot_label")}
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="adj-punch-time">
+            {t("attendance.adjustment.punch_time", "Giờ chấm công")}
           </label>
+          <input
+            className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono font-bold text-sm text-center text-slate-700 dark:text-slate-200"
+            id="adj-punch-time"
+            onChange={(e) => { setPunchTime(e.target.value); }}
+            required
+            type="time"
+            value={punchTime}
+          />
         </div>
 
         <div className="space-y-2">

@@ -1,17 +1,22 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useToast } from "@/components/ui/toast";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useAllEmployees } from "@/hooks/use-employees";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import {
   fetchWorkspaceAttendanceAdjustments,
   approveAttendanceAdjustment,
   getCurrentWorkspaceId,
+  PaginatedResponse,
+  AttendanceAdjustmentRequest,
 } from "@/lib/api";
 
 export type TabType = "pending" | "approved" | "rejected" | "behalf_assignments";
+
+const PAGE_SIZE = 20;
 
 export function useAttendanceAdjustmentsPage() {
   const { t } = useTranslation();
@@ -20,15 +25,45 @@ export function useAttendanceAdjustmentsPage() {
   const { formatDate, formatTime } = useDateTimeFormatter();
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("pending");
+  const [employeeId, setEmployeeId] = useState<string>("all");
   const toast = useToast();
 
-  const { data: requests = [], isLoading } = useQuery({
-    queryKey: ["attendance-adjustments", wsId, activeTab],
-    queryFn: () => {
-      if (activeTab === "behalf_assignments") return [];
-      return wsId ? fetchWorkspaceAttendanceAdjustments(wsId, activeTab) : Promise.reject(new Error("No workspace ID"));
+  const {
+    data: paginatedRequests,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery<PaginatedResponse<AttendanceAdjustmentRequest>>({
+    queryKey: ["attendance-adjustments", wsId, activeTab, employeeId],
+    queryFn: ({ pageParam }) => {
+      return wsId
+        ? fetchWorkspaceAttendanceAdjustments(wsId, {
+            status: activeTab !== "behalf_assignments" ? activeTab : undefined,
+            employee_id: employeeId,
+            page: pageParam as number,
+            limit: PAGE_SIZE,
+          })
+        : Promise.reject(new Error("No workspace ID"));
     },
+    getNextPageParam: (lastPage, allPages) => {
+      const totalLoaded = allPages.reduce((sum, p) => sum + (p.data.length || 0), 0);
+      return totalLoaded >= (lastPage.total || 0) ? undefined : allPages.length + 1;
+    },
+    initialPageParam: 1,
     enabled: !!wsId && activeTab !== "behalf_assignments",
+  });
+
+  const requests = useMemo(
+    () => paginatedRequests?.pages.flatMap((p) => p.data) ?? [],
+    [paginatedRequests]
+  );
+  const requestsTotal = paginatedRequests?.pages[0]?.total ?? 0;
+
+  const loadMoreRef = useInfiniteScroll<HTMLTableRowElement>({
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage: () => { void fetchNextPage(); },
   });
 
   const { employees } = useAllEmployees(wsId);
@@ -90,6 +125,12 @@ export function useAttendanceAdjustmentsPage() {
     isLoading,
     activeTab,
     setActiveTab,
+    employeeId,
+    setEmployeeId,
+    requestsTotal,
+    hasNextPage,
+    isFetchingNextPage,
+    loadMoreRef,
     isImportDialogOpen,
     setIsImportDialogOpen,
     approveMutation,

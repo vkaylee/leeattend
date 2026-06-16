@@ -63,7 +63,7 @@ vi.mock("@/components/time-tracking/adjustment-request-modal", () => ({
     isOpen ? (
       <div data-testid="adjustment-modal">
         <Button data-testid="close-modal" onClick={onClose} variant="ghost">Close</Button>
-        <Button data-testid="submit-modal" onClick={() => onSubmit({ date: "2026-05-01", punchIn: "08:00", punchOut: "17:00", reason: "Forgot" })} variant="ghost">Submit</Button>
+        <Button data-testid="submit-modal" onClick={() => onSubmit({ date: "2026-05-01", punchTime: "08:00", reason: "Forgot" })} variant="ghost">Submit</Button>
       </div>
     ) : null
   )
@@ -170,8 +170,7 @@ describe("MyClockPage", () => {
       expect(mockSubmit).toHaveBeenCalledWith("ws-123", {
         employment_id: "employment-123",
         reason: "Forgot",
-        requested_punch_in_time: "2026-05-01T08:00Z",
-        requested_punch_out_time: "2026-05-01T17:00Z",
+        requested_punch_time: "2026-05-01T08:00Z",
         time_entry_id: undefined,
       });
     });

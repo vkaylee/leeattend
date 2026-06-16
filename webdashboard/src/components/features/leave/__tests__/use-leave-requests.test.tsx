@@ -8,7 +8,7 @@ import * as api from "@/lib/api";
 
 // Mock imports
 vi.mock("@/lib/api", () => ({
-  fetchWorkspaceLeaveRequests: vi.fn().mockResolvedValue([]),
+  fetchWorkspaceLeaveRequests: vi.fn().mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 }),
   approveLeaveRequest: vi.fn().mockResolvedValue({}),
   fetchLeaveTypes: vi.fn().mockResolvedValue([]),
   fetchLatestLeaveImport: vi.fn(),

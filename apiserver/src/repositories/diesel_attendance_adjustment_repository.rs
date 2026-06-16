@@ -41,9 +41,7 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
             id: request.id(),
             employment_id: request.employment_id(),
             time_entry_id: request.time_entry_id(),
-            requested_punch_in_time: request.requested_punch_in_time(),
-            requested_punch_out_time: request.requested_punch_out_time(),
-            is_break_overtime: request.is_break_overtime(),
+            requested_punch_time: request.requested_punch_time(),
             reason: request.reason().map(ToString::to_string),
             status: request.status(),
             requested_by_user_id: request.requested_by_user_id(),
@@ -163,6 +161,74 @@ impl AttendanceAdjustmentRepository for DieselAttendanceAdjustmentRepository {
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(results.into_iter().map(Into::into).collect())
+    }
+
+    async fn get_paginated_workspace_adjustment_requests(
+        &self,
+        workspace_id: Uuid,
+        status: Option<AdjustmentStatus>,
+        employee_id: Option<Uuid>,
+        limit: i64,
+        offset: i64,
+    ) -> Result<(Vec<AttendanceAdjustmentRequest>, i64), AppError> {
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        let mut query = attendance_adjustment_requests::table
+            .inner_join(
+                employments::table
+                    .on(attendance_adjustment_requests::employment_id.eq(employments::id)),
+            )
+            .inner_join(employees::table.on(employments::employee_id.eq(employees::id)))
+            .filter(employees::workspace_id.eq(workspace_id))
+            .into_boxed();
+
+        if let Some(s) = status {
+            query = query.filter(attendance_adjustment_requests::status.eq(s));
+        }
+
+        if let Some(emp_id) = employee_id {
+            query = query.filter(employees::id.eq(emp_id));
+        }
+
+        let total = query
+            .select(diesel::dsl::count(attendance_adjustment_requests::id))
+            .get_result::<i64>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db count: {e}")))?;
+
+        let mut query = attendance_adjustment_requests::table
+            .inner_join(
+                employments::table
+                    .on(attendance_adjustment_requests::employment_id.eq(employments::id)),
+            )
+            .inner_join(employees::table.on(employments::employee_id.eq(employees::id)))
+            .filter(employees::workspace_id.eq(workspace_id))
+            .into_boxed();
+
+        if let Some(s) = status {
+            query = query.filter(attendance_adjustment_requests::status.eq(s));
+        }
+
+        if let Some(emp_id) = employee_id {
+            query = query.filter(employees::id.eq(emp_id));
+        }
+
+        let results: Vec<AttendanceAdjustmentEntity> = query
+            .select(attendance_adjustment_requests::all_columns)
+            .order(attendance_adjustment_requests::created_at.desc())
+            .limit(limit)
+            .offset(offset)
+            .load(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db load: {e}")))?;
+
+        Ok((results.into_iter().map(Into::into).collect(), total))
     }
 
     async fn get_employment_adjustment_requests(

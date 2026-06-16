@@ -115,17 +115,22 @@ describe("AttendanceAdjustmentsPage", () => {
       name: "Test Workspace",
       timezone: "Asia/Ho_Chi_Minh",
     });
-    vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([
-      { 
-        id: "adj-1", 
-        employee_id: "emp-1", 
-        requested_date: "2026-01-01", 
-        requested_punch_in: "08:00", 
-        requested_punch_out: "17:00", 
-        status: "pending", 
-        reason: "Forgot to punch" 
-      }
-    ] as unknown as AttendanceAdjustmentRequest[]);
+    vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue({
+      data: [
+        { 
+          id: "adj-1", 
+          employee_id: "emp-1", 
+          requested_date: "2026-01-01", 
+          requested_punch_in: "08:00", 
+          requested_punch_out: "17:00", 
+          status: "pending", 
+          reason: "Forgot to punch" 
+        }
+      ],
+      total: 1,
+      page: 1,
+      limit: 20,
+    } as any);
   });
 
   const renderWithProviders = (ui: React.ReactElement) => {
@@ -183,7 +188,7 @@ describe("AttendanceAdjustmentsPage", () => {
     expect(await screen.findByText("time_tracking.modal.new_title")).toBeDefined();
 
     // 4. Fill form
-    const selectElement = screen.getByTestId("mock-employee-search");
+    const selectElement = screen.getAllByTestId("mock-employee-search").find(el => el.id === "adj-emp")!;
     await user.selectOptions(selectElement, "employment-1");
 
     const dateInput = screen.getByLabelText(/common.work_day/i);

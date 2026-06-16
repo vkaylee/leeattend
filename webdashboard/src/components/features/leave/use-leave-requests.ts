@@ -1,19 +1,24 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { LeaveImportJob } from "@/lib/api/leaves";
 
 import { useToast } from "@/components/ui/toast";
 import { useAllEmployees } from "@/hooks/use-employees";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import {
   fetchWorkspaceLeaveRequests,
   approveLeaveRequest,
   fetchLeaveTypes,
   fetchLatestLeaveImport,
+  PaginatedResponse,
+  LeaveRequest,
 } from "@/lib/api";
 
 export type TabType = "pending" | "approved" | "rejected" | "behalf_assignments";
+
+const PAGE_SIZE = 20;
 
 export function useLeaveRequests(wsId: string | null) {
   const { t } = useTranslation();
@@ -23,16 +28,46 @@ export function useLeaveRequests(wsId: string | null) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("pending");
+  const [employeeId, setEmployeeId] = useState<string>("all");
 
   const { employees } = useAllEmployees(wsId);
-  const { data: requests = [], isLoading: requestsLoading } = useQuery({
-    queryKey: ["leave-requests", wsId, activeTab],
-    queryFn: () => {
-      if (activeTab === "behalf_assignments") return [];
-      return fetchWorkspaceLeaveRequests(wsId ?? "", activeTab);
+
+  const {
+    data: paginatedRequests,
+    isLoading: requestsLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery<PaginatedResponse<LeaveRequest>>({
+    queryKey: ["leave-requests", wsId, activeTab, employeeId],
+    queryFn: ({ pageParam }) => {
+      return fetchWorkspaceLeaveRequests(wsId ?? "", {
+        status: activeTab !== "behalf_assignments" ? activeTab : undefined,
+        employee_id: employeeId,
+        page: pageParam as number,
+        limit: PAGE_SIZE,
+      });
     },
-    enabled: !!wsId && activeTab !== "behalf_assignments"
+    getNextPageParam: (lastPage, allPages) => {
+      const totalLoaded = allPages.reduce((sum, p) => sum + (p.data.length || 0), 0);
+      return totalLoaded >= (lastPage.total || 0) ? undefined : allPages.length + 1;
+    },
+    initialPageParam: 1,
+    enabled: !!wsId && activeTab !== "behalf_assignments",
   });
+
+  const requests = useMemo(
+    () => paginatedRequests?.pages.flatMap((p) => p.data) ?? [],
+    [paginatedRequests]
+  );
+  const requestsTotal = paginatedRequests?.pages[0]?.total ?? 0;
+
+  const loadMoreRef = useInfiniteScroll<HTMLTableRowElement>({
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage: () => { void fetchNextPage(); },
+  });
+
   const { data: leaveTypes = [] } = useQuery({ queryKey: ["leave-types", wsId], queryFn: () => fetchLeaveTypes(wsId ?? ""), enabled: !!wsId });
 
   const approveMutation = useMutation({
@@ -112,7 +147,9 @@ export function useLeaveRequests(wsId: string | null) {
     isModalOpen, setIsModalOpen,
     isImportModalOpen, setIsImportModalOpen,
     activeTab, setActiveTab,
-    employees, requests, requestsLoading, leaveTypes,
+    employeeId, setEmployeeId,
+    employees, requests, requestsLoading, requestsTotal, leaveTypes,
+    hasNextPage, isFetchingNextPage, loadMoreRef,
     approveMutation,
     importJob, setImportJob,
     importBannerDismissed, setImportBannerDismissed,

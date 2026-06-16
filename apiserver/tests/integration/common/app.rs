@@ -276,6 +276,11 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             employer_repo: employer_repo.clone(),
         },
     ));
+    let raw_log_repo: Arc<
+        dyn apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository,
+    > = Arc::new(
+        apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone()),
+    );
     let pairing_service = Arc::new(apiserver::services::pairing_service::PairingService::new(
         apiserver::services::pairing_service::PairingServiceArgs {
             time_entry_repo: time_entry_repo.clone(),
@@ -299,11 +304,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
                     diesel_pools.clone(),
                 ),
             ),
-            raw_log_repo: Arc::new(
-                apiserver::repositories::DieselRawAttendanceLogRepository::new(
-                    diesel_pools.clone(),
-                ),
-            ),
+            raw_log_repo: Arc::clone(&raw_log_repo),
             shift_repo: Arc::new(apiserver::repositories::DieselShiftRepository::new(
                 diesel_pools.clone(),
             )),
@@ -327,7 +328,8 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     let adjustment_service = Arc::new(
         apiserver::services::attendance_adjustment_service::AttendanceAdjustmentService::new(
             adj_repo.clone(),
-            time_entry_repo.clone(),
+            raw_log_repo.clone(),
+            pairing_service.clone(),
         ),
     );
     let import_service = Arc::new(
@@ -560,11 +562,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         .with_handlers(workflow_handlers),
     );
 
-    let raw_log_repo: Arc<
-        dyn apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository,
-    > = Arc::new(
-        apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone()),
-    );
+    // raw_log_repo is already defined above
     let error_repo: Arc<
         dyn apiserver::repositories::attendance_log_error_repository::AttendanceLogErrorRepository,
     > = Arc::new(
@@ -993,6 +991,11 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
             employer_repo: employer_repo.clone(),
         },
     ));
+    let raw_log_repo: Arc<
+        dyn apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository,
+    > = Arc::new(
+        apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone()),
+    );
     let pairing_service = Arc::new(apiserver::services::pairing_service::PairingService::new(
         apiserver::services::pairing_service::PairingServiceArgs {
             time_entry_repo: time_entry_repo.clone(),
@@ -1016,11 +1019,7 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
                     diesel_pools.clone(),
                 ),
             ),
-            raw_log_repo: Arc::new(
-                apiserver::repositories::DieselRawAttendanceLogRepository::new(
-                    diesel_pools.clone(),
-                ),
-            ),
+            raw_log_repo: Arc::clone(&raw_log_repo),
             shift_repo: Arc::new(apiserver::repositories::DieselShiftRepository::new(
                 diesel_pools.clone(),
             )),
@@ -1044,7 +1043,8 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
     let adjustment_service = Arc::new(
         apiserver::services::attendance_adjustment_service::AttendanceAdjustmentService::new(
             adj_repo.clone(),
-            time_entry_repo.clone(),
+            raw_log_repo.clone(),
+            pairing_service.clone(),
         ),
     );
     let import_service = Arc::new(
@@ -1277,11 +1277,7 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
         .with_handlers(workflow_handlers),
     );
 
-    let raw_log_repo: Arc<
-        dyn apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository,
-    > = Arc::new(
-        apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone()),
-    );
+    // raw_log_repo is already defined above
     let error_repo: Arc<
         dyn apiserver::repositories::attendance_log_error_repository::AttendanceLogErrorRepository,
     > = Arc::new(
@@ -1754,6 +1750,11 @@ pub async fn setup_app_tower_internal_extended(
             employer_repo: employer_repo.clone(),
         },
     ));
+    let raw_log_repo: Arc<
+        dyn apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository,
+    > = Arc::new(
+        apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone()),
+    );
     let pairing_service = Arc::new(apiserver::services::pairing_service::PairingService::new(
         apiserver::services::pairing_service::PairingServiceArgs {
             time_entry_repo: time_entry_repo.clone(),
@@ -1777,11 +1778,7 @@ pub async fn setup_app_tower_internal_extended(
                     diesel_pools.clone(),
                 ),
             ),
-            raw_log_repo: Arc::new(
-                apiserver::repositories::DieselRawAttendanceLogRepository::new(
-                    diesel_pools.clone(),
-                ),
-            ),
+            raw_log_repo: Arc::clone(&raw_log_repo),
             shift_repo: Arc::new(apiserver::repositories::DieselShiftRepository::new(
                 diesel_pools.clone(),
             )),
@@ -1810,7 +1807,8 @@ pub async fn setup_app_tower_internal_extended(
     let adjustment_service = Arc::new(
         apiserver::services::attendance_adjustment_service::AttendanceAdjustmentService::new(
             adj_repo.clone(),
-            time_entry_repo.clone(),
+            raw_log_repo.clone(),
+            pairing_service.clone(),
         ),
     );
     let import_service = Arc::new(
@@ -2043,11 +2041,7 @@ pub async fn setup_app_tower_internal_extended(
         .with_handlers(workflow_handlers),
     );
 
-    let raw_log_repo: Arc<
-        dyn apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository,
-    > = Arc::new(
-        apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone()),
-    );
+    // raw_log_repo is already defined above
     let error_repo: Arc<
         dyn apiserver::repositories::attendance_log_error_repository::AttendanceLogErrorRepository,
     > = Arc::new(

@@ -4,7 +4,7 @@ import React from "react";
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import * as api from "@/lib/api";
+import * as api from "../../../lib/api";
 
 import { ToastProvider } from "../../ui/toast";
 import AdjustmentDrawer from "../adjustment-drawer";
@@ -46,20 +46,28 @@ describe("AdjustmentDrawer", () => {
 
   it("renders pending adjustments for the specific employee", async () => {
  
-    vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([
-      {
-        id: "adj-1",
-        employee_id: "emp-1",
-        requested_punch_in_time: "2026-01-10T08:00:00Z",
-        requested_punch_out_time: "2026-01-10T17:00:00Z",
-        reason: "Forgot to punch",
-        status: "pending"
-      }
-    ] as unknown as never);
+    vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue({
+      data: [
+        {
+          id: "adj-1",
+          employee_id: "emp-1",
+          employment_id: "employment-1",
+          requested_punch_time: "2026-01-10T08:00:00Z",
+          requested_punch_in_time: "2026-01-10T08:00:00Z",
+          requested_punch_out_time: "2026-01-10T17:00:00Z",
+          reason: "Forgot to punch",
+          status: "pending"
+        }
+      ],
+      total: 1,
+      page: 1,
+      limit: 20
+    } as any);
 
     renderWithProviders(
       <AdjustmentDrawer 
         employeeId="emp-1" 
+        employmentId="employment-1"
         employeeName="John Doe" 
         isOpen={true} 
         onClose={() => { /* empty */ }} 
@@ -73,20 +81,28 @@ describe("AdjustmentDrawer", () => {
 
   it("calls approve API when Approve is clicked", async () => {
  
-    vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([
-      {
-        id: "adj-1",
-        employee_id: "emp-1",
-        requested_punch_in_time: "2026-01-10T08:00:00Z",
-        status: "pending"
-      }
-    ] as unknown as never);
+    vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue({
+      data: [
+        {
+          id: "adj-1",
+          employee_id: "emp-1",
+          employment_id: "employment-1",
+          requested_punch_time: "2026-01-10T08:00:00Z",
+          requested_punch_in_time: "2026-01-10T08:00:00Z",
+          status: "pending"
+        }
+      ],
+      total: 1,
+      page: 1,
+      limit: 20
+    } as any);
  
     vi.mocked(api.approveAttendanceAdjustment).mockResolvedValue({} as unknown as never);
 
     renderWithProviders(
       <AdjustmentDrawer 
         employeeId="emp-1" 
+        employmentId="employment-1"
         employeeName="John Doe" 
         isOpen={true} 
         onClose={() => { /* empty */ }} 

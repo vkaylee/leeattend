@@ -44,9 +44,9 @@ export function useDailyDrawerQueries({
         enabled: isOpen && !!workspaceId && !!employeeId,
     });
 
-    const { data: pendingAdjustments } = useQuery({
+    const { data: pendingAdjustmentsResponse } = useQuery({
         queryKey: ["attendance-adjustments", workspaceId, "pending"],
-        queryFn: () => fetchWorkspaceAttendanceAdjustments(workspaceId, "pending"),
+        queryFn: () => fetchWorkspaceAttendanceAdjustments(workspaceId, { status: "pending" }),
         enabled: isOpen && !!workspaceId,
     });
 
@@ -84,12 +84,13 @@ export function useDailyDrawerQueries({
 
     const adjustmentMap = useMemo(() => {
         const map: Record<string, AttendanceAdjustmentRequest> = {};
-        pendingAdjustments?.forEach((request) => {
+        const adjustments = pendingAdjustmentsResponse?.data ?? [];
+        adjustments.forEach((request) => {
             const key = `${request.employment_id}-${request.requested_date}`;
             map[key] = request;
         });
         return map;
-    }, [pendingAdjustments]);
+    }, [pendingAdjustmentsResponse]);
 
     const reportData = useMemo(
         () => (reportResponse?.data ?? (Array.isArray(reportResponse) ? reportResponse : [])) as DailyAttendanceReport[],

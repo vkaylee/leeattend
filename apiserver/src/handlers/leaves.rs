@@ -243,13 +243,24 @@ pub async fn get_employee_leave_balances(
 #[derive(Deserialize, utoipa::IntoParams)]
 pub struct LeaveStatusQuery {
     pub status: Option<LeaveStatus>,
+    pub employee_id: Option<Uuid>,
+    pub page: Option<i64>,
+    pub limit: Option<i64>,
+}
+
+#[derive(serde::Serialize, utoipa::ToSchema)]
+pub struct PaginatedLeaveRequests {
+    pub data: Vec<LeaveRequest>,
+    pub total: usize,
+    pub page: i64,
+    pub limit: i64,
 }
 
 #[utoipa::path(
     get,
     path = "/workspaces/{ws_id}/leave/requests",
     responses(
-        (status = 200, description = "Workspace leave requests", body = [LeaveRequest])
+        (status = 200, description = "Workspace leave requests", body = PaginatedLeaveRequests)
     ),
     params(
         ("ws_id" = Uuid, Path, description = "Workspace ID"),
@@ -261,26 +272,31 @@ pub async fn get_workspace_leave_requests(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Query(query): Query<LeaveStatusQuery>,
-) -> AppResult<Json<Vec<LeaveRequest>>> {
+) -> AppResult<Json<PaginatedLeaveRequests>> {
     ctx.require_permission(Permission::LeaveRequestsRead)?;
-    let mut requests = state
+
+    let limit = query.limit.unwrap_or(20).clamp(1, 100);
+    let page = query.page.unwrap_or(1).max(1);
+    let offset = (page - 1) * limit;
+
+    let (requests, total) = state
         .leaves()
-        .service()
-        .get_workspace_leave_requests(ctx.workspace_id, query.status)
+        .request_repo()
+        .get_paginated_workspace_leave_requests(
+            &ctx.auth_token,
+            query.status,
+            query.employee_id,
+            limit,
+            offset,
+        )
         .await?;
 
-    // When filtering by Approved, also include PreApproved requests
-    if query.status == Some(LeaveStatus::Approved) {
-        let pre_approved = state
-            .leaves()
-            .service()
-            .get_workspace_leave_requests(ctx.workspace_id, Some(LeaveStatus::PreApproved))
-            .await?;
-        requests.extend(pre_approved);
-        requests.sort_by(|a, b| b.created_at().cmp(&a.created_at()));
-    }
-
-    Ok(Json(requests))
+    Ok(Json(PaginatedLeaveRequests {
+        data: requests,
+        total: total as usize,
+        page,
+        limit,
+    }))
 }
 
 #[derive(Deserialize, utoipa::IntoParams)]

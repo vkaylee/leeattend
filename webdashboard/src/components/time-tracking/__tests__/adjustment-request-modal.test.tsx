@@ -17,12 +17,10 @@ const mockTranslation = {
   "time_tracking.modal.reason_label": "Reason",
   "time_tracking.modal.reason_placeholder": "Please explain why you need this adjustment",
   "common.work_day": "Work Day",
-  "common.punch_in": "Punch In",
-  "common.punch_out": "Punch Out",
   "common.cancel": "Cancel",
   "common.submit_request": "Submit Request",
   "common.sending": "Sending",
-  "attendance_confirm.ot_label": "Break/Overtime",
+  "attendance.adjustment.punch_time": "Giờ chấm công",
 };
 
 vi.mock("react-i18next", () => ({
@@ -73,8 +71,7 @@ describe("AdjustmentRequestModal", () => {
     expect(screen.getByTestId("modal")).toBeInTheDocument();
     expect(screen.getByText("Request Time Adjustment")).toBeInTheDocument();
     expect(screen.getByText("Work Day")).toBeInTheDocument();
-    expect(screen.getByText("Punch In")).toBeInTheDocument();
-    expect(screen.getByText("Punch Out")).toBeInTheDocument();
+    expect(screen.getByText("Giờ chấm công")).toBeInTheDocument();
     expect(screen.getByText("Reason")).toBeInTheDocument();
   });
 
@@ -125,7 +122,6 @@ describe("AdjustmentRequestModal", () => {
       expect(mockOnSubmit).toHaveBeenCalledWith(
         expect.objectContaining({
           reason: "I forgot to clock out",
-          isBreakOvertime: false,
         })
       );
     });

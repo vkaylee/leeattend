@@ -226,6 +226,11 @@ impl AppState {
                 diesel_pools.clone(),
             ),
         );
+        let raw_log_repo: Arc<
+            dyn crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository,
+        > = Arc::new(crate::repositories::DieselRawAttendanceLogRepository::new(
+            diesel_pools.clone(),
+        ));
         let pairing_service = Arc::new(crate::services::pairing_service::PairingService::new(
             crate::services::pairing_service::PairingServiceArgs {
                 time_entry_repo: Arc::clone(&time_entry_repo),
@@ -237,9 +242,7 @@ impl AppState {
                 holiday_repo: Arc::clone(&holiday_repo),
                 leave_request_repo: Arc::clone(&leave_request_repo),
                 daily_summary_repo: Arc::clone(&attendance_daily_summary_repo),
-                raw_log_repo: Arc::new(crate::repositories::DieselRawAttendanceLogRepository::new(
-                    diesel_pools.clone(),
-                )),
+                raw_log_repo: Arc::clone(&raw_log_repo),
                 shift_repo: Arc::new(crate::repositories::DieselShiftRepository::new(
                     diesel_pools.clone(),
                 )),
@@ -255,7 +258,8 @@ impl AppState {
         let adjustment_service = Arc::new(
             crate::services::attendance_adjustment_service::AttendanceAdjustmentService::new(
                 Arc::clone(&adj_repo),
-                Arc::clone(&time_entry_repo),
+                Arc::clone(&raw_log_repo),
+                Arc::clone(&pairing_service),
             ),
         );
         let import_repo: Arc<dyn crate::repositories::import_job_repository::ImportJobRepository> =
@@ -514,11 +518,7 @@ impl AppState {
             .and_then(|s| s.parse().ok())
             .unwrap_or(1000);
 
-        let raw_log_repo: Arc<
-            dyn crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository,
-        > = Arc::new(crate::repositories::DieselRawAttendanceLogRepository::new(
-            diesel_pools.clone(),
-        ));
+        // Reused raw_log_repo defined above
 
         let error_repo: Arc<
             dyn crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository,

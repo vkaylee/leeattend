@@ -6,6 +6,8 @@ import { CreateAdjustmentModal } from "@/components/features/attendance/create-a
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { PDFPreviewModal } from "@/components/files/PDFPreviewModal";
+import { EmployeeSearch } from "@/components/common/employee-search";
+import FloatingRecordBadge from "@/components/common/floating-record-badge";
 
 import { BehalfAssignmentsTab } from "./approvals/components/behalf-assignments-tab";
 import { AdjustmentsHeader } from "./attendance/components/adjustments-header";
@@ -24,6 +26,12 @@ export default function AttendanceAdjustmentsPage() {
     isLoading,
     activeTab,
     setActiveTab,
+    employeeId,
+    setEmployeeId,
+    requestsTotal,
+    hasNextPage,
+    isFetchingNextPage,
+    loadMoreRef,
     isImportDialogOpen,
     setIsImportDialogOpen,
     approveMutation,
@@ -59,11 +67,27 @@ export default function AttendanceAdjustmentsPage() {
         onRequestClick={() => { setIsCreateModalOpen(true); }}
       />
 
-      <AdjustmentsTabs
-        activeTab={activeTab}
-        canManageBehalf={canManageBehalf}
-        setActiveTab={setActiveTab}
-      />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <AdjustmentsTabs
+          activeTab={activeTab}
+          canManageBehalf={canManageBehalf}
+          setActiveTab={setActiveTab}
+        />
+        {activeTab !== "behalf_assignments" && (
+          <div className="w-full sm:w-72">
+            <EmployeeSearch
+              clearOnEscape
+              keyboardShortcut={["/", "Enter"]}
+              onChange={(value) => {
+                setEmployeeId((Array.isArray(value) ? value[0] : value) || "all");
+              }}
+              placeholder={employeeId === "all" ? t("common.all_employees") : undefined}
+              value={employeeId === "all" ? "" : employeeId}
+              workspaceId={wsId}
+            />
+          </div>
+        )}
+      </div>
 
       {activeTab === "behalf_assignments" && canManageBehalf ? (
         <BehalfAssignmentsTab assignmentType="attendance_adjustment" wsId={wsId} />
@@ -78,6 +102,9 @@ export default function AttendanceAdjustmentsPage() {
           isLoading={isLoading}
           onApprove={(id, status) => { approveMutation.mutate({ id, status: status as "approved" | "rejected" }); }}
           requests={requests}
+          hasNextPage={hasNextPage}
+          isFetchingNextPage={isFetchingNextPage}
+          loadMoreRef={loadMoreRef}
           onPreviewAttachment={(url, title) => {
             setPreviewFileUrl(url);
             setPreviewTitle(title);
@@ -123,6 +150,14 @@ export default function AttendanceAdjustmentsPage() {
         fileUrl={previewFileUrl}
         title={previewTitle}
       />
+
+      {activeTab !== "behalf_assignments" && (
+        <FloatingRecordBadge 
+          label={t("common.pagination.records")} 
+          loaded={requests.length} 
+          total={requestsTotal} 
+        />
+      )}
     </div>
   );
 }

@@ -9,24 +9,29 @@ use uuid::Uuid;
 use crate::utils::id::new_id;
 
 use crate::models::{
-    AdjustmentStatus, AttendanceAdjustmentRequest, CreateAttendanceAdjustmentRequest, TimeEntry,
+    AdjustmentStatus, AttendanceAdjustmentRequest, CreateAttendanceAdjustmentRequest,
+    RawAttendanceLog, LogSource,
 };
 use crate::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository;
-use crate::repositories::TimeEntryRepository;
+use crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
+use crate::services::pairing_service::PairingService;
 
 pub struct AttendanceAdjustmentService {
     adj_repo: Arc<dyn AttendanceAdjustmentRepository>,
-    time_entry_repo: Arc<dyn TimeEntryRepository>,
+    raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
+    pairing_service: Arc<PairingService>,
 }
 
 impl AttendanceAdjustmentService {
     pub fn new(
         adj_repo: Arc<dyn AttendanceAdjustmentRepository>,
-        time_entry_repo: Arc<dyn TimeEntryRepository>,
+        raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
+        pairing_service: Arc<PairingService>,
     ) -> Self {
         Self {
             adj_repo,
-            time_entry_repo,
+            raw_log_repo,
+            pairing_service,
         }
     }
 
@@ -45,9 +50,7 @@ impl AttendanceAdjustmentService {
             new_id(),
             req.employment_id,
             req.time_entry_id,
-            req.requested_punch_in_time,
-            req.requested_punch_out_time,
-            req.is_break_overtime,
+            req.requested_punch_time,
             req.reason,
             AdjustmentStatus::Pending,
             Some(user_id),
@@ -87,56 +90,26 @@ impl AttendanceAdjustmentService {
             .await?;
 
         if status == AdjustmentStatus::Approved {
-            if let Some(time_entry_id) = request.time_entry_id() {
-                let mut entry = self
-                    .time_entry_repo
-                    .get_time_entry_by_id(
-                        &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                        time_entry_id,
-                    )
-                    .await?
-                    .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
+            let raw_log = RawAttendanceLog::new(
+                new_id(),
+                workspace_id,
+                request.employment_id(),
+                request.requested_punch_time(),
+                LogSource::Manual,
+                None,
+                None,
+                0,
+                0,
+                Utc::now(),
+            );
 
-                entry.set_punch_in_time(request.requested_punch_in_time());
-                entry.set_punch_out_time(request.requested_punch_out_time());
-                entry.set_is_break_overtime(request.is_break_overtime());
+            self.raw_log_repo
+                .create_raw_log(workspace_id, &raw_log)
+                .await?;
 
-                self.time_entry_repo
-                    .update_time_entry(
-                        &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                        &entry,
-                    )
-                    .await?;
-            } else {
-                let duration_minutes = request.requested_punch_out_time().map(|punch_out| {
-                    let duration =
-                        punch_out.signed_duration_since(request.requested_punch_in_time());
-                    duration.num_minutes() as i32
-                });
-
-                let entry = TimeEntry::new(
-                    new_id(),
-                    request.employment_id(),
-                    workspace_id,
-                    None,
-                    request.requested_punch_in_time(),
-                    request.requested_punch_out_time(),
-                    duration_minutes,
-                    request.is_break_overtime(),
-                    "work".to_string(),
-                    request.reason().map(|r| format!("Adjustment: {r}")),
-                    Some(serde_json::json!({ "source": "adjustment" })),
-                    Utc::now(),
-                    Utc::now(),
-                );
-
-                self.time_entry_repo
-                    .create_time_entry(
-                        &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                        &entry,
-                    )
-                    .await?;
-            }
+            self.pairing_service
+                .process_new_raw_log(&raw_log)
+                .await?;
         }
 
         Ok(())
@@ -165,6 +138,20 @@ impl AttendanceAdjustmentService {
     ) -> Result<Vec<AttendanceAdjustmentRequest>, AppError> {
         self.adj_repo
             .get_workspace_adjustment_requests(workspace_id, status)
+            .await
+    }
+
+    #[tracing::instrument(skip_all, err)]
+    pub async fn get_paginated_workspace_requests(
+        &self,
+        workspace_id: Uuid,
+        status: Option<AdjustmentStatus>,
+        employee_id: Option<Uuid>,
+        limit: i64,
+        offset: i64,
+    ) -> Result<(Vec<AttendanceAdjustmentRequest>, i64), AppError> {
+        self.adj_repo
+            .get_paginated_workspace_adjustment_requests(workspace_id, status, employee_id, limit, offset)
             .await
     }
 

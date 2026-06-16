@@ -31,6 +31,14 @@ pub trait AttendanceAdjustmentRepository: Send + Sync {
         workspace_id: Uuid,
         status: Option<AdjustmentStatus>,
     ) -> Result<Vec<AttendanceAdjustmentRequest>, AppError>;
+    async fn get_paginated_workspace_adjustment_requests(
+        &self,
+        workspace_id: Uuid,
+        status: Option<AdjustmentStatus>,
+        employee_id: Option<Uuid>,
+        limit: i64,
+        offset: i64,
+    ) -> Result<(Vec<AttendanceAdjustmentRequest>, i64), AppError>;
     async fn get_employment_adjustment_requests(
         &self,
         workspace_id: Uuid,

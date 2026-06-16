@@ -37,6 +37,14 @@ pub trait LeaveRequestRepository: Send + Sync {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         status: Option<LeaveStatus>,
     ) -> Result<Vec<LeaveRequest>, AppError>;
+    async fn get_paginated_workspace_leave_requests(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        status: Option<LeaveStatus>,
+        employee_id: Option<Uuid>,
+        limit: i64,
+        offset: i64,
+    ) -> Result<(Vec<LeaveRequest>, i64), AppError>;
     async fn get_approved_leave_breakdown(
         &self,
         employee_id: Uuid,

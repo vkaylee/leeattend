@@ -55,11 +55,10 @@ export function AdjustmentsTableRow({
       <td className="px-8 py-6 text-center">
         <div className="inline-flex flex-col items-center bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-xl border border-slate-100 dark:border-slate-800 shadow-inner">
           <div className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tighter">
-            {formatDate(request.requested_punch_in_time)}
+            {formatDate(request.requested_punch_time)}
           </div>
           <div className="text-[10px] font-mono font-bold text-primary-600 dark:text-primary-400 mt-1">
-            {formatTime(request.requested_punch_in_time)} —{" "}
-            {request.requested_punch_out_time ? formatTime(request.requested_punch_out_time) : "???"}
+            {formatTime(request.requested_punch_time)}
           </div>
         </div>
       </td>

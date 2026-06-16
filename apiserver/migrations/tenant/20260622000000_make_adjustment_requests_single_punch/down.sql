@@ -1,0 +1,3 @@
+ALTER TABLE attendance_adjustment_requests RENAME COLUMN requested_punch_time TO requested_punch_in_time;
+ALTER TABLE attendance_adjustment_requests ADD COLUMN requested_punch_out_time TIMESTAMPTZ;
+ALTER TABLE attendance_adjustment_requests ADD COLUMN is_break_overtime BOOLEAN DEFAULT FALSE NOT NULL;

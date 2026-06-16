@@ -783,6 +783,16 @@ mod tests {
         ) -> Result<Vec<LeaveRequest>, AppError> {
             Ok(vec![])
         }
+        async fn get_paginated_workspace_leave_requests(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _status: Option<LeaveStatus>,
+            _employee_id: Option<Uuid>,
+            _limit: i64,
+            _offset: i64,
+        ) -> Result<(Vec<LeaveRequest>, i64), AppError> {
+            Ok((vec![], 0))
+        }
         async fn get_employee_leave_history_requests(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,

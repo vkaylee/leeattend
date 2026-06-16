@@ -98,7 +98,13 @@ export interface EmployeeLeaveBalance {
 }
 
 export type WorkspaceLeaveBalance = components["schemas"]["WorkspaceLeaveBalance"];
-export type AttendanceAdjustmentRequest = components["schemas"]["AttendanceAdjustmentRequest"] & { requested_date?: string };
+export type AttendanceAdjustmentRequest = Omit<components["schemas"]["AttendanceAdjustmentRequest"], "requested_punch_in_time" | "requested_punch_out_time"> & { 
+  requested_date?: string;
+  requested_punch_time: string;
+  requested_punch_in_time?: string;
+  requested_punch_out_time?: string | null;
+  is_break_overtime?: boolean;
+};
 
 export interface PaginatedResponse<T> {
   data: T[];

@@ -13,9 +13,7 @@ pub struct AttendanceAdjustmentRequest {
     id: Uuid,
     employment_id: Uuid,
     time_entry_id: Option<Uuid>,
-    requested_punch_in_time: DateTime<Utc>,
-    requested_punch_out_time: Option<DateTime<Utc>>,
-    is_break_overtime: bool,
+    requested_punch_time: DateTime<Utc>,
     reason: Option<String>,
     status: AdjustmentStatus,
     requested_by_user_id: Option<Uuid>,
@@ -31,9 +29,7 @@ impl AttendanceAdjustmentRequest {
         id: Uuid,
         employment_id: Uuid,
         time_entry_id: Option<Uuid>,
-        requested_punch_in_time: DateTime<Utc>,
-        requested_punch_out_time: Option<DateTime<Utc>>,
-        is_break_overtime: bool,
+        requested_punch_time: DateTime<Utc>,
         reason: Option<String>,
         status: AdjustmentStatus,
         requested_by_user_id: Option<Uuid>,
@@ -46,9 +42,7 @@ impl AttendanceAdjustmentRequest {
             id,
             employment_id,
             time_entry_id,
-            requested_punch_in_time,
-            requested_punch_out_time,
-            is_break_overtime,
+            requested_punch_time,
             reason,
             status,
             requested_by_user_id,
@@ -71,16 +65,8 @@ impl AttendanceAdjustmentRequest {
         self.time_entry_id
     }
 
-    pub fn requested_punch_in_time(&self) -> DateTime<Utc> {
-        self.requested_punch_in_time
-    }
-
-    pub fn requested_punch_out_time(&self) -> Option<DateTime<Utc>> {
-        self.requested_punch_out_time
-    }
-
-    pub fn is_break_overtime(&self) -> bool {
-        self.is_break_overtime
+    pub fn requested_punch_time(&self) -> DateTime<Utc> {
+        self.requested_punch_time
     }
 
     pub fn reason(&self) -> Option<&str> {
@@ -116,9 +102,7 @@ impl AttendanceAdjustmentRequest {
 pub struct CreateAttendanceAdjustmentRequest {
     pub employment_id: Uuid,
     pub time_entry_id: Option<Uuid>,
-    pub requested_punch_in_time: DateTime<Utc>,
-    pub requested_punch_out_time: Option<DateTime<Utc>>,
-    pub is_break_overtime: bool,
+    pub requested_punch_time: DateTime<Utc>,
     pub reason: Option<String>,
     pub attachment_file_ids: Option<Vec<Uuid>>,
 }

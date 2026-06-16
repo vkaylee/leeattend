@@ -354,7 +354,6 @@ struct PunchImportStrategy {
     date_format: String,
     time_format: String,
     adj_repo: Arc<dyn AttendanceAdjustmentRepository>,
-    time_entry_repo: Arc<dyn TimeEntryRepository>,
     employee_repo: Arc<dyn EmployeeRepository>,
     log_svc: Option<Arc<crate::services::attendance_log_service::AttendanceLogService>>,
     emp_cache: std::collections::HashMap<String, Employee>,
@@ -424,7 +423,7 @@ impl ImportStrategy for PunchImportStrategy {
     #[allow(clippy::too_many_lines)]
     async fn process_row(
         &mut self,
-        _deps: &crate::worker::deps::WorkerDeps,
+        deps: &crate::worker::deps::WorkerDeps,
         job: &AttendanceImportJob,
         row: &Self::RowData,
     ) -> Result<Option<Uuid>, AppError> {
@@ -496,16 +495,15 @@ impl ImportStrategy for PunchImportStrategy {
             let req = CreateAttendanceAdjustmentRequest {
                 employment_id,
                 time_entry_id: None,
-                requested_punch_in_time: row.punch_time,
-                requested_punch_out_time: None,
-                is_break_overtime: false,
+                requested_punch_time: row.punch_time,
                 reason: Some("Import from Excel/CSV".to_string()),
                 attachment_file_ids: None,
             };
 
             let adj_svc = AttendanceAdjustmentService::new(
                 Arc::clone(&self.adj_repo),
-                Arc::clone(&self.time_entry_repo),
+                Arc::clone(&deps.raw_log_repo),
+                deps.pairing_service(),
             );
 
             match adj_svc
@@ -543,7 +541,7 @@ pub struct AttendanceImportService {
     import_repo: Arc<dyn ImportJobRepository>,
     adj_repo: Arc<dyn AttendanceAdjustmentRepository>,
     employee_repo: Arc<dyn EmployeeRepository>,
-    time_entry_repo: Arc<dyn TimeEntryRepository>,
+    _time_entry_repo: Arc<dyn TimeEntryRepository>,
     workspace_repo: Arc<dyn crate::repositories::workspace_repository::WorkspaceRepository>,
     dept_repo: Arc<dyn crate::repositories::department_repository::DepartmentRepository>,
     staging_repo: Arc<dyn crate::repositories::staging_log_repository::StagingLogRepository>,
@@ -568,7 +566,7 @@ impl AttendanceImportService {
             import_repo,
             adj_repo,
             employee_repo,
-            time_entry_repo,
+            _time_entry_repo: time_entry_repo,
             workspace_repo,
             dept_repo,
             staging_repo,
@@ -772,7 +770,6 @@ impl AttendanceImportService {
             date_format,
             time_format,
             adj_repo: Arc::clone(&self.adj_repo),
-            time_entry_repo: Arc::clone(&self.time_entry_repo),
             employee_repo: Arc::clone(&self.employee_repo),
             log_svc: self.log_svc.clone(),
             emp_cache: std::collections::HashMap::new(),

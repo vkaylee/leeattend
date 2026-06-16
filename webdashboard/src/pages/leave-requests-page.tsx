@@ -15,6 +15,9 @@ import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { getCurrentWorkspaceId, Employee } from "@/lib/api";
 import { PDFPreviewModal } from "@/components/files/PDFPreviewModal";
+import { EmployeeSearch } from "@/components/common/employee-search";
+import InfiniteScrollSentinel from "@/components/common/infinite-scroll-sentinel";
+import FloatingRecordBadge from "@/components/common/floating-record-badge";
 
 import { BehalfAssignmentsTab } from "./approvals/components/behalf-assignments-tab";
 
@@ -31,7 +34,9 @@ export default function LeaveRequestsPage() {
     isModalOpen, setIsModalOpen,
     isImportModalOpen, setIsImportModalOpen,
     activeTab, setActiveTab,
-    employees, requests, requestsLoading, leaveTypes,
+    employeeId, setEmployeeId,
+    employees, requests, requestsLoading, requestsTotal, leaveTypes,
+    hasNextPage, isFetchingNextPage, loadMoreRef,
     approveMutation,
     importJob,
     importBannerDismissed, setImportBannerDismissed,
@@ -113,11 +118,27 @@ export default function LeaveRequestsPage() {
         </div>
       </div>
 
-      <PageTabs
-        activeTab={activeTab}
-        onTabChange={(id) => { setActiveTab(id as TabType); }}
-        tabs={tabs}
-      />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <PageTabs
+          activeTab={activeTab}
+          onTabChange={(id) => { setActiveTab(id as TabType); }}
+          tabs={tabs}
+        />
+        {activeTab !== "behalf_assignments" && (
+          <div className="w-full sm:w-72">
+            <EmployeeSearch
+              clearOnEscape
+              keyboardShortcut={["/", "Enter"]}
+              onChange={(value) => {
+                setEmployeeId((Array.isArray(value) ? value[0] : value) || "all");
+              }}
+              placeholder={employeeId === "all" ? t("common.all_employees") : undefined}
+              value={employeeId === "all" ? "" : employeeId}
+              workspaceId={wsId}
+            />
+          </div>
+        )}
+      </div>
 
       {activeTab === "behalf_assignments" && canManageBehalf ? (
         <ResilientWidget>
@@ -168,8 +189,23 @@ export default function LeaveRequestsPage() {
                 }}
               />
             ))}
+            {hasNextPage && (
+              <InfiniteScrollSentinel
+                colSpan={tableHeaders.length}
+                isFetchingNextPage={isFetchingNextPage}
+                sentinelRef={loadMoreRef}
+              />
+            )}
           </ApprovalListLayout>
         </ResilientWidget>
+      )}
+
+      {activeTab !== "behalf_assignments" && (
+        <FloatingRecordBadge 
+          label={t("common.pagination.records")} 
+          loaded={requests.length} 
+          total={requestsTotal} 
+        />
       )}
     </div>
   );
