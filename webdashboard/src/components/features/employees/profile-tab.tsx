@@ -167,7 +167,7 @@ export default function ProfileTab({
 
             <CustomFieldSection entityId={employee.id} entityType="employee" />
 
-            {activeEmployment?.id && (
+            {!!activeEmployment?.id && (
                 <CustomFieldSection entityId={activeEmployment.id} entityType="employment" />
             )}
         </div>

@@ -90,19 +90,19 @@ export default function PendingTasksWidget() {
                     <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
                       {task.category.replace("_", " ")}
                     </span>
-                    {task.is_required && (
+                    {task.is_required ? (
                       <span className="bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
                         Required
                       </span>
-                    )}
+                    ) : null}
                   </div>
 
                   <Typography className="text-xs text-slate-400 dark:text-slate-500" variant="p">
                     {t("dashboard.lifecycle.task_for_employee", { name: task.employee_name, defaultValue: `For ${task.employee_name}` })}
-                    {task.description && ` • ${task.description}`}
+                    {!!task.description && ` • ${task.description}`}
                   </Typography>
 
-                  {task.due_date && (
+                   {!!task.due_date && (
                     <div className="text-[10px] font-semibold flex items-center gap-1 mt-1">
                       <AlertCircle className={cn("w-3.5 h-3.5", isOverdue ? "text-rose-500 animate-pulse" : "text-amber-500")} />
                       <span className={cn(isOverdue ? "text-rose-500" : "text-slate-400")}>

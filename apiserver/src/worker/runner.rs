@@ -5,9 +5,10 @@
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
+use parking_lot::Mutex;
 use redis::AsyncCommands;
 use serde::{Deserialize, Serialize};
-use tokio::sync::{Mutex, Semaphore};
+use tokio::sync::Semaphore;
 use tokio::time::Duration;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
@@ -282,8 +283,8 @@ impl JobWorker {
 
                     // Update status to processing
                     {
-                        *worker.current_status.lock().await = WorkerStatus::Processing;
-                        *worker.current_task_type.lock().await = Some(task_type_str.clone());
+                        *worker.current_status.lock() = WorkerStatus::Processing;
+                        *worker.current_task_type.lock() = Some(task_type_str.clone());
                     }
 
                     let batch_index = job.batch_index;
@@ -309,8 +310,8 @@ impl JobWorker {
 
                         // Reset status to idle
                         {
-                            *worker_clone.current_status.lock().await = WorkerStatus::Idle;
-                            *worker_clone.current_task_type.lock().await = None;
+                            *worker_clone.current_status.lock() = WorkerStatus::Idle;
+                            *worker_clone.current_task_type.lock() = None;
                         }
 
                         match result {
@@ -407,8 +408,8 @@ impl JobWorker {
         let mut conn = self.redis.conn();
         let key = format!("{}{}", WORKER_HEARTBEAT_PREFIX, self.worker_id);
 
-        let status = self.current_status.lock().await.clone();
-        let task_type = self.current_task_type.lock().await.clone();
+        let status = self.current_status.lock().clone();
+        let task_type = self.current_task_type.lock().clone();
 
         let heartbeat = WorkerHeartbeat::new(
             self.worker_id,

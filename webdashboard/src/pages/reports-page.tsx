@@ -45,18 +45,15 @@ export default function ReportsPage() {
     handleDrawerClose,
   } = useReportsPage();
 
-  const clickedEmployeeSummaryRows = React.useMemo(() => {
-    if (!selectedEmployee?.id) return [];
-    return filteredData.filter(row => row.employee_id === selectedEmployee.id);
-  }, [filteredData, selectedEmployee?.id]);
+  const clickedEmployeeSummaryRows = selectedEmployee?.id
+    ? filteredData.filter(row => row.employee_id === selectedEmployee.id)
+    : [];
 
-  const clickedEmployments = React.useMemo(() => {
-    return clickedEmployeeSummaryRows.map(row => ({
-      employmentId: row.employment_id,
-      employerName: row.employer_name ?? "Default Employer",
-      employeeIdNumber: row.employee_id_number,
-    }));
-  }, [clickedEmployeeSummaryRows]);
+  const clickedEmployments = clickedEmployeeSummaryRows.map(row => ({
+    employeeIdNumber: row.employee_id_number,
+    employerName: row.employer_name ?? "Default Employer",
+    employmentId: row.employment_id,
+  }));
 
   if (!wsId) {
     return (

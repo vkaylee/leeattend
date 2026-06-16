@@ -35,4 +35,10 @@ pub trait OutboxJobRepository: Send + Sync {
         older_than: chrono::DateTime<chrono::Utc>,
         limit: i64,
     ) -> Result<Vec<OutboxJob>, AppError>;
+
+    async fn get_all_stuck_jobs(
+        &self,
+        older_than: chrono::DateTime<chrono::Utc>,
+        limit: i64,
+    ) -> Result<Vec<OutboxJob>, AppError>;
 }

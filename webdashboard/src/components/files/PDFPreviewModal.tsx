@@ -35,7 +35,7 @@ export function PDFPreviewModal({
       className="h-[85vh] flex flex-col"
     >
       <div className="relative w-full h-full min-h-[500px] flex-1 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950">
-        {isLoading && (
+        {!!isLoading && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900/50 backdrop-blur-sm z-10">
             <Loader2 className="w-10 h-10 animate-spin text-primary-500 mb-2" />
             <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">

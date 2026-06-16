@@ -236,7 +236,13 @@ pub async fn get_workspace_attendance_adjustments(
     let (requests, total) = state
         .attendance()
         .adjustment_service()
-        .get_paginated_workspace_requests(workspace_id, query.status, query.employee_id, limit, offset)
+        .get_paginated_workspace_requests(
+            workspace_id,
+            query.status,
+            query.employee_id,
+            limit,
+            offset,
+        )
         .await?;
 
     Ok(Json(PaginatedAttendanceAdjustments {

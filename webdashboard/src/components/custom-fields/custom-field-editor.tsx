@@ -60,7 +60,7 @@ const MultiselectFieldEditor: React.FC<MultiselectFieldEditorProps> = ({
     <div className="flex flex-col gap-3 px-1">
       <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">
         {definition.field_label}
-        {definition.is_required && <span className="text-rose-500 ml-0.5">*</span>}
+        {definition.is_required ? <span className="text-rose-500 ml-0.5">*</span> : null}
       </label>
 
       <Popover.Root>
@@ -122,9 +122,9 @@ const MultiselectFieldEditor: React.FC<MultiselectFieldEditorProps> = ({
                       variant="ghost"
                     >
                       <span>{option.label}</span>
-                      {isSelected && (
+                      {isSelected ? (
                         <Check className="ml-auto h-4 w-4 text-primary-600 dark:text-primary-300" />
-                      )}
+                      ) : null}
                     </Button>
                   );
                 })
@@ -185,7 +185,7 @@ export const CustomFieldEditor: React.FC<CustomFieldEditorProps> = ({
         <div className="flex flex-col gap-2 px-1">
           <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">
             {definition.field_label}
-            {definition.is_required && <span className="text-rose-500 ml-0.5">*</span>}
+            {definition.is_required ? <span className="text-rose-500 ml-0.5">*</span> : null}
           </label>
           <div className="flex items-center gap-3">
             <input
@@ -220,7 +220,7 @@ export const CustomFieldEditor: React.FC<CustomFieldEditorProps> = ({
         <div className="flex flex-col gap-3 px-1">
           <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">
             {definition.field_label}
-            {definition.is_required && <span className="text-rose-500 ml-0.5">*</span>}
+            {definition.is_required ? <span className="text-rose-500 ml-0.5">*</span> : null}
           </label>
           <Combobox
             emptyText="No options found"

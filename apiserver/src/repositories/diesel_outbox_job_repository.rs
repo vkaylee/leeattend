@@ -1,9 +1,10 @@
 use crate::diesel_pool::{DieselPools, TenantAuthToken};
 use crate::errors::AppError;
+use crate::models::diesel::core::WorkspaceEntity;
 use crate::models::diesel::outbox_job::OutboxJobEntity;
 use crate::models::OutboxJob;
 use crate::repositories::outbox_job_repository::OutboxJobRepository;
-use crate::schema::outbox_jobs;
+use crate::schema::{outbox_jobs, workspaces};
 use async_trait::async_trait;
 use chrono::Utc;
 use diesel::prelude::*;
@@ -136,6 +137,74 @@ impl OutboxJobRepository for DieselOutboxJobRepository {
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(results.into_iter().map(Into::into).collect())
+    }
+
+    async fn get_all_stuck_jobs(
+        &self,
+        older_than: chrono::DateTime<chrono::Utc>,
+        limit: i64,
+    ) -> Result<Vec<OutboxJob>, AppError> {
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        let workspaces = workspaces::table
+            .select(WorkspaceEntity::as_select())
+            .load::<WorkspaceEntity>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let mut futures = Vec::new();
+        for ws in workspaces {
+            let pools = self.diesel_pools.clone();
+            futures.push(async move {
+                let auth_token = TenantAuthToken::system_override(ws.id);
+                let mut conn = match pools.tenant_transaction_conn(&auth_token).await {
+                    Ok(conn) => conn,
+                    Err(e) => {
+                        tracing::error!(
+                            workspace_id = %ws.id,
+                            error = ?e,
+                            "Failed to get tenant database connection for outbox sweep"
+                        );
+                        return Ok::<_, AppError>(Vec::new());
+                    }
+                };
+
+                let results = outbox_jobs::table
+                    .filter(outbox_jobs::workspace_id.eq(ws.id))
+                    .filter(
+                        outbox_jobs::status
+                            .eq("pending".to_string())
+                            .or(outbox_jobs::status.eq("running".to_string())),
+                    )
+                    .filter(outbox_jobs::updated_at.lt(older_than))
+                    .order(outbox_jobs::updated_at.asc())
+                    .limit(limit)
+                    .load::<OutboxJobEntity>(&mut *conn)
+                    .await;
+
+                match results {
+                    Ok(jobs) => Ok(jobs.into_iter().map(Into::into).collect::<Vec<OutboxJob>>()),
+                    Err(e) => {
+                        tracing::error!(
+                            workspace_id = %ws.id,
+                            error = ?e,
+                            "Failed to query stuck outbox jobs for tenant"
+                        );
+                        Ok(Vec::new())
+                    }
+                }
+            });
+        }
+
+        let results = futures_util::future::try_join_all(futures).await?;
+        let all_jobs = results.into_iter().flatten().collect();
+        Ok(all_jobs)
     }
 }
 

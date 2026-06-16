@@ -20,9 +20,13 @@ impl VirusScanner for ClamAvScanner {
         let addr = format!("{}:{}", self.host, self.port);
         let connection = clamav_client::tokio::Tcp { host_address: addr };
 
-        let response = clamav_client::tokio::scan_buffer(data, connection, None)
-            .await
-            .map_err(|e| AppError::Internal(format!("ClamAV scan connection error: {e}")))?;
+        let response = clamav_client::tokio::scan_buffer(
+            data,
+            connection,
+            Some(10000), // 10 seconds timeout in milliseconds
+        )
+        .await
+        .map_err(|e| AppError::Internal(format!("ClamAV scan connection error: {e}")))?;
 
         if clamav_client::clean(&response).unwrap_or(false) {
             Ok(ScanResult::Clean)

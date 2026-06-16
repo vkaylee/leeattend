@@ -6,6 +6,7 @@ import { components } from '@/types/api-generated';
 import { computeSHA256 } from '@/utils/hash';
 
 type WorkspaceFile = components['schemas']['WorkspaceFile'];
+type PresignedUploadBody = components['schemas']['CreateUploadUrlRequest'] & { content_hash?: string };
 
 export interface UseFileUploadOptions {
   workspaceId: string;
@@ -44,14 +45,12 @@ export function useFileUpload({
 
         const { data, error } = await client.POST('/v1/workspaces/{ws_id}/files/upload', {
             params: { path: { ws_id: workspaceId } },
-            // @ts-ignore - bypass body type check for FormData
-            body: formData,
-            // @ts-ignore
-            bodySerializer: (body) => body,
+            body: formData as unknown as string,
+            bodySerializer: (body) => body as unknown as FormData,
         });
 
         if (error) {
-            throw new Error((error as any).message || t('errors.upload_failed'));
+            throw new Error((error as unknown as { message?: string }).message || t('errors.upload_failed'));
         }
         
         setProgress(100);
@@ -61,24 +60,21 @@ export function useFileUpload({
         const { data: presignedData, error: presignedError } = await client.POST('/v1/workspaces/{ws_id}/files/presigned', {
             params: { path: { ws_id: workspaceId } },
             body: {
-                file_name: file.name,
-                mime_type: file.type || 'application/octet-stream',
-                file_size: file.size,
-                // @ts-ignore
-                category,
-                // @ts-ignore
-                owner_type: ownerType,
-                owner_id: ownerId,
-                // @ts-ignore - Ready for backend support
+                category: category as components['schemas']['FileCategory'],
                 content_hash: contentHash,
-            }
+                file_name: file.name,
+                file_size: file.size,
+                mime_type: file.type || 'application/octet-stream',
+                owner_id: ownerId,
+                owner_type: ownerType as components['schemas']['FileOwnerType'],
+            } as PresignedUploadBody,
         });
 
         if (presignedError || !presignedData) {
-            throw new Error((presignedError as any)?.message || t('errors.presigned_url_failed'));
+            throw new Error((presignedError as unknown as { message?: string })?.message || t('errors.presigned_url_failed'));
         }
 
-        const { upload_url, file: dbFile } = presignedData as any;
+        const { file: dbFile, upload_url } = presignedData as unknown as { file: WorkspaceFile; upload_url: string };
 
         // Use XMLHttpRequest for accurate upload progress tracking to S3
         await new Promise((resolve, reject) => {

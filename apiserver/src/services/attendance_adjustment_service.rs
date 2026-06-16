@@ -9,8 +9,8 @@ use uuid::Uuid;
 use crate::utils::id::new_id;
 
 use crate::models::{
-    AdjustmentStatus, AttendanceAdjustmentRequest, CreateAttendanceAdjustmentRequest,
-    RawAttendanceLog, LogSource,
+    AdjustmentStatus, AttendanceAdjustmentRequest, CreateAttendanceAdjustmentRequest, LogSource,
+    RawAttendanceLog,
 };
 use crate::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository;
 use crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
@@ -107,9 +107,7 @@ impl AttendanceAdjustmentService {
                 .create_raw_log(workspace_id, &raw_log)
                 .await?;
 
-            self.pairing_service
-                .process_new_raw_log(&raw_log)
-                .await?;
+            self.pairing_service.process_new_raw_log(&raw_log).await?;
         }
 
         Ok(())
@@ -151,7 +149,13 @@ impl AttendanceAdjustmentService {
         offset: i64,
     ) -> Result<(Vec<AttendanceAdjustmentRequest>, i64), AppError> {
         self.adj_repo
-            .get_paginated_workspace_adjustment_requests(workspace_id, status, employee_id, limit, offset)
+            .get_paginated_workspace_adjustment_requests(
+                workspace_id,
+                status,
+                employee_id,
+                limit,
+                offset,
+            )
             .await
     }
 

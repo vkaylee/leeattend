@@ -604,7 +604,6 @@ impl AppState {
                     let scheduler = HousekeepingScheduler::new(redis.clone());
 
                     let outbox_sweep = crate::worker::OutboxSweepScheduler::new(
-                        Arc::clone(&workspace_repo),
                         outbox_service.clone(),
                         Arc::clone(&coordinator),
                     );

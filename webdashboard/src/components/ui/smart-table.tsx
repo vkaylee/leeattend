@@ -474,6 +474,7 @@ export default function SmartTable<T>({
   };
 
   return (
+    /* eslint-disable-next-line jsx-a11y/no-static-element-interactions */
     <div
       className={cn("relative flex flex-col h-full w-full", className)}
       onKeyDown={handleKeyDown}
@@ -507,12 +508,10 @@ export default function SmartTable<T>({
                         ...getPinStyles(header.column),
                       }}
                     >
-                      {header.isPlaceholder ? null : (
-                        <div
-                          className={cn(
-                            "flex items-center gap-1.5",
-                            header.column.getCanSort() && "cursor-pointer"
-                          )}
+                      {header.isPlaceholder ? null : header.column.getCanSort() ? (
+                        <button
+                          type="button"
+                          className="flex items-center gap-1.5 cursor-pointer font-bold uppercase tracking-widest text-[10px] text-slate-500 dark:text-slate-400 bg-transparent border-none p-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary-500 rounded"
                           onClick={header.column.getToggleSortingHandler()}
                         >
                           {flexRender(header.column.columnDef.header, header.getContext())}
@@ -520,11 +519,16 @@ export default function SmartTable<T>({
                             asc: <ChevronUp className="h-3 w-3 text-primary-500" />,
                             desc: <ChevronDown className="h-3 w-3 text-primary-500" />,
                           }[header.column.getIsSorted() as string] ?? null}
+                        </button>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          {flexRender(header.column.columnDef.header, header.getContext())}
                         </div>
                       )}
 
                       {/* Resizer handle */}
                       {header.column.getCanResize() && (
+                        /* eslint-disable-next-line jsx-a11y/no-static-element-interactions */
                         <div
                           onMouseDown={header.getResizeHandler()}
                           onTouchStart={header.getResizeHandler()}

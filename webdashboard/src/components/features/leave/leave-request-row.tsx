@@ -171,7 +171,7 @@ export function LeaveRequestRow({
             &quot;{request.reason ?? t("common.no_description")}&quot;
           </Typography>
         </div>
-        {request.attachment_file_ids && request.attachment_file_ids.length > 0 && (
+        {!!request.attachment_file_ids && request.attachment_file_ids.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-2">
             {request.attachment_file_ids.map((fileId, index) => {
               if (!fileId) return null;

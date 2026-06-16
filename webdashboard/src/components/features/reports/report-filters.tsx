@@ -271,7 +271,7 @@ export default function ReportFilters({
           <FilterModeSelector filterMode={filterMode} onFilterModeChange={onFilterModeChange} onSpecificMonthChange={onSpecificMonthChange} specificMonth={specificMonth} t={t} />
           <div className="hidden md:block w-px h-8 bg-slate-200 dark:bg-slate-800 self-center" />
           <StatusFilterSelector employeeStatus={employeeStatus} onEmployeeStatusChange={onEmployeeStatusChange} t={t} />
-          {employers && employers.length > 0 && (
+          {!!employers && employers.length > 0 && (
             <>
               <div className="hidden md:block w-px h-8 bg-slate-200 dark:bg-slate-800 self-center" />
               <EmployerFilterSelector employers={employers} selectedEmployerId={selectedEmployerId} onEmployerChange={onEmployerChange} t={t} />

@@ -104,8 +104,9 @@ function FileUploadZone({
   }
 
   return (
-    <div
-      className={`border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer ${
+    <label
+      htmlFor="csv-upload"
+      className={`block border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer ${
         isDragOver
           ? "border-primary-500 bg-primary-50 dark:bg-primary-950"
           : "border-slate-200 dark:border-slate-700 hover:border-primary-400"
@@ -128,13 +129,12 @@ function FileUploadZone({
         onChange={(e) => { onFileChange(e.target.files?.[0] ?? null); }}
         type="file"
       />
-      <label
-        className="inline-block px-6 py-2 rounded-xl bg-primary-600 text-white text-xs font-bold uppercase tracking-wider cursor-pointer hover:bg-primary-700"
-        htmlFor="csv-upload"
+      <span
+        className="inline-block px-6 py-2 rounded-xl bg-primary-600 text-white text-xs font-bold uppercase tracking-wider hover:bg-primary-700"
       >
         {t("approvals.bulk_upload.select_file")}
-      </label>
-    </div>
+      </span>
+    </label>
   );
 }
 
@@ -358,6 +358,7 @@ function BulkUploadDialogContent({
         onClick={handleClose}
         size="icon"
         variant="ghost"
+        aria-label="Close dialog"
       />
       <div className="mt-6 space-y-6">
         {!uploadResult && (

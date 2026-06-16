@@ -43,20 +43,20 @@ export function DocumentViewerModal({
           </div>
         ) : isSupported ? (
           <div className="flex-1 w-full bg-slate-100 dark:bg-slate-950 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 relative">
-            {isImage && (
+            {isImage ? (
               <img
                 src={fileUrl}
                 alt={fileName}
                 className="w-full h-full object-contain"
               />
-            )}
-            {isPdf && (
+            ) : null}
+            {isPdf ? (
               <iframe
                 src={fileUrl}
                 title={fileName}
                 className="w-full h-full border-none"
               />
-            )}
+            ) : null}
           </div>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
@@ -74,14 +74,14 @@ export function DocumentViewerModal({
           </div>
         )}
 
-        {isSupported && (
+        {isSupported ? (
           <div className="flex justify-end mt-2">
             <Button onClick={onDownload} variant="outline">
               <Download className="w-4 h-4 mr-2" />
               Download Original
             </Button>
           </div>
-        )}
+        ) : null}
       </div>
     </Modal>
   );

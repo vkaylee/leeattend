@@ -101,6 +101,7 @@ function StagingLogRow({
                 onClick={() => { setAssigningLogId(null); }}
                 size="icon"
                 variant="ghost"
+                aria-label={t("common.cancel")}
               >
                 ✕
               </Button>

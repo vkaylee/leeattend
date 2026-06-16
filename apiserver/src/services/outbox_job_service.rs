@@ -68,6 +68,14 @@ impl OutboxJobService {
             .await
     }
 
+    pub async fn get_all_stuck_jobs(
+        &self,
+        older_than: chrono::DateTime<chrono::Utc>,
+        limit: i64,
+    ) -> Result<Vec<OutboxJob>, AppError> {
+        self.outbox_repo.get_all_stuck_jobs(older_than, limit).await
+    }
+
     pub async fn update_job_status(
         &self,
         workspace_id: Uuid,

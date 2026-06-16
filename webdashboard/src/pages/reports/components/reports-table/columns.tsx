@@ -31,7 +31,7 @@ export const getReportColumns = ({
           <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none">{row.employee_name}</div>
           <div className="flex items-center space-x-2 mt-0.5">
             <span className="text-[9px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest leading-none">{row.employee_id_number ?? "—"}</span>
-            {row.employer_name && (
+            {!!row.employer_name && (
               <>
                 <span className="text-[9px] text-slate-300 dark:text-slate-600 leading-none">•</span>
                 <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide truncate max-w-[120px] leading-none">{row.employer_name}</span>

@@ -129,7 +129,7 @@ export const CustomFieldSection: React.FC<CustomFieldSectionProps> = ({
           {t("section_title")}
         </Typography>
 
-        {canEdit && (
+        {canEdit ? (
           <div className="flex items-center gap-2">
             {isEditing ? (
               <>
@@ -164,7 +164,7 @@ export const CustomFieldSection: React.FC<CustomFieldSectionProps> = ({
               </Button>
             )}
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* Grid Content */}
