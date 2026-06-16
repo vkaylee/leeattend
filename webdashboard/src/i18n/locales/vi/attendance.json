@@ -90,14 +90,14 @@
     "error_list_title": "Danh sách lỗi chi tiết:",
     "select_another_file": "Chọn file khác",
     "upload_prompt": "Click hoặc kéo thả file vào đây",
-    "upload_limit": "Excel hoặc CSV (Tối đa 10MB)",
+    "upload_limit": "Excel (Tối đa 10MB)",
     "start_import": "Bắt đầu nhập dữ liệu",
     "download_error_logs": "Tải file Excel chứa danh sách các dòng lỗi / bỏ qua",
     "required": "Bắt buộc",
     "optional": "Tùy chọn",
     "format_label": "Định dạng",
     "download_template": "Tải file Excel mẫu (Template)",
-    "download_csv_excel_template": "Tải file mẫu CSV / Excel (Template)",
+    "download_csv_excel_template": "Tải file Excel mẫu (Template)",
     "or": "hoặc",
     "columns": {
       "employee_code": {
@@ -122,7 +122,7 @@
       "col_a": "Cột A: Mã số nhân viên (Employee ID)",
       "col_b": "Cột B: Tên nhân viên (Không bắt buộc)",
       "col_c": "Cột C: Thời gian quẹt thẻ (DD/MM/YYYY HH:mm)",
-      "formats": "Hỗ trợ file .xlsx, .xls và .csv"
+      "formats": "Hỗ trợ file .xlsx và .xls"
     },
     "messages": {
       "upload_error": "Lỗi khi tải file lên"

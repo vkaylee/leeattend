@@ -171,7 +171,8 @@
     "upload_failed": "导入失败",
     "download_errors": "下载错误文件",
     "import_excel": "导入 Excel",
-    "add": "创建申请"
+    "add": "创建申请",
+    "upload_failed_count": "导入失败：{{errors}} 行有错误。"
   },
   "leave_import": {
     "title": "导入请假单",
@@ -184,10 +185,10 @@
     "req_col_d": "end_date 列：结束日期",
     "req_col_e": "reason 列：原因（可选）",
     "req_col_f": "duration_type 列：时长类型",
-    "req_format": "格式：.xlsx, .xls, .csv",
+    "req_format": "格式：.xlsx, .xls",
     "download_template": "下载Excel模板",
     "drop_prompt": "点击选择Excel文件",
-    "drop_hint": "支持 .xlsx, .xls, .csv",
+    "drop_hint": "支持 .xlsx, .xls",
     "ready": "准备上传",
     "select_another": "选择其他文件",
     "start_import": "开始导入",
@@ -202,7 +203,8 @@
       "completed": "导入成功",
       "partial": "导入有错误",
       "failed": "导入失败"
-    }
+    },
+    "failed_detail_count": "导入失败：{{errors}} 行有错误。"
   },
   "leave": {
     "policy": {

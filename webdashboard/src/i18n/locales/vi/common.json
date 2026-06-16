@@ -900,7 +900,7 @@
       "error_list_title": "Danh sách lỗi chi tiết:",
       "select_another_file": "Chọn file khác",
       "upload_prompt": "Click hoặc kéo thả file vào đây",
-      "upload_limit": "Excel hoặc CSV (Tối đa 10MB)",
+      "upload_limit": "Excel (Tối đa 10MB)",
       "start_import": "Bắt đầu nhập",
       "status": {
         "processing": "Đang xử lý dữ liệu...",
@@ -914,7 +914,7 @@
         "col_a": "Cột A: Mã nhân viên",
         "col_b": "Cột B: Tên nhân viên (Tùy chọn)",
         "col_c": "Cột C: Giờ chấm công (DD/MM/YYYY HH:mm)",
-        "formats": "Hỗ trợ các định dạng .xlsx, .xls và .csv"
+        "formats": "Hỗ trợ các định dạng .xlsx và .xls"
       },
       "messages": {
         "upload_error": "Lỗi khi tải file lên"

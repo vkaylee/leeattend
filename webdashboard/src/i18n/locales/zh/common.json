@@ -932,7 +932,7 @@
       "error_list_title": "详细错误列表：",
       "select_another_file": "选择另一个文件",
       "upload_prompt": "点击或拖拽文件到这里",
-      "upload_limit": "Excel 或 CSV (最大 10MB)",
+      "upload_limit": "Excel (最大 10MB)",
       "start_import": "开始导入",
       "status": {
         "processing": "正在处理数据...",
@@ -946,7 +946,7 @@
         "col_a": "A 列：员工 ID",
         "col_b": "B 列：员工姓名（可选）",
         "col_c": "C 列：打卡时间 (DD/MM/YYYY HH:mm)",
-        "formats": "支持 .xlsx, .xls 和 .csv 文件"
+        "formats": "支持 .xlsx 和 .xls 文件"
       },
       "messages": {
         "upload_error": "上传文件出错"

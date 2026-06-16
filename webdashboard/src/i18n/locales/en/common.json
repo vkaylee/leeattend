@@ -932,7 +932,7 @@
       "error_list_title": "Detailed Error List:",
       "select_another_file": "Select another file",
       "upload_prompt": "Click or drag file here",
-      "upload_limit": "Excel or CSV (Max 10MB)",
+      "upload_limit": "Excel (Max 10MB)",
       "start_import": "Start Import",
       "status": {
         "processing": "Processing data...",
@@ -946,7 +946,7 @@
         "col_a": "Column A: Employee ID",
         "col_b": "Column B: Employee Name (Optional)",
         "col_c": "Column C: Punch Time (DD/MM/YYYY HH:mm)",
-        "formats": "Supports .xlsx, .xls and .csv files"
+        "formats": "Supports .xlsx and .xls files"
       },
       "messages": {
         "upload_error": "Error uploading file"

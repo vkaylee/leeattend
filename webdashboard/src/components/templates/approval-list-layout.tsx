@@ -122,9 +122,31 @@ export default function ApprovalListLayout({
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-primary-100 dark:border-primary-800/50">
-              {tableHeaders.map((header, index) => (
-                <React.Fragment key={index}>{header}</React.Fragment>
-              ))}
+              {tableHeaders.map((header, index) => {
+                if (React.isValidElement(header) && (header.type === "th" || header.type === "td")) {
+                  return <React.Fragment key={index}>{header}</React.Fragment>;
+                }
+
+                const isFirst = index === 0;
+                const isLast = index === tableHeaders.length - 1;
+                const headerText = typeof header === "string" ? header : "";
+                
+                const isStatus = headerText.toLowerCase().includes("status") || headerText.toLowerCase().includes("trạng thái");
+                const alignClass = isStatus ? "text-center" : isLast ? "text-right" : "text-left";
+
+                return (
+                  <th
+                    key={index}
+                    className={cn(
+                      "py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]",
+                      isFirst ? "px-10" : isLast ? "px-10" : "px-8",
+                      alignClass
+                    )}
+                  >
+                    {header}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50 dark:divide-slate-800">

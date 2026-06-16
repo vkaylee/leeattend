@@ -90,14 +90,14 @@
     "error_list_title": "详细错误列表：",
     "select_another_file": "选择另一个文件",
     "upload_prompt": "点击或将文件拖到此处",
-    "upload_limit": "Excel 或 CSV (最大 10MB)",
+    "upload_limit": "Excel (最大 10MB)",
     "start_import": "开始导入",
     "download_error_logs": "下载包含错误/跳过行列表的 Excel 文件",
     "required": "必填",
     "optional": "选填",
     "format_label": "格式",
     "download_template": "下载 Excel 模板",
-    "download_csv_excel_template": "下载 CSV / Excel 模板",
+    "download_csv_excel_template": "下载 Excel 模板",
     "or": "或",
     "columns": {
       "employee_code": {

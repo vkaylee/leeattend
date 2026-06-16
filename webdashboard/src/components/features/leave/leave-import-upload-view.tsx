@@ -71,7 +71,7 @@ function FileDropZone({ file, setFile, t }: { file: File | null; setFile: (file:
       tabIndex={0}
     >
       <input
-        accept=".xlsx,.xls,.csv"
+        accept=".xlsx,.xls"
         aria-label="File Upload"
         className="hidden"
         id="leave-import-file-input"

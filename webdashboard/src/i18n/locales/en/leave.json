@@ -171,7 +171,8 @@
     "upload_failed": "Import failed",
     "download_errors": "Download error file",
     "import_excel": "Import Excel",
-    "add": "Create Request"
+    "add": "Create Request",
+    "upload_failed_count": "Import failed: {{errors}} rows with errors."
   },
   "leave_import": {
     "title": "Import Leave Requests",
@@ -184,10 +185,10 @@
     "req_col_d": "Column end_date: End Date",
     "req_col_e": "Column reason: Reason (optional)",
     "req_col_f": "Column duration_type: Duration Type",
-    "req_format": "Format: .xlsx, .xls, .csv",
+    "req_format": "Format: .xlsx, .xls",
     "download_template": "Download Excel Template",
     "drop_prompt": "Click to select Excel file",
-    "drop_hint": "Supports .xlsx, .xls, .csv",
+    "drop_hint": "Supports .xlsx, .xls",
     "ready": "READY TO UPLOAD",
     "select_another": "Select another file",
     "start_import": "Start Import",
@@ -202,7 +203,8 @@
       "completed": "Import completed",
       "partial": "Import has errors",
       "failed": "Import failed"
-    }
+    },
+    "failed_detail_count": "Import failed: {{errors}} rows failed"
   },
   "leave": {
     "policy": {

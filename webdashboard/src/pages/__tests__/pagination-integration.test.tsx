@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import "@testing-library/jest-dom";
 
 import type { PaginatedResponse, Employee } from "../../lib/api/types";
 
@@ -45,6 +46,7 @@ vi.mock("../../lib/api", () => ({
   fetchEmployeeLeaveBalances: vi.fn(),
   fetchLeavePolicies: vi.fn(),
   fetchMyPermissions: vi.fn(),
+  fetchMyProfile: vi.fn(),
   fetchLeaveTypes: vi.fn().mockResolvedValue([]),
   // LeaveImportDialog mocks
   uploadLeaveExcel: vi.fn(),
@@ -78,6 +80,11 @@ describe("Pagination Integration Tests", () => {
     });
  
     vi.mocked(api.fetchMyPermissions).mockResolvedValue({ permissions: [], roles: [], managed_department_ids: [] });
+    vi.mocked(api.fetchMyProfile).mockResolvedValue({
+      employee: { id: "emp-1", full_name: "John Doe" },
+      profile: { id: "prof-1" },
+      emergency_contacts: [],
+    } as any);
   });
 
   const renderWithProviders = (component: React.ReactElement) => {

@@ -43,15 +43,32 @@ export function useAttendanceAdjustmentsPage() {
     },
   });
 
-  const downloadTemplate = () => {
-    const headers = "employee_code,punch_time";
-    const example = "EMP001,11/01/2026 08:00";
-    const blob = new Blob([`\uFEFF${headers}\n${example}`], { type: "text/csv;charset=utf-8;" });
-    const link = document.body.appendChild(document.createElement("a"));
-    link.href = URL.createObjectURL(blob);
-    link.download = "attendance_template.csv";
-    link.click();
-    document.body.removeChild(link);
+  const downloadTemplate = async () => {
+    try {
+      const excelJSModule = await import("exceljs");
+      const ExcelJS = "default" in excelJSModule ? (excelJSModule.default as any) : excelJSModule;
+      const fileSaverModule = await import("file-saver");
+      const saveAs = (fileSaverModule.saveAs || (fileSaverModule as any).default || fileSaverModule) as any;
+
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Template");
+      worksheet.columns = [
+        { header: "employee_code", key: "employee_code", width: 20 },
+        { header: "punch_time", key: "punch_time", width: 25 },
+      ];
+      worksheet.addRow({
+        employee_code: "EMP001",
+        punch_time: "11/01/2026 08:00",
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      saveAs(blob, "attendance_template.xlsx");
+    } catch (error) {
+      console.error("Failed to generate Excel template:", error);
+    }
   };
 
   const getEmployeeName = (employmentId: string) => {

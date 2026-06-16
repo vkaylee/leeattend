@@ -85,7 +85,7 @@ describe("LeaveImportDialog", () => {
       expect(screen.getByText(/Cột end_date: Ngày kết thúc/i)).toBeDefined();
       expect(screen.getByText(/Cột reason: Lý do/i)).toBeDefined();
       expect(screen.getByText(/Cột duration_type: Loại thời gian/i)).toBeDefined();
-      expect(screen.getAllByText(/\.xlsx, \.xls, \.csv/i).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText(/\.xlsx, \.xls/i).length).toBeGreaterThanOrEqual(1);
     });
 
     it("renders download template button", () => {
@@ -96,7 +96,7 @@ describe("LeaveImportDialog", () => {
     it("renders file drop zone with prompt", () => {
       renderDialog();
       expect(screen.getByText(/Nhấn để chọn file Excel/i)).toBeDefined();
-      expect(screen.getByText(/Hỗ trợ .xlsx, .xls, .csv/i)).toBeDefined();
+      expect(screen.getByText(/Hỗ trợ .xlsx, .xls/i)).toBeDefined();
     });
 
     it("renders cancel and import buttons", () => {

@@ -171,7 +171,8 @@
     "upload_failed": "Import thất bại",
     "download_errors": "Tải file lỗi",
     "import_excel": "Import Excel",
-    "add": "Tạo yêu cầu"
+    "add": "Tạo yêu cầu",
+    "upload_failed_count": "Import thất bại: {{errors}} dòng lỗi."
   },
   "leave_import": {
     "title": "Import đơn nghỉ phép",
@@ -184,10 +185,10 @@
     "req_col_d": "Cột end_date: Ngày kết thúc",
     "req_col_e": "Cột reason: Lý do (tùy chọn)",
     "req_col_f": "Cột duration_type: Loại thời gian",
-    "req_format": "Định dạng: .xlsx, .xls, .csv",
+    "req_format": "Định dạng: .xlsx, .xls",
     "download_template": "Tải file mẫu Excel",
     "drop_prompt": "Nhấn để chọn file Excel",
-    "drop_hint": "Hỗ trợ .xlsx, .xls, .csv",
+    "drop_hint": "Hỗ trợ .xlsx, .xls",
     "ready": "SẴN SÀNG UPLOAD",
     "select_another": "Chọn file khác",
     "start_import": "Bắt đầu import",
@@ -202,7 +203,8 @@
       "completed": "Import thành công",
       "partial": "Import có lỗi",
       "failed": "Import thất bại"
-    }
+    },
+    "failed_detail_count": "Import thất bại: {{errors}} dòng bị lỗi"
   },
   "leave": {
     "policy": {
