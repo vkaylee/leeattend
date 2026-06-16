@@ -74,9 +74,27 @@ pub fn extract_file_rows(file_bytes: &[u8]) -> Result<Vec<(usize, Vec<String>)>,
     }
 
     // 3. Try CSV
-    let mut reader = csv::ReaderBuilder::new()
-        .has_headers(true)
-        .from_reader(Cursor::new(file_bytes));
+    let decoded_opt = decode_utf16_bytes(file_bytes);
+
+    let first_line_storage;
+    let first_line = if let Some(ref decoded) = decoded_opt {
+        decoded.lines().next().unwrap_or_default()
+    } else {
+        first_line_storage = String::from_utf8_lossy(file_bytes);
+        first_line_storage.lines().next().unwrap_or_default()
+    };
+
+    let delimiter = detect_delimiter(first_line);
+
+    let mut reader_builder = csv::ReaderBuilder::new();
+    reader_builder.has_headers(true);
+    reader_builder.delimiter(delimiter);
+
+    let mut reader = if let Some(ref decoded) = decoded_opt {
+        reader_builder.from_reader(Cursor::new(decoded.as_bytes()))
+    } else {
+        reader_builder.from_reader(Cursor::new(file_bytes))
+    };
 
     let mut has_records = false;
     for (idx, result) in reader.records().enumerate() {
@@ -101,9 +119,59 @@ pub fn extract_file_rows(file_bytes: &[u8]) -> Result<Vec<(usize, Vec<String>)>,
     Err("Invalid file format or file is empty (contains only headers). Supported formats: XLSX, XLS, CSV.".to_string())
 }
 
-/// Normalize header string for matching (lowercase, trim whitespace)
+/// Normalize header string for matching (lowercase, trim whitespace, and strip BOM)
 fn normalize_header(h: &str) -> String {
-    h.trim().to_lowercase()
+    h.trim()
+        .trim_start_matches('\u{feff}')
+        .trim()
+        .to_lowercase()
+}
+
+/// Decode UTF-16 bytes (LE or BE) to a String if a BOM is present
+fn decode_utf16_bytes(bytes: &[u8]) -> Option<String> {
+    if bytes.len() < 2 {
+        return None;
+    }
+
+    let is_le = bytes[0] == 0xFF && bytes[1] == 0xFE;
+    let is_be = bytes[0] == 0xFE && bytes[1] == 0xFF;
+
+    if !is_le && !is_be {
+        return None;
+    }
+
+    let data_bytes = &bytes[2..];
+    let mut u16_data = Vec::with_capacity(data_bytes.len() / 2);
+
+    for chunk in data_bytes.chunks_exact(2) {
+        let val = if is_le {
+            u16::from_le_bytes([chunk[0], chunk[1]])
+        } else {
+            u16::from_be_bytes([chunk[0], chunk[1]])
+        };
+        u16_data.push(val);
+    }
+
+    Some(
+        char::decode_utf16(u16_data)
+            .map(|r| r.unwrap_or(char::REPLACEMENT_CHARACTER))
+            .collect::<String>(),
+    )
+}
+
+/// Detect CSV delimiter by counting occurrences in the header line
+fn detect_delimiter(header_line: &str) -> u8 {
+    let comma_count = header_line.chars().filter(|&c| c == ',').count();
+    let semicolon_count = header_line.chars().filter(|&c| c == ';').count();
+    let tab_count = header_line.chars().filter(|&c| c == '\t').count();
+
+    if semicolon_count > comma_count && semicolon_count > tab_count {
+        b';'
+    } else if tab_count > comma_count && tab_count > semicolon_count {
+        b'\t'
+    } else {
+        b','
+    }
 }
 
 /// Extract rows and map them using normalized headers.
@@ -111,7 +179,7 @@ fn normalize_header(h: &str) -> String {
 /// Returns a list of (line_number, mapped_row).
 /// The mapped_row uses the EXACT expected_headers strings as keys, but matched flexibly.
 /// Only scans the FIRST sheet.
-#[allow(clippy::type_complexity)]
+#[allow(clippy::type_complexity, clippy::too_many_lines)]
 pub fn extract_mapped_rows(
     file_bytes: &[u8],
     expected_headers: &[&str],
@@ -206,9 +274,27 @@ pub fn extract_mapped_rows(
     }
 
     // 3. Try CSV
-    let mut reader = csv::ReaderBuilder::new()
-        .has_headers(false) // Read header as row 1 to use same logic
-        .from_reader(Cursor::new(file_bytes));
+    let decoded_opt = decode_utf16_bytes(file_bytes);
+
+    let first_line_storage;
+    let first_line = if let Some(ref decoded) = decoded_opt {
+        decoded.lines().next().unwrap_or_default()
+    } else {
+        first_line_storage = String::from_utf8_lossy(file_bytes);
+        first_line_storage.lines().next().unwrap_or_default()
+    };
+
+    let delimiter = detect_delimiter(first_line);
+
+    let mut reader_builder = csv::ReaderBuilder::new();
+    reader_builder.has_headers(false);
+    reader_builder.delimiter(delimiter);
+
+    let mut reader = if let Some(ref decoded) = decoded_opt {
+        reader_builder.from_reader(Cursor::new(decoded.as_bytes()))
+    } else {
+        reader_builder.from_reader(Cursor::new(file_bytes))
+    };
 
     let mut iter_data = Vec::new();
     for (idx, res) in reader.records().enumerate() {
@@ -334,6 +420,51 @@ mod tests {
         let csv_data = "  EMPLOYEE_code , full_name  , HIRE_date,  Department_Name  \nE001,Nguyen Van A,2023-01-01,IT";
         let expected = ["employee_code", "full_name", "hire_date", "department_name"];
         let result = extract_mapped_rows(csv_data.as_bytes(), &expected).unwrap();
+
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].1.get("employee_code").unwrap(), "E001");
+        assert_eq!(result[0].1.get("department_name").unwrap(), "IT");
+    }
+
+    #[test]
+    fn test_extract_mapped_rows_bom() {
+        // First column header starts with UTF-8 BOM: \u{feff}employee_code
+        let csv_data = "\u{feff}employee_code,full_name,hire_date,department_name\nE001,Nguyen Van A,2023-01-01,IT";
+        let expected = ["employee_code", "full_name", "hire_date", "department_name"];
+        let result = extract_mapped_rows(csv_data.as_bytes(), &expected).unwrap();
+
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].1.get("employee_code").unwrap(), "E001");
+    }
+
+    #[test]
+    fn test_extract_mapped_rows_semicolon_csv() {
+        // Semicolon delimited CSV
+        let csv_data =
+            "employee_code;full_name;hire_date;department_name\nE001;Nguyen Van A;2023-01-01;IT";
+        let expected = ["employee_code", "full_name", "hire_date", "department_name"];
+        let result = extract_mapped_rows(csv_data.as_bytes(), &expected).unwrap();
+
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].1.get("employee_code").unwrap(), "E001");
+        assert_eq!(result[0].1.get("department_name").unwrap(), "IT");
+    }
+
+    #[test]
+    fn test_extract_mapped_rows_utf16_csv() {
+        // UTF-16LE encoded semicolon CSV with BOM
+        let csv_data =
+            "employee_code;full_name;hire_date;department_name\nE001;Nguyen Van A;2023-01-01;IT\n";
+        let utf16_bytes = csv_data.encode_utf16().collect::<Vec<u16>>();
+        let mut file_bytes = vec![0xFF, 0xFE]; // LE BOM
+        for val in utf16_bytes {
+            let b = val.to_le_bytes();
+            file_bytes.push(b[0]);
+            file_bytes.push(b[1]);
+        }
+
+        let expected = ["employee_code", "full_name", "hire_date", "department_name"];
+        let result = extract_mapped_rows(&file_bytes, &expected).unwrap();
 
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].1.get("employee_code").unwrap(), "E001");
