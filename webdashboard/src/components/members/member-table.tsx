@@ -15,6 +15,14 @@ import { TableSkeleton } from "@/components/common/table-skeleton";
 import PermissionManagementModal from "@/components/features/settings/permission-management-modal";
 import RoleManagementModal from "@/components/features/settings/role-management-modal";
 import Button from "@/components/ui/button";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
 import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useWorkspaceMembers, useWorkspaceRoles } from "@/hooks/use-workspace";
@@ -102,75 +110,71 @@ export default function MemberTable() {
 
   return (
     <>
-      <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden animate-in fade-in duration-700">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-                <th className="px-10 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">{t("common.user")}</th>
-                <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">{t("common.role")}</th>
-                <th className="px-10 py-6 border-b border-slate-100 dark:border-slate-800"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-              {isLoading ? (
-                <TableSkeleton rows={5} />
-              ) : members.length === 0 ? (
-                <tr>
-                  <td colSpan={3}>
-                    <div className="py-32 text-center bg-slate-50 dark:bg-slate-800/30 flex flex-col items-center">
-                      <UserIcon className="w-20 h-20 mb-6 text-slate-200 dark:text-slate-700" />
-                      <Typography className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-[0.25em]" variant="p">{t("members.table.messages.no_members")}</Typography>
+      <Table className="animate-in fade-in duration-700">
+        <TableHeader>
+          <TableRow>
+            <TableHead>{t("common.user")}</TableHead>
+            <TableHead>{t("common.role")}</TableHead>
+            <TableHead />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {isLoading ? (
+            <TableSkeleton rows={5} />
+          ) : members.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={3}>
+                <div className="py-32 text-center bg-slate-50 dark:bg-slate-800/30 flex flex-col items-center">
+                  <UserIcon className="w-20 h-20 mb-6 text-slate-200 dark:text-slate-700" />
+                  <Typography className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-[0.25em]" variant="p">{t("members.table.messages.no_members")}</Typography>
+                </div>
+              </TableCell>
+            </TableRow>
+          ) : (
+            members.map((member) => (
+              <TableRow className="group" key={member.user_id}>
+                <TableCell>
+                  <div className="flex items-center gap-5">
+                    <div className="w-14 h-14 rounded-2xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 font-bold shadow-inner border border-primary-100 dark:border-primary-800/50 overflow-hidden group-hover:scale-110 transition-transform">
+                      {member.avatar_url ? (
+                        <img alt="Member avatar" className="w-full h-full object-cover" src={member.avatar_url} />
+                      ) : (
+                        <span className="text-lg uppercase">{(member.full_name ?? member.email).substring(0, 2)}</span>
+                      )}
                     </div>
-                  </td>
-                </tr>
-              ) : (
-                members.map((member) => (
-                  <tr className="group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all" key={member.user_id}>
-                    <td className="px-10 py-6">
-                      <div className="flex items-center gap-5">
-                        <div className="w-14 h-14 rounded-2xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 font-bold shadow-inner border border-primary-100 dark:border-primary-800/50 overflow-hidden group-hover:scale-110 transition-transform">
-                          {member.avatar_url ? (
-                            <img alt="Member avatar" className="w-full h-full object-cover" src={member.avatar_url} />
-                          ) : (
-                            <span className="text-lg uppercase">{(member.full_name ?? member.email).substring(0, 2)}</span>
-                          )}
-                        </div>
-                        <div>
-                          <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none mb-1.5">{member.full_name ?? t("common.no_name")}</div>
-                          <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-bold flex items-center gap-2 opacity-70">
-                            <Mail className="text-primary-400" size={12} /> {member.email}
-                          </div>
-                        </div>
+                    <div>
+                      <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none mb-1.5">{member.full_name ?? t("common.no_name")}</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-bold flex items-center gap-2 opacity-70">
+                        <Mail className="text-primary-400" size={12} /> {member.email}
                       </div>
-                    </td>
-                    <td className="px-8 py-6">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <MemberRoleCell member={member} roles={roles} />
-                      </div>
-                    </td>
-                    <td className="px-10 py-6 text-right">
-                      <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
-                        <PermissionGate permission="members:roles:manage">
-                          <Button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => { handleManageRoles(member.user_id); }} title={t("members.table.manage_roles")} variant="ghost"><UserCog size={20} /></Button>
-                        </PermissionGate>
-                        <PermissionGate permission="members:roles:manage">
-                          <Button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:text-amber-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => { handleManagePermissions(member.user_id); }} title={t("members.table.manage_permissions", { defaultValue: "Manage Permissions" })} variant="ghost"><KeyRound size={20} /></Button>
-                        </PermissionGate>
-                        {roles.find(r => r.id === member.role_id)?.name.toLowerCase() !== "owner" && (
-                          <PermissionGate permission="members:remove">
-                            <Button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => handleRemoveMember(member.user_id)} title={t("members.table.remove_member")} variant="ghost"><Trash2 size={20} /></Button>
-                          </PermissionGate>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <MemberRoleCell member={member} roles={roles} />
+                  </div>
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
+                    <PermissionGate permission="members:roles:manage">
+                      <Button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => { handleManageRoles(member.user_id); }} title={t("members.table.manage_roles")} variant="ghost"><UserCog size={20} /></Button>
+                    </PermissionGate>
+                    <PermissionGate permission="members:roles:manage">
+                      <Button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:text-amber-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => { handleManagePermissions(member.user_id); }} title={t("members.table.manage_permissions", { defaultValue: "Manage Permissions" })} variant="ghost"><KeyRound size={20} /></Button>
+                    </PermissionGate>
+                    {roles.find(r => r.id === member.role_id)?.name.toLowerCase() !== "owner" && (
+                      <PermissionGate permission="members:remove">
+                        <Button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => handleRemoveMember(member.user_id)} title={t("members.table.remove_member")} variant="ghost"><Trash2 size={20} /></Button>
+                      </PermissionGate>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
 
       {!!selectedUserId && <>
           <RoleManagementModal isOpen={isRoleModalOpen} onClose={() => { setIsRoleModalOpen(false); }} userId={selectedUserId} />

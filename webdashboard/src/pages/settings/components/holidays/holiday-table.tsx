@@ -5,6 +5,14 @@ import { useTranslation } from "react-i18next";
 import type { Holiday, LeaveType } from "@/lib/api/types";
 
 import Button from "@/components/ui/button";
+import {
+    Table,
+    TableHeader,
+    TableBody,
+    TableRow,
+    TableHead,
+    TableCell,
+} from "@/components/ui/table";
 import { Typography } from "@/components/ui/typography";
 
 interface HolidayTableProps {
@@ -19,38 +27,38 @@ interface HolidayTableProps {
 function HolidayTableHeader() {
     const { t } = useTranslation();
     return (
-        <thead>
-            <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-                <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t("holidays.table.date")}</th>
-                <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t("holidays.table.name")}</th>
-                <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t("holidays.table.type")}</th>
-                <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">{t("holidays.table.paid")}</th>
-                <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">{t("holidays.table.ot")}</th>
-                <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">{t("holidays.table.credit", "Credit")}</th>
-                <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">{t("holidays.table.threshold", "Ngưỡng")}</th>
-                <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t("holidays.table.description")}</th>
-                <th className="px-4 py-3"></th>
-            </tr>
-        </thead>
+        <TableHeader>
+            <TableRow>
+                <TableHead className="px-4 py-4">{t("holidays.table.date")}</TableHead>
+                <TableHead className="px-4 py-4">{t("holidays.table.name")}</TableHead>
+                <TableHead className="px-4 py-4">{t("holidays.table.type")}</TableHead>
+                <TableHead className="px-4 py-4 text-center">{t("holidays.table.paid")}</TableHead>
+                <TableHead className="px-4 py-4 text-center">{t("holidays.table.ot")}</TableHead>
+                <TableHead className="px-4 py-4 text-center">{t("holidays.table.credit", "Credit")}</TableHead>
+                <TableHead className="px-4 py-4 text-center">{t("holidays.table.threshold", "Ngưỡng")}</TableHead>
+                <TableHead className="px-4 py-4">{t("holidays.table.description")}</TableHead>
+                <TableHead className="px-4 py-4" />
+            </TableRow>
+        </TableHeader>
     );
 }
 
 function HolidayTableRow({ h, leaveTypes, onDelete, onEdit }: { h: Holiday; leaveTypes: LeaveType[]; onDelete: (id: string) => void; onEdit: (h: Holiday) => void }) {
     const { t } = useTranslation();
     return (
-        <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group" key={h.id}>
-            <td className="px-4 py-3 font-mono text-sm font-bold text-slate-700 dark:text-slate-200">
+        <TableRow className="group" key={h.id}>
+            <TableCell className="px-4 py-4 font-mono text-sm font-bold text-slate-700 dark:text-slate-200">
                 {h.date}
-            </td>
-            <td className="px-4 py-3 font-bold text-slate-900 dark:text-white text-sm">
+            </TableCell>
+            <TableCell className="px-4 py-4 font-bold text-slate-900 dark:text-white text-sm">
                 {h.name}
-            </td>
-            <td className="px-4 py-3">
+            </TableCell>
+            <TableCell className="px-4 py-4">
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
                     {t(`holidays.fields.types.${h.holiday_type}`)}
                 </span>
-            </td>
-            <td className="px-4 py-3 text-center">
+            </TableCell>
+            <TableCell className="px-4 py-4 text-center">
                 {h.is_paid ? (
                     <span className="text-emerald-600">✅ {t("holidays.table.paid_status")}</span>
                 ) : (
@@ -63,24 +71,24 @@ function HolidayTableRow({ h, leaveTypes, onDelete, onEdit }: { h: Holiday; leav
                         )}
                     </span>
                 )}
-            </td>
-            <td className="px-4 py-3 text-center font-mono font-bold text-sm text-orange-600 dark:text-orange-400">
+            </TableCell>
+            <TableCell className="px-4 py-4 text-center font-mono font-bold text-sm text-orange-600 dark:text-orange-400">
                 {h.ot_multiplier ? `${h.ot_multiplier}×` : "—"}
-            </td>
-            <td className="px-4 py-3 text-center text-sm">
+            </TableCell>
+            <TableCell className="px-4 py-4 text-center text-sm">
                 {h.is_credit_on_work ? (
                     <span className="text-emerald-600">✅</span>
                 ) : (
                     <span className="text-slate-400">❌</span>
                 )}
-            </td>
-            <td className="px-4 py-3 text-center font-mono text-sm text-slate-600 dark:text-slate-400">
+            </TableCell>
+            <TableCell className="px-4 py-4 text-center font-mono text-sm text-slate-600 dark:text-slate-400">
                 {h.work_threshold_percent != null ? `${h.work_threshold_percent}%` : "—"}
-            </td>
-            <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 max-w-[200px] truncate">
+            </TableCell>
+            <TableCell className="px-4 py-4 text-xs text-slate-500 dark:text-slate-400 max-w-[200px] truncate">
                 {h.description ?? "—"}
-            </td>
-            <td className="px-4 py-3">
+            </TableCell>
+            <TableCell className="px-4 py-4">
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Button className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-primary-600 hover:bg-primary-50 transition-colors"
                         onClick={() => { onEdit(h); }}
@@ -95,8 +103,8 @@ function HolidayTableRow({ h, leaveTypes, onDelete, onEdit }: { h: Holiday; leav
                         <Trash2 size={14} />
                     </Button>
                 </div>
-            </td>
-        </tr>
+            </TableCell>
+        </TableRow>
     );
 }
 
@@ -105,7 +113,7 @@ export function HolidayTable({ holidays, isLoading, leaveTypes, onDelete, onEdit
 
     if (isLoading) {
         return (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+            <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
                 <div className="p-12 text-center text-slate-400 text-sm font-bold uppercase tracking-widest animate-pulse">
                     {t("common.loading")}
                 </div>
@@ -115,7 +123,7 @@ export function HolidayTable({ holidays, isLoading, leaveTypes, onDelete, onEdit
 
     if (holidays.length === 0) {
         return (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+            <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
                 <div className="p-12 text-center">
                     <CalendarDays className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
                     <Typography className="text-slate-400 text-sm font-medium" variant="p">
@@ -127,15 +135,13 @@ export function HolidayTable({ holidays, isLoading, leaveTypes, onDelete, onEdit
     }
 
     return (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-            <table className="w-full text-left">
-                <HolidayTableHeader />
-                <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                    {holidays.map((h) => (
-                        <HolidayTableRow h={h} key={h.id} leaveTypes={leaveTypes} onDelete={onDelete} onEdit={onEdit} />
-                    ))}
-                </tbody>
-            </table>
-        </div>
+        <Table>
+            <HolidayTableHeader />
+            <TableBody>
+                {holidays.map((h) => (
+                    <HolidayTableRow h={h} key={h.id} leaveTypes={leaveTypes} onDelete={onDelete} onEdit={onEdit} />
+                ))}
+            </TableBody>
+        </Table>
     );
 }

@@ -8,6 +8,14 @@ import Modal from "@/components/ui/modal";
 import PageHeader from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import StatusBadge from "@/components/ui/status-badge";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
@@ -222,83 +230,79 @@ export default function TenantsPage() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
-            <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 text-xs uppercase font-semibold text-slate-500 dark:text-slate-400">
-              <tr>
-                <th className="px-6 py-4">{t("system_admin.tenants.table.id")}</th>
-                <th className="px-6 py-4">{t("system_admin.tenants.table.pool_size")}</th>
-                <th className="px-6 py-4">{t("system_admin.tenants.table.created_at")}</th>
-                <th className="px-6 py-4">{t("system_admin.tenants.table.updated_at")}</th>
-                <th className="px-6 py-4 text-right">
-                  {t("system_admin.tenants.table.actions")}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-              {isLoading ? (
-                <tr>
-                  <td className="px-6 py-8 text-center" colSpan={5}>
-                    <div className="flex justify-center">
-                      <div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
-                    </div>
-                  </td>
-                </tr>
-              ) : tenants.length === 0 ? (
-                <tr>
-                  <td className="px-6 py-8 text-center text-slate-500" colSpan={5}>
-                    No tenants found.
-                  </td>
-                </tr>
-              ) : (
-                tenants.map((tenant) => (
-                  <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors" key={tenant.id}>
-                    <td className="px-6 py-4 font-mono text-xs">{tenant.id}</td>
-                    <td className="px-6 py-4">
-                      <StatusBadge variant="neutral">{tenant.pool_size}</StatusBadge>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-500">
-                      {new Date(tenant.created_at).toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-500">
-                      {new Date(tenant.updated_at).toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          onClick={() => { handleViewStats(tenant); }}
-                          size="sm"
-                          title="View Connection & Stats"
-                          variant="ghost"
-                        >
-                          <Eye className="w-4 h-4 text-slate-500" />
-                        </Button>
-                        <Button
-                          onClick={() => { handleManageDb(tenant); }}
-                          size="sm"
-                          title="Manage Database"
-                          variant="ghost"
-                        >
-                          <Server className="w-4 h-4 text-orange-500" />
-                        </Button>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>{t("system_admin.tenants.table.id")}</TableHead>
+            <TableHead>{t("system_admin.tenants.table.pool_size")}</TableHead>
+            <TableHead>{t("system_admin.tenants.table.created_at")}</TableHead>
+            <TableHead>{t("system_admin.tenants.table.updated_at")}</TableHead>
+            <TableHead className="text-right">
+              {t("system_admin.tenants.table.actions")}
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {isLoading ? (
+            <TableRow>
+              <TableCell className="text-center" colSpan={5}>
+                <div className="flex justify-center py-4">
+                  <div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              </TableCell>
+            </TableRow>
+          ) : tenants.length === 0 ? (
+            <TableRow>
+              <TableCell className="text-center text-slate-500" colSpan={5}>
+                No tenants found.
+              </TableCell>
+            </TableRow>
+          ) : (
+            tenants.map((tenant) => (
+              <TableRow key={tenant.id}>
+                <TableCell className="font-mono text-xs">{tenant.id}</TableCell>
+                <TableCell>
+                  <StatusBadge variant="neutral">{tenant.pool_size}</StatusBadge>
+                </TableCell>
+                <TableCell className="text-sm text-slate-500">
+                  {new Date(tenant.created_at).toLocaleString()}
+                </TableCell>
+                <TableCell className="text-sm text-slate-500">
+                  {new Date(tenant.updated_at).toLocaleString()}
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    <Button
+                      onClick={() => { handleViewStats(tenant); }}
+                      size="sm"
+                      title="View Connection & Stats"
+                      variant="ghost"
+                    >
+                      <Eye className="w-4 h-4 text-slate-500" />
+                    </Button>
+                    <Button
+                      onClick={() => { handleManageDb(tenant); }}
+                      size="sm"
+                      title="Manage Database"
+                      variant="ghost"
+                    >
+                      <Server className="w-4 h-4 text-orange-500" />
+                    </Button>
 
-                        <Button
-                          onClick={() => { handleDelete(tenant.id).catch(console.error); }}
-                          size="sm"
-                          variant="ghost"
-                        >
-                          <Trash2 className="w-4 h-4 text-red-500" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                    <Button
+                      onClick={() => { handleDelete(tenant.id).catch(console.error); }}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      <Trash2 className="w-4 h-4 text-red-500" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
 
       <Modal
         isOpen={isModalOpen}

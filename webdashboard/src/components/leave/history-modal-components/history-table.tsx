@@ -3,6 +3,7 @@ import React from "react";
 
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 
 interface HistoryItem {
   amount: number;
@@ -44,35 +45,34 @@ export function HistoryTable({ history, isLoading, formatDate, t }: HistoryTable
   }
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2rem] overflow-hidden shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <table className="w-full text-left border-collapse">
-        <thead>
-          <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-            <th className="px-6 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("common.date")}</th>
-            <th className="px-6 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center">{t("common.type")}</th>
-            <th className="px-6 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-right">{t("common.total")}</th>
-            <th className="px-6 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("common.reason")}</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-          {history.map((item) => (
-            <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group" key={item.id}>
-              <td className="px-6 py-5 text-xs font-bold text-slate-500 dark:text-slate-400 font-mono uppercase">{formatDate(item.date)}</td>
-              <td className="px-6 py-5 text-center">
-                <span className={cn("px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border", getTransactionColor(item.transaction_type))}>
-                  {item.transaction_type}
-                </span>
-              </td>
-              <td className={cn("px-6 py-5 text-right font-bold text-sm font-mono tracking-tighter", item.amount > 0 ? "text-emerald-600 dark:text-emerald-300" : "text-rose-600 dark:text-rose-300")}>
-                {item.amount > 0 ? "+" : ""}{item.amount}
-              </td>
-              <td className="px-6 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tighter max-w-[200px] truncate" title={item.reason ?? ""}>
-                {item.reason ?? "-"}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Table className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <TableHeader>
+        <TableRow>
+          <TableHead className="px-6 py-4">{t("common.date")}</TableHead>
+          <TableHead className="px-6 py-4 text-center">{t("common.type")}</TableHead>
+          <TableHead className="px-6 py-4 text-right">{t("common.total")}</TableHead>
+          <TableHead className="px-6 py-4">{t("common.reason")}</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {history.map((item) => (
+          <TableRow key={item.id}>
+            <TableCell className="px-6 py-5 text-xs font-bold text-slate-500 dark:text-slate-400 font-mono uppercase">{formatDate(item.date)}</TableCell>
+            <TableCell className="px-6 py-5 text-center">
+              <span className={cn("px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border", getTransactionColor(item.transaction_type))}>
+                {item.transaction_type}
+              </span>
+            </TableCell>
+            <TableCell className={cn("px-6 py-5 text-right font-bold text-sm font-mono tracking-tighter", item.amount > 0 ? "text-emerald-600 dark:text-emerald-300" : "text-rose-600 dark:text-rose-300")}>
+              {item.amount > 0 ? "+" : ""}{item.amount}
+            </TableCell>
+            <TableCell className="px-6 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tighter max-w-[200px] truncate" title={item.reason ?? ""}>
+              {item.reason ?? "-"}
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 }
+

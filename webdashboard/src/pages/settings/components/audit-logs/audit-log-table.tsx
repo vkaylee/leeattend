@@ -3,6 +3,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import type { AuditLog } from "@/lib/api";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 
 interface AuditLogTableProps {
     isError: boolean;
@@ -38,31 +39,31 @@ const formatActionName = (action: string) => {
 function AuditLogTableHeader() {
     const { t } = useTranslation();
     return (
-        <thead className="text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 uppercase">
-            <tr>
-                <th className="px-6 py-3 font-medium">{t("audit_logs.table.timestamp")}</th>
-                <th className="px-6 py-3 font-medium">{t("audit_logs.table.action")}</th>
-                <th className="px-6 py-3 font-medium">{t("audit_logs.table.actor_target")}</th>
-                <th className="px-6 py-3 font-medium">{t("audit_logs.table.details")}</th>
-                <th className="px-6 py-3 font-medium">{t("audit_logs.table.context")}</th>
-            </tr>
-        </thead>
+        <TableHeader>
+            <TableRow>
+                <TableHead className="px-6 py-3">{t("audit_logs.table.timestamp")}</TableHead>
+                <TableHead className="px-6 py-3">{t("audit_logs.table.action")}</TableHead>
+                <TableHead className="px-6 py-3">{t("audit_logs.table.actor_target")}</TableHead>
+                <TableHead className="px-6 py-3">{t("audit_logs.table.details")}</TableHead>
+                <TableHead className="px-6 py-3">{t("audit_logs.table.context")}</TableHead>
+            </TableRow>
+        </TableHeader>
     );
 }
 
 function AuditLogTableRow({ language, log }: { language: string; log: AuditLog }) {
     const { t } = useTranslation();
     return (
-        <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors" key={log.id}>
-            <td className="px-6 py-4 whitespace-nowrap text-slate-500 dark:text-slate-400">
+        <TableRow key={log.id}>
+            <TableCell className="px-6 py-4 whitespace-nowrap text-slate-500 dark:text-slate-400">
                 {formatDateTime(log.created_at, language)}
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap">
+            </TableCell>
+            <TableCell className="px-6 py-4 whitespace-nowrap">
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getBadgeColor(log.action)}`}>
                     {formatActionName(log.action)}
                 </span>
-            </td>
-            <td className="px-6 py-4">
+            </TableCell>
+            <TableCell className="px-6 py-4">
                 <div className="space-y-1">
                     <div className="flex items-center gap-1.5 text-slate-900 dark:text-slate-200 font-medium">
                         <User className="h-3.5 w-3.5 text-slate-400" />
@@ -76,8 +77,8 @@ function AuditLogTableRow({ language, log }: { language: string; log: AuditLog }
                         </div>
                     ) : null}
                 </div>
-            </td>
-            <td className="px-6 py-4 max-w-[300px]">
+            </TableCell>
+            <TableCell className="px-6 py-4 max-w-[300px]">
                 {log.details ? (
                     <pre className="text-xs bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 p-2 rounded-md overflow-x-auto whitespace-pre-wrap font-mono border border-slate-200 dark:border-slate-700">
                         {JSON.stringify(log.details, null, 2)}
@@ -85,8 +86,8 @@ function AuditLogTableRow({ language, log }: { language: string; log: AuditLog }
                 ) : (
                     <span className="text-xs text-slate-400 dark:text-slate-500 italic">{t("audit_logs.messages.no_details")}</span>
                 )}
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap">
+            </TableCell>
+            <TableCell className="px-6 py-4 whitespace-nowrap">
                 <div className="space-y-1.5 text-xs text-slate-500 dark:text-slate-400">
                     {log.ip_address ? (
                         <div className="flex items-center gap-1.5" title="IP Address">
@@ -101,8 +102,8 @@ function AuditLogTableRow({ language, log }: { language: string; log: AuditLog }
                         </div>
                     ) : null}
                 </div>
-            </td>
-        </tr>
+            </TableCell>
+        </TableRow>
     );
 }
 
@@ -111,22 +112,20 @@ export function AuditLogTable({ isError, isLoading, language, logs }: AuditLogTa
 
     if (isLoading) {
         return (
-            <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left">
-                    <AuditLogTableHeader />
-                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                        {Array.from({ length: 5 }).map((_, index) => (
-                            <tr className="animate-pulse bg-slate-50 dark:bg-slate-800/30" key={index}>
-                                <td className="px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-24"></div></td>
-                                <td className="px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-20"></div></td>
-                                <td className="px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-32"></div></td>
-                                <td className="px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-48"></div></td>
-                                <td className="px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-16"></div></td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+            <Table>
+                <AuditLogTableHeader />
+                <TableBody>
+                    {Array.from({ length: 5 }).map((_, index) => (
+                        <TableRow className="animate-pulse bg-slate-50 dark:bg-slate-800/30" key={index}>
+                            <TableCell className="px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-24"></div></TableCell>
+                            <TableCell className="px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-20"></div></TableCell>
+                            <TableCell className="px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-32"></div></TableCell>
+                            <TableCell className="px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-48"></div></TableCell>
+                            <TableCell className="px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-16"></div></TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
         );
     }
 
@@ -147,15 +146,14 @@ export function AuditLogTable({ isError, isLoading, language, logs }: AuditLogTa
     }
 
     return (
-        <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-                <AuditLogTableHeader />
-                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                    {logs.map((log) => (
-                        <AuditLogTableRow key={log.id} language={language} log={log} />
-                    ))}
-                </tbody>
-            </table>
-        </div>
+        <Table>
+            <AuditLogTableHeader />
+            <TableBody>
+                {logs.map((log) => (
+                    <AuditLogTableRow key={log.id} language={language} log={log} />
+                ))}
+            </TableBody>
+        </Table>
     );
 }
+
