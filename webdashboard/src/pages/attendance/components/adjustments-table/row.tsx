@@ -72,15 +72,15 @@ export function AdjustmentsTableRow({
             {request.attachment_file_ids.map((fileId, index) => {
               if (!fileId) return null;
               return (
-                <button
+                <Button
                   key={fileId}
                   type="button"
                   onClick={() => onPreviewAttachment?.(`/api/v1/workspaces/${wsId}/files/${fileId}/download`, `Adjustment Attachment #${index + 1}`)}
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-750 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/40 dark:text-indigo-400 border border-indigo-150 dark:border-indigo-900/50 transition-colors cursor-pointer"
+                  icon={<Paperclip className="w-3 h-3" />}
                 >
-                  <Paperclip className="w-3 h-3" />
-                  <span>Doc #{index + 1}</span>
-                </button>
+                  Doc #{index + 1}
+                </Button>
               );
             })}
           </div>

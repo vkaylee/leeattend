@@ -1,6 +1,6 @@
 import * as Popover from "@radix-ui/react-popover";
 import { Filter, X, Check } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
@@ -28,12 +28,12 @@ export function CustomFieldsFilterPopover({
   const [localFilters, setLocalFilters] = useState<Record<string, string>>({});
   const [isOpen, setIsOpen] = useState(false);
 
-  // Sync parent filters to local state when popover opens
-  useEffect(() => {
-    if (isOpen) {
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    if (open) {
       setLocalFilters(customFieldFilters);
     }
-  }, [isOpen, customFieldFilters]);
+  };
 
   if (filterableDefs.length === 0) return null;
 
@@ -63,7 +63,7 @@ export function CustomFieldsFilterPopover({
   const activeCount = Object.keys(customFieldFilters).length;
 
   return (
-    <Popover.Root onOpenChange={setIsOpen} open={isOpen}>
+    <Popover.Root onOpenChange={handleOpenChange} open={isOpen}>
       <Popover.Trigger asChild>
         <Button
           className={cn(

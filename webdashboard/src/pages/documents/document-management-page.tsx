@@ -4,14 +4,17 @@ import { FolderTree } from "@/components/documents/folder-tree";
 import { FileGrid } from "@/components/documents/file-grid";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { useFolders } from "@/hooks/use-documents";
+import { components } from "@/types/api-generated";
+
+type WorkspaceFile = components["schemas"]["WorkspaceFile"];
 
 export function DocumentManagementPage() {
   const { workspace } = useWorkspace();
   const { data: folders = [] } = useFolders(workspace?.id);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
 
-  // In a real implementation we would fetch files for the selected folder
-  const files: any[] = [];
+  // Use correct type definition instead of any[]
+  const files: WorkspaceFile[] = [];
 
   return (
     <div className="flex flex-col h-full gap-6">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Edit2, Check, X, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -50,18 +50,16 @@ export const CustomFieldSection: React.FC<CustomFieldSectionProps> = ({
       ? hasPermission("departments:update")
       : hasPermission("employees:update");
 
-  // Sync values to form state when editing starts
-  useEffect(() => {
-    if (isEditing) {
-      const initial: Record<string, unknown> = {};
-      definitions.forEach((def) => {
-        const valueObj = values.find((v) => v.definition_id === def.id);
-        initial[def.id] = valueObj ? valueObj.value : def.default_value ?? null;
-      });
-      setFormValues(initial);
-      setErrors({});
-    }
-  }, [isEditing, definitions, values]);
+  const startEditing = () => {
+    const initial: Record<string, unknown> = {};
+    definitions.forEach((def) => {
+      const valueObj = values.find((v) => v.definition_id === def.id);
+      initial[def.id] = valueObj ? valueObj.value : def.default_value ?? null;
+    });
+    setFormValues(initial);
+    setErrors({});
+    setIsEditing(true);
+  };
 
   if (isLoadingDefs || isLoadingValues) {
     return (
@@ -158,7 +156,7 @@ export const CustomFieldSection: React.FC<CustomFieldSectionProps> = ({
             ) : (
               <Button
                 icon={<Edit2 className="w-3.5 h-3.5" />}
-                onClick={() => setIsEditing(true)}
+                onClick={startEditing}
                 size="sm"
                 variant="outline"
               >

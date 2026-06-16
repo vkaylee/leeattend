@@ -14,7 +14,7 @@ export function DocumentTemplatesPage() {
         <TemplateEditor 
           onSave={(content) => {
             toast.success("Template saved successfully");
-            console.log("Saving template:", content);
+            console.warn("Saving template:", content);
           }}
         />
       </div>

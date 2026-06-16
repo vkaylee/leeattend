@@ -26,7 +26,7 @@ export default function EmployeeLifecycleTab({ employmentId, wsId }: EmployeeLif
   const toast = useToast();
 
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
-  const [activeChecklistId, setActiveChecklistId] = useState<string | null>(null);
+  const [userSelectedChecklistId, setUserSelectedChecklistId] = useState<string | null>(null);
   const [editingNotesItemId, setEditingNotesItemId] = useState<string | null>(null);
   const [itemNotes, setItemNotes] = useState("");
 
@@ -36,17 +36,11 @@ export default function EmployeeLifecycleTab({ employmentId, wsId }: EmployeeLif
 
   // Mutations
   const createChecklistMutation = useCreateLifecycleChecklist(employmentId ?? "");
+  const activeChecklistId = userSelectedChecklistId ?? checklists[0]?.id ?? null;
   const updateItemStatusMutation = useUpdateLifecycleChecklistItem(activeChecklistId ?? "", employmentId ?? "");
 
   // Active checklist details
   const activeChecklist = checklists.find((c) => c.id === activeChecklistId) || checklists[0];
-
-  // Sync active checklist id
-  React.useEffect(() => {
-    if (checklists.length > 0 && !activeChecklistId) {
-      setActiveChecklistId(checklists[0].id);
-    }
-  }, [checklists, activeChecklistId]);
 
   if (!employmentId) {
     return (
@@ -67,7 +61,7 @@ export default function EmployeeLifecycleTab({ employmentId, wsId }: EmployeeLif
       {
         onSuccess: (res) => {
           toast.success("Checklist instantiated successfully");
-          setActiveChecklistId(res.id);
+          setUserSelectedChecklistId(res.id);
           setSelectedTemplateId("");
         },
         onError: (err) => {
@@ -182,7 +176,7 @@ export default function EmployeeLifecycleTab({ employmentId, wsId }: EmployeeLif
                       ? "bg-white dark:bg-slate-950 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
                       : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                   )}
-                  onClick={() => setActiveChecklistId(c.id)}
+                  onClick={() => setUserSelectedChecklistId(c.id)}
                   variant="ghost"
                 >
                   {c.checklist_type.toUpperCase()} ({c.progress_percent}%)
