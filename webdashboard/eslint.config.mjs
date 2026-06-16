@@ -263,7 +263,6 @@ export default tseslint.config(
       'src/pages/approvals/ot-approvals-page.tsx',
       'src/pages/monitor/jobs-table.tsx',
       'src/pages/onboarding-page.tsx',
-      'src/pages/settings/time-settings.tsx',
       'src/pages/settings/workflow-editor-page.tsx',
       'src/pages/shifts/shift-editor-page.tsx',
       'src/pages/system-admin/tenants-page.tsx',

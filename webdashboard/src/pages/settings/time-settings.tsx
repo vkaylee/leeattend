@@ -1,36 +1,25 @@
-/* eslint-disable */
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Clock, Plus } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Clock } from "lucide-react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { TFunction } from "i18next";
-
-import { PolicyAssignmentsSection } from "@/components/features/attendance/policy-assignments-section";
 import Button from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import {
   fetchWorkspace,
   getCurrentWorkspaceId,
-  Workspace,
-  reprocessAllAttendance,
-  checkReprocessStatus,
   fetchDefaultAttendanceRules,
-  updateDefaultAttendanceRules,
   fetchAttendancePolicyVersions,
   AttendanceRules,
   AttendancePolicyVersion,
-  UpdateAttendanceRulesRequest,
+  Workspace,
 } from "@/lib/api";
 
-import { BulkReprocessSection } from "./time-settings/bulk-reprocess";
-import { CreateVersionModal } from "./time-settings/create-version-modal";
+import { PageHeader, TabContent } from "./time-settings/components";
+import { useTimeSettingsRules, useBulkReprocess } from "./time-settings/hooks";
 import { ReprocessModal } from "./time-settings/reprocess-modal";
-import { AttendanceVersionTimeline } from "./time-settings/timeline";
 
-// eslint-disable-next-line complexity
 export default function TimeSettings() {
   const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId();
@@ -214,215 +203,5 @@ function TimeSettingsContent({
         t={t}
       />
     </div>
-  );
-}
-
-function useTimeSettingsRules(
-  wsId: string,
-  t: TFunction,
-  params: {
-    earlyArrivalStrategy: "allow" | "block" | "clamp";
-    roundingPolicy: string;
-    valid_from: string;
-    work_unit_minutes: number;
-    onSuccess: () => void;
-  }
-) {
-  const queryClient = useQueryClient();
-  const toast = useToast();
-
-  const updateRulesMutation = useMutation({
-    mutationFn: (data: UpdateAttendanceRulesRequest) => updateDefaultAttendanceRules(wsId, data),
-    onSuccess: () => {
-      toast.success(t("common.success"));
-      void queryClient.invalidateQueries({ queryKey: ["attendance-rules", wsId] });
-      void queryClient.invalidateQueries({ queryKey: ["attendance-policy-versions", wsId] });
-      params.onSuccess();
-    },
-  });
-
-  const handleSaveNewVersion = () => {
-    updateRulesMutation.mutate({
-      early_arrival_strategy: params.earlyArrivalStrategy,
-      rounding_policy: params.roundingPolicy,
-      valid_from: params.valid_from,
-      work_unit_minutes: params.work_unit_minutes,
-    });
-  };
-
-  return { handleSaveNewVersion, isPending: updateRulesMutation.isPending };
-}
-
-function useBulkReprocess(wsId: string, t: TFunction) {
-  const queryClient = useQueryClient();
-  const toast = useToast();
-
-  const [reprocessStart, setReprocessStart] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 30);
-    return d.toISOString().split("T")[0];
-  });
-  const [reprocessEnd, setReprocessEnd] = useState(() => new Date().toISOString().split("T")[0]);
-  const [showReprocessConfirm, setShowReprocessConfirm] = useState(false);
-  const [pollingJobId, setPollingJobId] = useState<string | null>(null);
-
-  const jobStatusQuery = useQuery({
-    queryKey: ["generic-job-status", wsId, pollingJobId],
-    queryFn: () => {
-      if (!pollingJobId) return Promise.reject(new Error("No job ID"));
-      return checkReprocessStatus(wsId, pollingJobId);
-    },
-    enabled: !!pollingJobId,
-    refetchInterval: (query: { state: { data?: { status: string } } }) => {
-      const data = query.state.data;
-      return data && (data.status === "completed" || data.status === "failed") ? false : 3000;
-    },
-  });
-
-  useEffect(() => {
-    if (jobStatusQuery.data) {
-      if (jobStatusQuery.data.status === "completed") {
-        setTimeout(() => {
-          toast.success(t("common.success") + " - Reprocessing finished");
-          void queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
-          void queryClient.invalidateQueries({ queryKey: ["attendance-logs"] });
-          setShowReprocessConfirm(false);
-          setPollingJobId(null);
-        }, 0);
-      } else if (jobStatusQuery.data.status === "failed") {
-        setTimeout(() => {
-          toast.error("Process failed: " + (jobStatusQuery.data.error ?? "Unknown error"));
-          setShowReprocessConfirm(false);
-          setPollingJobId(null);
-        }, 0);
-      }
-    }
-  }, [jobStatusQuery.data, queryClient, t, toast]);
-
-  const reprocessMutation = useMutation({
-    mutationFn: () => reprocessAllAttendance(wsId, reprocessStart, reprocessEnd),
-    onSuccess: (data) => {
-      setPollingJobId(data.job_id);
-    },
-    onError: (e: Error) => {
-      toast.error(e.message || t("common.error"));
-    },
-  });
-
-  return {
-    jobStatus: jobStatusQuery.data,
-    pollingJobId,
-    reprocessEnd,
-    reprocessMutation,
-    reprocessStart,
-    setReprocessEnd,
-    setReprocessStart,
-    setShowReprocessConfirm,
-    showReprocessConfirm,
-  };
-}
-
-function PageHeader({ onNewVersion, t }: { onNewVersion: () => void; t: TFunction }) {
-  return (
-    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-[1.25rem] bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-sm border border-primary-100 dark:border-primary-800/50">
-          <Clock size={24} />
-        </div>
-        <div>
-          <Typography className="text-3xl font-bold tracking-tight text-slate-700 dark:text-slate-200 leading-tight" variant="h1">
-            {t("common.settings.categories.time")}
-          </Typography>
-          <Typography className="text-slate-500 dark:text-slate-400 mt-1 font-medium" variant="p">{t("common.settings.categories.time_desc")}</Typography>
-        </div>
-      </div>
-      <Button
-        icon={<Plus size={18} />}
-        onClick={() => {
-          onNewVersion();
-        }}
-      >
-        {t("common.workspace_settings.new_version") || "NEW VERSION"}
-      </Button>
-    </div>
-  );
-}
-
-interface TabContentProps {
-  earlyArrivalStrategy: "allow" | "block" | "clamp";
-  handleSaveNewVersion: () => void;
-  isPending: boolean;
-  newValidFrom: string;
-  reprocessEnd: string;
-  reprocessEndSetter: (v: string) => void;
-  reprocessStart: string;
-  reprocessStartSetter: (v: string) => void;
-  roundingPolicy: string;
-  setEarlyArrivalStrategy: (v: "allow" | "block" | "clamp") => void;
-  setNewValidFrom: (v: string) => void;
-  setRoundingPolicy: (v: string) => void;
-  setShowCreateModal: (v: boolean) => void;
-  setShowReprocessConfirm: (v: boolean) => void;
-  setWorkUnit: (v: number) => void;
-  showCreateModal: boolean;
-  t: TFunction;
-  versions: AttendancePolicyVersion[];
-  workUnit: number;
-  wsId: string;
-}
-
-function TabContent({
-  earlyArrivalStrategy,
-  handleSaveNewVersion,
-  isPending,
-  newValidFrom,
-  reprocessEnd,
-  reprocessEndSetter,
-  reprocessStart,
-  reprocessStartSetter,
-  setEarlyArrivalStrategy,
-  setNewValidFrom,
-  setRoundingPolicy,
-  setShowCreateModal,
-  setShowReprocessConfirm,
-  setWorkUnit,
-  showCreateModal,
-  roundingPolicy,
-  t,
-  versions,
-  workUnit,
-  wsId,
-}: TabContentProps) {
-
-  return (
-    <>
-      <AttendanceVersionTimeline t={t} versions={versions} />
-      <PolicyAssignmentsSection wsId={wsId} />
-      <BulkReprocessSection
-        reprocessEnd={reprocessEnd}
-        reprocessStart={reprocessStart}
-        setReprocessEnd={reprocessEndSetter}
-        setReprocessStart={reprocessStartSetter}
-        setShowReprocessConfirm={setShowReprocessConfirm}
-        t={t}
-      />
-      <CreateVersionModal
-        earlyArrivalStrategy={earlyArrivalStrategy}
-        isOpen={showCreateModal}
-        isPending={isPending}
-        newValidFrom={newValidFrom}
-        onClose={() => {
-          setShowCreateModal(false);
-        }}
-        onSave={handleSaveNewVersion}
-        roundingPolicy={roundingPolicy}
-        setEarlyArrivalStrategy={setEarlyArrivalStrategy}
-        setNewValidFrom={setNewValidFrom}
-        setRoundingPolicy={setRoundingPolicy}
-        setWorkUnit={setWorkUnit}
-        t={t}
-        workUnit={workUnit}
-      />
-    </>
   );
 }
