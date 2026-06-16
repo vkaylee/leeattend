@@ -42,7 +42,9 @@ async function extractRequestInfo(
         } else {
           // For binary payloads (octet-stream, files, etc.)
           const bodyBlob = await url.clone().blob();
-          options.body = bodyBlob;
+          if (bodyBlob && bodyBlob.size > 0) {
+            options.body = bodyBlob;
+          }
         }
       } catch {
         // Ignore if body reading fails

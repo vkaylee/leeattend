@@ -189,5 +189,21 @@ describe('client (openapi-fetch adapter)', () => {
       expect(calledOptions.method).toBe("POST");
       expect(calledOptions.body).toBeInstanceOf(Blob);
     });
+
+    it('keeps body undefined for POST requests with no body', async () => {
+      const mockApiFetch = apiFetch as Mock;
+      mockApiFetch.mockResolvedValue(new Response(JSON.stringify({ data: "ok" }), { status: 200 }));
+
+      const request = new Request("http://127.0.0.1:5173/api/v1/workspaces/ws-id/trigger-job", {
+        method: "POST",
+      });
+
+      await customFetch(request);
+
+      expect(mockApiFetch).toHaveBeenCalledTimes(1);
+      const calledOptions = mockApiFetch.mock.calls[0][1];
+      expect(calledOptions.method).toBe("POST");
+      expect(calledOptions.body).toBeUndefined();
+    });
   });
 });
