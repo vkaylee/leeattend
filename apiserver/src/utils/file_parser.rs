@@ -1,7 +1,7 @@
+use crate::errors::AppError;
 use calamine::{Data, Reader, Xls, Xlsx};
 use std::collections::HashMap;
 use std::io::Cursor;
-use tracing::warn;
 
 /// Convert a Calamine Excel cell into a trimmed String
 pub fn cell_to_string(cell: Option<&Data>) -> String {
@@ -34,13 +34,15 @@ fn is_xls_file(bytes: &[u8]) -> bool {
 /// Returns a Vec of (line_number, columns)
 /// - line_number is 1-indexed, but usually we start at line 2 because of header skip.
 /// - The header (first row) is skipped automatically.
-pub fn extract_file_rows(file_bytes: &[u8]) -> Result<Vec<(usize, Vec<String>)>, String> {
+pub fn extract_file_rows(file_bytes: &[u8]) -> Result<Vec<(usize, Vec<String>)>, AppError> {
     let mut rows = Vec::new();
 
     // 1. Try XLSX
     if is_zip_file(file_bytes) {
-        let mut reader = Xlsx::new(Cursor::new(file_bytes))
-            .map_err(|e| format!("Không thể mở file Excel XLSX: {e}"))?;
+        let mut reader = Xlsx::new(Cursor::new(file_bytes)).map_err(|e| {
+            let msg = format!("error.cannot_open_xlsx:error={e}");
+            AppError::Validation(msg)
+        })?;
         let sheet_names = reader.sheet_names();
         for sheet in sheet_names {
             if let Ok(range) = reader.worksheet_range(&sheet) {
@@ -58,13 +60,15 @@ pub fn extract_file_rows(file_bytes: &[u8]) -> Result<Vec<(usize, Vec<String>)>,
                 }
             }
         }
-        return Err("File XLSX trống hoặc chỉ chứa dòng tiêu đề.".to_string());
+        return Err(AppError::Validation("error.empty_excel_sheet".to_string()));
     }
 
     // 2. Try XLS
     if is_xls_file(file_bytes) {
-        let mut reader = Xls::new(Cursor::new(file_bytes))
-            .map_err(|e| format!("Không thể mở file Excel XLS: {e}"))?;
+        let mut reader = Xls::new(Cursor::new(file_bytes)).map_err(|e| {
+            let msg = format!("error.cannot_open_xls:error={e}");
+            AppError::Validation(msg)
+        })?;
         let sheet_names = reader.sheet_names();
         for sheet in sheet_names {
             if let Ok(range) = reader.worksheet_range(&sheet) {
@@ -82,53 +86,12 @@ pub fn extract_file_rows(file_bytes: &[u8]) -> Result<Vec<(usize, Vec<String>)>,
                 }
             }
         }
-        return Err("File XLS trống hoặc chỉ chứa dòng tiêu đề.".to_string());
+        return Err(AppError::Validation("error.empty_excel_sheet".to_string()));
     }
 
-    // 3. Try CSV
-    let decoded_opt = decode_utf16_bytes(file_bytes);
-
-    let first_line_storage;
-    let first_line = if let Some(ref decoded) = decoded_opt {
-        decoded.lines().next().unwrap_or_default()
-    } else {
-        first_line_storage = String::from_utf8_lossy(file_bytes);
-        first_line_storage.lines().next().unwrap_or_default()
-    };
-
-    let delimiter = detect_delimiter(first_line);
-
-    let mut reader_builder = csv::ReaderBuilder::new();
-    reader_builder.has_headers(true);
-    reader_builder.delimiter(delimiter);
-
-    let mut reader = if let Some(ref decoded) = decoded_opt {
-        reader_builder.from_reader(Cursor::new(decoded.as_bytes()))
-    } else {
-        reader_builder.from_reader(Cursor::new(file_bytes))
-    };
-
-    let mut has_records = false;
-    for (idx, result) in reader.records().enumerate() {
-        has_records = true;
-        let line_number = idx + 2; // 1-indexed + header skip
-        match result {
-            Ok(record) => {
-                let cols: Vec<String> = record.iter().map(|s| s.trim().to_string()).collect();
-                rows.push((line_number, cols));
-            }
-            Err(e) => {
-                warn!("CSV parse error at line {}: {}", line_number, e);
-                rows.push((line_number, vec![]));
-            }
-        }
-    }
-
-    if has_records && !rows.is_empty() {
-        return Ok(rows);
-    }
-
-    Err("Invalid file format or file is empty (contains only headers). Supported formats: XLSX, XLS, CSV.".to_string())
+    Err(AppError::Validation(
+        "error.invalid_file_format".to_string(),
+    ))
 }
 
 /// Normalize header string for matching (lowercase, trim whitespace, and strip BOM)
@@ -137,53 +100,6 @@ fn normalize_header(h: &str) -> String {
         .trim_start_matches('\u{feff}')
         .trim()
         .to_lowercase()
-}
-
-/// Decode UTF-16 bytes (LE or BE) to a String if a BOM is present
-fn decode_utf16_bytes(bytes: &[u8]) -> Option<String> {
-    if bytes.len() < 2 {
-        return None;
-    }
-
-    let is_le = bytes[0] == 0xFF && bytes[1] == 0xFE;
-    let is_be = bytes[0] == 0xFE && bytes[1] == 0xFF;
-
-    if !is_le && !is_be {
-        return None;
-    }
-
-    let data_bytes = &bytes[2..];
-    let mut u16_data = Vec::with_capacity(data_bytes.len() / 2);
-
-    for chunk in data_bytes.chunks_exact(2) {
-        let val = if is_le {
-            u16::from_le_bytes([chunk[0], chunk[1]])
-        } else {
-            u16::from_be_bytes([chunk[0], chunk[1]])
-        };
-        u16_data.push(val);
-    }
-
-    Some(
-        char::decode_utf16(u16_data)
-            .map(|r| r.unwrap_or(char::REPLACEMENT_CHARACTER))
-            .collect::<String>(),
-    )
-}
-
-/// Detect CSV delimiter by counting occurrences in the header line
-fn detect_delimiter(header_line: &str) -> u8 {
-    let comma_count = header_line.chars().filter(|&c| c == ',').count();
-    let semicolon_count = header_line.chars().filter(|&c| c == ';').count();
-    let tab_count = header_line.chars().filter(|&c| c == '\t').count();
-
-    if semicolon_count > comma_count && semicolon_count > tab_count {
-        b';'
-    } else if tab_count > comma_count && tab_count > semicolon_count {
-        b'\t'
-    } else {
-        b','
-    }
 }
 
 /// Extract rows and map them using normalized headers.
@@ -195,7 +111,7 @@ fn detect_delimiter(header_line: &str) -> u8 {
 pub fn extract_mapped_rows(
     file_bytes: &[u8],
     expected_headers: &[&str],
-) -> Result<Vec<(usize, HashMap<String, String>)>, String> {
+) -> Result<Vec<(usize, HashMap<String, String>)>, AppError> {
     let expected_normalized: Vec<String> = expected_headers
         .iter()
         .map(|&s| normalize_header(s))
@@ -204,7 +120,7 @@ pub fn extract_mapped_rows(
     let mut rows = Vec::new();
 
     // Helper closure to process headers and rows
-    let process_sheet = |mut row_iter: Box<dyn Iterator<Item = (usize, Vec<String>)>>| -> Result<Vec<(usize, HashMap<String, String>)>, String> {
+    let process_sheet = |mut row_iter: Box<dyn Iterator<Item = (usize, Vec<String>)>>| -> Result<Vec<(usize, HashMap<String, String>)>, AppError> {
         let mut missing_headers = Vec::new();
         let mut duplicate_headers = Vec::new();
 
@@ -221,11 +137,12 @@ pub fn extract_mapped_rows(
                 }
             }
         } else {
-            return Err("File is completely empty.".to_string());
+            return Err(AppError::Validation("error.empty_excel_sheet".to_string()));
         }
 
         if !duplicate_headers.is_empty() {
-            return Err(format!("Phát hiện các cột bị trùng lặp: {}", duplicate_headers.join(", ")));
+            let msg = format!("error.duplicate_headers:headers={}", duplicate_headers.join(", "));
+            return Err(AppError::Validation(msg));
         }
 
         // Validate Expected Headers
@@ -236,7 +153,8 @@ pub fn extract_mapped_rows(
         }
 
         if !missing_headers.is_empty() {
-            return Err(format!("Thiếu các cột bắt buộc: {}", missing_headers.join(", ")));
+            let msg = format!("error.missing_mandatory_headers:headers={}", missing_headers.join(", "));
+            return Err(AppError::Validation(msg));
         }
 
         // Process Data Rows
@@ -255,7 +173,7 @@ pub fn extract_mapped_rows(
         }
 
         if rows.is_empty() {
-            return Err("File is empty or contains only headers.".to_string());
+            return Err(AppError::Validation("error.empty_excel_sheet".to_string()));
         }
 
         Ok(rows)
@@ -263,8 +181,10 @@ pub fn extract_mapped_rows(
 
     // 1. Try XLSX
     if is_zip_file(file_bytes) {
-        let mut reader = Xlsx::new(Cursor::new(file_bytes))
-            .map_err(|e| format!("Không thể mở file Excel XLSX: {e}"))?;
+        let mut reader = Xlsx::new(Cursor::new(file_bytes)).map_err(|e| {
+            let msg = format!("error.cannot_open_xlsx:error={e}");
+            AppError::Validation(msg)
+        })?;
         let sheet_names = reader.sheet_names();
         let mut best_sheet_range = None;
         let mut max_matched_headers = 0;
@@ -291,11 +211,12 @@ pub fn extract_mapped_rows(
         let range = if let Some(r) = best_sheet_range {
             r
         } else if let Some(name) = sheet_names.first() {
-            reader
-                .worksheet_range(name)
-                .map_err(|e| format!("Không thể đọc sheet {name}: {e}"))?
+            reader.worksheet_range(name).map_err(|e| {
+                let msg = format!("error.cannot_read_sheet:name={name},error={e}");
+                AppError::Validation(msg)
+            })?
         } else {
-            return Err("File Excel không chứa bất kỳ sheet nào.".to_string());
+            return Err(AppError::Validation("error.no_sheets_found".to_string()));
         };
 
         let iter = range.rows().enumerate().map(|(idx, r)| {
@@ -307,8 +228,10 @@ pub fn extract_mapped_rows(
 
     // 2. Try XLS
     if is_xls_file(file_bytes) {
-        let mut reader = Xls::new(Cursor::new(file_bytes))
-            .map_err(|e| format!("Không thể mở file Excel XLS: {e}"))?;
+        let mut reader = Xls::new(Cursor::new(file_bytes)).map_err(|e| {
+            let msg = format!("error.cannot_open_xls:error={e}");
+            AppError::Validation(msg)
+        })?;
         let sheet_names = reader.sheet_names();
         let mut best_sheet_range = None;
         let mut max_matched_headers = 0;
@@ -335,11 +258,12 @@ pub fn extract_mapped_rows(
         let range = if let Some(r) = best_sheet_range {
             r
         } else if let Some(name) = sheet_names.first() {
-            reader
-                .worksheet_range(name)
-                .map_err(|e| format!("Không thể đọc sheet {name}: {e}"))?
+            reader.worksheet_range(name).map_err(|e| {
+                let msg = format!("error.cannot_read_sheet:name={name},error={e}");
+                AppError::Validation(msg)
+            })?
         } else {
-            return Err("File Excel không chứa bất kỳ sheet nào.".to_string());
+            return Err(AppError::Validation("error.no_sheets_found".to_string()));
         };
 
         let iter = range.rows().enumerate().map(|(idx, r)| {
@@ -349,53 +273,31 @@ pub fn extract_mapped_rows(
         return process_sheet(Box::new(iter));
     }
 
-    // 3. Try CSV
-    let decoded_opt = decode_utf16_bytes(file_bytes);
-
-    let first_line_storage;
-    let first_line = if let Some(ref decoded) = decoded_opt {
-        decoded.lines().next().unwrap_or_default()
-    } else {
-        first_line_storage = String::from_utf8_lossy(file_bytes);
-        first_line_storage.lines().next().unwrap_or_default()
-    };
-
-    let delimiter = detect_delimiter(first_line);
-
-    let mut reader_builder = csv::ReaderBuilder::new();
-    reader_builder.has_headers(false);
-    reader_builder.delimiter(delimiter);
-
-    let mut reader = if let Some(ref decoded) = decoded_opt {
-        reader_builder.from_reader(Cursor::new(decoded.as_bytes()))
-    } else {
-        reader_builder.from_reader(Cursor::new(file_bytes))
-    };
-
-    let mut iter_data = Vec::new();
-    for (idx, res) in reader.records().enumerate() {
-        let cols = match res {
-            Ok(record) => record.iter().map(|s| s.trim().to_string()).collect(),
-            Err(e) => {
-                warn!("CSV parse error at line {}: {}", idx + 1, e);
-                vec![]
-            }
-        };
-        iter_data.push((idx + 1, cols));
-    }
-
-    process_sheet(Box::new(iter_data.into_iter())).map_err(|e| {
-        if e == "File is completely empty." {
-            "Định dạng file không hợp lệ hoặc file trống. Hỗ trợ: XLSX, XLS, CSV.".to_string()
-        } else {
-            e
-        }
-    })
+    Err(AppError::Validation(
+        "error.invalid_file_format".to_string(),
+    ))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rust_xlsxwriter::Workbook;
+
+    fn create_xlsx_bytes(headers: &[&str], rows: &[Vec<&str>]) -> Vec<u8> {
+        let mut workbook = Workbook::new();
+        let sheet = workbook.add_worksheet();
+        for (col, header) in headers.iter().enumerate() {
+            sheet.write_string(0, col as u16, *header).unwrap();
+        }
+        for (row_idx, row) in rows.iter().enumerate() {
+            for (col_idx, val) in row.iter().enumerate() {
+                sheet
+                    .write_string((row_idx + 1) as u32, col_idx as u16, *val)
+                    .unwrap();
+            }
+        }
+        workbook.save_to_buffer().unwrap()
+    }
 
     #[test]
     fn test_cell_to_string() {
@@ -411,9 +313,14 @@ mod tests {
     }
 
     #[test]
-    fn test_extract_file_rows_csv() {
-        let csv_data = "emp_id,leave_code,start_date\nE001,AL,2023-01-01\nE002,SL,2023-01-02";
-        let result = extract_file_rows(csv_data.as_bytes()).unwrap();
+    fn test_extract_file_rows_xlsx() {
+        let headers = ["emp_id", "leave_code", "start_date"];
+        let rows = vec![
+            vec!["E001", "AL", "2023-01-01"],
+            vec!["E002", "SL", "2023-01-02"],
+        ];
+        let bytes = create_xlsx_bytes(&headers, &rows);
+        let result = extract_file_rows(&bytes).unwrap();
 
         assert_eq!(result.len(), 2);
         assert_eq!(result[0].0, 2); // line 2
@@ -424,10 +331,14 @@ mod tests {
     }
 
     #[test]
-    fn test_extract_file_rows_empty_csv() {
-        let csv_data = "emp_id,leave_code,start_date\n"; // Only header
-        let result = extract_file_rows(csv_data.as_bytes());
+    fn test_extract_file_rows_empty_xlsx() {
+        let headers = ["emp_id", "leave_code", "start_date"];
+        let rows: Vec<Vec<&str>> = vec![];
+        let bytes = create_xlsx_bytes(&headers, &rows);
+        let result = extract_file_rows(&bytes);
         assert!(result.is_err(), "Empty file should return error");
+        let err = result.unwrap_err();
+        assert_eq!(err.to_string(), "Validation error: error.empty_excel_sheet");
     }
 
     #[test]
@@ -435,12 +346,23 @@ mod tests {
         let invalid_data = vec![0x00, 0x01, 0x02, 0x03]; // Random binary data
         let result = extract_file_rows(&invalid_data);
         assert!(result.is_err(), "Invalid binary file should return error");
+        let err = result.unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            "Validation error: error.invalid_file_format"
+        );
     }
+
     #[test]
     fn test_extract_mapped_rows() {
-        let csv_data = "employee_code,full_name,hire_date,department_name\nE001,Nguyen Van A,2023-01-01,IT\nE002,Tran Thi B,2023-01-02,HR";
+        let headers = ["employee_code", "full_name", "hire_date", "department_name"];
+        let rows = vec![
+            vec!["E001", "Nguyen Van A", "2023-01-01", "IT"],
+            vec!["E002", "Tran Thi B", "2023-01-02", "HR"],
+        ];
+        let bytes = create_xlsx_bytes(&headers, &rows);
         let expected = ["employee_code", "full_name", "hire_date", "department_name"];
-        let result = extract_mapped_rows(csv_data.as_bytes(), &expected).unwrap();
+        let result = extract_mapped_rows(&bytes, &expected).unwrap();
 
         assert_eq!(result.len(), 2);
         assert_eq!(result[0].1.get("employee_code").unwrap(), "E001");
@@ -452,35 +374,56 @@ mod tests {
 
     #[test]
     fn test_extract_mapped_rows_missing_header() {
-        let csv_data = "employee_code,full_name,hire_date\nE001,Nguyen Van A,2023-01-01";
+        let headers = ["employee_code", "full_name", "hire_date"];
+        let rows = vec![vec!["E001", "Nguyen Van A", "2023-01-01"]];
+        let bytes = create_xlsx_bytes(&headers, &rows);
         let expected = ["employee_code", "full_name", "hire_date", "department_name"];
-        let result = extract_mapped_rows(csv_data.as_bytes(), &expected);
+        let result = extract_mapped_rows(&bytes, &expected);
 
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .contains("Thiếu các cột bắt buộc: department_name"));
+        let err = result.unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            "Validation error: error.missing_mandatory_headers:headers=department_name"
+        );
     }
 
     #[test]
     fn test_extract_mapped_rows_duplicate_expected_header() {
-        // Two employee_code columns
-        let csv_data = "employee_code,employee_code,full_name,hire_date,department_name\nE001,E001X,Nguyen Van A,2023-01-01,IT";
+        let headers = [
+            "employee_code",
+            "employee_code",
+            "full_name",
+            "hire_date",
+            "department_name",
+        ];
+        let rows = vec![vec!["E001", "E001X", "Nguyen Van A", "2023-01-01", "IT"]];
+        let bytes = create_xlsx_bytes(&headers, &rows);
         let expected = ["employee_code", "full_name", "hire_date", "department_name"];
-        let result = extract_mapped_rows(csv_data.as_bytes(), &expected);
+        let result = extract_mapped_rows(&bytes, &expected);
 
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .contains("Phát hiện các cột bị trùng lặp: employee_code"));
+        let err = result.unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            "Validation error: error.duplicate_headers:headers=employee_code"
+        );
     }
 
     #[test]
     fn test_extract_mapped_rows_duplicate_ignored_header() {
-        // Two ignoreMe columns, shouldn't trigger duplicate error for expected headers
-        let csv_data = "employee_code,full_name,hire_date,department_name,ignoreMe,ignoreMe\nE001,Nguyen Van A,2023-01-01,IT,1,2";
+        let headers = [
+            "employee_code",
+            "full_name",
+            "hire_date",
+            "department_name",
+            "ignoreMe",
+            "ignoreMe",
+        ];
+        let rows = vec![vec!["E001", "Nguyen Van A", "2023-01-01", "IT", "1", "2"]];
+        let bytes = create_xlsx_bytes(&headers, &rows);
         let expected = ["employee_code", "full_name", "hire_date", "department_name"];
-        let result = extract_mapped_rows(csv_data.as_bytes(), &expected);
+        let result = extract_mapped_rows(&bytes, &expected);
 
         assert!(
             result.is_ok(),
@@ -492,55 +435,16 @@ mod tests {
 
     #[test]
     fn test_extract_mapped_rows_normalization() {
-        // Messy headers: uppercase, surrounding spaces
-        let csv_data = "  EMPLOYEE_code , full_name  , HIRE_date,  Department_Name  \nE001,Nguyen Van A,2023-01-01,IT";
+        let headers = [
+            "  EMPLOYEE_code ",
+            " full_name  ",
+            " HIRE_date",
+            "  Department_Name  ",
+        ];
+        let rows = vec![vec!["E001", "Nguyen Van A", "2023-01-01", "IT"]];
+        let bytes = create_xlsx_bytes(&headers, &rows);
         let expected = ["employee_code", "full_name", "hire_date", "department_name"];
-        let result = extract_mapped_rows(csv_data.as_bytes(), &expected).unwrap();
-
-        assert_eq!(result.len(), 1);
-        assert_eq!(result[0].1.get("employee_code").unwrap(), "E001");
-        assert_eq!(result[0].1.get("department_name").unwrap(), "IT");
-    }
-
-    #[test]
-    fn test_extract_mapped_rows_bom() {
-        // First column header starts with UTF-8 BOM: \u{feff}employee_code
-        let csv_data = "\u{feff}employee_code,full_name,hire_date,department_name\nE001,Nguyen Van A,2023-01-01,IT";
-        let expected = ["employee_code", "full_name", "hire_date", "department_name"];
-        let result = extract_mapped_rows(csv_data.as_bytes(), &expected).unwrap();
-
-        assert_eq!(result.len(), 1);
-        assert_eq!(result[0].1.get("employee_code").unwrap(), "E001");
-    }
-
-    #[test]
-    fn test_extract_mapped_rows_semicolon_csv() {
-        // Semicolon delimited CSV
-        let csv_data =
-            "employee_code;full_name;hire_date;department_name\nE001;Nguyen Van A;2023-01-01;IT";
-        let expected = ["employee_code", "full_name", "hire_date", "department_name"];
-        let result = extract_mapped_rows(csv_data.as_bytes(), &expected).unwrap();
-
-        assert_eq!(result.len(), 1);
-        assert_eq!(result[0].1.get("employee_code").unwrap(), "E001");
-        assert_eq!(result[0].1.get("department_name").unwrap(), "IT");
-    }
-
-    #[test]
-    fn test_extract_mapped_rows_utf16_csv() {
-        // UTF-16LE encoded semicolon CSV with BOM
-        let csv_data =
-            "employee_code;full_name;hire_date;department_name\nE001;Nguyen Van A;2023-01-01;IT\n";
-        let utf16_bytes = csv_data.encode_utf16().collect::<Vec<u16>>();
-        let mut file_bytes = vec![0xFF, 0xFE]; // LE BOM
-        for val in utf16_bytes {
-            let b = val.to_le_bytes();
-            file_bytes.push(b[0]);
-            file_bytes.push(b[1]);
-        }
-
-        let expected = ["employee_code", "full_name", "hire_date", "department_name"];
-        let result = extract_mapped_rows(&file_bytes, &expected).unwrap();
+        let result = extract_mapped_rows(&bytes, &expected).unwrap();
 
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].1.get("employee_code").unwrap(), "E001");
@@ -549,23 +453,38 @@ mod tests {
 
     #[test]
     fn test_extract_mapped_rows_empty_data() {
-        // Only headers, no data
-        let csv_data = "employee_code,full_name,hire_date,department_name\n";
+        let headers = ["employee_code", "full_name", "hire_date", "department_name"];
+        let rows: Vec<Vec<&str>> = vec![];
+        let bytes = create_xlsx_bytes(&headers, &rows);
         let expected = ["employee_code", "full_name", "hire_date", "department_name"];
-        let result = extract_mapped_rows(csv_data.as_bytes(), &expected);
+        let result = extract_mapped_rows(&bytes, &expected);
 
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .contains("File is empty or contains only headers"));
+        let err = result.unwrap_err();
+        assert_eq!(err.to_string(), "Validation error: error.empty_excel_sheet");
     }
 
     #[test]
     fn test_extract_mapped_rows_scrambled_columns() {
-        // Order of columns is completely mixed up, with extra unneeded columns
-        let csv_data = "department_name,extra1,full_name,extra2,employee_code,hire_date\nIT,ignore1,Nguyen Van A,ignore2,E001,2023-01-01";
+        let headers = [
+            "department_name",
+            "extra1",
+            "full_name",
+            "extra2",
+            "employee_code",
+            "hire_date",
+        ];
+        let rows = vec![vec![
+            "IT",
+            "ignore1",
+            "Nguyen Van A",
+            "ignore2",
+            "E001",
+            "2023-01-01",
+        ]];
+        let bytes = create_xlsx_bytes(&headers, &rows);
         let expected = ["employee_code", "full_name", "hire_date", "department_name"];
-        let result = extract_mapped_rows(csv_data.as_bytes(), &expected).unwrap();
+        let result = extract_mapped_rows(&bytes, &expected).unwrap();
 
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].1.get("employee_code").unwrap(), "E001");
@@ -575,33 +494,28 @@ mod tests {
 
     #[test]
     fn test_corrupted_xlsx_returns_xlsx_error() {
-        // Starts with ZIP magic bytes but is invalid ZIP data
         let corrupted_zip = vec![0x50, 0x4B, 0x03, 0x04, 0x01, 0x02, 0x03];
         let expected = ["employee_code", "full_name"];
         let result = extract_mapped_rows(&corrupted_zip, &expected);
 
         assert!(result.is_err());
-        let err_msg = result.unwrap_err();
+        let err_msg = result.unwrap_err().to_string();
         assert!(
-            err_msg.contains("Không thể mở file Excel XLSX"),
+            err_msg.contains("error.cannot_open_xlsx"),
             "Error msg was: {err_msg}"
         );
     }
 
     #[test]
     fn test_extract_mapped_rows_multiple_sheets_matches_correct_one() {
-        use rust_xlsxwriter::Workbook;
-
         let mut workbook = Workbook::new();
 
-        // Add reference sheet first (index 0) with a different set of headers
         let ref_sheet = workbook.add_worksheet().set_name("Reference").unwrap();
         ref_sheet.write_string(0, 0, "leave_type_code").unwrap();
         ref_sheet.write_string(0, 1, "leave_type_name").unwrap();
         ref_sheet.write_string(1, 0, "vacation").unwrap();
         ref_sheet.write_string(1, 1, "Annual Leave").unwrap();
 
-        // Add template sheet second (index 1) with correct headers
         let tpl_sheet = workbook.add_worksheet().set_name("Template").unwrap();
         tpl_sheet.write_string(0, 0, "employee_code").unwrap();
         tpl_sheet.write_string(0, 1, "leave_type_code").unwrap();

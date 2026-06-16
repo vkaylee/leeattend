@@ -26,15 +26,26 @@ async fn test_import_csv_with_line_errors() {
         .create()
         .await;
 
-    let csv_content = format!(
-        "employee_code,full_name,punch_time\n{emp_id_number},User 1,14/01/2026 08:00\n{emp_id_number},User 1,not-a-date\n{emp_id_number},User 1,"
-    );
-
-    let file_path = format!("storage/test_imports/{}.csv", uuid::Uuid::new_v4());
+    let file_path = format!("storage/test_imports/{}.xlsx", uuid::Uuid::new_v4());
     tokio::fs::create_dir_all("storage/test_imports")
         .await
         .unwrap();
-    tokio::fs::write(&file_path, csv_content).await.unwrap();
+
+    let mut workbook = rust_xlsxwriter::Workbook::new();
+    let sheet = workbook.add_worksheet();
+    sheet.write_string(0, 0, "employee_code").unwrap();
+    sheet.write_string(0, 1, "full_name").unwrap();
+    sheet.write_string(0, 2, "punch_time").unwrap();
+    sheet.write_string(1, 0, emp_id_number).unwrap();
+    sheet.write_string(1, 1, "User 1").unwrap();
+    sheet.write_string(1, 2, "14/01/2026 08:00").unwrap();
+    sheet.write_string(2, 0, emp_id_number).unwrap();
+    sheet.write_string(2, 1, "User 1").unwrap();
+    sheet.write_string(2, 2, "not-a-date").unwrap();
+    sheet.write_string(3, 0, emp_id_number).unwrap();
+    sheet.write_string(3, 1, "User 1").unwrap();
+    sheet.write_string(3, 2, "").unwrap();
+    workbook.save(&file_path).unwrap();
 
     let te_repo = std::sync::Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
         diesel_pools.clone(),
@@ -200,17 +211,25 @@ async fn test_employee_import_chunking() {
 
     let job_id = uuid::Uuid::new_v4();
     let import_repo = apiserver::repositories::DieselImportJobRepository::new(diesel_pools.clone());
-    // Create a fake CSV file
-    let mut csv_content = String::from("employee_code,full_name,hire_date,department_name\n");
-    for i in 1..=1050 {
-        csv_content.push_str(&format!("EMP{i},User {i},2023-01-01,IT\n"));
-    }
-
-    let file_path = format!("storage/test_imports/{}.csv", job_id);
+    let file_path = format!("storage/test_imports/{}.xlsx", job_id);
     tokio::fs::create_dir_all("storage/test_imports")
         .await
         .unwrap();
-    tokio::fs::write(&file_path, csv_content).await.unwrap();
+
+    let mut workbook = rust_xlsxwriter::Workbook::new();
+    let sheet = workbook.add_worksheet();
+    sheet.write_string(0, 0, "employee_code").unwrap();
+    sheet.write_string(0, 1, "full_name").unwrap();
+    sheet.write_string(0, 2, "hire_date").unwrap();
+    sheet.write_string(0, 3, "department_name").unwrap();
+    for i in 1..=1050 {
+        let r = i as u32;
+        sheet.write_string(r, 0, &format!("EMP{i}")).unwrap();
+        sheet.write_string(r, 1, &format!("User {i}")).unwrap();
+        sheet.write_string(r, 2, "2023-01-01").unwrap();
+        sheet.write_string(r, 3, "IT").unwrap();
+    }
+    workbook.save(&file_path).unwrap();
 
     let job = AttendanceImportJob {
         id: job_id,
@@ -310,20 +329,34 @@ async fn test_leave_import_chunking() {
     let job_id = uuid::Uuid::new_v4();
     let import_repo = apiserver::repositories::DieselImportJobRepository::new(diesel_pools.clone());
 
-    // Create a fake CSV file for leaves
-    let mut csv_content =
-        String::from("employee_code,leave_type_code,start_date,end_date,reason,duration_type\n");
-    for i in 1..=600 {
-        csv_content.push_str(&format!(
-            "EMP{i},AL,2023-01-01,2023-01-02,Vacation,FullDay\n"
-        ));
-    }
-
-    let file_path = format!("storage/test_imports/{}.csv", job_id);
+    let file_path = format!("storage/test_imports/{}.xlsx", job_id);
     tokio::fs::create_dir_all("storage/test_imports")
         .await
         .unwrap();
-    tokio::fs::write(&file_path, csv_content).await.unwrap();
+
+    let mut workbook = rust_xlsxwriter::Workbook::new();
+    let sheet = workbook.add_worksheet();
+    let headers = [
+        "employee_code",
+        "leave_type_code",
+        "start_date",
+        "end_date",
+        "reason",
+        "duration_type",
+    ];
+    for (col, h) in headers.iter().enumerate() {
+        sheet.write_string(0, col as u16, *h).unwrap();
+    }
+    for i in 1..=600 {
+        let r = i as u32;
+        sheet.write_string(r, 0, &format!("EMP{i}")).unwrap();
+        sheet.write_string(r, 1, "AL").unwrap();
+        sheet.write_string(r, 2, "2023-01-01").unwrap();
+        sheet.write_string(r, 3, "2023-01-02").unwrap();
+        sheet.write_string(r, 4, "Vacation").unwrap();
+        sheet.write_string(r, 5, "FullDay").unwrap();
+    }
+    workbook.save(&file_path).unwrap();
 
     let job = AttendanceImportJob {
         id: job_id,

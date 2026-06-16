@@ -39,6 +39,16 @@ pub async fn extract_uploaded_file(
                 .content_type()
                 .unwrap_or("application/octet-stream")
                 .to_string();
+
+            let has_csv_ext = std::path::Path::new(&file_name)
+                .extension()
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("csv"));
+            if has_csv_ext || mime_type.eq_ignore_ascii_case("text/csv") {
+                return Err(AppError::validation(
+                    crate::utils::i18n::I18nKey::InvalidFileFormat,
+                ));
+            }
+
             let data = field
                 .bytes()
                 .await

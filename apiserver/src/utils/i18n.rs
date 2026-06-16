@@ -73,6 +73,7 @@ pub const ALL_KEYS: &[&str] = &[
     "error.failed_read_file_bytes",
     "error.file_too_large",
     "error.no_file_uploaded",
+    "error.invalid_file_format",
     "error.invalid_utf8_csv",
     "error.csv_parsing_error",
     "error.max_rows_exceeded",
@@ -119,6 +120,13 @@ pub const ALL_KEYS: &[&str] = &[
     "error.template_item_title_empty",
     "error.checklist_not_found",
     "error.checklist_item_not_found",
+    "error.cannot_open_xlsx",
+    "error.cannot_open_xls",
+    "error.empty_excel_sheet",
+    "error.duplicate_headers",
+    "error.missing_mandatory_headers",
+    "error.no_sheets_found",
+    "error.cannot_read_sheet",
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -190,6 +198,7 @@ pub enum I18nKey {
     FailedToReadFileBytes,
     FileTooLarge,
     NoFileUploaded,
+    InvalidFileFormat,
     InvalidUtf8Csv,
     CsvParsingError,
     MaxRowsExceeded,
@@ -236,6 +245,13 @@ pub enum I18nKey {
     TemplateItemTitleEmpty,
     ChecklistNotFound,
     ChecklistItemNotFound,
+    CannotOpenXlsx,
+    CannotOpenXls,
+    EmptyExcelSheet,
+    DuplicateHeaders,
+    MissingMandatoryHeaders,
+    NoSheetsFound,
+    CannotReadSheet,
 }
 
 impl I18nKey {
@@ -309,6 +325,7 @@ impl I18nKey {
             Self::FailedToReadFileBytes => "error.failed_read_file_bytes",
             Self::FileTooLarge => "error.file_too_large",
             Self::NoFileUploaded => "error.no_file_uploaded",
+            Self::InvalidFileFormat => "error.invalid_file_format",
             Self::InvalidUtf8Csv => "error.invalid_utf8_csv",
             Self::CsvParsingError => "error.csv_parsing_error",
             Self::MaxRowsExceeded => "error.max_rows_exceeded",
@@ -355,6 +372,13 @@ impl I18nKey {
             Self::TemplateItemTitleEmpty => "error.template_item_title_empty",
             Self::ChecklistNotFound => "error.checklist_not_found",
             Self::ChecklistItemNotFound => "error.checklist_item_not_found",
+            Self::CannotOpenXlsx => "error.cannot_open_xlsx",
+            Self::CannotOpenXls => "error.cannot_open_xls",
+            Self::EmptyExcelSheet => "error.empty_excel_sheet",
+            Self::DuplicateHeaders => "error.duplicate_headers",
+            Self::MissingMandatoryHeaders => "error.missing_mandatory_headers",
+            Self::NoSheetsFound => "error.no_sheets_found",
+            Self::CannotReadSheet => "error.cannot_read_sheet",
         }
     }
 }
@@ -429,6 +453,17 @@ pub fn t(key: &str) -> String {
 /// Placeholders are specified as `{key}`.
 pub fn t_args(key: &str, args: &[(&str, &str)]) -> String {
     let mut text = t(key);
+    for (k, v) in args {
+        text = text.replace(&format!("{{{k}}}"), v);
+    }
+    text
+}
+
+/// Look up a translation key using the specified language, replacing format arguments.
+///
+/// Placeholders are specified as `{key}`.
+pub fn translate_args(lang: &str, key: &str, args: &[(&str, &str)]) -> String {
+    let mut text = translate(lang, key);
     for (k, v) in args {
         text = text.replace(&format!("{{{k}}}"), v);
     }
@@ -520,6 +555,7 @@ fn lookup_en(key: &str) -> Option<&'static str> {
         "error.failed_read_file_bytes" => Some("Failed to read uploaded file bytes"),
         "error.file_too_large" => Some("File size exceeds the limit"),
         "error.no_file_uploaded" => Some("No file uploaded"),
+        "error.invalid_file_format" => Some("Invalid file format. Only Excel files (.xlsx, .xls) are supported."),
         "error.invalid_utf8_csv" => Some("CSV file must be encoded in UTF-8"),
         "error.csv_parsing_error" => Some("CSV parsing failed"),
         "error.max_rows_exceeded" => Some("Maximum allowed rows exceeded"),
@@ -566,6 +602,13 @@ fn lookup_en(key: &str) -> Option<&'static str> {
         "error.template_item_title_empty" => Some("Item title cannot be empty"),
         "error.checklist_not_found" => Some("Lifecycle checklist not found"),
         "error.checklist_item_not_found" => Some("Lifecycle checklist item not found"),
+        "error.cannot_open_xlsx" => Some("Cannot open Excel XLSX file: {error}"),
+        "error.cannot_open_xls" => Some("Cannot open Excel XLS file: {error}"),
+        "error.empty_excel_sheet" => Some("Excel file is empty or contains only headers."),
+        "error.duplicate_headers" => Some("Duplicate columns detected: {headers}"),
+        "error.missing_mandatory_headers" => Some("Missing mandatory headers: {headers}"),
+        "error.no_sheets_found" => Some("Excel file does not contain any sheets."),
+        "error.cannot_read_sheet" => Some("Cannot read sheet {name}: {error}"),
         _ => None,
     }
 }
@@ -641,6 +684,7 @@ fn lookup_vi(key: &str) -> Option<&'static str> {
         "error.failed_read_file_bytes" => Some("Không thể đọc dữ liệu file tải lên"),
         "error.file_too_large" => Some("Kích thước file vượt quá giới hạn"),
         "error.no_file_uploaded" => Some("Không có file nào được tải lên"),
+        "error.invalid_file_format" => Some("Định dạng file không hỗ trợ. Chỉ hỗ trợ file Excel (.xlsx, .xls)."),
         "error.invalid_utf8_csv" => Some("File CSV phải được mã hóa UTF-8"),
         "error.csv_parsing_error" => Some("Lỗi parse CSV"),
         "error.max_rows_exceeded" => Some("Vượt quá số dòng tối đa cho phép"),
@@ -687,6 +731,13 @@ fn lookup_vi(key: &str) -> Option<&'static str> {
         "error.template_item_title_empty" => Some("Tiêu đề mục không được để trống"),
         "error.checklist_not_found" => Some("Không tìm thấy danh sách kiểm tra vòng đời"),
         "error.checklist_item_not_found" => Some("Không tìm thấy mục danh sách kiểm tra vòng đời"),
+        "error.cannot_open_xlsx" => Some("Không thể mở file Excel XLSX: {error}"),
+        "error.cannot_open_xls" => Some("Không thể mở file Excel XLS: {error}"),
+        "error.empty_excel_sheet" => Some("File Excel trống hoặc chỉ chứa dòng tiêu đề."),
+        "error.duplicate_headers" => Some("Phát hiện các cột bị trùng lặp: {headers}"),
+        "error.missing_mandatory_headers" => Some("Thiếu các cột bắt buộc: {headers}"),
+        "error.no_sheets_found" => Some("File Excel không chứa bất kỳ sheet nào."),
+        "error.cannot_read_sheet" => Some("Không thể đọc sheet {name}: {error}"),
         _ => None,
     }
 }
@@ -766,6 +817,7 @@ fn lookup_zh(key: &str) -> Option<&'static str> {
         "error.failed_read_file_bytes" => Some("无法读取上传的文件字节"),
         "error.file_too_large" => Some("文件大小超过限制"),
         "error.no_file_uploaded" => Some("未上传文件"),
+        "error.invalid_file_format" => Some("不支持的文件格式。仅支持 Excel 文件 (.xlsx, .xls)。"),
         "error.invalid_utf8_csv" => Some("CSV 文件必须是 UTF-8 编码"),
         "error.csv_parsing_error" => Some("CSV 解析失败"),
         "error.max_rows_exceeded" => Some("超过最大允许行数"),
@@ -812,6 +864,13 @@ fn lookup_zh(key: &str) -> Option<&'static str> {
         "error.template_item_title_empty" => Some("项目标题不能为空"),
         "error.checklist_not_found" => Some("未找到生命周期清单"),
         "error.checklist_item_not_found" => Some("未找到生命周期清单项"),
+        "error.cannot_open_xlsx" => Some("无法打开 Excel XLSX 文件: {error}"),
+        "error.cannot_open_xls" => Some("无法打开 Excel XLS 文件: {error}"),
+        "error.empty_excel_sheet" => Some("Excel 文件为空或仅包含表头。"),
+        "error.duplicate_headers" => Some("检测到重复的表头: {headers}"),
+        "error.missing_mandatory_headers" => Some("缺少必填表头: {headers}"),
+        "error.no_sheets_found" => Some("Excel 文件中未找到任何工作表。"),
+        "error.cannot_read_sheet" => Some("无法读取工作表 {name}: {error}"),
         _ => None,
     }
 }
@@ -947,6 +1006,7 @@ mod tests {
             I18nKey::FailedToReadFileBytes,
             I18nKey::FileTooLarge,
             I18nKey::NoFileUploaded,
+            I18nKey::InvalidFileFormat,
             I18nKey::InvalidUtf8Csv,
             I18nKey::CsvParsingError,
             I18nKey::MaxRowsExceeded,
@@ -993,6 +1053,13 @@ mod tests {
             I18nKey::TemplateItemTitleEmpty,
             I18nKey::ChecklistNotFound,
             I18nKey::ChecklistItemNotFound,
+            I18nKey::CannotOpenXlsx,
+            I18nKey::CannotOpenXls,
+            I18nKey::EmptyExcelSheet,
+            I18nKey::DuplicateHeaders,
+            I18nKey::MissingMandatoryHeaders,
+            I18nKey::NoSheetsFound,
+            I18nKey::CannotReadSheet,
         ];
 
         for variant in &variants {

@@ -65,13 +65,19 @@ impl EmployeeImportHandler {
             .as_ref()
             .ok_or_else(|| "No file path provided".to_string())?;
 
+        let workspace_repo = &*deps.workspace_repo;
+        let lang = match workspace_repo.get_workspace_by_id(job.workspace_id).await {
+            Ok(Some(ws)) => ws.default_language().to_string(),
+            _ => "vi".to_string(),
+        };
+
         let file_bytes = tokio::fs::read(file_path)
             .await
             .map_err(|e| format!("Could not read file: {e}"))?;
 
         tracing::info!("Extracting mapped rows");
         let rows = crate::utils::file_parser::extract_mapped_rows(&file_bytes, &["employee_code"])
-            .map_err(|e| format!("Failed to parse file: {e}"))?;
+            .map_err(|e| e.translate(&lang))?;
 
         let total_rows = rows.len();
         let _ = import_repo
@@ -287,7 +293,7 @@ mod tests {
     use super::*;
     use crate::queue::{EmployeeImportPayload, JobPriority, TaskType};
     use crate::worker::test_utils::MockWorkerDepsBuilder;
-    use std::io::Write;
+
     use std::sync::Arc;
     use tempfile::NamedTempFile;
     use uuid::Uuid;
@@ -298,12 +304,16 @@ mod tests {
         let ws_id = Uuid::new_v4();
 
         let temp_file = NamedTempFile::new().unwrap();
-        // Create a fake excel file or use CSV? The parser extract_mapped_rows uses csv/excel. Wait, file_parser checks extension. Let's make it a .csv
-        let file_path = temp_file.path().to_str().unwrap().to_string() + ".csv";
-        let mut actual_file = std::fs::File::create(&file_path).unwrap();
-        writeln!(actual_file, "employee_code,full_name").unwrap();
-        writeln!(actual_file, "EMP01,John Doe").unwrap();
-        writeln!(actual_file, "EMP02,Jane Doe").unwrap();
+        let file_path = temp_file.path().to_str().unwrap().to_string() + ".xlsx";
+        let mut workbook = rust_xlsxwriter::Workbook::new();
+        let sheet = workbook.add_worksheet();
+        sheet.write_string(0, 0, "employee_code").unwrap();
+        sheet.write_string(0, 1, "full_name").unwrap();
+        sheet.write_string(1, 0, "EMP01").unwrap();
+        sheet.write_string(1, 1, "John Doe").unwrap();
+        sheet.write_string(2, 0, "EMP02").unwrap();
+        sheet.write_string(2, 1, "Jane Doe").unwrap();
+        workbook.save(&file_path).unwrap();
 
         let mut import_repo =
             crate::repositories::import_job_repository::MockImportJobRepository::new();
@@ -362,8 +372,31 @@ mod tests {
         let cache_arc: Arc<dyn crate::repositories::CacheRepository> = Arc::new(cache);
         let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);
 
+        let mut workspace_repo =
+            crate::repositories::workspace_repository::MockWorkspaceRepository::new();
+        workspace_repo.expect_get_workspace_by_id().returning(|id| {
+            Box::pin(async move {
+                Ok(Some(crate::models::Workspace::new(
+                    id,
+                    "Mocked Workspace".into(),
+                    "YYYY-MM-DD".into(),
+                    "HH:mm:ss".into(),
+                    "UTC".into(),
+                    "#000000".into(),
+                    "vi".into(),
+                    None,
+                    None,
+                    "split".into(),
+                    rust_decimal::Decimal::new(15, 1),
+                    chrono::Utc::now(),
+                    None,
+                )))
+            })
+        });
+
         let mut builder = MockWorkerDepsBuilder::new();
         builder.import_job_repo = import_repo;
+        builder.workspace_repo = workspace_repo;
         let deps = builder.build();
 
         let job = Job {

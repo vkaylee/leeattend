@@ -440,20 +440,67 @@ fn parse_date(s: &str) -> Option<NaiveDate> {
         return None;
     }
 
-    // Try ISO format first: YYYY-MM-DD
-    if let Ok(d) = NaiveDate::parse_from_str(s, "%Y-%m-%d") {
+    // Split on 'T' first to remove any ISO time portion (e.g. 2026-05-29T13:45:00Z)
+    let base_part = s.split('T').next().unwrap_or(s).trim();
+
+    // Extract segments before any time portion containing ':'
+    let mut date_segments = Vec::new();
+    for word in base_part.split_whitespace() {
+        if word.contains(':') {
+            break;
+        }
+        date_segments.push(word);
+    }
+    let date_str = date_segments.join(" ");
+
+    // Split parts by date separators and trim each part
+    let parts: Vec<&str> = date_str.split(&['-', '/', '.']).map(str::trim).collect();
+
+    if parts.len() == 3 {
+        let normalized = parts.join("-");
+        let first_len = parts[0].len();
+        let last_len = parts[2].len();
+
+        if first_len == 4 {
+            // YYYY-MM-DD
+            if let Ok(d) = NaiveDate::parse_from_str(&normalized, "%Y-%m-%d") {
+                return Some(d);
+            }
+        } else if last_len == 4 {
+            // DD-MM-YYYY or MM-DD-YYYY
+            if let Ok(d) = NaiveDate::parse_from_str(&normalized, "%d-%m-%Y") {
+                return Some(d);
+            }
+            if let Ok(d) = NaiveDate::parse_from_str(&normalized, "%m-%d-%Y") {
+                return Some(d);
+            }
+        } else if last_len == 2 {
+            // DD-MM-YY or MM-DD-YY
+            if let Ok(d) = NaiveDate::parse_from_str(&normalized, "%d-%m-%y") {
+                return Some(d);
+            }
+            if let Ok(d) = NaiveDate::parse_from_str(&normalized, "%m-%d-%y") {
+                return Some(d);
+            }
+        } else if first_len == 2 {
+            // YY-MM-DD
+            if let Ok(d) = NaiveDate::parse_from_str(&normalized, "%y-%m-%d") {
+                return Some(d);
+            }
+        }
+    }
+
+    // Fallback: try standard parsing sequentially on date_str
+    if let Ok(d) = NaiveDate::parse_from_str(&date_str, "%Y-%m-%d") {
         return Some(d);
     }
-    // DD/MM/YYYY
-    if let Ok(d) = NaiveDate::parse_from_str(s, "%d/%m/%Y") {
+    if let Ok(d) = NaiveDate::parse_from_str(&date_str, "%d/%m/%Y") {
         return Some(d);
     }
-    // MM/DD/YYYY
-    if let Ok(d) = NaiveDate::parse_from_str(s, "%m/%d/%Y") {
+    if let Ok(d) = NaiveDate::parse_from_str(&date_str, "%m/%d/%Y") {
         return Some(d);
     }
-    // DD-MM-YYYY
-    if let Ok(d) = NaiveDate::parse_from_str(s, "%d-%m-%Y") {
+    if let Ok(d) = NaiveDate::parse_from_str(&date_str, "%d-%m-%Y") {
         return Some(d);
     }
 
@@ -480,6 +527,106 @@ mod tests {
     use std::io::Cursor;
 
     // ---- parse_date tests ----
+
+    #[test]
+    fn test_parse_date_formats() {
+        // ISO format
+        assert_eq!(
+            parse_date("2026-05-29"),
+            Some(NaiveDate::from_ymd_opt(2026, 5, 29).unwrap())
+        );
+        // ISO format with time
+        assert_eq!(
+            parse_date("2026-05-29 00:00:00"),
+            Some(NaiveDate::from_ymd_opt(2026, 5, 29).unwrap())
+        );
+        // ISO format with time & T
+        assert_eq!(
+            parse_date("2026-05-29T13:45:00Z"),
+            Some(NaiveDate::from_ymd_opt(2026, 5, 29).unwrap())
+        );
+        // DD/MM/YYYY
+        assert_eq!(
+            parse_date("29/05/2026"),
+            Some(NaiveDate::from_ymd_opt(2026, 5, 29).unwrap())
+        );
+        // MM/DD/YYYY
+        assert_eq!(
+            parse_date("05/29/2026"),
+            Some(NaiveDate::from_ymd_opt(2026, 5, 29).unwrap())
+        );
+        // DD-MM-YYYY
+        assert_eq!(
+            parse_date("29-05-2026"),
+            Some(NaiveDate::from_ymd_opt(2026, 5, 29).unwrap())
+        );
+        // YYYY/MM/DD
+        assert_eq!(
+            parse_date("2026/05/29"),
+            Some(NaiveDate::from_ymd_opt(2026, 5, 29).unwrap())
+        );
+        // DD-MM-YY (2-digit year)
+        assert_eq!(
+            parse_date("29-05-26"),
+            Some(NaiveDate::from_ymd_opt(2026, 5, 29).unwrap())
+        );
+        // DD/MM/YY (2-digit year)
+        assert_eq!(
+            parse_date("29/05/26"),
+            Some(NaiveDate::from_ymd_opt(2026, 5, 29).unwrap())
+        );
+        // MM/DD/YY (2-digit year)
+        assert_eq!(
+            parse_date("05/29/26"),
+            Some(NaiveDate::from_ymd_opt(2026, 5, 29).unwrap())
+        );
+
+        // Edge Cases:
+        // Single digit day/month
+        assert_eq!(
+            parse_date("2026-5-9"),
+            Some(NaiveDate::from_ymd_opt(2026, 5, 9).unwrap())
+        );
+        assert_eq!(
+            parse_date("9-5-26"),
+            Some(NaiveDate::from_ymd_opt(2026, 5, 9).unwrap())
+        );
+        // Spaces around separators
+        assert_eq!(
+            parse_date("29 - 05 - 26"),
+            Some(NaiveDate::from_ymd_opt(2026, 5, 29).unwrap())
+        );
+        assert_eq!(
+            parse_date(" 2026 / 05 / 29 "),
+            Some(NaiveDate::from_ymd_opt(2026, 5, 29).unwrap())
+        );
+        // Dot separators
+        assert_eq!(
+            parse_date("29.05.2026"),
+            Some(NaiveDate::from_ymd_opt(2026, 5, 29).unwrap())
+        );
+        assert_eq!(
+            parse_date("29.05.26"),
+            Some(NaiveDate::from_ymd_opt(2026, 5, 29).unwrap())
+        );
+        assert_eq!(
+            parse_date("2026.05.29"),
+            Some(NaiveDate::from_ymd_opt(2026, 5, 29).unwrap())
+        );
+        // Datetime and Timezone structures
+        assert_eq!(
+            parse_date("29/05/2026 10:30:00"),
+            Some(NaiveDate::from_ymd_opt(2026, 5, 29).unwrap())
+        );
+        assert_eq!(
+            parse_date("29-05-26T10:30:00.000Z"),
+            Some(NaiveDate::from_ymd_opt(2026, 5, 29).unwrap())
+        );
+
+        // Invalid formats
+        assert_eq!(parse_date(""), None);
+        assert_eq!(parse_date("invalid"), None);
+    }
 
     // ---- parse_duration_type tests ----
 

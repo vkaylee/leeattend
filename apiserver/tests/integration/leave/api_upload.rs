@@ -46,7 +46,7 @@ fn create_multipart_body_binary(filename: &str, content: &[u8]) -> (String, Vec<
 }
 
 #[tokio::test]
-async fn test_upload_leave_csv_api() {
+async fn test_upload_leave_xlsx_api() {
     let (test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
@@ -79,12 +79,29 @@ async fn test_upload_leave_csv_api() {
 
     let start_date = chrono::Utc::now().format("%Y-%m-%d").to_string();
     let end_date = start_date.clone();
-    let csv_content = format!(
-        "employee_code,leave_type_code,start_date,end_date,reason,duration_type\n\
-        {emp_id_number},vacation,{start_date},{end_date},Vacation,full_day"
-    );
 
-    let (content_type, body) = create_multipart_body("leaves.csv", &csv_content);
+    let mut workbook = rust_xlsxwriter::Workbook::new();
+    let sheet = workbook.add_worksheet();
+    let headers = [
+        "employee_code",
+        "leave_type_code",
+        "start_date",
+        "end_date",
+        "reason",
+        "duration_type",
+    ];
+    for (col, h) in headers.iter().enumerate() {
+        sheet.write_string(0, col as u16, *h).unwrap();
+    }
+    sheet.write_string(1, 0, emp_id_number).unwrap();
+    sheet.write_string(1, 1, "vacation").unwrap();
+    sheet.write_string(1, 2, &start_date).unwrap();
+    sheet.write_string(1, 3, &end_date).unwrap();
+    sheet.write_string(1, 4, "Vacation").unwrap();
+    sheet.write_string(1, 5, "full_day").unwrap();
+    let xlsx_bytes = workbook.save_to_buffer().unwrap();
+
+    let (content_type, body) = create_multipart_body_binary("leaves.xlsx", &xlsx_bytes);
 
     let response = app
         .clone()
@@ -101,7 +118,7 @@ async fn test_upload_leave_csv_api() {
         .await
         .unwrap();
 
-    assert_eq!(response.status(), StatusCode::OK, "CSV Upload failed");
+    assert_eq!(response.status(), StatusCode::OK, "Excel Upload failed");
     let body_bytes = axum::body::to_bytes(response.into_body(), 10000)
         .await
         .unwrap();
@@ -159,7 +176,7 @@ async fn test_upload_leave_csv_api() {
     assert_eq!(
         job_opt.status,
         ImportJobStatus::Completed,
-        "CSV Job did not complete. error_log: {:?}",
+        "Excel Job did not complete. error_log: {:?}",
         job_opt.error_log
     );
 

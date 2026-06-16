@@ -6,7 +6,6 @@ use apiserver::queue::{
     Job, JobPayload, JobPriority, LeaveImportChunkPayload, LeaveImportPayload, RedisPool, TaskType,
 };
 use apiserver::worker::handlers::{LeaveImportChunkHandler, LeaveImportHandler};
-use std::io::Write;
 use uuid::Uuid;
 
 #[tokio::test]
@@ -35,11 +34,30 @@ async fn test_leave_import_worker_handlers() {
         .create()
         .await;
 
-    // 1. Create a dummy CSV file
-    let file_path = format!("/tmp/test_leave_import_{}.csv", Uuid::new_v4());
-    let csv_content = "employee_code,leave_type_name,start_date,end_date,start_session,end_session,reason\nEMP_W1,Annual Leave,2026-05-01,2026-05-02,morning,afternoon,Vacation";
-    let mut file = std::fs::File::create(&file_path).unwrap();
-    file.write_all(csv_content.as_bytes()).unwrap();
+    // 1. Create a dummy XLSX file
+    let file_path = format!("/tmp/test_leave_import_{}.xlsx", Uuid::new_v4());
+    let mut workbook = rust_xlsxwriter::Workbook::new();
+    let sheet = workbook.add_worksheet();
+    let headers = [
+        "employee_code",
+        "leave_type_name",
+        "start_date",
+        "end_date",
+        "start_session",
+        "end_session",
+        "reason",
+    ];
+    for (col, h) in headers.iter().enumerate() {
+        sheet.write_string(0, col as u16, *h).unwrap();
+    }
+    sheet.write_string(1, 0, "EMP_W1").unwrap();
+    sheet.write_string(1, 1, "Annual Leave").unwrap();
+    sheet.write_string(1, 2, "2026-05-01").unwrap();
+    sheet.write_string(1, 3, "2026-05-02").unwrap();
+    sheet.write_string(1, 4, "morning").unwrap();
+    sheet.write_string(1, 5, "afternoon").unwrap();
+    sheet.write_string(1, 6, "Vacation").unwrap();
+    workbook.save(&file_path).unwrap();
 
     // 2. Create Import Job in DB
     let import_job_id = Uuid::new_v4();
@@ -119,9 +137,12 @@ async fn test_leave_import_handler_empty_file() {
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
 
-    let file_path = format!("/tmp/test_leave_import_empty_{}.csv", Uuid::new_v4());
-    let mut file = std::fs::File::create(&file_path).unwrap();
-    file.write_all(b"employee_code,leave_type\n").unwrap(); // Only header
+    let file_path = format!("/tmp/test_leave_import_empty_{}.xlsx", Uuid::new_v4());
+    let mut workbook = rust_xlsxwriter::Workbook::new();
+    let sheet = workbook.add_worksheet();
+    sheet.write_string(0, 0, "employee_code").unwrap();
+    sheet.write_string(0, 1, "leave_type").unwrap();
+    workbook.save(&file_path).unwrap();
 
     let import_job_id = Uuid::new_v4();
     crate::test_execute!(&pool.api,
@@ -156,7 +177,7 @@ async fn test_leave_import_handler_empty_file() {
     assert!(res.is_err());
     assert_eq!(
         res.unwrap_err(),
-        "Failed to parse file: File is empty or contains only headers."
+        "File Excel trống hoặc chỉ chứa dòng tiêu đề."
     );
 
     let _ = std::fs::remove_file(file_path);

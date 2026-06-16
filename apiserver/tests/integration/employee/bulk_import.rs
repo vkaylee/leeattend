@@ -29,17 +29,18 @@ fn create_multipart_body(filename: &str, content: &str) -> (String, Vec<u8>) {
 }
 
 #[tokio::test]
-async fn test_upload_employee_csv_api() {
+async fn test_upload_employee_xlsx_api() {
     let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
 
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
 
-    // CSV with 2 employees
-    let csv_content =
-        "employee_code,full_name,hire_date,department_name\nEMP001,John Doe,2026-01-01,\nEMP002,Jane Smith,2026-01-15,";
-    let (content_type, body) = create_multipart_body("employees.csv", csv_content);
+    let xlsx_bytes = generate_employee_xlsx(&[
+        ("EMP001", "John Doe", "2026-01-01", ""),
+        ("EMP002", "Jane Smith", "2026-01-15", ""),
+    ]);
+    let (content_type, body) = create_multipart_body_binary("employees.xlsx", &xlsx_bytes);
 
     let response = app
         .clone()
@@ -59,7 +60,7 @@ async fn test_upload_employee_csv_api() {
     assert_eq!(
         response.status(),
         StatusCode::OK,
-        "Employee CSV Upload failed"
+        "Employee XLSX Upload failed"
     );
     let body_bytes = axum::body::to_bytes(response.into_body(), 10000)
         .await
@@ -99,7 +100,7 @@ async fn test_upload_employee_csv_api() {
             }
         }
     }
-    assert!(completed, "Employee CSV Job did not complete");
+    assert!(completed, "Employee XLSX Job did not complete");
 
     // Verify employees created
     let emp1 = _state
@@ -128,7 +129,7 @@ async fn test_upload_employee_csv_api() {
 }
 
 #[tokio::test]
-async fn test_upload_employee_duplicate_id_skips() {
+async fn test_upload_employee_xlsx_duplicate_id_skips() {
     let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
 
@@ -144,10 +145,11 @@ async fn test_upload_employee_duplicate_id_skips() {
         .create()
         .await;
 
-    // CSV with same ID "DUP001" (different name) and a new employee "NEW002"
-    let csv_content =
-        "employee_code,full_name,hire_date,department_name\nDUP001,New John,2026-01-01,\nNEW002,Alice Wonder,2026-02-01,";
-    let (content_type, body) = create_multipart_body("employees.csv", csv_content);
+    let xlsx_bytes = generate_employee_xlsx(&[
+        ("DUP001", "New John", "2026-01-01", ""),
+        ("NEW002", "Alice Wonder", "2026-02-01", ""),
+    ]);
+    let (content_type, body) = create_multipart_body_binary("employees.xlsx", &xlsx_bytes);
 
     let response = app
         .clone()
@@ -256,301 +258,6 @@ async fn test_upload_employee_duplicate_id_skips() {
         .await
         .unwrap();
     assert!(emp_new.is_some());
-}
-
-#[tokio::test]
-async fn test_upload_employee_csv_with_department() {
-    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
-        setup_app_tower().await;
-
-    let user_id: Uuid = factory.user().create().await;
-    let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
-
-    // CSV with 3 employees, 2 in "Engineering", 1 in "Marketing", column D = department
-    let csv_content = "employee_code,full_name,hire_date,department_name\n\
-                       DEPT001,Alice Eng,2026-01-01,Engineering\n\
-                       DEPT002,Bob Eng,2026-01-15,Engineering\n\
-                       DEPT003,Carol Mkt,2026-02-01,Marketing";
-    let (content_type, body) = create_multipart_body("employees.csv", csv_content);
-
-    let response = app
-        .clone()
-        .oneshot(
-            axum::http::Request::builder()
-                .method("POST")
-                .uri(format!("/api/v1/workspaces/{ws_id}/employees/upload"))
-                .header("Content-Type", content_type)
-                .header("X-Workspace-Id", ws_id.to_string())
-                .header("X-User-Id", user_id.to_string())
-                .body(axum::body::Body::from(body))
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::OK);
-    let body_bytes = axum::body::to_bytes(response.into_body(), 10000)
-        .await
-        .unwrap();
-    let json: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
-    let job_uuid = Uuid::parse_str(json["job_id"].as_str().unwrap()).unwrap();
-    tokio::time::timeout(
-        std::time::Duration::from_secs(10),
-        _state
-            .attendance()
-            .import_service()
-            .process_job(ws_id, job_uuid),
-    )
-    .await
-    .expect("process_job timed out")
-    .unwrap();
-
-    // Wait for job completion
-    let mut completed = false;
-    for _ in 0..30 {
-        sleep(Duration::from_millis(200)).await;
-        let job = _state
-            .attendance()
-            .import_repo()
-            .get_job_by_id(
-                &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-                job_uuid,
-            )
-            .await
-            .unwrap()
-            .unwrap();
-        if job.status == ImportJobStatus::Completed {
-            completed = true;
-            assert_eq!(job.processed_rows, 3, "All 3 employees should be processed");
-            break;
-        } else if job.status == ImportJobStatus::Failed {
-            panic!("Job failed: {:?}", job.error_log);
-        }
-    }
-    assert!(completed, "Job did not complete in time");
-
-    // Verify departments were created
-    let departments = _state
-        .payroll()
-        .department_repo()
-        .get_departments(
-            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            1,
-            50,
-        )
-        .await
-        .unwrap();
-    let dept_names: Vec<&str> = departments.0.iter().map(|d| d.name()).collect();
-    assert!(
-        dept_names.contains(&"Engineering"),
-        "Engineering department should be created"
-    );
-    assert!(
-        dept_names.contains(&"Marketing"),
-        "Marketing department should be created"
-    );
-
-    // Verify employee DEPT001 is assigned to Engineering
-    let emp1 = _state
-        .employees()
-        .repo()
-        .find_by_number(
-            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            "DEPT001",
-        )
-        .await
-        .unwrap()
-        .expect("Employee DEPT001 should exist");
-
-    let current_dept = _state
-        .payroll()
-        .department_repo()
-        .get_current_department(
-            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp1.id(),
-        )
-        .await
-        .unwrap();
-    assert!(
-        current_dept.is_some(),
-        "DEPT001 should have a department assignment"
-    );
-
-    let eng_dept = departments
-        .0
-        .iter()
-        .find(|d| d.name() == "Engineering")
-        .unwrap();
-    assert_eq!(
-        current_dept.unwrap().department_id(),
-        eng_dept.id(),
-        "DEPT001 should be assigned to Engineering"
-    );
-
-    // Verify employee DEPT003 is assigned to Marketing
-    let emp3 = _state
-        .employees()
-        .repo()
-        .find_by_number(
-            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            "DEPT003",
-        )
-        .await
-        .unwrap()
-        .expect("Employee DEPT003 should exist");
-
-    let current_dept3 = _state
-        .payroll()
-        .department_repo()
-        .get_current_department(
-            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp3.id(),
-        )
-        .await
-        .unwrap();
-    assert!(current_dept3.is_some());
-
-    let mkt_dept = departments
-        .0
-        .iter()
-        .find(|d| d.name() == "Marketing")
-        .unwrap();
-    assert_eq!(
-        current_dept3.unwrap().department_id(),
-        mkt_dept.id(),
-        "DEPT003 should be assigned to Marketing"
-    );
-}
-
-#[tokio::test]
-async fn test_upload_employee_csv_reuses_existing_department() {
-    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
-        setup_app_tower().await;
-
-    let user_id: Uuid = factory.user().create().await;
-    let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
-
-    // Pre-create a department named "Sales"
-    let pre_existing_dept_id = factory
-        .department()
-        .with_workspace(ws_id)
-        .with_name("Sales")
-        .create()
-        .await;
-
-    // CSV with an employee in the same department "Sales" (case-insensitive match!)
-    let csv_content =
-        "employee_code,full_name,hire_date,department_name\nRE001,Dana Sales,2026-03-01,sales";
-    let (content_type, body) = create_multipart_body("employees.csv", csv_content);
-
-    let response = app
-        .clone()
-        .oneshot(
-            axum::http::Request::builder()
-                .method("POST")
-                .uri(format!("/api/v1/workspaces/{ws_id}/employees/upload"))
-                .header("Content-Type", content_type)
-                .header("X-Workspace-Id", ws_id.to_string())
-                .header("X-User-Id", user_id.to_string())
-                .body(axum::body::Body::from(body))
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::OK);
-    let body_bytes = axum::body::to_bytes(response.into_body(), 10000)
-        .await
-        .unwrap();
-    let json: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
-    let job_uuid = Uuid::parse_str(json["job_id"].as_str().unwrap()).unwrap();
-    tokio::time::timeout(
-        std::time::Duration::from_secs(10),
-        _state
-            .attendance()
-            .import_service()
-            .process_job(ws_id, job_uuid),
-    )
-    .await
-    .expect("process_job timed out")
-    .unwrap();
-
-    let mut completed = false;
-    for _ in 0..30 {
-        sleep(Duration::from_millis(200)).await;
-        let job = _state
-            .attendance()
-            .import_repo()
-            .get_job_by_id(
-                &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-                job_uuid,
-            )
-            .await
-            .unwrap()
-            .unwrap();
-        if job.status == ImportJobStatus::Completed {
-            completed = true;
-            break;
-        } else if job.status == ImportJobStatus::Failed {
-            panic!("Job failed: {:?}", job.error_log);
-        }
-    }
-    assert!(completed, "Job did not complete");
-
-    // Verify NO duplicate department was created — should still be only 1 "Sales"
-    let departments = _state
-        .payroll()
-        .department_repo()
-        .get_departments(
-            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            1,
-            50,
-        )
-        .await
-        .unwrap();
-    let sales_depts: Vec<_> = departments
-        .0
-        .iter()
-        .filter(|d| d.name().to_lowercase() == "sales")
-        .collect();
-    assert_eq!(
-        sales_depts.len(),
-        1,
-        "Should reuse existing department, not create duplicate"
-    );
-    assert_eq!(
-        sales_depts[0].id(),
-        pre_existing_dept_id,
-        "Should be the same pre-existing department"
-    );
-
-    // Verify employee is assigned to it
-    let emp = _state
-        .employees()
-        .repo()
-        .find_by_number(
-            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            "RE001",
-        )
-        .await
-        .unwrap()
-        .expect("Employee RE001 should exist");
-
-    let current_dept = _state
-        .payroll()
-        .department_repo()
-        .get_current_department(
-            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp.id(),
-        )
-        .await
-        .unwrap();
-    assert!(current_dept.is_some());
-    assert_eq!(
-        current_dept.unwrap().department_id(),
-        pre_existing_dept_id,
-        "Employee should be assigned to the pre-existing Sales department"
-    );
 }
 
 /// Create multipart body with binary content (for real .xlsx files)
@@ -901,15 +608,6 @@ async fn test_upload_csv_existing_employee_new_department() {
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
 
-    // Pre-create employee
-    factory
-        .employee()
-        .with_workspace(ws_id)
-        .with_employee_id_number("EXIST001")
-        .with_full_name("Existing Alice")
-        .create()
-        .await;
-
     // Upload CSV with same employee ID + a NEW department
     let csv =
         "employee_code,full_name,hire_date,department_name\nEXIST001,Existing Alice,2026-01-01,R&D";
@@ -930,92 +628,12 @@ async fn test_upload_csv_existing_employee_new_department() {
         .await
         .unwrap();
 
-    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     let body_bytes = axum::body::to_bytes(response.into_body(), 10000)
         .await
         .unwrap();
     let json: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
-    let job_uuid = Uuid::parse_str(json["job_id"].as_str().unwrap()).unwrap();
-    tokio::time::timeout(
-        std::time::Duration::from_secs(10),
-        _state
-            .attendance()
-            .import_service()
-            .process_job(ws_id, job_uuid),
-    )
-    .await
-    .expect("process_job timed out")
-    .unwrap();
-
-    let mut completed = false;
-    for _ in 0..30 {
-        sleep(Duration::from_millis(200)).await;
-        let job = _state
-            .attendance()
-            .import_repo()
-            .get_job_by_id(
-                &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-                job_uuid,
-            )
-            .await
-            .unwrap()
-            .unwrap();
-        if job.status == ImportJobStatus::Completed {
-            completed = true;
-            break;
-        } else if job.status == ImportJobStatus::Failed {
-            panic!("Job failed: {:?}", job.error_log);
-        }
-    }
-    assert!(completed, "Job did not complete");
-
-    // Verify "R&D" department was created
-    let departments = _state
-        .payroll()
-        .department_repo()
-        .get_departments(
-            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            1,
-            50,
-        )
-        .await
-        .unwrap();
-    let rd_dept = departments
-        .0
-        .iter()
-        .find(|d| d.name() == "R&D")
-        .expect("R&D department should be created");
-
-    // Verify existing employee is assigned to the new department
-    let emp = _state
-        .employees()
-        .repo()
-        .find_by_number(
-            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            "EXIST001",
-        )
-        .await
-        .unwrap()
-        .expect("Employee EXIST001 should exist");
-
-    let current_dept = _state
-        .payroll()
-        .department_repo()
-        .get_current_department(
-            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp.id(),
-        )
-        .await
-        .unwrap();
-    assert!(
-        current_dept.is_some(),
-        "Existing employee should be assigned to the new department"
-    );
-    assert_eq!(
-        current_dept.unwrap().department_id(),
-        rd_dept.id(),
-        "Existing employee should be in R&D"
-    );
+    assert_eq!(json["error"]["code"], "VALIDATION_ERROR");
 }
 
 #[tokio::test]
@@ -1025,23 +643,6 @@ async fn test_upload_csv_existing_employee_existing_department() {
 
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
-
-    // Pre-create employee
-    factory
-        .employee()
-        .with_workspace(ws_id)
-        .with_employee_id_number("EXIST002")
-        .with_full_name("Existing Bob")
-        .create()
-        .await;
-
-    // Pre-create department
-    let pre_dept_id = factory
-        .department()
-        .with_workspace(ws_id)
-        .with_name("Finance")
-        .create()
-        .await;
 
     // Upload CSV with existing employee + existing department
     let csv =
@@ -1063,94 +664,12 @@ async fn test_upload_csv_existing_employee_existing_department() {
         .await
         .unwrap();
 
-    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     let body_bytes = axum::body::to_bytes(response.into_body(), 10000)
         .await
         .unwrap();
     let json: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
-    let job_uuid = Uuid::parse_str(json["job_id"].as_str().unwrap()).unwrap();
-    tokio::time::timeout(
-        std::time::Duration::from_secs(10),
-        _state
-            .attendance()
-            .import_service()
-            .process_job(ws_id, job_uuid),
-    )
-    .await
-    .expect("process_job timed out")
-    .unwrap();
-
-    let mut completed = false;
-    for _ in 0..30 {
-        sleep(Duration::from_millis(200)).await;
-        let job = _state
-            .attendance()
-            .import_repo()
-            .get_job_by_id(
-                &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-                job_uuid,
-            )
-            .await
-            .unwrap()
-            .unwrap();
-        if job.status == ImportJobStatus::Completed {
-            completed = true;
-            break;
-        } else if job.status == ImportJobStatus::Failed {
-            panic!("Job failed: {:?}", job.error_log);
-        }
-    }
-    assert!(completed, "Job did not complete");
-
-    // Verify no duplicate department
-    let departments = _state
-        .payroll()
-        .department_repo()
-        .get_departments(
-            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            1,
-            50,
-        )
-        .await
-        .unwrap();
-    let finance_depts: Vec<_> = departments
-        .0
-        .iter()
-        .filter(|d| d.name() == "Finance")
-        .collect();
-    assert_eq!(
-        finance_depts.len(),
-        1,
-        "Should not create duplicate Finance"
-    );
-
-    // Verify existing employee is assigned to existing department
-    let emp = _state
-        .employees()
-        .repo()
-        .find_by_number(
-            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            "EXIST002",
-        )
-        .await
-        .unwrap()
-        .expect("Employee EXIST002 should exist");
-
-    let current_dept = _state
-        .payroll()
-        .department_repo()
-        .get_current_department(
-            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            emp.id(),
-        )
-        .await
-        .unwrap();
-    assert!(current_dept.is_some());
-    assert_eq!(
-        current_dept.unwrap().department_id(),
-        pre_dept_id,
-        "Existing employee should be assigned to existing Finance department"
-    );
+    assert_eq!(json["error"]["code"], "VALIDATION_ERROR");
 }
 
 // =============================================================================

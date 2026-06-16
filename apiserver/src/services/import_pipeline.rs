@@ -71,6 +71,16 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
         let mut failed_rows_data: Vec<(HashMap<String, String>, String)> = Vec::new();
         let mut pending_rows: Vec<(S::RowData, HashMap<String, String>)> = Vec::new();
 
+        let lang = match self
+            .deps
+            .workspace_repo
+            .get_workspace_by_id(self.job.workspace_id)
+            .await
+        {
+            Ok(Some(ws)) => ws.default_language().to_string(),
+            _ => "vi".to_string(),
+        };
+
         match crate::utils::file_parser::extract_mapped_rows(
             &self.file_bytes,
             self.strategy.expected_headers(),
@@ -96,19 +106,21 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
                             pending_rows.push((mapped_data, row_data));
                         }
                         Err(e) => {
-                            errors.push(e.to_string());
-                            failed_rows_data.push((row_data, e.to_string()));
+                            let translated_err = e.translate(&lang);
+                            errors.push(translated_err.clone());
+                            failed_rows_data.push((row_data, translated_err));
                         }
                     }
                 }
             }
             Err(e) => {
-                errors.push(e);
+                errors.push(e.translate(&lang));
             }
         }
 
         let parsed_rows: Vec<S::RowData> = pending_rows.iter().map(|(r, _)| r).cloned().collect();
         if let Err(e) = self.strategy.init(&self.deps, self.job, &parsed_rows).await {
+            let translated_err = e.translate(&lang);
             let _ = self
                 .import_repo
                 .update_job_progress(
@@ -116,7 +128,7 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
                     self.job.id,
                     0,
                     ImportJobStatus::Failed,
-                    Some(e.to_string()),
+                    Some(translated_err),
                 )
                 .await;
             return Err(());
@@ -127,6 +139,7 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
             .pre_process_chunk(&self.deps, self.job, &parsed_rows)
             .await
         {
+            let translated_err = e.translate(&lang);
             let _ = self
                 .import_repo
                 .update_job_progress(
@@ -134,7 +147,7 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
                     self.job.id,
                     0,
                     ImportJobStatus::Failed,
-                    Some(e.to_string()),
+                    Some(translated_err),
                 )
                 .await;
             return Err(());
@@ -172,8 +185,9 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
                     ));
                 }
                 Err(e) => {
-                    errors.push(e.to_string());
-                    failed_rows_data.push((raw_row_data, e.to_string()));
+                    let translated_err = e.translate(&lang);
+                    errors.push(translated_err.clone());
+                    failed_rows_data.push((raw_row_data, translated_err));
                 }
             }
 
@@ -446,7 +460,30 @@ mod tests {
             .returning(|_, _, _, _, _| Ok(()));
 
         // Create dummy deps
-        let deps = MockWorkerDepsBuilder::new().build();
+        let mut builder = MockWorkerDepsBuilder::new();
+        builder
+            .workspace_repo
+            .expect_get_workspace_by_id()
+            .returning(|id| {
+                Box::pin(async move {
+                    Ok(Some(crate::models::Workspace::new(
+                        id,
+                        "Mocked Workspace".into(),
+                        "YYYY-MM-DD".into(),
+                        "HH:mm:ss".into(),
+                        "UTC".into(),
+                        "#000000".into(),
+                        "vi".into(),
+                        None,
+                        None,
+                        "split".into(),
+                        rust_decimal::Decimal::new(15, 1),
+                        chrono::Utc::now(),
+                        None,
+                    )))
+                })
+            });
+        let deps = builder.build();
 
         let pipeline = ImportPipeline {
             strategy,

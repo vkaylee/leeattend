@@ -50,11 +50,19 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
     assert_eq!(pending_count, 1);
 
     // 2. Import employee with this ID
-    let csv_content = format!("employee_code,full_name,hire_date,department_name\n{emp_id_number},Imported User,2026-01-01,IT");
-
-    let file_path = format!("storage/test_imports/{}.csv", Uuid::new_v4());
+    let file_path = format!("storage/test_imports/{}.xlsx", Uuid::new_v4());
     tokio::fs::create_dir_all("storage/test_imports").await?;
-    tokio::fs::write(&file_path, csv_content).await?;
+    let mut workbook = rust_xlsxwriter::Workbook::new();
+    let sheet = workbook.add_worksheet();
+    sheet.write_string(0, 0, "employee_code").unwrap();
+    sheet.write_string(0, 1, "full_name").unwrap();
+    sheet.write_string(0, 2, "hire_date").unwrap();
+    sheet.write_string(0, 3, "department_name").unwrap();
+    sheet.write_string(1, 0, emp_id_number).unwrap();
+    sheet.write_string(1, 1, "Imported User").unwrap();
+    sheet.write_string(1, 2, "2026-01-01").unwrap();
+    sheet.write_string(1, 3, "IT").unwrap();
+    workbook.save(&file_path).unwrap();
 
     let te_repo = std::sync::Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
         diesel_pools.clone(),
@@ -199,11 +207,19 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
     assert_eq!(pending_count, 1);
 
     // 2. Import employee with same ID (will be skipped for creation but should trigger claim)
-    let csv_content = format!("employee_code,full_name,hire_date,department_name\n{emp_id_number},Existing User,2026-01-01,IT");
-
-    let file_path = format!("storage/test_imports/{}.csv", Uuid::new_v4());
+    let file_path = format!("storage/test_imports/{}.xlsx", Uuid::new_v4());
     tokio::fs::create_dir_all("storage/test_imports").await?;
-    tokio::fs::write(&file_path, csv_content).await?;
+    let mut workbook = rust_xlsxwriter::Workbook::new();
+    let sheet = workbook.add_worksheet();
+    sheet.write_string(0, 0, "employee_code").unwrap();
+    sheet.write_string(0, 1, "full_name").unwrap();
+    sheet.write_string(0, 2, "hire_date").unwrap();
+    sheet.write_string(0, 3, "department_name").unwrap();
+    sheet.write_string(1, 0, emp_id_number).unwrap();
+    sheet.write_string(1, 1, "Existing User").unwrap();
+    sheet.write_string(1, 2, "2026-01-01").unwrap();
+    sheet.write_string(1, 3, "IT").unwrap();
+    workbook.save(&file_path).unwrap();
 
     let te_repo = std::sync::Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
         diesel_pools.clone(),

@@ -196,7 +196,6 @@ impl FileCategory {
                 allowed_mimes: &[
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     "application/vnd.ms-excel",
-                    "text/csv",
                 ],
             },
             Self::Policy => CategoryConfig {

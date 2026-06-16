@@ -28,8 +28,49 @@ fn create_multipart_body(filename: &str, content: &str) -> (String, Vec<u8>) {
     (format!("multipart/form-data; boundary={boundary}"), body)
 }
 
+fn create_multipart_body_binary(filename: &str, content: &[u8]) -> (String, Vec<u8>) {
+    let boundary = "boundary123";
+    let mut body = Vec::new();
+
+    body.extend_from_slice(format!("--{boundary}\r\n").as_bytes());
+    body.extend_from_slice(
+        format!("Content-Disposition: form-data; name=\"file\"; filename=\"{filename}\"\r\n\r\n")
+            .as_bytes(),
+    );
+    body.extend_from_slice(content);
+    body.extend_from_slice(format!("\r\n--{boundary}--\r\n").as_bytes());
+
+    (format!("multipart/form-data; boundary={boundary}"), body)
+}
+
+fn generate_attendance_xlsx(emp_code: &str, name: &str, punch_time: &str) -> Vec<u8> {
+    let mut workbook = rust_xlsxwriter::Workbook::new();
+    let sheet = workbook.add_worksheet();
+    sheet.write_string(0, 0, "employee_code").unwrap();
+    sheet.write_string(0, 1, "full_name").unwrap();
+    sheet.write_string(0, 2, "punch_time").unwrap();
+    sheet.write_string(1, 0, emp_code).unwrap();
+    sheet.write_string(1, 1, name).unwrap();
+    sheet.write_string(1, 2, punch_time).unwrap();
+    workbook.save_to_buffer().unwrap()
+}
+
+fn generate_employee_xlsx(emp_code: &str, name: &str, hire_date: &str, dept: &str) -> Vec<u8> {
+    let mut workbook = rust_xlsxwriter::Workbook::new();
+    let sheet = workbook.add_worksheet();
+    sheet.write_string(0, 0, "employee_code").unwrap();
+    sheet.write_string(0, 1, "full_name").unwrap();
+    sheet.write_string(0, 2, "hire_date").unwrap();
+    sheet.write_string(0, 3, "department_name").unwrap();
+    sheet.write_string(1, 0, emp_code).unwrap();
+    sheet.write_string(1, 1, name).unwrap();
+    sheet.write_string(1, 2, hire_date).unwrap();
+    sheet.write_string(1, 3, dept).unwrap();
+    workbook.save_to_buffer().unwrap()
+}
+
 #[tokio::test]
-async fn test_upload_attendance_csv_api() {
+async fn test_upload_attendance_xlsx_api() {
     let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
 
@@ -45,9 +86,8 @@ async fn test_upload_attendance_csv_api() {
 
     let now = chrono::Utc::now();
     let csv_date = now.format("%d/%m/%Y %H:%M").to_string();
-    let csv_content =
-        format!("employee_code,full_name,punch_time\n{emp_id_number},Test User,{csv_date}");
-    let (content_type, body) = create_multipart_body("test.csv", &csv_content);
+    let xlsx_bytes = generate_attendance_xlsx(emp_id_number, "Test User", &csv_date);
+    let (content_type, body) = create_multipart_body_binary("test.xlsx", &xlsx_bytes);
 
     let response = app
         .clone()
@@ -64,7 +104,7 @@ async fn test_upload_attendance_csv_api() {
         .await
         .unwrap();
 
-    assert_eq!(response.status(), StatusCode::OK, "CSV Upload failed");
+    assert_eq!(response.status(), StatusCode::OK, "Excel Upload failed");
     let body_bytes = axum::body::to_bytes(response.into_body(), 10000)
         .await
         .unwrap();
@@ -93,7 +133,7 @@ async fn test_upload_attendance_csv_api() {
             }
         }
     }
-    assert!(completed, "CSV Job did not complete");
+    assert!(completed, "Excel Job did not complete");
 
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&_test_db.url());
     let emp_employment_id: Uuid = crate::test_query_scalar_uuid!(
@@ -122,8 +162,8 @@ async fn test_upload_attendance_logs_api() {
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
 
-    let csv_content = "employee_code,full_name,punch_time\nEMP001,Test User,14/01/2026 08:00";
-    let (content_type, body) = create_multipart_body("test.csv", &csv_content);
+    let xlsx_bytes = generate_attendance_xlsx("EMP001", "Test User", "14/01/2026 08:00");
+    let (content_type, body) = create_multipart_body_binary("test.xlsx", &xlsx_bytes);
 
     let response = app
         .clone()
@@ -151,9 +191,8 @@ async fn test_upload_employee_excel_api() {
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
 
-    let csv_content =
-        "employee_code,full_name,hire_date,department_name\nEMP001,User 1,2023-01-01,IT\n";
-    let (content_type, body) = create_multipart_body("emps.csv", &csv_content);
+    let xlsx_bytes = generate_employee_xlsx("EMP001", "User 1", "2023-01-01", "IT");
+    let (content_type, body) = create_multipart_body_binary("emps.xlsx", &xlsx_bytes);
 
     let response = app
         .clone()

@@ -163,33 +163,21 @@ impl AppError {
             Self::TemplateError(_) => "TEMPLATE_ERROR",
         }
     }
-}
 
-impl IntoResponse for AppError {
-    fn into_response(self) -> Response {
-        let status = self.status_code();
-        let code = self.error_code();
-
-        // Determine the message to send to the client, dynamically translating key strings
-        let message = match &self {
-            // Hide internal details in production
+    pub fn translate(&self, lang: &str) -> String {
+        match self {
             Self::Diesel(_)
             | Self::Redis(_)
             | Self::Internal(_)
             | Self::BackgroundJobError(_)
-            | Self::TemplateError(_) => {
-                // Log the full error for debugging
-                error!(error = ?self, "Internal API Error");
-                crate::utils::i18n::t("error.internal")
-            }
-            // Safe to expose messages for client errors
+            | Self::TemplateError(_) => crate::utils::i18n::translate(lang, "error.internal"),
             Self::Auth(msg) => {
                 let key = if msg.is_empty() {
                     "error.unauthorized"
                 } else {
                     msg
                 };
-                crate::utils::i18n::t(key)
+                crate::utils::i18n::translate(lang, key)
             }
             Self::Forbidden(msg) => {
                 let key = if msg.is_empty() {
@@ -197,7 +185,7 @@ impl IntoResponse for AppError {
                 } else {
                     msg
                 };
-                crate::utils::i18n::t(key)
+                crate::utils::i18n::translate(lang, key)
             }
             Self::NotFound(msg) => {
                 let key = if msg.is_empty() {
@@ -205,7 +193,7 @@ impl IntoResponse for AppError {
                 } else {
                     msg
                 };
-                crate::utils::i18n::t(key)
+                crate::utils::i18n::translate(lang, key)
             }
             Self::Conflict(msg) => {
                 let key = if msg.is_empty() {
@@ -213,7 +201,7 @@ impl IntoResponse for AppError {
                 } else {
                     msg
                 };
-                crate::utils::i18n::t(key)
+                crate::utils::i18n::translate(lang, key)
             }
             Self::ServiceUnavailable(msg) => {
                 let key = if msg.is_empty() {
@@ -221,7 +209,7 @@ impl IntoResponse for AppError {
                 } else {
                     msg
                 };
-                crate::utils::i18n::t(key)
+                crate::utils::i18n::translate(lang, key)
             }
             Self::Validation(msg) => {
                 if msg.starts_with("error.") {
@@ -232,15 +220,38 @@ impl IntoResponse for AppError {
                                 args.push((k, v));
                             }
                         }
-                        crate::utils::i18n::t_args(key, &args)
+                        crate::utils::i18n::translate_args(lang, key, &args)
                     } else {
-                        crate::utils::i18n::t(msg)
+                        crate::utils::i18n::translate(lang, msg)
                     }
                 } else {
-                    crate::utils::i18n::t_args("error.validation", &[("msg", msg)])
+                    let prefix = crate::utils::i18n::translate(lang, "error.validation");
+                    format!("{prefix}: {msg}")
                 }
             }
-        };
+        }
+    }
+}
+
+impl IntoResponse for AppError {
+    fn into_response(self) -> Response {
+        let status = self.status_code();
+        let code = self.error_code();
+
+        // Log the full error for internal errors
+        match &self {
+            Self::Diesel(_)
+            | Self::Redis(_)
+            | Self::Internal(_)
+            | Self::BackgroundJobError(_)
+            | Self::TemplateError(_) => {
+                error!(error = ?self, "Internal API Error");
+            }
+            _ => {}
+        }
+
+        let lang = crate::utils::i18n::get_locale();
+        let message = self.translate(&lang);
 
         let body = Json(json!({
             "error": {
