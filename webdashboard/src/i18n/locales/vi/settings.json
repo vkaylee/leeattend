@@ -454,7 +454,8 @@
         "negative_balance": "Cho phép Số dư âm",
         "negative_balance_desc": "Cho phép người dùng xin nghỉ vượt quá số ngày phép hiện có (dưới 0)",
         "saving": "Đang lưu...",
-        "save_policy": "Lưu chính sách"
+        "save_policy": "Lưu chính sách",
+        "immutable": "Không thể chỉnh sửa"
       },
       "type_form": {
         "type_code": "Mã Loại",

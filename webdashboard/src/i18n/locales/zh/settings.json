@@ -454,7 +454,8 @@
         "negative_balance": "允许负数余额",
         "negative_balance_desc": "允许用户透支请假天数（低于 0）",
         "saving": "正在保存...",
-        "save_policy": "保存政策"
+        "save_policy": "保存政策",
+        "immutable": "不可编辑"
       },
       "type_form": {
         "type_code": "类型代码",

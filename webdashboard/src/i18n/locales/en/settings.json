@@ -454,7 +454,8 @@
         "negative_balance": "Negative Balance",
         "negative_balance_desc": "Allow users to take leave beyond 0",
         "saving": "Saving...",
-        "save_policy": "Save Policy"
+        "save_policy": "Save Policy",
+        "immutable": "Non-editable"
       },
       "type_form": {
         "type_code": "Type Code",

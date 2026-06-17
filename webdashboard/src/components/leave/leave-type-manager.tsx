@@ -299,6 +299,48 @@ function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: EditLeaveT
         }}
       >
         <div className="rounded-[2rem] bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 overflow-hidden">
+          <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/10">
+            <div className="flex items-center gap-3">
+              <div
+                className={cn(
+                  "h-9 w-9 rounded-xl flex items-center justify-center shadow-inner shrink-0",
+                  leaveType.is_paid
+                    ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600"
+                    : "bg-amber-50 dark:bg-amber-950/50 text-amber-600"
+                )}
+              >
+                {leaveType.is_paid ? <Wallet size={16} /> : <AlertTriangle size={16} />}
+              </div>
+              <div>
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight block">
+                  {t("settings.leave.type_form.paid_status", "Paid Status")}
+                </span>
+                <Typography className="text-[10px] text-slate-400 dark:text-slate-500" variant="p">
+                  {leaveType.is_paid 
+                    ? t("settings.leave.type_form.paid_time_off", "Paid time off") 
+                    : t("settings.leave.type_form.unpaid_leave", "Unpaid leave")}
+                </Typography>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border",
+                  leaveType.is_paid
+                    ? "bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/50"
+                    : "bg-amber-50/50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-900/50"
+                )}
+              >
+                {leaveType.is_paid 
+                  ? t("settings.leave.type_manager.paid", "Paid") 
+                  : t("settings.leave.type_manager.unpaid", "Unpaid")}
+              </span>
+              <span className="text-[9px] text-slate-400 dark:text-slate-500 italic">
+                ({t("settings.leave.type_manager.immutable", "Non-editable")})
+              </span>
+            </div>
+          </div>
+
           <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-3">
               <div className="h-9 w-9 rounded-xl bg-primary-50 dark:bg-primary-950/50 text-primary-600 flex items-center justify-center shadow-inner shrink-0">
