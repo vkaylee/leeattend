@@ -89,7 +89,7 @@ export function LeaveTypeForm({
               </Typography>
             </div>
           </div>
-          <div className="relative inline-flex items-center cursor-pointer">
+          <label className="relative inline-flex items-center cursor-pointer">
             <input
               checked={formData.is_paid}
               className="sr-only peer"
@@ -100,7 +100,7 @@ export function LeaveTypeForm({
               type="checkbox"
             />
             <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
-          </div>
+          </label>
         </div>
 
         <div className="flex items-center justify-between pt-6 border-t border-slate-50 dark:border-slate-800">
