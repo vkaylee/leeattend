@@ -316,6 +316,10 @@
       "storage_desc": "Storage Desc",
       "storage": "Storage"
     },
+    "organization": {
+      "departments_redirect_desc": "管理部门结构，分配部门经理，配置薪资规则，并监控每个部门的在职员工数。",
+      "go_to_departments": "前往部门管理页面"
+    },
     "locations": {
       "add": "添加地点",
       "edit": "编辑地点",

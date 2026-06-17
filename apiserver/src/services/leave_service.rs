@@ -205,7 +205,7 @@ impl LeaveService {
         req: AdjustBalanceRequest,
     ) -> Result<(), AppError> {
         let amount_dec = rust_decimal::Decimal::from_f64_retain(req.amount)
-            .ok_or(AppError::Validation("Invalid request".into()))?;
+            .ok_or(AppError::Validation("error.validation".into()))?;
 
         self.leave_balance_repo
             .adjust_balance(
@@ -234,7 +234,7 @@ impl LeaveService {
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
             )
             .await?
-            .ok_or(AppError::NotFound("Not found".into()))?;
+            .ok_or(AppError::NotFound("error.not_found".into()))?;
 
         self.leave_balance_repo
             .get_employee_balances(
@@ -260,7 +260,7 @@ impl LeaveService {
                 req.employment_id,
             )
             .await?
-            .ok_or(AppError::NotFound("Employment not found".into()))?;
+            .ok_or(AppError::NotFound("error.employment_not_found".into()))?;
         let employee_id = employment.employee_id();
 
         // Validate leave_type_id exists for this workspace
@@ -271,7 +271,7 @@ impl LeaveService {
             )
             .await?
         {
-            return Err(AppError::Validation("Invalid request".into()));
+            return Err(AppError::Validation("error.validation".into()));
         }
 
         // Validate partial day constraints
@@ -279,25 +279,25 @@ impl LeaveService {
             LeaveDurationType::FirstHalf | LeaveDurationType::SecondHalf => {
                 if req.start_date != req.end_date {
                     return Err(AppError::Validation(
-                        "Half-day leave must be a single day (start_date == end_date)".into(),
+                        "error.leave_half_day_single_day".into(),
                     ));
                 }
             }
             LeaveDurationType::CustomHours => {
                 if req.start_time.is_none() || req.end_time.is_none() {
                     return Err(AppError::Validation(
-                        "Custom hours leave requires both start_time and end_time".into(),
+                        "error.leave_custom_hours_missing_time".into(),
                     ));
                 }
                 if req.start_date != req.end_date {
                     return Err(AppError::Validation(
-                        "Custom hours leave must be a single day (start_date == end_date)".into(),
+                        "error.leave_custom_hours_single_day".into(),
                     ));
                 }
                 if let (Some(st), Some(et)) = (req.start_time, req.end_time) {
                     if st >= et {
                         return Err(AppError::Validation(
-                            "start_time must be before end_time".into(),
+                            "error.leave_start_time_before_end_time".into(),
                         ));
                     }
                 }
@@ -341,7 +341,7 @@ impl LeaveService {
             .await
             .map_err(|e| {
                 tracing::error!(error = %e, "SQLx Error in submit_leave_request");
-                AppError::Internal("Internal error".into())
+                AppError::Internal("error.internal".into())
             })?;
 
         // Invalidate cached employee leaves since we added a new request
@@ -390,7 +390,7 @@ impl LeaveService {
                 request_id,
             )
             .await?
-            .ok_or(AppError::NotFound("Not found".into()))?;
+            .ok_or(AppError::NotFound("error.not_found".into()))?;
 
         // Verify employment of this request belongs to the workspace
         let _ = self
@@ -400,7 +400,7 @@ impl LeaveService {
                 request.employment_id(),
             )
             .await?
-            .ok_or(AppError::Forbidden("Forbidden".into()))?;
+            .ok_or(AppError::Forbidden("error.forbidden".into()))?;
 
         self.leave_request_repo
             .update_leave_request_status(
@@ -412,7 +412,7 @@ impl LeaveService {
             .await
             .map_err(|e| {
                 tracing::error!(error = %e, "SQLx Error in approve_leave_request");
-                AppError::Internal("Internal error".into())
+                AppError::Internal("error.internal".into())
             })?;
 
         // If approved, update roster
@@ -427,7 +427,9 @@ impl LeaveService {
                     request_id,
                 )
                 .await?
-                .ok_or(AppError::NotFound("Not found after status update".into()))?;
+                .ok_or(AppError::NotFound(
+                    "error.leave_not_found_after_update".into(),
+                ))?;
 
             self.check_and_handle_conflicts(workspace_id, &updated_request)
                 .await?;
@@ -450,7 +452,7 @@ impl LeaveService {
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
             )
             .await?
-            .ok_or(AppError::NotFound("Not found".into()))?;
+            .ok_or(AppError::NotFound("error.not_found".into()))?;
 
         self.leave_request_repo
             .get_employee_leave_requests(
@@ -486,7 +488,7 @@ impl LeaveService {
         let employment = self
             .get_employment_cached(&auth_token, req.employment_id())
             .await?
-            .ok_or_else(|| AppError::NotFound("Employment not found".into()))?;
+            .ok_or_else(|| AppError::NotFound("error.employment_not_found".into()))?;
         let employee_id = employment.employee_id();
 
         // 2. Fetch other leave requests of the employee
@@ -1502,7 +1504,7 @@ mod tests {
             .await
             .unwrap_err();
         assert!(
-            matches!(err, AppError::Validation(msg) if msg.contains("requires both start_time and end_time"))
+            matches!(err, AppError::Validation(msg) if msg == "error.leave_custom_hours_missing_time")
         );
 
         // Test cross-day
@@ -1513,7 +1515,9 @@ mod tests {
             .submit_leave_request(Uuid::new_v4(), Uuid::new_v4(), req.clone(), false)
             .await
             .unwrap_err();
-        assert!(matches!(err, AppError::Validation(msg) if msg.contains("must be a single day")));
+        assert!(
+            matches!(err, AppError::Validation(msg) if msg == "error.leave_custom_hours_single_day")
+        );
 
         // Test end before start
         req.end_date = NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
@@ -1524,7 +1528,7 @@ mod tests {
             .await
             .unwrap_err();
         assert!(
-            matches!(err, AppError::Validation(msg) if msg.contains("must be before end_time"))
+            matches!(err, AppError::Validation(msg) if msg == "error.leave_start_time_before_end_time")
         );
     }
 

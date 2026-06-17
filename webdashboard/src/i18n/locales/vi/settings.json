@@ -316,6 +316,10 @@
       "storage_desc": "Storage Desc",
       "storage": "Storage"
     },
+    "organization": {
+      "departments_redirect_desc": "Quản lý cơ cấu phòng ban, bổ nhiệm Trưởng bộ phận (Manager), thiết lập chính sách lương và theo dõi số lượng nhân sự thuộc từng bộ phận.",
+      "go_to_departments": "Đến trang quản lý phòng ban"
+    },
     "locations": {
       "add": "Thêm địa điểm",
       "edit": "Sửa địa điểm",

@@ -42,7 +42,7 @@ pub async fn get_incentive_policies(
         let tiers = state
             .payroll()
             .repo()
-            .get_policy_tiers(ctx.workspace_id, policy.id)
+            .get_policy_tiers(ctx.workspace_id, policy.id())
             .await?;
         response.push(PayrollIncentivePolicyResponse { policy, tiers });
     }

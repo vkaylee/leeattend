@@ -214,7 +214,7 @@ pub trait PayrollRepository: Send + Sync {
     ) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, AppError>;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ResolvedRuleAssignment {
     pub rule_definition_id: Uuid,
     pub override_config: Option<serde_json::Value>,

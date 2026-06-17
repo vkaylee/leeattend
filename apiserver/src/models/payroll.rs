@@ -29,61 +29,345 @@ pub struct CreatePayslipSegmentArgs {
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct PayslipSegment {
-    pub id: Uuid,
-    pub payslip_id: Uuid,
-    pub start_date: NaiveDate,
-    pub end_date: NaiveDate,
-    pub department_id: Option<Uuid>,
-    pub applied_base_salary: rust_decimal::Decimal,
-    pub applied_std_days: rust_decimal::Decimal,
-    pub applied_hours_per_day: rust_decimal::Decimal,
-    pub actual_work_days: rust_decimal::Decimal,
-    pub paid_work_days: rust_decimal::Decimal,
-    pub amount: rust_decimal::Decimal,
-    pub reason: Option<String>,
-    pub std_days_source: Option<String>,
+    id: Uuid,
+    payslip_id: Uuid,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+    department_id: Option<Uuid>,
+    applied_base_salary: rust_decimal::Decimal,
+    applied_std_days: rust_decimal::Decimal,
+    applied_hours_per_day: rust_decimal::Decimal,
+    actual_work_days: rust_decimal::Decimal,
+    paid_work_days: rust_decimal::Decimal,
+    amount: rust_decimal::Decimal,
+    reason: Option<String>,
+    std_days_source: Option<String>,
+}
+
+impl PayslipSegment {
+    pub fn new(
+        id: Uuid,
+        payslip_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+        department_id: Option<Uuid>,
+        applied_base_salary: rust_decimal::Decimal,
+        applied_std_days: rust_decimal::Decimal,
+        applied_hours_per_day: rust_decimal::Decimal,
+        actual_work_days: rust_decimal::Decimal,
+        paid_work_days: rust_decimal::Decimal,
+        amount: rust_decimal::Decimal,
+        reason: Option<String>,
+        std_days_source: Option<String>,
+    ) -> Self {
+        Self {
+            id,
+            payslip_id,
+            start_date,
+            end_date,
+            department_id,
+            applied_base_salary,
+            applied_std_days,
+            applied_hours_per_day,
+            actual_work_days,
+            paid_work_days,
+            amount,
+            reason,
+            std_days_source,
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn payslip_id(&self) -> Uuid {
+        self.payslip_id
+    }
+
+    pub fn start_date(&self) -> NaiveDate {
+        self.start_date
+    }
+
+    pub fn end_date(&self) -> NaiveDate {
+        self.end_date
+    }
+
+    pub fn department_id(&self) -> Option<Uuid> {
+        self.department_id
+    }
+
+    pub fn applied_base_salary(&self) -> rust_decimal::Decimal {
+        self.applied_base_salary
+    }
+
+    pub fn applied_std_days(&self) -> rust_decimal::Decimal {
+        self.applied_std_days
+    }
+
+    pub fn applied_hours_per_day(&self) -> rust_decimal::Decimal {
+        self.applied_hours_per_day
+    }
+
+    pub fn actual_work_days(&self) -> rust_decimal::Decimal {
+        self.actual_work_days
+    }
+
+    pub fn paid_work_days(&self) -> rust_decimal::Decimal {
+        self.paid_work_days
+    }
+
+    pub fn amount(&self) -> rust_decimal::Decimal {
+        self.amount
+    }
+
+    pub fn reason(&self) -> Option<&str> {
+        self.reason.as_deref()
+    }
+
+    pub fn std_days_source(&self) -> Option<&str> {
+        self.std_days_source.as_deref()
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct Payslip {
-    pub id: Uuid,
-    pub employment_id: Uuid,
-    pub workspace_id: Uuid,
-    pub period_start: NaiveDate,
-    pub period_end: NaiveDate,
-    pub base_pay_amount: rust_decimal::Decimal,
-    pub overtime_pay_amount: rust_decimal::Decimal,
-    pub deductions_amount: rust_decimal::Decimal,
-    pub net_pay_amount: rust_decimal::Decimal,
-    pub standard_units: i32,
-    pub overtime_units: i32,
-    pub status: String,
+    id: Uuid,
+    employment_id: Uuid,
+    workspace_id: Uuid,
+    period_start: NaiveDate,
+    period_end: NaiveDate,
+    base_pay_amount: rust_decimal::Decimal,
+    overtime_pay_amount: rust_decimal::Decimal,
+    deductions_amount: rust_decimal::Decimal,
+    net_pay_amount: rust_decimal::Decimal,
+    standard_units: i32,
+    overtime_units: i32,
+    status: String,
     /// Premium paid when employee works on a holiday (configurable per-holiday via ot_multiplier).
-    pub holiday_work_premium_amount: rust_decimal::Decimal,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    holiday_work_premium_amount: rust_decimal::Decimal,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+impl Payslip {
+    pub fn new(
+        id: Uuid,
+        employment_id: Uuid,
+        workspace_id: Uuid,
+        period_start: NaiveDate,
+        period_end: NaiveDate,
+        base_pay_amount: rust_decimal::Decimal,
+        overtime_pay_amount: rust_decimal::Decimal,
+        deductions_amount: rust_decimal::Decimal,
+        net_pay_amount: rust_decimal::Decimal,
+        standard_units: i32,
+        overtime_units: i32,
+        status: String,
+        holiday_work_premium_amount: rust_decimal::Decimal,
+        created_at: DateTime<Utc>,
+        updated_at: DateTime<Utc>,
+    ) -> Self {
+        Self {
+            id,
+            employment_id,
+            workspace_id,
+            period_start,
+            period_end,
+            base_pay_amount,
+            overtime_pay_amount,
+            deductions_amount,
+            net_pay_amount,
+            standard_units,
+            overtime_units,
+            status,
+            holiday_work_premium_amount,
+            created_at,
+            updated_at,
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn employment_id(&self) -> Uuid {
+        self.employment_id
+    }
+
+    pub fn workspace_id(&self) -> Uuid {
+        self.workspace_id
+    }
+
+    pub fn period_start(&self) -> NaiveDate {
+        self.period_start
+    }
+
+    pub fn period_end(&self) -> NaiveDate {
+        self.period_end
+    }
+
+    pub fn base_pay_amount(&self) -> rust_decimal::Decimal {
+        self.base_pay_amount
+    }
+
+    pub fn overtime_pay_amount(&self) -> rust_decimal::Decimal {
+        self.overtime_pay_amount
+    }
+
+    pub fn deductions_amount(&self) -> rust_decimal::Decimal {
+        self.deductions_amount
+    }
+
+    pub fn net_pay_amount(&self) -> rust_decimal::Decimal {
+        self.net_pay_amount
+    }
+
+    pub fn standard_units(&self) -> i32 {
+        self.standard_units
+    }
+
+    pub fn overtime_units(&self) -> i32 {
+        self.overtime_units
+    }
+
+    pub fn status(&self) -> &str {
+        &self.status
+    }
+
+    pub fn holiday_work_premium_amount(&self) -> rust_decimal::Decimal {
+        self.holiday_work_premium_amount
+    }
+
+    pub fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+
+    pub fn updated_at(&self) -> DateTime<Utc> {
+        self.updated_at
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct PayrollIncentivePolicy {
-    pub id: Uuid,
-    pub workspace_id: Uuid,
-    pub name: String,
-    pub base_amount: f64,
-    pub payout_type: String, // String to match DB, can be parsed to PayoutType
-    pub is_active: bool,
-    pub created_at: DateTime<Utc>,
-    pub effective_from: chrono::NaiveDate,
-    pub effective_to: Option<chrono::NaiveDate>,
+    id: Uuid,
+    workspace_id: Uuid,
+    name: String,
+    base_amount: f64,
+    payout_type: String, // String to match DB, can be parsed to PayoutType
+    is_active: bool,
+    created_at: DateTime<Utc>,
+    effective_from: chrono::NaiveDate,
+    effective_to: Option<chrono::NaiveDate>,
+}
+
+impl PayrollIncentivePolicy {
+    pub fn new(
+        id: Uuid,
+        workspace_id: Uuid,
+        name: String,
+        base_amount: f64,
+        payout_type: String,
+        is_active: bool,
+        created_at: DateTime<Utc>,
+        effective_from: chrono::NaiveDate,
+        effective_to: Option<chrono::NaiveDate>,
+    ) -> Self {
+        Self {
+            id,
+            workspace_id,
+            name,
+            base_amount,
+            payout_type,
+            is_active,
+            created_at,
+            effective_from,
+            effective_to,
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn workspace_id(&self) -> Uuid {
+        self.workspace_id
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn base_amount(&self) -> f64 {
+        self.base_amount
+    }
+
+    pub fn payout_type(&self) -> &str {
+        &self.payout_type
+    }
+
+    pub fn is_active(&self) -> bool {
+        self.is_active
+    }
+
+    pub fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+
+    pub fn effective_from(&self) -> chrono::NaiveDate {
+        self.effective_from
+    }
+
+    pub fn effective_to(&self) -> Option<chrono::NaiveDate> {
+        self.effective_to
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct IncentiveTier {
-    pub id: Uuid,
-    pub policy_id: Uuid,
-    pub priority: i32,
-    pub rule_config: serde_json::Value,
-    pub payout_amount: f64,
+    id: Uuid,
+    policy_id: Uuid,
+    priority: i32,
+    rule_config: serde_json::Value,
+    payout_amount: f64,
+}
+
+impl IncentiveTier {
+    pub fn new(
+        id: Uuid,
+        policy_id: Uuid,
+        priority: i32,
+        rule_config: serde_json::Value,
+        payout_amount: f64,
+    ) -> Self {
+        Self {
+            id,
+            policy_id,
+            priority,
+            rule_config,
+            payout_amount,
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn policy_id(&self) -> Uuid {
+        self.policy_id
+    }
+
+    pub fn priority(&self) -> i32 {
+        self.priority
+    }
+
+    pub fn rule_config(&self) -> &serde_json::Value {
+        &self.rule_config
+    }
+
+    pub fn payout_amount(&self) -> f64 {
+        self.payout_amount
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]

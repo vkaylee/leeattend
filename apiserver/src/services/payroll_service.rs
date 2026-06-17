@@ -19,7 +19,7 @@ use crate::repositories::workspace_repository::WorkspaceRepository;
 use crate::repositories::{roster::RosterRepository, time_entry_repository};
 
 use super::attendance_matcher::AttendanceMatcher;
-use super::financial_calculator::FinancialCalculator;
+use super::financial_calculator::{FinancialCalculator, IncentivePolicyWithTiers, RuleAssignmentWithTiers};
 use super::PolicyResolverService;
 
 // ---------------------------------------------------------------------------
@@ -640,10 +640,42 @@ impl PayrollService {
             }
         }
 
+        // Fetch leave breakdown and incentive policies for calculations
+        let leave_breakdown = self.leave_repo
+            .get_approved_leave_breakdown(
+                employee_id,
+                ctx.start_date,
+                ctx.end_date,
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+            )
+            .await
+            .map_err(|e| {
+                tracing::error!(
+                    "Failed to fetch leave breakdown for employee {}: {}",
+                    employee_id,
+                    e
+                );
+                AppError::Internal(format!("Leave breakdown error (incentives): {e}"))
+            })?;
+
+        let active_policies = self.payroll_repo
+            .get_active_incentive_policies_for_period(
+                workspace_id,
+                ctx.start_date,
+                ctx.end_date,
+            )
+            .await?;
+
+        let mut active_policies_with_tiers = Vec::new();
+        for policy in active_policies {
+            let tiers = self.payroll_repo.get_policy_tiers(workspace_id, policy.id()).await?;
+            active_policies_with_tiers.push(IncentivePolicyWithTiers { policy, tiers });
+        }
+
         // Phase 5: Incentives — delegated to FinancialCalculator
         let incentives = FinancialCalculator::calculate_incentives(
-            self.payroll_repo.as_ref(),
-            self.leave_repo.as_ref(),
+            &active_policies_with_tiers,
+            &leave_breakdown,
             crate::services::financial_calculator::CalculateIncentivesArgs {
                 workspace_id,
                 employee_id,
@@ -652,8 +684,7 @@ impl PayrollService {
                 start_date: ctx.start_date,
                 end_date: ctx.end_date,
             },
-        )
-        .await?;
+        )?;
 
         // Phase 6: Deductions — delegated to FinancialCalculator
         let gross_salary = total_base_pay
@@ -677,9 +708,38 @@ impl PayrollService {
             }
         }
 
+        let unpaid_holiday_days: i64 = self.leave_repo
+            .get_unpaid_holiday_days_without_leave(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                employee_id,
+                ctx.start_date,
+                ctx.end_date,
+            )
+            .await
+            .unwrap_or(0);
+
+        let rule_assignments = self.payroll_repo
+            .get_resolved_rule_assignments(
+                workspace_id,
+                employee_id,
+                last_department_id,
+                ctx.start_date,
+                ctx.end_date,
+            )
+            .await?;
+
+        let mut rule_assignments_with_tiers = Vec::new();
+        for assignment in rule_assignments {
+            let tiers = self.payroll_repo
+                .get_payroll_rule_tiers(workspace_id, assignment.rule_definition_id)
+                .await?;
+            rule_assignments_with_tiers.push(RuleAssignmentWithTiers { assignment, tiers });
+        }
+
         let deductions = FinancialCalculator::calculate_deductions(
-            self.payroll_repo.as_ref(),
-            self.leave_repo.as_ref(),
+            &leave_breakdown,
+            unpaid_holiday_days,
+            &rule_assignments_with_tiers,
             crate::services::financial_calculator::CalculateDeductionsArgs {
                 workspace_id,
                 employee_id,
@@ -689,8 +749,7 @@ impl PayrollService {
                 base_values: &base_values,
                 segment_snapshots: &segment_snapshots,
             },
-        )
-        .await?;
+        )?;
 
         // Phase 7: Assemble Payslip — delegated to FinancialCalculator
         let payslip = FinancialCalculator::assemble_payslip(
@@ -727,7 +786,7 @@ impl PayrollService {
         incentive_results: Vec<crate::models::IncentiveEvaluationResult>,
         rule_results: Vec<crate::services::payroll_rule_evaluator::RuleEvaluationResult>,
     ) -> Result<Payslip, AppError> {
-        let workspace_id = payslip.workspace_id;
+        let workspace_id = payslip.workspace_id();
 
         let segments_args: Vec<crate::models::CreatePayslipSegmentArgs> = segment_snapshots
             .into_iter()

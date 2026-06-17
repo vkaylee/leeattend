@@ -142,17 +142,17 @@ pub async fn calculate_payroll(
     let segments = state
         .payroll()
         .repo()
-        .get_payslip_segments(ctx.workspace_id, payslip.id)
+        .get_payslip_segments(ctx.workspace_id, payslip.id())
         .await?;
     let incentives = state
         .payroll()
         .repo()
-        .get_payslip_incentives(ctx.workspace_id, payslip.id)
+        .get_payslip_incentives(ctx.workspace_id, payslip.id())
         .await?;
     let rule_evaluations = state
         .payroll()
         .repo()
-        .get_payslip_rule_evaluations(ctx.workspace_id, payslip.id)
+        .get_payslip_rule_evaluations(ctx.workspace_id, payslip.id())
         .await?;
 
     // Fetch salary components at the period start date
@@ -161,8 +161,8 @@ pub async fn calculate_payroll(
         .repo()
         .get_employment_salary_components(
             ctx.workspace_id,
-            payslip.employment_id,
-            payslip.period_start,
+            payslip.employment_id(),
+            payslip.period_start(),
         )
         .await?
         .into_iter()
@@ -178,9 +178,9 @@ pub async fn calculate_payroll(
             .into_iter()
             .map(|s| {
                 // Determine reason logic
-                let reason = if s.start_date.day() == 1 {
+                let reason = if s.start_date().day() == 1 {
                     "Standard".to_string()
-                } else if s.applied_base_salary > rust_decimal::Decimal::ZERO {
+                } else if s.applied_base_salary() > rust_decimal::Decimal::ZERO {
                     "Salary Change".to_string()
                 } else {
                     "Adjustment".to_string()
@@ -226,24 +226,24 @@ pub async fn get_employee_payslips(
         let segments = state
             .payroll()
             .repo()
-            .get_payslip_segments(ctx.workspace_id, p.id)
+            .get_payslip_segments(ctx.workspace_id, p.id())
             .await?;
         let incentives = state
             .payroll()
             .repo()
-            .get_payslip_incentives(ctx.workspace_id, p.id)
+            .get_payslip_incentives(ctx.workspace_id, p.id())
             .await?;
         let rule_evaluations = state
             .payroll()
             .repo()
-            .get_payslip_rule_evaluations(ctx.workspace_id, p.id)
+            .get_payslip_rule_evaluations(ctx.workspace_id, p.id())
             .await?;
 
         // Fetch salary components at the period start date
         let salary_components = state
             .payroll()
             .repo()
-            .get_employment_salary_components(ctx.workspace_id, p.employment_id, p.period_start)
+            .get_employment_salary_components(ctx.workspace_id, p.employment_id(), p.period_start())
             .await?
             .into_iter()
             .map(|(component, definition)| SalaryComponentWithDefinition {
@@ -260,7 +260,7 @@ pub async fn get_employee_payslips(
                     // Determine reason logic (simple heuristic)
                     // If it's the first segment and starts on 1st: Standard
                     // Else: Change
-                    let reason = if s.start_date.day() == 1 {
+                    let reason = if s.start_date().day() == 1 {
                         "Standard".to_string()
                     } else {
                         "Salary Change".to_string()

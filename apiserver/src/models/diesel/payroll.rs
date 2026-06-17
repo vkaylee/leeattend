@@ -163,51 +163,51 @@ use crate::models::{
 
 impl From<PayrollIncentivePolicyEntity> for PayrollIncentivePolicy {
     fn from(entity: PayrollIncentivePolicyEntity) -> Self {
-        Self {
-            id: entity.id,
-            workspace_id: entity.workspace_id,
-            name: entity.name,
-            base_amount: entity.base_amount,
-            payout_type: entity.payout_type,
-            is_active: entity.is_active,
-            created_at: entity.created_at,
-            effective_from: entity.effective_from,
-            effective_to: entity.effective_to,
-        }
+        PayrollIncentivePolicy::new(
+            entity.id,
+            entity.workspace_id,
+            entity.name,
+            entity.base_amount,
+            entity.payout_type,
+            entity.is_active,
+            entity.created_at,
+            entity.effective_from,
+            entity.effective_to,
+        )
     }
 }
 
 impl From<IncentiveTierEntity> for IncentiveTier {
     fn from(entity: IncentiveTierEntity) -> Self {
-        Self {
-            id: entity.id,
-            policy_id: entity.policy_id,
-            priority: entity.priority,
-            rule_config: entity.rule_config,
-            payout_amount: entity.payout_amount,
-        }
+        IncentiveTier::new(
+            entity.id,
+            entity.policy_id,
+            entity.priority,
+            entity.rule_config,
+            entity.payout_amount,
+        )
     }
 }
 
 impl From<PayslipEntity> for Payslip {
     fn from(entity: PayslipEntity) -> Self {
-        Self {
-            id: entity.id,
-            employment_id: entity.employment_id,
-            workspace_id: entity.workspace_id,
-            period_start: entity.period_start,
-            period_end: entity.period_end,
-            base_pay_amount: bd_to_dec(&entity.base_pay_amount),
-            overtime_pay_amount: bd_to_dec(&entity.overtime_pay_amount),
-            deductions_amount: bd_to_dec(&entity.deductions_amount),
-            net_pay_amount: bd_to_dec(&entity.net_pay_amount),
-            status: entity.status,
-            created_at: entity.created_at.unwrap_or_else(Utc::now),
-            updated_at: entity.updated_at.unwrap_or_else(Utc::now),
-            standard_units: entity.standard_units,
-            overtime_units: entity.overtime_units,
-            holiday_work_premium_amount: bd_to_dec(&entity.holiday_work_premium_amount),
-        }
+        Payslip::new(
+            entity.id,
+            entity.employment_id,
+            entity.workspace_id,
+            entity.period_start,
+            entity.period_end,
+            bd_to_dec(&entity.base_pay_amount),
+            bd_to_dec(&entity.overtime_pay_amount),
+            bd_to_dec(&entity.deductions_amount),
+            bd_to_dec(&entity.net_pay_amount),
+            entity.standard_units,
+            entity.overtime_units,
+            entity.status,
+            bd_to_dec(&entity.holiday_work_premium_amount),
+            entity.created_at.unwrap_or_else(Utc::now),
+            entity.updated_at.unwrap_or_else(Utc::now),
+        )
     }
 }
 
@@ -252,20 +252,20 @@ impl From<EmployeeSalaryComponentEntity> for EmployeeSalaryComponent {
 
 impl From<PayslipSegmentEntity> for PayslipSegment {
     fn from(entity: PayslipSegmentEntity) -> Self {
-        Self {
-            id: entity.id,
-            payslip_id: entity.payslip_id,
-            start_date: entity.start_date,
-            end_date: entity.end_date,
-            department_id: entity.department_id,
-            applied_base_salary: bd_to_dec(&entity.applied_base_salary),
-            applied_std_days: bd_to_dec(&entity.applied_std_days),
-            actual_work_days: bd_to_dec(&entity.actual_work_days),
-            paid_work_days: bd_to_dec(&entity.paid_work_days),
-            amount: bd_to_dec(&entity.amount),
-            applied_hours_per_day: bd_to_dec(&entity.applied_hours_per_day),
-            std_days_source: entity.std_days_source,
-            reason: None, // Reason is not in the DB entity, likely a transient field or from another table
-        }
+        PayslipSegment::new(
+            entity.id,
+            entity.payslip_id,
+            entity.start_date,
+            entity.end_date,
+            entity.department_id,
+            bd_to_dec(&entity.applied_base_salary),
+            bd_to_dec(&entity.applied_std_days),
+            bd_to_dec(&entity.applied_hours_per_day),
+            bd_to_dec(&entity.actual_work_days),
+            bd_to_dec(&entity.paid_work_days),
+            bd_to_dec(&entity.amount),
+            None,
+            entity.std_days_source,
+        )
     }
 }

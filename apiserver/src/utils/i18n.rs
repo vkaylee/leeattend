@@ -127,6 +127,17 @@ pub const ALL_KEYS: &[&str] = &[
     "error.missing_mandatory_headers",
     "error.no_sheets_found",
     "error.cannot_read_sheet",
+    "error.employment_inactive",
+    "error.time_tracking_too_early",
+    "error.time_tracking_failed_fetch_punched",
+    "error.time_entry_not_found",
+    "error.time_tracking_edit_other_employee",
+    "error.time_tracking_edit_other_workspace",
+    "error.leave_half_day_single_day",
+    "error.leave_custom_hours_missing_time",
+    "error.leave_custom_hours_single_day",
+    "error.leave_start_time_before_end_time",
+    "error.leave_not_found_after_update",
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -252,6 +263,17 @@ pub enum I18nKey {
     MissingMandatoryHeaders,
     NoSheetsFound,
     CannotReadSheet,
+    EmploymentInactive,
+    TimeTrackingTooEarly,
+    TimeTrackingFailedFetchPunched,
+    TimeEntryNotFound,
+    TimeTrackingEditOtherEmployee,
+    TimeTrackingEditOtherWorkspace,
+    LeaveHalfDaySingleDay,
+    LeaveCustomHoursMissingTime,
+    LeaveCustomHoursSingleDay,
+    LeaveStartTimeBeforeEndTime,
+    LeaveNotFoundAfterUpdate,
 }
 
 impl I18nKey {
@@ -379,6 +401,17 @@ impl I18nKey {
             Self::MissingMandatoryHeaders => "error.missing_mandatory_headers",
             Self::NoSheetsFound => "error.no_sheets_found",
             Self::CannotReadSheet => "error.cannot_read_sheet",
+            Self::EmploymentInactive => "error.employment_inactive",
+            Self::TimeTrackingTooEarly => "error.time_tracking_too_early",
+            Self::TimeTrackingFailedFetchPunched => "error.time_tracking_failed_fetch_punched",
+            Self::TimeEntryNotFound => "error.time_entry_not_found",
+            Self::TimeTrackingEditOtherEmployee => "error.time_tracking_edit_other_employee",
+            Self::TimeTrackingEditOtherWorkspace => "error.time_tracking_edit_other_workspace",
+            Self::LeaveHalfDaySingleDay => "error.leave_half_day_single_day",
+            Self::LeaveCustomHoursMissingTime => "error.leave_custom_hours_missing_time",
+            Self::LeaveCustomHoursSingleDay => "error.leave_custom_hours_single_day",
+            Self::LeaveStartTimeBeforeEndTime => "error.leave_start_time_before_end_time",
+            Self::LeaveNotFoundAfterUpdate => "error.leave_not_found_after_update",
         }
     }
 }
@@ -609,6 +642,17 @@ fn lookup_en(key: &str) -> Option<&'static str> {
         "error.missing_mandatory_headers" => Some("Missing mandatory headers: {headers}"),
         "error.no_sheets_found" => Some("Excel file does not contain any sheets."),
         "error.cannot_read_sheet" => Some("Cannot read sheet {name}: {error}"),
+        "error.employment_inactive" => Some("Employment is inactive"),
+        "error.time_tracking_too_early" => Some("Too early to punch in"),
+        "error.time_tracking_failed_fetch_punched" => Some("Failed to fetch punched entry"),
+        "error.time_entry_not_found" => Some("Time entry not found"),
+        "error.time_tracking_edit_other_employee" => Some("Not allowed to edit entries from other employees"),
+        "error.time_tracking_edit_other_workspace" => Some("Not allowed to edit entries from other workspaces"),
+        "error.leave_half_day_single_day" => Some("Half-day leave must be a single day (start_date == end_date)"),
+        "error.leave_custom_hours_missing_time" => Some("Custom hours leave requires both start_time and end_time"),
+        "error.leave_custom_hours_single_day" => Some("Custom hours leave must be a single day (start_date == end_date)"),
+        "error.leave_start_time_before_end_time" => Some("start_time must be before end_time"),
+        "error.leave_not_found_after_update" => Some("Not found after status update"),
         _ => None,
     }
 }
@@ -738,6 +782,17 @@ fn lookup_vi(key: &str) -> Option<&'static str> {
         "error.missing_mandatory_headers" => Some("Thiếu các cột bắt buộc: {headers}"),
         "error.no_sheets_found" => Some("File Excel không chứa bất kỳ sheet nào."),
         "error.cannot_read_sheet" => Some("Không thể đọc sheet {name}: {error}"),
+        "error.employment_inactive" => Some("Quan hệ công việc không hoạt động"),
+        "error.time_tracking_too_early" => Some("Chưa đến thời gian chấm công"),
+        "error.time_tracking_failed_fetch_punched" => Some("Không thể tải thông tin lượt chấm công"),
+        "error.time_entry_not_found" => Some("Không tìm thấy lượt chấm công"),
+        "error.time_tracking_edit_other_employee" => Some("Không được phép chỉnh sửa lượt chấm công của nhân viên khác"),
+        "error.time_tracking_edit_other_workspace" => Some("Không được phép chỉnh sửa lượt chấm công của workspace khác"),
+        "error.leave_half_day_single_day" => Some("Nghỉ nửa ngày phải nằm trong cùng một ngày (start_date == end_date)"),
+        "error.leave_custom_hours_missing_time" => Some("Nghỉ phép theo giờ yêu cầu cả thời gian bắt đầu và kết thúc"),
+        "error.leave_custom_hours_single_day" => Some("Nghỉ phép theo giờ phải nằm trong cùng một ngày (start_date == end_date)"),
+        "error.leave_start_time_before_end_time" => Some("Thời gian bắt đầu phải trước thời gian kết thúc"),
+        "error.leave_not_found_after_update" => Some("Không tìm thấy sau khi cập nhật trạng thái"),
         _ => None,
     }
 }
@@ -871,6 +926,21 @@ fn lookup_zh(key: &str) -> Option<&'static str> {
         "error.missing_mandatory_headers" => Some("缺少必填表头: {headers}"),
         "error.no_sheets_found" => Some("Excel 文件中未找到任何工作表。"),
         "error.cannot_read_sheet" => Some("无法读取工作表 {name}: {error}"),
+        "error.employment_inactive" => Some("雇佣关系处于非活动状态"),
+        "error.time_tracking_too_early" => Some("未到打卡时间"),
+        "error.time_tracking_failed_fetch_punched" => Some("未能获取打卡记录"),
+        "error.time_entry_not_found" => Some("未找到打卡记录"),
+        "error.time_tracking_edit_other_employee" => Some("不允许编辑其他员工的记录"),
+        "error.time_tracking_edit_other_workspace" => Some("不允许编辑其他工作空间的记录"),
+        "error.leave_half_day_single_day" => {
+            Some("半天请假必须在同一天内 (start_date == end_date)")
+        }
+        "error.leave_custom_hours_missing_time" => Some("按小时请假需要同时提供开始时间和结束时间"),
+        "error.leave_custom_hours_single_day" => {
+            Some("按小时请假必须在同一天内 (start_date == end_date)")
+        }
+        "error.leave_start_time_before_end_time" => Some("开始时间必须早于结束时间"),
+        "error.leave_not_found_after_update" => Some("更新状态后未找到资源"),
         _ => None,
     }
 }
@@ -1060,6 +1130,17 @@ mod tests {
             I18nKey::MissingMandatoryHeaders,
             I18nKey::NoSheetsFound,
             I18nKey::CannotReadSheet,
+            I18nKey::EmploymentInactive,
+            I18nKey::TimeTrackingTooEarly,
+            I18nKey::TimeTrackingFailedFetchPunched,
+            I18nKey::TimeEntryNotFound,
+            I18nKey::TimeTrackingEditOtherEmployee,
+            I18nKey::TimeTrackingEditOtherWorkspace,
+            I18nKey::LeaveHalfDaySingleDay,
+            I18nKey::LeaveCustomHoursMissingTime,
+            I18nKey::LeaveCustomHoursSingleDay,
+            I18nKey::LeaveStartTimeBeforeEndTime,
+            I18nKey::LeaveNotFoundAfterUpdate,
         ];
 
         for variant in &variants {
@@ -1107,11 +1188,9 @@ mod tests {
         use std::path::PathBuf;
 
         const LEGACY_ALLOWLIST: &[&str] = &[
-            "time_tracking_service.rs",
             "payroll_service.rs",
             "shift_swap_service.rs",
             "employee_service.rs",
-            "leave_service.rs",
             "attendance_summary_service.rs",
         ];
 

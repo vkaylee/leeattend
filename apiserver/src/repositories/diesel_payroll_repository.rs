@@ -177,8 +177,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        let mut policy: PayrollIncentivePolicy = entity.into();
-        policy.effective_from = req.effective_from;
+        let policy: PayrollIncentivePolicy = entity.into();
         Ok(policy)
     }
 
@@ -885,37 +884,37 @@ impl PayrollRepository for DieselPayrollRepository {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .tenants_tx
-                .get_connection(&payslip.workspace_id)
+                .get_connection(&payslip.workspace_id())
                 .await?,
         );
 
         let entity = PayslipEntity {
-            id: payslip.id,
-            employment_id: payslip.employment_id,
-            period_start: payslip.period_start,
-            period_end: payslip.period_end,
-            base_pay_amount: bigdecimal::BigDecimal::from_str(&payslip.base_pay_amount.to_string())
+            id: payslip.id(),
+            employment_id: payslip.employment_id(),
+            period_start: payslip.period_start(),
+            period_end: payslip.period_end(),
+            base_pay_amount: bigdecimal::BigDecimal::from_str(&payslip.base_pay_amount().to_string())
                 .unwrap_or_default(),
             overtime_pay_amount: bigdecimal::BigDecimal::from_str(
-                &payslip.overtime_pay_amount.to_string(),
+                &payslip.overtime_pay_amount().to_string(),
             )
             .unwrap_or_default(),
             deductions_amount: bigdecimal::BigDecimal::from_str(
-                &payslip.deductions_amount.to_string(),
+                &payslip.deductions_amount().to_string(),
             )
             .unwrap_or_default(),
-            net_pay_amount: bigdecimal::BigDecimal::from_str(&payslip.net_pay_amount.to_string())
+            net_pay_amount: bigdecimal::BigDecimal::from_str(&payslip.net_pay_amount().to_string())
                 .unwrap_or_default(),
-            status: payslip.status.clone(),
-            created_at: Some(payslip.created_at),
-            updated_at: Some(payslip.updated_at),
-            standard_units: payslip.standard_units,
-            overtime_units: payslip.overtime_units,
+            status: payslip.status().to_string(),
+            created_at: Some(payslip.created_at()),
+            updated_at: Some(payslip.updated_at()),
+            standard_units: payslip.standard_units(),
+            overtime_units: payslip.overtime_units(),
             holiday_work_premium_amount: bigdecimal::BigDecimal::from_str(
-                &payslip.holiday_work_premium_amount.to_string(),
+                &payslip.holiday_work_premium_amount().to_string(),
             )
             .unwrap_or_default(),
-            workspace_id: payslip.workspace_id,
+            workspace_id: payslip.workspace_id(),
         };
 
         let result = diesel::insert_into(payslips::table)
@@ -1222,39 +1221,39 @@ impl PayrollRepository for DieselPayrollRepository {
         );
 
         let payslip_entity = PayslipEntity {
-            id: payslip.id,
-            employment_id: payslip.employment_id,
-            period_start: payslip.period_start,
-            period_end: payslip.period_end,
-            base_pay_amount: bigdecimal::BigDecimal::from_str(&payslip.base_pay_amount.to_string())
+            id: payslip.id(),
+            employment_id: payslip.employment_id(),
+            period_start: payslip.period_start(),
+            period_end: payslip.period_end(),
+            base_pay_amount: bigdecimal::BigDecimal::from_str(&payslip.base_pay_amount().to_string())
                 .unwrap_or_default(),
             overtime_pay_amount: bigdecimal::BigDecimal::from_str(
-                &payslip.overtime_pay_amount.to_string(),
+                &payslip.overtime_pay_amount().to_string(),
             )
             .unwrap_or_default(),
             deductions_amount: bigdecimal::BigDecimal::from_str(
-                &payslip.deductions_amount.to_string(),
+                &payslip.deductions_amount().to_string(),
             )
             .unwrap_or_default(),
-            net_pay_amount: bigdecimal::BigDecimal::from_str(&payslip.net_pay_amount.to_string())
+            net_pay_amount: bigdecimal::BigDecimal::from_str(&payslip.net_pay_amount().to_string())
                 .unwrap_or_default(),
-            status: payslip.status.clone(),
-            created_at: Some(payslip.created_at),
-            updated_at: Some(payslip.updated_at),
-            standard_units: payslip.standard_units,
-            overtime_units: payslip.overtime_units,
+            status: payslip.status().to_string(),
+            created_at: Some(payslip.created_at()),
+            updated_at: Some(payslip.updated_at()),
+            standard_units: payslip.standard_units(),
+            overtime_units: payslip.overtime_units(),
             holiday_work_premium_amount: bigdecimal::BigDecimal::from_str(
-                &payslip.holiday_work_premium_amount.to_string(),
+                &payslip.holiday_work_premium_amount().to_string(),
             )
             .unwrap_or_default(),
-            workspace_id: payslip.workspace_id,
+            workspace_id: payslip.workspace_id(),
         };
 
         let segments_entities: Vec<PayslipSegmentEntity> = segments
             .iter()
             .map(|args| PayslipSegmentEntity {
                 id: Uuid::new_v4(),
-                payslip_id: payslip.id,
+                payslip_id: payslip.id(),
                 start_date: args.start_date,
                 end_date: args.end_date,
                 department_id: args.department_id,
@@ -1287,7 +1286,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .iter()
             .map(|result| PayslipIncentiveEntity {
                 id: Uuid::new_v4(),
-                payslip_id: payslip.id,
+                payslip_id: payslip.id(),
                 policy_name: result.policy_name.clone(),
                 amount: result.amount.to_f64().unwrap_or_default(),
                 tier_id: result.tier_id,
@@ -1300,7 +1299,7 @@ impl PayrollRepository for DieselPayrollRepository {
             .iter()
             .map(|(rule_code, amount)| PayslipRuleEvaluationEntity {
                 id: Uuid::new_v4(),
-                payslip_id: payslip.id,
+                payslip_id: payslip.id(),
                 rule_code: rule_code.clone(),
                 amount: bigdecimal::BigDecimal::from_str(&amount.to_string()).unwrap_or_default(),
                 created_at: Utc::now(),

@@ -316,6 +316,10 @@
       "storage_desc": "Storage Desc",
       "storage": "Storage"
     },
+    "organization": {
+      "departments_redirect_desc": "Manage the organizational structure, assign managers, configure payroll rules, and monitor active employee counts for each department.",
+      "go_to_departments": "Go to Departments Management"
+    },
     "locations": {
       "add": "Add Location",
       "edit": "Edit Location",

@@ -1,4 +1,5 @@
-import { Building2, Layers, Briefcase } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { Building2, Layers, Briefcase, ArrowUpRight } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -6,8 +7,8 @@ import EmploymentPhaseManager from "@/components/people/employment-phase-manager
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { getCurrentWorkspaceId } from "@/lib/api";
+import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
-import DepartmentsPage from "@/pages/departments-page";
 
 import EmployersPage from "./employers-page";
 
@@ -17,6 +18,7 @@ type TabType = "departments" | "employment_phases" | "employers";
 export default function OrganizationSettings() {
 
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const wsId = getCurrentWorkspaceId() ?? "";
   const [activeTab, setActiveTab] = useState<TabType>("departments");
   return (
@@ -59,9 +61,25 @@ export default function OrganizationSettings() {
 
 
         {activeTab === "departments" ? (
-
-          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm p-4"><DepartmentsPage /></div>
-
+          <div className="bg-gradient-to-br from-white to-slate-50/50 dark:from-slate-900 dark:to-slate-950/50 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm p-12 flex flex-col items-center text-center max-w-2xl mx-auto my-8">
+            <div className="w-16 h-16 rounded-[1.5rem] bg-primary-50 dark:bg-primary-950/50 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-sm border border-primary-100 dark:border-primary-800/50 mb-6">
+              <Building2 size={28} />
+            </div>
+            <Typography className="text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-100" variant="h2">
+              {t("common.departments", { defaultValue: "Departments" })}
+            </Typography>
+            <Typography className="text-slate-500 dark:text-slate-400 mt-3 mb-8 text-sm font-medium leading-relaxed max-w-md" variant="p">
+              {t("settings.organization.departments_redirect_desc", { defaultValue: "Quản lý cơ cấu phòng ban, bổ nhiệm Trưởng bộ phận (Manager), thiết lập chính sách lương và theo dõi số lượng nhân sự thuộc từng bộ phận." })}
+            </Typography>
+            <Button
+              className="flex items-center gap-2 group"
+              onClick={() => { void navigate({ to: ROUTES.DEPARTMENTS }); }}
+              variant="primary"
+            >
+              {t("settings.organization.go_to_departments", { defaultValue: "Đến trang quản lý phòng ban" })}
+              <ArrowUpRight size={16} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            </Button>
+          </div>
         ) : null}
 
         {activeTab === "employment_phases" ? (

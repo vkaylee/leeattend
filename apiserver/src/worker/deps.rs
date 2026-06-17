@@ -46,6 +46,7 @@ pub struct WorkerDeps {
     pub workspace_config_repo: Arc<dyn crate::repositories::workspace_config_repository::WorkspaceConfigRepository>,
     pub custom_field_repo: Arc<dyn crate::repositories::CustomFieldRepository>,
     pub employer_repo: Arc<dyn crate::repositories::EmployerRepository>,
+    pub diesel_pools: crate::diesel_pool::DieselPools,
 }
 
 impl WorkerDeps {
@@ -60,6 +61,7 @@ impl WorkerDeps {
         crypto_service: Option<std::sync::Arc<crate::crypto::CryptoService>>,
     ) -> Self {
         Self {
+            diesel_pools: diesel.clone(),
             time_entry_repo: Arc::new(crate::repositories::DieselTimeEntryRepository::new(
                 diesel.clone(),
             )),

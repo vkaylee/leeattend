@@ -248,6 +248,7 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         let employee_ids: Vec<Uuid> = employee_ids.into_iter().collect();
         use crate::schema::employees;
         let emps: Vec<(Uuid, String)> = employees::table
+            .filter(employees::workspace_id.eq(workspace_id))
             .filter(employees::id.eq_any(employee_ids))
             .select((employees::id, employees::full_name))
             .load(&mut *conn)
@@ -258,6 +259,7 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         let shift_ids: Vec<Uuid> = shift_ids.into_iter().collect();
         use crate::schema::shifts;
         let shifts_data: Vec<(Uuid, String)> = shifts::table
+            .filter(shifts::workspace_id.eq(workspace_id))
             .filter(shifts::id.eq_any(shift_ids))
             .select((shifts::id, shifts::name))
             .load(&mut *conn)
@@ -375,6 +377,7 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         let employee_ids: Vec<Uuid> = employee_ids.into_iter().collect();
         use crate::schema::employees;
         let emps: Vec<(Uuid, String)> = employees::table
+            .filter(employees::workspace_id.eq(workspace_id))
             .filter(employees::id.eq_any(employee_ids))
             .select((employees::id, employees::full_name))
             .load(&mut *conn)
@@ -385,6 +388,7 @@ impl ShiftSwapRepository for DieselShiftSwapRepository {
         let shift_ids: Vec<Uuid> = shift_ids.into_iter().collect();
         use crate::schema::shifts;
         let shifts_data: Vec<(Uuid, String)> = shifts::table
+            .filter(shifts::workspace_id.eq(workspace_id))
             .filter(shifts::id.eq_any(shift_ids))
             .select((shifts::id, shifts::name))
             .load(&mut *conn)

@@ -73,10 +73,10 @@ impl TimeTrackingService {
                 employment_id,
             )
             .await?
-            .ok_or(AppError::NotFound("Employment not found".into()))?;
+            .ok_or(AppError::NotFound("error.employment_not_found".into()))?;
 
         if employment.status() != "active" {
-            return Err(AppError::Forbidden("Employment is inactive".into()));
+            return Err(AppError::Forbidden("error.employment_inactive".into()));
         }
 
         let now = Utc::now();
@@ -99,7 +99,7 @@ impl TimeTrackingService {
                 .workspace_repo
                 .get_workspace_by_id(workspace_id)
                 .await?
-                .ok_or(AppError::Internal("Workspace not found".into()))?;
+                .ok_or(AppError::Internal("error.workspace_not_found".into()))?;
 
             let tz: chrono_tz::Tz = crate::utils::tz::parse_workspace_tz(workspace.timezone());
             let local_now = now.with_timezone(&tz);
@@ -123,7 +123,7 @@ impl TimeTrackingService {
                         sid,
                     )
                     .await?
-                    .ok_or(AppError::Internal("Shift not found".into()))?;
+                    .ok_or(AppError::Internal("error.shift_not_found".into()))?;
 
                 let start_time = shift.start_time;
                 let grace_minutes = shift.early_punch_in_grace_period_minutes as u32;
@@ -144,7 +144,7 @@ impl TimeTrackingService {
                 if rules.early_arrival_strategy() == crate::models::EarlyArrivalStrategy::Block
                     && local_now.naive_local() < earliest_punch
                 {
-                    return Err(AppError::Validation("Too early to punch in".into()));
+                    return Err(AppError::Validation("error.time_tracking_too_early".into()));
                 }
             }
         }
@@ -174,7 +174,9 @@ impl TimeTrackingService {
                 employment_id,
             )
             .await?
-            .ok_or(AppError::Internal("Failed to fetch punched entry".into()))?;
+            .ok_or(AppError::Internal(
+                "error.time_tracking_failed_fetch_punched".into(),
+            ))?;
 
         Ok(entry)
     }
@@ -195,7 +197,7 @@ impl TimeTrackingService {
                 employment_id,
             )
             .await?
-            .ok_or(AppError::NotFound("Employment not found".into()))?;
+            .ok_or(AppError::NotFound("error.employment_not_found".into()))?;
 
         self.repo
             .get_employment_time_entries(
@@ -221,7 +223,7 @@ impl TimeTrackingService {
                 id,
             )
             .await?
-            .ok_or(AppError::NotFound("Time entry not found".into()))?;
+            .ok_or(AppError::NotFound("error.time_entry_not_found".into()))?;
 
         // Verify employment of this entry belongs to the workspace
         let _ = self
@@ -232,7 +234,7 @@ impl TimeTrackingService {
             )
             .await?
             .ok_or(AppError::Forbidden(
-                "Employment does not belong to workspace".into(),
+                "error.time_tracking_edit_other_workspace".into(),
             ))?;
 
         if let Some(t) = req.punch_in_time() {
@@ -289,7 +291,7 @@ impl TimeTrackingService {
                 id,
             )
             .await?
-            .ok_or(AppError::NotFound("Time entry not found".into()))?;
+            .ok_or(AppError::NotFound("error.time_entry_not_found".into()))?;
 
         // Verify employment of this entry belongs to the workspace
         let _ = self
@@ -300,7 +302,7 @@ impl TimeTrackingService {
             )
             .await?
             .ok_or(AppError::Forbidden(
-                "Employment does not belong to workspace".into(),
+                "error.time_tracking_edit_other_workspace".into(),
             ))?;
 
         self.repo

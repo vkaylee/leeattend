@@ -28,7 +28,7 @@ export default function DepartmentsPage() {
   const [selectedDeptForDetail, setSelectedDeptForDetail] = useState<Department | null>(null);
 
   // Search, Filter, and View Mode states
-  const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "table">("table");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedManagerId, setSelectedManagerId] = useState("all");
 

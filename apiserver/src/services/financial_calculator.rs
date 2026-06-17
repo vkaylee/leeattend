@@ -14,6 +14,18 @@ use uuid::Uuid;
 
 use super::payroll_service::SegmentSnapshot;
 
+#[derive(Debug, Clone)]
+pub struct IncentivePolicyWithTiers {
+    pub policy: crate::models::PayrollIncentivePolicy,
+    pub tiers: Vec<crate::models::IncentiveTier>,
+}
+
+#[derive(Debug, Clone)]
+pub struct RuleAssignmentWithTiers {
+    pub assignment: crate::repositories::payroll_repository::ResolvedRuleAssignment,
+    pub tiers: Vec<crate::models::PayrollRuleTier>,
+}
+
 /// Incentives calculation result.
 pub struct IncentivesResult {
     pub total_amount: Decimal,
@@ -117,37 +129,13 @@ impl FinancialCalculator {
     // -----------------------------------------------------------------------
 
     #[tracing::instrument(skip_all, err)]
-    pub async fn calculate_incentives(
-        payroll_repo: &dyn crate::repositories::payroll_repository::PayrollRepository,
-        leave_repo: &dyn crate::repositories::leave_request_repository::LeaveRequestRepository,
+    pub fn calculate_incentives(
+        active_policies: &[IncentivePolicyWithTiers],
+        leave_breakdown: &crate::repositories::leave_request_repository::LeaveBreakdown,
         args: CalculateIncentivesArgs,
     ) -> Result<IncentivesResult, AppError> {
-        let active_policies = payroll_repo
-            .get_active_incentive_policies_for_period(
-                args.workspace_id,
-                args.start_date,
-                args.end_date,
-            )
-            .await?;
         let mut incentive_results = Vec::new();
         let mut total_incentive_amount = Decimal::ZERO;
-
-        let leave_breakdown = leave_repo
-            .get_approved_leave_breakdown(
-                args.employee_id,
-                args.start_date,
-                args.end_date,
-                &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
-            )
-            .await
-            .map_err(|e| {
-                tracing::error!(
-                    "Failed to fetch leave breakdown for employee {}: {}",
-                    args.employee_id,
-                    e
-                );
-                AppError::Internal(format!("Leave breakdown error (incentives): {e}"))
-            })?;
 
         if !active_policies.is_empty() {
             let context = IncentiveContext {
@@ -159,11 +147,12 @@ impl FinancialCalculator {
                 kpi_score: 0.0,
             };
 
-            for policy in active_policies {
-                let tiers = payroll_repo
-                    .get_policy_tiers(args.workspace_id, policy.id)
-                    .await?;
-                let res = PayrollEvaluator::evaluate_policy(&policy, &tiers, &context)?;
+            for policy_with_tiers in active_policies {
+                let res = PayrollEvaluator::evaluate_policy(
+                    &policy_with_tiers.policy,
+                    &policy_with_tiers.tiers,
+                    &context,
+                )?;
                 if !res.amount.is_zero() {
                     total_incentive_amount += res.amount;
                     incentive_results.push(res);
@@ -182,24 +171,12 @@ impl FinancialCalculator {
     // -----------------------------------------------------------------------
 
     #[tracing::instrument(skip_all, err)]
-    pub async fn calculate_deductions(
-        payroll_repo: &dyn crate::repositories::payroll_repository::PayrollRepository,
-        leave_repo: &dyn crate::repositories::leave_request_repository::LeaveRequestRepository,
+    pub fn calculate_deductions(
+        leave_breakdown: &crate::repositories::leave_request_repository::LeaveBreakdown,
+        unpaid_holiday_days: i64,
+        rule_assignments: &[RuleAssignmentWithTiers],
         args: CalculateDeductionsArgs<'_>,
     ) -> Result<DeductionsResult, AppError> {
-        let leave_breakdown = leave_repo
-            .get_approved_leave_breakdown(
-                args.employee_id,
-                args.start_date,
-                args.end_date,
-                &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
-            )
-            .await
-            .map_err(|e| {
-                tracing::error!("Failed to fetch leave breakdown: {}", e);
-                AppError::Internal(format!("Leave breakdown error (deductions): {e}"))
-            })?;
-
         let mut deductions_amount = Decimal::ZERO;
         if leave_breakdown.unpaid_days > 0.0 {
             if let Some(last_snap) = args.segment_snapshots.last() {
@@ -209,17 +186,6 @@ impl FinancialCalculator {
                     * Decimal::from_f64(leave_breakdown.unpaid_days).unwrap_or(Decimal::ZERO);
             }
         }
-
-        // Deductions for unpaid holidays where employee has no leave request
-        let unpaid_holiday_days: i64 = leave_repo
-            .get_unpaid_holiday_days_without_leave(
-                &crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id),
-                args.employee_id,
-                args.start_date,
-                args.end_date,
-            )
-            .await
-            .unwrap_or(0);
 
         if unpaid_holiday_days > 0 {
             if let Some(last_snap) = args.segment_snapshots.last() {
@@ -231,15 +197,9 @@ impl FinancialCalculator {
 
         // Evaluate statutory deductions via new Rule Engine
         let rule_results = PayrollRuleEvaluator::evaluate_rules(
-            payroll_repo,
-            args.workspace_id,
-            args.employee_id,
-            args.department_id,
-            args.start_date,
-            args.end_date,
+            rule_assignments,
             args.base_values,
-        )
-        .await?;
+        )?;
 
         for res in &rule_results {
             deductions_amount += res.amount;
@@ -256,27 +216,27 @@ impl FinancialCalculator {
     // -----------------------------------------------------------------------
 
     pub fn assemble_payslip(args: AssemblePayslipArgs) -> Payslip {
-        Payslip {
-            id: Uuid::new_v4(),
-            employment_id: args.employment_id,
-            workspace_id: args.workspace_id,
-            period_start: args.start_date,
-            period_end: args.end_date,
-            base_pay_amount: args.total_base_pay,
-            overtime_pay_amount: args.total_overtime_pay,
-            deductions_amount: args.deductions_amount,
-            holiday_work_premium_amount: args.total_holiday_work_premium,
-            net_pay_amount: args.total_base_pay
+        Payslip::new(
+            Uuid::new_v4(),
+            args.employment_id,
+            args.workspace_id,
+            args.start_date,
+            args.end_date,
+            args.total_base_pay,
+            args.total_overtime_pay,
+            args.deductions_amount,
+            args.total_base_pay
                 + args.total_overtime_pay
                 + args.total_incentive_amount
                 + args.total_holiday_work_premium
                 - args.deductions_amount,
-            standard_units: args.total_std_units,
-            overtime_units: args.total_ot_units,
-            status: "draft".to_string(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        }
+            args.total_std_units,
+            args.total_ot_units,
+            "draft".to_string(),
+            args.total_holiday_work_premium,
+            Utc::now(),
+            Utc::now(),
+        )
     }
 }
 
@@ -372,18 +332,18 @@ mod tests {
             total_ot_units: 10,                      // OT units
         });
 
-        assert_eq!(slip.employment_id, emp);
-        assert_eq!(slip.period_start, start);
-        assert_eq!(slip.period_end, end);
-        assert_eq!(slip.base_pay_amount, Decimal::from(10000));
-        assert_eq!(slip.overtime_pay_amount, Decimal::from(2000));
-        assert_eq!(slip.holiday_work_premium_amount, Decimal::from(500));
-        assert_eq!(slip.deductions_amount, Decimal::from(800));
+        assert_eq!(slip.employment_id(), emp);
+        assert_eq!(slip.period_start(), start);
+        assert_eq!(slip.period_end(), end);
+        assert_eq!(slip.base_pay_amount(), Decimal::from(10000));
+        assert_eq!(slip.overtime_pay_amount(), Decimal::from(2000));
+        assert_eq!(slip.holiday_work_premium_amount(), Decimal::from(500));
+        assert_eq!(slip.deductions_amount(), Decimal::from(800));
         // net = 10000 + 2000 + 300 + 500 - 800 = 12000
-        assert_eq!(slip.net_pay_amount, Decimal::from(12000));
-        assert_eq!(slip.standard_units, 26);
-        assert_eq!(slip.overtime_units, 10);
-        assert_eq!(slip.status, "draft");
+        assert_eq!(slip.net_pay_amount(), Decimal::from(12000));
+        assert_eq!(slip.standard_units(), 26);
+        assert_eq!(slip.overtime_units(), 10);
+        assert_eq!(slip.status(), "draft");
     }
 
     #[test]
@@ -406,9 +366,9 @@ mod tests {
             total_ot_units: 0,
         });
 
-        assert_eq!(slip.net_pay_amount, Decimal::ZERO);
-        assert_eq!(slip.standard_units, 0);
-        assert_eq!(slip.overtime_units, 0);
+        assert_eq!(slip.net_pay_amount(), Decimal::ZERO);
+        assert_eq!(slip.standard_units(), 0);
+        assert_eq!(slip.overtime_units(), 0);
     }
 
     #[test]
@@ -513,7 +473,7 @@ mod tests {
         });
 
         // net = 1000 + 0 + 0 + 0 - 3000 = -2000
-        assert_eq!(slip.net_pay_amount, Decimal::from(-2000));
+        assert_eq!(slip.net_pay_amount(), Decimal::from(-2000));
     }
 
     #[test]
@@ -537,11 +497,11 @@ mod tests {
         });
 
         // net = 20000 + 5000 + 3000 + 2000 - 1000 = 29000
-        assert_eq!(slip.net_pay_amount, Decimal::from(29000));
-        assert_eq!(slip.standard_units, 160);
-        assert_eq!(slip.overtime_units, 40);
-        assert_eq!(slip.period_start, start);
-        assert_eq!(slip.period_end, end);
+        assert_eq!(slip.net_pay_amount(), Decimal::from(29000));
+        assert_eq!(slip.standard_units(), 160);
+        assert_eq!(slip.overtime_units(), 40);
+        assert_eq!(slip.period_start(), start);
+        assert_eq!(slip.period_end(), end);
     }
 
     // =====================================================================

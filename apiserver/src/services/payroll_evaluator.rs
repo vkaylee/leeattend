@@ -21,44 +21,44 @@ impl PayrollEvaluator {
     ) -> Result<IncentiveEvaluationResult, AppError> {
         // Find the first matching tier based on priority
         let mut sorted_tiers = tiers.to_vec();
-        sorted_tiers.sort_by_key(|t| t.priority);
+        sorted_tiers.sort_by_key(|t| t.priority());
 
         for tier in sorted_tiers {
             if Self::matches_tier(&tier, context) {
-                let amount = if policy.payout_type == "percentage" {
-                    rust_decimal::Decimal::from_f64(policy.base_amount * tier.payout_amount)
+                let amount = if policy.payout_type() == "percentage" {
+                    rust_decimal::Decimal::from_f64(policy.base_amount() * tier.payout_amount())
                 } else {
-                    rust_decimal::Decimal::from_f64(tier.payout_amount)
+                    rust_decimal::Decimal::from_f64(tier.payout_amount())
                 }
                 .ok_or_else(|| {
-                    tracing::error!(policy_name = %policy.name, "Invalid f64 for Decimal conversion in tier payout");
+                    tracing::error!(policy_name = %policy.name(), "Invalid f64 for Decimal conversion in tier payout");
                     AppError::Internal("Invalid monetary amount in incentive tier".into())
                 })?;
 
                 let standard_amount =
-                    rust_decimal::Decimal::from_f64(policy.base_amount).ok_or_else(|| {
-                        tracing::error!(policy_name = %policy.name, base_amount = policy.base_amount, "Invalid f64 for Decimal conversion in base_amount");
+                    rust_decimal::Decimal::from_f64(policy.base_amount()).ok_or_else(|| {
+                        tracing::error!(policy_name = %policy.name(), base_amount = policy.base_amount(), "Invalid f64 for Decimal conversion in base_amount");
                         AppError::Internal("Invalid monetary amount in incentive policy".into())
                     })?;
 
                 return Ok(IncentiveEvaluationResult {
-                    policy_name: policy.name.clone(),
+                    policy_name: policy.name().to_string(),
                     amount,
                     standard_amount,
-                    tier_id: Some(tier.id),
+                    tier_id: Some(tier.id()),
                 });
             }
         }
 
         // If no tier matches, return zero
-        let standard_amount = rust_decimal::Decimal::from_f64(policy.base_amount)
+        let standard_amount = rust_decimal::Decimal::from_f64(policy.base_amount())
             .ok_or_else(|| {
-                tracing::error!(policy_name = %policy.name, base_amount = policy.base_amount, "Invalid f64 for Decimal conversion in base_amount");
+                tracing::error!(policy_name = %policy.name(), base_amount = policy.base_amount(), "Invalid f64 for Decimal conversion in base_amount");
                 AppError::Internal("Invalid monetary amount in incentive policy".into())
             })?;
 
         Ok(IncentiveEvaluationResult {
-            policy_name: policy.name.clone(),
+            policy_name: policy.name().to_string(),
             amount: rust_decimal::Decimal::ZERO,
             standard_amount,
             tier_id: None,
@@ -66,7 +66,7 @@ impl PayrollEvaluator {
     }
 
     fn matches_tier(tier: &IncentiveTier, ctx: &IncentiveContext) -> bool {
-        let config = &tier.rule_config;
+        let config = tier.rule_config();
 
         // Option A: Legacy flat object support
         if config.is_object() {
@@ -163,37 +163,37 @@ mod tests {
         let t2_id = Uuid::new_v4();
 
         // Policy Base: 300,000 (Standard)
-        let policy = PayrollIncentivePolicy {
-            id: p_id,
-            workspace_id: ws_id,
-            name: "Diligence".into(),
-            base_amount: 300_000.0,
-            payout_type: "fixed".into(),
-            is_active: true,
-            created_at: chrono::Utc::now(),
-            effective_from: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-            effective_to: None,
-        };
+        let policy = PayrollIncentivePolicy::new(
+            p_id,
+            ws_id,
+            "Diligence".into(),
+            300_000.0,
+            "fixed".into(),
+            true,
+            chrono::Utc::now(),
+            chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            None,
+        );
 
         let tiers = vec![
-            IncentiveTier {
-                id: t1_id,
-                policy_id: p_id,
-                priority: 1,
-                rule_config: serde_json::json!({
+            IncentiveTier::new(
+                t1_id,
+                p_id,
+                1,
+                serde_json::json!({
                     "max_late_early_count": 0
                 }),
-                payout_amount: 150_000.0, // Actual
-            },
-            IncentiveTier {
-                id: t2_id,
-                policy_id: p_id,
-                priority: 2,
-                rule_config: serde_json::json!({
+                150_000.0, // Actual
+            ),
+            IncentiveTier::new(
+                t2_id,
+                p_id,
+                2,
+                serde_json::json!({
                     "max_late_early_count": 2
                 }),
-                payout_amount: 50000.0,
-            },
+                50000.0,
+            ),
         ];
 
         // Case 1: Perfect (0 late) -> Tier 1 (150k)
@@ -245,37 +245,37 @@ mod tests {
         let p_id = Uuid::new_v4();
         let ws_id = Uuid::new_v4();
 
-        let policy = PayrollIncentivePolicy {
-            id: p_id,
-            workspace_id: ws_id,
-            name: "Diligence".into(),
-            base_amount: 300_000.0,
-            payout_type: "fixed".into(),
-            is_active: true,
-            created_at: chrono::Utc::now(),
-            effective_from: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-            effective_to: None,
-        };
+        let policy = PayrollIncentivePolicy::new(
+            p_id,
+            ws_id,
+            "Diligence".into(),
+            300_000.0,
+            "fixed".into(),
+            true,
+            chrono::Utc::now(),
+            chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            None,
+        );
 
         let tiers = vec![
-            IncentiveTier {
-                id: Uuid::new_v4(),
-                policy_id: p_id,
-                priority: 1,
-                rule_config: serde_json::json!({
+            IncentiveTier::new(
+                Uuid::new_v4(),
+                p_id,
+                1,
+                serde_json::json!({
                     "max_late_early_count": 0
                 }),
-                payout_amount: 150_000.0,
-            },
-            IncentiveTier {
-                id: Uuid::new_v4(),
-                policy_id: p_id,
-                priority: 2,
-                rule_config: serde_json::json!({
+                150_000.0,
+            ),
+            IncentiveTier::new(
+                Uuid::new_v4(),
+                p_id,
+                2,
+                serde_json::json!({
                     "max_late_early_count": 2
                 }),
-                payout_amount: 50000.0,
-            },
+                50000.0,
+            ),
         ];
 
         // Scenario: Employee was "late" 1 time, but it was on a holiday.
@@ -326,24 +326,24 @@ mod tests {
     #[test]
     fn test_percentage_payout_type() {
         let p_id = Uuid::new_v4();
-        let policy = PayrollIncentivePolicy {
-            id: p_id,
-            workspace_id: Uuid::new_v4(),
-            name: "Bonus".into(),
-            base_amount: 1_000_000.0, // 1M base
-            payout_type: "percentage".into(),
-            is_active: true,
-            created_at: chrono::Utc::now(),
-            effective_from: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-            effective_to: None,
-        };
-        let tiers = vec![IncentiveTier {
-            id: Uuid::new_v4(),
-            policy_id: p_id,
-            priority: 1,
-            rule_config: serde_json::json!({}),
-            payout_amount: 0.1, // 10%
-        }];
+        let policy = PayrollIncentivePolicy::new(
+            p_id,
+            Uuid::new_v4(),
+            "Bonus".into(),
+            1_000_000.0, // 1M base
+            "percentage".into(),
+            true,
+            chrono::Utc::now(),
+            chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            None,
+        );
+        let tiers = vec![IncentiveTier::new(
+            Uuid::new_v4(),
+            p_id,
+            1,
+            serde_json::json!({}),
+            0.1, // 10%
+        )];
         let ctx = IncentiveContext {
             total_work_units: 160,
             total_leave_days: 0.0,
@@ -360,26 +360,26 @@ mod tests {
     #[test]
     fn test_unpaid_leave_exceeds_threshold() {
         let p_id = Uuid::new_v4();
-        let policy = PayrollIncentivePolicy {
-            id: p_id,
-            workspace_id: Uuid::new_v4(),
-            name: "Attendance Bonus".into(),
-            base_amount: 200_000.0,
-            payout_type: "fixed".into(),
-            is_active: true,
-            created_at: chrono::Utc::now(),
-            effective_from: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-            effective_to: None,
-        };
-        let tiers = vec![IncentiveTier {
-            id: Uuid::new_v4(),
-            policy_id: p_id,
-            priority: 1,
-            rule_config: serde_json::json!({
+        let policy = PayrollIncentivePolicy::new(
+            p_id,
+            Uuid::new_v4(),
+            "Attendance Bonus".into(),
+            200_000.0,
+            "fixed".into(),
+            true,
+            chrono::Utc::now(),
+            chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            None,
+        );
+        let tiers = vec![IncentiveTier::new(
+            Uuid::new_v4(),
+            p_id,
+            1,
+            serde_json::json!({
                 "max_unpaid_leave_days": 1.0
             }),
-            payout_amount: 200_000.0,
-        }];
+            200_000.0,
+        )];
         // Employee has 2 unpaid leave days → exceeds threshold
         let ctx = IncentiveContext {
             total_work_units: 160,
@@ -396,26 +396,26 @@ mod tests {
     #[test]
     fn test_sick_leave_threshold() {
         let p_id = Uuid::new_v4();
-        let policy = PayrollIncentivePolicy {
-            id: p_id,
-            workspace_id: Uuid::new_v4(),
-            name: "Health Bonus".into(),
-            base_amount: 100_000.0,
-            payout_type: "fixed".into(),
-            is_active: true,
-            created_at: chrono::Utc::now(),
-            effective_from: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-            effective_to: None,
-        };
-        let tiers = vec![IncentiveTier {
-            id: Uuid::new_v4(),
-            policy_id: p_id,
-            priority: 1,
-            rule_config: serde_json::json!({
+        let policy = PayrollIncentivePolicy::new(
+            p_id,
+            Uuid::new_v4(),
+            "Health Bonus".into(),
+            100_000.0,
+            "fixed".into(),
+            true,
+            chrono::Utc::now(),
+            chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            None,
+        );
+        let tiers = vec![IncentiveTier::new(
+            Uuid::new_v4(),
+            p_id,
+            1,
+            serde_json::json!({
                 "max_sick_leave_days": 0.0
             }),
-            payout_amount: 100_000.0,
-        }];
+            100_000.0,
+        )];
         // Employee has 1 sick day
         let ctx = IncentiveContext {
             total_work_units: 160,
@@ -432,26 +432,26 @@ mod tests {
     #[test]
     fn test_total_leave_threshold() {
         let p_id = Uuid::new_v4();
-        let policy = PayrollIncentivePolicy {
-            id: p_id,
-            workspace_id: Uuid::new_v4(),
-            name: "Full Bonus".into(),
-            base_amount: 500_000.0,
-            payout_type: "fixed".into(),
-            is_active: true,
-            created_at: chrono::Utc::now(),
-            effective_from: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-            effective_to: None,
-        };
-        let tiers = vec![IncentiveTier {
-            id: Uuid::new_v4(),
-            policy_id: p_id,
-            priority: 1,
-            rule_config: serde_json::json!({
+        let policy = PayrollIncentivePolicy::new(
+            p_id,
+            Uuid::new_v4(),
+            "Full Bonus".into(),
+            500_000.0,
+            "fixed".into(),
+            true,
+            chrono::Utc::now(),
+            chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            None,
+        );
+        let tiers = vec![IncentiveTier::new(
+            Uuid::new_v4(),
+            p_id,
+            1,
+            serde_json::json!({
                 "max_total_leave_days": 3.0
             }),
-            payout_amount: 500_000.0,
-        }];
+            500_000.0,
+        )];
         // Exactly at limit → should pass
         let ctx_pass = IncentiveContext {
             total_work_units: 160,
@@ -480,39 +480,39 @@ mod tests {
     #[test]
     fn test_tier_priority_selects_best_match() {
         let p_id = Uuid::new_v4();
-        let policy = PayrollIncentivePolicy {
-            id: p_id,
-            workspace_id: Uuid::new_v4(),
-            name: "Multi-Tier".into(),
-            base_amount: 300_000.0,
-            payout_type: "fixed".into(),
-            is_active: true,
-            created_at: chrono::Utc::now(),
-            effective_from: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-            effective_to: None,
-        };
+        let policy = PayrollIncentivePolicy::new(
+            p_id,
+            Uuid::new_v4(),
+            "Multi-Tier".into(),
+            300_000.0,
+            "fixed".into(),
+            true,
+            chrono::Utc::now(),
+            chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            None,
+        );
         let t2_id = Uuid::new_v4();
         let tiers = vec![
             // Tier 1: strict (priority 1) — requires 0 late
-            IncentiveTier {
-                id: Uuid::new_v4(),
-                policy_id: p_id,
-                priority: 1,
-                rule_config: serde_json::json!({
+            IncentiveTier::new(
+                Uuid::new_v4(),
+                p_id,
+                1,
+                serde_json::json!({
                     "max_late_early_count": 0
                 }),
-                payout_amount: 300_000.0,
-            },
+                300_000.0,
+            ),
             // Tier 2: lenient (priority 2) — allows up to 5 late
-            IncentiveTier {
-                id: t2_id,
-                policy_id: p_id,
-                priority: 2,
-                rule_config: serde_json::json!({
+            IncentiveTier::new(
+                t2_id,
+                p_id,
+                2,
+                serde_json::json!({
                     "max_late_early_count": 5
                 }),
-                payout_amount: 100_000.0,
-            },
+                100_000.0,
+            ),
         ];
         // Employee is late 2 times → doesn't match Tier 1, matches Tier 2
         let ctx = IncentiveContext {
@@ -532,27 +532,27 @@ mod tests {
     fn test_evaluate_policy_invalid_f64_returns_error() {
         let p_id = Uuid::new_v4();
         // Policy with NaN base_amount
-        let policy = PayrollIncentivePolicy {
-            id: p_id,
-            workspace_id: Uuid::new_v4(),
-            name: "Invalid Policy".into(),
-            base_amount: f64::NAN,
-            payout_type: "fixed".into(),
-            is_active: true,
-            created_at: chrono::Utc::now(),
-            effective_from: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-            effective_to: None,
-        };
+        let policy = PayrollIncentivePolicy::new(
+            p_id,
+            Uuid::new_v4(),
+            "Invalid Policy".into(),
+            f64::NAN,
+            "fixed".into(),
+            true,
+            chrono::Utc::now(),
+            chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            None,
+        );
 
-        let tiers = vec![IncentiveTier {
-            id: Uuid::new_v4(),
-            policy_id: p_id,
-            priority: 1,
-            rule_config: serde_json::json!({
+        let tiers = vec![IncentiveTier::new(
+            Uuid::new_v4(),
+            p_id,
+            1,
+            serde_json::json!({
                 "max_late_early_count": 0
             }),
-            payout_amount: 100_000.0,
-        }];
+            100_000.0,
+        )];
 
         let ctx = IncentiveContext {
             total_work_units: 160,
@@ -573,15 +573,25 @@ mod tests {
         assert!(matches!(err, crate::errors::AppError::Internal(_)));
 
         // Also test invalid tier payout_amount
-        let policy2 = PayrollIncentivePolicy {
-            base_amount: 100_000.0,
-            ..policy
-        };
+        let policy2 = PayrollIncentivePolicy::new(
+            policy.id(),
+            policy.workspace_id(),
+            policy.name().to_string(),
+            100_000.0,
+            policy.payout_type().to_string(),
+            policy.is_active(),
+            policy.created_at(),
+            policy.effective_from(),
+            policy.effective_to(),
+        );
 
-        let tiers_invalid = vec![IncentiveTier {
-            payout_amount: f64::NAN,
-            ..tiers[0].clone()
-        }];
+        let tiers_invalid = vec![IncentiveTier::new(
+            tiers[0].id(),
+            tiers[0].policy_id(),
+            tiers[0].priority(),
+            tiers[0].rule_config().clone(),
+            f64::NAN,
+        )];
 
         let res2 = PayrollEvaluator::evaluate_policy(&policy2, &tiers_invalid, &ctx);
         assert!(
@@ -593,29 +603,29 @@ mod tests {
     #[test]
     fn test_evaluate_policy_dynamic_rules_option_b() {
         let p_id = Uuid::new_v4();
-        let policy = PayrollIncentivePolicy {
-            id: p_id,
-            workspace_id: Uuid::new_v4(),
-            name: "KPI Bonus".into(),
-            base_amount: 1_000_000.0,
-            payout_type: "fixed".into(),
-            is_active: true,
-            created_at: chrono::Utc::now(),
-            effective_from: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-            effective_to: None,
-        };
+        let policy = PayrollIncentivePolicy::new(
+            p_id,
+            Uuid::new_v4(),
+            "KPI Bonus".into(),
+            1_000_000.0,
+            "fixed".into(),
+            true,
+            chrono::Utc::now(),
+            chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            None,
+        );
 
         // Tier 1: KPI >= 90 AND Late <= 2 => 1,000,000
-        let tiers = vec![IncentiveTier {
-            id: Uuid::new_v4(),
-            policy_id: p_id,
-            priority: 1,
-            rule_config: serde_json::json!([
+        let tiers = vec![IncentiveTier::new(
+            Uuid::new_v4(),
+            p_id,
+            1,
+            serde_json::json!([
                 { "metric": "kpi_score", "operator": ">=", "value": 90.0 },
                 { "metric": "late_early_count", "operator": "<=", "value": 2.0 }
             ]),
-            payout_amount: 1_000_000.0,
-        }];
+            1_000_000.0,
+        )];
 
         // Case 1: Meets both
         let ctx_pass = IncentiveContext {

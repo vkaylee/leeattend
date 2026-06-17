@@ -254,17 +254,18 @@ impl ShiftRepository for DieselShiftRepository {
         employment_id: Uuid,
         date: NaiveDate,
     ) -> Result<Option<Shift>, AppError> {
-        let _workspace_id = auth_token.workspace_id();
+        let workspace_id = auth_token.workspace_id();
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .tenants_tx
-                .get_connection(&auth_token.workspace_id())
+                .get_connection(&workspace_id)
                 .await
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
         let entity: Option<ShiftEntity> = shifts::table
             .inner_join(employee_shifts::table.on(shifts::id.eq(employee_shifts::shift_id)))
+            .filter(shifts::workspace_id.eq(workspace_id))
             .filter(employee_shifts::employment_id.eq(employment_id))
             .filter(employee_shifts::start_date.le(date))
             .filter(
