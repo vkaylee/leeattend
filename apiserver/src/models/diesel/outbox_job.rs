@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use uuid::Uuid;
 
-#[derive(Debug, Queryable, Selectable, Insertable, AsChangeset, Clone)]
+#[derive(Debug, Queryable, Selectable, Insertable, AsChangeset, QueryableByName, Clone)]
 #[diesel(table_name = crate::schema::outbox_jobs)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct OutboxJobEntity {

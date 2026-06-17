@@ -118,12 +118,14 @@ impl DieselPools {
         let tenant_tx_manager = Arc::new(TenantPoolManager::new(
             config.tenant_pooler_tx_url.clone(),
             config.primary_url.clone(),
+            Some(api_pool.clone()),
             config.tenant_max_conn as usize,
         ));
 
         let tenant_sess_manager = Arc::new(TenantPoolManager::new(
             config.tenant_pooler_sess_url.clone(),
             config.primary_url.clone(),
+            Some(api_pool.clone()),
             config.tenant_max_conn as usize,
         ));
 

@@ -76,7 +76,7 @@ export default function ProfileTab({
     const queryClient = useQueryClient();
     const toast = useToast();
     const [isEditingLocation, setIsEditingLocation] = useState(false);
-    const [selectedLocationId, setSelectedLocationId] = useState("");
+    const [selectedLocationIdState, setSelectedLocationIdState] = useState<string | null>(null);
 
     const { data: employments = [] } = useQuery({
         queryKey: ["employee-employments", wsId, employee.id],
@@ -86,11 +86,18 @@ export default function ProfileTab({
     const activeEmployment = employments.find(e => e.status === "active") || employments[0];
     const activeLocationId = activeEmployment?.primary_location_id ?? "";
 
-    useEffect(() => {
-        if (activeLocationId) {
-            setSelectedLocationId(activeLocationId);
+    const selectedLocationId = selectedLocationIdState ?? activeLocationId;
+
+    const handleSetIsEditingLocation = (editing: boolean) => {
+        setIsEditingLocation(editing);
+        if (!editing) {
+            setSelectedLocationIdState(null);
         }
-    }, [activeLocationId]);
+    };
+
+    const handleSetSelectedLocationId = (id: string) => {
+        setSelectedLocationIdState(id);
+    };
 
     const updateLocationMutation = useMutation({
         mutationFn: (locationId: string) => {
@@ -100,12 +107,12 @@ export default function ProfileTab({
         onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: ["employee-employments", wsId, employee.id] });
             void queryClient.invalidateQueries({ queryKey: ["employees", wsId] });
-            setIsEditingLocation(false);
+            handleSetIsEditingLocation(false);
             toast.success(t("common.success"));
         },
         onError: () => {
             toast.error("Failed to update location");
-            setSelectedLocationId(activeLocationId);
+            setSelectedLocationIdState(null);
         }
     });
 
@@ -113,7 +120,7 @@ export default function ProfileTab({
         if (selectedLocationId !== activeLocationId) {
             updateLocationMutation.mutate(selectedLocationId);
         } else {
-            setIsEditingLocation(false);
+            handleSetIsEditingLocation(false);
         }
     };
 
@@ -145,8 +152,8 @@ export default function ProfileTab({
                 isEditingLocation={isEditingLocation}
                 locations={locations}
                 selectedLocationId={selectedLocationId}
-                setIsEditingLocation={setIsEditingLocation}
-                setSelectedLocationId={setSelectedLocationId}
+                setIsEditingLocation={handleSetIsEditingLocation}
+                setSelectedLocationId={handleSetSelectedLocationId}
                 t={t}
                 updateLocationMutation={updateLocationMutation}
             />

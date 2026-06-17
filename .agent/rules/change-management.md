@@ -69,3 +69,9 @@
 - **Lifecycle:** Feature flags MUST be cleaned up within **30 days** of full rollout (100% enabled). Stale flags are tech debt.
 - **Kill Switch:** Critical features MUST have a feature flag that can disable them without deployment for incident containment.
 - **Audit:** Feature flag changes (enable/disable/percentage change) MUST be audit-logged.
+
+## 7. Rulebook and Standard Changes (AI Proposals)
+- AI agents and developers MUST NOT modify rulebooks or core standard files in `.agent/rules/` and `GEMINI.md` autonomously without direct, explicit user approval.
+- If a technical debt resolution or refactoring reveals a gap or an outdated policy in the core rules:
+  1. The AI agent MUST outline a recommended addition or modification in the final walkthrough report or pull request comments.
+  2. The changes to `.agent/rules/` or `GEMINI.md` may only be merged and applied after Kỹ sư trưởng (Lead Engineer) reviews and approves the proposal.

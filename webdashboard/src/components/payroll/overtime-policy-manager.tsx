@@ -1,4 +1,3 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Calculator, 
   Plus, 
@@ -10,25 +9,20 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import Button from "@/components/ui/button";
-import { useToast } from '@/components/ui/toast';
 import { Typography } from "@/components/ui/typography";
-import { fetchOvertimePolicies, createOvertimePolicy, fetchOvertimePolicy } from '@/lib/api/payroll';
+import { Skeleton } from "@/components/ui/skeleton";
+import { useOvertimePolicies, useOvertimePolicy, useCreateOvertimePolicy } from './hooks/use-overtime-policies';
 
 import AssignOvertimePolicyModal from './assign-overtime-policy-modal';
 import OvertimeRuleEditor from './overtime-rule-editor';
+import { OvertimePolicy } from '@/lib/api/types';
 
 interface OvertimePolicyManagerProps {
   wsId: string;
 }
 
- 
-import { OvertimePolicy } from '@/lib/api/types';
-
 function OvertimePolicyCard({ policy, wsId }: { policy: OvertimePolicy, wsId: string }) {
-  const { data: detail, isLoading } = useQuery({
-    queryKey: ['overtime-policy', policy.id],
-    queryFn: () => fetchOvertimePolicy(wsId, policy.id),
-  });
+  const { data: detail, isLoading } = useOvertimePolicy(wsId, policy.id);
 
   return (
     <div className='bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all group'>
@@ -45,7 +39,7 @@ function OvertimePolicyCard({ policy, wsId }: { policy: OvertimePolicy, wsId: st
       </div>
       
       {isLoading ? (
-        <div className='h-20 animate-pulse bg-slate-50 dark:bg-slate-800 rounded-2xl'></div>
+        <Skeleton className='h-20 bg-slate-50 dark:bg-slate-800 rounded-2xl' />
       ) : (
         <OvertimeRuleEditor policyId={policy.id} rules={detail ? detail[1] : []} wsId={wsId} />
       )}
@@ -60,7 +54,7 @@ function OvertimePolicyForm({
 }: {
   isPending: boolean;
   onCancel: () => void;
-  onSave: (data: Parameters<typeof createOvertimePolicy>[1]) => void;
+  onSave: (data: { name: string; description: string }) => void;
 }) {
   const { t } = useTranslation();
   const [name, setName] = useState('');
@@ -91,7 +85,9 @@ function OvertimePolicyForm({
         </div>
       </div>
       <div className='flex justify-end gap-3 mt-6'>
-        <Button className='px-6 py-2 rounded-xl text-sm font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all' onClick={onCancel} variant="ghost">Cancel</Button>
+        <Button className='px-6 py-2 rounded-xl text-sm font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all' onClick={onCancel} variant="ghost">
+          {t('common.cancel', { defaultValue: 'Cancel' })}
+        </Button>
         <Button className='flex items-center gap-2 bg-primary-600 text-white px-8 py-2 rounded-xl text-sm font-bold hover:bg-primary-700 transition-all disabled:opacity-50'
           disabled={!name || isPending}
           onClick={() => { onSave({ name, description }); }}
@@ -104,31 +100,51 @@ function OvertimePolicyForm({
   );
 }
 
+function OvertimePolicySkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-48 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+          <Skeleton className="h-4 w-96 bg-slate-200/60 dark:bg-slate-800/60 rounded-lg" />
+        </div>
+        <div className="flex gap-3">
+          <Skeleton className="h-10 w-32 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+          <Skeleton className="h-10 w-32 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 gap-4">
+        {[1, 2].map((i) => (
+          <div key={i} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-6 shadow-sm space-y-4">
+            <div className="flex items-center gap-4">
+              <Skeleton className="w-12 h-12 rounded-2xl bg-slate-200 dark:bg-slate-800" />
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-40 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+                <Skeleton className="h-4 w-60 bg-slate-200/60 dark:bg-slate-800/60 rounded-lg" />
+              </div>
+            </div>
+            <Skeleton className="h-20 w-full bg-slate-100/50 dark:bg-slate-800/30 rounded-2xl animate-pulse" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function OvertimePolicyManager({ wsId }: OvertimePolicyManagerProps) {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
-  const toast = useToast();
   const [isCreating, setIsCreating] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
 
+  const { data: policies = [], isLoading } = useOvertimePolicies(wsId);
 
-
-  const { data: policies = [], isLoading } = useQuery({
-    queryKey: ['overtime-policies', wsId],
-    queryFn: () => fetchOvertimePolicies(wsId),
-  });
-
-  const createMutation = useMutation({
- 
-    mutationFn: (data: Parameters<typeof createOvertimePolicy>[1]) => createOvertimePolicy(wsId, data),
+  const createMutation = useCreateOvertimePolicy(wsId, {
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['overtime-policies'] });
       setIsCreating(false);
-      toast.success(t('common.success'));
     },
   });
 
-  if (isLoading) return <div className='p-8 text-center animate-pulse text-slate-500 dark:text-slate-400 font-bold'>Loading policies...</div>;
+  if (isLoading) return <OvertimePolicySkeleton />;
 
   return (
     <div className='space-y-6'>
@@ -167,7 +183,6 @@ export default function OvertimePolicyManager({ wsId }: OvertimePolicyManagerPro
       ) : null}
 
       <div className='grid grid-cols-1 gap-4'>
-        { }
         {policies.map((policy: OvertimePolicy) => (
           <OvertimePolicyCard key={policy.id} policy={policy} wsId={wsId} />
         ))}

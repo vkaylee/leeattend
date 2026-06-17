@@ -98,7 +98,11 @@ export default function Modal({
                         {subtitle}
                       </Typography>
                     </Dialog.Description>
-                  ) : null}
+                  ) : (
+                    <Dialog.Description className="sr-only">
+                      {title ? `${title} description` : "Dialog description"}
+                    </Dialog.Description>
+                  )}
                 </div>
               </div>
               <Dialog.Close asChild>

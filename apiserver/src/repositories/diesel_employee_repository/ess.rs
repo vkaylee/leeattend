@@ -97,21 +97,26 @@ impl EmployeeSelfServiceRepository for DieselEmployeeRepository {
             ));
         }
 
-        let mut encrypted_national_id = req.national_id.clone();
-        let mut encrypted_bank_account_number = req.bank_account_number.clone();
+        let crypto = self
+            .crypto_service
+            .as_ref()
+            .ok_or_else(|| AppError::Internal("Crypto service not initialized".to_string()))?;
 
-        if let Some(crypto) = &self.crypto_service {
-            if let Some(ref nat_id) = req.national_id {
-                if let Ok(encrypted) = crypto.encrypt(nat_id) {
-                    encrypted_national_id = Some(encrypted);
-                }
-            }
-            if let Some(ref bank_acc) = req.bank_account_number {
-                if let Ok(encrypted) = crypto.encrypt(bank_acc) {
-                    encrypted_bank_account_number = Some(encrypted);
-                }
-            }
-        }
+        let encrypted_national_id = match &req.national_id {
+            Some(nat_id) => Some(
+                crypto
+                    .encrypt(nat_id)
+                    .map_err(|e| AppError::Internal(format!("Failed to encrypt national_id: {e}")))?,
+            ),
+            None => None,
+        };
+
+        let encrypted_bank_account_number = match &req.bank_account_number {
+            Some(bank_acc) => Some(crypto.encrypt(bank_acc).map_err(|e| {
+                AppError::Internal(format!("Failed to encrypt bank_account_number: {e}"))
+            })?),
+            None => None,
+        };
 
         let mut result: EmployeeProfileEntity = diesel::insert_into(employee_profiles::table)
             .values((

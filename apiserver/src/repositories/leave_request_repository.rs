@@ -149,6 +149,7 @@ pub struct LeaveHistoryRequestItem {
     pub created_at: Option<chrono::DateTime<Utc>>,
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct LeaveBreakdown {
     pub total_days: f64,
     pub unpaid_days: f64,

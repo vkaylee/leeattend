@@ -61,6 +61,13 @@ pub struct PayrollContext {
     pub(crate) active_assignments: Vec<crate::models::employee_assignment::EmployeeAssignment>,
     pub(crate) active_employments: Vec<crate::models::employment::Employment>,
     pub(crate) primary_location_id: Uuid,
+    pub(crate) month_end_payroll_settings: Option<crate::models::PayrollSettings>,
+    pub(crate) month_end_attendance_policy: crate::models::AttendanceRules,
+    pub(crate) leave_breakdown: crate::repositories::leave_request_repository::LeaveBreakdown,
+    pub(crate) active_policies_with_tiers: Vec<IncentivePolicyWithTiers>,
+    pub(crate) salary_base_groups: Vec<crate::models::SalaryBaseGroup>,
+    pub(crate) unpaid_holiday_days: i64,
+    pub(crate) rule_assignments_with_tiers: Vec<RuleAssignmentWithTiers>,
 }
 
 /// Named record for a payroll segment snapshot.
@@ -386,6 +393,102 @@ impl PayrollService {
             }
         }
 
+        // Fetch month end payroll settings
+        let month_end_payroll_settings = self
+            .payroll_repo
+            .get_payroll_settings_at(workspace_id, end_date)
+            .await?;
+
+        // Resolve month end attendance policy
+        let month_end_attendance_policy = PolicyResolverService::resolve_attendance_policy(
+            &*self.policy_repo,
+            employee_id,
+            workspace_id,
+            end_date,
+        )
+        .await?;
+
+        // Fetch leave breakdown
+        let leave_breakdown = self
+            .leave_repo
+            .get_approved_leave_breakdown(
+                employee_id,
+                start_date,
+                end_date,
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+            )
+            .await
+            .map_err(|e| {
+                tracing::error!(
+                    "Failed to fetch leave breakdown for employee {}: {}",
+                    employee_id,
+                    e
+                );
+                AppError::Internal(format!("Leave breakdown error (incentives): {e}"))
+            })?;
+
+        // Fetch active incentive policies with tiers
+        let active_policies = self
+            .payroll_repo
+            .get_active_incentive_policies_for_period(workspace_id, start_date, end_date)
+            .await?;
+
+        let mut active_policies_with_tiers = Vec::new();
+        for policy in active_policies {
+            let tiers = self
+                .payroll_repo
+                .get_policy_tiers(workspace_id, policy.id())
+                .await?;
+            active_policies_with_tiers.push(IncentivePolicyWithTiers { policy, tiers });
+        }
+
+        // Fetch salary base groups
+        let salary_base_groups = self
+            .salary_base_repo
+            .get_groups(workspace_id)
+            .await
+            .unwrap_or_default();
+
+        // Fetch unpaid holiday days
+        let unpaid_holiday_days: i64 = self
+            .leave_repo
+            .get_unpaid_holiday_days_without_leave(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                employee_id,
+                start_date,
+                end_date,
+            )
+            .await
+            .unwrap_or(0);
+
+        // Fetch last department id
+        let last_department_id = all_dept_history
+            .iter()
+            .filter(|d| d.effective_date() <= end_date)
+            .max_by_key(|d| d.effective_date())
+            .map(|d| d.department_id());
+
+        // Fetch rule assignments with tiers
+        let rule_assignments = self
+            .payroll_repo
+            .get_resolved_rule_assignments(
+                workspace_id,
+                employee_id,
+                last_department_id,
+                start_date,
+                end_date,
+            )
+            .await?;
+
+        let mut rule_assignments_with_tiers = Vec::new();
+        for assignment in rule_assignments {
+            let tiers = self
+                .payroll_repo
+                .get_payroll_rule_tiers(workspace_id, assignment.rule_definition_id)
+                .await?;
+            rule_assignments_with_tiers.push(RuleAssignmentWithTiers { assignment, tiers });
+        }
+
         Ok(PayrollContext {
             employee_id,
             workspace,
@@ -411,6 +514,13 @@ impl PayrollService {
             active_assignments,
             active_employments,
             primary_location_id,
+            month_end_payroll_settings,
+            month_end_attendance_policy,
+            leave_breakdown,
+            active_policies_with_tiers,
+            salary_base_groups,
+            unpaid_holiday_days,
+            rule_assignments_with_tiers,
         })
     }
 
@@ -610,19 +720,10 @@ impl PayrollService {
         }
 
         // Phase 4: Enforce monthly OT cap
-        let payroll_settings = self
-            .payroll_repo
-            .get_payroll_settings_at(workspace_id, ctx.end_date)
-            .await?;
+        let payroll_settings = ctx.month_end_payroll_settings.clone();
         if let Some(ref ps) = payroll_settings {
             if let Some(max_monthly_hours) = ps.max_ot_hours_per_month {
-                let month_end_policy = PolicyResolverService::resolve_attendance_policy(
-                    &*self.policy_repo,
-                    employee_id,
-                    workspace_id,
-                    ctx.end_date,
-                )
-                .await?;
+                let month_end_policy = ctx.month_end_attendance_policy.clone();
 
                 let (capped_units, capped_pay) = FinancialCalculator::apply_ot_cap(
                     total_ot_units,
@@ -642,38 +743,8 @@ impl PayrollService {
             }
         }
 
-        // Fetch leave breakdown and incentive policies for calculations
-        let leave_breakdown = self
-            .leave_repo
-            .get_approved_leave_breakdown(
-                employee_id,
-                ctx.start_date,
-                ctx.end_date,
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-            )
-            .await
-            .map_err(|e| {
-                tracing::error!(
-                    "Failed to fetch leave breakdown for employee {}: {}",
-                    employee_id,
-                    e
-                );
-                AppError::Internal(format!("Leave breakdown error (incentives): {e}"))
-            })?;
-
-        let active_policies = self
-            .payroll_repo
-            .get_active_incentive_policies_for_period(workspace_id, ctx.start_date, ctx.end_date)
-            .await?;
-
-        let mut active_policies_with_tiers = Vec::new();
-        for policy in active_policies {
-            let tiers = self
-                .payroll_repo
-                .get_policy_tiers(workspace_id, policy.id())
-                .await?;
-            active_policies_with_tiers.push(IncentivePolicyWithTiers { policy, tiers });
-        }
+        let leave_breakdown = ctx.leave_breakdown.clone();
+        let active_policies_with_tiers = ctx.active_policies_with_tiers.clone();
 
         // Phase 5: Incentives — delegated to FinancialCalculator
         let incentives = FinancialCalculator::calculate_incentives(
@@ -700,47 +771,17 @@ impl PayrollService {
         base_values.insert("gross".to_string(), gross_salary);
         base_values.insert("base_pay".to_string(), total_base_pay);
 
-        if let Ok(groups) = self.salary_base_repo.get_groups(workspace_id).await {
-            for group in groups {
-                let amount = if group.slug == "bhxh_base" {
-                    total_base_pay
-                } else {
-                    gross_salary
-                };
-                base_values.insert(group.slug, amount);
-            }
+        for group in ctx.salary_base_groups.clone() {
+            let amount = if group.slug == "bhxh_base" {
+                total_base_pay
+            } else {
+                gross_salary
+            };
+            base_values.insert(group.slug, amount);
         }
 
-        let unpaid_holiday_days: i64 = self
-            .leave_repo
-            .get_unpaid_holiday_days_without_leave(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                employee_id,
-                ctx.start_date,
-                ctx.end_date,
-            )
-            .await
-            .unwrap_or(0);
-
-        let rule_assignments = self
-            .payroll_repo
-            .get_resolved_rule_assignments(
-                workspace_id,
-                employee_id,
-                last_department_id,
-                ctx.start_date,
-                ctx.end_date,
-            )
-            .await?;
-
-        let mut rule_assignments_with_tiers = Vec::new();
-        for assignment in rule_assignments {
-            let tiers = self
-                .payroll_repo
-                .get_payroll_rule_tiers(workspace_id, assignment.rule_definition_id)
-                .await?;
-            rule_assignments_with_tiers.push(RuleAssignmentWithTiers { assignment, tiers });
-        }
+        let unpaid_holiday_days = ctx.unpaid_holiday_days;
+        let rule_assignments_with_tiers = ctx.rule_assignments_with_tiers.clone();
 
         let deductions = FinancialCalculator::calculate_deductions(
             &leave_breakdown,
@@ -904,6 +945,50 @@ impl PayrollService {
             return crate::models::BatchCalculatePayrollResponse { results: vec![] };
         };
 
+        let month_end_payroll_settings = match self
+            .payroll_repo
+            .get_payroll_settings_at(workspace_id, end_date)
+            .await
+        {
+            Ok(settings) => settings,
+            Err(e) => {
+                tracing::error!(
+                    workspace_id = %workspace_id,
+                    error = %e,
+                    "Failed to fetch month end payroll settings for batch payroll — proceeding with None"
+                );
+                None
+            }
+        };
+
+        let active_policies = match self
+            .payroll_repo
+            .get_active_incentive_policies_for_period(workspace_id, start_date, end_date)
+            .await
+        {
+            Ok(policies) => policies,
+            Err(e) => {
+                tracing::error!(
+                    workspace_id = %workspace_id,
+                    error = %e,
+                    "Failed to fetch active incentive policies for batch payroll"
+                );
+                vec![]
+            }
+        };
+        let mut active_policies_with_tiers = Vec::new();
+        for policy in active_policies {
+            if let Ok(tiers) = self.payroll_repo.get_policy_tiers(workspace_id, policy.id()).await {
+                active_policies_with_tiers.push(IncentivePolicyWithTiers { policy, tiers });
+            }
+        }
+
+        let salary_base_groups = self
+            .salary_base_repo
+            .get_groups(workspace_id)
+            .await
+            .unwrap_or_default();
+
         let mut results = Vec::new();
         for chunk in employment_ids.chunks(50) {
             let chunk_employment_ids = chunk.to_vec();
@@ -992,6 +1077,19 @@ impl PayrollService {
                 .list_assignments_batch(token, &chunk_employment_ids)
                 .await;
 
+            let end_effective_time = end_date
+                .and_hms_opt(23, 59, 59)
+                .unwrap_or_default()
+                .and_utc();
+            let month_end_policies_res = self
+                .policy_repo
+                .get_employment_effective_policies_batch(
+                    token,
+                    &chunk_employment_ids,
+                    end_effective_time,
+                )
+                .await;
+
             let mut employees = match employees_res {
                 Ok(emps) => emps
                     .into_iter()
@@ -1025,6 +1123,7 @@ impl PayrollService {
             }
 
             let mut policies_map = policies_res.unwrap_or_default();
+            let mut month_end_policies_map = month_end_policies_res.unwrap_or_default();
             let mut contracts_map = contracts_res.unwrap_or_default();
             let mut assignments_map = assignments_res.unwrap_or_default();
 
@@ -1065,12 +1164,7 @@ impl PayrollService {
                     .push(emp_ment.clone());
             }
 
-            let groups = self
-                .salary_base_repo
-                .get_groups(workspace_id)
-                .await
-                .unwrap_or_default();
-            let ot_group_id = groups.iter().find(|g| g.slug == "ot_base").map(|g| g.id);
+            let ot_group_id = salary_base_groups.iter().find(|g| g.slug == "ot_base").map(|g| g.id);
 
             let mut ot_base_component_ids = std::collections::HashSet::new();
             if let Some(group_id) = ot_group_id {
@@ -1080,6 +1174,99 @@ impl PayrollService {
                             ot_base_component_ids.insert(member.component_definition_id);
                         }
                     }
+                }
+            }
+
+            // Batch fetch leave breakdown for chunk employees
+            let mut leave_breakdowns_map = HashMap::new();
+            let mut leave_futures = Vec::new();
+            for &emp_id in &chunk_employee_ids {
+                let leave_repo = Arc::clone(&self.leave_repo);
+                let token_clone = token.clone();
+                leave_futures.push(async move {
+                    let res = leave_repo
+                        .get_approved_leave_breakdown(emp_id, start_date, end_date, &token_clone)
+                        .await;
+                    (emp_id, res)
+                });
+            }
+            let leave_results = futures_util::future::join_all(leave_futures).await;
+            for (emp_id, res) in leave_results {
+                if let Ok(breakdown) = res {
+                    leave_breakdowns_map.insert(emp_id, breakdown);
+                }
+            }
+
+            // Batch fetch unpaid holiday days for chunk employees
+            let mut unpaid_holidays_map = HashMap::new();
+            let mut unpaid_futures = Vec::new();
+            for &emp_id in &chunk_employee_ids {
+                let leave_repo = Arc::clone(&self.leave_repo);
+                let token_clone = token.clone();
+                unpaid_futures.push(async move {
+                    let res = leave_repo
+                        .get_unpaid_holiday_days_without_leave(&token_clone, emp_id, start_date, end_date)
+                        .await;
+                    (emp_id, res)
+                });
+            }
+            let unpaid_results = futures_util::future::join_all(unpaid_futures).await;
+            for (emp_id, res) in unpaid_results {
+                unpaid_holidays_map.insert(emp_id, res.unwrap_or(0));
+            }
+
+            // Batch fetch rule assignments with tiers for chunk employees
+            let mut rule_assignments_map = HashMap::new();
+            let mut rule_futures = Vec::new();
+            for &employment_id in &chunk_employment_ids {
+                let emp_id = match employment_to_employee.get(&employment_id) {
+                    Some(id) => *id,
+                    None => continue,
+                };
+                let all_dept_history = dept_map.get(&emp_id).cloned().unwrap_or_default();
+                let last_department_id = all_dept_history
+                    .iter()
+                    .filter(|d| d.effective_date() <= end_date)
+                    .max_by_key(|d| d.effective_date())
+                    .map(|d| d.department_id());
+
+                let payroll_repo = Arc::clone(&self.payroll_repo);
+                rule_futures.push(async move {
+                    let res = payroll_repo
+                        .get_resolved_rule_assignments(
+                            workspace_id,
+                            emp_id,
+                            last_department_id,
+                            start_date,
+                            end_date,
+                        )
+                        .await;
+                    (employment_id, res)
+                });
+            }
+            let rule_results = futures_util::future::join_all(rule_futures).await;
+
+            let mut rule_tiers_futures = Vec::new();
+            for (employment_id, res) in rule_results {
+                if let Ok(assignments) = res {
+                    for assignment in assignments {
+                        let payroll_repo = Arc::clone(&self.payroll_repo);
+                        rule_tiers_futures.push(async move {
+                            let tiers_res = payroll_repo
+                                .get_payroll_rule_tiers(workspace_id, assignment.rule_definition_id)
+                                .await;
+                            (employment_id, assignment, tiers_res)
+                        });
+                    }
+                }
+            }
+            let rule_tiers_results = futures_util::future::join_all(rule_tiers_futures).await;
+            for (employment_id, assignment, tiers_res) in rule_tiers_results {
+                if let Ok(tiers) = tiers_res {
+                    rule_assignments_map
+                        .entry(employment_id)
+                        .or_insert_with(Vec::new)
+                        .push(RuleAssignmentWithTiers { assignment, tiers });
                 }
             }
 
@@ -1142,6 +1329,26 @@ impl PayrollService {
                         ot_base_component_ids.clone()
                     };
 
+                    let month_end_attendance_policy = match month_end_policies_map.remove(employment_id) {
+                        Some(pv) => pv.rules,
+                        None => crate::models::AttendanceRules {
+                            work_unit_minutes: 30,
+                            rounding_policy: "floor".to_string(),
+                            early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
+                        },
+                    };
+
+                    let leave_breakdown = leave_breakdowns_map.remove(&emp_id).unwrap_or(
+                        crate::repositories::leave_request_repository::LeaveBreakdown {
+                            total_days: 0.0,
+                            unpaid_days: 0.0,
+                            sick_days: 0.0,
+                        }
+                    );
+
+                    let unpaid_holiday_days = unpaid_holidays_map.remove(&emp_id).unwrap_or(0);
+                    let rule_assignments_with_tiers = rule_assignments_map.remove(employment_id).unwrap_or_default();
+
                     contexts.push((
                         *employment_id,
                         PayrollContext {
@@ -1173,6 +1380,13 @@ impl PayrollService {
                                 .remove(&emp_id)
                                 .unwrap_or_default(),
                             primary_location_id,
+                            month_end_payroll_settings: month_end_payroll_settings.clone(),
+                            month_end_attendance_policy,
+                            leave_breakdown,
+                            active_policies_with_tiers: active_policies_with_tiers.clone(),
+                            salary_base_groups: salary_base_groups.clone(),
+                            unpaid_holiday_days,
+                            rule_assignments_with_tiers,
                         },
                     ));
                 }

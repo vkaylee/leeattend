@@ -71,20 +71,6 @@ impl OutboxSweepScheduler {
 
                 match serde_json::from_value::<OutboxPayload>(job.payload().clone()) {
                     Ok(outbox_payload) => {
-                        // Update job updated_at so it doesn't get swept again immediately
-                        if let Err(e) = self
-                            .outbox_service
-                            .update_job_status(ws_id, job.id(), "running", None)
-                            .await
-                        {
-                            error!(
-                                job_id = %job.id(),
-                                error = ?e,
-                                "Failed to update outbox job status before re-enqueue"
-                            );
-                            continue;
-                        }
-
                         // Re-enqueue
                         if let Err(e) = self
                             .coordinator
@@ -216,16 +202,6 @@ mod tests {
             .expect_get_all_stuck_jobs()
             .with(mockall::predicate::always(), mockall::predicate::eq(10))
             .returning(move |_, _| Ok(vec![job_clone.clone()]));
-
-        mock_outbox_repo
-            .expect_update_job_status()
-            .with(
-                mockall::predicate::always(),
-                mockall::predicate::eq(job_id),
-                mockall::predicate::eq("running"),
-                mockall::predicate::eq(None),
-            )
-            .returning(|_, _, _, _| Ok(()));
 
         let mut mock_employee_repo = MockEmployeeRepository::new();
         mock_employee_repo

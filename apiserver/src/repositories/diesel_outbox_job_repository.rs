@@ -175,18 +175,27 @@ impl OutboxJobRepository for DieselOutboxJobRepository {
                     }
                 };
 
-                let results = outbox_jobs::table
-                    .filter(outbox_jobs::workspace_id.eq(ws.id))
-                    .filter(
-                        outbox_jobs::status
-                            .eq("pending".to_string())
-                            .or(outbox_jobs::status.eq("running".to_string())),
-                    )
-                    .filter(outbox_jobs::updated_at.lt(older_than))
-                    .order(outbox_jobs::updated_at.asc())
-                    .limit(limit)
-                    .load::<OutboxJobEntity>(&mut *conn)
-                    .await;
+                let results = diesel::sql_query(
+                    "UPDATE outbox_jobs \
+                     SET status = 'running', updated_at = $1 \
+                     WHERE id IN ( \
+                         SELECT id FROM outbox_jobs \
+                         WHERE workspace_id = $2 \
+                           AND (status = 'pending' OR status = 'running') \
+                           AND updated_at < $3 \
+                         ORDER BY updated_at ASC \
+                         LIMIT $4 \
+                         FOR UPDATE SKIP LOCKED \
+                     ) \
+                     RETURNING id, workspace_id, job_type, payload, status, \
+                               error_message, created_at, updated_at"
+                )
+                .bind::<diesel::sql_types::Timestamptz, _>(Utc::now())
+                .bind::<diesel::sql_types::Uuid, _>(ws.id)
+                .bind::<diesel::sql_types::Timestamptz, _>(older_than)
+                .bind::<diesel::sql_types::BigInt, _>(limit)
+                .get_results::<OutboxJobEntity>(&mut *conn)
+                .await;
 
                 match results {
                     Ok(jobs) => Ok(jobs.into_iter().map(Into::into).collect::<Vec<OutboxJob>>()),
@@ -194,7 +203,7 @@ impl OutboxJobRepository for DieselOutboxJobRepository {
                         tracing::error!(
                             workspace_id = %ws.id,
                             error = ?e,
-                            "Failed to query stuck outbox jobs for tenant"
+                            "Failed to claim stuck outbox jobs for tenant"
                         );
                         Ok(Vec::new())
                     }

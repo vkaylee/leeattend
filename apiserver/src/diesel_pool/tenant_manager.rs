@@ -25,17 +25,25 @@ pub trait TenantConnectionProvider: Send + Sync {
 
 pub struct TenantPoolManager {
     base_url: String,
+    #[allow(dead_code)]
     system_db_url: String,
+    system_db_pool: Option<DieselPool>,
     max_size: usize,
     pools: RwLock<HashMap<Uuid, DieselPool>>,
     url_cache: RwLock<HashMap<Uuid, String>>,
 }
 
 impl TenantPoolManager {
-    pub fn new(base_url: String, system_db_url: String, max_size: usize) -> Self {
+    pub fn new(
+        base_url: String,
+        system_db_url: String,
+        system_db_pool: Option<DieselPool>,
+        max_size: usize,
+    ) -> Self {
         Self {
             base_url,
             system_db_url,
+            system_db_pool,
             max_size,
             pools: RwLock::new(HashMap::new()),
             url_cache: RwLock::new(HashMap::new()),
@@ -142,55 +150,54 @@ impl TenantPoolManager {
         let tenant_url = if let Some(url) = cached_url {
             url
         } else {
-            let system_url = self.system_db_url.clone();
             let ws_id = *workspace_id;
 
-            let fetched_url: Result<Option<String>, String> =
-                tokio::task::spawn_blocking(move || {
-                    use diesel::prelude::*;
-                    use diesel::sql_types::{Nullable, Text, Uuid as UuidSql};
+            let fetched_url = if let Some(ref system_pool) = self.system_db_pool {
+                let mut conn = system_pool
+                    .get()
+                    .await
+                    .map_err(|e| AppError::Internal(format!("Failed to get System DB connection: {e}")))?;
 
-                    #[derive(QueryableByName)]
-                    struct WsRow {
-                        #[diesel(sql_type = Nullable<Text>)]
-                        custom_db_url_encrypted: Option<String>,
-                    }
+                use diesel::sql_types::{Nullable, Text, Uuid as UuidSql};
+                use diesel_async::RunQueryDsl;
 
-                    let mut conn =
-                        PgConnection::establish(&system_url).map_err(|e| e.to_string())?;
+                #[derive(diesel::QueryableByName)]
+                struct WsRow {
+                    #[diesel(sql_type = Nullable<Text>)]
+                    custom_db_url_encrypted: Option<String>,
+                }
 
-                    let rows = diesel::sql_query(
-                        "SELECT custom_db_url_encrypted FROM workspaces WHERE id = $1",
-                    )
-                    .bind::<UuidSql, _>(ws_id)
-                    .load::<WsRow>(&mut conn)
-                    .map_err(|e| e.to_string())?;
-
-                    if let Some(row) = rows.into_iter().next() {
-                        if let Some(encrypted) = row.custom_db_url_encrypted {
-                            // Decrypt the URL
-                            let crypto_service =
-                                std::env::var("ENCRYPTION_KEYS_JSON").ok().and_then(|keys| {
-                                    crate::crypto::CryptoService::from_json(&keys).ok()
-                                });
-
-                            let decrypted = if let Some(crypto) = crypto_service {
-                                crypto.decrypt(&encrypted).unwrap_or(encrypted)
-                            } else {
-                                encrypted
-                            };
-
-                            return Ok(Some(decrypted));
-                        }
-                    }
-                    Ok(None)
-                })
+                let rows = diesel::sql_query(
+                    "SELECT custom_db_url_encrypted FROM workspaces WHERE id = $1",
+                )
+                .bind::<UuidSql, _>(ws_id)
+                .get_results::<WsRow>(&mut *conn)
                 .await
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| AppError::Internal(format!("System DB query failed: {e}")))?;
+
+                let mut custom_url = None;
+                if let Some(row) = rows.into_iter().next() {
+                    if let Some(encrypted) = row.custom_db_url_encrypted {
+                        // Decrypt the URL
+                        let crypto_service = std::env::var("ENCRYPTION_KEYS_JSON").ok().and_then(|keys| {
+                            crate::crypto::CryptoService::from_json(&keys).ok()
+                        });
+
+                        custom_url = if let Some(crypto) = crypto_service {
+                            Some(crypto.decrypt(&encrypted).unwrap_or(encrypted))
+                        } else {
+                            Some(encrypted)
+                        };
+                    }
+                }
+                custom_url
+            } else {
+                None
+            };
 
             let url = match fetched_url {
-                Ok(Some(custom_url)) => custom_url,
-                _ => self.get_tenant_url_with_credentials(
+                Some(custom_url) => custom_url,
+                None => self.get_tenant_url_with_credentials(
                     workspace_id,
                     "tenant_user",
                     "tenant_password",
@@ -292,6 +299,7 @@ mod tests {
         let manager = TenantPoolManager::new(
             "postgres://admin:pass@localhost:5432/leeattend".to_string(),
             "postgres://admin:pass@localhost:5432/leeattend".to_string(),
+            None,
             5,
         );
         let ws_id = Uuid::parse_str("123e4567-e89b-12d3-a456-426614174000").unwrap();
@@ -310,6 +318,7 @@ mod tests {
         let manager = TenantPoolManager::new(
             "postgres://admin:pass@localhost:5432/leeattend".to_string(),
             "postgres://admin:pass@localhost:5432/leeattend".to_string(),
+            None,
             5,
         );
         let ws_id = Uuid::new_v4();

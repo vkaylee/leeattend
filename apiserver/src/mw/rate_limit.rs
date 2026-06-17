@@ -236,7 +236,7 @@ fn resolve_identity(req: &Request<Body>, jwt_secret: &str) -> String {
                 .and_then(|s| s.split(',').next())
                 .map(|s| s.trim().to_string())
         })
-        .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+        .unwrap_or_else(|| "unknown".to_string());
 
     format!("ip:{ip}")
 }
@@ -342,12 +342,7 @@ mod tests {
         let req = Request::builder().uri("/test").body(Body::empty()).unwrap();
 
         let identity = resolve_identity(&req, "test_secret");
-        assert!(identity.starts_with("ip:"));
-        let ip_part = identity.strip_prefix("ip:").unwrap();
-        assert!(
-            uuid::Uuid::parse_str(ip_part).is_ok(),
-            "Fallback IP should be a valid UUID"
-        );
+        assert_eq!(identity, "ip:unknown");
     }
 
     #[test]
