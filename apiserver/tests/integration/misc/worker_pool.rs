@@ -40,7 +40,17 @@ async fn test_worker_uses_only_one_connection_per_job() {
     let shift_repo = Arc::new(apiserver::repositories::DieselShiftRepository::new(
         diesel_pools.clone(),
     ));
-    let cache = Arc::new(CacheManager::new(redis_cache, workspace_repo, shift_repo));
+    let config_repo = Arc::new(
+        apiserver::repositories::diesel_workspace_config_repository::DieselWorkspaceConfigRepository::new(
+            diesel_pools.clone(),
+        ),
+    );
+    let cache = Arc::new(CacheManager::new(
+        redis_cache,
+        workspace_repo,
+        shift_repo,
+        config_repo,
+    ));
     let queue = JobQueue::new(redis_pool.clone());
 
     let er = Arc::new(apiserver::repositories::DieselEmployeeRepository::new(

@@ -40,6 +40,7 @@
       "request_time": "Request (In - Out)"
     },
     "tabs": {
+      "adjustments": "Adjustments",
       "behalf_assignments": "Behalf Assignments"
     },
     "messages": {

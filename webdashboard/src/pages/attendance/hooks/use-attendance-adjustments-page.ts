@@ -14,7 +14,8 @@ import {
   AttendanceAdjustmentRequest,
 } from "@/lib/api";
 
-export type TabType = "pending" | "approved" | "rejected" | "behalf_assignments";
+export type TabType = "adjustments" | "behalf_assignments";
+export type AttendanceStatusFilter = "all" | "pending" | "approved" | "rejected";
 
 const PAGE_SIZE = 20;
 
@@ -24,8 +25,9 @@ export function useAttendanceAdjustmentsPage() {
   const queryClient = useQueryClient();
   const { formatDate, formatTime } = useDateTimeFormatter();
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>("pending");
+  const [activeTab, setActiveTab] = useState<TabType>("adjustments");
   const [employeeId, setEmployeeId] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<AttendanceStatusFilter>("all");
   const toast = useToast();
 
   const {
@@ -35,11 +37,11 @@ export function useAttendanceAdjustmentsPage() {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery<PaginatedResponse<AttendanceAdjustmentRequest>>({
-    queryKey: ["attendance-adjustments", wsId, activeTab, employeeId],
+    queryKey: ["attendance-adjustments", wsId, activeTab, employeeId, statusFilter],
     queryFn: ({ pageParam }) => {
       return wsId
         ? fetchWorkspaceAttendanceAdjustments(wsId, {
-            status: activeTab !== "behalf_assignments" ? activeTab : undefined,
+            status: activeTab !== "behalf_assignments" && statusFilter !== "all" ? statusFilter : undefined,
             employee_id: employeeId,
             page: pageParam as number,
             limit: PAGE_SIZE,
@@ -125,6 +127,8 @@ export function useAttendanceAdjustmentsPage() {
     isLoading,
     activeTab,
     setActiveTab,
+    statusFilter,
+    setStatusFilter,
     employeeId,
     setEmployeeId,
     requestsTotal,

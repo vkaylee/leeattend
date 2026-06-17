@@ -106,11 +106,11 @@ vi.mock("@/components/ui/dropdown-menu", () => ({
   DropdownMenuSeparator: () => <hr />,
   DropdownMenuRadioGroup: ({ value, onValueChange, children }: any) => (
     <div data-testid="dropdown-radio-group" data-value={value} onClick={(e: any) => {
-      const btn = e.target.closest('button');
-      if (btn) onValueChange(btn.value);
+      const btn = e.target.closest('[role="button"]');
+      if (btn) onValueChange(btn.getAttribute('data-value'));
     }}>{children}</div>
   ),
-  DropdownMenuRadioItem: ({ value, children }: any) => <button value={value}>{children}</button>,
+  DropdownMenuRadioItem: ({ value, children }: any) => <div role="button" data-value={value}>{children}</div>,
 }));
 
 
@@ -303,8 +303,7 @@ describe("LeaveRequestsPage", () => {
     // Clear calls to mock to isolate the dropdown filter click trigger
     vi.mocked(api.fetchWorkspaceLeaveRequests).mockClear();
 
-    // Click the "Pending" option inside the dropdown menu (mocked as button)
-    const pendingOption = document.querySelector('button[value="pending"]');
+    const pendingOption = document.querySelector('div[role="button"][data-value="pending"]');
     expect(pendingOption).not.toBeNull();
     await user.click(pendingOption!);
 

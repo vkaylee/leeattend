@@ -1,4 +1,4 @@
-import { CheckCircle, Clock, ShieldCheck, XCircle } from "lucide-react";
+import { Clock, ShieldCheck } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -17,26 +17,14 @@ export function AdjustmentsTabs({ activeTab, setActiveTab, canManageBehalf }: Ad
 
   const tabs: PageTab[] = [
     {
-      id: "pending",
-      label: t("common.status_pending"),
+      id: "adjustments",
+      label: t("attendance_confirm.tabs.adjustments", { defaultValue: "Danh sách điều chỉnh" }).toUpperCase(),
       icon: <Clock size={14} />,
-      colorScheme: "amber",
-    },
-    {
-      id: "approved",
-      label: t("common.status_approved"),
-      icon: <CheckCircle size={14} />,
-      colorScheme: "emerald",
-    },
-    {
-      id: "rejected",
-      label: t("common.status_rejected"),
-      icon: <XCircle size={14} />,
-      colorScheme: "rose",
+      colorScheme: "primary",
     },
     {
       id: "behalf_assignments",
-      label: t("attendance_confirm.tabs.behalf_assignments", { defaultValue: "Behalf" }),
+      label: t("attendance_confirm.tabs.behalf_assignments", { defaultValue: "Behalf" }).toUpperCase(),
       icon: <ShieldCheck size={14} />,
       colorScheme: "violet",
       hidden: !canManageBehalf,

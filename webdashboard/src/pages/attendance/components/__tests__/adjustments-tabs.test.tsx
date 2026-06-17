@@ -13,46 +13,35 @@ vi.mock("react-i18next", () => ({
 describe("AdjustmentsTabs", () => {
   it("renders all tabs correctly", () => {
     const mockSetActiveTab = vi.fn();
-    render(<AdjustmentsTabs activeTab="pending" setActiveTab={mockSetActiveTab} />);
+    render(<AdjustmentsTabs activeTab="adjustments" setActiveTab={mockSetActiveTab} canManageBehalf={true} />);
     
-    expect(screen.getByText("common.status_pending")).toBeInTheDocument();
-    expect(screen.getByText("common.status_approved")).toBeInTheDocument();
-    expect(screen.getByText("common.status_rejected")).toBeInTheDocument();
+    expect(screen.getByText("ATTENDANCE_CONFIRM.TABS.ADJUSTMENTS")).toBeInTheDocument();
+    expect(screen.getByText("ATTENDANCE_CONFIRM.TABS.BEHALF_ASSIGNMENTS")).toBeInTheDocument();
   });
 
   it("calls setActiveTab when a tab is clicked", () => {
     const mockSetActiveTab = vi.fn();
-    render(<AdjustmentsTabs activeTab="pending" setActiveTab={mockSetActiveTab} />);
+    render(<AdjustmentsTabs activeTab="adjustments" setActiveTab={mockSetActiveTab} canManageBehalf={true} />);
     
-    const approvedTab = screen.getByText("common.status_approved");
-    fireEvent.click(approvedTab);
-    expect(mockSetActiveTab).toHaveBeenCalledWith("approved");
+    const behalfTab = screen.getByText("ATTENDANCE_CONFIRM.TABS.BEHALF_ASSIGNMENTS");
+    fireEvent.click(behalfTab);
+    expect(mockSetActiveTab).toHaveBeenCalledWith("behalf_assignments");
 
-    const rejectedTab = screen.getByText("common.status_rejected");
-    fireEvent.click(rejectedTab);
-    expect(mockSetActiveTab).toHaveBeenCalledWith("rejected");
-
-    const pendingTab = screen.getByText("common.status_pending");
-    fireEvent.click(pendingTab);
-    expect(mockSetActiveTab).toHaveBeenCalledWith("pending");
+    const adjustmentsTab = screen.getByText("ATTENDANCE_CONFIRM.TABS.ADJUSTMENTS");
+    fireEvent.click(adjustmentsTab);
+    expect(mockSetActiveTab).toHaveBeenCalledWith("adjustments");
   });
 
   it("applies active styling to the currently active tab", () => {
     const mockSetActiveTab = vi.fn();
-    const { rerender } = render(<AdjustmentsTabs activeTab="pending" setActiveTab={mockSetActiveTab} />);
+    const { rerender } = render(<AdjustmentsTabs activeTab="adjustments" setActiveTab={mockSetActiveTab} canManageBehalf={true} />);
     
-    // Check if the pending tab has the active background class
-    const pendingTab = screen.getByText("common.status_pending").closest("button");
-    expect(pendingTab).toHaveClass("bg-white");
+    const adjustmentsTab = screen.getByText("ATTENDANCE_CONFIRM.TABS.ADJUSTMENTS").closest("button");
+    expect(adjustmentsTab).toHaveClass("bg-white");
 
-    // Rerender with approved active
-    rerender(<AdjustmentsTabs activeTab="approved" setActiveTab={mockSetActiveTab} />);
-    const approvedTab = screen.getByText("common.status_approved").closest("button");
-    expect(approvedTab).toHaveClass("bg-white");
-
-    // Rerender with rejected active
-    rerender(<AdjustmentsTabs activeTab="rejected" setActiveTab={mockSetActiveTab} />);
-    const rejectedTab = screen.getByText("common.status_rejected").closest("button");
-    expect(rejectedTab).toHaveClass("bg-white");
+    // Rerender with behalf active
+    rerender(<AdjustmentsTabs activeTab="behalf_assignments" setActiveTab={mockSetActiveTab} canManageBehalf={true} />);
+    const behalfTab = screen.getByText("ATTENDANCE_CONFIRM.TABS.BEHALF_ASSIGNMENTS").closest("button");
+    expect(behalfTab).toHaveClass("bg-white");
   });
 });

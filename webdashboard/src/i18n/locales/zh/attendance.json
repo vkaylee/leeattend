@@ -40,6 +40,7 @@
       "request_time": "请求 (进 - 出)"
     },
     "tabs": {
+      "adjustments": "调整列表",
       "behalf_assignments": "代办分配"
     },
     "messages": {

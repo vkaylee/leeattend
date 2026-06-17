@@ -26,6 +26,8 @@ export default function AttendanceAdjustmentsPage() {
     isLoading,
     activeTab,
     setActiveTab,
+    statusFilter,
+    setStatusFilter,
     employeeId,
     setEmployeeId,
     requestsTotal,
@@ -94,6 +96,8 @@ export default function AttendanceAdjustmentsPage() {
       ) : (
         <AdjustmentsTable
           activeTab={activeTab}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
           canApprove={canApprove}
           formatDate={formatDate}
           formatTime={formatTime}

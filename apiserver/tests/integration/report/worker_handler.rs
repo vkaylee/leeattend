@@ -27,6 +27,7 @@ async fn test_attendance_and_merge_handlers() {
         redis_cache,
         Arc::clone(&deps.workspace_repo),
         Arc::clone(&deps.shift_repo),
+        Arc::clone(&deps.workspace_config_repo),
     ));
     let queue = JobQueue::new(redis_pool.clone());
     let queue_repo: Arc<dyn apiserver::repositories::QueueRepository> = Arc::new(

@@ -64,6 +64,21 @@ vi.mock("@/components/ui/combobox", () => ({
   ),
 }));
 
+// Mock DropdownMenu for Radix UI simulation in tests
+vi.mock("@/components/ui/dropdown-menu", () => ({
+  DropdownMenu: ({ children }: any) => <div>{children}</div>,
+  DropdownMenuTrigger: ({ children }: any) => <div>{children}</div>,
+  DropdownMenuContent: ({ children }: any) => <div data-testid="dropdown-content">{children}</div>,
+  DropdownMenuLabel: ({ children }: any) => <div>{children}</div>,
+  DropdownMenuSeparator: () => <hr />,
+  DropdownMenuRadioGroup: ({ value, onValueChange, children }: any) => (
+    <div data-testid="dropdown-radio-group" data-value={value} onClick={(e: any) => {
+      const btn = e.target.closest('[role="button"]');
+      if (btn) onValueChange(btn.getAttribute('data-value'));
+    }}>{children}</div>
+  ),
+  DropdownMenuRadioItem: ({ value, children }: any) => <div role="button" data-value={value}>{children}</div>,
+}));
 
 // Mock the API library
 vi.mock("../../lib/api", () => ({
@@ -204,6 +219,50 @@ describe("AttendanceAdjustmentsPage", () => {
 
     await waitFor(() => {
       expect(api.submitAttendanceAdjustment).toHaveBeenCalled();
+    });
+  });
+
+  it("handles status filter changes from table header dropdown", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue({
+      data: [
+        { 
+          id: "adj-pending-1", 
+          employee_id: "emp-1", 
+          requested_date: "2026-01-01", 
+          requested_punch_in: "08:00", 
+          requested_punch_out: "17:00", 
+          status: "pending", 
+          reason: "Forgot to punch" 
+        }
+      ],
+      total: 1,
+      page: 1,
+      limit: 20,
+    } as any);
+
+    renderWithProviders(<AttendanceAdjustmentsPage />);
+
+    // Initial fetch should be triggered with status: undefined (since statusFilter defaults to "all")
+    await waitFor(() => {
+      expect(api.fetchWorkspaceAttendanceAdjustments).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({
+        status: undefined,
+      }));
+    });
+
+    // Clear calls to mock to isolate the dropdown filter click trigger
+    vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockClear();
+
+    // Click the "Pending" option inside the dropdown menu (mocked as role=button)
+    const pendingOption = document.querySelector('div[role="button"][data-value="pending"]');
+    expect(pendingOption).not.toBeNull();
+    await user.click(pendingOption!);
+
+    // Wait for the query to be triggered with status: "pending"
+    await waitFor(() => {
+      expect(api.fetchWorkspaceAttendanceAdjustments).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({
+        status: "pending",
+      }));
     });
   });
 });
