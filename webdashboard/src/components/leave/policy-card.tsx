@@ -1,5 +1,6 @@
 import { Clock, Milestone, Pencil, Trash2 } from "lucide-react";
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
@@ -14,12 +15,13 @@ interface PolicyCardProps {
 }
 
 export function PolicyCard({ policy, typeName, bonusCount, onEdit, onDelete }: PolicyCardProps) {
+  const { t } = useTranslation();
   return (
     <div className="relative flex flex-col justify-between rounded-[2rem] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-7 shadow-sm hover:shadow-md transition-all group" key={policy.id}>
       <div>
         <div className="flex items-center justify-between">
           <span className="inline-flex items-center rounded-lg bg-primary-50 dark:bg-primary-950 px-2.5 py-1 text-[9px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest border border-primary-100 dark:border-primary-800 shadow-sm">
-            {typeName}
+            {t(`settings.leave.templates.${typeName.toLowerCase().replace(/ /g, "-")}.name`, typeName)}
           </span>
           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <Button 
@@ -48,19 +50,19 @@ export function PolicyCard({ policy, typeName, bonusCount, onEdit, onDelete }: P
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500">
               <Clock size={14} />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Base Accrual</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest">{t("settings.leave.policy_card.base_accrual")}</span>
             </div>
             <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest">
-              {policy.rule_config.accrual_amount} / {policy.rule_config.frequency}
+              {policy.rule_config.accrual_amount} / {t(`settings.leave.policy_fields.frequency_options.${policy.rule_config.frequency}`, policy.rule_config.frequency)}
             </span>
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500">
               <Milestone size={14} />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Bonus Steps</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest">{t("settings.leave.policy_card.bonus_steps")}</span>
             </div>
             <span className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest">
-              {bonusCount} steps
+              {t("settings.leave.policy_card.steps_count", { count: bonusCount })}
             </span>
           </div>
         </div>

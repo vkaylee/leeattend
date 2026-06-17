@@ -430,6 +430,170 @@
         "assignee": "Assignee",
         "effective_date": "Effective Date",
         "created_at": "Created At"
+      },
+      "type_manager": {
+        "title": "Leave Types",
+        "desc": "Define the categories of leave available in your organization (e.g., Annual Leave, Sick Leave).",
+        "add_btn": "Add Leave Type",
+        "code": "Code",
+        "paid": "Paid",
+        "unpaid": "Unpaid",
+        "empty_title": "No Leave Types Configured",
+        "empty_desc": "Your workspace is fresh and clean. Start by creating leave types manually or use our professional templates.",
+        "get_started": "Get Started",
+        "loading": "Loading leave types...",
+        "confirm_delete_title": "Confirm Delete",
+        "confirm_delete_msg": "Are you sure you want to delete \"{{name}}\"?",
+        "delete_btn": "Delete",
+        "policy_config_title": "Leave Policy Configuration",
+        "policy_config_subtitle": "Defining rules for {{name}}",
+        "approval_required": "Approval Required",
+        "approval_required_desc": "Managers must approve requests",
+        "requires_document": "Requires Document",
+        "requires_document_desc": "Proof/Medical cert is mandatory",
+        "negative_balance": "Negative Balance",
+        "negative_balance_desc": "Allow users to take leave beyond 0",
+        "saving": "Saving...",
+        "save_policy": "Save Policy"
+      },
+      "type_form": {
+        "type_code": "Type Code",
+        "type_code_placeholder": "e.g. AL, SL, UL",
+        "display_name": "Display Name",
+        "display_name_placeholder": "e.g. Annual Leave",
+        "paid_status": "Paid Status",
+        "paid_time_off": "Paid time off",
+        "unpaid_leave": "Unpaid leave",
+        "change_template": "Change Template",
+        "creating": "Creating...",
+        "confirm_create": "Confirm & Create"
+      },
+      "gallery": {
+        "title": "Choose a Template",
+        "subtitle": "Start faster with a professional setup",
+        "customize": "Customize Leave Type",
+        "customize_subtitle": "Refining {{name}}",
+        "search_placeholder": "Search templates (e.g. 'Annual', 'Sick')...",
+        "skip": "Skip to manual",
+        "categories": {
+          "all": "All",
+          "standard": "Standard",
+          "wellness": "Wellness",
+          "family": "Family",
+          "professional": "Career",
+          "special": "Special"
+        },
+        "empty_title": "No templates found",
+        "empty_desc": "Try a different keyword or category"
+      },
+      "policy_manager": {
+        "title": "Accrual Policies",
+        "create_btn": "Create Policy",
+        "empty_title": "No policies defined yet",
+        "loading": "Loading policies...",
+        "success_create": "Policy created successfully",
+        "success_update": "Policy updated successfully",
+        "success_delete": "Policy deleted successfully",
+        "warning": "Warning",
+        "confirm_delete": "Are you sure you want to delete this policy?"
+      },
+      "policy_card": {
+        "base_accrual": "Base Accrual",
+        "bonus_steps": "Bonus Steps",
+        "steps_count": "{{count}} steps"
+      },
+      "policy_modal": {
+        "edit_title": "Edit Policy",
+        "create_title": "Create Leave Policy",
+        "saving": "Saving...",
+        "update_btn": "Update Policy",
+        "create_btn": "Create Policy"
+      },
+      "policy_fields": {
+        "identity": "Identity",
+        "policy_name": "Policy Name",
+        "policy_name_placeholder": "e.g. Standard Policy",
+        "leave_type": "Leave Type",
+        "accrual_logic": "Accrual Logic",
+        "base_amount": "Base Amount",
+        "base_amount_desc": "Days to grant per period",
+        "frequency": "Frequency",
+        "frequency_options": {
+          "monthly": "Monthly",
+          "quarterly": "Quarterly",
+          "yearly": "Yearly"
+        },
+        "min_work_days": "Min Days Work",
+        "min_work_days_desc": "Threshold to receive accrual",
+        "carry_limit": "Carry Limit",
+        "carry_limit_desc": "Max days to carry over next year",
+        "service_bonuses": "Service Bonuses",
+        "add_row": "Add Row",
+        "no_milestones": "No bonus milestones defined.",
+        "milestone_title": "Milestone {{index}}: After Years",
+        "bonus_amount": "Bonus Amount"
+      },
+      "templates": {
+        "annual-leave": {
+          "name": "Annual Leave",
+          "desc": "Standard yearly vacation for employees."
+        },
+        "sick-leave": {
+          "name": "Sick Leave",
+          "desc": "Paid leave for health issues or medical appointments."
+        },
+        "unpaid-leave": {
+          "name": "Unpaid Leave",
+          "desc": "Leave without pay for personal reasons."
+        },
+        "compensatory-leave": {
+          "name": "Compensatory Leave",
+          "desc": "Time off in exchange for overtime worked."
+        },
+        "mental-health": {
+          "name": "Mental Health Day",
+          "desc": "A day to recharge and focus on mental well-being."
+        },
+        "period-leave": {
+          "name": "Period Leave",
+          "desc": "Support for employees during their menstrual cycle."
+        },
+        "birthday-leave": {
+          "name": "Birthday Leave",
+          "desc": "Celebrate your special day away from work."
+        },
+        "maternity-leave": {
+          "name": "Maternity Leave",
+          "desc": "Extended leave for new mothers."
+        },
+        "paternity-leave": {
+          "name": "Paternity Leave",
+          "desc": "Leave for new fathers to support their family."
+        },
+        "marriage-leave": {
+          "name": "Marriage Leave",
+          "desc": "Celebrate your wedding with some time off."
+        },
+        "study-leave": {
+          "name": "Study Leave",
+          "desc": "Time off for exams or professional development."
+        },
+        "sabbatical-leave": {
+          "name": "Sabbatical",
+          "desc": "Long-term break for career refreshment (e.g., after 5 years)."
+        },
+        "jury-duty": {
+          "name": "Jury Duty",
+          "desc": "Leave for performing civic duties."
+        },
+        "bereavement-leave": {
+          "name": "Bereavement Leave",
+          "desc": "Support during the loss of a loved one."
+        },
+        "volunteer-leave": {
+          "name": "Volunteer Leave",
+          "desc": "Time off to give back to the community."
+        }
       }
     },
     "layout": {

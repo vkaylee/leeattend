@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
@@ -21,6 +22,7 @@ export interface PolicyModalProps {
 }
 
 export function PolicyModal({ isOpen, onClose, leaveTypes, policy, onSave, isSaving }: PolicyModalProps) {
+  const { t } = useTranslation();
   const {
     formData,
     setFormData,
@@ -32,7 +34,7 @@ export function PolicyModal({ isOpen, onClose, leaveTypes, policy, onSave, isSav
   } = usePolicyModal(policy, leaveTypes, onSave);
 
   return (
-    <Modal isOpen={isOpen} maxWidth="lg" onClose={onClose} title={policy ? "Edit Policy" : "Create Leave Policy"}>
+    <Modal isOpen={isOpen} maxWidth="lg" onClose={onClose} title={policy ? t("settings.leave.policy_modal.edit_title", "Edit Policy") : t("settings.leave.policy_modal.create_title", "Create Leave Policy")}>
       <form className="space-y-6" onSubmit={handleSubmit}>
         <div className="space-y-4">
           <PolicyIdentitySection formData={formData} leaveTypes={leaveTypes} setFormData={setFormData} />
@@ -53,7 +55,7 @@ export function PolicyModal({ isOpen, onClose, leaveTypes, policy, onSave, isSav
             type="button"
             variant="ghost"
           >
-            Cancel
+            {t("common.cancel", "Cancel")}
           </Button>
           <Button
             className="shadow-primary-500/20 px-10 py-4 text-xs font-black tracking-[0.2em]"
@@ -63,7 +65,7 @@ export function PolicyModal({ isOpen, onClose, leaveTypes, policy, onSave, isSav
             type="submit"
             variant="primary"
           >
-            {isSaving ? "Saving..." : (policy ? "Update Policy" : "Create Policy")}
+            {isSaving ? t("settings.leave.policy_modal.saving", "Saving...") : (policy ? t("settings.leave.policy_modal.update_btn", "Update Policy") : t("settings.leave.policy_modal.create_btn", "Create Policy"))}
           </Button>
         </div>
       </form>

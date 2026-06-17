@@ -1,5 +1,6 @@
 import { Wallet, AlertTriangle } from "lucide-react";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
@@ -21,6 +22,7 @@ export function LeaveTypeForm({
   onBackToTemplates,
   onCancel,
 }: LeaveTypeFormProps) {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState(initialData);
 
   // eslint-disable-next-line @typescript-eslint/no-deprecated
@@ -34,7 +36,7 @@ export function LeaveTypeForm({
       <form className="space-y-6" onSubmit={handleSubmit}>
         <div className="space-y-1.5">
           <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1" htmlFor="type-code-input">
-            Type Code
+            {t("settings.leave.type_form.type_code", "Type Code")}
           </label>
           <input
             className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none"
@@ -42,7 +44,7 @@ export function LeaveTypeForm({
             onChange={(e) => {
               setFormData({ ...formData, code: e.target.value.toUpperCase() });
             }}
-            placeholder="e.g. AL, SL, UL"
+            placeholder={t("settings.leave.type_form.type_code_placeholder", "e.g. AL, SL, UL")}
             required
             type="text"
             value={formData.code}
@@ -51,7 +53,7 @@ export function LeaveTypeForm({
 
         <div className="space-y-1.5">
           <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1" htmlFor="display-name-input">
-            Display Name
+            {t("settings.leave.type_form.display_name", "Display Name")}
           </label>
           <input
             className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none"
@@ -59,7 +61,7 @@ export function LeaveTypeForm({
             onChange={(e) => {
               setFormData({ ...formData, name: e.target.value });
             }}
-            placeholder="e.g. Annual Leave"
+            placeholder={t("settings.leave.type_form.display_name_placeholder", "e.g. Annual Leave")}
             required
             type="text"
             value={formData.name}
@@ -80,10 +82,10 @@ export function LeaveTypeForm({
             </div>
             <div>
               <label className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight" htmlFor="paid-leave-input">
-                Paid Status
+                {t("settings.leave.type_form.paid_status", "Paid Status")}
               </label>
               <Typography className="text-[10px] text-slate-400 dark:text-slate-500" variant="p">
-                {formData.is_paid ? "Paid time off" : "Unpaid leave"}
+                {formData.is_paid ? t("settings.leave.type_form.paid_time_off", "Paid time off") : t("settings.leave.type_form.unpaid_leave", "Unpaid leave")}
               </Typography>
             </div>
           </div>
@@ -109,7 +111,7 @@ export function LeaveTypeForm({
             type="button"
             variant="ghost"
           >
-            ← Change Template
+            ← {t("settings.leave.type_form.change_template", "Change Template")}
           </Button>
           <div className="flex gap-3">
             <Button
@@ -119,7 +121,7 @@ export function LeaveTypeForm({
               type="button"
               variant="ghost"
             >
-              Cancel
+              {t("common.cancel", "Cancel")}
             </Button>
             <Button
               className="shadow-primary-500/20 text-[10px] tracking-[0.2em] py-3.5 px-8"
@@ -128,7 +130,7 @@ export function LeaveTypeForm({
               type="submit"
               variant="primary"
             >
-              {isSaving ? "Creating..." : "Confirm & Create"}
+              {isSaving ? t("settings.leave.type_form.creating", "Creating...") : t("settings.leave.type_form.confirm_create", "Confirm & Create")}
             </Button>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { LayoutGrid, Clock, Milestone, Plus, Trash2 } from "lucide-react";
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
@@ -39,17 +40,18 @@ export function PolicyIdentitySection({
   leaveTypes: { id: string; name: string }[];
   setFormData: (data: PolicyFormData) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <div className="h-8 w-8 rounded-xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shrink-0"><LayoutGrid size={16} /></div>
-        <Typography className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tighter" variant="h4">Identity</Typography>
+        <Typography className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tighter" variant="h4">{t("settings.leave.policy_fields.identity", "Identity")}</Typography>
       </div>
       <div className="rounded-[2rem] bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 overflow-hidden">
-        <FormRow label="Policy Name">
-          <input className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 text-sm font-bold outline-none focus:ring-4 focus:ring-primary-500/5 transition-all h-11" id="policy-name" onChange={(e) => { setFormData({...formData, name: e.target.value}); }} placeholder="e.g. Standard Policy" required type="text" value={formData.name} />
+        <FormRow label={t("settings.leave.policy_fields.policy_name", "Policy Name")}>
+          <input className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 text-sm font-bold outline-none focus:ring-4 focus:ring-primary-500/5 transition-all h-11" id="policy-name" onChange={(e) => { setFormData({...formData, name: e.target.value}); }} placeholder={t("settings.leave.policy_fields.policy_name_placeholder", "e.g. Standard Policy")} required type="text" value={formData.name} />
         </FormRow>
-        <FormRow label="Leave Type">
+        <FormRow label={t("settings.leave.policy_fields.leave_type", "Leave Type")}>
           <Combobox className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 h-11 rounded-xl" onChange={(value) => { setFormData({...formData, leave_type_id: value}); }} options={leaveTypes.map((t) => ({ value: t.id, label: t.name }))} value={formData.leave_type_id} />
         </FormRow>
       </div>
@@ -64,27 +66,28 @@ export function AccrualLogicSection({
   formData: PolicyFormData;
   setFormData: (data: PolicyFormData) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <div className="h-8 w-8 rounded-xl bg-emerald-50 dark:bg-emerald-950 flex items-center justify-center text-emerald-600 dark:text-emerald-300 shrink-0"><Clock size={16} /></div>
-        <Typography className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tighter" variant="h4">Accrual Logic</Typography>
+        <Typography className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tighter" variant="h4">{t("settings.leave.policy_fields.accrual_logic", "Accrual Logic")}</Typography>
       </div>
       <div className="rounded-[2rem] bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 overflow-hidden">
-        <FormRow info="Days to grant per period" label="Base Amount">
+        <FormRow info={t("settings.leave.policy_fields.base_amount_desc", "Days to grant per period")} label={t("settings.leave.policy_fields.base_amount", "Base Amount")}>
           <input className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 text-sm font-bold font-mono text-center h-11 focus:ring-4 focus:ring-primary-500/5 transition-all outline-none" id="annual-entitlement" onChange={(e) => { setFormData({...formData, accrual_amount: parseFloat(e.target.value)}); }} required step="0.1" type="number" value={formData.accrual_amount} />
         </FormRow>
-        <FormRow label="Frequency">
+        <FormRow label={t("settings.leave.policy_fields.frequency", "Frequency")}>
           <select className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 text-sm font-bold uppercase h-11 focus:ring-4 focus:ring-primary-500/5 transition-all outline-none" onChange={(e) => { setFormData({...formData, frequency: e.target.value}); }} value={formData.frequency}>
-            <option value="monthly">Monthly</option>
-            <option value="quarterly">Quarterly</option>
-            <option value="yearly">Yearly</option>
+            <option value="monthly">{t("settings.leave.policy_fields.frequency_options.monthly", "Monthly")}</option>
+            <option value="quarterly">{t("settings.leave.policy_fields.frequency_options.quarterly", "Quarterly")}</option>
+            <option value="yearly">{t("settings.leave.policy_fields.frequency_options.yearly", "Yearly")}</option>
           </select>
         </FormRow>
-        <FormRow info="Threshold to receive accrual" label="Min Days Work">
+        <FormRow info={t("settings.leave.policy_fields.min_work_days_desc", "Threshold to receive accrual")} label={t("settings.leave.policy_fields.min_work_days", "Min Days Work")}>
           <input className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 text-sm font-bold font-mono text-center text-amber-600 dark:text-amber-300 h-11 focus:ring-4 focus:ring-primary-500/5 transition-all outline-none" onChange={(e) => { setFormData({...formData, min_work_days_threshold: parseFloat(e.target.value)}); }} required step="0.5" type="number" value={formData.min_work_days_threshold} />
         </FormRow>
-        <FormRow info="Max days to carry over next year" label="Carry Limit">
+        <FormRow info={t("settings.leave.policy_fields.carry_limit_desc", "Max days to carry over next year")} label={t("settings.leave.policy_fields.carry_limit", "Carry Limit")}>
           <input className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 text-sm font-bold font-mono text-center h-11 focus:ring-4 focus:ring-primary-500/5 transition-all outline-none" onChange={(e) => { setFormData({...formData, carry_over_limit: parseInt(e.target.value)}); }} required type="number" value={formData.carry_over_limit} />
         </FormRow>
       </div>
@@ -103,12 +106,13 @@ export function SeniorityBonusSection({
   seniorityBonus: SeniorityBonus[];
   updateBonusMilestone: (i: number, f: keyof SeniorityBonus, v: number) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-3">
           <div className="h-8 w-8 rounded-xl bg-blue-50 dark:bg-blue-950 flex items-center justify-center text-blue-600 shrink-0"><Milestone size={16} /></div>
-          <Typography className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tighter" variant="h4">Service Bonuses</Typography>
+          <Typography className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tighter" variant="h4">{t("settings.leave.policy_fields.service_bonuses", "Service Bonuses")}</Typography>
         </div>
         <Button
           className="shadow-primary-100 text-[10px]"
@@ -117,20 +121,20 @@ export function SeniorityBonusSection({
           type="button"
           variant="primary"
         >
-          <Plus size={12} /> Add Row
+          <Plus size={12} /> {t("settings.leave.policy_fields.add_row", "Add Row")}
         </Button>
       </div>
       
       {seniorityBonus.length === 0 ? (
-        <div className="py-8 text-center bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 rounded-[2rem] text-slate-400 dark:text-slate-500 italic text-xs">No bonus milestones defined.</div>
+        <div className="py-8 text-center bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 rounded-[2rem] text-slate-400 dark:text-slate-500 italic text-xs">{t("settings.leave.policy_fields.no_milestones", "No bonus milestones defined.")}</div>
       ) : (
         <div className="rounded-[2rem] bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 overflow-hidden">
           {seniorityBonus.map((bonus, index) => (
             <div className="border-b border-slate-100 dark:border-slate-800 last:border-0 relative animate-in slide-in-from-right-2 duration-300" key={index}>
-              <FormRow label={`Milestone ${index + 1}: After Years`}>
+              <FormRow label={t("settings.leave.policy_fields.milestone_title", "Milestone " + (index + 1) + ": After Years", { index: index + 1 })}>
                 <input className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 text-sm font-bold font-mono text-center h-11 focus:ring-4 focus:ring-primary-500/5 transition-all outline-none" onChange={(e) => { updateBonusMilestone(index, "min_years", parseInt(e.target.value)); }} type="number" value={bonus.min_years} />
               </FormRow>
-              <FormRow label="Bonus Amount">
+              <FormRow label={t("settings.leave.policy_fields.bonus_amount", "Bonus Amount")}>
                 <div className="flex gap-2 w-full">
                   <input className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 text-sm font-bold font-mono text-center text-primary-600 dark:text-primary-400 h-11 focus:ring-4 focus:ring-primary-500/5 transition-all outline-none" onChange={(e) => { updateBonusMilestone(index, "extra_days", parseFloat(e.target.value)); }} step="0.5" type="number" value={bonus.extra_days} />
                   <Button

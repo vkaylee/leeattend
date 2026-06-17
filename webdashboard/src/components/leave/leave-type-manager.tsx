@@ -1,5 +1,6 @@
 import { Wallet, AlertTriangle, Pencil, Plus, Trash2, Sparkles } from "lucide-react";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
@@ -19,6 +20,7 @@ interface LeaveTypeManagerProps {
 
 // eslint-disable-next-line max-lines-per-function
 export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
+  const { t } = useTranslation();
   const {
     editingType,
     isAddingType,
@@ -38,8 +40,8 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
 
   if (isTypesLoading) {
     return (
-      <div className="py-12 text-center text-slate-400 dark:text-slate-500 animate-pulse">
-        Loading leave types...
+      <div className="py-12 text-center text-slate-400 dark:text-slate-500 animate-pulse font-bold uppercase tracking-widest text-[10px]">
+        {t("settings.leave.type_manager.loading", "Loading leave types...")}
       </div>
     );
   }
@@ -48,7 +50,7 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
     <div className="space-y-6">
       <div className="flex justify-between items-center px-1">
         <Typography className="text-xs font-medium text-slate-500 dark:text-slate-400 max-w-md italic" variant="p">
-          Define the categories of leave available in your organization (e.g., Annual Leave, Sick Leave).
+          {t("settings.leave.type_manager.desc", "Define the categories of leave available in your organization (e.g., Annual Leave, Sick Leave).")}
         </Typography>
         <Button
           className="shadow-primary-100 text-[10px]"
@@ -58,7 +60,7 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
           size="sm"
           variant="primary"
         >
-          <Plus size={14} /> Add Leave Type
+          <Plus size={14} /> {t("settings.leave.type_manager.add_btn", "Add Leave Type")}
         </Button>
       </div>
 
@@ -105,10 +107,10 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
                   </div>
                 </div>
                 <Typography className="mt-5 text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight leading-none uppercase" variant="h3">
-                  {type.name}
+                  {t(`settings.leave.templates.${type.code.toLowerCase()}.name`, type.name)}
                 </Typography>
                 <Typography className="mt-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest" variant="p">
-                  Code: {type.code}
+                  {t("settings.leave.type_manager.code", "Code")}: {type.code}
                 </Typography>
                 <div className="mt-4 flex gap-2">
                   <span
@@ -119,7 +121,7 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
                         : "bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-100 dark:border-amber-800"
                     )}
                   >
-                    {type.is_paid ? "Paid" : "Unpaid"}
+                    {type.is_paid ? t("settings.leave.type_manager.paid", "Paid") : t("settings.leave.type_manager.unpaid", "Unpaid")}
                   </span>
                 </div>
               </div>
@@ -138,12 +140,12 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
               variant="primary"
             >
               <Plus size={16} />
-              Get Started
+              {t("settings.leave.type_manager.get_started", "Get Started")}
             </Button>
           }
-          description="Your workspace is fresh and clean. Start by creating leave types manually or use our professional templates."
+          description={t("settings.leave.type_manager.empty_desc", "Your workspace is fresh and clean. Start by creating leave types manually or use our professional templates.")}
           icon={<Sparkles className="text-primary-400" size={40} />}
-          title="No Leave Types Configured"
+          title={t("settings.leave.type_manager.empty_title", "No Leave Types Configured")}
         />
       )}
 
@@ -176,10 +178,12 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
           onClose={() => {
             setDeletingType(null);
           }}
-          title="Confirm Delete"
+          title={t("settings.leave.type_manager.confirm_delete_title", "Confirm Delete")}
         >
           <div className="p-8">
-            <Typography className="text-sm" variant="p">Are you sure you want to delete &quot;{deletingType.name}&quot;?</Typography>
+            <Typography className="text-sm" variant="p">
+              {t("settings.leave.type_manager.confirm_delete_msg", "Are you sure you want to delete \"" + deletingType.name + "\"?", { name: deletingType.name })}
+            </Typography>
             <div className="mt-8 flex justify-end gap-3">
               <Button
                 className="px-6 py-2 text-xs text-slate-400 dark:text-slate-500 hover:bg-transparent"
@@ -188,7 +192,7 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
                 }}
                 variant="ghost"
               >
-                Cancel
+                {t("common.cancel", "Cancel")}
               </Button>
               <Button
                 className="text-[10px] px-6 py-2.5 h-auto rounded-xl"
@@ -198,7 +202,7 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
                 }}
                 variant="destructive"
               >
-                Delete
+                {t("settings.leave.type_manager.delete_btn", "Delete")}
               </Button>
             </div>
           </div>
@@ -215,6 +219,7 @@ interface AddLeaveTypeModalProps {
 }
 
 function AddLeaveTypeModal({ onClose, onSave, isSaving }: AddLeaveTypeModalProps) {
+  const { t } = useTranslation();
   const [step, setStep] = useState<"template" | "form">("template");
   const [formData, setFormData] = useState({ code: "", name: "", is_paid: true });
 
@@ -234,10 +239,10 @@ function AddLeaveTypeModal({ onClose, onSave, isSaving }: AddLeaveTypeModalProps
       onClose={onClose}
       subtitle={
         step === "template"
-          ? "Start faster with a professional setup"
-          : `Refining ${formData.name || "New Leave Type"}`
+          ? t("settings.leave.gallery.subtitle", "Start faster with a professional setup")
+          : t("settings.leave.gallery.customize_subtitle", "Refining " + (formData.name || t("settings.leave.gallery.customize", "Customize Leave Type")), { name: formData.name || t("settings.leave.gallery.customize", "Customize Leave Type") })
       }
-      title={step === "template" ? "Choose a Template" : "Customize Leave Type"}
+      title={step === "template" ? t("settings.leave.gallery.title", "Choose a Template") : t("settings.leave.gallery.customize", "Customize Leave Type")}
     >
       {step === "template" ? (
         <TemplateGallery
@@ -270,6 +275,7 @@ interface EditLeaveTypeModalProps {
 
  
 function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: EditLeaveTypeModalProps) {
+  const { t } = useTranslation();
   const [config, setConfig] = useState(() => ({
     approval_required: true,
     requires_document: false,
@@ -282,8 +288,8 @@ function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: EditLeaveT
       isOpen={true}
       maxWidth="md"
       onClose={onClose}
-      subtitle={`Defining rules for ${leaveType.name}`}
-      title="Leave Policy Configuration"
+      subtitle={t("settings.leave.type_manager.policy_config_subtitle", "Defining rules for " + leaveType.name, { name: leaveType.name })}
+      title={t("settings.leave.type_manager.policy_config_title", "Leave Policy Configuration")}
     >
       <form
         className="space-y-6"
@@ -300,9 +306,9 @@ function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: EditLeaveT
               </div>
               <div>
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight block" htmlFor="approval-req-input">
-                  Approval Required
+                  {t("settings.leave.type_manager.approval_required", "Approval Required")}
                 </label>
-                <Typography className="text-[10px] text-slate-400 dark:text-slate-500" variant="p">Managers must approve requests</Typography>
+                <Typography className="text-[10px] text-slate-400 dark:text-slate-500" variant="p">{t("settings.leave.type_manager.approval_required_desc", "Managers must approve requests")}</Typography>
               </div>
             </div>
             <div className="relative inline-flex items-center cursor-pointer">
@@ -326,9 +332,9 @@ function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: EditLeaveT
               </div>
               <div>
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight block" htmlFor="doc-req-input">
-                  Requires Document
+                  {t("settings.leave.type_manager.requires_document", "Requires Document")}
                 </label>
-                <Typography className="text-[10px] text-slate-400 dark:text-slate-500" variant="p">Proof/Medical cert is mandatory</Typography>
+                <Typography className="text-[10px] text-slate-400 dark:text-slate-500" variant="p">{t("settings.leave.type_manager.requires_document_desc", "Proof/Medical cert is mandatory")}</Typography>
               </div>
             </div>
             <div className="relative inline-flex items-center cursor-pointer">
@@ -352,9 +358,9 @@ function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: EditLeaveT
               </div>
               <div>
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight block" htmlFor="negative-bal-input">
-                  Negative Balance
+                  {t("settings.leave.type_manager.negative_balance", "Negative Balance")}
                 </label>
-                <Typography className="text-[10px] text-slate-400 dark:text-slate-500" variant="p">Allow users to take leave beyond 0</Typography>
+                <Typography className="text-[10px] text-slate-400 dark:text-slate-500" variant="p">{t("settings.leave.type_manager.negative_balance_desc", "Allow users to take leave beyond 0")}</Typography>
               </div>
             </div>
             <div className="relative inline-flex items-center cursor-pointer">
@@ -380,7 +386,7 @@ function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: EditLeaveT
             type="button"
             variant="ghost"
           >
-            Cancel
+            {t("common.cancel", "Cancel")}
           </Button>
           <Button
             className="shadow-primary-500/20 text-[10px] tracking-[0.2em] py-3.5 px-10"
@@ -389,7 +395,7 @@ function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: EditLeaveT
             type="submit"
             variant="primary"
           >
-            {isSaving ? "Saving..." : "Save Policy"}
+            {isSaving ? t("settings.leave.type_manager.saving", "Saving...") : t("settings.leave.type_manager.save_policy", "Save Policy")}
           </Button>
         </div>
       </form>

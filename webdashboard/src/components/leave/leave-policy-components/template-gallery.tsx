@@ -1,5 +1,6 @@
 import { Search, ChevronRight } from "lucide-react";
 import React, { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
@@ -14,27 +15,29 @@ interface TemplateGalleryProps {
 
 // eslint-disable-next-line max-lines-per-function
 export function TemplateGallery({ onSelectTemplate, onSkip }: TemplateGalleryProps) {
+  const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("all");
 
   const categories = [
-    { id: "all", name: "All" },
-    { id: "standard", name: "Standard" },
-    { id: "wellness", name: "Wellness" },
-    { id: "family", name: "Family" },
-    { id: "professional", name: "Career" },
-    { id: "special", name: "Special" },
+    { id: "all", name: t("settings.leave.gallery.categories.all", "All") },
+    { id: "standard", name: t("settings.leave.gallery.categories.standard", "Standard") },
+    { id: "wellness", name: t("settings.leave.gallery.categories.wellness", "Wellness") },
+    { id: "family", name: t("settings.leave.gallery.categories.family", "Family") },
+    { id: "professional", name: t("settings.leave.gallery.categories.professional", "Career") },
+    { id: "special", name: t("settings.leave.gallery.categories.special", "Special") },
   ];
 
   const filteredTemplates = useMemo(() => {
-    return LEAVE_TEMPLATES.filter((t: LeaveTemplate) => {
+    return LEAVE_TEMPLATES.filter((tmpl: LeaveTemplate) => {
+      const localizedName = t(`settings.leave.templates.${tmpl.id}.name`, tmpl.name);
       const matchesSearch =
-        t.name.toLowerCase().includes(search.toLowerCase()) ||
-        t.code.toLowerCase().includes(search.toLowerCase());
-      const matchesCategory = activeCategory === "all" || t.category === activeCategory;
+        localizedName.toLowerCase().includes(search.toLowerCase()) ||
+        tmpl.code.toLowerCase().includes(search.toLowerCase());
+      const matchesCategory = activeCategory === "all" || tmpl.category === activeCategory;
       return matchesSearch && matchesCategory;
     });
-  }, [search, activeCategory]);
+  }, [search, activeCategory, t]);
 
   const getColorClasses = (color: string) => {
     const map: Record<string, string> = {
@@ -68,7 +71,7 @@ export function TemplateGallery({ onSelectTemplate, onSkip }: TemplateGalleryPro
               onChange={(e) => {
                 setSearch(e.target.value);
               }}
-              placeholder="Search templates (e.g. 'Annual', 'Sick')..."
+              placeholder={t("settings.leave.gallery.search_placeholder", "Search templates (e.g. 'Annual', 'Sick')...")}
               type="text"
               value={search}
             />
@@ -79,7 +82,7 @@ export function TemplateGallery({ onSelectTemplate, onSkip }: TemplateGalleryPro
             size="sm"
             variant="ghost"
           >
-            Skip to manual
+            {t("settings.leave.gallery.skip", "Skip to manual")}
           </Button>
         </div>
 
@@ -130,14 +133,14 @@ export function TemplateGallery({ onSelectTemplate, onSkip }: TemplateGalleryPro
                   <div className="flex-1 min-w-0 pr-6">
                     <div className="flex items-center gap-2 mb-1">
                       <Typography className="text-sm font-bold text-slate-800 dark:text-slate-100 uppercase tracking-tight truncate" variant="h4">
-                        {template.name}
+                        {t(`settings.leave.templates.${template.id}.name`, template.name)}
                       </Typography>
                       <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 shrink-0">
                         {template.code}
                       </span>
                     </div>
                     <Typography className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed" variant="p">
-                      {template.description}
+                      {t(`settings.leave.templates.${template.id}.desc`, template.description)}
                     </Typography>
                     <div className="mt-2 flex items-center gap-2">
                       <span
@@ -148,7 +151,7 @@ export function TemplateGallery({ onSelectTemplate, onSkip }: TemplateGalleryPro
                             : "bg-amber-50 dark:bg-amber-950/50 text-amber-600"
                         )}
                       >
-                        {template.is_paid ? "Paid" : "Unpaid"}
+                        {template.is_paid ? t("settings.leave.type_manager.paid", "Paid") : t("settings.leave.type_manager.unpaid", "Unpaid")}
                       </span>
                     </div>
                   </div>
@@ -164,10 +167,10 @@ export function TemplateGallery({ onSelectTemplate, onSkip }: TemplateGalleryPro
           <div className="h-full flex flex-col items-center justify-center py-12 text-center">
             <Search className="text-slate-200 dark:text-slate-800 mb-4" size={32} />
             <Typography className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight" variant="h4">
-              No templates found
+              {t("settings.leave.gallery.empty_title", "No templates found")}
             </Typography>
             <Typography className="text-xs text-slate-400 dark:text-slate-500 mt-1 max-w-[200px]" variant="p">
-              Try a different keyword or category
+              {t("settings.leave.gallery.empty_desc", "Try a different keyword or category")}
             </Typography>
           </div>
         )}

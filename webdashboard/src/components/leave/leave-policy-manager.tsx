@@ -39,14 +39,14 @@ export function LeavePolicyManager({ wsId }: LeavePolicyManagerProps) {
     mutationFn: (id: string) => deleteLeavePolicy(wsId, id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["leave-policies"] });
-      toast.success("Policy deleted successfully");
+      toast.success(t("settings.leave.policy_manager.success_delete", "Policy deleted successfully"));
     },
   });
 
   const handleDelete = async (id: string) => {
     const ok = await confirm({
-      title: t("common.warning", { defaultValue: "Warning" }),
-      message: t("leave.policy.confirm_delete", { defaultValue: "Delete this policy?" }),
+      title: t("common.warning", "Warning"),
+      message: t("leave.policy.confirm_delete", "Delete this policy?"),
       variant: "danger"
     });
     if (ok) deleteMutation.mutate(id);
@@ -57,14 +57,14 @@ export function LeavePolicyManager({ wsId }: LeavePolicyManagerProps) {
       editingPolicy ? updateLeavePolicy(wsId, editingPolicy.id, data) : createLeavePolicy(wsId, data as unknown as Parameters<typeof createLeavePolicy>[1]),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["leave-policies"] });
-      toast.success(editingPolicy ? "Policy updated" : "Policy created");
+      toast.success(editingPolicy ? t("settings.leave.policy_manager.success_update", "Policy updated") : t("settings.leave.policy_manager.success_create", "Policy created"));
       setIsCreating(false);
       setEditingPolicy(null);
     },
     onError: (error: Error) => { toast.error(error.message); },
   });
 
-  if (isLoading) return <div className="p-12 text-center text-slate-400 dark:text-slate-500 animate-pulse font-bold uppercase tracking-widest text-[10px]">Loading policies...</div>;
+  if (isLoading) return <div className="p-12 text-center text-slate-400 dark:text-slate-500 animate-pulse font-bold uppercase tracking-widest text-[10px]">{t("settings.leave.policy_manager.loading", "Loading policies...")}</div>;
 
   return (
     <div className="space-y-6">
@@ -76,7 +76,7 @@ export function LeavePolicyManager({ wsId }: LeavePolicyManagerProps) {
            size="sm"
            variant="primary"
          >
-           <Plus size={14} /> Create Policy
+           <Plus size={14} /> {t("settings.leave.policy_manager.create_btn", "Create Policy")}
          </Button>
       </div>
 
@@ -84,7 +84,7 @@ export function LeavePolicyManager({ wsId }: LeavePolicyManagerProps) {
         {policies.length === 0 ? (
           <div className="col-span-full py-20 bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-[2.5rem] flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
             <ShieldCheck className="mb-4 opacity-20" size={40} />
-            <Typography className="text-xs font-bold uppercase tracking-widest" variant="p">No policies defined yet</Typography>
+            <Typography className="text-xs font-bold uppercase tracking-widest" variant="p">{t("settings.leave.policy_manager.empty_title", "No policies defined yet")}</Typography>
           </div>
         ) : policies.map((policy) => (
           <PolicyCard 

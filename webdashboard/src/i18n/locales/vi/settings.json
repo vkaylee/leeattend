@@ -304,9 +304,9 @@
       "time_desc": "Configure shifts, rosters and attendance rules.",
       "payroll_desc": "Manage standard work days and formulas.",
       "connectivity_desc": "Manage device connections and network.",
-      "leave": "Leave Management",
+      "leave": "Cấu hình Nghỉ phép",
       "billing_desc": "Manage billing and subscriptions.",
-      "leave_desc": "Configure leave types, accrual policies, and assignments.",
+      "leave_desc": "Cấu hình loại nghỉ phép, chính sách tích lũy và phân bổ phép.",
       "locations": "Địa điểm",
       "locations_desc": "Quản lý các chi nhánh và địa điểm làm việc.",
       "workflows": "Quy trình duyệt",
@@ -392,44 +392,208 @@
     "navigation": "Navigation",
     "admin_only": "Administrators only",
     "leave": {
-      "title": "Leave Settings",
-      "desc": "Configure leave types and accrual policies for your workspace.",
+      "title": "Cấu hình Nghỉ phép",
+      "desc": "Cấu hình loại nghỉ phép và các chính sách tích lũy phép cho workspace của bạn.",
       "tabs": {
-        "types": "Leave Types",
-        "policies": "Accrual Policies",
-        "types_desc": "Define available leave types and their rules",
-        "policies_desc": "Set up how leave is earned over time",
-        "assignments": "Policy Assignments",
-        "assignments_desc": "Assign policies to employees or departments",
+        "types": "Loại Nghỉ phép",
+        "policies": "Chính sách Tích lũy",
+        "types_desc": "Định nghĩa các loại nghỉ phép sẵn có và các quy định đi kèm",
+        "policies_desc": "Thiết lập cách tích lũy phép theo thời gian",
+        "assignments": "Phân bổ Chính sách",
+        "assignments_desc": "Gán chính sách nghỉ phép cho nhân viên hoặc phòng ban",
         "workflows": "Quy trình duyệt"
       },
       "messages": {
-        "update_success": "Leave type updated successfully",
-        "update_error": "Failed to update leave type",
-        "create_success": "Policy created successfully",
-        "delete_success": "Policy deleted successfully",
-        "assignment_note": "Policy assignments define how leave is calculated for each person. Changes will be applied during the next scheduled accrual run or can be forced via the \"Accrual Run\" tool in General Settings.",
-        "loading": "Loading assignments...",
-        "no_assignments": "No policy assignments found"
+        "update_success": "Cập nhật loại nghỉ phép thành công",
+        "update_error": "Cập nhật loại nghỉ phép thất bại",
+        "create_success": "Tạo chính sách thành công",
+        "delete_success": "Xóa chính sách thành công",
+        "assignment_note": "Việc phân bổ chính sách quyết định cách tính toán ngày nghỉ phép cho từng nhân sự. Các thay đổi sẽ được áp dụng trong đợt tính tích lũy kế tiếp hoặc có thể được bắt buộc tính toán ngay thông qua công cụ \"Chạy Tích lũy\" trong Cấu hình Chung.",
+        "loading": "Đang tải thông tin phân bổ...",
+        "no_assignments": "Không tìm thấy thông tin phân bổ chính sách"
       },
       "fields": {
-        "approval": "Approval",
-        "document": "Document",
-        "days_per_period": "days / period"
+        "approval": "Phê duyệt",
+        "document": "Minh chứng",
+        "days_per_period": "ngày / chu kỳ"
       },
       "types": {
-        "paid": "Paid Leave",
-        "unpaid": "Unpaid Leave"
+        "paid": "Nghỉ hưởng lương",
+        "unpaid": "Nghỉ không lương"
       },
       "actions": {
-        "assign": "Assign Policy"
+        "assign": "Gán chính sách"
       },
       "table": {
-        "policy": "Policy",
-        "type": "Type",
-        "assignee": "Assignee",
-        "effective_date": "Effective Date",
-        "created_at": "Created At"
+        "policy": "Chính sách",
+        "type": "Loại",
+        "assignee": "Đối tượng áp dụng",
+        "effective_date": "Ngày hiệu lực",
+        "created_at": "Ngày tạo"
+      },
+      "type_manager": {
+        "title": "Loại Nghỉ phép",
+        "desc": "Định nghĩa các danh mục nghỉ phép sẵn có trong tổ chức của bạn (ví dụ: Nghỉ phép năm, Nghỉ ốm).",
+        "add_btn": "Thêm loại nghỉ phép",
+        "code": "Mã",
+        "paid": "Hưởng lương",
+        "unpaid": "Không lương",
+        "empty_title": "Chưa cấu hình loại nghỉ phép",
+        "empty_desc": "Workspace của bạn hoàn toàn mới. Hãy bắt đầu bằng cách tạo thủ công các loại nghỉ phép hoặc sử dụng các mẫu chuyên nghiệp của chúng tôi.",
+        "get_started": "Bắt đầu ngay",
+        "loading": "Đang tải các loại nghỉ phép...",
+        "confirm_delete_title": "Xác nhận xóa",
+        "confirm_delete_msg": "Bạn có chắc chắn muốn xóa loại nghỉ phép \"{{name}}\" không?",
+        "delete_btn": "Xóa",
+        "policy_config_title": "Cấu hình Chính sách Nghỉ phép",
+        "policy_config_subtitle": "Xác định các quy định cho {{name}}",
+        "approval_required": "Yêu cầu Phê duyệt",
+        "approval_required_desc": "Quản lý phải phê duyệt các yêu cầu nghỉ phép",
+        "requires_document": "Yêu cầu Minh chứng",
+        "requires_document_desc": "Bắt buộc tải lên minh chứng/giấy khám sức khỏe",
+        "negative_balance": "Cho phép Số dư âm",
+        "negative_balance_desc": "Cho phép người dùng xin nghỉ vượt quá số ngày phép hiện có (dưới 0)",
+        "saving": "Đang lưu...",
+        "save_policy": "Lưu chính sách"
+      },
+      "type_form": {
+        "type_code": "Mã Loại",
+        "type_code_placeholder": "VD: AL, SL, UL",
+        "display_name": "Tên Hiển thị",
+        "display_name_placeholder": "VD: Nghỉ phép năm",
+        "paid_status": "Trạng thái Hưởng lương",
+        "paid_time_off": "Nghỉ hưởng lương",
+        "unpaid_leave": "Nghỉ không lương",
+        "change_template": "Thay đổi Mẫu",
+        "creating": "Đang tạo...",
+        "confirm_create": "Xác nhận & Tạo"
+      },
+      "gallery": {
+        "title": "Chọn một Mẫu",
+        "subtitle": "Bắt đầu nhanh hơn với các thiết lập chuyên nghiệp có sẵn",
+        "customize": "Tùy chỉnh Loại phép",
+        "customize_subtitle": "Tinh chỉnh {{name}}",
+        "search_placeholder": "Tìm kiếm mẫu (VD: 'Phép năm', 'Nghỉ ốm')...",
+        "skip": "Bỏ qua để tạo thủ công",
+        "categories": {
+          "all": "Tất cả",
+          "standard": "Tiêu chuẩn",
+          "wellness": "Sức khỏe & Phúc lợi",
+          "family": "Gia đình",
+          "professional": "Sự nghiệp",
+          "special": "Đặc biệt"
+        },
+        "empty_title": "Không tìm thấy mẫu phù hợp",
+        "empty_desc": "Hãy thử một từ khóa hoặc danh mục khác"
+      },
+      "policy_manager": {
+        "title": "Chính sách Tích lũy",
+        "create_btn": "Tạo chính sách",
+        "empty_title": "Chưa có chính sách nào được định nghĩa",
+        "loading": "Đang tải các chính sách...",
+        "success_create": "Tạo chính sách thành công",
+        "success_update": "Cập nhật chính sách thành công",
+        "success_delete": "Xóa chính sách thành công",
+        "warning": "Cảnh báo",
+        "confirm_delete": "Bạn có chắc chắn muốn xóa chính sách này không?"
+      },
+      "policy_card": {
+        "base_accrual": "Tích lũy Cơ bản",
+        "bonus_steps": "Thâm niên Tăng thêm",
+        "steps_count": "{{count}} bước"
+      },
+      "policy_modal": {
+        "edit_title": "Chỉnh sửa Chính sách",
+        "create_title": "Tạo Chính sách Nghỉ phép",
+        "saving": "Đang lưu...",
+        "update_btn": "Cập nhật Chính sách",
+        "create_btn": "Tạo Chính sách"
+      },
+      "policy_fields": {
+        "identity": "Thông tin chung",
+        "policy_name": "Tên Chính sách",
+        "policy_name_placeholder": "VD: Chính sách Tiêu chuẩn",
+        "leave_type": "Loại Nghỉ phép",
+        "accrual_logic": "Cơ chế Tích lũy",
+        "base_amount": "Định mức Cơ bản",
+        "base_amount_desc": "Số ngày phép cấp trong mỗi chu kỳ",
+        "frequency": "Chu kỳ cấp",
+        "frequency_options": {
+          "monthly": "Hàng tháng",
+          "quarterly": "Hàng quý",
+          "yearly": "Hàng năm"
+        },
+        "min_work_days": "Ngày công Tối thiểu",
+        "min_work_days_desc": "Số ngày làm việc tối thiểu để được cộng phép",
+        "carry_limit": "Hạn mức Chuyển tiếp",
+        "carry_limit_desc": "Số ngày phép tối đa được chuyển sang năm sau",
+        "service_bonuses": "Phép Thâm niên",
+        "add_row": "Thêm dòng",
+        "no_milestones": "Chưa định nghĩa thâm niên tăng thêm.",
+        "milestone_title": "Mốc thâm niên {{index}}: Sau số năm",
+        "bonus_amount": "Số ngày cộng thêm"
+      },
+      "templates": {
+        "annual-leave": {
+          "name": "Nghỉ phép năm",
+          "desc": "Nghỉ phép năm tiêu chuẩn cho nhân viên."
+        },
+        "sick-leave": {
+          "name": "Nghỉ ốm",
+          "desc": "Nghỉ hưởng lương khi ốm đau hoặc khám sức khỏe."
+        },
+        "unpaid-leave": {
+          "name": "Nghỉ không lương",
+          "desc": "Nghỉ không hưởng lương vì lý do cá nhân."
+        },
+        "compensatory-leave": {
+          "name": "Nghỉ bù",
+          "desc": "Nghỉ bù cho thời gian làm thêm giờ."
+        },
+        "mental-health": {
+          "name": "Ngày nghỉ sức khỏe tinh thần",
+          "desc": "Một ngày nghỉ để tái tạo năng lượng và cân bằng tâm lý."
+        },
+        "period-leave": {
+          "name": "Nghỉ kinh nguyệt",
+          "desc": "Hỗ trợ nhân viên nữ trong chu kỳ kinh nguyệt."
+        },
+        "birthday-leave": {
+          "name": "Nghỉ sinh nhật",
+          "desc": "Nghỉ đón tuổi mới vào ngày sinh nhật."
+        },
+        "maternity-leave": {
+          "name": "Nghỉ thai sản",
+          "desc": "Nghỉ thai sản dài hạn cho mẹ bầu."
+        },
+        "paternity-leave": {
+          "name": "Nghỉ chế độ thai sản nam",
+          "desc": "Nghỉ thai sản cho người cha để hỗ trợ gia đình."
+        },
+        "marriage-leave": {
+          "name": "Nghỉ kết hôn",
+          "desc": "Nghỉ hưởng lương để tổ chức và ăn mừng đám cưới."
+        },
+        "study-leave": {
+          "name": "Nghỉ học tập",
+          "desc": "Nghỉ thi cử hoặc đào tạo phát triển chuyên môn."
+        },
+        "sabbatical-leave": {
+          "name": "Nghỉ phép dài hạn (Sabbatical)",
+          "desc": "Nghỉ phép dài ngày để tái tạo sức lao động (VD: sau 5 năm cống hiến)."
+        },
+        "jury-duty": {
+          "name": "Nghỉ làm nghĩa vụ công dân",
+          "desc": "Nghỉ để thực hiện các nghĩa vụ công dân theo luật định."
+        },
+        "bereavement-leave": {
+          "name": "Nghỉ hiếu",
+          "desc": "Nghỉ hưởng lương khi gia đình có tang sự."
+        },
+        "volunteer-leave": {
+          "name": "Nghỉ làm tình nguyện",
+          "desc": "Nghỉ để tham gia đóng góp cho hoạt động cộng đồng."
+        }
       }
     },
     "layout": {

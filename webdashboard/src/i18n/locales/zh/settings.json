@@ -392,44 +392,208 @@
     "navigation": "Navigation",
     "admin_only": "Administrators only",
     "leave": {
-      "title": "Leave Settings",
-      "desc": "Configure leave types and accrual policies for your workspace.",
+      "title": "请假设置",
+      "desc": "配置您工作区的请假类型和累计政策。",
       "tabs": {
-        "types": "Leave Types",
-        "policies": "Accrual Policies",
-        "types_desc": "Define available leave types and their rules",
-        "policies_desc": "Set up how leave is earned over time",
-        "assignments": "Policy Assignments",
-        "assignments_desc": "Assign policies to employees or departments",
+        "types": "请假类型",
+        "policies": "累计政策",
+        "types_desc": "定义可用的请假类型及其规则",
+        "policies_desc": "设置假期随时间累积的方式",
+        "assignments": "政策分配",
+        "assignments_desc": "为员工或部门分配政策",
         "workflows": "审批流程"
       },
       "messages": {
-        "update_success": "Leave type updated successfully",
-        "update_error": "Failed to update leave type",
-        "create_success": "Policy created successfully",
-        "delete_success": "Policy deleted successfully",
-        "assignment_note": "Policy assignments define how leave is calculated for each person. Changes will be applied during the next scheduled accrual run or can be forced via the \"Accrual Run\" tool in General Settings.",
-        "loading": "Loading assignments...",
-        "no_assignments": "No policy assignments found"
+        "update_success": "成功更新请假类型",
+        "update_error": "更新请假类型失败",
+        "create_success": "成功创建政策",
+        "delete_success": "成功删除政策",
+        "assignment_note": "政策分配定义了每个人的请假计算方式。更改将在下一次计划的累计运行期间应用，或者可以通过“常规设置”中的“累计运行”工具强制执行。",
+        "loading": "正在加载分配信息...",
+        "no_assignments": "未找到政策分配"
       },
       "fields": {
-        "approval": "Approval",
-        "document": "Document",
-        "days_per_period": "days / period"
+        "approval": "审批",
+        "document": "凭证",
+        "days_per_period": "天 / 周期"
       },
       "types": {
-        "paid": "Paid Leave",
-        "unpaid": "Unpaid Leave"
+        "paid": "有薪假",
+        "unpaid": "无薪假"
       },
       "actions": {
-        "assign": "Assign Policy"
+        "assign": "分配政策"
       },
       "table": {
-        "policy": "Policy",
-        "type": "Type",
-        "assignee": "Assignee",
-        "effective_date": "Effective Date",
-        "created_at": "Created At"
+        "policy": "政策",
+        "type": "类型",
+        "assignee": "分配对象",
+        "effective_date": "生效日期",
+        "created_at": "创建时间"
+      },
+      "type_manager": {
+        "title": "请假类型",
+        "desc": "定义您组织中可用的休假类别（例如年假、病假）。",
+        "add_btn": "添加请假类型",
+        "code": "代码",
+        "paid": "有薪",
+        "unpaid": "无薪",
+        "empty_title": "未配置任何请假类型",
+        "empty_desc": "您的工作区全新且干净。开始手动创建请假类型或使用我们的专业模板。",
+        "get_started": "开始使用",
+        "loading": "正在加载请假类型...",
+        "confirm_delete_title": "确认删除",
+        "confirm_delete_msg": "您确定要删除“{{name}}”吗？",
+        "delete_btn": "删除",
+        "policy_config_title": "请假政策配置",
+        "policy_config_subtitle": "定义 {{name}} 的规则",
+        "approval_required": "需要审批",
+        "approval_required_desc": "经理必须批准申请",
+        "requires_document": "需要凭证",
+        "requires_document_desc": "必须提供证明/医疗证明",
+        "negative_balance": "允许负数余额",
+        "negative_balance_desc": "允许用户透支请假天数（低于 0）",
+        "saving": "正在保存...",
+        "save_policy": "保存政策"
+      },
+      "type_form": {
+        "type_code": "类型代码",
+        "type_code_placeholder": "例如 AL, SL, UL",
+        "display_name": "显示名称",
+        "display_name_placeholder": "例如 年假",
+        "paid_status": "薪资状态",
+        "paid_time_off": "带薪休假",
+        "unpaid_leave": "无薪休假",
+        "change_template": "更改模板",
+        "creating": "正在创建...",
+        "confirm_create": "确认并创建"
+      },
+      "gallery": {
+        "title": "选择一个模板",
+        "subtitle": "使用专业设置更快地开始",
+        "customize": "自定义请假类型",
+        "customize_subtitle": "精细化 {{name}}",
+        "search_placeholder": "搜索模板（例如“年假”、“病假”）...",
+        "skip": "跳过以手动创建",
+        "categories": {
+          "all": "全部",
+          "standard": "标准",
+          "wellness": "健康",
+          "family": "家庭",
+          "professional": "职业",
+          "special": "特殊"
+        },
+        "empty_title": "未找到模板",
+        "empty_desc": "尝试不同的关键字或类别"
+      },
+      "policy_manager": {
+        "title": "累计政策",
+        "create_btn": "创建政策",
+        "empty_title": "尚未定义任何政策",
+        "loading": "正在加载政策...",
+        "success_create": "成功创建政策",
+        "success_update": "成功更新政策",
+        "success_delete": "成功删除政策",
+        "warning": "警告",
+        "confirm_delete": "您确定要删除此政策吗？"
+      },
+      "policy_card": {
+        "base_accrual": "基本累计",
+        "bonus_steps": "工龄奖励",
+        "steps_count": "{{count}} 级工龄"
+      },
+      "policy_modal": {
+        "edit_title": "编辑政策",
+        "create_title": "创建请假政策",
+        "saving": "正在保存...",
+        "update_btn": "更新政策",
+        "create_btn": "创建政策"
+      },
+      "policy_fields": {
+        "identity": "通用信息",
+        "policy_name": "政策名称",
+        "policy_name_placeholder": "例如 标准政策",
+        "leave_type": "请假类型",
+        "accrual_logic": "累计逻辑",
+        "base_amount": "基本额度",
+        "base_amount_desc": "每个周期发放的天数",
+        "frequency": "周期",
+        "frequency_options": {
+          "monthly": "每月",
+          "quarterly": "每季度",
+          "yearly": "每年"
+        },
+        "min_work_days": "最低工作天数",
+        "min_work_days_desc": "获得累计额度所需的最低工作天数",
+        "carry_limit": "结转限制",
+        "carry_limit_desc": "可结转到下一年底的最大天数",
+        "service_bonuses": "工龄假期奖励",
+        "add_row": "添加行",
+        "no_milestones": "未定义任何工龄奖励里程碑。",
+        "milestone_title": "工龄里程碑 {{index}}：满年数",
+        "bonus_amount": "奖励额度"
+      },
+      "templates": {
+        "annual-leave": {
+          "name": "年假",
+          "desc": "员工的标准年度带薪假期。"
+        },
+        "sick-leave": {
+          "name": "病假",
+          "desc": "因健康问题或医疗约诊而提供的带薪假期。"
+        },
+        "unpaid-leave": {
+          "name": "无薪假",
+          "desc": "因个人原因请的无薪假。"
+        },
+        "compensatory-leave": {
+          "name": "调休假",
+          "desc": "用于代替加班工作的调休时间。"
+        },
+        "mental-health": {
+          "name": "心理健康日",
+          "desc": "休整并专注于心理健康的一天假。"
+        },
+        "period-leave": {
+          "name": "生理假",
+          "desc": "为处于生理期女性员工提供的假期。"
+        },
+        "birthday-leave": {
+          "name": "生日假",
+          "desc": "在您的特别日子里享受一天假期。"
+        },
+        "maternity-leave": {
+          "name": "产假",
+          "desc": "为新妈妈提供的延长假期。"
+        },
+        "paternity-leave": {
+          "name": "陪产假",
+          "desc": "为新爸爸提供的假期以支持家庭。"
+        },
+        "marriage-leave": {
+          "name": "婚假",
+          "desc": "休假举办和庆祝婚礼。"
+        },
+        "study-leave": {
+          "name": "学习假",
+          "desc": "因考试或专业发展而请的假期。"
+        },
+        "sabbatical-leave": {
+          "name": "学术休假 (Sabbatical)",
+          "desc": "职业休整的长假（例如工作 5 年后）。"
+        },
+        "jury-duty": {
+          "name": "陪审团假",
+          "desc": "履行公民义务的假。"
+        },
+        "bereavement-leave": {
+          "name": "丧假",
+          "desc": "在失去亲人时提供的假期。"
+        },
+        "volunteer-leave": {
+          "name": "志愿服务假",
+          "desc": "用于回馈社会的假。"
+        }
       }
     },
     "layout": {
