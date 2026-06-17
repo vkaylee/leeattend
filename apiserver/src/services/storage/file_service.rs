@@ -6,6 +6,7 @@ use uuid::Uuid;
 
 use crate::diesel_pool::TenantAuthToken;
 use crate::errors::{AppError, AppResult};
+use crate::utils::i18n::I18nKey;
 use crate::models::file::{
     FileCategory, FileDownloadResponse, FileOwnerType, ScanStatus, SystemFile, WorkspaceFile,
 };
@@ -468,7 +469,7 @@ impl FileService {
         self.file_repository
             .get_workspace_file_by_id(auth_token, file_id)
             .await?
-            .ok_or_else(|| AppError::not_found_raw(format!("Workspace file not found: {file_id}")))
+            .ok_or_else(|| AppError::not_found_args(I18nKey::ErrorFileNotFound, [("details", format!("Workspace file not found: {file_id}"))]))
     }
 
     /// Get system file metadata
@@ -476,7 +477,7 @@ impl FileService {
         self.file_repository
             .get_system_file_by_id(file_id)
             .await?
-            .ok_or_else(|| AppError::not_found_raw(format!("System file not found: {file_id}")))
+            .ok_or_else(|| AppError::not_found_args(I18nKey::ErrorFileNotFound, [("details", format!("System file not found: {file_id}"))]))
     }
 
     /// List active workspace files by owner
@@ -495,10 +496,13 @@ impl FileService {
 fn validate_file(category: FileCategory, size: i64, mime_type: &str) -> AppResult<()> {
     let config = category.config();
     if size > config.max_size {
-        return Err(AppError::validation_raw(format!(
-            "File size {} exceeds maximum allowed limit of {} bytes for category {:?}",
-            size, config.max_size, category
-        )));
+        return Err(AppError::validation_args(
+            I18nKey::FileTooLarge,
+            [("details", format!(
+                "File size {} exceeds maximum allowed limit of {} bytes for category {:?}",
+                size, config.max_size, category
+            ))],
+        ));
     }
 
     let allowed = config.allowed_mimes.iter().any(|&pattern| {
@@ -511,9 +515,12 @@ fn validate_file(category: FileCategory, size: i64, mime_type: &str) -> AppResul
     });
 
     if !allowed {
-        return Err(AppError::validation_raw(format!(
-            "Mime type {mime_type} is not allowed for category {category:?}"
-        )));
+        return Err(AppError::validation_args(
+            I18nKey::InvalidFileFormat,
+            [("details", format!(
+                "Mime type {mime_type} is not allowed for category {category:?}"
+            ))],
+        ));
     }
 
     Ok(())

@@ -193,9 +193,10 @@ pub async fn get_values(
             ctx.require_permission(Permission::DepartmentsRead)?;
         }
         _ => {
-            return Err(crate::errors::AppError::Validation(format!(
-                "Invalid entity type '{entity_type}'."
-            ).into()));
+            return Err(crate::errors::AppError::validation_args(
+                crate::utils::i18n::I18nKey::Validation,
+                vec![("details", format!("Invalid entity type '{entity_type}'."))],
+            ));
         }
     }
 
@@ -237,9 +238,10 @@ pub async fn set_values(
             ctx.require_permission(Permission::DepartmentsUpdate)?;
         }
         _ => {
-            return Err(crate::errors::AppError::Validation(format!(
-                "Invalid entity type '{entity_type}'."
-            ).into()));
+            return Err(crate::errors::AppError::validation_args(
+                crate::utils::i18n::I18nKey::Validation,
+                vec![("details", format!("Invalid entity type '{entity_type}'."))],
+            ));
         }
     }
 

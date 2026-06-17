@@ -1,4 +1,5 @@
 use crate::errors::AppError;
+use crate::utils::i18n::I18nKey;
 use crate::models::{
     Department, DepartmentPayrollConfig, EmployeeDepartmentHistory, Notification, RawAttendanceLog,
     UpdateDepartmentRequest, User,
@@ -311,6 +312,6 @@ impl StagingLogRepository for NopStagingRepo {
         _w: Uuid,
         _e: Uuid,
     ) -> Result<RawAttendanceLog, AppError> {
-        Err(AppError::NotFound("error.not_found".into()))
+        Err(AppError::not_found(I18nKey::NotFound))
     }
 }

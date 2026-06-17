@@ -1,4 +1,5 @@
 use crate::errors::AppError;
+use crate::utils::i18n::I18nKey;
 use calamine::{Data, Reader, Xls, Xlsx};
 use std::collections::HashMap;
 use std::io::Cursor;
@@ -40,8 +41,10 @@ pub fn extract_file_rows(file_bytes: &[u8]) -> Result<Vec<(usize, Vec<String>)>,
     // 1. Try XLSX
     if is_zip_file(file_bytes) {
         let mut reader = Xlsx::new(Cursor::new(file_bytes)).map_err(|e| {
-            let msg = format!("error.cannot_open_xlsx:error={e}");
-            AppError::Validation(msg.into())
+            AppError::validation_args(
+                I18nKey::CannotOpenXlsx,
+                vec![("error", e.to_string())],
+            )
         })?;
         let sheet_names = reader.sheet_names();
         for sheet in sheet_names {
@@ -60,14 +63,16 @@ pub fn extract_file_rows(file_bytes: &[u8]) -> Result<Vec<(usize, Vec<String>)>,
                 }
             }
         }
-        return Err(AppError::Validation("error.empty_excel_sheet".into()));
+        return Err(AppError::validation(I18nKey::EmptyExcelSheet));
     }
 
     // 2. Try XLS
     if is_xls_file(file_bytes) {
         let mut reader = Xls::new(Cursor::new(file_bytes)).map_err(|e| {
-            let msg = format!("error.cannot_open_xls:error={e}");
-            AppError::Validation(msg.into())
+            AppError::validation_args(
+                I18nKey::CannotOpenXls,
+                vec![("error", e.to_string())],
+            )
         })?;
         let sheet_names = reader.sheet_names();
         for sheet in sheet_names {
@@ -86,12 +91,10 @@ pub fn extract_file_rows(file_bytes: &[u8]) -> Result<Vec<(usize, Vec<String>)>,
                 }
             }
         }
-        return Err(AppError::Validation("error.empty_excel_sheet".into()));
+        return Err(AppError::validation(I18nKey::EmptyExcelSheet));
     }
 
-    Err(AppError::Validation(
-        "error.invalid_file_format".into(),
-    ))
+    Err(AppError::validation(I18nKey::InvalidFileFormat))
 }
 
 /// Normalize header string for matching (lowercase, trim whitespace, and strip BOM)
@@ -137,12 +140,14 @@ pub fn extract_mapped_rows(
                 }
             }
         } else {
-            return Err(AppError::Validation("error.empty_excel_sheet".into()));
+            return Err(AppError::validation(I18nKey::EmptyExcelSheet));
         }
 
         if !duplicate_headers.is_empty() {
-            let msg = format!("error.duplicate_headers:headers={}", duplicate_headers.join(", "));
-            return Err(AppError::Validation(msg.into()));
+            return Err(AppError::validation_args(
+                I18nKey::DuplicateHeaders,
+                vec![("headers", duplicate_headers.join(", "))],
+            ));
         }
 
         // Validate Expected Headers
@@ -153,8 +158,10 @@ pub fn extract_mapped_rows(
         }
 
         if !missing_headers.is_empty() {
-            let msg = format!("error.missing_mandatory_headers:headers={}", missing_headers.join(", "));
-            return Err(AppError::Validation(msg.into()));
+            return Err(AppError::validation_args(
+                I18nKey::MissingMandatoryHeaders,
+                vec![("headers", missing_headers.join(", "))],
+            ));
         }
 
         // Process Data Rows
@@ -173,7 +180,7 @@ pub fn extract_mapped_rows(
         }
 
         if rows.is_empty() {
-            return Err(AppError::Validation("error.empty_excel_sheet".into()));
+            return Err(AppError::validation(I18nKey::EmptyExcelSheet));
         }
 
         Ok(rows)
@@ -182,8 +189,10 @@ pub fn extract_mapped_rows(
     // 1. Try XLSX
     if is_zip_file(file_bytes) {
         let mut reader = Xlsx::new(Cursor::new(file_bytes)).map_err(|e| {
-            let msg = format!("error.cannot_open_xlsx:error={e}");
-            AppError::Validation(msg.into())
+            AppError::validation_args(
+                I18nKey::CannotOpenXlsx,
+                vec![("error", e.to_string())],
+            )
         })?;
         let sheet_names = reader.sheet_names();
         let mut best_sheet_range = None;
@@ -212,11 +221,13 @@ pub fn extract_mapped_rows(
             r
         } else if let Some(name) = sheet_names.first() {
             reader.worksheet_range(name).map_err(|e| {
-                let msg = format!("error.cannot_read_sheet:name={name},error={e}");
-                AppError::Validation(msg.into())
+                AppError::validation_args(
+                    I18nKey::CannotReadSheet,
+                    vec![("name", name.clone()), ("error", e.to_string())],
+                )
             })?
         } else {
-            return Err(AppError::Validation("error.no_sheets_found".into()));
+            return Err(AppError::validation(I18nKey::NoSheetsFound));
         };
 
         let iter = range.rows().enumerate().map(|(idx, r)| {
@@ -229,8 +240,10 @@ pub fn extract_mapped_rows(
     // 2. Try XLS
     if is_xls_file(file_bytes) {
         let mut reader = Xls::new(Cursor::new(file_bytes)).map_err(|e| {
-            let msg = format!("error.cannot_open_xls:error={e}");
-            AppError::Validation(msg.into())
+            AppError::validation_args(
+                I18nKey::CannotOpenXls,
+                vec![("error", e.to_string())],
+            )
         })?;
         let sheet_names = reader.sheet_names();
         let mut best_sheet_range = None;
@@ -259,11 +272,13 @@ pub fn extract_mapped_rows(
             r
         } else if let Some(name) = sheet_names.first() {
             reader.worksheet_range(name).map_err(|e| {
-                let msg = format!("error.cannot_read_sheet:name={name},error={e}");
-                AppError::Validation(msg.into())
+                AppError::validation_args(
+                    I18nKey::CannotReadSheet,
+                    vec![("name", name.clone()), ("error", e.to_string())],
+                )
             })?
         } else {
-            return Err(AppError::Validation("error.no_sheets_found".into()));
+            return Err(AppError::validation(I18nKey::NoSheetsFound));
         };
 
         let iter = range.rows().enumerate().map(|(idx, r)| {
@@ -273,9 +288,7 @@ pub fn extract_mapped_rows(
         return process_sheet(Box::new(iter));
     }
 
-    Err(AppError::Validation(
-        "error.invalid_file_format".into(),
-    ))
+    Err(AppError::validation(I18nKey::InvalidFileFormat))
 }
 
 #[cfg(test)]

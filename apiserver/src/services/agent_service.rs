@@ -67,13 +67,14 @@ impl AgentService {
 
         if let Some(ref a) = agent {
             if a.token != token {
-                return Err(crate::errors::AppError::Validation(
-                    "INVALID_TOKEN".into(),
+                return Err(crate::errors::AppError::validation(
+                    crate::utils::i18n::I18nKey::InvalidToken,
                 ));
             }
             if !a.is_trusted {
-                return Err(crate::errors::AppError::Validation(
-                    "AGENT_NOT_TRUSTED".into(),
+                return Err(crate::errors::AppError::validation_args(
+                    crate::utils::i18n::I18nKey::Validation,
+                    vec![("details", "AGENT_NOT_TRUSTED".to_string())],
                 ));
             }
         }
@@ -319,7 +320,7 @@ mod tests {
         assert!(res.is_err());
         assert_eq!(
             res.err().unwrap().to_string(),
-            "Validation error: INVALID_TOKEN"
+            "Validation error: error.invalid_token"
         );
     }
 
@@ -335,7 +336,7 @@ mod tests {
         assert!(res.is_err());
         assert_eq!(
             res.err().unwrap().to_string(),
-            "Validation error: AGENT_NOT_TRUSTED"
+            "Validation error: error.validation:details=AGENT_NOT_TRUSTED"
         );
     }
 

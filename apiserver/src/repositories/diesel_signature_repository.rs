@@ -112,7 +112,10 @@ impl SignatureRepository for DieselSignatureRepository {
         .await
         .map_err(|e| match e {
             diesel::result::Error::NotFound => {
-                AppError::not_found_raw(format!("Signature request {request_id} not found"))
+                AppError::not_found_args(
+                    crate::utils::i18n::I18nKey::NotFound,
+                    vec![("details", format!("Signature request {request_id} not found"))],
+                )
             }
             _ => AppError::from(e),
         })?;

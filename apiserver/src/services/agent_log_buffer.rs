@@ -267,10 +267,10 @@ async fn parse_log_entry(
     {
         Ok(Some(emp)) => emp,
         Ok(None) => {
-            return Err(crate::errors::AppError::validation_raw(format!(
-                "Employee not found: {} in workspace {}",
-                entry.employee_id_number, entry.workspace_id
-            )));
+            return Err(crate::errors::AppError::validation_args(
+                crate::utils::i18n::I18nKey::Validation,
+                vec![("details", format!("employee_not_found: {} in workspace {}", entry.employee_id_number, entry.workspace_id))],
+            ));
         }
         Err(e) => {
             return Err(crate::errors::AppError::Internal(format!(
@@ -287,10 +287,10 @@ async fn parse_log_entry(
         Some(&entry.time_fmt),
     )
     .map_err(|e| {
-        crate::errors::AppError::validation_raw(format!(
-            "Failed to parse timestamp '{}': {}",
-            entry.punch_time_raw, e
-        ))
+        crate::errors::AppError::validation_args(
+            crate::utils::i18n::I18nKey::Validation,
+            vec![("details", format!("failed_to_parse_timestamp: {} ({})", entry.punch_time_raw, e))],
+        )
     })?;
 
     let (punch, status) =

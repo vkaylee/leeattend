@@ -144,10 +144,10 @@ pub async fn create_employee_assignment(
             chrono::Utc::now().date_naive(),
         )
         .await?
-        .ok_or_else(|| AppError::validation_raw("Employee has no active employment profile"))?;
+        .ok_or_else(|| AppError::validation(I18nKey::NoActiveEmployment))?;
 
     let home_location_id = active_employment.primary_location_id().ok_or_else(|| {
-        AppError::validation_raw("Employee active employment has no primary location assigned")
+        AppError::validation_args(I18nKey::Validation, vec![("details", "Employee active employment has no primary location assigned".to_string())])
     })?;
 
     // Validate that home and host locations are not the same

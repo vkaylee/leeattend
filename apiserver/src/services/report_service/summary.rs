@@ -1,6 +1,7 @@
 use super::{AttendanceReportArgs, CalculateDayUnitsArgs, ReportService};
 use crate::domain::policy::resolver::{PolicyResolver, ShiftPolicyOverrides};
 use crate::errors::AppError;
+use crate::utils::i18n::I18nKey;
 use crate::models::{AttendanceReportSort, AttendanceSummary, PaginatedResponse};
 use crate::services::PolicyResolverService;
 use chrono_tz::Tz;
@@ -22,7 +23,7 @@ impl ReportService {
                 tracing::error!("Error fetching workspace: {}", e);
                 AppError::Internal("Internal error".into())
             })?
-            .ok_or(AppError::NotFound("error.not_found".into()))?;
+            .ok_or(AppError::not_found(I18nKey::NotFound))?;
 
         let tz: Tz = crate::utils::tz::parse_workspace_tz(workspace.timezone());
 
@@ -205,7 +206,7 @@ impl ReportService {
             args.start_date,
             args.end_date,
         )
-        .ok_or(AppError::Validation("error.validation".into()))?;
+        .ok_or(AppError::validation(I18nKey::Validation))?;
 
         let entries_map = self
             .time_entry_repo

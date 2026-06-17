@@ -1,5 +1,6 @@
 use super::EmployeeService;
 use crate::errors::AppError;
+use crate::utils::i18n::I18nKey;
 use crate::models::{CreateWorkingConditionRequest, WorkingCondition};
 use crate::utils::id::new_id;
 use uuid::Uuid;
@@ -18,7 +19,7 @@ impl EmployeeService {
             .repo
             .get_employee_by_id(employee_id, auth_token)
             .await?
-            .ok_or(AppError::NotFound("error.employee_not_found".into()))?;
+            .ok_or(AppError::not_found(I18nKey::EmployeeNotFound))?;
 
         let active_employment_id = emp
             .active_employment_id()
@@ -41,7 +42,7 @@ impl EmployeeService {
             .repo
             .get_employee_by_id(employee_id, auth_token)
             .await?
-            .ok_or(AppError::NotFound("error.employee_not_found".into()))?;
+            .ok_or(AppError::not_found(I18nKey::EmployeeNotFound))?;
 
         let active_employment_id = emp
             .active_employment_id()
@@ -76,7 +77,7 @@ impl EmployeeService {
             .repo
             .get_employee_by_id(employee_id, auth_token)
             .await?
-            .ok_or(AppError::NotFound("error.employee_not_found".into()))?;
+            .ok_or(AppError::not_found(I18nKey::EmployeeNotFound))?;
 
         let active_employment_id = emp
             .active_employment_id()
@@ -88,7 +89,7 @@ impl EmployeeService {
             .await?;
 
         if !deleted {
-            return Err(AppError::NotFound("error.not_found".into()));
+            return Err(AppError::not_found(I18nKey::NotFound));
         }
         Ok(())
     }

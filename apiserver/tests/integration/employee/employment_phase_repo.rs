@@ -54,7 +54,7 @@ async fn test_employment_phase_repo_crud() {
         .await
         .unwrap_err();
     assert!(
-        matches!(err, apiserver::errors::AppError::Validation(msg) if msg.contains("Phase definition with this name already exists"))
+        matches!(err, apiserver::errors::AppError::Validation(msg) if msg.to_string().contains("Phase definition with this name already exists"))
     );
 
     // 3. Get Definitions

@@ -9,6 +9,7 @@ use uuid::Uuid;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::file::{FileCategory, FileDownloadResponse, FileOwnerType, WorkspaceFile};
+use crate::utils::i18n::I18nKey;
 use crate::AppState;
 
 #[derive(serde::Deserialize, utoipa::ToSchema)]
@@ -92,7 +93,7 @@ pub async fn upload_file_handler(
     while let Some(field) = multipart
         .next_field()
         .await
-        .map_err(|e| AppError::validation_raw(format!("Multipart error: {e}")))?
+        .map_err(|e| AppError::validation_args(I18nKey::Validation, vec![("details", format!("Multipart error: {e}"))]))?
     {
         let name = field.name().unwrap_or("").to_string();
         match name.as_str() {
@@ -108,57 +109,57 @@ pub async fn upload_file_handler(
                     field
                         .bytes()
                         .await
-                        .map_err(|e| AppError::validation_raw(format!("Read file failed: {e}")))?,
+                        .map_err(|e| AppError::validation_args(I18nKey::Validation, vec![("details", format!("Read file failed: {e}"))]))?,
                 );
             }
             "category" => {
                 let s = field
                     .text()
                     .await
-                    .map_err(|e| AppError::validation_raw(format!("Read category failed: {e}")))?;
+                    .map_err(|e| AppError::validation_args(I18nKey::Validation, vec![("details", format!("Read category failed: {e}"))]))?;
                 category = Some(
                     s.parse::<FileCategory>()
-                        .map_err(|e| AppError::validation_raw(format!("Invalid category: {e}")))?,
+                        .map_err(|e| AppError::validation_args(I18nKey::Validation, vec![("details", format!("Invalid category: {e}"))]))?,
                 );
             }
             "owner_type" => {
                 let s = field.text().await.map_err(|e| {
-                    AppError::validation_raw(format!("Read owner_type failed: {e}"))
+                    AppError::validation_args(I18nKey::Validation, vec![("details", format!("Read owner_type failed: {e}"))])
                 })?;
                 owner_type =
                     Some(s.parse::<FileOwnerType>().map_err(|e| {
-                        AppError::validation_raw(format!("Invalid owner_type: {e}"))
+                        AppError::validation_args(I18nKey::Validation, vec![("details", format!("Invalid owner_type: {e}"))])
                     })?);
             }
             "owner_id" => {
                 let s = field
                     .text()
                     .await
-                    .map_err(|e| AppError::validation_raw(format!("Read owner_id failed: {e}")))?;
+                    .map_err(|e| AppError::validation_args(I18nKey::Validation, vec![("details", format!("Read owner_id failed: {e}"))]))?;
                 owner_id = Some(Uuid::parse_str(&s).map_err(|e| {
-                    AppError::validation_raw(format!("Invalid owner_id UUID: {e}"))
+                    AppError::validation_args(I18nKey::Validation, vec![("details", format!("Invalid owner_id UUID: {e}"))])
                 })?);
             }
             "expires_in_secs" => {
                 let s = field.text().await.map_err(|e| {
-                    AppError::validation_raw(format!("Read expires_in_secs failed: {e}"))
+                    AppError::validation_args(I18nKey::Validation, vec![("details", format!("Read expires_in_secs failed: {e}"))])
                 })?;
                 expires_in_secs = Some(s.parse::<i64>().map_err(|e| {
-                    AppError::validation_raw(format!("Invalid expires_in_secs integer: {e}"))
+                    AppError::validation_args(I18nKey::Validation, vec![("details", format!("Invalid expires_in_secs integer: {e}"))])
                 })?);
             }
             _ => {}
         }
     }
 
-    let file_name = file_name.ok_or_else(|| AppError::validation_raw("Missing file field"))?;
+    let file_name = file_name.ok_or_else(|| AppError::validation(I18nKey::UploadNoFile))?;
     let mime_type =
-        mime_type.ok_or_else(|| AppError::validation_raw("Missing file content type"))?;
-    let data = data.ok_or_else(|| AppError::validation_raw("Missing file data"))?;
-    let category = category.ok_or_else(|| AppError::validation_raw("Missing category field"))?;
+        mime_type.ok_or_else(|| AppError::validation(I18nKey::UploadNoFile))?;
+    let data = data.ok_or_else(|| AppError::validation(I18nKey::UploadNoFile))?;
+    let category = category.ok_or_else(|| AppError::validation_args(I18nKey::Validation, vec![("details", "Missing category field".to_string())]))?;
     let owner_type =
-        owner_type.ok_or_else(|| AppError::validation_raw("Missing owner_type field"))?;
-    let owner_id = owner_id.ok_or_else(|| AppError::validation_raw("Missing owner_id field"))?;
+        owner_type.ok_or_else(|| AppError::validation_args(I18nKey::Validation, vec![("details", "Missing owner_type field".to_string())]))?;
+    let owner_id = owner_id.ok_or_else(|| AppError::validation_args(I18nKey::Validation, vec![("details", "Missing owner_id field".to_string())]))?;
 
     let file = state
         .file_service()
@@ -306,7 +307,7 @@ pub async fn update_file_handler(
     while let Some(field) = multipart
         .next_field()
         .await
-        .map_err(|e| AppError::validation_raw(format!("Multipart error: {e}")))?
+        .map_err(|e| AppError::validation_args(I18nKey::Validation, vec![("details", format!("Multipart error: {e}"))]))?
     {
         let name = field.name().unwrap_or("").to_string();
         if name == "file" {
@@ -321,15 +322,15 @@ pub async fn update_file_handler(
                 field
                     .bytes()
                     .await
-                    .map_err(|e| AppError::validation_raw(format!("Read file failed: {e}")))?,
+                    .map_err(|e| AppError::validation_args(I18nKey::Validation, vec![("details", format!("Read file failed: {e}"))]))?,
             );
         }
     }
 
-    let file_name = file_name.ok_or_else(|| AppError::validation_raw("Missing file field"))?;
+    let file_name = file_name.ok_or_else(|| AppError::validation(I18nKey::UploadNoFile))?;
     let mime_type =
-        mime_type.ok_or_else(|| AppError::validation_raw("Missing file content type"))?;
-    let data = data.ok_or_else(|| AppError::validation_raw("Missing file data"))?;
+        mime_type.ok_or_else(|| AppError::validation(I18nKey::UploadNoFile))?;
+    let data = data.ok_or_else(|| AppError::validation(I18nKey::UploadNoFile))?;
 
     let file = state
         .file_service()
@@ -423,7 +424,7 @@ pub async fn list_files_by_owner_handler(
     let (_, owner_type_str, owner_id) = params;
     let owner_type = owner_type_str
         .parse::<FileOwnerType>()
-        .map_err(|e| AppError::validation_raw(format!("Invalid owner_type: {e}")))?;
+        .map_err(|e| AppError::validation_args(I18nKey::Validation, vec![("details", format!("Invalid owner_type: {e}"))]))?;
     let files = state
         .file_service()
         .list_files_by_owner(&ctx.auth_token, owner_type, owner_id)

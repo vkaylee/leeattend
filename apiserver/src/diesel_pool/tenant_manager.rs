@@ -31,6 +31,7 @@ pub struct TenantPoolManager {
     max_size: usize,
     pools: RwLock<HashMap<Uuid, DieselPool>>,
     url_cache: RwLock<HashMap<Uuid, String>>,
+    last_accessed: RwLock<HashMap<Uuid, std::time::Instant>>,
 }
 
 impl TenantPoolManager {
@@ -47,6 +48,7 @@ impl TenantPoolManager {
             max_size,
             pools: RwLock::new(HashMap::new()),
             url_cache: RwLock::new(HashMap::new()),
+            last_accessed: RwLock::new(HashMap::new()),
         }
     }
 
@@ -223,12 +225,67 @@ impl TenantPoolManager {
         drop(pools);
         res
     }
+
+    pub fn start_eviction_task(self: &std::sync::Arc<Self>) {
+        let weak_self = std::sync::Arc::downgrade(self);
+        tokio::spawn(async move {
+            loop {
+                tokio::time::sleep(std::time::Duration::from_secs(60)).await;
+                let manager = match weak_self.upgrade() {
+                    Some(m) => m,
+                    None => {
+                        tracing::info!("TenantPoolManager dropped, stopping eviction task.");
+                        break;
+                    }
+                };
+                if let Err(e) = manager.evict_idle_pools().await {
+                    tracing::error!("Error during tenant connection pool eviction: {:?}", e);
+                }
+            }
+        });
+    }
+
+    async fn evict_idle_pools(&self) -> Result<(), AppError> {
+        let now = std::time::Instant::now();
+        let idle_timeout = std::time::Duration::from_secs(1800); // 30 minutes
+
+        let mut pools_to_remove = Vec::new();
+        {
+            let accessed = self.last_accessed.read().await;
+            let pools = self.pools.read().await;
+            for &ws_id in pools.keys() {
+                let last_used = accessed.get(&ws_id).copied().unwrap_or(now);
+                if now.duration_since(last_used) > idle_timeout {
+                    pools_to_remove.push(ws_id);
+                }
+            }
+        }
+
+        if !pools_to_remove.is_empty() {
+            let mut pools = self.pools.write().await;
+            let mut accessed = self.last_accessed.write().await;
+            for ws_id in pools_to_remove {
+                if let Some(pool) = pools.remove(&ws_id) {
+                    tracing::info!(workspace_id = %ws_id, "Evicting idle tenant connection pool");
+                    drop(pool);
+                }
+                accessed.remove(&ws_id);
+            }
+        }
+
+        Ok(())
+    }
 }
 
 #[async_trait::async_trait]
 impl TenantConnectionProvider for TenantPoolManager {
     async fn get_connection(&self, workspace_id: &Uuid) -> Result<DieselConnection, AppError> {
         let pool = self.get_or_create_pool(workspace_id).await?;
+
+        {
+            let mut accessed = self.last_accessed.write().await;
+            accessed.insert(*workspace_id, std::time::Instant::now());
+        }
 
         pool.get()
             .await
@@ -340,4 +397,51 @@ mod tests {
         let pool = manager.get_or_create_pool(&ws_id).await;
         assert!(pool.is_ok());
     }
+
+    #[tokio::test]
+    async fn test_tenant_pool_eviction() {
+        let manager = TenantPoolManager::new(
+            "postgres://admin:pass@localhost:5432/leeattend".to_string(),
+            "postgres://admin:pass@localhost:5432/leeattend".to_string(),
+            None,
+            5,
+        );
+        let ws_id = Uuid::new_v4();
+
+        // Manually cache URL to avoid System DB query
+        {
+            let mut cache = manager.url_cache.write().await;
+            cache.insert(ws_id, "postgres://user:pass@localhost:5432/db".to_string());
+        }
+
+        // 1. Create pool
+        let pool = manager.get_or_create_pool(&ws_id).await;
+        assert!(pool.is_ok());
+
+        // 2. Set last accessed to 31 minutes ago
+        {
+            let mut last_accessed = manager.last_accessed.write().await;
+            last_accessed.insert(ws_id, std::time::Instant::now() - std::time::Duration::from_secs(1860));
+        }
+
+        // 3. Verify it is in pools
+        {
+            let pools = manager.pools.read().await;
+            assert!(pools.contains_key(&ws_id));
+        }
+
+        // 4. Run eviction
+        let evict_res = manager.evict_idle_pools().await;
+        assert!(evict_res.is_ok());
+
+        // 5. Verify it is removed from pools and last_accessed
+        {
+            let pools = manager.pools.read().await;
+            assert!(!pools.contains_key(&ws_id));
+
+            let last_accessed = manager.last_accessed.read().await;
+            assert!(!last_accessed.contains_key(&ws_id));
+        }
+    }
 }
+

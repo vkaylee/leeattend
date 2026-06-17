@@ -182,21 +182,21 @@ impl PayrollService {
                 tracing::error!("Error fetching workspace: {}", e);
                 AppError::Internal(format!("Workspace fetch error: {e}"))
             })?
-            .ok_or(AppError::NotFound("Not found".into()))?;
+            .ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::NotFound))?;
 
         let tz: Tz = crate::utils::tz::parse_workspace_tz(workspace.timezone());
 
         let start_date = NaiveDate::from_ymd_opt(year, month, 1)
-            .ok_or(AppError::Validation("Invalid request".into()))?;
+            .ok_or_else(|| AppError::validation(crate::utils::i18n::I18nKey::Validation))?;
         let next_month_date = if month == 12 {
             NaiveDate::from_ymd_opt(year + 1, 1, 1)
         } else {
             NaiveDate::from_ymd_opt(year, month + 1, 1)
         }
-        .ok_or(AppError::Validation("Invalid request".into()))?;
+        .ok_or_else(|| AppError::validation(crate::utils::i18n::I18nKey::Validation))?;
         let end_date = next_month_date
             .pred_opt()
-            .ok_or(AppError::Internal("Date calculation error".into()))?;
+            .ok_or_else(|| AppError::Internal("Date calculation error".into()))?;
 
         let all_dept_history = self
             .department_repo
@@ -213,11 +213,11 @@ impl PayrollService {
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
             )
             .await?
-            .ok_or(AppError::NotFound("Employee not found".into()))?;
+            .ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound))?;
 
         let active_emp_id = employee
             .active_employment_id()
-            .ok_or_else(|| AppError::validation_raw("No active employment found"))?;
+            .ok_or_else(|| AppError::validation(crate::utils::i18n::I18nKey::NoActiveEmployment))?;
 
         let salary_history = self
             .payroll_repo
@@ -359,10 +359,13 @@ impl PayrollService {
             .employment_repo
             .get_active_employment_on_date(&auth_token, employee_id, start_date)
             .await?
-            .ok_or_else(|| AppError::NotFound("Active employment not found".into()))?;
+            .ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::NoActiveEmployment))?;
 
         let primary_location_id = active_employment.primary_location_id().ok_or_else(|| {
-            AppError::NotFound("Primary location not found for active employment".into())
+            AppError::not_found_args(
+                crate::utils::i18n::I18nKey::NotFound,
+                vec![("details", "primary_location_not_found".to_string())],
+            )
         })?;
 
         let active_employments = self
@@ -589,7 +592,7 @@ impl PayrollService {
                     && e.end_date().is_none_or(|end| end >= ctx.start_date)
             })
             .or_else(|| ctx.active_employments.first())
-            .ok_or_else(|| AppError::NotFound("No active employment found".into()))?;
+            .ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::NoActiveEmployment))?;
         let employment_id = active_emp.id();
 
         // Phase 2: Build segments
@@ -1185,100 +1188,92 @@ impl PayrollService {
             }
 
             // Batch fetch leave breakdown for chunk employees
-            let mut leave_breakdowns_map = HashMap::new();
-            let mut leave_futures = Vec::new();
-            for &emp_id in &chunk_employee_ids {
-                let leave_repo = Arc::clone(&self.leave_repo);
-                let token_clone = *token;
-                leave_futures.push(async move {
-                    let res = leave_repo
-                        .get_approved_leave_breakdown(emp_id, start_date, end_date, &token_clone)
-                        .await;
-                    (emp_id, res)
-                });
-            }
-            let leave_results = futures_util::future::join_all(leave_futures).await;
-            for (emp_id, res) in leave_results {
-                if let Ok(breakdown) = res {
-                    leave_breakdowns_map.insert(emp_id, breakdown);
-                }
-            }
+            let mut leave_breakdowns_map = self
+                .leave_repo
+                .get_approved_leave_breakdowns_batch(
+                    &chunk_employee_ids,
+                    start_date,
+                    end_date,
+                    token,
+                )
+                .await
+                .unwrap_or_default();
 
             // Batch fetch unpaid holiday days for chunk employees
-            let mut unpaid_holidays_map = HashMap::new();
-            let mut unpaid_futures = Vec::new();
-            for &emp_id in &chunk_employee_ids {
-                let leave_repo = Arc::clone(&self.leave_repo);
-                let token_clone = *token;
-                unpaid_futures.push(async move {
-                    let res = leave_repo
-                        .get_unpaid_holiday_days_without_leave(
-                            &token_clone,
-                            emp_id,
-                            start_date,
-                            end_date,
-                        )
-                        .await;
-                    (emp_id, res)
-                });
-            }
-            let unpaid_results = futures_util::future::join_all(unpaid_futures).await;
-            for (emp_id, res) in unpaid_results {
-                unpaid_holidays_map.insert(emp_id, res.unwrap_or(0));
-            }
+            let mut unpaid_holidays_map = self
+                .leave_repo
+                .get_unpaid_holiday_days_without_leave_batch(
+                    token,
+                    &chunk_employee_ids,
+                    start_date,
+                    end_date,
+                )
+                .await
+                .unwrap_or_default();
 
-            // Batch fetch rule assignments with tiers for chunk employees
-            let mut rule_assignments_map = HashMap::new();
-            let mut rule_futures = Vec::new();
+            // Map employee_id -> last_department_id
+            let mut employee_departments = HashMap::new();
             for &employment_id in &chunk_employment_ids {
-                let emp_id = match employment_to_employee.get(&employment_id) {
-                    Some(id) => *id,
-                    None => continue,
-                };
-                let all_dept_history = dept_map.get(&emp_id).cloned().unwrap_or_default();
-                let last_department_id = all_dept_history
-                    .iter()
-                    .filter(|d| d.effective_date() <= end_date)
-                    .max_by_key(|d| d.effective_date())
-                    .map(crate::models::EmployeeDepartmentHistory::department_id);
-
-                let payroll_repo = Arc::clone(&self.payroll_repo);
-                rule_futures.push(async move {
-                    let res = payroll_repo
-                        .get_resolved_rule_assignments(
-                            workspace_id,
-                            emp_id,
-                            last_department_id,
-                            start_date,
-                            end_date,
-                        )
-                        .await;
-                    (employment_id, res)
-                });
-            }
-            let rule_results = futures_util::future::join_all(rule_futures).await;
-
-            let mut rule_tiers_futures = Vec::new();
-            for (employment_id, res) in rule_results {
-                if let Ok(assignments) = res {
-                    for assignment in assignments {
-                        let payroll_repo = Arc::clone(&self.payroll_repo);
-                        rule_tiers_futures.push(async move {
-                            let tiers_res = payroll_repo
-                                .get_payroll_rule_tiers(workspace_id, assignment.rule_definition_id)
-                                .await;
-                            (employment_id, assignment, tiers_res)
-                        });
-                    }
+                if let Some(emp_id) = employment_to_employee.get(&employment_id) {
+                    let all_dept_history = dept_map.get(emp_id).cloned().unwrap_or_default();
+                    let last_department_id = all_dept_history
+                        .iter()
+                        .filter(|d| d.effective_date() <= end_date)
+                        .max_by_key(|d| d.effective_date())
+                        .map(crate::models::EmployeeDepartmentHistory::department_id);
+                    employee_departments.insert(*emp_id, last_department_id);
                 }
             }
-            let rule_tiers_results = futures_util::future::join_all(rule_tiers_futures).await;
-            for (employment_id, assignment, tiers_res) in rule_tiers_results {
-                if let Ok(tiers) = tiers_res {
-                    rule_assignments_map
-                        .entry(employment_id)
-                        .or_insert_with(Vec::new)
-                        .push(RuleAssignmentWithTiers { assignment, tiers });
+
+            // Batch fetch resolved rule assignments for chunk employees
+            let resolved_assignments_map = self
+                .payroll_repo
+                .get_resolved_rule_assignments_batch(
+                    workspace_id,
+                    &chunk_employee_ids,
+                    &employee_departments,
+                    start_date,
+                    end_date,
+                )
+                .await
+                .unwrap_or_default();
+
+            // Collect all unique rule definition ids to batch fetch tiers
+            let mut rule_def_ids = Vec::new();
+            for assignments in resolved_assignments_map.values() {
+                for assignment in assignments {
+                    rule_def_ids.push(assignment.rule_definition_id);
+                }
+            }
+            rule_def_ids.sort();
+            rule_def_ids.dedup();
+
+            // Batch fetch payroll rule tiers
+            let rule_tiers_map = self
+                .payroll_repo
+                .get_payroll_rule_tiers_batch(workspace_id, &rule_def_ids)
+                .await
+                .unwrap_or_default();
+
+            // Populate rule_assignments_map by employment_id
+            let mut rule_assignments_map = HashMap::new();
+            for &employment_id in &chunk_employment_ids {
+                if let Some(emp_id) = employment_to_employee.get(&employment_id) {
+                    if let Some(assignments) = resolved_assignments_map.get(emp_id) {
+                        for assignment in assignments {
+                            let tiers = rule_tiers_map
+                                .get(&assignment.rule_definition_id)
+                                .cloned()
+                                .unwrap_or_default();
+                            rule_assignments_map
+                                .entry(employment_id)
+                                .or_insert_with(Vec::new)
+                                .push(RuleAssignmentWithTiers {
+                                    assignment: assignment.clone(),
+                                    tiers,
+                                });
+                        }
+                    }
                 }
             }
 

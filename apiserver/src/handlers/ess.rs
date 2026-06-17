@@ -282,7 +282,7 @@ pub async fn get_my_attendance(
         .ok_or_else(|| AppError::not_found(I18nKey::EmployeeNotFound))?;
     let active_emp_id = emp
         .active_employment_id()
-        .ok_or_else(|| AppError::validation_raw("No active employment found"))?;
+        .ok_or_else(|| AppError::validation(I18nKey::NoActiveEmployment))?;
 
     let entries = state
         .attendance()
@@ -322,7 +322,7 @@ pub async fn ess_punch(
         .ok_or_else(|| AppError::not_found(I18nKey::EmployeeNotFound))?;
     let active_emp_id = emp
         .active_employment_id()
-        .ok_or_else(|| AppError::validation_raw("No active employment found"))?;
+        .ok_or_else(|| AppError::validation(I18nKey::NoActiveEmployment))?;
 
     let entry = state
         .attendance()
@@ -374,7 +374,7 @@ pub async fn get_my_time_entries(
         .ok_or_else(|| AppError::not_found(I18nKey::EmployeeNotFound))?;
     let active_emp_id = emp
         .active_employment_id()
-        .ok_or_else(|| AppError::validation_raw("No active employment found"))?;
+        .ok_or_else(|| AppError::validation(I18nKey::NoActiveEmployment))?;
 
     let entries = state
         .attendance()

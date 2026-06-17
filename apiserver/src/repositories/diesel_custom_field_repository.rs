@@ -1,5 +1,6 @@
 use crate::diesel_pool::{DieselPools, TenantAuthToken};
 use crate::errors::AppError;
+use crate::utils::i18n::I18nKey;
 use crate::models::diesel::custom_field::{CustomFieldDefinitionEntity, CustomFieldValueEntity};
 use crate::models::{
     CreateCustomFieldDefinitionRequest, CustomFieldDefinition, CustomFieldValue,
@@ -213,7 +214,7 @@ impl CustomFieldRepository for DieselCustomFieldRepository {
                     .map_err(|e| AppError::Internal(format!("db check cfd existence: {e}")))?;
 
                 if definition_exists == 0 {
-                    return Err(AppError::NotFound("error.custom_field_not_found".into()));
+                    return Err(AppError::not_found(I18nKey::CustomFieldNotFound));
                 }
 
                 // Set deleted_at timestamp
@@ -330,7 +331,7 @@ impl CustomFieldRepository for DieselCustomFieldRepository {
                         .map_err(|e| AppError::Internal(format!("db check cfd: {e}")))?;
 
                     let Some(def) = definition else {
-                        return Err(AppError::NotFound("error.custom_field_not_found".into()));
+                        return Err(AppError::not_found(I18nKey::CustomFieldNotFound));
                     };
 
                     let val_json = val_req.value.filter(|v| !v.is_null());
@@ -343,7 +344,7 @@ impl CustomFieldRepository for DieselCustomFieldRepository {
                             &val_json,
                             &def.field_type,
                         )
-                        .map_err(|e| AppError::Validation(e.into()))?;
+                        .map_err(|e| AppError::validation_args(I18nKey::Validation, [("details", e)]))?;
 
                         let entity: CustomFieldValueEntity = domain_val.into();
 

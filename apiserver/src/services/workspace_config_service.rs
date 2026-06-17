@@ -408,6 +408,18 @@ mod tests {
             entries.retain(|e| e.id() != entry_id);
             Ok(())
         }
+
+        async fn delete_by_key(
+            &self,
+            _auth_token: &TenantAuthToken,
+            _workspace_id: Uuid,
+            scope_type: &str,
+            config_key: &str,
+        ) -> Result<(), AppError> {
+            let mut entries = self.entries.lock().unwrap();
+            entries.retain(|e| !(e.scope_type() == scope_type && e.config_key() == config_key));
+            Ok(())
+        }
     }
 
     #[tokio::test]

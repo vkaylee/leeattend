@@ -737,7 +737,7 @@ impl PayrollRepository for DieselPayrollRepository {
                                 })?;
 
                             if valid_groups.len() != base_group_ids.len() {
-                                return Err(AppError::forbidden_raw("error.forbidden"));
+                                return Err(AppError::forbidden(crate::utils::i18n::I18nKey::Forbidden));
                             }
 
                             let new_members: Vec<SalaryBaseGroupMemberRow> = base_group_ids
@@ -1519,6 +1519,178 @@ impl PayrollRepository for DieselPayrollRepository {
             effective_date,
             created_at: Utc::now(),
         }))
+    }
+
+    async fn get_resolved_rule_assignments_batch(
+        &self,
+        workspace_id: Uuid,
+        employee_ids: &[Uuid],
+        employee_departments: &std::collections::HashMap<Uuid, Option<Uuid>>,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<std::collections::HashMap<Uuid, Vec<ResolvedRuleAssignment>>, AppError> {
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await?,
+        );
+
+        let sql = r#"
+            SELECT
+                r.rule_definition_id,
+                r.override_config,
+                r.assignee_type,
+                r.assignee_id,
+                d.code,
+                d.calculation_method as "calculation_method",
+                d.rule_config as default_config,
+                d.category as "category",
+                d.display_order as "display_order"
+            FROM payroll_rule_assignments r
+            JOIN payroll_rule_definitions d ON d.id = r.rule_definition_id
+            WHERE r.workspace_id = $1
+              AND d.is_active = true
+              AND r.effective_from <= $3
+              AND (r.effective_to IS NULL OR r.effective_to >= $2)
+        "#;
+
+        #[derive(QueryableByName)]
+        struct RawAssignmentRow {
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            pub rule_definition_id: Uuid,
+            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Jsonb>)]
+            pub override_config: Option<serde_json::Value>,
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            pub assignee_type: String,
+            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Uuid>)]
+            pub assignee_id: Option<Uuid>,
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            pub code: String,
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            pub calculation_method: String,
+            #[diesel(sql_type = diesel::sql_types::Jsonb)]
+            pub default_config: serde_json::Value,
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            pub category: String,
+            #[diesel(sql_type = diesel::sql_types::Integer)]
+            pub display_order: i32,
+        }
+
+        let rows = diesel::sql_query(sql)
+            .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+            .bind::<diesel::sql_types::Date, _>(start_date)
+            .bind::<diesel::sql_types::Date, _>(end_date)
+            .load::<RawAssignmentRow>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let mut result = std::collections::HashMap::new();
+
+        for &emp_id in employee_ids {
+            let dept_id = employee_departments.get(&emp_id).copied().flatten();
+            
+            // Map to store resolved assignments for this employee: rule_definition_id -> (assignee_type, ResolvedRuleAssignment, display_order)
+            let mut resolved_rules: std::collections::HashMap<Uuid, (String, ResolvedRuleAssignment, i32)> = 
+                std::collections::HashMap::new();
+
+            for row in &rows {
+                let matches = match row.assignee_type.as_str() {
+                    "employee" => row.assignee_id == Some(emp_id),
+                    "department" => dept_id.is_some() && row.assignee_id == dept_id,
+                    "workspace" => true,
+                    _ => false,
+                };
+
+                if matches {
+                    let precedence = match row.assignee_type.as_str() {
+                        "employee" => 1,
+                        "department" => 2,
+                        "workspace" => 3,
+                        _ => 4,
+                    };
+
+                    let should_update = if let Some((existing_type, _, _)) = resolved_rules.get(&row.rule_definition_id) {
+                        let existing_precedence = match existing_type.as_str() {
+                            "employee" => 1,
+                            "department" => 2,
+                            "workspace" => 3,
+                            _ => 4,
+                        };
+                        precedence < existing_precedence
+                    } else {
+                        true
+                    };
+
+                    if should_update {
+                        resolved_rules.insert(
+                            row.rule_definition_id,
+                            (
+                                row.assignee_type.clone(),
+                                ResolvedRuleAssignment {
+                                    rule_definition_id: row.rule_definition_id,
+                                    override_config: row.override_config.clone(),
+                                    code: row.code.clone(),
+                                    calculation_method: row.calculation_method.parse().unwrap_or_default(),
+                                    default_config: row.default_config.clone(),
+                                    category: row.category.parse().unwrap_or_default(),
+                                },
+                                row.display_order,
+                            ),
+                        );
+                    }
+                }
+            }
+
+            let mut employee_tuples: Vec<(ResolvedRuleAssignment, i32)> = resolved_rules
+                .into_values()
+                .map(|(_, assignment, display_order)| (assignment, display_order))
+                .collect();
+            
+            employee_tuples.sort_by_key(|t| t.1);
+            let employee_assignments: Vec<ResolvedRuleAssignment> = employee_tuples
+                .into_iter()
+                .map(|(assignment, _)| assignment)
+                .collect();
+
+            result.insert(emp_id, employee_assignments);
+        }
+
+        Ok(result)
+    }
+
+    async fn get_payroll_rule_tiers_batch(
+        &self,
+        workspace_id: Uuid,
+        rule_definition_ids: &[Uuid],
+    ) -> Result<std::collections::HashMap<Uuid, Vec<crate::models::PayrollRuleTier>>, AppError> {
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await?,
+        );
+
+        let entities = payroll_rule_tiers::table
+            .filter(payroll_rule_tiers::rule_definition_id.eq_any(rule_definition_ids))
+            .order(payroll_rule_tiers::tier_order.asc())
+            .load::<PayrollRuleTierEntity>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let mut map = std::collections::HashMap::new();
+        for &def_id in rule_definition_ids {
+            map.insert(def_id, Vec::new());
+        }
+
+        for ent in entities {
+            let def_id = ent.rule_definition_id;
+            map.entry(def_id)
+                .or_insert_with(Vec::new)
+                .push(ent.into());
+        }
+
+        Ok(map)
     }
 }
 

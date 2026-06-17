@@ -143,12 +143,15 @@ async fn test_update_workspace_time_format() {
     assert_eq!(ws.time_format(), "24h");
 
     // 2. Update to 12h
+    let workspace_config_repo = std::sync::Arc::new(
+        apiserver::repositories::diesel_workspace_config_repository::DieselWorkspaceConfigRepository::new(diesel_pools.clone()),
+    );
     let updated_ws = WorkspaceService::new(
         workspace_repo.clone(),
         user_repo.clone(),
         std::sync::Arc::new(DummyTenantProvisioner),
         std::sync::Arc::new(DummySystemDbClusterRepository),
-        diesel_pools.clone(),
+        workspace_config_repo.clone(),
     )
     .update_workspace(
         apiserver::services::workspace_service::UpdateWorkspaceArgs {
@@ -195,12 +198,15 @@ async fn test_update_workspace_all_fields() {
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
 
+    let workspace_config_repo = std::sync::Arc::new(
+        apiserver::repositories::diesel_workspace_config_repository::DieselWorkspaceConfigRepository::new(diesel_pools.clone()),
+    );
     let updated_ws = WorkspaceService::new(
         workspace_repo.clone(),
         user_repo.clone(),
         std::sync::Arc::new(DummyTenantProvisioner),
         std::sync::Arc::new(DummySystemDbClusterRepository),
-        diesel_pools.clone(),
+        workspace_config_repo.clone(),
     )
     .update_workspace(
         apiserver::services::workspace_service::UpdateWorkspaceArgs {
@@ -242,12 +248,15 @@ async fn test_update_workspace_no_fields() {
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
 
+    let workspace_config_repo = std::sync::Arc::new(
+        apiserver::repositories::diesel_workspace_config_repository::DieselWorkspaceConfigRepository::new(diesel_pools.clone()),
+    );
     let result = WorkspaceService::new(
         workspace_repo.clone(),
         user_repo.clone(),
         std::sync::Arc::new(DummyTenantProvisioner),
         std::sync::Arc::new(DummySystemDbClusterRepository),
-        diesel_pools.clone(),
+        workspace_config_repo.clone(),
     )
     .update_workspace(
         apiserver::services::workspace_service::UpdateWorkspaceArgs {
@@ -306,12 +315,15 @@ async fn test_update_workspace_syncs_headquarters_timezone() {
         .unwrap();
 
     // Now update workspace timezone
+    let workspace_config_repo = std::sync::Arc::new(
+        apiserver::repositories::diesel_workspace_config_repository::DieselWorkspaceConfigRepository::new(diesel_pools.clone()),
+    );
     let _updated_ws = WorkspaceService::new(
         workspace_repo.clone(),
         user_repo.clone(),
         std::sync::Arc::new(DummyTenantProvisioner),
         std::sync::Arc::new(DummySystemDbClusterRepository),
-        diesel_pools.clone(),
+        workspace_config_repo.clone(),
     )
     .update_workspace(
         apiserver::services::workspace_service::UpdateWorkspaceArgs {

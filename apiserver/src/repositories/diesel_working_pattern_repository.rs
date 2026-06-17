@@ -5,6 +5,7 @@ use uuid::Uuid;
 
 use crate::diesel_pool::DieselPools;
 use crate::errors::AppError;
+use crate::utils::i18n::I18nKey;
 use crate::models::diesel::working_pattern::{
     EmployeeWorkingPatternEntity, WorkingPatternDetailEntity, WorkingPatternEntity,
 };
@@ -251,7 +252,7 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
             .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
 
         if employment_exists.is_none() {
-            return Err(AppError::NotFound("error.employment_not_found".into()));
+            return Err(AppError::not_found(I18nKey::EmploymentNotFound));
         }
 
         map_db_err!(
@@ -324,7 +325,7 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
             .map_err(|e| AppError::Internal(format!("db check employments: {e}")))?;
 
         if valid_count != employment_ids.len() as i64 {
-            return Err(AppError::NotFound("error.employment_not_found".into()));
+            return Err(AppError::not_found(I18nKey::EmploymentNotFound));
         }
 
         let conflicts: Vec<Uuid> = employee_working_patterns::table

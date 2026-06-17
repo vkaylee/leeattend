@@ -92,9 +92,7 @@ impl EmployeeSelfServiceRepository for DieselEmployeeRepository {
             .is_some();
 
         if !employee_exists {
-            return Err(AppError::forbidden_raw(
-                "Employee does not belong to this workspace",
-            ));
+            return Err(AppError::forbidden(crate::utils::i18n::I18nKey::Forbidden));
         }
 
         let crypto = self
@@ -251,9 +249,7 @@ impl EmployeeSelfServiceRepository for DieselEmployeeRepository {
             .is_some();
 
         if !employee_exists {
-            return Err(AppError::forbidden_raw(
-                "Employee does not belong to this workspace",
-            ));
+            return Err(AppError::forbidden(crate::utils::i18n::I18nKey::Forbidden));
         }
 
         let is_primary = req.is_primary.unwrap_or(false);

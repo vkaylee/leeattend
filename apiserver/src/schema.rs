@@ -2379,3 +2379,8 @@ diesel::allow_tables_to_appear_in_same_query!(
     file_acknowledgements,
     workspaces,
 );
+
+diesel::allow_columns_to_appear_in_same_group_by_clause!(
+    employments::employee_id,
+    leave_types::code,
+);

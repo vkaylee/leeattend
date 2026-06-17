@@ -1,4 +1,5 @@
 use crate::errors::AppError;
+use crate::utils::i18n::I18nKey;
 use async_trait::async_trait;
 use chrono::{NaiveDate, Utc};
 use diesel::prelude::*;
@@ -517,7 +518,7 @@ impl RosterRepository for DieselRosterRepository {
             .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
 
         if employment_exists.is_none() {
-            return Err(AppError::NotFound("error.employment_not_found".into()));
+            return Err(AppError::not_found(I18nKey::EmploymentNotFound));
         }
 
         let entity: crate::models::diesel::roster::ShiftRosterEntity = roster.clone().into();
@@ -569,7 +570,7 @@ impl RosterRepository for DieselRosterRepository {
             .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
 
         if employment_exists.is_none() {
-            return Err(AppError::NotFound("error.employment_not_found".into()));
+            return Err(AppError::not_found(I18nKey::EmploymentNotFound));
         }
 
         let entities: Vec<ShiftRosterEntity> = items
@@ -648,7 +649,7 @@ impl RosterRepository for DieselRosterRepository {
                     .map_err(|e| AppError::Internal(format!("db select active employment: {e}")))?;
 
                 active_emp
-                    .ok_or_else(|| AppError::NotFound("error.employment_not_found".into()))?
+                    .ok_or_else(|| AppError::not_found(I18nKey::EmploymentNotFound))?
             }
         };
 
@@ -686,7 +687,7 @@ impl RosterRepository for DieselRosterRepository {
             .map_err(|e| AppError::Internal(format!("db select employee from employment: {e}")))?;
 
         let Some(employee_id) = emp_info else {
-            return Err(AppError::NotFound("error.employment_not_found".into()));
+            return Err(AppError::not_found(I18nKey::EmploymentNotFound));
         };
 
         // Priority 2: Working Pattern
@@ -930,7 +931,7 @@ impl RosterRepository for DieselRosterRepository {
             .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
 
         if employment_exists.is_none() {
-            return Err(AppError::NotFound("error.employment_not_found".into()));
+            return Err(AppError::not_found(I18nKey::EmploymentNotFound));
         }
 
         diesel::delete(

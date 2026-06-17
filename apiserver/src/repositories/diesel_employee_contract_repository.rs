@@ -125,8 +125,9 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
 
         match created_entity {
             Ok(entity) => Ok(entity.into()),
-            Err(diesel::result::Error::RollbackTransaction) => Err(AppError::conflict_raw(
-                "overlapping_contract_exists",
+            Err(diesel::result::Error::RollbackTransaction) => Err(AppError::conflict_args(
+                crate::utils::i18n::I18nKey::Conflict,
+                vec![("details", "overlapping_contract_exists".to_string())],
             )),
             Err(e) => Err(AppError::Internal(format!("Transaction failed: {e}"))),
         }

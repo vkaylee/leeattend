@@ -124,7 +124,7 @@ where
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let UserId(user_id) = UserId::from_request_parts(parts, state)
             .await
-            .map_err(|(_, msg)| AppError::Auth(msg.into()))?;
+            .map_err(|_| AppError::auth(I18nKey::AuthenticationRequired))?;
 
         let app_state = Arc::<AppState>::from_ref(state);
         let cache_key = Self::cache_key(user_id);
@@ -227,7 +227,7 @@ mod tests {
         let Err(AppError::Forbidden(msg)) = ctx.require_role(SystemRoleType::BillingAdmin) else {
             panic!("Expected Forbidden");
         };
-        assert_eq!(msg, "error.forbidden");
+        assert_eq!(msg.to_string(), "error.forbidden");
     }
 
     #[test]

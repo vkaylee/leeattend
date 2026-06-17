@@ -51,8 +51,9 @@ impl LocationService {
         data: CreateWorkLocationRequest,
     ) -> Result<WorkLocation, AppError> {
         if data.is_headquarters == Some(true) {
-            return Err(AppError::validation_raw(
-                "Cannot explicitly create another headquarters",
+            return Err(AppError::validation_args(
+                I18nKey::Validation,
+                vec![("details", "cannot_create_headquarters".to_string())],
             ));
         }
 
@@ -91,14 +92,16 @@ impl LocationService {
         let existing = self.get_location(workspace_id, id).await?;
 
         if data.is_headquarters == Some(true) && !existing.is_headquarters {
-            return Err(AppError::validation_raw(
-                "Cannot change a regular location into headquarters directly",
+            return Err(AppError::validation_args(
+                I18nKey::Validation,
+                vec![("details", "cannot_change_location_to_headquarters".to_string())],
             ));
         }
 
         if existing.is_headquarters && data.is_headquarters == Some(false) {
-            return Err(AppError::validation_raw(
-                "Cannot remove headquarters flag from the primary location",
+            return Err(AppError::validation_args(
+                I18nKey::Validation,
+                vec![("details", "cannot_remove_headquarters_flag".to_string())],
             ));
         }
 
@@ -136,8 +139,9 @@ impl LocationService {
         let existing = self.get_location(workspace_id, id).await?;
 
         if existing.is_headquarters {
-            return Err(AppError::validation_raw(
-                "Cannot delete the headquarters location",
+            return Err(AppError::validation_args(
+                I18nKey::Validation,
+                vec![("details", "cannot_delete_headquarters".to_string())],
             ));
         }
 
@@ -148,9 +152,13 @@ impl LocationService {
             .map_err(|e| AppError::Internal(format!("Failed to count employees: {e}")))?;
 
         if employee_count > 0 {
-            return Err(AppError::validation_raw(format!(
-                "Cannot delete location because {employee_count} employees are still assigned to it."
-            )));
+            return Err(AppError::validation_args(
+                I18nKey::Validation,
+                vec![
+                    ("details", "cannot_delete_location_in_use".to_string()),
+                    ("employee_count", employee_count.to_string()),
+                ],
+            ));
         }
 
         self.repo

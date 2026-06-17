@@ -63,7 +63,7 @@ pub async fn claim_ot(
 
     let active_employment_id = employee
         .active_employment_id()
-        .ok_or_else(|| AppError::validation_raw("No active employment found"))?;
+        .ok_or_else(|| AppError::validation(I18nKey::NoActiveEmployment))?;
 
     state
         .attendance()
@@ -150,7 +150,7 @@ pub async fn approve_ot(
 
     let active_employment_id = employee
         .active_employment_id()
-        .ok_or_else(|| AppError::validation_raw("No active employment found"))?;
+        .ok_or_else(|| AppError::validation(I18nKey::NoActiveEmployment))?;
 
     state
         .attendance()

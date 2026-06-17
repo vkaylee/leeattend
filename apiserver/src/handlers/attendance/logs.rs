@@ -196,9 +196,10 @@ pub async fn force_reprocess_attendance(
         return Err(AppError::validation(crate::utils::i18n::I18nKey::InvalidDateRange));
     }
     if date_range > MAX_REPROCESS_DAYS {
-        return Err(AppError::Validation(format!(
-            "Max reprocess range is {MAX_REPROCESS_DAYS} days"
-        ).into()));
+        return Err(AppError::validation_args(
+            crate::utils::i18n::I18nKey::Validation,
+            vec![("details", format!("Max reprocess range is {MAX_REPROCESS_DAYS} days"))],
+        ));
     }
 
     // Accept both employee_id and employment_id for resilience.
@@ -255,7 +256,7 @@ pub async fn force_reprocess_attendance(
 
     let active_employment_id = employee
         .active_employment_id()
-        .ok_or_else(|| AppError::validation_raw("No active employment found"))?;
+        .ok_or_else(|| AppError::validation(crate::utils::i18n::I18nKey::NoActiveEmployment))?;
 
     let tz: chrono_tz::Tz = state
         .employees()
@@ -312,9 +313,10 @@ pub async fn force_reprocess_all_attendance(
         return Err(AppError::validation(crate::utils::i18n::I18nKey::InvalidDateRange));
     }
     if date_range > MAX_REPROCESS_DAYS {
-        return Err(AppError::Validation(format!(
-            "Max reprocess range is {MAX_REPROCESS_DAYS} days"
-        ).into()));
+        return Err(AppError::validation_args(
+            crate::utils::i18n::I18nKey::Validation,
+            vec![("details", format!("Max reprocess range is {MAX_REPROCESS_DAYS} days"))],
+        ));
     }
 
     let queue = state.infra().job_queue()?;

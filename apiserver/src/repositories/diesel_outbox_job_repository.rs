@@ -211,8 +211,12 @@ impl OutboxJobRepository for DieselOutboxJobRepository {
             });
         }
 
-        let results = futures_util::future::try_join_all(futures).await?;
-        let all_jobs = results.into_iter().flatten().collect();
+        use futures_util::stream::StreamExt;
+        let mut stream = futures_util::stream::iter(futures).buffer_unordered(10);
+        let mut all_jobs = Vec::new();
+        while let Some(res) = stream.next().await {
+            all_jobs.extend(res?);
+        }
         Ok(all_jobs)
     }
 }

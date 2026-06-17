@@ -13,31 +13,26 @@ use crate::utils::i18n::I18nKey;
 pub enum LocalizedMessage {
     Key(I18nKey),
     KeyWithArgs(I18nKey, Vec<(String, String)>),
-    #[deprecated(note = "Legacy raw string. Please replace with an I18nKey.")]
-    RawUnlocalizedLegacy(String),
 }
 
 impl std::fmt::Display for LocalizedMessage {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        #[allow(deprecated)]
         match self {
             Self::Key(k) => write!(f, "{}", k.as_str()),
             Self::KeyWithArgs(k, args) => {
                 let args_str = args
                     .iter()
-                    .map(|(name, val)| format!("{}={}", name, val))
+                    .map(|(name, val)| format!("{name}={val}"))
                     .collect::<Vec<_>>()
                     .join(",");
                 write!(f, "{}:{}", k.as_str(), args_str)
             }
-            Self::RawUnlocalizedLegacy(s) => write!(f, "{}", s),
         }
     }
 }
 
 impl LocalizedMessage {
     pub fn translate(&self, lang: &str) -> String {
-        #[allow(deprecated)]
         match self {
             Self::Key(k) => crate::utils::i18n::translate(lang, k.as_str()),
             Self::KeyWithArgs(k, args) => {
@@ -46,23 +41,6 @@ impl LocalizedMessage {
                     .map(|(k, v)| (k.as_str(), v.as_str()))
                     .collect();
                 crate::utils::i18n::translate_args(lang, k.as_str(), &borrowed_args)
-            }
-            Self::RawUnlocalizedLegacy(s) => {
-                if s.starts_with("error.") {
-                    if let Some((key, params_str)) = s.split_once(':') {
-                        let mut args = Vec::new();
-                        for param in params_str.split(',') {
-                            if let Some((k, v)) = param.split_once('=') {
-                                args.push((k, v));
-                            }
-                        }
-                        crate::utils::i18n::translate_args(lang, key, &args)
-                    } else {
-                        crate::utils::i18n::translate(lang, s)
-                    }
-                } else {
-                    s.clone()
-                }
             }
         }
     }
@@ -134,24 +112,12 @@ impl From<rust_xlsxwriter::XlsxError> for AppError {
     }
 }
 
-impl From<String> for LocalizedMessage {
-    #[allow(deprecated)]
-    fn from(s: String) -> Self {
-        Self::RawUnlocalizedLegacy(s)
-    }
-}
-
-impl From<&str> for LocalizedMessage {
-    #[allow(deprecated)]
-    fn from(s: &str) -> Self {
-        Self::RawUnlocalizedLegacy(s.to_string())
-    }
-}
-
 impl From<(StatusCode, String)> for AppError {
     fn from((status, message): (StatusCode, String)) -> Self {
-        #[allow(deprecated)]
-        let msg = LocalizedMessage::RawUnlocalizedLegacy(message);
+        let msg = LocalizedMessage::KeyWithArgs(
+            I18nKey::Validation,
+            vec![("details".to_string(), message)],
+        );
         match status.as_u16() {
             401 => Self::Auth(msg),
             403 => Self::Forbidden(msg),
@@ -168,50 +134,20 @@ impl AppError {
         Self::Auth(LocalizedMessage::Key(key))
     }
 
-    #[deprecated(note = "Use auth(key) instead")]
-    #[allow(deprecated)]
-    pub fn auth_raw(msg: impl Into<String>) -> Self {
-        Self::Auth(LocalizedMessage::RawUnlocalizedLegacy(msg.into()))
-    }
-
     pub fn forbidden(key: I18nKey) -> Self {
         Self::Forbidden(LocalizedMessage::Key(key))
-    }
-
-    #[deprecated(note = "Use forbidden(key) instead")]
-    #[allow(deprecated)]
-    pub fn forbidden_raw(msg: impl Into<String>) -> Self {
-        Self::Forbidden(LocalizedMessage::RawUnlocalizedLegacy(msg.into()))
     }
 
     pub fn not_found(key: I18nKey) -> Self {
         Self::NotFound(LocalizedMessage::Key(key))
     }
 
-    #[deprecated(note = "Use not_found(key) instead")]
-    #[allow(deprecated)]
-    pub fn not_found_raw(msg: impl Into<String>) -> Self {
-        Self::NotFound(LocalizedMessage::RawUnlocalizedLegacy(msg.into()))
-    }
-
     pub fn validation(key: I18nKey) -> Self {
         Self::Validation(LocalizedMessage::Key(key))
     }
 
-    #[deprecated(note = "Use validation(key) instead")]
-    #[allow(deprecated)]
-    pub fn validation_raw(msg: impl Into<String>) -> Self {
-        Self::Validation(LocalizedMessage::RawUnlocalizedLegacy(msg.into()))
-    }
-
     pub fn conflict(key: I18nKey) -> Self {
         Self::Conflict(LocalizedMessage::Key(key))
-    }
-
-    #[deprecated(note = "Use conflict(key) instead")]
-    #[allow(deprecated)]
-    pub fn conflict_raw(msg: impl Into<String>) -> Self {
-        Self::Conflict(LocalizedMessage::RawUnlocalizedLegacy(msg.into()))
     }
 
     pub fn service_unavailable(key: I18nKey) -> Self {
@@ -333,18 +269,38 @@ impl AppError {
             | Self::Forbidden(msg)
             | Self::NotFound(msg)
             | Self::Conflict(msg)
-            | Self::ServiceUnavailable(msg) => msg.translate(lang),
+            | Self::ServiceUnavailable(msg) => {
+                match msg {
+                    LocalizedMessage::KeyWithArgs(k, args) => {
+                        let prefix = crate::utils::i18n::translate(lang, k.as_str());
+                        if let Some((_, val)) = args.iter().find(|(name, _)| name == "details") {
+                            if prefix == k.as_str() || prefix.is_empty() {
+                                val.clone()
+                            } else {
+                                format!("{prefix}: {val}")
+                            }
+                        } else {
+                            msg.translate(lang)
+                        }
+                    }
+                    _ => msg.translate(lang),
+                }
+            }
             Self::Validation(msg) => {
-                #[allow(deprecated)]
-                let is_raw_non_key = match msg {
-                    LocalizedMessage::RawUnlocalizedLegacy(s) => !s.starts_with("error."),
-                    _ => false,
-                };
-                if is_raw_non_key {
-                    let prefix = crate::utils::i18n::translate(lang, "error.validation");
-                    format!("{prefix}: {msg}")
-                } else {
-                    msg.translate(lang)
+                match msg {
+                    LocalizedMessage::KeyWithArgs(k, args) => {
+                        let prefix = crate::utils::i18n::translate(lang, k.as_str());
+                        if let Some((_, val)) = args.iter().find(|(name, _)| name == "details") {
+                            if prefix == k.as_str() || prefix.is_empty() {
+                                val.clone()
+                            } else {
+                                format!("{prefix}: {val}")
+                            }
+                        } else {
+                            msg.translate(lang)
+                        }
+                    }
+                    _ => msg.translate(lang),
                 }
             }
         }
@@ -393,58 +349,58 @@ mod tests {
     #[test]
     fn test_status_codes() {
         assert_eq!(
-            AppError::Auth("x".into()).status_code(),
+            AppError::auth(I18nKey::InvalidToken).status_code(),
             StatusCode::UNAUTHORIZED
         );
         assert_eq!(
-            AppError::Forbidden("x".into()).status_code(),
+            AppError::forbidden(I18nKey::Forbidden).status_code(),
             StatusCode::FORBIDDEN
         );
         assert_eq!(
-            AppError::NotFound("x".into()).status_code(),
+            AppError::not_found(I18nKey::NotFound).status_code(),
             StatusCode::NOT_FOUND
         );
         assert_eq!(
-            AppError::Validation("x".into()).status_code(),
+            AppError::validation(I18nKey::Validation).status_code(),
             StatusCode::BAD_REQUEST
         );
         assert_eq!(
-            AppError::Internal("x".into()).status_code(),
+            AppError::Internal("x".to_string()).status_code(),
             StatusCode::INTERNAL_SERVER_ERROR
         );
         assert_eq!(
-            AppError::Conflict("x".into()).status_code(),
+            AppError::conflict(I18nKey::Conflict).status_code(),
             StatusCode::CONFLICT
         );
         assert_eq!(
-            AppError::ServiceUnavailable("x".into()).status_code(),
+            AppError::service_unavailable(I18nKey::ServiceUnavailable).status_code(),
             StatusCode::SERVICE_UNAVAILABLE
         );
         assert_eq!(
-            AppError::Redis("x".into()).status_code(),
+            AppError::Redis("x".to_string()).status_code(),
             StatusCode::INTERNAL_SERVER_ERROR
         );
     }
 
     #[test]
     fn test_error_codes() {
-        assert_eq!(AppError::Auth("x".into()).error_code(), "UNAUTHORIZED");
-        assert_eq!(AppError::Forbidden("x".into()).error_code(), "FORBIDDEN");
-        assert_eq!(AppError::NotFound("x".into()).error_code(), "NOT_FOUND");
+        assert_eq!(AppError::auth(I18nKey::InvalidToken).error_code(), "UNAUTHORIZED");
+        assert_eq!(AppError::forbidden(I18nKey::Forbidden).error_code(), "FORBIDDEN");
+        assert_eq!(AppError::not_found(I18nKey::NotFound).error_code(), "NOT_FOUND");
         assert_eq!(
-            AppError::Validation("x".into()).error_code(),
+            AppError::validation(I18nKey::Validation).error_code(),
             "VALIDATION_ERROR"
         );
         assert_eq!(
-            AppError::Internal("x".into()).error_code(),
+            AppError::Internal("x".to_string()).error_code(),
             "INTERNAL_ERROR"
         );
-        assert_eq!(AppError::Conflict("x".into()).error_code(), "CONFLICT");
+        assert_eq!(AppError::conflict(I18nKey::Conflict).error_code(), "CONFLICT");
         assert_eq!(
-            AppError::ServiceUnavailable("x".into()).error_code(),
+            AppError::service_unavailable(I18nKey::ServiceUnavailable).error_code(),
             "SERVICE_UNAVAILABLE"
         );
-        assert_eq!(AppError::Redis("x".into()).error_code(), "REDIS_ERROR");
+        assert_eq!(AppError::Redis("x".to_string()).error_code(), "REDIS_ERROR");
     }
 
     #[test]
@@ -488,10 +444,10 @@ mod tests {
 
     #[test]
     fn test_display_shows_message() {
-        let err = AppError::NotFound("user 42".into());
-        assert!(err.to_string().contains("user 42"));
-        let err = AppError::Validation("email invalid".into());
-        assert!(err.to_string().contains("email invalid"));
+        let err = AppError::not_found(I18nKey::UserNotFound);
+        assert!(err.to_string().contains("error.user_not_found"));
+        let err = AppError::validation(I18nKey::InvalidStatus);
+        assert!(err.to_string().contains("error.invalid_status"));
     }
 
     #[test]
@@ -512,12 +468,12 @@ mod tests {
     fn test_into_response_for_client_errors() {
         // Client errors should expose the message
         let errors = vec![
-            AppError::Auth("bad token".into()),
-            AppError::Forbidden("no access".into()),
-            AppError::NotFound("user 42".into()),
-            AppError::Validation("email required".into()),
-            AppError::Conflict("duplicate entry".into()),
-            AppError::ServiceUnavailable("down for maintenance".into()),
+            AppError::auth(I18nKey::InvalidToken),
+            AppError::forbidden(I18nKey::Forbidden),
+            AppError::not_found(I18nKey::NotFound),
+            AppError::validation(I18nKey::Validation),
+            AppError::conflict(I18nKey::Conflict),
+            AppError::service_unavailable(I18nKey::ServiceUnavailable),
         ];
         for err in errors {
             let response = err.into_response();
@@ -529,8 +485,8 @@ mod tests {
     fn test_into_response_for_internal_errors() {
         // Internal errors should NOT expose the actual message
         let errors = vec![
-            AppError::Internal("secret db info".into()),
-            AppError::Redis("redis connection failed".into()),
+            AppError::Internal("secret db info".to_string()),
+            AppError::Redis("redis connection failed".to_string()),
         ];
         for err in errors {
             let response = err.into_response();
@@ -540,7 +496,7 @@ mod tests {
 
     #[test]
     fn test_status_code_service_unavailable() {
-        let err = AppError::ServiceUnavailable("maintenance".into());
+        let err = AppError::service_unavailable(I18nKey::ServiceUnavailable);
         assert_eq!(err.status_code(), StatusCode::SERVICE_UNAVAILABLE);
         assert_eq!(err.error_code(), "SERVICE_UNAVAILABLE");
     }
@@ -548,14 +504,14 @@ mod tests {
     #[test]
     fn test_all_error_variants_display() {
         let errors: Vec<AppError> = vec![
-            AppError::Auth("a".into()),
-            AppError::Forbidden("b".into()),
-            AppError::NotFound("c".into()),
-            AppError::Validation("d".into()),
-            AppError::Internal("e".into()),
-            AppError::Conflict("f".into()),
-            AppError::ServiceUnavailable("g".into()),
-            AppError::Redis("h".into()),
+            AppError::auth(I18nKey::InvalidToken),
+            AppError::forbidden(I18nKey::Forbidden),
+            AppError::not_found(I18nKey::NotFound),
+            AppError::validation(I18nKey::Validation),
+            AppError::Internal("e".to_string()),
+            AppError::conflict(I18nKey::Conflict),
+            AppError::service_unavailable(I18nKey::ServiceUnavailable),
+            AppError::Redis("h".to_string()),
         ];
         for err in &errors {
             let display = err.to_string();

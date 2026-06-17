@@ -89,8 +89,9 @@ impl HolidayLeaveService {
                     .find_default_paid_leave_type(workspace_id)
                     .await?
                     .ok_or_else(|| {
-                        crate::errors::AppError::not_found_raw(
-                            "No paid leave type found to deduct for unpaid holiday",
+                        crate::errors::AppError::not_found_args(
+                            crate::utils::i18n::I18nKey::LeaveTypeNotFound,
+                            [("details", "No paid leave type found to deduct for unpaid holiday")],
                         )
                     })?
             }

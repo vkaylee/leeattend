@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::errors::AppError;
+use crate::utils::i18n::I18nKey;
 use chrono::Utc;
 
 use tracing::error;
@@ -65,7 +66,7 @@ impl ShiftSwapService {
                 AppError::Internal("Internal error".into())
             })?;
         if dup {
-            return Err(AppError::Conflict("Conflict".into())); // duplicate swap
+            return Err(AppError::conflict(I18nKey::Conflict)); // duplicate swap
         }
 
         // 2. Conflict check — either employee already has an approved swap on this date
@@ -83,13 +84,13 @@ impl ShiftSwapService {
                     AppError::Internal("Internal error".into())
                 })?;
             if conflict {
-                return Err(AppError::Conflict("Conflict".into())); // already swapped that day
+                return Err(AppError::conflict(I18nKey::Conflict)); // already swapped that day
             }
         }
 
         // 3. Same-shift guard — swap is pointless if both have the same shift
         if requester_shift_id == target_shift_id {
-            return Err(AppError::Validation("Invalid request".into())); // same shift, no point
+            return Err(AppError::validation(I18nKey::Validation)); // same shift, no point
         }
 
         // 4. OT max daily check — warn if the new shift is significantly longer
@@ -168,7 +169,7 @@ impl ShiftSwapService {
         req: CreateShiftSwapRequest,
     ) -> Result<ShiftSwapRequest, AppError> {
         if req.requester_id == req.target_id {
-            return Err(AppError::Validation("Invalid request".into()));
+            return Err(AppError::validation(I18nKey::Validation));
         }
 
         // Validate both employees belong to this workspace
@@ -188,19 +189,19 @@ impl ShiftSwapService {
             .await?;
 
         if req_emp.is_none() || tgt_emp.is_none() {
-            return Err(AppError::Validation("Invalid request".into()));
+            return Err(AppError::validation(I18nKey::Validation));
         }
 
         let req_emp_unwrapped =
-            req_emp.ok_or_else(|| AppError::Validation("Invalid request".into()))?;
+            req_emp.ok_or_else(|| AppError::validation(I18nKey::EmployeeNotFound))?;
         let tgt_emp_unwrapped =
-            tgt_emp.ok_or_else(|| AppError::Validation("Invalid request".into()))?;
+            tgt_emp.ok_or_else(|| AppError::validation(I18nKey::EmployeeNotFound))?;
         let req_employment_id = req_emp_unwrapped
             .active_employment_id()
-            .ok_or_else(|| AppError::Validation("No active employment for requester".into()))?;
+            .ok_or_else(|| AppError::validation(crate::utils::i18n::I18nKey::NoActiveEmployment))?;
         let tgt_employment_id = tgt_emp_unwrapped
             .active_employment_id()
-            .ok_or_else(|| AppError::Validation("No active employment for target".into()))?;
+            .ok_or_else(|| AppError::validation(crate::utils::i18n::I18nKey::NoActiveEmployment))?;
 
         // Look up current effective shifts for both employees
         let (requester_shift_id, _) = self
@@ -285,11 +286,11 @@ impl ShiftSwapService {
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
             )
             .await?
-            .ok_or(AppError::NotFound("Not found".into()))?;
+            .ok_or(AppError::not_found(I18nKey::NotFound))?;
 
         // Only pending requests can be approved/rejected
         if request.status() != ShiftSwapStatus::PendingAdmin {
-            return Err(AppError::Conflict("Conflict".into()));
+            return Err(AppError::conflict(I18nKey::Conflict));
         }
 
         // Update the status first
@@ -317,7 +318,7 @@ impl ShiftSwapService {
                     &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
                 )
                 .await?
-                .ok_or_else(|| AppError::Validation("Requester employee not found".into()))?;
+                .ok_or_else(|| AppError::validation(I18nKey::EmployeeNotFound))?;
             let tgt_emp = self
                 .employee_repo
                 .get_employee_by_id(
@@ -325,14 +326,14 @@ impl ShiftSwapService {
                     &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
                 )
                 .await?
-                .ok_or_else(|| AppError::Validation("Target employee not found".into()))?;
+                .ok_or_else(|| AppError::validation(I18nKey::EmployeeNotFound))?;
 
             let req_employment_id = req_emp
                 .active_employment_id()
-                .ok_or_else(|| AppError::Validation("No active employment for requester".into()))?;
+                .ok_or_else(|| AppError::validation(crate::utils::i18n::I18nKey::NoActiveEmployment))?;
             let tgt_employment_id = tgt_emp
                 .active_employment_id()
-                .ok_or_else(|| AppError::Validation("No active employment for target".into()))?;
+                .ok_or_else(|| AppError::validation(crate::utils::i18n::I18nKey::NoActiveEmployment))?;
 
             // Requester gets target's shift
             let requester_roster = ShiftRoster {
@@ -417,7 +418,7 @@ impl ShiftSwapService {
         req: crate::models::shift_swap::EssCreateShiftSwapRequest,
     ) -> Result<ShiftSwapRequest, AppError> {
         if requester_employee_id == req.target_id {
-            return Err(AppError::Validation("Invalid request".into()));
+            return Err(AppError::validation(I18nKey::Validation));
         }
 
         // Validate target belongs to same workspace
@@ -430,11 +431,11 @@ impl ShiftSwapService {
             .await?;
 
         if target_emp.as_ref().is_none_or(|e| !e.is_active()) {
-            return Err(AppError::Validation("Invalid request".into()));
+            return Err(AppError::validation(I18nKey::Validation));
         }
 
         let target_emp_unwrapped =
-            target_emp.ok_or_else(|| AppError::Validation("Invalid request".into()))?;
+            target_emp.ok_or_else(|| AppError::validation(I18nKey::EmployeeNotFound))?;
         let req_emp = self
             .employee_repo
             .get_employee_by_id(
@@ -442,14 +443,14 @@ impl ShiftSwapService {
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
             )
             .await?
-            .ok_or_else(|| AppError::Validation("Requester employee not found".into()))?;
+            .ok_or_else(|| AppError::validation(I18nKey::EmployeeNotFound))?;
 
         let req_employment_id = req_emp
             .active_employment_id()
-            .ok_or_else(|| AppError::Validation("No active employment for requester".into()))?;
+            .ok_or_else(|| AppError::validation(crate::utils::i18n::I18nKey::NoActiveEmployment))?;
         let tgt_employment_id = target_emp_unwrapped
             .active_employment_id()
-            .ok_or_else(|| AppError::Validation("No active employment for target".into()))?;
+            .ok_or_else(|| AppError::validation(crate::utils::i18n::I18nKey::NoActiveEmployment))?;
 
         // Look up effective shifts
         let (requester_shift_id, _) = self
@@ -536,16 +537,16 @@ impl ShiftSwapService {
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
             )
             .await?
-            .ok_or(AppError::NotFound("Not found".into()))?;
+            .ok_or(AppError::not_found(I18nKey::NotFound))?;
 
         // Only the target can respond
         if request.target_id() != target_employee_id {
-            return Err(AppError::Forbidden("Forbidden".into()));
+            return Err(AppError::forbidden(I18nKey::Forbidden));
         }
 
         // Only pending_target requests can be responded to
         if request.status() != ShiftSwapStatus::PendingTarget {
-            return Err(AppError::Conflict("Conflict".into()));
+            return Err(AppError::conflict(I18nKey::Conflict));
         }
 
         let new_status = if accept {
@@ -583,18 +584,18 @@ impl ShiftSwapService {
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
             )
             .await?
-            .ok_or(AppError::NotFound("Not found".into()))?;
+            .ok_or(AppError::not_found(I18nKey::NotFound))?;
 
         // Only the requester can cancel
         if request.requester_id() != requester_employee_id {
-            return Err(AppError::Forbidden("Forbidden".into()));
+            return Err(AppError::forbidden(I18nKey::Forbidden));
         }
 
         // Can only cancel pending requests
         if request.status() != ShiftSwapStatus::PendingTarget
             && request.status() != ShiftSwapStatus::PendingAdmin
         {
-            return Err(AppError::Conflict("Conflict".into()));
+            return Err(AppError::conflict(I18nKey::Conflict));
         }
 
         self.swap_repo

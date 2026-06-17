@@ -1,4 +1,5 @@
 use crate::errors::AppError;
+use crate::utils::i18n::I18nKey;
 use crate::models::WorkspaceConfigEntry;
 use crate::repositories::WorkspaceConfigRepository;
 use crate::schema::workspace_config_entries;
@@ -26,7 +27,7 @@ impl WorkspaceConfigRepository for DieselWorkspaceConfigRepository {
         entry: WorkspaceConfigEntry,
     ) -> Result<WorkspaceConfigEntry, AppError> {
         if entry.workspace_id() != auth_token.workspace_id() {
-            return Err(AppError::Forbidden("error.tenant_mismatch".into()));
+            return Err(AppError::forbidden(I18nKey::TenantMismatch));
         }
 
         let mut conn = self

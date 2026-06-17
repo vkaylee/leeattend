@@ -1,4 +1,5 @@
 use crate::errors::{AppError, AppResult};
+use crate::utils::i18n::I18nKey;
 use std::sync::Arc;
 
 use chrono::{NaiveDate, TimeZone};
@@ -100,7 +101,7 @@ impl AttendanceSummaryService {
                 employment_id,
             )
             .await?
-            .ok_or_else(|| AppError::not_found_raw("Employment not found"))?;
+            .ok_or_else(|| AppError::not_found(I18nKey::EmploymentNotFound))?;
         let employee_id = employment.employee_id();
 
         // 1. Fetch schedule & time entries
@@ -193,7 +194,7 @@ impl AttendanceSummaryService {
             .workspace_repo
             .get_workspace_by_id(workspace_id)
             .await?
-            .ok_or_else(|| AppError::not_found_raw("Workspace not found"))?;
+            .ok_or_else(|| AppError::not_found(I18nKey::WorkspaceNotFound))?;
 
         let tz: Tz = crate::utils::tz::parse_workspace_tz(workspace.timezone());
 
@@ -210,12 +211,22 @@ impl AttendanceSummaryService {
 
         let emp_sched = schedules
             .first()
-            .ok_or_else(|| AppError::not_found_raw("No schedule found for employee"))?;
+            .ok_or_else(|| {
+                AppError::not_found_args(
+                    I18nKey::NotFound,
+                    vec![("details", "no_schedule_found_for_employee".to_string())],
+                )
+            })?;
         let daily_schedule = emp_sched
             .schedules
             .iter()
             .find(|s| s.date == date)
-            .ok_or_else(|| AppError::not_found_raw("No schedule for date"))?
+            .ok_or_else(|| {
+                AppError::not_found_args(
+                    I18nKey::NotFound,
+                    vec![("details", "no_schedule_for_date".to_string())],
+                )
+            })?
             .clone();
 
         let start_dt_utc = local_midnight_to_utc(&tz, date, 0, 0, 0).map_err(AppError::Internal)?;
@@ -565,7 +576,7 @@ impl AttendanceSummaryService {
             .await?;
 
         if rows_affected == 0 {
-            return Err(AppError::not_found_raw("Record not found"));
+            return Err(AppError::not_found(I18nKey::NotFound));
         }
         Ok(())
     }
@@ -594,7 +605,7 @@ impl AttendanceSummaryService {
             .await?;
 
         if rows_affected == 0 {
-            return Err(AppError::not_found_raw("Record not found"));
+            return Err(AppError::not_found(I18nKey::NotFound));
         }
         Ok(())
     }
@@ -619,10 +630,14 @@ impl AttendanceSummaryService {
         if !args.allow_exceed {
             if let Some(ref ex) = existing {
                 if args.claimed_minutes > ex.system_detected_ot_minutes {
-                    return Err(AppError::validation_raw(format!(
-                        "Claimed {} minutes exceeds system detected {} minutes",
-                        args.claimed_minutes, ex.system_detected_ot_minutes
-                    )));
+                    return Err(AppError::validation_args(
+                        I18nKey::Validation,
+                        vec![
+                            ("details", "claimed_minutes_exceed_system_detected".to_string()),
+                            ("claimed", args.claimed_minutes.to_string()),
+                            ("detected", ex.system_detected_ot_minutes.to_string()),
+                        ],
+                    ));
                 }
             }
         }
@@ -659,7 +674,7 @@ impl crate::services::approval_workflow::WorkflowCallbackHandler for AttendanceS
             .daily_summary_repo
             .get_summary_by_id(auth_token, entity_id)
             .await?
-            .ok_or_else(|| AppError::not_found_raw("Attendance daily summary not found"))?;
+            .ok_or_else(|| AppError::not_found(I18nKey::AttendanceSummaryNotFound))?;
 
         let ot_status = match status {
             "approved" => crate::models::OtStatus::Approved,

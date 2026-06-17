@@ -64,8 +64,9 @@ impl DieselEmploymentPhaseRepository {
                         .constraint_name()
                         .is_some_and(|c| c == "employment_phase_definitions_workspace_id_name_key")
                     {
-                        return AppError::validation_raw(
-                            "Phase definition with this name already exists in the workspace.",
+                        return AppError::validation_args(
+                            I18nKey::Validation,
+                            vec![("details", "Phase definition with this name already exists in the workspace.".to_string())],
                         );
                     }
                 }

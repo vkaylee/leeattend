@@ -1,5 +1,6 @@
 use crate::diesel_pool::{DieselPools, TenantAuthToken};
 use crate::errors::AppError;
+use crate::utils::i18n::I18nKey;
 use crate::models::diesel::lifecycle_checklist::{
     LifecycleChecklistEntity, LifecycleChecklistItemEntity, LifecycleChecklistTemplateEntity,
     LifecycleChecklistTemplateItemEntity,
@@ -165,7 +166,7 @@ impl LifecycleChecklistRepository for DieselLifecycleChecklistRepository {
                     .filter(lifecycle_checklist_templates::deleted_at.is_null())
                     .first::<LifecycleChecklistTemplateEntity>(conn)
                     .await
-                    .map_err(|_err| AppError::NotFound("error.template_not_found".into()))?;
+                    .map_err(|_err| AppError::not_found(I18nKey::TemplateNotFound))?;
 
                 // If is_default is changing to true, unset others first
                 if data.is_default == Some(true) {
@@ -235,7 +236,7 @@ impl LifecycleChecklistRepository for DieselLifecycleChecklistRepository {
         .map_err(|e| AppError::Internal(format!("db soft delete template: {e}")))?;
 
         if rows == 0 {
-            return Err(AppError::NotFound("error.custom_field_not_found".into()));
+            return Err(AppError::not_found(I18nKey::TemplateNotFound));
         }
 
         Ok(())
@@ -379,7 +380,7 @@ impl LifecycleChecklistRepository for DieselLifecycleChecklistRepository {
             .select(lifecycle_checklist_template_items::all_columns)
             .first::<LifecycleChecklistTemplateItemEntity>(&mut *conn)
             .await
-            .map_err(|_err| AppError::NotFound("error.template_item_not_found".into()))?;
+            .map_err(|_err| AppError::not_found(I18nKey::TemplateItemNotFound))?;
 
         if let Some(title) = data.title {
             existing.title = title;
@@ -457,7 +458,7 @@ impl LifecycleChecklistRepository for DieselLifecycleChecklistRepository {
         .map_err(|e| AppError::Internal(format!("db delete template item: {e}")))?;
 
         if rows == 0 {
-            return Err(AppError::NotFound("error.custom_field_not_found".into()));
+            return Err(AppError::not_found(I18nKey::TemplateItemNotFound));
         }
 
         Ok(())

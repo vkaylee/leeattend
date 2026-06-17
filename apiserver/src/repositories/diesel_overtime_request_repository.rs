@@ -1,4 +1,5 @@
 use crate::errors::AppError;
+use crate::utils::i18n::I18nKey;
 use crate::models::{OvertimeRequest, OvertimeRequestEmployee};
 use crate::repositories::OvertimeRequestRepository;
 use crate::schema::{overtime_request_employees, overtime_requests};
@@ -26,7 +27,7 @@ impl OvertimeRequestRepository for DieselOvertimeRequestRepository {
         employees: Vec<OvertimeRequestEmployee>,
     ) -> Result<OvertimeRequest, AppError> {
         if request.workspace_id() != auth_token.workspace_id() {
-            return Err(AppError::Forbidden("error.tenant_mismatch".into()));
+            return Err(AppError::forbidden(I18nKey::TenantMismatch));
         }
 
         let mut conn = self

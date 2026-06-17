@@ -64,16 +64,22 @@ impl SignatureService {
             .signature_repository
             .get_signature_request(auth_token, request_id)
             .await?
-            .ok_or_else(|| AppError::not_found_raw("Signature request not found"))?;
+            .ok_or_else(|| {
+                AppError::not_found_args(
+                    crate::utils::i18n::I18nKey::NotFound,
+                    vec![("details", "signature_request_not_found".to_string())],
+                )
+            })?;
 
         if request.workspace_id != auth_token.workspace_id() {
-            return Err(AppError::forbidden_raw(
-                "Request does not belong to your workspace",
-            ));
+            return Err(AppError::forbidden(crate::utils::i18n::I18nKey::Forbidden));
         }
 
         if request.status != SignatureStatus::Pending {
-            return Err(AppError::validation_raw("Signature request is not pending"));
+            return Err(AppError::validation_args(
+                crate::utils::i18n::I18nKey::Validation,
+                vec![("details", "signature_request_not_pending".to_string())],
+            ));
         }
 
         // Ideally, we decode payload.signature_image_base64 and upload it via FileService

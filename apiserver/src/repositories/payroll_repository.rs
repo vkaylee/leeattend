@@ -212,6 +212,21 @@ pub trait PayrollRepository: Send + Sync {
         workspace_id: Uuid,
         employment_ids: &[Uuid],
     ) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, AppError>;
+
+    async fn get_resolved_rule_assignments_batch(
+        &self,
+        workspace_id: Uuid,
+        employee_ids: &[Uuid],
+        employee_departments: &std::collections::HashMap<Uuid, Option<Uuid>>,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<std::collections::HashMap<Uuid, Vec<ResolvedRuleAssignment>>, AppError>;
+
+    async fn get_payroll_rule_tiers_batch(
+        &self,
+        workspace_id: Uuid,
+        rule_definition_ids: &[Uuid],
+    ) -> Result<std::collections::HashMap<Uuid, Vec<crate::models::PayrollRuleTier>>, AppError>;
 }
 
 #[derive(Debug, Clone)]

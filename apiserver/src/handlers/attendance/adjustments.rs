@@ -8,6 +8,7 @@ use uuid::Uuid;
 
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
+use crate::utils::i18n::I18nKey;
 use crate::handlers::common::MemberContext;
 use crate::models::{
     AdjustmentStatus, ApproveAttendanceAdjustmentRequest, AttendanceAdjustmentRequest,
@@ -140,8 +141,9 @@ pub async fn approve_attendance_adjustment(
             AdjustmentStatus::Approved => "approve".to_string(),
             AdjustmentStatus::Rejected => "reject".to_string(),
             AdjustmentStatus::Pending => {
-                return Err(crate::errors::AppError::Validation(
-                    "Cannot set status to pending".into(),
+                return Err(crate::errors::AppError::validation_args(
+                    I18nKey::Validation,
+                    vec![("details", "Cannot set status to pending".to_string())],
                 ))
             }
         };

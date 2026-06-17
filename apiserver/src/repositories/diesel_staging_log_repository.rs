@@ -5,6 +5,7 @@ use diesel_async::{AsyncConnection, RunQueryDsl};
 use uuid::Uuid;
 
 use crate::errors::AppError;
+use crate::utils::i18n::I18nKey;
 use crate::models::diesel::attendance_log::AttendanceStagingLogEntity;
 use crate::repositories::staging_log_repository::{StagingLog, StagingLogRepository};
 use crate::schema::attendance_staging_logs;
@@ -236,7 +237,7 @@ impl StagingLogRepository for DieselStagingLogRepository {
                     .map_err(|e| AppError::Internal(format!("db check active employment: {e}")))?;
 
                 let Some(employment_id) = active_employment else {
-                    return Err(AppError::NotFound("error.employee_not_found".into()));
+                    return Err(AppError::not_found(I18nKey::EmployeeNotFound));
                 };
 
                 let staged_logs = attendance_staging_logs::table
@@ -330,7 +331,7 @@ impl StagingLogRepository for DieselStagingLogRepository {
                     .map_err(|e| AppError::Internal(format!("db check active employment: {e}")))?;
 
                 let Some(employment_id) = active_employment else {
-                    return Err(AppError::NotFound("error.employee_not_found".into()));
+                    return Err(AppError::not_found(I18nKey::EmployeeNotFound));
                 };
 
                 // Use for_update() to lock the row. We don't use nowait() here because it might
@@ -347,17 +348,17 @@ impl StagingLogRepository for DieselStagingLogRepository {
                             _,
                         ) = e
                         {
-                            AppError::Conflict("error.staging_log_conflict".into())
+                            AppError::conflict(I18nKey::StagingLogConflict)
                         } else if e == diesel::result::Error::NotFound {
-                            AppError::NotFound("error.staging_log_not_found".into())
+                            AppError::not_found(I18nKey::StagingLogNotFound)
                         } else {
                             AppError::Internal(format!("db: {e}"))
                         }
                     })?;
 
                 if staged.status != "pending" {
-                    return Err(AppError::Validation(
-                        "error.staging_log_processed".into(),
+                    return Err(AppError::validation(
+                        I18nKey::StagingLogProcessed,
                     ));
                 }
 

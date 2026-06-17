@@ -121,6 +121,7 @@ impl DieselPools {
             Some(api_pool.clone()),
             config.tenant_max_conn as usize,
         ));
+        tenant_tx_manager.start_eviction_task();
 
         let tenant_sess_manager = Arc::new(TenantPoolManager::new(
             config.tenant_pooler_sess_url.clone(),
@@ -128,6 +129,7 @@ impl DieselPools {
             Some(api_pool.clone()),
             config.tenant_max_conn as usize,
         ));
+        tenant_sess_manager.start_eviction_task();
 
         tracing::info!("Diesel pools connected successfully");
 

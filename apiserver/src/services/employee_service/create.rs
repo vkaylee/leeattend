@@ -1,5 +1,6 @@
 use super::EmployeeService;
 use crate::errors::AppError;
+use crate::utils::i18n::I18nKey;
 use crate::models::{CreateEmployeeRequest, Employee};
 use crate::utils::id::new_id;
 use chrono::Utc;
@@ -17,7 +18,7 @@ impl EmployeeService {
             self.user_repo
                 .get_user_by_id(user_id)
                 .await?
-                .ok_or(AppError::Validation("error.user_not_found".into()))?;
+                .ok_or(AppError::validation(I18nKey::UserNotFound))?;
 
             // Enforce 1-to-1 User/Employee link in this workspace
             if self
@@ -26,7 +27,7 @@ impl EmployeeService {
                 .await?
                 .is_some()
             {
-                return Err(AppError::Validation("error.user_already_linked".into()));
+                return Err(AppError::validation(I18nKey::UserAlreadyLinked));
             }
         }
 

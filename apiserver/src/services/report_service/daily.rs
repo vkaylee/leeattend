@@ -1,6 +1,7 @@
 use super::{AttendanceReportArgs, CalculateDayUnitsArgs, ReportService};
 use crate::domain::policy::resolver::{PolicyResolver, ShiftPolicyOverrides};
 use crate::errors::AppError;
+use crate::utils::i18n::I18nKey;
 use crate::models::{DailyAttendanceReport, PaginatedResponse};
 use crate::services::{AttendanceCalculator, PolicyResolverService};
 use chrono::{NaiveDate, TimeZone, Utc};
@@ -105,7 +106,7 @@ impl ReportService {
                 tracing::error!("Error fetching workspace: {}", e);
                 AppError::Internal("Internal error".into())
             })?
-            .ok_or(AppError::NotFound("error.not_found".into()))?;
+            .ok_or(AppError::not_found(I18nKey::NotFound))?;
 
         let tz: Tz = crate::utils::tz::parse_workspace_tz(workspace.timezone());
 
@@ -120,7 +121,7 @@ impl ReportService {
                     .employment_repo
                     .get_employment_by_id(&auth_token, specific_employment_id)
                     .await?
-                    .ok_or_else(|| AppError::NotFound("error.not_found".into()))?;
+                    .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
 
                 let employee = self
                     .employee_repo
@@ -133,7 +134,7 @@ impl ReportService {
                         full_name: e.full_name().to_string(),
                         employee_id_number: e.employee_id_number().to_string(),
                     })
-                    .ok_or_else(|| AppError::NotFound("error.not_found".into()))?;
+                    .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
 
                 (
                     vec![employee],
@@ -256,7 +257,7 @@ impl ReportService {
             args.start_date,
             args.end_date,
         )
-        .ok_or(AppError::Validation("error.validation".into()))?;
+        .ok_or(AppError::validation(I18nKey::Validation))?;
 
         let entries_map = self
             .time_entry_repo

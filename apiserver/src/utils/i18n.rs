@@ -416,6 +416,149 @@ impl I18nKey {
     }
 }
 
+impl std::str::FromStr for I18nKey {
+    type Err = ();
+
+    #[allow(clippy::too_many_lines)]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "error.unauthorized" => Ok(Self::Unauthorized),
+            "error.authentication_required" => Ok(Self::AuthenticationRequired),
+            "error.forbidden" => Ok(Self::Forbidden),
+            "error.not_found" => Ok(Self::NotFound),
+            "error.validation" => Ok(Self::Validation),
+            "error.internal" => Ok(Self::Internal),
+            "error.conflict" => Ok(Self::Conflict),
+            "error.service_unavailable" => Ok(Self::ServiceUnavailable),
+            "error.missing_workspace" => Ok(Self::MissingWorkspace),
+            "error.invalid_workspace_id" => Ok(Self::InvalidWorkspaceId),
+            "error.no_employee_record" => Ok(Self::NoEmployeeRecord),
+            "error.system_route_tenant_context" => Ok(Self::SystemRouteTenantContext),
+            "error.not_workspace_member" => Ok(Self::NotWorkspaceMember),
+            "error.user_not_found" => Ok(Self::UserNotFound),
+            "error.employee_not_found" => Ok(Self::EmployeeNotFound),
+            "error.employment_not_found" => Ok(Self::EmploymentNotFound),
+            "error.department_not_found" => Ok(Self::DepartmentNotFound),
+            "error.database_error" => Ok(Self::DatabaseError),
+            "error.cannot_revoke_last_admin" => Ok(Self::CannotRevokeLastAdmin),
+            "error.behalf_assignment_missing_target" => Ok(Self::BehalfAssignmentMissingTarget),
+            "error.behalf_assignment_dual_target" => Ok(Self::BehalfAssignmentDualTarget),
+            "error.upload_multipart" => Ok(Self::UploadMultipart),
+            "error.upload_read_failed" => Ok(Self::UploadReadFailed),
+            "error.upload_file_too_large" => Ok(Self::UploadFileTooLarge),
+            "error.upload_no_file" => Ok(Self::UploadNoFile),
+            "error.tenant_mismatch" => Ok(Self::TenantMismatch),
+            "error.supavisor_api_url_required" => Ok(Self::SupavisorApiUrlRequired),
+            "error.api_jwt_secret_required" => Ok(Self::ApiJwtSecretRequired),
+            "error.staging_log_not_found" => Ok(Self::StagingLogNotFound),
+            "error.staging_log_processed" => Ok(Self::StagingLogProcessed),
+            "error.staging_log_conflict" => Ok(Self::StagingLogConflict),
+            "error.login_locked" => Ok(Self::LoginLocked),
+            "error.holiday_not_found" => Ok(Self::HolidayNotFound),
+            "error.holiday_already_exists" => Ok(Self::HolidayAlreadyExists),
+            "error.job_not_found" => Ok(Self::JobNotFound),
+            "error.error_file_not_found" => Ok(Self::ErrorFileNotFound),
+            "error.workspace_not_found" => Ok(Self::WorkspaceNotFound),
+            "error.cannot_remove_self" => Ok(Self::CannotRemoveSelf),
+            "error.role_not_found" => Ok(Self::RoleNotFound),
+            "error.role_not_found_or_system" => Ok(Self::RoleNotFoundOrSystem),
+            "error.expiration_future" => Ok(Self::ExpirationFuture),
+            "error.unknown_permission" => Ok(Self::UnknownPermission),
+            "error.employee_assignment_not_found" => Ok(Self::EmployeeAssignmentNotFound),
+            "error.home_host_location_same" => Ok(Self::HomeHostLocationSame),
+            "error.contract_not_found" => Ok(Self::ContractNotFound),
+            "error.leave_type_not_found" => Ok(Self::LeaveTypeNotFound),
+            "error.policy_not_found" => Ok(Self::PolicyNotFound),
+            "error.attendance_summary_not_found" => Ok(Self::AttendanceSummaryNotFound),
+            "error.invalid_status" => Ok(Self::InvalidStatus),
+            "error.overtime_request_not_found" => Ok(Self::OvertimeRequestNotFound),
+            "error.overtime_request_no_employees" => Ok(Self::OvertimeRequestNoEmployees),
+            "error.invalid_start_date_format" => Ok(Self::InvalidStartDateValue),
+            "error.invalid_end_date_format" => Ok(Self::InvalidEndDateValue),
+            "error.invalid_year_month" => Ok(Self::InvalidYearMonth),
+            "error.invalid_date_range" => Ok(Self::InvalidDateRange),
+            "error.invalid_date_format" => Ok(Self::InvalidDateFormat),
+            "error.no_error_file_available" => Ok(Self::NoErrorFileAvailable),
+            "error.workflow_not_found" => Ok(Self::WorkflowNotFound),
+            "error.workflow_instance_not_found" => Ok(Self::WorkflowInstanceNotFound),
+            "error.invalid_feature_flag_key" => Ok(Self::InvalidFeatureFlagKey),
+            "error.feature_flag_not_found" => Ok(Self::FeatureFlagNotFound),
+            "error.contact_not_found" => Ok(Self::ContactNotFound),
+            "error.minutes_greater_than_zero" => Ok(Self::MinutesGreaterThanZero),
+            "error.multipart_error" => Ok(Self::MultipartError),
+            "error.failed_read_file_bytes" => Ok(Self::FailedToReadFileBytes),
+            "error.file_too_large" => Ok(Self::FileTooLarge),
+            "error.no_file_uploaded" => Ok(Self::NoFileUploaded),
+            "error.invalid_file_format" => Ok(Self::InvalidFileFormat),
+            "error.invalid_utf8_csv" => Ok(Self::InvalidUtf8Csv),
+            "error.csv_parsing_error" => Ok(Self::CsvParsingError),
+            "error.max_rows_exceeded" => Ok(Self::MaxRowsExceeded),
+            "error.system_role_not_found" => Ok(Self::SystemRoleNotFound),
+            "error.unknown_system_role" => Ok(Self::UnknownSystemRole),
+            "error.role_name_required" => Ok(Self::RoleNameRequired),
+            "error.system_user_not_found" => Ok(Self::SystemUserNotFound),
+            "error.password_too_short" => Ok(Self::PasswordTooShort),
+            "error.password_too_long" => Ok(Self::PasswordTooLong),
+            "error.password_complexity" => Ok(Self::PasswordComplexity),
+            "error.invalid_email_format" => Ok(Self::InvalidEmailFormat),
+            "error.full_name_required" => Ok(Self::FullNameRequired),
+            "error.email_already_exists" => Ok(Self::EmailAlreadyExists),
+            "error.invalid_email_or_password" => Ok(Self::InvalidEmailOrPassword),
+            "error.no_refresh_token" => Ok(Self::NoRefreshToken),
+            "error.current_password_incorrect" => Ok(Self::CurrentPasswordIncorrect),
+            "error.no_active_employees_found" => Ok(Self::NoActiveEmployeesFound),
+            "error.cannot_cancel_job" => Ok(Self::CannotCancelJob),
+            "error.no_report_file_generated" => Ok(Self::NoReportFileGenerated),
+            "error.device_not_found" => Ok(Self::DeviceNotFound),
+            "error.agent_not_found" => Ok(Self::AgentNotFound),
+            "error.no_fields_to_update" => Ok(Self::NoFieldsToUpdate),
+            "error.invalid_group" => Ok(Self::InvalidGroup),
+            "error.invalid_tenant_id_format" => Ok(Self::InvalidTenantIdFormat),
+            "error.invalid_scope_type" => Ok(Self::InvalidScopeType),
+            "error.location_not_found" => Ok(Self::LocationNotFound),
+            "error.employer_not_found" => Ok(Self::EmployerNotFound),
+            "error.recruitment_source_not_found" => Ok(Self::RecruitmentSourceNotFound),
+            "error.shift_not_found" => Ok(Self::ShiftNotFound),
+            "error.shift_assignment_already_exists" => Ok(Self::ShiftAssignmentAlreadyExists),
+            "error.employee_phase_not_found" => Ok(Self::EmployeePhaseNotFound),
+            "error.invalid_base_group" => Ok(Self::InvalidBaseGroup),
+            "error.invalid_token" => Ok(Self::InvalidToken),
+            "error.overflow_calculation" => Ok(Self::OverflowCalculation),
+            "error.user_already_linked" => Ok(Self::UserAlreadyLinked),
+            "error.employee_already_active" => Ok(Self::EmployeeAlreadyActive),
+            "error.rehire_date_invalid" => Ok(Self::RehireDateInvalid),
+            "error.no_active_employment" => Ok(Self::NoActiveEmployment),
+            "error.overlapping_employment" => Ok(Self::OverlappingEmployment),
+            "error.custom_field_not_found" => Ok(Self::CustomFieldNotFound),
+            "error.template_not_found" => Ok(Self::TemplateNotFound),
+            "error.template_item_not_found" => Ok(Self::TemplateItemNotFound),
+            "error.template_name_empty" => Ok(Self::TemplateNameEmpty),
+            "error.template_item_title_empty" => Ok(Self::TemplateItemTitleEmpty),
+            "error.checklist_not_found" => Ok(Self::ChecklistNotFound),
+            "error.checklist_item_not_found" => Ok(Self::ChecklistItemNotFound),
+            "error.cannot_open_xlsx" => Ok(Self::CannotOpenXlsx),
+            "error.cannot_open_xls" => Ok(Self::CannotOpenXls),
+            "error.empty_excel_sheet" => Ok(Self::EmptyExcelSheet),
+            "error.duplicate_headers" => Ok(Self::DuplicateHeaders),
+            "error.missing_mandatory_headers" => Ok(Self::MissingMandatoryHeaders),
+            "error.no_sheets_found" => Ok(Self::NoSheetsFound),
+            "error.cannot_read_sheet" => Ok(Self::CannotReadSheet),
+            "error.employment_inactive" => Ok(Self::EmploymentInactive),
+            "error.time_tracking_too_early" => Ok(Self::TimeTrackingTooEarly),
+            "error.time_tracking_failed_fetch_punched" => Ok(Self::TimeTrackingFailedFetchPunched),
+            "error.time_entry_not_found" => Ok(Self::TimeEntryNotFound),
+            "error.time_tracking_edit_other_employee" => Ok(Self::TimeTrackingEditOtherEmployee),
+            "error.time_tracking_edit_other_workspace" => Ok(Self::TimeTrackingEditOtherWorkspace),
+            "error.leave_half_day_single_day" => Ok(Self::LeaveHalfDaySingleDay),
+            "error.leave_custom_hours_missing_time" => Ok(Self::LeaveCustomHoursMissingTime),
+            "error.leave_custom_hours_single_day" => Ok(Self::LeaveCustomHoursSingleDay),
+            "error.leave_start_time_before_end_time" => Ok(Self::LeaveStartTimeBeforeEndTime),
+            "error.leave_not_found_after_update" => Ok(Self::LeaveNotFoundAfterUpdate),
+            _ => Err(()),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Language {
     Vi,
@@ -1187,13 +1330,6 @@ mod tests {
         use std::fs;
         use std::path::PathBuf;
 
-        const LEGACY_ALLOWLIST: &[&str] = &[
-            "payroll_service.rs",
-            "shift_swap_service.rs",
-            "employee_service.rs",
-            "attendance_summary_service.rs",
-        ];
-
         fn get_rs_files(dir: &PathBuf) -> Vec<PathBuf> {
             let mut files = Vec::new();
             if let Ok(entries) = fs::read_dir(dir) {
@@ -1216,9 +1352,6 @@ mod tests {
         for file_path in &rs_files {
             let file_name = file_path.file_name().and_then(|n| n.to_str()).unwrap_or("");
             if file_name == "i18n.rs" || file_name == "errors.rs" {
-                continue;
-            }
-            if LEGACY_ALLOWLIST.contains(&file_name) {
                 continue;
             }
 

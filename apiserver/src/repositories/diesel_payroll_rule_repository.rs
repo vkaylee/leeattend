@@ -1,5 +1,6 @@
 use crate::diesel_pool::DieselPools;
 use crate::errors::AppError;
+use crate::utils::i18n::I18nKey;
 use crate::models::diesel::payroll_rule::*;
 use crate::models::payroll_rule::*;
 use crate::repositories::payroll_rule_repository::{
@@ -210,8 +211,9 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
                 ) = &e
                 {
                     if info.constraint_name() == Some("payroll_rule_assignments_workspace_id_rule_definition_id_a_excl") {
-                        return AppError::Conflict(
-                            "This assignment overlaps with an existing assignment for the same rule and assignee in this time period.".into()
+                        return AppError::conflict_args(
+                            I18nKey::Conflict,
+                            [("details", "This assignment overlaps with an existing assignment for the same rule and assignee in this time period.")],
                         );
                     }
                 }

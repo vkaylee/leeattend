@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::errors::AppError;
+use crate::utils::i18n::I18nKey;
 use chrono::{Datelike, Utc};
 
 use uuid::Uuid;
@@ -206,7 +207,7 @@ impl LeaveService {
         req: AdjustBalanceRequest,
     ) -> Result<(), AppError> {
         let amount_dec = rust_decimal::Decimal::from_f64_retain(req.amount)
-            .ok_or(AppError::Validation("error.validation".into()))?;
+            .ok_or(AppError::validation(I18nKey::Validation))?;
 
         self.leave_balance_repo
             .adjust_balance(
@@ -235,7 +236,7 @@ impl LeaveService {
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
             )
             .await?
-            .ok_or(AppError::NotFound("error.not_found".into()))?;
+            .ok_or(AppError::not_found(I18nKey::NotFound))?;
 
         self.leave_balance_repo
             .get_employee_balances(
@@ -262,7 +263,7 @@ impl LeaveService {
                 req.employment_id,
             )
             .await?
-            .ok_or(AppError::NotFound("error.employment_not_found".into()))?;
+            .ok_or(AppError::not_found(I18nKey::EmploymentNotFound))?;
         let employee_id = employment.employee_id();
 
         // Validate leave_type_id exists for this workspace
@@ -273,34 +274,26 @@ impl LeaveService {
             )
             .await?
         {
-            return Err(AppError::Validation("error.validation".into()));
+            return Err(AppError::validation(I18nKey::Validation));
         }
 
         // Validate partial day constraints
         match req.duration_type {
             LeaveDurationType::FirstHalf | LeaveDurationType::SecondHalf => {
                 if req.start_date != req.end_date {
-                    return Err(AppError::Validation(
-                        "error.leave_half_day_single_day".into(),
-                    ));
+                    return Err(AppError::validation(I18nKey::LeaveHalfDaySingleDay));
                 }
             }
             LeaveDurationType::CustomHours => {
                 if req.start_time.is_none() || req.end_time.is_none() {
-                    return Err(AppError::Validation(
-                        "error.leave_custom_hours_missing_time".into(),
-                    ));
+                    return Err(AppError::validation(I18nKey::LeaveCustomHoursMissingTime));
                 }
                 if req.start_date != req.end_date {
-                    return Err(AppError::Validation(
-                        "error.leave_custom_hours_single_day".into(),
-                    ));
+                    return Err(AppError::validation(I18nKey::LeaveCustomHoursSingleDay));
                 }
                 if let (Some(st), Some(et)) = (req.start_time, req.end_time) {
                     if st >= et {
-                        return Err(AppError::Validation(
-                            "error.leave_start_time_before_end_time".into(),
-                        ));
+                        return Err(AppError::validation(I18nKey::LeaveStartTimeBeforeEndTime));
                     }
                 }
             }
@@ -388,7 +381,7 @@ impl LeaveService {
                 request_id,
             )
             .await?
-            .ok_or(AppError::NotFound("error.not_found".into()))?;
+            .ok_or(AppError::not_found(I18nKey::NotFound))?;
 
         // Verify employment of this request belongs to the workspace
         let _ = self
@@ -398,7 +391,7 @@ impl LeaveService {
                 request.employment_id(),
             )
             .await?
-            .ok_or(AppError::Forbidden("error.forbidden".into()))?;
+            .ok_or(AppError::forbidden(I18nKey::Forbidden))?;
 
         self.leave_request_repo
             .update_leave_request_status(
@@ -421,8 +414,8 @@ impl LeaveService {
                     request_id,
                 )
                 .await?
-                .ok_or(AppError::NotFound(
-                    "error.leave_not_found_after_update".into(),
+                .ok_or(AppError::not_found(
+                    I18nKey::LeaveNotFoundAfterUpdate,
                 ))?;
 
             self.check_and_handle_conflicts(workspace_id, &updated_request)
@@ -446,7 +439,7 @@ impl LeaveService {
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
             )
             .await?
-            .ok_or(AppError::NotFound("error.not_found".into()))?;
+            .ok_or(AppError::not_found(I18nKey::NotFound))?;
 
         self.leave_request_repo
             .get_employee_leave_requests(
@@ -482,7 +475,7 @@ impl LeaveService {
         let employment = self
             .get_employment_cached(&auth_token, req.employment_id())
             .await?
-            .ok_or_else(|| AppError::NotFound("error.employment_not_found".into()))?;
+            .ok_or_else(|| AppError::not_found(I18nKey::EmploymentNotFound))?;
         let employee_id = employment.employee_id();
 
         // 2. Fetch other leave requests of the employee
@@ -1002,6 +995,24 @@ mod tests {
             _en: NaiveDate,
         ) -> Result<Vec<(NaiveDate, NaiveDate)>, AppError> {
             Ok(vec![])
+        }
+        async fn get_approved_leave_breakdowns_batch(
+            &self,
+            _employee_ids: &[Uuid],
+            _start_date: NaiveDate,
+            _end_date: NaiveDate,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+        ) -> Result<std::collections::HashMap<Uuid, crate::repositories::leave_request_repository::LeaveBreakdown>, AppError> {
+            Ok(std::collections::HashMap::new())
+        }
+        async fn get_unpaid_holiday_days_without_leave_batch(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee_ids: &[Uuid],
+            _start_date: NaiveDate,
+            _end_date: NaiveDate,
+        ) -> Result<std::collections::HashMap<Uuid, i64>, AppError> {
+            Ok(std::collections::HashMap::new())
         }
     }
 

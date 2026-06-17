@@ -1,5 +1,6 @@
 use crate::diesel_pool::TenantAuthToken;
 use crate::errors::AppError;
+use crate::utils::i18n::I18nKey;
 use crate::models::{
     CreateCustomFieldDefinitionRequest, CustomFieldDefinition, CustomFieldValue,
     CustomFieldValueResponse, SetCustomFieldValueRequest, UpdateCustomFieldDefinitionRequest,
@@ -39,10 +40,13 @@ impl CustomFieldService {
             && data.entity_type != "employment"
             && data.entity_type != "department"
         {
-            return Err(AppError::Validation(format!(
-                "Invalid entity type '{}'. Must be 'employee', 'employment', or 'department'.",
-                data.entity_type
-            ).into()));
+            return Err(AppError::validation_args(
+                I18nKey::Validation,
+                vec![("details", format!(
+                    "Invalid entity type '{}'. Must be 'employee', 'employment', or 'department'.",
+                    data.entity_type
+                ))],
+            ));
         }
 
         // Validate field_type
@@ -58,10 +62,13 @@ impl CustomFieldService {
             "phone",
         ];
         if !valid_types.contains(&data.field_type.as_str()) {
-            return Err(AppError::Validation(format!(
-                "Invalid field type '{}'. Must be one of: {:?}.",
-                data.field_type, valid_types
-            ).into()));
+            return Err(AppError::validation_args(
+                I18nKey::Validation,
+                vec![("details", format!(
+                    "Invalid field type '{}'. Must be one of: {:?}.",
+                    data.field_type, valid_types
+                ))],
+            ));
         }
 
         // Validate field_key format (alphanumeric and underscores only)
@@ -71,10 +78,13 @@ impl CustomFieldService {
                 .chars()
                 .all(|c| c.is_ascii_alphanumeric() || c == '_')
         {
-            return Err(AppError::Validation(format!(
-                "Invalid field key '{}'. Must be alphanumeric and underscores only.",
-                data.field_key
-            ).into()));
+            return Err(AppError::validation_args(
+                I18nKey::Validation,
+                vec![("details", format!(
+                    "Invalid field key '{}'. Must be alphanumeric and underscores only.",
+                    data.field_key
+                ))],
+            ));
         }
 
         // Check if options are present for select/multiselect
@@ -85,10 +95,13 @@ impl CustomFieldService {
                 Some(arr) => arr.is_empty(),
             };
             if is_empty {
-                return Err(AppError::Validation(format!(
-                    "Options are required for field type '{}'.",
-                    data.field_type
-                ).into()));
+                return Err(AppError::validation_args(
+                    I18nKey::Validation,
+                    vec![("details", format!(
+                        "Options are required for field type '{}'.",
+                        data.field_type
+                    ))],
+                ));
             }
         }
 
@@ -292,7 +305,7 @@ impl CustomFieldService {
                 .get_definition_by_id(&auth_token, val_req.definition_id)
                 .await?;
             let Some(def) = definition else {
-                return Err(AppError::NotFound("error.custom_field_not_found".into()));
+                return Err(AppError::not_found(I18nKey::CustomFieldNotFound));
             };
 
             let has_value = val_req
@@ -302,10 +315,13 @@ impl CustomFieldService {
                 .unwrap_or(false);
 
             if def.is_required() && !has_value {
-                return Err(AppError::Validation(format!(
-                    "Field '{}' is required.",
-                    def.field_label()
-                ).into()));
+                return Err(AppError::validation_args(
+                    I18nKey::Validation,
+                    vec![("details", format!(
+                        "Field '{}' is required.",
+                        def.field_label()
+                    ))],
+                ));
             }
 
             if let Some(val_json) = val_req.value.as_ref() {
@@ -313,10 +329,13 @@ impl CustomFieldService {
                     // Validate Select Options
                     if def.field_type() == "select" {
                         let select_val = val_json.as_str().ok_or_else(|| {
-                            AppError::Validation(format!(
-                                "Expected string value for select field '{}'.",
-                                def.field_label()
-                            ).into())
+                            AppError::validation_args(
+                                I18nKey::Validation,
+                                vec![("details", format!(
+                                    "Expected string value for select field '{}'.",
+                                    def.field_label()
+                                ))],
+                            )
                         })?;
 
                         let options = def.options().and_then(|v| v.as_array());
@@ -332,30 +351,39 @@ impl CustomFieldService {
                             .unwrap_or(false);
 
                         if !has_match {
-                            return Err(AppError::Validation(format!(
-                                "Value '{}' is not a valid option for field '{}'.",
-                                select_val,
-                                def.field_label()
-                            ).into()));
+                            return Err(AppError::validation_args(
+                                I18nKey::Validation,
+                                vec![("details", format!(
+                                    "Value '{}' is not a valid option for field '{}'.",
+                                    select_val,
+                                    def.field_label()
+                                ))],
+                            ));
                         }
                     }
 
                     // Validate MultiSelect Options
                     if def.field_type() == "multiselect" {
                         let multiselect_arr = val_json.as_array().ok_or_else(|| {
-                            AppError::Validation(format!(
-                                "Expected array value for multiselect field '{}'.",
-                                def.field_label()
-                            ).into())
+                            AppError::validation_args(
+                                I18nKey::Validation,
+                                vec![("details", format!(
+                                    "Expected array value for multiselect field '{}'.",
+                                    def.field_label()
+                                ))],
+                            )
                         })?;
 
                         let options = def.options().and_then(|v| v.as_array());
                         for item in multiselect_arr {
                             let item_str = item.as_str().ok_or_else(|| {
-                                AppError::Validation(format!(
-                                    "Expected array of strings for multiselect field '{}'.",
-                                    def.field_label()
-                                ).into())
+                                AppError::validation_args(
+                                    I18nKey::Validation,
+                                    vec![("details", format!(
+                                        "Expected array of strings for multiselect field '{}'.",
+                                        def.field_label()
+                                    ))],
+                                )
                             })?;
 
                             let has_match = options
@@ -370,11 +398,14 @@ impl CustomFieldService {
                                 .unwrap_or(false);
 
                             if !has_match {
-                                return Err(AppError::Validation(format!(
-                                    "Value '{}' is not a valid option for field '{}'.",
-                                    item_str,
-                                    def.field_label()
-                                ).into()));
+                                return Err(AppError::validation_args(
+                                    I18nKey::Validation,
+                                    vec![("details", format!(
+                                        "Value '{}' is not a valid option for field '{}'.",
+                                        item_str,
+                                        def.field_label()
+                                    ))],
+                                ));
                             }
                         }
                     }

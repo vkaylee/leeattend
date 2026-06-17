@@ -133,7 +133,7 @@ pub async fn assign_employee_phase(
         .ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound))?;
     let employment_id = employee
         .active_employment_id()
-        .ok_or_else(|| AppError::validation_raw("No active employment found"))?;
+        .ok_or_else(|| AppError::validation(crate::utils::i18n::I18nKey::NoActiveEmployment))?;
 
     let phase = state
         .employees()
@@ -184,7 +184,7 @@ pub async fn update_employee_phase_status(
         .ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound))?;
     let employment_id = employee
         .active_employment_id()
-        .ok_or_else(|| AppError::validation_raw("No active employment found"))?;
+        .ok_or_else(|| AppError::validation(crate::utils::i18n::I18nKey::NoActiveEmployment))?;
 
     let phase = state
         .employees()
@@ -231,7 +231,7 @@ pub async fn get_employee_phases(
         .ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound))?;
     let employment_id = employee
         .active_employment_id()
-        .ok_or_else(|| AppError::validation_raw("No active employment found"))?;
+        .ok_or_else(|| AppError::validation(crate::utils::i18n::I18nKey::NoActiveEmployment))?;
 
     let phases = state
         .employees()

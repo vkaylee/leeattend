@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::errors::AppError;
+use crate::utils::i18n::I18nKey;
 
 use chrono::{DateTime, NaiveDate, Utc};
 use chrono_tz::Tz;
@@ -79,10 +80,11 @@ impl ImportStrategy for EmployeeImportStrategy {
             .trim();
 
         if id_number.is_empty() || full_name.is_empty() {
-            return Err(AppError::Validation(fmt_msg(
+            let msg = fmt_msg(
                 self.msgs.missing_employee_or_id,
                 &[("line", &current_line.to_string())],
-            ).into()));
+            );
+            return Err(AppError::validation_args(I18nKey::Validation, [("details", msg)]));
         }
 
         let hire_date_str = hire_date_raw.split(' ').next().unwrap_or(hire_date_raw);
@@ -384,10 +386,11 @@ impl ImportStrategy for PunchImportStrategy {
             .trim();
 
         if emp_id_number.is_empty() || emp_dt_str.is_empty() {
-            return Err(AppError::Validation(fmt_msg(
+            let msg = fmt_msg(
                 self.msgs.missing_employee_or_time,
                 &[("line", &current_line.to_string())],
-            ).into()));
+            );
+            return Err(AppError::validation_args(I18nKey::Validation, [("details", msg)]));
         }
 
         match AttendanceAdjustmentService::parse_datetime(
@@ -401,13 +404,16 @@ impl ImportStrategy for PunchImportStrategy {
                 punch_time: dt,
                 line_number: current_line,
             }),
-            Err(_) => Err(AppError::Validation(format!(
-                "{} [Raw: '{emp_dt_str}']",
-                fmt_msg(
-                    self.msgs.missing_employee_or_time,
-                    &[("line", &current_line.to_string())],
-                )
-            ).into())),
+            Err(_) => {
+                let msg = format!(
+                    "{} [Raw: '{emp_dt_str}']",
+                    fmt_msg(
+                        self.msgs.missing_employee_or_time,
+                        &[("line", &current_line.to_string())],
+                    )
+                );
+                Err(AppError::validation_args(I18nKey::Validation, [("details", msg)]))
+            }
         }
     }
 
@@ -487,9 +493,7 @@ impl ImportStrategy for PunchImportStrategy {
             }
         } else {
             let Some(employment_id) = employee.active_employment_id() else {
-                return Err(AppError::NotFound(
-                    "error.active_employment_not_found".into(),
-                ));
+                return Err(AppError::not_found(I18nKey::NoActiveEmployment));
             };
 
             let req = CreateAttendanceAdjustmentRequest {

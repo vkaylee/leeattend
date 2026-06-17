@@ -262,10 +262,10 @@ impl ApprovalWorkflowService {
             .ok_or_else(|| AppError::not_found(I18nKey::WorkflowInstanceNotFound))?;
 
         if instance.status != "pending" {
-            return Err(AppError::validation_raw(format!(
-                "Workflow instance is already {}",
-                instance.status
-            )));
+            return Err(AppError::validation_args(
+                I18nKey::Validation,
+                vec![("details", format!("Workflow instance is already {}", instance.status))],
+            ));
         }
 
         let mut steps: Vec<WorkflowInstanceStepSnapshot> =
@@ -346,7 +346,10 @@ impl ApprovalWorkflowService {
         match action.as_str() {
             "reassign" => {
                 let target_uid = new_approver_user_id.ok_or_else(|| {
-                    AppError::validation_raw("new_approver_user_id is required for reassignment")
+                    AppError::validation_args(
+                        I18nKey::Validation,
+                        vec![("details", "new_approver_user_id is required for reassignment".to_string())],
+                    )
                 })?;
 
                 for mut task in active_tasks {
@@ -496,9 +499,10 @@ impl ApprovalWorkflowService {
                 }
             }
             _ => {
-                return Err(AppError::validation_raw(format!(
-                    "Invalid action: {action}"
-                )))
+                return Err(AppError::validation_args(
+                    I18nKey::Validation,
+                    vec![("details", format!("Invalid action: {action}"))],
+                ))
             }
         }
 

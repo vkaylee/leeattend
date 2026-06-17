@@ -1,4 +1,5 @@
 use crate::errors::{AppError, AppResult};
+use crate::utils::i18n::I18nKey;
 use crate::services::storage::{ObjectMeta, ObjectStorage};
 use async_trait::async_trait;
 use aws_sdk_s3::Client;
@@ -112,7 +113,7 @@ impl ObjectStorage for S3Storage {
                     || err_str.contains("NoSuchKey")
                     || err_str.contains("404")
                 {
-                    AppError::not_found_raw(format!("File not found in S3: {key}"))
+                    AppError::not_found_args(I18nKey::ErrorFileNotFound, [("details", format!("File not found in S3: {key}"))])
                 } else {
                     AppError::Internal(format!("S3 get_object error: {err_str}"))
                 }
@@ -212,9 +213,10 @@ impl ObjectStorage for S3Storage {
                     || err_str.contains("NoSuchKey")
                     || err_str.contains("404")
                 {
-                    Err(AppError::not_found_raw(format!(
-                        "File not found in S3: {key}"
-                    )))
+                    Err(AppError::not_found_args(
+                        I18nKey::ErrorFileNotFound,
+                        [("details", format!("File not found in S3: {key}"))],
+                    ))
                 } else {
                     Err(AppError::Internal(format!(
                         "S3 head_object error: {err_str}"

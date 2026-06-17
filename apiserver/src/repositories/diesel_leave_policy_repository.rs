@@ -138,8 +138,9 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         if in_balances.is_some() {
-            return Err(AppError::conflict_raw(
-                "Cannot delete: Leave type is currently used in employee balances",
+            return Err(AppError::conflict_args(
+                I18nKey::Conflict,
+                vec![("details", "leave_type_in_use_balances".to_string())],
             ));
         }
 

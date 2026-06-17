@@ -6,6 +6,7 @@ use chrono_tz::Tz;
 use uuid::Uuid;
 
 use crate::errors::AppError;
+use crate::utils::i18n::I18nKey;
 use crate::models::{TimeEntry, UpdateTimeEntryRequest};
 
 use crate::repositories::roster::RosterRepository;
@@ -73,10 +74,10 @@ impl TimeTrackingService {
                 employment_id,
             )
             .await?
-            .ok_or(AppError::NotFound("error.employment_not_found".into()))?;
+            .ok_or(AppError::not_found(I18nKey::EmploymentNotFound))?;
 
         if employment.status() != "active" {
-            return Err(AppError::Forbidden("error.employment_inactive".into()));
+            return Err(AppError::forbidden(I18nKey::EmploymentInactive));
         }
 
         let now = Utc::now();
@@ -144,7 +145,7 @@ impl TimeTrackingService {
                 if rules.early_arrival_strategy() == crate::models::EarlyArrivalStrategy::Block
                     && local_now.naive_local() < earliest_punch
                 {
-                    return Err(AppError::Validation("error.time_tracking_too_early".into()));
+                    return Err(AppError::validation(I18nKey::TimeTrackingTooEarly));
                 }
             }
         }
@@ -197,7 +198,7 @@ impl TimeTrackingService {
                 employment_id,
             )
             .await?
-            .ok_or(AppError::NotFound("error.employment_not_found".into()))?;
+            .ok_or(AppError::not_found(I18nKey::EmploymentNotFound))?;
 
         self.repo
             .get_employment_time_entries(
@@ -223,9 +224,8 @@ impl TimeTrackingService {
                 id,
             )
             .await?
-            .ok_or(AppError::NotFound("error.time_entry_not_found".into()))?;
+            .ok_or(AppError::not_found(I18nKey::TimeEntryNotFound))?;
 
-        // Verify employment of this entry belongs to the workspace
         let _ = self
             .employment_repo
             .get_employment_by_id(
@@ -233,9 +233,7 @@ impl TimeTrackingService {
                 entry.employment_id(),
             )
             .await?
-            .ok_or(AppError::Forbidden(
-                "error.time_tracking_edit_other_workspace".into(),
-            ))?;
+            .ok_or(AppError::forbidden(I18nKey::TimeTrackingEditOtherWorkspace))?;
 
         if let Some(t) = req.punch_in_time() {
             entry.set_punch_in_time(t);
@@ -291,7 +289,7 @@ impl TimeTrackingService {
                 id,
             )
             .await?
-            .ok_or(AppError::NotFound("error.time_entry_not_found".into()))?;
+            .ok_or(AppError::not_found(I18nKey::TimeEntryNotFound))?;
 
         // Verify employment of this entry belongs to the workspace
         let _ = self
@@ -301,9 +299,7 @@ impl TimeTrackingService {
                 entry.employment_id(),
             )
             .await?
-            .ok_or(AppError::Forbidden(
-                "error.time_tracking_edit_other_workspace".into(),
-            ))?;
+            .ok_or(AppError::forbidden(I18nKey::TimeTrackingEditOtherWorkspace))?;
 
         self.repo
             .delete_time_entry(

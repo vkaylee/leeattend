@@ -525,9 +525,10 @@ pub async fn check_behalf_scope(
 ) -> AppResult<()> {
     let has_perm = required_permissions.iter().any(|&p| ctx.has_permission(p));
     if !has_perm {
-        return Err(AppError::Forbidden(format!(
-            "Missing permission: one of {required_permissions:?}"
-        ).into()));
+        return Err(AppError::forbidden_args(
+            I18nKey::Forbidden,
+            vec![("details", format!("Missing permission: one of {required_permissions:?}"))],
+        ));
     }
 
     // Global scope — no department restriction
@@ -563,8 +564,9 @@ pub async fn check_behalf_scope(
         }
     }
 
-    Err(AppError::Forbidden(
-        "Permission denied: Target is outside your on-behalf scope.".into(),
+    Err(AppError::forbidden_args(
+        I18nKey::Forbidden,
+        vec![("details", "Permission denied: Target is outside your on-behalf scope.".to_string())],
     ))
 }
 

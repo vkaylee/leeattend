@@ -5,6 +5,7 @@ use uuid::Uuid;
 
 use crate::diesel_pool::DieselPools;
 use crate::errors::{AppError, AppResult};
+use crate::utils::i18n::I18nKey;
 use crate::models::diesel::behalf_assignment::BehalfAssignmentEntity;
 use crate::models::BehalfAssignment;
 use crate::repositories::behalf_assignment_repository::BehalfAssignmentRepository;
@@ -40,13 +41,13 @@ impl BehalfAssignmentRepository for DieselBehalfAssignmentRepository {
         );
 
         if target_employee_id.is_none() && target_department_id.is_none() {
-            return Err(AppError::Validation(
-                "error.behalf_assignment_missing_target".into(),
+            return Err(AppError::validation(
+                I18nKey::BehalfAssignmentMissingTarget,
             ));
         }
         if target_employee_id.is_some() && target_department_id.is_some() {
-            return Err(AppError::Validation(
-                "error.behalf_assignment_dual_target".into(),
+            return Err(AppError::validation(
+                I18nKey::BehalfAssignmentDualTarget,
             ));
         }
 

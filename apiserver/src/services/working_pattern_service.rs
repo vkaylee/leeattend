@@ -82,10 +82,10 @@ pub async fn create_working_pattern(
             for i in 0..times.len() {
                 for j in (i + 1)..times.len() {
                     if times_overlap(times[i].1, times[i].2, times[j].1, times[j].2) {
-                        return Err(crate::errors::AppError::validation_raw(format!(
-                            "Shifts overlap on the same day: shifts {} and {} have conflicting time ranges",
-                            times[i].0, times[j].0
-                        )));
+                        return Err(crate::errors::AppError::validation_args(
+                            crate::utils::i18n::I18nKey::Validation,
+                            vec![("details", "Shifts overlap on the same day".to_string())],
+                        ));
                     }
                 }
             }
@@ -95,24 +95,26 @@ pub async fn create_working_pattern(
     // --- Determine pattern_type ---
     let pattern_type = req.pattern_type.as_deref().unwrap_or("weekly");
     if pattern_type != "weekly" && pattern_type != "rotation" {
-        return Err(crate::errors::AppError::validation_raw(
-            "pattern_type must be 'weekly' or 'rotation'".to_string(),
+        return Err(crate::errors::AppError::validation_args(
+            crate::utils::i18n::I18nKey::Validation,
+            vec![("details", "pattern_type must be weekly or rotation".to_string())],
         ));
     }
     if pattern_type == "rotation" {
         let cycle_len = req.cycle_length_days.unwrap_or(0);
         if !(1..=366).contains(&cycle_len) {
-            return Err(crate::errors::AppError::validation_raw(
-                "cycle_length_days must be between 1 and 366 for rotation patterns".to_string(),
+            return Err(crate::errors::AppError::validation_args(
+                crate::utils::i18n::I18nKey::Validation,
+                vec![("details", "cycle_length_days must be between 1 and 366".to_string())],
             ));
         }
         // Validate schedule_day range
         for detail in &req.details {
             if detail.schedule_day < 0 || detail.schedule_day >= cycle_len {
-                return Err(crate::errors::AppError::validation_raw(format!(
-                    "schedule_day {} is out of range [0, {}) for cycle_length_days {}",
-                    detail.schedule_day, cycle_len, cycle_len,
-                )));
+                return Err(crate::errors::AppError::validation_args(
+                    crate::utils::i18n::I18nKey::Validation,
+                    vec![("details", format!("schedule_day {} is out of range", detail.schedule_day))],
+                ));
             }
         }
     }
@@ -175,10 +177,10 @@ pub async fn update_working_pattern(
             for i in 0..times.len() {
                 for j in (i + 1)..times.len() {
                     if times_overlap(times[i].1, times[i].2, times[j].1, times[j].2) {
-                        return Err(crate::errors::AppError::validation_raw(format!(
-                            "Shifts overlap on the same day: shifts {} and {} have conflicting time ranges",
-                            times[i].0, times[j].0
-                        )));
+                        return Err(crate::errors::AppError::validation_args(
+                            crate::utils::i18n::I18nKey::Validation,
+                            vec![("details", "Shifts overlap on the same day".to_string())],
+                        ));
                     }
                 }
             }
@@ -187,23 +189,25 @@ pub async fn update_working_pattern(
 
     let pattern_type = req.pattern_type.as_deref().unwrap_or("weekly");
     if pattern_type != "weekly" && pattern_type != "rotation" {
-        return Err(crate::errors::AppError::validation_raw(
-            "pattern_type must be 'weekly' or 'rotation'".to_string(),
+        return Err(crate::errors::AppError::validation_args(
+            crate::utils::i18n::I18nKey::Validation,
+            vec![("details", "pattern_type must be weekly or rotation".to_string())],
         ));
     }
     if pattern_type == "rotation" {
         let cycle_len = req.cycle_length_days.unwrap_or(0);
         if !(1..=366).contains(&cycle_len) {
-            return Err(crate::errors::AppError::validation_raw(
-                "cycle_length_days must be between 1 and 366 for rotation patterns".to_string(),
+            return Err(crate::errors::AppError::validation_args(
+                crate::utils::i18n::I18nKey::Validation,
+                vec![("details", "cycle_length_days must be between 1 and 366".to_string())],
             ));
         }
         for detail in &req.details {
             if detail.schedule_day < 0 || detail.schedule_day >= cycle_len {
-                return Err(crate::errors::AppError::validation_raw(format!(
-                    "schedule_day {} is out of range [0, {}) for cycle_length_days {}",
-                    detail.schedule_day, cycle_len, cycle_len,
-                )));
+                return Err(crate::errors::AppError::validation_args(
+                    crate::utils::i18n::I18nKey::Validation,
+                    vec![("details", format!("schedule_day {} is out of range", detail.schedule_day))],
+                ));
             }
         }
     }

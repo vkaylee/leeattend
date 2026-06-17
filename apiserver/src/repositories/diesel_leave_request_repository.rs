@@ -52,7 +52,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
 
         if employment_exists.is_none() {
-            return Err(AppError::NotFound("error.employment_not_found".into()));
+            return Err(AppError::not_found(crate::utils::i18n::I18nKey::EmploymentNotFound));
         }
 
         diesel::insert_into(leave_requests::table)
@@ -858,6 +858,200 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             .map_err(|e| AppError::Internal(e.to_string()))?;
 
         Ok(rows)
+    }
+
+    async fn get_approved_leave_breakdowns_batch(
+        &self,
+        employee_ids: &[Uuid],
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<std::collections::HashMap<Uuid, LeaveBreakdown>, AppError> {
+        let workspace_id = auth_token.workspace_id();
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        // Step 1: Get raw leave days per type per employee
+        let rows = leave_requests::table
+            .inner_join(leave_types::table)
+            .inner_join(employments::table)
+            .filter(employments::employee_id.eq_any(employee_ids))
+            .filter(employments::workspace_id.eq(workspace_id))
+            .filter(
+                leave_requests::status
+                    .eq(LeaveStatus::Approved)
+                    .or(leave_requests::status.eq(LeaveStatus::PreApproved)),
+            )
+            .filter(leave_requests::start_date.le(end_date))
+            .filter(leave_requests::end_date.ge(start_date))
+            .group_by((employments::employee_id, leave_types::code))
+            .select((
+                employments::employee_id,
+                leave_types::code,
+                diesel::dsl::sql::<diesel::sql_types::BigInt>(&format!(
+                    "SUM(LEAST(leave_requests.end_date, '{end_date}') - GREATEST(leave_requests.start_date, '{start_date}') + 1)"
+                )),
+            ))
+            .load::<(Uuid, String, i64)>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        // Step 2: Get paid holidays count intersecting with any approved leave per employee
+        #[derive(diesel::QueryableByName)]
+        #[allow(dead_code)]
+        struct HolidayIntersectRow {
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            employee_id: Uuid,
+            #[diesel(sql_type = diesel::sql_types::Date)]
+            holiday_date: NaiveDate,
+        }
+
+        let holiday_rows: Vec<HolidayIntersectRow> = diesel::sql_query(
+            r"SELECT DISTINCT emp.employee_id, h.date as holiday_date
+               FROM holidays h
+               CROSS JOIN employments emp
+               JOIN leave_requests lr ON lr.employment_id = emp.id
+               WHERE h.workspace_id = $1
+                 AND h.is_paid = true
+                 AND h.date >= $2
+                 AND h.date <= $3
+                 AND emp.employee_id = ANY($4)
+                 AND emp.workspace_id = $1
+                 AND lr.status IN ('approved', 'pre_approved')
+                 AND lr.start_date <= h.date
+                 AND lr.end_date >= h.date"
+        )
+        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+        .bind::<diesel::sql_types::Date, _>(start_date)
+        .bind::<diesel::sql_types::Date, _>(end_date)
+        .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(employee_ids.to_vec())
+        .load(&mut *conn)
+        .await
+        .map_err(|e| AppError::Internal(format!("db holiday counts: {e}")))?;
+
+        let mut holiday_counts = std::collections::HashMap::new();
+        for row in holiday_rows {
+            *holiday_counts.entry(row.employee_id).or_insert(0) += 1;
+        }
+
+        let mut result = std::collections::HashMap::new();
+        for &emp_id in employee_ids {
+            result.insert(emp_id, LeaveBreakdown {
+                total_days: 0.0,
+                unpaid_days: 0.0,
+                sick_days: 0.0,
+            });
+        }
+
+        for (emp_id, code, days) in rows {
+            if let Some(breakdown) = result.get_mut(&emp_id) {
+                let days_f = days as f64;
+                breakdown.total_days += days_f;
+                if code == "unpaid" || code == "personal" {
+                    breakdown.unpaid_days += days_f;
+                } else if code == "sick" {
+                    breakdown.sick_days += days_f;
+                }
+            }
+        }
+
+        for &emp_id in employee_ids {
+            if let Some(breakdown) = result.get_mut(&emp_id) {
+                let paid_holiday_count = holiday_counts.get(&emp_id).copied().unwrap_or(0);
+                breakdown.total_days -= paid_holiday_count as f64;
+                if breakdown.total_days < 0.0 {
+                    breakdown.total_days = 0.0;
+                }
+            }
+        }
+
+        Ok(result)
+    }
+
+    async fn get_unpaid_holiday_days_without_leave_batch(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_ids: &[Uuid],
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<std::collections::HashMap<Uuid, i64>, AppError> {
+        let workspace_id = auth_token.workspace_id();
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        // 1. Get all unpaid holidays in the period
+        let unpaid_holidays: Vec<NaiveDate> = holidays::table
+            .filter(holidays::workspace_id.eq(workspace_id))
+            .filter(holidays::is_paid.eq(false))
+            .filter(holidays::date.ge(start_date))
+            .filter(holidays::date.le(end_date))
+            .select(holidays::date)
+            .load::<NaiveDate>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db unpaid holidays: {e}")))?;
+
+        let total_unpaid_holidays = unpaid_holidays.len() as i64;
+
+        if total_unpaid_holidays == 0 {
+            let mut result = std::collections::HashMap::new();
+            for &emp_id in employee_ids {
+                result.insert(emp_id, 0);
+            }
+            return Ok(result);
+        }
+
+        // 2. Query which employees have approved leaves on which unpaid holidays
+        #[derive(diesel::QueryableByName)]
+        struct LeaveOnUnpaidHolidayRow {
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            employee_id: Uuid,
+        }
+
+        let leave_rows: Vec<LeaveOnUnpaidHolidayRow> = diesel::sql_query(
+            r"SELECT emp.employee_id
+               FROM holidays h
+               CROSS JOIN employments emp
+               JOIN leave_requests lr ON lr.employment_id = emp.id
+               WHERE h.workspace_id = $1
+                 AND h.is_paid = false
+                 AND h.date >= $2
+                 AND h.date <= $3
+                 AND emp.employee_id = ANY($4)
+                 AND emp.workspace_id = $1
+                 AND lr.status IN ('approved', 'pre_approved')
+                 AND lr.start_date <= h.date
+                 AND lr.end_date >= h.date"
+        )
+        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+        .bind::<diesel::sql_types::Date, _>(start_date)
+        .bind::<diesel::sql_types::Date, _>(end_date)
+        .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(employee_ids.to_vec())
+        .load(&mut *conn)
+        .await
+        .map_err(|e| AppError::Internal(format!("db leaves on unpaid holidays: {e}")))?;
+
+        let mut covered_counts = std::collections::HashMap::new();
+        for row in leave_rows {
+            *covered_counts.entry(row.employee_id).or_insert(0) += 1;
+        }
+
+        let mut result = std::collections::HashMap::new();
+        for &emp_id in employee_ids {
+            let covered = covered_counts.get(&emp_id).copied().unwrap_or(0);
+            result.insert(emp_id, total_unpaid_holidays - covered);
+        }
+
+        Ok(result)
     }
 }
 

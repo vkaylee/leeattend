@@ -61,7 +61,7 @@ impl AuthService {
             &claims,
             &EncodingKey::from_secret(secret.as_ref()),
         )
-        .map_err(|e| AppError::auth_raw(format!("Token generation failed: {e}")))
+        .map_err(|e| AppError::auth_args(I18nKey::InvalidToken, vec![("details", format!("Token generation failed: {e}"))]))
     }
 
     pub fn verify_token_claims(token: &str, secret: &str) -> AppResult<Claims> {
@@ -70,7 +70,7 @@ impl AuthService {
             &DecodingKey::from_secret(secret.as_ref()),
             &Validation::default(),
         )
-        .map_err(|e| AppError::auth_raw(format!("Invalid token: {e}")))?;
+        .map_err(|e| AppError::auth_args(I18nKey::InvalidToken, vec![("details", format!("Invalid token: {e}"))]))?;
 
         Ok(token_data.claims)
     }
@@ -78,7 +78,7 @@ impl AuthService {
     pub fn verify_token(token: &str, secret: &str) -> AppResult<Uuid> {
         let claims = Self::verify_token_claims(token, secret)?;
         Uuid::parse_str(&claims.sub)
-            .map_err(|e| AppError::auth_raw(format!("Invalid token subject: {e}")))
+            .map_err(|e| AppError::auth_args(I18nKey::InvalidToken, vec![("details", format!("Invalid token subject: {e}"))]))
     }
 
     /// Hash a password using argon2id (per access-control.md §3).
@@ -149,8 +149,9 @@ impl AuthService {
                             "CRITICAL: Refresh token reuse detected (potential session theft)! Revoking all sessions for user."
                         );
                         let _ = self.revoke_all_sessions_for_user(user_id).await;
-                        return Err(AppError::auth_raw(
-                            "Token theft detected. All sessions revoked for security.",
+                        return Err(AppError::auth_args(
+                            I18nKey::InvalidToken,
+                            vec![("details", "Token theft detected. All sessions revoked for security.".to_string())],
                         ));
                     }
                 }

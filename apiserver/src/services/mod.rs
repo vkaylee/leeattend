@@ -82,3 +82,6 @@ pub mod storage;
 mod attendance_calculator_tests;
 #[cfg(test)]
 mod report_service_test;
+#[cfg(test)]
+mod tenant_provisioner_test;
+

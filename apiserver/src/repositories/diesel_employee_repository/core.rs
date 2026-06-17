@@ -978,11 +978,11 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
 
                 for emp in &previous_employments {
                     if emp.status == "active" {
-                        return Err(AppError::Validation("error.employee_already_active".into()));
+                        return Err(AppError::validation(I18nKey::EmployeeAlreadyActive));
                     }
                     if let Some(end_date) = emp.end_date {
                         if hire_date <= end_date {
-                            return Err(AppError::Validation("error.rehire_date_invalid".into()));
+                            return Err(AppError::validation(I18nKey::RehireDateInvalid));
                         }
                     }
                 }

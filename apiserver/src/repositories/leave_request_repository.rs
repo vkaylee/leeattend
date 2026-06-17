@@ -137,6 +137,22 @@ pub trait LeaveRequestRepository: Send + Sync {
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<Vec<(NaiveDate, NaiveDate)>, AppError>;
+
+    async fn get_approved_leave_breakdowns_batch(
+        &self,
+        employee_ids: &[Uuid],
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<std::collections::HashMap<Uuid, LeaveBreakdown>, AppError>;
+
+    async fn get_unpaid_holiday_days_without_leave_batch(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_ids: &[Uuid],
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<std::collections::HashMap<Uuid, i64>, AppError>;
 }
 
 #[derive(Clone)]

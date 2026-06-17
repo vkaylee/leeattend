@@ -1,5 +1,6 @@
 use crate::diesel_pool::TenantAuthToken;
 use crate::errors::AppError;
+use crate::utils::i18n::I18nKey;
 use crate::models::{
     ChecklistItemStatus, ChecklistStatus, CreateLifecycleChecklistTemplateItemRequest,
     CreateLifecycleChecklistTemplateRequest, LifecycleChecklistResponse,
@@ -50,7 +51,7 @@ impl LifecycleService {
         data: CreateLifecycleChecklistTemplateRequest,
     ) -> Result<LifecycleChecklistTemplate, AppError> {
         if data.name.trim().is_empty() {
-            return Err(AppError::Validation("error.template_name_empty".into()));
+            return Err(AppError::validation(I18nKey::TemplateNameEmpty));
         }
         let auth_token = TenantAuthToken::system_override(workspace_id);
         self.repo.create_template(&auth_token, data).await
@@ -65,7 +66,7 @@ impl LifecycleService {
         self.repo
             .get_template_by_id(&auth_token, id)
             .await?
-            .ok_or_else(|| AppError::NotFound("error.template_not_found".into()))
+            .ok_or_else(|| AppError::not_found(I18nKey::TemplateNotFound))
     }
 
     pub async fn list_active_templates(
@@ -102,9 +103,7 @@ impl LifecycleService {
         data: CreateLifecycleChecklistTemplateItemRequest,
     ) -> Result<LifecycleChecklistTemplateItem, AppError> {
         if data.title.trim().is_empty() {
-            return Err(AppError::Validation(
-                "error.template_item_title_empty".into(),
-            ));
+            return Err(AppError::validation(I18nKey::TemplateItemTitleEmpty));
         }
         let auth_token = TenantAuthToken::system_override(workspace_id);
         // Verify template exists
@@ -123,7 +122,7 @@ impl LifecycleService {
         self.repo
             .get_template_item_by_id(&auth_token, id)
             .await?
-            .ok_or_else(|| AppError::NotFound("error.template_item_not_found".into()))
+            .ok_or_else(|| AppError::not_found(I18nKey::TemplateItemNotFound))
     }
 
     pub async fn list_template_items(
@@ -167,7 +166,7 @@ impl LifecycleService {
             .repo
             .get_template_by_id(&auth_token, template_id)
             .await?
-            .ok_or_else(|| AppError::NotFound("error.template_not_found".into()))?;
+            .ok_or_else(|| AppError::not_found(I18nKey::TemplateNotFound))?;
 
         let template_items = self
             .repo
@@ -178,13 +177,13 @@ impl LifecycleService {
             .employment_repo
             .get_employment_by_id(&auth_token, employment_id)
             .await?
-            .ok_or_else(|| AppError::NotFound("error.employment_not_found".into()))?;
+            .ok_or_else(|| AppError::not_found(I18nKey::EmploymentNotFound))?;
 
         let employee = self
             .employee_repo
             .get_employee_by_id(employment.employee_id(), &auth_token)
             .await?
-            .ok_or_else(|| AppError::NotFound("error.employee_not_found".into()))?;
+            .ok_or_else(|| AppError::not_found(I18nKey::EmployeeNotFound))?;
 
         let base_date = match template.checklist_type() {
             LifecycleChecklistType::Onboarding
@@ -344,7 +343,7 @@ impl LifecycleService {
             .repo
             .get_checklist_by_id(&auth_token, id)
             .await?
-            .ok_or_else(|| AppError::NotFound("error.checklist_not_found".into()))?;
+            .ok_or_else(|| AppError::not_found(I18nKey::ChecklistNotFound))?;
 
         let items = self.repo.list_checklist_items(&auth_token, id).await?;
 
@@ -412,7 +411,7 @@ impl LifecycleService {
             .repo
             .get_checklist_item_by_id(&auth_token, item_id)
             .await?
-            .ok_or_else(|| AppError::NotFound("error.checklist_item_not_found".into()))?;
+            .ok_or_else(|| AppError::not_found(I18nKey::ChecklistItemNotFound))?;
 
         self.repo
             .update_checklist_item_status(&auth_token, item_id, status, completed_by, notes)

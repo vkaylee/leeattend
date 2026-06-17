@@ -410,6 +410,17 @@ mod tests {
         async fn delete_entry(&self, _a: &TenantAuthToken, _id: Uuid) -> Result<(), AppError> {
             Ok(())
         }
+        async fn delete_by_key(
+            &self,
+            _a: &TenantAuthToken,
+            _w: Uuid,
+            _scope: &str,
+            config_key: &str,
+        ) -> Result<(), AppError> {
+            let mut state = self.state.lock().unwrap();
+            state.configs.remove(config_key);
+            Ok(())
+        }
     }
 
     struct MockWorkspaceRepository {
@@ -1375,6 +1386,24 @@ mod tests {
             _e: NaiveDate,
         ) -> Result<Vec<(NaiveDate, NaiveDate)>, AppError> {
             Ok(vec![])
+        }
+        async fn get_approved_leave_breakdowns_batch(
+            &self,
+            _employee_ids: &[Uuid],
+            _start_date: NaiveDate,
+            _end_date: NaiveDate,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+        ) -> Result<std::collections::HashMap<Uuid, crate::repositories::leave_request_repository::LeaveBreakdown>, AppError> {
+            Ok(std::collections::HashMap::new())
+        }
+        async fn get_unpaid_holiday_days_without_leave_batch(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee_ids: &[Uuid],
+            _start_date: NaiveDate,
+            _end_date: NaiveDate,
+        ) -> Result<std::collections::HashMap<Uuid, i64>, AppError> {
+            Ok(std::collections::HashMap::new())
         }
     }
 

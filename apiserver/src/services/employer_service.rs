@@ -161,9 +161,12 @@ impl EmployerService {
             .await?;
 
         if employee_count > 0 {
-            return Err(AppError::validation_raw(format!(
-                "Cannot delete employer because {employee_count} employees are still assigned to it."
-            )));
+            return Err(AppError::validation_args(
+                I18nKey::Validation,
+                vec![("details", format!(
+                    "Cannot delete employer because {employee_count} employees are still assigned to it."
+                ))],
+            ));
         }
 
         self.repo.delete_employer(&auth_token, id).await?;
@@ -199,8 +202,9 @@ impl EmployerService {
 
         if let Some(id) = employer_id {
             if id == parent_id {
-                return Err(AppError::validation_raw(
-                    "An employer cannot be its own parent.",
+                return Err(AppError::validation_args(
+                    I18nKey::Validation,
+                    vec![("details", "An employer cannot be its own parent.".to_string())],
                 ));
             }
         }
@@ -209,9 +213,12 @@ impl EmployerService {
             .get_employer(workspace_id, parent_id)
             .await
             .map_err(|e| {
-                AppError::validation_raw(format!(
-                    "Parent employer not found in this workspace: {e}"
-                ))
+                AppError::validation_args(
+                    I18nKey::Validation,
+                    vec![("details", format!(
+                        "Parent employer not found in this workspace: {e}"
+                    ))],
+                )
             })?;
 
         if let Some(id) = employer_id {
@@ -222,8 +229,9 @@ impl EmployerService {
 
             while let Some(pid) = current_parent_id {
                 if pid == id {
-                    return Err(AppError::validation_raw(
-                        "Circular dependency detected: updating the parent would create a cycle.",
+                    return Err(AppError::validation_args(
+                        I18nKey::Validation,
+                        vec![("details", "Circular dependency detected: updating the parent would create a cycle.".to_string())],
                     ));
                 }
                 if visited.contains(&pid) {
@@ -276,8 +284,9 @@ fn validate_email(email: &str) -> Result<(), AppError> {
 fn validate_country_code(code: &str) -> Result<(), AppError> {
     let code = code.trim();
     if code.len() != 3 || !code.chars().all(|c| c.is_ascii_alphabetic()) {
-        return Err(AppError::validation_raw(
-            "Country code must be a 3-character ISO 3166-1 alpha-3 code.",
+        return Err(AppError::validation_args(
+            I18nKey::Validation,
+            vec![("details", "Country code must be a 3-character ISO 3166-1 alpha-3 code.".to_string())],
         ));
     }
     Ok(())
@@ -286,8 +295,9 @@ fn validate_country_code(code: &str) -> Result<(), AppError> {
 fn validate_currency_code(code: &str) -> Result<(), AppError> {
     let code = code.trim();
     if code.len() != 3 || !code.chars().all(|c| c.is_ascii_alphabetic()) {
-        return Err(AppError::validation_raw(
-            "Currency code must be a 3-character uppercase string.",
+        return Err(AppError::validation_args(
+            I18nKey::Validation,
+            vec![("details", "Currency code must be a 3-character uppercase string.".to_string())],
         ));
     }
     Ok(())
