@@ -9,6 +9,65 @@ use tracing::error;
 
 use crate::utils::i18n::I18nKey;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LocalizedMessage {
+    Key(I18nKey),
+    KeyWithArgs(I18nKey, Vec<(String, String)>),
+    #[deprecated(note = "Legacy raw string. Please replace with an I18nKey.")]
+    RawUnlocalizedLegacy(String),
+}
+
+impl std::fmt::Display for LocalizedMessage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        #[allow(deprecated)]
+        match self {
+            Self::Key(k) => write!(f, "{}", k.as_str()),
+            Self::KeyWithArgs(k, args) => {
+                let args_str = args
+                    .iter()
+                    .map(|(name, val)| format!("{}={}", name, val))
+                    .collect::<Vec<_>>()
+                    .join(",");
+                write!(f, "{}:{}", k.as_str(), args_str)
+            }
+            Self::RawUnlocalizedLegacy(s) => write!(f, "{}", s),
+        }
+    }
+}
+
+impl LocalizedMessage {
+    pub fn translate(&self, lang: &str) -> String {
+        #[allow(deprecated)]
+        match self {
+            Self::Key(k) => crate::utils::i18n::translate(lang, k.as_str()),
+            Self::KeyWithArgs(k, args) => {
+                let borrowed_args: Vec<(&str, &str)> = args
+                    .iter()
+                    .map(|(k, v)| (k.as_str(), v.as_str()))
+                    .collect();
+                crate::utils::i18n::translate_args(lang, k.as_str(), &borrowed_args)
+            }
+            Self::RawUnlocalizedLegacy(s) => {
+                if s.starts_with("error.") {
+                    if let Some((key, params_str)) = s.split_once(':') {
+                        let mut args = Vec::new();
+                        for param in params_str.split(',') {
+                            if let Some((k, v)) = param.split_once('=') {
+                                args.push((k, v));
+                            }
+                        }
+                        crate::utils::i18n::translate_args(lang, key, &args)
+                    } else {
+                        crate::utils::i18n::translate(lang, s)
+                    }
+                } else {
+                    s.clone()
+                }
+            }
+        }
+    }
+}
+
 #[derive(Error, Debug)]
 pub enum AppError {
     #[error("Database error: {0}")]
@@ -18,25 +77,25 @@ pub enum AppError {
     Redis(String),
 
     #[error("Unauthorized: {0}")]
-    Auth(String),
+    Auth(LocalizedMessage),
 
     #[error("Forbidden: {0}")]
-    Forbidden(String),
+    Forbidden(LocalizedMessage),
 
     #[error("Not Found: {0}")]
-    NotFound(String),
+    NotFound(LocalizedMessage),
 
     #[error("Validation error: {0}")]
-    Validation(String),
+    Validation(LocalizedMessage),
 
     #[error("Internal Server Error: {0}")]
     Internal(String),
 
     #[error("Conflict: {0}")]
-    Conflict(String),
+    Conflict(LocalizedMessage),
 
     #[error("Service Unavailable: {0}")]
-    ServiceUnavailable(String),
+    ServiceUnavailable(LocalizedMessage),
 
     #[error("Background Job Error: {0}")]
     BackgroundJobError(String),
@@ -75,63 +134,162 @@ impl From<rust_xlsxwriter::XlsxError> for AppError {
     }
 }
 
+impl From<String> for LocalizedMessage {
+    #[allow(deprecated)]
+    fn from(s: String) -> Self {
+        Self::RawUnlocalizedLegacy(s)
+    }
+}
+
+impl From<&str> for LocalizedMessage {
+    #[allow(deprecated)]
+    fn from(s: &str) -> Self {
+        Self::RawUnlocalizedLegacy(s.to_string())
+    }
+}
+
 impl From<(StatusCode, String)> for AppError {
     fn from((status, message): (StatusCode, String)) -> Self {
+        #[allow(deprecated)]
+        let msg = LocalizedMessage::RawUnlocalizedLegacy(message);
         match status.as_u16() {
-            401 => Self::Auth(message),
-            403 => Self::Forbidden(message),
-            404 => Self::NotFound(message),
-            409 => Self::Conflict(message),
-            400 | 422 => Self::Validation(message),
-            _ => Self::Internal(message),
+            401 => Self::Auth(msg),
+            403 => Self::Forbidden(msg),
+            404 => Self::NotFound(msg),
+            409 => Self::Conflict(msg),
+            400 | 422 => Self::Validation(msg),
+            _ => Self::Internal(msg.to_string()),
         }
     }
 }
 
 impl AppError {
     pub fn auth(key: I18nKey) -> Self {
-        Self::Auth(key.as_str().to_string())
+        Self::Auth(LocalizedMessage::Key(key))
     }
 
+    #[deprecated(note = "Use auth(key) instead")]
+    #[allow(deprecated)]
     pub fn auth_raw(msg: impl Into<String>) -> Self {
-        Self::Auth(msg.into())
+        Self::Auth(LocalizedMessage::RawUnlocalizedLegacy(msg.into()))
     }
 
     pub fn forbidden(key: I18nKey) -> Self {
-        Self::Forbidden(key.as_str().to_string())
+        Self::Forbidden(LocalizedMessage::Key(key))
     }
 
+    #[deprecated(note = "Use forbidden(key) instead")]
+    #[allow(deprecated)]
     pub fn forbidden_raw(msg: impl Into<String>) -> Self {
-        Self::Forbidden(msg.into())
+        Self::Forbidden(LocalizedMessage::RawUnlocalizedLegacy(msg.into()))
     }
 
     pub fn not_found(key: I18nKey) -> Self {
-        Self::NotFound(key.as_str().to_string())
+        Self::NotFound(LocalizedMessage::Key(key))
     }
 
+    #[deprecated(note = "Use not_found(key) instead")]
+    #[allow(deprecated)]
     pub fn not_found_raw(msg: impl Into<String>) -> Self {
-        Self::NotFound(msg.into())
+        Self::NotFound(LocalizedMessage::RawUnlocalizedLegacy(msg.into()))
     }
 
     pub fn validation(key: I18nKey) -> Self {
-        Self::Validation(key.as_str().to_string())
+        Self::Validation(LocalizedMessage::Key(key))
     }
 
+    #[deprecated(note = "Use validation(key) instead")]
+    #[allow(deprecated)]
     pub fn validation_raw(msg: impl Into<String>) -> Self {
-        Self::Validation(msg.into())
+        Self::Validation(LocalizedMessage::RawUnlocalizedLegacy(msg.into()))
     }
 
     pub fn conflict(key: I18nKey) -> Self {
-        Self::Conflict(key.as_str().to_string())
+        Self::Conflict(LocalizedMessage::Key(key))
     }
 
+    #[deprecated(note = "Use conflict(key) instead")]
+    #[allow(deprecated)]
     pub fn conflict_raw(msg: impl Into<String>) -> Self {
-        Self::Conflict(msg.into())
+        Self::Conflict(LocalizedMessage::RawUnlocalizedLegacy(msg.into()))
     }
 
     pub fn service_unavailable(key: I18nKey) -> Self {
-        Self::ServiceUnavailable(key.as_str().to_string())
+        Self::ServiceUnavailable(LocalizedMessage::Key(key))
     }
+
+    pub fn auth_args<I, K, V>(key: I18nKey, args: I) -> Self
+    where
+        I: IntoIterator<Item = (K, V)>,
+        K: Into<String>,
+        V: Into<String>,
+    {
+        Self::Auth(LocalizedMessage::KeyWithArgs(
+            key,
+            args.into_iter().map(|(k, v)| (k.into(), v.into())).collect(),
+        ))
+    }
+
+    pub fn forbidden_args<I, K, V>(key: I18nKey, args: I) -> Self
+    where
+        I: IntoIterator<Item = (K, V)>,
+        K: Into<String>,
+        V: Into<String>,
+    {
+        Self::Forbidden(LocalizedMessage::KeyWithArgs(
+            key,
+            args.into_iter().map(|(k, v)| (k.into(), v.into())).collect(),
+        ))
+    }
+
+    pub fn not_found_args<I, K, V>(key: I18nKey, args: I) -> Self
+    where
+        I: IntoIterator<Item = (K, V)>,
+        K: Into<String>,
+        V: Into<String>,
+    {
+        Self::NotFound(LocalizedMessage::KeyWithArgs(
+            key,
+            args.into_iter().map(|(k, v)| (k.into(), v.into())).collect(),
+        ))
+    }
+
+    pub fn validation_args<I, K, V>(key: I18nKey, args: I) -> Self
+    where
+        I: IntoIterator<Item = (K, V)>,
+        K: Into<String>,
+        V: Into<String>,
+    {
+        Self::Validation(LocalizedMessage::KeyWithArgs(
+            key,
+            args.into_iter().map(|(k, v)| (k.into(), v.into())).collect(),
+        ))
+    }
+
+    pub fn conflict_args<I, K, V>(key: I18nKey, args: I) -> Self
+    where
+        I: IntoIterator<Item = (K, V)>,
+        K: Into<String>,
+        V: Into<String>,
+    {
+        Self::Conflict(LocalizedMessage::KeyWithArgs(
+            key,
+            args.into_iter().map(|(k, v)| (k.into(), v.into())).collect(),
+        ))
+    }
+
+    pub fn service_unavailable_args<I, K, V>(key: I18nKey, args: I) -> Self
+    where
+        I: IntoIterator<Item = (K, V)>,
+        K: Into<String>,
+        V: Into<String>,
+    {
+        Self::ServiceUnavailable(LocalizedMessage::KeyWithArgs(
+            key,
+            args.into_iter().map(|(k, v)| (k.into(), v.into())).collect(),
+        ))
+    }
+
     pub fn status_code(&self) -> StatusCode {
         match self {
             Self::Diesel(_)
@@ -171,62 +329,22 @@ impl AppError {
             | Self::Internal(_)
             | Self::BackgroundJobError(_)
             | Self::TemplateError(_) => crate::utils::i18n::translate(lang, "error.internal"),
-            Self::Auth(msg) => {
-                let key = if msg.is_empty() {
-                    "error.unauthorized"
-                } else {
-                    msg
-                };
-                crate::utils::i18n::translate(lang, key)
-            }
-            Self::Forbidden(msg) => {
-                let key = if msg.is_empty() {
-                    "error.forbidden"
-                } else {
-                    msg
-                };
-                crate::utils::i18n::translate(lang, key)
-            }
-            Self::NotFound(msg) => {
-                let key = if msg.is_empty() {
-                    "error.not_found"
-                } else {
-                    msg
-                };
-                crate::utils::i18n::translate(lang, key)
-            }
-            Self::Conflict(msg) => {
-                let key = if msg.is_empty() {
-                    "error.conflict"
-                } else {
-                    msg
-                };
-                crate::utils::i18n::translate(lang, key)
-            }
-            Self::ServiceUnavailable(msg) => {
-                let key = if msg.is_empty() {
-                    "error.service_unavailable"
-                } else {
-                    msg
-                };
-                crate::utils::i18n::translate(lang, key)
-            }
+            Self::Auth(msg)
+            | Self::Forbidden(msg)
+            | Self::NotFound(msg)
+            | Self::Conflict(msg)
+            | Self::ServiceUnavailable(msg) => msg.translate(lang),
             Self::Validation(msg) => {
-                if msg.starts_with("error.") {
-                    if let Some((key, params_str)) = msg.split_once(':') {
-                        let mut args = Vec::new();
-                        for param in params_str.split(',') {
-                            if let Some((k, v)) = param.split_once('=') {
-                                args.push((k, v));
-                            }
-                        }
-                        crate::utils::i18n::translate_args(lang, key, &args)
-                    } else {
-                        crate::utils::i18n::translate(lang, msg)
-                    }
-                } else {
+                #[allow(deprecated)]
+                let is_raw_non_key = match msg {
+                    LocalizedMessage::RawUnlocalizedLegacy(s) => !s.starts_with("error."),
+                    _ => false,
+                };
+                if is_raw_non_key {
                     let prefix = crate::utils::i18n::translate(lang, "error.validation");
                     format!("{prefix}: {msg}")
+                } else {
+                    msg.translate(lang)
                 }
             }
         }

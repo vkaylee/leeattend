@@ -251,7 +251,7 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
             .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
 
         if employment_exists.is_none() {
-            return Err(AppError::NotFound("error.employment_not_found".to_string()));
+            return Err(AppError::NotFound("error.employment_not_found".into()));
         }
 
         map_db_err!(
@@ -324,7 +324,7 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
             .map_err(|e| AppError::Internal(format!("db check employments: {e}")))?;
 
         if valid_count != employment_ids.len() as i64 {
-            return Err(AppError::NotFound("error.employment_not_found".to_string()));
+            return Err(AppError::NotFound("error.employment_not_found".into()));
         }
 
         let conflicts: Vec<Uuid> = employee_working_patterns::table

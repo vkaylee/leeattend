@@ -20,12 +20,12 @@ export function GeneralConfigCard({ register, errors, isPending, onBack, entityT
 
   const getEntityLabel = (type: string) => {
     if (type === "leave_request") {
-      return t("settings.leave.title", { defaultValue: "Leave Requests" });
+      return t("settings.workflows.entity_types.leave_request", { defaultValue: "Leave Requests" });
     }
     if (type === "attendance_adjustment") {
-      return t("settings.attendance.title", { defaultValue: "Attendance Adjustments" });
+      return t("settings.workflows.entity_types.attendance_adjustment", { defaultValue: "Attendance Adjustments" });
     }
-    return t("settings.overtime.title", { defaultValue: "Overtime Requests" });
+    return t("settings.workflows.entity_types.ot_request", { defaultValue: "Overtime Requests" });
   };
 
   return (
@@ -37,24 +37,24 @@ export function GeneralConfigCard({ register, errors, isPending, onBack, entityT
 
         <div className="space-y-1.5">
           <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest" htmlFor="workflow-name">
-            {t("settings.overtime.workflows.name_label", { defaultValue: "Name" })}
+            {t("settings.workflows.name_label", { defaultValue: "Name" })}
           </label>
           <input
             className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus-visible:ring-2 focus-visible:ring-blue-500/50"
             id="workflow-name"
-            placeholder="e.g. Standard OT Approval"
+            placeholder={t("settings.workflows.name_placeholder", { defaultValue: "e.g. Standard OT Approval" })}
             {...register("name")}
           />
           {errors.name ? (
             <Typography className="text-rose-500 text-xs mt-1" variant="p">
-              {errors.name.message}
+              {t(errors.name.message ?? "")}
             </Typography>
           ) : null}
         </div>
 
         <div className="space-y-1.5">
           <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest">
-            {t("settings.overtime.workflows.entity_label", { defaultValue: "Entity Type" })}
+            {t("settings.workflows.entity_label", { defaultValue: "Entity Type" })}
           </label>
           <div className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm font-bold text-slate-700 dark:text-slate-300">
             {getEntityLabel(entityType)}
@@ -64,12 +64,12 @@ export function GeneralConfigCard({ register, errors, isPending, onBack, entityT
 
         <div className="space-y-1.5">
           <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest" htmlFor="workflow-description">
-            {t("settings.overtime.workflows.desc_label", { defaultValue: "Description" })}
+            {t("settings.workflows.desc_label", { defaultValue: "Description" })}
           </label>
           <textarea
             className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus-visible:ring-2 focus-visible:ring-blue-500/50 min-h-[100px]"
             id="workflow-description"
-            placeholder="Optional description"
+            placeholder={t("settings.workflows.desc_placeholder", { defaultValue: "Optional description" })}
             {...register("description")}
           />
         </div>
@@ -82,7 +82,7 @@ export function GeneralConfigCard({ register, errors, isPending, onBack, entityT
             {...register("is_active")}
           />
           <label className="text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="is_active">
-            {t("settings.overtime.workflows.active_label", { defaultValue: "Active Workflow" })}
+            {t("settings.workflows.active_label", { defaultValue: "Active Workflow" })}
           </label>
         </div>
       </div>

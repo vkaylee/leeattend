@@ -82,7 +82,7 @@ impl ImportStrategy for EmployeeImportStrategy {
             return Err(AppError::Validation(fmt_msg(
                 self.msgs.missing_employee_or_id,
                 &[("line", &current_line.to_string())],
-            )));
+            ).into()));
         }
 
         let hire_date_str = hire_date_raw.split(' ').next().unwrap_or(hire_date_raw);
@@ -387,7 +387,7 @@ impl ImportStrategy for PunchImportStrategy {
             return Err(AppError::Validation(fmt_msg(
                 self.msgs.missing_employee_or_time,
                 &[("line", &current_line.to_string())],
-            )));
+            ).into()));
         }
 
         match AttendanceAdjustmentService::parse_datetime(
@@ -407,7 +407,7 @@ impl ImportStrategy for PunchImportStrategy {
                     self.msgs.missing_employee_or_time,
                     &[("line", &current_line.to_string())],
                 )
-            ))),
+            ).into())),
         }
     }
 
@@ -488,7 +488,7 @@ impl ImportStrategy for PunchImportStrategy {
         } else {
             let Some(employment_id) = employee.active_employment_id() else {
                 return Err(AppError::NotFound(
-                    "error.active_employment_not_found".to_string(),
+                    "error.active_employment_not_found".into(),
                 ));
             };
 

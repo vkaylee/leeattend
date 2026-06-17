@@ -743,7 +743,7 @@ impl InfraState {
     pub fn require_redis(&self) -> crate::errors::AppResult<&RedisPool> {
         self.redis.as_ref().ok_or_else(|| {
             crate::errors::AppError::ServiceUnavailable(
-                "This feature requires Redis for background processing".to_string(),
+                "This feature requires Redis for background processing".into(),
             )
         })
     }

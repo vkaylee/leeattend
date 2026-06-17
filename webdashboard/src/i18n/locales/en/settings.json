@@ -616,7 +616,60 @@
       "edit_title": "Edit Workflow",
       "new_title": "New Workflow",
       "edit_desc": "Modify approval rules and steps",
-      "new_desc": "Define a new multi-step approval process"
+      "new_desc": "Define a new multi-step approval process",
+      "name_label": "Workflow Name",
+      "name_placeholder": "e.g. Standard OT Approval",
+      "entity_label": "Entity Type",
+      "desc_label": "Description",
+      "desc_placeholder": "Optional description",
+      "active_label": "Active Workflow",
+      "steps_header": "Approval Steps",
+      "add_step": "Add Step",
+      "step_title": "Step",
+      "step_default_name": "Step {{index}}",
+      "move_up": "Move step up",
+      "move_down": "Move step down",
+      "delete_step": "Delete step",
+      "step_name_label": "Step Name",
+      "approver_type_label": "Approver Type",
+      "approver_types": {
+        "dept_manager": "Dept Manager",
+        "role": "Role",
+        "permission": "Permission",
+        "specific_user": "Specific User"
+      },
+      "action_label": "Action",
+      "actions": {
+        "approve": "Approve",
+        "review": "Review",
+        "acknowledge": "Acknowledge"
+      },
+      "can_skip_label": "Can Skip if Not Found",
+      "dept_manager_routing": "Department Manager Routing",
+      "dept_manager_routing_desc": "Requests will be sent automatically to the manager of the requester's department.",
+      "select_role_label": "Select Role",
+      "choose_role_placeholder": "Choose a Role...",
+      "select_permission_label": "Select Permission",
+      "choose_permission_placeholder": "Choose a Permission...",
+      "search_user_label": "Search Workspace User",
+      "search_user_placeholder": "Type to search user...",
+      "search_members_placeholder": "Search members...",
+      "no_members_found": "No members found",
+      "entity_types": {
+        "ot_request": "Overtime Request",
+        "leave_request": "Leave Request",
+        "attendance_adjustment": "Attendance Adjustment"
+      },
+      "messages": {
+        "create_success": "Workflow created successfully",
+        "update_success": "Workflow updated successfully",
+        "save_failed": "Failed to save workflow"
+      },
+      "errors": {
+        "name_required": "Name is required",
+        "step_name_required": "Step name is required",
+        "steps_required": "At least one step is required"
+      }
     },
     "attendance": {
       "title": "Attendance Settings"

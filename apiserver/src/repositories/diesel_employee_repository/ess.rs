@@ -92,8 +92,8 @@ impl EmployeeSelfServiceRepository for DieselEmployeeRepository {
             .is_some();
 
         if !employee_exists {
-            return Err(AppError::Forbidden(
-                "Employee does not belong to this workspace".to_string(),
+            return Err(AppError::forbidden_raw(
+                "Employee does not belong to this workspace",
             ));
         }
 
@@ -251,8 +251,8 @@ impl EmployeeSelfServiceRepository for DieselEmployeeRepository {
             .is_some();
 
         if !employee_exists {
-            return Err(AppError::Forbidden(
-                "Employee does not belong to this workspace".to_string(),
+            return Err(AppError::forbidden_raw(
+                "Employee does not belong to this workspace",
             ));
         }
 

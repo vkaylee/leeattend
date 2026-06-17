@@ -616,7 +616,60 @@
       "edit_title": "编辑工作流",
       "new_title": "新建工作流",
       "edit_desc": "修改审批规则和步骤",
-      "new_desc": "定义一个新的多级审批流程"
+      "new_desc": "定义一个新的多级审批流程",
+      "name_label": "工作流名称",
+      "name_placeholder": "例如：标准加班审批流程",
+      "entity_label": "实体类型",
+      "desc_label": "描述",
+      "desc_placeholder": "请输入描述（可选）",
+      "active_label": "启用工作流",
+      "steps_header": "审批步骤",
+      "add_step": "添加步骤",
+      "step_title": "步骤",
+      "step_default_name": "步骤 {{index}}",
+      "move_up": "向上移动",
+      "move_down": "向下移动",
+      "delete_step": "删除步骤",
+      "step_name_label": "步骤名称",
+      "approver_type_label": "审批人类型",
+      "approver_types": {
+        "dept_manager": "部门主管",
+        "role": "角色",
+        "permission": "权限",
+        "specific_user": "指定用户"
+      },
+      "action_label": "要求操作",
+      "actions": {
+        "approve": "审批",
+        "review": "审阅",
+        "acknowledge": "知会"
+      },
+      "can_skip_label": "若找不到审批人则跳过",
+      "dept_manager_routing": "自动路由到部门主管",
+      "dept_manager_routing_desc": "申请将自动发送给申请人所属部门的主管。",
+      "select_role_label": "选择角色",
+      "choose_role_placeholder": "请选择角色...",
+      "select_permission_label": "选择权限",
+      "choose_permission_placeholder": "请选择权限...",
+      "search_user_label": "搜索工作空间用户",
+      "search_user_placeholder": "输入以搜索用户...",
+      "search_members_placeholder": "搜索成员...",
+      "no_members_found": "未找到成员",
+      "entity_types": {
+        "ot_request": "加班申请",
+        "leave_request": "请假申请",
+        "attendance_adjustment": "考勤补卡申请"
+      },
+      "messages": {
+        "create_success": "已成功创建工作流",
+        "update_success": "已成功更新工作流",
+        "save_failed": "保存工作流失败"
+      },
+      "errors": {
+        "name_required": "工作流名称是必填项",
+        "step_name_required": "步骤名称是必填项",
+        "steps_required": "要求至少有一个步骤"
+      }
     },
     "attendance": {
       "title": "考勤设置"

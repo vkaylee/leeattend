@@ -343,7 +343,7 @@ impl CustomFieldRepository for DieselCustomFieldRepository {
                             &val_json,
                             &def.field_type,
                         )
-                        .map_err(AppError::Validation)?;
+                        .map_err(|e| AppError::Validation(e.into()))?;
 
                         let entity: CustomFieldValueEntity = domain_val.into();
 

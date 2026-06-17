@@ -195,7 +195,7 @@ pub async fn get_values(
         _ => {
             return Err(crate::errors::AppError::Validation(format!(
                 "Invalid entity type '{entity_type}'."
-            )));
+            ).into()));
         }
     }
 
@@ -239,7 +239,7 @@ pub async fn set_values(
         _ => {
             return Err(crate::errors::AppError::Validation(format!(
                 "Invalid entity type '{entity_type}'."
-            )));
+            ).into()));
         }
     }
 

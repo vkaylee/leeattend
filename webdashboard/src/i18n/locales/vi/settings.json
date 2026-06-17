@@ -616,7 +616,60 @@
       "edit_title": "Sửa quy trình",
       "new_title": "Thêm quy trình",
       "edit_desc": "Chỉnh sửa quy tắc và các bước phê duyệt",
-      "new_desc": "Định nghĩa một quy trình phê duyệt nhiều bước"
+      "new_desc": "Định nghĩa một quy trình phê duyệt nhiều bước",
+      "name_label": "Tên quy trình",
+      "name_placeholder": "Ví dụ: Quy trình duyệt OT tiêu chuẩn",
+      "entity_label": "Loại yêu cầu",
+      "desc_label": "Mô tả",
+      "desc_placeholder": "Nhập mô tả quy trình (không bắt buộc)",
+      "active_label": "Quy trình hoạt động",
+      "steps_header": "Các bước phê duyệt",
+      "add_step": "Thêm bước",
+      "step_title": "Bước",
+      "step_default_name": "Bước {{index}}",
+      "move_up": "Di chuyển lên",
+      "move_down": "Di chuyển xuống",
+      "delete_step": "Xóa bước",
+      "step_name_label": "Tên bước",
+      "approver_type_label": "Loại người duyệt",
+      "approver_types": {
+        "dept_manager": "Quản lý phòng ban",
+        "role": "Vai trò",
+        "permission": "Quyền hạn",
+        "specific_user": "Nhân sự cụ thể"
+      },
+      "action_label": "Hành động",
+      "actions": {
+        "approve": "Phê duyệt",
+        "review": "Xem xét",
+        "acknowledge": "Ghi nhận"
+      },
+      "can_skip_label": "Có thể bỏ qua nếu không tìm thấy người duyệt",
+      "dept_manager_routing": "Tự động gửi đến Quản lý phòng ban",
+      "dept_manager_routing_desc": "Yêu cầu sẽ được tự động gửi đến trưởng bộ phận của nhân viên gửi yêu cầu.",
+      "select_role_label": "Chọn vai trò",
+      "choose_role_placeholder": "Chọn một vai trò...",
+      "select_permission_label": "Chọn quyền hạn",
+      "choose_permission_placeholder": "Chọn một quyền hạn...",
+      "search_user_label": "Tìm kiếm nhân sự",
+      "search_user_placeholder": "Nhập để tìm nhân sự...",
+      "search_members_placeholder": "Tìm kiếm thành viên...",
+      "no_members_found": "Không tìm thấy thành viên nào",
+      "entity_types": {
+        "ot_request": "Yêu cầu tăng ca",
+        "leave_request": "Yêu cầu nghỉ phép",
+        "attendance_adjustment": "Hiệu chỉnh chấm công"
+      },
+      "messages": {
+        "create_success": "Đã tạo quy trình thành công",
+        "update_success": "Đã cập nhật quy trình thành công",
+        "save_failed": "Không thể lưu quy trình"
+      },
+      "errors": {
+        "name_required": "Tên quy trình là bắt buộc",
+        "step_name_required": "Tên bước là bắt buộc",
+        "steps_required": "Yêu cầu có ít nhất một bước"
+      }
     },
     "attendance": {
       "title": "Cấu hình Chấm công"

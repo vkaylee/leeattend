@@ -211,12 +211,12 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                         warn!("Agent authorization error for {}: {}", id, err);
                                         let (code, message) = match err {
                                             AppError::Validation(ref msg)
-                                                if msg == "INVALID_TOKEN" =>
+                                                if msg.to_string() == "INVALID_TOKEN" =>
                                             {
                                                 ("INVALID_TOKEN", "Token không chính xác.")
                                             }
                                             AppError::Validation(ref msg)
-                                                if msg == "AGENT_NOT_TRUSTED" =>
+                                                if msg.to_string() == "AGENT_NOT_TRUSTED" =>
                                             {
                                                 ("AGENT_NOT_TRUSTED", "Agent chưa được phê duyệt.")
                                             }

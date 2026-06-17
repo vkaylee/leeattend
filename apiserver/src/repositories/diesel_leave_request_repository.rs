@@ -52,7 +52,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
 
         if employment_exists.is_none() {
-            return Err(AppError::NotFound("error.employment_not_found".to_string()));
+            return Err(AppError::NotFound("error.employment_not_found".into()));
         }
 
         diesel::insert_into(leave_requests::table)

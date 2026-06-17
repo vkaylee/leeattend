@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const workflowStepSchema = z.object({
   step_order: z.number().min(1),
-  step_name: z.string().min(1, "Step name is required"),
+  step_name: z.string().min(1, "settings.workflows.errors.step_name_required"),
   approver_type: z.enum(["department_manager", "role", "permission", "specific_user"]),
   role_id: z.string().optional(),
   permission_name: z.string().optional(),
@@ -12,11 +12,11 @@ export const workflowStepSchema = z.object({
 });
 
 export const workflowSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  entity_type: z.string().min(1, "Entity type is required"),
+  name: z.string().min(1, "settings.workflows.errors.name_required"),
+  entity_type: z.string().min(1, "settings.workflows.errors.entity_type_required"),
   description: z.string().optional(),
   is_active: z.boolean(),
-  steps: z.array(workflowStepSchema).min(1, "At least one step is required"),
+  steps: z.array(workflowStepSchema).min(1, "settings.workflows.errors.steps_required"),
 });
 
 export type WorkflowFormValues = z.infer<typeof workflowSchema>;
@@ -32,7 +32,7 @@ export interface WorkspaceMemberDef {
   user_id: string;
 }
 
-export const createDefaultFormValues = (entityType: string): WorkflowFormValues => ({
+export const createDefaultFormValues = (entityType: string, t?: (key: string, options?: any) => string): WorkflowFormValues => ({
   name: "",
   entity_type: entityType,
   description: "",
@@ -40,7 +40,7 @@ export const createDefaultFormValues = (entityType: string): WorkflowFormValues 
   steps: [
     {
       step_order: 1,
-      step_name: "L1 Approval",
+      step_name: t ? t("settings.workflows.step_default_name", { index: 1, defaultValue: "L1 Approval" }) : "L1 Approval",
       approver_type: "department_manager",
       role_id: "",
       permission_name: "",

@@ -17,7 +17,7 @@ export function WorkflowEditorHeader({ workflowId, onBack }: WorkflowEditorHeade
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-3">
         <Button
-          aria-label="Go back"
+          aria-label={t("common.back", { defaultValue: "Go back" })}
           className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
           onClick={onBack}
           variant="ghost"

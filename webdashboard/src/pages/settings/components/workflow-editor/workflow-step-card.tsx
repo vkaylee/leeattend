@@ -35,30 +35,30 @@ function StepHeader({
     <div className="flex justify-between items-center mb-5 border-b border-slate-100 dark:border-slate-800 pb-3">
       <div className="flex items-center gap-2">
         <Typography className="text-sm font-bold text-slate-800 dark:text-slate-200" variant="p">
-          {t("settings.overtime.workflows.step_title", { defaultValue: "Step" })} {index + 1}
+          {t("settings.workflows.step_title", { defaultValue: "Step" })} {index + 1}
         </Typography>
       </div>
 
       <div className="flex items-center gap-1">
         <Button
-          aria-label="Move step up"
+          aria-label={t("settings.workflows.move_up", { defaultValue: "Move step up" })}
           className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-30 disabled:pointer-events-none"
           disabled={!canMoveUp}
           onClick={onMoveUp}
           size="icon"
-          title="Move Up"
+          title={t("settings.workflows.move_up", { defaultValue: "Move Up" })}
           variant="ghost"
         >
           <ArrowUp className="w-4 h-4" />
         </Button>
 
         <Button
-          aria-label="Move step down"
+          aria-label={t("settings.workflows.move_down", { defaultValue: "Move step down" })}
           className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-30 disabled:pointer-events-none"
           disabled={!canMoveDown}
           onClick={onMoveDown}
           size="icon"
-          title="Move Down"
+          title={t("settings.workflows.move_down", { defaultValue: "Move Down" })}
           variant="ghost"
         >
           <ArrowDown className="w-4 h-4" />
@@ -66,11 +66,11 @@ function StepHeader({
 
         {canRemove ? (
           <Button
-            aria-label="Delete step"
+            aria-label={t("settings.workflows.delete_step", { defaultValue: "Delete step" })}
             className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-lg transition-colors"
             onClick={onRemove}
             size="icon"
-            title="Delete Step"
+            title={t("settings.workflows.delete_step", { defaultValue: "Delete Step" })}
             variant="ghost"
           >
             <Trash2 className="w-4 h-4" />

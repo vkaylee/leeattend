@@ -41,12 +41,12 @@ impl BehalfAssignmentRepository for DieselBehalfAssignmentRepository {
 
         if target_employee_id.is_none() && target_department_id.is_none() {
             return Err(AppError::Validation(
-                "error.behalf_assignment_missing_target".to_string(),
+                "error.behalf_assignment_missing_target".into(),
             ));
         }
         if target_employee_id.is_some() && target_department_id.is_some() {
             return Err(AppError::Validation(
-                "error.behalf_assignment_dual_target".to_string(),
+                "error.behalf_assignment_dual_target".into(),
             ));
         }
 

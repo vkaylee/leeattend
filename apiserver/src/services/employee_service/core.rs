@@ -14,7 +14,7 @@ impl EmployeeService {
         self.repo
             .get_employee_by_id(id, auth_token)
             .await?
-            .ok_or(AppError::NotFound("error.employee_not_found".into()))
+            .ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound))
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -40,7 +40,7 @@ impl EmployeeService {
             self.user_repo
                 .get_user_by_id(user_id)
                 .await?
-                .ok_or(AppError::Validation("error.user_not_found".into()))?;
+                .ok_or(AppError::validation(crate::utils::i18n::I18nKey::UserNotFound))?;
 
             // Enforce 1-to-1 User/Employee link in this workspace
             if let Some(existing_emp_id) = self
@@ -53,12 +53,12 @@ impl EmployeeService {
                         .repo
                         .get_employee_by_id(existing_emp_id, auth_token)
                         .await?
-                        .ok_or_else(|| AppError::NotFound("error.employee_not_found".into()))?;
+                        .ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound))?;
 
-                    return Err(AppError::Validation(format!(
-                        "error.user_already_linked:name={}",
-                        existing_emp.full_name()
-                    )));
+                    return Err(AppError::validation_args(
+                        crate::utils::i18n::I18nKey::UserAlreadyLinked,
+                        [("name", existing_emp.full_name())],
+                    ));
                 }
             }
         }
@@ -67,7 +67,7 @@ impl EmployeeService {
             .repo
             .update_employee_transactional(id, auth_token, &req)
             .await?
-            .ok_or(AppError::NotFound("error.employee_not_found".into()))?;
+            .ok_or(AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound))?;
 
         // If employee_id_number was updated, claim staged logs directly
         if let Some(new_id_number) = req.employee_id_number {
@@ -98,7 +98,7 @@ impl EmployeeService {
         let rows_affected = self.repo.delete_employee(id, auth_token).await?;
 
         if rows_affected == 0 {
-            Err(AppError::NotFound("error.employee_not_found".into()))
+            Err(AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound))
         } else {
             Ok(())
         }
@@ -115,7 +115,7 @@ impl EmployeeService {
             .repo
             .get_employee_by_id(employee_id, auth_token)
             .await?
-            .ok_or(AppError::NotFound("error.employee_not_found".into()))?;
+            .ok_or(AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound))?;
 
         self.dept_repo
             .get_employee_department_history(auth_token, employee_id)
@@ -134,7 +134,7 @@ impl EmployeeService {
             .repo
             .get_employee_by_id(employee_id, auth_token)
             .await?
-            .ok_or(AppError::NotFound("error.employee_not_found".into()))?;
+            .ok_or(AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound))?;
 
         self.dept_repo
             .transfer_employee(

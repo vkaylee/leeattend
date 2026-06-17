@@ -100,7 +100,7 @@ impl AttendanceSummaryService {
                 employment_id,
             )
             .await?
-            .ok_or_else(|| AppError::NotFound("Employment not found".to_string()))?;
+            .ok_or_else(|| AppError::not_found_raw("Employment not found"))?;
         let employee_id = employment.employee_id();
 
         // 1. Fetch schedule & time entries
@@ -193,7 +193,7 @@ impl AttendanceSummaryService {
             .workspace_repo
             .get_workspace_by_id(workspace_id)
             .await?
-            .ok_or_else(|| AppError::NotFound("Workspace not found".to_string()))?;
+            .ok_or_else(|| AppError::not_found_raw("Workspace not found"))?;
 
         let tz: Tz = crate::utils::tz::parse_workspace_tz(workspace.timezone());
 
@@ -210,12 +210,12 @@ impl AttendanceSummaryService {
 
         let emp_sched = schedules
             .first()
-            .ok_or_else(|| AppError::NotFound("No schedule found for employee".to_string()))?;
+            .ok_or_else(|| AppError::not_found_raw("No schedule found for employee"))?;
         let daily_schedule = emp_sched
             .schedules
             .iter()
             .find(|s| s.date == date)
-            .ok_or_else(|| AppError::NotFound("No schedule for date".to_string()))?
+            .ok_or_else(|| AppError::not_found_raw("No schedule for date"))?
             .clone();
 
         let start_dt_utc = local_midnight_to_utc(&tz, date, 0, 0, 0).map_err(AppError::Internal)?;
@@ -565,7 +565,7 @@ impl AttendanceSummaryService {
             .await?;
 
         if rows_affected == 0 {
-            return Err(AppError::NotFound("Record not found".to_string()));
+            return Err(AppError::not_found_raw("Record not found"));
         }
         Ok(())
     }
@@ -594,7 +594,7 @@ impl AttendanceSummaryService {
             .await?;
 
         if rows_affected == 0 {
-            return Err(AppError::NotFound("Record not found".to_string()));
+            return Err(AppError::not_found_raw("Record not found"));
         }
         Ok(())
     }
@@ -619,7 +619,7 @@ impl AttendanceSummaryService {
         if !args.allow_exceed {
             if let Some(ref ex) = existing {
                 if args.claimed_minutes > ex.system_detected_ot_minutes {
-                    return Err(AppError::Validation(format!(
+                    return Err(AppError::validation_raw(format!(
                         "Claimed {} minutes exceeds system detected {} minutes",
                         args.claimed_minutes, ex.system_detected_ot_minutes
                     )));
@@ -659,7 +659,7 @@ impl crate::services::approval_workflow::WorkflowCallbackHandler for AttendanceS
             .daily_summary_repo
             .get_summary_by_id(auth_token, entity_id)
             .await?
-            .ok_or_else(|| AppError::NotFound("Attendance daily summary not found".to_string()))?;
+            .ok_or_else(|| AppError::not_found_raw("Attendance daily summary not found"))?;
 
         let ot_status = match status {
             "approved" => crate::models::OtStatus::Approved,

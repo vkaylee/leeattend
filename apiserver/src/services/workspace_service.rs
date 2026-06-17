@@ -673,10 +673,10 @@ mod tests {
             crate::repositories::workspace_config_repository::MockWorkspaceConfigRepository::new();
         mock_config_repo
             .expect_delete_by_key()
-            .returning(|_, _, _, _| Ok(()));
+            .returning(|_, _, _, _| Box::pin(async move { Ok(()) }));
         mock_config_repo
             .expect_create_entry()
-            .returning(|_, entry| Ok(entry));
+            .returning(|_, entry| Box::pin(async move { Ok(entry) }));
         WorkspaceService::new(
             std::sync::Arc::new(MockWorkspaceRepo {
                 workspace: Some(dummy_workspace()),
@@ -754,10 +754,10 @@ mod tests {
             crate::repositories::workspace_config_repository::MockWorkspaceConfigRepository::new();
         mock_config_repo
             .expect_delete_by_key()
-            .returning(|_, _, _, _| Ok(()));
+            .returning(|_, _, _, _| Box::pin(async move { Ok(()) }));
         mock_config_repo
             .expect_create_entry()
-            .returning(|_, entry| Ok(entry));
+            .returning(|_, entry| Box::pin(async move { Ok(entry) }));
         WorkspaceService::new(
             std::sync::Arc::new(MockWorkspaceRepo {
                 workspace: Some(dummy_workspace()),

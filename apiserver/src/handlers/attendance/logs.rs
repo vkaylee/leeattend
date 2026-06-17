@@ -193,14 +193,12 @@ pub async fn force_reprocess_attendance(
 
     let date_range = (query.end_date - query.start_date).num_days();
     if date_range < 0 {
-        return Err(AppError::Validation(
-            "end_date must be after start_date".to_string(),
-        ));
+        return Err(AppError::validation(crate::utils::i18n::I18nKey::InvalidDateRange));
     }
     if date_range > MAX_REPROCESS_DAYS {
         return Err(AppError::Validation(format!(
             "Max reprocess range is {MAX_REPROCESS_DAYS} days"
-        )));
+        ).into()));
     }
 
     // Accept both employee_id and employment_id for resilience.
@@ -311,14 +309,12 @@ pub async fn force_reprocess_all_attendance(
 
     let date_range = (query.end_date - query.start_date).num_days();
     if date_range < 0 {
-        return Err(AppError::Validation(
-            "end_date must be after start_date".to_string(),
-        ));
+        return Err(AppError::validation(crate::utils::i18n::I18nKey::InvalidDateRange));
     }
     if date_range > MAX_REPROCESS_DAYS {
         return Err(AppError::Validation(format!(
             "Max reprocess range is {MAX_REPROCESS_DAYS} days"
-        )));
+        ).into()));
     }
 
     let queue = state.infra().job_queue()?;
@@ -338,9 +334,7 @@ pub async fn force_reprocess_all_attendance(
     );
 
     if employees.is_empty() {
-        return Err(AppError::Validation(
-            "No active employees found".to_string(),
-        ));
+        return Err(AppError::validation(crate::utils::i18n::I18nKey::NoActiveEmployeesFound));
     }
 
     let parent_job_id = crate::utils::id::new_id();

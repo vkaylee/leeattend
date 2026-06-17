@@ -30,7 +30,7 @@ pub async fn extract_uploaded_file(
     while let Some(field) = multipart
         .next_field()
         .await
-        .map_err(|_e| AppError::Validation("error.upload_multipart".to_string()))?
+        .map_err(|_e| AppError::validation(crate::utils::i18n::I18nKey::UploadMultipart))?
     {
         let name = field.name().unwrap_or("").to_string();
         if name == field_name {
@@ -52,11 +52,11 @@ pub async fn extract_uploaded_file(
             let data = field
                 .bytes()
                 .await
-                .map_err(|_e| AppError::Validation("error.upload_read_failed".to_string()))?;
+                .map_err(|_e| AppError::validation(crate::utils::i18n::I18nKey::UploadReadFailed))?;
 
             if data.len() > max_size {
-                return Err(AppError::Validation(
-                    "error.upload_file_too_large".to_string(),
+                return Err(AppError::validation(
+                    crate::utils::i18n::I18nKey::UploadFileTooLarge,
                 ));
             }
 
@@ -102,5 +102,5 @@ pub async fn extract_uploaded_file(
         }
     }
 
-    file_path.ok_or_else(|| AppError::Validation("error.upload_no_file".to_string()))
+    file_path.ok_or_else(|| AppError::validation(crate::utils::i18n::I18nKey::UploadNoFile))
 }

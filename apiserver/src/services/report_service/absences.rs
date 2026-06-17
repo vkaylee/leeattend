@@ -29,7 +29,7 @@ impl ReportService {
             .get_workspace_by_id(workspace_id)
             .await
             .map_err(|e| AppError::Internal(format!("Error fetching workspace: {e}")))?
-            .ok_or_else(|| AppError::NotFound("error.not_found".to_string()))?;
+            .ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::NotFound))?;
 
         let tz: Tz = crate::utils::tz::parse_workspace_tz(workspace.timezone());
 
@@ -62,7 +62,7 @@ impl ReportService {
             .filter_map(|emp_id| emp_id_to_employee_id.get(emp_id).copied())
             .collect();
         let (start_dt, end_dt) = attendance_utils::date_range_to_utc(tz, start_date, end_date)
-            .map_err(|_e| AppError::Validation("error.validation".to_string()))?;
+            .map_err(|_e| AppError::validation(crate::utils::i18n::I18nKey::Validation))?;
 
         let entries_map = self
             .time_entry_repo

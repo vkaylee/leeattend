@@ -267,7 +267,7 @@ async fn parse_log_entry(
     {
         Ok(Some(emp)) => emp,
         Ok(None) => {
-            return Err(crate::errors::AppError::Validation(format!(
+            return Err(crate::errors::AppError::validation_raw(format!(
                 "Employee not found: {} in workspace {}",
                 entry.employee_id_number, entry.workspace_id
             )));
@@ -287,7 +287,7 @@ async fn parse_log_entry(
         Some(&entry.time_fmt),
     )
     .map_err(|e| {
-        crate::errors::AppError::Validation(format!(
+        crate::errors::AppError::validation_raw(format!(
             "Failed to parse timestamp '{}': {}",
             entry.punch_time_raw, e
         ))

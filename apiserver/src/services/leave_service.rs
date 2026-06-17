@@ -1498,7 +1498,7 @@ mod tests {
             .await
             .unwrap_err();
         assert!(
-            matches!(err, AppError::Validation(msg) if msg == "error.leave_custom_hours_missing_time")
+            matches!(err, AppError::Validation(ref msg) if msg.to_string() == "error.leave_custom_hours_missing_time")
         );
 
         // Test cross-day
@@ -1510,7 +1510,7 @@ mod tests {
             .await
             .unwrap_err();
         assert!(
-            matches!(err, AppError::Validation(msg) if msg == "error.leave_custom_hours_single_day")
+            matches!(err, AppError::Validation(ref msg) if msg.to_string() == "error.leave_custom_hours_single_day")
         );
 
         // Test end before start
@@ -1522,7 +1522,7 @@ mod tests {
             .await
             .unwrap_err();
         assert!(
-            matches!(err, AppError::Validation(msg) if msg == "error.leave_start_time_before_end_time")
+            matches!(err, AppError::Validation(ref msg) if msg.to_string() == "error.leave_start_time_before_end_time")
         );
     }
 

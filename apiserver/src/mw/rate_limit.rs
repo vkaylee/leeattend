@@ -248,7 +248,7 @@ async fn check_rate(
     window_secs: u64,
 ) -> Result<bool, redis::RedisError> {
     let mut conn = pool.conn();
-    
+
     // We use a Lua script to execute INCR and EXPIRE atomically.
     // This ensures that even if the connection drops or the app crashes
     // mid-execution, the key will have a TTL set and won't leak forever.

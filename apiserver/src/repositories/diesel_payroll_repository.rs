@@ -737,7 +737,7 @@ impl PayrollRepository for DieselPayrollRepository {
                                 })?;
 
                             if valid_groups.len() != base_group_ids.len() {
-                                return Err(AppError::Forbidden("error.forbidden".to_string()));
+                                return Err(AppError::forbidden_raw("error.forbidden"));
                             }
 
                             let new_members: Vec<SalaryBaseGroupMemberRow> = base_group_ids

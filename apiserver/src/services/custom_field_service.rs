@@ -42,7 +42,7 @@ impl CustomFieldService {
             return Err(AppError::Validation(format!(
                 "Invalid entity type '{}'. Must be 'employee', 'employment', or 'department'.",
                 data.entity_type
-            )));
+            ).into()));
         }
 
         // Validate field_type
@@ -61,7 +61,7 @@ impl CustomFieldService {
             return Err(AppError::Validation(format!(
                 "Invalid field type '{}'. Must be one of: {:?}.",
                 data.field_type, valid_types
-            )));
+            ).into()));
         }
 
         // Validate field_key format (alphanumeric and underscores only)
@@ -74,7 +74,7 @@ impl CustomFieldService {
             return Err(AppError::Validation(format!(
                 "Invalid field key '{}'. Must be alphanumeric and underscores only.",
                 data.field_key
-            )));
+            ).into()));
         }
 
         // Check if options are present for select/multiselect
@@ -88,7 +88,7 @@ impl CustomFieldService {
                 return Err(AppError::Validation(format!(
                     "Options are required for field type '{}'.",
                     data.field_type
-                )));
+                ).into()));
             }
         }
 
@@ -128,7 +128,7 @@ impl CustomFieldService {
         self.repo
             .get_definition_by_id(&auth_token, id)
             .await?
-            .ok_or_else(|| AppError::NotFound("error.custom_field_not_found".into()))
+            .ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::CustomFieldNotFound))
     }
 
     pub async fn list_definitions(
@@ -305,7 +305,7 @@ impl CustomFieldService {
                 return Err(AppError::Validation(format!(
                     "Field '{}' is required.",
                     def.field_label()
-                )));
+                ).into()));
             }
 
             if let Some(val_json) = val_req.value.as_ref() {
@@ -316,7 +316,7 @@ impl CustomFieldService {
                             AppError::Validation(format!(
                                 "Expected string value for select field '{}'.",
                                 def.field_label()
-                            ))
+                            ).into())
                         })?;
 
                         let options = def.options().and_then(|v| v.as_array());
@@ -336,7 +336,7 @@ impl CustomFieldService {
                                 "Value '{}' is not a valid option for field '{}'.",
                                 select_val,
                                 def.field_label()
-                            )));
+                            ).into()));
                         }
                     }
 
@@ -346,7 +346,7 @@ impl CustomFieldService {
                             AppError::Validation(format!(
                                 "Expected array value for multiselect field '{}'.",
                                 def.field_label()
-                            ))
+                            ).into())
                         })?;
 
                         let options = def.options().and_then(|v| v.as_array());
@@ -355,7 +355,7 @@ impl CustomFieldService {
                                 AppError::Validation(format!(
                                     "Expected array of strings for multiselect field '{}'.",
                                     def.field_label()
-                                ))
+                                ).into())
                             })?;
 
                             let has_match = options
@@ -374,7 +374,7 @@ impl CustomFieldService {
                                     "Value '{}' is not a valid option for field '{}'.",
                                     item_str,
                                     def.field_label()
-                                )));
+                                ).into()));
                             }
                         }
                     }

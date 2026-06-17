@@ -68,6 +68,7 @@ interface UseWorkflowFormProps {
 }
 
 export function useWorkflowForm({ workflowId, defaultEntityType, onSuccess }: UseWorkflowFormProps) {
+  const { t } = useTranslation();
   const toast = useToast();
   const { workspace } = useWorkspace();
   const { data: workflow, isLoading: isDetailsLoading } = useApprovalWorkflow(workflowId);
@@ -76,7 +77,7 @@ export function useWorkflowForm({ workflowId, defaultEntityType, onSuccess }: Us
 
   const form = useForm<WorkflowFormValues>({
     resolver: zodResolver(workflowSchema),
-    defaultValues: createDefaultFormValues(defaultEntityType),
+    defaultValues: createDefaultFormValues(defaultEntityType, t),
   });
 
   const { fields, append, remove, move } = useFieldArray({
@@ -121,15 +122,15 @@ export function useWorkflowForm({ workflowId, defaultEntityType, onSuccess }: Us
       const payload = formatWorkflowPayload(data);
       if (workflowId) {
         await updateWorkflow(payload);
-        toast.success("Workflow updated successfully");
+        toast.success(t("settings.workflows.messages.update_success", { defaultValue: "Workflow updated successfully" }));
       } else {
         await createWorkflow(payload);
-        toast.success("Workflow created successfully");
+        toast.success(t("settings.workflows.messages.create_success", { defaultValue: "Workflow created successfully" }));
       }
       onSuccess();
     } catch (error) {
       console.error(error);
-      toast.error("Failed to save workflow");
+      toast.error(t("settings.workflows.messages.save_failed", { defaultValue: "Failed to save workflow" }));
     }
   };
 

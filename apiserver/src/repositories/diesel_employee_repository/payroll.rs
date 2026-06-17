@@ -41,7 +41,7 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
             .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
 
         if employment_exists.is_none() {
-            return Err(AppError::NotFound("error.employment_not_found".to_string()));
+            return Err(AppError::not_found_raw("error.employment_not_found"));
         }
 
         let keys_and_values = vec![
@@ -367,7 +367,7 @@ mod tests {
         assert!(res.is_err());
         match res.unwrap_err() {
             AppError::NotFound(msg) => {
-                assert_eq!(msg, "error.employment_not_found");
+                assert_eq!(msg.to_string(), "error.employment_not_found");
             }
             AppError::Internal(msg) => {
                 assert!(

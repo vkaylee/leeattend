@@ -236,7 +236,7 @@ impl StagingLogRepository for DieselStagingLogRepository {
                     .map_err(|e| AppError::Internal(format!("db check active employment: {e}")))?;
 
                 let Some(employment_id) = active_employment else {
-                    return Err(AppError::NotFound("error.employee_not_found".to_string()));
+                    return Err(AppError::NotFound("error.employee_not_found".into()));
                 };
 
                 let staged_logs = attendance_staging_logs::table
@@ -330,7 +330,7 @@ impl StagingLogRepository for DieselStagingLogRepository {
                     .map_err(|e| AppError::Internal(format!("db check active employment: {e}")))?;
 
                 let Some(employment_id) = active_employment else {
-                    return Err(AppError::NotFound("error.employee_not_found".to_string()));
+                    return Err(AppError::NotFound("error.employee_not_found".into()));
                 };
 
                 // Use for_update() to lock the row. We don't use nowait() here because it might
@@ -347,9 +347,9 @@ impl StagingLogRepository for DieselStagingLogRepository {
                             _,
                         ) = e
                         {
-                            AppError::Conflict("error.staging_log_conflict".to_string())
+                            AppError::Conflict("error.staging_log_conflict".into())
                         } else if e == diesel::result::Error::NotFound {
-                            AppError::NotFound("error.staging_log_not_found".to_string())
+                            AppError::NotFound("error.staging_log_not_found".into())
                         } else {
                             AppError::Internal(format!("db: {e}"))
                         }
@@ -357,7 +357,7 @@ impl StagingLogRepository for DieselStagingLogRepository {
 
                 if staged.status != "pending" {
                     return Err(AppError::Validation(
-                        "error.staging_log_processed".to_string(),
+                        "error.staging_log_processed".into(),
                     ));
                 }
 
@@ -498,7 +498,7 @@ mod tests {
         assert!(claim_res.is_err());
         match claim_res.unwrap_err() {
             AppError::NotFound(msg) => {
-                assert_eq!(msg, "error.employee_not_found");
+                assert_eq!(msg.to_string(), "error.employee_not_found");
             }
             AppError::Internal(msg) => {
                 assert!(
@@ -517,7 +517,7 @@ mod tests {
         assert!(resolve_res.is_err());
         match resolve_res.unwrap_err() {
             AppError::NotFound(msg) => {
-                assert_eq!(msg, "error.employee_not_found");
+                assert_eq!(msg.to_string(), "error.employee_not_found");
             }
             AppError::Internal(msg) => {
                 assert!(

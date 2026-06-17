@@ -41,7 +41,7 @@ pub fn extract_file_rows(file_bytes: &[u8]) -> Result<Vec<(usize, Vec<String>)>,
     if is_zip_file(file_bytes) {
         let mut reader = Xlsx::new(Cursor::new(file_bytes)).map_err(|e| {
             let msg = format!("error.cannot_open_xlsx:error={e}");
-            AppError::Validation(msg)
+            AppError::Validation(msg.into())
         })?;
         let sheet_names = reader.sheet_names();
         for sheet in sheet_names {
@@ -60,14 +60,14 @@ pub fn extract_file_rows(file_bytes: &[u8]) -> Result<Vec<(usize, Vec<String>)>,
                 }
             }
         }
-        return Err(AppError::Validation("error.empty_excel_sheet".to_string()));
+        return Err(AppError::Validation("error.empty_excel_sheet".into()));
     }
 
     // 2. Try XLS
     if is_xls_file(file_bytes) {
         let mut reader = Xls::new(Cursor::new(file_bytes)).map_err(|e| {
             let msg = format!("error.cannot_open_xls:error={e}");
-            AppError::Validation(msg)
+            AppError::Validation(msg.into())
         })?;
         let sheet_names = reader.sheet_names();
         for sheet in sheet_names {
@@ -86,11 +86,11 @@ pub fn extract_file_rows(file_bytes: &[u8]) -> Result<Vec<(usize, Vec<String>)>,
                 }
             }
         }
-        return Err(AppError::Validation("error.empty_excel_sheet".to_string()));
+        return Err(AppError::Validation("error.empty_excel_sheet".into()));
     }
 
     Err(AppError::Validation(
-        "error.invalid_file_format".to_string(),
+        "error.invalid_file_format".into(),
     ))
 }
 
@@ -137,12 +137,12 @@ pub fn extract_mapped_rows(
                 }
             }
         } else {
-            return Err(AppError::Validation("error.empty_excel_sheet".to_string()));
+            return Err(AppError::Validation("error.empty_excel_sheet".into()));
         }
 
         if !duplicate_headers.is_empty() {
             let msg = format!("error.duplicate_headers:headers={}", duplicate_headers.join(", "));
-            return Err(AppError::Validation(msg));
+            return Err(AppError::Validation(msg.into()));
         }
 
         // Validate Expected Headers
@@ -154,7 +154,7 @@ pub fn extract_mapped_rows(
 
         if !missing_headers.is_empty() {
             let msg = format!("error.missing_mandatory_headers:headers={}", missing_headers.join(", "));
-            return Err(AppError::Validation(msg));
+            return Err(AppError::Validation(msg.into()));
         }
 
         // Process Data Rows
@@ -173,7 +173,7 @@ pub fn extract_mapped_rows(
         }
 
         if rows.is_empty() {
-            return Err(AppError::Validation("error.empty_excel_sheet".to_string()));
+            return Err(AppError::Validation("error.empty_excel_sheet".into()));
         }
 
         Ok(rows)
@@ -183,7 +183,7 @@ pub fn extract_mapped_rows(
     if is_zip_file(file_bytes) {
         let mut reader = Xlsx::new(Cursor::new(file_bytes)).map_err(|e| {
             let msg = format!("error.cannot_open_xlsx:error={e}");
-            AppError::Validation(msg)
+            AppError::Validation(msg.into())
         })?;
         let sheet_names = reader.sheet_names();
         let mut best_sheet_range = None;
@@ -213,10 +213,10 @@ pub fn extract_mapped_rows(
         } else if let Some(name) = sheet_names.first() {
             reader.worksheet_range(name).map_err(|e| {
                 let msg = format!("error.cannot_read_sheet:name={name},error={e}");
-                AppError::Validation(msg)
+                AppError::Validation(msg.into())
             })?
         } else {
-            return Err(AppError::Validation("error.no_sheets_found".to_string()));
+            return Err(AppError::Validation("error.no_sheets_found".into()));
         };
 
         let iter = range.rows().enumerate().map(|(idx, r)| {
@@ -230,7 +230,7 @@ pub fn extract_mapped_rows(
     if is_xls_file(file_bytes) {
         let mut reader = Xls::new(Cursor::new(file_bytes)).map_err(|e| {
             let msg = format!("error.cannot_open_xls:error={e}");
-            AppError::Validation(msg)
+            AppError::Validation(msg.into())
         })?;
         let sheet_names = reader.sheet_names();
         let mut best_sheet_range = None;
@@ -260,10 +260,10 @@ pub fn extract_mapped_rows(
         } else if let Some(name) = sheet_names.first() {
             reader.worksheet_range(name).map_err(|e| {
                 let msg = format!("error.cannot_read_sheet:name={name},error={e}");
-                AppError::Validation(msg)
+                AppError::Validation(msg.into())
             })?
         } else {
-            return Err(AppError::Validation("error.no_sheets_found".to_string()));
+            return Err(AppError::Validation("error.no_sheets_found".into()));
         };
 
         let iter = range.rows().enumerate().map(|(idx, r)| {
@@ -274,7 +274,7 @@ pub fn extract_mapped_rows(
     }
 
     Err(AppError::Validation(
-        "error.invalid_file_format".to_string(),
+        "error.invalid_file_format".into(),
     ))
 }
 

@@ -88,27 +88,27 @@ impl ImportStrategy for LeaveImportStrategy {
 
         if emp_id.is_empty() {
             return Err(crate::errors::AppError::Validation(
-                self.msgs.missing_employee_id.to_string(),
+                self.msgs.missing_employee_id.to_string().into(),
             ));
         }
         if leave_code.is_empty() {
             return Err(crate::errors::AppError::Validation(
-                self.msgs.missing_leave_type.to_string(),
+                self.msgs.missing_leave_type.to_string().into(),
             ));
         }
         let Some(start_date) = parse_date(&start_str) else {
             return Err(crate::errors::AppError::Validation(
-                self.msgs.invalid_start_date.to_string(),
+                self.msgs.invalid_start_date.to_string().into(),
             ));
         };
         let Some(end_date) = parse_date(&end_str) else {
             return Err(crate::errors::AppError::Validation(
-                self.msgs.invalid_end_date.to_string(),
+                self.msgs.invalid_end_date.to_string().into(),
             ));
         };
         if end_date < start_date {
             return Err(crate::errors::AppError::Validation(
-                self.msgs.end_before_start.to_string(),
+                self.msgs.end_before_start.to_string().into(),
             ));
         }
         let duration_type = parse_duration_type(&duration_str);
@@ -205,7 +205,8 @@ impl ImportStrategy for LeaveImportStrategy {
                 crate::errors::AppError::Validation(
                     self.msgs
                         .employee_not_found_tpl
-                        .replace("{}", &row.employee_id_number),
+                        .replace("{}", &row.employee_id_number)
+                        .into(),
                 )
             })?;
 
@@ -216,7 +217,8 @@ impl ImportStrategy for LeaveImportStrategy {
                 crate::errors::AppError::Validation(
                     self.msgs
                         .leave_type_not_found_tpl
-                        .replace("{}", &row.leave_type_code),
+                        .replace("{}", &row.leave_type_code)
+                        .into(),
                 )
             })?;
 

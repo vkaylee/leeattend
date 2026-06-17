@@ -211,7 +211,7 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
                 {
                     if info.constraint_name() == Some("payroll_rule_assignments_workspace_id_rule_definition_id_a_excl") {
                         return AppError::Conflict(
-                            "This assignment overlaps with an existing assignment for the same rule and assignee in this time period.".to_string()
+                            "This assignment overlaps with an existing assignment for the same rule and assignee in this time period.".into()
                         );
                     }
                 }

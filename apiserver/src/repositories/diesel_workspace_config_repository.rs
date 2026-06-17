@@ -158,6 +158,7 @@ impl WorkspaceConfigRepository for DieselWorkspaceConfigRepository {
                 .filter(workspace_config_entries::config_key.eq(config_key.to_string())),
         )
         .execute(&mut *conn)
+        .await
         .map_err(|e| {
             AppError::Internal(format!("Failed to delete workspace config entries: {e}"))
         })?;

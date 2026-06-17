@@ -1,6 +1,7 @@
 #![recursion_limit = "512"]
 #![allow(
     missing_docs,
+    deprecated,
     clippy::cast_possible_truncation,
     clippy::must_use_candidate,
     clippy::missing_const_for_fn,

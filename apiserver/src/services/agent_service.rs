@@ -68,12 +68,12 @@ impl AgentService {
         if let Some(ref a) = agent {
             if a.token != token {
                 return Err(crate::errors::AppError::Validation(
-                    "INVALID_TOKEN".to_string(),
+                    "INVALID_TOKEN".into(),
                 ));
             }
             if !a.is_trusted {
                 return Err(crate::errors::AppError::Validation(
-                    "AGENT_NOT_TRUSTED".to_string(),
+                    "AGENT_NOT_TRUSTED".into(),
                 ));
             }
         }

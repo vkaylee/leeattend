@@ -209,9 +209,7 @@ where
         let workspace_id = match api_context {
             ApiContext::Tenant(ws_id) => ws_id.into_inner(),
             ApiContext::System => {
-                return Err(AppError::Forbidden(
-                    "error.system_route_tenant_context".to_string(),
-                ))
+                return Err(AppError::forbidden(I18nKey::SystemRouteTenantContext))
             }
         };
 
@@ -273,7 +271,7 @@ impl MemberContext {
             .user_repo()
             .get_user_by_id(user_id)
             .await?
-            .ok_or_else(|| AppError::Auth("error.user_not_found".to_string()))?;
+            .ok_or_else(|| AppError::auth(I18nKey::UserNotFound))?;
 
         // 1. Fetch Primary Role
         let primary_role = app_state
@@ -281,7 +279,7 @@ impl MemberContext {
             .workspace_repo()
             .find_primary_role(workspace_id, user_id)
             .await?
-            .ok_or_else(|| AppError::Forbidden("error.not_workspace_member".to_string()))?;
+            .ok_or_else(|| AppError::forbidden(I18nKey::NotWorkspaceMember))?;
 
         // 2. Fetch Active Extra Roles
         let all_extra_roles = app_state
@@ -405,7 +403,7 @@ where
             .repo()
             .get_employee_id_by_user_id(&member_ctx.auth_token, user_id)
             .await?
-            .ok_or_else(|| AppError::Forbidden("error.no_employee_record".to_string()))?;
+            .ok_or_else(|| AppError::forbidden(I18nKey::NoEmployeeRecord))?;
 
         Ok(EmployeeContext {
             user_id,
@@ -529,7 +527,7 @@ pub async fn check_behalf_scope(
     if !has_perm {
         return Err(AppError::Forbidden(format!(
             "Missing permission: one of {required_permissions:?}"
-        )));
+        ).into()));
     }
 
     // Global scope — no department restriction
@@ -566,7 +564,7 @@ pub async fn check_behalf_scope(
     }
 
     Err(AppError::Forbidden(
-        "Permission denied: Target is outside your on-behalf scope.".to_string(),
+        "Permission denied: Target is outside your on-behalf scope.".into(),
     ))
 }
 

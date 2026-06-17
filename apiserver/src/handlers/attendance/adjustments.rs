@@ -45,7 +45,7 @@ pub async fn submit_attendance_adjustment(
         .employment_repo()
         .get_employment_by_id(&ctx.auth_token, req.employment_id)
         .await?
-        .ok_or_else(|| AppError::NotFound("error.employment_not_found".to_string()))?;
+        .ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::EmploymentNotFound))?;
 
     let target_employee_id = target_employment.employee_id();
 
@@ -141,7 +141,7 @@ pub async fn approve_attendance_adjustment(
             AdjustmentStatus::Rejected => "reject".to_string(),
             AdjustmentStatus::Pending => {
                 return Err(crate::errors::AppError::Validation(
-                    "Cannot set status to pending".to_string(),
+                    "Cannot set status to pending".into(),
                 ))
             }
         };
