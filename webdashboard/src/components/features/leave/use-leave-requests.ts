@@ -16,7 +16,8 @@ import {
   LeaveRequest,
 } from "@/lib/api";
 
-export type TabType = "pending" | "approved" | "rejected" | "behalf_assignments";
+export type TabType = "requests" | "behalf_assignments";
+export type LeaveStatusFilter = "all" | "pending" | "approved" | "rejected" | "cancelled" | "pre_approved";
 
 const PAGE_SIZE = 20;
 
@@ -27,8 +28,9 @@ export function useLeaveRequests(wsId: string | null) {
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>("pending");
+  const [activeTab, setActiveTab] = useState<TabType>("requests");
   const [employeeId, setEmployeeId] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<LeaveStatusFilter>("all");
 
   const { employees } = useAllEmployees(wsId);
 
@@ -39,10 +41,10 @@ export function useLeaveRequests(wsId: string | null) {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery<PaginatedResponse<LeaveRequest>>({
-    queryKey: ["leave-requests", wsId, activeTab, employeeId],
+    queryKey: ["leave-requests", wsId, activeTab, employeeId, statusFilter],
     queryFn: ({ pageParam }) => {
       return fetchWorkspaceLeaveRequests(wsId ?? "", {
-        status: activeTab !== "behalf_assignments" ? activeTab : undefined,
+        status: activeTab !== "behalf_assignments" && statusFilter !== "all" ? statusFilter : undefined,
         employee_id: employeeId,
         page: pageParam as number,
         limit: PAGE_SIZE,
@@ -147,6 +149,7 @@ export function useLeaveRequests(wsId: string | null) {
     isModalOpen, setIsModalOpen,
     isImportModalOpen, setIsImportModalOpen,
     activeTab, setActiveTab,
+    statusFilter, setStatusFilter,
     employeeId, setEmployeeId,
     employees, requests, requestsLoading, requestsTotal, leaveTypes,
     hasNextPage, isFetchingNextPage, loadMoreRef,

@@ -193,6 +193,7 @@ impl JobWorker {
             redis_cache,
             Arc::clone(&deps.workspace_repo),
             Arc::clone(&deps.shift_repo),
+            Arc::clone(&deps.workspace_config_repo),
         ));
         let hostname = std::env::var("HOSTNAME")
             .or_else(|_| std::env::var("COMPUTERNAME"))

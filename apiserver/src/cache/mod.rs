@@ -3,12 +3,14 @@
 //! Provides Redis-based caching for static data to reduce DB queries.
 //! Implements cache-aside pattern with configurable TTL.
 
+mod config_cache;
 mod manager;
 mod redis_cache;
 mod roster_cache;
 mod shift_cache;
 mod workspace_cache;
 
+pub use config_cache::ConfigCache;
 pub use manager::CacheManager;
 pub use redis_cache::RedisCache;
 pub use roster_cache::{

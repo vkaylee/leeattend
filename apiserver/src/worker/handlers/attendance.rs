@@ -1166,10 +1166,12 @@ mod tests {
 
         let workspace_repo = Arc::new(MockWorkspaceRepository::new());
         let shift_repo = Arc::new(MockShiftRepository::new());
+        let config_repo = Arc::new(crate::repositories::workspace_config_repository::MockWorkspaceConfigRepository::new());
         let cache_manager = Arc::new(crate::cache::CacheManager::new(
             Arc::new(cache_repo),
             workspace_repo.clone(),
             shift_repo.clone(),
+            config_repo,
         ));
 
         // Use Builder to auto-fill 20 mock repositories
@@ -1299,10 +1301,12 @@ mod tests {
 
         let workspace_repo = Arc::new(MockWorkspaceRepository::new());
         let shift_repo = Arc::new(MockShiftRepository::new());
+        let config_repo = Arc::new(crate::repositories::workspace_config_repository::MockWorkspaceConfigRepository::new());
         let cache_manager = Arc::new(crate::cache::CacheManager::new(
             Arc::new(cache_repo),
             workspace_repo.clone(),
             shift_repo.clone(),
+            config_repo,
         ));
 
         let mut builder = MockWorkerDepsBuilder::new();
@@ -1490,10 +1494,12 @@ mod tests {
 
         let workspace_repo = Arc::new(MockWorkspaceRepository::new());
         let shift_repo = Arc::new(MockShiftRepository::new());
+        let config_repo = Arc::new(crate::repositories::workspace_config_repository::MockWorkspaceConfigRepository::new());
         let cache_manager = Arc::new(crate::cache::CacheManager::new(
             Arc::new(cache_repo),
             workspace_repo.clone(),
             shift_repo.clone(),
+            config_repo,
         ));
 
         let mut builder = MockWorkerDepsBuilder::new();

@@ -1,11 +1,11 @@
-import { CheckCircle2, Clock, Plus, ShieldCheck, Upload, XCircle } from "lucide-react";
+import { CheckCircle2, Clock, Filter, Plus, ShieldCheck, Upload, XCircle } from "lucide-react";
 import React, { useMemo, useState } from "react";
 
 import { CreateLeaveRequestModal } from "@/components/features/leave/create-leave-request-modal";
 import { LeaveImportBanner } from "@/components/features/leave/leave-import-banner";
 import LeaveImportDialog from "@/components/features/leave/leave-import-dialog";
 import { LeaveRequestRow } from "@/components/features/leave/leave-request-row";
-import { useLeaveRequests, TabType } from "@/components/features/leave/use-leave-requests";
+import { useLeaveRequests, TabType, LeaveStatusFilter } from "@/components/features/leave/use-leave-requests";
 import ApprovalListLayout from "@/components/templates/approval-list-layout";
 import { ResilientWidget } from "@/components/common/resilient-widget";
 import Button from "@/components/ui/button";
@@ -18,6 +18,16 @@ import { PDFPreviewModal } from "@/components/files/PDFPreviewModal";
 import { EmployeeSearch } from "@/components/common/employee-search";
 import InfiniteScrollSentinel from "@/components/common/infinite-scroll-sentinel";
 import FloatingRecordBadge from "@/components/common/floating-record-badge";
+import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import { BehalfAssignmentsTab } from "./approvals/components/behalf-assignments-tab";
 
@@ -34,6 +44,7 @@ export default function LeaveRequestsPage() {
     isModalOpen, setIsModalOpen,
     isImportModalOpen, setIsImportModalOpen,
     activeTab, setActiveTab,
+    statusFilter, setStatusFilter,
     employeeId, setEmployeeId,
     employees, requests, requestsLoading, requestsTotal, leaveTypes,
     hasNextPage, isFetchingNextPage, loadMoreRef,
@@ -64,22 +75,10 @@ export default function LeaveRequestsPage() {
 
   const tabs: PageTab[] = [
     {
-      id: "pending",
-      label: t("leave_requests.tabs.pending").toUpperCase(),
+      id: "requests",
+      label: t("leave_requests.title", "Danh sách đơn").toUpperCase(),
       icon: <Clock size={14} />,
       colorScheme: "primary",
-    },
-    {
-      id: "approved",
-      label: t("leave_requests.tabs.approved").toUpperCase(),
-      icon: <CheckCircle2 size={14} />,
-      colorScheme: "amber",
-    },
-    {
-      id: "rejected",
-      label: t("leave_requests.tabs.rejected").toUpperCase(),
-      icon: <XCircle size={14} />,
-      colorScheme: "rose",
     },
     {
       id: "behalf_assignments",
@@ -94,7 +93,35 @@ export default function LeaveRequestsPage() {
     t("common.employee"),
     t("common.type"),
     t("leave_requests.table.details"),
-    t("common.status"),
+    <th key="status-header" className="py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] text-center px-8">
+      <div className="flex justify-center">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex items-center gap-1.5 hover:text-slate-800 dark:hover:text-slate-200 focus:outline-none transition-colors group cursor-pointer">
+              <span>{t("common.status")}</span>
+              <Filter
+                size={12}
+                className={cn(
+                  "text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-350 transition-colors",
+                  statusFilter !== "all" && "text-primary-500 dark:text-primary-400 fill-primary-500/20"
+                )}
+              />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="center" className="w-52">
+            <DropdownMenuLabel>{t("common.filter_by_status", "Filter by Status").toUpperCase()}</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuRadioGroup value={statusFilter} onValueChange={(val) => setStatusFilter(val as LeaveStatusFilter)}>
+              <DropdownMenuRadioItem value="all">{t("common.all", "All").toUpperCase()}</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="pending">{t("common.status_pending", "Pending").toUpperCase()}</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="approved">{t("common.status_approved", "Approved").toUpperCase()}</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="pre_approved">{t("common.status_pre_approved", "Pre-approved").toUpperCase()}</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="rejected">{t("common.status_rejected", "Rejected").toUpperCase()}</DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </th>,
     "",
   ];
 

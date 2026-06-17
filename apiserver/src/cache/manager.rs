@@ -5,13 +5,14 @@
 use tracing::{debug, warn};
 use uuid::Uuid;
 
-use crate::cache::{ShiftCache, WorkspaceCache};
+use crate::cache::{ConfigCache, ShiftCache, WorkspaceCache};
 
 /// Manager for all cache instances.
-/// Provides unified access to workspace and shift caches.
+/// Provides unified access to workspace, shift, and config caches.
 pub struct CacheManager {
     pub workspace: WorkspaceCache,
     pub shifts: ShiftCache,
+    pub config: ConfigCache,
     pub repo: Arc<dyn crate::repositories::CacheRepository>,
 }
 
@@ -23,10 +24,12 @@ impl CacheManager {
         cache: Arc<dyn CacheRepository>,
         workspace_repo: Arc<dyn crate::repositories::WorkspaceRepository>,
         shift_repo: Arc<dyn crate::repositories::shift_repository::ShiftRepository>,
+        config_repo: Arc<dyn crate::repositories::workspace_config_repository::WorkspaceConfigRepository>,
     ) -> Self {
         Self {
             workspace: WorkspaceCache::new(Arc::clone(&cache), workspace_repo),
             shifts: ShiftCache::new(Arc::clone(&cache), shift_repo),
+            config: ConfigCache::new(Arc::clone(&cache), config_repo),
             repo: cache,
         }
     }
@@ -60,6 +63,7 @@ impl CacheManager {
         // Invalidate caches sequentially to prevent DB pool exhaustion
         let ws_result = self.workspace.invalidate(workspace_id).await;
         let shifts_result = self.shifts.invalidate(workspace_id).await;
+        let config_result = self.config.invalidate(workspace_id).await;
 
         if let Err(e) = ws_result {
             warn!(workspace_id = %workspace_id, error = %e, "Workspace cache invalidation failed");
@@ -67,6 +71,10 @@ impl CacheManager {
 
         if let Err(e) = shifts_result {
             warn!(workspace_id = %workspace_id, error = %e, "Shifts cache invalidation failed");
+        }
+
+        if let Err(e) = config_result {
+            warn!(workspace_id = %workspace_id, error = %e, "Config cache invalidation failed");
         }
     }
 }
@@ -77,6 +85,7 @@ mod tests {
     use crate::repositories::{
         cache_repository::MockCacheRepository, shift_repository::MockShiftRepository,
         workspace_repository::MockWorkspaceRepository,
+        workspace_config_repository::MockWorkspaceConfigRepository,
     };
 
     #[tokio::test]
@@ -96,15 +105,18 @@ mod tests {
             .expect_get_workspace_shifts()
             .returning(|_, _, _| Box::pin(std::future::ready(Ok(vec![]))));
 
+        let mock_config = MockWorkspaceConfigRepository::new();
+
         let manager = CacheManager::new(
             Arc::new(mock_cache),
             Arc::new(mock_workspace),
             Arc::new(mock_shift),
+            Arc::new(mock_config),
         );
 
         manager.warm_up(Uuid::new_v4()).await;
         // if it doesn't panic, it's good
-    }
+     }
 
     #[tokio::test]
     async fn test_cache_manager_invalidate() {
@@ -114,11 +126,13 @@ mod tests {
 
         let mock_workspace = MockWorkspaceRepository::new();
         let mock_shift = MockShiftRepository::new();
+        let mock_config = MockWorkspaceConfigRepository::new();
 
         let manager = CacheManager::new(
             Arc::new(mock_cache),
             Arc::new(mock_workspace),
             Arc::new(mock_shift),
+            Arc::new(mock_config),
         );
 
         manager.invalidate_workspace(Uuid::new_v4()).await;
@@ -145,10 +159,13 @@ mod tests {
                 ))))
             });
 
+        let mock_config = MockWorkspaceConfigRepository::new();
+
         let manager = CacheManager::new(
             Arc::new(mock_cache),
             Arc::new(mock_workspace),
             Arc::new(mock_shift),
+            Arc::new(mock_config),
         );
 
         manager.warm_up(Uuid::new_v4()).await;
@@ -166,11 +183,13 @@ mod tests {
 
         let mock_workspace = MockWorkspaceRepository::new();
         let mock_shift = MockShiftRepository::new();
+        let mock_config = MockWorkspaceConfigRepository::new();
 
         let manager = CacheManager::new(
             Arc::new(mock_cache),
             Arc::new(mock_workspace),
             Arc::new(mock_shift),
+            Arc::new(mock_config),
         );
 
         manager.invalidate_workspace(Uuid::new_v4()).await;
