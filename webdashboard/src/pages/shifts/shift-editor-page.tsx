@@ -1,4 +1,4 @@
-/* eslint-disable */
+ 
 /* eslint-disable max-lines-per-function, complexity */
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";

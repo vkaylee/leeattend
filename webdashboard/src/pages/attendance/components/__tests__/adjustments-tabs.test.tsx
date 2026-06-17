@@ -13,7 +13,7 @@ vi.mock("react-i18next", () => ({
 describe("AdjustmentsTabs", () => {
   it("renders all tabs correctly", () => {
     const mockSetActiveTab = vi.fn();
-    render(<AdjustmentsTabs activeTab="adjustments" setActiveTab={mockSetActiveTab} canManageBehalf={true} />);
+    render(<AdjustmentsTabs activeTab="adjustments" canManageBehalf={true} setActiveTab={mockSetActiveTab} />);
     
     expect(screen.getByText("ATTENDANCE_CONFIRM.TABS.ADJUSTMENTS")).toBeInTheDocument();
     expect(screen.getByText("ATTENDANCE_CONFIRM.TABS.BEHALF_ASSIGNMENTS")).toBeInTheDocument();
@@ -21,7 +21,7 @@ describe("AdjustmentsTabs", () => {
 
   it("calls setActiveTab when a tab is clicked", () => {
     const mockSetActiveTab = vi.fn();
-    render(<AdjustmentsTabs activeTab="adjustments" setActiveTab={mockSetActiveTab} canManageBehalf={true} />);
+    render(<AdjustmentsTabs activeTab="adjustments" canManageBehalf={true} setActiveTab={mockSetActiveTab} />);
     
     const behalfTab = screen.getByText("ATTENDANCE_CONFIRM.TABS.BEHALF_ASSIGNMENTS");
     fireEvent.click(behalfTab);
@@ -34,13 +34,13 @@ describe("AdjustmentsTabs", () => {
 
   it("applies active styling to the currently active tab", () => {
     const mockSetActiveTab = vi.fn();
-    const { rerender } = render(<AdjustmentsTabs activeTab="adjustments" setActiveTab={mockSetActiveTab} canManageBehalf={true} />);
+    const { rerender } = render(<AdjustmentsTabs activeTab="adjustments" canManageBehalf={true} setActiveTab={mockSetActiveTab} />);
     
     const adjustmentsTab = screen.getByText("ATTENDANCE_CONFIRM.TABS.ADJUSTMENTS").closest("button");
     expect(adjustmentsTab).toHaveClass("bg-white");
 
     // Rerender with behalf active
-    rerender(<AdjustmentsTabs activeTab="behalf_assignments" setActiveTab={mockSetActiveTab} canManageBehalf={true} />);
+    rerender(<AdjustmentsTabs activeTab="behalf_assignments" canManageBehalf={true} setActiveTab={mockSetActiveTab} />);
     const behalfTab = screen.getByText("ATTENDANCE_CONFIRM.TABS.BEHALF_ASSIGNMENTS").closest("button");
     expect(behalfTab).toHaveClass("bg-white");
   });

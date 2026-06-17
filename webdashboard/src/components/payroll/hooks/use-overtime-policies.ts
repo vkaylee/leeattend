@@ -1,8 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/components/ui/toast";
 import { useTranslation } from "react-i18next";
+
+import { useToast } from "@/components/ui/toast";
 import { fetchOvertimePolicies, fetchOvertimePolicy, createOvertimePolicy } from "@/lib/api/payroll";
-import type { OvertimePolicy } from "@/lib/api/types";
 
 export function useOvertimePolicies(wsId: string) {
   return useQuery({

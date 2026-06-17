@@ -51,7 +51,7 @@ export async function fetchWorkspaceLeaveRequests(
     },
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as PaginatedResponse<LeaveRequest>;
+  return resData;
 }
 
 export async function fetchMyLeaveRequests(

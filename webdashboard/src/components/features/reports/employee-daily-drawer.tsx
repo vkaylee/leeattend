@@ -7,12 +7,12 @@ import { useTranslation } from "react-i18next";
 import type { DailyAttendanceReport, AttendanceAdjustmentRequest, Shift } from "@/lib/api";
 
 import Button from "@/components/ui/button";
-import Sheet from "@/components/ui/sheet";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import Sheet from "@/components/ui/sheet";
 import { useDebug } from "@/context/debug-context";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
@@ -35,16 +35,16 @@ interface EmployeeDailyDrawerProps {
 }
 
 interface EmployeeDailyDrawerHeaderProps {
+    employments?: { employmentId: string; employerName: string; employeeIdNumber?: string }[];
     isLoading: boolean;
+    onEmploymentChange: (id: string) => void;
     reportData: DailyAttendanceReport[];
+    selectedEmploymentId?: string;
     setViewMode: (mode: "daily" | "raw") => void;
     t: TFunction;
     totalOtHours: string | number;
     totalStdHours: string | number;
     viewMode: "daily" | "raw";
-    employments?: { employmentId: string; employerName: string; employeeIdNumber?: string }[];
-    selectedEmploymentId?: string;
-    onEmploymentChange: (id: string) => void;
 }
 
 function EmployeeDailyDrawerHeader({
@@ -69,11 +69,11 @@ function EmployeeDailyDrawerHeader({
                                 className="flex items-center gap-1.5 px-4 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all h-auto"
                                 variant="ghost"
                             >
-                                <Briefcase size={12} className="text-primary-500" />
+                                <Briefcase className="text-primary-500" size={12} />
                                 <span>
                                     {employments.find(e => e.employmentId === selectedEmploymentId)?.employerName ?? t("common.employer")}
                                 </span>
-                                <ChevronDown size={12} className="opacity-50" />
+                                <ChevronDown className="opacity-50" size={12} />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent
@@ -89,14 +89,12 @@ function EmployeeDailyDrawerHeader({
                                             : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
                                     }`}
                                     key={emp.employmentId}
-                                    onClick={() => onEmploymentChange(emp.employmentId)}
+                                    onClick={() => { onEmploymentChange(emp.employmentId); }}
                                     variant="ghost"
                                 >
                                     <div className="flex flex-col">
                                         <span>{emp.employerName}</span>
-                                        {emp.employeeIdNumber && (
-                                            <span className="text-[9px] text-slate-400 font-mono mt-0.5">{emp.employeeIdNumber}</span>
-                                        )}
+                                        {!!emp.employeeIdNumber && <span className="text-[9px] text-slate-400 font-mono mt-0.5">{emp.employeeIdNumber}</span>}
                                     </div>
                                 </Button>
                             ))}
@@ -263,16 +261,16 @@ export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
                 contentClassName="!overflow-hidden"
                 headerExtra={
                     <EmployeeDailyDrawerHeader
+                        employments={props.employments}
                         isLoading={data.isLoading}
+                        onEmploymentChange={data.setSelectedEmploymentId}
                         reportData={data.reportData}
+                        selectedEmploymentId={data.selectedEmploymentId}
                         setViewMode={data.setViewMode}
                         t={t}
                         totalOtHours={data.totalOtHours}
                         totalStdHours={data.totalStdHours}
                         viewMode={data.viewMode}
-                        employments={props.employments}
-                        selectedEmploymentId={data.selectedEmploymentId}
-                        onEmploymentChange={data.setSelectedEmploymentId}
                     />
                 }
                 isOpen={isOpen}

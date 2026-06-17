@@ -568,3 +568,49 @@ async fn test_ess_invalid_workspace_id_returns_forbidden() {
     // It immediately returns 403 Forbidden without attempting to query Supavisor.
     assert_eq!(resp.status(), StatusCode::FORBIDDEN);
 }
+
+#[tokio::test]
+async fn test_ess_upsert_without_crypto_fails() {
+    let (test_db, factory, _state, _app) = setup_app_tower().await;
+
+    let admin_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(admin_id).await;
+    let (user_id, emp_id) =
+        create_employee_user(&factory, &test_db, ws_id, "no_crypto@example.com").await;
+
+    factory
+        .add_member(
+            ws_id,
+            user_id,
+            uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+        )
+        .await;
+
+    // Create a DieselEmployeeRepository *without* crypto service
+    let repo = apiserver::repositories::DieselEmployeeRepository::new(test_db.diesel_pools.clone());
+
+    let auth_token = apiserver::diesel_pool::TenantAuthToken::system_override(ws_id);
+    let req = apiserver::models::UpdateEmployeeProfileRequest {
+        phone: Some("123456789".to_string()),
+        address: Some("123 Test St".to_string()),
+        date_of_birth: Some(chrono::NaiveDate::from_ymd_opt(1990, 1, 1).unwrap()),
+        gender: Some("Male".to_string()),
+        national_id: Some("SECURE_NAT_ID".to_string()), // Requires crypto!
+        bank_name: Some("Test Bank".to_string()),
+        bank_account_number: Some("SECURE_ACC_NUM".to_string()), // Requires crypto!
+        bank_branch: Some("Test Branch".to_string()),
+    };
+
+    use apiserver::repositories::employee::EmployeeSelfServiceRepository;
+    let res = repo
+        .upsert_employee_profile(&auth_token, emp_id, &req)
+        .await;
+
+    assert!(res.is_err());
+    let err = res.unwrap_err();
+    assert!(
+        matches!(err, apiserver::errors::AppError::Internal(ref msg) if msg.contains("Crypto service not initialized")),
+        "Expected internal error due to missing crypto, got: {:?}",
+        err
+    );
+}

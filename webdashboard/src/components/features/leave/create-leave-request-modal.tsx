@@ -119,6 +119,7 @@ export function CreateLeaveRequestModal({ isOpen, onClose, wsId, leaveTypes, t }
   return (
     <Modal icon={<CalendarDays size={24} />} isOpen={isOpen} maxWidth="md" onClose={handleClose} subtitle={t("leave_requests.modal.submit_subtitle")} title={t("leave_requests.modal.submit_title")}>
       <CreateLeaveRequestForm
+        attachmentFileIds={attachmentFileIds}
         balances={balances}
         behalfEmployees={behalfEmployees}
         behalfLoading={behalfLoading}
@@ -133,7 +134,9 @@ export function CreateLeaveRequestModal({ isOpen, onClose, wsId, leaveTypes, t }
         leaveTypes={leaveTypes}
         onCancel={handleClose}
         onSubmit={handleSubmit}
+        ownerId={ownerId}
         selectedEmpId={selectedEmpId}
+        setAttachmentFileIds={setAttachmentFileIds}
         setDurationType={setDurationType}
         setEndDate={setEndDate}
         setEndTime={setEndTime}
@@ -145,9 +148,6 @@ export function CreateLeaveRequestModal({ isOpen, onClose, wsId, leaveTypes, t }
         startTime={startTime}
         t={t}
         wsId={wsId}
-        ownerId={ownerId}
-        attachmentFileIds={attachmentFileIds}
-        setAttachmentFileIds={setAttachmentFileIds}
       />
     </Modal>
   );

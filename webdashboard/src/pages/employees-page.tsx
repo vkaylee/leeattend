@@ -25,16 +25,17 @@ export default function EmployeesPage() {
       />
 
       <EmployeeFilterChips
+        customFieldFilters={page.customFieldFilters}
         departments={page.departments}
         filterDeptIds={page.filterDeptIds}
+        setCustomFieldFilters={page.setCustomFieldFilters}
         setFilterDeptIds={page.setFilterDeptIds}
         toggleDeptFilter={page.toggleDeptFilter}
-        customFieldFilters={page.customFieldFilters}
-        setCustomFieldFilters={page.setCustomFieldFilters}
         updateCustomFieldFilter={page.updateCustomFieldFilter}
       />
 
       <EmployeeTable
+        customFieldFilters={page.customFieldFilters}
         departments={page.departments}
         employees={page.employees}
         fetchNextPage={page.fetchNextPage}
@@ -47,6 +48,7 @@ export default function EmployeesPage() {
         searchInputRef={page.searchInputRef}
         searchTerm={page.searchTerm}
         selectedEmployee={page.selectedEmployee}
+        setCustomFieldFilters={page.setCustomFieldFilters}
         setFilterDeptIds={page.setFilterDeptIds}
         setSearchTerm={page.setSearchTerm}
         setSelectedEmployee={page.setSelectedEmployee}
@@ -55,8 +57,6 @@ export default function EmployeesPage() {
         toggleDeptFilter={page.toggleDeptFilter}
         toggleSort={page.toggleSort}
         totalItems={page.totalItems}
-        customFieldFilters={page.customFieldFilters}
-        setCustomFieldFilters={page.setCustomFieldFilters}
       />
 
       <EmployeeOverlays {...page} />

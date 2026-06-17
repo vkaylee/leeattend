@@ -2,25 +2,25 @@ import React, { useState, useEffect, useRef } from "react";
 
 // Local inline interface to avoid dependency loops
 interface LocalSmartTableColumnMeta {
-  editable?: boolean;
-  editType?: "text" | "number" | "select";
-  editOptions?: { value: string; label: string }[];
-  sticky?: "left" | "right";
-  headerClassName?: string;
   cellClassName?: string;
+  editable?: boolean;
+  editOptions?: { value: string; label: string }[];
+  editType?: "text" | "number" | "select";
+  headerClassName?: string;
+  sticky?: "left" | "right";
 }
 
 interface UseSmartTableKeyboardProps {
-  rowCount: number;
+  cellErrors: Record<string, string>;
   colCount: number;
   columns: any[];
-  rows: any[];
-  validateCell?: (rowId: string, columnId: string, value: any) => string | null | undefined;
-  onCellSave?: (rowId: string, columnId: string, value: any) => Promise<void> | void;
-  cellErrors: Record<string, string>;
-  setCellErrors: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   localCellValues: Record<string, any>;
+  onCellSave?: (rowId: string, columnId: string, value: any) => Promise<void> | void;
+  rowCount: number;
+  rows: any[];
+  setCellErrors: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   setLocalCellValues: React.Dispatch<React.SetStateAction<Record<string, any>>>;
+  validateCell?: (rowId: string, columnId: string, value: any) => string | null | undefined;
 }
 
 export function useSmartTableKeyboard({
@@ -88,7 +88,7 @@ export function useSmartTableKeyboard({
       if (onCellSave) {
         const result = onCellSave(row.id, column.id, editValue);
         if (result instanceof Promise) {
-          result.catch((err) => console.error("Error saving cell:", err));
+          result.catch((err) => { console.error("Error saving cell:", err); });
         }
       }
     }
@@ -103,7 +103,7 @@ export function useSmartTableKeyboard({
     e: React.KeyboardEvent
   ) => {
     // If editing, handle edit keys
-    if (editingCell && editingCell.rowIndex === rowIndex && editingCell.colIndex === colIndex) {
+    if (editingCell?.rowIndex === rowIndex && editingCell.colIndex === colIndex) {
       if (e.key === "Enter") {
         e.preventDefault();
         saveCellEdit(rowIndex, colIndex, column, row);

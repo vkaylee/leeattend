@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import AttendanceImportDialog from "@/components/features/attendance/attendance-import-dialog";
-import { CreateAdjustmentModal } from "@/components/features/attendance/create-adjustment-modal";
-import { useMyPermissions } from "@/hooks/use-permissions";
-import { useWorkspace } from "@/hooks/use-workspace";
-import { PDFPreviewModal } from "@/components/files/PDFPreviewModal";
 import { EmployeeSearch } from "@/components/common/employee-search";
 import FloatingRecordBadge from "@/components/common/floating-record-badge";
+import AttendanceImportDialog from "@/components/features/attendance/attendance-import-dialog";
+import { CreateAdjustmentModal } from "@/components/features/attendance/create-adjustment-modal";
+import { PDFPreviewModal } from "@/components/files/PDFPreviewModal";
+import { useMyPermissions } from "@/hooks/use-permissions";
+import { useWorkspace } from "@/hooks/use-workspace";
 
 import { BehalfAssignmentsTab } from "./approvals/components/behalf-assignments-tab";
 import { AdjustmentsHeader } from "./attendance/components/adjustments-header";
@@ -96,24 +96,24 @@ export default function AttendanceAdjustmentsPage() {
       ) : (
         <AdjustmentsTable
           activeTab={activeTab}
-          statusFilter={statusFilter}
-          setStatusFilter={setStatusFilter}
           canApprove={canApprove}
           formatDate={formatDate}
           formatTime={formatTime}
           getEmployeeID={getEmployeeID}
           getEmployeeName={getEmployeeName}
-          isLoading={isLoading}
-          onApprove={(id, status) => { approveMutation.mutate({ id, status: status as "approved" | "rejected" }); }}
-          requests={requests}
           hasNextPage={hasNextPage}
           isFetchingNextPage={isFetchingNextPage}
+          isLoading={isLoading}
           loadMoreRef={loadMoreRef}
+          onApprove={(id, status) => { approveMutation.mutate({ id, status: status as "approved" | "rejected" }); }}
           onPreviewAttachment={(url, title) => {
             setPreviewFileUrl(url);
             setPreviewTitle(title);
             setIsPreviewOpen(true);
           }}
+          requests={requests}
+          setStatusFilter={setStatusFilter}
+          statusFilter={statusFilter}
         />
       )}
 
@@ -149,9 +149,9 @@ export default function AttendanceAdjustmentsPage() {
       />
 
       <PDFPreviewModal
-        isOpen={isPreviewOpen}
-        onClose={() => setIsPreviewOpen(false)}
         fileUrl={previewFileUrl}
+        isOpen={isPreviewOpen}
+        onClose={() => { setIsPreviewOpen(false); }}
         title={previewTitle}
       />
 

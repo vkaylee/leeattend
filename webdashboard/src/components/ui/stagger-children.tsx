@@ -3,13 +3,13 @@ import React, { Children, useMemo } from "react";
 import { cn } from "@/lib/utils";
 
 interface StaggerChildrenProps {
+  children: React.ReactNode;
+  /** Container className */
+  className?: string;
   /** Delay between each child in ms (default: 60) */
   delay?: number;
   /** Base animation duration in ms (default: 500) */
   duration?: number;
-  /** Container className */
-  className?: string;
-  children: React.ReactNode;
 }
 
 /**

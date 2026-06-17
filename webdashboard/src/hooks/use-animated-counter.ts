@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 
 interface UseAnimatedCounterOptions {
-  /** Animation duration in ms (default: 800) */
-  duration?: number;
   /** Delay before animation starts in ms (default: 0) */
   delay?: number;
-  /** Format the number after counting (e.g. formatCurrency) */
-  formatter?: (n: number) => string;
+  /** Animation duration in ms (default: 800) */
+  duration?: number;
   /** Skip animation when false (e.g. data still loading) */
   enabled?: boolean;
+  /** Format the number after counting (e.g. formatCurrency) */
+  formatter?: (n: number) => string;
 }
 
 /** Ease-out exponential — fast start, smooth deceleration */

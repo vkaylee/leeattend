@@ -1,3 +1,5 @@
+import type { TFunction } from "i18next";
+
 import * as Popover from '@radix-ui/react-popover';
 import { 
   ChevronDown, 
@@ -15,12 +17,10 @@ import {
 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import type { TFunction } from "i18next";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import { useMyPermissions } from "@/hooks/use-permissions";
 import { Payslip, AttendanceAdjustmentRequest, PayrollSegment } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 

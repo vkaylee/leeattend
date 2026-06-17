@@ -1,6 +1,7 @@
 import React, { Component } from "react";
 
 import i18n from "i18next";
+
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 

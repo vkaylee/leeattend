@@ -1,4 +1,5 @@
 import { components } from "@/types/api-generated";
+
 import { client } from "./client";
 
 export type CreateStorageConfigRequest = components["schemas"]["CreateStorageConfigRequest"];

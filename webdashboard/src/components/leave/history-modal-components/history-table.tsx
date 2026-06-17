@@ -1,9 +1,9 @@
 import { Loader2, Info } from "lucide-react";
 import React from "react";
 
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 
 interface HistoryItem {
   amount: number;

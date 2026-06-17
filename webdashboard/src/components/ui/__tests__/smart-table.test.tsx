@@ -1,14 +1,15 @@
 import "@testing-library/jest-dom";
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import React from "react";
+
 import { describe, it, expect, vi } from "vitest";
 
 import SmartTable, { type SmartTableProps } from "../smart-table";
 
 interface TestData {
+  age: number;
   id: string;
   name: string;
-  age: number;
 }
 
 const testData: TestData[] = [
@@ -41,8 +42,8 @@ const testColumns = [
 const renderSmartTable = (props: Partial<SmartTableProps<TestData>> = {}) => {
   return render(
     <SmartTable<TestData>
-      data={testData}
       columns={testColumns}
+      data={testData}
       getRowId={(row) => row.id}
       {...props}
     />

@@ -188,7 +188,7 @@ impl OutboxJobRepository for DieselOutboxJobRepository {
                          FOR UPDATE SKIP LOCKED \
                      ) \
                      RETURNING id, workspace_id, job_type, payload, status, \
-                               error_message, created_at, updated_at"
+                               error_message, created_at, updated_at",
                 )
                 .bind::<diesel::sql_types::Timestamptz, _>(Utc::now())
                 .bind::<diesel::sql_types::Uuid, _>(ws.id)

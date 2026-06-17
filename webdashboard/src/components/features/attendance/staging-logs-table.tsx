@@ -5,8 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { EmployeeSearch } from '@/components/common/employee-search';
 import InfiniteScrollSentinel from '@/components/common/infinite-scroll-sentinel';
 import { TableSkeleton } from '@/components/common/table-skeleton';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import Button from '@/components/ui/button';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Typography } from "@/components/ui/typography";
 import { StagingLog } from '@/lib/api/attendance';
 
@@ -97,11 +97,11 @@ function StagingLogRow({
                 workspaceId={wsId}
               />
               <Button
+                aria-label={t("common.cancel")}
                 className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors h-9 w-9"
                 onClick={() => { setAssigningLogId(null); }}
                 size="icon"
                 variant="ghost"
-                aria-label={t("common.cancel")}
               >
                 ✕
               </Button>

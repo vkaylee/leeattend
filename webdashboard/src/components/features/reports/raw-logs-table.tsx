@@ -3,8 +3,8 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import InfiniteScrollSentinel from "@/components/common/infinite-scroll-sentinel";
-import { Typography } from "@/components/ui/typography";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { RawAttendanceLog } from "@/lib/api";

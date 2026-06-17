@@ -176,6 +176,8 @@
       "no_policies": "No incentive policies"
     },
     "overtime_policies": "Overtime Policies",
+    "overtime_policy_name_placeholder": "e.g. Standard Overtime",
+    "overtime_policy_desc_placeholder": "e.g. Night and Weekend rates",
     "overtime_policies_desc": "Manage overtime pay rules based on time and day.",
     "no_overtime_policies": "No overtime policies found.",
     "create_first_policy": "Create your first policy now.",

@@ -136,12 +136,12 @@ export default function ApprovalListLayout({
 
                 return (
                   <th
-                    key={index}
                     className={cn(
                       "py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]",
                       isFirst ? "px-10" : isLast ? "px-10" : "px-8",
                       alignClass
                     )}
+                    key={index}
                   >
                     {header}
                   </th>

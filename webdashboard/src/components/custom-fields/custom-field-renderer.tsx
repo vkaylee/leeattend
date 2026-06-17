@@ -1,5 +1,5 @@
-import React from "react";
 import { Link2, Mail, Phone, Check, X } from "lucide-react";
+import React from "react";
 
 import type { CustomFieldValueResponse } from "@/lib/api/types";
 

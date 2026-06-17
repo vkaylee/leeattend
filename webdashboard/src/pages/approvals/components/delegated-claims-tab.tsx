@@ -2,19 +2,20 @@ import { Check, CheckCircle, Search } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import type { DailyAttendanceReport } from "@/lib/api";
+
 import { ConfirmClaimsDialog } from "@/components/approvals/confirm-claims-dialog";
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
-import type { DailyAttendanceReport } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 type ReportRow = DailyAttendanceReport & { employee_id_number?: string };
 
 interface DelegatedClaimsTabProps {
-  reportData: ReportRow[];
   isLoading: boolean;
   refetch: () => Promise<unknown>;
+  reportData: ReportRow[];
 }
 
 function LoadingState() {

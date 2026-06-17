@@ -1,12 +1,12 @@
-import { Clock, CalendarRange, Copy, User } from 'lucide-react';
+import { type ColumnDef } from '@tanstack/react-table';
+import { Clock, User } from 'lucide-react';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import InfiniteScrollSentinel from '@/components/common/infinite-scroll-sentinel';
-import SmartTable, { type SmartTableColumnMeta } from '@/components/ui/smart-table';
+import SmartTable from '@/components/ui/smart-table';
 import StatusBadge from '@/components/ui/status-badge';
 import { useToast } from "@/components/ui/toast";
-import { Typography } from "@/components/ui/typography";
 import { RawAttendanceLog } from '@/lib/api/types';
 
 interface RecordedLogsTableProps {
@@ -35,7 +35,7 @@ export function RecordedLogsTable({
   const { t } = useTranslation();
   const toast = useToast();
 
-  const columns = useMemo(() => [
+  const columns: ColumnDef<RawAttendanceLog>[] = useMemo(() => [
     {
       id: "time",
       header: t("common.time"),
@@ -60,7 +60,7 @@ export function RecordedLogsTable({
       size: 200,
       meta: {
         sticky: "left"
-      } as SmartTableColumnMeta
+      }
     },
     {
       id: "employee",
@@ -81,7 +81,7 @@ export function RecordedLogsTable({
       size: 240,
       meta: {
         sticky: "left"
-      } as SmartTableColumnMeta
+      }
     },
     {
       id: "source",
@@ -116,7 +116,7 @@ export function RecordedLogsTable({
       meta: {
         headerClassName: "text-right",
         cellClassName: "text-right"
-      } as SmartTableColumnMeta
+      }
     }
   ], [t, formatDate, formatTime, getEmployeeName, getEmployeeID, getDeviceName]);
 
@@ -166,13 +166,13 @@ export function RecordedLogsTable({
     <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden h-[600px] flex flex-col p-6">
       <div className="flex-1 min-h-0">
         <SmartTable<RawAttendanceLog>
-          data={logs}
           columns={columns}
+          contextMenuItems={contextMenuItems}
+          data={logs}
+          emptyMessage={t("attendance_logs.messages.no_data")}
+          footerRow={footerRow}
           getRowId={(log) => log.id}
           isLoading={isLoading}
-          contextMenuItems={contextMenuItems}
-          footerRow={footerRow}
-          emptyMessage={t("attendance_logs.messages.no_data")}
         />
       </div>
     </div>

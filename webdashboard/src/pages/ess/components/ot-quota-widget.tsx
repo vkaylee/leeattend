@@ -1,9 +1,8 @@
-import { Loader2, AlertTriangle } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
 import { Skeleton } from "@/components/ui/skeleton";
-
 import { Typography } from "@/components/ui/typography";
 import { QuotaSummary } from "@/lib/api/overtime-requests";
 

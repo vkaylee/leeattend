@@ -1,15 +1,19 @@
-import React, { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Trash2, UserPlus } from "lucide-react";
+import React, { useState } from "react";
+
+import type { Department, Employee, WorkspaceMember } from "@/lib/api";
+import type { WorkLocation } from "@/lib/api-generated/models";
+
 import PermissionGate from "@/components/common/permission-gate";
+import { CustomFieldSection } from "@/components/custom-fields/custom-field-section";
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
-import { CustomFieldSection } from "@/components/custom-fields/custom-field-section";
-import type { Department, Employee, WorkspaceMember, Employment } from "@/lib/api";
-import type { WorkLocation } from "@/lib/api-generated/models";
 import { fetchEmployeeEmployments, updateEmployeeEmployment } from "@/lib/api";
-import { DepartmentSection, LocationSection, UserSection, HireDatesSection } from "./profile-sections";
+
 import type { DeptHistoryEntry } from "./profile-sections";
+
+import { DepartmentSection, LocationSection, UserSection, HireDatesSection } from "./profile-sections";
 
 export function ProfileActions({
     employee,
@@ -48,15 +52,15 @@ export interface ProfileTabProps {
     departments?: Department[];
     deptHistory?: DeptHistoryEntry[];
     employee: Employee;
-    locations?: WorkLocation[];
-    wsId: string;
     formatDate: (date: string) => string;
     linkedUser: WorkspaceMember | undefined;
+    locations?: WorkLocation[];
     onEdit: (e: Employee) => void;
     onRehire: (e: Employee) => void;
     onTerminate: (e: Employee) => void;
     onTransfer: (id: string) => void;
     t: (k: string) => string;
+    wsId: string;
 }
 
 export default function ProfileTab({

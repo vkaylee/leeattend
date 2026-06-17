@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "lint": "bun scripts/lint.mjs src",
     "lint:fix": "bun scripts/lint.mjs --fix src",
+    "lint:fix:local": "eslint --fix",
     "lint:only": "bun scripts/lint.mjs",
     "check-budget": "node scripts/check-budget.mjs",
     "check-i18n": "node ../scripts/locales/reconcile_locales.js",

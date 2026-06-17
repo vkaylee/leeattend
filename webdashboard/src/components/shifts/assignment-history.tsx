@@ -2,8 +2,8 @@ import { History, Zap, ShieldCheck } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import { Typography } from "@/components/ui/typography";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { Typography } from "@/components/ui/typography";
 
 import { useDateTimeFormatter } from "../../hooks/use-datetime";
 import { AssignmentHistory as AssignmentHistoryType, Employee } from "../../lib/api";

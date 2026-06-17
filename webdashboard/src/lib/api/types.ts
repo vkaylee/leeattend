@@ -131,14 +131,14 @@ export interface AttendanceSummary {
   employee_id: string;
   employee_id_number?: string;
   employee_name: string;
+  employer_id?: string;
+  employer_name?: string;
   employment_id: string;
   total_leave_days: number;
   total_ot_units: number;
   total_std_units: number;
   unit_coefficient_hours: number;
   unit_type: 'DAY' | 'SHIFT' | 'HOUR' | 'MINUTE';
-  employer_id?: string;
-  employer_name?: string;
 }
 
 export type AuditLog = Omit<components["schemas"]["AuditLog"], "actor_id" | "target_user_id"> & {

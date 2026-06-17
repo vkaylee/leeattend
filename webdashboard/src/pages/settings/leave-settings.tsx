@@ -66,10 +66,10 @@ export default function LeaveSettings() {
           {activeTab === "assignments" && (
             <LeaveAssignmentsTab
               assignments={assignments}
+              departments={departments}
+              employees={employees}
               isLoading={assignmentsLoading}
               onAssignClick={() => { setIsAssignModalOpen(true); }}
-              employees={employees}
-              departments={departments}
             />
           )}
         </div>

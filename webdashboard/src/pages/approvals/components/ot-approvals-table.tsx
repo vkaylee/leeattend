@@ -20,8 +20,8 @@ interface OtApprovalsTableProps {
   handleApprove: (summary: OtSummary, approved: boolean) => Promise<void>;
   isProcessing: boolean;
   onAddPhoto?: (summary: OtSummary) => void;
-  pendingSummaries: OtSummary[];
   onPreviewAttachment?: (fileUrl: string, title: string) => void;
+  pendingSummaries: OtSummary[];
 }
 
 export function OtApprovalsTable({
@@ -97,8 +97,8 @@ export function OtApprovalsTable({
               <td className="px-8 py-6">
                 <EvidenceCell 
                   onAddPhoto={onAddPhoto} 
-                  summary={summary} 
-                  onPreviewAttachment={onPreviewAttachment}
+                  onPreviewAttachment={onPreviewAttachment} 
+                  summary={summary}
                 />
               </td>
               <td className="px-8 py-6 text-sm text-slate-600 dark:text-slate-300 italic">

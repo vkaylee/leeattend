@@ -9,13 +9,14 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import Button from "@/components/ui/button";
-import { Typography } from "@/components/ui/typography";
+import FormField from "@/components/ui/form-field";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useOvertimePolicies, useOvertimePolicy, useCreateOvertimePolicy } from './hooks/use-overtime-policies';
+import { Typography } from "@/components/ui/typography";
+import { OvertimePolicy } from '@/lib/api/types';
 
 import AssignOvertimePolicyModal from './assign-overtime-policy-modal';
+import { useOvertimePolicies, useOvertimePolicy, useCreateOvertimePolicy } from './hooks/use-overtime-policies';
 import OvertimeRuleEditor from './overtime-rule-editor';
-import { OvertimePolicy } from '@/lib/api/types';
 
 interface OvertimePolicyManagerProps {
   wsId: string;
@@ -63,26 +64,22 @@ function OvertimePolicyForm({
   return (
     <div className='bg-slate-50 dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 animate-in fade-in slide-in-from-top-4 duration-300'>
       <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-        <div className='space-y-2'>
-          <label className='text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1'>{t('common.name')}</label>
-          <input
-            className='w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all'
-            onChange={(e) => { setName(e.target.value); }}
-            placeholder='e.g. Standard Overtime'
-            type='text'
-            value={name}
-          />
-        </div>
-        <div className='space-y-2'>
-          <label className='text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1'>{t('common.description')}</label>
-          <input
-            className='w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all'
-            onChange={(e) => { setDescription(e.target.value); }}
-            placeholder='e.g. Night and Weekend rates'
-            type='text'
-            value={description}
-          />
-        </div>
+        <FormField
+          id="overtime-policy-name"
+          label={t('common.name')}
+          onChange={(e) => { setName(e.target.value); }}
+          placeholder={t('payroll.overtime_policy_name_placeholder', { defaultValue: 'e.g. Standard Overtime' })}
+          type='text'
+          value={name}
+        />
+        <FormField
+          id="overtime-policy-description"
+          label={t('common.description')}
+          onChange={(e) => { setDescription(e.target.value); }}
+          placeholder={t('payroll.overtime_policy_desc_placeholder', { defaultValue: 'e.g. Night and Weekend rates' })}
+          type='text'
+          value={description}
+        />
       </div>
       <div className='flex justify-end gap-3 mt-6'>
         <Button className='px-6 py-2 rounded-xl text-sm font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all' onClick={onCancel} variant="ghost">
@@ -115,7 +112,7 @@ function OvertimePolicySkeleton() {
       </div>
       <div className="grid grid-cols-1 gap-4">
         {[1, 2].map((i) => (
-          <div key={i} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-6 shadow-sm space-y-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-6 shadow-sm space-y-4" key={i}>
             <div className="flex items-center gap-4">
               <Skeleton className="w-12 h-12 rounded-2xl bg-slate-200 dark:bg-slate-800" />
               <div className="space-y-2">

@@ -2,15 +2,16 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import NavigableList from "@/components/common/navigable-list";
+import { CustomFieldsFilterPopover } from "@/components/custom-fields/custom-fields-filter-popover";
 import { cn } from "@/lib/utils";
 
 import type { Employee, Department } from "../../../lib/api/types";
 import type { SortKey, SortDir } from "../hooks/use-employees-page";
 
 import { useEmployeeColumns } from "../hooks/use-employee-columns";
-import { CustomFieldsFilterPopover } from "@/components/custom-fields/custom-fields-filter-popover";
 
 interface EmployeeTableProps {
+  customFieldFilters: Record<string, string>;
   departments: Department[] | undefined;
   employees: Employee[];
   fetchNextPage: () => void;
@@ -23,6 +24,7 @@ interface EmployeeTableProps {
   searchInputRef: React.RefObject<HTMLInputElement | null>;
   searchTerm: string;
   selectedEmployee: Employee | null;
+  setCustomFieldFilters: (filters: Record<string, string>) => void;
   setFilterDeptIds: (ids: string[]) => void;
   setSearchTerm: (s: string) => void;
   setSelectedEmployee: (emp: Employee) => void;
@@ -31,8 +33,6 @@ interface EmployeeTableProps {
   toggleDeptFilter: (id: string) => void;
   toggleSort: (key: SortKey) => void;
   totalItems: number;
-  customFieldFilters: Record<string, string>;
-  setCustomFieldFilters: (filters: Record<string, string>) => void;
 }
 
 export function EmployeeTable(props: EmployeeTableProps) {
@@ -80,6 +80,12 @@ export function EmployeeTable(props: EmployeeTableProps) {
         emptyMessage={t("employees.table.no_data")}
         fetchNextPage={fetchNextPage}
         hasNextPage={hasNextPage}
+        headerSlot={
+          <CustomFieldsFilterPopover
+            customFieldFilters={customFieldFilters}
+            setCustomFieldFilters={setCustomFieldFilters}
+          />
+        }
         isFetchingNextPage={isFetchingNextPage}
         isLoading={isLoading}
         itemKey={(emp) => emp.id}
@@ -88,12 +94,6 @@ export function EmployeeTable(props: EmployeeTableProps) {
         onSearchChange={setSearchTerm}
         onSelect={setSelectedEmployee}
         resetDeps={[searchTerm, filterDeptIds, sortKey, sortDir, customFieldFilters]}
-        headerSlot={
-          <CustomFieldsFilterPopover
-            customFieldFilters={customFieldFilters}
-            setCustomFieldFilters={setCustomFieldFilters}
-          />
-        }
         rowIdPrefix="employee-row"
         searchInputRef={searchInputRef}
         searchPlaceholder={t("employees.search_placeholder")}

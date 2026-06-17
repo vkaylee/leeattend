@@ -1,4 +1,4 @@
-/* eslint-disable */
+ 
 import { Coins, Calculator, FileText, Blocks, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";

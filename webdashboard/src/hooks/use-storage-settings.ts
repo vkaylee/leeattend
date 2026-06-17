@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { useWorkspace } from "@/hooks/use-workspace";
 import {
   fetchStorageConfig,
   upsertStorageConfig,
@@ -7,7 +8,6 @@ import {
   deleteStorageConfig,
   type CreateStorageConfigRequest,
 } from "@/lib/api/storage-config";
-import { useWorkspace } from "@/hooks/use-workspace";
 
 export const storageConfigKeys = {
   all: ["workspace-storage"] as const,

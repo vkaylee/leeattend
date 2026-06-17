@@ -674,6 +674,21 @@ mod tests {
             active_employments: vec![],
             primary_location_id: Uuid::new_v4(),
             ot_base_component_ids: std::collections::HashSet::new(),
+            month_end_payroll_settings: None,
+            month_end_attendance_policy: crate::models::AttendanceRules {
+                work_unit_minutes: 30,
+                rounding_policy: "floor".to_string(),
+                early_arrival_strategy: EarlyArrivalStrategy::Block,
+            },
+            leave_breakdown: crate::repositories::leave_request_repository::LeaveBreakdown {
+                total_days: 0.0,
+                unpaid_days: 0.0,
+                sick_days: 0.0,
+            },
+            active_policies_with_tiers: vec![],
+            salary_base_groups: vec![],
+            unpaid_holiday_days: 0,
+            rule_assignments_with_tiers: vec![],
         };
 
         let std_config = crate::domain::policy::resolver::StandardMonthConfig::new(
@@ -815,6 +830,21 @@ mod tests {
             active_employments: vec![employment],
             primary_location_id: Uuid::new_v4(),
             ot_base_component_ids: std::collections::HashSet::new(),
+            month_end_payroll_settings: None,
+            month_end_attendance_policy: crate::models::AttendanceRules {
+                work_unit_minutes: 30,
+                rounding_policy: "floor".to_string(),
+                early_arrival_strategy: EarlyArrivalStrategy::Block,
+            },
+            leave_breakdown: crate::repositories::leave_request_repository::LeaveBreakdown {
+                total_days: 0.0,
+                unpaid_days: 0.0,
+                sick_days: 0.0,
+            },
+            active_policies_with_tiers: vec![],
+            salary_base_groups: vec![],
+            unpaid_holiday_days: 0,
+            rule_assignments_with_tiers: vec![],
         };
 
         let std_config = crate::domain::policy::resolver::StandardMonthConfig::new(
@@ -907,6 +937,21 @@ mod tests {
             active_employments: vec![],
             primary_location_id: Uuid::new_v4(),
             ot_base_component_ids: std::collections::HashSet::new(),
+            month_end_payroll_settings: None,
+            month_end_attendance_policy: crate::models::AttendanceRules {
+                work_unit_minutes: 30,
+                rounding_policy: "floor".to_string(),
+                early_arrival_strategy: EarlyArrivalStrategy::Block,
+            },
+            leave_breakdown: crate::repositories::leave_request_repository::LeaveBreakdown {
+                total_days: 0.0,
+                unpaid_days: 0.0,
+                sick_days: 0.0,
+            },
+            active_policies_with_tiers: vec![],
+            salary_base_groups: vec![],
+            unpaid_holiday_days: 0,
+            rule_assignments_with_tiers: vec![],
         };
 
         let std_config = crate::domain::policy::resolver::StandardMonthConfig::new(
@@ -1067,6 +1112,21 @@ mod tests {
             active_employments: vec![employment],
             primary_location_id: Uuid::new_v4(),
             ot_base_component_ids: std::collections::HashSet::new(),
+            month_end_payroll_settings: None,
+            month_end_attendance_policy: crate::models::AttendanceRules {
+                work_unit_minutes: 30,
+                rounding_policy: "floor".to_string(),
+                early_arrival_strategy: EarlyArrivalStrategy::Block,
+            },
+            leave_breakdown: crate::repositories::leave_request_repository::LeaveBreakdown {
+                total_days: 0.0,
+                unpaid_days: 0.0,
+                sick_days: 0.0,
+            },
+            active_policies_with_tiers: vec![],
+            salary_base_groups: vec![],
+            unpaid_holiday_days: 0,
+            rule_assignments_with_tiers: vec![],
         };
 
         let std_config = crate::domain::policy::resolver::StandardMonthConfig::new(
@@ -1254,6 +1314,21 @@ mod tests {
             active_employments: vec![employment],
             primary_location_id: Uuid::new_v4(),
             ot_base_component_ids: std::collections::HashSet::new(),
+            month_end_payroll_settings: None,
+            month_end_attendance_policy: crate::models::AttendanceRules {
+                work_unit_minutes: 30,
+                rounding_policy: "floor".to_string(),
+                early_arrival_strategy: EarlyArrivalStrategy::Block,
+            },
+            leave_breakdown: crate::repositories::leave_request_repository::LeaveBreakdown {
+                total_days: 0.0,
+                unpaid_days: 0.0,
+                sick_days: 0.0,
+            },
+            active_policies_with_tiers: vec![],
+            salary_base_groups: vec![],
+            unpaid_holiday_days: 0,
+            rule_assignments_with_tiers: vec![],
         };
 
         let std_config = crate::domain::policy::resolver::StandardMonthConfig::new(
@@ -1401,6 +1476,21 @@ mod tests {
             active_employments: vec![employment],
             primary_location_id: Uuid::new_v4(),
             ot_base_component_ids: std::collections::HashSet::new(),
+            month_end_payroll_settings: None,
+            month_end_attendance_policy: crate::models::AttendanceRules {
+                work_unit_minutes: 30,
+                rounding_policy: "floor".to_string(),
+                early_arrival_strategy: EarlyArrivalStrategy::Block,
+            },
+            leave_breakdown: crate::repositories::leave_request_repository::LeaveBreakdown {
+                total_days: 0.0,
+                unpaid_days: 0.0,
+                sick_days: 0.0,
+            },
+            active_policies_with_tiers: vec![],
+            salary_base_groups: vec![],
+            unpaid_holiday_days: 0,
+            rule_assignments_with_tiers: vec![],
         };
 
         let std_config = crate::domain::policy::resolver::StandardMonthConfig::new(

@@ -1,4 +1,4 @@
-import type { paths, components } from "@/types/api-generated";
+import type { components } from "@/types/api-generated";
 
 import type { WorkspaceConfigEntry, CreateConfigEntryRequest } from './types';
 

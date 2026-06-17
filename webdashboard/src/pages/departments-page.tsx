@@ -3,13 +3,13 @@ import React from "react";
 
 import { DepartmentCard } from "@/components/features/departments/department-card";
 import { DepartmentConfigModal } from "@/components/features/departments/department-config-modal";
-import { DepartmentFormModal } from "@/components/features/departments/department-form-modal";
 import { DepartmentDetailDrawer } from "@/components/features/departments/department-detail-drawer";
+import { DepartmentFormModal } from "@/components/features/departments/department-form-modal";
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import EmptyState from "@/components/ui/empty-state";
 import PageHeader from "@/components/ui/page-header";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 import { useDepartmentsPage } from "./departments/hooks/use-departments-page";
 
@@ -61,21 +61,21 @@ export default function DepartmentsPage() {
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={18} />
             <input
-              type="text"
-              placeholder={t("departments.search_placeholder")}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full h-14 pl-12 pr-4 bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm font-semibold tracking-tight text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all"
+              onChange={(e) => { setSearchQuery(e.target.value); }}
+              placeholder={t("departments.search_placeholder")}
+              type="text"
+              value={searchQuery}
             />
           </div>
           
           <div className="w-full md:w-72">
             <Combobox
               className="bg-slate-50 dark:bg-slate-850 border-slate-200 dark:border-slate-800 h-14"
-              options={managerOptions}
-              value={selectedManagerId}
               onChange={setSelectedManagerId}
+              options={managerOptions}
               placeholder={t("departments.filter_manager_label")}
+              value={selectedManagerId}
             />
           </div>
         </div>
@@ -83,20 +83,20 @@ export default function DepartmentsPage() {
         {/* View Mode Toggle Buttons */}
         <div className="flex items-center gap-3 border border-slate-200 dark:border-slate-800 p-1.5 rounded-2xl bg-slate-50/50 dark:bg-slate-800/10">
           <Button
-            variant={viewMode === "grid" ? "secondary" : "ghost"}
-            size="sm"
-            icon={<LayoutGrid size={16} />}
-            onClick={() => setViewMode("grid")}
             className="h-10 px-4 rounded-xl font-bold"
+            icon={<LayoutGrid size={16} />}
+            onClick={() => { setViewMode("grid"); }}
+            size="sm"
+            variant={viewMode === "grid" ? "secondary" : "ghost"}
           >
             {t("departments.view_grid")}
           </Button>
           <Button
-            variant={viewMode === "table" ? "secondary" : "ghost"}
-            size="sm"
-            icon={<List size={16} />}
-            onClick={() => setViewMode("table")}
             className="h-10 px-4 rounded-xl font-bold"
+            icon={<List size={16} />}
+            onClick={() => { setViewMode("table"); }}
+            size="sm"
+            variant={viewMode === "table" ? "secondary" : "ghost"}
           >
             {t("departments.view_list")}
           </Button>
@@ -118,20 +118,20 @@ export default function DepartmentsPage() {
         />
       ) : filteredDepartments.length === 0 ? (
         <EmptyState
-          description={t("departments.messages.empty_desc")}
-          icon={<Search size={40} />}
-          title={t("departments.messages.no_results")}
           action={
             <Button
-              variant="secondary"
               onClick={() => {
                 setSearchQuery("");
                 setSelectedManagerId("all");
               }}
+              variant="secondary"
             >
               {t("common.reset", { defaultValue: "Reset" }).toUpperCase()}
             </Button>
           }
+          description={t("departments.messages.empty_desc")}
+          icon={<Search size={40} />}
+          title={t("departments.messages.no_results")}
         />
       ) : viewMode === "grid" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -141,9 +141,9 @@ export default function DepartmentsPage() {
               dept={dept}
               employees={employees}
               key={dept.id}
+              onClick={() => { setSelectedDeptForDetail(dept); }}
               onConfig={(d) => { setEditingDept(d); setIsConfigModalOpen(true); }}
               onEdit={(d) => { setEditingDept(d); setIsModalOpen(true); }}
-              onClick={() => setSelectedDeptForDetail(dept)}
               t={t}
             />
           ))}
@@ -165,9 +165,9 @@ export default function DepartmentsPage() {
                 const manager = employees.find((e) => e.id === dept.manager_id);
                 return (
                   <tr
-                    key={dept.id}
-                    onClick={() => setSelectedDeptForDetail(dept)}
                     className="border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/10 cursor-pointer transition-colors group"
+                    key={dept.id}
+                    onClick={() => { setSelectedDeptForDetail(dept); }}
                   >
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-3">
@@ -188,15 +188,15 @@ export default function DepartmentsPage() {
                     <td className="px-8 py-6 text-center text-slate-700 dark:text-slate-300 text-xs font-bold">
                       {dept.active_employee_count}
                     </td>
-                    <td className="px-8 py-6 text-right" onClick={(e) => e.stopPropagation()}>
+                    <td className="px-8 py-6 text-right" onClick={(e) => { e.stopPropagation(); }}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
+                            aria-label={t("departments.columns.actions")}
                             className="hover:text-primary-600 dark:hover:text-primary-400"
                             icon={<MoreHorizontal size={18} />}
                             size="icon"
                             variant="outline"
-                            aria-label={t("departments.columns.actions")}
                           />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
@@ -228,10 +228,10 @@ export default function DepartmentsPage() {
         dept={selectedDeptForDetail}
         employees={employees}
         isOpen={Boolean(selectedDeptForDetail)}
-        onClose={() => setSelectedDeptForDetail(null)}
+        onClose={() => { setSelectedDeptForDetail(null); }}
         onConfig={(d) => { setEditingDept(d); setIsConfigModalOpen(true); }}
-        onEdit={(d) => { setEditingDept(d); setIsModalOpen(true); }}
         onDelete={(d) => { setSelectedDeptForDetail(null); void handleDelete(d.id); }}
+        onEdit={(d) => { setEditingDept(d); setIsModalOpen(true); }}
         t={t}
         wsId={wsId}
       />

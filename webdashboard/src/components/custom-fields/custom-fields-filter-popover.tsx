@@ -1,5 +1,5 @@
 import * as Popover from "@radix-ui/react-popover";
-import { Filter, X, Check } from "lucide-react";
+import { Filter, Check } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -110,7 +110,7 @@ export function CustomFieldsFilterPopover({
                 key={def.id}
                 label={def.field_label}
                 name={def.field_key}
-                onChange={(e) => handleChange(def.field_key, e.target.value)}
+                onChange={(e) => { handleChange(def.field_key, e.target.value); }}
                 placeholder={`Search by ${def.field_label.toLowerCase()}...`}
                 value={localFilters[def.field_key] ?? ""}
               />
@@ -118,7 +118,7 @@ export function CustomFieldsFilterPopover({
           </div>
 
           <div className="pt-4 border-t border-slate-50 dark:border-slate-800 flex justify-end gap-2">
-            <Button onClick={() => setIsOpen(false)} size="sm" variant="ghost">
+            <Button onClick={() => { setIsOpen(false); }} size="sm" variant="ghost">
               Cancel
             </Button>
             <Button

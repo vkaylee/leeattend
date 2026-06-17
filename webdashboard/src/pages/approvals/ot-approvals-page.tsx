@@ -9,6 +9,7 @@ import type { AttendanceDailySummary, DailyAttendanceReport, Employee, Paginated
 
 import { BulkUploadOtDialog } from "@/components/approvals/bulk-upload-ot-dialog";
 import { ErrorBoundary } from "@/components/common/error-boundary";
+import { PDFPreviewModal } from "@/components/files/PDFPreviewModal";
 import { PageTabs, PageTab } from "@/components/ui/page-tabs";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
@@ -16,17 +17,16 @@ import { useApproveOt, useAttendanceSummaries } from "@/hooks/use-attendance";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { fetchAttendanceReport, fetchEmployees } from "@/lib/api";
-import { PDFPreviewModal } from "@/components/files/PDFPreviewModal";
 
 import type { OtSummary } from "./components/ot-approvals-table";
 
+import { AddPhotoDialog } from "./components/add-photo-dialog";
 import { BehalfAssignmentsTab } from "./components/behalf-assignments-tab";
+import { DelegatedClaimsTab } from "./components/delegated-claims-tab";
 import { OtApprovalsFilters, SourceFilter } from "./components/ot-approvals-filters";
 import { OtApprovalsHeader } from "./components/ot-approvals-header";
 import { OtApprovalsTable } from "./components/ot-approvals-table";
 import { PreOtApprovalsTab } from "./components/pre-ot-approvals-tab";
-import { AddPhotoDialog } from "./components/add-photo-dialog";
-import { DelegatedClaimsTab } from "./components/delegated-claims-tab";
 
 type ReportRow = DailyAttendanceReport & { employee_id_number?: string };
 
@@ -266,6 +266,11 @@ export default function OtApprovalsPage() {
           isLoading={isLoading}
           isProcessing={isProcessing}
           isReportLoading={isReportLoading}
+          onPreviewAttachment={(url, title) => {
+            setPreviewFileUrl(url);
+            setPreviewTitle(title);
+            setIsPreviewOpen(true);
+          }}
           pendingSummaries={pendingSummaries}
           refetch={refetch}
           refetchReport={refetchReport}
@@ -274,18 +279,13 @@ export default function OtApprovalsPage() {
           setSourceFilter={setSourceFilter}
           sourceFilter={sourceFilter}
           workspace={workspace}
-          onPreviewAttachment={(url, title) => {
-            setPreviewFileUrl(url);
-            setPreviewTitle(title);
-            setIsPreviewOpen(true);
-          }}
         />
       </div>
 
       <PDFPreviewModal
-        isOpen={isPreviewOpen}
-        onClose={() => setIsPreviewOpen(false)}
         fileUrl={previewFileUrl}
+        isOpen={isPreviewOpen}
+        onClose={() => { setIsPreviewOpen(false); }}
         title={previewTitle}
       />
     </div>
@@ -332,6 +332,7 @@ interface TabContentRendererProps {
   isLoading: boolean;
   isProcessing: boolean;
   isReportLoading: boolean;
+  onPreviewAttachment?: (fileUrl: string, title: string) => void;
   pendingSummaries: OtSummary[];
   refetch: () => Promise<unknown>;
   refetchReport: () => Promise<unknown>;
@@ -340,7 +341,6 @@ interface TabContentRendererProps {
   setSourceFilter: (filter: SourceFilter) => void;
   sourceFilter: SourceFilter;
   workspace: { id: string } | null | undefined;
-  onPreviewAttachment?: (fileUrl: string, title: string) => void;
 }
 
 interface PostOtTabContentProps {
@@ -351,11 +351,11 @@ interface PostOtTabContentProps {
   ) => Promise<void>;
   isLoading: boolean;
   isProcessing: boolean;
+  onPreviewAttachment?: (fileUrl: string, title: string) => void;
   pendingSummaries: OtSummary[];
   setPhotoTargetSummary: (summary: OtSummary) => void;
   setSourceFilter: (filter: SourceFilter) => void;
   sourceFilter: SourceFilter;
-  onPreviewAttachment?: (fileUrl: string, title: string) => void;
 }
 
 function PostOtTabContent({
@@ -383,8 +383,8 @@ function PostOtTabContent({
           handleApprove={handleApprove}
           isProcessing={isProcessing}
           onAddPhoto={setPhotoTargetSummary}
-          pendingSummaries={pendingSummaries}
           onPreviewAttachment={onPreviewAttachment}
+          pendingSummaries={pendingSummaries}
         />
       )}
     </div>
@@ -417,8 +417,8 @@ function TabContentRenderer({
         <ErrorBoundary variant="compact">
           <PreOtApprovalsTab 
             canApprove={canApprove} 
-            wsId={workspace.id} 
-            onPreviewAttachment={onPreviewAttachment}
+            onPreviewAttachment={onPreviewAttachment} 
+            wsId={workspace.id}
           />
         </ErrorBoundary>
       ) : null;
@@ -430,11 +430,11 @@ function TabContentRenderer({
             handleApprove={handleApprove}
             isLoading={isLoading}
             isProcessing={isProcessing}
+            onPreviewAttachment={onPreviewAttachment}
             pendingSummaries={pendingSummaries}
             setPhotoTargetSummary={setPhotoTargetSummary}
             setSourceFilter={setSourceFilter}
             sourceFilter={sourceFilter}
-            onPreviewAttachment={onPreviewAttachment}
           />
         </ErrorBoundary>
       );

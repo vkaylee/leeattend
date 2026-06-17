@@ -24,7 +24,7 @@ import { Typography } from "@/components/ui/typography";
 import { Employee, PolicyAssignmentResponse } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-import { usePolicyAssignments, FilterType, StrategyType } from "./hooks/use-policy-assignments";
+import { usePolicyAssignments, StrategyType } from "./hooks/use-policy-assignments";
 
 interface AssignmentCardProps {
   assignment: PolicyAssignmentResponse;
@@ -213,7 +213,7 @@ function PolicyAssignmentsSectionContent({ wsId }: { wsId: string }) {
             </Typography>
             <div className="space-y-5 bg-slate-50/50 dark:bg-slate-800/30 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800">
               <div className="text-xs bg-primary-500/10 border border-primary-500/20 rounded-xl p-3 flex items-start gap-2.5 text-primary-700 dark:text-primary-400 mb-2">
-                <Info size={14} className="mt-0.5 shrink-0" />
+                <Info className="mt-0.5 shrink-0" size={14} />
                 <span>{t("attendance_policy_overrides.drawer.override_notice")}</span>
               </div>
               <div className="space-y-3">

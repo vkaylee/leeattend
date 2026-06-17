@@ -1,7 +1,8 @@
-import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { client } from '@/lib/api/client';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+
+import { client } from '@/lib/api/client';
 import { components } from '@/types/api-generated';
 import { computeSHA256 } from '@/utils/hash';
 
@@ -9,12 +10,12 @@ type WorkspaceFile = components['schemas']['WorkspaceFile'];
 type PresignedUploadBody = components['schemas']['CreateUploadUrlRequest'] & { content_hash?: string };
 
 export interface UseFileUploadOptions {
-  workspaceId: string;
   category: string;
-  ownerType: string;
-  ownerId: string;
-  onSuccess?: (file: WorkspaceFile) => void;
   onError?: (error: Error) => void;
+  onSuccess?: (file: WorkspaceFile) => void;
+  ownerId: string;
+  ownerType: string;
+  workspaceId: string;
 }
 
 export function useFileUpload({
@@ -54,7 +55,7 @@ export function useFileUpload({
         }
         
         setProgress(100);
-        return data as WorkspaceFile;
+        return data;
       } else {
         // Presigned URL upload
         const { data: presignedData, error: presignedError } = await client.POST('/v1/workspaces/{ws_id}/files/presigned', {
@@ -67,7 +68,7 @@ export function useFileUpload({
                 mime_type: file.type || 'application/octet-stream',
                 owner_id: ownerId,
                 owner_type: ownerType as components['schemas']['FileOwnerType'],
-            } as PresignedUploadBody,
+            },
         });
 
         if (presignedError || !presignedData) {
@@ -96,11 +97,11 @@ export function useFileUpload({
                 }
             };
             
-            xhr.onerror = () => reject(new Error(t('errors.network_error')));
+            xhr.onerror = () => { reject(new Error(t('errors.network_error'))); };
             xhr.send(file);
         });
 
-        return dbFile as WorkspaceFile;
+        return dbFile;
       }
     },
     onSuccess: (data) => {

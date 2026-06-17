@@ -5,12 +5,12 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 
 interface EmployeeFilterChipsProps {
+  customFieldFilters: Record<string, string>;
   departments: { id: string; name: string }[] | undefined;
   filterDeptIds: string[];
+  setCustomFieldFilters: (filters: Record<string, string>) => void;
   setFilterDeptIds: (ids: string[]) => void;
   toggleDeptFilter: (id: string) => void;
-  customFieldFilters: Record<string, string>;
-  setCustomFieldFilters: (filters: Record<string, string>) => void;
   updateCustomFieldFilter: (key: string, val: string) => void;
 }
 
@@ -37,7 +37,7 @@ export function EmployeeFilterChips({
       </span>
       
       {/* Department Chips */}
-      {departments && filterDeptIds.map((id) => {
+      {!!departments && filterDeptIds.map((id) => {
         const dept = departments.find((d) => d.id === id);
         if (!dept) return null;
         return (

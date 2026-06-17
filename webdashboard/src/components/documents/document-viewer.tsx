@@ -1,15 +1,16 @@
-import React from "react";
-import Modal from "@/components/ui/modal";
 import { FileIcon, Download, AlertCircle } from "lucide-react";
+import React from "react";
+
 import Button from "@/components/ui/button";
+import Modal from "@/components/ui/modal";
 import { Typography } from "@/components/ui/typography";
 
 export interface DocumentViewerModalProps {
-  isOpen: boolean;
-  onClose: () => void;
   fileName: string;
-  mimeType: string;
   fileUrl?: string | null;
+  isOpen: boolean;
+  mimeType: string;
+  onClose: () => void;
   onDownload: () => void;
 }
 
@@ -28,12 +29,12 @@ export function DocumentViewerModal({
 
   return (
     <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={fileName}
-      subtitle={mimeType}
-      maxWidth="4xl"
       icon={<FileIcon className="w-5 h-5" />}
+      isOpen={isOpen}
+      maxWidth="4xl"
+      onClose={onClose}
+      subtitle={mimeType}
+      title={fileName}
     >
       <div className="flex flex-col gap-4 w-full h-[60vh]">
         {!fileUrl ? (
@@ -45,16 +46,16 @@ export function DocumentViewerModal({
           <div className="flex-1 w-full bg-slate-100 dark:bg-slate-950 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 relative">
             {isImage ? (
               <img
-                src={fileUrl}
                 alt={fileName}
                 className="w-full h-full object-contain"
+                src={fileUrl}
               />
             ) : null}
             {isPdf ? (
               <iframe
+                className="w-full h-full border-none"
                 src={fileUrl}
                 title={fileName}
-                className="w-full h-full border-none"
               />
             ) : null}
           </div>

@@ -1,4 +1,4 @@
-/* eslint-disable */
+ 
 import { Link, Outlet, useLocation } from "@tanstack/react-router";
 import { ChevronRight, Settings, ShieldCheck } from "lucide-react";
 import React, { useEffect, useState } from "react";

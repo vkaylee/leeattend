@@ -73,15 +73,15 @@ export default function ReportsPage() {
       <ReportsTable
         dateRange={dateRange}
         departments={departments}
+        employeeStatus={employeeStatus}
         employers={employers}
-        selectedEmployerId={selectedEmployerId}
-        handleEmployerChange={handleEmployerChange}
         fetchNextPage={fetchNextPage}
         filteredData={filteredData}
         filterMode={filterMode}
         handleDateRangeChange={handleDateRangeChange}
         handleDepartmentChange={handleDepartmentChange}
         handleEmployeeClick={handleEmployeeClick}
+        handleEmployerChange={handleEmployerChange}
         handleFilterModeChange={handleFilterModeChange}
         handleSort={handleSort}
         handleSpecificMonthChange={handleSpecificMonthChange}
@@ -89,15 +89,15 @@ export default function ReportsPage() {
         isFetchingNextPage={isFetchingNextPage}
         isLoading={isLoading}
         keyDownRef={keyDownRef}
+        onEmployeeStatusChange={setEmployeeStatus}
         quickStats={quickStats}
         searchInputRef={searchInputRef}
         searchQuery={searchQuery}
         selectedDepartmentId={selectedDepartmentId}
+        selectedEmployerId={selectedEmployerId}
         setSearchQuery={setSearchQuery}
         sortBy={sortBy}
         specificMonth={specificMonth}
-        employeeStatus={employeeStatus}
-        onEmployeeStatusChange={setEmployeeStatus}
       />
 
       <EmployeeDailyDrawer

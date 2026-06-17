@@ -70,6 +70,7 @@
   --ui-height-sm: 40px;
   --ui-height-md: 52px;
   --ui-height-lg: 60px;
+  --placeholder-color: var(--primary-700);
 }
 
 /* Dark palette: Slate-based (slate-900/800) — neutral, professional */
@@ -84,6 +85,7 @@
   --sidebar-foreground: #94a3b8;
   --sidebar-primary: var(--primary-500);
   --sidebar-border: #1e293b;
+  --placeholder-color: var(--primary-300);
 }
 
 @layer base {
@@ -193,8 +195,14 @@
 
 /* Global placeholder softening */
 ::placeholder {
-  color: var(--primary-300) !important;
-  opacity: 0.7 !important;
+  color: var(--placeholder-color) !important;
+  opacity: 0.8 !important;
+}
+
+/* Global focus-visible outlines for keyboard accessibility */
+*:focus-visible {
+  outline: 2px solid var(--primary-500) !important;
+  outline-offset: 2px !important;
 }
 
 /* Roster Table Scrollbar - thicker for easier dragging */

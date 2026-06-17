@@ -1,13 +1,14 @@
-import React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import { Check, ChevronDown, X } from "lucide-react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 
-import FormField from "@/components/ui/form-field";
-import Button from "@/components/ui/button";
-import { Typography } from "@/components/ui/typography";
-import { Combobox } from "@/components/ui/combobox";
 import type { CustomFieldDefinition } from "@/lib/api/types";
+
+import Button from "@/components/ui/button";
+import { Combobox } from "@/components/ui/combobox";
+import FormField from "@/components/ui/form-field";
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 interface CustomFieldEditorProps {
@@ -117,7 +118,7 @@ const MultiselectFieldEditor: React.FC<MultiselectFieldEditorProps> = ({
                           "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-300 shadow-inner"
                       )}
                       key={option.value}
-                      onClick={() => toggleOption(option.value)}
+                      onClick={() => { toggleOption(option.value); }}
                       type="button"
                       variant="ghost"
                     >
@@ -192,7 +193,7 @@ export const CustomFieldEditor: React.FC<CustomFieldEditorProps> = ({
               checked={isChecked}
               className="w-7 h-7 rounded-xl text-primary-600 dark:text-primary-400 focus:ring-primary-500/20 transition-all border-slate-200 dark:border-slate-700 shadow-inner cursor-pointer"
               id={`cf-${definition.field_key}`}
-              onChange={(e) => onChange(e.target.checked)}
+              onChange={(e) => { onChange(e.target.checked); }}
               type="checkbox"
             />
             <label
@@ -274,7 +275,7 @@ export const CustomFieldEditor: React.FC<CustomFieldEditorProps> = ({
           error={error}
           label={definition.field_label}
           name={definition.field_key}
-          onChange={(e) => onChange(e.target.value || null)}
+          onChange={(e) => { onChange(e.target.value || null); }}
           required={definition.is_required}
           type="date"
           value={value !== null && value !== undefined ? String(value) : ""}
@@ -287,7 +288,7 @@ export const CustomFieldEditor: React.FC<CustomFieldEditorProps> = ({
           error={error}
           label={definition.field_label}
           name={definition.field_key}
-          onChange={(e) => onChange(e.target.value || null)}
+          onChange={(e) => { onChange(e.target.value || null); }}
           placeholder={definition.default_value ?? "example@domain.com"}
           required={definition.is_required}
           type="email"
@@ -301,7 +302,7 @@ export const CustomFieldEditor: React.FC<CustomFieldEditorProps> = ({
           error={error}
           label={definition.field_label}
           name={definition.field_key}
-          onChange={(e) => onChange(e.target.value || null)}
+          onChange={(e) => { onChange(e.target.value || null); }}
           placeholder={definition.default_value ?? "+84..."}
           required={definition.is_required}
           type="tel"
@@ -315,7 +316,7 @@ export const CustomFieldEditor: React.FC<CustomFieldEditorProps> = ({
           error={error}
           label={definition.field_label}
           name={definition.field_key}
-          onChange={(e) => onChange(e.target.value || null)}
+          onChange={(e) => { onChange(e.target.value || null); }}
           placeholder={definition.default_value ?? "Enter text"}
           required={definition.is_required}
           type="text"

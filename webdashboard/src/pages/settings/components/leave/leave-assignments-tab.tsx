@@ -4,19 +4,20 @@ import { useTranslation } from "react-i18next";
 
 import { format } from "date-fns";
 
+import type { Employee, Department } from "@/lib/api/types";
+
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
-import type { Employee, Department } from "@/lib/api/types";
 import type { LeaveAssignment } from "../../hooks/use-leave-settings";
 
 interface LeaveAssignmentsTabProps {
   assignments: LeaveAssignment[];
+  departments: Department[];
+  employees: Employee[];
   isLoading: boolean;
   onAssignClick: () => void;
-  employees: Employee[];
-  departments: Department[];
 }
 
 export function LeaveAssignmentsTab({

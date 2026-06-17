@@ -110,7 +110,7 @@ vi.mock("@/components/ui/dropdown-menu", () => ({
       if (btn) onValueChange(btn.getAttribute('data-value'));
     }}>{children}</div>
   ),
-  DropdownMenuRadioItem: ({ value, children }: any) => <div role="button" data-value={value}>{children}</div>,
+  DropdownMenuRadioItem: ({ value, children }: any) => <div data-value={value} role="button">{children}</div>,
 }));
 
 

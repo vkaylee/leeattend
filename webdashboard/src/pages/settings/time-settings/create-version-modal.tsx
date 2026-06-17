@@ -1,4 +1,4 @@
-/* eslint-disable */
+ 
 import { Calculator, Clock, Plus, ShieldAlert, Settings2, Zap } from "lucide-react";
 import React from "react";
 

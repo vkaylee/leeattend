@@ -8,8 +8,8 @@ import {
   type RowSelectionState,
   type ColumnPinningState,
 } from "@tanstack/react-table";
-import { ChevronUp, ChevronDown, MoreVertical } from "lucide-react";
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import { ChevronUp, ChevronDown } from "lucide-react";
+import React, { useState, useMemo } from "react";
 
 import {
   DropdownMenu,
@@ -24,32 +24,37 @@ import { useSmartTableDrag } from "./smart-table-hooks/use-smart-table-drag";
 import { useSmartTableKeyboard } from "./smart-table-hooks/use-smart-table-keyboard";
 
 export interface SmartTableColumnMeta {
-  editable?: boolean;
-  editType?: "text" | "number" | "select";
-  editOptions?: { value: string; label: string }[];
-  sticky?: "left" | "right";
-  headerClassName?: string;
   cellClassName?: string;
+  editable?: boolean;
+  editOptions?: { value: string; label: string }[];
+  editType?: "text" | "number" | "select";
+  headerClassName?: string;
+  sticky?: "left" | "right";
 }
 
+declare module "@tanstack/react-table" {
+  interface ColumnMeta<TData, TValue> extends SmartTableColumnMeta {}
+}
+
+
 export interface SmartTableProps<T> {
-  data: T[];
+  className?: string;
   columns: (ColumnDef<T> & { meta?: SmartTableColumnMeta })[];
-  getRowId: (row: T) => string;
-  onCellSave?: (rowId: string, columnId: string, value: any) => Promise<void> | void;
-  onBulkCellSave?: (changes: { rowId: string; columnId: string; value: any }[]) => Promise<void> | void;
-  validateCell?: (rowId: string, columnId: string, value: any) => string | null | undefined;
-  selectedRowIds?: Set<string>;
-  onSelectionChange?: (selectedIds: Set<string>) => void;
-  enableDragSelect?: boolean;
   contextMenuItems?: (row: T) => { label: string; onClick: () => void; icon?: React.ReactNode; disabled?: boolean }[];
+  data: T[];
+  emptyMessage?: string;
+  enableDragSelect?: boolean;
+  footerRow?: React.ReactNode;
+  getRowId: (row: T) => string;
+  isLoading?: boolean;
+  onBulkCellSave?: (changes: { rowId: string; columnId: string; value: any }[]) => Promise<void> | void;
+  onCellSave?: (rowId: string, columnId: string, value: any) => Promise<void> | void;
+  onRowClick?: (row: T, e: React.MouseEvent) => void;
+  onSelectionChange?: (selectedIds: Set<string>) => void;
+  selectedRowIds?: Set<string>;
   stickyLeftColumns?: number;
   stickyRightColumns?: number;
-  isLoading?: boolean;
-  emptyMessage?: string;
-  className?: string;
-  footerRow?: React.ReactNode;
-  onRowClick?: (row: T, e: React.MouseEvent) => void;
+  validateCell?: (rowId: string, columnId: string, value: any) => string | null | undefined;
 }
 
 export default function SmartTable<T>({
@@ -248,7 +253,7 @@ export default function SmartTable<T>({
                   const isPinned = header.column.getIsPinned();
                   const isLastPinnedLeft = isPinned === "left" && header.column.getIsLastColumn("left");
                   const isFirstPinnedRight = isPinned === "right" && header.column.getIsFirstColumn("right");
-                  const meta = header.column.columnDef.meta as SmartTableColumnMeta | undefined;
+                  const meta = header.column.columnDef.meta;
 
                   return (
                     <th
@@ -267,9 +272,9 @@ export default function SmartTable<T>({
                     >
                       {header.isPlaceholder ? null : header.column.getCanSort() ? (
                         <button
-                          type="button"
                           className="flex items-center gap-1.5 cursor-pointer font-bold uppercase tracking-widest text-[10px] text-slate-500 dark:text-slate-400 bg-transparent border-none p-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary-500 rounded"
                           onClick={header.column.getToggleSortingHandler()}
+                          type="button"
                         >
                           {flexRender(header.column.columnDef.header, header.getContext())}
                           {{
@@ -287,12 +292,12 @@ export default function SmartTable<T>({
                       {header.column.getCanResize() && (
                         /* eslint-disable-next-line jsx-a11y/no-static-element-interactions */
                         <div
-                          onMouseDown={header.getResizeHandler()}
-                          onTouchStart={header.getResizeHandler()}
                           className={cn(
                             "absolute right-0 top-0 h-full w-1 cursor-col-resize select-none bg-slate-200 dark:bg-slate-700 opacity-0 group-hover:opacity-100 transition-opacity",
                             header.column.getIsResizing() && "bg-primary-500 opacity-100 w-1.5"
                           )}
+                          onMouseDown={header.getResizeHandler()}
+                          onTouchStart={header.getResizeHandler()}
                         />
                       )}
                     </th>
@@ -334,9 +339,6 @@ export default function SmartTable<T>({
                       isDraggingRange && "bg-primary-50/30 dark:bg-primary-950/20 outline outline-2 outline-primary-300 dark:outline-primary-800 outline-offset-[-2px] z-10 relative"
                     )}
                     key={row.id}
-                    onMouseDown={(e) => handleRowMouseDown(rowIndex, e)}
-                    onMouseEnter={() => handleRowMouseEnter(rowIndex)}
-                    onContextMenu={(e) => handleRowContextMenu(row.original, e)}
                     onClick={(e) => {
                       const target = e.target as HTMLElement;
                       if (
@@ -349,6 +351,9 @@ export default function SmartTable<T>({
                       }
                       onRowClick?.(row.original, e);
                     }}
+                    onContextMenu={(e) => { handleRowContextMenu(row.original, e); }}
+                    onMouseDown={(e) => { handleRowMouseDown(rowIndex, e); }}
+                    onMouseEnter={() => { handleRowMouseEnter(rowIndex); }}
                   >
                     {row.getVisibleCells().map((cell, colIndex) => {
                       const isCellFocused =
@@ -360,7 +365,7 @@ export default function SmartTable<T>({
                       const isLastPinnedLeft = isPinned === "left" && cell.column.getIsLastColumn("left");
                       const isFirstPinnedRight = isPinned === "right" && cell.column.getIsFirstColumn("right");
 
-                      const meta = cell.column.columnDef.meta as SmartTableColumnMeta | undefined;
+                      const meta = cell.column.columnDef.meta;
 
                       const errorKey = `${row.id}-${cell.column.id}`;
                       const cellError = cellErrors[errorKey];
@@ -395,30 +400,30 @@ export default function SmartTable<T>({
                         <td
                           className={cellClass}
                           key={cell.id}
-                          style={{
-                            width: cell.column.getSize(),
-                            ...getPinStyles(cell.column),
-                          }}
-                          ref={(el) => {
-                            cellRefs.current[key] = el;
-                          }}
-                          tabIndex={isCellFocused ? 0 : -1}
-                          onClick={() => setFocusedCell({ rowIndex, colIndex })}
-                          onKeyDown={(e) => handleCellKeyDown(rowIndex, colIndex, cell.column, row, e)}
+                          onClick={() => { setFocusedCell({ rowIndex, colIndex }); }}
                           onDoubleClick={() => {
                             if (meta?.editable) {
                               startCellEdit(rowIndex, colIndex, row.getValue(cell.column.id));
                             }
                           }}
+                          onKeyDown={(e) => { handleCellKeyDown(rowIndex, colIndex, cell.column, row, e); }}
+                          ref={(el) => {
+                            cellRefs.current[key] = el;
+                          }}
+                          style={{
+                            width: cell.column.getSize(),
+                            ...getPinStyles(cell.column),
+                          }}
+                          tabIndex={isCellFocused ? 0 : -1}
                         >
                           {isCellEditing ? (
                             meta?.editType === "select" ? (
                               <select
-                                className="w-full h-full bg-white dark:bg-slate-800 text-sm border-none outline-none ring-2 ring-primary-500 rounded px-2 py-1.5 focus:ring-primary-500"
-                                value={editValue}
                                 autoFocus
-                                onChange={(e) => setEditValue(e.target.value)}
-                                onBlur={() => saveCellEdit(rowIndex, colIndex, cell.column, row)}
+                                className="w-full h-full bg-white dark:bg-slate-800 text-sm border-none outline-none ring-2 ring-primary-500 rounded px-2 py-1.5 focus:ring-primary-500"
+                                onBlur={() => { saveCellEdit(rowIndex, colIndex, cell.column, row); }}
+                                onChange={(e) => { setEditValue(e.target.value); }}
+                                value={editValue}
                               >
                                 {meta.editOptions?.map((opt) => (
                                   <option key={opt.value} value={opt.value}>
@@ -428,31 +433,29 @@ export default function SmartTable<T>({
                               </select>
                             ) : (
                               <input
-                                className="w-full h-full bg-white dark:bg-slate-800 text-sm border-none outline-none ring-2 ring-primary-500 rounded px-2 py-1.5 focus:ring-primary-500 font-medium"
-                                value={editValue ?? ""}
                                 autoFocus
+                                className="w-full h-full bg-white dark:bg-slate-800 text-sm border-none outline-none ring-2 ring-primary-500 rounded px-2 py-1.5 focus:ring-primary-500 font-medium"
+                                onBlur={() => { saveCellEdit(rowIndex, colIndex, cell.column, row); }}
+                                onChange={(e) => { setEditValue(e.target.value); }}
                                 type={meta?.editType === "number" ? "number" : "text"}
-                                onChange={(e) => setEditValue(e.target.value)}
-                                onBlur={() => saveCellEdit(rowIndex, colIndex, cell.column, row)}
+                                value={editValue ?? ""}
                               />
                             )
                           ) : (
                             flexRender(cell.column.columnDef.cell, cell.getContext())
                           )}
 
-                          {hasError && (
-                            <>
+                          {!!hasError && <>
                               <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 animate-pulse pointer-events-none" />
                               <div
+                                className="absolute hidden group-hover:block group-focus-within:block bottom-full left-1/2 -translate-x-1/2 mb-2 z-30 px-2.5 py-1.5 text-xs font-semibold text-white bg-rose-600 dark:bg-rose-700 rounded-lg shadow-lg whitespace-nowrap pointer-events-none transition-all duration-200"
                                 id={`error-${row.id}-${cell.column.id}`}
                                 role="tooltip"
-                                className="absolute hidden group-hover:block group-focus-within:block bottom-full left-1/2 -translate-x-1/2 mb-2 z-30 px-2.5 py-1.5 text-xs font-semibold text-white bg-rose-600 dark:bg-rose-700 rounded-lg shadow-lg whitespace-nowrap pointer-events-none transition-all duration-200"
                               >
                                 {cellError}
                                 <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-rose-600 dark:border-t-rose-700" />
                               </div>
-                            </>
-                          )}
+                            </>}
                         </td>
                       );
                     })}
@@ -468,12 +471,12 @@ export default function SmartTable<T>({
       </div>
 
       {/* Portal Context Menu invisible trigger */}
-      {contextMenu && (
+      {!!contextMenu && (
         <DropdownMenu
-          open={!!contextMenu}
           onOpenChange={(open) => {
             if (!open) setContextMenu(null);
           }}
+          open={!!contextMenu}
         >
           <DropdownMenuTrigger asChild>
             <div
@@ -489,16 +492,16 @@ export default function SmartTable<T>({
           <DropdownMenuContent className="w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl p-1.5">
             {contextMenuItems?.(contextMenu.row).map((item, idx) => (
               <DropdownMenuItem
-                key={idx}
-                disabled={item.disabled}
-                onClick={() => {
-                  item.onClick();
-                  setContextMenu(null);
-                }}
                 className={cn(
                   "flex items-center gap-2 px-3 py-2 text-xs font-bold uppercase tracking-tight rounded-xl cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800",
                   item.disabled && "opacity-50 pointer-events-none"
                 )}
+                disabled={item.disabled}
+                key={idx}
+                onClick={() => {
+                  item.onClick();
+                  setContextMenu(null);
+                }}
               >
                 {item.icon}
                 <span>{item.label}</span>

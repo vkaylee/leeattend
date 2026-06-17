@@ -74,7 +74,7 @@ export function useDepartmentsPage() {
       const matchesSearch = 
         !searchQuery ||
         dept.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (dept.description && dept.description.toLowerCase().includes(searchQuery.toLowerCase()));
+        (dept.description?.toLowerCase().includes(searchQuery.toLowerCase()));
         
       const matchesManager = 
         selectedManagerId === "all" || 

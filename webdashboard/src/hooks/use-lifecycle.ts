@@ -13,17 +13,14 @@ import { useWorkspace } from "@/hooks/use-workspace";
 import {
   fetchLifecycleTemplates,
   createLifecycleTemplate,
-  getLifecycleTemplate,
   updateLifecycleTemplate,
   deleteLifecycleTemplate,
   fetchLifecycleTemplateItems,
   createLifecycleTemplateItem,
-  getLifecycleTemplateItem,
   updateLifecycleTemplateItem,
   deleteLifecycleTemplateItem,
   fetchLifecycleChecklists,
   createLifecycleChecklist,
-  getLifecycleChecklist,
   updateChecklistItemStatus,
   fetchMyPendingTasks,
 } from "@/lib/api/lifecycle";

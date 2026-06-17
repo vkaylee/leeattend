@@ -1,11 +1,12 @@
-import React, { useState } from "react";
-import Modal from "@/components/ui/modal";
 import { FileText, Loader2 } from "lucide-react";
+import React, { useState } from "react";
+
+import Modal from "@/components/ui/modal";
 
 interface PDFPreviewModalProps {
+  fileUrl: string | null;
   isOpen: boolean;
   onClose: () => void;
-  fileUrl: string | null;
   title?: string;
 }
 
@@ -27,12 +28,12 @@ export function PDFPreviewModal({
 
   return (
     <Modal
+      className="h-[85vh] flex flex-col"
+      icon={<FileText size={20} />}
       isOpen={isOpen}
+      maxWidth="4xl"
       onClose={onClose}
       title={title}
-      maxWidth="4xl"
-      icon={<FileText size={20} />}
-      className="h-[85vh] flex flex-col"
     >
       <div className="relative w-full h-full min-h-[500px] flex-1 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950">
         {!!isLoading && (
@@ -44,9 +45,9 @@ export function PDFPreviewModal({
           </div>
         )}
         <iframe
-          src={`${fileUrl}#toolbar=0&navpanes=0`}
           className="w-full h-full border-none rounded-2xl"
-          onLoad={() => setIsLoading(false)}
+          onLoad={() => { setIsLoading(false); }}
+          src={`${fileUrl}#toolbar=0&navpanes=0`}
           title="PDF Document Preview"
         />
       </div>

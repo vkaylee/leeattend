@@ -177,6 +177,8 @@
     },
     "overtime_policies_desc": "管理基于时间和日期的加班工资规则。",
     "overtime_policies": "加班政策",
+    "overtime_policy_name_placeholder": "例：标准加班政策",
+    "overtime_policy_desc_placeholder": "例：周末与夜间费率",
     "no_overtime_policies": "未找到加班政策。",
     "create_first_policy": "立即创建您的第一个政策。",
     "rules": "计算规则",

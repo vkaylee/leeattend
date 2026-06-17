@@ -1,18 +1,19 @@
-import React, { useState } from "react";
 import { Edit2, Check, X, Loader2 } from "lucide-react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
+import { Typography } from "@/components/ui/typography";
 import {
   useCustomFieldDefinitions,
   useCustomFieldValues,
   useSetCustomFieldValues,
 } from "@/hooks/use-custom-fields";
 import { useMyPermissions } from "@/hooks/use-permissions";
-import { CustomFieldRenderer } from "./custom-field-renderer";
+
 import { CustomFieldEditor } from "./custom-field-editor";
-import { Typography } from "@/components/ui/typography";
-import { useToast } from "@/components/ui/toast";
-import Button from "@/components/ui/button";
+import { CustomFieldRenderer } from "./custom-field-renderer";
 
 interface CustomFieldSectionProps {
   entityId: string;
@@ -136,7 +137,7 @@ export const CustomFieldSection: React.FC<CustomFieldSectionProps> = ({
                 <Button
                   disabled={isSaving}
                   icon={<X className="w-3.5 h-3.5" />}
-                  onClick={() => setIsEditing(false)}
+                  onClick={() => { setIsEditing(false); }}
                   size="sm"
                   variant="outline"
                 >
@@ -175,7 +176,7 @@ export const CustomFieldSection: React.FC<CustomFieldSectionProps> = ({
               definition={def}
               error={errors[def.id]}
               key={def.id}
-              onChange={(val) => handleValueChange(def.id, val)}
+              onChange={(val) => { handleValueChange(def.id, val); }}
               value={formValues[def.id]}
             />
           ))}

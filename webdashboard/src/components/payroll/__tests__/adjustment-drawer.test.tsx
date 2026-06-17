@@ -5,7 +5,6 @@ import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import * as api from "../../../lib/api";
-
 import { ToastProvider } from "../../ui/toast";
 import AdjustmentDrawer from "../adjustment-drawer";
 
@@ -67,8 +66,8 @@ describe("AdjustmentDrawer", () => {
     renderWithProviders(
       <AdjustmentDrawer 
         employeeId="emp-1" 
-        employmentId="employment-1"
-        employeeName="John Doe" 
+        employeeName="John Doe"
+        employmentId="employment-1" 
         isOpen={true} 
         onClose={() => { /* empty */ }} 
       />
@@ -102,8 +101,8 @@ describe("AdjustmentDrawer", () => {
     renderWithProviders(
       <AdjustmentDrawer 
         employeeId="emp-1" 
-        employmentId="employment-1"
-        employeeName="John Doe" 
+        employeeName="John Doe"
+        employmentId="employment-1" 
         isOpen={true} 
         onClose={() => { /* empty */ }} 
       />

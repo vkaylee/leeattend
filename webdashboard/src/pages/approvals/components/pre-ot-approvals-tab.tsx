@@ -106,17 +106,17 @@ export function PreOtApprovalsTab({
                 </span>
               </div>
             </div>
-            {req.attachment_file_ids && req.attachment_file_ids.length > 0 && (
+            {!!req.attachment_file_ids && req.attachment_file_ids.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-3">
                 {req.attachment_file_ids.map((fileId: string | null, index: number) => {
                   if (!fileId) return null;
                   return (
                     <Button
-                      key={fileId}
-                      type="button"
-                      onClick={() => onPreviewAttachment?.(`/api/v1/workspaces/${wsId}/files/${fileId}/download`, `Pre-OT Attachment #${index + 1}`)}
                       className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-750 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/40 dark:text-indigo-400 border border-indigo-150 dark:border-indigo-900/50 transition-colors cursor-pointer"
                       icon={<Paperclip className="w-3 h-3" />}
+                      key={fileId}
+                      onClick={() => onPreviewAttachment?.(`/api/v1/workspaces/${wsId}/files/${fileId}/download`, `Pre-OT Attachment #${index + 1}`)}
+                      type="button"
                     >
                       Doc #{index + 1}
                     </Button>

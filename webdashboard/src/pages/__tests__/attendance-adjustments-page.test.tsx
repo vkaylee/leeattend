@@ -7,7 +7,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "../../components/ui/toast";
 import * as api from "../../lib/api";
-import { AttendanceAdjustmentRequest } from "../../lib/api/types";
 import AttendanceAdjustmentsPage from "../attendance-adjustments-page";
 
 (globalThis as any).__mockPermissions = ["attendance:adjustments:manage_behalf"];
@@ -77,7 +76,7 @@ vi.mock("@/components/ui/dropdown-menu", () => ({
       if (btn) onValueChange(btn.getAttribute('data-value'));
     }}>{children}</div>
   ),
-  DropdownMenuRadioItem: ({ value, children }: any) => <div role="button" data-value={value}>{children}</div>,
+  DropdownMenuRadioItem: ({ value, children }: any) => <div data-value={value} role="button">{children}</div>,
 }));
 
 // Mock the API library

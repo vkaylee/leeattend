@@ -102,14 +102,13 @@ impl EmployeeSelfServiceRepository for DieselEmployeeRepository {
             .as_ref()
             .ok_or_else(|| AppError::Internal("Crypto service not initialized".to_string()))?;
 
-        let encrypted_national_id = match &req.national_id {
-            Some(nat_id) => Some(
-                crypto
-                    .encrypt(nat_id)
-                    .map_err(|e| AppError::Internal(format!("Failed to encrypt national_id: {e}")))?,
-            ),
-            None => None,
-        };
+        let encrypted_national_id =
+            match &req.national_id {
+                Some(nat_id) => Some(crypto.encrypt(nat_id).map_err(|e| {
+                    AppError::Internal(format!("Failed to encrypt national_id: {e}"))
+                })?),
+                None => None,
+            };
 
         let encrypted_bank_account_number = match &req.bank_account_number {
             Some(bank_acc) => Some(crypto.encrypt(bank_acc).map_err(|e| {

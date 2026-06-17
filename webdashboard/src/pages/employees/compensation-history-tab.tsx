@@ -9,8 +9,8 @@ import { fetchCompensationHistory } from "@/lib/api/employees";
 interface CompensationHistoryTabProps {
   employeeId: string;
   employmentId?: string;
-  wsId: string;
   formatDate: (date: string) => string;
+  wsId: string;
 }
 
 export default function CompensationHistoryTab({

@@ -3,8 +3,8 @@ import { Users2, UserCheck, Clock, UserX, CalendarClock, AlertTriangle } from "l
 import { type TFunction } from "i18next";
 
 import CollapsibleSection from "@/components/features/dashboard/collapsible-section";
-import StatCard from "@/components/ui/stat-card";
 import StaggerChildren from "@/components/ui/stagger-children";
+import StatCard from "@/components/ui/stat-card";
 import { type WorkspaceStats } from "@/hooks/use-dashboard";
 
 interface HrKpiCardsProps {
@@ -32,7 +32,7 @@ export function HrKpiCards({ hrStats, isLoading, isCollapsed, onToggle, t }: HrK
       onToggle={onToggle}
       title={t("dashboard.sections.summary")}
     >
-      <StaggerChildren delay={80} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">
+      <StaggerChildren className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6" delay={80}>
         {stats.map((stat, index) => (
           <StatCard
             colorClasses={stat.color}

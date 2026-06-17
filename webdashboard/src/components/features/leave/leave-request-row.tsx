@@ -4,10 +4,10 @@ import { CheckCircle2, XCircle, ShieldCheck, MessageSquare, Sun, Moon, Timer, Pa
 import React from "react";
 
 import type { Employee, LeaveType, LeaveRequest } from "@/lib/api/types";
-import { useWorkspace } from "@/hooks/use-workspace";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { cn } from "@/lib/utils";
 
 type LeaveRequestItem = LeaveRequest;
@@ -17,9 +17,9 @@ export interface LeaveRequestRowProps {
   formatDate: (d: string) => string;
   leaveTypes: LeaveType[];
   onApprove: (id: string, status: string) => void;
+  onPreviewAttachment?: (fileUrl: string, title: string) => void;
   request: LeaveRequestItem;
   t: TFunction;
-  onPreviewAttachment?: (fileUrl: string, title: string) => void;
 }
 
 function getDurationBadgeStyle(type: string | null) {
@@ -177,9 +177,9 @@ export function LeaveRequestRow({
               if (!fileId) return null;
               return (
                 <Button
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-750 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/40 dark:text-indigo-400 border border-indigo-150 dark:border-indigo-900/50 transition-colors cursor-pointer h-auto py-1 shadow-none"
                   key={fileId}
                   onClick={() => onPreviewAttachment?.(`/api/v1/workspaces/${wsId}/files/${fileId}/download`, `Leave Attachment #${index + 1}`)}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-750 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/40 dark:text-indigo-400 border border-indigo-150 dark:border-indigo-900/50 transition-colors cursor-pointer h-auto py-1 shadow-none"
                   variant="ghost"
                 >
                   <Paperclip className="w-3 h-3" />

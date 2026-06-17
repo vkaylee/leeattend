@@ -4,8 +4,8 @@ import { Calendar, CalendarDays, FileText, Info, Loader2, Moon, PlayCircle, Sun,
 import React from "react";
 
 import type { Employee, EmployeeLeaveBalance, LeaveDurationType, LeaveType } from "@/lib/api/types";
-import { FileUpload } from "@/components/files/FileUpload";
 
+import { FileUpload } from "@/components/files/FileUpload";
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import FormField from "@/components/ui/form-field";
@@ -160,6 +160,7 @@ function EmployeeSelectorField({
 }
 
 export interface CreateLeaveRequestFormProps {
+  attachmentFileIds: string[];
   balances: EmployeeLeaveBalance[];
   behalfEmployees: Employee[];
   behalfLoading: boolean;
@@ -175,7 +176,9 @@ export interface CreateLeaveRequestFormProps {
   leaveTypes: LeaveType[];
   onCancel: () => void;
   onSubmit: (e: React.SyntheticEvent<HTMLFormElement>) => void;
+  ownerId: string;
   selectedEmpId: string;
+  setAttachmentFileIds: (ids: string[]) => void;
   setDurationType: (d: LeaveDurationType) => void;
   setEndDate: (d: string) => void;
   setEndTime: (t: string) => void;
@@ -187,9 +190,6 @@ export interface CreateLeaveRequestFormProps {
   startTime: string;
   t: TFunction;
   wsId: string;
-  ownerId: string;
-  attachmentFileIds: string[];
-  setAttachmentFileIds: (ids: string[]) => void;
 }
 
 export function CreateLeaveRequestForm({
@@ -288,28 +288,28 @@ export function CreateLeaveRequestForm({
           {t("leave_requests.modal.attachment", "ATTACHMENT (PDF ONLY)")}
         </label>
         <FileUpload
-          workspaceId={wsId}
-          category="LeaveAttachment"
-          ownerType="LeaveRequest"
-          ownerId={ownerId}
           accept="application/pdf"
+          category="LeaveAttachment"
           maxSizeMB={20}
           onUploadSuccess={(file) => {
             setAttachmentFileIds([...attachmentFileIds, file.id]);
           }}
+          ownerId={ownerId}
+          ownerType="LeaveRequest"
+          workspaceId={wsId}
         />
         {attachmentFileIds.length > 0 && (
           <div className="mt-3 space-y-2">
             {attachmentFileIds.map((id, index) => (
-              <div key={id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-primary-100 dark:border-primary-800/50 text-xs animate-in slide-in-from-top-1">
+              <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-primary-100 dark:border-primary-800/50 text-xs animate-in slide-in-from-top-1" key={id}>
                 <span className="font-mono text-primary-750 dark:text-primary-300">Document #{index + 1} ({id})</span>
                 <Button
-                  type="button"
-                  variant="ghost"
                   className="p-1 h-6 w-6 text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-900/50 rounded-lg transition-colors border-none"
                   onClick={() => {
                     setAttachmentFileIds(attachmentFileIds.filter(fId => fId !== id));
                   }}
+                  type="button"
+                  variant="ghost"
                 >
                   <X className="w-4 h-4" />
                 </Button>

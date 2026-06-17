@@ -1,11 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { History, Info, Loader2, X } from "lucide-react";
-import { FileUpload } from "@/components/files/FileUpload";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { format } from "date-fns";
 
+import { FileUpload } from "@/components/files/FileUpload";
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import Modal from "@/components/ui/modal";
@@ -222,28 +222,28 @@ export function CreateAdjustmentModal({
             {t("attendance.adjustment.attachment", "ATTACHMENT (PDF ONLY)")}
           </label>
           <FileUpload
-            workspaceId={wsId}
-            category="AttendanceAdjustmentAttachment"
-            ownerType="AttendanceAdjustment"
-            ownerId={ownerId}
             accept="application/pdf"
+            category="AttendanceAdjustmentAttachment"
             maxSizeMB={20}
             onUploadSuccess={(file) => {
               setAttachmentFileIds([...attachmentFileIds, file.id]);
             }}
+            ownerId={ownerId}
+            ownerType="AttendanceAdjustment"
+            workspaceId={wsId}
           />
           {attachmentFileIds.length > 0 && (
             <div className="mt-3 space-y-2">
               {attachmentFileIds.map((id, index) => (
-                <div key={id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-105 dark:border-slate-800 text-xs animate-in slide-in-from-top-1">
+                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-105 dark:border-slate-800 text-xs animate-in slide-in-from-top-1" key={id}>
                   <span className="font-mono text-slate-700 dark:text-slate-350">Document #{index + 1} ({id})</span>
                   <Button
-                    type="button"
-                    variant="ghost"
                     className="p-1 h-6 w-6 text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-900/50 rounded-lg transition-colors border-none"
                     onClick={() => {
                       setAttachmentFileIds(attachmentFileIds.filter(fId => fId !== id));
                     }}
+                    type="button"
+                    variant="ghost"
                   >
                     <X className="w-4 h-4" />
                   </Button>

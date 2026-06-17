@@ -9,8 +9,8 @@ interface UseReportsHandlersProps {
   setDateRange: (range: { start: string; end: string }) => void;
   setFilterMode: (mode: FilterMode) => void;
   setSelectedDepartmentId: (id: string | null) => void;
-  setSelectedEmployerId: (id: string | null) => void;
   setSelectedEmployee: (v: { id: string; name: string; employmentId?: string } | null) => void;
+  setSelectedEmployerId: (id: string | null) => void;
   setSortBy: (v: AttendanceReportSort | undefined) => void;
   setSpecificMonth: (val: { month: number; year: number }) => void;
   sortBy: AttendanceReportSort | undefined;

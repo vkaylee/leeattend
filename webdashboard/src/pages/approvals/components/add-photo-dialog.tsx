@@ -3,20 +3,21 @@ import { Upload, X, FileText } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import Button from "@/components/ui/button";
-import { Typography } from "@/components/ui/typography";
-import { useToast } from "@/components/ui/toast";
 import { FileUpload } from "@/components/files/FileUpload";
-import { useWorkspace } from "@/hooks/use-workspace";
+import Button from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
+import { Typography } from "@/components/ui/typography";
 import { useEnterPaperOt } from "@/hooks/use-attendance";
+import { useWorkspace } from "@/hooks/use-workspace";
+
 import type { OtSummary } from "./ot-approvals-table";
 
 interface AddPhotoDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  summary: OtSummary | null;
-  onSuccess?: () => void;
   employeeId?: string;
+  onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
+  open: boolean;
+  summary: OtSummary | null;
 }
 
 export function AddPhotoDialog({
@@ -113,16 +114,16 @@ export function AddPhotoDialog({
               ) : (
                 <div className="w-full">
                   <FileUpload
-                    workspaceId={wsId}
-                    category="OtClaimAttachment"
-                    ownerType="AttendanceDailySummary"
-                    ownerId={summary?.id ?? ""}
                     accept="application/pdf"
+                    category="OtClaimAttachment"
                     maxSizeMB={20}
                     onUploadSuccess={(file) => {
                       setFileName(file.file_name);
                       setPhotoUrl(`/api/v1/workspaces/${wsId}/files/${file.id}/download`);
                     }}
+                    ownerId={summary?.id ?? ""}
+                    ownerType="AttendanceDailySummary"
+                    workspaceId={wsId}
                   />
                 </div>
               )}

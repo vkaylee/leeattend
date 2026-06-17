@@ -105,12 +105,12 @@ function FileUploadZone({
 
   return (
     <label
-      htmlFor="csv-upload"
       className={`block border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer ${
         isDragOver
           ? "border-primary-500 bg-primary-50 dark:bg-primary-950"
           : "border-slate-200 dark:border-slate-700 hover:border-primary-400"
       }`}
+      htmlFor="csv-upload"
       onDragLeave={onDragLeave}
       onDragOver={onDragOver}
       onDrop={onDrop}
@@ -353,12 +353,12 @@ function BulkUploadDialogContent({
         {t("approvals.bulk_upload.description")}
       </Dialog.Description>
       <Button
+        aria-label="Close dialog"
         className="absolute right-5 top-5 h-8 w-8 p-0 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus-visible:ring-2 focus-visible:ring-primary-500 shadow-none border-none"
         icon={<X className="h-4 w-4" />}
         onClick={handleClose}
         size="icon"
         variant="ghost"
-        aria-label="Close dialog"
       />
       <div className="mt-6 space-y-6">
         {!uploadResult && (

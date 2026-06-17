@@ -1,24 +1,18 @@
-import { CheckCircle2, Clock, Filter, Plus, ShieldCheck, Upload, XCircle } from "lucide-react";
+import { Clock, Filter, Plus, ShieldCheck, Upload } from "lucide-react";
 import React, { useMemo, useState } from "react";
 
+import { EmployeeSearch } from "@/components/common/employee-search";
+import FloatingRecordBadge from "@/components/common/floating-record-badge";
+import InfiniteScrollSentinel from "@/components/common/infinite-scroll-sentinel";
+import { ResilientWidget } from "@/components/common/resilient-widget";
 import { CreateLeaveRequestModal } from "@/components/features/leave/create-leave-request-modal";
 import { LeaveImportBanner } from "@/components/features/leave/leave-import-banner";
 import LeaveImportDialog from "@/components/features/leave/leave-import-dialog";
 import { LeaveRequestRow } from "@/components/features/leave/leave-request-row";
 import { useLeaveRequests, TabType, LeaveStatusFilter } from "@/components/features/leave/use-leave-requests";
-import ApprovalListLayout from "@/components/templates/approval-list-layout";
-import { ResilientWidget } from "@/components/common/resilient-widget";
-import Button from "@/components/ui/button";
-import { PageTabs, PageTab } from "@/components/ui/page-tabs";
-import { Typography } from "@/components/ui/typography";
-import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import { useMyPermissions } from "@/hooks/use-permissions";
-import { getCurrentWorkspaceId, Employee } from "@/lib/api";
 import { PDFPreviewModal } from "@/components/files/PDFPreviewModal";
-import { EmployeeSearch } from "@/components/common/employee-search";
-import InfiniteScrollSentinel from "@/components/common/infinite-scroll-sentinel";
-import FloatingRecordBadge from "@/components/common/floating-record-badge";
-import { cn } from "@/lib/utils";
+import ApprovalListLayout from "@/components/templates/approval-list-layout";
+import Button from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +22,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { PageTabs, PageTab } from "@/components/ui/page-tabs";
+import { Typography } from "@/components/ui/typography";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { useMyPermissions } from "@/hooks/use-permissions";
+import { getCurrentWorkspaceId, Employee } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 import { BehalfAssignmentsTab } from "./approvals/components/behalf-assignments-tab";
 
@@ -93,16 +93,16 @@ export default function LeaveRequestsPage() {
     t("common.employee"),
     t("common.type"),
     t("leave_requests.table.details"),
-    <th key="status-header" className="py-6 text-[10px] font-bold uppercase tracking-[0.25em] text-center px-8">
+    <th className="py-6 text-[10px] font-bold uppercase tracking-[0.25em] text-center px-8" key="status-header">
       <div className="flex justify-center">
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button type="button" className={cn(
+              <button className={cn(
                 "flex items-center gap-1.5 focus:outline-none transition-colors group cursor-pointer px-3 py-1.5 rounded-xl border border-transparent bg-transparent",
                 statusFilter !== "all"
                   ? "text-primary-600 dark:text-primary-450 bg-primary-50/50 dark:bg-primary-950/30 border-primary-150/50 dark:border-primary-900/50 font-extrabold"
                   : "text-slate-500 dark:text-slate-400 hover:text-slate-850 dark:hover:text-slate-200"
-              )}>
+              )} type="button">
                 <span className="flex items-center gap-1.5">
                   {t("common.status")}
                   {statusFilter !== "all" && (
@@ -112,18 +112,18 @@ export default function LeaveRequestsPage() {
                   )}
                 </span>
                 <Filter
-                  size={11}
                   className={cn(
                     "text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-350 transition-colors",
                     statusFilter !== "all" && "text-primary-500 dark:text-primary-400 fill-primary-500/20"
                   )}
+                  size={11}
                 />
               </button>
             </DropdownMenuTrigger>
           <DropdownMenuContent align="center" className="w-52">
             <DropdownMenuLabel>{t("common.filter_by_status", "Filter by Status").toUpperCase()}</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuRadioGroup value={statusFilter} onValueChange={(val) => setStatusFilter(val as LeaveStatusFilter)}>
+            <DropdownMenuRadioGroup onValueChange={(val) => { setStatusFilter(val as LeaveStatusFilter); }} value={statusFilter}>
               <DropdownMenuRadioItem value="all">{t("common.all", "All").toUpperCase()}</DropdownMenuRadioItem>
               <DropdownMenuRadioItem value="pending">{t("common.status_pending", "Pending").toUpperCase()}</DropdownMenuRadioItem>
               <DropdownMenuRadioItem value="approved">{t("common.status_approved", "Approved").toUpperCase()}</DropdownMenuRadioItem>
@@ -202,9 +202,9 @@ export default function LeaveRequestsPage() {
                   onImportComplete={handleImportComplete}
                 />
                 <PDFPreviewModal
-                  isOpen={isPreviewOpen}
-                  onClose={() => setIsPreviewOpen(false)}
                   fileUrl={previewFileUrl}
+                  isOpen={isPreviewOpen}
+                  onClose={() => { setIsPreviewOpen(false); }}
                   title={previewTitle}
                 />
               </>
@@ -219,16 +219,16 @@ export default function LeaveRequestsPage() {
                 key={request.id}
                 leaveTypes={leaveTypes}
                 onApprove={(id, status) => { approveMutation.mutate({ id, status: status as "approved" | "rejected" | "pre_approved" | "pending" | "cancelled" }); }}
-                request={request}
-                t={t}
                 onPreviewAttachment={(url, title) => {
                   setPreviewFileUrl(url);
                   setPreviewTitle(title);
                   setIsPreviewOpen(true);
                 }}
+                request={request}
+                t={t}
               />
             ))}
-            {hasNextPage && (
+            {!!hasNextPage && (
               <InfiniteScrollSentinel
                 colSpan={tableHeaders.length}
                 isFetchingNextPage={isFetchingNextPage}

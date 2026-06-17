@@ -94,7 +94,7 @@ export async function submitAttendanceAdjustment(
     body: data as any
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as AttendanceAdjustmentRequest;
+  return resData;
 }
 
 export async function fetchWorkspaceAttendanceAdjustments(
@@ -118,7 +118,7 @@ export async function fetchWorkspaceAttendanceAdjustments(
     }
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as PaginatedResponse<AttendanceAdjustmentRequest>;
+  return resData;
 }
 
 export async function fetchMyAttendanceAdjustments(
@@ -128,7 +128,7 @@ export async function fetchMyAttendanceAdjustments(
     params: { path: { id: employeeId } }
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as AttendanceAdjustmentRequest[];
+  return resData;
 }
 
 export async function approveAttendanceAdjustment(wsId: string, requestId: string, data: { status: "pending" | "approved" | "rejected" }): Promise<void> {
@@ -193,6 +193,9 @@ export async function fetchRawAttendanceLogs(params: {
 export interface FetchAttendanceReportParams {
   departmentId?: string | null;
   employeeIds?: string[];
+  employeeStatus?: string;
+  employerId?: string | null;
+  employmentId?: string | null;
   end: string;
   limit?: number;
   page?: number;
@@ -200,9 +203,6 @@ export interface FetchAttendanceReportParams {
   start: string;
   type?: "summary" | "daily";
   wsId: string;
-  employeeStatus?: string;
-  employerId?: string | null;
-  employmentId?: string | null;
 }
 
 export async function fetchAttendanceReport(

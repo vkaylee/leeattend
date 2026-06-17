@@ -1,13 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { FolderTree, Search } from "lucide-react";
+import { FolderTree } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { DepartmentConfigModal } from "@/components/features/departments/department-config-modal";
-import { DepartmentFormModal } from "@/components/features/departments/department-form-modal";
 import { DepartmentDetailDrawer } from "@/components/features/departments/department-detail-drawer";
+import { DepartmentFormModal } from "@/components/features/departments/department-form-modal";
 import { DepartmentOrgChart } from "@/components/features/departments/department-org-chart";
-import PageHeader from "@/components/ui/page-header";
 import { useConfirm } from "@/hooks/use-confirm";
 
 import { fetchDepartments, deleteDepartment, getCurrentWorkspaceId, fetchEmployees, Department } from "../lib/api";
@@ -72,11 +71,11 @@ export default function OrgChartPage() {
             </div>
             <div className="relative flex-1 min-w-0 pr-1">
               <input
-                type="text"
-                placeholder={t("departments.search_placeholder")}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full h-9 bg-transparent border-none text-xs font-bold tracking-tight text-slate-700 dark:text-slate-200 placeholder:text-slate-400/80 focus:outline-none"
+                onChange={(e) => { setSearchQuery(e.target.value); }}
+                placeholder={t("departments.search_placeholder")}
+                type="text"
+                value={searchQuery}
               />
             </div>
           </div>
@@ -86,13 +85,13 @@ export default function OrgChartPage() {
           <DepartmentOrgChart
             departments={departments}
             employees={employees}
-            searchQuery={searchQuery}
-            wsId={wsId}
+            onClick={(d) => { setSelectedDeptForDetail(d); }}
             onConfig={(d) => { setEditingDept(d); setIsConfigModalOpen(true); }}
-            onEdit={(d) => { setEditingDept(d); setIsModalOpen(true); }}
             onDelete={(d) => { void handleDelete(d.id); }}
-            onClick={(d) => setSelectedDeptForDetail(d)}
+            onEdit={(d) => { setEditingDept(d); setIsModalOpen(true); }}
+            searchQuery={searchQuery}
             t={t}
+            wsId={wsId}
           />
         </div>
       </div>
@@ -102,10 +101,10 @@ export default function OrgChartPage() {
         dept={selectedDeptForDetail}
         employees={employees}
         isOpen={Boolean(selectedDeptForDetail)}
-        onClose={() => setSelectedDeptForDetail(null)}
+        onClose={() => { setSelectedDeptForDetail(null); }}
         onConfig={(d) => { setEditingDept(d); setIsConfigModalOpen(true); }}
-        onEdit={(d) => { setEditingDept(d); setIsModalOpen(true); }}
         onDelete={(d) => { setSelectedDeptForDetail(null); void handleDelete(d.id); }}
+        onEdit={(d) => { setEditingDept(d); setIsModalOpen(true); }}
         t={t}
         wsId={wsId}
       />

@@ -32,7 +32,7 @@ export async function fetchEmployeePhases(wsId: string, employeeId: string): Pro
     params: { path: { ws_id: wsId, emp_id: employeeId } }
   });
   if (!data) return [];
-  return data as EmployeePhase[];
+  return data;
 }
 
 export async function assignEmployeePhase(
@@ -45,7 +45,7 @@ export async function assignEmployeePhase(
     body: data
   });
   if (!result) throw new Error("No response data");
-  return result as EmployeePhase;
+  return result;
 }
 
 export async function updateEmployeePhaseStatus(
@@ -59,7 +59,7 @@ export async function updateEmployeePhaseStatus(
     body: data
   });
   if (!result) throw new Error("No response data");
-  return result as EmployeePhase;
+  return result;
 }
 
 export async function fetchEmploymentAssignedPhases(wsId: string, employmentId: string): Promise<EmployeePhase[]> {
@@ -67,7 +67,7 @@ export async function fetchEmploymentAssignedPhases(wsId: string, employmentId: 
     params: { path: { ws_id: wsId, employment_id: employmentId } }
   });
   if (!data) return [];
-  return data as EmployeePhase[];
+  return data;
 }
 
 export async function assignEmploymentPhase(
@@ -80,7 +80,7 @@ export async function assignEmploymentPhase(
     body: data
   });
   if (!result) throw new Error("No response data");
-  return result as EmployeePhase;
+  return result;
 }
 
 export async function updateEmploymentPhaseStatus(
@@ -94,5 +94,5 @@ export async function updateEmploymentPhaseStatus(
     body: data
   });
   if (!result) throw new Error("No response data");
-  return result as EmployeePhase;
+  return result;
 }

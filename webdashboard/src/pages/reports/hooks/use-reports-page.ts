@@ -18,15 +18,16 @@ export type { FilterMode };
 export interface UseReportsPageReturn {
   dateRange: { end: string; start: string };
   departments: Department[] | undefined;
+  employeeStatus: string;
   employers: Employer[] | undefined;
   fetchNextPage: () => Promise<unknown>;
   filteredData: AttendanceSummary[];
   filterMode: FilterMode;
   handleDateRangeChange: (newRange: { end: string; start: string }) => void;
   handleDepartmentChange: (departmentId: string | null) => void;
-  handleEmployerChange: (employerId: string | null) => void;
   handleDrawerClose: () => void;
   handleEmployeeClick: (employeeId: string, employeeName: string) => void;
+  handleEmployerChange: (employerId: string | null) => void;
   handleFilterModeChange: (mode: FilterMode) => void;
   handleSort: (field: "leave_days" | "name" | "ot_hours" | "total_hours" | "work_hours") => void;
   handleSpecificMonthChange: (m: number, y: number) => void;
@@ -39,9 +40,8 @@ export interface UseReportsPageReturn {
   searchInputRef: React.RefObject<HTMLInputElement | null>;
   searchQuery: string;
   selectedDepartmentId: string | null;
-  selectedEmployerId: string | null;
   selectedEmployee: { id: string; name: string; employmentId?: string } | null;
-  employeeStatus: string;
+  selectedEmployerId: string | null;
   setEmployeeStatus: (v: string) => void;
   setIsExportDialogOpen: (v: boolean) => void;
   setSearchQuery: (v: string) => void;

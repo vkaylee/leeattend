@@ -31,6 +31,7 @@ export async function fetchEmployees(
 }
 
 export interface SearchEmployeesParams {
+  customFieldFilters?: string;
   departmentIds?: string[];
   limit?: number;
   page?: number;
@@ -39,7 +40,6 @@ export interface SearchEmployeesParams {
   sortBy?: string;
   sortDir?: string;
   wsId: string;
-  customFieldFilters?: string;
 }
 
 export async function searchEmployees(

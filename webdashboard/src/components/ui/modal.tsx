@@ -107,8 +107,8 @@ export default function Modal({
               </div>
               <Dialog.Close asChild>
                 <button
-                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors group"
                   aria-label="Close dialog"
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors group"
                 >
                   <X className="w-5 h-5 text-slate-300 dark:text-slate-500 group-hover:text-primary-700 dark:group-hover:text-primary-400" />
                 </button>

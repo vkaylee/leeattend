@@ -12,7 +12,7 @@ export async function fetchWorkingConditions(wsId: string, employeeId: string): 
   return (data.data ?? []).map((item) => ({
     ...item,
     type: item.type_,
-  })) as WorkingCondition[];
+  }));
 }
 
 export async function createWorkingCondition(
@@ -30,7 +30,7 @@ export async function createWorkingCondition(
   return {
     ...data,
     type: data.type_,
-  } as WorkingCondition;
+  };
 }
 
 export async function deleteWorkingCondition(wsId: string, employeeId: string, conditionId: string): Promise<void> {

@@ -17,6 +17,7 @@ import type { SortKey, SortDir } from "./use-employees-state";
 const PAGE_SIZE = 20;
 
 interface UseEmployeesDataProps {
+  customFieldFilters: Record<string, string>;
   debouncedSearch: string;
   filterDeptIds: string[];
   selectedEmployee: Employee | null;
@@ -25,7 +26,6 @@ interface UseEmployeesDataProps {
   sortDir: SortDir;
   sortKey: SortKey | null;
   wsId: string;
-  customFieldFilters: Record<string, string>;
 }
 
 export const useEmployeesData = ({

@@ -153,10 +153,9 @@ impl TenantPoolManager {
             let ws_id = *workspace_id;
 
             let fetched_url = if let Some(ref system_pool) = self.system_db_pool {
-                let mut conn = system_pool
-                    .get()
-                    .await
-                    .map_err(|e| AppError::Internal(format!("Failed to get System DB connection: {e}")))?;
+                let mut conn = system_pool.get().await.map_err(|e| {
+                    AppError::Internal(format!("Failed to get System DB connection: {e}"))
+                })?;
 
                 use diesel::sql_types::{Nullable, Text, Uuid as UuidSql};
                 use diesel_async::RunQueryDsl;
@@ -179,9 +178,9 @@ impl TenantPoolManager {
                 if let Some(row) = rows.into_iter().next() {
                     if let Some(encrypted) = row.custom_db_url_encrypted {
                         // Decrypt the URL
-                        let crypto_service = std::env::var("ENCRYPTION_KEYS_JSON").ok().and_then(|keys| {
-                            crate::crypto::CryptoService::from_json(&keys).ok()
-                        });
+                        let crypto_service = std::env::var("ENCRYPTION_KEYS_JSON")
+                            .ok()
+                            .and_then(|keys| crate::crypto::CryptoService::from_json(&keys).ok());
 
                         custom_url = if let Some(crypto) = crypto_service {
                             Some(crypto.decrypt(&encrypted).unwrap_or(encrypted))

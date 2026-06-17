@@ -466,7 +466,7 @@ impl PayrollService {
             .iter()
             .filter(|d| d.effective_date() <= end_date)
             .max_by_key(|d| d.effective_date())
-            .map(|d| d.department_id());
+            .map(crate::models::EmployeeDepartmentHistory::department_id);
 
         // Fetch rule assignments with tiers
         let rule_assignments = self
@@ -743,7 +743,7 @@ impl PayrollService {
             }
         }
 
-        let leave_breakdown = ctx.leave_breakdown.clone();
+        let leave_breakdown = ctx.leave_breakdown;
         let active_policies_with_tiers = ctx.active_policies_with_tiers.clone();
 
         // Phase 5: Incentives — delegated to FinancialCalculator
@@ -978,7 +978,11 @@ impl PayrollService {
         };
         let mut active_policies_with_tiers = Vec::new();
         for policy in active_policies {
-            if let Ok(tiers) = self.payroll_repo.get_policy_tiers(workspace_id, policy.id()).await {
+            if let Ok(tiers) = self
+                .payroll_repo
+                .get_policy_tiers(workspace_id, policy.id())
+                .await
+            {
                 active_policies_with_tiers.push(IncentivePolicyWithTiers { policy, tiers });
             }
         }
@@ -1164,7 +1168,10 @@ impl PayrollService {
                     .push(emp_ment.clone());
             }
 
-            let ot_group_id = salary_base_groups.iter().find(|g| g.slug == "ot_base").map(|g| g.id);
+            let ot_group_id = salary_base_groups
+                .iter()
+                .find(|g| g.slug == "ot_base")
+                .map(|g| g.id);
 
             let mut ot_base_component_ids = std::collections::HashSet::new();
             if let Some(group_id) = ot_group_id {
@@ -1182,7 +1189,7 @@ impl PayrollService {
             let mut leave_futures = Vec::new();
             for &emp_id in &chunk_employee_ids {
                 let leave_repo = Arc::clone(&self.leave_repo);
-                let token_clone = token.clone();
+                let token_clone = *token;
                 leave_futures.push(async move {
                     let res = leave_repo
                         .get_approved_leave_breakdown(emp_id, start_date, end_date, &token_clone)
@@ -1202,10 +1209,15 @@ impl PayrollService {
             let mut unpaid_futures = Vec::new();
             for &emp_id in &chunk_employee_ids {
                 let leave_repo = Arc::clone(&self.leave_repo);
-                let token_clone = token.clone();
+                let token_clone = *token;
                 unpaid_futures.push(async move {
                     let res = leave_repo
-                        .get_unpaid_holiday_days_without_leave(&token_clone, emp_id, start_date, end_date)
+                        .get_unpaid_holiday_days_without_leave(
+                            &token_clone,
+                            emp_id,
+                            start_date,
+                            end_date,
+                        )
                         .await;
                     (emp_id, res)
                 });
@@ -1228,7 +1240,7 @@ impl PayrollService {
                     .iter()
                     .filter(|d| d.effective_date() <= end_date)
                     .max_by_key(|d| d.effective_date())
-                    .map(|d| d.department_id());
+                    .map(crate::models::EmployeeDepartmentHistory::department_id);
 
                 let payroll_repo = Arc::clone(&self.payroll_repo);
                 rule_futures.push(async move {
@@ -1329,25 +1341,28 @@ impl PayrollService {
                         ot_base_component_ids.clone()
                     };
 
-                    let month_end_attendance_policy = match month_end_policies_map.remove(employment_id) {
-                        Some(pv) => pv.rules,
-                        None => crate::models::AttendanceRules {
-                            work_unit_minutes: 30,
-                            rounding_policy: "floor".to_string(),
-                            early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
-                        },
-                    };
+                    let month_end_attendance_policy =
+                        match month_end_policies_map.remove(employment_id) {
+                            Some(pv) => pv.rules,
+                            None => crate::models::AttendanceRules {
+                                work_unit_minutes: 30,
+                                rounding_policy: "floor".to_string(),
+                                early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
+                            },
+                        };
 
                     let leave_breakdown = leave_breakdowns_map.remove(&emp_id).unwrap_or(
                         crate::repositories::leave_request_repository::LeaveBreakdown {
                             total_days: 0.0,
                             unpaid_days: 0.0,
                             sick_days: 0.0,
-                        }
+                        },
                     );
 
                     let unpaid_holiday_days = unpaid_holidays_map.remove(&emp_id).unwrap_or(0);
-                    let rule_assignments_with_tiers = rule_assignments_map.remove(employment_id).unwrap_or_default();
+                    let rule_assignments_with_tiers = rule_assignments_map
+                        .remove(employment_id)
+                        .unwrap_or_default();
 
                     contexts.push((
                         *employment_id,
@@ -1559,6 +1574,21 @@ mod tests {
             active_assignments: Vec::new(),
             active_employments: Vec::new(),
             primary_location_id: Uuid::new_v4(),
+            month_end_payroll_settings: None,
+            month_end_attendance_policy: crate::models::AttendanceRules {
+                work_unit_minutes: 30,
+                rounding_policy: "floor".to_string(),
+                early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
+            },
+            leave_breakdown: crate::repositories::leave_request_repository::LeaveBreakdown {
+                total_days: 0.0,
+                unpaid_days: 0.0,
+                sick_days: 0.0,
+            },
+            active_policies_with_tiers: vec![],
+            salary_base_groups: vec![],
+            unpaid_holiday_days: 0,
+            rule_assignments_with_tiers: vec![],
         }
     }
 

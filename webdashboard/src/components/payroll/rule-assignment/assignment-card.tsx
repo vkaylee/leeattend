@@ -1,5 +1,6 @@
 import { Users, Building, Globe, Trash2, Calendar, Sliders } from "lucide-react";
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 import { TFunction } from "i18next";
 
@@ -7,8 +8,6 @@ import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { PayrollRuleAssignment, Department } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
-
-import { useTranslation } from "react-i18next";
 
 export const SCOPE_ICONS = {
   workspace: Globe,

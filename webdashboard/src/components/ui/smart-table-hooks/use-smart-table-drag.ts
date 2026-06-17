@@ -2,9 +2,9 @@ import React, { useState, useEffect } from "react";
 
 interface UseSmartTableDragProps {
   enableDragSelect: boolean;
-  selectedRowIds?: Set<string>;
-  rows: any[];
   onSelectionChange?: (selectedIds: Set<string>) => void;
+  rows: any[];
+  selectedRowIds?: Set<string>;
 }
 
 export function useSmartTableDrag({
@@ -40,7 +40,7 @@ export function useSmartTableDrag({
     };
 
     window.addEventListener("mouseup", handleMouseUp);
-    return () => window.removeEventListener("mouseup", handleMouseUp);
+    return () => { window.removeEventListener("mouseup", handleMouseUp); };
   }, [isDragging, dragStartRow, dragCurrentRow, rows, selectedRowIds, onSelectionChange, enableDragSelect]);
 
   const handleRowMouseDown = (rowIndex: number, e: React.MouseEvent) => {

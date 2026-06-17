@@ -66,7 +66,7 @@ function AgentEditModalHeader({ t, onClose }: { onClose: () => void; t: TFunctio
           <Typography className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-1 opacity-70" variant="p">{t("common.agents.edit_modal.subtitle")}</Typography>
         </div>
       </div>
-      <Button className="hover:text-rose-600 dark:hover:text-rose-300" aria-label={t("common.close", { defaultValue: "Close" })} icon={<X size={20} />} onClick={onClose} size="icon" variant="outline" />
+      <Button aria-label={t("common.close", { defaultValue: "Close" })} className="hover:text-rose-600 dark:hover:text-rose-300" icon={<X size={20} />} onClick={onClose} size="icon" variant="outline" />
     </div>
   );
 }

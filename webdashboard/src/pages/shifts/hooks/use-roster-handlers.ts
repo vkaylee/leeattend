@@ -1,4 +1,4 @@
-/* eslint-disable */
+ 
 import type { UseMutationResult } from "@tanstack/react-query";
 
 import { useQueryClient } from "@tanstack/react-query";

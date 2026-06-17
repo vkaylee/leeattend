@@ -67,13 +67,13 @@ export interface CreateTenantRequestPayload {
 export async function fetchSystemTenants(): Promise<SystemTenant[]> {
   const { data: resData } = await client.GET("/system/tenants" as any, {} as any);
   if (!resData) throw new Error("No response data");
-  return resData as unknown as SystemTenant[];
+  return resData;
 }
 
 export async function fetchStaleTenants(): Promise<SystemTenant[]> {
   const { data: resData } = await client.GET("/system/tenants/stale" as any, {} as any);
   if (!resData) throw new Error("No response data");
-  return resData as unknown as SystemTenant[];
+  return resData;
 }
 
 export async function createSystemTenant(request: CreateTenantRequestPayload): Promise<void> {
@@ -115,7 +115,7 @@ export async function fetchSystemTenantStats(tenantId: string): Promise<TenantCo
     params: { path: { tenant_id: tenantId } }
   } as any);
   if (!resData) throw new Error("No response data");
-  return resData as unknown as TenantConnectionStats;
+  return resData;
 }
 
 export async function updateTenantDatabase(tenantId: string, customDbUrl: string): Promise<void> {

@@ -15,12 +15,13 @@ import { cn } from "@/lib/utils";
 interface ReportFiltersProps {
   dateRange: { start: string; end: string };
   departments?: Department[];
+  employeeStatus: string;
   employers?: Employer[];
-  selectedEmployerId?: string | null;
-  onEmployerChange?: (employerId: string | null) => void;
   filterMode: "this_month" | "last_month" | "custom" | "specific_month";
   onDateRangeChange: (range: { start: string; end: string }) => void;
   onDepartmentChange: (departmentId: string | null) => void;
+  onEmployeeStatusChange: (status: string) => void;
+  onEmployerChange?: (employerId: string | null) => void;
   onFilterModeChange: (mode: "this_month" | "last_month" | "custom" | "specific_month") => void;
   onSearchKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   onSearchQueryChange: (query: string) => void;
@@ -28,10 +29,9 @@ interface ReportFiltersProps {
   searchInputRef?: React.RefObject<HTMLInputElement | null>;
   searchQuery: string;
   selectedDepartmentId: string | null;
+  selectedEmployerId?: string | null;
   specificMonth: { month: number; year: number };
   t: (key: string) => string;
-  employeeStatus: string;
-  onEmployeeStatusChange: (status: string) => void;
 }
 
 function FilterModeSelector({
@@ -274,7 +274,7 @@ export default function ReportFilters({
           {!!employers && employers.length > 0 && (
             <>
               <div className="hidden md:block w-px h-8 bg-slate-200 dark:bg-slate-800 self-center" />
-              <EmployerFilterSelector employers={employers} selectedEmployerId={selectedEmployerId} onEmployerChange={onEmployerChange} t={t} />
+              <EmployerFilterSelector employers={employers} onEmployerChange={onEmployerChange} selectedEmployerId={selectedEmployerId} t={t} />
             </>
           )}
         </div>

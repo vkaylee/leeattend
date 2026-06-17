@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 
 import type { Employee, WorkspaceMember, Employment } from "@/lib/api";
-import type { WorkLocation } from "@/lib/api-generated/models";
+
 import { fetchWorkspaceMembers, fetchEmployeeEmployments } from "@/lib/api";
 import { useLocations } from "@/pages/settings/hooks/use-locations";
 

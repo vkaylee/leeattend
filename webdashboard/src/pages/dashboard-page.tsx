@@ -1,13 +1,13 @@
 import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
+import { ResilientWidget } from "@/components/common/resilient-widget";
 import CustomizePanel from "@/components/features/dashboard/customize-panel";
 import { DashboardErrorBanner } from "@/components/features/dashboard/dashboard-error-banner";
 import { DashboardHeader } from "@/components/features/dashboard/dashboard-header";
 import { DashboardHrTab } from "@/components/features/dashboard/dashboard-hr-tab";
 import { DashboardSystemTab } from "@/components/features/dashboard/dashboard-system-tab";
 import PendingTasksWidget from "@/components/features/dashboard/pending-tasks-widget";
-import { ResilientWidget } from "@/components/common/resilient-widget";
 import { useAgentsStatus } from "@/hooks/use-agents";
 import { useCurrency } from "@/hooks/use-currency";
 import { useDashboardStats } from "@/hooks/use-dashboard";

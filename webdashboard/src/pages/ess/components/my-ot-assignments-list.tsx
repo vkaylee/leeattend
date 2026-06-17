@@ -1,10 +1,9 @@
-import { Loader2, Check, X, Clock, Calendar } from "lucide-react";
+import { Check, X, Clock, Calendar } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import { Skeleton } from "@/components/ui/skeleton";
-
 import Button from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useEmployeeConsent, useCancelOvertimeRequest } from "@/hooks/use-overtime-requests";

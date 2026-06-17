@@ -132,9 +132,10 @@ export default function Sheet({
  
  
       )}>
-        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/no-noninteractive-element-interactions -- Custom interactive element (click-away/backdrop/dropzone); keyboard interaction not applicable */}
+        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- Custom interactive element (click-away/backdrop/dropzone); keyboard interaction not applicable */}
         <div
-            className={cn(
+            aria-modal="true"
+          className={cn(
               "pointer-events-auto w-screen max-w-md transform transition duration-500 ease-in-out bg-white dark:bg-slate-900 shadow-premium-2xl flex flex-col h-full",
               getPanelTransform(side, isOpen),
               className
@@ -143,7 +144,6 @@ export default function Sheet({
           onClick={(e) => { e.stopPropagation(); }}
           ref={containerRef}
           role="dialog"
-          aria-modal="true"
         >
           {/* Header */}
           {!hideHeader && <SheetHeader headerExtra={headerExtra} onClose={onClose} subtitle={subtitle} title={title} />}

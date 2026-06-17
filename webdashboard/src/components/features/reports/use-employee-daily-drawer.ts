@@ -23,7 +23,7 @@ export function useEmployeeDailyDrawer(props: UseEmployeeDailyDrawerProps) {
     const [selectedEmploymentId, setSelectedEmploymentId] = useState<string>(employmentId);
 
     // Reset to daily tab and initial employment whenever the drawer is (re-)opened
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional
+     
     useEffect(() => {
         if (isOpen) {
             setViewMode("daily");

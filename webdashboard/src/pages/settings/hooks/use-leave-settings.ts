@@ -1,16 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
+import type { Department } from "@/lib/api/types";
+
 import { useAllEmployees } from "@/hooks/use-employees";
 import { fetchLeavePolicyAssignments, fetchDepartments } from "@/lib/api";
 import { getCurrentWorkspaceId } from "@/lib/api/helpers";
-import type { Employee, Department } from "@/lib/api/types";
 
 export type TabType = "types" | "policies" | "assignments";
 
 export interface LeaveAssignment {
-  assignee_type: string;
   assignee_id?: string | null;
+  assignee_type: string;
   created_at: string;
   effective_from: string;
   effective_to: string | null;

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, MessageSquare, Calendar, CheckCircle2 } from "lucide-react";
+import { MessageSquare, Calendar, CheckCircle2 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, Mock } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock client and helpers before importing the test file
 vi.mock("../client", () => ({
@@ -19,6 +19,8 @@ vi.mock("../attendance", () => ({
   fetchAttendanceSummaries: vi.fn().mockResolvedValue([{ date: "2026-03-01", status: "Present" }]),
 }));
 
+import { claimOt, fetchAttendanceSummaries } from "../attendance";
+import { client } from "../client";
 import {
   fetchMyProfile,
   updateMyProfile,
@@ -35,9 +37,7 @@ import {
   fetchMyAttendanceSummaries,
   submitMyOtClaim,
 } from "../ess";
-import { client } from "../client";
 import { getCurrentWorkspaceId } from "../helpers";
-import { claimOt, fetchAttendanceSummaries } from "../attendance";
 
 describe("Employee Self-Service (ESS) API Client", () => {
   beforeEach(() => {

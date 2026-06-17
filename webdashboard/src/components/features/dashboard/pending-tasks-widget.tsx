@@ -1,13 +1,14 @@
-import { ClipboardList, CheckCircle2, Circle, AlertCircle } from "lucide-react";
+import { ClipboardList, Circle, AlertCircle } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import type { PendingTaskResponse } from "@/lib/api/types";
+
 import Button from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useMyPendingTasks, useCompletePendingTask } from "@/hooks/use-lifecycle";
-import type { PendingTaskResponse } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
-import { useToast } from "@/components/ui/toast";
 
 export default function PendingTasksWidget() {
   const { t } = useTranslation();
@@ -69,15 +70,15 @@ export default function PendingTasksWidget() {
           const isOverdue = task.due_date && new Date(task.due_date) < new Date();
           return (
             <div
-              key={task.id}
               className="p-4 rounded-2xl bg-slate-50/50 dark:bg-slate-950/40 border border-slate-100 dark:border-slate-800/50 flex items-start justify-between gap-4 hover:border-slate-200 dark:hover:border-slate-800 hover:shadow-sm transition-all"
+              key={task.id}
             >
               <div className="flex items-start gap-3 flex-1">
                 <Button
                   className="text-slate-400 hover:text-emerald-500 transition-colors p-0 h-auto min-w-0"
-                  onClick={() => handleCompleteTask(task)}
+                  loading={!!completeTaskMutation.isPending && completeTaskMutation.variables?.itemId === task.id}
+                  onClick={() => { handleCompleteTask(task); }}
                   variant="ghost"
-                  loading={completeTaskMutation.isPending && completeTaskMutation.variables?.itemId === task.id}
                 >
                   <Circle className="w-5 h-5" />
                 </Button>

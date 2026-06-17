@@ -12,15 +12,15 @@ import { getReportColumns } from "./reports-table/columns";
 interface ReportsTableProps {
   dateRange: { end: string; start: string };
   departments: Department[] | undefined;
+  employeeStatus: string;
   employers: Employer[] | undefined;
-  selectedEmployerId: string | null;
-  handleEmployerChange: (id: string | null) => void;
   fetchNextPage: () => void;
   filteredData: AttendanceSummary[];
   filterMode: FilterMode;
   handleDateRangeChange: (range: { end: string; start: string }) => void;
   handleDepartmentChange: (id: string | null) => void;
   handleEmployeeClick: (employeeId: string, employeeName: string, employmentId?: string) => void;
+  handleEmployerChange: (id: string | null) => void;
   handleFilterModeChange: (mode: FilterMode) => void;
   handleSort: (field: "leave_days" | "name" | "ot_hours" | "total_hours" | "work_hours") => void;
   handleSpecificMonthChange: (m: number, y: number) => void;
@@ -28,15 +28,15 @@ interface ReportsTableProps {
   isFetchingNextPage: boolean;
   isLoading: boolean;
   keyDownRef: React.RefObject<((e: React.KeyboardEvent<HTMLInputElement>) => void) | null>;
+  onEmployeeStatusChange: (status: string) => void;
   quickStats: { otHours: string; stdHours: string; totalEmployees: number };
   searchInputRef: React.RefObject<HTMLInputElement | null>;
   searchQuery: string;
   selectedDepartmentId: string | null;
+  selectedEmployerId: string | null;
   setSearchQuery: (q: string) => void;
   sortBy: AttendanceReportSort | undefined;
   specificMonth: { month: number; year: number };
-  employeeStatus: string;
-  onEmployeeStatusChange: (status: string) => void;
 }
 
 export function ReportsTable(props: ReportsTableProps) {
@@ -82,12 +82,13 @@ export function ReportsTable(props: ReportsTableProps) {
       <ReportFilters
         dateRange={dateRange}
         departments={departments}
+        employeeStatus={employeeStatus}
         employers={employers}
-        selectedEmployerId={selectedEmployerId}
-        onEmployerChange={handleEmployerChange}
         filterMode={filterMode}
         onDateRangeChange={handleDateRangeChange}
         onDepartmentChange={handleDepartmentChange}
+        onEmployeeStatusChange={onEmployeeStatusChange}
+        onEmployerChange={handleEmployerChange}
         onFilterModeChange={handleFilterModeChange}
         onSearchKeyDown={(e) => keyDownRef.current?.(e)}
         onSearchQueryChange={setSearchQuery}
@@ -95,10 +96,9 @@ export function ReportsTable(props: ReportsTableProps) {
         searchInputRef={searchInputRef}
         searchQuery={searchQuery}
         selectedDepartmentId={selectedDepartmentId}
+        selectedEmployerId={selectedEmployerId}
         specificMonth={specificMonth}
         t={t}
-        employeeStatus={employeeStatus}
-        onEmployeeStatusChange={onEmployeeStatusChange}
       />
       <NavigableList<AttendanceSummary>
         className="animate-in slide-in-from-bottom-8 duration-700"
