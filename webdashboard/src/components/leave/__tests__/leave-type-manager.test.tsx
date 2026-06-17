@@ -39,6 +39,7 @@ describe("LeaveTypeManager & Template Gallery", () => {
   
   beforeEach(() => {
     vi.clearAllMocks();
+    queryClient.clear();
   });
 
   it("renders empty state when no leave types exist", async () => {
@@ -69,6 +70,38 @@ describe("LeaveTypeManager & Template Gallery", () => {
     expect(await screen.findByRole("heading", { name: /Annual Leave/i })).toBeDefined();
     expect(screen.getByText(/Code: AL/i)).toBeDefined();
   });
+
+  it("renders active policy status badges on leave type cards", async () => {
+    const mockLeaveTypes = [
+      { 
+        id: "1", 
+        code: "AL", 
+        name: "Annual Leave", 
+        is_paid: true, 
+        policy_config: {
+          approval_required: true,
+          requires_document: true,
+          allow_negative_balance: true,
+        }
+      }
+    ];
+    vi.mocked(api.fetchLeaveTypes).mockResolvedValue(mockLeaveTypes as never);
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <LeaveTypeManager wsId={wsId} />
+      </QueryClientProvider>
+    );
+
+    // Verify leave type card renders basic info
+    expect(await screen.findByRole("heading", { name: /Annual Leave/i })).toBeDefined();
+
+    // Verify configurations are rendered as badges on the card
+    expect(screen.getByText(/Approval/i)).toBeDefined();
+    expect(screen.getByText(/Document/i)).toBeDefined();
+    expect(screen.getByText(/Negative Balance/i)).toBeDefined();
+  });
+
 
   it("shows template gallery immediately when opening add modal", async () => {
     vi.mocked(api.fetchLeaveTypes).mockResolvedValue([]);
