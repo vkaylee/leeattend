@@ -112,7 +112,7 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
                 <Typography className="mt-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest" variant="p">
                   {t("settings.leave.type_manager.code", "Code")}: {type.code}
                 </Typography>
-                <div className="mt-4 flex gap-2">
+                <div className="mt-4 flex flex-wrap gap-2">
                   <span
                     className={cn(
                       "px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border",
@@ -123,6 +123,21 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
                   >
                     {type.is_paid ? t("settings.leave.type_manager.paid", "Paid") : t("settings.leave.type_manager.unpaid", "Unpaid")}
                   </span>
+                  {type.policy_config?.approval_required && (
+                    <span className="px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-100 dark:border-blue-800">
+                      {t("settings.leave.fields.approval", "Approval")}
+                    </span>
+                  )}
+                  {type.policy_config?.requires_document && (
+                    <span className="px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border-purple-100 dark:border-purple-800">
+                      {t("settings.leave.fields.document", "Document")}
+                    </span>
+                  )}
+                  {type.policy_config?.allow_negative_balance && (
+                    <span className="px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border-rose-100 dark:border-rose-800">
+                      {t("settings.leave.type_manager.negative_balance", "Negative Balance")}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
