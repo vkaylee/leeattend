@@ -21,6 +21,8 @@ export default function LeaveSettings() {
     setIsAssignModalOpen,
     assignments,
     assignmentsLoading,
+    employees,
+    departments,
   } = useLeaveSettings();
 
   if (!wsId) return null;
@@ -66,6 +68,8 @@ export default function LeaveSettings() {
               assignments={assignments}
               isLoading={assignmentsLoading}
               onAssignClick={() => { setIsAssignModalOpen(true); }}
+              employees={employees}
+              departments={departments}
             />
           )}
         </div>

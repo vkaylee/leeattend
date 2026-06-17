@@ -3,6 +3,8 @@ import { render, screen, fireEvent } from "@testing-library/react";
 
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
+import { useAllEmployees } from "@/hooks/use-employees";
+import * as departmentsApi from "@/lib/api/departments";
 import * as helpers from "@/lib/api/helpers";
 import * as api from "@/lib/api/leaves";
 
@@ -28,6 +30,12 @@ vi.mock("react-i18next", () => ({
 
 vi.mock("@/lib/api/leaves");
 vi.mock("@/lib/api/helpers");
+vi.mock("@/hooks/use-employees", () => ({
+  useAllEmployees: vi.fn(),
+}));
+vi.mock("@/lib/api/departments", () => ({
+  fetchDepartments: vi.fn(),
+}));
 vi.mock("@/components/ui/toast", () => ({ useToast: () => ({ success: vi.fn(), error: vi.fn() }) }));
 
 
@@ -42,6 +50,30 @@ const mockAssignments = [
     effective_to: null,
     created_at: "2026-01-01T00:00:00Z",
     policy_name: "General Vacation",
+    leave_type_name: "Vacation"
+  },
+  {
+    id: "assign-2",
+    workspace_id: "ws-1",
+    assignee_type: "department",
+    assignee_id: "dept-1",
+    policy_id: "pol-1",
+    effective_from: "2026-01-01",
+    effective_to: null,
+    created_at: "2026-01-01T00:00:00Z",
+    policy_name: "Dept Policy",
+    leave_type_name: "Vacation"
+  },
+  {
+    id: "assign-3",
+    workspace_id: "ws-1",
+    assignee_type: "employee",
+    assignee_id: "emp-1",
+    policy_id: "pol-1",
+    effective_from: "2026-01-01",
+    effective_to: null,
+    created_at: "2026-01-01T00:00:00Z",
+    policy_name: "Employee Policy",
     leave_type_name: "Vacation"
   }
 ];
@@ -61,6 +93,15 @@ describe("LeaveSettings Page", () => {
     vi.mocked(api.fetchLeavePolicies).mockResolvedValue([] as never);
  
     vi.mocked(api.fetchLeavePolicyAssignments).mockResolvedValue(mockAssignments);
+
+    vi.mocked(useAllEmployees).mockReturnValue({
+      employees: [{ id: "emp-1", full_name: "Alice Smith" }],
+      isLoading: false,
+    } as any);
+
+    vi.mocked(departmentsApi.fetchDepartments).mockResolvedValue([
+      { id: "dept-1", name: "Engineering" }
+    ] as any);
   });
 
   it("renders all three main tabs", () => {
@@ -91,7 +132,7 @@ describe("LeaveSettings Page", () => {
     expect(screen.getByRole("button", { name: /Assign Policy/i })).toBeDefined();
   });
 
-  it("renders assignments table with data", async () => {
+  it("renders assignments table with data and resolved target names", async () => {
     render(
       <QueryClientProvider client={queryClient}>
         <LeaveSettings />
@@ -103,7 +144,14 @@ describe("LeaveSettings Page", () => {
 
     // Wait for data to load
     expect(await screen.findByText("General Vacation")).toBeDefined();
-    expect(screen.getByText("Vacation")).toBeDefined();
+    expect(screen.getByText("Dept Policy")).toBeDefined();
+    expect(screen.getByText("Employee Policy")).toBeDefined();
     expect(screen.getByText("workspace")).toBeDefined();
+    expect(screen.getByText("department")).toBeDefined();
+    expect(screen.getByText("employee")).toBeDefined();
+
+    // Verify resolved department and employee names
+    expect(screen.getByText("Engineering")).toBeDefined();
+    expect(screen.getByText("Alice Smith")).toBeDefined();
   });
 });
