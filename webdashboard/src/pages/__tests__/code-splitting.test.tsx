@@ -381,4 +381,9 @@ describe("Vendor chunk splitting", () => {
         const dnd = await import("@dnd-kit/core");
         expect(dnd).toBeDefined();
     });
+
+    it("exceljs chunk can be imported dynamically", async () => {
+        const exceljs = await import("exceljs");
+        expect(exceljs).toBeDefined();
+    });
 });

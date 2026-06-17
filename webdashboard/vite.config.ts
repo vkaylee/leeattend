@@ -199,6 +199,7 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
       },
     },
     build: {
+      chunkSizeWarningLimit: 1000,
       rollupOptions: {
         output: {
           manualChunks(id: string) {
