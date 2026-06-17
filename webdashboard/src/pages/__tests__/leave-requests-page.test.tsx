@@ -97,6 +97,22 @@ vi.mock("@/components/ui/combobox", () => ({
   ),
 }));
 
+// Mock DropdownMenu for Radix UI simulation in tests
+vi.mock("@/components/ui/dropdown-menu", () => ({
+  DropdownMenu: ({ children }: any) => <div>{children}</div>,
+  DropdownMenuTrigger: ({ children }: any) => <div>{children}</div>,
+  DropdownMenuContent: ({ children }: any) => <div data-testid="dropdown-content">{children}</div>,
+  DropdownMenuLabel: ({ children }: any) => <div>{children}</div>,
+  DropdownMenuSeparator: () => <hr />,
+  DropdownMenuRadioGroup: ({ value, onValueChange, children }: any) => (
+    <div data-testid="dropdown-radio-group" data-value={value} onClick={(e: any) => {
+      const btn = e.target.closest('button');
+      if (btn) onValueChange(btn.value);
+    }}>{children}</div>
+  ),
+  DropdownMenuRadioItem: ({ value, children }: any) => <button value={value}>{children}</button>,
+}));
+
 
 const renderPage = (queryClient: QueryClient) =>
   render(
@@ -260,6 +276,43 @@ describe("LeaveRequestsPage", () => {
 
     await waitFor(() => {
       expect(api.approveLeaveRequest).toHaveBeenCalledWith("test-ws-id", "req-1", { status: "rejected" });
+    });
+  });
+
+  it("handles status filter changes from table header dropdown", async () => {
+    const user = userEvent.setup();
+    
+    vi.mocked(api.fetchWorkspaceLeaveRequests).mockResolvedValue({
+      data: [
+        { id: "req-pending-1", employee_id: "emp-1", employment_id: "employment-1", leave_type_id: "lt-vacation", start_date: "2026-01-01", end_date: "2026-01-02", status: "pending", reason: "Pending Request", duration_type: "full_day" }
+      ] as unknown as LeaveRequest[],
+      total: 1,
+      page: 1,
+      limit: 20,
+    });
+
+    renderPage(queryClient);
+
+    // Initial fetch should be triggered (statusFilter defaults to "all" which passes undefined to the status filter in hook)
+    await waitFor(() => {
+      expect(api.fetchWorkspaceLeaveRequests).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({
+        status: undefined,
+      }));
+    });
+
+    // Clear calls to mock to isolate the dropdown filter click trigger
+    vi.mocked(api.fetchWorkspaceLeaveRequests).mockClear();
+
+    // Click the "Pending" option inside the dropdown menu (mocked as button)
+    const pendingOption = document.querySelector('button[value="pending"]');
+    expect(pendingOption).not.toBeNull();
+    await user.click(pendingOption!);
+
+    // Wait for the query to be triggered with status: "pending"
+    await waitFor(() => {
+      expect(api.fetchWorkspaceLeaveRequests).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({
+        status: "pending",
+      }));
     });
   });
 

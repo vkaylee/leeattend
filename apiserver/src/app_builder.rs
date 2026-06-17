@@ -312,6 +312,11 @@ impl AppState {
             ),
         );
 
+        let cache_repo = redis_pool.clone().map(|r| {
+            Arc::new(crate::cache::RedisCache::new(r))
+                as Arc<dyn crate::repositories::CacheRepository>
+        });
+
         let leave_service = Arc::new(crate::services::leave_service::LeaveService::new(
             Arc::clone(&leave_balance_repo),
             Arc::clone(&leave_request_repo),
@@ -322,6 +327,7 @@ impl AppState {
             Arc::clone(&workspace_config_repo),
             Arc::clone(&user_repo),
             Arc::clone(&workspace_repo),
+            cache_repo,
         ));
         let shift_swap_repo: Arc<
             dyn crate::repositories::shift_swap_repository::ShiftSwapRepository,

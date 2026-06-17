@@ -719,6 +719,7 @@
     "status_approved": "Đã duyệt",
     "status_pre_approved": "Tự động duyệt",
     "status_rejected": "Từ chối",
+    "filter_by_status": "Lọc theo trạng thái",
     "select_employee": "Chọn nhân viên",
     "select_department": "Chọn phòng ban",
     "effective_from": "Ngày hiệu lực",

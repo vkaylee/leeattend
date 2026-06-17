@@ -30,6 +30,8 @@ pub struct LeaveService {
     workspace_config_repo: Arc<dyn WorkspaceConfigRepository>,
     user_repo: Arc<dyn UserRepository>,
     workspace_repo: Arc<dyn WorkspaceRepository>,
+    config_cache: Option<crate::cache::ConfigCache>,
+    cache: Option<Arc<dyn crate::repositories::CacheRepository>>,
 }
 
 impl LeaveService {
@@ -45,7 +47,11 @@ impl LeaveService {
         workspace_config_repo: Arc<dyn WorkspaceConfigRepository>,
         user_repo: Arc<dyn UserRepository>,
         workspace_repo: Arc<dyn WorkspaceRepository>,
+        cache: Option<Arc<dyn crate::repositories::CacheRepository>>,
     ) -> Self {
+        let config_cache = cache.as_ref().map(|c| {
+            crate::cache::ConfigCache::new(Arc::clone(c), Arc::clone(&workspace_config_repo))
+        });
         Self {
             leave_balance_repo,
             leave_request_repo,
@@ -56,6 +62,8 @@ impl LeaveService {
             workspace_config_repo,
             user_repo,
             workspace_repo,
+            config_cache,
+            cache,
         }
     }
 
@@ -246,19 +254,18 @@ impl LeaveService {
         auto_approve: bool,
     ) -> Result<LeaveRequest, AppError> {
         // Verify employment belongs to workspace
-        let _ = self
-            .employment_repo
-            .get_employment_by_id(
+        let employment = self
+            .get_employment_cached(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
                 req.employment_id,
             )
             .await?
             .ok_or(AppError::NotFound("Employment not found".into()))?;
+        let employee_id = employment.employee_id();
 
         // Validate leave_type_id exists for this workspace
         if !self
-            .leave_request_repo
-            .check_leave_type_exists(
+            .check_leave_type_exists_cached(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
                 req.leave_type_id,
             )
@@ -336,6 +343,12 @@ impl LeaveService {
                 tracing::error!(error = %e, "SQLx Error in submit_leave_request");
                 AppError::Internal("Internal error".into())
             })?;
+
+        // Invalidate cached employee leaves since we added a new request
+        if let Some(ref cache) = self.cache {
+            let key = format!("cache:employee_leaves:{employee_id}");
+            let _ = cache.delete(&key).await;
+        }
 
         // If auto-approved, apply roster side effects immediately
         if auto_approve {
@@ -461,6 +474,7 @@ impl LeaveService {
             .await
     }
 
+    #[allow(clippy::too_many_lines)]
     async fn check_and_handle_conflicts(
         &self,
         workspace_id: Uuid,
@@ -470,16 +484,14 @@ impl LeaveService {
 
         // 1. Get employee ID from employment
         let employment = self
-            .employment_repo
-            .get_employment_by_id(&auth_token, req.employment_id())
+            .get_employment_cached(&auth_token, req.employment_id())
             .await?
             .ok_or_else(|| AppError::NotFound("Employment not found".into()))?;
         let employee_id = employment.employee_id();
 
         // 2. Fetch other leave requests of the employee
         let other_requests = self
-            .leave_request_repo
-            .get_employee_leave_requests(&auth_token, employee_id)
+            .get_employee_leave_requests_cached(&auth_token, employee_id)
             .await?;
 
         // Filter for conflicting leave requests (Approved or PreApproved, overlapping dates, excluding self)
@@ -521,17 +533,45 @@ impl LeaveService {
         }
 
         // 4. Get workspace conflict policy
-        let config_entry = self
-            .workspace_config_repo
-            .get_effective_config(
-                &auth_token,
-                workspace_id,
-                "leave.conflict_policy",
-                "workspace",
-                None,
-                req.start_date(),
-            )
-            .await?;
+        let config_entry = if let Some(ref cache) = self.config_cache {
+            match cache
+                .get_effective_config(
+                    &auth_token,
+                    workspace_id,
+                    "leave.conflict_policy",
+                    "workspace",
+                    None,
+                    req.start_date(),
+                )
+                .await
+            {
+                Ok(entry) => entry,
+                Err(e) => {
+                    tracing::warn!(error = %e, "Failed to get leave.conflict_policy from cache, falling back to DB");
+                    self.workspace_config_repo
+                        .get_effective_config(
+                            &auth_token,
+                            workspace_id,
+                            "leave.conflict_policy",
+                            "workspace",
+                            None,
+                            req.start_date(),
+                        )
+                        .await?
+                }
+            }
+        } else {
+            self.workspace_config_repo
+                .get_effective_config(
+                    &auth_token,
+                    workspace_id,
+                    "leave.conflict_policy",
+                    "workspace",
+                    None,
+                    req.start_date(),
+                )
+                .await?
+        };
 
         let policy = config_entry
             .and_then(|entry| entry.value_text().map(ToString::to_string))
@@ -630,6 +670,87 @@ impl LeaveService {
         }
 
         Ok(())
+    }
+
+    async fn get_employment_cached(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employment_id: Uuid,
+    ) -> Result<Option<crate::models::employment::Employment>, AppError> {
+        use crate::repositories::CacheRepositoryExt;
+
+        if let Some(ref cache) = self.cache {
+            let key = format!("cache:employment:{employment_id}");
+            let repo = Arc::clone(&self.employment_repo);
+            let token = *auth_token;
+
+            cache
+                .get_or_fetch(&key, crate::cache::DEFAULT_CACHE_TTL, || async move {
+                    repo.get_employment_by_id(&token, employment_id)
+                        .await
+                        .map_err(|e| format!("Failed to fetch employment: {e}"))
+                })
+                .await
+                .map_err(AppError::Internal)
+        } else {
+            self.employment_repo
+                .get_employment_by_id(auth_token, employment_id)
+                .await
+        }
+    }
+
+    async fn check_leave_type_exists_cached(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        leave_type_id: Uuid,
+    ) -> Result<bool, AppError> {
+        use crate::repositories::CacheRepositoryExt;
+
+        if let Some(ref cache) = self.cache {
+            let key = format!("cache:leave_type_exists:{leave_type_id}");
+            let repo = Arc::clone(&self.leave_request_repo);
+            let token = *auth_token;
+
+            cache
+                .get_or_fetch(&key, crate::cache::DEFAULT_CACHE_TTL, || async move {
+                    repo.check_leave_type_exists(&token, leave_type_id)
+                        .await
+                        .map_err(|e| format!("Failed to check leave type exists: {e}"))
+                })
+                .await
+                .map_err(AppError::Internal)
+        } else {
+            self.leave_request_repo
+                .check_leave_type_exists(auth_token, leave_type_id)
+                .await
+        }
+    }
+
+    async fn get_employee_leave_requests_cached(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_id: Uuid,
+    ) -> Result<Vec<LeaveRequest>, AppError> {
+        use crate::repositories::CacheRepositoryExt;
+
+        if let Some(ref cache) = self.cache {
+            let key = format!("cache:employee_leaves:{employee_id}");
+            let repo = Arc::clone(&self.leave_request_repo);
+            let token = *auth_token;
+
+            cache
+                .get_or_fetch(&key, crate::cache::DEFAULT_CACHE_TTL, || async move {
+                    repo.get_employee_leave_requests(&token, employee_id)
+                        .await
+                        .map_err(|e| format!("Failed to fetch employee leaves: {e}"))
+                })
+                .await
+                .map_err(AppError::Internal)
+        } else {
+            self.leave_request_repo
+                .get_employee_leave_requests(auth_token, employee_id)
+                .await
+        }
     }
 }
 
@@ -1185,6 +1306,7 @@ mod tests {
                 Arc::new(mock_workspace_config_repo),
                 Arc::new(mock_user_repo),
                 Arc::new(mock_workspace_repo),
+                None,
             ),
             bal_repo,
             req_repo,
@@ -1933,6 +2055,7 @@ mod tests {
             Arc::new(config_repo),
             Arc::new(user_repo),
             Arc::new(workspace_repo),
+            None,
         );
 
         svc.check_and_handle_conflicts(workspace_id, &incoming_req)
@@ -2092,6 +2215,7 @@ mod tests {
             Arc::new(config_repo),
             Arc::new(user_repo),
             Arc::new(workspace_repo),
+            None,
         );
 
         svc.check_and_handle_conflicts(workspace_id, &incoming_req)

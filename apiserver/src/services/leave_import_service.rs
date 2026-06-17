@@ -300,6 +300,7 @@ impl LeaveImportService {
             Arc::clone(&self.deps.workspace_config_repo),
             Arc::clone(&self.deps.user_repo),
             Arc::clone(&self.deps.workspace_repo),
+            None,
         );
 
         let strategy = LeaveImportStrategy {

@@ -751,6 +751,7 @@
     "status_approved": "Approved",
     "status_pre_approved": "Auto-Approved",
     "status_rejected": "Rejected",
+    "filter_by_status": "Filter by status",
     "select_employee": "Select Employee",
     "select_department": "Select Department",
     "effective_from": "Effective From",

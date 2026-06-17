@@ -751,6 +751,7 @@
     "status_approved": "已批准",
     "status_pre_approved": "自动批准",
     "status_rejected": "已拒绝",
+    "filter_by_status": "按状态过滤",
     "select_employee": "选择员工",
     "select_department": "选择部门",
     "effective_from": "生效日期",

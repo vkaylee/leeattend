@@ -24,7 +24,9 @@ impl CacheManager {
         cache: Arc<dyn CacheRepository>,
         workspace_repo: Arc<dyn crate::repositories::WorkspaceRepository>,
         shift_repo: Arc<dyn crate::repositories::shift_repository::ShiftRepository>,
-        config_repo: Arc<dyn crate::repositories::workspace_config_repository::WorkspaceConfigRepository>,
+        config_repo: Arc<
+            dyn crate::repositories::workspace_config_repository::WorkspaceConfigRepository,
+        >,
     ) -> Self {
         Self {
             workspace: WorkspaceCache::new(Arc::clone(&cache), workspace_repo),
@@ -84,8 +86,8 @@ mod tests {
     use super::*;
     use crate::repositories::{
         cache_repository::MockCacheRepository, shift_repository::MockShiftRepository,
-        workspace_repository::MockWorkspaceRepository,
         workspace_config_repository::MockWorkspaceConfigRepository,
+        workspace_repository::MockWorkspaceRepository,
     };
 
     #[tokio::test]
@@ -116,7 +118,7 @@ mod tests {
 
         manager.warm_up(Uuid::new_v4()).await;
         // if it doesn't panic, it's good
-     }
+    }
 
     #[tokio::test]
     async fn test_cache_manager_invalidate() {
