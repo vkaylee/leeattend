@@ -452,6 +452,7 @@ export type AssignPatternRequest = components["schemas"]["AssignPatternRequest"]
 export type BulkAssignResponse = components["schemas"]["BulkAssignResponse"];
 export type BulkAssignPatternRequest = components["schemas"]["BulkAssignPatternRequest"];
 export type WorkingCondition = Omit<components["schemas"]["WorkingCondition"], "type_"> & { type: string };
+export type CreateWorkingConditionRequest = components["schemas"]["CreateWorkingConditionRequest"];
 // --- Payroll Models ---
 export type OvertimePolicy = components["schemas"]["OvertimePolicy"];
 export type OvertimeRule = components["schemas"]["OvertimeRule"];
@@ -479,6 +480,9 @@ export type EmploymentPhaseDefinition = Omit<components["schemas"]["EmploymentPh
 export type EmployeePhase = Omit<components["schemas"]["EmployeePhase"], "rule_config"> & {
   rule_config?: EmploymentPhaseRuleConfig;
 };
+export type CreateEmploymentPhaseDefinitionRequest = components["schemas"]["CreateEmploymentPhaseDefinitionRequest"];
+export type AssignEmployeePhaseRequest = components["schemas"]["AssignEmployeePhaseRequest"];
+export type UpdateEmployeePhaseStatusRequest = components["schemas"]["UpdateEmployeePhaseStatusRequest"];
 // --- Workspace Config (EAV) ---
 export type WorkspaceConfigEntry = components["schemas"]["WorkspaceConfigEntry"];
 

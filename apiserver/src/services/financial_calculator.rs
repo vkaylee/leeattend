@@ -196,10 +196,8 @@ impl FinancialCalculator {
         }
 
         // Evaluate statutory deductions via new Rule Engine
-        let rule_results = PayrollRuleEvaluator::evaluate_rules(
-            rule_assignments,
-            args.base_values,
-        )?;
+        let rule_results =
+            PayrollRuleEvaluator::evaluate_rules(rule_assignments, args.base_values)?;
 
         for res in &rule_results {
             deductions_amount += res.amount;

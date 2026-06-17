@@ -86,7 +86,11 @@ export function DashboardHrTab({
           title={t("dashboard.sections.charts")}
         >
           <div className="space-y-8">
-            {chartElements}
+            {chartElements.map((chart, index) => (
+              <ErrorBoundary key={index} variant="compact">
+                {chart}
+              </ErrorBoundary>
+            ))}
           </div>
         </CollapsibleSection>
       ) : null}

@@ -346,6 +346,7 @@ impl MockWorkerDepsBuilder {
             workspace_config_repo: Arc::new(self.workspace_config_repo),
             custom_field_repo: Arc::new(self.custom_field_repo),
             employer_repo: Arc::new(self.employer_repo),
+            diesel_pools: crate::diesel_pool::DieselPools::for_test("postgres://user:pass@localhost:5432/leeattend_test_db"),
         }
     }
 }

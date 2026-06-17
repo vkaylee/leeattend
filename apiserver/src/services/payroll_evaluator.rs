@@ -21,7 +21,7 @@ impl PayrollEvaluator {
     ) -> Result<IncentiveEvaluationResult, AppError> {
         // Find the first matching tier based on priority
         let mut sorted_tiers = tiers.to_vec();
-        sorted_tiers.sort_by_key(|t| t.priority());
+        sorted_tiers.sort_by_key(IncentiveTier::priority);
 
         for tier in sorted_tiers {
             if Self::matches_tier(&tier, context) {

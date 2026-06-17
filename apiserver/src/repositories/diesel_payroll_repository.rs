@@ -893,8 +893,10 @@ impl PayrollRepository for DieselPayrollRepository {
             employment_id: payslip.employment_id(),
             period_start: payslip.period_start(),
             period_end: payslip.period_end(),
-            base_pay_amount: bigdecimal::BigDecimal::from_str(&payslip.base_pay_amount().to_string())
-                .unwrap_or_default(),
+            base_pay_amount: bigdecimal::BigDecimal::from_str(
+                &payslip.base_pay_amount().to_string(),
+            )
+            .unwrap_or_default(),
             overtime_pay_amount: bigdecimal::BigDecimal::from_str(
                 &payslip.overtime_pay_amount().to_string(),
             )
@@ -1225,8 +1227,10 @@ impl PayrollRepository for DieselPayrollRepository {
             employment_id: payslip.employment_id(),
             period_start: payslip.period_start(),
             period_end: payslip.period_end(),
-            base_pay_amount: bigdecimal::BigDecimal::from_str(&payslip.base_pay_amount().to_string())
-                .unwrap_or_default(),
+            base_pay_amount: bigdecimal::BigDecimal::from_str(
+                &payslip.base_pay_amount().to_string(),
+            )
+            .unwrap_or_default(),
             overtime_pay_amount: bigdecimal::BigDecimal::from_str(
                 &payslip.overtime_pay_amount().to_string(),
             )

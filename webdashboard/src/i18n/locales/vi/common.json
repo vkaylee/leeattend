@@ -1,5 +1,11 @@
 {
   "common": {
+    "error_boundary": {
+      "widget_error": "Lỗi Widget",
+      "unexpected_error": "Đã xảy ra lỗi không mong muốn",
+      "something_went_wrong": "Đã xảy ra sự cố",
+      "reload_page": "Tải lại trang"
+    },
     "required_fields": "Vui lòng điền đầy đủ các trường bắt buộc",
     "switching_workspace": "Đang chuyển cơ sở...",
     "hours": "giờ",

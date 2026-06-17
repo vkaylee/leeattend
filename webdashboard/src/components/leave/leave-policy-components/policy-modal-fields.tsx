@@ -131,7 +131,7 @@ export function SeniorityBonusSection({
         <div className="rounded-[2rem] bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 overflow-hidden">
           {seniorityBonus.map((bonus, index) => (
             <div className="border-b border-slate-100 dark:border-slate-800 last:border-0 relative animate-in slide-in-from-right-2 duration-300" key={index}>
-              <FormRow label={t("settings.leave.policy_fields.milestone_title", "Milestone " + (index + 1) + ": After Years", { index: index + 1 })}>
+              <FormRow label={t("settings.leave.policy_fields.milestone_title", `Milestone ${index + 1}: After Years`, { index: index + 1 })}>
                 <input className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 text-sm font-bold font-mono text-center h-11 focus:ring-4 focus:ring-primary-500/5 transition-all outline-none" onChange={(e) => { updateBonusMilestone(index, "min_years", parseInt(e.target.value)); }} type="number" value={bonus.min_years} />
               </FormRow>
               <FormRow label={t("settings.leave.policy_fields.bonus_amount", "Bonus Amount")}>

@@ -149,7 +149,7 @@ function isExempt(filePath: string): boolean {
     rel.includes(".test.") ||
     rel.includes(".spec.") ||
     rel.endsWith("routes.ts") ||
-    rel.endsWith("routeTree.gen.ts")
+    rel.endsWith("route-tree.gen.ts")
   );
 }
 

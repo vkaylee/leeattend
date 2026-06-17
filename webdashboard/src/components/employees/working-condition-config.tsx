@@ -170,7 +170,13 @@ function useWorkingConditionActions({
   const createMutation = useMutation({
     mutationFn: async (data: CreateWorkingConditionData) => {
       if (!wsId) throw new Error("Workspace ID is required");
-      return createWorkingCondition(wsId, employeeId, data);
+      return createWorkingCondition(wsId, employeeId, {
+        start_date: data.start_date,
+        end_date: data.end_date,
+        is_paid: data.is_paid,
+        type_: data.type,
+        minute_allowance: 0,
+      });
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["working-conditions", employeeId] });

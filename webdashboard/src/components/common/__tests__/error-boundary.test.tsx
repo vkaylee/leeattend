@@ -5,6 +5,18 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 import { ErrorBoundary } from "../error-boundary";
 
+vi.mock("i18next", () => ({
+  default: {
+    t: (key: string) => {
+      if (key === "common.error_boundary.something_went_wrong") return "Something went wrong";
+      if (key === "common.retry") return "Try again";
+      if (key === "common.error_boundary.reload_page") return "Reload page";
+      if (key === "common.error_boundary.widget_error") return "Widget Error";
+      return key;
+    },
+  },
+}));
+
 describe("ErrorBoundary", () => {
   beforeEach(() => {
     vi.clearAllMocks();

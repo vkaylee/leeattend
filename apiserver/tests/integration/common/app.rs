@@ -446,6 +446,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         user_repo.clone(),
         workspace_repo.clone(),
         None,
+        Some(diesel_pools.clone()),
     ));
     let shift_swap_service = Arc::new(
         apiserver::services::shift_swap_service::ShiftSwapService::new(
@@ -1162,6 +1163,7 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
         user_repo.clone(),
         workspace_repo.clone(),
         None,
+        Some(diesel_pools.clone()),
     ));
     let shift_swap_service = Arc::new(
         apiserver::services::shift_swap_service::ShiftSwapService::new(
@@ -1927,6 +1929,7 @@ pub async fn setup_app_tower_internal_extended(
         user_repo.clone(),
         workspace_repo.clone(),
         None,
+        Some(diesel_pools.clone()),
     ));
     let shift_swap_service = Arc::new(
         apiserver::services::shift_swap_service::ShiftSwapService::new(

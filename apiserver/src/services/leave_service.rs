@@ -32,9 +32,11 @@ pub struct LeaveService {
     workspace_repo: Arc<dyn WorkspaceRepository>,
     config_cache: Option<crate::cache::ConfigCache>,
     cache: Option<Arc<dyn crate::repositories::CacheRepository>>,
+    diesel_pools: Option<crate::diesel_pool::DieselPools>,
 }
 
 impl LeaveService {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         leave_balance_repo: Arc<dyn LeaveBalanceRepository>,
         leave_request_repo: Arc<dyn LeaveRequestRepository>,
@@ -48,6 +50,7 @@ impl LeaveService {
         user_repo: Arc<dyn UserRepository>,
         workspace_repo: Arc<dyn WorkspaceRepository>,
         cache: Option<Arc<dyn crate::repositories::CacheRepository>>,
+        diesel_pools: Option<crate::diesel_pool::DieselPools>,
     ) -> Self {
         let config_cache = cache.as_ref().map(|c| {
             crate::cache::ConfigCache::new(Arc::clone(c), Arc::clone(&workspace_config_repo))
@@ -64,6 +67,7 @@ impl LeaveService {
             workspace_repo,
             config_cache,
             cache,
+            diesel_pools,
         }
     }
 
@@ -246,6 +250,7 @@ impl LeaveService {
     }
 
     #[tracing::instrument(skip_all, err)]
+    #[allow(clippy::too_many_lines)]
     pub async fn submit_leave_request(
         &self,
         workspace_id: Uuid,
@@ -333,16 +338,73 @@ impl LeaveService {
             attachment_file_ids,
         );
 
-        self.leave_request_repo
-            .create_leave_request(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                &request,
-            )
-            .await
-            .map_err(|e| {
-                tracing::error!(error = %e, "SQLx Error in submit_leave_request");
-                AppError::Internal("error.internal".into())
-            })?;
+        if let Some(ref pools) = self.diesel_pools {
+            let mut conn = pools
+                .tenant_transaction_conn(&crate::diesel_pool::TenantAuthToken::system_override(
+                    workspace_id,
+                ))
+                .await?;
+            use crate::schema::{employments, leave_requests};
+            use diesel::prelude::*;
+            use diesel_async::{AsyncConnection, RunQueryDsl};
+            let req_clone = request.clone();
+            let reason_str = req_clone.reason().map(ToString::to_string);
+            let attachment_ids = req_clone.attachment_file_ids().map(ToOwned::to_owned);
+            conn.transaction::<_, AppError, _>(|conn| {
+                Box::pin(async move {
+                    let employment_exists = employments::table
+                        .filter(employments::id.eq(req_clone.employment_id()))
+                        .filter(employments::workspace_id.eq(workspace_id))
+                        .filter(employments::deleted_at.is_null())
+                        .select(employments::id)
+                        .first::<Uuid>(&mut *conn)
+                        .await
+                        .optional()
+                        .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
+
+                    if employment_exists.is_none() {
+                        return Err(AppError::NotFound("error.employment_not_found".to_string()));
+                    }
+
+                    diesel::insert_into(leave_requests::table)
+                        .values((
+                            leave_requests::id.eq(req_clone.id()),
+                            leave_requests::employment_id.eq(req_clone.employment_id()),
+                            leave_requests::leave_type_id.eq(req_clone.leave_type_id()),
+                            leave_requests::start_date.eq(req_clone.start_date()),
+                            leave_requests::end_date.eq(req_clone.end_date()),
+                            leave_requests::reason.eq(reason_str),
+                            leave_requests::status.eq(req_clone.status()),
+                            leave_requests::duration_type.eq(req_clone.duration_type().to_string()),
+                            leave_requests::start_time.eq(req_clone.start_time()),
+                            leave_requests::end_time.eq(req_clone.end_time()),
+                            leave_requests::requested_by_user_id
+                                .eq(req_clone.requested_by_user_id()),
+                            leave_requests::approved_by_user_id.eq(req_clone.approved_by_user_id()),
+                            leave_requests::created_at.eq(req_clone.created_at()),
+                            leave_requests::updated_at.eq(req_clone.updated_at()),
+                            leave_requests::attachment_file_ids.eq(attachment_ids),
+                        ))
+                        .execute(&mut *conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+                    Ok(())
+                })
+            })
+            .await?;
+        } else {
+            self.leave_request_repo
+                .create_leave_request(
+                    &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                    &request,
+                )
+                .await
+                .map_err(|e| {
+                    tracing::error!(error = %e, "SQLx Error in submit_leave_request");
+                    AppError::Internal("error.internal".into())
+                })?;
+        }
 
         // Invalidate cached employee leaves since we added a new request
         if let Some(ref cache) = self.cache {
@@ -402,18 +464,50 @@ impl LeaveService {
             .await?
             .ok_or(AppError::Forbidden("error.forbidden".into()))?;
 
-        self.leave_request_repo
-            .update_leave_request_status(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                request_id,
-                req.status,
-                Some(user_id),
-            )
-            .await
-            .map_err(|e| {
-                tracing::error!(error = %e, "SQLx Error in approve_leave_request");
-                AppError::Internal("error.internal".into())
-            })?;
+        if let Some(ref pools) = self.diesel_pools {
+            let mut conn = pools
+                .tenant_transaction_conn(&crate::diesel_pool::TenantAuthToken::system_override(
+                    workspace_id,
+                ))
+                .await?;
+            use crate::schema::{employments, leave_requests};
+            use diesel::prelude::*;
+            use diesel_async::{AsyncConnection, RunQueryDsl};
+            conn.transaction::<_, AppError, _>(|conn| {
+                Box::pin(async move {
+                    diesel::update(leave_requests::table)
+                        .filter(leave_requests::id.eq(request_id))
+                        .filter(diesel::dsl::exists(
+                            employments::table
+                                .filter(employments::id.eq(leave_requests::employment_id))
+                                .filter(employments::workspace_id.eq(workspace_id)),
+                        ))
+                        .set((
+                            leave_requests::status.eq(req.status),
+                            leave_requests::approved_by_user_id.eq(Some(user_id)),
+                            leave_requests::updated_at.eq(Utc::now()),
+                        ))
+                        .execute(&mut *conn)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                    Ok(())
+                })
+            })
+            .await?;
+        } else {
+            self.leave_request_repo
+                .update_leave_request_status(
+                    &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                    request_id,
+                    req.status,
+                    Some(user_id),
+                )
+                .await
+                .map_err(|e| {
+                    tracing::error!(error = %e, "SQLx Error in approve_leave_request");
+                    AppError::Internal("error.internal".into())
+                })?;
+        }
 
         // If approved, update roster
         if req.status == LeaveStatus::Approved {
@@ -585,11 +679,42 @@ impl LeaveService {
         if policy == "auto_cancel"
             && (req.status() == LeaveStatus::Approved || req.status() == LeaveStatus::PreApproved)
         {
-            // Cancel conflicting leave requests
-            for old_req in &conflicting_leaves {
-                self.leave_request_repo
-                    .cancel_leave_request(&auth_token, old_req.id())
-                    .await?;
+            if let Some(ref pools) = self.diesel_pools {
+                let mut conn = pools.tenant_transaction_conn(&auth_token).await?;
+                use crate::schema::{employments, leave_requests};
+                use diesel::prelude::*;
+                use diesel_async::{AsyncConnection, RunQueryDsl};
+                let conflicting_ids: Vec<Uuid> =
+                    conflicting_leaves.iter().map(LeaveRequest::id).collect();
+                conn.transaction::<_, AppError, _>(|conn| {
+                    Box::pin(async move {
+                        for old_id in conflicting_ids {
+                            diesel::update(leave_requests::table)
+                                .filter(leave_requests::id.eq(old_id))
+                                .filter(diesel::dsl::exists(
+                                    employments::table
+                                        .filter(employments::id.eq(leave_requests::employment_id))
+                                        .filter(employments::workspace_id.eq(workspace_id)),
+                                ))
+                                .set((
+                                    leave_requests::status.eq(LeaveStatus::Cancelled),
+                                    leave_requests::updated_at.eq(Utc::now()),
+                                ))
+                                .execute(&mut *conn)
+                                .await
+                                .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+                        }
+                        Ok(())
+                    })
+                })
+                .await?;
+            } else {
+                // Cancel conflicting leave requests
+                for old_req in &conflicting_leaves {
+                    self.leave_request_repo
+                        .cancel_leave_request(&auth_token, old_req.id())
+                        .await?;
+                }
             }
             // If there's a shift conflict, we still notify because we can't cancel the shift
             if !conflicting_shifts.is_empty() {
@@ -1308,6 +1433,7 @@ mod tests {
                 Arc::new(mock_workspace_config_repo),
                 Arc::new(mock_user_repo),
                 Arc::new(mock_workspace_repo),
+                None,
                 None,
             ),
             bal_repo,
@@ -2060,6 +2186,7 @@ mod tests {
             Arc::new(user_repo),
             Arc::new(workspace_repo),
             None,
+            None,
         );
 
         svc.check_and_handle_conflicts(workspace_id, &incoming_req)
@@ -2219,6 +2346,7 @@ mod tests {
             Arc::new(config_repo),
             Arc::new(user_repo),
             Arc::new(workspace_repo),
+            None,
             None,
         );
 

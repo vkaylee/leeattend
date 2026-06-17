@@ -1,4 +1,4 @@
-import type { paths } from "@/types/api-generated";
+import type { paths, components } from "@/types/api-generated";
 
 import type { WorkspaceConfigEntry, CreateConfigEntryRequest } from './types';
 
@@ -30,22 +30,44 @@ export const workspaceConfigApi = {
     return resData;
   },
 
-  getConfig: async (workspaceId: string, key: string, date?: string): Promise<WorkspaceConfigEntry | null> => {
+  getConfig: async (workspaceId: string, key: string, date?: string): Promise<components["schemas"]["ResolvedConfig"] | null> => {
     const { data: resData } = await client.GET("/v1/workspaces/{workspace_id}/configs/{key}", {
       params: {
         path: { workspace_id: workspaceId, key },
         query: date ? { date } : undefined,
       },
     });
-    return (resData as unknown as WorkspaceConfigEntry | null) ?? null;
+    return resData ?? null;
   },
 
   upsertConfig: async (workspaceId: string, payload: CreateConfigEntryRequest): Promise<WorkspaceConfigEntry> => {
+    let value: ConfigValue;
+    if (payload.value_bool !== undefined && payload.value_bool !== null) {
+      value = { Bool: payload.value_bool };
+    } else if (payload.value_decimal !== undefined && payload.value_decimal !== null) {
+      value = { Decimal: payload.value_decimal };
+    } else if (payload.value_int !== undefined && payload.value_int !== null) {
+      value = { Int: payload.value_int };
+    } else if (payload.value_json !== undefined && payload.value_json !== null) {
+      value = { Json: payload.value_json };
+    } else if (payload.value_text !== undefined && payload.value_text !== null) {
+      value = { Text: payload.value_text };
+    } else {
+      value = { Text: "" };
+    }
+
     const { data: resData } = await client.PUT("/v1/workspaces/{workspace_id}/configs", {
       params: {
         path: { workspace_id: workspaceId },
       },
-      body: payload as unknown as paths["/v1/workspaces/{workspace_id}/configs"]["put"]["requestBody"]["content"]["application/json"],
+      body: {
+        config_key: payload.config_key,
+        effective_from: payload.effective_from,
+        effective_to: payload.effective_to,
+        scope_id: payload.scope_id,
+        scope_type: payload.scope_type,
+        value: value as components["schemas"]["ConfigValue"],
+      },
     });
     if (!resData) throw new Error("No response data");
     return resData;

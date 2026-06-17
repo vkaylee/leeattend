@@ -190,16 +190,29 @@ async fn test_payroll_rule_evaluator() {
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let pr = apiserver::repositories::DieselPayrollRepository::new(diesel_pools.clone());
 
-    let results = PayrollRuleEvaluator::evaluate_rules(
-        &pr,
+    let assignments = pr.get_resolved_rule_assignments(
         ws_id,
         employee_id,
         None,
         start_date,
         end_date,
-        &base_values,
     )
     .await
+    .unwrap();
+
+    let mut rule_assignments_with_tiers = Vec::new();
+    for assignment in assignments {
+        let tiers = pr.get_payroll_rule_tiers(ws_id, assignment.rule_definition_id).await.unwrap();
+        rule_assignments_with_tiers.push(apiserver::services::financial_calculator::RuleAssignmentWithTiers {
+            assignment,
+            tiers,
+        });
+    }
+
+    let results = PayrollRuleEvaluator::evaluate_rules(
+        &rule_assignments_with_tiers,
+        &base_values,
+    )
     .unwrap();
 
     assert_eq!(results.len(), 1);

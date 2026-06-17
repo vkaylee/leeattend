@@ -19,14 +19,14 @@ vi.stubGlobal("fetch", vi.fn((url: string, options?: RequestInit) => {
     mockDelete("ws-1", "emp-1", "cond-1");
     responseData = null;
   } else if (options?.method === "POST") {
-    responseData = { id: "cond-2", type: "REGULAR", start_date: "2026-01-01", is_paid: true };
+    responseData = { id: "cond-2", type_: "REGULAR", start_date: "2026-01-01", is_paid: true };
   } else {
     // GET
     responseData = {
       data: [
         {
           id: "cond-1",
-          type: "REGULAR",
+          type_: "REGULAR",
           minute_allowance: 60,
           is_paid: true,
           start_date: "2026-01-01"

@@ -19,7 +19,9 @@ use crate::repositories::workspace_repository::WorkspaceRepository;
 use crate::repositories::{roster::RosterRepository, time_entry_repository};
 
 use super::attendance_matcher::AttendanceMatcher;
-use super::financial_calculator::{FinancialCalculator, IncentivePolicyWithTiers, RuleAssignmentWithTiers};
+use super::financial_calculator::{
+    FinancialCalculator, IncentivePolicyWithTiers, RuleAssignmentWithTiers,
+};
 use super::PolicyResolverService;
 
 // ---------------------------------------------------------------------------
@@ -641,7 +643,8 @@ impl PayrollService {
         }
 
         // Fetch leave breakdown and incentive policies for calculations
-        let leave_breakdown = self.leave_repo
+        let leave_breakdown = self
+            .leave_repo
             .get_approved_leave_breakdown(
                 employee_id,
                 ctx.start_date,
@@ -658,17 +661,17 @@ impl PayrollService {
                 AppError::Internal(format!("Leave breakdown error (incentives): {e}"))
             })?;
 
-        let active_policies = self.payroll_repo
-            .get_active_incentive_policies_for_period(
-                workspace_id,
-                ctx.start_date,
-                ctx.end_date,
-            )
+        let active_policies = self
+            .payroll_repo
+            .get_active_incentive_policies_for_period(workspace_id, ctx.start_date, ctx.end_date)
             .await?;
 
         let mut active_policies_with_tiers = Vec::new();
         for policy in active_policies {
-            let tiers = self.payroll_repo.get_policy_tiers(workspace_id, policy.id()).await?;
+            let tiers = self
+                .payroll_repo
+                .get_policy_tiers(workspace_id, policy.id())
+                .await?;
             active_policies_with_tiers.push(IncentivePolicyWithTiers { policy, tiers });
         }
 
@@ -708,7 +711,8 @@ impl PayrollService {
             }
         }
 
-        let unpaid_holiday_days: i64 = self.leave_repo
+        let unpaid_holiday_days: i64 = self
+            .leave_repo
             .get_unpaid_holiday_days_without_leave(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
                 employee_id,
@@ -718,7 +722,8 @@ impl PayrollService {
             .await
             .unwrap_or(0);
 
-        let rule_assignments = self.payroll_repo
+        let rule_assignments = self
+            .payroll_repo
             .get_resolved_rule_assignments(
                 workspace_id,
                 employee_id,
@@ -730,7 +735,8 @@ impl PayrollService {
 
         let mut rule_assignments_with_tiers = Vec::new();
         for assignment in rule_assignments {
-            let tiers = self.payroll_repo
+            let tiers = self
+                .payroll_repo
                 .get_payroll_rule_tiers(workspace_id, assignment.rule_definition_id)
                 .await?;
             rule_assignments_with_tiers.push(RuleAssignmentWithTiers { assignment, tiers });

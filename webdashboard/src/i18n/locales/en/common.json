@@ -1,5 +1,11 @@
 {
   "common": {
+    "error_boundary": {
+      "widget_error": "Widget Error",
+      "unexpected_error": "An unexpected error occurred",
+      "something_went_wrong": "Something went wrong",
+      "reload_page": "Reload page"
+    },
     "required_fields": "Please fill in all required fields",
     "switching_workspace": "Switching workspace...",
     "hours": "Hours",

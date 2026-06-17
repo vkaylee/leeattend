@@ -1,5 +1,11 @@
 {
   "common": {
+    "error_boundary": {
+      "widget_error": "组件错误",
+      "unexpected_error": "发生了意外错误",
+      "something_went_wrong": "发生了一些错误",
+      "reload_page": "重新加载页面"
+    },
     "required_fields": "请填写所有必填字段",
     "switching_workspace": "正在切换工作区...",
     "hours": "小时",

@@ -328,6 +328,7 @@ impl AppState {
             Arc::clone(&user_repo),
             Arc::clone(&workspace_repo),
             cache_repo,
+            Some(diesel_pools.clone()),
         ));
         let shift_swap_repo: Arc<
             dyn crate::repositories::shift_swap_repository::ShiftSwapRepository,

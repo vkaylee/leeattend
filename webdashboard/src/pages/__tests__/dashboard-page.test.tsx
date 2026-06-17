@@ -11,11 +11,16 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 vi.mock("react-i18next", () => ({
- 
   useTranslation: () => ({
     t: (key: string) => key,
     i18n: { language: "en" },
   }),
+}));
+
+vi.mock("i18next", () => ({
+  default: {
+    t: (key: string) => key,
+  },
 }));
 
 vi.mock("@/hooks/use-agents", () => ({
@@ -176,7 +181,7 @@ describe("DashboardPage", () => {
     renderComponent();
     
     // 1. Verify that the crashed widget renders the fallback UI
-    expect(screen.getByText("Widget Error")).toBeInTheDocument();
+    expect(screen.getByText("common.error_boundary.widget_error")).toBeInTheDocument();
     expect(screen.getByText("Simulated Quick Stats Render Error")).toBeInTheDocument();
     
     // 2. Verify that sibling components (e.g., dashboard title and KPI card) still render correctly

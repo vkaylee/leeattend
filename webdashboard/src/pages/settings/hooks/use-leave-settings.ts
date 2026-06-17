@@ -33,7 +33,7 @@ export function useLeaveSettings() {
     enabled: !!wsId && activeTab === "assignments"
   });
 
-  const { employees = [], isLoading: employeesLoading } = useAllEmployees(wsId, {
+  const { employees, isLoading: employeesLoading } = useAllEmployees(wsId, {
     enabled: !!wsId && activeTab === "assignments"
   });
 

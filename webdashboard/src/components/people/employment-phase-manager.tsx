@@ -8,7 +8,7 @@ import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { fetchEmploymentPhases, createEmploymentPhase } from "@/lib/api/employees";
-import { EmploymentPhaseDefinition } from "@/lib/api/types";
+import { EmploymentPhaseDefinition, CreateEmploymentPhaseDefinitionRequest } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -25,7 +25,7 @@ export default function EmploymentPhaseManager({ wsId }: Props) {
   const [formData, setFormData] = useState<Partial<EmploymentPhaseDefinition> & { default_duration_days?: number }>({ name: "", description: "", phase_type: "probation", default_duration_days: 60, is_active: true, display_order: 1 });
 
   const createMutation = useMutation({
-    mutationFn: (data: Partial<EmploymentPhaseDefinition> & { rule_config?: { duration_days?: number } }) => createEmploymentPhase(wsId, data),
+    mutationFn: (data: CreateEmploymentPhaseDefinitionRequest) => createEmploymentPhase(wsId, data),
     onSuccess: () => { 
         toast.success(t("common.success")); 
         void queryClient.invalidateQueries({ queryKey: ["employment-phases"] }); 
@@ -40,11 +40,12 @@ export default function EmploymentPhaseManager({ wsId }: Props) {
 
   const handleSubmit = (e: React.SyntheticEvent) => { 
     e.preventDefault(); 
+    if (!formData.name || !formData.phase_type) return;
     createMutation.mutate({
       name: formData.name,
-      description: formData.description,
+      description: formData.description ?? null,
       phase_type: formData.phase_type,
-      display_order: formData.display_order,
+      display_order: formData.display_order ?? null,
       rule_config: { duration_days: formData.default_duration_days }
     }); 
   };

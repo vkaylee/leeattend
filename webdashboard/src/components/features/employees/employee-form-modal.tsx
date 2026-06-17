@@ -209,11 +209,25 @@ export default function EmployeeFormModal({
   const [selectedLocationId, setSelectedLocationId] = useState("");
   const [selectedEmployerId, setSelectedEmployerId] = useState("");
 
-  useEffect(() => {
+  // Adjust state during rendering to prevent cascading useEffect renders and warning alerts
+  const [prevEmployeeId, setPrevEmployeeId] = useState<string | null>(null);
+  const [prevActiveLocationId, setPrevActiveLocationId] = useState("");
+  const [prevActiveEmployerId, setPrevActiveEmployerId] = useState("");
+
+  const currentEmployeeId = editingEmployee?.id ?? null;
+  if (
+    currentEmployeeId !== prevEmployeeId ||
+    activeLocationId !== prevActiveLocationId ||
+    activeEmployerId !== prevActiveEmployerId
+  ) {
+    setPrevEmployeeId(currentEmployeeId);
+    setPrevActiveLocationId(activeLocationId);
+    setPrevActiveEmployerId(activeEmployerId);
+
     setSelectedUserId(editingEmployee?.user_id ?? "");
     setSelectedLocationId(editingEmployee ? activeLocationId : "");
     setSelectedEmployerId(editingEmployee ? activeEmployerId : "");
-  }, [editingEmployee, activeLocationId, activeEmployerId]);
+  }
 
   useEffect(() => {
     if (isOpen && wsId) {

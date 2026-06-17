@@ -87,7 +87,7 @@ describe("AssignPolicyModal", () => {
     await user.selectOptions(empSelect, "emp-1");
 
     // Select Policy
-    const policySelect = screen.getByLabelText(/Chính sách/i);
+    const policySelect = screen.getByTestId("assign-policy-select");
     await waitFor(() => {
       expect(policySelect.querySelector('option[value="pol-1"]')).not.toBeNull();
     });

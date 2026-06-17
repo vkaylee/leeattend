@@ -59,7 +59,7 @@ const Button = memo(
     return (
       <button
         className={cn(
-          "inline-flex items-center justify-center font-bold uppercase tracking-widest transition-all active:scale-95 disabled:bg-slate-200 disabled:text-slate-600 disabled:shadow-none disabled:cursor-not-allowed dark:disabled:bg-slate-800 dark:disabled:text-slate-400",
+          "inline-flex items-center justify-center font-bold uppercase tracking-widest transition-all active:scale-95 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus:outline-none disabled:bg-slate-200 disabled:text-slate-600 disabled:shadow-none disabled:cursor-not-allowed dark:disabled:bg-slate-800 dark:disabled:text-slate-400",
           VARIANT_STYLES[variant],
           SIZE_STYLES[size],
           className,
