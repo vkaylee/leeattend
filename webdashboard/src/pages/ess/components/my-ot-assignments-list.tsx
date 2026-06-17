@@ -2,6 +2,8 @@ import { Loader2, Check, X, Clock, Calendar } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { Skeleton } from "@/components/ui/skeleton";
+
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
@@ -210,8 +212,25 @@ export function MyOtAssignmentsList({
 
   if (isLoading) {
     return (
-      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-12 flex justify-center shadow-sm">
-        <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+      <div className="space-y-4 animate-pulse">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-6 flex flex-col md:flex-row gap-6 justify-between shadow-sm" key={i}>
+            <div className="space-y-4 flex-1">
+              <div className="flex gap-2">
+                <Skeleton className="h-5 w-16 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+                <Skeleton className="h-5 w-20 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Skeleton className="h-4 w-32 bg-slate-200/60 dark:bg-slate-800/60 rounded-md" />
+                <Skeleton className="h-4 w-32 bg-slate-200/60 dark:bg-slate-800/60 rounded-md" />
+              </div>
+              <Skeleton className="h-4 w-2/3 bg-slate-200/50 dark:bg-slate-800/50 rounded-md" />
+            </div>
+            <div className="flex flex-col items-end justify-center shrink-0">
+              <Skeleton className="h-9 w-24 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   }

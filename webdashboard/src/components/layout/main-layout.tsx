@@ -3,6 +3,7 @@ import { Building2 } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
+import { ErrorBoundary } from "@/components/common/error-boundary";
 import { Typography } from "@/components/ui/typography";
 import { useI18nSync } from "@/hooks/use-i18n-sync";
 import { useTheme } from "@/hooks/use-theme";
@@ -187,7 +188,9 @@ export default function MainLayout() {
 
         <main className={cn("flex-1 relative scroll-smooth", isOrgChart ? "overflow-hidden p-0" : "overflow-y-auto p-4 md:p-8 lg:p-10")}>
           <div className={cn(isOrgChart ? "w-full h-full animate-in fade-in duration-500" : "max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both")} key={location.pathname}>
-            <Outlet />
+            <ErrorBoundary>
+              <Outlet />
+            </ErrorBoundary>
           </div>
         </main>
       </div>

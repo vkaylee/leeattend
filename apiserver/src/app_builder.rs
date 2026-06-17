@@ -31,13 +31,13 @@ impl AppState {
 
         // Dev seed data removed — first registered user gets platform_admin automatically.
 
-        let crypto_service = if let Ok(keys_json) = std::env::var("ENCRYPTION_KEYS_JSON") {
-            let crypto = crate::crypto::CryptoService::from_json(&keys_json)
+        let config = crate::utils::config::get_config();
+        let crypto_service = if let Some(keys_json) = &config.encryption_keys_json {
+            let crypto = crate::crypto::CryptoService::from_json(keys_json)
                 .map_err(|e| format!("Invalid ENCRYPTION_KEYS_JSON: {e}"))?;
             Some(Arc::new(crypto))
         } else {
-            let app_env = std::env::var("APP_ENV").unwrap_or_else(|_| "development".to_string());
-            if app_env == "production" {
+            if config.env == "production" {
                 return Err("ENCRYPTION_KEYS_JSON must be set in production".into());
             }
             // In development / testing, generate a dummy CryptoService
@@ -496,14 +496,7 @@ impl AppState {
                 employment_repo: Arc::clone(&employment_repo),
             },
         ));
-        let jwt_secret = if cfg!(debug_assertions) {
-            std::env::var("JWT_SECRET").unwrap_or_else(|_| {
-                tracing::warn!("⚠️ JWT_SECRET not set — using insecure dev fallback. DO NOT use in production!");
-                "dev_secret_key_leeattend_2026".to_string()
-            })
-        } else {
-            std::env::var("JWT_SECRET").map_err(|_e| "JWT_SECRET must be set in production")?
-        };
+        let jwt_secret = config.jwt_secret.clone();
 
         let buffer_capacity: usize = std::env::var("AGENT_LOG_BUFFER_CAPACITY")
             .ok()

@@ -3,6 +3,8 @@ import { Loader2, Database, Info, Plus, X } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { Skeleton } from "@/components/ui/skeleton";
+
 import type { SalaryBaseGroup, SalaryBaseGroupMember, SalaryComponentDefinition } from "@/lib/api";
 
 import Button from "@/components/ui/button";
@@ -248,8 +250,29 @@ export default function SalaryBaseGroupManager({ wsId }: { wsId: string }) {
 
   if (loadingGroups || loadingComponents) {
     return (
-      <div className="flex items-center justify-center p-12 text-slate-400" data-testid="loader">
-        <Loader2 className="animate-spin w-8 h-8" />
+      <div className="space-y-6 animate-pulse">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+            <Skeleton className="h-4 w-96 bg-slate-200/60 dark:bg-slate-800/60 rounded-lg" />
+          </div>
+          <Skeleton className="h-10 w-32 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div className="bg-white dark:bg-slate-800/50 rounded-[2.5rem] border border-slate-200 dark:border-slate-700 p-6 space-y-4" key={i}>
+              <div className="space-y-3">
+                <Skeleton className="h-6 w-3/4 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+                <Skeleton className="h-4 w-full bg-slate-200/50 dark:bg-slate-800/50 rounded-md" />
+                <Skeleton className="h-4 w-5/6 bg-slate-200/50 dark:bg-slate-800/50 rounded-md" />
+              </div>
+              <div className="space-y-2.5 pt-4 border-t border-slate-100 dark:border-slate-700/50">
+                <Skeleton className="h-10 w-full bg-slate-200/50 dark:bg-slate-800/50 rounded-xl" />
+                <Skeleton className="h-10 w-full bg-slate-200/50 dark:bg-slate-800/50 rounded-xl" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

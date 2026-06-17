@@ -2,6 +2,8 @@ import { Loader2, AlertTriangle } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { Skeleton } from "@/components/ui/skeleton";
+
 import { Typography } from "@/components/ui/typography";
 import { QuotaSummary } from "@/lib/api/overtime-requests";
 
@@ -83,8 +85,21 @@ export function OtQuotaWidget({ quota, isLoading }: { quota?: ExtendedQuota | nu
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center p-8">
-          <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+        <div className="space-y-6 animate-pulse">
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <Skeleton className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded-md" />
+              <Skeleton className="h-4 w-16 bg-slate-200 dark:bg-slate-800 rounded-md" />
+            </div>
+            <Skeleton className="h-2 w-full bg-slate-200/50 dark:bg-slate-800/50 rounded-full" />
+          </div>
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <Skeleton className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded-md" />
+              <Skeleton className="h-4 w-16 bg-slate-200 dark:bg-slate-800 rounded-md" />
+            </div>
+            <Skeleton className="h-2 w-full bg-slate-200/50 dark:bg-slate-800/50 rounded-full" />
+          </div>
         </div>
       ) : !quota ? (
         <div className="text-center p-6 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-2xl">

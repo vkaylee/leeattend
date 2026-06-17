@@ -271,13 +271,8 @@ pub fn parse_allowed_origins(origins_str: &str) -> Vec<HeaderValue> {
 }
 
 pub fn create_app(state: Arc<AppState>) -> Router {
-    let allowed_origins_str = std::env::var("ALLOWED_ORIGINS").unwrap_or_else(|_| {
-        if cfg!(debug_assertions) {
-            "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000".to_string()
-        } else {
-            String::new()
-        }
-    });
+    let config = crate::utils::config::get_config();
+    let allowed_origins_str = config.allowed_origins.clone();
 
     let origins = parse_allowed_origins(&allowed_origins_str);
 

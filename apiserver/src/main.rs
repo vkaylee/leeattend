@@ -46,18 +46,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
-    let app_env = std::env::var("APP_ENV")
-        .or_else(|_| std::env::var("API_ENV"))
-        .unwrap_or_else(|_| "development".to_string());
+    // Fail-fast configuration validation
+    let config = apiserver::utils::config::get_config();
+    let app_env = &config.env;
 
-    let registry = tracing_subscriber::registry().with(
-        tracing_subscriber::EnvFilter::try_from_default_env()
-            .unwrap_or_else(|_| "apiserver=debug,tower_http=debug".into()),
-    );
+    let registry = tracing_subscriber::registry()
+        .with(apiserver::utils::logging::SpanContextLayer)
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "apiserver=debug,tower_http=debug".into()),
+        );
 
     if app_env == "production" {
         registry
-            .with(tracing_subscriber::fmt::layer().json())
+            .with(
+                tracing_subscriber::fmt::layer()
+                    .event_format(apiserver::utils::logging::ProductionJsonFormatter),
+            )
             .init();
     } else {
         registry.with(tracing_subscriber::fmt::layer()).init();
@@ -354,10 +359,11 @@ async fn register_workspace_tenants_and_migrate(
         return Ok(());
     }
 
-    let app_env = std::env::var("APP_ENV").unwrap_or_else(|_| "development".to_string());
+    let config = apiserver::utils::config::get_config();
+    let app_env = &config.env;
     let crypto_service: Option<apiserver::crypto::CryptoService> =
-        if let Ok(keys) = std::env::var("ENCRYPTION_KEYS_JSON") {
-            let crypto = apiserver::crypto::CryptoService::from_json(&keys)
+        if let Some(keys) = &config.encryption_keys_json {
+            let crypto = apiserver::crypto::CryptoService::from_json(keys)
                 .map_err(|e| format!("Invalid ENCRYPTION_KEYS_JSON: {e}"))?;
             Some(crypto)
         } else if app_env == "production" {

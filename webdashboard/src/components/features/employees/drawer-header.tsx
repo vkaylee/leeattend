@@ -55,7 +55,7 @@ export default function DrawerHeader({
                         </div>
                     </div>
                 </div>
-                <Button className="p-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-[1.25rem] transition-all shadow-md active:scale-90 border border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 h-auto w-auto shadow-none" onClick={onClose} size="icon" type="button" variant="ghost"><X size={24} /></Button>
+                <Button className="p-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-[1.25rem] transition-all shadow-md active:scale-90 border border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 h-auto w-auto shadow-none" aria-label={t("common.close")} onClick={onClose} size="icon" type="button" variant="ghost"><X size={24} /></Button>
             </div>
 
             {/* Desktop Navigation Tabs */}

@@ -3,6 +3,7 @@ use crate::errors::AppError;
 use crate::repositories::workspace_repository::WorkspaceRepository;
 use crate::repositories::FileRepository;
 use crate::services::storage::{FileService, ScanResult, VirusScanner};
+use futures_util::stream::{self, StreamExt};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio_util::sync::CancellationToken;
@@ -55,6 +56,7 @@ impl FileScanScheduler {
         })
     }
 
+    #[allow(clippy::too_many_lines)]
     async fn process_pending_files(
         repo: &Arc<dyn FileRepository>,
         file_service: &Arc<FileService>,
@@ -63,60 +65,74 @@ impl FileScanScheduler {
     ) -> Result<(), AppError> {
         let workspaces = ws_repo.get_all_workspaces().await?;
 
-        for ws in workspaces {
-            let auth_token = TenantAuthToken::system_override(ws.id());
-            let pending_files = match repo.get_pending_scan_workspace_files(&auth_token, 10).await {
-                Ok(files) => files,
-                Err(e) => {
-                    tracing::error!(
-                        "Failed to fetch pending files for workspace {}: {}",
-                        ws.id(),
-                        e
-                    );
-                    continue;
+        let mut workspace_stream = stream::iter(workspaces)
+            .map(|ws| {
+                let repo = Arc::clone(repo);
+                let file_service = Arc::clone(file_service);
+                let scan_service = Arc::clone(scan_service);
+                async move {
+                    let auth_token = TenantAuthToken::system_override(ws.id());
+                    let pending_files =
+                        match repo.get_pending_scan_workspace_files(&auth_token, 10).await {
+                            Ok(files) => files,
+                            Err(e) => {
+                                tracing::error!(
+                                    "Failed to fetch pending files for workspace {}: {}",
+                                    ws.id(),
+                                    e
+                                );
+                                return;
+                            }
+                        };
+
+                    for file in pending_files {
+                        let bytes = match file_service
+                            .download_file_direct(&auth_token, file.id)
+                            .await
+                        {
+                            Ok(b) => b,
+                            Err(e) => {
+                                tracing::error!(
+                                    "Failed to download file {} for scan: {}",
+                                    file.id,
+                                    e
+                                );
+                                continue;
+                            }
+                        };
+
+                        let scan_result = match scan_service.scan(&bytes).await {
+                            Ok(r) => r,
+                            Err(e) => {
+                                tracing::error!("Failed to scan file {}: {}", file.id, e);
+                                continue;
+                            }
+                        };
+
+                        let status_str = match scan_result {
+                            ScanResult::Clean => "Clean",
+                            ScanResult::Infected(e) => {
+                                tracing::warn!("Infected file detected {}: {}", file.id, e);
+                                "Infected"
+                            }
+                            ScanResult::Skipped(e) => {
+                                tracing::info!("Scan skipped for file {}: {}", file.id, e);
+                                "Clean"
+                            }
+                        };
+
+                        if let Err(e) = repo
+                            .update_workspace_file_scan_status(&auth_token, file.id, status_str)
+                            .await
+                        {
+                            tracing::error!("Failed to update scan status for {}: {}", file.id, e);
+                        }
+                    }
                 }
-            };
+            })
+            .buffer_unordered(5);
 
-            for file in pending_files {
-                let bytes = match file_service
-                    .download_file_direct(&auth_token, file.id)
-                    .await
-                {
-                    Ok(b) => b,
-                    Err(e) => {
-                        tracing::error!("Failed to download file {} for scan: {}", file.id, e);
-                        continue;
-                    }
-                };
-
-                let scan_result = match scan_service.scan(&bytes).await {
-                    Ok(r) => r,
-                    Err(e) => {
-                        tracing::error!("Failed to scan file {}: {}", file.id, e);
-                        continue;
-                    }
-                };
-
-                let status_str = match scan_result {
-                    ScanResult::Clean => "Clean",
-                    ScanResult::Infected(e) => {
-                        tracing::warn!("Infected file detected {}: {}", file.id, e);
-                        "Infected"
-                    }
-                    ScanResult::Skipped(e) => {
-                        tracing::info!("Scan skipped for file {}: {}", file.id, e);
-                        "Clean"
-                    }
-                };
-
-                if let Err(e) = repo
-                    .update_workspace_file_scan_status(&auth_token, file.id, status_str)
-                    .await
-                {
-                    tracing::error!("Failed to update scan status for {}: {}", file.id, e);
-                }
-            }
-        }
+        while workspace_stream.next().await.is_some() {}
 
         // Also process system files
         let system_files = match repo.get_pending_scan_system_files(10).await {
