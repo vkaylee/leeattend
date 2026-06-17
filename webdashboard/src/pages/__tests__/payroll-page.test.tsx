@@ -77,7 +77,7 @@ describe('PayrollPage', () => {
   it('renders employee list and summary table', async () => {
     vi.mocked(api.fetchEmployees).mockResolvedValue({
       data: [
-        { id: 'emp-1', workspace_id: 'ws-1', full_name: 'John Doe', employee_id_number: 'EMP001', original_hire_date: "2020-01-01", hire_date: '2025-01-01', is_active: true, created_at: '2025-01-01T00:00:00Z', updated_at: '2025-01-01T00:00:00Z' }
+        { id: 'emp-1', workspace_id: 'ws-1', full_name: 'John Doe', employee_id_number: 'EMP001', created_at: '2025-01-01T00:00:00Z', updated_at: '2025-01-01T00:00:00Z', tags: [] }
       ],
       total: 1,
       page: 1,
@@ -92,14 +92,13 @@ describe('PayrollPage', () => {
       </QueryClientProvider>
     );
 
- 
     expect(await screen.findByText('John Doe')).toBeDefined();
   });
 
   it('shows detail drawer when an employee is clicked', async () => {
     vi.mocked(api.fetchEmployees).mockResolvedValue({
       data: [
-        { id: 'emp-1', workspace_id: 'ws-1', full_name: 'John Doe', employee_id_number: 'EMP001', original_hire_date: "2020-01-01", hire_date: '2025-01-01', is_active: true, created_at: '2025-01-01T00:00:00Z', updated_at: '2025-01-01T00:00:00Z' }
+        { id: 'emp-1', workspace_id: 'ws-1', full_name: 'John Doe', employee_id_number: 'EMP001', created_at: '2025-01-01T00:00:00Z', updated_at: '2025-01-01T00:00:00Z', tags: [] }
       ],
       total: 1,
       page: 1,
@@ -111,6 +110,12 @@ describe('PayrollPage', () => {
         name: "Test Workspace",
         timezone: "Asia/Ho_Chi_Minh",
         created_at: "2024-01-01T00:00:00Z",
+        date_format: "DD/MM/YYYY",
+        time_format: "HH:mm",
+        theme_primary_color: "#000000",
+        default_holiday_ot_multiplier: "2.0",
+        default_language: "vi",
+        holiday_overnight_strategy: "split",
       },
       isLoading: false,
       isError: false,

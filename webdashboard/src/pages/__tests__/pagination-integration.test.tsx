@@ -106,10 +106,9 @@ describe("Pagination Integration Tests", () => {
             full_name: "John Doe",
             employee_id_number: "EMP001",
             workspace_id: "ws-1",
-            is_active: true,
-            original_hire_date: "2020-01-01", hire_date: "2025-01-01",
             created_at: "2025-01-01T00:00:00Z",
             updated_at: "2025-01-01T00:00:00Z",
+            tags: [],
           },
         ],
         { total: 1 }
@@ -168,20 +167,18 @@ describe("Pagination Integration Tests", () => {
             full_name: "Alice",
             employee_id_number: "EMP001",
             workspace_id: "ws-1",
-            is_active: true,
-            original_hire_date: "2020-01-01", hire_date: "2025-01-01",
             created_at: "2025-01-01T00:00:00Z",
             updated_at: "2025-01-01T00:00:00Z",
+            tags: [],
           },
           {
             id: "emp-2",
             full_name: "Bob",
             employee_id_number: "EMP002",
             workspace_id: "ws-1",
-            is_active: true,
-            original_hire_date: "2020-01-01", hire_date: "2025-01-02",
             created_at: "2025-01-02T00:00:00Z",
             updated_at: "2025-01-02T00:00:00Z",
+            tags: [],
           },
         ],
         { total: 2 }
@@ -211,10 +208,9 @@ describe("Pagination Integration Tests", () => {
           full_name: `Employee ${index}`,
           employee_id_number: `EMP${String(index).padStart(3, "0")}`,
           workspace_id: "ws-1",
-          is_active: true,
-          original_hire_date: "2020-01-01", hire_date: "2025-01-01",
           created_at: "2025-01-01T00:00:00Z",
           updated_at: "2025-01-01T00:00:00Z",
+          tags: [],
         })),
         { total: 250, page: 1, limit: 50 }
       );
@@ -244,10 +240,9 @@ describe("Pagination Integration Tests", () => {
             full_name: "John Doe",
             employee_id_number: "EMP001",
             workspace_id: "ws-1",
-            is_active: true,
-            original_hire_date: "2020-01-01", hire_date: "2025-01-01",
             created_at: "2025-01-01T00:00:00Z",
             updated_at: "2025-01-01T00:00:00Z",
+            tags: [],
           },
         ]
       );
@@ -301,10 +296,9 @@ describe("Pagination Integration Tests", () => {
             full_name: "John Doe",
             employee_id_number: "EMP001",
             workspace_id: "ws-1",
-            is_active: true,
-            original_hire_date: "2020-01-01", hire_date: "2025-01-01",
             created_at: "2025-01-01T00:00:00Z",
             updated_at: "2025-01-01T00:00:00Z",
+            tags: [],
           },
         ]
       );
@@ -389,10 +383,9 @@ describe("Pagination Integration Tests", () => {
         full_name: `Employee ${index}`,
         employee_id_number: `EMP${String(index).padStart(3, "0")}`,
         workspace_id: "ws-1",
-        is_active: true,
-        original_hire_date: "2020-01-01", hire_date: "2025-01-01",
         created_at: "2025-01-01T00:00:00Z",
         updated_at: "2025-01-01T00:00:00Z",
+        tags: [],
       }));
 
       const mockEmployees = createPaginatedResponse(largeEmployeeList, {

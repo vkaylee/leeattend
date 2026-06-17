@@ -78,7 +78,7 @@ describe("Employee Self-Service (ESS) API Client", () => {
   });
 
   it("addEmergencyContact should make a POST call", async () => {
-    const newContact = { name: "Contact 2", relationship: "Spouse", phone: "111" };
+    const newContact = { contact_name: "Contact 2", relationship: "Spouse", phone: "111" };
     vi.mocked(client.POST).mockResolvedValueOnce({ data: newContact } as any);
 
     const result = await addEmergencyContact(newContact);

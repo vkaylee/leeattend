@@ -679,6 +679,7 @@
     "expand_sidebar": "展开侧边栏",
     "collapse_sidebar": "收起侧边栏",
     "storage": {
+      "missing_fields": "请在保存前填写所有 S3 凭据。",
       "test_missing_fields": "Please fill all fields before testing.",
       "test_success": "Connection successful!",
       "test_error": "Connection failed. Please check your credentials.",

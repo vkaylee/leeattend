@@ -31,7 +31,8 @@ describe("PayrollTable", () => {
   const mockPayslips: Payslip[] = [
     {
       id: "slip-1",
-      employee_id: "emp-1",
+      workspace_id: "ws-1",
+      employment_id: "emp-1",
       period_start: "2026-01-01",
       period_end: "2026-01-31",
       base_pay_amount: "10000000",

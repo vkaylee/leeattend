@@ -40,17 +40,15 @@ describe("WorkspaceDangerPage", () => {
     vi.mocked(useWorkspace).mockReturnValue({
       workspace: {
         id: "test-ws-id",
- 
         name: "Test Workspace",
-        work_unit_minutes: 0,
- 
-        rounding_policy: "",
         date_format: "",
         time_format: "",
         timezone: "",
         theme_primary_color: "",
         default_language: "",
         created_at: "",
+        default_holiday_ot_multiplier: "1.5",
+        holiday_overnight_strategy: "split",
       },
       isLoading: false,
       isError: false,

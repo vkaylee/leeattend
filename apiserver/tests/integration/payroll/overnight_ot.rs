@@ -178,13 +178,13 @@ async fn test_overnight_ot_payroll_calculation() {
 
     // Verify payroll was calculated
     assert!(
-        payslip.base_pay_amount > Decimal::ZERO,
+        payslip.base_pay_amount() > Decimal::ZERO,
         "Base pay should be calculated for overnight shift"
     );
 
     // Standard units should reflect the work done
     assert!(
-        payslip.standard_units > 0,
+        payslip.standard_units() > 0,
         "Standard units should be > 0 for overnight work"
     );
 

@@ -32,6 +32,7 @@ const mockDevice: Device = {
   is_enabled: true,
   timezone: "UTC",
   last_status: "online",
+  max_concurrent_workers: 1,
   created_at: new Date().toISOString(),
   workspace_id: "ws-1",
 };

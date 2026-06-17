@@ -209,14 +209,14 @@ async fn test_payroll_holiday_work_with_multiplier() {
 
     // holiday_work_premium_amount should be > 0 (employee worked on holiday)
     assert!(
-        payslip.holiday_work_premium_amount > Decimal::ZERO,
+        payslip.holiday_work_premium_amount() > Decimal::ZERO,
         "Holiday work premium should be > 0, got: {}",
-        payslip.holiday_work_premium_amount
+        payslip.holiday_work_premium_amount()
     );
 
     // Net pay should include the premium
     assert!(
-        payslip.net_pay_amount > payslip.base_pay_amount,
+        payslip.net_pay_amount() > payslip.base_pay_amount(),
         "Net pay should be greater than base pay due to holiday premium"
     );
 }
@@ -397,7 +397,7 @@ async fn test_payroll_holiday_work_no_credit() {
 
     // Premium should exist (multiplier 2x → premium = 1x worth)
     assert!(
-        payslip.holiday_work_premium_amount > Decimal::ZERO,
+        payslip.holiday_work_premium_amount() > Decimal::ZERO,
         "Should have holiday premium even without credit"
     );
 }
@@ -578,7 +578,7 @@ async fn test_payroll_holiday_work_unpaid_no_premium() {
 
     // multiplier=1 means (1-1)=0 premium
     assert_eq!(
-        payslip.holiday_work_premium_amount,
+        payslip.holiday_work_premium_amount(),
         Decimal::ZERO,
         "ot_multiplier=1 should produce zero premium"
     );

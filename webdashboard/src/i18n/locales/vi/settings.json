@@ -679,6 +679,7 @@
     "expand_sidebar": "Mở rộng thanh bên",
     "collapse_sidebar": "Thu gọn thanh bên",
     "storage": {
+      "missing_fields": "Vui lòng điền đầy đủ thông tin S3 trước khi lưu.",
       "test_missing_fields": "Please fill all fields before testing.",
       "test_success": "Connection successful!",
       "test_error": "Connection failed. Please check your credentials.",

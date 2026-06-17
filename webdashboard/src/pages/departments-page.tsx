@@ -1,7 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Building2, LayoutGrid, List, Search, MoreHorizontal, Calculator, Pencil, Trash2 } from "lucide-react";
-import React, { useState, useMemo } from "react";
-import { useTranslation } from "react-i18next";
+import React from "react";
 
 import { DepartmentCard } from "@/components/features/departments/department-card";
 import { DepartmentConfigModal } from "@/components/features/departments/department-config-modal";
@@ -12,88 +10,36 @@ import { Combobox } from "@/components/ui/combobox";
 import EmptyState from "@/components/ui/empty-state";
 import PageHeader from "@/components/ui/page-header";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { useConfirm } from "@/hooks/use-confirm";
 
-import { fetchDepartments, deleteDepartment, getCurrentWorkspaceId, fetchEmployees, Department } from "../lib/api";
+import { useDepartmentsPage } from "./departments/hooks/use-departments-page";
 
 export default function DepartmentsPage() {
-  const { t } = useTranslation();
-  const wsId = getCurrentWorkspaceId() ?? "";
-  const queryClient = useQueryClient();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
-  const [editingDept, setEditingDept] = useState<Department | null>(null);
-
-  // Detail Drawer state
-  const [selectedDeptForDetail, setSelectedDeptForDetail] = useState<Department | null>(null);
-
-  // Search, Filter, and View Mode states
-  const [viewMode, setViewMode] = useState<"grid" | "table">("table");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedManagerId, setSelectedManagerId] = useState("all");
-
-  const { confirm, ConfirmationDialog } = useConfirm();
-
-  const { data: departments = [], isLoading } = useQuery({ 
-    queryKey: ["departments", wsId], 
-    queryFn: () => fetchDepartments(wsId), 
-    enabled: !!wsId 
-  });
-
-  const { data: employeesData } = useQuery({ 
-    queryKey: ["employees", wsId], 
-    queryFn: () => fetchEmployees(wsId, 1, 1000), 
-    enabled: !!wsId 
-  });
-
-  const employees = employeesData?.data ?? [];
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteDepartment(wsId, id),
-    onSuccess: () => { 
-      void queryClient.invalidateQueries({ queryKey: ["departments", wsId] }); 
-    },
-  });
-
-  const handleDelete = async (id: string) => {
-    const ok = await confirm({
-      title: t("common.warning", { defaultValue: "Warning" }),
-      message: t("departments.messages.confirm_delete"),
-      variant: "danger"
-    });
-    if (ok) deleteMutation.mutate(id);
-  };
-
-  // Compute unique managers options for combobox filter
-  const managerOptions = useMemo(() => {
-    const managerIds = new Set(departments.map(d => d.manager_id).filter(Boolean));
-    const activeManagers = employees.filter(e => managerIds.has(e.id));
-    
-    return [
-      { value: "all", label: t("departments.all_managers").toUpperCase() },
-      ...activeManagers.map(e => ({
-        value: e.id,
-        label: e.full_name.toUpperCase(),
-        description: e.department_name ? e.department_name : undefined
-      }))
-    ];
-  }, [departments, employees, t]);
-
-  // Compute filtered departments
-  const filteredDepartments = useMemo(() => {
-    return departments.filter(dept => {
-      const matchesSearch = 
-        !searchQuery ||
-        dept.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (dept.description && dept.description.toLowerCase().includes(searchQuery.toLowerCase()));
-        
-      const matchesManager = 
-        selectedManagerId === "all" || 
-        dept.manager_id === selectedManagerId;
-        
-      return matchesSearch && matchesManager;
-    });
-  }, [departments, searchQuery, selectedManagerId]);
+  const {
+    t,
+    wsId,
+    isModalOpen,
+    setIsModalOpen,
+    isConfigModalOpen,
+    setIsConfigModalOpen,
+    editingDept,
+    setEditingDept,
+    selectedDeptForDetail,
+    setSelectedDeptForDetail,
+    viewMode,
+    setViewMode,
+    searchQuery,
+    setSearchQuery,
+    selectedManagerId,
+    setSelectedManagerId,
+    ConfirmationDialog,
+    departments,
+    isLoading,
+    employees,
+    deleteMutation,
+    handleDelete,
+    managerOptions,
+    filteredDepartments,
+  } = useDepartmentsPage();
 
   if (!wsId) return <div className="p-12 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("common.select_workspace")}</div>;
 

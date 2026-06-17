@@ -679,6 +679,7 @@
     "expand_sidebar": "Expand sidebar",
     "collapse_sidebar": "Collapse sidebar",
     "storage": {
+      "missing_fields": "Please fill in all S3 credentials before saving.",
       "test_missing_fields": "Please fill all fields before testing.",
       "test_success": "Connection successful!",
       "test_error": "Connection failed. Please check your credentials.",

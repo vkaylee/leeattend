@@ -238,7 +238,10 @@ export default function EmployeeFormModal({
   const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const data: any = {
+    const data: Partial<Employee> & {
+      hire_date: string;
+      is_active: boolean;
+    } = {
       full_name: formData.get("full_name") as string,
       employee_id_number: formData.get("employee_id_number") as string,
       hire_date: formData.get("hire_date") as string,

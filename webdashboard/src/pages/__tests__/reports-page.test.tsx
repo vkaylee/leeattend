@@ -80,24 +80,19 @@ describe("ReportsPage", () => {
     vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("test-ws-id");
  
     vi.mocked(api.fetchWorkspace).mockResolvedValue({
- 
       id: "test-ws-id",
- 
       name: "Test Workspace",
- 
-      work_unit_minutes: 60,
-      rounding_policy: "none",
       date_format: "YYYY-MM-DD",
       time_format: "HH:mm",
- 
       timezone: "UTC",
- 
       theme_primary_color: "#000000",
       default_language: "en",
       created_at: "2025-01-01T00:00:00Z",
+      default_holiday_ot_multiplier: "1.5",
+      holiday_overnight_strategy: "split",
     });
-    vi.mocked(api.fetchEmployees).mockResolvedValue({ data: [{ id: "emp-1", full_name: "John Doe", workspace_id: "test-ws-id", employee_id_number: "E01", original_hire_date: "2020-01-01", hire_date: "2025-01-01", is_active: true, created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z" }], total: 1, page: 1, limit: 50 });
-    vi.mocked(api.searchEmployees).mockResolvedValue({ data: [{ id: "emp-1", full_name: "John Doe", workspace_id: "test-ws-id", employee_id_number: "E01", original_hire_date: "2020-01-01", hire_date: "2025-01-01", is_active: true, created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z" }], total: 1, page: 1, limit: 50 });
+    vi.mocked(api.fetchEmployees).mockResolvedValue({ data: [{ id: "emp-1", full_name: "John Doe", workspace_id: "test-ws-id", employee_id_number: "E01", created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z", tags: [] }], total: 1, page: 1, limit: 50 });
+    vi.mocked(api.searchEmployees).mockResolvedValue({ data: [{ id: "emp-1", full_name: "John Doe", workspace_id: "test-ws-id", employee_id_number: "E01", created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z", tags: [] }], total: 1, page: 1, limit: 50 });
     vi.mocked(api.fetchDepartments).mockResolvedValue([]);
     vi.mocked(api.fetchAttendanceReport).mockImplementation(() => Promise.resolve({
       data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0, computed_std_hours: 800, computed_ot_hours: 100 }],

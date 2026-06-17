@@ -54,7 +54,7 @@ describe("ContractFormModal", () => {
   const mockExistingContract: EmployeeContract = {
     id: "contract-1",
     workspace_id: "ws-1",
-    employee_id: "emp-1",
+    employment_id: "emp-1",
     contract_number: "HD-001",
     contract_type: "fixed_term",
     status: "active",

@@ -329,13 +329,13 @@ describe("api.ts comprehensive tests", () => {
 
     it("createShift", async () => {
       mockSuccess({});
-      await api.createShift("ws-1", { name: "S" });
+      await api.createShift("ws-1", { name: "S", break_duration_minutes: 0, start_time: "08:00", end_time: "17:00" });
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/shifts"), expect.objectContaining({ method: "POST" }));
     });
 
     it("updateShift", async () => {
       mockSuccess({});
-      await api.updateShift("ws-1", "s1", { name: "U" });
+      await api.updateShift("ws-1", "s1", { name: "U", break_duration_minutes: 0, start_time: "08:00", end_time: "17:00" });
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/shifts/s1"), expect.objectContaining({ method: "PUT" }));
     });
 

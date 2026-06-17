@@ -94,7 +94,8 @@ describe("AdjustmentRequestModal", () => {
   it("renders with edit title when timeEntry provided", () => {
     const mockEntry: TimeEntry = { 
       id: "entry-1", 
-      employee_id: "emp-1",
+      employment_id: "emp-1",
+      workspace_id: "ws-1",
       punch_in_time: "2024-01-01T08:00:00Z", 
       punch_out_time: "2024-01-01T17:00:00Z", 
       entry_type: "work", 

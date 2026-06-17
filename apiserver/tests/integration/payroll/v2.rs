@@ -159,21 +159,21 @@ async fn test_calculate_payroll_multi_segment() {
     // Segment 1: Base=2600, StdDays=26 -> DailyRate=100. Worked 1 day -> Pay=100.
     // Segment 2: Base=5200, StdDays=26 -> DailyRate=200. Worked 1 day -> Pay=200.
     // Total Base Pay = 300.
-    assert_eq!(payslip.base_pay_amount.round_dp(2), Decimal::from(300));
+    assert_eq!(payslip.base_pay_amount().round_dp(2), Decimal::from(300));
 
     // 6. Verify Segments are stored
     let pr_instance = apiserver::repositories::DieselPayrollRepository::new(diesel_pools.clone());
     let segments = pr_instance
-        .get_payslip_segments(workspace_id, payslip.id)
+        .get_payslip_segments(workspace_id, payslip.id())
         .await
         .unwrap();
     assert_eq!(segments.len(), 2);
 
     let seg1 = &segments[0];
-    assert_eq!(seg1.applied_base_salary, Decimal::from(2600));
-    assert_eq!(seg1.amount.round_dp(2), Decimal::from(100));
+    assert_eq!(seg1.applied_base_salary(), Decimal::from(2600));
+    assert_eq!(seg1.amount().round_dp(2), Decimal::from(100));
 
     let seg2 = &segments[1];
-    assert_eq!(seg2.applied_base_salary, Decimal::from(5200));
-    assert_eq!(seg2.amount.round_dp(2), Decimal::from(200));
+    assert_eq!(seg2.applied_base_salary(), Decimal::from(5200));
+    assert_eq!(seg2.amount().round_dp(2), Decimal::from(200));
 }

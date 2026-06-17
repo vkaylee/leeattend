@@ -155,9 +155,9 @@ async fn test_payroll_credits_paid_holiday() {
     // Worked 1 actual day (8 hours) -> standard_units: 8
     // + Auto-credited 1 paid holiday (8 hours) -> standard_units: 8
     // Total standard units should be 16 (equivalent to 2 work days).
-    assert_eq!(payslip.standard_units, 16);
+    assert_eq!(payslip.standard_units(), 16);
 
     // Dailyrate = 100.
     // 2 standard days = Pay = 200.
-    assert_eq!(payslip.base_pay_amount.round_dp(2), Decimal::from(200));
+    assert_eq!(payslip.base_pay_amount().round_dp(2), Decimal::from(200));
 }

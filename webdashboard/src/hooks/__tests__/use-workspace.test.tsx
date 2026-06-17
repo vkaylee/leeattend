@@ -63,6 +63,8 @@ describe("useWorkspaces", () => {
           timezone: "Asia/Ho_Chi_Minh",
           theme_primary_color: "#10b981",
           default_language: "en",
+          default_holiday_ot_multiplier: "2.0",
+          holiday_overnight_strategy: "split",
           created_at: new Date().toISOString()
         },
       ];
@@ -88,6 +90,8 @@ describe("useWorkspaces", () => {
           timezone: "Asia/Ho_Chi_Minh", 
           theme_primary_color: "#10b981",
           default_language: "en",
+          default_holiday_ot_multiplier: "2.0",
+          holiday_overnight_strategy: "split",
           created_at: new Date().toISOString() 
  
         };    vi.mocked(api.createWorkspace).mockResolvedValue(newWs);
@@ -209,7 +213,7 @@ describe("useWorkspacePermissionsMatrix", () => {
     vi.mocked(api.fetchWorkspaceRoles).mockResolvedValue(mockRoles as unknown as never);
     
     // role-1 has perms: p1, p2. role-2 has: p2.
-    vi.mocked(api.fetchRolePermissions).mockImplementation((_wsId, roleId) => {
+    vi.mocked(api.fetchRolePermissions).mockImplementation((_wsId: string, roleId: string) => {
       if (roleId === "role-1") return Promise.resolve(["p1", "p2"]);
       if (roleId === "role-2") return Promise.resolve(["p2"]);
       return Promise.resolve([]);

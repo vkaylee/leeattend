@@ -109,6 +109,7 @@ describe("useRuleAssignments", () => {
 
     result.current.createMutation.mutate({
       assignee_type: "workspace",
+      effective_from: "2026-01-01",
     });
 
     await waitFor(() => {
@@ -118,7 +119,7 @@ describe("useRuleAssignments", () => {
     expect(payrollApi.createPayrollRuleAssignment).toHaveBeenCalledWith(
       "ws-1",
       "rule-1",
-      { assignee_type: "workspace" }
+      { assignee_type: "workspace", effective_from: "2026-01-01" }
     );
     expect(mockToastSuccess).toHaveBeenCalledWith("Success");
   });

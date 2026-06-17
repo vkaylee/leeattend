@@ -61,7 +61,7 @@ async fn test_leave_service_transaction_successful_commit() {
     // Verify it was successfully written to the database
     let db_status: String = crate::test_query_scalar_string!(
         &pools.api,
-        "SELECT status FROM leave_requests WHERE id = $1 LIMIT 1",
+        "SELECT status::text AS val FROM leave_requests WHERE id = $1 LIMIT 1",
         diesel::sql_types::Uuid,
         request.id()
     );

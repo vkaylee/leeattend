@@ -146,12 +146,12 @@ async fn test_payroll_std_days_source_traceability() {
     .unwrap();
     let pr_instance = apiserver::repositories::DieselPayrollRepository::new(diesel_pools.clone());
     let segments_a = pr_instance
-        .get_payslip_segments(workspace_id, payslip_a.id)
+        .get_payslip_segments(workspace_id, payslip_a.id())
         .await
         .unwrap();
     assert_eq!(segments_a.len(), 1);
-    assert_eq!(segments_a[0].std_days_source.as_deref(), Some("system"));
-    assert_eq!(segments_a[0].applied_std_days, Decimal::from(26));
+    assert_eq!(segments_a[0].std_days_source(), Some("system"));
+    assert_eq!(segments_a[0].applied_std_days(), Decimal::from(26));
 
     // 4. Scenario B: Workspace Override
     pr_instance
@@ -236,12 +236,12 @@ async fn test_payroll_std_days_source_traceability() {
     .await
     .unwrap();
     let segments_b = pr_instance
-        .get_payslip_segments(workspace_id, payslip_b.id)
+        .get_payslip_segments(workspace_id, payslip_b.id())
         .await
         .unwrap();
     assert_eq!(segments_b.len(), 1);
-    assert_eq!(segments_b[0].std_days_source.as_deref(), Some("workspace"));
-    assert_eq!(segments_b[0].applied_std_days, Decimal::from(24));
+    assert_eq!(segments_b[0].std_days_source(), Some("workspace"));
+    assert_eq!(segments_b[0].applied_std_days(), Decimal::from(24));
 
     // 5. Scenario C: Department Override
     let dept_repo = apiserver::repositories::DieselDepartmentRepository::new(diesel_pools.clone());
@@ -322,12 +322,12 @@ async fn test_payroll_std_days_source_traceability() {
     .await
     .unwrap();
     let segments_c = pr_instance
-        .get_payslip_segments(workspace_id, payslip_c.id)
+        .get_payslip_segments(workspace_id, payslip_c.id())
         .await
         .unwrap();
     assert_eq!(segments_c.len(), 1);
-    assert_eq!(segments_c[0].std_days_source.as_deref(), Some("department"));
-    assert_eq!(segments_c[0].applied_std_days, Decimal::from(22));
+    assert_eq!(segments_c[0].std_days_source(), Some("department"));
+    assert_eq!(segments_c[0].applied_std_days(), Decimal::from(22));
 
     // 6. Scenario D: Individual Override
     let employee_repo =
@@ -409,10 +409,10 @@ async fn test_payroll_std_days_source_traceability() {
     .await
     .unwrap();
     let segments_d = pr_instance
-        .get_payslip_segments(workspace_id, payslip_d.id)
+        .get_payslip_segments(workspace_id, payslip_d.id())
         .await
         .unwrap();
     assert_eq!(segments_d.len(), 1);
-    assert_eq!(segments_d[0].std_days_source.as_deref(), Some("individual"));
-    assert_eq!(segments_d[0].applied_std_days, Decimal::from(20));
+    assert_eq!(segments_d[0].std_days_source(), Some("individual"));
+    assert_eq!(segments_d[0].applied_std_days(), Decimal::from(20));
 }

@@ -44,17 +44,16 @@ const createMockEmployee = (overrides: Partial<Employee> = {}): Employee => ({
   workspace_id: "ws-1",
   full_name: "Nguyen Van A",
   employee_id_number: "EMP001",
-  department_name: "Engineering",
-  original_hire_date: "2020-01-01", hire_date: "2024-01-01",
-  is_active: true,
   created_at: "2024-01-01T00:00:00Z",
   updated_at: "2024-01-01T00:00:00Z",
+  tags: [],
   ...overrides,
 });
 
 const createMockPayslip = (overrides: Partial<Payslip> = {}): Payslip => ({
   id: "slip-1",
-  employee_id: "emp-1",
+  workspace_id: "ws-1",
+  employment_id: "emp-1",
   period_start: "2026-01-01",
   period_end: "2026-01-31",
   base_pay_amount: "10000000",
@@ -83,7 +82,7 @@ const createMockPayslip = (overrides: Partial<Payslip> = {}): Payslip => ({
     {
       component: {
         id: "comp-1",
-        employee_id: "emp-1",
+        employment_id: "emp-1",
         component_definition_id: "def-1",
         amount: "10000000",
         effective_date: "2024-01-01",
@@ -101,7 +100,7 @@ const createMockPayslip = (overrides: Partial<Payslip> = {}): Payslip => ({
     },
   ],
   incentives: [
-    { policy_name: "Diligence Bonus", amount: "500000" },
+    { policy_name: "Diligence Bonus", amount: "500000", standard_amount: "500000" },
   ],
   ...overrides,
 });
@@ -109,13 +108,13 @@ const createMockPayslip = (overrides: Partial<Payslip> = {}): Payslip => ({
 const createMockWorkspace = (overrides: Partial<Workspace> = {}): Workspace => ({
   id: "ws-1",
   name: "Tech Company Ltd",
-  work_unit_minutes: 60,
-  rounding_policy: "nearest",
   date_format: "DD/MM/YYYY",
-  time_format: "24h",
+  time_format: "HH:mm",
   timezone: "Asia/Bangkok",
-  theme_primary_color: "#3b82f6",
   default_language: "vi",
+  default_holiday_ot_multiplier: "2.0",
+  holiday_overnight_strategy: "split",
+  theme_primary_color: "#000000",
   created_at: "2024-01-01T00:00:00Z",
   ...overrides,
 });
@@ -227,7 +226,7 @@ describe("PayslipDocument", () => {
         {
           component: {
             id: "comp-1",
-            employee_id: "emp-1",
+            employment_id: "emp-1",
             component_definition_id: "def-1",
             amount: "10000000",
             effective_date: "2024-01-01",
@@ -246,7 +245,7 @@ describe("PayslipDocument", () => {
         {
           component: {
             id: "comp-2",
-            employee_id: "emp-1",
+            employment_id: "emp-1",
             component_definition_id: "def-2",
             amount: "1000000",
             effective_date: "2024-01-01",
@@ -299,7 +298,7 @@ describe("PayslipDocument", () => {
         {
           component: {
             id: "comp-1",
-            employee_id: "emp-1",
+            employment_id: "emp-1",
             component_definition_id: "def-1",
             amount: "10000000",
             effective_date: "2024-01-01",
@@ -388,7 +387,7 @@ describe("PayslipDocument", () => {
     const payslip = createMockPayslip({
       salary_components: [
         {
-          // @ts-expect-error - Simulating runtime data mismatch
+          // @ts-ignore - Simulating runtime data mismatch
           component: {
             amount: "10000000"
           }
@@ -445,8 +444,8 @@ describe("PayslipDocument", () => {
         employee={createMockEmployee()}
         payslip={createMockPayslip({
           incentives: [
-            { policy_name: "Diligence Bonus", amount: "500000" },
-            { policy_name: "Safety Bonus", amount: "200000" },
+            { policy_name: "Diligence Bonus", amount: "500000", standard_amount: "500000" },
+            { policy_name: "Safety Bonus", amount: "200000", standard_amount: "200000" },
           ],
         })}
         workspace={createMockWorkspace()}

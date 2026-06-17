@@ -85,14 +85,14 @@ export default function Modal({
                   </div>
                 )}
                 <div className="min-w-0">
-                  {Boolean(title) ? (
+                  {title ? (
                     <Dialog.Title asChild>
                       <Typography className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight truncate leading-normal pt-1 uppercase" variant="h2">
                         {title}
                       </Typography>
                     </Dialog.Title>
                   ) : null}
-                  {Boolean(subtitle) ? (
+                  {subtitle ? (
                     <Dialog.Description asChild>
                       <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest opacity-70 truncate" variant="p">
                         {subtitle}

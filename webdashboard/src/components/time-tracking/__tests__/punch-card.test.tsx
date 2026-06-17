@@ -82,7 +82,8 @@ describe("PunchCard", () => {
   it("renders working status with active entry", () => {
     const activeEntry = {
       id: "1",
-      employee_id: "emp-1",
+      employment_id: "emp-1",
+      workspace_id: "ws-1",
       punch_in_time: "2024-01-21T08:00:00Z",
       punch_out_time: undefined,
       entry_type: "work",
@@ -102,7 +103,8 @@ describe("PunchCard", () => {
     const user = userEvent.setup();
     const activeEntry = {
       id: "1",
-      employee_id: "emp-1",
+      employment_id: "emp-1",
+      workspace_id: "ws-1",
       punch_in_time: "2024-01-21T08:00:00Z",
       punch_out_time: undefined,
       entry_type: "work",

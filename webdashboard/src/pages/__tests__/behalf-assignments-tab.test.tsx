@@ -210,8 +210,8 @@ describe("BehalfAssignmentsTab", () => {
   ];
 
   const mockDepartments = [
-    { id: "dept-1", name: "Engineering", description: "Eng department" },
-    { id: "dept-2", name: "Marketing", description: "Mkt department" },
+    { id: "dept-1", name: "Engineering", description: "Eng department", active_employee_count: 5, created_at: "", updated_at: "", workspace_id: "ws-1" },
+    { id: "dept-2", name: "Marketing", description: "Mkt department", active_employee_count: 5, created_at: "", updated_at: "", workspace_id: "ws-1" },
   ];
 
   const mockAssignments = [
@@ -225,6 +225,10 @@ describe("BehalfAssignmentsTab", () => {
       target_employee_id_number: "E002",
       target_department_id: null,
       target_department_name: null,
+      assignment_type: "ot",
+      created_at: "",
+      updated_at: "",
+      workspace_id: "ws-1",
     },
     {
       id: "assign-2",
@@ -236,6 +240,10 @@ describe("BehalfAssignmentsTab", () => {
       target_employee_id_number: null,
       target_department_id: "dept-1",
       target_department_name: "Engineering",
+      assignment_type: "ot",
+      created_at: "",
+      updated_at: "",
+      workspace_id: "ws-1",
     },
   ];
 

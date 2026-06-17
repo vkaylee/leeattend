@@ -180,7 +180,7 @@ async fn test_grace_period_zero_shift_uses_policy_default() {
     // With grace_period=0, policy default should apply (usually allows some grace)
     // The 5-min early punch should be within standard hours
     assert!(
-        payslip.standard_units > 0,
+        payslip.standard_units() > 0,
         "Standard units should be > 0 when grace period applies"
     );
 }
@@ -349,7 +349,7 @@ async fn test_grace_period_nonzero_shift_overrides() {
 
     // 10 minutes early is within 15-min grace period
     assert!(
-        payslip.standard_units > 0,
+        payslip.standard_units() > 0,
         "Grace period override should apply"
     );
 }

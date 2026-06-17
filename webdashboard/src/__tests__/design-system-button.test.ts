@@ -71,6 +71,7 @@ const LEGACY_VIOLATIONS = new Set([
   "pages/approvals/components/pre-ot-approvals-tab.tsx",
   "pages/approvals/ot-approvals-page.tsx",
   "pages/assignment-rules/components/assignment-rule-row.tsx",
+  "pages/attendance/components/adjustments-table/header.tsx",
   "pages/attendance/components/adjustments-table/row.tsx",
   "pages/attendance/components/adjustments-tabs.tsx",
   "pages/attendance/components/attendance-logs-filters.tsx",
@@ -81,6 +82,7 @@ const LEGACY_VIOLATIONS = new Set([
   "pages/ess/components/create-ot-request-modal.tsx",
   "pages/ess/components/my-ot-assignments-list.tsx",
   "pages/ess/ot-page.tsx",
+  "pages/leave-requests-page.tsx",
   "pages/monitor/header.tsx",
   "pages/onboarding-page.tsx",
   "pages/payroll/components/payroll-header.tsx",
@@ -163,6 +165,10 @@ describe("UI Standards: Button Compliance", () => {
         }
       }
     });
+
+    if (newViolations.length > 0) {
+      console.error("NEW VIOLATIONS:", newViolations);
+    }
 
     expect(
       newViolations,

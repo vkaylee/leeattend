@@ -85,11 +85,10 @@ const mockEmployee = (id: string, name: string, active = true, department?: stri
     full_name: name,
     employee_id_number: `EMP-${id}`,
     workspace_id: "test-ws-id",
-    active_employment_id: active ? `employment-id-${id}` : undefined,
-    is_active: active,
-    original_hire_date: "2020-01-01", hire_date: "2025-01-01",
+    active_employment_id: active ? `employment-id-${id}` : null,
     created_at: "2025-01-01T00:00:00Z",
     updated_at: "2025-01-01T00:00:00Z",
+    tags: [],
     ...(department ? { department_name: department } : {}),
 });
 

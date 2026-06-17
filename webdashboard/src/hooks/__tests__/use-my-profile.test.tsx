@@ -95,8 +95,8 @@ describe("useEmergencyContacts", () => {
 
     expect(result.current.contacts).toEqual(mockContacts);
 
-    await result.current.addContact({ name: "Bob", relationship: "Friend", phone: "222" });
-    expect(api.addEmergencyContact).toHaveBeenCalledWith({ name: "Bob", relationship: "Friend", phone: "222" });
+    await result.current.addContact({ contact_name: "Bob", relationship: "Friend", phone: "222" });
+    expect(api.addEmergencyContact).toHaveBeenCalledWith({ contact_name: "Bob", relationship: "Friend", phone: "222" });
 
     await result.current.deleteContact("c-1");
     expect(api.deleteEmergencyContact).toHaveBeenCalledWith("c-1");

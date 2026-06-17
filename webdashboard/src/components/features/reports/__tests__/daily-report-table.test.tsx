@@ -22,6 +22,7 @@ describe("DailyReportTable", () => {
         {
             date: "2024-03-20",
             employee_id: "EMP001",
+            employment_id: "EMP001",
             employee_name: "John Doe",
             scheduled_start: "08:00:00",
             scheduled_end: "17:00:00",
@@ -47,6 +48,7 @@ describe("DailyReportTable", () => {
         {
             date: "2024-03-21",
             employee_id: "EMP002",
+            employment_id: "EMP002",
             employee_name: "Jane Smith",
             scheduled_start: "08:00:00",
             scheduled_end: "17:00:00",

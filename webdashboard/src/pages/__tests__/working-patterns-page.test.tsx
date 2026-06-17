@@ -108,8 +108,8 @@ describe("WorkingPatternsPage", () => {
     ] as unknown as Shift[]);
     vi.mocked(api.fetchEmployees).mockResolvedValue({
       data: [
-        { id: "emp-1", full_name: "John Doe", employee_id_number: "EMP001", workspace_id: "ws-1", is_active: true, active_employment_id: "employment-1", original_hire_date: "2020-01-01", hire_date: "2025-01-01", created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z" },
-        { id: "emp-2", full_name: "Jane Smith", employee_id_number: "EMP002", workspace_id: "ws-1", is_active: true, active_employment_id: "employment-2", original_hire_date: "2020-01-01", hire_date: "2025-01-02", created_at: "2025-01-02T00:00:00Z", updated_at: "2025-01-02T00:00:00Z" }
+        { id: "emp-1", full_name: "John Doe", employee_id_number: "EMP001", workspace_id: "ws-1", tags: [], active_employment_id: "employment-1", created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z" },
+        { id: "emp-2", full_name: "Jane Smith", employee_id_number: "EMP002", workspace_id: "ws-1", tags: [], active_employment_id: "employment-2", created_at: "2025-01-02T00:00:00Z", updated_at: "2025-01-02T00:00:00Z" }
       ],
       total: 2,
       page: 1,

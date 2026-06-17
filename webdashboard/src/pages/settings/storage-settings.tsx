@@ -80,6 +80,8 @@ export function StorageSettings() {
         access_key: accessKey,
         secret_key: secretKey,
         use_path_style: usePathStyle,
+        max_file_size: 104857600,
+        presigned_ttl_secs: 3600,
       });
       setTestResult("success");
       toast.success(t("settings.storage.test_success", "Connection successful!"));
@@ -93,14 +95,20 @@ export function StorageSettings() {
 
   const handleSaveConfig = async () => {
     if (isCustom) {
+      if (!endpointUrl || !bucketName || !accessKey || !secretKey || !region) {
+        toast.error(t("settings.storage.missing_fields", "Please fill in all S3 credentials before saving."));
+        return;
+      }
       try {
         await upsertMutation.mutateAsync({
           endpoint_url: endpointUrl,
           region,
           bucket_name: bucketName,
           access_key: accessKey,
-          secret_key: secretKey || undefined, // Send undefined if empty
+          secret_key: secretKey,
           use_path_style: usePathStyle,
+          max_file_size: 104857600,
+          presigned_ttl_secs: 3600,
         });
         toast.success(t("settings.storage.save_success", "Storage configuration saved."));
       } catch {

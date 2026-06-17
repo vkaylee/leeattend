@@ -147,23 +147,24 @@ async fn test_net_pay_formula_with_zero_deductions() {
     // Verify net_pay formula: net_pay = base_pay + overtime_pay - deductions
     // (Note: incentive is not a separate field in Payslip model)
     // Since deductions = 0 currently:
-    let expected_net_pay = payslip.base_pay_amount + payslip.overtime_pay_amount;
+    let expected_net_pay = payslip.base_pay_amount() + payslip.overtime_pay_amount();
 
     assert_eq!(
-        payslip.net_pay_amount, expected_net_pay,
+        payslip.net_pay_amount(),
+        expected_net_pay,
         "Net pay should equal base_pay + overtime_pay when deductions = 0"
     );
 
     // Also verify deductions is zero (current implementation)
     assert_eq!(
-        payslip.deductions_amount,
+        payslip.deductions_amount(),
         Decimal::ZERO,
         "Deductions should be zero in current implementation"
     );
 
     // Ensure base pay was actually calculated
     assert!(
-        payslip.base_pay_amount > Decimal::ZERO,
+        payslip.base_pay_amount() > Decimal::ZERO,
         "Base pay should be > 0"
     );
 }

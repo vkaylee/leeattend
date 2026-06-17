@@ -8,6 +8,7 @@ use uuid::Uuid;
 use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
+use apiserver::repositories::PayrollRepository;
 use apiserver::services::payroll_rule_evaluator::PayrollRuleEvaluator;
 use apiserver::AppState;
 use chrono::NaiveDate;
@@ -190,30 +191,27 @@ async fn test_payroll_rule_evaluator() {
     let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
     let pr = apiserver::repositories::DieselPayrollRepository::new(diesel_pools.clone());
 
-    let assignments = pr.get_resolved_rule_assignments(
-        ws_id,
-        employee_id,
-        None,
-        start_date,
-        end_date,
-    )
-    .await
-    .unwrap();
+    let assignments = pr
+        .get_resolved_rule_assignments(ws_id, employee_id, None, start_date, end_date)
+        .await
+        .unwrap();
 
     let mut rule_assignments_with_tiers = Vec::new();
     for assignment in assignments {
-        let tiers = pr.get_payroll_rule_tiers(ws_id, assignment.rule_definition_id).await.unwrap();
-        rule_assignments_with_tiers.push(apiserver::services::financial_calculator::RuleAssignmentWithTiers {
-            assignment,
-            tiers,
-        });
+        let tiers = pr
+            .get_payroll_rule_tiers(ws_id, assignment.rule_definition_id)
+            .await
+            .unwrap();
+        rule_assignments_with_tiers.push(
+            apiserver::services::financial_calculator::RuleAssignmentWithTiers {
+                assignment,
+                tiers,
+            },
+        );
     }
 
-    let results = PayrollRuleEvaluator::evaluate_rules(
-        &rule_assignments_with_tiers,
-        &base_values,
-    )
-    .unwrap();
+    let results =
+        PayrollRuleEvaluator::evaluate_rules(&rule_assignments_with_tiers, &base_values).unwrap();
 
     assert_eq!(results.len(), 1);
     assert_eq!(results[0].rule_code, "TAX10");

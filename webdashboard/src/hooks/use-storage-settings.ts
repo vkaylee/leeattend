@@ -5,6 +5,7 @@ import {
   upsertStorageConfig,
   testStorageConfig,
   deleteStorageConfig,
+  type CreateStorageConfigRequest,
 } from "@/lib/api/storage-config";
 import { useWorkspace } from "@/hooks/use-workspace";
 
@@ -32,7 +33,7 @@ export const useUpsertStorageConfig = () => {
   const { workspace } = useWorkspace();
 
   return useMutation({
-    mutationFn: (payload: any) => {
+    mutationFn: (payload: CreateStorageConfigRequest) => {
       const workspaceId = workspace?.id;
       if (!workspaceId) throw new Error("No workspace ID");
       return upsertStorageConfig(workspaceId, payload);
@@ -47,7 +48,7 @@ export const useTestStorageConfig = () => {
   const { workspace } = useWorkspace();
 
   return useMutation({
-    mutationFn: (payload: any) => {
+    mutationFn: (payload: CreateStorageConfigRequest) => {
       const workspaceId = workspace?.id;
       if (!workspaceId) throw new Error("No workspace ID");
       return testStorageConfig(workspaceId, payload);

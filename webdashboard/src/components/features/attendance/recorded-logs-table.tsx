@@ -39,7 +39,7 @@ export function RecordedLogsTable({
     {
       id: "time",
       header: t("common.time"),
-      cell: ({ row }: any) => {
+      cell: ({ row }: { row: { original: RawAttendanceLog } }) => {
         const log = row.original;
         return (
           <div className="flex items-center gap-4">
@@ -65,7 +65,7 @@ export function RecordedLogsTable({
     {
       id: "employee",
       header: t("common.employee"),
-      cell: ({ row }: any) => {
+      cell: ({ row }: { row: { original: RawAttendanceLog } }) => {
         const log = row.original;
         return (
           <div>
@@ -86,7 +86,7 @@ export function RecordedLogsTable({
     {
       id: "source",
       header: t("common.source"),
-      cell: ({ row }: any) => {
+      cell: ({ row }: { row: { original: RawAttendanceLog } }) => {
         const log = row.original;
         const deviceName = log.device_name ?? (log.source === "Device" && getDeviceName(log.device_id));
         return (
@@ -125,11 +125,15 @@ export function RecordedLogsTable({
     {
       label: t("attendance_logs.context.copy_id", "Copy Employee ID"),
       icon: <User size={14} />,
-      onClick: () => {
+      onClick: async () => {
         const empId = getEmployeeID(log);
         if (empId) {
-          navigator.clipboard.writeText(empId);
-          toast.success(t("common.copied", "Copied to clipboard"), empId);
+          try {
+            await navigator.clipboard.writeText(empId);
+            toast.success(t("common.copied", "Copied to clipboard"), empId);
+          } catch (err) {
+            console.error("Failed to copy text:", err);
+          }
         }
       },
       disabled: !getEmployeeID(log)
@@ -137,10 +141,14 @@ export function RecordedLogsTable({
     {
       label: t("attendance_logs.context.copy_time", "Copy Punch Time"),
       icon: <Clock size={14} />,
-      onClick: () => {
+      onClick: async () => {
         const pTime = formatTime(log.punch_time);
-        navigator.clipboard.writeText(`${formatDate(log.punch_time)} ${pTime}`);
-        toast.success(t("common.copied", "Copied to clipboard"), pTime);
+        try {
+          await navigator.clipboard.writeText(`${formatDate(log.punch_time)} ${pTime}`);
+          toast.success(t("common.copied", "Copied to clipboard"), pTime);
+        } catch (err) {
+          console.error("Failed to copy text:", err);
+        }
       }
     }
   ];

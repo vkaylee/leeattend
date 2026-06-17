@@ -152,12 +152,11 @@ describe("LeaveRequestsPage", () => {
     } as any);
     vi.mocked(api.fetchEmployees).mockResolvedValue({
       data: [
-        { id: "emp-1", full_name: "John Doe", original_hire_date: "2020-01-01", hire_date: "2025-01-01", employee_id_number: "EMP001", workspace_id: "ws-1", is_active: true, active_employment_id: "employment-1", created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z" }
+        { id: "emp-1", full_name: "John Doe", employee_id_number: "EMP001", workspace_id: "ws-1", active_employment_id: "employment-1", created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z", tags: [] }
       ],
       total: 1,
       page: 1,
       limit: 50,
- 
     });
  
     vi.mocked(api.fetchWorkspaceLeaveRequests).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });

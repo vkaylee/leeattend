@@ -41,27 +41,28 @@ const mockEmployees: Employee[] = [
     full_name: "John Doe",
     employee_id_number: "EMP001",
     workspace_id: "ws-1",
-    original_hire_date: "2020-01-01", hire_date: "2024-01-01",
-    is_active: true,
+    active_employment_id: "emp-1",
     created_at: "",
-    updated_at: ""
+    updated_at: "",
+    tags: []
   },
   {
     id: "emp-2",
     full_name: "Jane Smith",
     employee_id_number: "EMP002",
     workspace_id: "ws-1",
-    original_hire_date: "2020-01-01", hire_date: "2024-01-01",
-    is_active: true,
+    active_employment_id: "emp-2",
     created_at: "",
-    updated_at: ""
+    updated_at: "",
+    tags: []
   }
 ];
 
 const mockPayslips: Payslip[] = [
   {
     id: "slip-1",
-    employee_id: "emp-1",
+    workspace_id: "ws-1",
+    employment_id: "emp-1",
     period_start: "2026-01-01",
     period_end: "2026-01-31",
     base_pay_amount: "10000000",

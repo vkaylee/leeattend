@@ -29,23 +29,23 @@ async fn test_persist_calculated_payslip_data_transaction_rollback() {
         );
     let payslip_id = Uuid::new_v4();
 
-    let payslip = Payslip {
-        id: payslip_id,
-        workspace_id: ws_id,
+    let payslip = Payslip::new(
+        payslip_id,
         employment_id,
-        period_start: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-        period_end: NaiveDate::from_ymd_opt(2026, 1, 31).unwrap(),
-        base_pay_amount: Decimal::from(1000),
-        overtime_pay_amount: Decimal::ZERO,
-        holiday_work_premium_amount: Decimal::ZERO,
-        deductions_amount: Decimal::ZERO,
-        net_pay_amount: Decimal::from(1000),
-        status: "draft".to_string(),
-        created_at: Utc::now(),
-        updated_at: Utc::now(),
-        standard_units: 100,
-        overtime_units: 0,
-    };
+        ws_id,
+        NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+        NaiveDate::from_ymd_opt(2026, 1, 31).unwrap(),
+        Decimal::from(1000),
+        Decimal::ZERO,
+        Decimal::ZERO,
+        Decimal::from(1000),
+        100,
+        0,
+        "draft".to_string(),
+        Decimal::ZERO,
+        Utc::now(),
+        Utc::now(),
+    );
 
     // Valid segment
     let valid_segment = CreatePayslipSegmentArgs {

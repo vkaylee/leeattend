@@ -31,28 +31,28 @@ async fn test_payroll_payslips_smoke() {
         employee_id
     );
 
-    let payslip = Payslip {
-        id: Uuid::new_v4(),
+    let payslip = Payslip::new(
+        Uuid::new_v4(),
         employment_id,
-        workspace_id: ws_id,
-        period_start: Utc::now().date_naive(),
-        period_end: Utc::now().date_naive(),
-        base_pay_amount: Decimal::from_i32(4500).unwrap(),
-        overtime_pay_amount: Decimal::from_i32(200).unwrap(),
-        deductions_amount: Decimal::from_i32(100).unwrap(),
-        net_pay_amount: Decimal::from_i32(4600).unwrap(),
-        standard_units: 160,
-        overtime_units: 10,
-        status: "paid".to_string(),
-        holiday_work_premium_amount: Decimal::ZERO,
-        created_at: Utc::now(),
-        updated_at: Utc::now(),
-    };
+        ws_id,
+        Utc::now().date_naive(),
+        Utc::now().date_naive(),
+        Decimal::from_i32(4500).unwrap(),
+        Decimal::from_i32(200).unwrap(),
+        Decimal::from_i32(100).unwrap(),
+        Decimal::from_i32(4600).unwrap(),
+        160,
+        10,
+        "paid".to_string(),
+        Decimal::ZERO,
+        Utc::now(),
+        Utc::now(),
+    );
 
     // 1. Create payslip
     let payroll_repo = apiserver::repositories::DieselPayrollRepository::new(diesel_pools.clone());
     let created = payroll_repo.create_payslip(&payslip).await.unwrap();
-    assert_eq!(created.net_pay_amount, Decimal::from_i32(4600).unwrap());
+    assert_eq!(created.net_pay_amount(), Decimal::from_i32(4600).unwrap());
 
     // 2. Get by employee
     let list = payroll_repo
@@ -77,23 +77,23 @@ async fn test_get_employee_payslips_api() {
     );
 
     // Create a payslip
-    let payslip = Payslip {
-        id: Uuid::new_v4(),
+    let payslip = Payslip::new(
+        Uuid::new_v4(),
         employment_id,
-        workspace_id: ws_id,
-        period_start: Utc::now().date_naive(),
-        period_end: Utc::now().date_naive(),
-        base_pay_amount: Decimal::from_i32(1000).unwrap(),
-        overtime_pay_amount: Decimal::ZERO,
-        deductions_amount: Decimal::ZERO,
-        net_pay_amount: Decimal::from_i32(1000).unwrap(),
-        standard_units: 40,
-        overtime_units: 0,
-        status: "draft".to_string(),
-        holiday_work_premium_amount: Decimal::ZERO,
-        created_at: Utc::now(),
-        updated_at: Utc::now(),
-    };
+        ws_id,
+        Utc::now().date_naive(),
+        Utc::now().date_naive(),
+        Decimal::from_i32(1000).unwrap(),
+        Decimal::ZERO,
+        Decimal::ZERO,
+        Decimal::from_i32(1000).unwrap(),
+        40,
+        0,
+        "draft".to_string(),
+        Decimal::ZERO,
+        Utc::now(),
+        Utc::now(),
+    );
     _state
         .payroll()
         .repo()

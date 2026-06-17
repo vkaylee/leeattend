@@ -33,7 +33,7 @@ describe('client (openapi-fetch adapter)', () => {
     // Note: openapi-fetch generates the URL string from baseUrl.
     // Since we mocked apiFetch, we can inspect what URL it receives.
     
-    await client.GET('/api/v1/workspaces', { params: {} });
+    await (client.GET as any)('/api/v1/workspaces', { params: {} });
     
     expect(mockApiFetch).toHaveBeenCalledTimes(1);
     const [url] = mockApiFetch.mock.calls[0];

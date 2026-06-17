@@ -34,7 +34,8 @@ describe("TimeEntryRow", () => {
 
   const workEntry = {
     id: "1",
-    employee_id: "emp-1",
+    employment_id: "emp-1",
+    workspace_id: "ws-1",
     punch_in_time: "2024-01-21T08:00:00Z",
     punch_out_time: "2024-01-21T17:00:00Z",
     entry_type: "work",
@@ -45,7 +46,8 @@ describe("TimeEntryRow", () => {
 
   const breakEntry = {
     id: "2",
-    employee_id: "emp-1",
+    employment_id: "emp-1",
+    workspace_id: "ws-1",
     punch_in_time: "2024-01-21T12:00:00Z",
     punch_out_time: "2024-01-21T12:30:00Z",
     entry_type: "break",
@@ -56,7 +58,8 @@ describe("TimeEntryRow", () => {
 
   const activeEntry: TimeEntry = {
     id: "3",
-    employee_id: "emp-1",
+    employment_id: "emp-1",
+    workspace_id: "ws-1",
     punch_in_time: "2024-01-21T08:00:00Z",
     punch_out_time: undefined,
     entry_type: "work",

@@ -126,20 +126,18 @@ const mockEmployee: Employee = {
     full_name: "Alice Nguyen",
     employee_id_number: "EMP-001",
     workspace_id: "ws-1",
-    is_active: true,
     active_employment_id: "employment-1",
-    original_hire_date: "2020-01-01", hire_date: "2024-06-15",
     created_at: "2024-06-15T00:00:00Z",
     updated_at: "2024-06-15T00:00:00Z",
     primary_location_id: "loc-1",
+    tags: [],
 };
 
 const terminatedEmployee: Employee = {
     ...mockEmployee,
     id: "emp-2",
     full_name: "Bob Tran",
-    is_active: false,
-    active_employment_id: undefined,
+    active_employment_id: null,
 };
 
 const linkedEmployee: Employee = {

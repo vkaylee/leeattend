@@ -68,10 +68,9 @@ const mockEmployee: Employee = {
     employee_id_number: "EMP-001",
     workspace_id: "ws-1",
     user_id: "user-abc",
-    is_active: true,
-    original_hire_date: "2020-01-01", hire_date: "2024-06-15",
     created_at: "2024-06-15T00:00:00Z",
     updated_at: "2024-06-15T00:00:00Z",
+    tags: [],
 };
 
 describe("EmployeeFormModal", () => {

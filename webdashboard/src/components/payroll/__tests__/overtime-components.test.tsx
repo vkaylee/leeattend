@@ -40,7 +40,7 @@ const renderWithProviders = (ui: React.ReactElement) => {
 describe('OvertimeRuleEditor', () => {
   it('renders rule list and add button', () => {
     const rules = [
-      { id: '1', multiplier: 1.5, time_start: '18:00:00', time_end: '22:00:00', priority: 0, policy_id: 'pol-1', days_of_week: 127, is_holiday: false }
+      { id: '1', multiplier: '1.5', time_start: '18:00:00', time_end: '22:00:00', priority: 0, policy_id: 'pol-1', days_of_week: 127, is_holiday: false }
     ];
     renderWithProviders(<OvertimeRuleEditor policyId="pol-1" rules={rules} wsId="ws-1" />);
 
