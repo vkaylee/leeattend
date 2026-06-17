@@ -187,3 +187,134 @@ impl FileScanScheduler {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::crypto::CryptoService;
+    use crate::diesel_pool::DieselPools;
+    use crate::models::Workspace;
+    use crate::repositories::file_repository::MockFileRepository;
+    use crate::repositories::storage_config_repo::StorageConfigRepository;
+    use crate::repositories::workspace_repository::MockWorkspaceRepository;
+    use crate::services::storage::resolver::StorageResolver;
+    use crate::services::storage::scanner::mock::MockScanner;
+
+    #[tokio::test]
+    async fn test_process_pending_files_empty() {
+        let mut ws_repo = MockWorkspaceRepository::new();
+        let mut file_repo = MockFileRepository::new();
+
+        // 1. Mock get_all_workspaces to return one workspace
+        let ws_id = uuid::Uuid::new_v4();
+        let workspace = Workspace::new(
+            ws_id,
+            "Test Workspace".to_string(),
+            "YYYY-MM-DD".to_string(),
+            "HH:mm:ss".to_string(),
+            "UTC".to_string(),
+            "#000000".to_string(),
+            "en".to_string(),
+            None,
+            None,
+            "ignore".to_string(),
+            rust_decimal::Decimal::ZERO,
+            chrono::Utc::now(),
+            None,
+        );
+        ws_repo
+            .expect_get_all_workspaces()
+            .times(1)
+            .returning(move || {
+                let ws = workspace.clone();
+                Box::pin(async move { Ok(vec![ws]) })
+            });
+
+        // 2. Mock get_pending_scan_workspace_files to return empty list
+        file_repo
+            .expect_get_pending_scan_workspace_files()
+            .times(1)
+            .returning(|_, _| Ok(vec![]));
+
+        // 3. Mock get_pending_scan_system_files to return empty list
+        file_repo
+            .expect_get_pending_scan_system_files()
+            .times(1)
+            .returning(|_| Ok(vec![]));
+
+        // Setup dummy FileService
+        let mock_pools =
+            DieselPools::for_test("postgres://user:pass@localhost:5432/leeattend_test_db");
+        let keys_json = r#"{"active_key": "v1", "keys": {"v1": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="}}"#;
+        let crypto = Arc::new(CryptoService::from_json(keys_json).unwrap());
+        let config_repo = Arc::new(StorageConfigRepository::new(mock_pools.api.clone(), crypto));
+
+        struct DummyObjectStorage;
+        #[async_trait::async_trait]
+        impl crate::services::storage::ObjectStorage for DummyObjectStorage {
+            async fn put_object(
+                &self,
+                _key: &str,
+                _data: bytes::Bytes,
+                _content_type: &str,
+            ) -> crate::errors::AppResult<()> {
+                Ok(())
+            }
+            async fn get_object(&self, _key: &str) -> crate::errors::AppResult<bytes::Bytes> {
+                Ok(bytes::Bytes::new())
+            }
+            async fn delete_object(&self, _key: &str) -> crate::errors::AppResult<()> {
+                Ok(())
+            }
+            async fn presigned_get_url(
+                &self,
+                _key: &str,
+                _ttl: std::time::Duration,
+            ) -> crate::errors::AppResult<String> {
+                Ok("".to_string())
+            }
+            async fn presigned_put_url(
+                &self,
+                _key: &str,
+                _content_type: &str,
+                _ttl: std::time::Duration,
+            ) -> crate::errors::AppResult<String> {
+                Ok("".to_string())
+            }
+            async fn head_object(
+                &self,
+                _key: &str,
+            ) -> crate::errors::AppResult<crate::services::storage::ObjectMeta> {
+                Ok(crate::services::storage::ObjectMeta {
+                    content_type: None,
+                    content_length: 0,
+                    last_modified: None,
+                })
+            }
+            async fn health_check(&self) -> crate::errors::AppResult<()> {
+                Ok(())
+            }
+        }
+
+        let central = Arc::new(DummyObjectStorage);
+        let storage_resolver = Arc::new(StorageResolver::new(central, config_repo));
+
+        let file_repo_arc: Arc<dyn FileRepository> = Arc::new(file_repo);
+        let file_service = Arc::new(FileService::new(
+            storage_resolver,
+            Arc::clone(&file_repo_arc),
+        ));
+        let scan_service: Arc<dyn VirusScanner> = Arc::new(MockScanner);
+        let ws_repo_arc: Arc<dyn WorkspaceRepository> = Arc::new(ws_repo);
+
+        let result = FileScanScheduler::process_pending_files(
+            &file_repo_arc,
+            &file_service,
+            &scan_service,
+            &ws_repo_arc,
+        )
+        .await;
+
+        assert!(result.is_ok());
+    }
+}
