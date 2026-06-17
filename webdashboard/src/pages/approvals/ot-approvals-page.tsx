@@ -9,7 +9,7 @@ import type { AttendanceDailySummary, DailyAttendanceReport, Employee, Paginated
 
 import { BulkUploadOtDialog } from "@/components/approvals/bulk-upload-ot-dialog";
 import { ErrorBoundary } from "@/components/common/error-boundary";
-import { PDFPreviewModal } from "@/components/files/PDFPreviewModal";
+import { PDFPreviewModal } from "@/components/files/pdf-preview-modal";
 import { PageTabs, PageTab } from "@/components/ui/page-tabs";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";

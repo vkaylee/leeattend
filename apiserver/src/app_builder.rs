@@ -290,20 +290,6 @@ impl AppState {
             ),
         );
 
-        let workspace_service =
-            Arc::new(crate::services::workspace_service::WorkspaceService::new(
-                workspace_repo.clone(),
-                user_repo.clone(),
-                tenant_provisioner.clone(),
-                system_db_cluster_repo.clone(),
-                diesel_pools.clone(),
-            ));
-        // leave_balance_repo already instantiated earlier in this function
-        let leave_accrual_log_repo: Arc<
-            dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
-        > = Arc::new(crate::repositories::DieselLeaveAccrualLogRepository::new(
-            diesel_pools.clone(),
-        ));
         let workspace_config_repo: Arc<
             dyn crate::repositories::workspace_config_repository::WorkspaceConfigRepository,
         > = Arc::new(
@@ -311,6 +297,21 @@ impl AppState {
                 diesel_pools.clone(),
             ),
         );
+
+        let workspace_service =
+            Arc::new(crate::services::workspace_service::WorkspaceService::new(
+                workspace_repo.clone(),
+                user_repo.clone(),
+                tenant_provisioner.clone(),
+                system_db_cluster_repo.clone(),
+                workspace_config_repo.clone(),
+            ));
+        // leave_balance_repo already instantiated earlier in this function
+        let leave_accrual_log_repo: Arc<
+            dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
+        > = Arc::new(crate::repositories::DieselLeaveAccrualLogRepository::new(
+            diesel_pools.clone(),
+        ));
 
         let cache_repo = redis_pool.clone().map(|r| {
             Arc::new(crate::cache::RedisCache::new(r))
@@ -328,7 +329,6 @@ impl AppState {
             Arc::clone(&user_repo),
             Arc::clone(&workspace_repo),
             cache_repo,
-            Some(diesel_pools.clone()),
         ));
         let shift_swap_repo: Arc<
             dyn crate::repositories::shift_swap_repository::ShiftSwapRepository,

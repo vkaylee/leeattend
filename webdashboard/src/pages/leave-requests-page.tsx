@@ -10,7 +10,7 @@ import { LeaveImportBanner } from "@/components/features/leave/leave-import-bann
 import LeaveImportDialog from "@/components/features/leave/leave-import-dialog";
 import { LeaveRequestRow } from "@/components/features/leave/leave-request-row";
 import { useLeaveRequests, TabType, LeaveStatusFilter } from "@/components/features/leave/use-leave-requests";
-import { PDFPreviewModal } from "@/components/files/PDFPreviewModal";
+import { PDFPreviewModal } from "@/components/files/pdf-preview-modal";
 import ApprovalListLayout from "@/components/templates/approval-list-layout";
 import Button from "@/components/ui/button";
 import {
@@ -97,12 +97,16 @@ export default function LeaveRequestsPage() {
       <div className="flex justify-center">
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className={cn(
-                "flex items-center gap-1.5 focus:outline-none transition-colors group cursor-pointer px-3 py-1.5 rounded-xl border border-transparent bg-transparent",
-                statusFilter !== "all"
-                  ? "text-primary-600 dark:text-primary-450 bg-primary-50/50 dark:bg-primary-950/30 border-primary-150/50 dark:border-primary-900/50 font-extrabold"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-850 dark:hover:text-slate-200"
-              )} type="button">
+              <Button
+                variant="ghost"
+                className={cn(
+                  "flex items-center gap-1.5 h-auto min-w-0 transition-colors group cursor-pointer px-3 py-1.5 rounded-xl border border-transparent bg-transparent font-bold text-[10px] uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800/50",
+                  statusFilter !== "all"
+                    ? "text-primary-600 dark:text-primary-450 bg-primary-50/50 dark:bg-primary-950/30 border-primary-150/50 dark:border-primary-900/50 font-extrabold"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-850 dark:hover:text-slate-200"
+                )}
+                type="button"
+              >
                 <span className="flex items-center gap-1.5">
                   {t("common.status")}
                   {statusFilter !== "all" && (
@@ -118,7 +122,7 @@ export default function LeaveRequestsPage() {
                   )}
                   size={11}
                 />
-              </button>
+              </Button>
             </DropdownMenuTrigger>
           <DropdownMenuContent align="center" className="w-52">
             <DropdownMenuLabel>{t("common.filter_by_status", "Filter by Status").toUpperCase()}</DropdownMenuLabel>

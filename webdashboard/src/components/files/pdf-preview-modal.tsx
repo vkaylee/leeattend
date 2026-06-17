@@ -17,12 +17,16 @@ export function PDFPreviewModal({
   title = "Document Preview",
 }: PDFPreviewModalProps) {
   const [isLoading, setIsLoading] = useState(true);
+  const [prevFileUrl, setPrevFileUrl] = useState<string | null>(null);
+  const [prevIsOpen, setPrevIsOpen] = useState<boolean>(false);
 
-  React.useEffect(() => {
+  if (fileUrl !== prevFileUrl || isOpen !== prevIsOpen) {
+    setPrevFileUrl(fileUrl);
+    setPrevIsOpen(isOpen);
     if (isOpen) {
       setIsLoading(true);
     }
-  }, [isOpen, fileUrl]);
+  }
 
   if (!isOpen || !fileUrl) return null;
 

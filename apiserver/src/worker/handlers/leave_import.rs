@@ -237,7 +237,6 @@ impl LeaveImportChunkHandler {
             Arc::clone(&deps.user_repo),
             Arc::clone(&deps.workspace_repo),
             Some(Arc::clone(cache)),
-            Some(deps.diesel_pools.clone()),
         );
 
         let strategy = LeaveImportStrategy {

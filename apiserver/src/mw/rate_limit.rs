@@ -5,7 +5,6 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use redis::AsyncCommands;
 use std::net::SocketAddr;
 use std::task::{Context, Poll};
 use tower::{Layer, Service};
@@ -241,7 +240,7 @@ fn resolve_identity(req: &Request<Body>, jwt_secret: &str) -> String {
     format!("ip:{ip}")
 }
 
-/// Check if the request is within rate limits using Redis INCR + EXPIRE.
+/// Check if the request is within rate limits using a Redis Lua script to prevent TTL leakage.
 async fn check_rate(
     pool: &RedisPool,
     key: &str,
@@ -249,12 +248,26 @@ async fn check_rate(
     window_secs: u64,
 ) -> Result<bool, redis::RedisError> {
     let mut conn = pool.conn();
-    let count: u64 = conn.incr(key, 1u64).await?;
-    if count == 1 {
-        // First request in window — set expiry
-        conn.expire::<_, ()>(key, i64::try_from(window_secs).unwrap_or(i64::MAX))
-            .await?;
-    }
+    
+    // We use a Lua script to execute INCR and EXPIRE atomically.
+    // This ensures that even if the connection drops or the app crashes
+    // mid-execution, the key will have a TTL set and won't leak forever.
+    let script = redis::Script::new(
+        r#"
+        local current = redis.call("INCR", KEYS[1])
+        if current == 1 then
+            redis.call("EXPIRE", KEYS[1], ARGV[1])
+        end
+        return current
+    "#,
+    );
+
+    let count: u64 = script
+        .key(key)
+        .arg(window_secs)
+        .invoke_async(&mut conn)
+        .await?;
+
     Ok(count <= max_requests)
 }
 

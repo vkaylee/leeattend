@@ -7,13 +7,14 @@ use crate::repositories::user_repository::UserRepository;
 use std::sync::Arc;
 
 use crate::repositories::system_db_cluster_repository::SystemDbClusterRepository;
+use crate::repositories::workspace_config_repository::WorkspaceConfigRepository;
 use crate::services::tenant_provisioner::TenantProvisionerTrait;
 pub struct WorkspaceService {
     workspace_repo: Arc<dyn WorkspaceRepository>,
     user_repo: Arc<dyn UserRepository>,
     tenant_provisioner: Arc<dyn TenantProvisionerTrait>,
     system_db_cluster_repo: Arc<dyn SystemDbClusterRepository>,
-    diesel_pools: crate::diesel_pool::DieselPools,
+    workspace_config_repo: Arc<dyn WorkspaceConfigRepository>,
 }
 
 impl WorkspaceService {
@@ -22,14 +23,14 @@ impl WorkspaceService {
         user_repo: Arc<dyn UserRepository>,
         tenant_provisioner: Arc<dyn TenantProvisionerTrait>,
         system_db_cluster_repo: Arc<dyn SystemDbClusterRepository>,
-        diesel_pools: crate::diesel_pool::DieselPools,
+        workspace_config_repo: Arc<dyn WorkspaceConfigRepository>,
     ) -> Self {
         Self {
             workspace_repo,
             user_repo,
             tenant_provisioner,
             system_db_cluster_repo,
-            diesel_pools,
+            workspace_config_repo,
         }
     }
 }
@@ -183,63 +184,16 @@ impl WorkspaceService {
 
         if has_eav_changes {
             let auth_token = crate::diesel_pool::TenantAuthToken::system_override(args.ws_id);
-            let mut tenant_conn = match self.diesel_pools.tenant_transaction_conn(&auth_token).await
-            {
-                Ok(conn) => conn,
-                Err(e) => {
-                    #[cfg(test)]
-                    {
-                        println!("Skipping EAV update in test environment due to connection failure: {e}");
-                        let ws = self
-                            .workspace_repo
-                            .get_workspace_by_id(args.ws_id)
-                            .await
-                            .unwrap_or_else(|_| {
-                                Some(crate::models::Workspace::new(
-                                    args.ws_id,
-                                    args.name
-                                        .clone()
-                                        .unwrap_or_else(|| "Test Workspace".to_string()),
-                                    "YYYY-MM-DD".to_string(),
-                                    "24h".to_string(),
-                                    "UTC".to_string(),
-                                    "#1890ff".to_string(),
-                                    "en".to_string(),
-                                    None,
-                                    None,
-                                    "split_at_midnight".to_string(),
-                                    rust_decimal::Decimal::new(30, 1),
-                                    chrono::Utc::now(),
-                                    None,
-                                ))
-                            })
-                            .unwrap();
-                        return Ok(ws);
-                    }
-                    #[cfg(not(test))]
-                    {
-                        return Err(e);
-                    }
-                }
-            };
 
             if let Some(strategy) = &args.holiday_overnight_strategy {
-                use crate::schema::workspace_config_entries;
-                use diesel::prelude::*;
-                use diesel_async::RunQueryDsl;
-
-                diesel::delete(
-                    workspace_config_entries::table
-                        .filter(workspace_config_entries::workspace_id.eq(args.ws_id))
-                        .filter(workspace_config_entries::scope_type.eq("workspace"))
-                        .filter(
-                            workspace_config_entries::config_key
-                                .eq("overtime.holiday_overnight_strategy"),
-                        ),
-                )
-                .execute(&mut *tenant_conn)
-                .await
-                .map_err(|e| crate::errors::AppError::Internal(format!("db: {e}")))?;
+                self.workspace_config_repo
+                    .delete_by_key(
+                        &auth_token,
+                        args.ws_id,
+                        "workspace",
+                        "overtime.holiday_overnight_strategy",
+                    )
+                    .await?;
 
                 let entry = crate::models::WorkspaceConfigEntry::new(
                     Uuid::new_v4(),
@@ -259,30 +213,20 @@ impl WorkspaceService {
                     chrono::Utc::now(),
                 );
 
-                diesel::insert_into(workspace_config_entries::table)
-                    .values(&entry)
-                    .execute(&mut *tenant_conn)
-                    .await
-                    .map_err(|e| crate::errors::AppError::Internal(format!("db: {e}")))?;
+                self.workspace_config_repo
+                    .create_entry(&auth_token, entry)
+                    .await?;
             }
 
             if let Some(multiplier) = args.default_holiday_ot_multiplier {
-                use crate::schema::workspace_config_entries;
-                use diesel::prelude::*;
-                use diesel_async::RunQueryDsl;
-
-                diesel::delete(
-                    workspace_config_entries::table
-                        .filter(workspace_config_entries::workspace_id.eq(args.ws_id))
-                        .filter(workspace_config_entries::scope_type.eq("workspace"))
-                        .filter(
-                            workspace_config_entries::config_key
-                                .eq("overtime.default_holiday_ot_multiplier"),
-                        ),
-                )
-                .execute(&mut *tenant_conn)
-                .await
-                .map_err(|e| crate::errors::AppError::Internal(format!("db: {e}")))?;
+                self.workspace_config_repo
+                    .delete_by_key(
+                        &auth_token,
+                        args.ws_id,
+                        "workspace",
+                        "overtime.default_holiday_ot_multiplier",
+                    )
+                    .await?;
 
                 let entry = crate::models::WorkspaceConfigEntry::new(
                     Uuid::new_v4(),
@@ -302,11 +246,9 @@ impl WorkspaceService {
                     chrono::Utc::now(),
                 );
 
-                diesel::insert_into(workspace_config_entries::table)
-                    .values(&entry)
-                    .execute(&mut *tenant_conn)
-                    .await
-                    .map_err(|e| crate::errors::AppError::Internal(format!("db: {e}")))?;
+                self.workspace_config_repo
+                    .create_entry(&auth_token, entry)
+                    .await?;
             }
         }
 
@@ -727,6 +669,14 @@ mod tests {
     }
 
     fn build_service(user_exists: bool) -> WorkspaceService {
+        let mut mock_config_repo =
+            crate::repositories::workspace_config_repository::MockWorkspaceConfigRepository::new();
+        mock_config_repo
+            .expect_delete_by_key()
+            .returning(|_, _, _, _| Ok(()));
+        mock_config_repo
+            .expect_create_entry()
+            .returning(|_, entry| Ok(entry));
         WorkspaceService::new(
             std::sync::Arc::new(MockWorkspaceRepo {
                 workspace: Some(dummy_workspace()),
@@ -735,10 +685,7 @@ mod tests {
             std::sync::Arc::new(MockUserRepo { user_exists }),
             std::sync::Arc::new(MockTenantProvisioner),
             std::sync::Arc::new(MockSystemDbClusterRepo),
-            crate::diesel_pool::DieselPools::for_test(
-                &std::env::var("DATABASE_URL")
-                    .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/db".to_string()),
-            ),
+            std::sync::Arc::new(mock_config_repo),
         )
     }
 
@@ -803,6 +750,14 @@ mod tests {
     }
 
     fn build_service_with_failing_provisioner() -> WorkspaceService {
+        let mut mock_config_repo =
+            crate::repositories::workspace_config_repository::MockWorkspaceConfigRepository::new();
+        mock_config_repo
+            .expect_delete_by_key()
+            .returning(|_, _, _, _| Ok(()));
+        mock_config_repo
+            .expect_create_entry()
+            .returning(|_, entry| Ok(entry));
         WorkspaceService::new(
             std::sync::Arc::new(MockWorkspaceRepo {
                 workspace: Some(dummy_workspace()),
@@ -811,10 +766,7 @@ mod tests {
             std::sync::Arc::new(MockUserRepo { user_exists: true }),
             std::sync::Arc::new(FailingMockTenantProvisioner),
             std::sync::Arc::new(MockSystemDbClusterRepo),
-            crate::diesel_pool::DieselPools::for_test(
-                &std::env::var("DATABASE_URL")
-                    .unwrap_or_else(|_| "postgres://user:pass@localhost:5432/db".to_string()),
-            ),
+            std::sync::Arc::new(mock_config_repo),
         )
     }
 

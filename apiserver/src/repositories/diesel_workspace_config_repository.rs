@@ -138,6 +138,32 @@ impl WorkspaceConfigRepository for DieselWorkspaceConfigRepository {
 
         Ok(())
     }
+
+    async fn delete_by_key(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        workspace_id: Uuid,
+        scope_type: &str,
+        config_key: &str,
+    ) -> Result<(), AppError> {
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+
+        diesel::delete(
+            workspace_config_entries::table
+                .filter(workspace_config_entries::workspace_id.eq(workspace_id))
+                .filter(workspace_config_entries::scope_type.eq(scope_type.to_string()))
+                .filter(workspace_config_entries::config_key.eq(config_key.to_string())),
+        )
+        .execute(&mut *conn)
+        .map_err(|e| {
+            AppError::Internal(format!("Failed to delete workspace config entries: {e}"))
+        })?;
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]

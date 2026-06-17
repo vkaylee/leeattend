@@ -35,4 +35,12 @@ pub trait WorkspaceConfigRepository: Send + Sync {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         entry_id: Uuid,
     ) -> Result<(), AppError>;
+
+    async fn delete_by_key(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        workspace_id: Uuid,
+        scope_type: &str,
+        config_key: &str,
+    ) -> Result<(), AppError>;
 }

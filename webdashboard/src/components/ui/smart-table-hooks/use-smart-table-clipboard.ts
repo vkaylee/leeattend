@@ -9,23 +9,38 @@ interface LocalSmartTableColumnMeta {
   sticky?: "left" | "right";
 }
 
-interface UseSmartTableClipboardProps {
+interface ClipboardCell {
+  column: {
+    columnDef: {
+      meta?: LocalSmartTableColumnMeta;
+    };
+    id: string;
+  };
+  getValue: () => unknown;
+}
+
+interface ClipboardRow {
+  getVisibleCells: () => ClipboardCell[];
+  id: string;
+}
+
+interface UseSmartTableClipboardProps<TRow extends ClipboardRow = ClipboardRow> {
   cellErrors: Record<string, string>;
   colCount: number;
   editingCell: { rowIndex: number; colIndex: number } | null;
   focusedCell: { rowIndex: number; colIndex: number } | null;
   localCellValues: Record<string, any>;
-  onBulkCellSave?: (changes: { rowId: string; columnId: string; value: any }[]) => Promise<void> | void;
+  onBulkCellSave?: (changes: { columnId: string; rowId: string; value: any }[]) => Promise<void> | void;
   onCellSave?: (rowId: string, columnId: string, value: any) => Promise<void> | void;
   rowCount: number;
-  rows: any[];
+  rows: TRow[];
   selectedRowIds?: Set<string>;
   setCellErrors: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   setLocalCellValues: React.Dispatch<React.SetStateAction<Record<string, any>>>;
   validateCell?: (rowId: string, columnId: string, value: any) => string | null | undefined;
 }
 
-export function useSmartTableClipboard({
+export function useSmartTableClipboard<TRow extends ClipboardRow = ClipboardRow>({
   focusedCell,
   editingCell,
   selectedRowIds,
@@ -39,7 +54,7 @@ export function useSmartTableClipboard({
   setCellErrors,
   localCellValues,
   setLocalCellValues,
-}: UseSmartTableClipboardProps) {
+}: UseSmartTableClipboardProps<TRow>) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (editingCell) return;
 
@@ -47,26 +62,26 @@ export function useSmartTableClipboard({
       if (!focusedCell && (!selectedRowIds || selectedRowIds.size === 0)) return;
       e.preventDefault();
 
-      const selectedRows = rows.filter((r: any) => selectedRowIds?.has(r.id));
+      const selectedRows = rows.filter((r) => selectedRowIds?.has(r.id));
       let tsvText = "";
 
       if (selectedRows.length > 0) {
         tsvText = selectedRows
-          .map((r: any) =>
+          .map((r) =>
             r
               .getVisibleCells()
-              .map((cell: any) => {
-                const val = cell.getValue();
+              .map((cell) => {
+                const val = cell.getValue() as boolean | null | number | string | undefined;
                 return val != null ? String(val) : "";
               })
               .join("\t")
           )
           .join("\n");
       } else if (focusedCell) {
-        const r: any = rows[focusedCell.rowIndex];
+        const r = rows[focusedCell.rowIndex];
         const cell = r?.getVisibleCells()[focusedCell.colIndex];
         if (cell) {
-          const val = cell.getValue();
+          const val = cell.getValue() as boolean | null | number | string | undefined;
           tsvText = val != null ? String(val) : "";
         }
       }
@@ -74,7 +89,7 @@ export function useSmartTableClipboard({
       if (tsvText) {
         navigator.clipboard
           .writeText(tsvText)
-          .catch((err) => { console.error("Clipboard copy failed: ", err); });
+          .catch((err: unknown) => { console.error("Clipboard copy failed: ", err); });
       }
     }
   };
@@ -95,7 +110,7 @@ export function useSmartTableClipboard({
 
     e.preventDefault();
 
-    const changes: { rowId: string; columnId: string; value: any }[] = [];
+    const changes: { columnId: string; rowId: string; value: any }[] = [];
     const newErrors = { ...cellErrors };
     const newLocalValues = { ...localCellValues };
 
@@ -135,8 +150,8 @@ export function useSmartTableClipboard({
             delete newErrors[errorKey];
             delete newLocalValues[errorKey];
             changes.push({
-              rowId: row.id,
               columnId: column.id,
+              rowId: row.id,
               value: parsedValue,
             });
           }
@@ -151,13 +166,13 @@ export function useSmartTableClipboard({
       if (onBulkCellSave) {
         const result = onBulkCellSave(changes);
         if (result instanceof Promise) {
-          result.catch((err) => { console.error("Error saving bulk cells:", err); });
+          result.catch((err: unknown) => { console.error("Error saving bulk cells:", err); });
         }
       } else if (onCellSave) {
         for (const change of changes) {
           const result = onCellSave(change.rowId, change.columnId, change.value);
           if (result instanceof Promise) {
-            await result.catch((err) => { console.error("Error saving cell:", err); });
+            await result.catch((err: unknown) => { console.error("Error saving cell:", err); });
           }
         }
       }

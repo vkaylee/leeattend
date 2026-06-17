@@ -33,7 +33,14 @@ export interface SmartTableColumnMeta {
 }
 
 declare module "@tanstack/react-table" {
-  interface ColumnMeta<TData, TValue> extends SmartTableColumnMeta {}
+  interface ColumnMeta<TData, TValue> {
+    cellClassName?: string;
+    editable?: boolean;
+    editOptions?: { value: string; label: string }[];
+    editType?: "text" | "number" | "select";
+    headerClassName?: string;
+    sticky?: "left" | "right";
+  }
 }
 
 

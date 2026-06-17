@@ -22,14 +22,17 @@ export function useEmployeeDailyDrawer(props: UseEmployeeDailyDrawerProps) {
     const [viewMode, setViewMode] = useState<"daily" | "raw">("daily");
     const [selectedEmploymentId, setSelectedEmploymentId] = useState<string>(employmentId);
 
-    // Reset to daily tab and initial employment whenever the drawer is (re-)opened
-     
-    useEffect(() => {
+    const [prevEmployeeId, setPrevEmployeeId] = useState<string | null>(null);
+    const [prevIsOpen, setPrevIsOpen] = useState<boolean>(false);
+
+    if (employeeId !== prevEmployeeId || isOpen !== prevIsOpen) {
+        setPrevEmployeeId(employeeId);
+        setPrevIsOpen(isOpen);
         if (isOpen) {
             setViewMode("daily");
             setSelectedEmploymentId(employmentId);
         }
-    }, [isOpen, employmentId]);
+    }
 
     const [expandedDebugRows, setExpandedDebugRows] = useState<Set<string>>(new Set());
     const [reprocessingRow, setReprocessingRow] = useState<string | null>(null);

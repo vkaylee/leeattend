@@ -301,7 +301,6 @@ impl LeaveImportService {
             Arc::clone(&self.deps.user_repo),
             Arc::clone(&self.deps.workspace_repo),
             None,
-            Some(self.deps.diesel_pools.clone()),
         );
 
         let strategy = LeaveImportStrategy {

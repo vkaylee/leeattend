@@ -5,7 +5,7 @@ import { EmployeeSearch } from "@/components/common/employee-search";
 import FloatingRecordBadge from "@/components/common/floating-record-badge";
 import AttendanceImportDialog from "@/components/features/attendance/attendance-import-dialog";
 import { CreateAdjustmentModal } from "@/components/features/attendance/create-adjustment-modal";
-import { PDFPreviewModal } from "@/components/files/PDFPreviewModal";
+import { PDFPreviewModal } from "@/components/files/pdf-preview-modal";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { useWorkspace } from "@/hooks/use-workspace";
 
