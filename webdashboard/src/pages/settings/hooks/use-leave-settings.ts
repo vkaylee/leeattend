@@ -18,6 +18,7 @@ export interface LeaveAssignment {
   id: string;
   leave_type_name: string;
   policy_name: string;
+  policy_id: string;
 }
 
 export function useLeaveSettings() {
@@ -25,6 +26,7 @@ export function useLeaveSettings() {
   const wsId = getCurrentWorkspaceId();
   const [activeTab, setActiveTab] = useState<TabType>("types");
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [editingAssignment, setEditingAssignment] = useState<LeaveAssignment | null>(null);
 
   const { data: assignments = [], isLoading: assignmentsLoading } = useQuery<LeaveAssignment[]>({
     queryKey: ["leave-assignments", wsId],
@@ -63,6 +65,8 @@ export function useLeaveSettings() {
     setActiveTab,
     isAssignModalOpen,
     setIsAssignModalOpen,
+    editingAssignment,
+    setEditingAssignment,
     assignments,
     assignmentsLoading: assignmentsLoading || employeesLoading || departmentsLoading,
     employees,

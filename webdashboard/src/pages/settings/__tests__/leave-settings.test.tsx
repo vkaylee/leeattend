@@ -19,6 +19,7 @@ vi.mock("react-i18next", () => ({
         "settings.leave.tabs.assignments": "Policy Assignments",
         "settings.leave.actions.assign": "Assign Policy",
         "settings.leave.actions.delete": "Delete",
+        "common.edit": "Edit",
         "settings.leave.dialogs.delete_assignment_title": "Delete Policy Assignment",
         "settings.leave.dialogs.delete_assignment_message": "Are you sure you want to delete this leave policy assignment? This will soft-delete the assignment, and the previous timeline will be restored/healed automatically.",
         "settings.leave.messages.delete_assignment_success": "Leave policy assignment deleted successfully",
@@ -28,7 +29,10 @@ vi.mock("react-i18next", () => ({
         "common.forever": "Forever",
         "common.important_note": "Important Note",
         "settings.leave.title": "Leave Settings",
-        "settings.leave.desc": "Description"
+        "settings.leave.desc": "Description",
+        "leave_requests.policy.edit_assignment_title": "EDIT POLICY ASSIGNMENT",
+        "leave_requests.policy.edit_assignment_subtitle": "Modify assignment rules and effective dates.",
+        "leave_requests.policy.messages.update_assignment_success": "Leave policy assignment updated successfully!"
       };
       return translations[key] || key;
     }
@@ -199,5 +203,26 @@ describe("LeaveSettings Page", () => {
     await waitFor(() => {
       expect(api.deleteLeavePolicyAssignment).toHaveBeenCalledWith(wsId, "assign-1");
     });
+  });
+
+  it("opens edit assignment modal when clicking edit button", async () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <LeaveSettings />
+      </QueryClientProvider>
+    );
+
+    const assignTab = screen.getByRole("button", { name: /Policy Assignments/i });
+    fireEvent.click(assignTab);
+
+    // Wait for data to load
+    expect(await screen.findByText("General Vacation")).toBeDefined();
+
+    // Find and click the edit button for General Vacation (assign-1)
+    const editButtons = screen.getAllByRole("button", { name: /Edit/i });
+    fireEvent.click(editButtons[0]);
+
+    // Verify modal is open and has Edit Policy Assignment title
+    expect(await screen.findByText("EDIT POLICY ASSIGNMENT")).toBeDefined();
   });
 });

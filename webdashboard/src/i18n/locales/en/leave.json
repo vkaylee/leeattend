@@ -133,11 +133,14 @@
         "employee_desc": "Applies to only one selected person"
       },
       "edit_title": "Edit Policy",
+      "edit_assignment_title": "EDIT POLICY ASSIGNMENT",
+      "edit_assignment_subtitle": "Modify assignment rules and effective dates.",
       "carry_over_limit": "Carry-over Limit",
       "messages": {
         "no_policies": "No policies found.",
         "create_success": "Policy created successfully!",
         "update_success": "Policy updated successfully!",
+        "update_assignment_success": "Leave policy assignment updated successfully!",
         "delete_success": "Policy deleted successfully!",
         "assign_success": "Policy assigned successfully!",
         "confirm_delete": "Are you sure you want to delete this policy?"

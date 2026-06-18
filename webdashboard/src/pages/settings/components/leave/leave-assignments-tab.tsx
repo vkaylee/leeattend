@@ -1,4 +1,4 @@
-import { Info, UserPlus, Trash2 } from "lucide-react";
+import { Info, UserPlus, Trash2, Pencil } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -20,6 +20,7 @@ interface LeaveAssignmentsTabProps {
   employees: Employee[];
   isLoading: boolean;
   onAssignClick: () => void;
+  onEditClick: (assignment: LeaveAssignment) => void;
   onDelete: (id: string) => Promise<void>;
   isDeleting: boolean;
 }
@@ -28,6 +29,7 @@ export function LeaveAssignmentsTab({
   assignments,
   isLoading,
   onAssignClick,
+  onEditClick,
   employees,
   departments,
   onDelete,
@@ -143,7 +145,17 @@ export function LeaveAssignmentsTab({
                     <td className="px-6 py-5 text-[10px] font-mono text-slate-400 dark:text-slate-500 text-right uppercase">
                       {format(new Date(a.created_at), "MMM dd HH:mm")}
                     </td>
-                    <td className="px-6 py-5 text-right">
+                    <td className="px-6 py-5 text-right flex items-center justify-end gap-2">
+                      <Button
+                        className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 px-2 py-1 h-8 rounded-lg transition-colors inline-flex items-center justify-center"
+                        onClick={() => onEditClick(a)}
+                        variant="ghost"
+                        size="sm"
+                        disabled={isDeleting}
+                        aria-label={t("common.edit")}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
                       <Button
                         className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/20 px-2 py-1 h-8 rounded-lg transition-colors inline-flex items-center justify-center"
                         onClick={() => setDeletingAssignmentId(a.id)}

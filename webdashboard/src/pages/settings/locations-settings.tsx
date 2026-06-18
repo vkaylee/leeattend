@@ -3,6 +3,8 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
+import EmptyState from "@/components/ui/empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { getCurrentWorkspaceId } from "@/lib/api";
@@ -68,85 +70,120 @@ export default function LocationsSettings() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in slide-in-from-bottom-4 duration-500">
+      <div className="flex flex-col gap-4 animate-in slide-in-from-bottom-4 duration-500">
         {isLoading ? (
-          <div className="col-span-full py-12 text-center text-slate-500">Loading...</div>
+          Array.from({ length: 3 }).map((_, index) => (
+            <div 
+              key={index}
+              className="bg-white dark:bg-slate-900 rounded-[1.75rem] border border-slate-100 dark:border-slate-800 p-5 flex flex-col md:flex-row md:items-center justify-between gap-6 animate-pulse"
+            >
+              <div className="flex items-center gap-4 min-w-[240px]">
+                <Skeleton className="w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 shrink-0" />
+                <div className="space-y-2">
+                  <Skeleton className="h-5 w-32 bg-slate-100 dark:bg-slate-800" />
+                  <Skeleton className="h-3.5 w-24 bg-slate-100 dark:bg-slate-800" />
+                </div>
+              </div>
+              <div className="flex-1 min-w-0 space-y-2">
+                <Skeleton className="h-3.5 w-16 bg-slate-100 dark:bg-slate-800" />
+                <Skeleton className="h-4 w-48 bg-slate-100 dark:bg-slate-800" />
+              </div>
+              <div className="w-fit md:w-48 shrink-0 space-y-2">
+                <Skeleton className="h-3.5 w-16 bg-slate-100 dark:bg-slate-800" />
+                <Skeleton className="h-6 w-28 rounded-xl bg-slate-100 dark:bg-slate-800" />
+              </div>
+              <div className="flex items-center gap-2 justify-end shrink-0">
+                <Skeleton className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800" />
+                <Skeleton className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800" />
+              </div>
+            </div>
+          ))
         ) : locations?.length === 0 ? (
-          <div className="col-span-full py-12 text-center text-slate-500">
-            No locations found. Add your first work location.
-          </div>
+          <EmptyState
+            icon={<MapPin className="w-12 h-12 text-slate-300 dark:text-slate-600" />}
+            title={t("settings.locations.empty_title", { defaultValue: "No Locations" })}
+            description={t("settings.locations.empty_desc", { defaultValue: "Add your first work location to get started." })}
+            action={
+              <Button onClick={handleAdd} variant="primary" className="rounded-2xl px-6">
+                <Plus className="mr-2" size={16} />
+                {t("settings.locations.add", { defaultValue: "Add Location" })}
+              </Button>
+            }
+          />
         ) : (
           locations?.map((location) => (
             <div 
               className={cn(
-                "group relative bg-white dark:bg-slate-900 rounded-[2.5rem] border p-6 shadow-sm hover:shadow-md transition-all duration-300",
+                "group relative bg-white dark:bg-slate-900 rounded-[1.75rem] border p-5 shadow-sm hover:shadow-md transition-all duration-300",
+                "flex flex-col md:flex-row md:items-center justify-between gap-6",
                 location.is_headquarters 
                   ? "border-primary-200 dark:border-primary-800" 
                   : "border-slate-100 dark:border-slate-800"
               )} 
               key={location.id}
             >
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center gap-3">
-                  <div className={cn(
-                    "w-10 h-10 rounded-2xl flex items-center justify-center",
-                    location.is_headquarters 
-                      ? "bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400"
-                      : "bg-slate-50 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
-                  )}>
-                    {location.is_headquarters ? <Globe2 size={20} /> : <MapPin size={20} />}
-                  </div>
-                  <div>
-                    <Typography className="font-bold text-slate-800 dark:text-slate-200" variant="h4">
-                      {location.name}
-                    </Typography>
-                    {location.is_headquarters ? (
-                      <span className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest px-2 py-0.5 bg-primary-50 dark:bg-primary-900/30 rounded-full">
-                        {t("settings.locations.hq", { defaultValue: "Headquarters" })}
-                      </span>
-                    ) : null}
-                  </div>
+              {/* Left Section: Icon and Location Name & Badge */}
+              <div className="flex items-center gap-4 min-w-[240px]">
+                <div className={cn(
+                  "w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-colors duration-300",
+                  location.is_headquarters 
+                    ? "bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400"
+                    : "bg-slate-50 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+                )}>
+                  {location.is_headquarters ? <Globe2 size={20} /> : <MapPin size={20} />}
                 </div>
-                
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                  <Button 
-                    className="w-8 h-8 rounded-xl text-slate-400 hover:text-primary-600" 
-                    onClick={() => { handleEdit(location); }} 
-                    size="icon"
-                    variant="ghost"
-                  >
-                    <Edit2 size={14} />
-                  </Button>
-                  {!location.is_headquarters && (
-                    <Button 
-                      className="w-8 h-8 rounded-xl text-slate-400 hover:text-red-600" 
-                      onClick={() => { handleDelete(location.id, location.is_headquarters); }} 
-                      size="icon"
-                      variant="ghost"
-                    >
-                      <Trash2 size={14} />
-                    </Button>
+                <div className="space-y-1">
+                  <Typography className="font-bold text-slate-800 dark:text-slate-200 text-lg leading-tight" variant="h4">
+                    {location.name}
+                  </Typography>
+                  {location.is_headquarters && (
+                    <span className="inline-flex text-[9px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest px-2 py-0.5 bg-primary-50 dark:bg-primary-900/30 rounded-full w-fit">
+                      {t("settings.locations.hq", { defaultValue: "Headquarters" })}
+                    </span>
                   )}
                 </div>
               </div>
-              
-              <div className="space-y-3 mt-6">
-                <div className="text-sm">
-                  <Typography className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1" variant="p">
-                    {t("settings.locations.address", { defaultValue: "Address" })}
-                  </Typography>
-                  <span className="text-slate-600 dark:text-slate-300 font-medium">
-                    {location.address ?? "—"}
-                  </span>
-                </div>
-                <div className="text-sm">
-                  <Typography className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1" variant="p">
-                    {t("settings.locations.timezone", { defaultValue: "Timezone" })}
-                  </Typography>
-                  <span className="text-slate-600 dark:text-slate-300 font-medium">
-                    {location.timezone}
-                  </span>
-                </div>
+
+              {/* Middle Section: Address */}
+              <div className="flex-1 min-w-0">
+                <Typography className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1" variant="p">
+                  {t("settings.locations.address", { defaultValue: "Address" })}
+                </Typography>
+                <p className="text-sm text-slate-600 dark:text-slate-300 font-medium truncate">
+                  {location.address ?? "—"}
+                </p>
+              </div>
+
+              {/* Middle Section: Timezone */}
+              <div className="w-fit md:w-48 shrink-0">
+                <Typography className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1" variant="p">
+                  {t("settings.locations.timezone", { defaultValue: "Timezone" })}
+                </Typography>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-100 dark:border-slate-800/50">
+                  {location.timezone}
+                </span>
+              </div>
+
+              {/* Right Section: Actions */}
+              <div className="flex items-center gap-2 md:opacity-0 group-hover:opacity-100 transition-opacity justify-end shrink-0">
+                <Button 
+                  className="w-9 h-9 rounded-xl text-slate-400 hover:text-primary-600 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" 
+                  onClick={() => { handleEdit(location); }} 
+                  size="icon"
+                  variant="ghost"
+                >
+                  <Edit2 size={16} />
+                </Button>
+                {!location.is_headquarters && (
+                  <Button 
+                    className="w-9 h-9 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors" 
+                    onClick={() => { handleDelete(location.id, location.is_headquarters); }} 
+                    size="icon"
+                    variant="ghost"
+                  >
+                    <Trash2 size={16} />
+                  </Button>
+                )}
               </div>
             </div>
           ))

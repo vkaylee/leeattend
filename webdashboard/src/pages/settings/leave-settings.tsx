@@ -19,6 +19,8 @@ export default function LeaveSettings() {
     setActiveTab,
     isAssignModalOpen,
     setIsAssignModalOpen,
+    editingAssignment,
+    setEditingAssignment,
     assignments,
     assignmentsLoading,
     employees,
@@ -72,6 +74,10 @@ export default function LeaveSettings() {
               employees={employees}
               isLoading={assignmentsLoading}
               onAssignClick={() => { setIsAssignModalOpen(true); }}
+              onEditClick={(a) => {
+                setEditingAssignment(a);
+                setIsAssignModalOpen(true);
+              }}
               onDelete={deleteAssignment}
               isDeleting={isDeleting}
             />
@@ -81,8 +87,12 @@ export default function LeaveSettings() {
 
       <AssignPolicyModal 
         isOpen={isAssignModalOpen}
-        onClose={() => { setIsAssignModalOpen(false); }}
+        onClose={() => {
+          setIsAssignModalOpen(false);
+          setEditingAssignment(null);
+        }}
         wsId={wsId}
+        editingAssignment={editingAssignment}
       />
     </div>
   );

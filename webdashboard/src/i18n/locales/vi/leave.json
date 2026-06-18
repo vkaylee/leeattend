@@ -133,11 +133,14 @@
         "employee_desc": "Áp dụng cho duy nhất một người được chọn"
       },
       "edit_title": "Sửa chính sách",
+      "edit_assignment_title": "SỬA PHÂN BỔ CHÍNH SÁCH",
+      "edit_assignment_subtitle": "Thay đổi quy tắc phân bổ và ngày hiệu lực.",
       "carry_over_limit": "Giới hạn chuyển tiếp",
       "messages": {
         "no_policies": "Chưa có chính sách nào.",
         "create_success": "Đã tạo chính sách thành công!",
         "update_success": "Đã cập nhật chính sách thành công!",
+        "update_assignment_success": "Đã cập nhật phân bổ chính sách thành công!",
         "delete_success": "Đã xóa chính sách thành công!",
         "assign_success": "Đã gán chính sách thành công!",
         "confirm_delete": "Bạn có chắc chắn muốn xóa chính sách này không?"

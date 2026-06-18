@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { format } from "date-fns";
  
 import { useToast } from "@/components/ui/toast";
 import { useAllEmployees } from "@/hooks/use-employees";
@@ -9,9 +10,16 @@ import {
   fetchLeavePolicies,
   fetchLeaveTypes,
   assignLeavePolicy,
+  deleteLeavePolicyAssignment,
 } from "@/lib/api";
+import type { LeaveAssignment } from "@/pages/settings/hooks/use-leave-settings";
 
-export function useAssignPolicy(wsId: string | null, isOpen: boolean, onClose: () => void) {
+export function useAssignPolicy(
+  wsId: string | null,
+  isOpen: boolean,
+  onClose: () => void,
+  editingAssignment?: LeaveAssignment | null
+) {
   const { t } = useTranslation();
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -20,6 +28,33 @@ export function useAssignPolicy(wsId: string | null, isOpen: boolean, onClose: (
   const [assignEmpId, setAssignEmpId] = useState<string>("");
   const [assignDeptId, setAssignDeptId] = useState<string>("");
   const [assignPolicyId, setAssignPolicyId] = useState<string>("");
+  const [effectiveFrom, setEffectiveFrom] = useState<string>(format(new Date(), "yyyy-MM-dd"));
+
+  useEffect(() => {
+    if (isOpen) {
+      if (editingAssignment) {
+        setAssigneeType(editingAssignment.assignee_type);
+        if (editingAssignment.assignee_type === "employee") {
+          setAssignEmpId(editingAssignment.assignee_id ?? "");
+          setAssignDeptId("");
+        } else if (editingAssignment.assignee_type === "department") {
+          setAssignDeptId(editingAssignment.assignee_id ?? "");
+          setAssignEmpId("");
+        } else {
+          setAssignEmpId("");
+          setAssignDeptId("");
+        }
+        setAssignPolicyId(editingAssignment.policy_id);
+        setEffectiveFrom(format(new Date(editingAssignment.effective_from), "yyyy-MM-dd"));
+      } else {
+        setAssigneeType("employee");
+        setAssignEmpId("");
+        setAssignDeptId("");
+        setAssignPolicyId("");
+        setEffectiveFrom(format(new Date(), "yyyy-MM-dd"));
+      }
+    }
+  }, [isOpen, editingAssignment]);
 
   const { employees, isLoading: employeesLoading } = useAllEmployees(wsId, { enabled: isOpen });
   
@@ -42,15 +77,22 @@ export function useAssignPolicy(wsId: string | null, isOpen: boolean, onClose: (
   });
 
   const assignMutation = useMutation({
-    mutationFn: (data: { assignee_type: string; assignee_id: string | null; policy_id: string; effective_from: string }) => {
+    mutationFn: async (data: { assignee_type: string; assignee_id: string | null; policy_id: string; effective_from: string }) => {
       if (!wsId) throw new Error("Workspace ID is required");
+      if (editingAssignment) {
+        // Sequential Delete-then-Post flow to update
+        await deleteLeavePolicyAssignment(wsId, editingAssignment.id);
+      }
       return assignLeavePolicy(wsId, data);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["leave-balances"] });
       void queryClient.invalidateQueries({ queryKey: ["leave-policies"] });
       void queryClient.invalidateQueries({ queryKey: ["leave-assignments"] });
-      toast.success(t("leave_requests.policy.messages.assign_success"));
+      toast.success(editingAssignment 
+        ? t("leave_requests.policy.messages.update_assignment_success", { defaultValue: "Policy assignment updated successfully" }) 
+        : t("leave_requests.policy.messages.assign_success")
+      );
       onClose();
     },
   });
@@ -61,15 +103,13 @@ export function useAssignPolicy(wsId: string | null, isOpen: boolean, onClose: (
     if (assigneeType === 'employee' && !assignEmpId) return;
     if (assigneeType === 'department' && !assignDeptId) return;
 
-    const formData = new FormData(e.currentTarget);
     const assignee_id_raw = assigneeType === 'workspace' ? null : (assigneeType === 'department' ? assignDeptId : assignEmpId);
-    const effective_from = formData.get("effective_from") as string;
     
     assignMutation.mutate({ 
       assignee_type: assigneeType, 
       assignee_id: (assignee_id_raw === "" || assignee_id_raw === null) ? null : assignee_id_raw, 
       policy_id: assignPolicyId, 
-      effective_from 
+      effective_from: effectiveFrom 
     });
   };
 
@@ -82,6 +122,8 @@ export function useAssignPolicy(wsId: string | null, isOpen: boolean, onClose: (
     setAssignDeptId,
     assignPolicyId,
     setAssignPolicyId,
+    effectiveFrom,
+    setEffectiveFrom,
     employees,
     employeesLoading,
     departments,
