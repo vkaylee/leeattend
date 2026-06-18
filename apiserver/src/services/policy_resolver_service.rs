@@ -662,7 +662,7 @@ mod tests {
         )
         .await;
 
-        assert_eq!(rules.grace_period_minutes(), 10);
+        assert_eq!(rules.grace_period_minutes(), 15);
 
         // Test resolve_with_shift_overrides_by_employment
         let mut policy_repo_emp = MockAttendancePolicyRepository::new();
@@ -679,6 +679,6 @@ mod tests {
             &overrides,
         )
         .await;
-        assert_eq!(rules_emp.grace_period_minutes(), 10);
+        assert_eq!(rules_emp.grace_period_minutes(), 15);
     }
 }

@@ -356,9 +356,6 @@ impl AttendanceHandler {
                     );
 
                     // Override with shift-specific settings
-                    if let Some(gp) = daily.early_punch_in_grace_period_minutes {
-                        rules.set_grace_period_minutes(gp);
-                    }
                     if let Some(bad) = daily.is_break_auto_deduct {
                         rules.set_is_break_auto_deduct(bad);
                     }
@@ -562,9 +559,6 @@ impl AttendanceHandler {
                         ),
                     );
 
-                    if let Some(gp) = daily.early_punch_in_grace_period_minutes {
-                        rules.set_grace_period_minutes(gp);
-                    }
                     if let Some(bad) = daily.is_break_auto_deduct {
                         rules.set_is_break_auto_deduct(bad);
                     }
@@ -1275,6 +1269,7 @@ mod tests {
 
         let emp_id = Uuid::new_v4();
         let ws_id = Uuid::new_v4();
+        let emp_id_for_policy = emp_id;
 
         queue
             .expect_store_result()
@@ -1412,7 +1407,27 @@ mod tests {
         builder
             .policy_repo
             .expect_get_employee_effective_policies_batch()
-            .returning(|_, _, _| Ok(HashMap::new()));
+            .returning(move |_, _, _| {
+                let mut map = HashMap::new();
+                map.insert(
+                    emp_id_for_policy,
+                    crate::models::AttendancePolicyVersion {
+                        id: Uuid::new_v4(),
+                        policy_id: Uuid::new_v4(),
+                        rules: crate::models::AttendanceRules {
+                            work_unit_minutes: 30,
+                            rounding_policy: "floor".to_string(),
+                            early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
+                            grace_period_minutes: Some(10),
+                        },
+                        valid_from: chrono::Utc::now(),
+                        valid_to: None,
+                        created_by: None,
+                        created_at: chrono::Utc::now(),
+                    },
+                );
+                Ok(map)
+            });
 
         let deps = builder.build();
 

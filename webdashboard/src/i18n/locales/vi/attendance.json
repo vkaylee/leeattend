@@ -300,7 +300,7 @@
     "directory_title": "Danh sách các loại ca",
     "auto_deduct": "Tự động trừ",
     "grace_period": "Grace Period (phút)",
-    "grace_period_desc": "Nếu dùng chính sách 'Chặn', chấm công sớm hơn sẽ bị chặn. Nếu 'Clamp', OT bắt đầu tính từ đây.",
+    "grace_period_desc": "Chỉ áp dụng cho việc đến sớm. Nếu dùng chính sách 'Chặn', chấm công trước khoảng này sẽ bị chặn. Nếu 'Clamp', OT bắt đầu tính từ đây. Không ảnh hưởng đến thời gian ân hạn đi muộn.",
     "set_off_day": "Đặt nghỉ (OFF)",
     "days_count": "{{count}} ngày đã chọn",
     "empty_state": {
@@ -356,7 +356,7 @@
       "effective_date_label": "Ngày hiệu lực",
       "effective_date_desc": "Phiên bản mới sẽ có hiệu lực từ ngày này.",
       "grace_period": "Cho phép vào sớm (phút)",
-      "grace_period_desc": "Nếu dùng chính sách 'Chặn', chấm công sớm hơn sẽ bị chặn. Nếu 'Clamp', OT bắt đầu tính từ đây.",
+      "grace_period_desc": "Chỉ áp dụng cho việc đến sớm. Nếu dùng chính sách 'Chặn', chấm công trước khoảng này sẽ bị chặn. Nếu 'Clamp', OT bắt đầu tính từ đây. Không ảnh hưởng đến thời gian ân hạn đi muộn.",
       "select_shift_title": "Chọn ca làm việc",
       "select_shift_subtitle": "Chọn ca cho {{count}} ngày đã chọn",
       "mark_as_off": "Đánh dấu các ngày đã chọn là nghỉ",

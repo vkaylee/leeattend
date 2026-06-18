@@ -300,7 +300,7 @@
     "directory_title": "班次类型列表",
     "auto_deduct": "自动扣除",
     "grace_period": "宽限期 (分钟)",
-    "grace_period_desc": "如果启用了“阻止”政策，则此时间之前的打卡将被阻止。如果启用了“钳位”，则加班从此处开始计算。",
+    "grace_period_desc": "仅控制提前到达行为。如果启用了“阻止”政策，则此时间之前的打卡将被阻止。如果启用了“钳位”，则加班从此处开始计算。不影响迟到宽限期。",
     "set_off_day": "设为休息",
     "days_count": "已选择 {{count}} 天",
     "empty_state": {
@@ -356,7 +356,7 @@
       "effective_date_label": "生效日期",
       "effective_date_desc": "新版本将从该日期起生效。",
       "grace_period": "提前打卡宽限 (分钟)",
-      "grace_period_desc": "如果启用了“阻止”政策，则此时间之前的打卡将被阻止。如果启用了“钳位”，则加班从此处开始计算。",
+      "grace_period_desc": "仅控制提前到达行为。如果启用了“阻止”政策，则此时间之前的打卡将被阻止。如果启用了“钳位”，则加班从此处开始计算。不影响迟到宽限期。",
       "select_shift_title": "选择班次",
       "select_shift_subtitle": "为选中的 {{count}} 天选择班次",
       "mark_as_off": "将选中日期标记为休息",

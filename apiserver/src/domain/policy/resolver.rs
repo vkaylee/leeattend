@@ -165,11 +165,6 @@ impl PolicyResolver {
         mut rules: PolicyRules,
         overrides: &ShiftPolicyOverrides,
     ) -> PolicyRules {
-        if let Some(gp) = overrides.grace_period_minutes() {
-            if gp > 0 {
-                rules.set_grace_period_minutes(gp);
-            }
-        }
         if let Some(bad) = overrides.is_break_auto_deduct() {
             rules.set_is_break_auto_deduct(bad);
         }
@@ -192,7 +187,7 @@ impl PolicyResolver {
             Self::resolve_attendance_rules_pure(&ar, conditions, date)
         } else {
             PolicyRules::new(
-                overrides.grace_period_minutes().unwrap_or(0),
+                DEFAULT_GRACE_PERIOD_MINUTES,
                 0,
                 false,
                 overrides.early_arrival_strategy(),
@@ -404,7 +399,7 @@ mod tests {
 
     #[test]
     fn test_shift_overrides_applied_to_base_rules() {
-        let mut rules = PolicyRules::new(
+        let rules = PolicyRules::new(
             15,
             0,
             false,
@@ -422,29 +417,17 @@ mod tests {
             true,
         );
 
-        // Simulate the override logic from resolve_with_shift_overrides
-        if let Some(gp) = ov.grace_period_minutes() {
-            if gp > 0 {
-                rules.set_grace_period_minutes(gp);
-            }
-        }
-        if let Some(bad) = ov.is_break_auto_deduct() {
-            rules.set_is_break_auto_deduct(bad);
-        }
-        if let Some(aeo) = ov.allow_early_ot() {
-            rules.set_allow_early_ot(aeo);
-        }
-        rules.set_is_break_overtime(ov.is_break_overtime());
+        let result = PolicyResolver::apply_shift_overrides(rules, &ov);
 
-        assert_eq!(rules.grace_period_minutes(), 30);
-        assert!(!rules.is_break_auto_deduct());
-        assert!(rules.allow_early_ot());
-        assert!(rules.is_break_overtime());
+        assert_eq!(result.grace_period_minutes(), 15); // Decoupled from shift overrides
+        assert!(!result.is_break_auto_deduct());
+        assert!(result.allow_early_ot());
+        assert!(result.is_break_overtime());
     }
 
     #[test]
     fn test_shift_overrides_none_preserves_defaults() {
-        let mut rules = PolicyRules::new(
+        let rules = PolicyRules::new(
             15,
             0,
             false,
@@ -456,27 +439,16 @@ mod tests {
 
         let ov = ShiftPolicyOverrides::new(None, None, None, EarlyArrivalStrategy::Allow, false);
 
-        if let Some(gp) = ov.grace_period_minutes() {
-            if gp > 0 {
-                rules.set_grace_period_minutes(gp);
-            }
-        }
-        if let Some(bad) = ov.is_break_auto_deduct() {
-            rules.set_is_break_auto_deduct(bad);
-        }
-        if let Some(aeo) = ov.allow_early_ot() {
-            rules.set_allow_early_ot(aeo);
-        }
-        rules.set_is_break_overtime(ov.is_break_overtime());
+        let result = PolicyResolver::apply_shift_overrides(rules, &ov);
 
-        assert_eq!(rules.grace_period_minutes(), 15); // unchanged
-        assert!(rules.is_break_auto_deduct()); // unchanged
-        assert!(!rules.allow_early_ot()); // unchanged
+        assert_eq!(result.grace_period_minutes(), 15); // unchanged
+        assert!(result.is_break_auto_deduct()); // unchanged
+        assert!(!result.allow_early_ot()); // unchanged
     }
 
     #[test]
     fn test_shift_overrides_zero_grace_not_applied() {
-        let mut rules = PolicyRules::new(
+        let rules = PolicyRules::new(
             15,
             0,
             false,
@@ -488,12 +460,8 @@ mod tests {
 
         let ov = ShiftPolicyOverrides::new(Some(0), None, None, EarlyArrivalStrategy::Allow, false);
 
-        if let Some(gp) = ov.grace_period_minutes() {
-            if gp > 0 {
-                rules.set_grace_period_minutes(gp);
-            }
-        }
+        let result = PolicyResolver::apply_shift_overrides(rules, &ov);
 
-        assert_eq!(rules.grace_period_minutes(), 15); // zero not applied
+        assert_eq!(result.grace_period_minutes(), 15); // unchanged
     }
 }
