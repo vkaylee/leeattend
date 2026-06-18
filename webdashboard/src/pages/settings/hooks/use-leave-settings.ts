@@ -1,10 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 import type { Department } from "@/lib/api/types";
 
 import { useAllEmployees } from "@/hooks/use-employees";
-import { fetchLeavePolicyAssignments, fetchDepartments } from "@/lib/api";
+import { fetchLeavePolicyAssignments, fetchDepartments, deleteLeavePolicyAssignment } from "@/lib/api";
 import { getCurrentWorkspaceId } from "@/lib/api/helpers";
 
 export type TabType = "types" | "policies" | "assignments";
@@ -21,6 +21,7 @@ export interface LeaveAssignment {
 }
 
 export function useLeaveSettings() {
+  const queryClient = useQueryClient();
   const wsId = getCurrentWorkspaceId();
   const [activeTab, setActiveTab] = useState<TabType>("types");
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
@@ -44,6 +45,18 @@ export function useLeaveSettings() {
     enabled: !!wsId && activeTab === "assignments"
   });
 
+  const deleteAssignmentMutation = useMutation({
+    mutationFn: (assignmentId: string) => {
+      if (!wsId) throw new Error("Workspace ID is required");
+      return deleteLeavePolicyAssignment(wsId, assignmentId);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["leave-assignments"] });
+      void queryClient.invalidateQueries({ queryKey: ["leave-balances"] });
+      void queryClient.invalidateQueries({ queryKey: ["workspace-leave-balances"] });
+    },
+  });
+
   return {
     wsId,
     activeTab,
@@ -54,6 +67,9 @@ export function useLeaveSettings() {
     assignmentsLoading: assignmentsLoading || employeesLoading || departmentsLoading,
     employees,
     departments,
+    deleteAssignment: deleteAssignmentMutation.mutateAsync,
+    isDeleting: deleteAssignmentMutation.isPending,
   };
 }
+
 

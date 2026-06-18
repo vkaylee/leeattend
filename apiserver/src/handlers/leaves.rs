@@ -684,6 +684,35 @@ pub async fn get_leave_policy_assignments(
     Ok(Json(assignments))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/workspaces/{ws_id}/leave/policies/assignments/{assignment_id}",
+    responses(
+        (status = 200, description = "Leave policy assignment deleted")
+    ),
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ("assignment_id" = Uuid, Path, description = "Assignment ID")
+    )
+)]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
+pub async fn delete_leave_policy_assignment(
+    State(state): State<Arc<AppState>>,
+    Path(params): Path<(Uuid, Uuid)>,
+    ctx: MemberContext,
+) -> AppResult<StatusCode> {
+    let (_, assignment_id) = params;
+    ctx.require_permission(Permission::LeavePoliciesManage)?;
+
+    state
+        .leaves()
+        .policy_repo()
+        .delete_policy_assignment(ctx.workspace_id, assignment_id)
+        .await?;
+
+    Ok(StatusCode::OK)
+}
+
 // ========================
 // Leave Import Handlers
 // ========================

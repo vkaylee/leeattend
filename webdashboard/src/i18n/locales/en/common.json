@@ -1,5 +1,6 @@
 {
   "common": {
+    "back": "Back",
     "error_boundary": {
       "widget_error": "Widget Error",
       "unexpected_error": "An unexpected error occurred",

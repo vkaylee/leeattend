@@ -124,6 +124,14 @@ impl LeavePolicyRepository for DummyLeavePolicyRepository {
         unimplemented!()
     }
 
+    async fn delete_policy_assignment(
+        &self,
+        _workspace_id: uuid::Uuid,
+        _id: uuid::Uuid,
+    ) -> Result<(), crate::errors::AppError> {
+        Ok(())
+    }
+
     async fn find_active_assignment_for_employee(
         &self,
         _workspace_id: uuid::Uuid,

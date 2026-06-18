@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
@@ -18,6 +18,13 @@ vi.mock("react-i18next", () => ({
         "settings.leave.tabs.policies": "Accrual Policies",
         "settings.leave.tabs.assignments": "Policy Assignments",
         "settings.leave.actions.assign": "Assign Policy",
+        "settings.leave.actions.delete": "Delete",
+        "settings.leave.dialogs.delete_assignment_title": "Delete Policy Assignment",
+        "settings.leave.dialogs.delete_assignment_message": "Are you sure you want to delete this leave policy assignment? This will soft-delete the assignment, and the previous timeline will be restored/healed automatically.",
+        "settings.leave.messages.delete_assignment_success": "Leave policy assignment deleted successfully",
+        "settings.leave.messages.delete_assignment_error": "Failed to delete leave policy assignment",
+        "common.confirm": "Confirm",
+        "common.cancel": "Cancel",
         "common.forever": "Forever",
         "common.important_note": "Important Note",
         "settings.leave.title": "Leave Settings",
@@ -26,6 +33,13 @@ vi.mock("react-i18next", () => ({
       return translations[key] || key;
     }
   }),
+}));
+
+vi.mock("sonner", () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
 }));
 
 vi.mock("@/lib/api/leaves");
@@ -153,5 +167,37 @@ describe("LeaveSettings Page", () => {
     // Verify resolved department and employee names
     expect(screen.getByText("Engineering")).toBeDefined();
     expect(screen.getByText("Alice Smith")).toBeDefined();
+  });
+
+  it("allows deleting a policy assignment after confirming", async () => {
+    vi.mocked(api.deleteLeavePolicyAssignment).mockResolvedValue(undefined);
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <LeaveSettings />
+      </QueryClientProvider>
+    );
+
+    const assignTab = screen.getByRole("button", { name: /Policy Assignments/i });
+    fireEvent.click(assignTab);
+
+    // Verify first assignment is rendered
+    expect(await screen.findByText("General Vacation")).toBeDefined();
+
+    // Find and click the delete button for General Vacation (assign-1)
+    const deleteButtons = screen.getAllByRole("button", { name: /Delete/i });
+    fireEvent.click(deleteButtons[0]);
+
+    // Confirm dialog should be open
+    expect(screen.getByText(/Are you sure you want to delete this leave policy assignment/i)).toBeDefined();
+
+    // Click confirm (which has label "Delete" inside the dialog)
+    const dialogButtons = screen.getAllByRole("button", { name: /Delete/i });
+    fireEvent.click(dialogButtons[dialogButtons.length - 1]);
+
+    // Verify API call
+    await waitFor(() => {
+      expect(api.deleteLeavePolicyAssignment).toHaveBeenCalledWith(wsId, "assign-1");
+    });
   });
 });

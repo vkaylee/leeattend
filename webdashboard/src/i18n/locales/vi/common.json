@@ -1,5 +1,6 @@
 {
   "common": {
+    "back": "Quay lại",
     "error_boundary": {
       "widget_error": "Lỗi Widget",
       "unexpected_error": "Đã xảy ra lỗi không mong muốn",

@@ -412,6 +412,8 @@
         "update_error": "Cập nhật loại nghỉ phép thất bại",
         "create_success": "Tạo chính sách thành công",
         "delete_success": "Xóa chính sách thành công",
+        "delete_assignment_success": "Xóa phân bổ chính sách nghỉ phép thành công",
+        "delete_assignment_error": "Xóa phân bổ chính sách nghỉ phép thất bại",
         "assignment_note": "Việc phân bổ chính sách quyết định cách tính toán ngày nghỉ phép cho từng nhân sự. Các thay đổi sẽ được áp dụng trong đợt tính tích lũy kế tiếp hoặc có thể được bắt buộc tính toán ngay thông qua công cụ \"Chạy Tích lũy\" trong Cấu hình Chung.",
         "loading": "Đang tải thông tin phân bổ...",
         "no_assignments": "Không tìm thấy thông tin phân bổ chính sách"
@@ -426,14 +428,20 @@
         "unpaid": "Nghỉ không lương"
       },
       "actions": {
-        "assign": "Gán chính sách"
+        "assign": "Gán chính sách",
+        "delete": "Xóa"
       },
       "table": {
         "policy": "Chính sách",
         "type": "Loại",
         "assignee": "Đối tượng áp dụng",
         "effective_date": "Ngày hiệu lực",
-        "created_at": "Ngày tạo"
+        "created_at": "Ngày tạo",
+        "actions": "Hành động"
+      },
+      "dialogs": {
+        "delete_assignment_title": "Xóa Phân bổ Chính sách",
+        "delete_assignment_message": "Bạn có chắc chắn muốn xóa phân bổ chính sách nghỉ phép này không? Hành động này sẽ chuyển trạng thái phân bổ thành đã xóa, và khoảng thời gian hiệu lực trước đó sẽ tự động khôi phục."
       },
       "type_manager": {
         "title": "Loại Nghỉ phép",

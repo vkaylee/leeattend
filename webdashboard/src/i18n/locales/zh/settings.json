@@ -412,6 +412,8 @@
         "update_error": "更新请假类型失败",
         "create_success": "成功创建政策",
         "delete_success": "成功删除政策",
+        "delete_assignment_success": "成功删除请假政策分配",
+        "delete_assignment_error": "删除请假政策分配失败",
         "assignment_note": "政策分配定义了每个人的请假计算方式。更改将在下一次计划的累计运行期间应用，或者可以通过“常规设置”中的“累计运行”工具强制执行。",
         "loading": "正在加载分配信息...",
         "no_assignments": "未找到政策分配"
@@ -426,14 +428,20 @@
         "unpaid": "无薪假"
       },
       "actions": {
-        "assign": "分配政策"
+        "assign": "分配政策",
+        "delete": "删除"
       },
       "table": {
         "policy": "政策",
         "type": "类型",
         "assignee": "分配对象",
         "effective_date": "生效日期",
-        "created_at": "创建时间"
+        "created_at": "创建时间",
+        "actions": "操作"
+      },
+      "dialogs": {
+        "delete_assignment_title": "删除政策分配",
+        "delete_assignment_message": "您确定要删除此请假政策分配吗？这将软删除该分配，并自动恢复/修复之前的生效时间线。"
       },
       "type_manager": {
         "title": "请假类型",

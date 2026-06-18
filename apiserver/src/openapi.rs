@@ -169,6 +169,7 @@ use utoipa::OpenApi;
         crate::handlers::leaves::create_leave_policy,
         crate::handlers::leaves::update_leave_policy,
         crate::handlers::leaves::delete_leave_policy,
+        crate::handlers::leaves::delete_leave_policy_assignment,
         crate::handlers::leaves::get_leave_policies,
         crate::handlers::leaves::assign_leave_policy,
         crate::handlers::leaves::get_leave_policy_assignments,

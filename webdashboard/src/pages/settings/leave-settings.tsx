@@ -23,6 +23,8 @@ export default function LeaveSettings() {
     assignmentsLoading,
     employees,
     departments,
+    deleteAssignment,
+    isDeleting,
   } = useLeaveSettings();
 
   if (!wsId) return null;
@@ -70,6 +72,8 @@ export default function LeaveSettings() {
               employees={employees}
               isLoading={assignmentsLoading}
               onAssignClick={() => { setIsAssignModalOpen(true); }}
+              onDelete={deleteAssignment}
+              isDeleting={isDeleting}
             />
           )}
         </div>

@@ -1,7 +1,10 @@
-feat(core): implement automatic tenant database provisioning
+refactor(apiserver): replace raw SQL queries with type-safe Diesel DSL
 
-- Add `system_db_clusters` table and migration.
-- Add `SystemDbCluster` model and repository to select the least loaded cluster.
-- Update `CreateWorkspaceRequest` to make `database_url` optional.
-- Modify `WorkspaceService::create_workspace` to automatically provision a new PostgreSQL database on the least loaded cluster if no BYOD `database_url` is provided.
-- Ensure automated migrations run on newly provisioned databases.
+Refactors raw `diesel::sql_query(...)` calls in `diesel_leave_request_repository.rs`
+to use type-safe Diesel DSL. This covers:
+- `get_approved_leave_dates`
+- `get_approved_leave_details`
+- `get_approved_leave_breakdowns_batch` (Step 2: Holiday intersect query)
+- `get_unpaid_holiday_days_without_leave_batch` (Step 2: Unpaid holiday covered query)
+
+This eliminates raw SQL parsing risk and enforces compile-time schema safety. All tests passed.

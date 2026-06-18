@@ -246,6 +246,17 @@ export async function assignLeavePolicy(
   });
 }
 
+export async function deleteLeavePolicyAssignment(
+  wsId: string,
+  assignmentId: string
+): Promise<void> {
+  await client.DELETE("/workspaces/{ws_id}/leave/policies/assignments/{assignment_id}", {
+    params: {
+      path: { ws_id: wsId, assignment_id: assignmentId },
+    },
+  });
+}
+
 export interface AccrualJobResponse {
   job_id: string;
   message: string;

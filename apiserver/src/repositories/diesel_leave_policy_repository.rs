@@ -450,6 +450,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                 leave_types::table.on(leave_policy_definitions::leave_type_id.eq(leave_types::id)),
             )
             .filter(leave_policy_assignments::workspace_id.eq(workspace_id))
+            .filter(leave_policy_assignments::deleted_at.is_null())
             .filter(leave_policy_definitions::deleted_at.is_null())
             .filter(leave_types::deleted_at.is_null())
             .filter(leave_policy_assignments::assignee_type.eq("employee"))
@@ -483,6 +484,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                         .on(leave_policy_definitions::leave_type_id.eq(leave_types::id)),
                 )
                 .filter(leave_policy_assignments::workspace_id.eq(workspace_id))
+                .filter(leave_policy_assignments::deleted_at.is_null())
                 .filter(leave_policy_definitions::deleted_at.is_null())
                 .filter(leave_types::deleted_at.is_null())
                 .filter(leave_policy_assignments::assignee_type.eq("department"))
@@ -515,6 +517,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                 leave_types::table.on(leave_policy_definitions::leave_type_id.eq(leave_types::id)),
             )
             .filter(leave_policy_assignments::workspace_id.eq(workspace_id))
+            .filter(leave_policy_assignments::deleted_at.is_null())
             .filter(leave_policy_definitions::deleted_at.is_null())
             .filter(leave_types::deleted_at.is_null())
             .filter(leave_policy_assignments::assignee_type.eq("workspace"))
@@ -560,6 +563,7 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                 leave_types::table.on(leave_policy_definitions::leave_type_id.eq(leave_types::id)),
             )
             .filter(leave_policy_assignments::workspace_id.eq(workspace_id))
+            .filter(leave_policy_assignments::deleted_at.is_null())
             .filter(leave_policy_definitions::deleted_at.is_null())
             .filter(leave_types::deleted_at.is_null())
             .filter(leave_policy_assignments::effective_from.le(date))
@@ -634,6 +638,96 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                 )
             })
             .collect())
+    }
+
+    async fn delete_policy_assignment(
+        &self,
+        workspace_id: Uuid,
+        id: Uuid,
+    ) -> Result<(), AppError> {
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        conn.transaction(|conn| {
+            Box::pin(async move {
+                // 1. Get the assignment details to be deleted
+                let assignment: Option<LeavePolicyAssignmentEntity> = leave_policy_assignments::table
+                    .filter(leave_policy_assignments::id.eq(id))
+                    .filter(leave_policy_assignments::workspace_id.eq(workspace_id))
+                    .filter(leave_policy_assignments::deleted_at.is_null())
+                    .first::<LeavePolicyAssignmentEntity>(&mut *conn)
+                    .await
+                    .optional()?;
+
+                let Some(assign) = assignment else {
+                    return Err(diesel::result::Error::NotFound);
+                };
+
+                // 2. Get the leave_type_id of the associated policy definition
+                let lt_id: Uuid = leave_policy_definitions::table
+                    .filter(leave_policy_definitions::id.eq(assign.policy_id))
+                    .filter(leave_policy_definitions::workspace_id.eq(workspace_id))
+                    .select(leave_policy_definitions::leave_type_id)
+                    .first(&mut *conn)
+                    .await?;
+
+                // 3. Soft-delete the assignment
+                diesel::update(
+                    leave_policy_assignments::table
+                        .filter(leave_policy_assignments::id.eq(id))
+                )
+                .set(leave_policy_assignments::deleted_at.eq(Utc::now()))
+                .execute(&mut *conn)
+                .await?;
+
+                // 4. Reconcile/heal timeline:
+                // Find a previous active assignment for the same target and same leave type
+                // that ended exactly on `effective_from - 1 day`.
+                if let Some(prev_end) = assign.effective_from.pred_opt() {
+                    let prev_assignment_opt: Option<LeavePolicyAssignmentEntity> = leave_policy_assignments::table
+                        .filter(leave_policy_assignments::workspace_id.eq(workspace_id))
+                        .filter(leave_policy_assignments::assignee_type.eq(&assign.assignee_type))
+                        .filter(leave_policy_assignments::assignee_id.is_not_distinct_from(assign.assignee_id))
+                        .filter(leave_policy_assignments::effective_to.eq(prev_end))
+                        .filter(leave_policy_assignments::deleted_at.is_null())
+                        .filter(
+                            leave_policy_assignments::policy_id.eq_any(
+                                leave_policy_definitions::table
+                                    .filter(leave_policy_definitions::leave_type_id.eq(lt_id))
+                                    .select(leave_policy_definitions::id),
+                            )
+                        )
+                        .first::<LeavePolicyAssignmentEntity>(&mut *conn)
+                        .await
+                        .optional()?;
+
+                    if let Some(prev_assign) = prev_assignment_opt {
+                        // Restore previous assignment's effective_to to this assignment's effective_to
+                        diesel::update(
+                            leave_policy_assignments::table
+                                .filter(leave_policy_assignments::id.eq(prev_assign.id))
+                        )
+                        .set(leave_policy_assignments::effective_to.eq(assign.effective_to))
+                        .execute(&mut *conn)
+                        .await?;
+                    }
+                }
+
+                Ok::<_, diesel::result::Error>(())
+            })
+        })
+        .await
+        .map_err(|e| match e {
+            diesel::result::Error::NotFound => AppError::not_found(I18nKey::PolicyNotFound),
+            _ => AppError::Internal(format!("db transaction: {e}")),
+        })?;
+
+        Ok(())
     }
 
     async fn find_default_paid_leave_type(

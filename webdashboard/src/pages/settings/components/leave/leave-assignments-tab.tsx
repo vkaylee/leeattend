@@ -1,9 +1,11 @@
-import { Info, UserPlus } from "lucide-react";
-import React from "react";
+import { Info, UserPlus, Trash2 } from "lucide-react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 
 import { format } from "date-fns";
 
+import ConfirmDialog from "@/components/ui/confirm-dialog";
 import type { Employee, Department } from "@/lib/api/types";
 
 import Button from "@/components/ui/button";
@@ -18,6 +20,8 @@ interface LeaveAssignmentsTabProps {
   employees: Employee[];
   isLoading: boolean;
   onAssignClick: () => void;
+  onDelete: (id: string) => Promise<void>;
+  isDeleting: boolean;
 }
 
 export function LeaveAssignmentsTab({
@@ -26,8 +30,24 @@ export function LeaveAssignmentsTab({
   onAssignClick,
   employees,
   departments,
+  onDelete,
+  isDeleting,
 }: LeaveAssignmentsTabProps) {
   const { t } = useTranslation();
+  const [deletingAssignmentId, setDeletingAssignmentId] = useState<string | null>(null);
+
+  const handleDeleteConfirm = async () => {
+    if (deletingAssignmentId) {
+      try {
+        await onDelete(deletingAssignmentId);
+        toast.success(t("settings.leave.messages.delete_assignment_success"));
+      } catch (err) {
+        toast.error(t("settings.leave.messages.delete_assignment_error"));
+      } finally {
+        setDeletingAssignmentId(null);
+      }
+    }
+  };
 
 
   return (
@@ -70,13 +90,14 @@ export function LeaveAssignmentsTab({
               <th className="px-6 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("settings.leave.table.assignee")}</th>
               <th className="px-6 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("settings.leave.table.effective_date")}</th>
               <th className="px-6 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-right">{t("settings.leave.table.created_at")}</th>
+              <th className="px-6 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-right">{t("settings.leave.table.actions")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
             {isLoading ? (
-              <tr><td className="p-8 text-center text-slate-400 dark:text-slate-500 italic font-bold text-xs uppercase tracking-widest" colSpan={5}>{t("settings.leave.messages.loading")}</td></tr>
+              <tr><td className="p-8 text-center text-slate-400 dark:text-slate-500 italic font-bold text-xs uppercase tracking-widest" colSpan={6}>{t("settings.leave.messages.loading")}</td></tr>
             ) : assignments.length === 0 ? (
-              <tr><td className="p-12 text-center text-slate-400 dark:text-slate-500 italic font-bold text-xs uppercase tracking-widest opacity-50" colSpan={5}>{t("settings.leave.messages.no_assignments")}</td></tr>
+              <tr><td className="p-12 text-center text-slate-400 dark:text-slate-500 italic font-bold text-xs uppercase tracking-widest opacity-50" colSpan={6}>{t("settings.leave.messages.no_assignments")}</td></tr>
             ) : (
               assignments.map((a) => {
                 const getAssigneeName = () => {
@@ -122,6 +143,18 @@ export function LeaveAssignmentsTab({
                     <td className="px-6 py-5 text-[10px] font-mono text-slate-400 dark:text-slate-500 text-right uppercase">
                       {format(new Date(a.created_at), "MMM dd HH:mm")}
                     </td>
+                    <td className="px-6 py-5 text-right">
+                      <Button
+                        className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/20 px-2 py-1 h-8 rounded-lg transition-colors inline-flex items-center justify-center"
+                        onClick={() => setDeletingAssignmentId(a.id)}
+                        variant="ghost"
+                        size="sm"
+                        disabled={isDeleting}
+                        aria-label={t("settings.leave.actions.delete")}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </td>
                   </tr>
                 );
               })
@@ -129,6 +162,17 @@ export function LeaveAssignmentsTab({
           </tbody>
         </table>
       </div>
+
+      <ConfirmDialog
+        confirmLabel={t("settings.leave.actions.delete")}
+        isLoading={isDeleting}
+        isOpen={deletingAssignmentId !== null}
+        message={t("settings.leave.dialogs.delete_assignment_message")}
+        onClose={() => setDeletingAssignmentId(null)}
+        onConfirm={handleDeleteConfirm}
+        title={t("settings.leave.dialogs.delete_assignment_title")}
+        variant="danger"
+      />
     </div>
   );
 }

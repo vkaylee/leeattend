@@ -69,6 +69,10 @@ pub fn router() -> Router<Arc<AppState>> {
             get(handlers::leaves::get_leave_policy_assignments),
         )
         .route(
+            "/workspaces/:ws_id/leave/policies/assignments/:assignment_id",
+            delete(handlers::leaves::delete_leave_policy_assignment),
+        )
+        .route(
             "/workspaces/:ws_id/leave/accrual/run",
             post(handlers::trigger_accrual_run),
         )
