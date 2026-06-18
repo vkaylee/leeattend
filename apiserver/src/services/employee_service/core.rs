@@ -53,7 +53,9 @@ impl EmployeeService {
                         .repo
                         .get_employee_by_id(existing_emp_id, auth_token)
                         .await?
-                        .ok_or_else(|| AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound))?;
+                        .ok_or_else(|| {
+                            AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound)
+                        })?;
 
                     return Err(AppError::validation_args(
                         crate::utils::i18n::I18nKey::UserAlreadyLinked,
@@ -98,7 +100,9 @@ impl EmployeeService {
         let rows_affected = self.repo.delete_employee(id, auth_token).await?;
 
         if rows_affected == 0 {
-            Err(AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound))
+            Err(AppError::not_found(
+                crate::utils::i18n::I18nKey::EmployeeNotFound,
+            ))
         } else {
             Ok(())
         }

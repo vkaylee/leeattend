@@ -9,10 +9,10 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::errors::AppResult;
-use crate::utils::i18n::I18nKey;
 use crate::models::{LeaveDurationType, SubmitLeaveRequest};
 use crate::services::import_messages::LeaveImportMessages;
 use crate::services::leave_service::LeaveService;
+use crate::utils::i18n::I18nKey;
 
 use crate::models::AttendanceImportJob;
 
@@ -89,23 +89,38 @@ impl ImportStrategy for LeaveImportStrategy {
 
         if emp_id.is_empty() {
             let msg = self.msgs.missing_employee_id.to_string();
-            return Err(crate::errors::AppError::validation_args(I18nKey::Validation, [("details", msg)]));
+            return Err(crate::errors::AppError::validation_args(
+                I18nKey::Validation,
+                [("details", msg)],
+            ));
         }
         if leave_code.is_empty() {
             let msg = self.msgs.missing_leave_type.to_string();
-            return Err(crate::errors::AppError::validation_args(I18nKey::Validation, [("details", msg)]));
+            return Err(crate::errors::AppError::validation_args(
+                I18nKey::Validation,
+                [("details", msg)],
+            ));
         }
         let Some(start_date) = parse_date(&start_str) else {
             let msg = self.msgs.invalid_start_date.to_string();
-            return Err(crate::errors::AppError::validation_args(I18nKey::Validation, [("details", msg)]));
+            return Err(crate::errors::AppError::validation_args(
+                I18nKey::Validation,
+                [("details", msg)],
+            ));
         };
         let Some(end_date) = parse_date(&end_str) else {
             let msg = self.msgs.invalid_end_date.to_string();
-            return Err(crate::errors::AppError::validation_args(I18nKey::Validation, [("details", msg)]));
+            return Err(crate::errors::AppError::validation_args(
+                I18nKey::Validation,
+                [("details", msg)],
+            ));
         };
         if end_date < start_date {
             let msg = self.msgs.end_before_start.to_string();
-            return Err(crate::errors::AppError::validation_args(I18nKey::Validation, [("details", msg)]));
+            return Err(crate::errors::AppError::validation_args(
+                I18nKey::Validation,
+                [("details", msg)],
+            ));
         }
         let duration_type = parse_duration_type(&duration_str);
 
@@ -198,7 +213,10 @@ impl ImportStrategy for LeaveImportStrategy {
             .employees_cache
             .get(&row.employee_id_number.to_uppercase())
             .ok_or_else(|| {
-                let msg = self.msgs.employee_not_found_tpl.replace("{}", &row.employee_id_number);
+                let msg = self
+                    .msgs
+                    .employee_not_found_tpl
+                    .replace("{}", &row.employee_id_number);
                 crate::errors::AppError::validation_args(I18nKey::Validation, [("details", msg)])
             })?;
 
@@ -206,7 +224,10 @@ impl ImportStrategy for LeaveImportStrategy {
             .leave_types_cache
             .get(&row.leave_type_code.to_uppercase())
             .ok_or_else(|| {
-                let msg = self.msgs.leave_type_not_found_tpl.replace("{}", &row.leave_type_code);
+                let msg = self
+                    .msgs
+                    .leave_type_not_found_tpl
+                    .replace("{}", &row.leave_type_code);
                 crate::errors::AppError::validation_args(I18nKey::Validation, [("details", msg)])
             })?;
 

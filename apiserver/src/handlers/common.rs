@@ -527,7 +527,10 @@ pub async fn check_behalf_scope(
     if !has_perm {
         return Err(AppError::forbidden_args(
             I18nKey::Forbidden,
-            vec![("details", format!("Missing permission: one of {required_permissions:?}"))],
+            vec![(
+                "details",
+                format!("Missing permission: one of {required_permissions:?}"),
+            )],
         ));
     }
 
@@ -566,7 +569,10 @@ pub async fn check_behalf_scope(
 
     Err(AppError::forbidden_args(
         I18nKey::Forbidden,
-        vec![("details", "Permission denied: Target is outside your on-behalf scope.".to_string())],
+        vec![(
+            "details",
+            "Permission denied: Target is outside your on-behalf scope.".to_string(),
+        )],
     ))
 }
 

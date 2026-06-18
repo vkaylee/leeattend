@@ -207,7 +207,7 @@ impl LeaveService {
         req: AdjustBalanceRequest,
     ) -> Result<(), AppError> {
         let amount_dec = rust_decimal::Decimal::from_f64_retain(req.amount)
-            .ok_or(AppError::validation(I18nKey::Validation))?;
+            .ok_or_else(|| AppError::validation(I18nKey::Validation))?;
 
         self.leave_balance_repo
             .adjust_balance(
@@ -236,7 +236,7 @@ impl LeaveService {
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
             )
             .await?
-            .ok_or(AppError::not_found(I18nKey::NotFound))?;
+            .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
 
         self.leave_balance_repo
             .get_employee_balances(
@@ -263,7 +263,7 @@ impl LeaveService {
                 req.employment_id,
             )
             .await?
-            .ok_or(AppError::not_found(I18nKey::EmploymentNotFound))?;
+            .ok_or_else(|| AppError::not_found(I18nKey::EmploymentNotFound))?;
         let employee_id = employment.employee_id();
 
         // Validate leave_type_id exists for this workspace
@@ -381,7 +381,7 @@ impl LeaveService {
                 request_id,
             )
             .await?
-            .ok_or(AppError::not_found(I18nKey::NotFound))?;
+            .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
 
         // Verify employment of this request belongs to the workspace
         let _ = self
@@ -391,7 +391,7 @@ impl LeaveService {
                 request.employment_id(),
             )
             .await?
-            .ok_or(AppError::forbidden(I18nKey::Forbidden))?;
+            .ok_or_else(|| AppError::forbidden(I18nKey::Forbidden))?;
 
         self.leave_request_repo
             .update_leave_request_status(
@@ -414,9 +414,7 @@ impl LeaveService {
                     request_id,
                 )
                 .await?
-                .ok_or(AppError::not_found(
-                    I18nKey::LeaveNotFoundAfterUpdate,
-                ))?;
+                .ok_or_else(|| AppError::not_found(I18nKey::LeaveNotFoundAfterUpdate))?;
 
             self.check_and_handle_conflicts(workspace_id, &updated_request)
                 .await?;
@@ -439,7 +437,7 @@ impl LeaveService {
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
             )
             .await?
-            .ok_or(AppError::not_found(I18nKey::NotFound))?;
+            .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
 
         self.leave_request_repo
             .get_employee_leave_requests(
@@ -1002,7 +1000,13 @@ mod tests {
             _start_date: NaiveDate,
             _end_date: NaiveDate,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-        ) -> Result<std::collections::HashMap<Uuid, crate::repositories::leave_request_repository::LeaveBreakdown>, AppError> {
+        ) -> Result<
+            std::collections::HashMap<
+                Uuid,
+                crate::repositories::leave_request_repository::LeaveBreakdown,
+            >,
+            AppError,
+        > {
             Ok(std::collections::HashMap::new())
         }
         async fn get_unpaid_holiday_days_without_leave_batch(

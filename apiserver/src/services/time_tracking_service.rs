@@ -6,8 +6,8 @@ use chrono_tz::Tz;
 use uuid::Uuid;
 
 use crate::errors::AppError;
-use crate::utils::i18n::I18nKey;
 use crate::models::{TimeEntry, UpdateTimeEntryRequest};
+use crate::utils::i18n::I18nKey;
 
 use crate::repositories::roster::RosterRepository;
 use crate::repositories::workspace_repository::WorkspaceRepository;
@@ -74,7 +74,7 @@ impl TimeTrackingService {
                 employment_id,
             )
             .await?
-            .ok_or(AppError::not_found(I18nKey::EmploymentNotFound))?;
+            .ok_or_else(|| AppError::not_found(I18nKey::EmploymentNotFound))?;
 
         if employment.status() != "active" {
             return Err(AppError::forbidden(I18nKey::EmploymentInactive));
@@ -198,7 +198,7 @@ impl TimeTrackingService {
                 employment_id,
             )
             .await?
-            .ok_or(AppError::not_found(I18nKey::EmploymentNotFound))?;
+            .ok_or_else(|| AppError::not_found(I18nKey::EmploymentNotFound))?;
 
         self.repo
             .get_employment_time_entries(
@@ -224,7 +224,7 @@ impl TimeTrackingService {
                 id,
             )
             .await?
-            .ok_or(AppError::not_found(I18nKey::TimeEntryNotFound))?;
+            .ok_or_else(|| AppError::not_found(I18nKey::TimeEntryNotFound))?;
 
         let _ = self
             .employment_repo
@@ -233,7 +233,7 @@ impl TimeTrackingService {
                 entry.employment_id(),
             )
             .await?
-            .ok_or(AppError::forbidden(I18nKey::TimeTrackingEditOtherWorkspace))?;
+            .ok_or_else(|| AppError::forbidden(I18nKey::TimeTrackingEditOtherWorkspace))?;
 
         if let Some(t) = req.punch_in_time() {
             entry.set_punch_in_time(t);
@@ -289,7 +289,7 @@ impl TimeTrackingService {
                 id,
             )
             .await?
-            .ok_or(AppError::not_found(I18nKey::TimeEntryNotFound))?;
+            .ok_or_else(|| AppError::not_found(I18nKey::TimeEntryNotFound))?;
 
         // Verify employment of this entry belongs to the workspace
         let _ = self
@@ -299,7 +299,7 @@ impl TimeTrackingService {
                 entry.employment_id(),
             )
             .await?
-            .ok_or(AppError::forbidden(I18nKey::TimeTrackingEditOtherWorkspace))?;
+            .ok_or_else(|| AppError::forbidden(I18nKey::TimeTrackingEditOtherWorkspace))?;
 
         self.repo
             .delete_time_entry(

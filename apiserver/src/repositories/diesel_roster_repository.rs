@@ -648,8 +648,7 @@ impl RosterRepository for DieselRosterRepository {
                     .optional()
                     .map_err(|e| AppError::Internal(format!("db select active employment: {e}")))?;
 
-                active_emp
-                    .ok_or_else(|| AppError::not_found(I18nKey::EmploymentNotFound))?
+                active_emp.ok_or_else(|| AppError::not_found(I18nKey::EmploymentNotFound))?
             }
         };
 

@@ -1,8 +1,8 @@
 use crate::errors::AppError;
-use crate::utils::i18n::I18nKey;
 use crate::models::{OvertimeRequest, OvertimeRequestEmployee};
 use crate::repositories::OvertimeRequestRepository;
 use crate::schema::{overtime_request_employees, overtime_requests};
+use crate::utils::i18n::I18nKey;
 use async_trait::async_trait;
 use diesel::prelude::*;
 use diesel_async::{AsyncConnection, RunQueryDsl};

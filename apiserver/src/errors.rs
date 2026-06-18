@@ -36,10 +36,8 @@ impl LocalizedMessage {
         match self {
             Self::Key(k) => crate::utils::i18n::translate(lang, k.as_str()),
             Self::KeyWithArgs(k, args) => {
-                let borrowed_args: Vec<(&str, &str)> = args
-                    .iter()
-                    .map(|(k, v)| (k.as_str(), v.as_str()))
-                    .collect();
+                let borrowed_args: Vec<(&str, &str)> =
+                    args.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
                 crate::utils::i18n::translate_args(lang, k.as_str(), &borrowed_args)
             }
         }
@@ -162,7 +160,9 @@ impl AppError {
     {
         Self::Auth(LocalizedMessage::KeyWithArgs(
             key,
-            args.into_iter().map(|(k, v)| (k.into(), v.into())).collect(),
+            args.into_iter()
+                .map(|(k, v)| (k.into(), v.into()))
+                .collect(),
         ))
     }
 
@@ -174,7 +174,9 @@ impl AppError {
     {
         Self::Forbidden(LocalizedMessage::KeyWithArgs(
             key,
-            args.into_iter().map(|(k, v)| (k.into(), v.into())).collect(),
+            args.into_iter()
+                .map(|(k, v)| (k.into(), v.into()))
+                .collect(),
         ))
     }
 
@@ -186,7 +188,9 @@ impl AppError {
     {
         Self::NotFound(LocalizedMessage::KeyWithArgs(
             key,
-            args.into_iter().map(|(k, v)| (k.into(), v.into())).collect(),
+            args.into_iter()
+                .map(|(k, v)| (k.into(), v.into()))
+                .collect(),
         ))
     }
 
@@ -198,7 +202,9 @@ impl AppError {
     {
         Self::Validation(LocalizedMessage::KeyWithArgs(
             key,
-            args.into_iter().map(|(k, v)| (k.into(), v.into())).collect(),
+            args.into_iter()
+                .map(|(k, v)| (k.into(), v.into()))
+                .collect(),
         ))
     }
 
@@ -210,7 +216,9 @@ impl AppError {
     {
         Self::Conflict(LocalizedMessage::KeyWithArgs(
             key,
-            args.into_iter().map(|(k, v)| (k.into(), v.into())).collect(),
+            args.into_iter()
+                .map(|(k, v)| (k.into(), v.into()))
+                .collect(),
         ))
     }
 
@@ -222,7 +230,9 @@ impl AppError {
     {
         Self::ServiceUnavailable(LocalizedMessage::KeyWithArgs(
             key,
-            args.into_iter().map(|(k, v)| (k.into(), v.into())).collect(),
+            args.into_iter()
+                .map(|(k, v)| (k.into(), v.into()))
+                .collect(),
         ))
     }
 
@@ -269,40 +279,36 @@ impl AppError {
             | Self::Forbidden(msg)
             | Self::NotFound(msg)
             | Self::Conflict(msg)
-            | Self::ServiceUnavailable(msg) => {
-                match msg {
-                    LocalizedMessage::KeyWithArgs(k, args) => {
-                        let prefix = crate::utils::i18n::translate(lang, k.as_str());
-                        if let Some((_, val)) = args.iter().find(|(name, _)| name == "details") {
-                            if prefix == k.as_str() || prefix.is_empty() {
-                                val.clone()
-                            } else {
-                                format!("{prefix}: {val}")
-                            }
+            | Self::ServiceUnavailable(msg) => match msg {
+                LocalizedMessage::KeyWithArgs(k, args) => {
+                    let prefix = crate::utils::i18n::translate(lang, k.as_str());
+                    if let Some((_, val)) = args.iter().find(|(name, _)| name == "details") {
+                        if prefix == k.as_str() || prefix.is_empty() {
+                            val.clone()
                         } else {
-                            msg.translate(lang)
+                            format!("{prefix}: {val}")
                         }
+                    } else {
+                        msg.translate(lang)
                     }
-                    _ => msg.translate(lang),
                 }
-            }
-            Self::Validation(msg) => {
-                match msg {
-                    LocalizedMessage::KeyWithArgs(k, args) => {
-                        let prefix = crate::utils::i18n::translate(lang, k.as_str());
-                        if let Some((_, val)) = args.iter().find(|(name, _)| name == "details") {
-                            if prefix == k.as_str() || prefix.is_empty() {
-                                val.clone()
-                            } else {
-                                format!("{prefix}: {val}")
-                            }
+                LocalizedMessage::Key(_) => msg.translate(lang),
+            },
+            Self::Validation(msg) => match msg {
+                LocalizedMessage::KeyWithArgs(k, args) => {
+                    let prefix = crate::utils::i18n::translate(lang, k.as_str());
+                    if let Some((_, val)) = args.iter().find(|(name, _)| name == "details") {
+                        if prefix == k.as_str() || prefix.is_empty() {
+                            val.clone()
                         } else {
-                            msg.translate(lang)
+                            format!("{prefix}: {val}")
                         }
+                    } else {
+                        msg.translate(lang)
                     }
-                    _ => msg.translate(lang),
                 }
-            }
+                LocalizedMessage::Key(_) => msg.translate(lang),
+            },
         }
     }
 }
@@ -384,9 +390,18 @@ mod tests {
 
     #[test]
     fn test_error_codes() {
-        assert_eq!(AppError::auth(I18nKey::InvalidToken).error_code(), "UNAUTHORIZED");
-        assert_eq!(AppError::forbidden(I18nKey::Forbidden).error_code(), "FORBIDDEN");
-        assert_eq!(AppError::not_found(I18nKey::NotFound).error_code(), "NOT_FOUND");
+        assert_eq!(
+            AppError::auth(I18nKey::InvalidToken).error_code(),
+            "UNAUTHORIZED"
+        );
+        assert_eq!(
+            AppError::forbidden(I18nKey::Forbidden).error_code(),
+            "FORBIDDEN"
+        );
+        assert_eq!(
+            AppError::not_found(I18nKey::NotFound).error_code(),
+            "NOT_FOUND"
+        );
         assert_eq!(
             AppError::validation(I18nKey::Validation).error_code(),
             "VALIDATION_ERROR"
@@ -395,7 +410,10 @@ mod tests {
             AppError::Internal("x".to_string()).error_code(),
             "INTERNAL_ERROR"
         );
-        assert_eq!(AppError::conflict(I18nKey::Conflict).error_code(), "CONFLICT");
+        assert_eq!(
+            AppError::conflict(I18nKey::Conflict).error_code(),
+            "CONFLICT"
+        );
         assert_eq!(
             AppError::service_unavailable(I18nKey::ServiceUnavailable).error_code(),
             "SERVICE_UNAVAILABLE"

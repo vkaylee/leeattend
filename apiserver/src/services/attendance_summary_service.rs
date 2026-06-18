@@ -209,14 +209,12 @@ impl AttendanceSummaryService {
             )
             .await?;
 
-        let emp_sched = schedules
-            .first()
-            .ok_or_else(|| {
-                AppError::not_found_args(
-                    I18nKey::NotFound,
-                    vec![("details", "no_schedule_found_for_employee".to_string())],
-                )
-            })?;
+        let emp_sched = schedules.first().ok_or_else(|| {
+            AppError::not_found_args(
+                I18nKey::NotFound,
+                vec![("details", "no_schedule_found_for_employee".to_string())],
+            )
+        })?;
         let daily_schedule = emp_sched
             .schedules
             .iter()
@@ -633,7 +631,10 @@ impl AttendanceSummaryService {
                     return Err(AppError::validation_args(
                         I18nKey::Validation,
                         vec![
-                            ("details", "claimed_minutes_exceed_system_detected".to_string()),
+                            (
+                                "details",
+                                "claimed_minutes_exceed_system_detected".to_string(),
+                            ),
                             ("claimed", args.claimed_minutes.to_string()),
                             ("detected", ex.system_detected_ot_minutes.to_string()),
                         ],

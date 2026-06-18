@@ -78,9 +78,9 @@ pub async fn set_employee_payroll_config(
         .ok_or_else(|| {
             crate::errors::AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound)
         })?;
-    let employment_id = employee
-        .active_employment_id()
-        .ok_or_else(|| crate::errors::AppError::validation(crate::utils::i18n::I18nKey::NoActiveEmployment))?;
+    let employment_id = employee.active_employment_id().ok_or_else(|| {
+        crate::errors::AppError::validation(crate::utils::i18n::I18nKey::NoActiveEmployment)
+    })?;
 
     let config = state
         .employees()
@@ -151,9 +151,9 @@ pub async fn get_employee_payroll_configs(
         .ok_or_else(|| {
             crate::errors::AppError::not_found(crate::utils::i18n::I18nKey::EmployeeNotFound)
         })?;
-    let employment_id = employee
-        .active_employment_id()
-        .ok_or_else(|| crate::errors::AppError::validation(crate::utils::i18n::I18nKey::NoActiveEmployment))?;
+    let employment_id = employee.active_employment_id().ok_or_else(|| {
+        crate::errors::AppError::validation(crate::utils::i18n::I18nKey::NoActiveEmployment)
+    })?;
 
     let configs = state
         .employees()

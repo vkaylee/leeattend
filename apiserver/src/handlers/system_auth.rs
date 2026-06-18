@@ -124,7 +124,7 @@ where
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let UserId(user_id) = UserId::from_request_parts(parts, state)
             .await
-            .map_err(|_| AppError::auth(I18nKey::AuthenticationRequired))?;
+            .map_err(|_err| AppError::auth(I18nKey::AuthenticationRequired))?;
 
         let app_state = Arc::<AppState>::from_ref(state);
         let cache_key = Self::cache_key(user_id);

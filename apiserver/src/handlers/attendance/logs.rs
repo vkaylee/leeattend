@@ -193,12 +193,17 @@ pub async fn force_reprocess_attendance(
 
     let date_range = (query.end_date - query.start_date).num_days();
     if date_range < 0 {
-        return Err(AppError::validation(crate::utils::i18n::I18nKey::InvalidDateRange));
+        return Err(AppError::validation(
+            crate::utils::i18n::I18nKey::InvalidDateRange,
+        ));
     }
     if date_range > MAX_REPROCESS_DAYS {
         return Err(AppError::validation_args(
             crate::utils::i18n::I18nKey::Validation,
-            vec![("details", format!("Max reprocess range is {MAX_REPROCESS_DAYS} days"))],
+            vec![(
+                "details",
+                format!("Max reprocess range is {MAX_REPROCESS_DAYS} days"),
+            )],
         ));
     }
 
@@ -310,12 +315,17 @@ pub async fn force_reprocess_all_attendance(
 
     let date_range = (query.end_date - query.start_date).num_days();
     if date_range < 0 {
-        return Err(AppError::validation(crate::utils::i18n::I18nKey::InvalidDateRange));
+        return Err(AppError::validation(
+            crate::utils::i18n::I18nKey::InvalidDateRange,
+        ));
     }
     if date_range > MAX_REPROCESS_DAYS {
         return Err(AppError::validation_args(
             crate::utils::i18n::I18nKey::Validation,
-            vec![("details", format!("Max reprocess range is {MAX_REPROCESS_DAYS} days"))],
+            vec![(
+                "details",
+                format!("Max reprocess range is {MAX_REPROCESS_DAYS} days"),
+            )],
         ));
     }
 
@@ -336,7 +346,9 @@ pub async fn force_reprocess_all_attendance(
     );
 
     if employees.is_empty() {
-        return Err(AppError::validation(crate::utils::i18n::I18nKey::NoActiveEmployeesFound));
+        return Err(AppError::validation(
+            crate::utils::i18n::I18nKey::NoActiveEmployeesFound,
+        ));
     }
 
     let parent_job_id = crate::utils::id::new_id();

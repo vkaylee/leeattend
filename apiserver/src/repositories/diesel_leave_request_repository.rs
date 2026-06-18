@@ -52,7 +52,9 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
 
         if employment_exists.is_none() {
-            return Err(AppError::not_found(crate::utils::i18n::I18nKey::EmploymentNotFound));
+            return Err(AppError::not_found(
+                crate::utils::i18n::I18nKey::EmploymentNotFound,
+            ));
         }
 
         diesel::insert_into(leave_requests::table)
@@ -924,7 +926,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
                  AND emp.workspace_id = $1
                  AND lr.status IN ('approved', 'pre_approved')
                  AND lr.start_date <= h.date
-                 AND lr.end_date >= h.date"
+                 AND lr.end_date >= h.date",
         )
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
         .bind::<diesel::sql_types::Date, _>(start_date)
@@ -941,11 +943,14 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
 
         let mut result = std::collections::HashMap::new();
         for &emp_id in employee_ids {
-            result.insert(emp_id, LeaveBreakdown {
-                total_days: 0.0,
-                unpaid_days: 0.0,
-                sick_days: 0.0,
-            });
+            result.insert(
+                emp_id,
+                LeaveBreakdown {
+                    total_days: 0.0,
+                    unpaid_days: 0.0,
+                    sick_days: 0.0,
+                },
+            );
         }
 
         for (emp_id, code, days) in rows {
@@ -963,7 +968,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         for &emp_id in employee_ids {
             if let Some(breakdown) = result.get_mut(&emp_id) {
                 let paid_holiday_count = holiday_counts.get(&emp_id).copied().unwrap_or(0);
-                breakdown.total_days -= paid_holiday_count as f64;
+                breakdown.total_days -= f64::from(paid_holiday_count);
                 if breakdown.total_days < 0.0 {
                     breakdown.total_days = 0.0;
                 }
@@ -1030,7 +1035,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
                  AND emp.workspace_id = $1
                  AND lr.status IN ('approved', 'pre_approved')
                  AND lr.start_date <= h.date
-                 AND lr.end_date >= h.date"
+                 AND lr.end_date >= h.date",
         )
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
         .bind::<diesel::sql_types::Date, _>(start_date)

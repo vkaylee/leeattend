@@ -204,7 +204,10 @@ impl EmployerService {
             if id == parent_id {
                 return Err(AppError::validation_args(
                     I18nKey::Validation,
-                    vec![("details", "An employer cannot be its own parent.".to_string())],
+                    vec![(
+                        "details",
+                        "An employer cannot be its own parent.".to_string(),
+                    )],
                 ));
             }
         }
@@ -215,9 +218,10 @@ impl EmployerService {
             .map_err(|e| {
                 AppError::validation_args(
                     I18nKey::Validation,
-                    vec![("details", format!(
-                        "Parent employer not found in this workspace: {e}"
-                    ))],
+                    vec![(
+                        "details",
+                        format!("Parent employer not found in this workspace: {e}"),
+                    )],
                 )
             })?;
 
@@ -286,7 +290,10 @@ fn validate_country_code(code: &str) -> Result<(), AppError> {
     if code.len() != 3 || !code.chars().all(|c| c.is_ascii_alphabetic()) {
         return Err(AppError::validation_args(
             I18nKey::Validation,
-            vec![("details", "Country code must be a 3-character ISO 3166-1 alpha-3 code.".to_string())],
+            vec![(
+                "details",
+                "Country code must be a 3-character ISO 3166-1 alpha-3 code.".to_string(),
+            )],
         ));
     }
     Ok(())
@@ -297,7 +304,10 @@ fn validate_currency_code(code: &str) -> Result<(), AppError> {
     if code.len() != 3 || !code.chars().all(|c| c.is_ascii_alphabetic()) {
         return Err(AppError::validation_args(
             I18nKey::Validation,
-            vec![("details", "Currency code must be a 3-character uppercase string.".to_string())],
+            vec![(
+                "details",
+                "Currency code must be a 3-character uppercase string.".to_string(),
+            )],
         ));
     }
     Ok(())

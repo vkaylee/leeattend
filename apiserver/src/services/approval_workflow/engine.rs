@@ -264,7 +264,10 @@ impl ApprovalWorkflowService {
         if instance.status != "pending" {
             return Err(AppError::validation_args(
                 I18nKey::Validation,
-                vec![("details", format!("Workflow instance is already {}", instance.status))],
+                vec![(
+                    "details",
+                    format!("Workflow instance is already {}", instance.status),
+                )],
             ));
         }
 
@@ -348,7 +351,10 @@ impl ApprovalWorkflowService {
                 let target_uid = new_approver_user_id.ok_or_else(|| {
                     AppError::validation_args(
                         I18nKey::Validation,
-                        vec![("details", "new_approver_user_id is required for reassignment".to_string())],
+                        vec![(
+                            "details",
+                            "new_approver_user_id is required for reassignment".to_string(),
+                        )],
                     )
                 })?;
 

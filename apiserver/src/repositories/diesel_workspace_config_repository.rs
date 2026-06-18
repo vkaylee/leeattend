@@ -1,8 +1,8 @@
 use crate::errors::AppError;
-use crate::utils::i18n::I18nKey;
 use crate::models::WorkspaceConfigEntry;
 use crate::repositories::WorkspaceConfigRepository;
 use crate::schema::workspace_config_entries;
+use crate::utils::i18n::I18nKey;
 use async_trait::async_trait;
 use chrono::NaiveDate;
 use diesel::prelude::*;

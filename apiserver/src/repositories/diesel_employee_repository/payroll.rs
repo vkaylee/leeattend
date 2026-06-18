@@ -41,7 +41,9 @@ impl EmployeePayrollConfigRepository for DieselEmployeeRepository {
             .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
 
         if employment_exists.is_none() {
-            return Err(AppError::not_found(crate::utils::i18n::I18nKey::EmploymentNotFound));
+            return Err(AppError::not_found(
+                crate::utils::i18n::I18nKey::EmploymentNotFound,
+            ));
         }
 
         let keys_and_values = vec![

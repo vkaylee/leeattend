@@ -172,10 +172,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let diesel_pools_clone = diesel_pools.clone();
     tokio::spawn(async move {
         tracing::info!("Starting background tenant migrations and reconciliation...");
-        if let Err(e) = register_workspace_tenants_and_migrate(&db_config_clone, &diesel_pools_clone, backup_cache).await {
+        if let Err(e) = register_workspace_tenants_and_migrate(
+            &db_config_clone,
+            &diesel_pools_clone,
+            backup_cache,
+        )
+        .await
+        {
             tracing::error!("Error during background tenant migrations: {:?}", e);
         } else {
-            tracing::info!("Background tenant migrations and reconciliation completed successfully.");
+            tracing::info!(
+                "Background tenant migrations and reconciliation completed successfully."
+            );
         }
     });
 

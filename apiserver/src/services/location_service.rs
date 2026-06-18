@@ -94,7 +94,10 @@ impl LocationService {
         if data.is_headquarters == Some(true) && !existing.is_headquarters {
             return Err(AppError::validation_args(
                 I18nKey::Validation,
-                vec![("details", "cannot_change_location_to_headquarters".to_string())],
+                vec![(
+                    "details",
+                    "cannot_change_location_to_headquarters".to_string(),
+                )],
             ));
         }
 

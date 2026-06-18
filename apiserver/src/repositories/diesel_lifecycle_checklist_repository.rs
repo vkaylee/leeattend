@@ -1,6 +1,5 @@
 use crate::diesel_pool::{DieselPools, TenantAuthToken};
 use crate::errors::AppError;
-use crate::utils::i18n::I18nKey;
 use crate::models::diesel::lifecycle_checklist::{
     LifecycleChecklistEntity, LifecycleChecklistItemEntity, LifecycleChecklistTemplateEntity,
     LifecycleChecklistTemplateItemEntity,
@@ -17,6 +16,7 @@ use crate::schema::{
     employees, employments, lifecycle_checklist_items, lifecycle_checklist_template_items,
     lifecycle_checklist_templates, lifecycle_checklists,
 };
+use crate::utils::i18n::I18nKey;
 use async_trait::async_trait;
 use chrono::{NaiveDate, Utc};
 use diesel::prelude::*;

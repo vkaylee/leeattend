@@ -267,7 +267,9 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
             .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
 
         if employment_exists.is_none() {
-            return Err(AppError::not_found(crate::utils::i18n::I18nKey::EmploymentNotFound));
+            return Err(AppError::not_found(
+                crate::utils::i18n::I18nKey::EmploymentNotFound,
+            ));
         }
 
         let entity = LeaveBalanceEntity {
@@ -340,7 +342,9 @@ impl LeaveBalanceRepository for DieselLeaveBalanceRepository {
                     .map_err(|e| AppError::Internal(format!("db check active employment: {e}")))?;
 
                 let Some(active_emp_id) = active_employment else {
-                    return Err(AppError::not_found(crate::utils::i18n::I18nKey::EmploymentNotFound));
+                    return Err(AppError::not_found(
+                        crate::utils::i18n::I18nKey::EmploymentNotFound,
+                    ));
                 };
 
                 // 1. Log adjustment

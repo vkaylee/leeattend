@@ -91,7 +91,10 @@ impl HolidayLeaveService {
                     .ok_or_else(|| {
                         crate::errors::AppError::not_found_args(
                             crate::utils::i18n::I18nKey::LeaveTypeNotFound,
-                            [("details", "No paid leave type found to deduct for unpaid holiday")],
+                            [(
+                                "details",
+                                "No paid leave type found to deduct for unpaid holiday",
+                            )],
                         )
                     })?
             }

@@ -286,7 +286,7 @@ impl ShiftSwapService {
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
             )
             .await?
-            .ok_or(AppError::not_found(I18nKey::NotFound))?;
+            .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
 
         // Only pending requests can be approved/rejected
         if request.status() != ShiftSwapStatus::PendingAdmin {
@@ -328,12 +328,12 @@ impl ShiftSwapService {
                 .await?
                 .ok_or_else(|| AppError::validation(I18nKey::EmployeeNotFound))?;
 
-            let req_employment_id = req_emp
-                .active_employment_id()
-                .ok_or_else(|| AppError::validation(crate::utils::i18n::I18nKey::NoActiveEmployment))?;
-            let tgt_employment_id = tgt_emp
-                .active_employment_id()
-                .ok_or_else(|| AppError::validation(crate::utils::i18n::I18nKey::NoActiveEmployment))?;
+            let req_employment_id = req_emp.active_employment_id().ok_or_else(|| {
+                AppError::validation(crate::utils::i18n::I18nKey::NoActiveEmployment)
+            })?;
+            let tgt_employment_id = tgt_emp.active_employment_id().ok_or_else(|| {
+                AppError::validation(crate::utils::i18n::I18nKey::NoActiveEmployment)
+            })?;
 
             // Requester gets target's shift
             let requester_roster = ShiftRoster {
@@ -537,7 +537,7 @@ impl ShiftSwapService {
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
             )
             .await?
-            .ok_or(AppError::not_found(I18nKey::NotFound))?;
+            .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
 
         // Only the target can respond
         if request.target_id() != target_employee_id {
@@ -584,7 +584,7 @@ impl ShiftSwapService {
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
             )
             .await?
-            .ok_or(AppError::not_found(I18nKey::NotFound))?;
+            .ok_or_else(|| AppError::not_found(I18nKey::NotFound))?;
 
         // Only the requester can cancel
         if request.requester_id() != requester_employee_id {

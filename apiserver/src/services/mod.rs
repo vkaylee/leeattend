@@ -84,4 +84,3 @@ mod attendance_calculator_tests;
 mod report_service_test;
 #[cfg(test)]
 mod tenant_provisioner_test;
-

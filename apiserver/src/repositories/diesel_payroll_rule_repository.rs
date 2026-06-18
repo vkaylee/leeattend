@@ -1,11 +1,11 @@
 use crate::diesel_pool::DieselPools;
 use crate::errors::AppError;
-use crate::utils::i18n::I18nKey;
 use crate::models::diesel::payroll_rule::*;
 use crate::models::payroll_rule::*;
 use crate::repositories::payroll_rule_repository::{
     AssignPayrollRuleArgs, CreatePayrollRuleDefinitionArgs, PayrollRuleRepository,
 };
+use crate::utils::i18n::I18nKey;
 
 use crate::schema::*;
 use async_trait::async_trait;

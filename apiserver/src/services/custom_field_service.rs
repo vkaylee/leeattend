@@ -1,6 +1,5 @@
 use crate::diesel_pool::TenantAuthToken;
 use crate::errors::AppError;
-use crate::utils::i18n::I18nKey;
 use crate::models::{
     CreateCustomFieldDefinitionRequest, CustomFieldDefinition, CustomFieldValue,
     CustomFieldValueResponse, SetCustomFieldValueRequest, UpdateCustomFieldDefinitionRequest,
@@ -8,6 +7,7 @@ use crate::models::{
 use crate::repositories::audit_log_repository::AuditLogRepository;
 use crate::repositories::custom_field_repository::CustomFieldRepository;
 use crate::services::audit_service::{AuditHelper, AuditLogArgs};
+use crate::utils::i18n::I18nKey;
 use axum::http::HeaderMap;
 use serde_json::json;
 use serde_json::Value;
@@ -42,10 +42,13 @@ impl CustomFieldService {
         {
             return Err(AppError::validation_args(
                 I18nKey::Validation,
-                vec![("details", format!(
+                vec![(
+                    "details",
+                    format!(
                     "Invalid entity type '{}'. Must be 'employee', 'employment', or 'department'.",
                     data.entity_type
-                ))],
+                ),
+                )],
             ));
         }
 
@@ -64,10 +67,13 @@ impl CustomFieldService {
         if !valid_types.contains(&data.field_type.as_str()) {
             return Err(AppError::validation_args(
                 I18nKey::Validation,
-                vec![("details", format!(
-                    "Invalid field type '{}'. Must be one of: {:?}.",
-                    data.field_type, valid_types
-                ))],
+                vec![(
+                    "details",
+                    format!(
+                        "Invalid field type '{}'. Must be one of: {:?}.",
+                        data.field_type, valid_types
+                    ),
+                )],
             ));
         }
 
@@ -80,10 +86,13 @@ impl CustomFieldService {
         {
             return Err(AppError::validation_args(
                 I18nKey::Validation,
-                vec![("details", format!(
-                    "Invalid field key '{}'. Must be alphanumeric and underscores only.",
-                    data.field_key
-                ))],
+                vec![(
+                    "details",
+                    format!(
+                        "Invalid field key '{}'. Must be alphanumeric and underscores only.",
+                        data.field_key
+                    ),
+                )],
             ));
         }
 
@@ -97,10 +106,10 @@ impl CustomFieldService {
             if is_empty {
                 return Err(AppError::validation_args(
                     I18nKey::Validation,
-                    vec![("details", format!(
-                        "Options are required for field type '{}'.",
-                        data.field_type
-                    ))],
+                    vec![(
+                        "details",
+                        format!("Options are required for field type '{}'.", data.field_type),
+                    )],
                 ));
             }
         }
@@ -317,10 +326,10 @@ impl CustomFieldService {
             if def.is_required() && !has_value {
                 return Err(AppError::validation_args(
                     I18nKey::Validation,
-                    vec![("details", format!(
-                        "Field '{}' is required.",
-                        def.field_label()
-                    ))],
+                    vec![(
+                        "details",
+                        format!("Field '{}' is required.", def.field_label()),
+                    )],
                 ));
             }
 
@@ -331,10 +340,13 @@ impl CustomFieldService {
                         let select_val = val_json.as_str().ok_or_else(|| {
                             AppError::validation_args(
                                 I18nKey::Validation,
-                                vec![("details", format!(
-                                    "Expected string value for select field '{}'.",
-                                    def.field_label()
-                                ))],
+                                vec![(
+                                    "details",
+                                    format!(
+                                        "Expected string value for select field '{}'.",
+                                        def.field_label()
+                                    ),
+                                )],
                             )
                         })?;
 
@@ -353,11 +365,14 @@ impl CustomFieldService {
                         if !has_match {
                             return Err(AppError::validation_args(
                                 I18nKey::Validation,
-                                vec![("details", format!(
-                                    "Value '{}' is not a valid option for field '{}'.",
-                                    select_val,
-                                    def.field_label()
-                                ))],
+                                vec![(
+                                    "details",
+                                    format!(
+                                        "Value '{}' is not a valid option for field '{}'.",
+                                        select_val,
+                                        def.field_label()
+                                    ),
+                                )],
                             ));
                         }
                     }
@@ -367,10 +382,13 @@ impl CustomFieldService {
                         let multiselect_arr = val_json.as_array().ok_or_else(|| {
                             AppError::validation_args(
                                 I18nKey::Validation,
-                                vec![("details", format!(
-                                    "Expected array value for multiselect field '{}'.",
-                                    def.field_label()
-                                ))],
+                                vec![(
+                                    "details",
+                                    format!(
+                                        "Expected array value for multiselect field '{}'.",
+                                        def.field_label()
+                                    ),
+                                )],
                             )
                         })?;
 
@@ -379,10 +397,13 @@ impl CustomFieldService {
                             let item_str = item.as_str().ok_or_else(|| {
                                 AppError::validation_args(
                                     I18nKey::Validation,
-                                    vec![("details", format!(
-                                        "Expected array of strings for multiselect field '{}'.",
-                                        def.field_label()
-                                    ))],
+                                    vec![(
+                                        "details",
+                                        format!(
+                                            "Expected array of strings for multiselect field '{}'.",
+                                            def.field_label()
+                                        ),
+                                    )],
                                 )
                             })?;
 
@@ -400,11 +421,14 @@ impl CustomFieldService {
                             if !has_match {
                                 return Err(AppError::validation_args(
                                     I18nKey::Validation,
-                                    vec![("details", format!(
-                                        "Value '{}' is not a valid option for field '{}'.",
-                                        item_str,
-                                        def.field_label()
-                                    ))],
+                                    vec![(
+                                        "details",
+                                        format!(
+                                            "Value '{}' is not a valid option for field '{}'.",
+                                            item_str,
+                                            def.field_label()
+                                        ),
+                                    )],
                                 ));
                             }
                         }

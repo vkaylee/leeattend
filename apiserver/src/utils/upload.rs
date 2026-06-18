@@ -49,10 +49,9 @@ pub async fn extract_uploaded_file(
                 ));
             }
 
-            let data = field
-                .bytes()
-                .await
-                .map_err(|_e| AppError::validation(crate::utils::i18n::I18nKey::UploadReadFailed))?;
+            let data = field.bytes().await.map_err(|_e| {
+                AppError::validation(crate::utils::i18n::I18nKey::UploadReadFailed)
+            })?;
 
             if data.len() > max_size {
                 return Err(AppError::validation(

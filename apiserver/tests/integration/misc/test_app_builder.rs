@@ -50,9 +50,9 @@ async fn test_create_app_router_config() {
     let app = apiserver::create_app(state);
 
     // Verify routing and middleware setup by sending a request using tower::ServiceExt
-    use tower::ServiceExt;
-    use axum::http::{Request, StatusCode};
     use axum::body::Body;
+    use axum::http::{Request, StatusCode};
+    use tower::ServiceExt;
 
     // Test a simple public route: /api/v1/health
     let request = Request::builder()
@@ -73,7 +73,10 @@ async fn test_create_app_router_config() {
         .uri("/api/v1/health")
         .header("Origin", "http://localhost:3000")
         .header("Access-Control-Request-Method", "GET")
-        .header("Access-Control-Request-Headers", "content-type, x-workspace-id")
+        .header(
+            "Access-Control-Request-Headers",
+            "content-type, x-workspace-id",
+        )
         .body(Body::empty())
         .unwrap();
 
@@ -82,11 +85,21 @@ async fn test_create_app_router_config() {
 
     // Check CORS headers are present
     assert_eq!(
-        cors_response.headers().get("access-control-allow-origin").unwrap().to_str().unwrap(),
+        cors_response
+            .headers()
+            .get("access-control-allow-origin")
+            .unwrap()
+            .to_str()
+            .unwrap(),
         "http://localhost:3000"
     );
     assert_eq!(
-        cors_response.headers().get("access-control-allow-credentials").unwrap().to_str().unwrap(),
+        cors_response
+            .headers()
+            .get("access-control-allow-credentials")
+            .unwrap()
+            .to_str()
+            .unwrap(),
         "true"
     );
 }

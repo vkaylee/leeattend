@@ -1,6 +1,5 @@
 use crate::diesel_pool::{DieselPools, TenantAuthToken};
 use crate::errors::AppError;
-use crate::utils::i18n::I18nKey;
 use crate::models::diesel::custom_field::{CustomFieldDefinitionEntity, CustomFieldValueEntity};
 use crate::models::{
     CreateCustomFieldDefinitionRequest, CustomFieldDefinition, CustomFieldValue,
@@ -8,6 +7,7 @@ use crate::models::{
 };
 use crate::repositories::custom_field_repository::CustomFieldRepository;
 use crate::schema::{custom_field_definitions, custom_field_values};
+use crate::utils::i18n::I18nKey;
 use async_trait::async_trait;
 use chrono::Utc;
 use diesel::prelude::*;
@@ -344,7 +344,9 @@ impl CustomFieldRepository for DieselCustomFieldRepository {
                             &val_json,
                             &def.field_type,
                         )
-                        .map_err(|e| AppError::validation_args(I18nKey::Validation, [("details", e)]))?;
+                        .map_err(|e| {
+                            AppError::validation_args(I18nKey::Validation, [("details", e)])
+                        })?;
 
                         let entity: CustomFieldValueEntity = domain_val.into();
 

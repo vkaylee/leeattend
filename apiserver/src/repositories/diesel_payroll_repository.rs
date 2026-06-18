@@ -737,7 +737,9 @@ impl PayrollRepository for DieselPayrollRepository {
                                 })?;
 
                             if valid_groups.len() != base_group_ids.len() {
-                                return Err(AppError::forbidden(crate::utils::i18n::I18nKey::Forbidden));
+                                return Err(AppError::forbidden(
+                                    crate::utils::i18n::I18nKey::Forbidden,
+                                ));
                             }
 
                             let new_members: Vec<SalaryBaseGroupMemberRow> = base_group_ids
@@ -1589,10 +1591,12 @@ impl PayrollRepository for DieselPayrollRepository {
 
         for &emp_id in employee_ids {
             let dept_id = employee_departments.get(&emp_id).copied().flatten();
-            
+
             // Map to store resolved assignments for this employee: rule_definition_id -> (assignee_type, ResolvedRuleAssignment, display_order)
-            let mut resolved_rules: std::collections::HashMap<Uuid, (String, ResolvedRuleAssignment, i32)> = 
-                std::collections::HashMap::new();
+            let mut resolved_rules: std::collections::HashMap<
+                Uuid,
+                (String, ResolvedRuleAssignment, i32),
+            > = std::collections::HashMap::new();
 
             for row in &rows {
                 let matches = match row.assignee_type.as_str() {
@@ -1610,7 +1614,9 @@ impl PayrollRepository for DieselPayrollRepository {
                         _ => 4,
                     };
 
-                    let should_update = if let Some((existing_type, _, _)) = resolved_rules.get(&row.rule_definition_id) {
+                    let should_update = if let Some((existing_type, _, _)) =
+                        resolved_rules.get(&row.rule_definition_id)
+                    {
                         let existing_precedence = match existing_type.as_str() {
                             "employee" => 1,
                             "department" => 2,
@@ -1631,7 +1637,10 @@ impl PayrollRepository for DieselPayrollRepository {
                                     rule_definition_id: row.rule_definition_id,
                                     override_config: row.override_config.clone(),
                                     code: row.code.clone(),
-                                    calculation_method: row.calculation_method.parse().unwrap_or_default(),
+                                    calculation_method: row
+                                        .calculation_method
+                                        .parse()
+                                        .unwrap_or_default(),
                                     default_config: row.default_config.clone(),
                                     category: row.category.parse().unwrap_or_default(),
                                 },
@@ -1646,7 +1655,7 @@ impl PayrollRepository for DieselPayrollRepository {
                 .into_values()
                 .map(|(_, assignment, display_order)| (assignment, display_order))
                 .collect();
-            
+
             employee_tuples.sort_by_key(|t| t.1);
             let employee_assignments: Vec<ResolvedRuleAssignment> = employee_tuples
                 .into_iter()
@@ -1663,7 +1672,8 @@ impl PayrollRepository for DieselPayrollRepository {
         &self,
         workspace_id: Uuid,
         rule_definition_ids: &[Uuid],
-    ) -> Result<std::collections::HashMap<Uuid, Vec<crate::models::PayrollRuleTier>>, AppError> {
+    ) -> Result<std::collections::HashMap<Uuid, Vec<crate::models::PayrollRuleTier>>, AppError>
+    {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .tenants_tx
@@ -1685,9 +1695,7 @@ impl PayrollRepository for DieselPayrollRepository {
 
         for ent in entities {
             let def_id = ent.rule_definition_id;
-            map.entry(def_id)
-                .or_insert_with(Vec::new)
-                .push(ent.into());
+            map.entry(def_id).or_insert_with(Vec::new).push(ent.into());
         }
 
         Ok(map)

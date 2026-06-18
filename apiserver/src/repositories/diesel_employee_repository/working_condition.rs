@@ -108,7 +108,9 @@ impl EmployeeWorkingConditionRepository for DieselEmployeeRepository {
             .map_err(|e| AppError::Internal(format!("db check employment: {e}")))?;
 
         if employment_exists.is_none() {
-            return Err(AppError::not_found(crate::utils::i18n::I18nKey::EmploymentNotFound));
+            return Err(AppError::not_found(
+                crate::utils::i18n::I18nKey::EmploymentNotFound,
+            ));
         }
 
         diesel::insert_into(working_conditions::table)

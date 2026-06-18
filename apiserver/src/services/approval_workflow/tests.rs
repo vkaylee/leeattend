@@ -1393,7 +1393,13 @@ mod tests {
             _start_date: NaiveDate,
             _end_date: NaiveDate,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-        ) -> Result<std::collections::HashMap<Uuid, crate::repositories::leave_request_repository::LeaveBreakdown>, AppError> {
+        ) -> Result<
+            std::collections::HashMap<
+                Uuid,
+                crate::repositories::leave_request_repository::LeaveBreakdown,
+            >,
+            AppError,
+        > {
             Ok(std::collections::HashMap::new())
         }
         async fn get_unpaid_holiday_days_without_leave_batch(

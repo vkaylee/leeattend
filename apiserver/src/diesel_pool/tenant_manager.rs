@@ -231,12 +231,9 @@ impl TenantPoolManager {
         tokio::spawn(async move {
             loop {
                 tokio::time::sleep(std::time::Duration::from_secs(60)).await;
-                let manager = match weak_self.upgrade() {
-                    Some(m) => m,
-                    None => {
-                        tracing::info!("TenantPoolManager dropped, stopping eviction task.");
-                        break;
-                    }
+                let Some(manager) = weak_self.upgrade() else {
+                    tracing::info!("TenantPoolManager dropped, stopping eviction task.");
+                    break;
                 };
                 if let Err(e) = manager.evict_idle_pools().await {
                     tracing::error!("Error during tenant connection pool eviction: {:?}", e);
@@ -421,7 +418,10 @@ mod tests {
         // 2. Set last accessed to 31 minutes ago
         {
             let mut last_accessed = manager.last_accessed.write().await;
-            last_accessed.insert(ws_id, std::time::Instant::now() - std::time::Duration::from_secs(1860));
+            last_accessed.insert(
+                ws_id,
+                std::time::Instant::now() - std::time::Duration::from_secs(1860),
+            );
         }
 
         // 3. Verify it is in pools
@@ -444,4 +444,3 @@ mod tests {
         }
     }
 }
-

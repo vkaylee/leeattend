@@ -97,7 +97,10 @@ pub async fn create_working_pattern(
     if pattern_type != "weekly" && pattern_type != "rotation" {
         return Err(crate::errors::AppError::validation_args(
             crate::utils::i18n::I18nKey::Validation,
-            vec![("details", "pattern_type must be weekly or rotation".to_string())],
+            vec![(
+                "details",
+                "pattern_type must be weekly or rotation".to_string(),
+            )],
         ));
     }
     if pattern_type == "rotation" {
@@ -105,7 +108,10 @@ pub async fn create_working_pattern(
         if !(1..=366).contains(&cycle_len) {
             return Err(crate::errors::AppError::validation_args(
                 crate::utils::i18n::I18nKey::Validation,
-                vec![("details", "cycle_length_days must be between 1 and 366".to_string())],
+                vec![(
+                    "details",
+                    "cycle_length_days must be between 1 and 366".to_string(),
+                )],
             ));
         }
         // Validate schedule_day range
@@ -113,7 +119,10 @@ pub async fn create_working_pattern(
             if detail.schedule_day < 0 || detail.schedule_day >= cycle_len {
                 return Err(crate::errors::AppError::validation_args(
                     crate::utils::i18n::I18nKey::Validation,
-                    vec![("details", format!("schedule_day {} is out of range", detail.schedule_day))],
+                    vec![(
+                        "details",
+                        format!("schedule_day {} is out of range", detail.schedule_day),
+                    )],
                 ));
             }
         }
@@ -191,7 +200,10 @@ pub async fn update_working_pattern(
     if pattern_type != "weekly" && pattern_type != "rotation" {
         return Err(crate::errors::AppError::validation_args(
             crate::utils::i18n::I18nKey::Validation,
-            vec![("details", "pattern_type must be weekly or rotation".to_string())],
+            vec![(
+                "details",
+                "pattern_type must be weekly or rotation".to_string(),
+            )],
         ));
     }
     if pattern_type == "rotation" {
@@ -199,14 +211,20 @@ pub async fn update_working_pattern(
         if !(1..=366).contains(&cycle_len) {
             return Err(crate::errors::AppError::validation_args(
                 crate::utils::i18n::I18nKey::Validation,
-                vec![("details", "cycle_length_days must be between 1 and 366".to_string())],
+                vec![(
+                    "details",
+                    "cycle_length_days must be between 1 and 366".to_string(),
+                )],
             ));
         }
         for detail in &req.details {
             if detail.schedule_day < 0 || detail.schedule_day >= cycle_len {
                 return Err(crate::errors::AppError::validation_args(
                     crate::utils::i18n::I18nKey::Validation,
-                    vec![("details", format!("schedule_day {} is out of range", detail.schedule_day))],
+                    vec![(
+                        "details",
+                        format!("schedule_day {} is out of range", detail.schedule_day),
+                    )],
                 ));
             }
         }

@@ -41,10 +41,7 @@ pub fn extract_file_rows(file_bytes: &[u8]) -> Result<Vec<(usize, Vec<String>)>,
     // 1. Try XLSX
     if is_zip_file(file_bytes) {
         let mut reader = Xlsx::new(Cursor::new(file_bytes)).map_err(|e| {
-            AppError::validation_args(
-                I18nKey::CannotOpenXlsx,
-                vec![("error", e.to_string())],
-            )
+            AppError::validation_args(I18nKey::CannotOpenXlsx, vec![("error", e.to_string())])
         })?;
         let sheet_names = reader.sheet_names();
         for sheet in sheet_names {
@@ -69,10 +66,7 @@ pub fn extract_file_rows(file_bytes: &[u8]) -> Result<Vec<(usize, Vec<String>)>,
     // 2. Try XLS
     if is_xls_file(file_bytes) {
         let mut reader = Xls::new(Cursor::new(file_bytes)).map_err(|e| {
-            AppError::validation_args(
-                I18nKey::CannotOpenXls,
-                vec![("error", e.to_string())],
-            )
+            AppError::validation_args(I18nKey::CannotOpenXls, vec![("error", e.to_string())])
         })?;
         let sheet_names = reader.sheet_names();
         for sheet in sheet_names {
@@ -189,10 +183,7 @@ pub fn extract_mapped_rows(
     // 1. Try XLSX
     if is_zip_file(file_bytes) {
         let mut reader = Xlsx::new(Cursor::new(file_bytes)).map_err(|e| {
-            AppError::validation_args(
-                I18nKey::CannotOpenXlsx,
-                vec![("error", e.to_string())],
-            )
+            AppError::validation_args(I18nKey::CannotOpenXlsx, vec![("error", e.to_string())])
         })?;
         let sheet_names = reader.sheet_names();
         let mut best_sheet_range = None;
@@ -240,10 +231,7 @@ pub fn extract_mapped_rows(
     // 2. Try XLS
     if is_xls_file(file_bytes) {
         let mut reader = Xls::new(Cursor::new(file_bytes)).map_err(|e| {
-            AppError::validation_args(
-                I18nKey::CannotOpenXls,
-                vec![("error", e.to_string())],
-            )
+            AppError::validation_args(I18nKey::CannotOpenXls, vec![("error", e.to_string())])
         })?;
         let sheet_names = reader.sheet_names();
         let mut best_sheet_range = None;

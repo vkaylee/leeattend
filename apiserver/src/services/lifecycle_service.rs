@@ -1,6 +1,5 @@
 use crate::diesel_pool::TenantAuthToken;
 use crate::errors::AppError;
-use crate::utils::i18n::I18nKey;
 use crate::models::{
     ChecklistItemStatus, ChecklistStatus, CreateLifecycleChecklistTemplateItemRequest,
     CreateLifecycleChecklistTemplateRequest, LifecycleChecklistResponse,
@@ -13,6 +12,7 @@ use crate::repositories::employment_repository::EmploymentRepository;
 use crate::repositories::lifecycle_checklist_repository::LifecycleChecklistRepository;
 use crate::repositories::user_repository::UserRepository;
 use crate::repositories::workspace_repository::WorkspaceRepository;
+use crate::utils::i18n::I18nKey;
 use chrono::Utc;
 use std::sync::Arc;
 use uuid::Uuid;

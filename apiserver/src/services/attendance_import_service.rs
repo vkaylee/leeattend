@@ -84,7 +84,10 @@ impl ImportStrategy for EmployeeImportStrategy {
                 self.msgs.missing_employee_or_id,
                 &[("line", &current_line.to_string())],
             );
-            return Err(AppError::validation_args(I18nKey::Validation, [("details", msg)]));
+            return Err(AppError::validation_args(
+                I18nKey::Validation,
+                [("details", msg)],
+            ));
         }
 
         let hire_date_str = hire_date_raw.split(' ').next().unwrap_or(hire_date_raw);
@@ -390,30 +393,35 @@ impl ImportStrategy for PunchImportStrategy {
                 self.msgs.missing_employee_or_time,
                 &[("line", &current_line.to_string())],
             );
-            return Err(AppError::validation_args(I18nKey::Validation, [("details", msg)]));
+            return Err(AppError::validation_args(
+                I18nKey::Validation,
+                [("details", msg)],
+            ));
         }
 
-        match AttendanceAdjustmentService::parse_datetime(
+        if let Ok(dt) = AttendanceAdjustmentService::parse_datetime(
             emp_dt_str,
             workspace_tz.name(),
             Some(&self.date_format),
             Some(&self.time_format),
         ) {
-            Ok(dt) => Ok(PendingRow {
+            Ok(PendingRow {
                 emp_id_number,
                 punch_time: dt,
                 line_number: current_line,
-            }),
-            Err(_) => {
-                let msg = format!(
-                    "{} [Raw: '{emp_dt_str}']",
-                    fmt_msg(
-                        self.msgs.missing_employee_or_time,
-                        &[("line", &current_line.to_string())],
-                    )
-                );
-                Err(AppError::validation_args(I18nKey::Validation, [("details", msg)]))
-            }
+            })
+        } else {
+            let msg = format!(
+                "{} [Raw: '{emp_dt_str}']",
+                fmt_msg(
+                    self.msgs.missing_employee_or_time,
+                    &[("line", &current_line.to_string())],
+                )
+            );
+            Err(AppError::validation_args(
+                I18nKey::Validation,
+                [("details", msg)],
+            ))
         }
     }
 

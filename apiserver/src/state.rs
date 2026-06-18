@@ -744,7 +744,10 @@ impl InfraState {
         self.redis.as_ref().ok_or_else(|| {
             crate::errors::AppError::service_unavailable_args(
                 crate::utils::i18n::I18nKey::ServiceUnavailable,
-                [("details", "This feature requires Redis for background processing")],
+                [(
+                    "details",
+                    "This feature requires Redis for background processing",
+                )],
             )
         })
     }

@@ -1,5 +1,4 @@
 use crate::errors::AppError;
-use crate::utils::i18n::I18nKey;
 use crate::models::{
     Department, DepartmentPayrollConfig, EmployeeDepartmentHistory, Notification, RawAttendanceLog,
     UpdateDepartmentRequest, User,
@@ -7,6 +6,7 @@ use crate::models::{
 use crate::repositories::department_repository::DepartmentRepository;
 use crate::repositories::staging_log_repository::{StagingLog, StagingLogRepository};
 use crate::repositories::user_repository::UserRepository;
+use crate::utils::i18n::I18nKey;
 use async_trait::async_trait;
 use chrono::NaiveDate;
 use uuid::Uuid;

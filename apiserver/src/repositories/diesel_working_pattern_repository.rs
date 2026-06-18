@@ -5,7 +5,6 @@ use uuid::Uuid;
 
 use crate::diesel_pool::DieselPools;
 use crate::errors::AppError;
-use crate::utils::i18n::I18nKey;
 use crate::models::diesel::working_pattern::{
     EmployeeWorkingPatternEntity, WorkingPatternDetailEntity, WorkingPatternEntity,
 };
@@ -13,6 +12,7 @@ use crate::models::{
     BulkAssignResponse, EmployeeWorkingPattern, WorkingPattern, WorkingPatternDetail,
 };
 use crate::schema::{employee_working_patterns, working_pattern_details, working_patterns};
+use crate::utils::i18n::I18nKey;
 
 pub struct DieselWorkingPatternRepository {
     diesel_pools: DieselPools,

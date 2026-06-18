@@ -66,7 +66,11 @@ impl DieselEmploymentPhaseRepository {
                     {
                         return AppError::validation_args(
                             I18nKey::Validation,
-                            vec![("details", "Phase definition with this name already exists in the workspace.".to_string())],
+                            vec![(
+                                "details",
+                                "Phase definition with this name already exists in the workspace."
+                                    .to_string(),
+                            )],
                         );
                     }
                 }

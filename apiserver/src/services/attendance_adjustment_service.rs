@@ -125,12 +125,7 @@ impl AttendanceAdjustmentService {
             preferred_date,
             preferred_time,
         )
-        .map_err(|e| {
-            AppError::validation_args(
-                I18nKey::Validation,
-                vec![("details", e)],
-            )
-        })
+        .map_err(|e| AppError::validation_args(I18nKey::Validation, vec![("details", e)]))
     }
 
     #[tracing::instrument(skip_all, err)]

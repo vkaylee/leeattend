@@ -1,7 +1,7 @@
 use super::EmployeeService;
 use crate::errors::AppError;
-use crate::utils::i18n::I18nKey;
 use crate::models::{Employee, RehireEmployeeRequest};
+use crate::utils::i18n::I18nKey;
 use chrono::{Datelike, NaiveDate, Utc};
 use uuid::Uuid;
 
@@ -23,7 +23,7 @@ impl EmployeeService {
                 req.department_id,
             )
             .await?
-            .ok_or(AppError::not_found(I18nKey::EmployeeNotFound))
+            .ok_or_else(|| AppError::not_found(I18nKey::EmployeeNotFound))
     }
 
     #[tracing::instrument(skip_all, err)]

@@ -757,7 +757,9 @@ impl DepartmentRepository for DieselDepartmentRepository {
             .map_err(|e| AppError::Internal(format!("db check department: {e}")))?;
 
         if department_exists.is_none() {
-            return Err(AppError::not_found(crate::utils::i18n::I18nKey::DepartmentNotFound));
+            return Err(AppError::not_found(
+                crate::utils::i18n::I18nKey::DepartmentNotFound,
+            ));
         }
 
         use crate::schema::workspace_config_entries;

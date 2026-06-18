@@ -5,10 +5,10 @@ use diesel_async::{AsyncConnection, RunQueryDsl};
 use uuid::Uuid;
 
 use crate::errors::AppError;
-use crate::utils::i18n::I18nKey;
 use crate::models::diesel::attendance_log::AttendanceStagingLogEntity;
 use crate::repositories::staging_log_repository::{StagingLog, StagingLogRepository};
 use crate::schema::attendance_staging_logs;
+use crate::utils::i18n::I18nKey;
 
 pub struct DieselStagingLogRepository {
     diesel_pools: crate::diesel_pool::DieselPools,
@@ -357,9 +357,7 @@ impl StagingLogRepository for DieselStagingLogRepository {
                     })?;
 
                 if staged.status != "pending" {
-                    return Err(AppError::validation(
-                        I18nKey::StagingLogProcessed,
-                    ));
+                    return Err(AppError::validation(I18nKey::StagingLogProcessed));
                 }
 
                 let punch = staged

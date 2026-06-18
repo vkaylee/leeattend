@@ -147,7 +147,13 @@ pub async fn create_employee_assignment(
         .ok_or_else(|| AppError::validation(I18nKey::NoActiveEmployment))?;
 
     let home_location_id = active_employment.primary_location_id().ok_or_else(|| {
-        AppError::validation_args(I18nKey::Validation, vec![("details", "Employee active employment has no primary location assigned".to_string())])
+        AppError::validation_args(
+            I18nKey::Validation,
+            vec![(
+                "details",
+                "Employee active employment has no primary location assigned".to_string(),
+            )],
+        )
     })?;
 
     // Validate that home and host locations are not the same
