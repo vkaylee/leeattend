@@ -317,6 +317,7 @@ impl AttendanceHandler {
                     work_unit_minutes: 30,
                     rounding_policy: "floor".to_string(),
                     early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
+                    grace_period_minutes: None,
                 });
 
             // Pre-group entries by date once — O(entries) instead of O(entries × days)
@@ -349,6 +350,9 @@ impl AttendanceHandler {
                         emp_conditions,
                         date,
                         emp_attendance_rules.early_arrival_strategy,
+                        emp_attendance_rules.grace_period_minutes.unwrap_or(
+                            crate::domain::policy::defaults::DEFAULT_GRACE_PERIOD_MINUTES,
+                        ),
                     );
 
                     // Override with shift-specific settings
@@ -513,6 +517,7 @@ impl AttendanceHandler {
                     work_unit_minutes: 30,
                     rounding_policy: "floor".to_string(),
                     early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
+                    grace_period_minutes: None,
                 });
 
             // Pre-group entries by date once — O(entries) instead of O(entries × days)
@@ -541,11 +546,37 @@ impl AttendanceHandler {
 
                 let mut std_work_units = 0;
                 let mut ot_work_units = 0;
+                let mut grace_period_minutes = None;
 
                 // Only calculate hours when a shift exists.
                 // Without shift boundaries the calculator treats all punch time
                 // as "standard" minutes, inflating the report for unscheduled days.
                 if daily.shift_id.is_some() {
+                    // Build rules from pre-fetched conditions (no DB call)
+                    let mut rules = PolicyResolver::build_rules_from_conditions(
+                        emp_conditions,
+                        date,
+                        emp_attendance_rules.early_arrival_strategy,
+                        emp_attendance_rules.grace_period_minutes.unwrap_or(
+                            crate::domain::policy::defaults::DEFAULT_GRACE_PERIOD_MINUTES,
+                        ),
+                    );
+
+                    if let Some(gp) = daily.early_punch_in_grace_period_minutes {
+                        rules.set_grace_period_minutes(gp);
+                    }
+                    if let Some(bad) = daily.is_break_auto_deduct {
+                        rules.set_is_break_auto_deduct(bad);
+                    }
+                    if let Some(aeo) = daily.allow_early_ot {
+                        rules.set_allow_early_ot(aeo);
+                    }
+                    if let Some(bio) = daily.break_is_overtime {
+                        rules.set_is_break_overtime(bio);
+                    }
+
+                    grace_period_minutes = Some(rules.grace_period_minutes());
+
                     if let (Some(punch_in), Some(punch_out)) = (actual_punch_in, actual_punch_out) {
                         let actual_break_minutes: i32 = day_entries
                             .iter()
@@ -559,26 +590,6 @@ impl AttendanceHandler {
                         let shift_end_dt = daily
                             .end_time
                             .and_then(|t| args.tz.from_local_datetime(&date.and_time(t)).single());
-
-                        // Build rules from pre-fetched conditions (no DB call)
-                        let mut rules = PolicyResolver::build_rules_from_conditions(
-                            emp_conditions,
-                            date,
-                            emp_attendance_rules.early_arrival_strategy,
-                        );
-
-                        if let Some(gp) = daily.early_punch_in_grace_period_minutes {
-                            rules.set_grace_period_minutes(gp);
-                        }
-                        if let Some(bad) = daily.is_break_auto_deduct {
-                            rules.set_is_break_auto_deduct(bad);
-                        }
-                        if let Some(aeo) = daily.allow_early_ot {
-                            rules.set_allow_early_ot(aeo);
-                        }
-                        if let Some(bio) = daily.break_is_overtime {
-                            rules.set_is_break_overtime(bio);
-                        }
 
                         let (shift_start, shift_end) =
                             if let (Some(start), Some(mut end)) = (shift_start_dt, shift_end_dt) {
@@ -634,6 +645,7 @@ impl AttendanceHandler {
                         daily.is_holiday_paid,
                         daily.shift_id.is_some(),
                         is_on_leave,
+                        grace_period_minutes,
                     ),
                 );
 
@@ -723,6 +735,7 @@ mod tests {
             false,
             true,
             false,
+            None,
         ));
         assert_eq!(status, AttendanceStatus::Present);
         assert_eq!(status.to_string(), "present");
@@ -738,6 +751,7 @@ mod tests {
             false,
             true,
             false,
+            None,
         ));
         assert_eq!(status, AttendanceStatus::Late);
         assert_eq!(status.to_string(), "late");
@@ -753,6 +767,7 @@ mod tests {
             false,
             true,
             false,
+            None,
         ));
         assert_eq!(status, AttendanceStatus::Absent);
         assert_eq!(status.to_string(), "absent");
@@ -761,7 +776,7 @@ mod tests {
     #[test]
     fn test_status_determination_off() {
         let status = determine_daily_status(&DailyStatusInput::new(
-            false, None, None, false, false, false, false,
+            false, None, None, false, false, false, false, None,
         ));
         assert_eq!(status, AttendanceStatus::Off);
         assert_eq!(status.to_string(), "off");

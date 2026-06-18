@@ -190,6 +190,7 @@ describe("TimeSettings Page", () => {
       rounding_policy: "none",
       valid_from: expect.any(String),
       work_unit_minutes: 15,
+      grace_period_minutes: 15,
     });
   });
 

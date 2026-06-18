@@ -19,6 +19,7 @@ export function useTimeSettingsRules(
     roundingPolicy: string;
     valid_from: string;
     work_unit_minutes: number;
+    grace_period_minutes: number;
     onSuccess: () => void;
   }
 ) {
@@ -41,6 +42,7 @@ export function useTimeSettingsRules(
       rounding_policy: params.roundingPolicy,
       valid_from: params.valid_from,
       work_unit_minutes: params.work_unit_minutes,
+      grace_period_minutes: params.grace_period_minutes,
     });
   };
 

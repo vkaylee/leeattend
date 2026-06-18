@@ -368,6 +368,8 @@ pub struct AttendanceRules {
     pub rounding_policy: String,
     #[serde(default)]
     pub early_arrival_strategy: EarlyArrivalStrategy,
+    #[serde(default)]
+    pub grace_period_minutes: Option<i32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

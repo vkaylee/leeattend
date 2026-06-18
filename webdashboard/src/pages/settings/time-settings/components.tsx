@@ -40,6 +40,7 @@ export function PageHeader({ onNewVersion, t }: { onNewVersion: () => void; t: T
 
 interface TabContentProps {
   earlyArrivalStrategy: "allow" | "block" | "clamp";
+  gracePeriodMinutes: number;
   handleSaveNewVersion: () => void;
   isPending: boolean;
   newValidFrom: string;
@@ -49,6 +50,7 @@ interface TabContentProps {
   reprocessStartSetter: (v: string) => void;
   roundingPolicy: string;
   setEarlyArrivalStrategy: (v: "allow" | "block" | "clamp") => void;
+  setGracePeriodMinutes: (v: number) => void;
   setNewValidFrom: (v: string) => void;
   setRoundingPolicy: (v: string) => void;
   setShowCreateModal: (v: boolean) => void;
@@ -63,6 +65,7 @@ interface TabContentProps {
 
 export function TabContent({
   earlyArrivalStrategy,
+  gracePeriodMinutes,
   handleSaveNewVersion,
   isPending,
   newValidFrom,
@@ -71,6 +74,7 @@ export function TabContent({
   reprocessStart,
   reprocessStartSetter,
   setEarlyArrivalStrategy,
+  setGracePeriodMinutes,
   setNewValidFrom,
   setRoundingPolicy,
   setShowCreateModal,
@@ -97,6 +101,7 @@ export function TabContent({
       />
       <CreateVersionModal
         earlyArrivalStrategy={earlyArrivalStrategy}
+        gracePeriodMinutes={gracePeriodMinutes}
         isOpen={showCreateModal}
         isPending={isPending}
         newValidFrom={newValidFrom}
@@ -106,6 +111,7 @@ export function TabContent({
         onSave={handleSaveNewVersion}
         roundingPolicy={roundingPolicy}
         setEarlyArrivalStrategy={setEarlyArrivalStrategy}
+        setGracePeriodMinutes={setGracePeriodMinutes}
         setNewValidFrom={setNewValidFrom}
         setRoundingPolicy={setRoundingPolicy}
         setWorkUnit={setWorkUnit}

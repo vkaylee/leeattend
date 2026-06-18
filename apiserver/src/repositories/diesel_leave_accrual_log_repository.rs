@@ -86,8 +86,8 @@ impl LeaveAccrualLogRepository for DieselLeaveAccrualLogRepository {
     async fn get_workspace_timezone(&self, workspace_id: Uuid) -> Result<String, AppError> {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
-                .tenants_tx
-                .get_connection(&workspace_id)
+                .api
+                .get()
                 .await
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );

@@ -84,7 +84,9 @@ impl PolicyResolver {
     ) -> PolicyRules {
         // Merge logic
         let mut rules = PolicyRules::new(
-            DEFAULT_GRACE_PERIOD_MINUTES,
+            attendance_rules
+                .grace_period_minutes
+                .unwrap_or(DEFAULT_GRACE_PERIOD_MINUTES),
             0,
             false,
             attendance_rules.early_arrival_strategy,
@@ -122,9 +124,10 @@ impl PolicyResolver {
         conditions: &[WorkingCondition],
         date: NaiveDate,
         early_arrival_strategy: EarlyArrivalStrategy,
+        grace_period_minutes: i32,
     ) -> PolicyRules {
         let mut rules = PolicyRules::new(
-            DEFAULT_GRACE_PERIOD_MINUTES,
+            grace_period_minutes,
             0,
             false,
             early_arrival_strategy,
@@ -289,6 +292,7 @@ mod tests {
             &[],
             d(2026, 3, 1),
             EarlyArrivalStrategy::Allow,
+            DEFAULT_GRACE_PERIOD_MINUTES,
         );
         assert_eq!(rules.grace_period_minutes(), 15);
         assert_eq!(rules.authorized_early_leave_minutes(), 0);
@@ -303,6 +307,7 @@ mod tests {
             &conds,
             d(2026, 3, 1),
             EarlyArrivalStrategy::Allow,
+            DEFAULT_GRACE_PERIOD_MINUTES,
         );
         assert_eq!(rules.authorized_early_leave_minutes(), 60);
         assert!(rules.is_early_leave_paid());
@@ -314,6 +319,7 @@ mod tests {
             &[],
             d(2026, 3, 1),
             EarlyArrivalStrategy::Clamp,
+            DEFAULT_GRACE_PERIOD_MINUTES,
         );
         assert_eq!(rules.early_arrival_strategy(), EarlyArrivalStrategy::Clamp);
 
@@ -321,6 +327,7 @@ mod tests {
             &[],
             d(2026, 3, 1),
             EarlyArrivalStrategy::Block,
+            DEFAULT_GRACE_PERIOD_MINUTES,
         );
         assert_eq!(
             rules_block.early_arrival_strategy(),
@@ -341,6 +348,7 @@ mod tests {
             &conds,
             d(2026, 3, 1),
             EarlyArrivalStrategy::Allow,
+            DEFAULT_GRACE_PERIOD_MINUTES,
         );
         assert_eq!(rules.authorized_early_leave_minutes(), 45);
         assert!(rules.is_early_leave_paid()); // always true for BREASTFEEDING
@@ -356,6 +364,7 @@ mod tests {
             &conds,
             d(2026, 3, 1),
             EarlyArrivalStrategy::Allow,
+            DEFAULT_GRACE_PERIOD_MINUTES,
         );
         assert_eq!(rules.authorized_early_leave_minutes(), 60);
     }
@@ -374,6 +383,7 @@ mod tests {
             &conds,
             d(2026, 3, 1),
             EarlyArrivalStrategy::Allow,
+            DEFAULT_GRACE_PERIOD_MINUTES,
         );
         assert_eq!(rules.authorized_early_leave_minutes(), 0); // expired, not applied
     }
@@ -385,6 +395,7 @@ mod tests {
             &conds,
             d(2026, 3, 1),
             EarlyArrivalStrategy::Allow,
+            DEFAULT_GRACE_PERIOD_MINUTES,
         );
         assert_eq!(rules.authorized_early_leave_minutes(), 0); // not yet active
     }

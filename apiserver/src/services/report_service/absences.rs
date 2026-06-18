@@ -151,6 +151,7 @@ impl ReportService {
                     false, // Not needed for unexcused calculation
                     daily.shift_id.is_some(),
                     is_on_leave,
+                    None,
                 ));
 
                 if status == AttendanceStatus::Absent {

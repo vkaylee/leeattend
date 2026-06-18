@@ -33,6 +33,7 @@ fn make_report(has_punch_in: bool, has_shift: bool) -> DailyAttendanceReport {
             false,
             has_shift,
             false,
+            None,
         ),
     );
 

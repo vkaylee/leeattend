@@ -302,6 +302,7 @@ impl PayrollService {
                 work_unit_minutes: 30,
                 rounding_policy: "floor".to_string(),
                 early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
+                grace_period_minutes: None,
             }
         };
 
@@ -1307,6 +1308,7 @@ impl PayrollService {
                             work_unit_minutes: 30,
                             rounding_policy: "floor".to_string(),
                             early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
+                            grace_period_minutes: None,
                         },
                     };
 
@@ -1343,6 +1345,7 @@ impl PayrollService {
                                 work_unit_minutes: 30,
                                 rounding_policy: "floor".to_string(),
                                 early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
+                                grace_period_minutes: None,
                             },
                         };
 
@@ -1556,6 +1559,7 @@ mod tests {
                 work_unit_minutes: 30,
                 rounding_policy: "floor".to_string(),
                 early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
+                grace_period_minutes: None,
             },
             emp_payroll_configs: Vec::new(),
             ws_payroll_settings_history: Vec::new(),
@@ -1574,6 +1578,7 @@ mod tests {
                 work_unit_minutes: 30,
                 rounding_policy: "floor".to_string(),
                 early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
+                grace_period_minutes: None,
             },
             leave_breakdown: crate::repositories::leave_request_repository::LeaveBreakdown {
                 total_days: 0.0,

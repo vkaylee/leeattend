@@ -27,6 +27,7 @@ pub struct UpsertPolicyAssignmentRequest {
     pub work_unit_minutes: i32,
     pub rounding_policy: String,
     pub early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy,
+    pub grace_period_minutes: Option<i32>,
     pub valid_from: Option<String>,
 }
 

@@ -574,7 +574,9 @@
     },
     "labels": {
       "department": "PHÒNG BAN",
-      "employee": "NHÂN VIÊN"
+      "employee": "NHÂN VIÊN",
+      "not_set": "Chưa Thiết Lập",
+      "minutes": "phút"
     },
     "drawer": {
       "add_title": "Thêm Ghi đè Chính sách",
@@ -583,6 +585,7 @@
       "step_rules": "2. Cấu hình Quy tắc",
       "select_target_type": "Chọn {{type}}",
       "search_placeholder": "Tìm kiếm {{type}}...",
+      "grace_period_placeholder": "Sử dụng giá trị mặc định của workspace",
       "save_button": "LƯU GHI ĐÈ",
       "override_notice": "Lưu ý: Các thiết lập dưới đây sẽ ghi đè cấu hình mặc định của Workspace dành riêng cho đối tượng này kể từ ngày hiệu lực."
     },

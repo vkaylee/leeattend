@@ -55,6 +55,16 @@ function AssignmentCard({ assignment, getTargetName, workUnitLabel, roundingLabe
         <div><Typography className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1" variant="p">{t("common.workspace_settings.work_unit")}</Typography><Typography className="text-sm font-bold text-slate-700 dark:text-slate-300" variant="p">{workUnitLabel(assignment.rules.work_unit_minutes)}</Typography></div>
         <div><Typography className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1" variant="p">{t("common.workspace_settings.rounding_policy")}</Typography><Typography className="text-sm font-bold text-slate-700 dark:text-slate-300" variant="p">{roundingLabel(assignment.rules.rounding_policy)}</Typography></div>
         <div><Typography className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1" variant="p">{t("common.workspace_settings.early_arrival_strategy")}</Typography><Typography className="text-sm font-bold text-slate-700 dark:text-slate-300" variant="p">{t(`common.workspace_settings.early_arrival_options.${assignment.rules.early_arrival_strategy}`)}</Typography></div>
+        <div>
+          <Typography className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1" variant="p">
+            {t("common.workspace_settings.grace_period_minutes") || "Grace Period"}
+          </Typography>
+          <Typography className="text-sm font-bold text-slate-700 dark:text-slate-300" variant="p">
+            {assignment.rules.grace_period_minutes != null
+              ? `${assignment.rules.grace_period_minutes}m`
+              : t("attendance_policy_overrides.labels.not_set", "Not Set")}
+          </Typography>
+        </div>
       </div>
       <div className="flex items-center gap-2">
         <Button 
@@ -102,6 +112,8 @@ function PolicyAssignmentsSectionContent({ wsId }: { wsId: string }) {
     setEarlyArrivalStrategy,
     validFrom,
     setValidFrom,
+    gracePeriodMinutes,
+    setGracePeriodMinutes,
     filteredAssignments,
     getTargetName,
     workUnitLabel,
@@ -250,6 +262,23 @@ function PolicyAssignmentsSectionContent({ wsId }: { wsId: string }) {
                   onChange={(v) => { setEarlyArrivalStrategy(v as StrategyType); }} 
                   options={["block", "allow", "clamp"].map(v => ({ value: v, label: t(`common.workspace_settings.early_arrival_options.${v}`), description: t(`common.workspace_settings.early_arrival_options.${v}_desc`), icon: v === "block" ? <ShieldAlert size={14} /> : v === "allow" ? <Zap size={14} /> : <Settings2 size={14} /> }))} 
                   value={earlyArrivalStrategy} 
+                />
+              </div>
+              <div className="space-y-3">
+                <label className={LABEL_BASE}>
+                  {t("common.workspace_settings.grace_period_minutes") || "Late Grace Period (minutes)"}
+                </label>
+                <input 
+                  className="w-full px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-primary-500/10 outline-none transition-all font-bold text-sm tracking-tight shadow-sm" 
+                  min={0}
+                  max={1440}
+                  onChange={e => {
+                    const val = parseInt(e.target.value);
+                    setGracePeriodMinutes(isNaN(val) ? undefined : val);
+                  }} 
+                  placeholder={t("attendance_policy_overrides.drawer.grace_period_placeholder", "Using default workspace value")}
+                  type="number" 
+                  value={gracePeriodMinutes ?? ""} 
                 />
               </div>
             </div>

@@ -3568,6 +3568,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workspaces/{ws_id}/leave/policies/assignments/{assignment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["delete_leave_policy_assignment"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workspaces/{ws_id}/leave/policies/{policy_id}": {
         parameters: {
             query?: never;
@@ -4510,6 +4526,8 @@ export interface components {
             created_at: string;
             created_by?: string | null;
             early_arrival_strategy: components["schemas"]["EarlyArrivalStrategy"];
+            /** Format: int32 */
+            grace_period_minutes: number;
             id: string;
             rounding_policy: string;
             valid_from: string;
@@ -4519,6 +4537,8 @@ export interface components {
         };
         AttendanceRules: {
             early_arrival_strategy?: components["schemas"]["EarlyArrivalStrategy"];
+            /** Format: int32 */
+            grace_period_minutes?: number | null;
             rounding_policy: string;
             /** Format: int32 */
             work_unit_minutes: number;
@@ -7206,6 +7226,8 @@ export interface components {
         };
         UpdateAttendanceRulesRequest: {
             early_arrival_strategy?: null | components["schemas"]["EarlyArrivalStrategy"];
+            /** Format: int32 */
+            grace_period_minutes?: number | null;
             rounding_policy?: string | null;
             /** @description ISO 8601 date string for when this version takes effect. */
             valid_from?: string | null;
@@ -7528,6 +7550,8 @@ export interface components {
         };
         UpsertPolicyAssignmentRequest: {
             early_arrival_strategy: components["schemas"]["EarlyArrivalStrategy"];
+            /** Format: int32 */
+            grace_period_minutes?: number | null;
             rounding_policy: string;
             /** Format: uuid */
             target_id: string;
@@ -15580,6 +15604,29 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["LeavePolicyAssignmentDetail"][];
                 };
+            };
+        };
+    };
+    delete_leave_policy_assignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+                /** @description Assignment ID */
+                assignment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Leave policy assignment deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

@@ -574,7 +574,9 @@
     },
     "labels": {
       "department": "DEPARTMENT",
-      "employee": "EMPLOYEE"
+      "employee": "EMPLOYEE",
+      "not_set": "Not Set",
+      "minutes": "mins"
     },
     "drawer": {
       "add_title": "Add Policy Override",
@@ -583,6 +585,7 @@
       "step_rules": "2. Configure Rules",
       "select_target_type": "Select {{type}}",
       "search_placeholder": "Search {{type}}...",
+      "grace_period_placeholder": "Using default workspace value",
       "save_button": "SAVE OVERRIDE",
       "override_notice": "Note: The settings below will override the default workspace configuration for this target starting from the effective date."
     },

@@ -12,6 +12,7 @@ import { Typography } from "@/components/ui/typography";
 
 interface CreateVersionModalProps {
   earlyArrivalStrategy: "allow" | "block" | "clamp";
+  gracePeriodMinutes: number;
   isOpen: boolean;
   isPending: boolean;
   newValidFrom: string;
@@ -19,6 +20,7 @@ interface CreateVersionModalProps {
   onSave: () => void;
   roundingPolicy: string;
   setEarlyArrivalStrategy: (v: "allow" | "block" | "clamp") => void;
+  setGracePeriodMinutes: (v: number) => void;
   setNewValidFrom: (v: string) => void;
   setRoundingPolicy: (v: string) => void;
   setWorkUnit: (v: number) => void;
@@ -28,6 +30,7 @@ interface CreateVersionModalProps {
 
 export function CreateVersionModal({
   earlyArrivalStrategy,
+  gracePeriodMinutes,
   isOpen,
   isPending,
   newValidFrom,
@@ -35,6 +38,7 @@ export function CreateVersionModal({
   onSave,
   roundingPolicy,
   setEarlyArrivalStrategy,
+  setGracePeriodMinutes,
   setNewValidFrom,
   setRoundingPolicy,
   setWorkUnit,
@@ -73,11 +77,18 @@ export function CreateVersionModal({
           />
         </div>
 
-        <EarlyArrivalInput
-          earlyArrivalStrategy={earlyArrivalStrategy}
-          setEarlyArrivalStrategy={setEarlyArrivalStrategy}
-          t={t}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <EarlyArrivalInput
+            earlyArrivalStrategy={earlyArrivalStrategy}
+            setEarlyArrivalStrategy={setEarlyArrivalStrategy}
+            t={t}
+          />
+          <GracePeriodInput
+            gracePeriodMinutes={gracePeriodMinutes}
+            setGracePeriodMinutes={setGracePeriodMinutes}
+            t={t}
+          />
+        </div>
 
         <ModalFooter
           isPending={isPending}
@@ -249,6 +260,37 @@ function EarlyArrivalInput({
         ]}
         value={earlyArrivalStrategy}
       />
+    </div>
+  );
+}
+
+function GracePeriodInput({
+  gracePeriodMinutes,
+  setGracePeriodMinutes,
+  t,
+}: {
+  gracePeriodMinutes: number;
+  setGracePeriodMinutes: (v: number) => void;
+  t: TFunction;
+}) {
+  return (
+    <div className="space-y-3 px-1">
+      <label className={LABEL_BASE}>{t("common.workspace_settings.grace_period_minutes") || "Late Grace Period (minutes)"}</label>
+      <input
+        className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight shadow-sm"
+        min={0}
+        max={1440}
+        onChange={(e) => {
+          const val = parseInt(e.target.value);
+          setGracePeriodMinutes(isNaN(val) ? 0 : val);
+        }}
+        type="number"
+        value={gracePeriodMinutes}
+      />
+      <Typography className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase italic leading-relaxed px-1 opacity-60" variant="p">
+        {t("common.workspace_settings.grace_period_minutes_desc") ||
+          "Allowed buffer time after shift start before attendance is marked as late."}
+      </Typography>
     </div>
   );
 }

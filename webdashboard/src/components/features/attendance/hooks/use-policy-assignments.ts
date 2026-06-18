@@ -31,6 +31,7 @@ export function usePolicyAssignments(wsId: string) {
   const [roundingPolicy, setRoundingPolicy] = useState("none");
   const [earlyArrivalStrategy, setEarlyArrivalStrategy] = useState<StrategyType>("allow");
   const [validFrom, setValidFrom] = useState(() => new Date().toISOString().split("T")[0]);
+  const [gracePeriodMinutes, setGracePeriodMinutes] = useState<number | undefined>(undefined);
 
   // Queries
   const { data: assignments = [], isLoading: isLoadingAssignments } = useQuery<PolicyAssignmentResponse[]>({ 
@@ -102,11 +103,13 @@ export function usePolicyAssignments(wsId: string) {
       work_unit_minutes: workUnitMinutes,
       rounding_policy: roundingPolicy,
       early_arrival_strategy: earlyArrivalStrategy,
-      valid_from: validFrom
+      valid_from: validFrom,
+      grace_period_minutes: gracePeriodMinutes === undefined ? null : gracePeriodMinutes
     }, {
       onSuccess: () => {
         setIsDrawerOpen(false);
         setTargetId("");
+        setGracePeriodMinutes(undefined);
       }
     });
   };
@@ -134,6 +137,8 @@ export function usePolicyAssignments(wsId: string) {
     setEarlyArrivalStrategy,
     validFrom,
     setValidFrom,
+    gracePeriodMinutes,
+    setGracePeriodMinutes,
     filteredAssignments,
     getTargetName,
     workUnitLabel,

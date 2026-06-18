@@ -177,6 +177,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                 work_unit_minutes: 0,
                 rounding_policy: "none".to_string(),
                 early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
+                grace_period_minutes: None,
             }),
             valid_from: r.valid_from,
             valid_to: r.valid_to,
@@ -309,6 +310,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                         work_unit_minutes: 0,
                         rounding_policy: "none".to_string(),
                         early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
+                        grace_period_minutes: None,
                     }),
                     valid_from: row.valid_from,
                     valid_to: row.valid_to,
@@ -425,6 +427,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                 work_unit_minutes: 0,
                 rounding_policy: "none".to_string(),
                 early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
+                grace_period_minutes: None,
             }),
             valid_from: r.valid_from,
             valid_to: r.valid_to,
@@ -567,6 +570,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                         work_unit_minutes: 0,
                         rounding_policy: "none".to_string(),
                         early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
+                        grace_period_minutes: None,
                     }),
                     valid_from: row.valid_from,
                     valid_to: row.valid_to,
@@ -621,6 +625,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                     work_unit_minutes: 15,
                     rounding_policy: "none".to_string(),
                     early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
+                    grace_period_minutes: None,
                 }
             }))),
             None => Ok(None),
@@ -724,11 +729,13 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                         work_unit_minutes: 15,
                         rounding_policy: "none".to_string(),
                         early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
+                        grace_period_minutes: None,
                     }),
                     None => AttendanceRules {
                         work_unit_minutes: 15,
                         rounding_policy: "none".to_string(),
                         early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
+                        grace_period_minutes: None,
                     },
                 };
 
@@ -740,6 +747,9 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                 }
                 if let Some(s) = req.early_arrival_strategy {
                     new_rules.early_arrival_strategy = s;
+                }
+                if let Some(gp) = req.grace_period_minutes {
+                    new_rules.grace_period_minutes = Some(gp);
                 }
 
                 let valid_from = match &req.valid_from {
@@ -884,6 +894,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                         work_unit_minutes: 0,
                         rounding_policy: "none".to_string(),
                         early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
+                        grace_period_minutes: None,
                     }),
                 },
             )
@@ -992,6 +1003,7 @@ impl AttendancePolicyRepository for DieselAttendancePolicyRepository {
                     work_unit_minutes: req.work_unit_minutes,
                     rounding_policy: req.rounding_policy.clone(),
                     early_arrival_strategy: req.early_arrival_strategy,
+                    grace_period_minutes: req.grace_period_minutes,
                 };
 
                 let version_entity = crate::models::diesel::attendance_policy::AttendancePolicyVersionEntity {

@@ -69,6 +69,7 @@ impl PolicyResolverService {
                 work_unit_minutes: 30,
                 rounding_policy: "floor".to_string(),
                 early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
+                grace_period_minutes: None,
             })
         }
     }
@@ -96,6 +97,7 @@ impl PolicyResolverService {
                 work_unit_minutes: 30,
                 rounding_policy: "floor".to_string(),
                 early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
+                grace_period_minutes: None,
             })
         }
     }
@@ -131,6 +133,7 @@ impl PolicyResolverService {
                         work_unit_minutes: 30,
                         rounding_policy: "floor".to_string(),
                         early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
+                        grace_period_minutes: None,
                     },
                 );
             }
@@ -170,6 +173,7 @@ impl PolicyResolverService {
                         work_unit_minutes: 30,
                         rounding_policy: "floor".to_string(),
                         early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
+                        grace_period_minutes: None,
                     },
                 );
             }

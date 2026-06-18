@@ -55,6 +55,7 @@ impl From<AttendancePolicyVersionEntity> for AttendancePolicyVersion {
                 work_unit_minutes: 0,
                 rounding_policy: "none".to_string(),
                 early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
+                grace_period_minutes: None,
             }),
             valid_from: val.valid_from,
             valid_to: val.valid_to,

@@ -127,6 +127,7 @@ function TimeSettingsContent({
   const [earlyArrivalStrategy, setEarlyArrivalStrategy] = useState<"allow" | "block" | "clamp">(
     rules.early_arrival_strategy ?? "block"
   );
+  const [gracePeriodMinutes, setGracePeriodMinutes] = useState(rules.grace_period_minutes ?? 15);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newValidFrom, setNewValidFrom] = useState(() => new Date().toISOString().split("T")[0]);
 
@@ -147,6 +148,7 @@ function TimeSettingsContent({
     roundingPolicy,
     valid_from: newValidFrom,
     work_unit_minutes: workUnit,
+    grace_period_minutes: gracePeriodMinutes,
     onSuccess: () => {
       setShowCreateModal(false);
     },
@@ -164,6 +166,7 @@ function TimeSettingsContent({
       <div className="animate-in slide-in-from-bottom-4 duration-500">
         <TabContent
           earlyArrivalStrategy={earlyArrivalStrategy}
+          gracePeriodMinutes={gracePeriodMinutes}
           handleSaveNewVersion={handleSaveNewVersion}
           isPending={isPending}
           newValidFrom={newValidFrom}
@@ -173,6 +176,7 @@ function TimeSettingsContent({
           reprocessStartSetter={setReprocessStart}
           roundingPolicy={roundingPolicy}
           setEarlyArrivalStrategy={setEarlyArrivalStrategy}
+          setGracePeriodMinutes={setGracePeriodMinutes}
           setNewValidFrom={setNewValidFrom}
           setRoundingPolicy={setRoundingPolicy}
           setShowCreateModal={setShowCreateModal}

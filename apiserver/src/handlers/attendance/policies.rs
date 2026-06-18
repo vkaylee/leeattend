@@ -17,6 +17,7 @@ pub struct UpdateAttendanceRulesRequest {
     /// ISO 8601 date string for when this version takes effect.
     pub valid_from: Option<String>,
     pub early_arrival_strategy: Option<crate::models::enums::EarlyArrivalStrategy>,
+    pub grace_period_minutes: Option<i32>,
 }
 
 /// Response shape for a single policy version (includes metadata)
@@ -26,6 +27,7 @@ pub struct AttendancePolicyVersionResponse {
     pub work_unit_minutes: i32,
     pub rounding_policy: String,
     pub early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy,
+    pub grace_period_minutes: i32,
     pub valid_from: String,
     pub valid_to: Option<String>,
     pub created_by: Option<String>,
@@ -65,6 +67,7 @@ pub async fn get_default_attendance_rules(
             work_unit_minutes: 15,
             rounding_policy: "none".to_string(),
             early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
+            grace_period_minutes: None,
         })),
     }
 }
@@ -104,6 +107,10 @@ pub async fn list_default_attendance_policy_versions(
             work_unit_minutes: v.rules.work_unit_minutes,
             rounding_policy: v.rules.rounding_policy,
             early_arrival_strategy: v.rules.early_arrival_strategy,
+            grace_period_minutes: v
+                .rules
+                .grace_period_minutes
+                .unwrap_or(crate::domain::policy::defaults::DEFAULT_GRACE_PERIOD_MINUTES),
             valid_from: v.valid_from.to_rfc3339(),
             valid_to: v.valid_to.map(|dt| dt.to_rfc3339()),
             created_by: v.created_by.map(|u| u.to_string()),
@@ -149,6 +156,10 @@ pub async fn update_default_attendance_rules(
         work_unit_minutes: v.rules.work_unit_minutes,
         rounding_policy: v.rules.rounding_policy,
         early_arrival_strategy: v.rules.early_arrival_strategy,
+        grace_period_minutes: v
+            .rules
+            .grace_period_minutes
+            .unwrap_or(crate::domain::policy::defaults::DEFAULT_GRACE_PERIOD_MINUTES),
         valid_from: v.valid_from.to_rfc3339(),
         valid_to: v.valid_to.map(|dt| dt.to_rfc3339()),
         created_by: v.created_by.map(|u| u.to_string()),

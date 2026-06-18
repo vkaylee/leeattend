@@ -554,6 +554,7 @@ export interface AttendanceRules {
   early_arrival_strategy?: "allow" | "block" | "clamp" | null;
   rounding_policy: string;
   work_unit_minutes: number;
+  grace_period_minutes?: number | null;
 }
 
 export interface AttendancePolicyVersion {
@@ -565,6 +566,7 @@ export interface AttendancePolicyVersion {
   valid_from: string;
   valid_to?: string | null;
   work_unit_minutes: number;
+  grace_period_minutes: number;
 }
 
 export interface UpdateAttendanceRulesRequest {
@@ -572,6 +574,7 @@ export interface UpdateAttendanceRulesRequest {
   rounding_policy?: string;
   valid_from?: string;
   work_unit_minutes?: number;
+  grace_period_minutes?: number;
 }
 
 export async function fetchDefaultAttendanceRules(wsId: string): Promise<AttendanceRules> {
@@ -606,6 +609,7 @@ export interface UpsertPolicyAssignmentRequest {
   target_type: "USER" | "GROUP";
   valid_from?: string;
   work_unit_minutes: number;
+  grace_period_minutes?: number | null;
 }
 
 export async function fetchPolicyAssignments(wsId: string): Promise<PolicyAssignmentResponse[]> {

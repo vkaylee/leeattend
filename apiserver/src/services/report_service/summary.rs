@@ -259,6 +259,7 @@ impl ReportService {
                     work_unit_minutes: 30,
                     rounding_policy: "floor".to_string(),
                     early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
+                    grace_period_minutes: None,
                 });
             let mut employee_total_std = 0i32;
             let mut employee_total_ot = 0i32;
@@ -281,6 +282,9 @@ impl ReportService {
                     emp_working_conditions,
                     date,
                     emp_attendance_rules.early_arrival_strategy,
+                    emp_attendance_rules
+                        .grace_period_minutes
+                        .unwrap_or(crate::domain::policy::defaults::DEFAULT_GRACE_PERIOD_MINUTES),
                 );
 
                 let overrides = ShiftPolicyOverrides::new(

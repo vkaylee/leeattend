@@ -96,6 +96,8 @@
         "clamp": "Clamp Early OT",
         "clamp_desc": "Allow early punch-in but only count OT within the shift's Grace Period."
       },
+      "grace_period_minutes": "Late Grace Period (minutes)",
+      "grace_period_minutes_desc": "Allowed buffer time after shift start before attendance is marked as late.",
       "please_wait_minutes": "Please wait a few minutes for changes to take effect."
     },
     "members": {

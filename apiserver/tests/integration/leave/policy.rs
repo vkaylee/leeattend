@@ -293,8 +293,11 @@ async fn test_leave_policy_assignment_deletion_and_healing() {
     assert_eq!(resp.status(), StatusCode::OK);
     let assignments = body_json(resp).await;
     let items = assignments.as_array().unwrap();
-    
-    let a1 = items.iter().find(|i| i["id"].as_str().unwrap() == assignment1_id).unwrap();
+
+    let a1 = items
+        .iter()
+        .find(|i| i["id"].as_str().unwrap() == assignment1_id)
+        .unwrap();
     assert_eq!(a1["effective_to"].as_str(), Some("2024-05-31"));
 
     // 5. Delete Assignment 2
@@ -326,11 +329,16 @@ async fn test_leave_policy_assignment_deletion_and_healing() {
     assert_eq!(resp.status(), StatusCode::OK);
     let assignments = body_json(resp).await;
     let items = assignments.as_array().unwrap();
-    
+
     // Assignment 2 should be gone (soft-deleted)
-    assert!(items.iter().all(|i| i["id"].as_str().unwrap() != assignment2_id));
+    assert!(items
+        .iter()
+        .all(|i| i["id"].as_str().unwrap() != assignment2_id));
 
     // Assignment 1 should have effective_to as null (forever)
-    let a1_updated = items.iter().find(|i| i["id"].as_str().unwrap() == assignment1_id).unwrap();
+    let a1_updated = items
+        .iter()
+        .find(|i| i["id"].as_str().unwrap() == assignment1_id)
+        .unwrap();
     assert!(a1_updated["effective_to"].is_null());
 }

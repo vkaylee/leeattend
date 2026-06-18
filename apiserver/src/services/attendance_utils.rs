@@ -93,6 +93,7 @@ pub struct DailyStatusInput {
     is_holiday_paid: bool,
     has_shift: bool,
     is_on_leave: bool,
+    grace_period_minutes: Option<i32>,
 }
 
 impl DailyStatusInput {
@@ -105,6 +106,7 @@ impl DailyStatusInput {
         is_holiday_paid: bool,
         has_shift: bool,
         is_on_leave: bool,
+        grace_period_minutes: Option<i32>,
     ) -> Self {
         Self {
             has_punch_in,
@@ -114,6 +116,7 @@ impl DailyStatusInput {
             is_holiday_paid,
             has_shift,
             is_on_leave,
+            grace_period_minutes,
         }
     }
 
@@ -144,6 +147,10 @@ impl DailyStatusInput {
     pub fn is_on_leave(&self) -> bool {
         self.is_on_leave
     }
+
+    pub fn grace_period_minutes(&self) -> Option<i32> {
+        self.grace_period_minutes
+    }
 }
 
 /// Determine the attendance status for a single day.
@@ -169,7 +176,8 @@ pub fn determine_daily_status(input: &DailyStatusInput) -> AttendanceStatus {
         if let (Some(punch_in), Some(sched_start)) =
             (input.punch_in_time(), input.scheduled_start())
         {
-            if punch_in > sched_start + chrono::Duration::minutes(5) {
+            let grace = input.grace_period_minutes().unwrap_or(5);
+            if punch_in > sched_start + chrono::Duration::minutes(grace.into()) {
                 return AttendanceStatus::Late;
             }
         }
@@ -329,6 +337,7 @@ mod tests {
             is_holiday_paid: false,
             has_shift: true,
             is_on_leave: false,
+            grace_period_minutes: None,
         };
         assert_eq!(determine_daily_status(&input), AttendanceStatus::Present);
     }
@@ -343,6 +352,7 @@ mod tests {
             is_holiday_paid: false,
             has_shift: false,
             is_on_leave: false,
+            grace_period_minutes: None,
         };
         assert_eq!(
             determine_daily_status(&input),
@@ -360,6 +370,7 @@ mod tests {
             is_holiday_paid: false,
             has_shift: true,
             is_on_leave: false,
+            grace_period_minutes: None,
         };
         assert_eq!(determine_daily_status(&input), AttendanceStatus::Late);
     }
@@ -375,6 +386,7 @@ mod tests {
             is_holiday_paid: false,
             has_shift: true,
             is_on_leave: false,
+            grace_period_minutes: None,
         };
         assert_eq!(determine_daily_status(&input), AttendanceStatus::Present);
     }
@@ -389,6 +401,7 @@ mod tests {
             is_holiday_paid: true,
             has_shift: true,
             is_on_leave: false,
+            grace_period_minutes: None,
         };
         assert_eq!(
             determine_daily_status(&input),
@@ -406,6 +419,7 @@ mod tests {
             is_holiday_paid: true,
             has_shift: true,
             is_on_leave: false,
+            grace_period_minutes: None,
         };
         assert_eq!(
             determine_daily_status(&input),
@@ -423,6 +437,7 @@ mod tests {
             is_holiday_paid: false,
             has_shift: true,
             is_on_leave: false,
+            grace_period_minutes: None,
         };
         assert_eq!(
             determine_daily_status(&input),
@@ -440,6 +455,7 @@ mod tests {
             is_holiday_paid: false,
             has_shift: true,
             is_on_leave: true,
+            grace_period_minutes: None,
         };
         assert_eq!(
             determine_daily_status(&input),
@@ -457,6 +473,7 @@ mod tests {
             is_holiday_paid: false,
             has_shift: false,
             is_on_leave: false,
+            grace_period_minutes: None,
         };
         assert_eq!(determine_daily_status(&input), AttendanceStatus::Off);
     }
@@ -471,6 +488,7 @@ mod tests {
             is_holiday_paid: false,
             has_shift: true,
             is_on_leave: false,
+            grace_period_minutes: None,
         };
         assert_eq!(determine_daily_status(&input), AttendanceStatus::Absent);
     }
@@ -486,6 +504,7 @@ mod tests {
             is_holiday_paid: false,
             has_shift: true,
             is_on_leave: true,
+            grace_period_minutes: None,
         };
         assert_eq!(determine_daily_status(&input), AttendanceStatus::Leave);
     }
@@ -500,8 +519,43 @@ mod tests {
             is_holiday_paid: false,
             has_shift: false,
             is_on_leave: true,
+            grace_period_minutes: None,
         };
         assert_eq!(determine_daily_status(&input), AttendanceStatus::Leave);
+    }
+
+    #[test]
+    fn test_custom_grace_period_late() {
+        // Shift starts at 07:30. Punch in at 07:31.
+        // Grace period is 0 min. Should be Late.
+        let input = DailyStatusInput {
+            has_punch_in: true,
+            punch_in_time: Some(NaiveTime::from_hms_opt(7, 31, 0).expect("valid time")),
+            scheduled_start: Some(NaiveTime::from_hms_opt(7, 30, 0).expect("valid time")),
+            is_holiday: false,
+            is_holiday_paid: false,
+            has_shift: true,
+            is_on_leave: false,
+            grace_period_minutes: Some(0),
+        };
+        assert_eq!(determine_daily_status(&input), AttendanceStatus::Late);
+    }
+
+    #[test]
+    fn test_custom_grace_period_present() {
+        // Shift starts at 07:30. Punch in at 07:31.
+        // Grace period is 1 min. Should be Present.
+        let input = DailyStatusInput {
+            has_punch_in: true,
+            punch_in_time: Some(NaiveTime::from_hms_opt(7, 31, 0).expect("valid time")),
+            scheduled_start: Some(NaiveTime::from_hms_opt(7, 30, 0).expect("valid time")),
+            is_holiday: false,
+            is_holiday_paid: false,
+            has_shift: true,
+            is_on_leave: false,
+            grace_period_minutes: Some(1),
+        };
+        assert_eq!(determine_daily_status(&input), AttendanceStatus::Present);
     }
 
     // ===== date_range_to_utc tests =====

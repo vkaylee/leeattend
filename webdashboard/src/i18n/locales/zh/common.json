@@ -96,6 +96,8 @@
         "clamp": "限制提前加班",
         "clamp_desc": "允许提前打卡，但仅计算班次宽限期内的加班费。"
       },
+      "grace_period_minutes": "迟到宽限期 (分钟)",
+      "grace_period_minutes_desc": "允许在班次开始后打卡而不被记为迟到的缓冲时间。",
       "please_wait_minutes": "请等待几分钟以使更改生效。"
     },
     "members": {

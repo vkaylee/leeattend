@@ -353,6 +353,7 @@ impl ReportService {
                         work_unit_minutes: 30,
                         rounding_policy: "floor".to_string(),
                         early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
+                        grace_period_minutes: None,
                     });
 
                 let emp_working_conditions = working_conditions_map
@@ -363,6 +364,9 @@ impl ReportService {
                     emp_working_conditions,
                     date,
                     emp_attendance_rules.early_arrival_strategy,
+                    emp_attendance_rules
+                        .grace_period_minutes
+                        .unwrap_or(crate::domain::policy::defaults::DEFAULT_GRACE_PERIOD_MINUTES),
                 );
 
                 let overrides = ShiftPolicyOverrides::new(
@@ -382,7 +386,7 @@ impl ReportService {
                         tz,
                         employee_id,
                         workspace_id: workspace.id(),
-                        rules,
+                        rules: rules.clone(),
                         work_unit_minutes: emp_attendance_rules.work_unit_minutes,
                         rounding_policy: &emp_attendance_rules.rounding_policy,
                     });
@@ -405,6 +409,7 @@ impl ReportService {
                         holiday_entry.is_none_or(crate::models::Holiday::is_paid),
                         daily.shift_id.is_some(),
                         is_on_leave,
+                        Some(rules.grace_period_minutes()),
                     ),
                 );
 

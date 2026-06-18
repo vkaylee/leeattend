@@ -646,6 +646,7 @@ mod tests {
             work_unit_minutes: 30,
             rounding_policy: "floor".to_string(),
             early_arrival_strategy: EarlyArrivalStrategy::Block,
+            grace_period_minutes: None,
         };
 
         let ctx = PayrollContext {
@@ -679,6 +680,7 @@ mod tests {
                 work_unit_minutes: 30,
                 rounding_policy: "floor".to_string(),
                 early_arrival_strategy: EarlyArrivalStrategy::Block,
+                grace_period_minutes: None,
             },
             leave_breakdown: crate::repositories::leave_request_repository::LeaveBreakdown {
                 total_days: 0.0,
@@ -802,6 +804,7 @@ mod tests {
             work_unit_minutes: 30,
             rounding_policy: "floor".to_string(),
             early_arrival_strategy: EarlyArrivalStrategy::Block,
+            grace_period_minutes: None,
         };
 
         let ctx = PayrollContext {
@@ -835,6 +838,7 @@ mod tests {
                 work_unit_minutes: 30,
                 rounding_policy: "floor".to_string(),
                 early_arrival_strategy: EarlyArrivalStrategy::Block,
+                grace_period_minutes: None,
             },
             leave_breakdown: crate::repositories::leave_request_repository::LeaveBreakdown {
                 total_days: 0.0,
@@ -909,6 +913,7 @@ mod tests {
             work_unit_minutes: 30,
             rounding_policy: "floor".to_string(),
             early_arrival_strategy: EarlyArrivalStrategy::Block,
+            grace_period_minutes: None,
         };
 
         let ctx = PayrollContext {
@@ -942,6 +947,7 @@ mod tests {
                 work_unit_minutes: 30,
                 rounding_policy: "floor".to_string(),
                 early_arrival_strategy: EarlyArrivalStrategy::Block,
+                grace_period_minutes: None,
             },
             leave_breakdown: crate::repositories::leave_request_repository::LeaveBreakdown {
                 total_days: 0.0,
@@ -1084,6 +1090,7 @@ mod tests {
             work_unit_minutes: 30,
             rounding_policy: "floor".to_string(),
             early_arrival_strategy: EarlyArrivalStrategy::Block,
+            grace_period_minutes: None,
         };
 
         let ctx = PayrollContext {
@@ -1117,6 +1124,7 @@ mod tests {
                 work_unit_minutes: 30,
                 rounding_policy: "floor".to_string(),
                 early_arrival_strategy: EarlyArrivalStrategy::Block,
+                grace_period_minutes: None,
             },
             leave_breakdown: crate::repositories::leave_request_repository::LeaveBreakdown {
                 total_days: 0.0,
@@ -1246,6 +1254,7 @@ mod tests {
             work_unit_minutes: 30,
             rounding_policy: "floor".to_string(),
             early_arrival_strategy: EarlyArrivalStrategy::Block,
+            grace_period_minutes: None,
         };
 
         let rules = vec![crate::models::OvertimeRule::new(
@@ -1319,6 +1328,7 @@ mod tests {
                 work_unit_minutes: 30,
                 rounding_policy: "floor".to_string(),
                 early_arrival_strategy: EarlyArrivalStrategy::Block,
+                grace_period_minutes: None,
             },
             leave_breakdown: crate::repositories::leave_request_repository::LeaveBreakdown {
                 total_days: 0.0,
@@ -1448,6 +1458,7 @@ mod tests {
             work_unit_minutes: 30,
             rounding_policy: "floor".to_string(),
             early_arrival_strategy: EarlyArrivalStrategy::Block,
+            grace_period_minutes: None,
         };
 
         let ctx = PayrollContext {
@@ -1481,6 +1492,7 @@ mod tests {
                 work_unit_minutes: 30,
                 rounding_policy: "floor".to_string(),
                 early_arrival_strategy: EarlyArrivalStrategy::Block,
+                grace_period_minutes: None,
             },
             leave_breakdown: crate::repositories::leave_request_repository::LeaveBreakdown {
                 total_days: 0.0,

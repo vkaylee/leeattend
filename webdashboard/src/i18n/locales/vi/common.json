@@ -96,6 +96,8 @@
         "clamp": "Giới hạn OT sớm (Clamp)",
         "clamp_desc": "Cho phép chấm công sớm nhưng chỉ tính OT tối đa theo Grace Period của ca."
       },
+      "grace_period_minutes": "Thời gian ân hạn đi muộn (phút)",
+      "grace_period_minutes_desc": "Khoảng thời gian cho phép đi muộn sau giờ bắt đầu ca mà không bị tính là đi muộn.",
       "please_wait_minutes": "Vui lòng chờ vài phút để các thay đổi có hiệu lực."
     },
     "members": {

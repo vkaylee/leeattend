@@ -574,7 +574,9 @@
     },
     "labels": {
       "department": "部门",
-      "employee": "员工"
+      "employee": "员工",
+      "not_set": "未设置",
+      "minutes": "分钟"
     },
     "drawer": {
       "add_title": "添加政策覆盖",
@@ -583,6 +585,7 @@
       "step_rules": "2. 配置规则",
       "select_target_type": "选择 {{type}}",
       "search_placeholder": "搜索 {{type}}...",
+      "grace_period_placeholder": "使用工作区默认值",
       "save_button": "保存覆盖",
       "override_notice": "注意：以下设置自生效日期起，将覆盖该目标对象的默认工作空间配置。"
     },
