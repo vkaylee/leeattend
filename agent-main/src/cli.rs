@@ -200,7 +200,7 @@ pub fn handle_dlq_command(
 
 pub fn handle_dlq_stats_command(store: &RedbStore) -> Result<(), Box<dyn std::error::Error>> {
     let failed_logs = store.get_failed_logs()?;
-    let total_dlq = failed_logs.len() as i64;
+    let total_dlq = i64::try_from(failed_logs.len()).unwrap_or(0);
 
     // Aggregate by reason
     let mut by_reason: HashMap<String, i64> = HashMap::new();
@@ -248,6 +248,7 @@ pub fn handle_dlq_stats_command(store: &RedbStore) -> Result<(), Box<dyn std::er
     println!("├─────────────────────────────────────────────┼────────┼─────────┤");
 
     for (reason, count) in &reason_sorted {
+        #[allow(clippy::cast_precision_loss)]
         let percent = (*count as f64 / total_dlq as f64) * 100.0;
         println!(
             "│ {:43} │ {:6} │ {:6.1}% │",
@@ -265,6 +266,7 @@ pub fn handle_dlq_stats_command(store: &RedbStore) -> Result<(), Box<dyn std::er
         println!("│ Device ID                │ Count  │ Percent │");
         println!("├──────────────────────────┼────────┼─────────┤");
         for (device, count) in &device_sorted {
+            #[allow(clippy::cast_precision_loss)]
             let percent = (*count as f64 / total_dlq as f64) * 100.0;
             println!(
                 "│ {:24} │ {:6} │ {:6.1}% │",
@@ -361,6 +363,7 @@ pub fn handle_status_command(store: &RedbStore) -> Result<(), Box<dyn std::error
         .filter(|l| l.is_synced == 0 && l.updated_at.is_none())
         .count();
     let retry_logs = unsynced - new_logs;
+    #[allow(clippy::cast_precision_loss)]
     let retry_rate = if unsynced > 0 {
         (retry_logs as f64 / unsynced as f64) * 100.0
     } else {

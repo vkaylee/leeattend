@@ -145,10 +145,13 @@ impl AttendanceCalculator {
             return;
         }
 
-        let mut standard_raw = standard_out
-            .clone()
-            .signed_duration_since(standard_in.clone())
-            .num_minutes() as i32;
+        let mut standard_raw = i32::try_from(
+            standard_out
+                .clone()
+                .signed_duration_since(standard_in.clone())
+                .num_minutes(),
+        )
+        .unwrap_or(0);
 
         // Calculate break deduction and break OT
         let (break_to_deduct, break_ot_minutes) = if rules.is_break_overtime() {
@@ -158,9 +161,12 @@ impl AttendanceCalculator {
                 let overlap_start = DateTime::max(standard_in, bs);
                 let overlap_end = DateTime::min(standard_out, be);
                 if overlap_end > overlap_start {
-                    overlap_end
-                        .signed_duration_since(overlap_start)
-                        .num_minutes() as i32
+                    i32::try_from(
+                        overlap_end
+                            .signed_duration_since(overlap_start)
+                            .num_minutes(),
+                    )
+                    .unwrap_or(0)
                 } else {
                     0
                 }
@@ -206,9 +212,12 @@ impl AttendanceCalculator {
             return;
         }
 
-        let mut capped = early_out
-            .signed_duration_since(effective_ot_start.clone())
-            .num_minutes() as i32;
+        let mut capped = i32::try_from(
+            early_out
+                .signed_duration_since(effective_ot_start.clone())
+                .num_minutes(),
+        )
+        .unwrap_or(0);
         if let Some(max_ot) = input.max_early_ot_minutes {
             capped = i32::min(capped, max_ot);
         }
@@ -231,9 +240,12 @@ impl AttendanceCalculator {
         };
         let late_in = DateTime::max(input.punch_in.clone(), shift_end.clone());
         if effective_punch_out > late_in {
-            buckets.late_ot_minutes = effective_punch_out
-                .signed_duration_since(late_in)
-                .num_minutes() as i32;
+            buckets.late_ot_minutes = i32::try_from(
+                effective_punch_out
+                    .signed_duration_since(late_in)
+                    .num_minutes(),
+            )
+            .unwrap_or(0);
         }
     }
 
@@ -241,7 +253,8 @@ impl AttendanceCalculator {
     fn raw_duration_minutes<T: TimeZone>(from: &DateTime<T>, to: &DateTime<T>) -> i32 {
         i32::max(
             0,
-            to.clone().signed_duration_since(from.clone()).num_minutes() as i32,
+            i32::try_from(to.clone().signed_duration_since(from.clone()).num_minutes())
+                .unwrap_or(0),
         )
     }
 
@@ -272,7 +285,7 @@ impl AttendanceCalculator {
             let overlap_mins = overlap_end
                 .signed_duration_since(overlap_start)
                 .num_minutes();
-            return i32::max(0, overlap_mins as i32);
+            return i32::max(0, i32::try_from(overlap_mins).unwrap_or(0));
         }
 
         // 4. Fallback: flat deduction (Flexible mode — no break frame configured)
@@ -280,6 +293,7 @@ impl AttendanceCalculator {
     }
 
     /// Unit Calculation Logic
+    #[allow(clippy::cast_possible_truncation)]
     pub fn calculate_units(minutes: i32, unit_size: i32, policy: &str) -> i32 {
         let size = if unit_size <= 1 {
             1.0

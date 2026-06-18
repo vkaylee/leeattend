@@ -397,6 +397,7 @@ impl LifecycleService {
         Ok(responses)
     }
 
+    #[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation)]
     pub async fn update_item_status(
         &self,
         workspace_id: Uuid,

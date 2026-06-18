@@ -57,7 +57,7 @@ impl FileService {
         uploaded_by: Option<Uuid>,
         expires_in_secs: Option<i64>,
     ) -> AppResult<WorkspaceFile> {
-        let size = data.len() as i64;
+        let size = i64::try_from(data.len()).unwrap_or(0);
         validate_file(category, size, mime_type)?;
 
         let content_hash = compute_sha256(&data);
@@ -114,7 +114,7 @@ impl FileService {
         data: Bytes,
         uploaded_by: Option<Uuid>,
     ) -> AppResult<SystemFile> {
-        let size = data.len() as i64;
+        let size = i64::try_from(data.len()).unwrap_or(0);
         validate_file(category, size, mime_type)?;
 
         let content_hash = compute_sha256(&data);
@@ -317,7 +317,7 @@ impl FileService {
     ) -> AppResult<WorkspaceFile> {
         let current_file = self.get_file_metadata(auth_token, file_id).await?;
 
-        let size = data.len() as i64;
+        let size = i64::try_from(data.len()).unwrap_or(0);
         validate_file(current_file.category, size, mime_type)?;
 
         let content_hash = compute_sha256(&data);
@@ -387,7 +387,7 @@ impl FileService {
     ) -> AppResult<SystemFile> {
         let current_file = self.get_system_file_metadata(file_id).await?;
 
-        let size = data.len() as i64;
+        let size = i64::try_from(data.len()).unwrap_or(0);
         validate_file(current_file.category, size, mime_type)?;
 
         let content_hash = compute_sha256(&data);

@@ -166,7 +166,7 @@ impl ReportService {
                 if paginated_employees.is_empty() {
                     return Ok(PaginatedResponse {
                         data: Vec::new(),
-                        total: total_employees as usize,
+                        total: usize::try_from(total_employees).unwrap_or(0),
                         page,
                         limit,
                     });
@@ -484,7 +484,7 @@ impl ReportService {
 
         Ok(PaginatedResponse {
             data: reports,
-            total: total_employees as usize,
+            total: usize::try_from(total_employees).unwrap_or(0),
             page,
             limit,
         })

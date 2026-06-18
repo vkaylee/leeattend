@@ -177,7 +177,7 @@ impl TimeEntry {
     fn recalculate_duration(&mut self) {
         if let Some(po) = self.punch_out_time {
             let duration = po.signed_duration_since(self.punch_in_time);
-            self.duration_minutes = Some(duration.num_minutes() as i32);
+            self.duration_minutes = Some(i32::try_from(duration.num_minutes()).unwrap_or(0));
         } else {
             self.duration_minutes = None;
         }

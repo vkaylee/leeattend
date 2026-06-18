@@ -6,7 +6,12 @@ use crate::queue::Job;
 pub struct NightlyHousekeepingHandler;
 
 impl NightlyHousekeepingHandler {
-    #[allow(clippy::too_many_lines)]
+    #[allow(
+        clippy::too_many_lines,
+        clippy::cast_possible_truncation,
+        clippy::cast_possible_wrap,
+        clippy::cast_sign_loss
+    )]
     pub async fn handle(deps: &crate::worker::WorkerDeps, job: &Job) -> Result<(), String> {
         let payload = job
             .housekeeping_payload()

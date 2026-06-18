@@ -154,7 +154,7 @@ impl LeaveAccrualService {
             }
         }
 
-        Ok(qualifying_days.len() as i32)
+        Ok(i32::try_from(qualifying_days.len()).unwrap_or(0))
     }
 
     /// Helper to calculate full months of service across multiple contracts
@@ -207,7 +207,7 @@ impl LeaveAccrualService {
         }
         total_days += (current_end - current_start).num_days() + 1;
 
-        (total_days / 30) as i32 // Approximate month
+        i32::try_from(total_days / 30).unwrap_or(0) // Approximate month
     }
 
     /// Determines if an accrual should run on this date based on frequency.

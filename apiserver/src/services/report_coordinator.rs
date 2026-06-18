@@ -194,7 +194,7 @@ impl ReportCoordinator {
             .map(<[uuid::Uuid]>::to_vec)
             .collect();
 
-        let total_batches = batches.len() as u32;
+        let total_batches = u32::try_from(batches.len()).unwrap_or(0);
 
         // 5. Create micro-jobs
         let jobs: Vec<Job> = batches
@@ -203,7 +203,7 @@ impl ReportCoordinator {
             .map(|(idx, emp_ids)| {
                 Job::with_priority(
                     parent_job_id,
-                    idx as u32,
+                    u32::try_from(idx).unwrap_or(0),
                     TaskType::AttendanceReport,
                     workspace_id,
                     JobPayload::AttendanceReport(ReportPayload {
@@ -283,6 +283,7 @@ impl ReportCoordinator {
     /// # Returns
     /// Current job status with progress and result URL if complete.
     #[tracing::instrument(skip_all, err)]
+    #[allow(clippy::cast_precision_loss)]
     pub async fn get_job_status(&self, job_id: Uuid) -> Result<JobStatusResponse, ReportError> {
         let meta = self
             .queue

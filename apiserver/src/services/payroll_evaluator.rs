@@ -74,7 +74,7 @@ impl PayrollEvaluator {
                 .get("max_late_early_count")
                 .and_then(serde_json::Value::as_i64)
             {
-                if ctx.late_early_count > max as i32 {
+                if ctx.late_early_count > i32::try_from(max).unwrap_or(i32::MAX) {
                     return false;
                 }
             }

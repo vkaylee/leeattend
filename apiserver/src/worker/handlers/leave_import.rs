@@ -19,7 +19,11 @@ use crate::worker::handlers::utils::ImportTimeoutGuard;
 pub struct LeaveImportHandler;
 
 impl LeaveImportHandler {
-    #[allow(clippy::too_many_lines)]
+    #[allow(
+        clippy::too_many_lines,
+        clippy::cast_possible_truncation,
+        clippy::cast_possible_wrap
+    )]
     pub async fn handle(
         job: &Job,
         cache: &std::sync::Arc<dyn crate::repositories::CacheRepository>,

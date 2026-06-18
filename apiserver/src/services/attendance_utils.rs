@@ -216,10 +216,12 @@ pub fn determine_daily_status(input: &DailyStatusInput) -> AttendanceStatus {
 pub fn extract_punch_status(raw_data: Option<&serde_json::Value>) -> (i32, i32) {
     let punch = raw_data
         .and_then(|d| d["punch"].as_i64())
-        .map_or(-1, |v| v as i32);
+        .and_then(|v| i32::try_from(v).ok())
+        .unwrap_or(-1);
     let status = raw_data
         .and_then(|d| d["status"].as_i64())
-        .map_or(-1, |v| v as i32);
+        .and_then(|v| i32::try_from(v).ok())
+        .unwrap_or(-1);
     (punch, status)
 }
 

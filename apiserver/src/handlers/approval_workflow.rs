@@ -76,7 +76,7 @@ pub async fn list_workflows(
 
     Ok(Json(PaginatedResponse {
         data: workflows,
-        total: total as usize,
+        total: usize::try_from(total).unwrap_or(0),
         page,
         limit,
     }))
@@ -108,7 +108,7 @@ pub async fn create_workflow(
         entity_type: req.entity_type.clone(),
         name: req.name.clone(),
         description: req.description.clone(),
-        total_steps: req.steps.len() as i32,
+        total_steps: i32::try_from(req.steps.len()).unwrap_or(0),
         is_active: req.is_active,
         created_by: Some(ctx.user_id),
         created_at: chrono::Utc::now(),
@@ -218,7 +218,7 @@ pub async fn update_workflow(
         entity_type: req.entity_type.clone(),
         name: req.name.clone(),
         description: req.description.clone(),
-        total_steps: req.steps.len() as i32,
+        total_steps: i32::try_from(req.steps.len()).unwrap_or(0),
         is_active: req.is_active,
         created_by: Some(ctx.user_id),
         created_at: chrono::Utc::now(),
@@ -409,12 +409,12 @@ pub async fn get_pending_tasks(
         .await?;
 
     let total = tasks.len();
-    let offset = ((page - 1) * limit) as usize;
+    let offset = usize::try_from((page - 1) * limit).unwrap_or(0);
     let paginated_tasks = if offset >= total {
         Vec::new()
     } else {
         tasks
-            .drain(offset..std::cmp::min(offset + limit as usize, total))
+            .drain(offset..std::cmp::min(offset + usize::try_from(limit).unwrap_or(0), total))
             .collect()
     };
 

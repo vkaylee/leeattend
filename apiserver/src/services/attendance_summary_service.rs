@@ -276,7 +276,8 @@ impl AttendanceSummaryService {
             .map(|e| e.duration_minutes().unwrap_or(0))
             .sum();
 
-        let raw_duration = punch_out.signed_duration_since(punch_in).num_minutes() as i32;
+        let raw_duration =
+            i32::try_from(punch_out.signed_duration_since(punch_in).num_minutes()).unwrap_or(0);
         let actual_work_minutes = i32::max(0, raw_duration - actual_break_minutes);
 
         let system_detected_ot_minutes = self
@@ -468,7 +469,8 @@ impl AttendanceSummaryService {
             .start_time
             .and_then(|st| {
                 daily_schedule.end_time.map(|et: chrono::NaiveTime| {
-                    let diff = et.signed_duration_since(st).num_minutes() as i32;
+                    let diff =
+                        i32::try_from(et.signed_duration_since(st).num_minutes()).unwrap_or(0);
                     let break_mins = daily_schedule.break_duration_minutes.unwrap_or(0);
                     if diff > 0 {
                         diff - break_mins

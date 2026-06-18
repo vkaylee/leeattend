@@ -98,7 +98,7 @@ impl ApprovalWorkflowService {
         steps: Vec<ApprovalWorkflowStep>,
     ) -> AppResult<(ApprovalWorkflow, Vec<ApprovalWorkflowStep>)> {
         workflow.workspace_id = auth_token.workspace_id();
-        workflow.total_steps = steps.len() as i32;
+        workflow.total_steps = i32::try_from(steps.len()).unwrap_or(0);
 
         self.approval_workflow_repo
             .update_workflow_definition_transactional(auth_token, workflow, steps)

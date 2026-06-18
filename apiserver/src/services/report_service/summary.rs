@@ -115,7 +115,7 @@ impl ReportService {
         if paginated_employees.is_empty() {
             return Ok(PaginatedResponse {
                 data: Vec::new(),
-                total: total_employees as usize,
+                total: usize::try_from(total_employees).unwrap_or(0),
                 page,
                 limit,
             });
@@ -415,7 +415,7 @@ impl ReportService {
         }
 
         if is_computed_sort {
-            let offset = ((page - 1) * limit) as usize;
+            let offset = usize::try_from((page - 1) * limit).unwrap_or(0);
             let total = results.len();
             if offset >= total {
                 results = Vec::new();
@@ -423,14 +423,14 @@ impl ReportService {
                 results = results
                     .into_iter()
                     .skip(offset)
-                    .take(limit as usize)
+                    .take(usize::try_from(limit).unwrap_or(0))
                     .collect();
             }
         }
 
         Ok(PaginatedResponse {
             data: results,
-            total: total_employees as usize,
+            total: usize::try_from(total_employees).unwrap_or(0),
             page,
             limit,
         })

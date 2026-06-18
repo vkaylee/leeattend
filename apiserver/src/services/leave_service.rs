@@ -97,13 +97,14 @@ impl LeaveService {
 
         Ok(crate::models::PaginatedResponse {
             data,
-            total: total as usize,
+            total: usize::try_from(total).unwrap_or(0),
             page,
             limit,
         })
     }
 
     #[tracing::instrument(skip_all, err)]
+    #[allow(clippy::cast_precision_loss)]
     pub async fn get_employee_leave_history(
         &self,
         workspace_id: Uuid,

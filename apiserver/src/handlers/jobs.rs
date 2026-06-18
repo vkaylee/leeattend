@@ -23,6 +23,7 @@ use crate::utils::i18n::I18nKey;
     )
 )]
 #[tracing::instrument(skip(state, ctx))]
+#[allow(clippy::cast_precision_loss)]
 pub async fn get_generic_job_status(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,

@@ -23,6 +23,7 @@ pub fn units_to_hours(units: i32, work_unit_minutes: i32) -> f64 {
 
 /// Ceil-round minutes to work units, then convert to hours: ⌈diff / wum⌉ × wum / 60
 #[inline]
+#[allow(clippy::cast_precision_loss)]
 pub fn ceil_units_to_hours(diff_minutes: i64, work_unit_minutes: i64) -> f64 {
     let units = (diff_minutes + work_unit_minutes - 1) / work_unit_minutes;
     (units * work_unit_minutes) as f64 / 60.0
@@ -36,6 +37,7 @@ pub fn format_period_label(tpl: &str, date_range: (NaiveDate, NaiveDate)) -> Str
 
 /// Format optional NaiveTime to HH:MM string.
 /// Format hours: show as integer if whole number (8.0 → "8"), otherwise 1 decimal (0.5 → "0.5").
+#[allow(clippy::cast_possible_truncation)]
 pub fn fmt_h(h: f64) -> String {
     if h.fract() == 0.0 {
         format!("{}", h as i64)

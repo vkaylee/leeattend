@@ -183,7 +183,7 @@ pub async fn list_ot_requests(
 
     Ok(Json(PaginatedResponse {
         data: requests,
-        total: total as usize,
+        total: usize::try_from(total).unwrap_or(0),
         page,
         limit,
     }))
@@ -447,12 +447,12 @@ pub async fn list_request_behalf_assignments(
     .await?;
 
     let total = result.len();
-    let offset = ((page - 1) * limit) as usize;
+    let offset = usize::try_from((page - 1) * limit).unwrap_or(0);
     let paginated_results = if offset >= total {
         Vec::new()
     } else {
         result
-            .drain(offset..std::cmp::min(offset + limit as usize, total))
+            .drain(offset..std::cmp::min(offset + usize::try_from(limit).unwrap_or(0), total))
             .collect()
     };
 

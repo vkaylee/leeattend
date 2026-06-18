@@ -1,16 +1,12 @@
 // Multi-brand Attendance Agent Orchestrator library crate
 #![allow(
     missing_docs,
-    clippy::cast_possible_truncation,
     clippy::must_use_candidate,
     clippy::missing_const_for_fn,
     clippy::missing_errors_doc,
     clippy::use_self,
     clippy::module_name_repetitions,
     clippy::missing_panics_doc,
-    clippy::cast_possible_wrap,
-    clippy::cast_sign_loss,
-    clippy::cast_precision_loss,
     clippy::doc_markdown,
     clippy::wildcard_imports,
     clippy::struct_field_names,

@@ -52,7 +52,7 @@ pub async fn get_recruitment_sources(
         .await?;
     Ok(Json(PaginatedResponse {
         data: sources,
-        total: total as usize,
+        total: usize::try_from(total).unwrap_or(0),
         page,
         limit,
     }))

@@ -324,7 +324,7 @@ impl WorkingPatternRepositoryTrait for DieselWorkingPatternRepository {
             .await
             .map_err(|e| AppError::Internal(format!("db check employments: {e}")))?;
 
-        if valid_count != employment_ids.len() as i64 {
+        if valid_count != i64::try_from(employment_ids.len()).unwrap_or(0) {
             return Err(AppError::not_found(I18nKey::EmploymentNotFound));
         }
 

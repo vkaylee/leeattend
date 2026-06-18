@@ -232,7 +232,7 @@ impl JobWorker {
     }
 
     /// Main worker loop.
-    #[allow(clippy::too_many_lines)]
+    #[allow(clippy::too_many_lines, clippy::cast_possible_truncation)]
     async fn run(self, cancel_token: CancellationToken) {
         info!(
             worker_id = %self.worker_id,
@@ -440,7 +440,7 @@ impl JobWorker {
     }
 
     /// Process a single job by routing to appropriate handler.
-    #[allow(clippy::too_many_lines)]
+    #[allow(clippy::too_many_lines, clippy::cast_possible_truncation)]
     pub async fn process_job(&self, job: Job) -> Result<(), String> {
         let job_id = job.job_id;
         let parent_id = job.parent_job_id;

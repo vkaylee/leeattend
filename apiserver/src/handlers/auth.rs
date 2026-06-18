@@ -566,7 +566,7 @@ pub async fn logout(
                 {
                     let now = Utc::now().timestamp();
                     if claims.exp > now {
-                        ttl = (claims.exp - now) as u64;
+                        ttl = u64::try_from(claims.exp - now).unwrap_or(900);
                     }
                 }
                 let _: Result<(), _> = conn.set_ex(&key, "1", ttl).await;

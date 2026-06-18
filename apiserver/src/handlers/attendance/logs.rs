@@ -352,7 +352,7 @@ pub async fn force_reprocess_all_attendance(
     }
 
     let parent_job_id = crate::utils::id::new_id();
-    let total_batches = employees.len() as u32;
+    let total_batches = u32::try_from(employees.len()).unwrap_or(0);
 
     tracing::info!(
         workspace_id = %ctx.workspace_id,
@@ -390,7 +390,7 @@ pub async fn force_reprocess_all_attendance(
         .map(|(idx, emp)| {
             crate::queue::Job::with_priority(
                 parent_job_id,
-                idx as u32,
+                u32::try_from(idx).unwrap_or(0),
                 crate::queue::TaskType::ReprocessAttendance,
                 ctx.workspace_id,
                 crate::queue::JobPayload::ReprocessAttendance(crate::queue::ReprocessPayload {

@@ -518,7 +518,7 @@ fn to_worker_config(d: &crate::redb_store::StoredDevice) -> WorkerConfig {
         name: d.name.clone(),
         brand: d.brand.clone(),
         ip: d.ip.clone(),
-        port: d.port as u32,
+        port: u32::try_from(d.port).unwrap_or(4370),
         password: d.password.as_ref().and_then(|p| p.parse::<u32>().ok()),
         use_legacy_checksum: d.use_legacy_checksum, // Smart checksum: persisted from last auto-detect
     }
@@ -611,7 +611,10 @@ pub fn spawn_worker(
             info!("[{}] Worker ready (permit acquired).", config.name);
             stable_since = Some(Instant::now());
 
-            if let Err(e) = worker_impl.connect(&config.ip, config.port as u16).await {
+            if let Err(e) = worker_impl
+                .connect(&config.ip, u16::try_from(config.port).unwrap_or(4370))
+                .await
+            {
                 error!("[{}] Device connection failed: {}", config.name, e);
                 drop(connect_device_guard);
                 drop(connect_permit);
@@ -761,7 +764,7 @@ pub fn spawn_worker(
                             let _ = hybrid_db.store().update_device_counts(
                                 &config.id,
                                 -1,
-                                fetched_count as i64,
+                                i64::try_from(fetched_count).unwrap_or(0),
                                 ctx.time_sync.corrected_timestamp(),
                             );
 

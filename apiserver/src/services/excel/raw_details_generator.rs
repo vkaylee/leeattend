@@ -72,18 +72,28 @@ pub fn generate(
 
     // Headers (row 3)
     let headers = msgs.detail_headers;
-    let last_col = headers.len() as u16;
+    let last_col = u16::try_from(headers.len()).unwrap_or(0);
     for (col, header) in headers.iter().enumerate() {
-        worksheet.write_string_with_format(3, col as u16, *header, &header_fmt)?;
+        worksheet.write_string_with_format(
+            3,
+            u16::try_from(col).unwrap_or(0),
+            *header,
+            &header_fmt,
+        )?;
     }
 
     for (col_idx, cf_header) in custom_field_headers.iter().enumerate() {
-        worksheet.write_string_with_format(3, last_col + col_idx as u16, cf_header, &header_fmt)?;
+        worksheet.write_string_with_format(
+            3,
+            last_col + u16::try_from(col_idx).unwrap_or(0),
+            cf_header,
+            &header_fmt,
+        )?;
     }
 
     // Data rows (row 4+)
     for (idx, report) in reports.iter().enumerate() {
-        let row = (idx + 4) as u32;
+        let row = u32::try_from(idx + 4).unwrap_or(0);
         worksheet.write_string(row, 0, report.date.to_string())?;
         worksheet.write_string(row, 1, &report.employee_id_number)?;
         worksheet.write_string(row, 2, &report.employee_name)?;
@@ -144,7 +154,7 @@ pub fn generate(
         // Write custom field values
         if let Some(cf_vals) = custom_field_values_map.get(&report.employee_id) {
             for (col_idx, val) in cf_vals.iter().enumerate() {
-                worksheet.write_string(row, last_col + col_idx as u16, val)?;
+                worksheet.write_string(row, last_col + u16::try_from(col_idx).unwrap_or(0), val)?;
             }
         }
     }

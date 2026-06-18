@@ -37,7 +37,7 @@ pub async fn get_notifications(
         .get_notifications(user_id, limit + 1, params.cursor)
         .await?;
 
-    let next_cursor = if notifications.len() > limit as usize {
+    let next_cursor = if notifications.len() > usize::try_from(limit).unwrap_or(0) {
         let last = notifications.pop();
         last.map(|n| n.created_at)
     } else {

@@ -352,6 +352,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
         };
 
         for (code, days) in rows {
+            #[allow(clippy::cast_precision_loss)]
             let days_f = days as f64;
             breakdown.total_days += days_f;
             if code == "unpaid" || code == "personal" {
@@ -361,7 +362,9 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             }
         }
 
-        breakdown.total_days -= paid_holiday_count as f64;
+        #[allow(clippy::cast_precision_loss)]
+        let paid_holiday_count_f = paid_holiday_count as f64;
+        breakdown.total_days -= paid_holiday_count_f;
         if breakdown.total_days < 0.0 {
             breakdown.total_days = 0.0;
         }
@@ -927,6 +930,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
 
         for (emp_id, code, days) in rows {
             if let Some(breakdown) = result.get_mut(&emp_id) {
+                #[allow(clippy::cast_precision_loss)]
                 let days_f = days as f64;
                 breakdown.total_days += days_f;
                 if code == "unpaid" || code == "personal" {
@@ -977,7 +981,7 @@ impl LeaveRequestRepository for DieselLeaveRequestRepository {
             .await
             .map_err(|e| AppError::Internal(format!("db unpaid holidays: {e}")))?;
 
-        let total_unpaid_holidays = unpaid_holidays.len() as i64;
+        let total_unpaid_holidays = i64::try_from(unpaid_holidays.len()).unwrap_or(0);
 
         if total_unpaid_holidays == 0 {
             let mut result = std::collections::HashMap::new();

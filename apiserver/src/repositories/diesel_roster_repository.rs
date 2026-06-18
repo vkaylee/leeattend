@@ -690,7 +690,8 @@ impl RosterRepository for DieselRosterRepository {
         };
 
         // Priority 2: Working Pattern
-        let dow = chrono::Datelike::weekday(&date).num_days_from_sunday() as i32;
+        let dow =
+            i32::try_from(chrono::Datelike::weekday(&date).num_days_from_sunday()).unwrap_or(0);
         let pattern_info: Option<(Option<Uuid>, Uuid)> =
             crate::schema::working_pattern_details::table
                 .inner_join(

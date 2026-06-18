@@ -367,7 +367,7 @@ impl AttendanceMatcher {
                         if let Some(punch_out_raw) = entry.punch_out_time() {
                             let punch_out = punch_out_raw.with_timezone(&args.ctx.tz);
                             segment_std_units += AttendanceCalculator::calculate_units(
-                                (punch_out - punch_in).num_minutes() as i32,
+                                i32::try_from((punch_out - punch_in).num_minutes()).unwrap_or(0),
                                 args.attendance_rules.work_unit_minutes,
                                 &args.attendance_rules.rounding_policy,
                             );

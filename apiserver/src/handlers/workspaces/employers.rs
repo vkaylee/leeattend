@@ -50,7 +50,7 @@ pub async fn list_employers(
         .await?;
     Ok(Json(PaginatedResponse {
         data: employers,
-        total: total as usize,
+        total: usize::try_from(total).unwrap_or(0),
         page,
         limit,
     }))

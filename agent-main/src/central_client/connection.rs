@@ -173,7 +173,7 @@ impl CentralClient {
                 if last_stale_check.elapsed() >= Duration::from_mins(1) {
                     if let Ok(reset_count) = sync_hybrid
                         .store()
-                        .reset_stale_syncing(inflight_timeout_secs as i64)
+                        .reset_stale_syncing(i64::try_from(inflight_timeout_secs).unwrap_or(30))
                     {
                         if reset_count > 0 {
                             warn!(

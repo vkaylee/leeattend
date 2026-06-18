@@ -27,6 +27,7 @@ impl EmployeeService {
     }
 
     #[tracing::instrument(skip_all, err)]
+    #[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation)]
     pub async fn terminate_employment(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

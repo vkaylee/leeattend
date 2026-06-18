@@ -108,8 +108,8 @@ impl Worker for ZkWorker {
 
                 // Read capacities
                 let _ = zk.read_sizes();
-                let users_cap = Some(zk.users_cap() as usize);
-                let logs_cap = Some(zk.records_cap() as usize);
+                let users_cap = Some(usize::try_from(zk.users_cap()).unwrap_or(0));
+                let logs_cap = Some(usize::try_from(zk.records_cap()).unwrap_or(0));
 
                 Some((
                     mac,

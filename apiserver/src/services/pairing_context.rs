@@ -14,6 +14,7 @@ impl PairingContext {
         Self { date, tz }
     }
 
+    #[allow(clippy::cast_possible_wrap)]
     pub fn build_shift_config(&self, shift: Option<&Shift>) -> Option<PairingShiftConfig> {
         let s = shift?;
         let start_m = s.start_time.hour() * 60 + s.start_time.minute();
@@ -99,7 +100,7 @@ impl PairingContext {
 
             filtered_log_events.push(LogEvent {
                 id: log.id(),
-                minutes: duration_since_start.num_minutes() as i32,
+                minutes: i32::try_from(duration_since_start.num_minutes()).unwrap_or(0),
                 raw_data: log.raw_data().cloned(),
             });
 
@@ -135,7 +136,8 @@ impl PairingContext {
                 None
             };
 
-            let duration = end_dt_utc.map(|end| (end - start_dt_utc).num_minutes() as i32);
+            let duration = end_dt_utc
+                .map(|end| i32::try_from((end - start_dt_utc).num_minutes()).unwrap_or(0));
 
             let mut final_metadata = session
                 .metadata

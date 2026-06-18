@@ -63,12 +63,17 @@ pub fn generate(
     // Section 2: Abbreviations (row 6)
     let headers = msgs.guide_headers;
     for (col, header) in headers.iter().enumerate() {
-        worksheet.write_string_with_format(6, col as u16, *header, &header_fmt)?;
+        worksheet.write_string_with_format(
+            6,
+            u16::try_from(col).unwrap_or(0),
+            *header,
+            &header_fmt,
+        )?;
     }
 
     // Write abbreviations table (rows 7 to 11)
     for (idx, row_data) in msgs.guide_abbreviations.iter().enumerate() {
-        let row = (idx + 7) as u32;
+        let row = u32::try_from(idx + 7).unwrap_or(0);
         let symbol = row_data[0];
         let meaning = row_data[1];
         let desc = row_data[2];

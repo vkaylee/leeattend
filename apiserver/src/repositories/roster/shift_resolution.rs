@@ -47,7 +47,7 @@ pub fn resolve_effective_shift_from_data<S: ::std::hash::BuildHasher>(
         return (vec![*shift_opt], "roster".to_string(), traces);
     }
 
-    let dow = chrono::Datelike::weekday(&date).num_days_from_sunday() as i32;
+    let dow = i32::try_from(chrono::Datelike::weekday(&date).num_days_from_sunday()).unwrap_or(0);
 
     // P2: Individual Working Pattern — collect ALL matching shifts for the day
     let patterns: Vec<_> = roster_data

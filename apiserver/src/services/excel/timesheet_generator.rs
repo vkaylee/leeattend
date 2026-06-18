@@ -97,7 +97,7 @@ pub fn generate(
     for (i, date) in dates.iter().enumerate() {
         worksheet.write_string_with_format(
             3,
-            (i + 3) as u16,
+            u16::try_from(i + 3).unwrap_or(0),
             date.day().to_string(),
             &header_fmt,
         )?;
@@ -105,7 +105,7 @@ pub fn generate(
 
     // Data rows (row 4+)
     for (row_idx, ((name, employer_name, emp_id_number), day_map)) in emp_days.iter().enumerate() {
-        let row = (row_idx + 4) as u32;
+        let row = u32::try_from(row_idx + 4).unwrap_or(0);
         worksheet.write_string(row, 0, emp_id_number.as_str())?;
         worksheet.write_string(row, 1, name.as_str())?;
         worksheet.write_string(row, 2, employer_name.as_deref().unwrap_or(""))?;
@@ -199,7 +199,12 @@ pub fn generate(
                     (t, f)
                 };
 
-                worksheet.write_string_with_format(row, (day_idx + 3) as u16, &text, fmt)?;
+                worksheet.write_string_with_format(
+                    row,
+                    u16::try_from(day_idx + 3).unwrap_or(0),
+                    &text,
+                    fmt,
+                )?;
             }
         }
     }

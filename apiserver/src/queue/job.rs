@@ -503,6 +503,7 @@ impl JobMetadata {
     }
 
     /// Calculate progress percentage.
+    #[allow(clippy::cast_precision_loss)]
     pub fn progress_percent(&self) -> f32 {
         if self.total_batches == 0 {
             return 100.0;

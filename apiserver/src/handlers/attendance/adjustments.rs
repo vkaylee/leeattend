@@ -249,7 +249,7 @@ pub async fn get_workspace_attendance_adjustments(
 
     Ok(Json(PaginatedAttendanceAdjustments {
         data: requests,
-        total: total as usize,
+        total: usize::try_from(total).unwrap_or(0),
         page,
         limit,
     }))

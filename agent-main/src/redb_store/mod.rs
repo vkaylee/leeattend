@@ -187,9 +187,12 @@ impl RedbStore {
         let table = txn
             .open_table(ATTENDANCE_LOGS)
             .map_err(|e| StoreError::DbError(format!("{e}")))?;
-        Ok(table
+        let len = table
             .len()
-            .map_err(|e| StoreError::DbError(format!("{e}")))? as usize)
+            .map_err(|e| StoreError::DbError(format!("{e}")))?;
+        let len_usize = usize::try_from(len)
+            .map_err(|e| StoreError::DbError(format!("Table size overflow: {e}")))?;
+        Ok(len_usize)
     }
 
     /// Count signatures.
@@ -202,9 +205,12 @@ impl RedbStore {
         let table = txn
             .open_table(SIGNATURES)
             .map_err(|e| StoreError::DbError(format!("{e}")))?;
-        Ok(table
+        let len = table
             .len()
-            .map_err(|e| StoreError::DbError(format!("{e}")))? as usize)
+            .map_err(|e| StoreError::DbError(format!("{e}")))?;
+        let len_usize = usize::try_from(len)
+            .map_err(|e| StoreError::DbError(format!("Table size overflow: {e}")))?;
+        Ok(len_usize)
     }
 
     /// Check if a specific signature exists.

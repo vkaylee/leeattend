@@ -36,6 +36,11 @@ pub fn get_sidecar_retry_delay(retry_count: u32) -> Duration {
     // Apply ±25% jitter to prevent thundering herd
     let mut rng = rand::thread_rng();
     let jitter_factor = rng.gen_range(0.75..=1.25);
+    #[allow(
+        clippy::cast_precision_loss,
+        clippy::cast_possible_truncation,
+        clippy::cast_sign_loss
+    )]
     let jittered = (base_delay as f64 * jitter_factor) as u64;
 
     Duration::from_secs(jittered.clamp(2, SIDECAR_MAX_RETRY_DELAY_SECS))

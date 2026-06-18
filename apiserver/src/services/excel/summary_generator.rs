@@ -39,22 +39,27 @@ pub fn generate(
     )?;
 
     let headers = msgs.summary_headers;
-    let last_col = headers.len() as u16;
+    let last_col = u16::try_from(headers.len()).unwrap_or(0);
     for (col, header) in headers.iter().enumerate() {
-        worksheet.write_string_with_format(3, col as u16, *header, &header_format)?;
+        worksheet.write_string_with_format(
+            3,
+            u16::try_from(col).unwrap_or(0),
+            *header,
+            &header_format,
+        )?;
     }
 
     for (col_idx, cf_header) in custom_field_headers.iter().enumerate() {
         worksheet.write_string_with_format(
             3,
-            last_col + col_idx as u16,
+            last_col + u16::try_from(col_idx).unwrap_or(0),
             cf_header,
             &header_format,
         )?;
     }
 
     for (idx, summary) in summaries.iter().enumerate() {
-        let row = (idx + 4) as u32;
+        let row = u32::try_from(idx + 4).unwrap_or(0);
         worksheet.write_string(row, 0, &summary.employee_name)?;
         worksheet.write_string(row, 1, summary.employer_name.as_deref().unwrap_or(""))?;
         worksheet.write_number_with_format(row, 2, summary.computed_std_hours, &number_format)?;
@@ -62,13 +67,13 @@ pub fn generate(
         worksheet.write_number_with_format(
             row,
             4,
-            summary.total_leave_days as f64,
+            f64::from(i32::try_from(summary.total_leave_days).unwrap_or(0)),
             &number_format,
         )?;
 
         if let Some(cf_vals) = custom_field_values_map.get(&summary.employee_id) {
             for (col_idx, val) in cf_vals.iter().enumerate() {
-                worksheet.write_string(row, last_col + col_idx as u16, val)?;
+                worksheet.write_string(row, last_col + u16::try_from(col_idx).unwrap_or(0), val)?;
             }
         }
     }
@@ -80,7 +85,7 @@ pub fn generate(
     worksheet.set_column_width(4, 18)?;
 
     for col_idx in 0..custom_field_headers.len() {
-        worksheet.set_column_width(last_col + col_idx as u16, 18)?;
+        worksheet.set_column_width(last_col + u16::try_from(col_idx).unwrap_or(0), 18)?;
     }
 
     Ok(())

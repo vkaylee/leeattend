@@ -150,6 +150,7 @@ impl JobQueue {
 
         // Convert timeout to integer seconds for Redis BLPOP
         // BLPOP expects timeout as integer in Redis protocol
+        #[allow(clippy::cast_possible_truncation)]
         let timeout_int = timeout_secs.round() as i64;
 
         // Use dedicated blocking connection to avoid head-of-line blocking.
@@ -186,6 +187,7 @@ impl JobQueue {
     ///
     /// # Arguments
     /// * `meta` - Job metadata to store
+    #[allow(clippy::cast_precision_loss)]
     pub async fn create_job_metadata(&self, meta: &JobMetadata) -> Result<(), redis::RedisError> {
         let mut conn = self.pool.conn();
         let key = format!("{}{}", META_PREFIX, meta.job_id);

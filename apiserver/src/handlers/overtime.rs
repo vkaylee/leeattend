@@ -72,7 +72,7 @@ pub async fn list_policies(
         .await?;
     Ok(Json(crate::models::PaginatedResponse {
         data: policies,
-        total: total as usize,
+        total: usize::try_from(total).unwrap_or(0),
         page,
         limit,
     }))

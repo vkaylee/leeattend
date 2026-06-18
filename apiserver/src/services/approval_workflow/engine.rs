@@ -151,7 +151,7 @@ impl ApprovalWorkflowService {
                         .approver_config
                         .get("sla_hours")
                         .and_then(serde_json::Value::as_i64)
-                        .map(|v| v as i32);
+                        .and_then(|v| i32::try_from(v).ok());
 
                     let escalation_action = step.approver_config.get("escalation_action").cloned();
 

@@ -73,6 +73,11 @@ impl RetryManager {
         // Apply ±25% jitter to prevent thundering herd
         let mut rng = rand::thread_rng();
         let jitter_factor = rng.gen_range(0.75..=1.25);
+        #[allow(
+            clippy::cast_precision_loss,
+            clippy::cast_possible_truncation,
+            clippy::cast_sign_loss
+        )]
         let jittered = (base_delay as f64 * jitter_factor) as u64;
 
         // Ensure minimum 1s and maximum 60s after jitter

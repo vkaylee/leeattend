@@ -222,9 +222,12 @@ impl RedbStore {
         let table = txn
             .open_table(FAILED_LOGS)
             .map_err(|e| StoreError::DbError(format!("{e}")))?;
-        Ok(table
+        let len = table
             .len()
-            .map_err(|e| StoreError::DbError(format!("{e}")))? as usize)
+            .map_err(|e| StoreError::DbError(format!("{e}")))?;
+        let len_usize = usize::try_from(len)
+            .map_err(|e| StoreError::DbError(format!("Table length overflow: {e}")))?;
+        Ok(len_usize)
     }
 
     /// Retry a failed log by moving it back to active queue.

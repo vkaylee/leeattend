@@ -383,10 +383,11 @@ impl RedbStore {
             let sig_table = txn
                 .open_table(SIGNATURES)
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
-            let before = sig_table
+            let len = sig_table
                 .len()
-                .map_err(|e| StoreError::DbError(format!("{e}")))?
-                as usize;
+                .map_err(|e| StoreError::DbError(format!("{e}")))?;
+            let before = usize::try_from(len)
+                .map_err(|e| StoreError::DbError(format!("Signatures table size overflow: {e}")))?;
             let mut expired = Vec::new();
             for entry in sig_table
                 .iter()

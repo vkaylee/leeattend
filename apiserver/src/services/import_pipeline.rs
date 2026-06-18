@@ -154,7 +154,8 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
         }
 
         if !self.is_chunk {
-            let total_rows = pending_rows.len() as i32 + failed_rows_data.len() as i32;
+            let total_rows = i32::try_from(pending_rows.len()).unwrap_or(0)
+                + i32::try_from(failed_rows_data.len()).unwrap_or(0);
             let _ = self
                 .import_repo
                 .update_job_total_rows(
@@ -238,20 +239,29 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
             all_headers.push("error_reason");
 
             for (col, header) in all_headers.iter().enumerate() {
-                let _ = worksheet.write_string_with_format(0, col as u16, *header, &header_format);
+                let _ = worksheet.write_string_with_format(
+                    0,
+                    u16::try_from(col).unwrap_or(0),
+                    *header,
+                    &header_format,
+                );
             }
 
             for (row_idx, (data, err)) in failed_rows_data.iter().enumerate() {
-                let row = (row_idx + 1) as u32;
+                let row = u32::try_from(row_idx + 1).unwrap_or(0);
                 for (col, header) in self.strategy.expected_headers().iter().enumerate() {
                     let _ = worksheet.write_string(
                         row,
-                        col as u16,
+                        u16::try_from(col).unwrap_or(0),
                         data.get(*header).unwrap_or(&String::new()),
                     );
                 }
                 // Write error reason in the last column
-                let _ = worksheet.write_string(row, all_headers.len() as u16 - 1, err);
+                let _ = worksheet.write_string(
+                    row,
+                    u16::try_from(all_headers.len().saturating_sub(1)).unwrap_or(0),
+                    err,
+                );
             }
 
             if workbook.save(&error_file_path).is_ok() {
@@ -263,8 +273,9 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
             == crate::models::enums::ImportTargetType::LeaveImport
         {
             if !failed_rows_data.is_empty() || skipped_rows > 0 || !errors.is_empty() {
-                let error_count =
-                    (errors.len() + failed_rows_data.len() + skipped_rows as usize) as i32;
+                let error_count = i32::try_from(errors.len()).unwrap_or(0)
+                    + i32::try_from(failed_rows_data.len()).unwrap_or(0)
+                    + skipped_rows;
                 let json_log = serde_json::json!({
                     "success_count": processed_rows,
                     "error_count": error_count,
@@ -320,7 +331,9 @@ impl<S: ImportStrategy> ImportPipeline<'_, S> {
             let remainder = (processed_rows + skipped_rows) % 10;
             if remainder > 0 {
                 if let Some(ref q) = self.queue_repo {
-                    let _ = q.increment_progress(self.job.id, remainder as u32).await;
+                    let _ = q
+                        .increment_progress(self.job.id, u32::try_from(remainder).unwrap_or(0))
+                        .await;
                 }
             }
 

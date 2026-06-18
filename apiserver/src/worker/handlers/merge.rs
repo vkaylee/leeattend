@@ -77,7 +77,7 @@ impl MergeHandler {
         }
     }
 
-    #[allow(clippy::too_many_lines)]
+    #[allow(clippy::too_many_lines, clippy::cast_possible_truncation)]
     async fn handle_inner(
         queue: &Arc<dyn QueueRepository>,
         publisher: &Arc<dyn PublisherRepository>,

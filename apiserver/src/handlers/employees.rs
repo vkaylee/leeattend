@@ -63,7 +63,7 @@ pub async fn get_working_conditions(
         .await?;
     Ok(Json(PaginatedResponse {
         data: conditions,
-        total: total as usize,
+        total: usize::try_from(total).unwrap_or(0),
         page,
         limit,
     }))
@@ -240,7 +240,7 @@ pub async fn get_employees(
 
     Ok(Json(PaginatedResponse {
         data,
-        total: total as usize,
+        total: usize::try_from(total).unwrap_or(0),
         page,
         limit,
     }))

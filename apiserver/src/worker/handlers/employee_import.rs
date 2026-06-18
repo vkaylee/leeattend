@@ -20,7 +20,11 @@ pub struct EmployeeImportHandler;
 impl EmployeeImportHandler {
     /// Handle the master employee import job.
     /// Splits the file into chunks and enqueues them.
-    #[allow(clippy::too_many_lines)]
+    #[allow(
+        clippy::too_many_lines,
+        clippy::cast_possible_truncation,
+        clippy::cast_possible_wrap
+    )]
     pub async fn handle(
         job: &Job,
         cache: &std::sync::Arc<dyn crate::repositories::CacheRepository>,

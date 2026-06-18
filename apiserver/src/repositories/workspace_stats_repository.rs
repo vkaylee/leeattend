@@ -344,10 +344,16 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
 
         let trend = rows
             .into_iter()
-            .map(|r| OvertimeTrendPoint {
-                date: r.date,
-                system_ot_hours: r.system_ot_minutes as f64 / 60.0,
-                approved_ot_hours: r.approved_ot_minutes as f64 / 60.0,
+            .map(|r| {
+                #[allow(clippy::cast_precision_loss)]
+                let system_ot_hours = r.system_ot_minutes as f64 / 60.0;
+                #[allow(clippy::cast_precision_loss)]
+                let approved_ot_hours = r.approved_ot_minutes as f64 / 60.0;
+                OvertimeTrendPoint {
+                    date: r.date,
+                    system_ot_hours,
+                    approved_ot_hours,
+                }
             })
             .collect();
 
@@ -646,8 +652,10 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
                 if let Some(shift_start) = s.start_time {
                     if let Some(&first_punch) = punch_map.get(&(schedule.employment_id, s.date)) {
                         if first_punch > shift_start {
+                            #[allow(clippy::cast_precision_loss)]
                             let late_mins = (first_punch - shift_start).num_seconds() as f64 / 60.0;
-                            let dow = s.date.weekday().number_from_monday() as i32;
+                            let dow =
+                                i32::try_from(s.date.weekday().number_from_monday()).unwrap_or(0);
                             let entry = dow_stats.entry(dow).or_insert((0, 0.0));
                             entry.0 += 1;
                             entry.1 += late_mins;
@@ -662,8 +670,9 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         for dow in 1..=7 {
             if let Some(&(late_count, total_late_minutes)) = dow_stats.get(&dow) {
                 if late_count > 0 {
+                    #[allow(clippy::cast_precision_loss)]
                     let avg_late_minutes = total_late_minutes / (late_count as f64);
-                    let day_idx = (dow - 1).clamp(0, 6) as usize;
+                    let day_idx = usize::try_from((dow - 1).clamp(0, 6)).unwrap_or(0);
                     result.push(LatenessByDay {
                         day: day_names[day_idx].to_string(),
                         late_count,

@@ -375,7 +375,12 @@ impl LeaveImportService {
         let example_fmt = crate::utils::excel_format_utils::ExcelFormatUtils::example_row_format();
 
         for (col, header) in headers.iter().enumerate() {
-            sheet.write_string_with_format(0, col as u16, *header, &header_fmt)?;
+            sheet.write_string_with_format(
+                0,
+                u16::try_from(col).unwrap_or(0),
+                *header,
+                &header_fmt,
+            )?;
         }
 
         // Example rows
@@ -400,9 +405,14 @@ impl LeaveImportService {
         ];
 
         for (row_idx, example) in examples.iter().enumerate() {
-            let row = (row_idx + 1) as u32;
+            let row = u32::try_from(row_idx + 1).unwrap_or(0);
             for (col, val) in example.iter().enumerate() {
-                sheet.write_string_with_format(row, col as u16, *val, &example_fmt)?;
+                sheet.write_string_with_format(
+                    row,
+                    u16::try_from(col).unwrap_or(0),
+                    *val,
+                    &example_fmt,
+                )?;
             }
         }
 
@@ -418,7 +428,7 @@ impl LeaveImportService {
         ref_sheet.write_string_with_format(0, 1, ref_header_name, &ref_header_fmt)?;
 
         for (idx, (code, name)) in leave_types.iter().enumerate() {
-            let row = (idx + 1) as u32;
+            let row = u32::try_from(idx + 1).unwrap_or(0);
             ref_sheet.write_string(row, 0, code)?;
             ref_sheet.write_string(row, 1, name)?;
         }
@@ -433,7 +443,7 @@ impl LeaveImportService {
             ("second_half", desc_afternoon),
         ];
         for (idx, (code, desc)) in duration_types.iter().enumerate() {
-            let row = (idx + 1) as u32;
+            let row = u32::try_from(idx + 1).unwrap_or(0);
             ref_sheet.write_string(row, 3, *code)?;
             ref_sheet.write_string(row, 4, *desc)?;
         }
