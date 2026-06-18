@@ -44,7 +44,9 @@ pub trait WorkspaceRepository: Send + Sync {
     async fn get_workspace_members(
         &self,
         workspace_id: Uuid,
-    ) -> Result<Vec<crate::models::WorkspaceMemberDetail>, AppError>;
+        page: i64,
+        limit: i64,
+    ) -> Result<(Vec<crate::models::WorkspaceMemberDetail>, i64), AppError>;
 
     async fn get_admins_with_permissions(
         &self,

@@ -3,7 +3,7 @@
 use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::models::Holiday;
+use apiserver::models::{Holiday, PaginatedResponse};
 use apiserver::AppState;
 use axum::http::StatusCode;
 use std::sync::Arc;
@@ -67,7 +67,8 @@ async fn test_holiday_crud_lifecycle_smoke() {
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
-    let holidays: Vec<Holiday> = read_body(response).await;
+    let paginated: PaginatedResponse<Holiday> = read_body(response).await;
+    let holidays = paginated.data;
     assert!(holidays.is_empty());
 
     // 2. Create a holiday
@@ -150,7 +151,8 @@ async fn test_holiday_crud_lifecycle_smoke() {
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
-    let holidays: Vec<Holiday> = read_body(response).await;
+    let paginated: PaginatedResponse<Holiday> = read_body(response).await;
+    let holidays = paginated.data;
     assert_eq!(holidays.len(), 1);
 
     // 6. Delete holiday
@@ -180,7 +182,8 @@ async fn test_holiday_crud_lifecycle_smoke() {
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
-    let holidays: Vec<Holiday> = read_body(response).await;
+    let paginated: PaginatedResponse<Holiday> = read_body(response).await;
+    let holidays = paginated.data;
     assert!(holidays.is_empty());
 }
 
@@ -269,7 +272,8 @@ async fn test_holiday_year_filter() {
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
-    let holidays: Vec<Holiday> = read_body(response).await;
+    let paginated: PaginatedResponse<Holiday> = read_body(response).await;
+    let holidays = paginated.data;
     assert_eq!(holidays.len(), 2);
 
     // Filter by 2027 — should return 1
@@ -285,7 +289,8 @@ async fn test_holiday_year_filter() {
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
-    let holidays: Vec<Holiday> = read_body(response).await;
+    let paginated: PaginatedResponse<Holiday> = read_body(response).await;
+    let holidays = paginated.data;
     assert_eq!(holidays.len(), 1);
 
     // No filter — should return all 3
@@ -301,7 +306,8 @@ async fn test_holiday_year_filter() {
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
-    let holidays: Vec<Holiday> = read_body(response).await;
+    let paginated: PaginatedResponse<Holiday> = read_body(response).await;
+    let holidays = paginated.data;
     assert_eq!(holidays.len(), 3);
 }
 

@@ -272,7 +272,7 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::diesel_pool::DieselPools;
+    use crate::diesel_pool::{DieselPools, TenantAuthToken};
     use crate::models::{
         AssigneeType, PayrollCalculationMethod, PayrollRuleCategory, RuleAppliesTo,
     };
@@ -358,5 +358,114 @@ mod tests {
             .delete_assignment(ws_id, Uuid::new_v4(), Uuid::new_v4())
             .await;
         let _ = err;
+    }
+
+    #[tokio::test]
+    async fn test_repo_methods_flow() {
+        let test_db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://test_user:test_password@db_system:5432/leeattend_test_template".to_string()
+        });
+        let pools = DieselPools::for_test(&test_db_url);
+        let repo = DieselPayrollRuleRepository::new(pools.clone());
+        let ws_id = Uuid::new_v4();
+        let token = TenantAuthToken::system_override(ws_id);
+
+        let mut conn = if let Ok(c) = pools.tenant_transaction_conn(&token).await {
+            c
+        } else {
+            println!("Database not available, skipping integration assertions");
+            return;
+        };
+
+        // Insert Workspace to satisfy FK constraints
+        let workspace_entity = crate::models::diesel::core::WorkspaceEntity {
+            id: ws_id,
+            name: "Test Workspace".to_string(),
+            created_at: Some(chrono::Utc::now()),
+            date_format: "YYYY-MM-DD".to_string(),
+            time_format: "HH:mm".to_string(),
+            timezone: "UTC".to_string(),
+            theme_primary_color: None,
+            default_language: "en".to_string(),
+            logo_url: None,
+            tagline: None,
+            custom_db_url_encrypted: None,
+        };
+        diesel::insert_into(crate::schema::workspaces::table)
+            .values(&workspace_entity)
+            .execute(&mut *conn)
+            .await
+            .expect("insert workspace");
+
+        // 1. Create payroll rule definition
+        let create_args = CreatePayrollRuleDefinitionArgs {
+            workspace_id: ws_id,
+            name: "Allowance Rule".into(),
+            description: Some("Allowance Description".into()),
+            code: "ALW_01".into(),
+            category: PayrollRuleCategory::Allowance,
+            applies_to: RuleAppliesTo::Employee,
+            calculation_method: PayrollCalculationMethod::Fixed,
+            rule_config: json!({}),
+            is_mandatory: true,
+            display_order: 1,
+        };
+        let def = repo.create_definition(create_args).await.unwrap();
+        assert_eq!(def.name, "Allowance Rule");
+        assert_eq!(def.code, "ALW_01");
+
+        // 2. Get definitions
+        let list = repo.get_definitions(ws_id).await.unwrap();
+        assert!(list.iter().any(|d| d.id == def.id));
+
+        // 3. Create tier
+        let tier = repo
+            .create_tier(
+                ws_id,
+                def.id,
+                1,
+                rust_decimal::Decimal::new(100, 0),
+                Some(rust_decimal::Decimal::new(500, 0)),
+                rust_decimal::Decimal::new(10, 2),
+                rust_decimal::Decimal::new(50, 0),
+            )
+            .await
+            .unwrap();
+        assert_eq!(tier.tier_order, 1);
+
+        // 4. Get tiers
+        let tiers = repo.get_tiers_for_rule(ws_id, def.id).await.unwrap();
+        assert_eq!(tiers.len(), 1);
+        assert_eq!(tiers[0].id, tier.id);
+
+        // 5. Assign rule
+        let assign_args = AssignPayrollRuleArgs {
+            workspace_id: ws_id,
+            rule_definition_id: def.id,
+            assignee_type: AssigneeType::Workspace,
+            assignee_id: None,
+            effective_from: chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            effective_to: None,
+            override_config: None,
+        };
+        let assignment = repo.assign_rule(assign_args).await.unwrap();
+        assert_eq!(assignment.rule_definition_id, def.id);
+
+        // 6. Get assignments
+        let assignments = repo.get_assignments_for_rule(ws_id, def.id).await.unwrap();
+        assert_eq!(assignments.len(), 1);
+        assert_eq!(assignments[0].id, assignment.id);
+
+        // 7. Delete assignment
+        repo.delete_assignment(ws_id, def.id, assignment.id)
+            .await
+            .unwrap();
+        let assignments_after = repo.get_assignments_for_rule(ws_id, def.id).await.unwrap();
+        assert!(assignments_after.is_empty());
+
+        // 8. Delete tier
+        repo.delete_tier(ws_id, def.id, tier.id).await.unwrap();
+        let tiers_after = repo.get_tiers_for_rule(ws_id, def.id).await.unwrap();
+        assert!(tiers_after.is_empty());
     }
 }

@@ -256,6 +256,8 @@ impl TenantPoolManager {
                     pools_to_remove.push(ws_id);
                 }
             }
+            drop(pools);
+            drop(accessed);
         }
 
         if !pools_to_remove.is_empty() {
@@ -268,6 +270,8 @@ impl TenantPoolManager {
                 }
                 accessed.remove(&ws_id);
             }
+            drop(accessed);
+            drop(pools);
         }
 
         Ok(())

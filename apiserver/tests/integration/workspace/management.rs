@@ -95,7 +95,8 @@ async fn test_workspace_creation_and_membership_smoke() {
         .unwrap();
 
     assert_eq!(response.status(), reqwest::StatusCode::OK);
-    let members: Vec<serde_json::Value> = response.json().await.unwrap();
+    let paginated: serde_json::Value = response.json().await.unwrap();
+    let members = paginated["data"].as_array().unwrap();
     assert!(members.iter().any(|m| m["user_id"] == user_id.to_string()
         && m["role_id"] == "a0000000-0000-0000-0000-000000000001"
         && m["extra_role_ids"]
@@ -128,7 +129,8 @@ async fn test_workspace_creation_and_membership_smoke() {
         .unwrap();
 
     assert_eq!(response.status(), reqwest::StatusCode::OK);
-    let members: Vec<serde_json::Value> = response.json().await.unwrap();
+    let paginated: serde_json::Value = response.json().await.unwrap();
+    let members = paginated["data"].as_array().unwrap();
     assert!(members.iter().any(|m| m["user_id"] == user_id.to_string()
         && m["role_id"] == "a0000000-0000-0000-0000-000000000001"
         && m["extra_role_ids"]

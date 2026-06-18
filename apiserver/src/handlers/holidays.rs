@@ -19,13 +19,23 @@ use crate::AppState;
 pub struct ListHolidaysQuery {
     pub year: Option<i32>,
     pub location_id: Option<Uuid>,
+    pub page: Option<i64>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct PaginatedHolidays {
+    pub data: Vec<Holiday>,
+    pub total: usize,
+    pub page: i64,
+    pub limit: i64,
 }
 
 #[utoipa::path(
     get,
     path = "/workspaces/{workspace_id}/holidays",
     responses(
-        (status = 200, description = "List of holidays", body = [Holiday])
+        (status = 200, description = "List of holidays", body = PaginatedHolidays)
     ),
     params(
         ("workspace_id" = Uuid, Path, description = "Workspace ID"),
@@ -36,14 +46,22 @@ pub async fn list_holidays(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Query(query): Query<ListHolidaysQuery>,
-) -> AppResult<Json<Vec<Holiday>>> {
-    let holidays = state
+) -> AppResult<Json<crate::models::PaginatedResponse<Holiday>>> {
+    let page = query.page.unwrap_or(1).max(1);
+    let limit = query.limit.unwrap_or(50).clamp(1, 3000);
+
+    let (holidays, total) = state
         .leaves()
         .holiday_repo()
-        .list(&ctx.auth_token, query.year, query.location_id)
+        .list(&ctx.auth_token, query.year, query.location_id, page, limit)
         .await?;
 
-    Ok(Json(holidays))
+    Ok(Json(crate::models::PaginatedResponse {
+        data: holidays,
+        total: total as usize,
+        page,
+        limit,
+    }))
 }
 
 #[utoipa::path(

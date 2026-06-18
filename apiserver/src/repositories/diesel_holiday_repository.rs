@@ -31,7 +31,9 @@ impl HolidayRepository for DieselHolidayRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         year: Option<i32>,
         location_id: Option<Uuid>,
-    ) -> Result<Vec<Holiday>, AppError> {
+        page: i64,
+        limit: i64,
+    ) -> Result<(Vec<Holiday>, i64), AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -41,7 +43,7 @@ impl HolidayRepository for DieselHolidayRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        let mut query = holidays::table
+        let mut count_query = holidays::table
             .filter(holidays::workspace_id.eq(workspace_id))
             .filter(holidays::deleted_at.is_null())
             .into_boxed();
@@ -51,27 +53,59 @@ impl HolidayRepository for DieselHolidayRepository {
                 NaiveDate::from_ymd_opt(y, 1, 1),
                 NaiveDate::from_ymd_opt(y, 12, 31),
             ) {
-                query = query
+                count_query = count_query
                     .filter(holidays::date.ge(start))
                     .filter(holidays::date.le(end));
             }
         }
 
         if let Some(loc_id) = location_id {
-            query = query.filter(
+            count_query = count_query.filter(
                 holidays::location_id
                     .is_null()
                     .or(holidays::location_id.eq(loc_id)),
             );
         }
 
-        let entities: Vec<HolidayEntity> = query
+        let total: i64 = count_query
+            .count()
+            .get_result(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db count: {e}")))?;
+
+        let mut select_query = holidays::table
+            .filter(holidays::workspace_id.eq(workspace_id))
+            .filter(holidays::deleted_at.is_null())
+            .into_boxed();
+
+        if let Some(y) = year {
+            if let (Some(start), Some(end)) = (
+                NaiveDate::from_ymd_opt(y, 1, 1),
+                NaiveDate::from_ymd_opt(y, 12, 31),
+            ) {
+                select_query = select_query
+                    .filter(holidays::date.ge(start))
+                    .filter(holidays::date.le(end));
+            }
+        }
+
+        if let Some(loc_id) = location_id {
+            select_query = select_query.filter(
+                holidays::location_id
+                    .is_null()
+                    .or(holidays::location_id.eq(loc_id)),
+            );
+        }
+
+        let entities: Vec<HolidayEntity> = select_query
             .order(holidays::date.asc())
+            .limit(limit)
+            .offset((page - 1) * limit)
             .load(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        Ok(entities.into_iter().map(Into::into).collect())
+        Ok((entities.into_iter().map(Into::into).collect(), total))
     }
 
     async fn get_by_id(

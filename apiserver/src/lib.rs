@@ -17,9 +17,8 @@
     clippy::struct_field_names,
     clippy::option_if_let_else,
     clippy::items_after_statements,
-    // TECH_DEBT: Defer similar_names and significant_drop_tightening to build cleanly
+    // TECH_DEBT: Defer similar_names to build cleanly
     clippy::similar_names,
-    clippy::significant_drop_tightening,
     clippy::too_many_arguments
 )]
 #![warn(clippy::too_many_lines)]

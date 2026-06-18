@@ -10,7 +10,9 @@ use uuid::Uuid;
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
-use crate::models::{AddMemberRequest, WorkspaceMemberDetailResponse};
+use crate::models::{
+    AddMemberRequest, PaginatedResponse, PaginationParams, WorkspaceMemberDetailResponse,
+};
 use crate::services::audit_service::AuditHelper;
 use crate::utils::i18n::I18nKey;
 use crate::AppState;
@@ -20,14 +22,23 @@ pub struct UpdateMemberRoleRequest {
     pub role_id: Uuid,
 }
 
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct PaginatedWorkspaceMembers {
+    pub data: Vec<WorkspaceMemberDetailResponse>,
+    pub total: usize,
+    pub page: i64,
+    pub limit: i64,
+}
+
 #[utoipa::path(
     get,
     path = "/v1/workspaces/{ws_id}/members",
     params(
-        ("ws_id" = Uuid, Path, description = "Workspace ID")
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        PaginationParams
     ),
     responses(
-        (status = 200, description = "List of workspace members", body = Vec<WorkspaceMemberDetailResponse>)
+        (status = 200, description = "List of workspace members", body = PaginatedWorkspaceMembers)
     ),
     security(
         ("bearer_auth" = [])
@@ -36,13 +47,16 @@ pub struct UpdateMemberRoleRequest {
 pub async fn get_workspace_members(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-) -> AppResult<Json<Vec<WorkspaceMemberDetailResponse>>> {
+    axum::extract::Query(query): axum::extract::Query<PaginationParams>,
+) -> AppResult<Json<PaginatedResponse<WorkspaceMemberDetailResponse>>> {
     let workspace_id = ctx.workspace_id;
+    let page = query.page.unwrap_or(1).max(1);
+    let limit = query.limit.unwrap_or(50).clamp(1, 3000);
 
-    let members = state
+    let (members, total) = state
         .core()
         .workspace_repo()
-        .get_workspace_members(workspace_id)
+        .get_workspace_members(workspace_id, page, limit)
         .await?;
 
     let extra_roles = state
@@ -51,7 +65,7 @@ pub async fn get_workspace_members(
         .get_all_extra_roles(workspace_id)
         .await?;
 
-    let mut response = Vec::with_capacity(members.len());
+    let mut data = Vec::with_capacity(members.len());
     for member in members {
         let extra_role_ids = extra_roles
             .iter()
@@ -59,13 +73,18 @@ pub async fn get_workspace_members(
             .map(crate::models::workspace::MemberExtraRole::role_id)
             .collect();
 
-        response.push(WorkspaceMemberDetailResponse {
+        data.push(WorkspaceMemberDetailResponse {
             detail: member,
             extra_role_ids,
         });
     }
 
-    Ok(Json(response))
+    Ok(Json(PaginatedResponse {
+        data,
+        total: total as usize,
+        page,
+        limit,
+    }))
 }
 
 #[utoipa::path(

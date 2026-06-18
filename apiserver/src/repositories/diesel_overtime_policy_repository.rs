@@ -55,7 +55,9 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
     async fn get_policy_definitions(
         &self,
         workspace_id: Uuid,
-    ) -> Result<Vec<OvertimePolicy>, AppError> {
+        page: i64,
+        limit: i64,
+    ) -> Result<(Vec<OvertimePolicy>, i64), AppError> {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .tenants_tx
@@ -64,14 +66,24 @@ impl OvertimePolicyRepositoryTrait for DieselOvertimePolicyRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        overtime_policy_definitions::table
+        let total: i64 = overtime_policy_definitions::table
+            .filter(overtime_policy_definitions::workspace_id.eq(workspace_id))
+            .count()
+            .get_result(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db count: {e}")))?;
+
+        let rows: Vec<OvertimePolicyEntity> = overtime_policy_definitions::table
             .filter(overtime_policy_definitions::workspace_id.eq(workspace_id))
             .order(overtime_policy_definitions::created_at.desc())
+            .limit(limit)
+            .offset((page - 1) * limit)
             .select(OvertimePolicyEntity::as_select())
             .load(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))
-            .map(|rows| rows.into_iter().map(Into::into).collect())
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok((rows.into_iter().map(Into::into).collect(), total))
     }
 
     async fn get_policy_with_rules(
@@ -386,7 +398,7 @@ mod tests {
             .unwrap();
         assert_eq!(policy.name(), "Standard OT");
 
-        let list = repo.get_policy_definitions(ws_id).await.unwrap();
+        let (list, _total) = repo.get_policy_definitions(ws_id, 1, 50).await.unwrap();
         assert!(list.iter().any(|p| p.id() == policy.id()));
 
         // 3. Add rules

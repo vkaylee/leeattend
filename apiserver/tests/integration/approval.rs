@@ -72,12 +72,12 @@ async fn test_approval_workflow_endpoints() {
         .await
         .unwrap();
 
-    // Might fail with 500 if the DB table doesn't exist, or 200/201 if it succeeds
-    // The implementation of core.approval_workflow_service might have DB issues, but it will still cover the handler lines!
-    let _ = res.status(); // Just executing it covers the handler
+    assert!(res.status() == StatusCode::OK || res.status() == StatusCode::CREATED);
+    let bytes = axum::body::to_bytes(res.into_body(), 100000).await.unwrap();
+    let created_wf: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    let workflow_id = created_wf["id"].as_str().unwrap();
 
-    // 3. Get Workflow (Not implemented -> 404)
-    let fake_id = uuid::Uuid::new_v4();
+    // 3. Get Workflow
     let res = app
         .clone()
         .oneshot(
@@ -85,7 +85,7 @@ async fn test_approval_workflow_endpoints() {
                 .method("GET")
                 .uri(format!(
                     "/api/v1/workspaces/{}/approval-workflows/{}",
-                    ws_id, fake_id
+                    ws_id, workflow_id
                 ))
                 .header("Authorization", &auth_header)
                 .body(Body::empty())
@@ -94,9 +94,26 @@ async fn test_approval_workflow_endpoints() {
         .await
         .unwrap();
 
-    assert_eq!(res.status(), StatusCode::NOT_FOUND);
+    assert_eq!(res.status(), StatusCode::OK);
 
-    // 4. Update Workflow (Not implemented -> 404)
+    // 4. Update Workflow
+    let update_payload = serde_json::json!({
+        "entity_type": "ot_request",
+        "name": "OT Approval Updated",
+        "description": "Updated description",
+        "is_active": true,
+        "steps": [
+            {
+                "step_order": 1,
+                "step_name": "Senior Manager Approval",
+                "approver_type": "department_manager",
+                "approver_config": {},
+                "action_required": "approve",
+                "can_skip": false
+            }
+        ]
+    });
+
     let res = app
         .clone()
         .oneshot(
@@ -104,27 +121,27 @@ async fn test_approval_workflow_endpoints() {
                 .method("PUT")
                 .uri(format!(
                     "/api/v1/workspaces/{}/approval-workflows/{}",
-                    ws_id, fake_id
+                    ws_id, workflow_id
                 ))
                 .header("Authorization", &auth_header)
                 .header("Content-Type", "application/json")
-                .body(Body::from(serde_json::to_string(&create_payload).unwrap()))
+                .body(Body::from(serde_json::to_string(&update_payload).unwrap()))
                 .unwrap(),
         )
         .await
         .unwrap();
 
-    assert_eq!(res.status(), StatusCode::NOT_FOUND);
+    assert_eq!(res.status(), StatusCode::OK);
 
-    // 5. Delete Workflow (Not implemented -> 404)
+    // 5. Get pending tasks
     let res = app
         .clone()
         .oneshot(
             Request::builder()
-                .method("DELETE")
+                .method("GET")
                 .uri(format!(
-                    "/api/v1/workspaces/{}/approval-workflows/{}",
-                    ws_id, fake_id
+                    "/api/v1/workspaces/{}/approval-workflows/pending-tasks",
+                    ws_id
                 ))
                 .header("Authorization", &auth_header)
                 .body(Body::empty())
@@ -133,9 +150,29 @@ async fn test_approval_workflow_endpoints() {
         .await
         .unwrap();
 
-    assert_eq!(res.status(), StatusCode::NOT_FOUND);
+    assert_eq!(res.status(), StatusCode::OK);
 
-    // 6. Process Approval
+    // 6. Get Approval History
+    let res = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(format!(
+                    "/api/v1/workspaces/{}/approval-workflows/history/ot_request/{}",
+                    ws_id,
+                    uuid::Uuid::new_v4()
+                ))
+                .header("Authorization", &auth_header)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), StatusCode::OK);
+
+    // 7. Process Approval (returns 404 since no active instance for fake uuid, but tests handler validation)
     let process_payload = serde_json::json!({
         "entity_type": "ot_request",
         "entity_id": uuid::Uuid::new_v4(),
@@ -160,17 +197,17 @@ async fn test_approval_workflow_endpoints() {
         .await
         .unwrap();
 
-    let _ = res.status(); // Covers handler
+    assert_eq!(res.status(), StatusCode::NOT_FOUND);
 
-    // 7. Get Approval History
+    // 8. Delete Workflow
     let res = app
         .clone()
         .oneshot(
             Request::builder()
-                .method("GET")
+                .method("DELETE")
                 .uri(format!(
-                    "/api/v1/workspaces/{}/approval-workflows/history/ot_request/{}",
-                    ws_id, fake_id
+                    "/api/v1/workspaces/{}/approval-workflows/{}",
+                    ws_id, workflow_id
                 ))
                 .header("Authorization", &auth_header)
                 .body(Body::empty())
@@ -179,7 +216,7 @@ async fn test_approval_workflow_endpoints() {
         .await
         .unwrap();
 
-    let _ = res.status(); // Covers handler
+    assert_eq!(res.status(), StatusCode::OK);
 }
 
 #[tokio::test]

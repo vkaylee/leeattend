@@ -485,6 +485,7 @@ use utoipa::OpenApi;
 
             // Workspace Members Schemas
             crate::handlers::workspaces::members::UpdateMemberRoleRequest,
+            crate::handlers::workspaces::members::PaginatedWorkspaceMembers,
             AddMemberRequest,
             WorkspaceMemberDetail,
             WorkspaceMemberDetailResponse,
@@ -676,6 +677,7 @@ use utoipa::OpenApi;
             LeavePolicyAssignment,
             crate::handlers::leaves::PaginatedWorkspaceLeaveBalances,
             crate::handlers::leaves::PaginatedLeaveRequests,
+            crate::handlers::holidays::PaginatedHolidays,
             crate::handlers::leaves::TriggerAccrualRequest,
             crate::handlers::leaves::AccrualJobResponse,
             crate::handlers::leaves::JobStatusResponse,
@@ -694,6 +696,7 @@ use utoipa::OpenApi;
             crate::handlers::overtime_request::OvertimeRequestDetail,
             crate::handlers::overtime_request::EmployeeConsentRequest,
             OvertimePolicy,
+            crate::handlers::overtime::PaginatedOvertimePolicies,
             OvertimeRule,
             OvertimePolicyAssignment,
             crate::handlers::overtime::CreatePolicyRequest,

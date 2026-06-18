@@ -356,8 +356,10 @@ mod tests {
         async fn get_workspace_members(
             &self,
             _w: Uuid,
-        ) -> Result<Vec<crate::models::WorkspaceMemberDetail>, AppError> {
-            Ok(vec![])
+            _page: i64,
+            _limit: i64,
+        ) -> Result<(Vec<crate::models::WorkspaceMemberDetail>, i64), AppError> {
+            Ok((vec![], 0))
         }
         async fn get_admins_with_permissions(
             &self,

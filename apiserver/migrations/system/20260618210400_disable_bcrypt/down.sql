@@ -1,0 +1,1 @@
+-- No-op: cannot restore overwritten bcrypt hashes

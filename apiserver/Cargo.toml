@@ -30,7 +30,7 @@ diesel-async = { version = "0.8.0", features = ["postgres", "deadpool", "tokio"]
 tower-http = { version = "0.6.8", features = ["cors", "trace"] }
 async-trait = "0.1.89"
 jsonwebtoken = { version = "10.2.0", features = ["rust_crypto"] }
-bcrypt = "0.17.1"  # Kept for legacy hash verification during argon2id migration
+
 argon2 = "0.5"
 json-patch = "0.3.0"
 rust_decimal = { version = "1.32.0", features = ["serde", "db-diesel2-postgres"] }

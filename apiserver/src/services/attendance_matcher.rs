@@ -431,7 +431,9 @@ mod tests {
         async fn get_policy_definitions(
             &self,
             _workspace_id: Uuid,
-        ) -> Result<Vec<crate::models::OvertimePolicy>, crate::errors::AppError> {
+            _page: i64,
+            _limit: i64,
+        ) -> Result<(Vec<crate::models::OvertimePolicy>, i64), crate::errors::AppError> {
             unimplemented!()
         }
 
@@ -512,7 +514,9 @@ mod tests {
         async fn get_policy_definitions(
             &self,
             _workspace_id: Uuid,
-        ) -> Result<Vec<crate::models::OvertimePolicy>, crate::errors::AppError> {
+            _page: i64,
+            _limit: i64,
+        ) -> Result<(Vec<crate::models::OvertimePolicy>, i64), crate::errors::AppError> {
             unimplemented!()
         }
 

@@ -121,8 +121,9 @@ async fn test_overtime_policy_lifecycle() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let policies = body_json(resp).await;
-    assert!(!policies.as_array().unwrap().is_empty());
+    let policies_resp = body_json(resp).await;
+    let data = policies_resp["data"].as_array().unwrap();
+    assert!(!data.is_empty());
 }
 
 #[tokio::test]

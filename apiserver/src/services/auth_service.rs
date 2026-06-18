@@ -122,9 +122,11 @@ impl AuthService {
                 .unwrap_or(false);
             return (valid, false);
         }
-        // Fallback: bcrypt (legacy — starts with "$2b$" or "$2a$")
-        let valid = bcrypt::verify(password, hash).unwrap_or(false);
-        (valid, valid) // If valid bcrypt, needs rehash to argon2id
+        // Fallback: legacy bcrypt is disabled
+        if hash.starts_with("$2b$") || hash.starts_with("$2a$") || hash.starts_with("$2y$") {
+            tracing::warn!("Attempted login with disabled legacy bcrypt hash");
+        }
+        (false, false)
     }
 
     // --- DB methods (use self.pool) ---

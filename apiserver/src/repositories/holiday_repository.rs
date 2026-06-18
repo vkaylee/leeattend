@@ -29,7 +29,9 @@ pub trait HolidayRepository: Send + Sync {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         year: Option<i32>,
         location_id: Option<Uuid>,
-    ) -> Result<Vec<Holiday>, AppError>;
+        page: i64,
+        limit: i64,
+    ) -> Result<(Vec<Holiday>, i64), AppError>;
     async fn get_by_id(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

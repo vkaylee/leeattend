@@ -7,7 +7,7 @@ use crate::{
     AppState,
 };
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::Json,
 };
@@ -32,26 +32,50 @@ pub struct CreateRuleRequest {
     pub is_holiday: bool,
 }
 
+#[derive(Debug, Deserialize, utoipa::IntoParams)]
+pub struct ListPoliciesQuery {
+    pub page: Option<i64>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct PaginatedOvertimePolicies {
+    pub data: Vec<OvertimePolicy>,
+    pub total: usize,
+    pub page: i64,
+    pub limit: i64,
+}
+
 #[utoipa::path(
     get,
     path = "/workspaces/{ws_id}/overtime/policies",
     responses(
-        (status = 200, description = "List overtime policies", body = [OvertimePolicy])
+        (status = 200, description = "List overtime policies", body = PaginatedOvertimePolicies)
     ),
     params(
-        ("ws_id" = Uuid, Path, description = "Workspace ID")
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+        ListPoliciesQuery
     )
 )]
 pub async fn list_policies(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-) -> AppResult<Json<Vec<OvertimePolicy>>> {
-    let policies = state
+    Query(query): Query<ListPoliciesQuery>,
+) -> AppResult<Json<crate::models::PaginatedResponse<OvertimePolicy>>> {
+    let page = query.page.unwrap_or(1).max(1);
+    let limit = query.limit.unwrap_or(50).clamp(1, 3000);
+
+    let (policies, total) = state
         .payroll()
         .overtime_policy_repo()
-        .get_policy_definitions(ctx.workspace_id)
+        .get_policy_definitions(ctx.workspace_id, page, limit)
         .await?;
-    Ok(Json(policies))
+    Ok(Json(crate::models::PaginatedResponse {
+        data: policies,
+        total: total as usize,
+        page,
+        limit,
+    }))
 }
 
 #[utoipa::path(

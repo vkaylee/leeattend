@@ -18,7 +18,9 @@ pub trait OvertimePolicyRepositoryTrait: Send + Sync {
     async fn get_policy_definitions(
         &self,
         workspace_id: Uuid,
-    ) -> Result<Vec<OvertimePolicy>, AppError>;
+        page: i64,
+        limit: i64,
+    ) -> Result<(Vec<OvertimePolicy>, i64), AppError>;
     async fn get_policy_with_rules(
         &self,
         workspace_id: Uuid,

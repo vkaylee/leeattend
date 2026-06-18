@@ -120,7 +120,9 @@ mod tests {
         async fn get_workspace_members(
             &self,
             _w: Uuid,
-        ) -> Result<Vec<crate::models::WorkspaceMemberDetail>, AppError> {
+            _page: i64,
+            _limit: i64,
+        ) -> Result<(Vec<crate::models::WorkspaceMemberDetail>, i64), AppError> {
             unimplemented!()
         }
         async fn get_all_extra_roles(
@@ -1257,7 +1259,9 @@ mod tests {
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _y: Option<i32>,
             _location_id: Option<Uuid>,
-        ) -> Result<Vec<Holiday>, AppError> {
+            _page: i64,
+            _limit: i64,
+        ) -> Result<(Vec<Holiday>, i64), AppError> {
             unimplemented!()
         }
         async fn get_by_id(
@@ -2490,7 +2494,9 @@ mod tests {
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _y: Option<i32>,
             _location_id: Option<Uuid>,
-        ) -> Result<Vec<Holiday>, AppError> {
+            _page: i64,
+            _limit: i64,
+        ) -> Result<(Vec<Holiday>, i64), AppError> {
             unimplemented!()
         }
         async fn get_by_id(

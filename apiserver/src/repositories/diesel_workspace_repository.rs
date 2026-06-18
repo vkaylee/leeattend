@@ -526,7 +526,9 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
     async fn get_workspace_members(
         &self,
         workspace_id: Uuid,
-    ) -> Result<Vec<crate::models::WorkspaceMemberDetail>, AppError> {
+        page: i64,
+        limit: i64,
+    ) -> Result<(Vec<crate::models::WorkspaceMemberDetail>, i64), AppError> {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .api
@@ -535,12 +537,22 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
+        let total: i64 = workspace_members::table
+            .inner_join(users::table.on(workspace_members::user_id.eq(users::id)))
+            .filter(workspace_members::workspace_id.eq(workspace_id))
+            .count()
+            .get_result(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db count: {e}")))?;
+
         let results: Vec<(
             WorkspaceMemberEntity,
             crate::models::diesel::core::UserEntity,
         )> = workspace_members::table
             .inner_join(users::table.on(workspace_members::user_id.eq(users::id)))
             .filter(workspace_members::workspace_id.eq(workspace_id))
+            .limit(limit)
+            .offset((page - 1) * limit)
             .load::<(
                 WorkspaceMemberEntity,
                 crate::models::diesel::core::UserEntity,
@@ -548,7 +560,7 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        Ok(results
+        let details = results
             .into_iter()
             .map(|(wm, u)| {
                 crate::models::WorkspaceMemberDetail::new(
@@ -560,7 +572,9 @@ impl WorkspaceRepository for DieselWorkspaceRepository {
                     u.avatar_url,
                 )
             })
-            .collect())
+            .collect();
+
+        Ok((details, total))
     }
 
     async fn get_admins_with_permissions(

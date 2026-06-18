@@ -440,9 +440,19 @@ mod tests {
         async fn get_workspace_members(
             &self,
             _w: Uuid,
-        ) -> Result<Vec<crate::models::WorkspaceMemberDetail>, AppError> {
+            page: i64,
+            limit: i64,
+        ) -> Result<(Vec<crate::models::WorkspaceMemberDetail>, i64), AppError> {
             let state = self.state.lock().unwrap();
-            Ok(state.members.clone())
+            let total = state.members.len() as i64;
+            let start = ((page - 1) * limit) as usize;
+            let end = (start + limit as usize).min(state.members.len());
+            let paginated = if start < state.members.len() {
+                state.members[start..end].to_vec()
+            } else {
+                vec![]
+            };
+            Ok((paginated, total))
         }
         async fn create_workspace_with_owner(
             &self,

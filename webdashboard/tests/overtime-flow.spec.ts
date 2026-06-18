@@ -13,11 +13,11 @@ test.beforeEach(async ({ authPage }) => {
     page.on('pageerror', _error => { /* empty */ });
 
     // Wait for dashboard to load
-    await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('dashboard-title')).toBeVisible({ timeout: 10000 });
 
     // Navigate to OT Approvals Page
     await page.goto("/approvals/ot");
-    await expect(page.getByRole('heading', { level: 1, name: /OT APPROVALS/i })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 3, name: /OT APPROVALS/i })).toBeVisible();
 
     // Open Pre-OT Form
     await page.getByRole('button', { name: /New Pre-OT Request/i }).click();
