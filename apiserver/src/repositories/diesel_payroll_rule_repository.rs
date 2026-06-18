@@ -205,11 +205,7 @@ impl PayrollRuleRepository for DieselPayrollRuleRepository {
             .get_result::<PayrollRuleAssignmentEntity>(&mut *conn)
             .await
             .map_err(|e| {
-                if let diesel::result::Error::DatabaseError(
-                    diesel::result::DatabaseErrorKind::UniqueViolation,
-                    info,
-                ) = &e
-                {
+                if let diesel::result::Error::DatabaseError(_, info) = &e {
                     if info.constraint_name() == Some("payroll_rule_assignments_workspace_id_rule_definition_id_a_excl") {
                         return AppError::conflict_args(
                             I18nKey::Conflict,

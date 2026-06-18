@@ -4,6 +4,7 @@ import React from "react";
 import { TFunction } from "i18next";
 
 import Button from "@/components/ui/button";
+import PageHeader from "@/components/ui/page-header";
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
@@ -19,43 +20,39 @@ export function Header({
   t: TFunction;
 }) {
   return (
-    <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-2">
-      <div className="space-y-1">
-        <Typography className="text-4xl font-bold tracking-tighter text-slate-700 dark:text-slate-200 uppercase leading-none" variant="h1">
-          {t("ess.my_profile")}
-        </Typography>
-        <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60" variant="p">
-          {t("ess.profile.subtitle")}
-        </Typography>
-      </div>
-
-      <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner">
-        <TabButton
-          active={activeTab === "personal"}
-          icon={<UserIcon size={14} />}
-          label={t("ess.personal_info")}
-          onClick={() => {
-            setActiveTab("personal");
-          }}
-        />
-        <TabButton
-          active={activeTab === "banking"}
-          icon={<CreditCard size={14} />}
-          label={t("ess.bank_details")}
-          onClick={() => {
-            setActiveTab("banking");
-          }}
-        />
-        <TabButton
-          active={activeTab === "emergency"}
-          icon={<Users size={14} />}
-          label={t("ess.emergency_contacts")}
-          onClick={() => {
-            setActiveTab("emergency");
-          }}
-        />
-      </div>
-    </div>
+    <PageHeader
+      actions={
+        <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1 rounded-xl w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner">
+          <TabButton
+            active={activeTab === "personal"}
+            icon={<UserIcon size={14} />}
+            label={t("ess.personal_info")}
+            onClick={() => {
+              setActiveTab("personal");
+            }}
+          />
+          <TabButton
+            active={activeTab === "banking"}
+            icon={<CreditCard size={14} />}
+            label={t("ess.bank_details")}
+            onClick={() => {
+              setActiveTab("banking");
+            }}
+          />
+          <TabButton
+            active={activeTab === "emergency"}
+            icon={<Users size={14} />}
+            label={t("ess.emergency_contacts")}
+            onClick={() => {
+              setActiveTab("emergency");
+            }}
+          />
+        </div>
+      }
+      data-testid="ess-my-profile-title"
+      subtitle={t("ess.profile.subtitle")}
+      title={t("ess.my_profile")}
+    />
   );
 }
 
@@ -101,7 +98,7 @@ export function TabButton({
   return (
     <Button
       className={cn(
-        "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all border-none shadow-none h-auto w-auto",
+        "flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all border-none shadow-none h-auto w-auto",
         active
           ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
           : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"

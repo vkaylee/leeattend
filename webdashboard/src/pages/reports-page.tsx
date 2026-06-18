@@ -64,7 +64,7 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="space-y-10 pb-20 animate-in fade-in duration-700" data-testid="reports-page">
+    <div className="space-y-6 pb-20 animate-in fade-in duration-700" data-testid="reports-page">
       <ReportsHeader
         dateRange={dateRange}
         onExportClick={() => { setIsExportDialogOpen(true); }}

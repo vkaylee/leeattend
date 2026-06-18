@@ -25,12 +25,12 @@ export function WorkflowEditorHeader({ workflowId, onBack }: WorkflowEditorHeade
           <ArrowLeft className="w-5 h-5 text-slate-600 dark:text-slate-300" />
         </Button>
         <div>
-          <Typography className="text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight" variant="h1">
+          <Typography className="font-bold mb-0.5 normal-case" variant="h3">
             {workflowId
               ? t("settings.workflows.edit_title", { defaultValue: "Edit Workflow" })
               : t("settings.workflows.new_title", { defaultValue: "New Workflow" })}
           </Typography>
-          <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1" variant="p">
+          <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium opacity-80" variant="small">
             {workflowId
               ? t("settings.workflows.edit_desc", { defaultValue: "Modify approval rules and steps" })
               : t("settings.workflows.new_desc", { defaultValue: "Define a new multi-step approval process" })}

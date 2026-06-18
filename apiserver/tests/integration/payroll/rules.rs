@@ -8,7 +8,7 @@ use uuid::Uuid;
 use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::repositories::PayrollRepository;
+use apiserver::repositories::{PayrollRepository, PayrollRuleRepository};
 use apiserver::services::payroll_rule_evaluator::PayrollRuleEvaluator;
 use apiserver::AppState;
 use chrono::NaiveDate;
@@ -216,4 +216,138 @@ async fn test_payroll_rule_evaluator() {
     assert_eq!(results.len(), 1);
     assert_eq!(results[0].rule_code, "TAX10");
     assert_eq!(results[0].amount, Decimal::from_str("1000.0").unwrap()); // 10% of 10000
+}
+
+#[tokio::test]
+async fn test_payroll_rule_repository_direct() {
+    let (test_db, factory, _state, _app) = setup_app_tower().await;
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+    let employee_id = factory.employee().with_workspace(ws_id).create().await;
+
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
+    let repo = apiserver::repositories::DieselPayrollRuleRepository::new(diesel_pools.clone());
+
+    // 1. Create a definition
+    let def = repo
+        .create_definition(
+            apiserver::repositories::payroll_rule_repository::CreatePayrollRuleDefinitionArgs {
+                workspace_id: ws_id,
+                code: "TEST_RULE".to_string(),
+                name: "Test Rule".to_string(),
+                category: apiserver::models::enums::PayrollRuleCategory::Allowance,
+                applies_to: apiserver::models::enums::RuleAppliesTo::Employee,
+                calculation_method: apiserver::models::enums::PayrollCalculationMethod::Fixed,
+                rule_config: serde_json::json!({}),
+                is_mandatory: false,
+                display_order: 10,
+                description: Some("Test rule desc".to_string()),
+            },
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(def.code, "TEST_RULE");
+    assert_eq!(def.name, "Test Rule");
+
+    // 2. Get definitions
+    let defs = repo.get_definitions(ws_id).await.unwrap();
+    assert!(defs.iter().any(|d| d.id == def.id));
+
+    // 3. Create a tier
+    let min_amt = Decimal::from_str("100.0").unwrap();
+    let max_amt = Decimal::from_str("1000.0").unwrap();
+    let rate = Decimal::from_str("0.15").unwrap();
+    let fixed_amt = Decimal::from_str("50.0").unwrap();
+
+    let tier = repo
+        .create_tier(ws_id, def.id, 1, min_amt, Some(max_amt), rate, fixed_amt)
+        .await
+        .unwrap();
+
+    assert_eq!(tier.tier_order, 1);
+    assert_eq!(tier.min_amount, min_amt);
+    assert_eq!(tier.max_amount, Some(max_amt));
+
+    // 4. Get tiers
+    let tiers = repo.get_tiers_for_rule(ws_id, def.id).await.unwrap();
+    assert_eq!(tiers.len(), 1);
+    assert_eq!(tiers[0].id, tier.id);
+
+    // 5. Assign rule
+    let assignment = repo
+        .assign_rule(
+            apiserver::repositories::payroll_rule_repository::AssignPayrollRuleArgs {
+                workspace_id: ws_id,
+                rule_definition_id: def.id,
+                assignee_type: apiserver::models::enums::AssigneeType::Employee,
+                assignee_id: Some(employee_id),
+                effective_from: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                effective_to: Some(chrono::NaiveDate::from_ymd_opt(2026, 12, 31).unwrap()),
+                override_config: Some(serde_json::json!({"custom_rate": 0.2})),
+            },
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(assignment.rule_definition_id, def.id);
+    assert_eq!(assignment.assignee_id, Some(employee_id));
+
+    // 5b. Attempt to assign overlapping rule to trigger UniqueViolation overlap constraint
+    let overlap_res = repo
+        .assign_rule(
+            apiserver::repositories::payroll_rule_repository::AssignPayrollRuleArgs {
+                workspace_id: ws_id,
+                rule_definition_id: def.id,
+                assignee_type: apiserver::models::enums::AssigneeType::Employee,
+                assignee_id: Some(employee_id),
+                effective_from: chrono::NaiveDate::from_ymd_opt(2026, 6, 1).unwrap(),
+                effective_to: Some(chrono::NaiveDate::from_ymd_opt(2026, 8, 31).unwrap()),
+                override_config: None,
+            },
+        )
+        .await;
+    assert!(overlap_res.is_err());
+    let overlap_err = overlap_res.unwrap_err();
+    assert!(matches!(
+        overlap_err,
+        apiserver::errors::AppError::Conflict(_)
+    ));
+
+    // 5c. Attempt to create a definition with duplicate code to trigger UniqueViolation on definitions table
+    let duplicate_def_res = repo
+        .create_definition(
+            apiserver::repositories::payroll_rule_repository::CreatePayrollRuleDefinitionArgs {
+                workspace_id: ws_id,
+                code: "TEST_RULE".to_string(), // same code
+                name: "Test Rule Duplicate".to_string(),
+                category: apiserver::models::enums::PayrollRuleCategory::Allowance,
+                applies_to: apiserver::models::enums::RuleAppliesTo::Employee,
+                calculation_method: apiserver::models::enums::PayrollCalculationMethod::Fixed,
+                rule_config: serde_json::json!({}),
+                is_mandatory: false,
+                display_order: 10,
+                description: None,
+            },
+        )
+        .await;
+    assert!(duplicate_def_res.is_err());
+
+    // 6. Get assignments
+    let assignments = repo.get_assignments_for_rule(ws_id, def.id).await.unwrap();
+    assert_eq!(assignments.len(), 1);
+    assert_eq!(assignments[0].id, assignment.id);
+
+    // 7. Delete assignment
+    repo.delete_assignment(ws_id, def.id, assignment.id)
+        .await
+        .unwrap();
+    let assignments_after = repo.get_assignments_for_rule(ws_id, def.id).await.unwrap();
+    assert!(assignments_after.is_empty());
+
+    // 8. Delete tier
+    repo.delete_tier(ws_id, def.id, tier.id).await.unwrap();
+    let tiers_after = repo.get_tiers_for_rule(ws_id, def.id).await.unwrap();
+    assert!(tiers_after.is_empty());
 }

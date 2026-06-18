@@ -7,7 +7,7 @@ import { Typography } from "@/components/ui/typography";
 export default function WorkspaceBillingPage() {
   const { t } = useTranslation();
   return (
-    <div className="space-y-10 animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in duration-500">
       <PageHeader
         subtitle={t('billing.subtitle', { defaultValue: 'Manage your subscription plan and invoices' })}
         title={t('billing.title', { defaultValue: 'Billing & Subscription' })}

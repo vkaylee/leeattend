@@ -62,7 +62,7 @@ export default function AttendanceAdjustmentsPage() {
   const canSubmit = hasPermission("attendance:adjustments:submit_on_behalf");
 
   return (
-    <div className="space-y-10 animate-in fade-in duration-700 pb-20">
+    <div className="space-y-6 animate-in fade-in duration-700 pb-20">
       <AdjustmentsHeader
         canSubmit={canSubmit}
         onImportClick={() => { setIsImportDialogOpen(true); }}

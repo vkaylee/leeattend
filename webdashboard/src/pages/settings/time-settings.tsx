@@ -155,7 +155,7 @@ function TimeSettingsContent({
   });
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in duration-500">
       <PageHeader
         onNewVersion={() => {
           setShowCreateModal(true);

@@ -34,18 +34,18 @@ const PageHeader = memo(function PageHeader({
         className,
       )}
     >
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-4">
         {!!icon && (
-          <div className="h-14 w-14 rounded-2xl bg-white dark:bg-slate-900 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-xl shadow-primary-100/20 dark:shadow-black/20 border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 duration-500">
+          <div className="h-12 w-12 rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-md shadow-primary-100/10 dark:shadow-black/20 border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 duration-500">
             {icon}
           </div>
         )}
         <div>
-          <Typography as="h1" className="font-black pt-2 mb-1 uppercase" data-testid={testId} variant="h2">
+          <Typography as="h1" className="font-bold mb-0.5 normal-case" data-testid={testId} variant="h3">
             {title}
           </Typography>
           {!!subtitle && (
-            <Typography className="opacity-60 text-slate-500 dark:text-slate-400" variant="overline">
+            <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium opacity-80" variant="small">
               {subtitle}
             </Typography>
           )}

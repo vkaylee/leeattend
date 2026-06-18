@@ -52,7 +52,7 @@ export default function MyProfilePage() {
   const hireDate = activeEmployment?.start_date ?? "—";
 
   return (
-    <div className="space-y-10 animate-in fade-in duration-700 pb-20">
+    <div className="space-y-6 animate-in fade-in duration-700 pb-20">
       <Header activeTab={activeTab} setActiveTab={setActiveTab} t={t} />
 
       <div className="animate-in slide-in-from-bottom-8 duration-700">

@@ -15,26 +15,26 @@ export function ReportsHeader({ dateRange, onExportClick }: ReportsHeaderProps) 
   const { t } = useTranslation();
 
   return (
-    <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-2">
-      <div className="space-y-1">
-        <Typography className="text-4xl font-bold tracking-tighter text-slate-700 dark:text-slate-200 uppercase leading-none" variant="h1">
+    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
+      <div>
+        <Typography className="font-bold mb-0.5 normal-case" variant="h3">
           {t("reports.title")}
         </Typography>
-        <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60" variant="p">
+        <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium opacity-80" variant="small">
           {t("reports.subtitle")}
         </Typography>
       </div>
 
       <div className="flex items-center gap-3">
         <Link
-          className="flex items-center gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-primary-600 dark:text-primary-400 px-8 py-3 rounded-2xl hover:bg-primary-50 dark:hover:bg-primary-950 transition-all font-bold text-xs uppercase tracking-widest shadow-xl active:scale-95"
+          className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-primary-600 dark:text-primary-400 px-5 py-2.5 rounded-xl hover:bg-primary-50 dark:hover:bg-primary-950 transition-all font-bold text-xs uppercase tracking-widest shadow-sm active:scale-95"
           search={{ from: dateRange.start, to: dateRange.end } as Record<string, string>}
           to="/attendance-logs"
         >
           <CalendarCheck size={18} /> {t("reports.view_raw_logs").toUpperCase()}
         </Link>
         <Button
-          className="flex items-center gap-3 h-auto py-3 px-8 rounded-2xl font-bold text-xs uppercase tracking-widest"
+          className="flex items-center gap-2 h-10 px-5 rounded-xl font-bold text-xs uppercase tracking-widest"
           data-testid="export-report-btn"
           icon={<Download size={18} />}
           onClick={onExportClick}

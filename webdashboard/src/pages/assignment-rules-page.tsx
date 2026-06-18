@@ -3,6 +3,7 @@ import { Plus, AlertCircle } from "lucide-react";
 import React from "react";
 
 import Button from "@/components/ui/button";
+import PageHeader from "@/components/ui/page-header";
 import { Typography } from "@/components/ui/typography";
 
 import { AssignmentRulesTable } from "./assignment-rules/components/assignment-rules-table";
@@ -23,26 +24,23 @@ export default function AssignmentRulesPage() {
   } = useAssignmentRules();
 
   return (
-    <div className="space-y-10 animate-in fade-in duration-700 pb-20">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-2">
-        <div className="space-y-1">
-          <Typography className="text-4xl font-bold tracking-tighter text-slate-700 dark:text-slate-200 uppercase leading-none" data-testid="assignment-rules-title" variant="h1">
-            {t("rules.title")}
-          </Typography>
-          <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60" variant="p">
-            {t("rules.subtitle")}
-          </Typography>
-        </div>
-        <Button
-          icon={<Plus size={18} />}
-          onClick={() => {
-            void navigate({ to: "/assignment-rules/new" });
-          }}
-          variant="primary"
-        >
-          {t("rules.create_btn").toUpperCase()}
-        </Button>
-      </div>
+    <div className="space-y-6 animate-in fade-in duration-700 pb-20">
+      <PageHeader
+        actions={
+          <Button
+            icon={<Plus size={18} />}
+            onClick={() => {
+              void navigate({ to: "/assignment-rules/new" });
+            }}
+            variant="primary"
+          >
+            {t("rules.create_btn").toUpperCase()}
+          </Button>
+        }
+        data-testid="assignment-rules-title"
+        subtitle={t("rules.subtitle")}
+        title={t("rules.title")}
+      />
 
       <AssignmentRulesTable
         departments={departments}

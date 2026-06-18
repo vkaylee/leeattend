@@ -142,19 +142,19 @@ export default function LeaveRequestsPage() {
   ];
 
   return (
-    <div className="space-y-10 animate-in fade-in duration-700 pb-20">
-      <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800 pb-6 px-1">
-        <Typography className="text-3xl font-extrabold text-slate-850 dark:text-slate-100 tracking-tight uppercase" variant="h1">{t("leave_requests.title")}</Typography>
-        <div className="flex gap-4">
+    <div className="space-y-6 animate-in fade-in duration-700 pb-20">
+      <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800 pb-4 px-1">
+        <Typography className="text-2xl font-bold text-slate-850 dark:text-slate-100 tracking-tight normal-case" variant="h3">{t("leave_requests.title")}</Typography>
+        <div className="flex gap-3">
           <Button
-            className="rounded-2xl h-12 text-xs font-bold uppercase tracking-wider shadow-sm"
+            className="rounded-xl h-10 text-xs font-bold uppercase tracking-wider shadow-sm"
             onClick={() => { setIsImportModalOpen(true); }}
             variant="outline"
           >
             <Upload className="w-4 h-4 mr-2" />
             {t("leave_requests.import_excel")}
           </Button>
-          <Button className="rounded-2xl h-12 text-xs font-bold uppercase tracking-wider shadow-lg" onClick={() => { setIsModalOpen(true); }} variant="primary">
+          <Button className="rounded-xl h-10 text-xs font-bold uppercase tracking-wider shadow-md" onClick={() => { setIsModalOpen(true); }} variant="primary">
             <Plus className="w-4 h-4 mr-2" />
             {t("leave_requests.add")}
           </Button>

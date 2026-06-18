@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
+import PageHeader from "@/components/ui/page-header";
 import { Typography } from "@/components/ui/typography";
 import { useMyProfile } from "@/hooks/use-ess";
 import { useMyOtAssignments, useEmployeeQuota } from "@/hooks/use-overtime-requests";
@@ -27,22 +28,9 @@ export default function EssOtPage() {
   if (!wsId || !employeeId) return null;
 
   return (
-    <div className="space-y-10 animate-in fade-in duration-700 pb-20 p-8">
-      <div className="flex flex-col gap-2">
-        <div className="flex justify-between items-start">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl">
-              <Clock className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-            </div>
-            <div>
-              <Typography className="text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight" variant="h1">
-                {t("ess.ot.title", { defaultValue: "My Overtime" })}
-              </Typography>
-              <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1" variant="p">
-                {t("ess.ot.subtitle", { defaultValue: "Request overtime or respond to assignments" })}
-              </Typography>
-            </div>
-          </div>
+    <div className="space-y-6 animate-in fade-in duration-700 pb-20">
+      <PageHeader
+        actions={
           <Button
             icon={<Plus className="w-4 h-4" />}
             onClick={() => { setCreateModalOpen(true); }}
@@ -50,8 +38,12 @@ export default function EssOtPage() {
           >
             {t("ess.ot.request", { defaultValue: "Request OT" })}
           </Button>
-        </div>
-      </div>
+        }
+        data-testid="ess-ot-title"
+        icon={<Clock size={24} />}
+        subtitle={t("ess.ot.subtitle", { defaultValue: "Request overtime or respond to assignments" })}
+        title={t("ess.ot.title", { defaultValue: "My Overtime" })}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">

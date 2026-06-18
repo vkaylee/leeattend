@@ -17,7 +17,7 @@ export default function EmployeesPage() {
   } = page;
 
   return (
-    <div className="space-y-10 pb-20 animate-in fade-in duration-700">
+    <div className="space-y-6 pb-20 animate-in fade-in duration-700">
       <EmployeesPageHeader
         setEditingEmployee={page.setEditingEmployee}
         setIsImportDialogOpen={page.setIsImportDialogOpen}

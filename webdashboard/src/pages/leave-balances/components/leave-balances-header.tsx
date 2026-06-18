@@ -21,16 +21,16 @@ export const LeaveBalancesHeader: React.FC<LeaveBalancesHeaderProps> = ({
 
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
-      <div className="space-y-1">
-        <Typography className="text-3xl md:text-5xl font-bold tracking-tighter text-slate-800 dark:text-slate-100 uppercase leading-none" variant="h1">
+      <div>
+        <Typography className="font-bold mb-0.5 normal-case" variant="h3">
           {t("leave_balances.title")}
         </Typography>
-        <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60" variant="p">
+        <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium opacity-80" variant="small">
           {t("leave_balances.subtitle")}
         </Typography>
       </div>
       <Button
-        className="w-full md:w-auto shadow-primary-100 h-auto py-3.5 md:py-3 px-6 md:px-8"
+        className="w-full md:w-auto shadow-sm h-10 px-5 rounded-xl font-bold"
         disabled={isPending || selectedYear !== currentYear}
         onClick={onRunAccrual}
         size="md"

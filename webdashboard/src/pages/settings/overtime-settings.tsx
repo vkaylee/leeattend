@@ -14,7 +14,7 @@ export default function OvertimeSettings() {
   if (!ws) return null;
 
   return (
-    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-3">
           <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-2xl">

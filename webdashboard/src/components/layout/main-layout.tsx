@@ -186,7 +186,7 @@ export default function MainLayout() {
           onToggleCollapsed={toggleCollapsed}
         />
 
-        <main className={cn("flex-1 relative scroll-smooth", isOrgChart ? "overflow-hidden p-0" : "overflow-y-auto p-4 md:p-8 lg:p-10")}>
+        <main className={cn("flex-1 relative scroll-smooth", isOrgChart ? "overflow-hidden p-0" : "overflow-y-auto p-4 md:p-6 lg:p-8")}>
           <div className={cn(isOrgChart ? "w-full h-full animate-in fade-in duration-500" : "max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both")} key={location.pathname}>
             <ErrorBoundary>
               <Outlet />

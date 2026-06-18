@@ -18,7 +18,7 @@ export default function WorkspaceDangerPage() {
   const { t } = useTranslation();
 
   return (
-    <div className="space-y-10 animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in duration-500">
       <PageHeader
         subtitle={t('danger.subtitle', { defaultValue: 'Destructive operations for this workspace' })}
         title={t('danger.title', { defaultValue: 'Danger Zone' })}

@@ -10,6 +10,7 @@ import {
   AdjustmentRequestModal,
 } from "@/components/time-tracking/adjustment-request-modal";
 import { PunchCard } from "@/components/time-tracking/punch-card";
+import PageHeader from "@/components/ui/page-header";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useMyClock, useMyProfile } from "@/hooks/use-ess";
@@ -82,8 +83,8 @@ export default function MyClockPage() {
   if (!employee) return <EmptyState t={t} />;
 
   return (
-    <div className="space-y-10 animate-in fade-in duration-700 pb-20">
-      <Header t={t} />
+    <div className="space-y-6 animate-in fade-in duration-700 pb-20">
+      <PageHeader data-testid="ess-clock-title" subtitle={t("ess.clock.subtitle")} title={t("ess.clock.title")} />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-5">
@@ -129,17 +130,4 @@ function EmptyState({ t }: { t: TFunction }) {
   );
 }
 
-function Header({ t }: { t: TFunction }) {
-  return (
-    <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-2">
-      <div>
-        <Typography className="text-4xl font-bold tracking-tighter text-slate-700 dark:text-slate-200 uppercase leading-none" variant="h1">
-          {t("ess.clock.title")}
-        </Typography>
-        <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60 mt-1.5" variant="p">
-          {t("ess.clock.subtitle")}
-        </Typography>
-      </div>
-    </div>
-  );
-}
+

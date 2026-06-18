@@ -24,12 +24,12 @@ export function AttendanceHeader({
   const { t } = useTranslation();
 
   return (
-    <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-2">
-      <div className="space-y-1">
-        <Typography className="text-4xl font-bold tracking-tighter text-slate-700 dark:text-slate-200 uppercase leading-none" variant="h1">
+    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
+      <div>
+        <Typography className="font-bold mb-0.5 normal-case" variant="h3">
           {t("ess.attendance.title")}
         </Typography>
-        <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60" variant="p">
+        <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium opacity-80" variant="small">
           {t("ess.attendance.subtitle")}
         </Typography>
       </div>
