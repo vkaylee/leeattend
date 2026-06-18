@@ -55,10 +55,10 @@ export default function LocationsSettings() {
             <MapPin size={24} />
           </div>
           <div>
-            <Typography className="text-3xl font-bold tracking-tight text-slate-700 dark:text-slate-200 leading-tight" variant="h1">
+            <Typography className="text-2xl font-bold tracking-tight text-slate-850 dark:text-slate-100 normal-case mb-0.5" variant="h3">
               {t("settings.categories.locations", { defaultValue: "Locations" })}
             </Typography>
-            <Typography className="text-slate-500 dark:text-slate-400 mt-1 font-medium" variant="p">
+            <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium normal-case tracking-normal" variant="small">
               {t("settings.categories.locations_desc", { defaultValue: "Manage work locations and timezones" })}
             </Typography>
           </div>

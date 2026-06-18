@@ -20,18 +20,17 @@ export function MonitorHeader({
 }: MonitorHeaderProps) {
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-2">
-      <div className="flex items-center gap-5">
-        <div className="w-14 h-14 rounded-2xl bg-primary-50 dark:bg-primary-950 border border-primary-100 dark:border-primary-800 flex items-center justify-center">
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 rounded-[1.25rem] bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-sm border border-primary-100 dark:border-primary-800/50">
           <Activity
-            className="text-primary-600 dark:text-primary-400"
-            size={28}
+            size={24}
           />
         </div>
         <div>
-          <Typography className="text-4xl font-bold tracking-tighter text-slate-700 dark:text-slate-200 uppercase leading-none" variant="h3">
+          <Typography className="text-2xl font-bold tracking-tight text-slate-850 dark:text-slate-100 normal-case mb-0.5" variant="h3">
             {t("monitor.title")}
           </Typography>
-          <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] mt-2 opacity-60" variant="p">
+          <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium normal-case tracking-normal" variant="small">
             {t("monitor.subtitle")}
           </Typography>
         </div>

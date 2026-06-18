@@ -68,7 +68,7 @@ export default function AssignmentRuleEditorPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-10 pb-20 animate-in fade-in duration-500">
+    <div className="max-w-4xl mx-auto space-y-6 pb-20 animate-in fade-in duration-500">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
         <div className="flex items-center gap-4">
@@ -82,14 +82,14 @@ export default function AssignmentRuleEditorPage() {
           </Button>
           <div>
             <Typography
-              className="text-3xl font-extrabold text-slate-700 dark:text-slate-100 tracking-tight uppercase"
-              variant="h1"
+              className="text-2xl font-bold tracking-tight text-slate-850 dark:text-slate-100 normal-case mb-0.5"
+              variant="h3"
             >
               {isEditMode ? t("rules.edit_title", "Edit Rule") : t("rules.create_title", "Create New Rule")}
             </Typography>
             <Typography
-              className="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-wider mt-1"
-              variant="p"
+              className="text-xs text-slate-500 dark:text-slate-400 font-medium normal-case tracking-normal"
+              variant="small"
             >
               {t("rules.form_subtitle", "Define when this pattern should be applied")}
             </Typography>

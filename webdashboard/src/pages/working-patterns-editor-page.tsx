@@ -139,7 +139,7 @@ export default function WorkingPatternsEditorPage() {
     : Array.from({ length: cycleLengthDays }, (_, i) => t("patterns.form.day_index", { index: i + 1 }));
 
   return (
-    <form className="max-w-7xl mx-auto space-y-10 pb-20 animate-in fade-in duration-500" onSubmit={handleSubmit}>
+    <form className="max-w-7xl mx-auto space-y-6 pb-20 animate-in fade-in duration-500" onSubmit={handleSubmit}>
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
@@ -153,10 +153,10 @@ export default function WorkingPatternsEditorPage() {
             <ArrowLeft size={18} />
           </Button>
           <div>
-            <Typography className="text-3xl font-extrabold text-slate-700 dark:text-slate-100 tracking-tight uppercase" variant="h1">
+            <Typography className="text-2xl font-bold tracking-tight text-slate-850 dark:text-slate-100 normal-case mb-0.5" variant="h3">
               {isEditMode ? t("patterns.form.editor_title_edit") : t("patterns.form.editor_title_new")}
             </Typography>
-            <Typography className="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-wider mt-1" variant="p">
+            <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium normal-case tracking-normal" variant="small">
               {isEditMode ? t("patterns.view_details") : t("patterns.modal.subtitle")}
             </Typography>
           </div>

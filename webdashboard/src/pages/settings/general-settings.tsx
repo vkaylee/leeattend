@@ -95,8 +95,8 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-[1.25rem] bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-sm border border-primary-100 dark:border-primary-800/50"><Settings2 size={24} /></div>
           <div>
-            <Typography className="text-3xl font-bold tracking-tight text-slate-700 dark:text-slate-200 leading-tight" data-testid="general-settings-title" variant="h1">{t("common.settings.categories.general")}</Typography>
-            <Typography className="text-slate-500 dark:text-slate-400 mt-1 font-medium" variant="p">{t("common.workspace_settings.description")}</Typography>
+            <Typography className="text-2xl font-bold tracking-tight text-slate-850 dark:text-slate-100 normal-case mb-0.5" data-testid="general-settings-title" variant="h3">{t("common.settings.categories.general")}</Typography>
+            <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium normal-case tracking-normal" variant="small">{t("common.workspace_settings.description")}</Typography>
           </div>
         </div>
         <Button data-testid="save-workspace-config-btn" icon={<Save size={18} />} loading={updateWsMutation.isPending} onClick={handleSaveConfig} variant="ghost">{t("common.workspace_settings.save_config").toUpperCase()}</Button>

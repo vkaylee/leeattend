@@ -44,15 +44,15 @@ export default function WorkflowsSettings() {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-2xl">
-            <Workflow className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-[1.25rem] bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-sm border border-blue-100 dark:border-blue-900/50">
+            <Workflow size={24} />
           </div>
           <div>
-            <Typography className="text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight" variant="h1">
+            <Typography className="text-2xl font-bold tracking-tight text-slate-850 dark:text-slate-100 normal-case mb-0.5" variant="h3">
               {t("settings.categories.workflows", { defaultValue: "Approval Workflows" })}
             </Typography>
-            <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1" variant="p">
+            <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium normal-case tracking-normal" variant="small">
               {t("settings.categories.workflows_desc", { defaultValue: "Configure multi-step approval workflows for company requests" })}
             </Typography>
           </div>

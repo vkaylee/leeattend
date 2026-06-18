@@ -97,16 +97,18 @@ export default function ApprovalListLayout({
 
   return (
     <ErrorBoundary>
-      <div className="space-y-10 animate-in fade-in duration-700 pb-20">
+      <div className="space-y-6 animate-in fade-in duration-700 pb-20">
       {!hideHeader && (
         <div className="flex flex-col md:flex-row justify-between items-center gap-8 px-2">
           <div className="space-y-1">
-            <Typography className="text-5xl font-bold tracking-tighter text-primary-700 dark:text-primary-300 uppercase leading-none" variant="h1">
+            <Typography as="h1" className="text-2xl font-bold tracking-tight text-slate-850 dark:text-slate-100 normal-case mb-0.5" variant="h3">
               {title}
             </Typography>
-            <Typography className="text-[10px] font-bold text-primary-400 uppercase tracking-[0.25em] opacity-60" variant="p">
-              {subtitle}
-            </Typography>
+            {!!subtitle && (
+              <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium normal-case tracking-normal" variant="small">
+                {subtitle}
+              </Typography>
+            )}
           </div>
           <div className="flex items-center gap-3 flex-wrap">
             {headerActions}

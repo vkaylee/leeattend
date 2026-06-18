@@ -79,8 +79,8 @@ export default function PayrollSettings() {
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-[1.25rem] bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-sm border border-primary-100 dark:border-primary-800/50"><Coins size={24} /></div>
           <div>
-            <Typography className="text-3xl font-bold tracking-tight text-slate-700 dark:text-slate-200 leading-tight" variant="h1">{t("common.settings.categories.payroll")}</Typography>
-            <Typography className="text-slate-500 dark:text-slate-400 mt-1 font-medium" variant="p">{t("common.settings.categories.payroll_desc")}</Typography>
+            <Typography className="text-2xl font-bold tracking-tight text-slate-850 dark:text-slate-100 normal-case mb-0.5" variant="h3">{t("common.settings.categories.payroll")}</Typography>
+            <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium normal-case tracking-normal" variant="small">{t("common.settings.categories.payroll_desc")}</Typography>
           </div>
         </div>
       </div>
