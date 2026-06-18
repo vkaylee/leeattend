@@ -163,23 +163,31 @@ function TimelineItemGrid({
           {roundingLabel(version.rounding_policy, t)}
         </Typography>
       </div>
-      <div className="col-span-2 p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center justify-between">
-        <div>
-          <Typography className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1" variant="p">
-            {t("common.workspace_settings.early_arrival_strategy")}
-          </Typography>
-          <Typography className={cn(
-              "text-sm font-bold tracking-tight",
-              isCurrent ? "text-amber-600 dark:text-amber-400" : "text-slate-600 dark:text-slate-300"
-            )}
-            variant="p"
-          >
-            {t(`common.workspace_settings.early_arrival_options.${version.early_arrival_strategy}`)}
-          </Typography>
-        </div>
-        <ShieldAlert
-          className={cn("w-5 h-5", isCurrent ? "text-amber-500/50" : "text-slate-400/50")}
-        />
+      <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
+        <Typography className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1" variant="p">
+          {t("common.workspace_settings.early_arrival_strategy")}
+        </Typography>
+        <Typography className={cn(
+            "text-sm font-bold tracking-tight",
+            isCurrent ? "text-amber-600 dark:text-amber-400" : "text-slate-600 dark:text-slate-300"
+          )}
+          variant="p"
+        >
+          {t(`common.workspace_settings.early_arrival_options.${version.early_arrival_strategy}`)}
+        </Typography>
+      </div>
+      <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
+        <Typography className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1" variant="p">
+          {t("common.workspace_settings.grace_period_minutes") || "Late Grace Period"}
+        </Typography>
+        <Typography className={cn(
+            "text-lg font-bold tracking-tight",
+            isCurrent ? "text-primary-600 dark:text-primary-400" : "text-slate-600 dark:text-slate-300"
+          )}
+          variant="p"
+        >
+          {version.grace_period_minutes != null ? `${version.grace_period_minutes}m` : "15m"}
+        </Typography>
       </div>
     </div>
   );

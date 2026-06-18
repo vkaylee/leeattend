@@ -334,7 +334,9 @@
       "deleted": "已删除地点",
       "confirm_delete": "您确定要删除此地点吗？",
       "cannot_delete_hq": "无法删除总部位置",
-      "hq": "总部"
+      "hq": "总部",
+      "empty_title": "未找到地点",
+      "empty_desc": "添加办公地点、分支机构以管理时区偏移。"
     },
     "overtime": {
       "delete_config_desc": "Delete?",

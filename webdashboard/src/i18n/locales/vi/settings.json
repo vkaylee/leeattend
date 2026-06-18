@@ -334,7 +334,9 @@
       "deleted": "Đã xoá địa điểm",
       "confirm_delete": "Bạn có chắc chắn muốn xoá địa điểm này?",
       "cannot_delete_hq": "Không thể xoá Trụ sở chính",
-      "hq": "HQ"
+      "hq": "HQ",
+      "empty_title": "Chưa có địa điểm",
+      "empty_desc": "Vui lòng thêm chi nhánh hoặc văn phòng làm việc để quản lý múi giờ."
     },
     "overtime": {
       "delete_config_desc": "Xóa cấu hình?",
