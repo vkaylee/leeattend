@@ -70,7 +70,7 @@ pub mod attendance_log_service;
 pub use agent_log_buffer::{AgentLogBuffer, AgentLogEntry, AgentLogEntryArgs};
 
 pub mod attendance_summary_service;
-pub use attendance_summary_service::AttendanceSummaryService;
+pub use attendance_summary_service::{AttendanceSummaryService, SummaryRecalculator};
 pub mod holiday_leave_service;
 
 pub use auth_service::AuthService;

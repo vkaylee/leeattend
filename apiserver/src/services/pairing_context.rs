@@ -6,12 +6,20 @@ use chrono_tz::Tz;
 use uuid::Uuid;
 
 pub struct PairingContext {
-    pub date: NaiveDate,
-    pub tz: Tz,
+    date: NaiveDate,
+    tz: Tz,
 }
 impl PairingContext {
     pub fn new(date: NaiveDate, tz: Tz) -> Self {
         Self { date, tz }
+    }
+
+    pub fn date(&self) -> NaiveDate {
+        self.date
+    }
+
+    pub fn tz(&self) -> Tz {
+        self.tz
     }
 
     #[allow(clippy::cast_possible_wrap)]
@@ -48,18 +56,18 @@ impl PairingContext {
             break_end_mins = Some(break_end_val);
         }
 
-        Some(PairingShiftConfig {
-            start_minutes: start_m as i32,
-            end_minutes: end_m as i32,
-            break_start_minutes: break_start_mins.map(|m| m as i32),
-            break_end_minutes: break_end_mins.map(|m| m as i32),
-            check_in_buffer_minutes: if s.early_punch_in_grace_period_minutes > 0 {
+        Some(PairingShiftConfig::new(
+            start_m as i32,
+            end_m as i32,
+            break_start_mins.map(|m| m as i32),
+            break_end_mins.map(|m| m as i32),
+            if s.early_punch_in_grace_period_minutes > 0 {
                 Some(s.early_punch_in_grace_period_minutes)
             } else {
                 None
             },
-            max_session_gap_minutes: None,
-        })
+            None,
+        ))
     }
 
     pub fn calculate_fetch_window(
@@ -70,9 +78,9 @@ impl PairingContext {
 
         let (window_start_utc, window_end_utc) = if let Some(s) = shift_config {
             const LOG_SEARCH_BUFFER_MINUTES: i64 = 360;
-            let start_mins = i64::from(s.start_minutes) - LOG_SEARCH_BUFFER_MINUTES;
+            let start_mins = i64::from(s.start_minutes()) - LOG_SEARCH_BUFFER_MINUTES;
             let end_mins =
-                std::cmp::max(1440, i64::from(s.end_minutes) + LOG_SEARCH_BUFFER_MINUTES);
+                std::cmp::max(1440, i64::from(s.end_minutes()) + LOG_SEARCH_BUFFER_MINUTES);
 
             let s_utc = (start_of_day_local + Duration::minutes(start_mins)).with_timezone(&Utc);
             let e_utc = (start_of_day_local + Duration::minutes(end_mins)).with_timezone(&Utc);
@@ -101,16 +109,16 @@ impl PairingContext {
 
             if let Some(existing) = filtered_log_events
                 .iter_mut()
-                .find(|e| e.minutes == minutes)
+                .find(|e| e.minutes() == minutes)
             {
-                existing.all_ids.push(log.id());
+                existing.push_id(log.id());
             } else {
-                filtered_log_events.push(LogEvent {
-                    id: log.id(),
+                filtered_log_events.push(LogEvent::new(
+                    log.id(),
                     minutes,
-                    raw_data: log.raw_data().cloned(),
-                    all_ids: vec![log.id()],
-                });
+                    log.raw_data().cloned(),
+                    vec![log.id()],
+                ));
             }
         }
 
@@ -128,14 +136,14 @@ impl PairingContext {
         let mut new_entries = Vec::new();
         for session in sessions {
             let start_dt_local = crate::utils::tz::local_to_tz(&self.tz, self.date, 0, 0, 0)?
-                + Duration::minutes(i64::from(session.start_minutes));
+                + Duration::minutes(i64::from(session.start_minutes()));
             let start_dt_utc = start_dt_local.with_timezone(&Utc);
 
             if start_dt_local.date_naive() != self.date {
                 continue;
             }
 
-            let end_dt_utc = if let Some(m) = session.end_minutes {
+            let end_dt_utc = if let Some(m) = session.end_minutes() {
                 let end_dt_local = crate::utils::tz::local_to_tz(&self.tz, self.date, 0, 0, 0)?
                     + Duration::minutes(i64::from(m));
                 Some(end_dt_local.with_timezone(&Utc))
@@ -147,8 +155,8 @@ impl PairingContext {
                 .map(|end| i32::try_from((end - start_dt_utc).num_minutes()).unwrap_or(0));
 
             let mut final_metadata = session
-                .metadata
-                .clone()
+                .metadata()
+                .cloned()
                 .unwrap_or_else(|| serde_json::json!({}));
             if let serde_json::Value::Object(ref mut map) = final_metadata {
                 map.insert("schedule_traces".to_string(), traces.clone());
@@ -162,9 +170,9 @@ impl PairingContext {
                 start_dt_utc,
                 end_dt_utc,
                 duration,
-                session.is_break_overtime,
-                session.entry_type,
-                session.note,
+                session.is_break_overtime(),
+                session.entry_type().to_string(),
+                session.note().map(String::from),
                 Some(final_metadata),
                 Utc::now(),
                 Utc::now(),
@@ -258,10 +266,10 @@ mod tests {
         let log_events_utc = context_utc.build_log_events(&raw_logs).unwrap();
 
         // Under UTC context, log1 is 00:08:27 from start of day, which is 8 minutes
-        assert_eq!(log_events_utc[0].minutes, 8);
+        assert_eq!(log_events_utc[0].minutes(), 8);
 
         // Under UTC context, log2 is 14:31:36 from start of day, which is 871 minutes
-        assert_eq!(log_events_utc[1].minutes, 871);
+        assert_eq!(log_events_utc[1].minutes(), 871);
 
         // Now test correct timezone scenario (Asia/Ho_Chi_Minh)
         let tz_hcm = chrono_tz::Asia::Ho_Chi_Minh;
@@ -279,10 +287,10 @@ mod tests {
         let log_events_hcm = context_hcm.build_log_events(&raw_logs).unwrap();
 
         // Under HCM context, log1 is 07:08:27 from start of day, which is 428 minutes
-        assert_eq!(log_events_hcm[0].minutes, 428);
+        assert_eq!(log_events_hcm[0].minutes(), 428);
 
         // Under HCM context, log2 is 21:31:36 from start of day, which is 1291 minutes
-        assert_eq!(log_events_hcm[1].minutes, 1291);
+        assert_eq!(log_events_hcm[1].minutes(), 1291);
     }
     // injected tests
 
@@ -316,10 +324,10 @@ mod tests {
         };
 
         let config = context.build_shift_config(Some(&shift)).unwrap();
-        assert_eq!(config.start_minutes, 1320); // 22 * 60
-        assert_eq!(config.end_minutes, 360 + 1440); // 6 * 60 + 1440 = 1800
-        assert_eq!(config.break_start_minutes, Some(120 + 1440)); // 2 * 60 + 1440
-        assert_eq!(config.break_end_minutes, Some(180 + 1440)); // 3 * 60 + 1440
+        assert_eq!(config.start_minutes(), 1320); // 22 * 60
+        assert_eq!(config.end_minutes(), 360 + 1440); // 6 * 60 + 1440 = 1800
+        assert_eq!(config.break_start_minutes(), Some(120 + 1440)); // 2 * 60 + 1440
+        assert_eq!(config.break_end_minutes(), Some(180 + 1440)); // 3 * 60 + 1440
     }
 
     #[test]
@@ -377,7 +385,7 @@ mod tests {
 
         // Should be deduplicated to 1 event because they are in the same minute
         assert_eq!(events.len(), 1);
-        assert_eq!(events[0].minutes, 8 * 60 + 30);
+        assert_eq!(events[0].minutes(), 8 * 60 + 30);
     }
 
     #[test]
@@ -390,24 +398,24 @@ mod tests {
         let employment_id = Uuid::new_v4();
 
         // Paired Session from 08:00 to 17:00 (480 mins to 1020 mins)
-        let session1 = PairedSession {
-            start_minutes: 480,
-            end_minutes: Some(1020),
-            entry_type: "work".to_string(),
-            note: None,
-            is_break_overtime: false,
-            metadata: Some(serde_json::json!({"algo": "shift_window"})),
-        };
+        let session1 = PairedSession::new(
+            480,
+            Some(1020),
+            "work".to_string(),
+            None,
+            false,
+            Some(serde_json::json!({"algo": "shift_window"})),
+        );
 
         // Paired Session missing checkout at 18:00 (1080 mins)
-        let session2 = PairedSession {
-            start_minutes: 1080,
-            end_minutes: None,
-            entry_type: "work".to_string(),
-            note: Some("Missing Punch Out".to_string()),
-            is_break_overtime: false,
-            metadata: None,
-        };
+        let session2 = PairedSession::new(
+            1080,
+            None,
+            "work".to_string(),
+            Some("Missing Punch Out".to_string()),
+            false,
+            None,
+        );
 
         let sessions = vec![session1, session2];
         let traces = serde_json::json!(["trace1"]);

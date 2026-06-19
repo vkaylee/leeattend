@@ -24,6 +24,30 @@ use crate::services::AttendanceCalculator;
 use crate::services::PolicyResolverService;
 use crate::utils::chrono_helpers::local_to_utc as local_midnight_to_utc;
 
+#[cfg_attr(test, mockall::automock)]
+#[async_trait::async_trait]
+pub trait SummaryRecalculator: Send + Sync {
+    async fn recalculate_daily_summary(
+        &self,
+        workspace_id: Uuid,
+        employment_id: Uuid,
+        date: NaiveDate,
+    ) -> Result<(), AppError>;
+}
+
+#[async_trait::async_trait]
+impl SummaryRecalculator for AttendanceSummaryService {
+    async fn recalculate_daily_summary(
+        &self,
+        workspace_id: Uuid,
+        employment_id: Uuid,
+        date: NaiveDate,
+    ) -> Result<(), AppError> {
+        self.recalculate_daily_summary(workspace_id, employment_id, date).await
+    }
+}
+
+
 pub struct EnterPaperOtArgs {
     pub workspace_id: Uuid,
     pub employment_id: Uuid,

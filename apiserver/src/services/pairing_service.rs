@@ -8,42 +8,29 @@ use uuid::Uuid;
 
 use crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
 use crate::repositories::shift_repository::ShiftRepository;
-use crate::repositories::workspace_repository::WorkspaceRepository;
 
 use crate::models::{RawAttendanceLog, TimeEntry};
 use crate::repositories::roster::RosterRepository;
-use crate::repositories::AttendancePolicyRepository;
 use crate::repositories::TimeEntryRepository;
 use crate::services::pairing_algo::{self, PairingShiftConfig};
+use crate::services::SummaryRecalculator;
 
 pub struct PairingService {
     time_entry_repo: Arc<dyn TimeEntryRepository>,
     roster_repo: Arc<dyn RosterRepository>,
-    policy_repo: Arc<dyn AttendancePolicyRepository>,
-    workspace_repo: Arc<dyn WorkspaceRepository>,
     employee_repo: Arc<dyn crate::repositories::employee::EmployeeRepository>,
-    employment_repo: Arc<dyn crate::repositories::EmploymentRepository>,
-    holiday_repo: Arc<dyn crate::repositories::holiday_repository::HolidayRepository>,
-    leave_request_repo:
-        Arc<dyn crate::repositories::leave_request_repository::LeaveRequestRepository>,
-    daily_summary_repo: Arc<dyn crate::repositories::AttendanceDailySummaryRepository>,
     raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
     shift_repo: Arc<dyn ShiftRepository>,
+    summary_service: Arc<dyn SummaryRecalculator>,
 }
 
 pub struct PairingServiceArgs {
     pub time_entry_repo: Arc<dyn TimeEntryRepository>,
     pub roster_repo: Arc<dyn RosterRepository>,
-    pub policy_repo: Arc<dyn AttendancePolicyRepository>,
-    pub workspace_repo: Arc<dyn WorkspaceRepository>,
     pub employee_repo: Arc<dyn crate::repositories::employee::EmployeeRepository>,
-    pub employment_repo: Arc<dyn crate::repositories::EmploymentRepository>,
-    pub holiday_repo: Arc<dyn crate::repositories::holiday_repository::HolidayRepository>,
-    pub leave_request_repo:
-        Arc<dyn crate::repositories::leave_request_repository::LeaveRequestRepository>,
-    pub daily_summary_repo: Arc<dyn crate::repositories::AttendanceDailySummaryRepository>,
     pub raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
     pub shift_repo: Arc<dyn ShiftRepository>,
+    pub summary_service: Arc<dyn SummaryRecalculator>,
 }
 
 impl PairingService {
@@ -51,15 +38,10 @@ impl PairingService {
         Self {
             time_entry_repo: args.time_entry_repo,
             roster_repo: args.roster_repo,
-            policy_repo: args.policy_repo,
-            workspace_repo: args.workspace_repo,
             employee_repo: args.employee_repo,
-            employment_repo: args.employment_repo,
-            holiday_repo: args.holiday_repo,
-            leave_request_repo: args.leave_request_repo,
-            daily_summary_repo: args.daily_summary_repo,
             raw_log_repo: args.raw_log_repo,
             shift_repo: args.shift_repo,
+            summary_service: args.summary_service,
         }
     }
 
@@ -78,9 +60,10 @@ impl PairingService {
 
         if is_duplicate {
             info!(
-                "Deduplicating log {} for employment {}. Found another log with identical timestamp.",
-                log.id(),
-                log.employment_id()
+                workspace_id = %log.workspace_id(),
+                employment_id = %log.employment_id(),
+                log_id = %log.id(),
+                "Deduplicating log. Found another log with identical timestamp."
             );
             return Ok(());
         }
@@ -115,8 +98,11 @@ impl PairingService {
         if local_dt.hour() < 12 {
             let prev_date = local_date - Duration::days(1);
             info!(
-                "Log is early in day ({}), reprocessing previous day {} for overnight checkouts",
-                local_dt, prev_date
+                workspace_id = %log.workspace_id(),
+                employment_id = %log.employment_id(),
+                local_dt = %local_dt,
+                prev_date = %prev_date,
+                "Log is early in day, reprocessing previous day for overnight checkouts"
             );
             self.reprocess_daily_attendance(log.workspace_id(), log.employment_id(), prev_date, tz)
                 .await?;
@@ -135,8 +121,10 @@ impl PairingService {
         tz: Tz,
     ) -> Result<(), AppError> {
         info!(
-            "Reprocessing attendance for emp {} on date {}",
-            employment_id, date
+            workspace_id = %workspace_id,
+            employment_id = %employment_id,
+            date = %date,
+            "Reprocessing daily attendance"
         );
 
         let context = crate::services::pairing_context::PairingContext::new(date, tz);
@@ -187,22 +175,7 @@ impl PairingService {
             self.clear_auto_entries(employment_id, workspace_id, start_of_day_utc, next_day_utc)
                 .await?;
 
-            let summary_svc = crate::services::AttendanceSummaryService::new(
-                crate::services::attendance_summary_service::AttendanceSummaryServiceArgs {
-                    time_entry_repo: Arc::clone(&self.time_entry_repo),
-                    roster_repo: Arc::clone(&self.roster_repo),
-                    policy_repo: Arc::clone(&self.policy_repo),
-                    workspace_repo: Arc::clone(&self.workspace_repo),
-                    employee_repo: Arc::clone(&self.employee_repo),
-                    employment_repo: Arc::clone(&self.employment_repo),
-                    holiday_repo: Arc::clone(&self.holiday_repo),
-                    leave_request_repo: Arc::clone(&self.leave_request_repo),
-                    daily_summary_repo: Arc::clone(&self.daily_summary_repo),
-                },
-            );
-            let _ = summary_svc
-                .recalculate_daily_summary(workspace_id, employment_id, date)
-                .await;
+            self.recalculate_summary_with_retry(workspace_id, employment_id, date).await;
 
             return Ok(());
         }
@@ -286,32 +259,51 @@ impl PairingService {
             )
             .await?;
 
-        // Recalculate daily summary for OT workflow
-        let summary_svc = crate::services::AttendanceSummaryService::new(
-            crate::services::attendance_summary_service::AttendanceSummaryServiceArgs {
-                time_entry_repo: Arc::clone(&self.time_entry_repo),
-                roster_repo: Arc::clone(&self.roster_repo),
-                policy_repo: Arc::clone(&self.policy_repo),
-                workspace_repo: Arc::clone(&self.workspace_repo),
-                employee_repo: Arc::clone(&self.employee_repo),
-                employment_repo: Arc::clone(&self.employment_repo),
-                holiday_repo: Arc::clone(&self.holiday_repo),
-                leave_request_repo: Arc::clone(&self.leave_request_repo),
-                daily_summary_repo: Arc::clone(&self.daily_summary_repo),
-            },
-        );
-        if let Err(e) = summary_svc
-            .recalculate_daily_summary(workspace_id, employment_id, date)
-            .await
-        {
-            tracing::error!(
-                "Failed to recalculate attendance summary for emp {} on {}: {}",
-                employment_id,
-                date,
-                e
-            );
-        }
+        // Recalculate daily summary for OT workflow with retries
+        self.recalculate_summary_with_retry(workspace_id, employment_id, date).await;
         Ok(())
+    }
+
+    async fn recalculate_summary_with_retry(
+        &self,
+        workspace_id: Uuid,
+        employment_id: Uuid,
+        date: NaiveDate,
+    ) {
+        let mut attempts = 0;
+        const MAX_ATTEMPTS: u32 = 3;
+        while attempts < MAX_ATTEMPTS {
+            attempts += 1;
+            match self
+                .summary_service
+                .recalculate_daily_summary(workspace_id, employment_id, date)
+                .await
+            {
+                Ok(()) => break,
+                Err(e) => {
+                    if attempts == MAX_ATTEMPTS {
+                        tracing::error!(
+                            workspace_id = %workspace_id,
+                            employment_id = %employment_id,
+                            date = %date,
+                            error = %e,
+                            "Failed to recalculate attendance summary after {} attempts",
+                            MAX_ATTEMPTS
+                        );
+                    } else {
+                        tracing::warn!(
+                            workspace_id = %workspace_id,
+                            employment_id = %employment_id,
+                            date = %date,
+                            error = %e,
+                            attempt = attempts,
+                            "Temporary failure recalculating attendance summary, retrying..."
+                        );
+                        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                    }
+                }
+            }
+        }
     }
 
     async fn clear_auto_entries(
@@ -386,15 +378,9 @@ impl<'a> ConsumedLogTracker<'a> {
             }
 
             if let Some(metadata) = entry.generation_metadata() {
-                if let Some(log_ids_val) = metadata.get("log_ids") {
-                    if let Some(arr) = log_ids_val.as_array() {
-                        for val in arr {
-                            if let Some(id_str) = val.as_str() {
-                                if let Ok(id) = Uuid::parse_str(id_str) {
-                                    consumed_log_ids.insert(id);
-                                }
-                            }
-                        }
+                if let Ok(paired_meta) = serde_json::from_value::<crate::services::pairing_algo::PairingMetadata>(metadata.clone()) {
+                    for id in paired_meta.log_ids() {
+                        consumed_log_ids.insert(*id);
                     }
                 }
             }
@@ -413,136 +399,13 @@ mod tests {
     use std::sync::Arc;
     use uuid::Uuid;
 
-    use crate::repositories::attendance_policy_repository::MockAttendancePolicyRepository;
-    use crate::repositories::employee::MockEmployeeRepository;
-    use crate::repositories::employment_repository::MockEmploymentRepository;
-    use crate::repositories::holiday_repository::MockHolidayRepository;
-    use crate::repositories::leave_request_repository::MockLeaveRequestRepository;
+        use crate::repositories::employee::MockEmployeeRepository;
     use crate::repositories::raw_attendance_log_repository::MockRawAttendanceLogRepository;
     use crate::repositories::roster::MockRosterRepository;
     use crate::repositories::shift_repository::MockShiftRepository;
     use crate::repositories::time_entry_repository::MockTimeEntryRepository;
-    use crate::repositories::workspace_repository::MockWorkspaceRepository;
 
-    fn mock_employment_repo() -> MockEmploymentRepository {
-        let mut repo = MockEmploymentRepository::new();
-        repo.expect_get_active_employment_on_date()
-            .returning(|_, _, _| Ok(None));
-        repo.expect_get_employment_by_id()
-            .returning(|_, employment_id| {
-                Ok(Some(crate::models::employment::Employment::new(
-                    employment_id,
-                    Uuid::new_v4(),
-                    employment_id,
-                    Uuid::new_v4(),
-                    None,
-                    None,
-                    "active".to_string(),
-                    NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
-                    None,
-                    None,
-                    "full_time".to_string(),
-                    None,
-                    chrono::Utc::now(),
-                    chrono::Utc::now(),
-                )))
-            });
-        repo
-    }
-
-    // We didn't add automock to AttendanceDailySummaryRepository yet, let's use a dummy struct for it.
-    struct DummyDailySummaryRepo;
-    #[async_trait::async_trait]
-    impl crate::repositories::AttendanceDailySummaryRepository for DummyDailySummaryRepo {
-        async fn get_summary(
-            &self,
-            _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _e: Uuid,
-            _d: NaiveDate,
-        ) -> Result<Option<crate::models::AttendanceDailySummary>, AppError> {
-            Ok(None)
-        }
-        async fn get_summary_by_id(
-            &self,
-            _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _id: Uuid,
-        ) -> Result<Option<crate::models::AttendanceDailySummary>, AppError> {
-            Ok(None)
-        }
-        async fn upsert_calculated_summary(
-            &self,
-            _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _e: Uuid,
-            _d: NaiveDate,
-            _a: i32,
-            _s: i32,
-            _n: crate::models::OtStatus,
-            _h: bool,
-            _hn: Option<String>,
-        ) -> Result<(), AppError> {
-            Ok(())
-        }
-        async fn claim_ot(
-            &self,
-            _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _e: Uuid,
-            _d: NaiveDate,
-            _c: i32,
-            _r: Option<String>,
-        ) -> Result<usize, AppError> {
-            Ok(0)
-        }
-        async fn approve_ot(
-            &self,
-            _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _e: Uuid,
-            _d: NaiveDate,
-            _a: i32,
-            _m: Option<String>,
-            _s: crate::models::OtStatus,
-        ) -> Result<usize, AppError> {
-            Ok(0)
-        }
-        async fn upsert_paper_ot(
-            &self,
-            _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _e: Uuid,
-            _d: NaiveDate,
-            _c: i32,
-            _r: String,
-            _u: Uuid,
-            _p: Option<String>,
-        ) -> Result<crate::models::AttendanceDailySummary, AppError> {
-            Err(AppError::Internal("Not implemented".into()))
-        }
-        async fn get_batch_ot_statuses(
-            &self,
-            _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _e: &[Uuid],
-            _s: NaiveDate,
-            _en: NaiveDate,
-        ) -> Result<std::collections::HashMap<(Uuid, NaiveDate), String>, AppError> {
-            Ok(std::collections::HashMap::new())
-        }
-        async fn get_summaries(
-            &self,
-            _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _e: Option<Uuid>,
-            _s: NaiveDate,
-            _en: NaiveDate,
-        ) -> Result<Vec<crate::models::AttendanceDailySummary>, AppError> {
-            Ok(vec![])
-        }
-        async fn get_distinct_work_days_from_summary(
-            &self,
-            _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _e: Uuid,
-            _s: NaiveDate,
-            _en: NaiveDate,
-        ) -> Result<Vec<NaiveDate>, AppError> {
-            Ok(vec![])
-        }
-    }
+    use crate::services::attendance_summary_service::MockSummaryRecalculator;
 
     #[tokio::test]
     async fn test_process_new_raw_log_duplicate() {
@@ -555,15 +418,10 @@ mod tests {
         let service = PairingService::new(PairingServiceArgs {
             time_entry_repo: Arc::new(MockTimeEntryRepository::new()),
             roster_repo: Arc::new(MockRosterRepository::new()),
-            policy_repo: Arc::new(MockAttendancePolicyRepository::new()),
-            workspace_repo: Arc::new(MockWorkspaceRepository::new()),
             employee_repo: Arc::new(MockEmployeeRepository::new()),
-            employment_repo: Arc::new(mock_employment_repo()),
-            holiday_repo: Arc::new(MockHolidayRepository::new()),
-            leave_request_repo: Arc::new(MockLeaveRequestRepository::new()),
-            daily_summary_repo: Arc::new(DummyDailySummaryRepo),
             raw_log_repo: Arc::new(mock_raw_repo),
             shift_repo: Arc::new(MockShiftRepository::new()),
+            summary_service: Arc::new(MockSummaryRecalculator::new()),
         });
 
         let log = crate::models::RawAttendanceLog::new(
@@ -594,15 +452,10 @@ mod tests {
         let service = PairingService::new(PairingServiceArgs {
             time_entry_repo: Arc::new(mock_time_entry_repo),
             roster_repo: Arc::new(MockRosterRepository::new()),
-            policy_repo: Arc::new(MockAttendancePolicyRepository::new()),
-            workspace_repo: Arc::new(MockWorkspaceRepository::new()),
             employee_repo: Arc::new(MockEmployeeRepository::new()),
-            employment_repo: Arc::new(mock_employment_repo()),
-            holiday_repo: Arc::new(MockHolidayRepository::new()),
-            leave_request_repo: Arc::new(MockLeaveRequestRepository::new()),
-            daily_summary_repo: Arc::new(DummyDailySummaryRepo),
             raw_log_repo: Arc::new(MockRawAttendanceLogRepository::new()),
             shift_repo: Arc::new(MockShiftRepository::new()),
+            summary_service: Arc::new(MockSummaryRecalculator::new()),
         });
 
         let result = service
@@ -635,24 +488,19 @@ mod tests {
             .times(1) // Called by clear_auto_entries inside reprocess_daily_attendance
             .returning(|_, _, _, _, _| Ok(()));
 
-        let mut mock_workspace_repo = MockWorkspaceRepository::new();
-        mock_workspace_repo
-            .expect_get_workspace_by_id()
-            .times(1) // Called by AttendanceSummaryService::recalculate_daily_summary
-            .returning(|_| Box::pin(async { Ok(None) }));
+        let mut mock_summary_service = MockSummaryRecalculator::new();
+        mock_summary_service
+            .expect_recalculate_daily_summary()
+            .times(1)
+            .returning(|_, _, _| Ok(()));
 
         let service = PairingService::new(PairingServiceArgs {
             time_entry_repo: Arc::new(mock_time_entry_repo),
             roster_repo: Arc::new(mock_roster_repo),
-            policy_repo: Arc::new(MockAttendancePolicyRepository::new()),
-            workspace_repo: Arc::new(mock_workspace_repo),
             employee_repo: Arc::new(MockEmployeeRepository::new()),
-            employment_repo: Arc::new(mock_employment_repo()),
-            holiday_repo: Arc::new(MockHolidayRepository::new()),
-            leave_request_repo: Arc::new(MockLeaveRequestRepository::new()),
-            daily_summary_repo: Arc::new(DummyDailySummaryRepo),
             raw_log_repo: Arc::new(mock_raw_repo),
             shift_repo: Arc::new(MockShiftRepository::new()),
+            summary_service: Arc::new(mock_summary_service),
         });
 
         let result = service
@@ -754,24 +602,19 @@ mod tests {
                 Box::pin(async move { Ok(vec![l1, l2]) })
             });
 
-        let mut mock_workspace_repo = MockWorkspaceRepository::new();
-        mock_workspace_repo
-            .expect_get_workspace_by_id()
+        let mut mock_summary_service = MockSummaryRecalculator::new();
+        mock_summary_service
+            .expect_recalculate_daily_summary()
             .times(1)
-            .returning(|_| Box::pin(async { Ok(None) }));
+            .returning(|_, _, _| Ok(()));
 
         let service = PairingService::new(PairingServiceArgs {
             time_entry_repo: Arc::new(mock_time_entry_repo),
             roster_repo: Arc::new(mock_roster_repo),
-            policy_repo: Arc::new(MockAttendancePolicyRepository::new()),
-            workspace_repo: Arc::new(mock_workspace_repo),
             employee_repo: Arc::new(MockEmployeeRepository::new()),
-            employment_repo: Arc::new(mock_employment_repo()),
-            holiday_repo: Arc::new(MockHolidayRepository::new()),
-            leave_request_repo: Arc::new(MockLeaveRequestRepository::new()),
-            daily_summary_repo: Arc::new(DummyDailySummaryRepo),
             raw_log_repo: Arc::new(mock_raw_repo),
             shift_repo: Arc::new(MockShiftRepository::new()),
+            summary_service: Arc::new(mock_summary_service),
         });
 
         let result = service

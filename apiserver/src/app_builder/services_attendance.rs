@@ -56,17 +56,12 @@ pub async fn build_attendance_services(
         crate::services::pairing_service::PairingServiceArgs {
             time_entry_repo: Arc::clone(&repos.time_entry),
             roster_repo: Arc::clone(&repos.roster),
-            policy_repo: Arc::clone(&repos.policy),
-            workspace_repo: Arc::clone(&repos.workspace),
             employee_repo: Arc::clone(&repos.employee),
-            employment_repo: Arc::clone(&repos.employment),
-            holiday_repo: Arc::clone(&repos.holiday),
-            leave_request_repo: Arc::clone(&repos.leave_request),
-            daily_summary_repo: Arc::clone(&repos.attendance_daily_summary),
             raw_log_repo: Arc::clone(&repos.raw_log),
             shift_repo: Arc::new(crate::repositories::DieselShiftRepository::new(
                 diesel_pools.clone(),
             )),
+            summary_service: Arc::clone(&attendance_summary) as Arc<dyn crate::services::SummaryRecalculator>,
         },
     ));
 

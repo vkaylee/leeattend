@@ -31,8 +31,8 @@ async fn test_process_log_success_with_timezone() {
     let repo = std::sync::Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
         diesel_pools.clone(),
     ));
-    let pairing = std::sync::Arc::new(apiserver::services::pairing_service::PairingService::new(
-        apiserver::services::pairing_service::PairingServiceArgs {
+    let summary_service = std::sync::Arc::new(apiserver::services::AttendanceSummaryService::new(
+        apiserver::services::attendance_summary_service::AttendanceSummaryServiceArgs {
             time_entry_repo: repo.clone(),
             roster_repo: std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
                 diesel_pools.clone(),
@@ -62,6 +62,17 @@ async fn test_process_log_success_with_timezone() {
                     diesel_pools.clone(),
                 ),
             ),
+        },
+    ));
+    let pairing = std::sync::Arc::new(apiserver::services::pairing_service::PairingService::new(
+        apiserver::services::pairing_service::PairingServiceArgs {
+            time_entry_repo: repo.clone(),
+            roster_repo: std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
+                diesel_pools.clone(),
+            )),
+            employee_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
+            ),
             raw_log_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselRawAttendanceLogRepository::new(
                     diesel_pools.clone(),
@@ -70,6 +81,7 @@ async fn test_process_log_success_with_timezone() {
             shift_repo: std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
                 diesel_pools.clone(),
             )),
+            summary_service: summary_service as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
         },
     ));
     let emp_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> =
@@ -159,8 +171,8 @@ async fn test_same_second_punch_with_different_status_allowed() {
     let repo = std::sync::Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
         diesel_pools.clone(),
     ));
-    let pairing = std::sync::Arc::new(apiserver::services::pairing_service::PairingService::new(
-        apiserver::services::pairing_service::PairingServiceArgs {
+    let summary_service = std::sync::Arc::new(apiserver::services::AttendanceSummaryService::new(
+        apiserver::services::attendance_summary_service::AttendanceSummaryServiceArgs {
             time_entry_repo: repo.clone(),
             roster_repo: std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
                 diesel_pools.clone(),
@@ -190,6 +202,17 @@ async fn test_same_second_punch_with_different_status_allowed() {
                     diesel_pools.clone(),
                 ),
             ),
+        },
+    ));
+    let pairing = std::sync::Arc::new(apiserver::services::pairing_service::PairingService::new(
+        apiserver::services::pairing_service::PairingServiceArgs {
+            time_entry_repo: repo.clone(),
+            roster_repo: std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
+                diesel_pools.clone(),
+            )),
+            employee_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
+            ),
             raw_log_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselRawAttendanceLogRepository::new(
                     diesel_pools.clone(),
@@ -198,6 +221,7 @@ async fn test_same_second_punch_with_different_status_allowed() {
             shift_repo: std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
                 diesel_pools.clone(),
             )),
+            summary_service: summary_service as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
         },
     ));
     let emp_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> =

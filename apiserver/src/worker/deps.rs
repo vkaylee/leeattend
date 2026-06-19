@@ -150,11 +150,11 @@ impl WorkerDeps {
         }
     }
 
-    /// Build a [`PairingService`](crate::services::pairing_service::PairingService)
+    /// Build a [`AttendanceSummaryService`](crate::services::AttendanceSummaryService)
     /// using the shared repository instances.
-    pub fn pairing_service(&self) -> Arc<crate::services::pairing_service::PairingService> {
-        Arc::new(crate::services::pairing_service::PairingService::new(
-            crate::services::pairing_service::PairingServiceArgs {
+    pub fn summary_service(&self) -> Arc<crate::services::AttendanceSummaryService> {
+        Arc::new(crate::services::AttendanceSummaryService::new(
+            crate::services::attendance_summary_service::AttendanceSummaryServiceArgs {
                 time_entry_repo: Arc::clone(&self.time_entry_repo),
                 roster_repo: Arc::clone(&self.roster_repo),
                 policy_repo: Arc::clone(&self.policy_repo),
@@ -164,8 +164,21 @@ impl WorkerDeps {
                 holiday_repo: Arc::clone(&self.holiday_repo),
                 leave_request_repo: Arc::clone(&self.leave_request_repo),
                 daily_summary_repo: Arc::clone(&self.daily_summary_repo),
+            },
+        ))
+    }
+
+    /// Build a [`PairingService`](crate::services::pairing_service::PairingService)
+    /// using the shared repository instances.
+    pub fn pairing_service(&self) -> Arc<crate::services::pairing_service::PairingService> {
+        Arc::new(crate::services::pairing_service::PairingService::new(
+            crate::services::pairing_service::PairingServiceArgs {
+                time_entry_repo: Arc::clone(&self.time_entry_repo),
+                roster_repo: Arc::clone(&self.roster_repo),
+                employee_repo: Arc::clone(&self.employee_repo),
                 raw_log_repo: Arc::clone(&self.raw_log_repo),
                 shift_repo: Arc::clone(&self.shift_repo),
+                summary_service: self.summary_service() as Arc<dyn crate::services::SummaryRecalculator>,
             },
         ))
     }

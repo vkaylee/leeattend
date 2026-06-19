@@ -20,50 +20,50 @@ fn strategy() -> ShiftAwareStrategy {
 
 fn log(minutes: i32) -> LogEvent {
     let id = Uuid::new_v4();
-    LogEvent {
+    LogEvent::new(
         id,
         minutes,
-        raw_data: None,
-        all_ids: vec![id],
-    }
+        None,
+        vec![id],
+    )
 }
 
-const fn day_shift() -> PairingShiftConfig {
-    PairingShiftConfig {
-        start_minutes: 480, // 08:00
-        end_minutes: 1020,  // 17:00
-        break_start_minutes: Some(720),
-        break_end_minutes: Some(780),
-        check_in_buffer_minutes: None,
-        max_session_gap_minutes: None,
-    }
+fn day_shift() -> PairingShiftConfig {
+    PairingShiftConfig::new(
+        480, // 08:00
+        1020,  // 17:00
+        Some(720),
+        Some(780),
+        None,
+        None,
+    )
 }
 
-const fn overnight_shift() -> PairingShiftConfig {
-    PairingShiftConfig {
-        start_minutes: 1320,             // 22:00
-        end_minutes: 1800,               // 06:00 next day (30h from midnight = 1800)
-        break_start_minutes: Some(1560), // 02:00
-        break_end_minutes: Some(1590),   // 02:30
-        check_in_buffer_minutes: None,
-        max_session_gap_minutes: None,
-    }
+fn overnight_shift() -> PairingShiftConfig {
+    PairingShiftConfig::new(
+        1320,             // 22:00
+        1800,               // 06:00 next day (30h from midnight = 1800)
+        Some(1560), // 02:00
+        Some(1590),   // 02:30
+        None,
+        None,
+    )
 }
 
-const fn early_morning_shift() -> PairingShiftConfig {
-    PairingShiftConfig {
-        start_minutes: 360, // 06:00
-        end_minutes: 840,   // 14:00
-        break_start_minutes: None,
-        break_end_minutes: None,
-        check_in_buffer_minutes: None,
-        max_session_gap_minutes: None,
-    }
+fn early_morning_shift() -> PairingShiftConfig {
+    PairingShiftConfig::new(
+        360, // 06:00
+        840,   // 14:00
+        None,
+        None,
+        None,
+        None,
+    )
 }
 
 fn tier(session: &PairedSession) -> String {
     session
-        .metadata
+        .metadata()
         .as_ref()
         .and_then(|m| m["tier"].as_str())
         .unwrap_or("unknown")
@@ -72,7 +72,7 @@ fn tier(session: &PairedSession) -> String {
 
 fn algorithm(session: &PairedSession) -> String {
     session
-        .metadata
+        .metadata()
         .as_ref()
         .and_then(|m| m["algorithm"].as_str())
         .unwrap_or("unknown")
@@ -93,8 +93,8 @@ fn tier2_normal_day_within_window() {
     ];
 
     let sessions = strategy().pair(&logs, &[shift]);
-    assert_eq!(sessions[0].start_minutes, 475);
-    assert_eq!(sessions[0].end_minutes, Some(1025));
+    assert_eq!(sessions[0].start_minutes(), 475);
+    assert_eq!(sessions[0].end_minutes(), Some(1025));
     assert_eq!(tier(&sessions[0]), "shift_window");
 }
 
@@ -108,7 +108,7 @@ fn tier2_early_arrival() {
     ];
 
     let sessions = strategy().pair(&logs, &[shift]);
-    assert_eq!(sessions[0].start_minutes, 390);
+    assert_eq!(sessions[0].start_minutes(), 390);
     assert_eq!(tier(&sessions[0]), "shift_window");
 }
 
@@ -122,7 +122,7 @@ fn tier2_late_departure() {
     ];
 
     let sessions = strategy().pair(&logs, &[shift]);
-    assert_eq!(sessions[0].end_minutes, Some(1080));
+    assert_eq!(sessions[0].end_minutes(), Some(1080));
     assert_eq!(tier(&sessions[0]), "shift_window");
 }
 
@@ -136,8 +136,8 @@ fn tier2_boundary_exact_buffer_edge() {
     ];
 
     let sessions = strategy().pair(&logs, &[shift]);
-    assert_eq!(sessions[0].start_minutes, 360);
-    assert_eq!(sessions[0].end_minutes, Some(1140));
+    assert_eq!(sessions[0].start_minutes(), 360);
+    assert_eq!(sessions[0].end_minutes(), Some(1140));
     assert_eq!(tier(&sessions[0]), "shift_window");
 }
 
@@ -166,9 +166,9 @@ fn tier2_only_checkin_in_window() {
     ];
 
     let sessions = strategy().pair(&logs, &[shift]);
-    assert_eq!(sessions[0].start_minutes, 480);
+    assert_eq!(sessions[0].start_minutes(), 480);
     // "Last Out of day" design: any log after check-in counts as checkout
-    assert_eq!(sessions[0].end_minutes, Some(600));
+    assert_eq!(sessions[0].end_minutes(), Some(600));
     assert_eq!(tier(&sessions[0]), "shift_window");
 }
 
@@ -181,8 +181,8 @@ fn tier2_overnight_shift() {
     ];
 
     let sessions = strategy().pair(&logs, &[shift]);
-    assert_eq!(sessions[0].start_minutes, 1315);
-    assert_eq!(sessions[0].end_minutes, Some(1805));
+    assert_eq!(sessions[0].start_minutes(), 1315);
+    assert_eq!(sessions[0].end_minutes(), Some(1805));
     assert_eq!(tier(&sessions[0]), "shift_window");
 }
 
@@ -195,8 +195,8 @@ fn tier2_early_morning_shift() {
     ];
 
     let sessions = strategy().pair(&logs, &[shift]);
-    assert_eq!(sessions[0].start_minutes, 355);
-    assert_eq!(sessions[0].end_minutes, Some(845));
+    assert_eq!(sessions[0].start_minutes(), 355);
+    assert_eq!(sessions[0].end_minutes(), Some(845));
     assert_eq!(tier(&sessions[0]), "shift_window");
 }
 
@@ -209,8 +209,8 @@ fn tier3_basic_pair() {
     let logs = vec![log(480), log(1020)];
 
     let sessions = strategy().pair(&logs, &[]);
-    assert_eq!(sessions[0].start_minutes, 480);
-    assert_eq!(sessions[0].end_minutes, Some(1020));
+    assert_eq!(sessions[0].start_minutes(), 480);
+    assert_eq!(sessions[0].end_minutes(), Some(1020));
     assert_eq!(tier(&sessions[0]), "anchor_first");
 }
 
@@ -218,8 +218,8 @@ fn tier3_basic_pair() {
 fn tier3_single_log_missing_out() {
     let sessions = strategy().pair(&[log(480)], &[]);
     assert_eq!(sessions.len(), 1);
-    assert!(sessions[0].end_minutes.is_none());
-    assert_eq!(sessions[0].note.as_deref(), Some("Missing Punch Out"));
+    assert!(sessions[0].end_minutes().is_none());
+    assert_eq!(sessions[0].note(), Some("Missing Punch Out"));
 }
 
 #[test]
@@ -231,7 +231,7 @@ fn tier3_16h_limit_within() {
     ];
 
     let sessions = strategy().pair(&logs, &[]);
-    assert_eq!(sessions[0].end_minutes, Some(960));
+    assert_eq!(sessions[0].end_minutes(), Some(960));
 }
 
 #[test]
@@ -240,7 +240,7 @@ fn tier3_16h_limit_exactly_at() {
     let logs = vec![log(0), log(960)];
 
     let sessions = strategy().pair(&logs, &[]);
-    assert_eq!(sessions[0].end_minutes, Some(960));
+    assert_eq!(sessions[0].end_minutes(), Some(960));
 }
 
 #[test]
@@ -249,7 +249,7 @@ fn tier3_16h_limit_exceeded() {
     let logs = vec![log(0), log(1020)];
 
     let sessions = strategy().pair(&logs, &[]);
-    assert!(sessions[0].end_minutes.is_none());
+    assert_eq!(sessions[0].end_minutes().is_none(), true);
 }
 
 #[test]
@@ -263,8 +263,8 @@ fn tier3_many_logs_picks_last_within_limit() {
     ];
 
     let sessions = strategy().pair(&logs, &[]);
-    assert_eq!(sessions[0].start_minutes, 480);
-    assert_eq!(sessions[0].end_minutes, Some(1020));
+    assert_eq!(sessions[0].start_minutes(), 480);
+    assert_eq!(sessions[0].end_minutes(), Some(1020));
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -303,12 +303,12 @@ fn metadata_always_has_algorithm_and_tier() {
 fn metadata_log_ids_are_present() {
     let logs = vec![log(480), log(1020)];
     let sessions = strategy().pair(&logs, &[]);
-    let meta = sessions[0].metadata.as_ref().unwrap();
+    let meta = sessions[0].metadata().unwrap();
     let log_ids = meta["log_ids"].as_array().unwrap();
     assert_eq!(log_ids.len(), 2);
     // IDs should match the input logs
-    assert_eq!(log_ids[0].as_str().unwrap(), logs[0].id.to_string());
-    assert_eq!(log_ids[1].as_str().unwrap(), logs[1].id.to_string());
+    assert_eq!(log_ids[0].as_str().unwrap(), logs[0].id().to_string());
+    assert_eq!(log_ids[1].as_str().unwrap(), logs[1].id().to_string());
 }
 
 #[test]
@@ -323,6 +323,6 @@ fn entry_type_always_work() {
     let t2 = s.pair(&[log(480), log(1020)], &[day_shift()]);
     let t3 = s.pair(&[log(480), log(1020)], &[]);
 
-    assert_eq!(t2[0].entry_type, "work");
-    assert_eq!(t3[0].entry_type, "work");
+    assert_eq!(t2[0].entry_type(), "work");
+    assert_eq!(t3[0].entry_type(), "work");
 }

@@ -4,32 +4,175 @@ use serde::{Deserialize, Serialize};
 pub struct PairingShiftConfig {
     // All times in minutes from midnight (00:00) of the shift start day.
     // Values can be > 1440 (24h) for overnight shifts.
-    pub start_minutes: i32,
-    pub end_minutes: i32,
-    pub break_start_minutes: Option<i32>,
-    pub break_end_minutes: Option<i32>,
-    pub check_in_buffer_minutes: Option<i32>,
-    pub max_session_gap_minutes: Option<i32>,
+    start_minutes: i32,
+    end_minutes: i32,
+    break_start_minutes: Option<i32>,
+    break_end_minutes: Option<i32>,
+    check_in_buffer_minutes: Option<i32>,
+    max_session_gap_minutes: Option<i32>,
+}
+
+impl PairingShiftConfig {
+    pub fn new(
+        start_minutes: i32,
+        end_minutes: i32,
+        break_start_minutes: Option<i32>,
+        break_end_minutes: Option<i32>,
+        check_in_buffer_minutes: Option<i32>,
+        max_session_gap_minutes: Option<i32>,
+    ) -> Self {
+        Self {
+            start_minutes,
+            end_minutes,
+            break_start_minutes,
+            break_end_minutes,
+            check_in_buffer_minutes,
+            max_session_gap_minutes,
+        }
+    }
+
+    pub fn start_minutes(&self) -> i32 {
+        self.start_minutes
+    }
+
+    pub fn end_minutes(&self) -> i32 {
+        self.end_minutes
+    }
+
+    pub fn break_start_minutes(&self) -> Option<i32> {
+        self.break_start_minutes
+    }
+
+    pub fn break_end_minutes(&self) -> Option<i32> {
+        self.break_end_minutes
+    }
+
+    pub fn check_in_buffer_minutes(&self) -> Option<i32> {
+        self.check_in_buffer_minutes
+    }
+
+    pub fn max_session_gap_minutes(&self) -> Option<i32> {
+        self.max_session_gap_minutes
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PairedSession {
     // Minutes from midnight of the analysis date.
     // Can be > 1440 (representing next day).
-    pub start_minutes: i32,
-    pub end_minutes: Option<i32>,
-    pub entry_type: String,
-    pub note: Option<String>,
-    pub is_break_overtime: bool,
-    pub metadata: Option<serde_json::Value>,
+    start_minutes: i32,
+    end_minutes: Option<i32>,
+    entry_type: String,
+    note: Option<String>,
+    is_break_overtime: bool,
+    metadata: Option<serde_json::Value>,
+}
+
+impl PairedSession {
+    pub fn new(
+        start_minutes: i32,
+        end_minutes: Option<i32>,
+        entry_type: String,
+        note: Option<String>,
+        is_break_overtime: bool,
+        metadata: Option<serde_json::Value>,
+    ) -> Self {
+        Self {
+            start_minutes,
+            end_minutes,
+            entry_type,
+            note,
+            is_break_overtime,
+            metadata,
+        }
+    }
+
+    pub fn start_minutes(&self) -> i32 {
+        self.start_minutes
+    }
+
+    pub fn end_minutes(&self) -> Option<i32> {
+        self.end_minutes
+    }
+
+    pub fn entry_type(&self) -> &str {
+        &self.entry_type
+    }
+
+    pub fn note(&self) -> Option<&str> {
+        self.note.as_deref()
+    }
+
+    pub fn is_break_overtime(&self) -> bool {
+        self.is_break_overtime
+    }
+
+    pub fn metadata(&self) -> Option<&serde_json::Value> {
+        self.metadata.as_ref()
+    }
+
+    pub fn into_metadata(self) -> Option<serde_json::Value> {
+        self.metadata
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LogEvent {
-    pub id: uuid::Uuid,
-    pub minutes: i32,
-    pub raw_data: Option<serde_json::Value>,
-    pub all_ids: Vec<uuid::Uuid>,
+    id: uuid::Uuid,
+    minutes: i32,
+    raw_data: Option<serde_json::Value>,
+    all_ids: Vec<uuid::Uuid>,
+}
+
+impl LogEvent {
+    pub fn new(
+        id: uuid::Uuid,
+        minutes: i32,
+        raw_data: Option<serde_json::Value>,
+        all_ids: Vec<uuid::Uuid>,
+    ) -> Self {
+        Self {
+            id,
+            minutes,
+            raw_data,
+            all_ids,
+        }
+    }
+
+    pub fn id(&self) -> uuid::Uuid {
+        self.id
+    }
+
+    pub fn minutes(&self) -> i32 {
+        self.minutes
+    }
+
+    pub fn raw_data(&self) -> Option<&serde_json::Value> {
+        self.raw_data.as_ref()
+    }
+
+    pub fn all_ids(&self) -> &[uuid::Uuid] {
+        &self.all_ids
+    }
+
+    pub fn push_id(&mut self, id: uuid::Uuid) {
+        self.all_ids.push(id);
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PairingMetadata {
+    log_ids: Vec<uuid::Uuid>,
+}
+
+impl PairingMetadata {
+    pub fn new(log_ids: Vec<uuid::Uuid>) -> Self {
+        Self { log_ids }
+    }
+
+    pub fn log_ids(&self) -> &[uuid::Uuid] {
+        &self.log_ids
+    }
 }
 
 const ALGORITHM_NAME: &str = "shift_aware";
@@ -46,6 +189,11 @@ const SHIFT_WINDOW_BUFFER: i32 = 120;
 /// This strategy auto-adapts based on available context:
 /// 1. If a shift config is provided → "First In near shift start, Last Out of day"
 /// 2. Fallback → anchor-first (first log = IN, last within 16h = OUT)
+///
+/// # Limitations (TD-07)
+/// Currently, this algorithm only supports pairing a maximum of one session per day
+/// (either within the shift window or via the fallback strategy). It does not support
+/// multiple independent work sessions (e.g. split shifts, multi-session days).
 pub fn get_strategy() -> ShiftAwareStrategy {
     ShiftAwareStrategy
 }
