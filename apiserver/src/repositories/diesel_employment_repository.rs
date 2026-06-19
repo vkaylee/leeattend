@@ -155,6 +155,94 @@ impl super::EmploymentRepository for DieselEmploymentRepository {
         Ok(updated.into())
     }
 
+    async fn terminate_employment_transactional(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employment_id_val: Uuid,
+        termination_date: chrono::NaiveDate,
+        balances: Vec<crate::models::LeaveBalance>,
+    ) -> Result<Employment, AppError> {
+        use crate::schema::employments::dsl::*;
+        use crate::schema::leave_balances;
+        use bigdecimal::BigDecimal;
+        use diesel_async::AsyncConnection;
+        use std::str::FromStr;
+
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+
+        conn.transaction(|conn| {
+            Box::pin(async move {
+                let update_model = UpdateDieselEmployment {
+                    employer_id: None,
+                    primary_location_id: None,
+                    department_id: None,
+                    status: Some("terminated".to_string()),
+                    start_date: None,
+                    end_date: Some(Some(termination_date)),
+                    job_title: None,
+                    employment_type: None,
+                    manager_employment_id: None,
+                    notes: None,
+                    updated_at: Some(Utc::now()),
+                };
+
+                let updated = diesel::update(
+                    employments
+                        .filter(id.eq(employment_id_val))
+                        .filter(workspace_id.eq(auth_token.workspace_id()))
+                        .filter(deleted_at.is_null()),
+                )
+                .set(&update_model)
+                .get_result::<EmploymentEntity>(&mut *conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("Failed to update employment: {e}")))?;
+
+                for bal in &balances {
+                    let accrued_bd = BigDecimal::from_str(&bal.accrued_amount().to_string())
+                        .unwrap_or_else(|_| BigDecimal::from(0));
+                    let bal_entity = crate::models::diesel::leave::LeaveBalanceEntity {
+                        id: bal.id(),
+                        employment_id: bal.employment_id(),
+                        leave_type_id: bal.leave_type_id(),
+                        year: bal.year(),
+                        entitlement: bal.entitlement(),
+                        accrued_amount: accrued_bd,
+                        carried_over: bal.carried_over(),
+                        created_at: Some(bal.created_at()),
+                        updated_at: Some(bal.updated_at()),
+                    };
+
+                    diesel::insert_into(leave_balances::table)
+                        .values(&bal_entity)
+                        .on_conflict((
+                            leave_balances::employment_id,
+                            leave_balances::leave_type_id,
+                            leave_balances::year,
+                        ))
+                        .do_update()
+                        .set((
+                            leave_balances::entitlement.eq(bal_entity.entitlement),
+                            leave_balances::accrued_amount.eq(bal_entity.accrued_amount.clone()),
+                            leave_balances::carried_over.eq(bal_entity.carried_over),
+                            leave_balances::updated_at.eq(diesel::dsl::now),
+                        ))
+                        .execute(&mut *conn)
+                        .await
+                        .map_err(|e| {
+                            AppError::Internal(format!("Failed to upsert leave balance: {e}"))
+                        })?;
+                }
+
+                Ok::<EmploymentEntity, AppError>(updated)
+            })
+        })
+        .await
+        .map(Into::into)
+    }
+
     async fn delete_employment(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

@@ -54,39 +54,7 @@ impl EmployeeService {
             ));
         }
 
-        // 3. Update the employment status and end date to database
-        let update_req = crate::models::employment::UpdateEmploymentRequest {
-            employer_id: None,
-            primary_location_id: None,
-            department_id: None,
-            status: Some("terminated".to_string()),
-            start_date: None,
-            end_date: Some(Some(termination_date)),
-            job_title: None,
-            employment_type: None,
-            manager_employment_id: None,
-        };
-
-        let updated_employment = self
-            .employment_repo
-            .update_employment(auth_token, employment_id, &update_req)
-            .await?;
-
-        // Trigger offboarding checklist if lifecycle service is registered
-        if let Some(ref lifecycle_service) = self.lifecycle_service {
-            if let Err(e) = lifecycle_service
-                .auto_trigger_offboarding(auth_token.workspace_id(), employment_id, None)
-                .await
-            {
-                tracing::warn!(
-                    "Failed to auto-trigger offboarding checklist for employment {}: {:?}",
-                    employment_id,
-                    e
-                );
-            }
-        }
-
-        // 4. Calculate prorated leave balance for the year of termination
+        // 3. Calculate prorated leave balance for the year of termination
         let year = termination_date.year();
         let start_of_year = NaiveDate::from_ymd_opt(year, 1, 1)
             .ok_or_else(|| AppError::Internal("Invalid start of year".to_string()))?;
@@ -108,7 +76,8 @@ impl EmployeeService {
             .get_employee_balances(auth_token, employment.employee_id(), year)
             .await?;
 
-        // Prorate entitlement for each leave balance and persist
+        // Prorate entitlement for each leave balance
+        let mut balances_to_upsert = Vec::new();
         for emp_bal in balances {
             let prorated_entitlement =
                 (f64::from(emp_bal.entitlement) * proration_fraction).round() as i32;
@@ -124,10 +93,32 @@ impl EmployeeService {
                 Utc::now(),
                 Utc::now(),
             );
+            balances_to_upsert.push(balance);
+        }
 
-            self.leave_balance_repo
-                .upsert_leave_balance(auth_token, &balance)
-                .await?;
+        // 4. Update the employment status, end date, and prorated balances transactionally
+        let updated_employment = self
+            .employment_repo
+            .terminate_employment_transactional(
+                auth_token,
+                employment_id,
+                termination_date,
+                balances_to_upsert,
+            )
+            .await?;
+
+        // Trigger offboarding checklist if lifecycle service is registered
+        if let Some(ref lifecycle_service) = self.lifecycle_service {
+            if let Err(e) = lifecycle_service
+                .auto_trigger_offboarding(auth_token.workspace_id(), employment_id, None)
+                .await
+            {
+                tracing::warn!(
+                    "Failed to auto-trigger offboarding checklist for employment {}: {:?}",
+                    employment_id,
+                    e
+                );
+            }
         }
 
         Ok(updated_employment)

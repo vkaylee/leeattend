@@ -37,6 +37,7 @@ pub mod shift_swap_service;
 pub mod signature_service;
 pub mod template_service;
 pub mod tenant_provisioner;
+pub use tenant_provisioner::{DatabaseMigratorTrait, TenantMigrator, TenantProvisionerTrait};
 pub mod time_tracking_service;
 pub mod working_pattern_service;
 pub mod workspace_config_service;

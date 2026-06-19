@@ -32,6 +32,14 @@ pub trait EmploymentRepository: Send + Sync {
         req: &UpdateEmploymentRequest,
     ) -> Result<Employment, AppError>;
 
+    async fn terminate_employment_transactional(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employment_id: Uuid,
+        termination_date: chrono::NaiveDate,
+        balances: Vec<crate::models::LeaveBalance>,
+    ) -> Result<Employment, AppError>;
+
     async fn delete_employment(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

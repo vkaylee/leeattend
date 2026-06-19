@@ -8,13 +8,14 @@ use std::sync::Arc;
 
 use crate::repositories::system_db_cluster_repository::SystemDbClusterRepository;
 use crate::repositories::workspace_config_repository::WorkspaceConfigRepository;
-use crate::services::tenant_provisioner::TenantProvisionerTrait;
+use crate::services::tenant_provisioner::{DatabaseMigratorTrait, TenantProvisionerTrait};
 pub struct WorkspaceService {
     workspace_repo: Arc<dyn WorkspaceRepository>,
     user_repo: Arc<dyn UserRepository>,
     tenant_provisioner: Arc<dyn TenantProvisionerTrait>,
     system_db_cluster_repo: Arc<dyn SystemDbClusterRepository>,
     workspace_config_repo: Arc<dyn WorkspaceConfigRepository>,
+    database_migrator: Arc<dyn DatabaseMigratorTrait>,
 }
 
 impl WorkspaceService {
@@ -24,6 +25,7 @@ impl WorkspaceService {
         tenant_provisioner: Arc<dyn TenantProvisionerTrait>,
         system_db_cluster_repo: Arc<dyn SystemDbClusterRepository>,
         workspace_config_repo: Arc<dyn WorkspaceConfigRepository>,
+        database_migrator: Arc<dyn DatabaseMigratorTrait>,
     ) -> Self {
         Self {
             workspace_repo,
@@ -31,6 +33,7 @@ impl WorkspaceService {
             tenant_provisioner,
             system_db_cluster_repo,
             workspace_config_repo,
+            database_migrator,
         }
     }
 }
@@ -83,23 +86,10 @@ impl WorkspaceService {
 
             let admin_url = cluster.admin_database_url;
             let tenant_db_name = format!("tenant_{}", id.to_string().replace('-', ""));
-            let create_db_sql = format!("CREATE DATABASE {tenant_db_name}");
 
-            use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
-            let mut conn = AsyncPgConnection::establish(&admin_url)
-                .await
-                .map_err(|e| {
-                    crate::errors::AppError::Internal(format!("Failed to connect to admin DB: {e}"))
-                })?;
-
-            diesel::sql_query(create_db_sql)
-                .execute(&mut conn)
-                .await
-                .map_err(|e| {
-                    crate::errors::AppError::Internal(format!(
-                        "Failed to create tenant database: {e}"
-                    ))
-                })?;
+            self.database_migrator
+                .create_tenant_database(&admin_url, &tenant_db_name)
+                .await?;
 
             // Increment active tenants
             self.system_db_cluster_repo
@@ -669,6 +659,16 @@ mod tests {
             Ok(db_url.to_string())
         }
     }
+    #[async_trait]
+    impl crate::services::tenant_provisioner::DatabaseMigratorTrait for MockTenantProvisioner {
+        async fn create_tenant_database(
+            &self,
+            _admin_url: &str,
+            _db_name: &str,
+        ) -> crate::errors::AppResult<()> {
+            Ok(())
+        }
+    }
 
     fn build_service(user_exists: bool) -> WorkspaceService {
         let mut mock_config_repo =
@@ -679,15 +679,17 @@ mod tests {
         mock_config_repo
             .expect_create_entry()
             .returning(|_, entry| Box::pin(async move { Ok(entry) }));
+        let provisioner = std::sync::Arc::new(MockTenantProvisioner);
         WorkspaceService::new(
             std::sync::Arc::new(MockWorkspaceRepo {
                 workspace: Some(dummy_workspace()),
                 primary_role: Some(Uuid::new_v4()),
             }),
             std::sync::Arc::new(MockUserRepo { user_exists }),
-            std::sync::Arc::new(MockTenantProvisioner),
+            provisioner.clone(),
             std::sync::Arc::new(MockSystemDbClusterRepo),
             std::sync::Arc::new(mock_config_repo),
+            provisioner,
         )
     }
 
@@ -750,6 +752,16 @@ mod tests {
             ))
         }
     }
+    #[async_trait]
+    impl crate::services::tenant_provisioner::DatabaseMigratorTrait for FailingMockTenantProvisioner {
+        async fn create_tenant_database(
+            &self,
+            _admin_url: &str,
+            _db_name: &str,
+        ) -> crate::errors::AppResult<()> {
+            Ok(())
+        }
+    }
 
     fn build_service_with_failing_provisioner() -> WorkspaceService {
         let mut mock_config_repo =
@@ -760,15 +772,17 @@ mod tests {
         mock_config_repo
             .expect_create_entry()
             .returning(|_, entry| Box::pin(async move { Ok(entry) }));
+        let provisioner = std::sync::Arc::new(FailingMockTenantProvisioner);
         WorkspaceService::new(
             std::sync::Arc::new(MockWorkspaceRepo {
                 workspace: Some(dummy_workspace()),
                 primary_role: Some(Uuid::new_v4()),
             }),
             std::sync::Arc::new(MockUserRepo { user_exists: true }),
-            std::sync::Arc::new(FailingMockTenantProvisioner),
+            provisioner.clone(),
             std::sync::Arc::new(MockSystemDbClusterRepo),
             std::sync::Arc::new(mock_config_repo),
+            provisioner,
         )
     }
 

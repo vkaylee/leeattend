@@ -54,38 +54,56 @@ impl ExpiringContractsHandler {
                 continue;
             }
 
-            // 4. Create notifications
+            // 4. Batch-fetch employments and employees to avoid N+1 queries
+            let employment_ids: Vec<uuid::Uuid> = contracts
+                .iter()
+                .map(crate::models::contract::EmployeeContract::employment_id)
+                .collect();
+
+            let employments = deps
+                .employment_repo
+                .get_employments_by_ids(
+                    &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
+                    &employment_ids,
+                )
+                .await
+                .unwrap_or_default();
+
+            let employments_map: std::collections::HashMap<
+                uuid::Uuid,
+                crate::models::employment::Employment,
+            > = employments.into_iter().map(|e| (e.id(), e)).collect();
+
+            let employee_ids: Vec<uuid::Uuid> = employments_map
+                .values()
+                .map(crate::models::employment::Employment::employee_id)
+                .collect();
+
+            let employees = deps
+                .employee_repo
+                .get_employees_by_ids(
+                    &employee_ids,
+                    &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
+                )
+                .await
+                .unwrap_or_default();
+
+            let employees_map: std::collections::HashMap<uuid::Uuid, crate::models::Employee> =
+                employees.into_iter().map(|emp| (emp.id(), emp)).collect();
+
+            // 5. Create notifications
             for contract in contracts {
                 // Ensure end_date exists since we filtered by IS NOT NULL
                 let Some(end_date) = contract.end_date() else {
                     continue;
                 };
 
-                // We need employee code and name for the message. We could fetch employee info
-                let employment = deps
-                    .employment_repo
-                    .get_employment_by_id(
-                        &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
-                        contract.employment_id(),
-                    )
-                    .await
-                    .unwrap_or_default();
-
-                let Some(employment) = employment else {
+                let Some(employment) = employments_map.get(&contract.employment_id()) else {
                     continue;
                 };
                 let employee_id = employment.employee_id();
 
-                let emp = deps
-                    .employee_repo
-                    .get_employee_by_id(
-                        employee_id,
-                        &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
-                    )
-                    .await
-                    .unwrap_or_default();
-
-                let Some(emp) = emp else {
+                let Some(emp) = employees_map.get(&employee_id) else {
                     continue;
                 };
 
@@ -242,19 +260,25 @@ mod tests {
             });
 
         let mut emp_repo = MockEmployeeRepository::new();
-        emp_repo.expect_get_employee_by_id().returning(move |_, _| {
-            Ok(Some(Employee::new(
-                emp_id,
-                ws_id,
-                None,
-                "Test Employee".to_string(),
-                "EMP001".to_string(),
-                vec![],
-                chrono::Utc::now(),
-                chrono::Utc::now(),
-                None,
-            )))
-        });
+        emp_repo
+            .expect_get_employees_by_ids()
+            .returning(move |ids, _| {
+                if ids.contains(&emp_id) {
+                    Ok(vec![Employee::new(
+                        emp_id,
+                        ws_id,
+                        None,
+                        "Test Employee".to_string(),
+                        "EMP001".to_string(),
+                        vec![],
+                        chrono::Utc::now(),
+                        chrono::Utc::now(),
+                        None,
+                    )])
+                } else {
+                    Ok(vec![])
+                }
+            });
 
         let mut user_repo = MockUserRepository::new();
         user_repo
@@ -265,24 +289,28 @@ mod tests {
         let mut employment_repo =
             crate::repositories::employment_repository::MockEmploymentRepository::new();
         employment_repo
-            .expect_get_employment_by_id()
-            .returning(move |_, _| {
-                Ok(Some(crate::models::employment::Employment::new(
-                    employment_id,
-                    ws_id,
-                    emp_id,
-                    Uuid::new_v4(),
-                    None,
-                    None,
-                    "active".to_string(),
-                    NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
-                    None,
-                    None,
-                    "full_time".to_string(),
-                    None,
-                    chrono::Utc::now(),
-                    chrono::Utc::now(),
-                )))
+            .expect_get_employments_by_ids()
+            .returning(move |_, ids| {
+                if ids.contains(&employment_id) {
+                    Ok(vec![crate::models::employment::Employment::new(
+                        employment_id,
+                        ws_id,
+                        emp_id,
+                        Uuid::new_v4(),
+                        None,
+                        None,
+                        "active".to_string(),
+                        NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                        None,
+                        None,
+                        "full_time".to_string(),
+                        None,
+                        chrono::Utc::now(),
+                        chrono::Utc::now(),
+                    )])
+                } else {
+                    Ok(vec![])
+                }
             });
 
         let mut builder = MockWorkerDepsBuilder::new();

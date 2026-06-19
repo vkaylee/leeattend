@@ -649,66 +649,70 @@ impl AttendanceImportService {
             }
         };
 
-        for workspace in workspaces {
-            let Ok(jobs) = self
-                .import_repo
-                .get_pending_jobs(&crate::diesel_pool::TenantAuthToken::system_override(
-                    workspace.id(),
-                ))
-                .await
-            else {
-                continue;
-            };
+        use futures_util::stream::StreamExt;
 
-            let mut failed_jobs = Vec::new();
-
-            for job in jobs {
-                if !Self::should_resume_job(&job.target_type) {
-                    continue;
-                }
-
-                let Some(file_path) = &job.file_path else {
-                    failed_jobs.push((
-                        job.id,
-                        job.processed_rows,
-                        ImportJobStatus::Failed,
-                        Some("Missing file path".to_string()),
-                    ));
-                    continue;
+        futures_util::stream::iter(workspaces)
+            .map(|workspace| async move {
+                let ws_id = workspace.id();
+                let Ok(jobs) = self
+                    .import_repo
+                    .get_pending_jobs(&crate::diesel_pool::TenantAuthToken::system_override(ws_id))
+                    .await
+                else {
+                    return;
                 };
 
-                if !tokio::fs::try_exists(file_path).await.unwrap_or(false) {
-                    failed_jobs.push((
+                let mut failed_jobs = Vec::new();
+
+                for job in jobs {
+                    if !Self::should_resume_job(&job.target_type) {
+                        continue;
+                    }
+
+                    let Some(file_path) = &job.file_path else {
+                        failed_jobs.push((
+                            job.id,
+                            job.processed_rows,
+                            ImportJobStatus::Failed,
+                            Some("Missing file path".to_string()),
+                        ));
+                        continue;
+                    };
+
+                    if !tokio::fs::try_exists(file_path).await.unwrap_or(false) {
+                        failed_jobs.push((
+                            job.id,
+                            job.processed_rows,
+                            ImportJobStatus::Failed,
+                            Some("Could not read file: Not found or inaccessible".to_string()),
+                        ));
+                        continue;
+                    }
+
+                    info!(
+                        "Resuming import job: {} (target: {})",
                         job.id,
-                        job.processed_rows,
-                        ImportJobStatus::Failed,
-                        Some("Could not read file: Not found or inaccessible".to_string()),
-                    ));
-                    continue;
+                        job.target_type.to_string()
+                    );
+                    let svc = self.clone();
+                    tokio::spawn(async move {
+                        let _ = svc.process_job(ws_id, job.id).await;
+                    });
                 }
 
-                info!(
-                    "Resuming import job: {} (target: {})",
-                    job.id,
-                    job.target_type.to_string()
-                );
-                let svc = self.clone();
-                let ws_id = workspace.id();
-                tokio::spawn(async move {
-                    let _ = svc.process_job(ws_id, job.id).await;
-                });
-            }
-
-            if !failed_jobs.is_empty() {
-                let _ = self
-                    .import_repo
-                    .batch_update_job_progress(
-                        &crate::diesel_pool::TenantAuthToken::system_override(workspace.id()),
-                        failed_jobs,
-                    )
-                    .await;
-            }
-        }
+                if !failed_jobs.is_empty() {
+                    let _ = self
+                        .import_repo
+                        .batch_update_job_progress(
+                            &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
+                            failed_jobs,
+                        )
+                        .await;
+                }
+            })
+            .buffer_unordered(5)
+            .collect::<Vec<()>>()
+            .await;
     }
 
     #[tracing::instrument(skip(self))]

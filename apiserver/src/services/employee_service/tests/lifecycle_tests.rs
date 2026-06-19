@@ -73,9 +73,6 @@ async fn test_terminate_employment_success() -> Result<(), Box<dyn std::error::E
         Utc::now(),
         Utc::now(),
     );
-    mock_employment_repo
-        .expect_update_employment()
-        .returning(move |_, _, _| Ok(mock_emp_terminated.clone()));
 
     // 2. Mock Leave Balances
     let mut mock_leave_balance_repo =
@@ -96,13 +93,15 @@ async fn test_terminate_employment_success() -> Result<(), Box<dyn std::error::E
         .expect_get_employee_balances()
         .returning(move |_, _, _| Ok(mock_balances.clone()));
 
-    mock_leave_balance_repo
-        .expect_upsert_leave_balance()
-        .returning(|_, balance| {
+    let mock_emp_terminated_clone = mock_emp_terminated.clone();
+    mock_employment_repo
+        .expect_terminate_employment_transactional()
+        .returning(move |_, _, _, balances| {
+            assert_eq!(balances.len(), 1);
             // Assert that entitlement has been prorated.
             // From 2026-01-01 to 2026-06-30 is 181 days. 181 / 365 * 12 = 5.95 -> round to 6.
-            assert_eq!(balance.entitlement(), 6);
-            Ok(())
+            assert_eq!(balances[0].entitlement(), 6);
+            Ok(mock_emp_terminated_clone.clone())
         });
 
     // 3. Create service and run

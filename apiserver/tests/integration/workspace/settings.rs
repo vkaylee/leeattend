@@ -22,6 +22,17 @@ impl TenantProvisionerTrait for DummyTenantProvisioner {
     }
 }
 
+#[async_trait::async_trait]
+impl apiserver::services::tenant_provisioner::DatabaseMigratorTrait for DummyTenantProvisioner {
+    async fn create_tenant_database(
+        &self,
+        _admin_url: &str,
+        _db_name: &str,
+    ) -> Result<(), apiserver::errors::AppError> {
+        Ok(())
+    }
+}
+
 struct DummySystemDbClusterRepository;
 #[async_trait::async_trait]
 impl apiserver::repositories::system_db_cluster_repository::SystemDbClusterRepository
@@ -146,12 +157,14 @@ async fn test_update_workspace_time_format() {
     let workspace_config_repo = std::sync::Arc::new(
         apiserver::repositories::diesel_workspace_config_repository::DieselWorkspaceConfigRepository::new(diesel_pools.clone()),
     );
+    let dummy_migrator = std::sync::Arc::new(DummyTenantProvisioner);
     let updated_ws = WorkspaceService::new(
         workspace_repo.clone(),
         user_repo.clone(),
-        std::sync::Arc::new(DummyTenantProvisioner),
+        dummy_migrator.clone(),
         std::sync::Arc::new(DummySystemDbClusterRepository),
         workspace_config_repo.clone(),
+        dummy_migrator,
     )
     .update_workspace(
         apiserver::services::workspace_service::UpdateWorkspaceArgs {
@@ -201,12 +214,14 @@ async fn test_update_workspace_all_fields() {
     let workspace_config_repo = std::sync::Arc::new(
         apiserver::repositories::diesel_workspace_config_repository::DieselWorkspaceConfigRepository::new(diesel_pools.clone()),
     );
+    let dummy_migrator = std::sync::Arc::new(DummyTenantProvisioner);
     let updated_ws = WorkspaceService::new(
         workspace_repo.clone(),
         user_repo.clone(),
-        std::sync::Arc::new(DummyTenantProvisioner),
+        dummy_migrator.clone(),
         std::sync::Arc::new(DummySystemDbClusterRepository),
         workspace_config_repo.clone(),
+        dummy_migrator,
     )
     .update_workspace(
         apiserver::services::workspace_service::UpdateWorkspaceArgs {
@@ -251,12 +266,14 @@ async fn test_update_workspace_no_fields() {
     let workspace_config_repo = std::sync::Arc::new(
         apiserver::repositories::diesel_workspace_config_repository::DieselWorkspaceConfigRepository::new(diesel_pools.clone()),
     );
+    let dummy_migrator = std::sync::Arc::new(DummyTenantProvisioner);
     let result = WorkspaceService::new(
         workspace_repo.clone(),
         user_repo.clone(),
-        std::sync::Arc::new(DummyTenantProvisioner),
+        dummy_migrator.clone(),
         std::sync::Arc::new(DummySystemDbClusterRepository),
         workspace_config_repo.clone(),
+        dummy_migrator,
     )
     .update_workspace(
         apiserver::services::workspace_service::UpdateWorkspaceArgs {
@@ -318,12 +335,14 @@ async fn test_update_workspace_syncs_headquarters_timezone() {
     let workspace_config_repo = std::sync::Arc::new(
         apiserver::repositories::diesel_workspace_config_repository::DieselWorkspaceConfigRepository::new(diesel_pools.clone()),
     );
+    let dummy_migrator = std::sync::Arc::new(DummyTenantProvisioner);
     let _updated_ws = WorkspaceService::new(
         workspace_repo.clone(),
         user_repo.clone(),
-        std::sync::Arc::new(DummyTenantProvisioner),
+        dummy_migrator.clone(),
         std::sync::Arc::new(DummySystemDbClusterRepository),
         workspace_config_repo.clone(),
+        dummy_migrator,
     )
     .update_workspace(
         apiserver::services::workspace_service::UpdateWorkspaceArgs {

@@ -33,6 +33,17 @@ impl TenantProvisionerTrait for DummyTenantProvisioner {
     }
 }
 
+#[async_trait::async_trait]
+impl apiserver::services::tenant_provisioner::DatabaseMigratorTrait for DummyTenantProvisioner {
+    async fn create_tenant_database(
+        &self,
+        _admin_url: &str,
+        _db_name: &str,
+    ) -> Result<(), apiserver::errors::AppError> {
+        Ok(())
+    }
+}
+
 pub struct DummySystemDbClusterRepository;
 #[async_trait::async_trait]
 impl apiserver::repositories::system_db_cluster_repository::SystemDbClusterRepository
@@ -421,13 +432,15 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     let shift_service = Arc::new(apiserver::services::shift_service::ShiftService::new(
         shift_repo.clone(),
     ));
+    let dummy_migrator = std::sync::Arc::new(DummyTenantProvisioner);
     let workspace_service = Arc::new(
         apiserver::services::workspace_service::WorkspaceService::new(
             workspace_repo.clone(),
             user_repo.clone(),
-            std::sync::Arc::new(DummyTenantProvisioner),
+            dummy_migrator.clone(),
             std::sync::Arc::new(DummySystemDbClusterRepository),
             workspace_config_repo.clone(),
+            dummy_migrator,
         ),
     );
     let leave_accrual_log_repo: Arc<
@@ -1137,13 +1150,15 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
     let shift_service = Arc::new(apiserver::services::shift_service::ShiftService::new(
         shift_repo.clone(),
     ));
+    let dummy_migrator = std::sync::Arc::new(DummyTenantProvisioner);
     let workspace_service = Arc::new(
         apiserver::services::workspace_service::WorkspaceService::new(
             workspace_repo.clone(),
             user_repo.clone(),
-            std::sync::Arc::new(DummyTenantProvisioner),
+            dummy_migrator.clone(),
             std::sync::Arc::new(DummySystemDbClusterRepository),
             workspace_config_repo.clone(),
+            dummy_migrator,
         ),
     );
     let leave_accrual_log_repo: Arc<
@@ -1902,13 +1917,15 @@ pub async fn setup_app_tower_internal_extended(
     let shift_service = Arc::new(apiserver::services::shift_service::ShiftService::new(
         shift_repo.clone(),
     ));
+    let dummy_migrator = std::sync::Arc::new(DummyTenantProvisioner);
     let workspace_service = Arc::new(
         apiserver::services::workspace_service::WorkspaceService::new(
             workspace_repo.clone(),
             user_repo.clone(),
-            std::sync::Arc::new(DummyTenantProvisioner),
+            dummy_migrator.clone(),
             std::sync::Arc::new(DummySystemDbClusterRepository),
             workspace_config_repo.clone(),
+            dummy_migrator,
         ),
     );
     let leave_accrual_log_repo: Arc<

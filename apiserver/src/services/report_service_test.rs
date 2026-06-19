@@ -1435,6 +1435,16 @@ mod tests {
                 })
                 .collect())
         }
+
+        async fn terminate_employment_transactional(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employment_id: Uuid,
+            _termination_date: chrono::NaiveDate,
+            _balances: Vec<crate::models::LeaveBalance>,
+        ) -> Result<crate::models::employment::Employment, AppError> {
+            unimplemented!()
+        }
     }
 
     #[tokio::test]

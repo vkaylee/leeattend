@@ -15,6 +15,13 @@ pub trait TenantProvisionerTrait: Send + Sync {
     async fn provision_tenant_db(&self, workspace_id: &Uuid, db_url: &str) -> AppResult<String>;
 }
 
+#[async_trait]
+pub trait DatabaseMigratorTrait: Send + Sync {
+    /// Encapsulates direct connection to establish/create tenant database,
+    /// decoupling the service layer from direct connection management.
+    async fn create_tenant_database(&self, admin_url: &str, db_name: &str) -> AppResult<()>;
+}
+
 /// Runs tenant migrations on an already-existing database.
 ///
 /// This is the default (and currently only) implementation of
@@ -27,6 +34,25 @@ pub struct TenantMigrator;
 impl TenantMigrator {
     pub fn new() -> Self {
         Self
+    }
+}
+
+#[async_trait]
+impl DatabaseMigratorTrait for TenantMigrator {
+    async fn create_tenant_database(&self, admin_url: &str, db_name: &str) -> AppResult<()> {
+        let create_db_sql = format!("CREATE DATABASE {db_name}");
+        use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
+
+        let mut conn = AsyncPgConnection::establish(admin_url)
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to connect to admin DB: {e}")))?;
+
+        diesel::sql_query(create_db_sql)
+            .execute(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to create tenant database: {e}")))?;
+
+        Ok(())
     }
 }
 
