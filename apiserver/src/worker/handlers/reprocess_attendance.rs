@@ -56,39 +56,36 @@ impl ReprocessAttendanceHandler {
         // Initialize pairing service from shared deps
         let pairing_service = deps.pairing_service();
 
-        let mut current_date = payload.date_range.start;
-        let end_date = payload.date_range.end;
         let mut success_count = 0;
         let mut error_count = 0;
 
-        while current_date <= end_date {
-            let tz: Tz = deps
-                .employee_repo
-                .get_employee_timezone_at_date(&auth_token, active_employment_id, current_date)
-                .await
-                .unwrap_or(chrono_tz::UTC);
+        let tz: Tz = deps
+            .employee_repo
+            .get_employee_timezone_fallback(&auth_token, active_employment_id)
+            .await
+            .unwrap_or(chrono_tz::UTC);
 
-            match pairing_service
-                .reprocess_daily_attendance(
-                    job.workspace_id,
-                    active_employment_id,
-                    current_date,
-                    tz,
-                )
-                .await
-            {
-                Ok(()) => success_count += 1,
-                Err(e) => {
-                    warn!(
-                        employee_id = %payload.employee_id,
-                        date = %current_date,
-                        error = %e,
-                        "Failed to reprocess attendance for date"
-                    );
-                    error_count += 1;
-                }
+        match pairing_service
+            .reprocess_attendance_range(
+                job.workspace_id,
+                active_employment_id,
+                payload.date_range.start,
+                payload.date_range.end,
+                tz,
+            )
+            .await
+        {
+            Ok(()) => {
+                success_count = (payload.date_range.end - payload.date_range.start).num_days() + 1;
             }
-            current_date = current_date.succ_opt().unwrap_or(current_date);
+            Err(e) => {
+                warn!(
+                    employee_id = %payload.employee_id,
+                    error = %e,
+                    "Failed to reprocess attendance range"
+                );
+                error_count = (payload.date_range.end - payload.date_range.start).num_days() + 1;
+            }
         }
 
         info!(
@@ -124,6 +121,7 @@ mod tests {
         let ws_id = Uuid::new_v4();
         let parent_job_id = Uuid::new_v4();
         let emp_id = Uuid::new_v4();
+        let employment_id = Uuid::new_v4();
 
         let mut queue = MockQueueRepository::new();
         queue.expect_get_job_metadata().returning(|_| Ok(None));
@@ -140,14 +138,74 @@ mod tests {
         daily_summary_repo
             .expect_upsert_calculated_summary()
             .returning(|_, _, _, _, _, _, _, _| Ok(()));
+        daily_summary_repo
+            .expect_get_summary()
+            .returning(|_, _, _| Ok(None));
 
         let mut roster_repo = MockRosterRepository::new();
         roster_repo
             .expect_get_effective_shift()
             .returning(|_, _, _| Box::pin(async { Ok((None, vec![])) }));
-        roster_repo
-            .expect_get_workspace_schedules()
-            .returning(|_, _, _, _, _| Box::pin(async { Ok(vec![]) }));
+
+        let sched_emp_id = emp_id;
+        let sched_employment_id = employment_id;
+        roster_repo.expect_get_workspace_schedules().returning(
+            move |_, _, start_date, end_date, _| {
+                let schedules = vec![
+                    crate::models::EffectiveSchedule {
+                        date: start_date,
+                        shift_id: None,
+                        source: "none".to_string(),
+                        shift_name: None,
+                        shift_symbol: None,
+                        start_time: None,
+                        end_time: None,
+                        break_duration_minutes: None,
+                        break_start: None,
+                        break_end: None,
+                        is_break_auto_deduct: None,
+                        early_punch_in_grace_period_minutes: None,
+                        allow_early_ot: None,
+                        break_is_overtime: None,
+                        max_early_ot_minutes: None,
+                        traces: vec![],
+                        is_holiday: false,
+                        is_holiday_paid: false,
+                        holiday_name: None,
+                    },
+                    crate::models::EffectiveSchedule {
+                        date: end_date,
+                        shift_id: None,
+                        source: "none".to_string(),
+                        shift_name: None,
+                        shift_symbol: None,
+                        start_time: None,
+                        end_time: None,
+                        break_duration_minutes: None,
+                        break_start: None,
+                        break_end: None,
+                        is_break_auto_deduct: None,
+                        early_punch_in_grace_period_minutes: None,
+                        allow_early_ot: None,
+                        break_is_overtime: None,
+                        max_early_ot_minutes: None,
+                        traces: vec![],
+                        is_holiday: false,
+                        is_holiday_paid: false,
+                        holiday_name: None,
+                    },
+                ];
+                Box::pin(async move {
+                    Ok(vec![crate::models::EmployeeSchedule {
+                        employment_id: sched_employment_id,
+                        employee_id: sched_emp_id,
+                        employee_id_number: "EMP001".to_string(),
+                        full_name: "Test Employee".to_string(),
+                        schedules,
+                    }])
+                })
+            },
+        );
 
         let mut workspace_repo =
             crate::repositories::workspace_repository::MockWorkspaceRepository::new();
@@ -176,7 +234,6 @@ mod tests {
         builder.time_entry_repo = time_entry_repo;
         builder.daily_summary_repo = daily_summary_repo;
 
-        let employment_id = Uuid::new_v4();
         let mut emp_repo = crate::repositories::employee::MockEmployeeRepository::new();
         emp_repo.expect_get_employee_by_id().returning(move |_, _| {
             Ok(Some(
@@ -217,6 +274,40 @@ mod tests {
             .expect_get_approved_leave_dates()
             .returning(|_, _, _, _| Box::pin(async { Ok(std::collections::HashSet::new()) }));
         builder.leave_request_repo = leave_repo;
+
+        let mut employment_repo =
+            crate::repositories::employment_repository::MockEmploymentRepository::new();
+        employment_repo
+            .expect_get_active_employment_on_date()
+            .returning(|_, _, _| Ok(None));
+        employment_repo
+            .expect_get_employment_by_id()
+            .returning(|_, employment_id| {
+                Ok(Some(crate::models::employment::Employment::new(
+                    employment_id,
+                    uuid::Uuid::new_v4(),
+                    employment_id,
+                    uuid::Uuid::new_v4(),
+                    None,
+                    None,
+                    "active".to_string(),
+                    chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap(),
+                    None,
+                    None,
+                    "full_time".to_string(),
+                    None,
+                    chrono::Utc::now(),
+                    chrono::Utc::now(),
+                )))
+            });
+        builder.employment_repo = employment_repo;
+
+        let mut holiday_repo =
+            crate::repositories::holiday_repository::MockHolidayRepository::new();
+        holiday_repo
+            .expect_is_holiday()
+            .returning(|_, _, _| Box::pin(async { Ok(None) }));
+        builder.holiday_repo = holiday_repo;
 
         let deps = builder.build();
 

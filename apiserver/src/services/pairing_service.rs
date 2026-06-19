@@ -113,6 +113,196 @@ impl PairingService {
     }
 
     #[tracing::instrument(skip_all, err)]
+    pub async fn reprocess_attendance_range(
+        &self,
+        workspace_id: Uuid,
+        employment_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+        tz: Tz,
+    ) -> Result<(), AppError> {
+        info!(
+            workspace_id = %workspace_id,
+            employment_id = %employment_id,
+            start_date = %start_date,
+            end_date = %end_date,
+            "Reprocessing range attendance"
+        );
+
+        let auth_token = TenantAuthToken::system_override(workspace_id);
+
+        // 1. Fetch effective schedules for the range
+        let schedules = self
+            .roster_repo
+            .get_workspace_schedules(
+                None,
+                &auth_token,
+                start_date,
+                end_date,
+                Some(&vec![employment_id]),
+            )
+            .await?;
+
+        let emp_sched = schedules.first().ok_or_else(|| {
+            AppError::Internal(format!(
+                "No schedule found for employee {employment_id} in range {start_date} to {end_date}"
+            ))
+        })?;
+
+        // 2. Determine raw log fetching window
+        // To be safe, we calculate fetch window for the entire range.
+        // We find the earliest local start of day and latest local next day.
+        let range_start_local = crate::utils::tz::local_to_tz(&tz, start_date, 0, 0, 0)?;
+        let range_end_local =
+            crate::utils::tz::local_to_tz(&tz, end_date + Duration::days(1), 0, 0, 0)?;
+
+        // Buffers around the search window to ensure overnight punches are captured
+        // We can use 12 hours (720 minutes) on both sides
+        let start_search_utc = (range_start_local - Duration::hours(12)).with_timezone(&Utc);
+        let end_search_utc = (range_end_local + Duration::hours(12)).with_timezone(&Utc);
+
+        // Fetch raw logs once
+        let raw_logs = self
+            .raw_log_repo
+            .get_employment_logs_in_time_range(
+                workspace_id,
+                employment_id,
+                start_search_utc,
+                end_search_utc,
+            )
+            .await?;
+
+        // Fetch adjacent time entries once: from start_date - 2 days to end_date + 2 days
+        let search_start_utc = (range_start_local - Duration::days(2)).with_timezone(&Utc);
+        let search_end_utc = (range_end_local + Duration::days(2)).with_timezone(&Utc);
+
+        let adjacent_entries = self
+            .time_entry_repo
+            .get_employment_time_entries(
+                &auth_token,
+                employment_id,
+                search_start_utc,
+                search_end_utc,
+            )
+            .await?;
+
+        // 3. Process each day in range
+        let mut new_entries_accumulated = Vec::new();
+        let mut curr_date = start_date;
+
+        while curr_date <= end_date {
+            // Find EffectiveSchedule for curr_date
+            if let Some(sched) = emp_sched.schedules.iter().find(|s| s.date == curr_date) {
+                let day_new_entries = Self::process_single_day_in_range(
+                    curr_date,
+                    tz,
+                    workspace_id,
+                    employment_id,
+                    sched,
+                    &raw_logs,
+                    &adjacent_entries,
+                )?;
+                new_entries_accumulated.extend(day_new_entries);
+            }
+
+            curr_date = curr_date.succ_opt().unwrap_or(curr_date);
+        }
+
+        // 4. Save
+        let range_start_utc = range_start_local.with_timezone(&Utc);
+        let range_end_utc = range_end_local.with_timezone(&Utc);
+
+        self.time_entry_repo
+            .replace_time_entries(
+                &auth_token,
+                employment_id,
+                range_start_utc,
+                range_end_utc,
+                new_entries_accumulated,
+            )
+            .await?;
+
+        // 5. Recalculate daily summary for OT workflow with retries for each day
+        let mut curr_date = start_date;
+        while curr_date <= end_date {
+            self.recalculate_summary_with_retry(workspace_id, employment_id, curr_date)
+                .await;
+            curr_date = curr_date.succ_opt().unwrap_or(curr_date);
+        }
+
+        Ok(())
+    }
+
+    fn process_single_day_in_range(
+        curr_date: NaiveDate,
+        tz: Tz,
+        workspace_id: Uuid,
+        employment_id: Uuid,
+        sched: &crate::models::schedule::EffectiveSchedule,
+        raw_logs: &[RawAttendanceLog],
+        adjacent_entries: &[TimeEntry],
+    ) -> Result<Vec<TimeEntry>, AppError> {
+        let context = crate::services::pairing_context::PairingContext::new(curr_date, tz);
+        let shift_config = context.build_shift_config_from_schedule(sched);
+
+        // Calculate fetch window for this specific day
+        let (window_start_utc, window_end_utc) =
+            context.calculate_fetch_window(shift_config.as_ref())?;
+
+        // Exclude logs consumed by adjacent days (excluding current date)
+        let mut consumed_log_ids = std::collections::HashSet::new();
+        for entry in adjacent_entries {
+            let entry_local = entry.punch_in_time().with_timezone(&tz);
+            if entry_local.date_naive() == curr_date {
+                continue;
+            }
+
+            if let Some(metadata) = entry.generation_metadata() {
+                if let Ok(paired_meta) = serde_json::from_value::<
+                    crate::services::pairing_algo::PairingMetadata,
+                >(metadata.clone())
+                {
+                    for id in paired_meta.log_ids() {
+                        consumed_log_ids.insert(*id);
+                    }
+                }
+            }
+        }
+
+        let filtered_raw_logs: Vec<RawAttendanceLog> = raw_logs
+            .iter()
+            .filter(|log| {
+                log.punch_time() >= window_start_utc && log.punch_time() <= window_end_utc
+            })
+            .filter(|log| !consumed_log_ids.contains(&log.id()))
+            .cloned()
+            .collect();
+
+        let filtered_log_events = context.build_log_events(&filtered_raw_logs)?;
+
+        if filtered_log_events.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let strategy = pairing_algo::get_strategy();
+        let shift_configs = if let Some(ref config) = shift_config {
+            vec![config.clone()]
+        } else {
+            vec![]
+        };
+        let sessions = strategy.pair(&filtered_log_events, &shift_configs);
+
+        let traces_val = serde_json::json!(sched.traces);
+        context.build_time_entries(
+            workspace_id,
+            employment_id,
+            sched.shift_id,
+            sessions,
+            &traces_val,
+        )
+    }
+
+    #[tracing::instrument(skip_all, err)]
     pub async fn reprocess_daily_attendance(
         &self,
         workspace_id: Uuid,
@@ -616,5 +806,115 @@ mod tests {
             .await;
 
         assert!(result.is_ok(), "Reprocess failed: {:?}", result.err());
+    }
+
+    #[tokio::test]
+    async fn test_reprocess_attendance_range_success() {
+        let ws_id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+        let start_date = NaiveDate::from_ymd_opt(2026, 6, 18).unwrap();
+        let end_date = NaiveDate::from_ymd_opt(2026, 6, 19).unwrap();
+
+        // 1. Mock Roster repo to return schedules for the range
+        let mut mock_roster_repo = MockRosterRepository::new();
+        let sched_emp_id = emp_id;
+        mock_roster_repo
+            .expect_get_workspace_schedules()
+            .times(1)
+            .returning(move |_, _, s_date, e_date, _| {
+                let schedules = vec![
+                    crate::models::EffectiveSchedule {
+                        date: s_date,
+                        shift_id: None,
+                        source: "none".to_string(),
+                        shift_name: None,
+                        shift_symbol: None,
+                        start_time: None,
+                        end_time: None,
+                        break_duration_minutes: None,
+                        break_start: None,
+                        break_end: None,
+                        is_break_auto_deduct: None,
+                        early_punch_in_grace_period_minutes: None,
+                        allow_early_ot: None,
+                        break_is_overtime: None,
+                        max_early_ot_minutes: None,
+                        traces: vec![],
+                        is_holiday: false,
+                        is_holiday_paid: false,
+                        holiday_name: None,
+                    },
+                    crate::models::EffectiveSchedule {
+                        date: e_date,
+                        shift_id: None,
+                        source: "none".to_string(),
+                        shift_name: None,
+                        shift_symbol: None,
+                        start_time: None,
+                        end_time: None,
+                        break_duration_minutes: None,
+                        break_start: None,
+                        break_end: None,
+                        is_break_auto_deduct: None,
+                        early_punch_in_grace_period_minutes: None,
+                        allow_early_ot: None,
+                        break_is_overtime: None,
+                        max_early_ot_minutes: None,
+                        traces: vec![],
+                        is_holiday: false,
+                        is_holiday_paid: false,
+                        holiday_name: None,
+                    },
+                ];
+                Box::pin(async move {
+                    Ok(vec![crate::models::EmployeeSchedule {
+                        employment_id: sched_emp_id,
+                        employee_id: sched_emp_id,
+                        employee_id_number: "EMP001".to_string(),
+                        full_name: "Test Employee".to_string(),
+                        schedules,
+                    }])
+                })
+            });
+
+        // 2. Mock raw log repo to return logs
+        let mut mock_raw_repo = MockRawAttendanceLogRepository::new();
+        mock_raw_repo
+            .expect_get_employment_logs_in_time_range()
+            .times(1)
+            .returning(|_, _, _, _| Box::pin(async { Ok(vec![]) }));
+
+        // 3. Mock time entry repo to return empty adjacents and allow replacement
+        let mut mock_time_entry_repo = MockTimeEntryRepository::new();
+        mock_time_entry_repo
+            .expect_get_employment_time_entries()
+            .times(1)
+            .returning(|_, _, _, _| Ok(vec![]));
+        mock_time_entry_repo
+            .expect_replace_time_entries()
+            .times(1)
+            .returning(|_, _, _, _, _| Ok(()));
+
+        // 4. Mock summary service to recalculate summaries for both days in range
+        let mut mock_summary_service = MockSummaryRecalculator::new();
+        mock_summary_service
+            .expect_recalculate_daily_summary()
+            .times(2) // Once for 2026-06-18, once for 2026-06-19
+            .returning(|_, _, _| Ok(()));
+
+        let service = PairingService::new(PairingServiceArgs {
+            time_entry_repo: Arc::new(mock_time_entry_repo),
+            roster_repo: Arc::new(mock_roster_repo),
+            employee_repo: Arc::new(MockEmployeeRepository::new()),
+            raw_log_repo: Arc::new(mock_raw_repo),
+            shift_repo: Arc::new(MockShiftRepository::new()),
+            summary_service: Arc::new(mock_summary_service),
+        });
+
+        let result = service
+            .reprocess_attendance_range(ws_id, emp_id, start_date, end_date, chrono_tz::UTC)
+            .await;
+
+        assert!(result.is_ok(), "Reprocess range failed: {:?}", result.err());
     }
 }

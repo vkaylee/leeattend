@@ -269,21 +269,18 @@ pub async fn force_reprocess_attendance(
         .get_employee_timezone_fallback(&ctx.auth_token, active_employment_id)
         .await?;
 
-    let mut curr_date = query.start_date;
-    while curr_date <= query.end_date {
-        state
-            .attendance()
-            .pairing_service()
-            .reprocess_daily_attendance(ctx.workspace_id, active_employment_id, curr_date, tz)
-            .await
-            .map_err(|e| AppError::from(format!("Processing failed for {curr_date}: {e}")))?;
-
-        if let Some(next) = curr_date.succ_opt() {
-            curr_date = next;
-        } else {
-            break;
-        }
-    }
+    state
+        .attendance()
+        .pairing_service()
+        .reprocess_attendance_range(
+            ctx.workspace_id,
+            active_employment_id,
+            query.start_date,
+            query.end_date,
+            tz,
+        )
+        .await
+        .map_err(|e| AppError::from(format!("Processing failed: {e}")))?;
 
     Ok(StatusCode::OK)
 }

@@ -70,6 +70,56 @@ impl PairingContext {
         ))
     }
 
+    #[allow(clippy::cast_possible_wrap)]
+    pub fn build_shift_config_from_schedule(
+        &self,
+        sched: &crate::models::EffectiveSchedule,
+    ) -> Option<PairingShiftConfig> {
+        let start_time = sched.start_time?;
+        let end_time = sched.end_time?;
+        let start_m = start_time.hour() * 60 + start_time.minute();
+        let mut end_m = end_time.hour() * 60 + end_time.minute();
+
+        // Handle Overnight: if end < start, it's next day
+        if end_time < start_time {
+            end_m += 1440;
+        }
+
+        let mut break_start_mins = sched
+            .break_start
+            .map(|t: chrono::NaiveTime| t.hour() * 60 + t.minute());
+        let mut break_end_mins = sched
+            .break_end
+            .map(|t: chrono::NaiveTime| t.hour() * 60 + t.minute());
+
+        // Handle break overnight transition if needed
+        if let (Some(bs), Some(be)) = (break_start_mins, break_end_mins) {
+            let mut break_start_val = bs;
+            let mut break_end_val = be;
+
+            if break_start_val < start_m {
+                break_start_val += 1440;
+            }
+            if break_end_val < break_start_val {
+                break_end_val += 1440;
+            }
+
+            break_start_mins = Some(break_start_val);
+            break_end_mins = Some(break_end_val);
+        }
+
+        let grace = sched.early_punch_in_grace_period_minutes.unwrap_or(0);
+
+        Some(PairingShiftConfig::new(
+            start_m as i32,
+            end_m as i32,
+            break_start_mins.map(|m| m as i32),
+            break_end_mins.map(|m| m as i32),
+            if grace > 0 { Some(grace) } else { None },
+            None,
+        ))
+    }
+
     pub fn calculate_fetch_window(
         &self,
         shift_config: Option<&PairingShiftConfig>,
