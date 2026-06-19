@@ -53,6 +53,12 @@ impl PairingContext {
             end_minutes: end_m as i32,
             break_start_minutes: break_start_mins.map(|m| m as i32),
             break_end_minutes: break_end_mins.map(|m| m as i32),
+            check_in_buffer_minutes: if s.early_punch_in_grace_period_minutes > 0 {
+                Some(s.early_punch_in_grace_period_minutes)
+            } else {
+                None
+            },
+            max_session_gap_minutes: None,
         })
     }
 

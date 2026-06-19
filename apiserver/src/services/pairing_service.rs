@@ -10,11 +10,11 @@ use crate::repositories::raw_attendance_log_repository::RawAttendanceLogReposito
 use crate::repositories::shift_repository::ShiftRepository;
 use crate::repositories::workspace_repository::WorkspaceRepository;
 
-use crate::models::RawAttendanceLog;
+use crate::models::{RawAttendanceLog, TimeEntry};
 use crate::repositories::roster::RosterRepository;
 use crate::repositories::AttendancePolicyRepository;
 use crate::repositories::TimeEntryRepository;
-use crate::services::pairing_algo;
+use crate::services::pairing_algo::{self, PairingShiftConfig};
 
 pub struct PairingService {
     time_entry_repo: Arc<dyn TimeEntryRepository>,
@@ -139,30 +139,12 @@ impl PairingService {
             employment_id, date
         );
 
-        // 1. Fetch effective schedule
-        let (shift_id_opt, traces) = self
-            .roster_repo
-            .get_effective_shift(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                employment_id,
-                date,
-            )
-            .await?;
-
         let context = crate::services::pairing_context::PairingContext::new(date, tz);
 
-        let shift = if let Some(shift_id) = shift_id_opt {
-            self.shift_repo
-                .get_shift_by_id(
-                    &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                    shift_id,
-                )
-                .await?
-        } else {
-            None
-        };
-
-        let shift_config = context.build_shift_config(shift.as_ref());
+        // 1. Fetch effective schedule and config
+        let (shift_id_opt, shift_config, traces) = self
+            .fetch_effective_shift_config(workspace_id, employment_id, date, &context)
+            .await?;
 
         // 2. Fetch raw logs
         let start_of_day_local = crate::utils::tz::local_to_tz(&tz, date, 0, 0, 0)?;
@@ -182,50 +164,23 @@ impl PairingService {
             )
             .await?;
 
-        // Fetch adjacent time entries (2 days before to 2 days after) to check for already-paired logs
-        let search_start = start_of_day_utc - Duration::days(2);
-        let search_end = next_day_utc + Duration::days(2);
-        let adjacent_entries = self
-            .time_entry_repo
-            .get_employment_time_entries(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                employment_id,
-                search_start,
-                search_end,
-            )
+        // 3. Exclude logs already consumed by adjacent days
+        let tracker = ConsumedLogTracker::new(
+            &*self.time_entry_repo,
+            workspace_id,
+            employment_id,
+            date,
+            tz,
+        );
+        let consumed_log_ids = tracker
+            .get_consumed_log_ids(start_of_day_utc, next_day_utc)
             .await?;
 
-        // Filter out entries that belong to the current day (they will be replaced)
-        // Extract all log IDs that were already consumed by entries of adjacent days
-        let mut consumed_log_ids = std::collections::HashSet::new();
-        for entry in adjacent_entries {
-            let entry_local = entry.punch_in_time().with_timezone(&tz);
-            if entry_local.date_naive() == date {
-                continue;
-            }
-
-            if let Some(metadata) = entry.generation_metadata() {
-                if let Some(log_ids_val) = metadata.get("log_ids") {
-                    if let Some(arr) = log_ids_val.as_array() {
-                        for val in arr {
-                            if let Some(id_str) = val.as_str() {
-                                if let Ok(id) = uuid::Uuid::parse_str(id_str) {
-                                    consumed_log_ids.insert(id);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Exclude consumed raw logs
         let filtered_raw_logs: Vec<RawAttendanceLog> = logs
             .into_iter()
             .filter(|log| !consumed_log_ids.contains(&log.id()))
             .collect();
 
-        // 3. Filter and Linearize Logs
         let filtered_log_events = context.build_log_events(&filtered_raw_logs)?;
 
         if filtered_log_events.is_empty() {
@@ -254,17 +209,73 @@ impl PairingService {
 
         // 4. Run Algorithm
         let strategy = pairing_algo::get_strategy();
-        let sessions = strategy.pair(&filtered_log_events, shift_config.as_ref());
+        let shift_configs = if let Some(config) = shift_config {
+            vec![config]
+        } else {
+            vec![]
+        };
+        let sessions = strategy.pair(&filtered_log_events, &shift_configs);
 
-        // 5. Update Database
+        // 5. Update Database and Recalculate
         let new_entries = context.build_time_entries(
             workspace_id,
             employment_id,
             shift_id_opt,
             sessions,
-            &serde_json::json!(traces),
+            &traces,
         )?;
 
+        self.save_paired_entries_and_update_summary(
+            workspace_id,
+            employment_id,
+            date,
+            start_of_day_utc,
+            next_day_utc,
+            new_entries,
+        )
+        .await
+    }
+
+    async fn fetch_effective_shift_config(
+        &self,
+        workspace_id: Uuid,
+        employment_id: Uuid,
+        date: NaiveDate,
+        context: &crate::services::pairing_context::PairingContext,
+    ) -> Result<(Option<Uuid>, Option<PairingShiftConfig>, serde_json::Value), AppError> {
+        let (shift_id_opt, traces) = self
+            .roster_repo
+            .get_effective_shift(
+                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                employment_id,
+                date,
+            )
+            .await?;
+
+        let shift = if let Some(shift_id) = shift_id_opt {
+            self.shift_repo
+                .get_shift_by_id(
+                    &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                    shift_id,
+                )
+                .await?
+        } else {
+            None
+        };
+
+        let shift_config = context.build_shift_config(shift.as_ref());
+        Ok((shift_id_opt, shift_config, serde_json::json!(traces)))
+    }
+
+    async fn save_paired_entries_and_update_summary(
+        &self,
+        workspace_id: Uuid,
+        employment_id: Uuid,
+        date: NaiveDate,
+        start_of_day_utc: DateTime<Utc>,
+        next_day_utc: DateTime<Utc>,
+        new_entries: Vec<TimeEntry>,
+    ) -> Result<(), AppError> {
         self.time_entry_repo
             .replace_time_entries(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
@@ -319,6 +330,76 @@ impl PairingService {
                 Vec::new(),
             )
             .await
+    }
+}
+
+struct ConsumedLogTracker<'a> {
+    time_entry_repo: &'a dyn crate::repositories::TimeEntryRepository,
+    workspace_id: Uuid,
+    employment_id: Uuid,
+    date: NaiveDate,
+    tz: Tz,
+}
+
+impl<'a> ConsumedLogTracker<'a> {
+    fn new(
+        time_entry_repo: &'a dyn crate::repositories::TimeEntryRepository,
+        workspace_id: Uuid,
+        employment_id: Uuid,
+        date: NaiveDate,
+        tz: Tz,
+    ) -> Self {
+        Self {
+            time_entry_repo,
+            workspace_id,
+            employment_id,
+            date,
+            tz,
+        }
+    }
+
+    async fn get_consumed_log_ids(
+        &self,
+        start_of_day_utc: DateTime<Utc>,
+        next_day_utc: DateTime<Utc>,
+    ) -> Result<std::collections::HashSet<Uuid>, AppError> {
+        // Fetch adjacent time entries (2 days before to 2 days after) to check for already-paired logs
+        let search_start = start_of_day_utc - Duration::days(2);
+        let search_end = next_day_utc + Duration::days(2);
+        let adjacent_entries = self
+            .time_entry_repo
+            .get_employment_time_entries(
+                &crate::diesel_pool::TenantAuthToken::system_override(self.workspace_id),
+                self.employment_id,
+                search_start,
+                search_end,
+            )
+            .await?;
+
+        // Filter out entries that belong to the current day (they will be replaced)
+        // Extract all log IDs that were already consumed by entries of adjacent days
+        let mut consumed_log_ids = std::collections::HashSet::new();
+        for entry in adjacent_entries {
+            let entry_local = entry.punch_in_time().with_timezone(&self.tz);
+            if entry_local.date_naive() == self.date {
+                continue;
+            }
+
+            if let Some(metadata) = entry.generation_metadata() {
+                if let Some(log_ids_val) = metadata.get("log_ids") {
+                    if let Some(arr) = log_ids_val.as_array() {
+                        for val in arr {
+                            if let Some(id_str) = val.as_str() {
+                                if let Ok(id) = Uuid::parse_str(id_str) {
+                                    consumed_log_ids.insert(id);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Ok(consumed_log_ids)
     }
 }
 
