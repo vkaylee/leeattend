@@ -81,7 +81,8 @@ async fn test_process_log_success_with_timezone() {
             shift_repo: std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
                 diesel_pools.clone(),
             )),
-            summary_service: summary_service as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
+            summary_service: summary_service
+                as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
         },
     ));
     let emp_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> =
@@ -221,7 +222,8 @@ async fn test_same_second_punch_with_different_status_allowed() {
             shift_repo: std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
                 diesel_pools.clone(),
             )),
-            summary_service: summary_service as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
+            summary_service: summary_service
+                as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
         },
     ));
     let emp_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> =

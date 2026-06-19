@@ -329,7 +329,8 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             shift_repo: Arc::new(apiserver::repositories::DieselShiftRepository::new(
                 diesel_pools.clone(),
             )),
-            summary_service: attendance_summary_service.clone() as Arc<dyn apiserver::services::SummaryRecalculator>,
+            summary_service: attendance_summary_service.clone()
+                as Arc<dyn apiserver::services::SummaryRecalculator>,
         },
     ));
     let adj_repo: Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = Arc::new(apiserver::repositories::DieselAttendanceAdjustmentRepository::new(diesel_pools.clone()));
@@ -1034,7 +1035,8 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
             shift_repo: Arc::new(apiserver::repositories::DieselShiftRepository::new(
                 diesel_pools.clone(),
             )),
-            summary_service: attendance_summary_service.clone() as Arc<dyn apiserver::services::SummaryRecalculator>,
+            summary_service: attendance_summary_service.clone()
+                as Arc<dyn apiserver::services::SummaryRecalculator>,
         },
     ));
     let adj_repo: Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = Arc::new(apiserver::repositories::DieselAttendanceAdjustmentRepository::new(diesel_pools.clone()));
@@ -1783,7 +1785,8 @@ pub async fn setup_app_tower_internal_extended(
             shift_repo: Arc::new(apiserver::repositories::DieselShiftRepository::new(
                 diesel_pools.clone(),
             )),
-            summary_service: attendance_summary_service.clone() as Arc<dyn apiserver::services::SummaryRecalculator>,
+            summary_service: attendance_summary_service.clone()
+                as Arc<dyn apiserver::services::SummaryRecalculator>,
         },
     ));
     let adj_repo: Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = Arc::new(apiserver::repositories::DieselAttendanceAdjustmentRepository::new(diesel_pools.clone()));

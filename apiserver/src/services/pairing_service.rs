@@ -1,3 +1,4 @@
+use crate::diesel_pool::TenantAuthToken;
 use crate::errors::AppError;
 use std::sync::Arc;
 
@@ -69,7 +70,7 @@ impl PairingService {
         }
 
         // 2. Fetch Timezone (Two-step resolution)
-        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(log.workspace_id());
+        let auth_token = TenantAuthToken::system_override(log.workspace_id());
 
         // Step 2a: Get fallback timezone to determine tentative date
         let fallback_tz: Tz = self
@@ -112,7 +113,6 @@ impl PairingService {
     }
 
     #[tracing::instrument(skip_all, err)]
-    #[allow(clippy::too_many_lines)]
     pub async fn reprocess_daily_attendance(
         &self,
         workspace_id: Uuid,
@@ -127,11 +127,12 @@ impl PairingService {
             "Reprocessing daily attendance"
         );
 
+        let auth_token = TenantAuthToken::system_override(workspace_id);
         let context = crate::services::pairing_context::PairingContext::new(date, tz);
 
         // 1. Fetch effective schedule and config
         let (shift_id_opt, shift_config, traces) = self
-            .fetch_effective_shift_config(workspace_id, employment_id, date, &context)
+            .fetch_effective_shift_config(&auth_token, employment_id, date, &context)
             .await?;
 
         // 2. Fetch raw logs
@@ -153,13 +154,8 @@ impl PairingService {
             .await?;
 
         // 3. Exclude logs already consumed by adjacent days
-        let tracker = ConsumedLogTracker::new(
-            &*self.time_entry_repo,
-            workspace_id,
-            employment_id,
-            date,
-            tz,
-        );
+        let tracker =
+            ConsumedLogTracker::new(&*self.time_entry_repo, &auth_token, employment_id, date, tz);
         let consumed_log_ids = tracker
             .get_consumed_log_ids(start_of_day_utc, next_day_utc)
             .await?;
@@ -172,10 +168,11 @@ impl PairingService {
         let filtered_log_events = context.build_log_events(&filtered_raw_logs)?;
 
         if filtered_log_events.is_empty() {
-            self.clear_auto_entries(employment_id, workspace_id, start_of_day_utc, next_day_utc)
+            self.clear_auto_entries(&auth_token, employment_id, start_of_day_utc, next_day_utc)
                 .await?;
 
-            self.recalculate_summary_with_retry(workspace_id, employment_id, date).await;
+            self.recalculate_summary_with_retry(workspace_id, employment_id, date)
+                .await;
 
             return Ok(());
         }
@@ -199,7 +196,7 @@ impl PairingService {
         )?;
 
         self.save_paired_entries_and_update_summary(
-            workspace_id,
+            &auth_token,
             employment_id,
             date,
             start_of_day_utc,
@@ -211,26 +208,19 @@ impl PairingService {
 
     async fn fetch_effective_shift_config(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         employment_id: Uuid,
         date: NaiveDate,
         context: &crate::services::pairing_context::PairingContext,
     ) -> Result<(Option<Uuid>, Option<PairingShiftConfig>, serde_json::Value), AppError> {
         let (shift_id_opt, traces) = self
             .roster_repo
-            .get_effective_shift(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                employment_id,
-                date,
-            )
+            .get_effective_shift(auth_token, employment_id, date)
             .await?;
 
         let shift = if let Some(shift_id) = shift_id_opt {
             self.shift_repo
-                .get_shift_by_id(
-                    &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                    shift_id,
-                )
+                .get_shift_by_id(auth_token, shift_id)
                 .await?
         } else {
             None
@@ -242,7 +232,7 @@ impl PairingService {
 
     async fn save_paired_entries_and_update_summary(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         employment_id: Uuid,
         date: NaiveDate,
         start_of_day_utc: DateTime<Utc>,
@@ -251,7 +241,7 @@ impl PairingService {
     ) -> Result<(), AppError> {
         self.time_entry_repo
             .replace_time_entries(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                auth_token,
                 employment_id,
                 start_of_day_utc,
                 next_day_utc,
@@ -260,7 +250,8 @@ impl PairingService {
             .await?;
 
         // Recalculate daily summary for OT workflow with retries
-        self.recalculate_summary_with_retry(workspace_id, employment_id, date).await;
+        self.recalculate_summary_with_retry(auth_token.workspace_id(), employment_id, date)
+            .await;
         Ok(())
     }
 
@@ -308,26 +299,20 @@ impl PairingService {
 
     async fn clear_auto_entries(
         &self,
+        auth_token: &TenantAuthToken,
         employment_id: Uuid,
-        workspace_id: Uuid,
         start: DateTime<Utc>,
         end: DateTime<Utc>,
     ) -> Result<(), AppError> {
         self.time_entry_repo
-            .replace_time_entries(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                employment_id,
-                start,
-                end,
-                Vec::new(),
-            )
+            .replace_time_entries(auth_token, employment_id, start, end, Vec::new())
             .await
     }
 }
 
 struct ConsumedLogTracker<'a> {
     time_entry_repo: &'a dyn crate::repositories::TimeEntryRepository,
-    workspace_id: Uuid,
+    auth_token: &'a TenantAuthToken,
     employment_id: Uuid,
     date: NaiveDate,
     tz: Tz,
@@ -336,14 +321,14 @@ struct ConsumedLogTracker<'a> {
 impl<'a> ConsumedLogTracker<'a> {
     fn new(
         time_entry_repo: &'a dyn crate::repositories::TimeEntryRepository,
-        workspace_id: Uuid,
+        auth_token: &'a TenantAuthToken,
         employment_id: Uuid,
         date: NaiveDate,
         tz: Tz,
     ) -> Self {
         Self {
             time_entry_repo,
-            workspace_id,
+            auth_token,
             employment_id,
             date,
             tz,
@@ -361,7 +346,7 @@ impl<'a> ConsumedLogTracker<'a> {
         let adjacent_entries = self
             .time_entry_repo
             .get_employment_time_entries(
-                &crate::diesel_pool::TenantAuthToken::system_override(self.workspace_id),
+                self.auth_token,
                 self.employment_id,
                 search_start,
                 search_end,
@@ -378,7 +363,10 @@ impl<'a> ConsumedLogTracker<'a> {
             }
 
             if let Some(metadata) = entry.generation_metadata() {
-                if let Ok(paired_meta) = serde_json::from_value::<crate::services::pairing_algo::PairingMetadata>(metadata.clone()) {
+                if let Ok(paired_meta) = serde_json::from_value::<
+                    crate::services::pairing_algo::PairingMetadata,
+                >(metadata.clone())
+                {
                     for id in paired_meta.log_ids() {
                         consumed_log_ids.insert(*id);
                     }
@@ -399,7 +387,7 @@ mod tests {
     use std::sync::Arc;
     use uuid::Uuid;
 
-        use crate::repositories::employee::MockEmployeeRepository;
+    use crate::repositories::employee::MockEmployeeRepository;
     use crate::repositories::raw_attendance_log_repository::MockRawAttendanceLogRepository;
     use crate::repositories::roster::MockRosterRepository;
     use crate::repositories::shift_repository::MockShiftRepository;
@@ -458,8 +446,9 @@ mod tests {
             summary_service: Arc::new(MockSummaryRecalculator::new()),
         });
 
+        let auth_token = TenantAuthToken::system_override(Uuid::new_v4());
         let result = service
-            .clear_auto_entries(Uuid::new_v4(), Uuid::new_v4(), Utc::now(), Utc::now())
+            .clear_auto_entries(&auth_token, Uuid::new_v4(), Utc::now(), Utc::now())
             .await;
         assert!(result.is_ok());
     }

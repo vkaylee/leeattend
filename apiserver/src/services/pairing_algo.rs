@@ -1,12 +1,38 @@
 use serde::{Deserialize, Serialize};
 
+/// Type-safe entry classification for paired sessions.
+///
+/// Replaces raw `String` to prevent typos and invalid values at compile time.
+/// Serializes to `"work"` / `"break"` via serde for JSON backward compatibility.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum EntryType {
+    #[default]
+    Work,
+    Break,
+}
+
+impl std::fmt::Display for EntryType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Work => write!(f, "work"),
+            Self::Break => write!(f, "break"),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PairingShiftConfig {
     // All times in minutes from midnight (00:00) of the shift start day.
     // Values can be > 1440 (24h) for overnight shifts.
     start_minutes: i32,
     end_minutes: i32,
+    // TODO(TD-BREAK): These fields are populated but not yet consumed by the
+    // pairing algorithm. They will be needed when break session splitting is
+    // implemented (related: TD-07 multi-session support).
+    #[allow(dead_code)]
     break_start_minutes: Option<i32>,
+    #[allow(dead_code)]
     break_end_minutes: Option<i32>,
     check_in_buffer_minutes: Option<i32>,
     max_session_gap_minutes: Option<i32>,
@@ -62,7 +88,7 @@ pub struct PairedSession {
     // Can be > 1440 (representing next day).
     start_minutes: i32,
     end_minutes: Option<i32>,
-    entry_type: String,
+    entry_type: EntryType,
     note: Option<String>,
     is_break_overtime: bool,
     metadata: Option<serde_json::Value>,
@@ -72,7 +98,7 @@ impl PairedSession {
     pub fn new(
         start_minutes: i32,
         end_minutes: Option<i32>,
-        entry_type: String,
+        entry_type: EntryType,
         note: Option<String>,
         is_break_overtime: bool,
         metadata: Option<serde_json::Value>,
@@ -95,7 +121,7 @@ impl PairedSession {
         self.end_minutes
     }
 
-    pub fn entry_type(&self) -> &str {
+    pub fn entry_type(&self) -> &EntryType {
         &self.entry_type
     }
 
@@ -190,10 +216,20 @@ const SHIFT_WINDOW_BUFFER: i32 = 120;
 /// 1. If a shift config is provided → "First In near shift start, Last Out of day"
 /// 2. Fallback → anchor-first (first log = IN, last within 16h = OUT)
 ///
-/// # Limitations (TD-07)
+/// # Known Limitations
+///
+/// ## TD-07: Single Session Per Day
 /// Currently, this algorithm only supports pairing a maximum of one session per day
 /// (either within the shift window or via the fallback strategy). It does not support
 /// multiple independent work sessions (e.g. split shifts, multi-session days).
+///
+/// **Impact:** Employees with split shifts (e.g. 06:00-10:00 + 14:00-18:00) will have
+/// their entire day collapsed into a single session from first-in to last-out.
+///
+/// **Required for resolution:**
+/// - Business requirements for split shift pairing rules
+/// - Algorithm to detect session gaps vs break gaps
+/// - Break deduction logic using `break_start/end_minutes` (TD-BREAK)
 pub fn get_strategy() -> ShiftAwareStrategy {
     ShiftAwareStrategy
 }
@@ -266,6 +302,65 @@ impl ShiftAwareStrategy {
         last_idx
     }
 
+    // --- Shared helpers for TD-P2 DRY extraction ---
+
+    /// Extract note from a log event's raw_data.
+    fn extract_note(log: &LogEvent) -> Option<String> {
+        log.raw_data
+            .as_ref()
+            .and_then(|r| r.get("note"))
+            .and_then(|n| n.as_str())
+            .map(std::string::ToString::to_string)
+    }
+
+    /// Extract entry type from a log event's raw_data, defaulting to Work.
+    fn extract_entry_type(log: &LogEvent) -> EntryType {
+        log.raw_data
+            .as_ref()
+            .and_then(|r| r.get("entry_type"))
+            .and_then(|e| e.as_str())
+            .and_then(|s| serde_json::from_value(serde_json::Value::String(s.to_string())).ok())
+            .unwrap_or_default()
+    }
+
+    /// Extract is_break_overtime from a log event's raw_data.
+    fn extract_is_break_overtime(log: &LogEvent) -> bool {
+        log.raw_data
+            .as_ref()
+            .and_then(|r| r.get("is_break_overtime"))
+            .and_then(serde_json::Value::as_bool)
+            .unwrap_or(false)
+    }
+
+    /// Append "Missing Punch Out" note if no end time.
+    fn finalize_note(note: Option<String>, missing_out: bool) -> Option<String> {
+        if missing_out {
+            match note {
+                Some(n) => Some(format!("{n}\nMissing Punch Out")),
+                None => Some("Missing Punch Out".to_string()),
+            }
+        } else {
+            note
+        }
+    }
+
+    /// Collect all log IDs between start and end minutes.
+    fn collect_log_ids(
+        logs: &[LogEvent],
+        start: i32,
+        end: Option<i32>,
+        fallback_ids: &[uuid::Uuid],
+    ) -> Vec<uuid::Uuid> {
+        if let Some(e_val) = end {
+            logs.iter()
+                .filter(|l| l.minutes >= start && l.minutes <= e_val)
+                .flat_map(|l| l.all_ids.clone())
+                .collect()
+        } else {
+            fallback_ids.to_vec()
+        }
+    }
+
     /// Tier 1: "First In near shift start, Last Out of day" (industry standard).
     /// Earliest log near shift start = IN, last log of the day = OUT.
     /// Check-in uses a buffer window to avoid picking up logs from previous day.
@@ -277,67 +372,29 @@ impl ShiftAwareStrategy {
         let first_in = Self::find_earliest_in_window(logs, shift.start_minutes, buffer);
 
         // If we can't find logs in shift windows, fall back to anchor-first
-        let (start, start_id) = match first_in {
-            Some(log) => (log.minutes, log.id),
-            None => return Self::pair_anchor_first(logs, shift.max_session_gap_minutes),
+        let Some(first_in_log) = first_in else {
+            return Self::pair_anchor_first(logs, shift.max_session_gap_minutes);
         };
+
+        let start = first_in_log.minutes;
 
         // Last Out: take the last log of the day (after check-in)
-        let last_out = Self::find_last_out(logs, start, start_id);
+        let last_out = Self::find_last_out(logs, start, first_in_log.id);
 
-        let (end, _end_id, end_note) = match last_out {
-            Some(log) => {
-                let note = log
-                    .raw_data
-                    .as_ref()
-                    .and_then(|r| r.get("note"))
-                    .and_then(|n| n.as_str())
-                    .map(std::string::ToString::to_string);
-                (Some(log.minutes), Some(log.id), note)
-            }
-            _ => (None, None, None),
-        };
-
-        let log_ids = if let Some(e_val) = end {
-            logs.iter()
-                .filter(|l| l.minutes >= start && l.minutes <= e_val)
-                .flat_map(|l| l.all_ids.clone())
-                .collect()
-        } else {
-            logs.iter()
-                .find(|l| l.id == start_id)
-                .map(|l| l.all_ids.clone())
-                .unwrap_or_else(|| vec![start_id])
-        };
-
-        let start_note = first_in
-            .and_then(|l| l.raw_data.as_ref())
-            .and_then(|r| r.get("note"))
-            .and_then(|n| n.as_str())
-            .map(std::string::ToString::to_string);
-
+        let end = last_out.map(|l| l.minutes);
+        let start_note = Self::extract_note(first_in_log);
+        let end_note = last_out.and_then(Self::extract_note);
         let combined_note = Self::combine_notes(start_note, end_note);
-
-        let entry_type = first_in
-            .and_then(|l| l.raw_data.as_ref())
-            .and_then(|r| r.get("entry_type"))
-            .and_then(|e| e.as_str())
-            .map_or_else(|| "work".to_string(), std::string::ToString::to_string);
-
-        let final_note = if end.is_none() {
-            match combined_note {
-                Some(n) => Some(format!("{n}\nMissing Punch Out")),
-                None => Some("Missing Punch Out".to_string()),
-            }
-        } else {
-            combined_note
-        };
-
-        let is_break_overtime = first_in
-            .and_then(|l| l.raw_data.as_ref())
-            .and_then(|r| r.get("is_break_overtime"))
-            .and_then(serde_json::Value::as_bool)
-            .unwrap_or(false);
+        let entry_type = Self::extract_entry_type(first_in_log);
+        let is_break_overtime = Self::extract_is_break_overtime(first_in_log);
+        let final_note = Self::finalize_note(combined_note, end.is_none());
+        let single_id = [first_in_log.id];
+        let fallback_ids = logs
+            .iter()
+            .find(|l| l.id == first_in_log.id)
+            .map(|l| l.all_ids.as_slice())
+            .unwrap_or(&single_id);
+        let log_ids = Self::collect_log_ids(logs, start, end, fallback_ids);
 
         vec![PairedSession {
             start_minutes: start,
@@ -363,59 +420,20 @@ impl ShiftAwareStrategy {
         let last_idx = Self::find_last_idx_within_gap(logs, first.minutes, max_gap_val);
 
         let start = first.minutes;
-        let start_note = first
-            .raw_data
-            .as_ref()
-            .and_then(|r| r.get("note"))
-            .and_then(|n| n.as_str())
-            .map(std::string::ToString::to_string);
+        let start_note = Self::extract_note(first);
 
         let (end, end_note) = if last_idx > 0 {
             let log = &logs[last_idx];
-            let note = log
-                .raw_data
-                .as_ref()
-                .and_then(|r| r.get("note"))
-                .and_then(|n| n.as_str())
-                .map(std::string::ToString::to_string);
-            (Some(log.minutes), note)
+            (Some(log.minutes), Self::extract_note(log))
         } else {
             (None, None)
         };
 
         let combined_note = Self::combine_notes(start_note, end_note);
-
-        let entry_type = first
-            .raw_data
-            .as_ref()
-            .and_then(|r| r.get("entry_type"))
-            .and_then(|e| e.as_str())
-            .map_or_else(|| "work".to_string(), std::string::ToString::to_string);
-
-        let final_note = if end.is_none() {
-            match combined_note {
-                Some(n) => Some(format!("{n}\nMissing Punch Out")),
-                None => Some("Missing Punch Out".to_string()),
-            }
-        } else {
-            combined_note
-        };
-
-        let log_ids = if let Some(e_val) = end {
-            logs.iter()
-                .filter(|l| l.minutes >= start && l.minutes <= e_val)
-                .flat_map(|l| l.all_ids.clone())
-                .collect()
-        } else {
-            first.all_ids.clone()
-        };
-
-        let is_break_overtime = first
-            .raw_data
-            .as_ref()
-            .and_then(|r| r.get("is_break_overtime"))
-            .and_then(serde_json::Value::as_bool)
-            .unwrap_or(false);
+        let entry_type = Self::extract_entry_type(first);
+        let is_break_overtime = Self::extract_is_break_overtime(first);
+        let final_note = Self::finalize_note(combined_note, end.is_none());
+        let log_ids = Self::collect_log_ids(logs, start, end, &first.all_ids);
 
         vec![PairedSession {
             start_minutes: start,
@@ -676,7 +694,7 @@ mod tests {
         let session = PairedSession {
             start_minutes: 480,
             end_minutes: Some(1020),
-            entry_type: "work".to_string(),
+            entry_type: EntryType::Work,
             note: None,
             is_break_overtime: false,
             metadata: Some(serde_json::json!({"tier": "test"})),
@@ -684,6 +702,8 @@ mod tests {
         let json = serde_json::to_string(&session).unwrap();
         let parsed: PairedSession = serde_json::from_str(&json).unwrap();
         assert_eq!(parsed, session);
+        // Verify backward-compatible JSON serialization
+        assert!(json.contains("\"work\""));
     }
 
     // --- Edge case: Overnight shift + overtime ---

@@ -61,7 +61,8 @@ pub async fn build_attendance_services(
             shift_repo: Arc::new(crate::repositories::DieselShiftRepository::new(
                 diesel_pools.clone(),
             )),
-            summary_service: Arc::clone(&attendance_summary) as Arc<dyn crate::services::SummaryRecalculator>,
+            summary_service: Arc::clone(&attendance_summary)
+                as Arc<dyn crate::services::SummaryRecalculator>,
         },
     ));
 

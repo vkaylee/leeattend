@@ -105,7 +105,9 @@ impl PairingContext {
         for log in logs {
             let log_local = log.punch_time().with_timezone(&self.tz);
             let duration_since_start = log_local.signed_duration_since(start_of_day_local);
-            let minutes = i32::try_from(duration_since_start.num_minutes()).unwrap_or(0);
+            let minutes = i32::try_from(duration_since_start.num_minutes()).map_err(|_err| {
+                AppError::Internal("Log minute offset overflow during pairing".to_string())
+            })?;
 
             if let Some(existing) = filtered_log_events
                 .iter_mut()
@@ -152,7 +154,7 @@ impl PairingContext {
             };
 
             let duration = end_dt_utc
-                .map(|end| i32::try_from((end - start_dt_utc).num_minutes()).unwrap_or(0));
+                .map(|end| i32::try_from((end - start_dt_utc).num_minutes()).unwrap_or(i32::MAX));
 
             let mut final_metadata = session
                 .metadata()
@@ -187,6 +189,7 @@ impl PairingContext {
 mod tests {
     use super::*;
     use crate::models::enums::LogSource;
+    use crate::services::pairing_algo::EntryType;
     use chrono::{NaiveTime, TimeZone};
 
     #[test]
@@ -401,7 +404,7 @@ mod tests {
         let session1 = PairedSession::new(
             480,
             Some(1020),
-            "work".to_string(),
+            EntryType::Work,
             None,
             false,
             Some(serde_json::json!({"algo": "shift_window"})),
@@ -411,7 +414,7 @@ mod tests {
         let session2 = PairedSession::new(
             1080,
             None,
-            "work".to_string(),
+            EntryType::Work,
             Some("Missing Punch Out".to_string()),
             false,
             None,

@@ -1,12 +1,11 @@
 //! Comprehensive Pairing Strategy integration tests
 //!
-//! Tests the `ShiftAwareStrategy` across all 3 tiers:
-//!   Tier 1: punch_type-based pairing (device reports IN/OUT)
-//!   Tier 2: shift_window-based pairing (shift schedule context)
-//!   Tier 3: `anchor_first` fallback (no context)
+//! Tests the `ShiftAwareStrategy` across both tiers:
+//!   Tier 1: shift_window-based pairing (shift schedule context)
+//!   Tier 2: `anchor_first` fallback (no context)
 
 use apiserver::services::pairing_algo::{
-    self, LogEvent, PairedSession, PairingShiftConfig, ShiftAwareStrategy,
+    self, EntryType, LogEvent, PairedSession, PairingShiftConfig, ShiftAwareStrategy,
 };
 use uuid::Uuid;
 
@@ -20,18 +19,13 @@ fn strategy() -> ShiftAwareStrategy {
 
 fn log(minutes: i32) -> LogEvent {
     let id = Uuid::new_v4();
-    LogEvent::new(
-        id,
-        minutes,
-        None,
-        vec![id],
-    )
+    LogEvent::new(id, minutes, None, vec![id])
 }
 
 fn day_shift() -> PairingShiftConfig {
     PairingShiftConfig::new(
-        480, // 08:00
-        1020,  // 17:00
+        480,  // 08:00
+        1020, // 17:00
         Some(720),
         Some(780),
         None,
@@ -41,10 +35,10 @@ fn day_shift() -> PairingShiftConfig {
 
 fn overnight_shift() -> PairingShiftConfig {
     PairingShiftConfig::new(
-        1320,             // 22:00
-        1800,               // 06:00 next day (30h from midnight = 1800)
+        1320,       // 22:00
+        1800,       // 06:00 next day (30h from midnight = 1800)
         Some(1560), // 02:00
-        Some(1590),   // 02:30
+        Some(1590), // 02:30
         None,
         None,
     )
@@ -53,11 +47,8 @@ fn overnight_shift() -> PairingShiftConfig {
 fn early_morning_shift() -> PairingShiftConfig {
     PairingShiftConfig::new(
         360, // 06:00
-        840,   // 14:00
-        None,
-        None,
-        None,
-        None,
+        840, // 14:00
+        None, None, None, None,
     )
 }
 
@@ -323,6 +314,6 @@ fn entry_type_always_work() {
     let t2 = s.pair(&[log(480), log(1020)], &[day_shift()]);
     let t3 = s.pair(&[log(480), log(1020)], &[]);
 
-    assert_eq!(t2[0].entry_type(), "work");
-    assert_eq!(t3[0].entry_type(), "work");
+    assert_eq!(*t2[0].entry_type(), EntryType::Work);
+    assert_eq!(*t3[0].entry_type(), EntryType::Work);
 }

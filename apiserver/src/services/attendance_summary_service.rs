@@ -43,10 +43,10 @@ impl SummaryRecalculator for AttendanceSummaryService {
         employment_id: Uuid,
         date: NaiveDate,
     ) -> Result<(), AppError> {
-        self.recalculate_daily_summary(workspace_id, employment_id, date).await
+        self.recalculate_daily_summary(workspace_id, employment_id, date)
+            .await
     }
 }
-
 
 pub struct EnterPaperOtArgs {
     pub workspace_id: Uuid,
