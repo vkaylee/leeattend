@@ -287,13 +287,18 @@ impl MockWorkerDepsBuilder {
                 Ok(employees)
             });
 
+        let mut time_entry_repo = MockTimeEntryRepository::new();
+        time_entry_repo
+            .expect_get_employment_time_entries()
+            .returning(|_, _, _, _| Ok(vec![]));
+
         let mut custom_field_repo = MockCustomFieldRepository::new();
         custom_field_repo
             .expect_list_definitions()
             .returning(|_, _| Box::pin(async move { Ok(vec![]) }));
 
         Self {
-            time_entry_repo: MockTimeEntryRepository::new(),
+            time_entry_repo,
             roster_repo: MockRosterRepository::new(),
             policy_repo: MockAttendancePolicyRepository::new(),
             employee_repo,

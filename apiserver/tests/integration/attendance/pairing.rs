@@ -19,10 +19,12 @@ fn strategy() -> ShiftAwareStrategy {
 }
 
 fn log(minutes: i32) -> LogEvent {
+    let id = Uuid::new_v4();
     LogEvent {
-        id: Uuid::new_v4(),
+        id,
         minutes,
         raw_data: None,
+        all_ids: vec![id],
     }
 }
 

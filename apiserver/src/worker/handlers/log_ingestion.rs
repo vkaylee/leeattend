@@ -199,6 +199,9 @@ mod tests {
         time_entry_repo
             .expect_replace_time_entries()
             .returning(|_, _, _, _, _| Ok(()));
+        time_entry_repo
+            .expect_get_employment_time_entries()
+            .returning(|_, _, _, _| Ok(vec![]));
 
         let mut daily_summary_repo = crate::repositories::attendance_daily_summary_repository::MockAttendanceDailySummaryRepository::new();
         daily_summary_repo

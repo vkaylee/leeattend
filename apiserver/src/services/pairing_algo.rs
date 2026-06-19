@@ -27,6 +27,7 @@ pub struct LogEvent {
     pub id: uuid::Uuid,
     pub minutes: i32,
     pub raw_data: Option<serde_json::Value>,
+    pub all_ids: Vec<uuid::Uuid>,
 }
 
 const ALGORITHM_NAME: &str = "shift_aware";
@@ -97,7 +98,7 @@ impl ShiftAwareStrategy {
             .rev()
             .find(|l| l.id != start_id && l.minutes > start);
 
-        let (end, end_id, end_note) = match last_out {
+        let (end, _end_id, end_note) = match last_out {
             Some(log) => {
                 let note = log
                     .raw_data
@@ -110,10 +111,17 @@ impl ShiftAwareStrategy {
             _ => (None, None, None),
         };
 
-        let mut log_ids = vec![start_id];
-        if let Some(eid) = end_id {
-            log_ids.push(eid);
-        }
+        let log_ids = if let Some(e_val) = end {
+            logs.iter()
+                .filter(|l| l.minutes >= start && l.minutes <= e_val)
+                .flat_map(|l| l.all_ids.clone())
+                .collect()
+        } else {
+            logs.iter()
+                .find(|l| l.id == start_id)
+                .map(|l| l.all_ids.clone())
+                .unwrap_or_else(|| vec![start_id])
+        };
 
         let start_note = first_in
             .and_then(|l| l.raw_data.as_ref())
@@ -223,10 +231,14 @@ impl ShiftAwareStrategy {
             combined_note
         };
 
-        let mut log_ids = vec![first.id];
-        if last_idx > 0 {
-            log_ids.push(logs[last_idx].id);
-        }
+        let log_ids = if let Some(e_val) = end {
+            logs.iter()
+                .filter(|l| l.minutes >= start && l.minutes <= e_val)
+                .flat_map(|l| l.all_ids.clone())
+                .collect()
+        } else {
+            first.all_ids.clone()
+        };
 
         let is_break_overtime = first
             .raw_data
@@ -256,10 +268,12 @@ mod tests {
     use uuid::Uuid;
 
     fn make_log(minutes: i32) -> LogEvent {
+        let id = Uuid::new_v4();
         LogEvent {
-            id: Uuid::new_v4(),
+            id,
             minutes,
             raw_data: None,
+            all_ids: vec![id],
         }
     }
 
@@ -592,5 +606,35 @@ mod tests {
 
         let meta = sessions[0].metadata.as_ref().unwrap();
         assert_eq!(meta["tier"], "anchor_first"); // Fell back because no logs in check-in window
+    }
+
+    #[test]
+    fn test_overnight_shift_multiple_checkout_punches() {
+        let strategy = get_strategy();
+        let shift = PairingShiftConfig {
+            start_minutes: 1080, // 18:00
+            end_minutes: 1560,   // 02:00 next day
+            break_start_minutes: None,
+            break_end_minutes: None,
+        };
+
+        let logs = vec![make_log(1085), make_log(1825), make_log(1826)];
+
+        let sessions = strategy.pair(&logs, Some(&shift));
+        assert_eq!(sessions.len(), 1);
+        assert_eq!(sessions[0].start_minutes, 1085);
+        assert_eq!(sessions[0].end_minutes, Some(1826)); // should be 1826
+
+        let meta = sessions[0].metadata.as_ref().unwrap();
+        let log_ids: Vec<String> = meta["log_ids"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| v.as_str().unwrap().to_string())
+            .collect();
+        assert_eq!(log_ids.len(), 3);
+        assert!(log_ids.contains(&logs[0].id.to_string()));
+        assert!(log_ids.contains(&logs[1].id.to_string()));
+        assert!(log_ids.contains(&logs[2].id.to_string()));
     }
 }

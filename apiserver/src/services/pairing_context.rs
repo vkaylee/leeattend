@@ -87,24 +87,25 @@ impl PairingContext {
         }
 
         let start_of_day_local = crate::utils::tz::local_to_tz(&self.tz, self.date, 0, 0, 0)?;
-        let mut last_minute: Option<i64> = None;
 
         for log in logs {
-            let current_minute = log.punch_time().timestamp() / 60;
-            if last_minute == Some(current_minute) {
-                continue;
-            }
-
             let log_local = log.punch_time().with_timezone(&self.tz);
             let duration_since_start = log_local.signed_duration_since(start_of_day_local);
+            let minutes = i32::try_from(duration_since_start.num_minutes()).unwrap_or(0);
 
-            filtered_log_events.push(LogEvent {
-                id: log.id(),
-                minutes: i32::try_from(duration_since_start.num_minutes()).unwrap_or(0),
-                raw_data: log.raw_data().cloned(),
-            });
-
-            last_minute = Some(current_minute);
+            if let Some(existing) = filtered_log_events
+                .iter_mut()
+                .find(|e| e.minutes == minutes)
+            {
+                existing.all_ids.push(log.id());
+            } else {
+                filtered_log_events.push(LogEvent {
+                    id: log.id(),
+                    minutes,
+                    raw_data: log.raw_data().cloned(),
+                    all_ids: vec![log.id()],
+                });
+            }
         }
 
         Ok(filtered_log_events)
