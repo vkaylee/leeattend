@@ -27,22 +27,22 @@ export const getReportColumns = ({
   return [
     {
       render: (row) => (
-        <div>
-          <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none">{row.employee_name}</div>
-          <div className="flex items-center space-x-2 mt-0.5">
-            <span className="text-[9px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest leading-none">{row.employee_id_number ?? "—"}</span>
-            {!!row.employer_name && (
-              <>
-                <span className="text-[9px] text-slate-300 dark:text-slate-600 leading-none">•</span>
-                <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide truncate max-w-[120px] leading-none">{row.employer_name}</span>
-              </>
-            )}
-          </div>
+        <div className="flex flex-col gap-0.5">
+          <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-tight">{row.employee_name}</div>
+          <div className="text-[9px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest leading-none">{row.employee_id_number ?? "—"}</div>
+          {!!row.employer_name && (
+            <div 
+              className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide leading-tight mt-0.5 break-words max-w-[240px]" 
+              title={row.employer_name}
+            >
+              {row.employer_name}
+            </div>
+          )}
         </div>
       ),
-      cellClassName: "px-10 py-6",
+      cellClassName: "px-10 py-6 min-w-[260px]",
       header: <div className="flex items-center">{t("common.employee")}{getSortIcon("name")}</div>,
-      headerClassName: "px-10",
+      headerClassName: "px-10 min-w-[260px]",
       key: "name",
       onHeaderClick: () => { handleSort("name"); },
     },
