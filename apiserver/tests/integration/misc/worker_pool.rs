@@ -140,6 +140,7 @@ async fn test_worker_uses_only_one_connection_per_job() {
             payload: JobPayload::LeaveAccrual(apiserver::queue::AccrualPayload {
                 date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
                 force: false,
+                employee_ids: None,
             }),
         },
         Job {

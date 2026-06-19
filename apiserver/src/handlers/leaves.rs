@@ -570,35 +570,67 @@ pub async fn trigger_accrual_run(
     use crate::queue::{AccrualPayload, Job, JobMetadata, JobPayload, TaskType};
 
     let queue = state.infra().job_queue()?;
+    let employee_ids = state
+        .employees()
+        .repo()
+        .get_active_employee_ids(&ctx.auth_token, None)
+        .await?;
+
+    if employee_ids.is_empty() {
+        return Err(AppError::validation(
+            crate::utils::i18n::I18nKey::NoActiveEmployeesFound,
+        ));
+    }
+
+    const BATCH_SIZE: usize = 50;
+    let chunks: Vec<Vec<Uuid>> = employee_ids
+        .chunks(BATCH_SIZE)
+        .map(<[Uuid]>::to_vec)
+        .collect();
+
+    let total_batches = u32::try_from(chunks.len()).unwrap_or(0);
     let parent_id = crate::utils::id::new_id();
-    let job = Job::new(
-        parent_id,
-        0,
-        TaskType::LeaveAccrual,
-        ctx.workspace_id,
-        JobPayload::LeaveAccrual(AccrualPayload { date, force: true }),
-    );
 
     // Create job metadata for status polling
     let meta = JobMetadata::new(
         parent_id,
-        1, // Single job (not batched)
+        total_batches,
         ctx.workspace_id,
         ctx.user_id,
         Some(TaskType::LeaveAccrual),
         None, // No report type for leave accrual
         Some(serde_json::json!({
             "date": payload.date,
-            "force": true
+            "force": true,
+            "employee_count": employee_ids.len()
         })),
     );
 
-    queue.create_job_metadata(&meta).await.map_err(|e| {
-        AppError::BackgroundJobError(format!("Failed to create job job metadata/queue: {e}"))
-    })?;
+    let jobs: Vec<Job> = chunks
+        .into_iter()
+        .enumerate()
+        .map(|(idx, ids)| {
+            Job::new(
+                parent_id,
+                u32::try_from(idx).unwrap_or(0),
+                TaskType::LeaveAccrual,
+                ctx.workspace_id,
+                JobPayload::LeaveAccrual(AccrualPayload {
+                    date,
+                    force: true,
+                    employee_ids: Some(ids),
+                }),
+            )
+        })
+        .collect();
 
-    queue.enqueue_jobs(vec![job]).await.map_err(|e| {
-        AppError::BackgroundJobError(format!("Failed to enqueue accrual job metadata/queue: {e}"))
+    queue
+        .create_job_metadata(&meta)
+        .await
+        .map_err(|e| AppError::BackgroundJobError(format!("Failed to create job metadata: {e}")))?;
+
+    queue.enqueue_jobs(jobs).await.map_err(|e| {
+        AppError::BackgroundJobError(format!("Failed to enqueue accrual jobs: {e}"))
     })?;
 
     Ok((

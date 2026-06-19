@@ -91,6 +91,8 @@ pub struct MergePayload {
 pub struct AccrualPayload {
     pub date: NaiveDate,
     pub force: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub employee_ids: Option<Vec<Uuid>>,
 }
 
 /// Payload for attendance log ingestion jobs.

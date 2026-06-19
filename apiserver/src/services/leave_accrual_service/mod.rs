@@ -64,6 +64,7 @@ impl LeaveAccrualService {
         workspace_id: Uuid,
         date: NaiveDate,
         force: bool,
+        target_employee_ids: Option<&[Uuid]>,
     ) -> Result<Vec<LeaveAccrualLog>, AppError> {
         // 1. Setup & Workspace-level queries
         let tz_str = self
@@ -73,7 +74,16 @@ impl LeaveAccrualService {
         let tz: Tz = crate::utils::tz::parse_workspace_tz(&tz_str);
         let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
 
-        let employees = self.employee_repo.get_active_employees(&auth_token).await?;
+        let employees = if let Some(ids) = target_employee_ids {
+            if ids.is_empty() {
+                return Ok(vec![]);
+            }
+            self.employee_repo
+                .get_employees_by_ids(ids, &auth_token)
+                .await?
+        } else {
+            self.employee_repo.get_active_employees(&auth_token).await?
+        };
 
         if employees.is_empty() {
             return Ok(vec![]);

@@ -37,6 +37,7 @@ async fn test_trigger_accrual_run() {
 
     let admin_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
+    let _emp_id = factory.employee().with_workspace(ws_id).create().await;
 
     let payload = serde_json::json!({
         "date": "2024-05-01"

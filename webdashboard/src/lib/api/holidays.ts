@@ -12,7 +12,7 @@ export async function fetchHolidays(
         },
     });
     if (!resData) throw new Error("No response data");
-    return resData;
+    return resData.data;
 }
 
 export async function createHoliday(

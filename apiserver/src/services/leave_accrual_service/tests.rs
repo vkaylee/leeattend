@@ -461,7 +461,58 @@ async fn test_process_workspace_accruals_empty_employees() {
     };
 
     let result = service
-        .process_workspace_accruals(Uuid::new_v4(), nd(2026, 1, 1), false)
+        .process_workspace_accruals(Uuid::new_v4(), nd(2026, 1, 1), false, None)
+        .await
+        .unwrap();
+
+    assert!(result.is_empty());
+}
+
+#[tokio::test]
+async fn test_process_workspace_accruals_with_target_employees() {
+    use crate::repositories::attendance_daily_summary_repository::MockAttendanceDailySummaryRepository;
+    use crate::repositories::department_repository::MockDepartmentRepository;
+    use crate::repositories::employee::MockEmployeeRepository;
+    use crate::repositories::employee_contract_repository::MockEmployeeContractRepository;
+    use crate::repositories::leave_accrual_log_repository::MockLeaveAccrualLogRepository;
+    use crate::repositories::leave_policy_repository::MockLeavePolicyRepository;
+    use crate::repositories::leave_request_repository::MockLeaveRequestRepository;
+    use crate::repositories::time_entry_repository::MockTimeEntryRepository;
+    use std::sync::Arc;
+
+    let mut mock_emp_repo = MockEmployeeRepository::new();
+    let mut mock_accrual_repo = MockLeaveAccrualLogRepository::new();
+
+    mock_accrual_repo
+        .expect_get_workspace_timezone()
+        .returning(|_| Ok("UTC".to_string()));
+
+    let target_emp_id = Uuid::new_v4();
+
+    mock_emp_repo
+        .expect_get_employees_by_ids()
+        .withf(move |ids, _| ids == &[target_emp_id])
+        .times(1)
+        .returning(|_, _| Ok(vec![]));
+
+    let service = LeaveAccrualService {
+        employee_repo: Arc::new(mock_emp_repo),
+        department_repo: Arc::new(MockDepartmentRepository::new()),
+        leave_policy_repo: Arc::new(MockLeavePolicyRepository::new()),
+        accrual_log_repo: Arc::new(mock_accrual_repo),
+        time_entry_repo: Arc::new(MockTimeEntryRepository::new()),
+        leave_request_repo: Arc::new(MockLeaveRequestRepository::new()),
+        contract_repo: Arc::new(MockEmployeeContractRepository::new()),
+        daily_summary_repo: Arc::new(MockAttendanceDailySummaryRepository::new()),
+    };
+
+    let result = service
+        .process_workspace_accruals(
+            Uuid::new_v4(),
+            nd(2026, 1, 1),
+            false,
+            Some(&[target_emp_id]),
+        )
         .await
         .unwrap();
 

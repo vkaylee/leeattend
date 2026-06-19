@@ -42,8 +42,9 @@ export async function updateWorkspace(
 
 export async function fetchWorkspaceMembers(wsId: string): Promise<WorkspaceMember[]> {
   const { data } = await client.GET("/v1/workspaces/{ws_id}/members", { params: { path: { ws_id: wsId } } });
-  return data ?? [];
+  return (data?.data ?? []) as unknown as WorkspaceMember[];
 }
+
 
 export async function addWorkspaceMember(wsId: string, email: string, roleId: string): Promise<void> {
   await client.POST("/v1/workspaces/{ws_id}/members", { params: { path: { ws_id: wsId } }, body: { email, role_id: roleId } });

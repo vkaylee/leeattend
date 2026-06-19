@@ -6448,6 +6448,14 @@ export interface components {
             page: number;
             total: number;
         };
+        PaginatedHolidays: {
+            data: components["schemas"]["Holiday"][];
+            /** Format: int64 */
+            limit: number;
+            /** Format: int64 */
+            page: number;
+            total: number;
+        };
         PaginatedLeaveRequests: {
             data: components["schemas"]["LeaveRequest"][];
             /** Format: int64 */
@@ -6458,6 +6466,14 @@ export interface components {
         };
         PaginatedLocations: {
             data: components["schemas"]["WorkLocation"][];
+            /** Format: int64 */
+            limit: number;
+            /** Format: int64 */
+            page: number;
+            total: number;
+        };
+        PaginatedOvertimePolicies: {
+            data: components["schemas"]["OvertimePolicy"][];
             /** Format: int64 */
             limit: number;
             /** Format: int64 */
@@ -6490,6 +6506,14 @@ export interface components {
         };
         PaginatedWorkspaceLeaveBalances: {
             data: components["schemas"]["WorkspaceLeaveBalance"][];
+            /** Format: int64 */
+            limit: number;
+            /** Format: int64 */
+            page: number;
+            total: number;
+        };
+        PaginatedWorkspaceMembers: {
+            data: components["schemas"]["WorkspaceMemberDetailResponse"][];
             /** Format: int64 */
             limit: number;
             /** Format: int64 */
@@ -12274,7 +12298,17 @@ export interface operations {
     };
     get_workspace_members: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number | null;
+                limit?: number | null;
+                q?: string | null;
+                year?: number | null;
+                sort_by?: string | null;
+                sort_dir?: string | null;
+                department_id?: string | null;
+                permission?: string | null;
+                custom_field_filters?: string | null;
+            };
             header?: never;
             path: {
                 /** @description Workspace ID */
@@ -12290,7 +12324,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["WorkspaceMemberDetailResponse"][];
+                    "application/json": components["schemas"]["PaginatedWorkspaceMembers"];
                 };
             };
         };
@@ -13794,6 +13828,8 @@ export interface operations {
             query?: {
                 year?: number | null;
                 location_id?: string | null;
+                page?: number | null;
+                limit?: number | null;
             };
             header?: never;
             path: {
@@ -13810,7 +13846,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Holiday"][];
+                    "application/json": components["schemas"]["PaginatedHolidays"];
                 };
             };
         };
@@ -16159,7 +16195,10 @@ export interface operations {
     };
     list_policies: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number | null;
+                limit?: number | null;
+            };
             header?: never;
             path: {
                 /** @description Workspace ID */
@@ -16175,7 +16214,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OvertimePolicy"][];
+                    "application/json": components["schemas"]["PaginatedOvertimePolicies"];
                 };
             };
         };

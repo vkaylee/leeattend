@@ -1063,6 +1063,7 @@ mod tests {
             JobPayload::LeaveAccrual(crate::queue::AccrualPayload {
                 date: NaiveDate::from_ymd_opt(2026, 3, 1).unwrap(),
                 force: false,
+                employee_ids: None,
             }),
         );
 

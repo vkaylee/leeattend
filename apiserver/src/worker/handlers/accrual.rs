@@ -5,7 +5,6 @@
 
 use crate::queue::{Job, JobStatus};
 use crate::services::leave_accrual_service::LeaveAccrualService;
-use chrono::Utc;
 
 pub struct AccrualHandler;
 
@@ -21,8 +20,10 @@ impl AccrualHandler {
 
         // Update metadata → Processing
         if let Ok(Some(mut meta)) = queue.get_job_metadata(job.parent_job_id).await {
-            meta.status = JobStatus::Processing;
-            let _ = queue.update_job_metadata(&meta).await;
+            if meta.status == JobStatus::Pending {
+                meta.status = JobStatus::Processing;
+                let _ = queue.update_job_metadata(&meta).await;
+            }
         }
 
         tracing::info!(
@@ -43,7 +44,12 @@ impl AccrualHandler {
             std::sync::Arc::clone(&deps.contract_repo),
         );
         match accrual_service
-            .process_workspace_accruals(job.workspace_id, payload.date, payload.force)
+            .process_workspace_accruals(
+                job.workspace_id,
+                payload.date,
+                payload.force,
+                payload.employee_ids.as_deref(),
+            )
             .await
         {
             Ok(logs) => {
@@ -53,28 +59,10 @@ impl AccrualHandler {
                     "Leave accrual processing completed"
                 );
 
-                // Update metadata → Completed
-                if let Ok(Some(mut meta)) = queue.get_job_metadata(job.parent_job_id).await {
-                    meta.status = JobStatus::Completed;
-                    meta.completed_batches = 1;
-                    meta.completed_at = Some(Utc::now());
-                    let _ = queue.update_job_metadata(&meta).await;
-                }
-
                 Ok(())
             }
             Err(e) => {
                 let error_msg = format!("Accrual processing failed: {e}");
-
-                // Update metadata → Failed
-                if let Ok(Some(mut meta)) = queue.get_job_metadata(job.parent_job_id).await {
-                    meta.status = JobStatus::Failed;
-                    meta.failed_batches = 1;
-                    meta.completed_at = Some(Utc::now());
-                    meta.error_message = Some(error_msg.clone());
-                    let _ = queue.update_job_metadata(&meta).await;
-                }
-
                 Err(error_msg)
             }
         }
@@ -86,7 +74,7 @@ mod tests {
     use super::*;
     use crate::queue::{AccrualPayload, JobPayload, JobPriority, TaskType};
     use crate::worker::test_utils::MockWorkerDepsBuilder;
-    use chrono::NaiveDate;
+    use chrono::{NaiveDate, Utc};
     use std::sync::Arc;
     use uuid::Uuid;
 
@@ -127,39 +115,9 @@ mod tests {
             .times(1)
             .returning(|_| Ok(()));
 
-        // 2. Queue expects status to move to Completed
-        queue
-            .expect_get_job_metadata()
-            .with(mockall::predicate::eq(parent_job_id))
-            .times(1)
-            .returning(move |id| {
-                Ok(Some(crate::queue::JobMetadata {
-                    job_id: id,
-                    status: JobStatus::Processing,
-                    total_batches: 1,
-                    completed_batches: 0,
-                    failed_batches: 0,
-                    workspace_id: ws_id,
-                    requester_id: Uuid::new_v4(),
-                    report_type: None,
-                    date_range: None,
-                    created_at: Utc::now(),
-                    completed_at: None,
-                    error_message: None,
-                    task_type: None,
-                    payload: None,
-                }))
-            });
-
-        queue
-            .expect_update_job_metadata()
-            .withf(|meta| meta.status == JobStatus::Completed && meta.completed_batches == 1)
-            .times(1)
-            .returning(|_| Ok(()));
-
         let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);
 
-        // 3. Mock Repositories to return empty so accrual loop finishes immediately
+        // 2. Mock Repositories to return empty so accrual loop finishes immediately
         let mut accrual_log_repo =
             crate::repositories::leave_accrual_log_repository::MockLeaveAccrualLogRepository::new();
         accrual_log_repo
@@ -185,6 +143,87 @@ mod tests {
             payload: JobPayload::LeaveAccrual(AccrualPayload {
                 date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
                 force: false,
+                employee_ids: None,
+            }),
+            priority: JobPriority::Normal,
+            created_at: Utc::now(),
+            retry_count: 0,
+            max_retries: 3,
+        };
+
+        let result = AccrualHandler::handle(&queue_arc, &job, &deps).await;
+        assert!(result.is_ok(), "Handler failed: {:?}", result.err());
+    }
+
+    #[tokio::test]
+    async fn test_accrual_handler_with_target_employees() {
+        let mut queue = crate::repositories::queue_repository::MockQueueRepository::new();
+        let ws_id = Uuid::new_v4();
+        let job_id = Uuid::new_v4();
+        let parent_job_id = Uuid::new_v4();
+        let target_emp_id = Uuid::new_v4();
+
+        // 1. Queue expects status to move to Processing
+        queue
+            .expect_get_job_metadata()
+            .with(mockall::predicate::eq(parent_job_id))
+            .times(1)
+            .returning(move |id| {
+                Ok(Some(crate::queue::JobMetadata {
+                    job_id: id,
+                    status: JobStatus::Pending,
+                    total_batches: 1,
+                    completed_batches: 0,
+                    failed_batches: 0,
+                    workspace_id: ws_id,
+                    requester_id: Uuid::new_v4(),
+                    report_type: None,
+                    date_range: None,
+                    created_at: Utc::now(),
+                    completed_at: None,
+                    error_message: None,
+                    task_type: None,
+                    payload: None,
+                }))
+            });
+
+        queue
+            .expect_update_job_metadata()
+            .withf(|meta| meta.status == JobStatus::Processing)
+            .times(1)
+            .returning(|_| Ok(()));
+
+        let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);
+
+        // 2. Mock Repositories
+        let mut accrual_log_repo =
+            crate::repositories::leave_accrual_log_repository::MockLeaveAccrualLogRepository::new();
+        accrual_log_repo
+            .expect_get_workspace_timezone()
+            .returning(|_| Ok("UTC".to_string()));
+
+        let mut employee_repo = crate::repositories::employee::MockEmployeeRepository::new();
+        employee_repo
+            .expect_get_employees_by_ids()
+            .withf(move |ids, _| ids == &[target_emp_id])
+            .times(1)
+            .returning(|_, _| Ok(vec![]));
+
+        let mut builder = MockWorkerDepsBuilder::new();
+        builder.leave_accrual_log_repo = accrual_log_repo;
+        builder.employee_repo = employee_repo;
+        let deps = builder.build();
+
+        let job = Job {
+            job_id,
+            parent_job_id,
+            batch_index: 0,
+            task_type: TaskType::LeaveAccrual,
+            workspace_id: ws_id,
+            payload: JobPayload::LeaveAccrual(AccrualPayload {
+                date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                force: false,
+                employee_ids: Some(vec![target_emp_id]),
             }),
             priority: JobPriority::Normal,
             created_at: Utc::now(),

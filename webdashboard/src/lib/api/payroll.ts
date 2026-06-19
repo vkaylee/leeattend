@@ -186,7 +186,7 @@ export async function fetchOvertimePolicies(wsId: string): Promise<OvertimePolic
     params: { path: { ws_id: wsId } }
   });
   if (!resData) throw new Error("No response data");
-  return resData;
+  return resData.data;
 }
 
 export async function fetchOvertimePolicy(wsId: string, policyId: string): Promise<[OvertimePolicy, OvertimeRule[]]> {
