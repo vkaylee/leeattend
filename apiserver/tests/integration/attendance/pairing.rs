@@ -74,7 +74,7 @@ fn algorithm(session: &PairedSession) -> String {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  Tier 2: Shift Window
+//  Tier 1: Shift Window
 // ═══════════════════════════════════════════════════════════════
 
 #[test]
@@ -86,7 +86,7 @@ fn tier2_normal_day_within_window() {
         log(1025), // 17:05 — in check-out window
     ];
 
-    let sessions = strategy().pair(&logs, &[shift]);
+    let sessions = strategy().pair(&logs, Some(&shift));
     assert_eq!(sessions.len(), 2);
     assert_eq!(sessions[0].start_minutes(), 475);
     assert_eq!(sessions[0].end_minutes(), Some(720));
@@ -104,7 +104,7 @@ fn tier2_early_arrival() {
         log(1020),
     ];
 
-    let sessions = strategy().pair(&logs, &[shift]);
+    let sessions = strategy().pair(&logs, Some(&shift));
     assert_eq!(sessions.len(), 2);
     assert_eq!(sessions[0].start_minutes(), 390);
     assert_eq!(sessions[0].end_minutes(), Some(720));
@@ -122,7 +122,7 @@ fn tier2_late_departure() {
         log(1080), // 18:00 (1020 + 60, within buffer)
     ];
 
-    let sessions = strategy().pair(&logs, &[shift]);
+    let sessions = strategy().pair(&logs, Some(&shift));
     assert_eq!(sessions.len(), 2);
     assert_eq!(sessions[0].start_minutes(), 480);
     assert_eq!(sessions[0].end_minutes(), Some(720));
@@ -140,7 +140,7 @@ fn tier2_boundary_exact_buffer_edge() {
         log(1140), // 19:00 = 1020 + 120 (exact edge)
     ];
 
-    let sessions = strategy().pair(&logs, &[shift]);
+    let sessions = strategy().pair(&logs, Some(&shift));
     assert_eq!(sessions.len(), 2);
     assert_eq!(sessions[0].start_minutes(), 360);
     assert_eq!(sessions[0].end_minutes(), Some(720));
@@ -158,7 +158,7 @@ fn tier2_outside_buffer_falls_to_anchor() {
         log(300), // 05:00 — still outside
     ];
 
-    let sessions = strategy().pair(&logs, &[shift]);
+    let sessions = strategy().pair(&logs, Some(&shift));
     assert_eq!(tier(&sessions[0]), "anchor_first"); // Fell back
 }
 
@@ -173,7 +173,7 @@ fn tier2_only_checkin_in_window() {
         log(600), // 10:00 — last log of day
     ];
 
-    let sessions = strategy().pair(&logs, &[shift]);
+    let sessions = strategy().pair(&logs, Some(&shift));
     assert_eq!(sessions[0].start_minutes(), 480);
     // "Last Out of day" design: any log after check-in counts as checkout
     assert_eq!(sessions[0].end_minutes(), Some(600));
@@ -188,7 +188,7 @@ fn tier2_overnight_shift() {
         log(1805), // 06:05 — near shift end 06:00 next day
     ];
 
-    let sessions = strategy().pair(&logs, &[shift]);
+    let sessions = strategy().pair(&logs, Some(&shift));
     assert_eq!(sessions.len(), 2);
     assert_eq!(sessions[0].start_minutes(), 1315);
     assert_eq!(sessions[0].end_minutes(), Some(1560));
@@ -205,21 +205,21 @@ fn tier2_early_morning_shift() {
         log(845), // 14:05 — near shift end 14:00
     ];
 
-    let sessions = strategy().pair(&logs, &[shift]);
+    let sessions = strategy().pair(&logs, Some(&shift));
     assert_eq!(sessions[0].start_minutes(), 355);
     assert_eq!(sessions[0].end_minutes(), Some(845));
     assert_eq!(tier(&sessions[0]), "shift_window");
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  Tier 3: Anchor First (fallback)
+//  Tier 2: Anchor First (fallback)
 // ═══════════════════════════════════════════════════════════════
 
 #[test]
 fn tier3_basic_pair() {
     let logs = vec![log(480), log(1020)];
 
-    let sessions = strategy().pair(&logs, &[]);
+    let sessions = strategy().pair(&logs, None);
     assert_eq!(sessions[0].start_minutes(), 480);
     assert_eq!(sessions[0].end_minutes(), Some(1020));
     assert_eq!(tier(&sessions[0]), "anchor_first");
@@ -227,7 +227,7 @@ fn tier3_basic_pair() {
 
 #[test]
 fn tier3_single_log_missing_out() {
-    let sessions = strategy().pair(&[log(480)], &[]);
+    let sessions = strategy().pair(&[log(480)], None);
     assert_eq!(sessions.len(), 1);
     assert!(sessions[0].end_minutes().is_none());
     assert_eq!(sessions[0].note(), Some(&PairingNote::MissingPunchOut));
@@ -241,7 +241,7 @@ fn tier3_16h_limit_within() {
         log(960), // 16:00 (900 min gap)
     ];
 
-    let sessions = strategy().pair(&logs, &[]);
+    let sessions = strategy().pair(&logs, None);
     assert_eq!(sessions[0].end_minutes(), Some(960));
 }
 
@@ -250,7 +250,7 @@ fn tier3_16h_limit_exactly_at() {
     // Exactly 16h gap (960 min) — should pair (≤ limit)
     let logs = vec![log(0), log(960)];
 
-    let sessions = strategy().pair(&logs, &[]);
+    let sessions = strategy().pair(&logs, None);
     assert_eq!(sessions[0].end_minutes(), Some(960));
 }
 
@@ -259,7 +259,7 @@ fn tier3_16h_limit_exceeded() {
     // 17h gap (1020 min) — should NOT pair
     let logs = vec![log(0), log(1020)];
 
-    let sessions = strategy().pair(&logs, &[]);
+    let sessions = strategy().pair(&logs, None);
     assert_eq!(sessions[0].end_minutes().is_none(), true);
 }
 
@@ -273,7 +273,7 @@ fn tier3_many_logs_picks_last_within_limit() {
         log(1020), // 17:00
     ];
 
-    let sessions = strategy().pair(&logs, &[]);
+    let sessions = strategy().pair(&logs, None);
     assert_eq!(sessions.len(), 3);
     assert_eq!(sessions[0].start_minutes(), 480);
     assert_eq!(sessions[0].end_minutes(), Some(600));
@@ -289,13 +289,13 @@ fn tier3_many_logs_picks_last_within_limit() {
 
 #[test]
 fn empty_logs_returns_empty() {
-    let sessions = strategy().pair(&[], &[]);
+    let sessions = strategy().pair(&[], None);
     assert!(sessions.is_empty());
 }
 
 #[test]
 fn empty_logs_with_shift_returns_empty() {
-    let sessions = strategy().pair(&[], &[day_shift()]);
+    let sessions = strategy().pair(&[], Some(&day_shift()));
     assert!(sessions.is_empty());
 }
 
@@ -305,12 +305,12 @@ fn metadata_always_has_algorithm_and_tier() {
     let s = strategy();
 
     // Tier 2
-    let t2 = s.pair(&[log(480), log(1020)], &[day_shift()]);
+    let t2 = s.pair(&[log(480), log(1020)], Some(&day_shift()));
     assert_eq!(algorithm(&t2[0]), "shift_aware");
     assert_eq!(tier(&t2[0]), "shift_window");
 
     // Tier 3
-    let t3 = s.pair(&[log(480), log(1020)], &[]);
+    let t3 = s.pair(&[log(480), log(1020)], None);
     assert_eq!(algorithm(&t3[0]), "shift_aware");
     assert_eq!(tier(&t3[0]), "anchor_first");
 }
@@ -318,7 +318,7 @@ fn metadata_always_has_algorithm_and_tier() {
 #[test]
 fn metadata_log_ids_are_present() {
     let logs = vec![log(480), log(1020)];
-    let sessions = strategy().pair(&logs, &[]);
+    let sessions = strategy().pair(&logs, None);
     let meta = sessions[0].metadata().unwrap();
     let log_ids = meta["log_ids"].as_array().unwrap();
     assert_eq!(log_ids.len(), 2);
@@ -336,8 +336,8 @@ fn algorithm_name_is_shift_aware() {
 fn entry_type_always_work() {
     // All tiers should set entry_type = "work"
     let s = strategy();
-    let t2 = s.pair(&[log(480), log(1020)], &[day_shift()]);
-    let t3 = s.pair(&[log(480), log(1020)], &[]);
+    let t2 = s.pair(&[log(480), log(1020)], Some(&day_shift()));
+    let t3 = s.pair(&[log(480), log(1020)], None);
 
     assert_eq!(*t2[0].entry_type(), EntryType::Work);
     assert_eq!(*t3[0].entry_type(), EntryType::Work);

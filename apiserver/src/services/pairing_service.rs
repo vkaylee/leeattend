@@ -162,78 +162,72 @@ impl PairingService {
         Ok(())
     }
 
-    #[tracing::instrument(skip_all, err)]
-    #[allow(clippy::too_many_lines)]
-    pub async fn reprocess_attendance_range(
+    async fn fetch_schedules_for_range(
         &self,
-        workspace_id: Uuid,
+        auth_token: &TenantAuthToken,
         employment_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
-        tz: Tz,
-    ) -> Result<(), AppError> {
-        info!(
-            workspace_id = %workspace_id,
-            employment_id = %employment_id,
-            start_date = %start_date,
-            end_date = %end_date,
-            "Reprocessing range attendance"
-        );
-
-        let auth_token = TenantAuthToken::system_override(workspace_id);
-
-        // 1. Fetch effective schedules for the range
+    ) -> Result<crate::models::EmployeeSchedule, AppError> {
         let schedules = self
             .roster_repo
             .get_workspace_schedules(
                 None,
-                &auth_token,
+                auth_token,
                 start_date,
                 end_date,
                 Some(&vec![employment_id]),
             )
             .await?;
 
-        let emp_sched = schedules.first().ok_or_else(|| {
+        schedules.into_iter().next().ok_or_else(|| {
             AppError::Internal(format!(
                 "No schedule found for employee {employment_id} in range {start_date} to {end_date}"
             ))
-        })?;
+        })
+    }
 
-        // 2. Fetch logs and adjacent entries
-        let (raw_logs, adjacent_entries) = self
-            .fetch_logs_and_entries_for_range(
-                &auth_token,
-                workspace_id,
-                employment_id,
-                start_date,
-                end_date,
-                tz,
-            )
-            .await?;
-
-        // 3. Process each day in range
+    fn process_range_days(
+        curr_date: NaiveDate,
+        end_date: NaiveDate,
+        emp_sched: &crate::models::EmployeeSchedule,
+        tz: Tz,
+        workspace_id: Uuid,
+        employment_id: Uuid,
+        raw_logs: &[RawAttendanceLog],
+        adjacent_entries: &[TimeEntry],
+    ) -> Result<Vec<TimeEntry>, AppError> {
         let mut new_entries_accumulated = Vec::new();
-        let mut curr_date = start_date;
+        let mut curr = curr_date;
 
-        while curr_date <= end_date {
-            if let Some(sched) = emp_sched.schedules.iter().find(|s| s.date == curr_date) {
+        while curr <= end_date {
+            if let Some(sched) = emp_sched.schedules.iter().find(|s| s.date == curr) {
                 let day_new_entries = Self::process_single_day_in_range(
-                    curr_date,
+                    curr,
                     tz,
                     workspace_id,
                     employment_id,
                     sched,
-                    &raw_logs,
-                    &adjacent_entries,
+                    raw_logs,
+                    adjacent_entries,
                 )?;
                 new_entries_accumulated.extend(day_new_entries);
             }
-
-            curr_date = curr_date.succ_opt().unwrap_or(curr_date);
+            curr = curr.succ_opt().unwrap_or(curr);
         }
+        Ok(new_entries_accumulated)
+    }
 
-        // 4. Save
+    async fn save_range_entries(
+        &self,
+        auth_token: &TenantAuthToken,
+        workspace_id: Uuid,
+        employment_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+        tz: Tz,
+        new_entries: Vec<TimeEntry>,
+    ) -> Result<(), AppError> {
         let range_start_local = crate::utils::tz::local_to_tz(&tz, start_date, 0, 0, 0)?;
         let range_end_local =
             crate::utils::tz::local_to_tz(&tz, end_date + Duration::days(1), 0, 0, 0)?;
@@ -242,15 +236,14 @@ impl PairingService {
 
         self.time_entry_repo
             .replace_time_entries(
-                &auth_token,
+                auth_token,
                 employment_id,
                 range_start_utc,
                 range_end_utc,
-                new_entries_accumulated,
+                new_entries,
             )
             .await?;
 
-        // 5. Recalculate daily summary for OT workflow with retries in batch for the range
         self.recalculate_range_summary_with_retry(
             workspace_id,
             employment_id,
@@ -259,8 +252,17 @@ impl PairingService {
         )
         .await;
 
-        // If the last day of the range has an overnight shift, we must also reprocess the next day
-        // to let it self-heal and clear any stolen punches.
+        Ok(())
+    }
+
+    async fn handle_overnight_tail(
+        &self,
+        workspace_id: Uuid,
+        employment_id: Uuid,
+        end_date: NaiveDate,
+        emp_sched: &crate::models::EmployeeSchedule,
+        tz: Tz,
+    ) -> Result<(), AppError> {
         let last_day_is_overnight =
             if let Some(sched) = emp_sched.schedules.iter().find(|s| s.date == end_date) {
                 if let (Some(st), Some(et)) = (sched.start_time, sched.end_time) {
@@ -296,6 +298,68 @@ impl PairingService {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all, err)]
+    pub async fn reprocess_attendance_range(
+        &self,
+        workspace_id: Uuid,
+        employment_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+        tz: Tz,
+    ) -> Result<(), AppError> {
+        info!(
+            workspace_id = %workspace_id,
+            employment_id = %employment_id,
+            start_date = %start_date,
+            end_date = %end_date,
+            "Reprocessing range attendance"
+        );
+
+        let auth_token = TenantAuthToken::system_override(workspace_id);
+
+        let emp_sched = self
+            .fetch_schedules_for_range(&auth_token, employment_id, start_date, end_date)
+            .await?;
+
+        let (raw_logs, adjacent_entries) = self
+            .fetch_logs_and_entries_for_range(
+                &auth_token,
+                workspace_id,
+                employment_id,
+                start_date,
+                end_date,
+                tz,
+            )
+            .await?;
+
+        let new_entries = Self::process_range_days(
+            start_date,
+            end_date,
+            &emp_sched,
+            tz,
+            workspace_id,
+            employment_id,
+            &raw_logs,
+            &adjacent_entries,
+        )?;
+
+        self.save_range_entries(
+            &auth_token,
+            workspace_id,
+            employment_id,
+            start_date,
+            end_date,
+            tz,
+            new_entries,
+        )
+        .await?;
+
+        self.handle_overnight_tail(workspace_id, employment_id, end_date, &emp_sched, tz)
+            .await?;
+
+        Ok(())
+    }
+
     fn process_single_day_in_range(
         curr_date: NaiveDate,
         tz: Tz,
@@ -313,32 +377,8 @@ impl PairingService {
             context.calculate_fetch_window(shift_config.as_ref())?;
 
         // Exclude logs consumed by adjacent days (excluding current date)
-        let mut consumed_log_ids = std::collections::HashSet::new();
-        for entry in adjacent_entries {
-            let entry_local = entry.punch_in_time().with_timezone(&tz);
-            if entry_local.date_naive() == curr_date {
-                continue;
-            }
-
-            // Skip next-day early morning punches because the previous day's overnight shift
-            // has priority over these punches.
-            if entry_local.date_naive() == curr_date + Duration::days(1)
-                && entry_local.hour() < OVERNIGHT_REPROCESS_CUTOFF_HOUR
-            {
-                continue;
-            }
-
-            if let Some(metadata) = entry.generation_metadata() {
-                if let Ok(paired_meta) = serde_json::from_value::<
-                    crate::services::pairing_algo::PairingMetadata,
-                >(metadata.clone())
-                {
-                    for id in paired_meta.log_ids() {
-                        consumed_log_ids.insert(*id);
-                    }
-                }
-            }
-        }
+        let consumed_log_ids =
+            ConsumedLogTracker::extract_consumed_ids(adjacent_entries, curr_date, tz);
 
         let filtered_raw_logs: Vec<RawAttendanceLog> = raw_logs
             .iter()
@@ -356,12 +396,7 @@ impl PairingService {
         }
 
         let strategy = pairing_algo::get_strategy();
-        let shift_configs = if let Some(ref config) = shift_config {
-            vec![config.clone()]
-        } else {
-            vec![]
-        };
-        let sessions = strategy.pair(&filtered_log_events, &shift_configs);
+        let sessions = strategy.pair(&filtered_log_events, shift_config.as_ref());
 
         let traces_val = serde_json::json!(sched.traces);
         context.build_time_entries(
@@ -542,12 +577,7 @@ impl PairingService {
 
         // 4. Run Algorithm
         let strategy = pairing_algo::get_strategy();
-        let shift_configs = if let Some(ref config) = shift_config {
-            vec![config.clone()]
-        } else {
-            vec![]
-        };
-        let sessions = strategy.pair(&filtered_log_events, &shift_configs);
+        let sessions = strategy.pair(&filtered_log_events, shift_config.as_ref());
 
         // 5. Update Database and Recalculate
         let new_entries = context.build_time_entries(
@@ -626,40 +656,17 @@ impl PairingService {
         employment_id: Uuid,
         date: NaiveDate,
     ) {
-        let mut attempts = 0;
-        const MAX_ATTEMPTS: u32 = 3;
-        while attempts < MAX_ATTEMPTS {
-            attempts += 1;
-            match self
-                .summary_service
-                .recalculate_daily_summary(workspace_id, employment_id, date)
-                .await
-            {
-                Ok(()) => break,
-                Err(e) => {
-                    if attempts == MAX_ATTEMPTS {
-                        tracing::error!(
-                            workspace_id = %workspace_id,
-                            employment_id = %employment_id,
-                            date = %date,
-                            error = %e,
-                            "Failed to recalculate attendance summary after {} attempts",
-                            MAX_ATTEMPTS
-                        );
-                    } else {
-                        tracing::warn!(
-                            workspace_id = %workspace_id,
-                            employment_id = %employment_id,
-                            date = %date,
-                            error = %e,
-                            attempt = attempts,
-                            "Temporary failure recalculating attendance summary, retrying..."
-                        );
-                        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-                    }
-                }
-            }
-        }
+        let summary_service = &self.summary_service;
+        retry_with_log(
+            "recalculate_daily_summary",
+            workspace_id,
+            employment_id,
+            &format!("date={date}"),
+            3,
+            100,
+            || summary_service.recalculate_daily_summary(workspace_id, employment_id, date),
+        )
+        .await;
     }
 
     async fn recalculate_range_summary_with_retry(
@@ -669,42 +676,24 @@ impl PairingService {
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) {
-        let mut attempts = 0;
-        const MAX_ATTEMPTS: u32 = 3;
-        while attempts < MAX_ATTEMPTS {
-            attempts += 1;
-            match self
-                .summary_service
-                .recalculate_attendance_range(workspace_id, employment_id, start_date, end_date)
-                .await
-            {
-                Ok(()) => break,
-                Err(e) => {
-                    if attempts == MAX_ATTEMPTS {
-                        tracing::error!(
-                            workspace_id = %workspace_id,
-                            employment_id = %employment_id,
-                            start_date = %start_date,
-                            end_date = %end_date,
-                            error = %e,
-                            "Failed to recalculate attendance range summary after {} attempts",
-                            MAX_ATTEMPTS
-                        );
-                    } else {
-                        tracing::warn!(
-                            workspace_id = %workspace_id,
-                            employment_id = %employment_id,
-                            start_date = %start_date,
-                            end_date = %end_date,
-                            error = %e,
-                            attempt = attempts,
-                            "Temporary failure recalculating attendance range summary, retrying..."
-                        );
-                        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-                    }
-                }
-            }
-        }
+        let summary_service = &self.summary_service;
+        retry_with_log(
+            "recalculate_attendance_range",
+            workspace_id,
+            employment_id,
+            &format!("range={start_date}..{end_date}"),
+            3,
+            100,
+            || {
+                summary_service.recalculate_attendance_range(
+                    workspace_id,
+                    employment_id,
+                    start_date,
+                    end_date,
+                )
+            },
+        )
+        .await;
     }
 
     async fn clear_auto_entries(
@@ -717,6 +706,49 @@ impl PairingService {
         self.time_entry_repo
             .replace_time_entries(auth_token, employment_id, start, end, Vec::new())
             .await
+    }
+}
+
+/// Execute an async operation with retries and structured logging.
+async fn retry_with_log<F, Fut>(
+    operation_name: &str,
+    workspace_id: Uuid,
+    employment_id: Uuid,
+    context: &str,
+    max_attempts: u32,
+    delay_ms: u64,
+    f: F,
+) where
+    F: Fn() -> Fut,
+    Fut: std::future::Future<Output = Result<(), AppError>>,
+{
+    let mut attempts = 0;
+    while attempts < max_attempts {
+        attempts += 1;
+        match f().await {
+            Ok(()) => return,
+            Err(e) => {
+                if attempts == max_attempts {
+                    tracing::error!(
+                        workspace_id = %workspace_id,
+                        employment_id = %employment_id,
+                        context = %context,
+                        error = %e,
+                        "Failed {} after {} attempts", operation_name, max_attempts,
+                    );
+                } else {
+                    tracing::warn!(
+                        workspace_id = %workspace_id,
+                        employment_id = %employment_id,
+                        context = %context,
+                        error = %e,
+                        attempt = attempts,
+                        "Temporary failure in {}, retrying...", operation_name,
+                    );
+                    tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
+                }
+            }
+        }
     }
 }
 
@@ -745,6 +777,38 @@ impl<'a> ConsumedLogTracker<'a> {
         }
     }
 
+    /// Extract consumed log IDs from pre-fetched adjacent entries.
+    /// Shared between single-day reprocessing and range reprocessing.
+    fn extract_consumed_ids(
+        entries: &[TimeEntry],
+        current_date: NaiveDate,
+        tz: Tz,
+    ) -> std::collections::HashSet<Uuid> {
+        let mut consumed = std::collections::HashSet::new();
+        for entry in entries {
+            let entry_local = entry.punch_in_time().with_timezone(&tz);
+            if entry_local.date_naive() == current_date {
+                continue;
+            }
+            if entry_local.date_naive() == current_date + Duration::days(1)
+                && entry_local.hour() < OVERNIGHT_REPROCESS_CUTOFF_HOUR
+            {
+                continue;
+            }
+            if let Some(metadata) = entry.generation_metadata() {
+                if let Ok(paired_meta) = serde_json::from_value::<
+                    crate::services::pairing_algo::PairingMetadata,
+                >(metadata.clone())
+                {
+                    for id in paired_meta.log_ids() {
+                        consumed.insert(*id);
+                    }
+                }
+            }
+        }
+        consumed
+    }
+
     async fn get_consumed_log_ids(
         &self,
         start_of_day_utc: DateTime<Utc>,
@@ -763,35 +827,11 @@ impl<'a> ConsumedLogTracker<'a> {
             )
             .await?;
 
-        // Filter out entries that belong to the current day (they will be replaced)
-        // Extract all log IDs that were already consumed by entries of adjacent days
-        let mut consumed_log_ids = std::collections::HashSet::new();
-        for entry in adjacent_entries {
-            let entry_local = entry.punch_in_time().with_timezone(&self.tz);
-            if entry_local.date_naive() == self.date {
-                continue;
-            }
-
-            // Skip next-day early morning punches because the previous day's overnight shift
-            // has priority over these punches.
-            if entry_local.date_naive() == self.date + Duration::days(1)
-                && entry_local.hour() < OVERNIGHT_REPROCESS_CUTOFF_HOUR
-            {
-                continue;
-            }
-
-            if let Some(metadata) = entry.generation_metadata() {
-                if let Ok(paired_meta) = serde_json::from_value::<
-                    crate::services::pairing_algo::PairingMetadata,
-                >(metadata.clone())
-                {
-                    for id in paired_meta.log_ids() {
-                        consumed_log_ids.insert(*id);
-                    }
-                }
-            }
-        }
-        Ok(consumed_log_ids)
+        Ok(Self::extract_consumed_ids(
+            &adjacent_entries,
+            self.date,
+            self.tz,
+        ))
     }
 }
 

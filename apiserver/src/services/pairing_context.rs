@@ -175,8 +175,17 @@ impl PairingContext {
 
             let end_dt_utc = session.end_time();
 
-            let duration = end_dt_utc
-                .map(|end| i32::try_from((end - start_dt_utc).num_minutes()).unwrap_or(i32::MAX));
+            let duration = end_dt_utc.map(|end| {
+                let mins = (end - start_dt_utc).num_minutes();
+                i32::try_from(mins).unwrap_or_else(|_| {
+                    tracing::warn!(
+                        employment_id = %employment_id,
+                        minutes = mins,
+                        "Duration overflow in time entry calculation, clamping to i32::MAX"
+                    );
+                    i32::MAX
+                })
+            });
 
             let mut final_metadata = session
                 .metadata()

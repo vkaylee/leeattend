@@ -45,12 +45,7 @@ pub struct PairingShiftConfig {
     // Values can be > 1440 (24h) for overnight shifts.
     start_minutes: i32,
     end_minutes: i32,
-    // TODO(TD-BREAK): These fields are populated but not yet consumed by the
-    // pairing algorithm. They will be needed when break session splitting is
-    // implemented (related: TD-07 multi-session support).
-    #[allow(dead_code)]
     break_start_minutes: Option<i32>,
-    #[allow(dead_code)]
     break_end_minutes: Option<i32>,
     check_in_buffer_minutes: Option<i32>,
     max_session_gap_minutes: Option<i32>,
@@ -257,18 +252,18 @@ const SHIFT_WINDOW_BUFFER: i32 = 120;
 ///
 /// # Known Limitations
 ///
-/// ## TD-07: Single Session Per Day
-/// Currently, this algorithm only supports pairing a maximum of one session per day
-/// (either within the shift window or via the fallback strategy). It does not support
-/// multiple independent work sessions (e.g. split shifts, multi-session days).
+/// ## TD-07: Multi-Session Per Day
+/// Currently, the shift-window tier supports at most two sessions per day (split by
+/// one break window). It does not yet support multiple independent work sessions
+/// (e.g. split shifts, multi-session days).
 ///
-/// **Impact:** Employees with split shifts (e.g. 06:00-10:00 + 14:00-18:00) will have
-/// their entire day collapsed into a single session from first-in to last-out.
+/// **Impact:** Employees with split shifts (e.g. 06:00-10:00 + 14:00-18:00) or
+/// multiple break windows will have sessions collapsed beyond what one break split
+/// can represent.
 ///
 /// **Required for resolution:**
 /// - Business requirements for split shift pairing rules
 /// - Algorithm to detect session gaps vs break gaps
-/// - Break deduction logic using `break_start/end_minutes` (TD-BREAK)
 pub fn get_strategy() -> ShiftAwareStrategy {
     ShiftAwareStrategy
 }
@@ -280,23 +275,25 @@ impl ShiftAwareStrategy {
         ALGORITHM_NAME
     }
 
-    pub fn pair(&self, logs: &[LogEvent], configs: &[PairingShiftConfig]) -> Vec<PairedSession> {
+    pub fn pair(
+        &self,
+        logs: &[LogEvent],
+        config: Option<&PairingShiftConfig>,
+    ) -> Vec<PairedSession> {
         if logs.is_empty() {
             return vec![];
         }
 
+        let mut sorted_logs = logs.to_vec();
+        sorted_logs.sort_by_key(|l| l.minutes);
+
         // Tier 1: If shift config available, use shift-window-based pairing
-        if !configs.is_empty() {
-            let mut all_sessions = Vec::new();
-            for shift in configs {
-                let sessions = Self::pair_by_shift_window(logs, shift);
-                all_sessions.extend(sessions);
-            }
-            return all_sessions;
+        if let Some(shift) = config {
+            return Self::pair_by_shift_window(&sorted_logs, shift);
         }
 
         // Tier 2: Fallback to anchor-first (original behavior)
-        Self::pair_anchor_first(logs, None)
+        Self::pair_anchor_first(&sorted_logs, None)
     }
 
     fn find_earliest_in_window(
@@ -304,8 +301,8 @@ impl ShiftAwareStrategy {
         start_minutes: i32,
         buffer: i32,
     ) -> Option<&LogEvent> {
-        let check_in_window_start = start_minutes - buffer;
-        let check_in_window_end = start_minutes + buffer;
+        let check_in_window_start = start_minutes.saturating_sub(buffer);
+        let check_in_window_end = start_minutes.saturating_add(buffer);
         logs.iter()
             .find(|l| l.minutes >= check_in_window_start && l.minutes <= check_in_window_end)
     }
@@ -334,7 +331,7 @@ impl ShiftAwareStrategy {
         }
     }
 
-    // --- Shared helpers for TD-P2 DRY extraction ---
+    // --- Shared helpers for log event data extraction ---
 
     /// Extract note from a log event's raw_data.
     fn extract_note(log: &LogEvent) -> Option<PairingNote> {
@@ -435,10 +432,10 @@ impl ShiftAwareStrategy {
                     let log_ids_2 =
                         Self::collect_log_ids(logs, b_end, Some(end_val), &last_out_log.all_ids);
 
-                    let diff_1 = i64::from(b_start - start);
+                    let diff_1 = i64::from(b_start) - i64::from(start);
                     let end_time_1 = first_in_log.punch_time + chrono::Duration::minutes(diff_1);
 
-                    let diff_2 = i64::from(end_val - b_end);
+                    let diff_2 = i64::from(end_val) - i64::from(b_end);
                     let start_time_2 = last_out_log.punch_time - chrono::Duration::minutes(diff_2);
                     let end_time_2 = last_out_log.punch_time;
 
@@ -527,7 +524,11 @@ impl ShiftAwareStrategy {
 
             if i + 1 < logs.len() {
                 let second = &logs[i + 1];
-                if second.minutes - first.minutes <= max_gap_val {
+                if second
+                    .minutes
+                    .checked_sub(first.minutes)
+                    .is_some_and(|diff| diff <= max_gap_val)
+                {
                     let end_time = Some(second.punch_time);
                     let end_note = Self::extract_note(second);
                     let combined_note = Self::combine_notes(start_note, end_note);
@@ -641,7 +642,7 @@ mod tests {
             make_log(1025), // 17:05 — last log of day
         ];
 
-        let sessions = strategy.pair(&logs, &[shift]);
+        let sessions = strategy.pair(&logs, Some(&shift));
         assert_eq!(sessions.len(), 2);
         assert_eq!(sessions[0].start_minutes, 475);
         assert_eq!(sessions[0].end_minutes, Some(720));
@@ -662,7 +663,7 @@ mod tests {
             make_log(1380), // 23:00 — check-out (6h after shift end)
         ];
 
-        let sessions = strategy.pair(&logs, &[shift]);
+        let sessions = strategy.pair(&logs, Some(&shift));
         assert_eq!(sessions.len(), 2);
         assert_eq!(sessions[0].start_minutes, 475);
         assert_eq!(sessions[0].end_minutes, Some(720));
@@ -683,7 +684,7 @@ mod tests {
             make_log(300), // 05:00 — still before window
         ];
 
-        let sessions = strategy.pair(&logs, &[shift]);
+        let sessions = strategy.pair(&logs, Some(&shift));
         assert_eq!(sessions.len(), 1);
 
         let meta = sessions[0].metadata.as_ref().unwrap();
@@ -697,7 +698,7 @@ mod tests {
         let strategy = get_strategy();
         let logs = vec![make_log(480), make_log(1020)];
 
-        let sessions = strategy.pair(&logs, &[]);
+        let sessions = strategy.pair(&logs, None);
         assert_eq!(sessions.len(), 1);
         assert_eq!(sessions[0].start_minutes, 480);
         assert_eq!(sessions[0].end_minutes, Some(1020));
@@ -711,7 +712,7 @@ mod tests {
         let strategy = get_strategy();
         let logs = vec![make_log(480)];
 
-        let sessions = strategy.pair(&logs, &[]);
+        let sessions = strategy.pair(&logs, None);
         assert_eq!(sessions.len(), 1);
         assert_eq!(sessions[0].start_minutes, 480);
         assert!(sessions[0].end_minutes.is_none());
@@ -724,7 +725,7 @@ mod tests {
         // Log 2: 01:00 next day (1500) -> 17h gap (1020 mins). Should NOT pair.
         let logs = vec![make_log(480), make_log(1500)];
 
-        let sessions = strategy.pair(&logs, &[]);
+        let sessions = strategy.pair(&logs, None);
         assert_eq!(sessions.len(), 2);
         assert!(sessions[0].end_minutes.is_none());
         assert!(sessions[1].end_minutes.is_none());
@@ -733,7 +734,7 @@ mod tests {
     #[test]
     fn test_empty_logs() {
         let strategy = get_strategy();
-        let sessions = strategy.pair(&[], &[]);
+        let sessions = strategy.pair(&[], None);
         assert!(sessions.is_empty());
     }
 
@@ -756,7 +757,7 @@ mod tests {
             make_log(1810), // 06:10 next day — within check-out window
         ];
 
-        let sessions = strategy.pair(&logs, &[shift]);
+        let sessions = strategy.pair(&logs, Some(&shift));
         assert_eq!(sessions.len(), 1);
         assert_eq!(sessions[0].start_minutes, 1310);
         assert_eq!(sessions[0].end_minutes, Some(1810));
@@ -772,7 +773,7 @@ mod tests {
         let strategy = get_strategy();
         let logs = vec![make_log(480)];
 
-        let sessions = strategy.pair(&logs, &[]);
+        let sessions = strategy.pair(&logs, None);
         assert_eq!(sessions.len(), 1);
         assert_eq!(sessions[0].start_minutes, 480);
         assert!(sessions[0].end_minutes.is_none());
@@ -785,7 +786,7 @@ mod tests {
         let shift = standard_shift();
         let logs = vec![make_log(480)];
 
-        let sessions = strategy.pair(&logs, &[shift]);
+        let sessions = strategy.pair(&logs, Some(&shift));
         assert_eq!(sessions.len(), 1);
         assert!(sessions[0].end_minutes.is_none());
     }
@@ -800,7 +801,7 @@ mod tests {
             make_log(1440), // exactly MAX_SESSION_GAP_MINUTES away
         ];
 
-        let sessions = strategy.pair(&logs, &[]);
+        let sessions = strategy.pair(&logs, None);
         assert_eq!(sessions.len(), 1);
         assert_eq!(sessions[0].end_minutes, Some(1440));
     }
@@ -813,7 +814,7 @@ mod tests {
             make_log(1441), // 961 min gap > MAX_SESSION_GAP_MINUTES (960)
         ];
 
-        let sessions = strategy.pair(&logs, &[]);
+        let sessions = strategy.pair(&logs, None);
         assert_eq!(sessions.len(), 2);
         assert!(sessions[0].end_minutes.is_none());
         assert!(sessions[1].end_minutes.is_none());
@@ -831,7 +832,7 @@ mod tests {
             make_log(1020), // 17:00 — check-out
         ];
 
-        let sessions = strategy.pair(&logs, &[shift]);
+        let sessions = strategy.pair(&logs, Some(&shift));
         assert_eq!(sessions.len(), 2);
         assert_eq!(sessions[0].start_minutes, 470); // earliest in window
         assert_eq!(sessions[0].end_minutes, Some(720));
@@ -890,7 +891,7 @@ mod tests {
             make_log(1920), // 08:00 next day — check-out (2h OT)
         ];
 
-        let sessions = strategy.pair(&logs, &[shift]);
+        let sessions = strategy.pair(&logs, Some(&shift));
         assert_eq!(sessions.len(), 1);
         assert_eq!(sessions[0].start_minutes, 1310);
         assert_eq!(sessions[0].end_minutes, Some(1920)); // 08:00 captured!
@@ -909,7 +910,7 @@ mod tests {
             make_log(478), // 07:58 — within check-in window, no other logs
         ];
 
-        let sessions = strategy.pair(&logs, &[shift]);
+        let sessions = strategy.pair(&logs, Some(&shift));
         assert_eq!(sessions.len(), 1);
         assert_eq!(sessions[0].start_minutes, 478);
         assert!(sessions[0].end_minutes.is_none());
@@ -943,7 +944,7 @@ mod tests {
             make_log(1020), // 17:00 — last log of day
         ];
 
-        let sessions = strategy.pair(&logs, &[shift]);
+        let sessions = strategy.pair(&logs, Some(&shift));
         assert_eq!(sessions.len(), 2);
         assert_eq!(sessions[0].start_minutes, 446); // earliest in window
         assert_eq!(sessions[0].end_minutes, Some(690));
@@ -963,7 +964,7 @@ mod tests {
             make_log(240), // 04:00
         ];
 
-        let sessions = strategy.pair(&logs, &[shift]);
+        let sessions = strategy.pair(&logs, Some(&shift));
         assert_eq!(sessions.len(), 1);
         assert_eq!(sessions[0].start_minutes, 180);
         assert_eq!(sessions[0].end_minutes, Some(240));
@@ -986,7 +987,7 @@ mod tests {
 
         let logs = vec![make_log(1085), make_log(1825), make_log(1826)];
 
-        let sessions = strategy.pair(&logs, &[shift]);
+        let sessions = strategy.pair(&logs, Some(&shift));
         assert_eq!(sessions.len(), 1);
         assert_eq!(sessions[0].start_minutes, 1085);
         assert_eq!(sessions[0].end_minutes, Some(1826)); // should be 1826
@@ -1002,5 +1003,78 @@ mod tests {
         assert!(log_ids.contains(&logs[0].id.to_string()));
         assert!(log_ids.contains(&logs[1].id.to_string()));
         assert!(log_ids.contains(&logs[2].id.to_string()));
+    }
+
+    // --- Added missing test cases for tech debt TD-P10 & TD-P11 ---
+
+    #[test]
+    fn test_pair_with_none_config() {
+        let strategy = get_strategy();
+        let logs = vec![make_log(480), make_log(1020)];
+        let sessions = strategy.pair(&logs, None);
+        assert_eq!(sessions.len(), 1);
+        assert_eq!(sessions[0].start_minutes, 480);
+        assert_eq!(sessions[0].end_minutes, Some(1020));
+        assert_eq!(
+            sessions[0].metadata.as_ref().unwrap()["tier"],
+            "anchor_first"
+        );
+    }
+
+    #[test]
+    fn test_pair_with_some_config() {
+        let strategy = get_strategy();
+        let shift = standard_shift();
+        let logs = vec![make_log(475), make_log(1025)];
+        let sessions = strategy.pair(&logs, Some(&shift));
+        assert_eq!(sessions.len(), 2);
+        assert_eq!(sessions[0].start_minutes, 475);
+        assert_eq!(sessions[0].end_minutes, Some(720));
+        assert_eq!(sessions[1].start_minutes, 780);
+        assert_eq!(sessions[1].end_minutes, Some(1025));
+        assert_eq!(
+            sessions[0].metadata.as_ref().unwrap()["tier"],
+            "shift_window"
+        );
+    }
+
+    #[test]
+    fn test_pair_negative_minutes_log() {
+        let strategy = get_strategy();
+        let logs = vec![make_log(-30), make_log(480)];
+        let sessions = strategy.pair(&logs, None);
+        assert_eq!(sessions.len(), 1);
+        assert_eq!(sessions[0].start_minutes, -30);
+        assert_eq!(sessions[0].end_minutes, Some(480));
+    }
+
+    #[test]
+    fn test_pair_unsorted_logs() {
+        let strategy = get_strategy();
+        let logs = vec![make_log(1020), make_log(480)];
+        let sessions = strategy.pair(&logs, None);
+        assert_eq!(sessions.len(), 1);
+        assert_eq!(sessions[0].start_minutes, 480);
+        assert_eq!(sessions[0].end_minutes, Some(1020));
+    }
+
+    #[test]
+    fn test_pair_extreme_minutes_values() {
+        let strategy = get_strategy();
+        let logs = vec![make_log(i32::MIN + 100), make_log(i32::MAX - 100)];
+        let sessions = strategy.pair(&logs, None);
+        assert_eq!(sessions.len(), 2);
+        assert!(sessions[0].end_minutes.is_none());
+        assert!(sessions[1].end_minutes.is_none());
+    }
+
+    #[test]
+    fn test_pair_zero_minute_gap_between_logs() {
+        let strategy = get_strategy();
+        let logs = vec![make_log(480), make_log(480)];
+        let sessions = strategy.pair(&logs, None);
+        assert_eq!(sessions.len(), 1);
+        assert_eq!(sessions[0].start_minutes, 480);
+        assert_eq!(sessions[0].end_minutes, Some(480));
     }
 }
