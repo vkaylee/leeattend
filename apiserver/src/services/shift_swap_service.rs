@@ -123,11 +123,11 @@ impl ShiftSwapService {
                         .unwrap_or(None);
                     if let (Some(rs), Some(ts)) = (req_shift, tgt_shift) {
                         let compute_duration_minutes = |s: &crate::models::Shift| -> i64 {
-                            let mut dur = (s.end_time - s.start_time).num_minutes();
+                            let mut dur = (s.end_time() - s.start_time()).num_minutes();
                             if dur <= 0 {
                                 dur += 24 * 60;
                             } // overnight shift
-                            dur - i64::from(s.break_duration_minutes)
+                            dur - i64::from(s.break_duration_minutes())
                         };
                         let std_hours = ps.hours_per_day;
                         let max_total_minutes =

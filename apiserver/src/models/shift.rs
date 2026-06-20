@@ -24,26 +24,99 @@ pub struct AssignShiftRequest {
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct Shift {
-    pub id: Uuid,
-    pub workspace_id: Uuid,
-    pub name: String,
-    pub report_symbol: Option<String>,
-    pub start_time: NaiveTime,
-    pub end_time: NaiveTime,
-    pub break_duration_minutes: i32,
-    pub break_start: Option<NaiveTime>,
-    pub break_end: Option<NaiveTime>,
-    pub is_break_auto_deduct: bool,
-    pub break_is_overtime: bool,
-    pub early_punch_in_grace_period_minutes: i32,
-    pub allow_early_ot: bool,
-    pub max_early_ot_minutes: Option<i32>,
-    pub is_active: bool,
-    pub parent_shift_id: Option<Uuid>,
-    pub location_id: Option<Uuid>,
-    pub employer_id: Option<Uuid>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    id: Uuid,
+    workspace_id: Uuid,
+    name: String,
+    report_symbol: Option<String>,
+    start_time: NaiveTime,
+    end_time: NaiveTime,
+    break_duration_minutes: i32,
+    break_start: Option<NaiveTime>,
+    break_end: Option<NaiveTime>,
+    is_break_auto_deduct: bool,
+    break_is_overtime: bool,
+    early_punch_in_grace_period_minutes: i32,
+    allow_early_ot: bool,
+    max_early_ot_minutes: Option<i32>,
+    is_active: bool,
+    parent_shift_id: Option<Uuid>,
+    location_id: Option<Uuid>,
+    employer_id: Option<Uuid>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+impl Shift {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        id: Uuid,
+        workspace_id: Uuid,
+        name: String,
+        report_symbol: Option<String>,
+        start_time: NaiveTime,
+        end_time: NaiveTime,
+        break_duration_minutes: i32,
+        break_start: Option<NaiveTime>,
+        break_end: Option<NaiveTime>,
+        is_break_auto_deduct: bool,
+        break_is_overtime: bool,
+        early_punch_in_grace_period_minutes: i32,
+        allow_early_ot: bool,
+        max_early_ot_minutes: Option<i32>,
+        is_active: bool,
+        parent_shift_id: Option<Uuid>,
+        location_id: Option<Uuid>,
+        employer_id: Option<Uuid>,
+        created_at: DateTime<Utc>,
+        updated_at: DateTime<Utc>,
+    ) -> Self {
+        Self {
+            id,
+            workspace_id,
+            name,
+            report_symbol,
+            start_time,
+            end_time,
+            break_duration_minutes,
+            break_start,
+            break_end,
+            is_break_auto_deduct,
+            break_is_overtime,
+            early_punch_in_grace_period_minutes,
+            allow_early_ot,
+            max_early_ot_minutes,
+            is_active,
+            parent_shift_id,
+            location_id,
+            employer_id,
+            created_at,
+            updated_at,
+        }
+    }
+
+    pub fn id(&self) -> Uuid { self.id }
+    pub fn workspace_id(&self) -> Uuid { self.workspace_id }
+    pub fn name(&self) -> &str { &self.name }
+    pub fn report_symbol(&self) -> Option<&str> { self.report_symbol.as_deref() }
+    pub fn start_time(&self) -> NaiveTime { self.start_time }
+    pub fn end_time(&self) -> NaiveTime { self.end_time }
+    pub fn break_duration_minutes(&self) -> i32 { self.break_duration_minutes }
+    pub fn break_start(&self) -> Option<NaiveTime> { self.break_start }
+    pub fn break_end(&self) -> Option<NaiveTime> { self.break_end }
+    pub fn is_break_auto_deduct(&self) -> bool { self.is_break_auto_deduct }
+    pub fn break_is_overtime(&self) -> bool { self.break_is_overtime }
+    pub fn early_punch_in_grace_period_minutes(&self) -> i32 { self.early_punch_in_grace_period_minutes }
+    pub fn allow_early_ot(&self) -> bool { self.allow_early_ot }
+    pub fn max_early_ot_minutes(&self) -> Option<i32> { self.max_early_ot_minutes }
+    pub fn is_active(&self) -> bool { self.is_active }
+    pub fn parent_shift_id(&self) -> Option<Uuid> { self.parent_shift_id }
+    pub fn location_id(&self) -> Option<Uuid> { self.location_id }
+    pub fn employer_id(&self) -> Option<Uuid> { self.employer_id }
+    pub fn created_at(&self) -> DateTime<Utc> { self.created_at }
+    pub fn updated_at(&self) -> DateTime<Utc> { self.updated_at }
+
+    /// Mutable setter for name (used by update_shift_direct in mock).
+    pub fn set_name(&mut self, name: String) { self.name = name; }
 }
 
 pub(super) fn default_true() -> bool {

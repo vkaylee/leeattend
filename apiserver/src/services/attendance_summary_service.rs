@@ -153,7 +153,7 @@ impl AttendanceSummaryService {
             .await?;
 
         // Auto-cancel approved leave requests if the employee worked (day_entries is not empty) and it's not a holiday
-        if !daily_schedule.is_holiday && !day_entries.is_empty() {
+        if !daily_schedule.is_holiday() && !day_entries.is_empty() {
             let leaves = self
                 .leave_request_repo
                 .get_employee_leave_requests(
@@ -300,7 +300,7 @@ impl AttendanceSummaryService {
         // 6. Iterate day-by-day in range
         let mut curr_date = start_date;
         while curr_date <= end_date {
-            let daily_schedule = emp_sched.schedules.iter().find(|s| s.date == curr_date);
+            let daily_schedule = emp_sched.schedules().iter().find(|s| s.date() == curr_date);
 
             if let Some(daily_schedule) = daily_schedule {
                 // Filter time entries for this date in local time
@@ -311,7 +311,7 @@ impl AttendanceSummaryService {
                     .collect();
 
                 // 6a. Auto-cancel approved leaves if employee worked on a non-holiday
-                if !daily_schedule.is_holiday && !day_entries.is_empty() {
+                if !daily_schedule.is_holiday() && !day_entries.is_empty() {
                     let leave_to_cancel = leaves.iter().find(|l| {
                         (l.status() == crate::models::enums::LeaveStatus::Approved
                             || l.status() == crate::models::enums::LeaveStatus::PreApproved)
@@ -446,9 +446,9 @@ impl AttendanceSummaryService {
             )
         })?;
         let daily_schedule = emp_sched
-            .schedules
+            .schedules()
             .iter()
-            .find(|s| s.date == date)
+            .find(|s| s.date() == date)
             .ok_or_else(|| {
                 AppError::not_found_args(
                     I18nKey::NotFound,
@@ -539,7 +539,7 @@ impl AttendanceSummaryService {
             actual_break_minutes,
         } = params;
         let (Some(sched_start_time), Some(sched_end_time)) =
-            (daily_schedule.start_time, daily_schedule.end_time)
+            (daily_schedule.start_time(), daily_schedule.end_time())
         else {
             return Ok(0);
         };
@@ -575,21 +575,21 @@ impl AttendanceSummaryService {
             workspace_id,
             date,
             &ShiftPolicyOverrides::new(
-                daily_schedule.early_punch_in_grace_period_minutes,
-                daily_schedule.is_break_auto_deduct,
-                daily_schedule.allow_early_ot,
+                daily_schedule.early_punch_in_grace_period_minutes(),
+                daily_schedule.is_break_auto_deduct(),
+                daily_schedule.allow_early_ot(),
                 rules.early_arrival_strategy(),
-                daily_schedule.break_is_overtime.unwrap_or(false),
+                daily_schedule.break_is_overtime().unwrap_or(false),
             ),
         )
         .await;
 
         let break_start_dt = daily_schedule
-            .break_start
+            .break_start()
             .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single());
-        let break_end_dt = daily_schedule.break_end.and_then(|t| {
+        let break_end_dt = daily_schedule.break_end().and_then(|t| {
             let mut dt = tz.from_local_datetime(&date.and_time(t)).single()?;
-            if daily_schedule.break_end < daily_schedule.break_start {
+            if daily_schedule.break_end() < daily_schedule.break_start() {
                 dt += chrono::Duration::days(1);
             }
             Some(dt)
@@ -601,7 +601,7 @@ impl AttendanceSummaryService {
                 punch_out,
                 shift_start: Some(start),
                 shift_end: Some(end),
-                scheduled_break_minutes: daily_schedule.break_duration_minutes.unwrap_or(0),
+                scheduled_break_minutes: daily_schedule.break_duration_minutes().unwrap_or(0),
                 actual_break_minutes,
                 break_start: break_start_dt,
                 break_end: break_end_dt,
@@ -609,7 +609,7 @@ impl AttendanceSummaryService {
                 rounding_policy: String::new(),
                 rules: policy_rules,
                 ot_ceiling: None,
-                max_early_ot_minutes: daily_schedule.max_early_ot_minutes,
+                max_early_ot_minutes: daily_schedule.max_early_ot_minutes(),
             },
         );
 
@@ -696,12 +696,12 @@ impl AttendanceSummaryService {
         };
 
         let shift_minutes = daily_schedule
-            .start_time
+            .start_time()
             .and_then(|st| {
-                daily_schedule.end_time.map(|et: chrono::NaiveTime| {
+                daily_schedule.end_time().map(|et: chrono::NaiveTime| {
                     let diff =
                         i32::try_from(et.signed_duration_since(st).num_minutes()).unwrap_or(0);
-                    let break_mins = daily_schedule.break_duration_minutes.unwrap_or(0);
+                    let break_mins = daily_schedule.break_duration_minutes().unwrap_or(0);
                     if diff > 0 {
                         diff - break_mins
                     } else {
@@ -1344,33 +1344,33 @@ mod tests {
                 .expect_get_workspace_schedules()
                 .returning(move |_, _, _, _, _| {
                     Box::pin(async move {
-                        Ok(vec![crate::models::EmployeeSchedule {
-                            employment_id: employee_id,
+                        Ok(vec![crate::models::EmployeeSchedule::new(
                             employee_id,
-                            employee_id_number: "EMP001".to_string(),
-                            full_name: "John Doe".to_string(),
-                            schedules: vec![crate::models::EffectiveSchedule {
+                            employee_id,
+                            "EMP001".to_string(),
+                            "John Doe".to_string(),
+                            vec![crate::models::EffectiveSchedule::new(
                                 date,
-                                shift_id: Some(shift_id),
-                                source: "pattern".to_string(),
-                                shift_name: None,
-                                shift_symbol: None,
-                                start_time: None,
-                                end_time: None,
-                                break_duration_minutes: None,
-                                break_start: None,
-                                break_end: None,
-                                is_break_auto_deduct: None,
-                                early_punch_in_grace_period_minutes: None,
-                                allow_early_ot: None,
-                                break_is_overtime: None,
-                                max_early_ot_minutes: None,
-                                traces: vec![],
-                                is_holiday: false,
-                                is_holiday_paid: false,
-                                holiday_name: None,
-                            }],
-                        }])
+                                Some(shift_id),
+                                "pattern".to_string(),
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                vec![],
+                                false,
+                                false,
+                                None,
+                            )],
+                        )])
                     })
                 });
 
@@ -1506,33 +1506,33 @@ mod tests {
                 .expect_get_workspace_schedules()
                 .returning(move |_, _, _, _, _| {
                     Box::pin(async move {
-                        Ok(vec![crate::models::EmployeeSchedule {
-                            employment_id: employee_id,
+                        Ok(vec![crate::models::EmployeeSchedule::new(
                             employee_id,
-                            employee_id_number: "EMP001".to_string(),
-                            full_name: "John Doe".to_string(),
-                            schedules: vec![crate::models::EffectiveSchedule {
+                            employee_id,
+                            "EMP001".to_string(),
+                            "John Doe".to_string(),
+                            vec![crate::models::EffectiveSchedule::new(
                                 date,
-                                shift_id: None,
-                                source: "pattern".to_string(),
-                                shift_name: None,
-                                shift_symbol: None,
-                                start_time: None,
-                                end_time: None,
-                                break_duration_minutes: None,
-                                break_start: None,
-                                break_end: None,
-                                is_break_auto_deduct: None,
-                                early_punch_in_grace_period_minutes: None,
-                                allow_early_ot: None,
-                                break_is_overtime: None,
-                                max_early_ot_minutes: None,
-                                traces: vec![],
-                                is_holiday: false,
-                                is_holiday_paid: false,
-                                holiday_name: None,
-                            }],
-                        }])
+                                None,
+                                "pattern".to_string(),
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                vec![],
+                                false,
+                                false,
+                                None,
+                            )],
+                        )])
                     })
                 });
 
@@ -1664,33 +1664,33 @@ mod tests {
                 .expect_get_workspace_schedules()
                 .returning(move |_, _, _, _, _| {
                     Box::pin(async move {
-                        Ok(vec![crate::models::EmployeeSchedule {
-                            employment_id: employee_id,
+                        Ok(vec![crate::models::EmployeeSchedule::new(
                             employee_id,
-                            employee_id_number: "EMP001".to_string(),
-                            full_name: "John Doe".to_string(),
-                            schedules: vec![crate::models::EffectiveSchedule {
+                            employee_id,
+                            "EMP001".to_string(),
+                            "John Doe".to_string(),
+                            vec![crate::models::EffectiveSchedule::new(
                                 date,
-                                shift_id: None,
-                                source: "pattern".to_string(),
-                                shift_name: None,
-                                shift_symbol: None,
-                                start_time: None,
-                                end_time: None,
-                                break_duration_minutes: None,
-                                break_start: None,
-                                break_end: None,
-                                is_break_auto_deduct: None,
-                                early_punch_in_grace_period_minutes: None,
-                                allow_early_ot: None,
-                                break_is_overtime: None,
-                                max_early_ot_minutes: None,
-                                traces: vec![],
-                                is_holiday: false,
-                                is_holiday_paid: false,
-                                holiday_name: None,
-                            }],
-                        }])
+                                None,
+                                "pattern".to_string(),
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                vec![],
+                                false,
+                                false,
+                                None,
+                            )],
+                        )])
                     })
                 });
 
@@ -1823,33 +1823,33 @@ mod tests {
                 .expect_get_workspace_schedules()
                 .returning(move |_, _, _, _, _| {
                     Box::pin(async move {
-                        Ok(vec![crate::models::EmployeeSchedule {
-                            employment_id: employee_id,
+                        Ok(vec![crate::models::EmployeeSchedule::new(
                             employee_id,
-                            employee_id_number: "EMP001".to_string(),
-                            full_name: "John Doe".to_string(),
-                            schedules: vec![crate::models::EffectiveSchedule {
+                            employee_id,
+                            "EMP001".to_string(),
+                            "John Doe".to_string(),
+                            vec![crate::models::EffectiveSchedule::new(
                                 date,
-                                shift_id: None,
-                                source: "pattern".to_string(),
-                                shift_name: None,
-                                shift_symbol: None,
-                                start_time: None,
-                                end_time: None,
-                                break_duration_minutes: None,
-                                break_start: None,
-                                break_end: None,
-                                is_break_auto_deduct: None,
-                                early_punch_in_grace_period_minutes: None,
-                                allow_early_ot: None,
-                                break_is_overtime: None,
-                                max_early_ot_minutes: None,
-                                traces: vec![],
-                                is_holiday: false,
-                                is_holiday_paid: false,
-                                holiday_name: None,
-                            }],
-                        }])
+                                None,
+                                "pattern".to_string(),
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                vec![],
+                                false,
+                                false,
+                                None,
+                            )],
+                        )])
                     })
                 });
 
@@ -1937,33 +1937,33 @@ mod tests {
                 .expect_get_workspace_schedules()
                 .returning(move |_, _, _, _, _| {
                     Box::pin(async move {
-                        Ok(vec![crate::models::EmployeeSchedule {
-                            employment_id: employee_id,
+                        Ok(vec![crate::models::EmployeeSchedule::new(
                             employee_id,
-                            employee_id_number: "EMP001".to_string(),
-                            full_name: "John Doe".to_string(),
-                            schedules: vec![crate::models::EffectiveSchedule {
+                            employee_id,
+                            "EMP001".to_string(),
+                            "John Doe".to_string(),
+                            vec![crate::models::EffectiveSchedule::new(
                                 date,
-                                shift_id: None,
-                                source: "pattern".to_string(),
-                                shift_name: None,
-                                shift_symbol: None,
-                                start_time: None,
-                                end_time: None,
-                                break_duration_minutes: None,
-                                break_start: None,
-                                break_end: None,
-                                is_break_auto_deduct: None,
-                                early_punch_in_grace_period_minutes: None,
-                                allow_early_ot: None,
-                                break_is_overtime: None,
-                                max_early_ot_minutes: None,
-                                traces: vec![],
-                                is_holiday: true,
-                                is_holiday_paid: false,
-                                holiday_name: Some("Test Holiday".to_string()),
-                            }],
-                        }])
+                                None,
+                                "pattern".to_string(),
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                vec![],
+                                true,
+                                false,
+                                Some("Test Holiday".to_string()),
+                            )],
+                        )])
                     })
                 });
 
@@ -2057,56 +2057,56 @@ mod tests {
                 .expect_get_workspace_schedules()
                 .returning(move |_, _, _, _, _| {
                     Box::pin(async move {
-                        Ok(vec![crate::models::EmployeeSchedule {
-                            employment_id: emp_id,
-                            employee_id: emp_id,
-                            employee_id_number: "EMP001".to_string(),
-                            full_name: "John Doe".to_string(),
-                            schedules: vec![
-                                crate::models::EffectiveSchedule {
+                        Ok(vec![crate::models::EmployeeSchedule::new(
+                            emp_id,
+                            emp_id,
+                            "EMP001".to_string(),
+                            "John Doe".to_string(),
+                            vec![
+                                crate::models::EffectiveSchedule::new(
                                     date,
-                                    shift_id: None,
-                                    source: "pattern".to_string(),
-                                    shift_name: None,
-                                    shift_symbol: None,
-                                    start_time: None,
-                                    end_time: None,
-                                    break_duration_minutes: None,
-                                    break_start: None,
-                                    break_end: None,
-                                    is_break_auto_deduct: None,
-                                    early_punch_in_grace_period_minutes: None,
-                                    allow_early_ot: None,
-                                    break_is_overtime: None,
-                                    max_early_ot_minutes: None,
-                                    traces: vec![],
-                                    is_holiday: false,
-                                    is_holiday_paid: false,
-                                    holiday_name: None,
-                                },
-                                crate::models::EffectiveSchedule {
-                                    date: date2,
-                                    shift_id: None,
-                                    source: "pattern".to_string(),
-                                    shift_name: None,
-                                    shift_symbol: None,
-                                    start_time: None,
-                                    end_time: None,
-                                    break_duration_minutes: None,
-                                    break_start: None,
-                                    break_end: None,
-                                    is_break_auto_deduct: None,
-                                    early_punch_in_grace_period_minutes: None,
-                                    allow_early_ot: None,
-                                    break_is_overtime: None,
-                                    max_early_ot_minutes: None,
-                                    traces: vec![],
-                                    is_holiday: false,
-                                    is_holiday_paid: false,
-                                    holiday_name: None,
-                                },
+                                    None,
+                                    "pattern".to_string(),
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    vec![],
+                                    false,
+                                    false,
+                                    None,
+                                ),
+                                crate::models::EffectiveSchedule::new(
+                                    date2,
+                                    None,
+                                    "pattern".to_string(),
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    vec![],
+                                    false,
+                                    false,
+                                    None,
+                                ),
                             ],
-                        }])
+                        )])
                     })
                 });
 

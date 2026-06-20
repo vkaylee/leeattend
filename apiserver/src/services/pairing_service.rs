@@ -6,6 +6,12 @@ use std::sync::Arc;
 /// and may belong to an overnight shift from the previous day.
 const OVERNIGHT_REPROCESS_CUTOFF_HOUR: u32 = 12;
 
+/// Number of days to search before/after the target range for adjacent entries.
+const ADJACENT_ENTRY_SEARCH_DAYS: i64 = 2;
+
+/// Extra hours of padding when searching for raw logs around a date range.
+const LOG_SEARCH_PADDING_HOURS: i64 = 12;
+
 use chrono::{DateTime, Duration, NaiveDate, Timelike, Utc};
 use chrono_tz::Tz;
 use tracing::info;
@@ -114,6 +120,7 @@ impl PairingService {
                 workspace_id = %log.workspace_id(),
                 employment_id = %log.employment_id(),
                 log_id = %log.id(),
+                punch_time = %log.punch_time(),
                 "Deduplicating log. Found another log with identical timestamp."
             );
             return Ok(());
@@ -200,8 +207,11 @@ impl PairingService {
         let mut new_entries_accumulated = Vec::new();
         let mut curr = curr_date;
 
+        let schedule_map: std::collections::HashMap<NaiveDate, &crate::models::EffectiveSchedule> =
+            emp_sched.schedules().iter().map(|s| (s.date(), s)).collect();
+
         while curr <= end_date {
-            if let Some(sched) = emp_sched.schedules.iter().find(|s| s.date == curr) {
+            if let Some(sched) = schedule_map.get(&curr) {
                 let day_new_entries = Self::process_single_day_in_range(
                     curr,
                     tz,
@@ -250,7 +260,7 @@ impl PairingService {
             start_date,
             end_date,
         )
-        .await;
+        .await?;
 
         Ok(())
     }
@@ -263,9 +273,12 @@ impl PairingService {
         emp_sched: &crate::models::EmployeeSchedule,
         tz: Tz,
     ) -> Result<(), AppError> {
+        let schedule_map: std::collections::HashMap<NaiveDate, &crate::models::EffectiveSchedule> =
+            emp_sched.schedules().iter().map(|s| (s.date(), s)).collect();
+
         let last_day_is_overnight =
-            if let Some(sched) = emp_sched.schedules.iter().find(|s| s.date == end_date) {
-                if let (Some(st), Some(et)) = (sched.start_time, sched.end_time) {
+            if let Some(sched) = schedule_map.get(&end_date) {
+                if let (Some(st), Some(et)) = (sched.start_time(), sched.end_time()) {
                     et < st
                 } else {
                     false
@@ -283,7 +296,7 @@ impl PairingService {
                 "Last day of range is overnight, triggering next day reprocessing for self-healing"
             );
             let next_shift_config = self
-                .reprocess_single_day(workspace_id, employment_id, next_date, tz)
+                .reprocess_single_day(workspace_id, employment_id, next_date, tz, None)
                 .await?;
             self.propagate_overnight_reprocess(
                 workspace_id,
@@ -398,11 +411,11 @@ impl PairingService {
         let strategy = pairing_algo::get_strategy();
         let sessions = strategy.pair(&filtered_log_events, shift_config.as_ref());
 
-        let traces_val = serde_json::json!(sched.traces);
+        let traces_val = serde_json::json!(sched.traces());
         context.build_time_entries(
             workspace_id,
             employment_id,
-            sched.shift_id,
+            sched.shift_id(),
             sessions,
             &traces_val,
         )
@@ -420,12 +433,13 @@ impl PairingService {
             workspace_id = %workspace_id,
             employment_id = %employment_id,
             date = %date,
+            timezone = %tz,
             "Reprocessing daily attendance"
         );
 
         // Process the target day
         let shift_config = self
-            .reprocess_single_day(workspace_id, employment_id, date, tz)
+            .reprocess_single_day(workspace_id, employment_id, date, tz, None)
             .await?;
 
         // Propagate to subsequent days if overnight
@@ -493,12 +507,15 @@ impl PairingService {
         let mut resolved_end_date = start_date;
         let mut current_date = lookahead_start;
 
+        let schedule_map: std::collections::HashMap<NaiveDate, &crate::models::schedule::EffectiveSchedule> =
+            emp_sched.schedules().iter().map(|s| (s.date(), s)).collect();
+
         while current_date <= lookahead_end {
             if current_config.end_minutes() <= 1440 {
                 break;
             }
 
-            if let Some(sched) = emp_sched.schedules.iter().find(|s| s.date == current_date) {
+            if let Some(sched) = schedule_map.get(&current_date) {
                 let (day_entries, next_shift_config) = Self::process_propagation_day(
                     current_date,
                     tz,
@@ -591,11 +608,11 @@ impl PairingService {
             let strategy = pairing_algo::get_strategy();
             let sessions = strategy.pair(&filtered_log_events, next_shift_config.as_ref());
 
-            let traces_val = serde_json::json!(sched.traces);
+            let traces_val = serde_json::json!(sched.traces());
             context.build_time_entries(
                 workspace_id,
                 employment_id,
-                sched.shift_id,
+                sched.shift_id(),
                 sessions,
                 &traces_val,
             )?
@@ -617,8 +634,8 @@ impl PairingService {
         let range_end_local =
             crate::utils::tz::local_to_tz(&tz, end_date + Duration::days(1), 0, 0, 0)?;
 
-        let start_search_utc = (range_start_local - Duration::hours(12)).with_timezone(&Utc);
-        let end_search_utc = (range_end_local + Duration::hours(12)).with_timezone(&Utc);
+        let start_search_utc = (range_start_local - Duration::hours(LOG_SEARCH_PADDING_HOURS)).with_timezone(&Utc);
+        let end_search_utc = (range_end_local + Duration::hours(LOG_SEARCH_PADDING_HOURS)).with_timezone(&Utc);
 
         let raw_logs = self
             .raw_log_repo
@@ -630,8 +647,8 @@ impl PairingService {
             )
             .await?;
 
-        let search_start_utc = (range_start_local - Duration::days(2)).with_timezone(&Utc);
-        let search_end_utc = (range_end_local + Duration::days(2)).with_timezone(&Utc);
+        let search_start_utc = (range_start_local - Duration::days(ADJACENT_ENTRY_SEARCH_DAYS)).with_timezone(&Utc);
+        let search_end_utc = (range_end_local + Duration::days(ADJACENT_ENTRY_SEARCH_DAYS)).with_timezone(&Utc);
 
         let adjacent_entries = self
             .time_entry_repo
@@ -653,6 +670,7 @@ impl PairingService {
         employment_id: Uuid,
         date: NaiveDate,
         tz: Tz,
+        prefetched_adjacent: Option<&[TimeEntry]>,
     ) -> Result<Option<PairingShiftConfig>, AppError> {
         info!(
             workspace_id = %workspace_id,
@@ -688,11 +706,15 @@ impl PairingService {
             .await?;
 
         // 3. Exclude logs already consumed by adjacent days
-        let tracker =
-            ConsumedLogTracker::new(&*self.time_entry_repo, &auth_token, employment_id, date, tz);
-        let consumed_log_ids = tracker
-            .get_consumed_log_ids(start_of_day_utc, next_day_utc)
-            .await?;
+        let consumed_log_ids = if let Some(adjacent) = prefetched_adjacent {
+            ConsumedLogTracker::extract_consumed_ids(adjacent, date, tz)
+        } else {
+            let tracker =
+                ConsumedLogTracker::new(&*self.time_entry_repo, &auth_token, employment_id, date, tz);
+            tracker
+                .get_consumed_log_ids(start_of_day_utc, next_day_utc)
+                .await?
+        };
 
         let filtered_raw_logs: Vec<RawAttendanceLog> = logs
             .into_iter()
@@ -706,7 +728,7 @@ impl PairingService {
                 .await?;
 
             self.recalculate_summary_with_retry(workspace_id, employment_id, date)
-                .await;
+                .await?;
 
             return Ok(shift_config);
         }
@@ -782,7 +804,7 @@ impl PairingService {
 
         // Recalculate daily summary for OT workflow with retries
         self.recalculate_summary_with_retry(auth_token.workspace_id(), employment_id, date)
-            .await;
+            .await?;
         Ok(())
     }
 
@@ -791,7 +813,7 @@ impl PairingService {
         workspace_id: Uuid,
         employment_id: Uuid,
         date: NaiveDate,
-    ) {
+    ) -> Result<(), AppError> {
         let summary_service = &self.summary_service;
         retry_with_log(
             "recalculate_daily_summary",
@@ -802,7 +824,7 @@ impl PairingService {
             100,
             || summary_service.recalculate_daily_summary(workspace_id, employment_id, date),
         )
-        .await;
+        .await
     }
 
     async fn recalculate_range_summary_with_retry(
@@ -811,7 +833,7 @@ impl PairingService {
         employment_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
-    ) {
+    ) -> Result<(), AppError> {
         let summary_service = &self.summary_service;
         retry_with_log(
             "recalculate_attendance_range",
@@ -829,7 +851,7 @@ impl PairingService {
                 )
             },
         )
-        .await;
+        .await
     }
 
     async fn clear_auto_entries(
@@ -854,24 +876,28 @@ async fn retry_with_log<F, Fut>(
     max_attempts: u32,
     delay_ms: u64,
     f: F,
-) where
+) -> Result<(), AppError>
+where
     F: Fn() -> Fut,
     Fut: std::future::Future<Output = Result<(), AppError>>,
 {
     let mut attempts = 0;
-    while attempts < max_attempts {
+    loop {
         attempts += 1;
         match f().await {
-            Ok(()) => return,
+            Ok(()) => return Ok(()),
             Err(e) => {
-                if attempts == max_attempts {
+                if attempts >= max_attempts {
                     tracing::error!(
                         workspace_id = %workspace_id,
                         employment_id = %employment_id,
                         context = %context,
                         error = %e,
-                        "Failed {} after {} attempts", operation_name, max_attempts,
+                        "Failed {} after {} attempts",
+                        operation_name,
+                        max_attempts,
                     );
+                    return Err(e);
                 } else {
                     tracing::warn!(
                         workspace_id = %workspace_id,
@@ -879,9 +905,13 @@ async fn retry_with_log<F, Fut>(
                         context = %context,
                         error = %e,
                         attempt = attempts,
-                        "Temporary failure in {}, retrying...", operation_name,
+                        "Temporary failure in {}, retrying...",
+                        operation_name,
                     );
-                    tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
+                    let base_delay = delay_ms * 2u64.pow(attempts - 1);
+                    let jitter = rand::random::<u64>() % 50;
+                    let delay = base_delay + jitter;
+                    tokio::time::sleep(std::time::Duration::from_millis(delay)).await;
                 }
             }
         }
@@ -950,9 +980,9 @@ impl<'a> ConsumedLogTracker<'a> {
         start_of_day_utc: DateTime<Utc>,
         next_day_utc: DateTime<Utc>,
     ) -> Result<std::collections::HashSet<Uuid>, AppError> {
-        // Fetch adjacent time entries (2 days before to 2 days after) to check for already-paired logs
-        let search_start = start_of_day_utc - Duration::days(2);
-        let search_end = next_day_utc + Duration::days(2);
+        // Fetch adjacent time entries to check for already-paired logs
+        let search_start = start_of_day_utc - Duration::days(ADJACENT_ENTRY_SEARCH_DAYS);
+        let search_end = next_day_utc + Duration::days(ADJACENT_ENTRY_SEARCH_DAYS);
         let adjacent_entries = self
             .time_entry_repo
             .get_employment_time_entries(
@@ -1258,57 +1288,57 @@ mod tests {
             .times(1)
             .returning(move |_, _, s_date, e_date, _| {
                 let schedules = vec![
-                    crate::models::EffectiveSchedule {
-                        date: s_date,
-                        shift_id: None,
-                        source: "none".to_string(),
-                        shift_name: None,
-                        shift_symbol: None,
-                        start_time: None,
-                        end_time: None,
-                        break_duration_minutes: None,
-                        break_start: None,
-                        break_end: None,
-                        is_break_auto_deduct: None,
-                        early_punch_in_grace_period_minutes: None,
-                        allow_early_ot: None,
-                        break_is_overtime: None,
-                        max_early_ot_minutes: None,
-                        traces: vec![],
-                        is_holiday: false,
-                        is_holiday_paid: false,
-                        holiday_name: None,
-                    },
-                    crate::models::EffectiveSchedule {
-                        date: e_date,
-                        shift_id: None,
-                        source: "none".to_string(),
-                        shift_name: None,
-                        shift_symbol: None,
-                        start_time: None,
-                        end_time: None,
-                        break_duration_minutes: None,
-                        break_start: None,
-                        break_end: None,
-                        is_break_auto_deduct: None,
-                        early_punch_in_grace_period_minutes: None,
-                        allow_early_ot: None,
-                        break_is_overtime: None,
-                        max_early_ot_minutes: None,
-                        traces: vec![],
-                        is_holiday: false,
-                        is_holiday_paid: false,
-                        holiday_name: None,
-                    },
+                    crate::models::EffectiveSchedule::new(
+                        s_date,
+                        None,
+                        "none".to_string(),
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        vec![],
+                        false,
+                        false,
+                        None,
+                    ),
+                    crate::models::EffectiveSchedule::new(
+                        e_date,
+                        None,
+                        "none".to_string(),
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        vec![],
+                        false,
+                        false,
+                        None,
+                    ),
                 ];
                 Box::pin(async move {
-                    Ok(vec![crate::models::EmployeeSchedule {
-                        employment_id: sched_emp_id,
-                        employee_id: sched_emp_id,
-                        employee_id_number: "EMP001".to_string(),
-                        full_name: "Test Employee".to_string(),
+                    Ok(vec![crate::models::EmployeeSchedule::new(
+                        sched_emp_id,
+                        sched_emp_id,
+                        "EMP001".to_string(),
+                        "Test Employee".to_string(),
                         schedules,
-                    }])
+                    )])
                 })
             });
 
@@ -1351,5 +1381,59 @@ mod tests {
             .await;
 
         assert!(result.is_ok(), "Reprocess range failed: {:?}", result.err());
+    }
+
+    #[tokio::test]
+    async fn test_retry_with_log_returns_error_after_max_attempts() {
+        let ws_id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+        let counter = std::sync::atomic::AtomicU32::new(0);
+
+        let result = retry_with_log(
+            "test_op",
+            ws_id,
+            emp_id,
+            "test_context",
+            3,
+            1,
+            || {
+                counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                Box::pin(async { Err(AppError::Internal("test_err".to_string())) })
+            },
+        )
+        .await;
+
+        assert!(result.is_err());
+        assert_eq!(counter.load(std::sync::atomic::Ordering::SeqCst), 3);
+    }
+
+    #[tokio::test]
+    async fn test_retry_with_log_succeeds_on_second_attempt() {
+        let ws_id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+        let counter = std::sync::atomic::AtomicU32::new(0);
+
+        let result = retry_with_log(
+            "test_op",
+            ws_id,
+            emp_id,
+            "test_context",
+            3,
+            1,
+            || {
+                let attempts = counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                Box::pin(async move {
+                    if attempts == 0 {
+                        Err(AppError::Internal("test_err".to_string()))
+                    } else {
+                        Ok(())
+                    }
+                })
+            },
+        )
+        .await;
+
+        assert!(result.is_ok());
+        assert_eq!(counter.load(std::sync::atomic::Ordering::SeqCst), 2);
     }
 }

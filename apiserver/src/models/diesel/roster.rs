@@ -34,28 +34,28 @@ pub struct ShiftEntity {
 
 impl From<ShiftEntity> for Shift {
     fn from(entity: ShiftEntity) -> Self {
-        Self {
-            id: entity.id,
-            workspace_id: entity.workspace_id,
-            name: entity.name,
-            report_symbol: entity.report_symbol,
-            start_time: entity.start_time,
-            end_time: entity.end_time,
-            break_duration_minutes: entity.break_duration_minutes,
-            break_start: entity.break_start,
-            break_end: entity.break_end,
-            is_break_auto_deduct: entity.is_break_auto_deduct,
-            break_is_overtime: entity.break_is_overtime,
-            early_punch_in_grace_period_minutes: entity.early_punch_in_grace_period_minutes,
-            allow_early_ot: entity.allow_early_ot,
-            max_early_ot_minutes: entity.max_early_ot_minutes,
-            is_active: entity.is_active,
-            parent_shift_id: entity.parent_shift_id,
-            location_id: entity.location_id,
-            employer_id: entity.employer_id,
-            created_at: entity.created_at.unwrap_or_else(Utc::now),
-            updated_at: entity.updated_at.unwrap_or_else(Utc::now),
-        }
+        Self::new(
+            entity.id,
+            entity.workspace_id,
+            entity.name,
+            entity.report_symbol,
+            entity.start_time,
+            entity.end_time,
+            entity.break_duration_minutes,
+            entity.break_start,
+            entity.break_end,
+            entity.is_break_auto_deduct,
+            entity.break_is_overtime,
+            entity.early_punch_in_grace_period_minutes,
+            entity.allow_early_ot,
+            entity.max_early_ot_minutes,
+            entity.is_active,
+            entity.parent_shift_id,
+            entity.location_id,
+            entity.employer_id,
+            entity.created_at.unwrap_or_else(Utc::now),
+            entity.updated_at.unwrap_or_else(Utc::now),
+        )
     }
 }
 

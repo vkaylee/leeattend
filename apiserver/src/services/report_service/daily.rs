@@ -11,7 +11,7 @@ use uuid::Uuid;
 impl ReportService {
     /// Shared calculation for a single day's standard/OT units.
     pub(crate) fn calculate_day_units(args: CalculateDayUnitsArgs<'_, '_>) -> (i32, i32) {
-        if args.daily.shift_id.is_none() {
+        if args.daily.shift_id().is_none() {
             return (0, 0);
         }
 
@@ -34,25 +34,25 @@ impl ReportService {
 
             let shift_start_dt = args
                 .daily
-                .start_time
+                .start_time()
                 .and_then(|t| args.tz.from_local_datetime(&args.date.and_time(t)).single());
             let shift_end_dt = args
                 .daily
-                .end_time
+                .end_time()
                 .and_then(|t| args.tz.from_local_datetime(&args.date.and_time(t)).single());
 
             let break_start_dt = args
                 .daily
-                .break_start
+                .break_start()
                 .and_then(|t| args.tz.from_local_datetime(&args.date.and_time(t)).single());
             let break_end_dt = args
                 .daily
-                .break_end
+                .break_end()
                 .and_then(|t| args.tz.from_local_datetime(&args.date.and_time(t)).single());
 
             let (shift_start, shift_end) =
                 if let (Some(start), Some(mut end)) = (shift_start_dt, shift_end_dt) {
-                    if args.daily.end_time < args.daily.start_time {
+                    if args.daily.end_time() < args.daily.start_time() {
                         end += chrono::Duration::days(1);
                     }
                     (Some(start), Some(end))
@@ -62,7 +62,7 @@ impl ReportService {
 
             let (break_start, break_end) =
                 if let (Some(bs), Some(mut be)) = (break_start_dt, break_end_dt) {
-                    if args.daily.break_end < args.daily.break_start {
+                    if args.daily.break_end() < args.daily.break_start() {
                         be += chrono::Duration::days(1);
                     }
                     (Some(bs), Some(be))
@@ -76,7 +76,7 @@ impl ReportService {
                     punch_out,
                     shift_start,
                     shift_end,
-                    scheduled_break_minutes: args.daily.break_duration_minutes.unwrap_or(0),
+                    scheduled_break_minutes: args.daily.break_duration_minutes().unwrap_or(0),
                     actual_break_minutes,
                     break_start,
                     break_end,
@@ -84,7 +84,7 @@ impl ReportService {
                     rounding_policy: args.rounding_policy.to_string(),
                     rules: args.rules,
                     ot_ceiling: None,
-                    max_early_ot_minutes: args.daily.max_early_ot_minutes,
+                    max_early_ot_minutes: args.daily.max_early_ot_minutes(),
                 },
             )
         } else {
@@ -322,18 +322,18 @@ impl ReportService {
 
         for emp_sched in schedules {
             let employee_id = employment_to_employee
-                .get(&emp_sched.employment_id)
+                .get(&emp_sched.employment_id())
                 .copied()
                 .unwrap_or_else(Uuid::nil);
 
             let entries = entries_map
-                .get(&emp_sched.employment_id)
+                .get(&emp_sched.employment_id())
                 .map_or_else(Default::default, std::vec::Vec::as_slice);
             let entries_by_date =
                 crate::services::attendance_utils::group_entries_by_date(entries, tz);
 
-            for daily in emp_sched.schedules {
-                let date = daily.date;
+            for daily in emp_sched.schedules() {
+                let date = daily.date();
 
                 let day_entries = entries_by_date
                     .get(&date)
@@ -370,11 +370,11 @@ impl ReportService {
                 );
 
                 let overrides = ShiftPolicyOverrides::new(
-                    daily.early_punch_in_grace_period_minutes,
-                    daily.is_break_auto_deduct,
-                    daily.allow_early_ot,
+                    daily.early_punch_in_grace_period_minutes(),
+                    daily.is_break_auto_deduct(),
+                    daily.allow_early_ot(),
                     emp_attendance_rules.early_arrival_strategy,
-                    daily.break_is_overtime.unwrap_or(false),
+                    daily.break_is_overtime().unwrap_or(false),
                 );
                 let rules = PolicyResolver::apply_shift_overrides(base_rules, &overrides);
 
@@ -404,10 +404,10 @@ impl ReportService {
                     &crate::services::attendance_utils::DailyStatusInput::new(
                         actual_punch_in.is_some(),
                         actual_punch_in.map(|p| p.time()),
-                        daily.start_time,
+                        daily.start_time(),
                         is_hol,
                         holiday_entry.is_none_or(crate::models::Holiday::is_paid),
-                        daily.shift_id.is_some(),
+                        daily.shift_id().is_some(),
                         is_on_leave,
                         Some(rules.grace_period_minutes()),
                     ),
@@ -419,10 +419,10 @@ impl ReportService {
                     metadata_map.insert("time_entries".to_string(), serde_json::json!(day_entries));
                 }
 
-                if !daily.traces.is_empty() {
+                if !daily.traces().is_empty() {
                     metadata_map.insert(
                         "schedule_traces".to_string(),
-                        serde_json::json!(daily.traces),
+                        serde_json::json!(daily.traces()),
                     );
                 }
 
@@ -434,29 +434,29 @@ impl ReportService {
 
                 let employer_id = employments
                     .iter()
-                    .find(|e| e.id() == emp_sched.employment_id)
+                    .find(|e| e.id() == emp_sched.employment_id())
                     .map(crate::models::Employment::employer_id);
                 let employer_name = employer_id.and_then(|id| employer_name_map.get(&id).cloned());
 
                 reports.push(DailyAttendanceReport {
                     date,
-                    employment_id: emp_sched.employment_id,
+                    employment_id: emp_sched.employment_id(),
                     employee_id,
-                    employee_name: emp_sched.full_name.clone(),
-                    employee_id_number: emp_sched.employee_id_number.clone(),
-                    shift_symbol: daily.shift_symbol.clone(),
-                    shift_name: daily.shift_name.clone(),
-                    scheduled_start: daily.start_time,
-                    scheduled_end: daily.end_time,
-                    break_duration_minutes: daily.break_duration_minutes,
-                    break_start: daily.break_start,
-                    break_end: daily.break_end,
-                    is_break_auto_deduct: daily.is_break_auto_deduct,
+                    employee_name: emp_sched.full_name().to_string(),
+                    employee_id_number: emp_sched.employee_id_number().to_string(),
+                    shift_symbol: daily.shift_symbol().map(String::from),
+                    shift_name: daily.shift_name().map(String::from),
+                    scheduled_start: daily.start_time(),
+                    scheduled_end: daily.end_time(),
+                    break_duration_minutes: daily.break_duration_minutes(),
+                    break_start: daily.break_start(),
+                    break_end: daily.break_end(),
+                    is_break_auto_deduct: daily.is_break_auto_deduct(),
                     actual_punch_in: actual_punch_in.map(|t| t.with_timezone(&Utc)),
                     actual_punch_out: actual_punch_out.map(|t| t.with_timezone(&Utc)),
                     std_work_units,
                     ot_work_units,
-                    ot_claim_status: ot_status_map.get(&(emp_sched.employment_id, date)).cloned(),
+                    ot_claim_status: ot_status_map.get(&(emp_sched.employment_id(), date)).cloned(),
                     unit_type: crate::models::enums::TimekeepingUnit::DAY,
                     unit_coefficient_hours: f64::from(emp_attendance_rules.work_unit_minutes)
                         / 60.0,

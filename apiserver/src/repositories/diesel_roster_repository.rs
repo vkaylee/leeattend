@@ -281,43 +281,31 @@ impl RosterRepository for DieselRosterRepository {
                 let holiday = holidays_map.get(&curr_date);
 
                 for effective_shift_id in &effective_shift_ids {
-                    let mut sched = EffectiveSchedule {
-                        date: curr_date,
-                        shift_id: *effective_shift_id,
-                        source: source.clone(),
-                        shift_name: None,
-                        shift_symbol: None,
-                        start_time: None,
-                        end_time: None,
-                        break_duration_minutes: None,
-                        break_start: None,
-                        break_end: None,
-                        is_break_auto_deduct: None,
-                        early_punch_in_grace_period_minutes: None,
-                        allow_early_ot: None,
-                        break_is_overtime: None,
-                        max_early_ot_minutes: None,
-                        traces: traces.clone(),
-                        is_holiday: holiday.is_some(),
-                        is_holiday_paid: holiday.is_some_and(crate::models::Holiday::is_paid),
-                        holiday_name: holiday.map(|h| h.name().to_string()),
-                    };
+                    let mut sched = EffectiveSchedule::new(
+                        curr_date,
+                        *effective_shift_id,
+                        source.clone(),
+                        None, // shift_name
+                        None, // shift_symbol
+                        None, // start_time
+                        None, // end_time
+                        None, // break_duration_minutes
+                        None, // break_start
+                        None, // break_end
+                        None, // is_break_auto_deduct
+                        None, // early_punch_in_grace_period_minutes
+                        None, // allow_early_ot
+                        None, // break_is_overtime
+                        None, // max_early_ot_minutes
+                        traces.clone(),
+                        holiday.is_some(),
+                        holiday.is_some_and(crate::models::Holiday::is_paid),
+                        holiday.map(|h| h.name().to_string()),
+                    );
 
                     if let Some(sid) = effective_shift_id {
                         if let Some(shift) = roster_data.shifts.get(sid) {
-                            sched.shift_name = Some(shift.name().to_string());
-                            sched.shift_symbol = shift.report_symbol().map(String::from);
-                            sched.start_time = Some(shift.start_time());
-                            sched.end_time = Some(shift.end_time());
-                            sched.break_duration_minutes = Some(shift.break_duration_minutes());
-                            sched.break_start = shift.break_start();
-                            sched.break_end = shift.break_end();
-                            sched.is_break_auto_deduct = Some(shift.is_break_auto_deduct());
-                            sched.early_punch_in_grace_period_minutes =
-                                Some(shift.early_punch_in_grace_period_minutes());
-                            sched.allow_early_ot = Some(shift.allow_early_ot());
-                            sched.break_is_overtime = Some(shift.break_is_overtime());
-                            sched.max_early_ot_minutes = shift.max_early_ot_minutes();
+                            sched.set_shift_details_from_cache(shift);
                         }
                     }
 
@@ -331,13 +319,13 @@ impl RosterRepository for DieselRosterRepository {
                 }
             }
 
-            result.push(EmployeeSchedule {
-                employment_id: emp_id,
+            result.push(EmployeeSchedule::new(
+                emp_id,
                 employee_id,
-                employee_id_number: emp_id_number.clone(),
-                full_name: emp_full_name.clone(),
-                schedules: daily_schedules,
-            });
+                emp_id_number.clone(),
+                emp_full_name.clone(),
+                daily_schedules,
+            ));
         }
 
         Ok(result)

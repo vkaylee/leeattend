@@ -64,15 +64,15 @@ impl ShiftService {
             .await?
             .ok_or_else(|| AppError::not_found(I18nKey::ShiftNotFound))?;
 
-        let has_time_changes = old_shift.start_time != req.start_time
-            || old_shift.end_time != req.end_time
-            || old_shift.break_duration_minutes != req.break_duration_minutes
-            || old_shift.break_start != req.break_start
-            || old_shift.break_end != req.break_end
-            || old_shift.allow_early_ot != req.allow_early_ot
-            || old_shift.max_early_ot_minutes != req.max_early_ot_minutes
-            || old_shift.location_id != req.location_id
-            || old_shift.employer_id != req.employer_id;
+        let has_time_changes = old_shift.start_time() != req.start_time
+            || old_shift.end_time() != req.end_time
+            || old_shift.break_duration_minutes() != req.break_duration_minutes
+            || old_shift.break_start() != req.break_start
+            || old_shift.break_end() != req.break_end
+            || old_shift.allow_early_ot() != req.allow_early_ot
+            || old_shift.max_early_ot_minutes() != req.max_early_ot_minutes
+            || old_shift.location_id() != req.location_id
+            || old_shift.employer_id() != req.employer_id;
 
         if req.is_correction || !has_time_changes {
             // Direct update
@@ -100,7 +100,7 @@ impl ShiftService {
             let new_shift = self
                 .repo
                 .create_shift(
-                    &crate::diesel_pool::TenantAuthToken::system_override(old_shift.workspace_id),
+                    &crate::diesel_pool::TenantAuthToken::system_override(old_shift.workspace_id()),
                     &crate::models::CreateShiftRequest {
                         name: req.name,
                         report_symbol: req.report_symbol,
@@ -136,7 +136,7 @@ impl ShiftService {
                 .update_assignments_to_new_version(
                     &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
                     shift_id,
-                    new_shift.id,
+                    new_shift.id(),
                     effective_date,
                 )
                 .await?;
@@ -188,28 +188,28 @@ mod tests {
     use uuid::Uuid;
 
     fn dummy_shift() -> Shift {
-        Shift {
-            id: Uuid::new_v4(),
-            workspace_id: Uuid::new_v4(),
-            name: "Morning".into(),
-            report_symbol: None,
-            start_time: NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
-            end_time: NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
-            break_duration_minutes: 60,
-            break_start: None,
-            break_end: None,
-            is_break_auto_deduct: true,
-            break_is_overtime: false,
-            early_punch_in_grace_period_minutes: 0,
-            allow_early_ot: false,
-            max_early_ot_minutes: None,
-            is_active: true,
-            parent_shift_id: None,
-            location_id: None,
-            employer_id: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        }
+        Shift::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            "Morning".into(),
+            None,
+            NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
+            NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
+            60,
+            None,
+            None,
+            true,
+            false,
+            0,
+            false,
+            None,
+            true,
+            None,
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        )
     }
 
     struct MockShiftRepo {
@@ -240,28 +240,28 @@ mod tests {
             parent: Option<Uuid>,
         ) -> Result<Shift, AppError> {
             *self.created.lock().unwrap() = true;
-            Ok(Shift {
-                id: Uuid::new_v4(),
-                workspace_id: auth_token.0,
-                name: req.name.clone(),
-                report_symbol: req.report_symbol.clone(),
-                start_time: req.start_time,
-                end_time: req.end_time,
-                break_duration_minutes: req.break_duration_minutes,
-                break_start: req.break_start,
-                break_end: req.break_end,
-                is_break_auto_deduct: req.is_break_auto_deduct,
-                break_is_overtime: req.break_is_overtime,
-                early_punch_in_grace_period_minutes: req.early_punch_in_grace_period_minutes,
-                allow_early_ot: req.allow_early_ot,
-                max_early_ot_minutes: req.max_early_ot_minutes,
-                is_active: true,
-                parent_shift_id: parent,
-                location_id: req.location_id,
-                employer_id: req.employer_id,
-                created_at: Utc::now(),
-                updated_at: Utc::now(),
-            })
+            Ok(Shift::new(
+                Uuid::new_v4(),
+                auth_token.0,
+                req.name.clone(),
+                req.report_symbol.clone(),
+                req.start_time,
+                req.end_time,
+                req.break_duration_minutes,
+                req.break_start,
+                req.break_end,
+                req.is_break_auto_deduct,
+                req.break_is_overtime,
+                req.early_punch_in_grace_period_minutes,
+                req.allow_early_ot,
+                req.max_early_ot_minutes,
+                true,
+                parent,
+                req.location_id,
+                req.employer_id,
+                Utc::now(),
+                Utc::now(),
+            ))
         }
 
         async fn get_shift_by_id(
@@ -299,7 +299,7 @@ mod tests {
                 .unwrap()
                 .clone()
                 .unwrap_or_else(dummy_shift);
-            s.name = req.name.clone();
+            s.set_name(req.name.clone());
             Ok(s)
         }
 
@@ -375,7 +375,7 @@ mod tests {
         let (svc, repo) = build_service(None);
         let req = make_create_req();
         let result = svc.create_shift(Uuid::new_v4(), &req).await.unwrap();
-        assert_eq!(result.name, "Night");
+        assert_eq!(result.name(), "Night");
         assert!(*repo.created.lock().unwrap());
     }
 
@@ -428,7 +428,7 @@ mod tests {
             .update_shift(Uuid::new_v4(), Uuid::new_v4(), req)
             .await
             .unwrap();
-        assert_eq!(result.name, "Updated Morning");
+        assert_eq!(result.name(), "Updated Morning");
     }
 
     #[tokio::test]
@@ -487,7 +487,7 @@ mod tests {
             .await
             .unwrap();
         // New version created, name comes from req
-        assert_eq!(result.name, "Morning V2");
+        assert_eq!(result.name(), "Morning V2");
         // archive and migrate called
         assert!(*repo.archived.lock().unwrap());
         assert!(*repo.migrations_applied.lock().unwrap());

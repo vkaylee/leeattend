@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use tracing::info;
 
 /// Type-safe entry classification for paired sessions.
 ///
@@ -320,6 +321,7 @@ impl ShiftAwareStrategy {
         ALGORITHM_NAME
     }
 
+    #[tracing::instrument(skip_all, fields(log_count = logs.len(), has_config = config.is_some()))]
     pub fn pair(
         &self,
         logs: &[LogEvent],
@@ -334,11 +336,15 @@ impl ShiftAwareStrategy {
 
         // Tier 1: If shift config available, use shift-window-based pairing
         if let Some(shift) = config {
-            return Self::pair_by_shift_window(&sorted_logs, shift);
+            let sessions = Self::pair_by_shift_window(&sorted_logs, shift);
+            info!(tier = "shift_window", session_count = sessions.len(), "Pairing complete");
+            return sessions;
         }
 
         // Tier 2: Fallback to anchor-first (original behavior)
-        Self::pair_anchor_first(&sorted_logs, None)
+        let sessions = Self::pair_anchor_first(&sorted_logs, None);
+        info!(tier = "anchor_first", session_count = sessions.len(), "Pairing complete");
+        sessions
     }
 
     fn find_earliest_in_window(
@@ -442,7 +448,6 @@ impl ShiftAwareStrategy {
     /// Earliest log near shift start = IN, last log of the day = OUT.
     /// Check-in uses a buffer window to avoid picking up logs from previous day.
     /// Check-out has no buffer — captures any amount of overtime.
-    #[allow(clippy::too_many_lines)]
     fn pair_by_shift_window(logs: &[LogEvent], shift: &PairingShiftConfig) -> Vec<PairedSession> {
         let buffer = shift.check_in_buffer_minutes.unwrap_or(SHIFT_WINDOW_BUFFER);
 
@@ -466,8 +471,6 @@ impl ShiftAwareStrategy {
         let entry_type = Self::extract_entry_type(first_in_log);
         let is_break_overtime = Self::extract_is_break_overtime(first_in_log);
 
-        let mut sessions = Vec::new();
-
         if let Some(last_out_log) = last_out {
             let end_val = last_out_log.minutes;
             let mut active_breaks = Vec::new();
@@ -479,72 +482,125 @@ impl ShiftAwareStrategy {
             active_breaks.sort_by_key(BreakInterval::start_minutes);
 
             if !active_breaks.is_empty() {
-                let k = active_breaks.len();
-                for j in 0..=k {
-                    let seg_start = if j == 0 {
-                        start
-                    } else {
-                        active_breaks[j - 1].end_minutes()
-                    };
-                    let seg_end = if j == k {
-                        end_val
-                    } else {
-                        active_breaks[j].start_minutes()
-                    };
-
-                    let log_ids = if j == 0 {
-                        Self::collect_log_ids(logs, seg_start, Some(seg_end), &first_in_log.all_ids)
-                    } else if j == k {
-                        Self::collect_log_ids(logs, seg_start, Some(seg_end), &last_out_log.all_ids)
-                    } else {
-                        Self::collect_log_ids(logs, seg_start, Some(seg_end), &[])
-                    };
-
-                    let start_time = if j == k {
-                        let diff = i64::from(end_val) - i64::from(seg_start);
-                        last_out_log.punch_time - chrono::Duration::minutes(diff)
-                    } else {
-                        let diff = i64::from(seg_start) - i64::from(start);
-                        first_in_log.punch_time + chrono::Duration::minutes(diff)
-                    };
-
-                    let end_time = if j == k {
-                        last_out_log.punch_time
-                    } else {
-                        let diff = i64::from(seg_end) - i64::from(start);
-                        first_in_log.punch_time + chrono::Duration::minutes(diff)
-                    };
-
-                    let split_name = if j == 0 {
-                        "first_half"
-                    } else if j == k {
-                        "second_half"
-                    } else {
-                        "middle_segment"
-                    };
-
-                    sessions.push(PairedSession::new(
-                        seg_start,
-                        Some(seg_end),
-                        start_time,
-                        Some(end_time),
-                        entry_type.clone(),
-                        if j == 0 { combined_note.clone() } else { None },
-                        is_break_overtime,
-                        Some(serde_json::json!({
-                            "algorithm": ALGORITHM_NAME,
-                            "tier": "shift_window",
-                            "log_ids": log_ids,
-                            "shift_start": shift.start_minutes,
-                            "shift_end": shift.end_minutes,
-                            "break_split": split_name
-                        })),
-                    ));
-                }
-                return sessions;
+                return Self::split_by_breaks(
+                    logs,
+                    start,
+                    end_val,
+                    &active_breaks,
+                    first_in_log,
+                    last_out_log,
+                    shift,
+                    &entry_type,
+                    combined_note,
+                    is_break_overtime,
+                );
             }
         }
 
+        vec![Self::build_single_session(
+            logs,
+            start,
+            end,
+            first_in_log,
+            last_out,
+            shift,
+            entry_type,
+            combined_note,
+            is_break_overtime,
+        )]
+    }
+
+    /// Split a work session into segments around active break intervals.
+    fn split_by_breaks(
+        logs: &[LogEvent],
+        start: i32,
+        end_val: i32,
+        active_breaks: &[BreakInterval],
+        first_in_log: &LogEvent,
+        last_out_log: &LogEvent,
+        shift: &PairingShiftConfig,
+        entry_type: &EntryType,
+        combined_note: Option<PairingNote>,
+        is_break_overtime: bool,
+    ) -> Vec<PairedSession> {
+        let mut sessions = Vec::new();
+        let k = active_breaks.len();
+        for j in 0..=k {
+            let seg_start = if j == 0 {
+                start
+            } else {
+                active_breaks[j - 1].end_minutes()
+            };
+            let seg_end = if j == k {
+                end_val
+            } else {
+                active_breaks[j].start_minutes()
+            };
+
+            let log_ids = if j == 0 {
+                Self::collect_log_ids(logs, seg_start, Some(seg_end), &first_in_log.all_ids)
+            } else if j == k {
+                Self::collect_log_ids(logs, seg_start, Some(seg_end), &last_out_log.all_ids)
+            } else {
+                Self::collect_log_ids(logs, seg_start, Some(seg_end), &[])
+            };
+
+            let start_time = if j == k {
+                let diff = i64::from(end_val) - i64::from(seg_start);
+                last_out_log.punch_time - chrono::Duration::minutes(diff)
+            } else {
+                let diff = i64::from(seg_start) - i64::from(start);
+                first_in_log.punch_time + chrono::Duration::minutes(diff)
+            };
+
+            let end_time = if j == k {
+                last_out_log.punch_time
+            } else {
+                let diff = i64::from(seg_end) - i64::from(start);
+                first_in_log.punch_time + chrono::Duration::minutes(diff)
+            };
+
+            let split_name = if j == 0 {
+                "first_half"
+            } else if j == k {
+                "second_half"
+            } else {
+                "middle_segment"
+            };
+
+            sessions.push(PairedSession::new(
+                seg_start,
+                Some(seg_end),
+                start_time,
+                Some(end_time),
+                entry_type.clone(),
+                if j == 0 { combined_note.clone() } else { None },
+                is_break_overtime,
+                Some(serde_json::json!({
+                    "algorithm": ALGORITHM_NAME,
+                    "tier": "shift_window",
+                    "log_ids": log_ids,
+                    "shift_start": shift.start_minutes,
+                    "shift_end": shift.end_minutes,
+                    "break_split": split_name
+                })),
+            ));
+        }
+        sessions
+    }
+
+    /// Build a single session when no breaks are active.
+    fn build_single_session(
+        logs: &[LogEvent],
+        start: i32,
+        end: Option<i32>,
+        first_in_log: &LogEvent,
+        last_out: Option<&LogEvent>,
+        shift: &PairingShiftConfig,
+        entry_type: EntryType,
+        combined_note: Option<PairingNote>,
+        is_break_overtime: bool,
+    ) -> PairedSession {
         let final_note = Self::finalize_note(combined_note, end.is_none());
         let single_id = [first_in_log.id];
         let fallback_ids = logs
@@ -554,7 +610,7 @@ impl ShiftAwareStrategy {
             .unwrap_or(&single_id);
         let log_ids = Self::collect_log_ids(logs, start, end, fallback_ids);
 
-        sessions.push(PairedSession::new(
+        PairedSession::new(
             start,
             end,
             first_in_log.punch_time,
@@ -569,9 +625,7 @@ impl ShiftAwareStrategy {
                 "shift_start": shift.start_minutes,
                 "shift_end": shift.end_minutes
             })),
-        ));
-
-        sessions
+        )
     }
 
     /// Tier 2: Anchor-first fallback.

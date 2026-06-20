@@ -65,19 +65,19 @@ impl ShiftCache {
 
                 let shifts: Vec<CachedShift> = rows
                     .into_iter()
-                    .filter(|s| s.is_active)
+                    .filter(|s| s.is_active())
                     .map(|row| CachedShift {
-                        id: row.id,
-                        name: row.name,
-                        start_time: row.start_time,
-                        end_time: row.end_time,
-                        break_duration_minutes: Some(row.break_duration_minutes),
-                        break_start: row.break_start,
-                        break_end: row.break_end,
-                        is_break_auto_deduct: Some(row.is_break_auto_deduct),
-                        allow_early_ot: Some(row.allow_early_ot),
+                        id: row.id(),
+                        name: row.name().to_string(),
+                        start_time: row.start_time(),
+                        end_time: row.end_time(),
+                        break_duration_minutes: Some(row.break_duration_minutes()),
+                        break_start: row.break_start(),
+                        break_end: row.break_end(),
+                        is_break_auto_deduct: Some(row.is_break_auto_deduct()),
+                        allow_early_ot: Some(row.allow_early_ot()),
                         early_punch_in_grace_period_minutes: Some(
-                            row.early_punch_in_grace_period_minutes,
+                            row.early_punch_in_grace_period_minutes(),
                         ),
                     })
                     .collect();

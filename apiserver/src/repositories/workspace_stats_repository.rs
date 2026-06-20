@@ -125,11 +125,11 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         // Count late entries per date
         let mut late_count_map = std::collections::HashMap::new();
         for schedule in &schedules {
-            for s in &schedule.schedules {
-                if let Some(shift_start) = s.start_time {
-                    if let Some(&first_punch) = punch_map.get(&(schedule.employment_id, s.date)) {
+            for s in schedule.schedules() {
+                if let Some(shift_start) = s.start_time() {
+                    if let Some(&first_punch) = punch_map.get(&(schedule.employment_id(), s.date())) {
                         if first_punch > shift_start {
-                            *late_count_map.entry(s.date).or_insert(0i64) += 1;
+                            *late_count_map.entry(s.date()).or_insert(0i64) += 1;
                         }
                     }
                 }
@@ -261,11 +261,11 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
 
             let mut late_dept_counts = std::collections::HashMap::new();
             for schedule in schedules {
-                if let Some(dept_id) = dept_map.get(&schedule.employment_id) {
-                    if !schedule.schedules.is_empty() {
-                        let s = &schedule.schedules[0];
-                        if let Some(shift_start) = s.start_time {
-                            if let Some(&first_punch) = punch_map.get(&schedule.employment_id) {
+                if let Some(dept_id) = dept_map.get(&schedule.employment_id()) {
+                    if !schedule.schedules().is_empty() {
+                        let s = &schedule.schedules()[0];
+                        if let Some(shift_start) = s.start_time() {
+                            if let Some(&first_punch) = punch_map.get(&schedule.employment_id()) {
                                 if first_punch > shift_start {
                                     *late_dept_counts.entry(*dept_id).or_insert(0i64) += 1;
                                 }
@@ -479,17 +479,17 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         let mut early_departure_today = 0;
 
         for schedule in schedules {
-            if !schedule.schedules.is_empty() {
-                let s = &schedule.schedules[0];
-                if let Some(shift_start) = s.start_time {
-                    if let Some(&first_punch) = first_punch_map.get(&schedule.employment_id) {
+            if !schedule.schedules().is_empty() {
+                let s = &schedule.schedules()[0];
+                if let Some(shift_start) = s.start_time() {
+                    if let Some(&first_punch) = first_punch_map.get(&schedule.employment_id()) {
                         if first_punch > shift_start {
                             late_today += 1;
                         }
                     }
                 }
-                if let Some(shift_end) = s.end_time {
-                    if let Some(&last_punch_out) = last_punch_map.get(&schedule.employment_id) {
+                if let Some(shift_end) = s.end_time() {
+                    if let Some(&last_punch_out) = last_punch_map.get(&schedule.employment_id()) {
                         if last_punch_out < shift_end {
                             early_departure_today += 1;
                         }
@@ -648,14 +648,14 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         let mut dow_stats: std::collections::HashMap<i32, (i64, f64)> =
             std::collections::HashMap::new();
         for schedule in &schedules {
-            for s in &schedule.schedules {
-                if let Some(shift_start) = s.start_time {
-                    if let Some(&first_punch) = punch_map.get(&(schedule.employment_id, s.date)) {
+            for s in schedule.schedules() {
+                if let Some(shift_start) = s.start_time() {
+                    if let Some(&first_punch) = punch_map.get(&(schedule.employment_id(), s.date())) {
                         if first_punch > shift_start {
                             #[allow(clippy::cast_precision_loss)]
                             let late_mins = (first_punch - shift_start).num_seconds() as f64 / 60.0;
                             let dow =
-                                i32::try_from(s.date.weekday().number_from_monday()).unwrap_or(0);
+                                i32::try_from(s.date().weekday().number_from_monday()).unwrap_or(0);
                             let entry = dow_stats.entry(dow).or_insert((0, 0.0));
                             entry.0 += 1;
                             entry.1 += late_mins;

@@ -66,7 +66,7 @@ pub async fn create_working_pattern(
                 None,
             )
             .await?;
-        let shift_map: HashMap<Uuid, _> = all_shifts.into_iter().map(|s| (s.id, s)).collect();
+        let shift_map: HashMap<Uuid, _> = all_shifts.into_iter().map(|s| (s.id(), s)).collect();
 
         for shift_ids in day_shifts.values() {
             if shift_ids.len() < 2 {
@@ -75,7 +75,7 @@ pub async fn create_working_pattern(
 
             let times: Vec<(Uuid, NaiveTime, NaiveTime)> = shift_ids
                 .iter()
-                .filter_map(|id| shift_map.get(id).map(|s| (*id, s.start_time, s.end_time)))
+                .filter_map(|id| shift_map.get(id).map(|s| (*id, s.start_time(), s.end_time())))
                 .collect();
 
             // Pairwise overlap check
@@ -171,7 +171,7 @@ pub async fn update_working_pattern(
                 None,
             )
             .await?;
-        let shift_map: HashMap<Uuid, _> = all_shifts.into_iter().map(|s| (s.id, s)).collect();
+        let shift_map: HashMap<Uuid, _> = all_shifts.into_iter().map(|s| (s.id(), s)).collect();
 
         for shift_ids in day_shifts.values() {
             if shift_ids.len() < 2 {
@@ -180,7 +180,7 @@ pub async fn update_working_pattern(
 
             let times: Vec<(Uuid, NaiveTime, NaiveTime)> = shift_ids
                 .iter()
-                .filter_map(|id| shift_map.get(id).map(|s| (*id, s.start_time, s.end_time)))
+                .filter_map(|id| shift_map.get(id).map(|s| (*id, s.start_time(), s.end_time())))
                 .collect();
 
             for i in 0..times.len() {
@@ -415,28 +415,28 @@ mod tests {
             _a: bool,
             _p: Option<Uuid>,
         ) -> Result<Shift, AppError> {
-            Ok(Shift {
-                id: Uuid::new_v4(),
-                workspace_id: auth_token.0,
-                name: req.name.clone(),
-                report_symbol: None,
-                start_time: req.start_time,
-                end_time: req.end_time,
-                break_duration_minutes: req.break_duration_minutes,
-                break_start: None,
-                break_end: None,
-                is_break_auto_deduct: true,
-                break_is_overtime: false,
-                early_punch_in_grace_period_minutes: 0,
-                allow_early_ot: false,
-                is_active: true,
-                parent_shift_id: _p,
-                location_id: req.location_id,
-                employer_id: req.employer_id,
-                max_early_ot_minutes: None,
-                created_at: Utc::now(),
-                updated_at: Utc::now(),
-            })
+            Ok(Shift::new(
+                Uuid::new_v4(),
+                auth_token.0,
+                req.name.clone(),
+                None,
+                req.start_time,
+                req.end_time,
+                req.break_duration_minutes,
+                None,
+                None,
+                true,
+                false,
+                0,
+                false,
+                None,
+                true,
+                _p,
+                req.location_id,
+                req.employer_id,
+                Utc::now(),
+                Utc::now(),
+            ))
         }
         async fn get_shift_by_id(
             &self,
@@ -452,50 +452,50 @@ mod tests {
             _employer_id: Option<Uuid>,
         ) -> Result<Vec<Shift>, AppError> {
             // Provide a few mock shifts for overlap testing
-            let s1 = Shift {
-                id: Uuid::from_u128(1),
-                workspace_id: Uuid::new_v4(),
-                name: "S1".into(),
-                report_symbol: None,
-                start_time: chrono::NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
-                end_time: chrono::NaiveTime::from_hms_opt(12, 0, 0).unwrap(),
-                break_duration_minutes: 0,
-                break_start: None,
-                break_end: None,
-                is_break_auto_deduct: false,
-                break_is_overtime: false,
-                early_punch_in_grace_period_minutes: 0,
-                allow_early_ot: false,
-                is_active: true,
-                parent_shift_id: None,
-                location_id: None,
-                employer_id: None,
-                max_early_ot_minutes: None,
-                created_at: Utc::now(),
-                updated_at: Utc::now(),
-            };
-            let s2 = Shift {
-                id: Uuid::from_u128(2),
-                workspace_id: Uuid::new_v4(),
-                name: "S2".into(),
-                report_symbol: None,
-                start_time: chrono::NaiveTime::from_hms_opt(10, 0, 0).unwrap(),
-                end_time: chrono::NaiveTime::from_hms_opt(14, 0, 0).unwrap(),
-                break_duration_minutes: 0,
-                break_start: None,
-                break_end: None,
-                is_break_auto_deduct: false,
-                break_is_overtime: false,
-                early_punch_in_grace_period_minutes: 0,
-                allow_early_ot: false,
-                is_active: true,
-                parent_shift_id: None,
-                location_id: None,
-                employer_id: None,
-                max_early_ot_minutes: None,
-                created_at: Utc::now(),
-                updated_at: Utc::now(),
-            };
+            let s1 = Shift::new(
+                Uuid::from_u128(1),
+                Uuid::new_v4(),
+                "S1".into(),
+                None,
+                chrono::NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
+                chrono::NaiveTime::from_hms_opt(12, 0, 0).unwrap(),
+                0,
+                None,
+                None,
+                false,
+                false,
+                0,
+                false,
+                None,
+                true,
+                None,
+                None,
+                None,
+                Utc::now(),
+                Utc::now(),
+            );
+            let s2 = Shift::new(
+                Uuid::from_u128(2),
+                Uuid::new_v4(),
+                "S2".into(),
+                None,
+                chrono::NaiveTime::from_hms_opt(10, 0, 0).unwrap(),
+                chrono::NaiveTime::from_hms_opt(14, 0, 0).unwrap(),
+                0,
+                None,
+                None,
+                false,
+                false,
+                0,
+                false,
+                None,
+                true,
+                None,
+                None,
+                None,
+                Utc::now(),
+                Utc::now(),
+            );
             Ok(vec![s1, s2])
         }
         async fn update_shift_direct(

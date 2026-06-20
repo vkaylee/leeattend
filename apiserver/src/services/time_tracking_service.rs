@@ -126,9 +126,9 @@ impl TimeTrackingService {
                     .await?
                     .ok_or(AppError::Internal("error.shift_not_found".into()))?;
 
-                let start_time = shift.start_time;
+                let start_time = shift.start_time();
                 let grace_minutes =
-                    u32::try_from(shift.early_punch_in_grace_period_minutes).unwrap_or(0);
+                    u32::try_from(shift.early_punch_in_grace_period_minutes()).unwrap_or(0);
 
                 let shift_start = today.and_time(start_time);
                 let earliest_punch =

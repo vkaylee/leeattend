@@ -79,38 +79,157 @@ pub struct BulkAssignResponse {
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct EffectiveSchedule {
-    pub date: NaiveDate,
-    pub shift_id: Option<Uuid>, // None means Day Off
-    pub source: String,         // "roster", "fixed", "department", "none"
-    pub shift_name: Option<String>,
-    pub shift_symbol: Option<String>,
-    pub start_time: Option<NaiveTime>,
-    pub end_time: Option<NaiveTime>,
-    pub break_duration_minutes: Option<i32>,
-    pub break_start: Option<NaiveTime>,
-    pub break_end: Option<NaiveTime>,
-    pub is_break_auto_deduct: Option<bool>,
-    pub early_punch_in_grace_period_minutes: Option<i32>,
-    pub allow_early_ot: Option<bool>,
-    pub break_is_overtime: Option<bool>,
-    pub max_early_ot_minutes: Option<i32>,
+    date: NaiveDate,
+    shift_id: Option<Uuid>,   // None means Day Off
+    source: String,            // "roster", "fixed", "department", "none"
+    shift_name: Option<String>,
+    shift_symbol: Option<String>,
+    start_time: Option<NaiveTime>,
+    end_time: Option<NaiveTime>,
+    break_duration_minutes: Option<i32>,
+    break_start: Option<NaiveTime>,
+    break_end: Option<NaiveTime>,
+    is_break_auto_deduct: Option<bool>,
+    early_punch_in_grace_period_minutes: Option<i32>,
+    allow_early_ot: Option<bool>,
+    break_is_overtime: Option<bool>,
+    max_early_ot_minutes: Option<i32>,
     #[serde(default)]
-    pub traces: Vec<ScheduleTrace>,
+    traces: Vec<ScheduleTrace>,
     #[serde(default)]
-    pub is_holiday: bool,
+    is_holiday: bool,
     #[serde(default)]
-    pub is_holiday_paid: bool,
+    is_holiday_paid: bool,
     #[serde(default)]
-    pub holiday_name: Option<String>,
+    holiday_name: Option<String>,
+}
+
+#[allow(clippy::too_many_arguments)]
+impl EffectiveSchedule {
+    pub fn new(
+        date: NaiveDate,
+        shift_id: Option<Uuid>,
+        source: String,
+        shift_name: Option<String>,
+        shift_symbol: Option<String>,
+        start_time: Option<NaiveTime>,
+        end_time: Option<NaiveTime>,
+        break_duration_minutes: Option<i32>,
+        break_start: Option<NaiveTime>,
+        break_end: Option<NaiveTime>,
+        is_break_auto_deduct: Option<bool>,
+        early_punch_in_grace_period_minutes: Option<i32>,
+        allow_early_ot: Option<bool>,
+        break_is_overtime: Option<bool>,
+        max_early_ot_minutes: Option<i32>,
+        traces: Vec<ScheduleTrace>,
+        is_holiday: bool,
+        is_holiday_paid: bool,
+        holiday_name: Option<String>,
+    ) -> Self {
+        Self {
+            date,
+            shift_id,
+            source,
+            shift_name,
+            shift_symbol,
+            start_time,
+            end_time,
+            break_duration_minutes,
+            break_start,
+            break_end,
+            is_break_auto_deduct,
+            early_punch_in_grace_period_minutes,
+            allow_early_ot,
+            break_is_overtime,
+            max_early_ot_minutes,
+            traces,
+            is_holiday,
+            is_holiday_paid,
+            holiday_name,
+        }
+    }
+
+    // Getters
+    pub fn date(&self) -> NaiveDate { self.date }
+    pub fn shift_id(&self) -> Option<Uuid> { self.shift_id }
+    pub fn source(&self) -> &str { &self.source }
+    pub fn shift_name(&self) -> Option<&str> { self.shift_name.as_deref() }
+    pub fn shift_symbol(&self) -> Option<&str> { self.shift_symbol.as_deref() }
+    pub fn start_time(&self) -> Option<NaiveTime> { self.start_time }
+    pub fn end_time(&self) -> Option<NaiveTime> { self.end_time }
+    pub fn break_duration_minutes(&self) -> Option<i32> { self.break_duration_minutes }
+    pub fn break_start(&self) -> Option<NaiveTime> { self.break_start }
+    pub fn break_end(&self) -> Option<NaiveTime> { self.break_end }
+    pub fn is_break_auto_deduct(&self) -> Option<bool> { self.is_break_auto_deduct }
+    pub fn early_punch_in_grace_period_minutes(&self) -> Option<i32> { self.early_punch_in_grace_period_minutes }
+    pub fn allow_early_ot(&self) -> Option<bool> { self.allow_early_ot }
+    pub fn break_is_overtime(&self) -> Option<bool> { self.break_is_overtime }
+    pub fn max_early_ot_minutes(&self) -> Option<i32> { self.max_early_ot_minutes }
+    pub fn traces(&self) -> &[ScheduleTrace] { &self.traces }
+    pub fn is_holiday(&self) -> bool { self.is_holiday }
+    pub fn is_holiday_paid(&self) -> bool { self.is_holiday_paid }
+    pub fn holiday_name(&self) -> Option<&str> { self.holiday_name.as_deref() }
+
+    /// Populate shift details after construction (used by roster repository
+    /// when resolving shift data post-construction).
+    pub fn set_shift_details(&mut self, shift: &crate::models::Shift) {
+        self.shift_name = Some(shift.name().to_string());
+        self.shift_symbol = shift.report_symbol().map(String::from);
+        self.start_time = Some(shift.start_time());
+        self.end_time = Some(shift.end_time());
+        self.break_duration_minutes = Some(shift.break_duration_minutes());
+        self.break_start = shift.break_start();
+        self.break_end = shift.break_end();
+        self.is_break_auto_deduct = Some(shift.is_break_auto_deduct());
+        self.early_punch_in_grace_period_minutes = Some(shift.early_punch_in_grace_period_minutes());
+        self.allow_early_ot = Some(shift.allow_early_ot());
+        self.break_is_overtime = Some(shift.break_is_overtime());
+        self.max_early_ot_minutes = shift.max_early_ot_minutes();
+    }
+
+    /// Populate shift details from a cached `RosterShift`.
+    pub fn set_shift_details_from_cache(&mut self, shift: &crate::cache::RosterShift) {
+        self.shift_name = Some(shift.name().to_string());
+        self.shift_symbol = shift.report_symbol().map(String::from);
+        self.start_time = Some(shift.start_time());
+        self.end_time = Some(shift.end_time());
+        self.break_duration_minutes = Some(shift.break_duration_minutes());
+        self.break_start = shift.break_start();
+        self.break_end = shift.break_end();
+        self.is_break_auto_deduct = Some(shift.is_break_auto_deduct());
+        self.early_punch_in_grace_period_minutes = Some(shift.early_punch_in_grace_period_minutes());
+        self.allow_early_ot = Some(shift.allow_early_ot());
+        self.break_is_overtime = Some(shift.break_is_overtime());
+        self.max_early_ot_minutes = shift.max_early_ot_minutes();
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct EmployeeSchedule {
-    pub employment_id: Uuid,
-    pub employee_id: Uuid,
-    pub employee_id_number: String,
-    pub full_name: String,
-    pub schedules: Vec<EffectiveSchedule>,
+    employment_id: Uuid,
+    employee_id: Uuid,
+    employee_id_number: String,
+    full_name: String,
+    schedules: Vec<EffectiveSchedule>,
+}
+
+impl EmployeeSchedule {
+    pub fn new(
+        employment_id: Uuid,
+        employee_id: Uuid,
+        employee_id_number: String,
+        full_name: String,
+        schedules: Vec<EffectiveSchedule>,
+    ) -> Self {
+        Self { employment_id, employee_id, employee_id_number, full_name, schedules }
+    }
+
+    pub fn employment_id(&self) -> Uuid { self.employment_id }
+    pub fn employee_id(&self) -> Uuid { self.employee_id }
+    pub fn employee_id_number(&self) -> &str { &self.employee_id_number }
+    pub fn full_name(&self) -> &str { &self.full_name }
+    pub fn schedules(&self) -> &[EffectiveSchedule] { &self.schedules }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, diesel::QueryableByName, utoipa::ToSchema)]
@@ -158,27 +277,27 @@ mod tests {
 
     #[test]
     fn test_effective_schedule_serialization() {
-        let schedule = EffectiveSchedule {
-            date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-            shift_id: Some(Uuid::new_v4()),
-            source: "roster".to_string(),
-            shift_name: Some("Morning Shift".to_string()),
-            shift_symbol: Some("M".to_string()),
-            start_time: NaiveTime::from_hms_opt(8, 0, 0),
-            end_time: NaiveTime::from_hms_opt(17, 0, 0),
-            break_duration_minutes: Some(60),
-            break_start: None,
-            break_end: None,
-            is_break_auto_deduct: Some(true),
-            early_punch_in_grace_period_minutes: None,
-            allow_early_ot: None,
-            break_is_overtime: None,
-            max_early_ot_minutes: None,
-            traces: vec![],
-            is_holiday: false,
-            is_holiday_paid: false,
-            holiday_name: None,
-        };
+        let schedule = EffectiveSchedule::new(
+            NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+            Some(Uuid::new_v4()),
+            "roster".to_string(),
+            Some("Morning Shift".to_string()),
+            Some("M".to_string()),
+            NaiveTime::from_hms_opt(8, 0, 0),
+            NaiveTime::from_hms_opt(17, 0, 0),
+            Some(60),
+            None,
+            None,
+            Some(true),
+            None,
+            None,
+            None,
+            None,
+            vec![],
+            false,
+            false,
+            None,
+        );
 
         let json = serde_json::to_string(&schedule).unwrap();
         assert!(json.contains("Morning Shift"));

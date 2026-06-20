@@ -56,7 +56,7 @@ impl ReportService {
         }
 
         // 3. Batch-fetch time entries (using shared date_range_to_utc)
-        let employment_ids: Vec<Uuid> = schedules.iter().map(|s| s.employment_id).collect();
+        let employment_ids: Vec<Uuid> = schedules.iter().map(|s| s.employment_id()).collect();
         let employee_ids: Vec<Uuid> = employment_ids
             .iter()
             .filter_map(|emp_id| emp_id_to_employee_id.get(emp_id).copied())
@@ -105,12 +105,12 @@ impl ReportService {
 
         for emp_sched in &schedules {
             let employee_id = emp_id_to_employee_id
-                .get(&emp_sched.employment_id)
+                .get(&emp_sched.employment_id())
                 .copied()
                 .unwrap_or_else(Uuid::nil);
 
             let entries = entries_map
-                .get(&emp_sched.employment_id)
+                .get(&emp_sched.employment_id())
                 .cloned()
                 .unwrap_or_default();
 
@@ -135,8 +135,8 @@ impl ReportService {
                 }
             }
 
-            for daily in &emp_sched.schedules {
-                let date = daily.date;
+            for daily in emp_sched.schedules() {
+                let date = daily.date();
                 if date > today {
                     continue;
                 }
@@ -146,10 +146,10 @@ impl ReportService {
                 let status = determine_daily_status(&DailyStatusInput::new(
                     entries_by_date.contains_key(&date),
                     None, // Not needed for unexcused calculation
-                    daily.start_time,
-                    daily.is_holiday,
+                    daily.start_time(),
+                    daily.is_holiday(),
                     false, // Not needed for unexcused calculation
-                    daily.shift_id.is_some(),
+                    daily.shift_id().is_some(),
                     is_on_leave,
                     None,
                 ));
@@ -170,9 +170,9 @@ impl ReportService {
             }
 
             emp_stats.insert(
-                emp_sched.employment_id,
+                emp_sched.employment_id(),
                 EmployeeStats {
-                    employee_name: emp_sched.full_name.clone(),
+                    employee_name: emp_sched.full_name().to_string(),
                     department_id: dept_id,
                     department_name: dept_name,
                     unexcused_count: unexcused,

@@ -75,11 +75,11 @@ impl PairingContext {
     pub fn build_shift_config(&self, shift: Option<&Shift>) -> Option<PairingShiftConfig> {
         let s = shift?;
         Some(build_config_from_times(
-            s.start_time,
-            s.end_time,
-            s.break_start,
-            s.break_end,
-            s.early_punch_in_grace_period_minutes,
+            s.start_time(),
+            s.end_time(),
+            s.break_start(),
+            s.break_end(),
+            s.early_punch_in_grace_period_minutes(),
         ))
     }
 
@@ -87,14 +87,14 @@ impl PairingContext {
         &self,
         sched: &crate::models::EffectiveSchedule,
     ) -> Option<PairingShiftConfig> {
-        let start_time = sched.start_time?;
-        let end_time = sched.end_time?;
+        let start_time = sched.start_time()?;
+        let end_time = sched.end_time()?;
         Some(build_config_from_times(
             start_time,
             end_time,
-            sched.break_start,
-            sched.break_end,
-            sched.early_punch_in_grace_period_minutes.unwrap_or(0),
+            sched.break_start(),
+            sched.break_end(),
+            sched.early_punch_in_grace_period_minutes().unwrap_or(0),
         ))
     }
 
@@ -233,28 +233,28 @@ mod tests {
         let context_utc = PairingContext::new(date, tz_utc);
 
         // Shift is 07:30 to 16:30
-        let shift = Shift {
-            id: Uuid::new_v4(),
-            workspace_id: Uuid::new_v4(),
-            name: "Hành chính".to_string(),
-            start_time: NaiveTime::from_hms_opt(7, 30, 0).unwrap(),
-            end_time: NaiveTime::from_hms_opt(16, 30, 0).unwrap(),
-            break_start: None,
-            break_end: None,
-            report_symbol: None,
-            break_duration_minutes: 60,
-            is_break_auto_deduct: false,
-            break_is_overtime: false,
-            early_punch_in_grace_period_minutes: 0,
-            allow_early_ot: false,
-            is_active: true,
-            parent_shift_id: None,
-            location_id: None,
-            employer_id: None,
-            max_early_ot_minutes: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        };
+        let shift = Shift::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            "Hành chính".to_string(),
+            None,
+            NaiveTime::from_hms_opt(7, 30, 0).unwrap(),
+            NaiveTime::from_hms_opt(16, 30, 0).unwrap(),
+            60,
+            None,
+            None,
+            false,
+            false,
+            0,
+            false,
+            None,
+            true,
+            None,
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
 
         let shift_config_utc = context_utc.build_shift_config(Some(&shift));
         let (window_start_utc, _window_end_utc) = context_utc
@@ -334,28 +334,28 @@ mod tests {
         let tz = chrono_tz::UTC;
         let context = PairingContext::new(date, tz);
 
-        let shift = Shift {
-            id: Uuid::new_v4(),
-            workspace_id: Uuid::new_v4(),
-            name: "Night".to_string(),
-            start_time: NaiveTime::from_hms_opt(22, 0, 0).unwrap(),
-            end_time: NaiveTime::from_hms_opt(6, 0, 0).unwrap(), // Next day
-            break_start: Some(NaiveTime::from_hms_opt(2, 0, 0).unwrap()), // Next day break
-            break_end: Some(NaiveTime::from_hms_opt(3, 0, 0).unwrap()),
-            report_symbol: None,
-            break_duration_minutes: 60,
-            is_break_auto_deduct: false,
-            break_is_overtime: false,
-            early_punch_in_grace_period_minutes: 0,
-            allow_early_ot: false,
-            is_active: true,
-            parent_shift_id: None,
-            location_id: None,
-            employer_id: None,
-            max_early_ot_minutes: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        };
+        let shift = Shift::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            "Night".to_string(),
+            None,
+            NaiveTime::from_hms_opt(22, 0, 0).unwrap(),
+            NaiveTime::from_hms_opt(6, 0, 0).unwrap(),
+            60,
+            Some(NaiveTime::from_hms_opt(2, 0, 0).unwrap()),
+            Some(NaiveTime::from_hms_opt(3, 0, 0).unwrap()),
+            false,
+            false,
+            0,
+            false,
+            None,
+            true,
+            None,
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
 
         let config = context.build_shift_config(Some(&shift)).unwrap();
         assert_eq!(config.start_minutes(), 1320); // 22 * 60

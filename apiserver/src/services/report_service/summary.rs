@@ -244,12 +244,12 @@ impl ReportService {
 
         for emp_sched in schedules {
             let employee_id = employment_to_employee
-                .get(&emp_sched.employment_id)
+                .get(&emp_sched.employment_id())
                 .copied()
                 .unwrap_or_else(Uuid::nil);
 
             let entries = entries_map
-                .get(&emp_sched.employment_id)
+                .get(&emp_sched.employment_id())
                 .map_or_else(Default::default, std::vec::Vec::as_slice);
 
             let emp_attendance_rules = attendance_rules_map
@@ -267,8 +267,8 @@ impl ReportService {
             let entries_by_date =
                 crate::services::attendance_utils::group_entries_by_date(entries, tz);
 
-            for daily in &emp_sched.schedules {
-                let date = daily.date;
+            for daily in emp_sched.schedules() {
+                let date = daily.date();
 
                 let day_entries = entries_by_date
                     .get(&date)
@@ -288,11 +288,11 @@ impl ReportService {
                 );
 
                 let overrides = ShiftPolicyOverrides::new(
-                    daily.early_punch_in_grace_period_minutes,
-                    daily.is_break_auto_deduct,
-                    daily.allow_early_ot,
+                    daily.early_punch_in_grace_period_minutes(),
+                    daily.is_break_auto_deduct(),
+                    daily.allow_early_ot(),
                     emp_attendance_rules.early_arrival_strategy,
-                    daily.break_is_overtime.unwrap_or(false),
+                    daily.break_is_overtime().unwrap_or(false),
                 );
                 let rules = PolicyResolver::apply_shift_overrides(base_rules, &overrides);
                 let (std_units, ot_units) = Self::calculate_day_units(CalculateDayUnitsArgs {
@@ -312,7 +312,7 @@ impl ReportService {
             }
 
             employee_totals.insert(
-                emp_sched.employment_id,
+                emp_sched.employment_id(),
                 (
                     employee_total_std,
                     employee_total_ot,
