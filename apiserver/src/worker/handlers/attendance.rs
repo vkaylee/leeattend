@@ -617,7 +617,9 @@ impl AttendanceHandler {
                                 punch_out,
                                 shift_start,
                                 shift_end,
-                                scheduled_break_minutes: daily.break_duration_minutes().unwrap_or(0),
+                                scheduled_break_minutes: daily
+                                    .break_duration_minutes()
+                                    .unwrap_or(0),
                                 actual_break_minutes,
                                 break_start: break_start_dt,
                                 break_end: break_end_dt,

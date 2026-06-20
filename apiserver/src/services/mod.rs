@@ -21,6 +21,7 @@ pub mod leave_service;
 pub mod lifecycle_service;
 pub mod location_service;
 pub mod overtime_request_service;
+pub mod pairing;
 pub mod pairing_algo;
 pub mod pairing_context;
 pub mod pairing_service;

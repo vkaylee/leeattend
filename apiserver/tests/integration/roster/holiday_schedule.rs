@@ -62,34 +62,35 @@ async fn test_schedule_shows_holiday_metadata() {
 
     // Find the schedule for the holiday date
     let holiday_sched = emp_sched
-        .schedules
+        .schedules()
         .iter()
-        .find(|s| s.date == holiday_date)
+        .find(|s| s.date() == holiday_date)
         .expect("Schedule for holiday date should exist");
 
     // Assert holiday metadata is correctly populated
-    assert!(holiday_sched.is_holiday, "is_holiday should be true");
+    assert!(holiday_sched.is_holiday(), "is_holiday should be true");
     assert_eq!(
-        holiday_sched.holiday_name,
-        Some("Labor Day".to_string()),
+        holiday_sched.holiday_name(),
+        Some("Labor Day"),
         "holiday_name should match"
     );
 
     // Find a non-holiday schedule
     let regular_date = NaiveDate::from_ymd_opt(2026, 4, 30).unwrap();
     let regular_sched = emp_sched
-        .schedules
+        .schedules()
         .iter()
-        .find(|s| s.date == regular_date)
+        .find(|s| s.date() == regular_date)
         .expect("Schedule for regular date should exist");
 
     // Assert holiday metadata is default/false for non-holidays
     assert!(
-        !regular_sched.is_holiday,
+        !regular_sched.is_holiday(),
         "is_holiday should be false for regular days"
     );
     assert_eq!(
-        regular_sched.holiday_name, None,
+        regular_sched.holiday_name(),
+        None,
         "holiday_name should be None for regular days"
     );
 }

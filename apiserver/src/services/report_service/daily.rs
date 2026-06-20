@@ -381,7 +381,7 @@ impl ReportService {
                 let (std_work_units, ot_work_units) =
                     Self::calculate_day_units(CalculateDayUnitsArgs {
                         day_entries,
-                        daily: &daily,
+                        daily,
                         date,
                         tz,
                         employee_id,
@@ -456,7 +456,9 @@ impl ReportService {
                     actual_punch_out: actual_punch_out.map(|t| t.with_timezone(&Utc)),
                     std_work_units,
                     ot_work_units,
-                    ot_claim_status: ot_status_map.get(&(emp_sched.employment_id(), date)).cloned(),
+                    ot_claim_status: ot_status_map
+                        .get(&(emp_sched.employment_id(), date))
+                        .cloned(),
                     unit_type: crate::models::enums::TimekeepingUnit::DAY,
                     unit_coefficient_hours: f64::from(emp_attendance_rules.work_unit_minutes)
                         / 60.0,

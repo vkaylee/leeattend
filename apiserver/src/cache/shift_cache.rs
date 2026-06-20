@@ -65,7 +65,7 @@ impl ShiftCache {
 
                 let shifts: Vec<CachedShift> = rows
                     .into_iter()
-                    .filter(|s| s.is_active())
+                    .filter(crate::models::Shift::is_active)
                     .map(|row| CachedShift {
                         id: row.id(),
                         name: row.name().to_string(),

@@ -127,7 +127,8 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         for schedule in &schedules {
             for s in schedule.schedules() {
                 if let Some(shift_start) = s.start_time() {
-                    if let Some(&first_punch) = punch_map.get(&(schedule.employment_id(), s.date())) {
+                    if let Some(&first_punch) = punch_map.get(&(schedule.employment_id(), s.date()))
+                    {
                         if first_punch > shift_start {
                             *late_count_map.entry(s.date()).or_insert(0i64) += 1;
                         }
@@ -650,7 +651,8 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         for schedule in &schedules {
             for s in schedule.schedules() {
                 if let Some(shift_start) = s.start_time() {
-                    if let Some(&first_punch) = punch_map.get(&(schedule.employment_id(), s.date())) {
+                    if let Some(&first_punch) = punch_map.get(&(schedule.employment_id(), s.date()))
+                    {
                         if first_punch > shift_start {
                             #[allow(clippy::cast_precision_loss)]
                             let late_mins = (first_punch - shift_start).num_seconds() as f64 / 60.0;

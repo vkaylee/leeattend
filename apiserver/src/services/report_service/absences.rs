@@ -56,7 +56,10 @@ impl ReportService {
         }
 
         // 3. Batch-fetch time entries (using shared date_range_to_utc)
-        let employment_ids: Vec<Uuid> = schedules.iter().map(|s| s.employment_id()).collect();
+        let employment_ids: Vec<Uuid> = schedules
+            .iter()
+            .map(crate::models::schedule::EmployeeSchedule::employment_id)
+            .collect();
         let employee_ids: Vec<Uuid> = employment_ids
             .iter()
             .filter_map(|emp_id| emp_id_to_employee_id.get(emp_id).copied())

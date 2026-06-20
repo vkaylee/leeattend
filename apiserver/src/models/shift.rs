@@ -47,7 +47,7 @@ pub struct Shift {
 }
 
 impl Shift {
-    #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::too_many_arguments, clippy::fn_params_excessive_bools)]
     pub fn new(
         id: Uuid,
         workspace_id: Uuid,
@@ -94,29 +94,71 @@ impl Shift {
         }
     }
 
-    pub fn id(&self) -> Uuid { self.id }
-    pub fn workspace_id(&self) -> Uuid { self.workspace_id }
-    pub fn name(&self) -> &str { &self.name }
-    pub fn report_symbol(&self) -> Option<&str> { self.report_symbol.as_deref() }
-    pub fn start_time(&self) -> NaiveTime { self.start_time }
-    pub fn end_time(&self) -> NaiveTime { self.end_time }
-    pub fn break_duration_minutes(&self) -> i32 { self.break_duration_minutes }
-    pub fn break_start(&self) -> Option<NaiveTime> { self.break_start }
-    pub fn break_end(&self) -> Option<NaiveTime> { self.break_end }
-    pub fn is_break_auto_deduct(&self) -> bool { self.is_break_auto_deduct }
-    pub fn break_is_overtime(&self) -> bool { self.break_is_overtime }
-    pub fn early_punch_in_grace_period_minutes(&self) -> i32 { self.early_punch_in_grace_period_minutes }
-    pub fn allow_early_ot(&self) -> bool { self.allow_early_ot }
-    pub fn max_early_ot_minutes(&self) -> Option<i32> { self.max_early_ot_minutes }
-    pub fn is_active(&self) -> bool { self.is_active }
-    pub fn parent_shift_id(&self) -> Option<Uuid> { self.parent_shift_id }
-    pub fn location_id(&self) -> Option<Uuid> { self.location_id }
-    pub fn employer_id(&self) -> Option<Uuid> { self.employer_id }
-    pub fn created_at(&self) -> DateTime<Utc> { self.created_at }
-    pub fn updated_at(&self) -> DateTime<Utc> { self.updated_at }
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+    pub fn workspace_id(&self) -> Uuid {
+        self.workspace_id
+    }
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+    pub fn report_symbol(&self) -> Option<&str> {
+        self.report_symbol.as_deref()
+    }
+    pub fn start_time(&self) -> NaiveTime {
+        self.start_time
+    }
+    pub fn end_time(&self) -> NaiveTime {
+        self.end_time
+    }
+    pub fn break_duration_minutes(&self) -> i32 {
+        self.break_duration_minutes
+    }
+    pub fn break_start(&self) -> Option<NaiveTime> {
+        self.break_start
+    }
+    pub fn break_end(&self) -> Option<NaiveTime> {
+        self.break_end
+    }
+    pub fn is_break_auto_deduct(&self) -> bool {
+        self.is_break_auto_deduct
+    }
+    pub fn break_is_overtime(&self) -> bool {
+        self.break_is_overtime
+    }
+    pub fn early_punch_in_grace_period_minutes(&self) -> i32 {
+        self.early_punch_in_grace_period_minutes
+    }
+    pub fn allow_early_ot(&self) -> bool {
+        self.allow_early_ot
+    }
+    pub fn max_early_ot_minutes(&self) -> Option<i32> {
+        self.max_early_ot_minutes
+    }
+    pub fn is_active(&self) -> bool {
+        self.is_active
+    }
+    pub fn parent_shift_id(&self) -> Option<Uuid> {
+        self.parent_shift_id
+    }
+    pub fn location_id(&self) -> Option<Uuid> {
+        self.location_id
+    }
+    pub fn employer_id(&self) -> Option<Uuid> {
+        self.employer_id
+    }
+    pub fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+    pub fn updated_at(&self) -> DateTime<Utc> {
+        self.updated_at
+    }
 
     /// Mutable setter for name (used by update_shift_direct in mock).
-    pub fn set_name(&mut self, name: String) { self.name = name; }
+    pub fn set_name(&mut self, name: String) {
+        self.name = name;
+    }
 }
 
 pub(super) fn default_true() -> bool {

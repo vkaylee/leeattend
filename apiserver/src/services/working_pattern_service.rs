@@ -75,7 +75,11 @@ pub async fn create_working_pattern(
 
             let times: Vec<(Uuid, NaiveTime, NaiveTime)> = shift_ids
                 .iter()
-                .filter_map(|id| shift_map.get(id).map(|s| (*id, s.start_time(), s.end_time())))
+                .filter_map(|id| {
+                    shift_map
+                        .get(id)
+                        .map(|s| (*id, s.start_time(), s.end_time()))
+                })
                 .collect();
 
             // Pairwise overlap check
@@ -180,7 +184,11 @@ pub async fn update_working_pattern(
 
             let times: Vec<(Uuid, NaiveTime, NaiveTime)> = shift_ids
                 .iter()
-                .filter_map(|id| shift_map.get(id).map(|s| (*id, s.start_time(), s.end_time())))
+                .filter_map(|id| {
+                    shift_map
+                        .get(id)
+                        .map(|s| (*id, s.start_time(), s.end_time()))
+                })
                 .collect();
 
             for i in 0..times.len() {

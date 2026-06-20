@@ -80,8 +80,8 @@ pub struct BulkAssignResponse {
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct EffectiveSchedule {
     date: NaiveDate,
-    shift_id: Option<Uuid>,   // None means Day Off
-    source: String,            // "roster", "fixed", "department", "none"
+    shift_id: Option<Uuid>, // None means Day Off
+    source: String,         // "roster", "fixed", "department", "none"
     shift_name: Option<String>,
     shift_symbol: Option<String>,
     start_time: Option<NaiveTime>,
@@ -151,25 +151,63 @@ impl EffectiveSchedule {
     }
 
     // Getters
-    pub fn date(&self) -> NaiveDate { self.date }
-    pub fn shift_id(&self) -> Option<Uuid> { self.shift_id }
-    pub fn source(&self) -> &str { &self.source }
-    pub fn shift_name(&self) -> Option<&str> { self.shift_name.as_deref() }
-    pub fn shift_symbol(&self) -> Option<&str> { self.shift_symbol.as_deref() }
-    pub fn start_time(&self) -> Option<NaiveTime> { self.start_time }
-    pub fn end_time(&self) -> Option<NaiveTime> { self.end_time }
-    pub fn break_duration_minutes(&self) -> Option<i32> { self.break_duration_minutes }
-    pub fn break_start(&self) -> Option<NaiveTime> { self.break_start }
-    pub fn break_end(&self) -> Option<NaiveTime> { self.break_end }
-    pub fn is_break_auto_deduct(&self) -> Option<bool> { self.is_break_auto_deduct }
-    pub fn early_punch_in_grace_period_minutes(&self) -> Option<i32> { self.early_punch_in_grace_period_minutes }
-    pub fn allow_early_ot(&self) -> Option<bool> { self.allow_early_ot }
-    pub fn break_is_overtime(&self) -> Option<bool> { self.break_is_overtime }
-    pub fn max_early_ot_minutes(&self) -> Option<i32> { self.max_early_ot_minutes }
-    pub fn traces(&self) -> &[ScheduleTrace] { &self.traces }
-    pub fn is_holiday(&self) -> bool { self.is_holiday }
-    pub fn is_holiday_paid(&self) -> bool { self.is_holiday_paid }
-    pub fn holiday_name(&self) -> Option<&str> { self.holiday_name.as_deref() }
+    pub fn date(&self) -> NaiveDate {
+        self.date
+    }
+    pub fn shift_id(&self) -> Option<Uuid> {
+        self.shift_id
+    }
+    pub fn source(&self) -> &str {
+        &self.source
+    }
+    pub fn shift_name(&self) -> Option<&str> {
+        self.shift_name.as_deref()
+    }
+    pub fn shift_symbol(&self) -> Option<&str> {
+        self.shift_symbol.as_deref()
+    }
+    pub fn start_time(&self) -> Option<NaiveTime> {
+        self.start_time
+    }
+    pub fn end_time(&self) -> Option<NaiveTime> {
+        self.end_time
+    }
+    pub fn break_duration_minutes(&self) -> Option<i32> {
+        self.break_duration_minutes
+    }
+    pub fn break_start(&self) -> Option<NaiveTime> {
+        self.break_start
+    }
+    pub fn break_end(&self) -> Option<NaiveTime> {
+        self.break_end
+    }
+    pub fn is_break_auto_deduct(&self) -> Option<bool> {
+        self.is_break_auto_deduct
+    }
+    pub fn early_punch_in_grace_period_minutes(&self) -> Option<i32> {
+        self.early_punch_in_grace_period_minutes
+    }
+    pub fn allow_early_ot(&self) -> Option<bool> {
+        self.allow_early_ot
+    }
+    pub fn break_is_overtime(&self) -> Option<bool> {
+        self.break_is_overtime
+    }
+    pub fn max_early_ot_minutes(&self) -> Option<i32> {
+        self.max_early_ot_minutes
+    }
+    pub fn traces(&self) -> &[ScheduleTrace] {
+        &self.traces
+    }
+    pub fn is_holiday(&self) -> bool {
+        self.is_holiday
+    }
+    pub fn is_holiday_paid(&self) -> bool {
+        self.is_holiday_paid
+    }
+    pub fn holiday_name(&self) -> Option<&str> {
+        self.holiday_name.as_deref()
+    }
 
     /// Populate shift details after construction (used by roster repository
     /// when resolving shift data post-construction).
@@ -182,7 +220,8 @@ impl EffectiveSchedule {
         self.break_start = shift.break_start();
         self.break_end = shift.break_end();
         self.is_break_auto_deduct = Some(shift.is_break_auto_deduct());
-        self.early_punch_in_grace_period_minutes = Some(shift.early_punch_in_grace_period_minutes());
+        self.early_punch_in_grace_period_minutes =
+            Some(shift.early_punch_in_grace_period_minutes());
         self.allow_early_ot = Some(shift.allow_early_ot());
         self.break_is_overtime = Some(shift.break_is_overtime());
         self.max_early_ot_minutes = shift.max_early_ot_minutes();
@@ -198,7 +237,8 @@ impl EffectiveSchedule {
         self.break_start = shift.break_start();
         self.break_end = shift.break_end();
         self.is_break_auto_deduct = Some(shift.is_break_auto_deduct());
-        self.early_punch_in_grace_period_minutes = Some(shift.early_punch_in_grace_period_minutes());
+        self.early_punch_in_grace_period_minutes =
+            Some(shift.early_punch_in_grace_period_minutes());
         self.allow_early_ot = Some(shift.allow_early_ot());
         self.break_is_overtime = Some(shift.break_is_overtime());
         self.max_early_ot_minutes = shift.max_early_ot_minutes();
@@ -222,14 +262,30 @@ impl EmployeeSchedule {
         full_name: String,
         schedules: Vec<EffectiveSchedule>,
     ) -> Self {
-        Self { employment_id, employee_id, employee_id_number, full_name, schedules }
+        Self {
+            employment_id,
+            employee_id,
+            employee_id_number,
+            full_name,
+            schedules,
+        }
     }
 
-    pub fn employment_id(&self) -> Uuid { self.employment_id }
-    pub fn employee_id(&self) -> Uuid { self.employee_id }
-    pub fn employee_id_number(&self) -> &str { &self.employee_id_number }
-    pub fn full_name(&self) -> &str { &self.full_name }
-    pub fn schedules(&self) -> &[EffectiveSchedule] { &self.schedules }
+    pub fn employment_id(&self) -> Uuid {
+        self.employment_id
+    }
+    pub fn employee_id(&self) -> Uuid {
+        self.employee_id
+    }
+    pub fn employee_id_number(&self) -> &str {
+        &self.employee_id_number
+    }
+    pub fn full_name(&self) -> &str {
+        &self.full_name
+    }
+    pub fn schedules(&self) -> &[EffectiveSchedule] {
+        &self.schedules
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, diesel::QueryableByName, utoipa::ToSchema)]
