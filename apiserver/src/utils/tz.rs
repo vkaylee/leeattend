@@ -45,7 +45,7 @@ pub fn parse_workspace_tz(tz_str: &str) -> Tz {
 /// This is the single implementation replacing:
 /// - `chrono_helpers::local_to_utc`
 /// - `datetime::naive_to_utc`
-/// - `pairing_service::local_to_tz` (UTC variant)
+/// - `pairing::local_to_tz` (UTC variant)
 pub fn local_to_utc(
     tz: &Tz,
     date: NaiveDate,

@@ -5,8 +5,7 @@ use chrono::{DateTime, Duration, NaiveDate, Timelike, Utc};
 use chrono_tz::Tz;
 use uuid::Uuid;
 
-const OVERNIGHT_REPROCESS_CUTOFF_HOUR: u32 = 12;
-const ADJACENT_ENTRY_SEARCH_DAYS: i64 = 2;
+use super::types::{ADJACENT_ENTRY_SEARCH_DAYS, OVERNIGHT_REPROCESS_CUTOFF_HOUR};
 
 pub(crate) struct ConsumedLogTracker<'a> {
     time_entry_repo: &'a dyn crate::repositories::TimeEntryRepository,
@@ -52,9 +51,8 @@ impl<'a> ConsumedLogTracker<'a> {
                 continue;
             }
             if let Some(metadata) = entry.generation_metadata() {
-                if let Ok(paired_meta) = serde_json::from_value::<
-                    crate::services::pairing_algo::PairingMetadata,
-                >(metadata.clone())
+                if let Ok(paired_meta) =
+                    serde_json::from_value::<super::types::PairingMetadata>(metadata.clone())
                 {
                     for id in paired_meta.log_ids() {
                         consumed.insert(*id);

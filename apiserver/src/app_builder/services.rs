@@ -17,7 +17,7 @@ pub struct Services {
     pub time_tracking: Arc<crate::services::TimeTrackingService>,
     pub attendance_summary: Arc<crate::services::AttendanceSummaryService>,
     pub report: Arc<crate::services::ReportService>,
-    pub pairing: Arc<dyn crate::services::pairing_service::PairingProcessor>,
+    pub pairing: Arc<dyn crate::services::pairing::PairingProcessor>,
     pub adjustment:
         Arc<crate::services::attendance_adjustment_service::AttendanceAdjustmentService>,
     pub auth: Arc<crate::services::auth_service::AuthService>,

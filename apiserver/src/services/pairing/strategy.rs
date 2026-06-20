@@ -28,7 +28,7 @@ impl ShiftAwareStrategy {
         }
 
         let mut sorted_logs = logs.to_vec();
-        sorted_logs.sort_by_key(|l| l.minutes);
+        sorted_logs.sort_by_key(|l| l.minutes());
 
         // Tier 1: If shift config available, use shift-window-based pairing
         if let Some(shift) = config {
@@ -66,7 +66,7 @@ impl ShiftAwareStrategy {
         let mut i = 0;
         while i < logs.len() {
             let first = &logs[i];
-            let start_time = first.punch_time;
+            let start_time = first.punch_time();
             let start_note = Self::extract_note(first);
             let entry_type = Self::extract_entry_type(first);
             let is_break_overtime = Self::extract_is_break_overtime(first);
@@ -74,23 +74,23 @@ impl ShiftAwareStrategy {
             if i + 1 < logs.len() {
                 let second = &logs[i + 1];
                 if second
-                    .minutes
-                    .checked_sub(first.minutes)
+                    .minutes()
+                    .checked_sub(first.minutes())
                     .is_some_and(|diff| diff <= max_gap_val)
                 {
-                    let end_time = Some(second.punch_time);
+                    let end_time = Some(second.punch_time());
                     let end_note = Self::extract_note(second);
                     let combined_note = Self::combine_notes(start_note, end_note);
                     let log_ids = Self::collect_log_ids(
                         logs,
-                        first.minutes,
-                        Some(second.minutes),
-                        &first.all_ids,
+                        first.minutes(),
+                        Some(second.minutes()),
+                        first.all_ids(),
                     );
 
                     sessions.push(PairedSession::new(
-                        first.minutes,
-                        Some(second.minutes),
+                        first.minutes(),
+                        Some(second.minutes()),
                         start_time,
                         end_time,
                         entry_type,
@@ -105,10 +105,10 @@ impl ShiftAwareStrategy {
                     i += 2;
                 } else {
                     let final_note = Self::finalize_note(start_note, true);
-                    let log_ids = first.all_ids.clone();
+                    let log_ids = first.all_ids().to_vec();
 
                     sessions.push(PairedSession::new(
-                        first.minutes,
+                        first.minutes(),
                         None,
                         start_time,
                         None,
@@ -125,10 +125,10 @@ impl ShiftAwareStrategy {
                 }
             } else {
                 let final_note = Self::finalize_note(start_note, true);
-                let log_ids = first.all_ids.clone();
+                let log_ids = first.all_ids().to_vec();
 
                 sessions.push(PairedSession::new(
-                    first.minutes,
+                    first.minutes(),
                     None,
                     start_time,
                     None,
@@ -162,7 +162,7 @@ impl ShiftAwareStrategy {
     }
 
     pub(crate) fn extract_note(log: &LogEvent) -> Option<PairingNote> {
-        log.raw_data
+        log.raw_data()
             .as_ref()
             .and_then(|r| r.get("note"))
             .and_then(|n| n.as_str())
@@ -170,7 +170,7 @@ impl ShiftAwareStrategy {
     }
 
     pub(crate) fn extract_entry_type(log: &LogEvent) -> EntryType {
-        log.raw_data
+        log.raw_data()
             .as_ref()
             .and_then(|r| r.get("entry_type"))
             .and_then(|e| e.as_str())
@@ -179,7 +179,7 @@ impl ShiftAwareStrategy {
     }
 
     pub(crate) fn extract_is_break_overtime(log: &LogEvent) -> bool {
-        log.raw_data
+        log.raw_data()
             .as_ref()
             .and_then(|r| r.get("is_break_overtime"))
             .and_then(serde_json::Value::as_bool)
@@ -211,8 +211,8 @@ impl ShiftAwareStrategy {
     ) -> Vec<uuid::Uuid> {
         if let Some(e_val) = end {
             logs.iter()
-                .filter(|l| l.minutes >= start && l.minutes <= e_val)
-                .flat_map(|l| l.all_ids.clone())
+                .filter(|l| l.minutes() >= start && l.minutes() <= e_val)
+                .flat_map(|l| l.all_ids().to_vec())
                 .collect()
         } else {
             fallback_ids.to_vec()

@@ -18,7 +18,7 @@ use crate::utils::id::new_id;
 use crate::repositories::{
     employee::EmployeeRepository, raw_attendance_log_repository::RawAttendanceLogRepository,
 };
-use crate::services::pairing_service::PairingProcessor;
+use crate::services::pairing::PairingProcessor;
 use crate::utils::datetime::parse_datetime_with_tz;
 
 /// Entry representing a raw attendance log from an agent

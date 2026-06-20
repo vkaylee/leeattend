@@ -11,7 +11,7 @@ use crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepo
 use crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
 use crate::repositories::staging_log_repository::StagingLogRepository;
 use crate::repositories::EmployeeRepository;
-use crate::services::pairing_service::PairingProcessor;
+use crate::services::pairing::PairingProcessor;
 use crate::services::{agent_log_buffer, AgentLogBuffer, AgentLogEntry};
 use crate::utils::datetime::parse_datetime_with_tz;
 

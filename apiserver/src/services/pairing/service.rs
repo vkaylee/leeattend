@@ -14,7 +14,7 @@ use crate::repositories::TimeEntryRepository;
 use crate::services::pairing::types::{PairingProcessor, PairingServiceArgs, PairingShiftConfig};
 use crate::services::SummaryRecalculator;
 
-pub(crate) const OVERNIGHT_REPROCESS_CUTOFF_HOUR: u32 = 12;
+use super::types::OVERNIGHT_REPROCESS_CUTOFF_HOUR;
 
 pub struct PairingService {
     pub(crate) time_entry_repo: Arc<dyn TimeEntryRepository>,

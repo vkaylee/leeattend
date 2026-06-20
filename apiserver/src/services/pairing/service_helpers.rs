@@ -7,7 +7,8 @@ use uuid::Uuid;
 
 use crate::services::pairing::service::PairingService;
 
-const ADJACENT_ENTRY_SEARCH_DAYS: i64 = 2;
+use super::types::ADJACENT_ENTRY_SEARCH_DAYS;
+
 const LOG_SEARCH_PADDING_HOURS: i64 = 12;
 
 pub(crate) async fn fetch_schedules_for_range(

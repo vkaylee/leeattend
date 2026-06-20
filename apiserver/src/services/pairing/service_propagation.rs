@@ -148,9 +148,8 @@ fn process_propagation_day(
 
     for entry in new_entries_accumulated {
         if let Some(metadata) = entry.generation_metadata() {
-            if let Ok(paired_meta) = serde_json::from_value::<
-                crate::services::pairing_algo::PairingMetadata,
-            >(metadata.clone())
+            if let Ok(paired_meta) =
+                serde_json::from_value::<super::types::PairingMetadata>(metadata.clone())
             {
                 for id in paired_meta.log_ids() {
                     consumed_log_ids.insert(*id);

@@ -12,6 +12,12 @@ use crate::repositories::shift_repository::ShiftRepository;
 use crate::repositories::TimeEntryRepository;
 use crate::services::SummaryRecalculator;
 
+/// Maximum hour considered "overnight" for reprocessing previous day.
+pub(crate) const OVERNIGHT_REPROCESS_CUTOFF_HOUR: u32 = 12;
+
+/// Number of days to search adjacent time entries for consumed-log detection.
+pub(crate) const ADJACENT_ENTRY_SEARCH_DAYS: i64 = 2;
+
 /// Type-safe entry classification for paired sessions.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]

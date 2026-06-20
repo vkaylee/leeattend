@@ -10,7 +10,7 @@ use tokio::task::JoinHandle;
 pub struct AttendanceServices {
     pub time_tracking: Arc<crate::services::TimeTrackingService>,
     pub attendance_summary: Arc<crate::services::AttendanceSummaryService>,
-    pub pairing: Arc<dyn crate::services::pairing_service::PairingProcessor>,
+    pub pairing: Arc<dyn crate::services::pairing::PairingProcessor>,
     pub adjustment:
         Arc<crate::services::attendance_adjustment_service::AttendanceAdjustmentService>,
     pub attendance: Arc<crate::services::AttendanceLogService>,
@@ -52,9 +52,9 @@ pub async fn build_attendance_services(
         },
     ));
 
-    let pairing: Arc<dyn crate::services::pairing_service::PairingProcessor> =
-        Arc::new(crate::services::pairing_service::PairingService::new(
-            crate::services::pairing_service::PairingServiceArgs::new(
+    let pairing: Arc<dyn crate::services::pairing::PairingProcessor> =
+        Arc::new(crate::services::pairing::PairingService::new(
+            crate::services::pairing::PairingServiceArgs::new(
                 Arc::clone(&repos.time_entry),
                 Arc::clone(&repos.roster),
                 Arc::clone(&repos.employee),

@@ -14,7 +14,7 @@ use crate::models::{
 };
 use crate::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository;
 use crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
-use crate::services::pairing_service::PairingProcessor;
+use crate::services::pairing::PairingProcessor;
 
 pub struct AttendanceAdjustmentService {
     adj_repo: Arc<dyn AttendanceAdjustmentRepository>,

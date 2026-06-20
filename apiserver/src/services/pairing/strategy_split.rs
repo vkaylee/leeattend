@@ -36,14 +36,14 @@ pub(crate) fn split_by_breaks(
                 logs,
                 seg_start,
                 Some(seg_end),
-                &first_in_log.all_ids,
+                first_in_log.all_ids(),
             )
         } else if j == k {
             ShiftAwareStrategy::collect_log_ids(
                 logs,
                 seg_start,
                 Some(seg_end),
-                &last_out_log.all_ids,
+                last_out_log.all_ids(),
             )
         } else {
             ShiftAwareStrategy::collect_log_ids(logs, seg_start, Some(seg_end), &[])
@@ -51,17 +51,17 @@ pub(crate) fn split_by_breaks(
 
         let start_time = if j == k {
             let diff = i64::from(end_val) - i64::from(seg_start);
-            last_out_log.punch_time - chrono::Duration::minutes(diff)
+            last_out_log.punch_time() - chrono::Duration::minutes(diff)
         } else {
             let diff = i64::from(seg_start) - i64::from(start);
-            first_in_log.punch_time + chrono::Duration::minutes(diff)
+            first_in_log.punch_time() + chrono::Duration::minutes(diff)
         };
 
         let end_time = if j == k {
-            last_out_log.punch_time
+            last_out_log.punch_time()
         } else {
             let diff = i64::from(seg_end) - i64::from(start);
-            first_in_log.punch_time + chrono::Duration::minutes(diff)
+            first_in_log.punch_time() + chrono::Duration::minutes(diff)
         };
 
         let split_name = if j == 0 {
@@ -84,8 +84,8 @@ pub(crate) fn split_by_breaks(
                 "algorithm": ALGORITHM_NAME,
                 "tier": "shift_window",
                 "log_ids": log_ids,
-                "shift_start": shift.start_minutes,
-                "shift_end": shift.end_minutes,
+                "shift_start": shift.start_minutes(),
+                "shift_end": shift.end_minutes(),
                 "break_split": split_name
             })),
         ));

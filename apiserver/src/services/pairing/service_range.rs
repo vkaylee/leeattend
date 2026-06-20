@@ -108,6 +108,7 @@ fn process_range_days(
                 sched,
                 raw_logs,
                 adjacent_entries,
+                &new_entries_accumulated,
             )?;
             new_entries_accumulated.extend(day_new_entries);
         }
@@ -124,6 +125,7 @@ fn process_single_day_in_range(
     sched: &crate::models::schedule::EffectiveSchedule,
     raw_logs: &[RawAttendanceLog],
     adjacent_entries: &[TimeEntry],
+    new_entries_accumulated: &[TimeEntry],
 ) -> Result<Vec<TimeEntry>, AppError> {
     let context = crate::services::pairing::types::PairingContext::new(curr_date, tz);
     let shift_config = context.build_shift_config_from_schedule(sched);
@@ -133,8 +135,21 @@ fn process_single_day_in_range(
         context.calculate_fetch_window(shift_config.as_ref())?;
 
     // Exclude logs consumed by adjacent days (excluding current date)
-    let consumed_log_ids =
+    let mut consumed_log_ids =
         ConsumedLogTracker::extract_consumed_ids(adjacent_entries, curr_date, tz);
+
+    // Also exclude logs already consumed by previously processed days in this batch
+    for entry in new_entries_accumulated {
+        if let Some(metadata) = entry.generation_metadata() {
+            if let Ok(paired_meta) =
+                serde_json::from_value::<super::types::PairingMetadata>(metadata.clone())
+            {
+                for id in paired_meta.log_ids() {
+                    consumed_log_ids.insert(*id);
+                }
+            }
+        }
+    }
 
     let filtered_raw_logs: Vec<RawAttendanceLog> = raw_logs
         .iter()
