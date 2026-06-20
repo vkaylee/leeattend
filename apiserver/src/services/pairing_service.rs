@@ -638,7 +638,7 @@ impl PairingProcessor for PairingService {
 mod tests {
     use super::*;
     use crate::models::TimeEntry;
-    use chrono::Utc;
+    use chrono::{TimeZone, Utc};
     use std::sync::Arc;
     use uuid::Uuid;
 
@@ -774,7 +774,9 @@ mod tests {
 
         // 1. Mock time entry repo to return one adjacent entry with paired_log_id consumed
         let mut mock_time_entry_repo = MockTimeEntryRepository::new();
-        let adjacent_time = Utc::now() - chrono::Duration::days(1);
+        let test_date = NaiveDate::from_ymd_opt(2026, 6, 19).unwrap();
+        let log_time = Utc.with_ymd_and_hms(2026, 6, 19, 10, 0, 0).unwrap();
+        let adjacent_time = log_time - chrono::Duration::days(1);
         let adjacent_entry = TimeEntry::new(
             Uuid::new_v4(),
             emp_id,
@@ -811,7 +813,6 @@ mod tests {
 
         // 2. Mock raw log repo to return both logs
         let mut mock_raw_repo = MockRawAttendanceLogRepository::new();
-        let log_time = Utc::now();
         let log1 = RawAttendanceLog::new(
             paired_log_id,
             ws_id,
@@ -865,7 +866,7 @@ mod tests {
             .reprocess_daily_attendance(
                 ws_id,
                 emp_id,
-                NaiveDate::from_ymd_opt(2026, 6, 19).unwrap(),
+                test_date,
                 chrono_tz::UTC,
             )
             .await;
