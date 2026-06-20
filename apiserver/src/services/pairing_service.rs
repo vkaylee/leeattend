@@ -260,6 +260,29 @@ impl PairingService {
             curr_date = curr_date.succ_opt().unwrap_or(curr_date);
         }
 
+        // If the last day of the range has an overnight shift, we must also reprocess the next day
+        // to let it self-heal and clear any stolen punches.
+        let last_day_is_overnight = if let Some(sched) = emp_sched.schedules.iter().find(|s| s.date == end_date) {
+            if let (Some(st), Some(et)) = (sched.start_time, sched.end_time) {
+                et < st
+            } else {
+                false
+            }
+        } else {
+            false
+        };
+
+        if last_day_is_overnight {
+            let next_date = end_date + Duration::days(1);
+            info!(
+                workspace_id = %workspace_id,
+                employment_id = %employment_id,
+                next_date = %next_date,
+                "Last day of range is overnight, triggering next day reprocessing for self-healing"
+            );
+            let _ = self.reprocess_single_day(workspace_id, employment_id, next_date, tz).await?;
+        }
+
         Ok(())
     }
 
@@ -284,6 +307,14 @@ impl PairingService {
         for entry in adjacent_entries {
             let entry_local = entry.punch_in_time().with_timezone(&tz);
             if entry_local.date_naive() == curr_date {
+                continue;
+            }
+
+            // Skip next-day early morning punches because the previous day's overnight shift
+            // has priority over these punches.
+            if entry_local.date_naive() == curr_date + Duration::days(1)
+                && entry_local.hour() < OVERNIGHT_REPROCESS_CUTOFF_HOUR
+            {
                 continue;
             }
 
@@ -347,6 +378,46 @@ impl PairingService {
             "Reprocessing daily attendance"
         );
 
+        // Process the target day
+        let shift_config = self.reprocess_single_day(workspace_id, employment_id, date, tz).await?;
+
+        // If the shift is overnight, also reprocess the next day to allow it to self-heal
+        let is_overnight = if let Some(ref config) = shift_config {
+            config.end_minutes() > 1440
+        } else {
+            false
+        };
+
+        if is_overnight {
+            let next_date = date + Duration::days(1);
+            info!(
+                workspace_id = %workspace_id,
+                employment_id = %employment_id,
+                next_date = %next_date,
+                "Current shift is overnight, triggering next day reprocessing for self-healing"
+            );
+            // Reprocess the next day once
+            let _ = self.reprocess_single_day(workspace_id, employment_id, next_date, tz).await?;
+        }
+
+        Ok(())
+    }
+
+    #[tracing::instrument(skip_all, err)]
+    pub async fn reprocess_single_day(
+        &self,
+        workspace_id: Uuid,
+        employment_id: Uuid,
+        date: NaiveDate,
+        tz: Tz,
+    ) -> Result<Option<PairingShiftConfig>, AppError> {
+        info!(
+            workspace_id = %workspace_id,
+            employment_id = %employment_id,
+            date = %date,
+            "Reprocessing single day"
+        );
+
         let auth_token = TenantAuthToken::system_override(workspace_id);
         let context = crate::services::pairing_context::PairingContext::new(date, tz);
 
@@ -394,13 +465,13 @@ impl PairingService {
             self.recalculate_summary_with_retry(workspace_id, employment_id, date)
                 .await;
 
-            return Ok(());
+            return Ok(shift_config);
         }
 
         // 4. Run Algorithm
         let strategy = pairing_algo::get_strategy();
-        let shift_configs = if let Some(config) = shift_config {
-            vec![config]
+        let shift_configs = if let Some(ref config) = shift_config {
+            vec![config.clone()]
         } else {
             vec![]
         };
@@ -423,7 +494,9 @@ impl PairingService {
             next_day_utc,
             new_entries,
         )
-        .await
+        .await?;
+
+        Ok(shift_config)
     }
 
     async fn fetch_effective_shift_config(
