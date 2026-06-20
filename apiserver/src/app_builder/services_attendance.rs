@@ -54,17 +54,16 @@ pub async fn build_attendance_services(
 
     let pairing: Arc<dyn crate::services::pairing_service::PairingProcessor> =
         Arc::new(crate::services::pairing_service::PairingService::new(
-            crate::services::pairing_service::PairingServiceArgs {
-                time_entry_repo: Arc::clone(&repos.time_entry),
-                roster_repo: Arc::clone(&repos.roster),
-                employee_repo: Arc::clone(&repos.employee),
-                raw_log_repo: Arc::clone(&repos.raw_log),
-                shift_repo: Arc::new(crate::repositories::DieselShiftRepository::new(
+            crate::services::pairing_service::PairingServiceArgs::new(
+                Arc::clone(&repos.time_entry),
+                Arc::clone(&repos.roster),
+                Arc::clone(&repos.employee),
+                Arc::clone(&repos.raw_log),
+                Arc::new(crate::repositories::DieselShiftRepository::new(
                     diesel_pools.clone(),
                 )),
-                summary_service: Arc::clone(&attendance_summary)
-                    as Arc<dyn crate::services::SummaryRecalculator>,
-            },
+                Arc::clone(&attendance_summary) as Arc<dyn crate::services::SummaryRecalculator>,
+            ),
         ));
 
     let adjustment = Arc::new(

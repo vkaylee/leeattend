@@ -141,6 +141,9 @@ mod tests {
         daily_summary_repo
             .expect_get_summary()
             .returning(|_, _, _| Ok(None));
+        daily_summary_repo
+            .expect_get_summaries()
+            .returning(|_, _, _, _| Ok(vec![]));
 
         let mut roster_repo = MockRosterRepository::new();
         roster_repo
@@ -273,6 +276,9 @@ mod tests {
         leave_repo
             .expect_get_approved_leave_dates()
             .returning(|_, _, _, _| Box::pin(async { Ok(std::collections::HashSet::new()) }));
+        leave_repo
+            .expect_get_employee_leave_requests()
+            .returning(|_, _| Box::pin(async { Ok(vec![]) }));
         builder.leave_request_repo = leave_repo;
 
         let mut employment_repo =
@@ -307,6 +313,9 @@ mod tests {
         holiday_repo
             .expect_is_holiday()
             .returning(|_, _, _| Box::pin(async { Ok(None) }));
+        holiday_repo
+            .expect_get_holidays_in_range()
+            .returning(|_, _, _| Box::pin(async { Ok(std::collections::HashMap::new()) }));
         builder.holiday_repo = holiday_repo;
 
         let deps = builder.build();

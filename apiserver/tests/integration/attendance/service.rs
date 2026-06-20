@@ -65,25 +65,24 @@ async fn test_process_log_success_with_timezone() {
         },
     ));
     let pairing = std::sync::Arc::new(apiserver::services::pairing_service::PairingService::new(
-        apiserver::services::pairing_service::PairingServiceArgs {
-            time_entry_repo: repo.clone(),
-            roster_repo: std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
+        apiserver::services::pairing_service::PairingServiceArgs::new(
+            repo.clone(),
+            std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
                 diesel_pools.clone(),
             )),
-            employee_repo: std::sync::Arc::new(
-                apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
-            ),
-            raw_log_repo: std::sync::Arc::new(
+            std::sync::Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
+                diesel_pools.clone(),
+            )),
+            std::sync::Arc::new(
                 apiserver::repositories::DieselRawAttendanceLogRepository::new(
                     diesel_pools.clone(),
                 ),
             ),
-            shift_repo: std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
+            std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
                 diesel_pools.clone(),
             )),
-            summary_service: summary_service
-                as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
-        },
+            summary_service as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
+        ),
     ));
     let emp_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> =
         std::sync::Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
@@ -206,25 +205,24 @@ async fn test_same_second_punch_with_different_status_allowed() {
         },
     ));
     let pairing = std::sync::Arc::new(apiserver::services::pairing_service::PairingService::new(
-        apiserver::services::pairing_service::PairingServiceArgs {
-            time_entry_repo: repo.clone(),
-            roster_repo: std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
+        apiserver::services::pairing_service::PairingServiceArgs::new(
+            repo.clone(),
+            std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
                 diesel_pools.clone(),
             )),
-            employee_repo: std::sync::Arc::new(
-                apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
-            ),
-            raw_log_repo: std::sync::Arc::new(
+            std::sync::Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
+                diesel_pools.clone(),
+            )),
+            std::sync::Arc::new(
                 apiserver::repositories::DieselRawAttendanceLogRepository::new(
                     diesel_pools.clone(),
                 ),
             ),
-            shift_repo: std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
+            std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
                 diesel_pools.clone(),
             )),
-            summary_service: summary_service
-                as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
-        },
+            summary_service as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
+        ),
     ));
     let emp_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> =
         std::sync::Arc::new(apiserver::repositories::DieselEmployeeRepository::new(

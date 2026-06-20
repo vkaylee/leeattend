@@ -146,25 +146,24 @@ async fn test_overnight_shift_pairing() {
     ));
 
     apiserver::services::pairing_service::PairingService::new(
-        apiserver::services::pairing_service::PairingServiceArgs {
-            time_entry_repo: repo.clone(),
-            roster_repo: std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
+        apiserver::services::pairing_service::PairingServiceArgs::new(
+            repo.clone(),
+            std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
                 diesel_pools.clone(),
             )),
-            employee_repo: std::sync::Arc::new(
-                apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
-            ),
-            raw_log_repo: std::sync::Arc::new(
+            std::sync::Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
+                diesel_pools.clone(),
+            )),
+            std::sync::Arc::new(
                 apiserver::repositories::DieselRawAttendanceLogRepository::new(
                     diesel_pools.clone(),
                 ),
             ),
-            shift_repo: std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
+            std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
                 diesel_pools.clone(),
             )),
-            summary_service: summary_service
-                as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
-        },
+            summary_service as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
+        ),
     )
     .reprocess_daily_attendance(ws_id, employment_id, shift_date, tz)
     .await
@@ -370,25 +369,24 @@ async fn test_overnight_shift_multiple_checkout_punches_subminute_deduplication(
     ));
 
     let service = apiserver::services::pairing_service::PairingService::new(
-        apiserver::services::pairing_service::PairingServiceArgs {
-            time_entry_repo: time_entry_repo.clone(),
-            roster_repo: std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
+        apiserver::services::pairing_service::PairingServiceArgs::new(
+            time_entry_repo.clone(),
+            std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
                 diesel_pools.clone(),
             )),
-            employee_repo: std::sync::Arc::new(
-                apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
-            ),
-            raw_log_repo: std::sync::Arc::new(
+            std::sync::Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
+                diesel_pools.clone(),
+            )),
+            std::sync::Arc::new(
                 apiserver::repositories::DieselRawAttendanceLogRepository::new(
                     diesel_pools.clone(),
                 ),
             ),
-            shift_repo: std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
+            std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
                 diesel_pools.clone(),
             )),
-            summary_service: summary_service
-                as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
-        },
+            summary_service as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
+        ),
     );
 
     service
@@ -531,25 +529,24 @@ async fn test_overnight_shift_multiple_checkout_punches_ingested_sequentially() 
     ));
 
     let service = apiserver::services::pairing_service::PairingService::new(
-        apiserver::services::pairing_service::PairingServiceArgs {
-            time_entry_repo: time_entry_repo.clone(),
-            roster_repo: std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
+        apiserver::services::pairing_service::PairingServiceArgs::new(
+            time_entry_repo.clone(),
+            std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
                 diesel_pools.clone(),
             )),
-            employee_repo: std::sync::Arc::new(
-                apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
-            ),
-            raw_log_repo: std::sync::Arc::new(
+            std::sync::Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
+                diesel_pools.clone(),
+            )),
+            std::sync::Arc::new(
                 apiserver::repositories::DieselRawAttendanceLogRepository::new(
                     diesel_pools.clone(),
                 ),
             ),
-            shift_repo: std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
+            std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
                 diesel_pools.clone(),
             )),
-            summary_service: summary_service
-                as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
-        },
+            summary_service as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
+        ),
     );
 
     // 3. Process logs sequentially
@@ -768,25 +765,24 @@ async fn test_overnight_recalculate_day1_reclaims_punches() {
     ));
 
     let service = apiserver::services::pairing_service::PairingService::new(
-        apiserver::services::pairing_service::PairingServiceArgs {
-            time_entry_repo: time_entry_repo.clone(),
-            roster_repo: std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
+        apiserver::services::pairing_service::PairingServiceArgs::new(
+            time_entry_repo.clone(),
+            std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
                 diesel_pools.clone(),
             )),
-            employee_repo: std::sync::Arc::new(
-                apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
-            ),
-            raw_log_repo: std::sync::Arc::new(
+            std::sync::Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
+                diesel_pools.clone(),
+            )),
+            std::sync::Arc::new(
                 apiserver::repositories::DieselRawAttendanceLogRepository::new(
                     diesel_pools.clone(),
                 ),
             ),
-            shift_repo: std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
+            std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
                 diesel_pools.clone(),
             )),
-            summary_service: summary_service
-                as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
-        },
+            summary_service as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
+        ),
     );
 
     let tz: Tz = "Asia/Ho_Chi_Minh".parse().unwrap();
@@ -1000,25 +996,24 @@ async fn test_overnight_recalculate_range_reclaims_punches() {
     ));
 
     let service = apiserver::services::pairing_service::PairingService::new(
-        apiserver::services::pairing_service::PairingServiceArgs {
-            time_entry_repo: time_entry_repo.clone(),
-            roster_repo: std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
+        apiserver::services::pairing_service::PairingServiceArgs::new(
+            time_entry_repo.clone(),
+            std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
                 diesel_pools.clone(),
             )),
-            employee_repo: std::sync::Arc::new(
-                apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
-            ),
-            raw_log_repo: std::sync::Arc::new(
+            std::sync::Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
+                diesel_pools.clone(),
+            )),
+            std::sync::Arc::new(
                 apiserver::repositories::DieselRawAttendanceLogRepository::new(
                     diesel_pools.clone(),
                 ),
             ),
-            shift_repo: std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
+            std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
                 diesel_pools.clone(),
             )),
-            summary_service: summary_service
-                as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
-        },
+            summary_service as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
+        ),
     );
 
     let tz: Tz = "Asia/Ho_Chi_Minh".parse().unwrap();
@@ -1226,25 +1221,24 @@ async fn test_overnight_recalculate_day1_only_automatically_heals_day2() {
     ));
 
     let service = apiserver::services::pairing_service::PairingService::new(
-        apiserver::services::pairing_service::PairingServiceArgs {
-            time_entry_repo: time_entry_repo.clone(),
-            roster_repo: std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
+        apiserver::services::pairing_service::PairingServiceArgs::new(
+            time_entry_repo.clone(),
+            std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
                 diesel_pools.clone(),
             )),
-            employee_repo: std::sync::Arc::new(
-                apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
-            ),
-            raw_log_repo: std::sync::Arc::new(
+            std::sync::Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
+                diesel_pools.clone(),
+            )),
+            std::sync::Arc::new(
                 apiserver::repositories::DieselRawAttendanceLogRepository::new(
                     diesel_pools.clone(),
                 ),
             ),
-            shift_repo: std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
+            std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
                 diesel_pools.clone(),
             )),
-            summary_service: summary_service
-                as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
-        },
+            summary_service as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
+        ),
     );
 
     let tz: Tz = "Asia/Ho_Chi_Minh".parse().unwrap();
@@ -1474,25 +1468,24 @@ async fn test_overnight_recalculate_day1_next_day_has_shift_with_own_punches() {
     ));
 
     let service = apiserver::services::pairing_service::PairingService::new(
-        apiserver::services::pairing_service::PairingServiceArgs {
-            time_entry_repo: time_entry_repo.clone(),
-            roster_repo: std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
+        apiserver::services::pairing_service::PairingServiceArgs::new(
+            time_entry_repo.clone(),
+            std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
                 diesel_pools.clone(),
             )),
-            employee_repo: std::sync::Arc::new(
-                apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
-            ),
-            raw_log_repo: std::sync::Arc::new(
+            std::sync::Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
+                diesel_pools.clone(),
+            )),
+            std::sync::Arc::new(
                 apiserver::repositories::DieselRawAttendanceLogRepository::new(
                     diesel_pools.clone(),
                 ),
             ),
-            shift_repo: std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
+            std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
                 diesel_pools.clone(),
             )),
-            summary_service: summary_service
-                as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
-        },
+            summary_service as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
+        ),
     );
 
     let tz: Tz = "Asia/Ho_Chi_Minh".parse().unwrap();
@@ -1747,25 +1740,24 @@ async fn test_consecutive_overnight_shifts_propagation() {
     ));
 
     let service = apiserver::services::pairing_service::PairingService::new(
-        apiserver::services::pairing_service::PairingServiceArgs {
-            time_entry_repo: time_entry_repo.clone(),
-            roster_repo: std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
+        apiserver::services::pairing_service::PairingServiceArgs::new(
+            time_entry_repo.clone(),
+            std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
                 diesel_pools.clone(),
             )),
-            employee_repo: std::sync::Arc::new(
-                apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
-            ),
-            raw_log_repo: std::sync::Arc::new(
+            std::sync::Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
+                diesel_pools.clone(),
+            )),
+            std::sync::Arc::new(
                 apiserver::repositories::DieselRawAttendanceLogRepository::new(
                     diesel_pools.clone(),
                 ),
             ),
-            shift_repo: std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
+            std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
                 diesel_pools.clone(),
             )),
-            summary_service: summary_service
-                as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
-        },
+            summary_service as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
+        ),
     );
 
     let tz: Tz = "Asia/Ho_Chi_Minh".parse().unwrap();

@@ -56,12 +56,32 @@ pub struct PairingService {
 }
 
 pub struct PairingServiceArgs {
-    pub time_entry_repo: Arc<dyn TimeEntryRepository>,
-    pub roster_repo: Arc<dyn RosterRepository>,
-    pub employee_repo: Arc<dyn crate::repositories::employee::EmployeeRepository>,
-    pub raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
-    pub shift_repo: Arc<dyn ShiftRepository>,
-    pub summary_service: Arc<dyn SummaryRecalculator>,
+    time_entry_repo: Arc<dyn TimeEntryRepository>,
+    roster_repo: Arc<dyn RosterRepository>,
+    employee_repo: Arc<dyn crate::repositories::employee::EmployeeRepository>,
+    raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
+    shift_repo: Arc<dyn ShiftRepository>,
+    summary_service: Arc<dyn SummaryRecalculator>,
+}
+
+impl PairingServiceArgs {
+    pub fn new(
+        time_entry_repo: Arc<dyn TimeEntryRepository>,
+        roster_repo: Arc<dyn RosterRepository>,
+        employee_repo: Arc<dyn crate::repositories::employee::EmployeeRepository>,
+        raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
+        shift_repo: Arc<dyn ShiftRepository>,
+        summary_service: Arc<dyn SummaryRecalculator>,
+    ) -> Self {
+        Self {
+            time_entry_repo,
+            roster_repo,
+            employee_repo,
+            raw_log_repo,
+            shift_repo,
+            summary_service,
+        }
+    }
 }
 
 impl PairingService {
@@ -230,13 +250,14 @@ impl PairingService {
             )
             .await?;
 
-        // 5. Recalculate daily summary for OT workflow with retries for each day
-        let mut curr_date = start_date;
-        while curr_date <= end_date {
-            self.recalculate_summary_with_retry(workspace_id, employment_id, curr_date)
-                .await;
-            curr_date = curr_date.succ_opt().unwrap_or(curr_date);
-        }
+        // 5. Recalculate daily summary for OT workflow with retries in batch for the range
+        self.recalculate_range_summary_with_retry(
+            workspace_id,
+            employment_id,
+            start_date,
+            end_date,
+        )
+        .await;
 
         // If the last day of the range has an overnight shift, we must also reprocess the next day
         // to let it self-heal and clear any stolen punches.
@@ -641,6 +662,51 @@ impl PairingService {
         }
     }
 
+    async fn recalculate_range_summary_with_retry(
+        &self,
+        workspace_id: Uuid,
+        employment_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) {
+        let mut attempts = 0;
+        const MAX_ATTEMPTS: u32 = 3;
+        while attempts < MAX_ATTEMPTS {
+            attempts += 1;
+            match self
+                .summary_service
+                .recalculate_attendance_range(workspace_id, employment_id, start_date, end_date)
+                .await
+            {
+                Ok(()) => break,
+                Err(e) => {
+                    if attempts == MAX_ATTEMPTS {
+                        tracing::error!(
+                            workspace_id = %workspace_id,
+                            employment_id = %employment_id,
+                            start_date = %start_date,
+                            end_date = %end_date,
+                            error = %e,
+                            "Failed to recalculate attendance range summary after {} attempts",
+                            MAX_ATTEMPTS
+                        );
+                    } else {
+                        tracing::warn!(
+                            workspace_id = %workspace_id,
+                            employment_id = %employment_id,
+                            start_date = %start_date,
+                            end_date = %end_date,
+                            error = %e,
+                            attempt = attempts,
+                            "Temporary failure recalculating attendance range summary, retrying..."
+                        );
+                        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                    }
+                }
+            }
+        }
+    }
+
     async fn clear_auto_entries(
         &self,
         auth_token: &TenantAuthToken,
@@ -790,14 +856,14 @@ mod tests {
             .times(1)
             .returning(|_, _, _, _| Box::pin(async { Ok(true) }));
 
-        let service = PairingService::new(PairingServiceArgs {
-            time_entry_repo: Arc::new(MockTimeEntryRepository::new()),
-            roster_repo: Arc::new(MockRosterRepository::new()),
-            employee_repo: Arc::new(MockEmployeeRepository::new()),
-            raw_log_repo: Arc::new(mock_raw_repo),
-            shift_repo: Arc::new(MockShiftRepository::new()),
-            summary_service: Arc::new(MockSummaryRecalculator::new()),
-        });
+        let service = PairingService::new(PairingServiceArgs::new(
+            Arc::new(MockTimeEntryRepository::new()),
+            Arc::new(MockRosterRepository::new()),
+            Arc::new(MockEmployeeRepository::new()),
+            Arc::new(mock_raw_repo),
+            Arc::new(MockShiftRepository::new()),
+            Arc::new(MockSummaryRecalculator::new()),
+        ));
 
         let log = crate::models::RawAttendanceLog::new(
             Uuid::new_v4(),
@@ -824,14 +890,14 @@ mod tests {
             .times(1)
             .returning(|_, _, _, _, _| Ok(()));
 
-        let service = PairingService::new(PairingServiceArgs {
-            time_entry_repo: Arc::new(mock_time_entry_repo),
-            roster_repo: Arc::new(MockRosterRepository::new()),
-            employee_repo: Arc::new(MockEmployeeRepository::new()),
-            raw_log_repo: Arc::new(MockRawAttendanceLogRepository::new()),
-            shift_repo: Arc::new(MockShiftRepository::new()),
-            summary_service: Arc::new(MockSummaryRecalculator::new()),
-        });
+        let service = PairingService::new(PairingServiceArgs::new(
+            Arc::new(mock_time_entry_repo),
+            Arc::new(MockRosterRepository::new()),
+            Arc::new(MockEmployeeRepository::new()),
+            Arc::new(MockRawAttendanceLogRepository::new()),
+            Arc::new(MockShiftRepository::new()),
+            Arc::new(MockSummaryRecalculator::new()),
+        ));
 
         let auth_token = TenantAuthToken::system_override(Uuid::new_v4());
         let result = service
@@ -870,14 +936,14 @@ mod tests {
             .times(1)
             .returning(|_, _, _| Ok(()));
 
-        let service = PairingService::new(PairingServiceArgs {
-            time_entry_repo: Arc::new(mock_time_entry_repo),
-            roster_repo: Arc::new(mock_roster_repo),
-            employee_repo: Arc::new(MockEmployeeRepository::new()),
-            raw_log_repo: Arc::new(mock_raw_repo),
-            shift_repo: Arc::new(MockShiftRepository::new()),
-            summary_service: Arc::new(mock_summary_service),
-        });
+        let service = PairingService::new(PairingServiceArgs::new(
+            Arc::new(mock_time_entry_repo),
+            Arc::new(mock_roster_repo),
+            Arc::new(MockEmployeeRepository::new()),
+            Arc::new(mock_raw_repo),
+            Arc::new(MockShiftRepository::new()),
+            Arc::new(mock_summary_service),
+        ));
 
         let result = service
             .reprocess_daily_attendance(
@@ -985,14 +1051,14 @@ mod tests {
             .times(1)
             .returning(|_, _, _| Ok(()));
 
-        let service = PairingService::new(PairingServiceArgs {
-            time_entry_repo: Arc::new(mock_time_entry_repo),
-            roster_repo: Arc::new(mock_roster_repo),
-            employee_repo: Arc::new(MockEmployeeRepository::new()),
-            raw_log_repo: Arc::new(mock_raw_repo),
-            shift_repo: Arc::new(MockShiftRepository::new()),
-            summary_service: Arc::new(mock_summary_service),
-        });
+        let service = PairingService::new(PairingServiceArgs::new(
+            Arc::new(mock_time_entry_repo),
+            Arc::new(mock_roster_repo),
+            Arc::new(MockEmployeeRepository::new()),
+            Arc::new(mock_raw_repo),
+            Arc::new(MockShiftRepository::new()),
+            Arc::new(mock_summary_service),
+        ));
 
         let result = service
             .reprocess_daily_attendance(ws_id, emp_id, test_date, chrono_tz::UTC)
@@ -1088,21 +1154,21 @@ mod tests {
             .times(1)
             .returning(|_, _, _, _, _| Ok(()));
 
-        // 4. Mock summary service to recalculate summaries for both days in range
+        // 4. Mock summary service to recalculate summaries in batch for the range
         let mut mock_summary_service = MockSummaryRecalculator::new();
         mock_summary_service
-            .expect_recalculate_daily_summary()
-            .times(2) // Once for 2026-06-18, once for 2026-06-19
-            .returning(|_, _, _| Ok(()));
+            .expect_recalculate_attendance_range()
+            .times(1)
+            .returning(|_, _, _, _| Ok(()));
 
-        let service = PairingService::new(PairingServiceArgs {
-            time_entry_repo: Arc::new(mock_time_entry_repo),
-            roster_repo: Arc::new(mock_roster_repo),
-            employee_repo: Arc::new(MockEmployeeRepository::new()),
-            raw_log_repo: Arc::new(mock_raw_repo),
-            shift_repo: Arc::new(MockShiftRepository::new()),
-            summary_service: Arc::new(mock_summary_service),
-        });
+        let service = PairingService::new(PairingServiceArgs::new(
+            Arc::new(mock_time_entry_repo),
+            Arc::new(mock_roster_repo),
+            Arc::new(MockEmployeeRepository::new()),
+            Arc::new(mock_raw_repo),
+            Arc::new(MockShiftRepository::new()),
+            Arc::new(mock_summary_service),
+        ));
 
         let result = service
             .reprocess_attendance_range(ws_id, emp_id, start_date, end_date, chrono_tz::UTC)

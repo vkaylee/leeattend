@@ -33,6 +33,14 @@ pub trait SummaryRecalculator: Send + Sync {
         employment_id: Uuid,
         date: NaiveDate,
     ) -> Result<(), AppError>;
+
+    async fn recalculate_attendance_range(
+        &self,
+        workspace_id: Uuid,
+        employment_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<(), AppError>;
 }
 
 #[async_trait::async_trait]
@@ -44,6 +52,17 @@ impl SummaryRecalculator for AttendanceSummaryService {
         date: NaiveDate,
     ) -> Result<(), AppError> {
         self.recalculate_daily_summary(workspace_id, employment_id, date)
+            .await
+    }
+
+    async fn recalculate_attendance_range(
+        &self,
+        workspace_id: Uuid,
+        employment_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<(), AppError> {
+        self.recalculate_attendance_range(workspace_id, employment_id, start_date, end_date)
             .await
     }
 }
@@ -199,6 +218,193 @@ impl AttendanceSummaryService {
                 holiday_name,
             )
             .await?;
+        Ok(())
+    }
+
+    /// Recalculates and persists the daily summaries for a specific employee and date range in batch.
+    /// Eliminates N+1 query loops.
+    #[tracing::instrument(skip_all, err)]
+    #[allow(clippy::too_many_lines)]
+    pub async fn recalculate_attendance_range(
+        &self,
+        workspace_id: Uuid,
+        employment_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> AppResult<()> {
+        let auth_token = TenantAuthToken::system_override(workspace_id);
+
+        let employment = self
+            .employment_repo
+            .get_employment_by_id(&auth_token, employment_id)
+            .await?
+            .ok_or_else(|| AppError::not_found(I18nKey::EmploymentNotFound))?;
+        let employee_id = employment.employee_id();
+        let location_id = employment.primary_location_id();
+
+        let workspace = self
+            .workspace_repo
+            .get_workspace_by_id(workspace_id)
+            .await?
+            .ok_or_else(|| AppError::not_found(I18nKey::WorkspaceNotFound))?;
+        let tz: Tz = crate::utils::tz::parse_workspace_tz(workspace.timezone());
+
+        // 1. Fetch effective schedules in range
+        let schedules = self
+            .roster_repo
+            .get_workspace_schedules(
+                None,
+                &auth_token,
+                start_date,
+                end_date,
+                Some(&vec![employment_id]),
+            )
+            .await?;
+
+        let emp_sched = schedules.first().ok_or_else(|| {
+            AppError::not_found_args(
+                I18nKey::NotFound,
+                vec![("details", "no_schedule_found_for_employee".to_string())],
+            )
+        })?;
+
+        // 2. Fetch time entries in range
+        let start_dt_utc =
+            local_midnight_to_utc(&tz, start_date, 0, 0, 0).map_err(AppError::Internal)?;
+        let end_dt_utc =
+            local_midnight_to_utc(&tz, end_date, 23, 59, 59).map_err(AppError::Internal)?;
+
+        let all_entries = self
+            .time_entry_repo
+            .get_employment_time_entries(&auth_token, employment_id, start_dt_utc, end_dt_utc)
+            .await?;
+
+        // 3. Fetch leaves in range (employee leaves)
+        let leaves = self
+            .leave_request_repo
+            .get_employee_leave_requests(&auth_token, employee_id)
+            .await?;
+
+        // 4. Fetch holidays in range
+        let holidays_map = self
+            .holiday_repo
+            .get_holidays_in_range(&auth_token, start_date, end_date)
+            .await?;
+
+        // 5. Fetch existing summaries in range to determine OT status
+        let existing_summaries = self
+            .daily_summary_repo
+            .get_summaries(&auth_token, Some(employment_id), start_date, end_date)
+            .await?;
+
+        // 6. Iterate day-by-day in range
+        let mut curr_date = start_date;
+        while curr_date <= end_date {
+            let daily_schedule = emp_sched.schedules.iter().find(|s| s.date == curr_date);
+
+            if let Some(daily_schedule) = daily_schedule {
+                // Filter time entries for this date in local time
+                let day_entries: Vec<_> = all_entries
+                    .iter()
+                    .filter(|e| e.punch_in_time().with_timezone(&tz).date_naive() == curr_date)
+                    .cloned()
+                    .collect();
+
+                // 6a. Auto-cancel approved leaves if employee worked on a non-holiday
+                if !daily_schedule.is_holiday && !day_entries.is_empty() {
+                    let leave_to_cancel = leaves.iter().find(|l| {
+                        (l.status() == crate::models::enums::LeaveStatus::Approved
+                            || l.status() == crate::models::enums::LeaveStatus::PreApproved)
+                            && l.start_date() <= curr_date
+                            && l.end_date() >= curr_date
+                    });
+
+                    if let Some(req) = leave_to_cancel {
+                        self.leave_request_repo
+                            .cancel_leave_request(&auth_token, req.id())
+                            .await?;
+                    }
+                }
+
+                // 6b. Calculate work minutes and OT
+                let (actual_work_minutes, system_detected_ot_minutes) = self
+                    .calculate_work_and_ot(
+                        &tz,
+                        curr_date,
+                        employee_id,
+                        workspace_id,
+                        daily_schedule,
+                        &day_entries,
+                    )
+                    .await?;
+
+                // 6c. Holiday leave conflict check
+                let holiday = holidays_map.get(&curr_date);
+                let filtered_holiday = holiday
+                    .filter(|&hol| hol.location_id().is_none() || hol.location_id() == location_id);
+
+                let is_holiday = filtered_holiday.is_some();
+                let holiday_name = filtered_holiday.map(|h| h.name().to_string());
+
+                if is_holiday && actual_work_minutes > 0 {
+                    if let Some(hol) = filtered_holiday {
+                        if let Err(e) = self
+                            .maybe_reverse_holiday_leave(
+                                workspace_id,
+                                employee_id,
+                                curr_date,
+                                actual_work_minutes,
+                                daily_schedule,
+                                hol,
+                            )
+                            .await
+                        {
+                            tracing::warn!(
+                                error = %e,
+                                employee_id = %employee_id,
+                                date = %curr_date,
+                                "Failed to reverse holiday leave in batch recalculation"
+                            );
+                        }
+                    }
+                }
+
+                // 6d. Determine OT status
+                let existing = existing_summaries.iter().find(|s| s.date == curr_date);
+                let new_status = match existing {
+                    Some(s) => {
+                        if s.ot_status == OtStatus::None && system_detected_ot_minutes > 0 {
+                            OtStatus::PendingEmployee
+                        } else {
+                            s.ot_status
+                        }
+                    }
+                    None => {
+                        if system_detected_ot_minutes > 0 {
+                            OtStatus::PendingEmployee
+                        } else {
+                            OtStatus::None
+                        }
+                    }
+                };
+
+                // 6e. Persist summary
+                self.daily_summary_repo
+                    .upsert_calculated_summary(
+                        &auth_token,
+                        employment_id,
+                        curr_date,
+                        actual_work_minutes,
+                        system_detected_ot_minutes,
+                        new_status,
+                        is_holiday,
+                        holiday_name,
+                    )
+                    .await?;
+            }
+
+            curr_date = curr_date.succ_opt().unwrap_or(curr_date);
+        }
 
         Ok(())
     }
@@ -1820,6 +2026,125 @@ mod tests {
 
             let result = svc
                 .recalculate_daily_summary(workspace_id, employee_id, date)
+                .await;
+            assert!(result.is_ok());
+        }
+
+        #[tokio::test]
+        async fn test_recalculate_attendance_range_success() {
+            let workspace_id = Uuid::new_v4();
+            let employee_id = Uuid::new_v4();
+            let date = NaiveDate::from_ymd_opt(2026, 6, 20).unwrap();
+            let date2 = date + chrono::Duration::days(1);
+
+            let mut time_entry_repo = MockTimeEntryRepository::new();
+            let mut roster_repo = MockRosterRepository::new();
+            let policy_repo = MockAttendancePolicyRepository::new();
+            let mut workspace_repo = MockWorkspaceRepository::new();
+            let employee_repo = MockEmployeeRepository::new();
+            let mut holiday_repo = MockHolidayRepository::new();
+            let mut leave_request_repo = MockLeaveRequestRepository::new();
+            let mut daily_summary_repo = MockAttendanceDailySummaryRepository::new();
+
+            let emp_id = employee_id;
+            let ws_id = workspace_id;
+
+            workspace_repo
+                .expect_get_workspace_by_id()
+                .returning(move |_| Box::pin(async move { Ok(Some(test_workspace(ws_id))) }));
+
+            roster_repo
+                .expect_get_workspace_schedules()
+                .returning(move |_, _, _, _, _| {
+                    Box::pin(async move {
+                        Ok(vec![crate::models::EmployeeSchedule {
+                            employment_id: emp_id,
+                            employee_id: emp_id,
+                            employee_id_number: "EMP001".to_string(),
+                            full_name: "John Doe".to_string(),
+                            schedules: vec![
+                                crate::models::EffectiveSchedule {
+                                    date,
+                                    shift_id: None,
+                                    source: "pattern".to_string(),
+                                    shift_name: None,
+                                    shift_symbol: None,
+                                    start_time: None,
+                                    end_time: None,
+                                    break_duration_minutes: None,
+                                    break_start: None,
+                                    break_end: None,
+                                    is_break_auto_deduct: None,
+                                    early_punch_in_grace_period_minutes: None,
+                                    allow_early_ot: None,
+                                    break_is_overtime: None,
+                                    max_early_ot_minutes: None,
+                                    traces: vec![],
+                                    is_holiday: false,
+                                    is_holiday_paid: false,
+                                    holiday_name: None,
+                                },
+                                crate::models::EffectiveSchedule {
+                                    date: date2,
+                                    shift_id: None,
+                                    source: "pattern".to_string(),
+                                    shift_name: None,
+                                    shift_symbol: None,
+                                    start_time: None,
+                                    end_time: None,
+                                    break_duration_minutes: None,
+                                    break_start: None,
+                                    break_end: None,
+                                    is_break_auto_deduct: None,
+                                    early_punch_in_grace_period_minutes: None,
+                                    allow_early_ot: None,
+                                    break_is_overtime: None,
+                                    max_early_ot_minutes: None,
+                                    traces: vec![],
+                                    is_holiday: false,
+                                    is_holiday_paid: false,
+                                    holiday_name: None,
+                                },
+                            ],
+                        }])
+                    })
+                });
+
+            time_entry_repo
+                .expect_get_employment_time_entries()
+                .returning(move |_, _, _, _| Ok(vec![]));
+
+            leave_request_repo
+                .expect_get_employee_leave_requests()
+                .returning(|_, _| Box::pin(async { Ok(vec![]) }));
+
+            holiday_repo
+                .expect_get_holidays_in_range()
+                .returning(|_, _, _| Box::pin(async { Ok(std::collections::HashMap::new()) }));
+
+            daily_summary_repo
+                .expect_get_summaries()
+                .returning(|_, _, _, _| Ok(vec![]));
+
+            daily_summary_repo
+                .expect_upsert_calculated_summary()
+                .times(2)
+                .returning(|_, _, _, _, _, _, _, _| Ok(()));
+
+            let svc = AttendanceSummaryService::new(AttendanceSummaryServiceArgs {
+                time_entry_repo: Arc::new(time_entry_repo),
+                roster_repo: Arc::new(roster_repo),
+                policy_repo: Arc::new(policy_repo),
+                workspace_repo: Arc::new(workspace_repo),
+                employee_repo: Arc::new(employee_repo),
+                employment_repo: Arc::new(mock_employment_repo()),
+                holiday_repo: Arc::new(holiday_repo),
+                leave_request_repo: Arc::new(leave_request_repo),
+                daily_summary_repo: Arc::new(daily_summary_repo),
+            });
+
+            let result = svc
+                .recalculate_attendance_range(workspace_id, employee_id, date, date2)
                 .await;
             assert!(result.is_ok());
         }

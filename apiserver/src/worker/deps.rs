@@ -172,15 +172,14 @@ impl WorkerDeps {
     /// using the shared repository instances, returned as `dyn PairingProcessor`.
     pub fn pairing_service(&self) -> Arc<dyn crate::services::pairing_service::PairingProcessor> {
         Arc::new(crate::services::pairing_service::PairingService::new(
-            crate::services::pairing_service::PairingServiceArgs {
-                time_entry_repo: Arc::clone(&self.time_entry_repo),
-                roster_repo: Arc::clone(&self.roster_repo),
-                employee_repo: Arc::clone(&self.employee_repo),
-                raw_log_repo: Arc::clone(&self.raw_log_repo),
-                shift_repo: Arc::clone(&self.shift_repo),
-                summary_service: self.summary_service()
-                    as Arc<dyn crate::services::SummaryRecalculator>,
-            },
+            crate::services::pairing_service::PairingServiceArgs::new(
+                Arc::clone(&self.time_entry_repo),
+                Arc::clone(&self.roster_repo),
+                Arc::clone(&self.employee_repo),
+                Arc::clone(&self.raw_log_repo),
+                Arc::clone(&self.shift_repo),
+                self.summary_service() as Arc<dyn crate::services::SummaryRecalculator>,
+            ),
         ))
     }
 

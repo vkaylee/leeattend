@@ -319,19 +319,18 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     ));
 
     let pairing_service = Arc::new(apiserver::services::pairing_service::PairingService::new(
-        apiserver::services::pairing_service::PairingServiceArgs {
-            time_entry_repo: time_entry_repo.clone(),
-            roster_repo: roster_repo.clone(),
-            employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
+        apiserver::services::pairing_service::PairingServiceArgs::new(
+            time_entry_repo.clone(),
+            roster_repo.clone(),
+            Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
                 diesel_pools.clone(),
             )),
-            raw_log_repo: Arc::clone(&raw_log_repo),
-            shift_repo: Arc::new(apiserver::repositories::DieselShiftRepository::new(
+            raw_log_repo.clone(),
+            Arc::new(apiserver::repositories::DieselShiftRepository::new(
                 diesel_pools.clone(),
             )),
-            summary_service: attendance_summary_service.clone()
-                as Arc<dyn apiserver::services::SummaryRecalculator>,
-        },
+            attendance_summary_service.clone() as Arc<dyn apiserver::services::SummaryRecalculator>,
+        ),
     ));
     let adj_repo: Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = Arc::new(apiserver::repositories::DieselAttendanceAdjustmentRepository::new(diesel_pools.clone()));
     let import_repo: Arc<dyn apiserver::repositories::import_job_repository::ImportJobRepository> =
@@ -1025,19 +1024,18 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
     ));
 
     let pairing_service = Arc::new(apiserver::services::pairing_service::PairingService::new(
-        apiserver::services::pairing_service::PairingServiceArgs {
-            time_entry_repo: time_entry_repo.clone(),
-            roster_repo: roster_repo.clone(),
-            employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
+        apiserver::services::pairing_service::PairingServiceArgs::new(
+            time_entry_repo.clone(),
+            roster_repo.clone(),
+            Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
                 diesel_pools.clone(),
             )),
-            raw_log_repo: Arc::clone(&raw_log_repo),
-            shift_repo: Arc::new(apiserver::repositories::DieselShiftRepository::new(
+            raw_log_repo.clone(),
+            Arc::new(apiserver::repositories::DieselShiftRepository::new(
                 diesel_pools.clone(),
             )),
-            summary_service: attendance_summary_service.clone()
-                as Arc<dyn apiserver::services::SummaryRecalculator>,
-        },
+            attendance_summary_service.clone() as Arc<dyn apiserver::services::SummaryRecalculator>,
+        ),
     ));
     let adj_repo: Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = Arc::new(apiserver::repositories::DieselAttendanceAdjustmentRepository::new(diesel_pools.clone()));
     let import_repo: Arc<dyn apiserver::repositories::import_job_repository::ImportJobRepository> =
@@ -1775,19 +1773,18 @@ pub async fn setup_app_tower_internal_extended(
     ));
 
     let pairing_service = Arc::new(apiserver::services::pairing_service::PairingService::new(
-        apiserver::services::pairing_service::PairingServiceArgs {
-            time_entry_repo: time_entry_repo.clone(),
-            roster_repo: roster_repo.clone(),
-            employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
+        apiserver::services::pairing_service::PairingServiceArgs::new(
+            time_entry_repo.clone(),
+            roster_repo.clone(),
+            Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
                 diesel_pools.clone(),
             )),
-            raw_log_repo: Arc::clone(&raw_log_repo),
-            shift_repo: Arc::new(apiserver::repositories::DieselShiftRepository::new(
+            raw_log_repo.clone(),
+            Arc::new(apiserver::repositories::DieselShiftRepository::new(
                 diesel_pools.clone(),
             )),
-            summary_service: attendance_summary_service.clone()
-                as Arc<dyn apiserver::services::SummaryRecalculator>,
-        },
+            attendance_summary_service.clone() as Arc<dyn apiserver::services::SummaryRecalculator>,
+        ),
     ));
     let adj_repo: Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = Arc::new(apiserver::repositories::DieselAttendanceAdjustmentRepository::new(diesel_pools.clone()));
     let import_repo: Arc<dyn apiserver::repositories::import_job_repository::ImportJobRepository> =

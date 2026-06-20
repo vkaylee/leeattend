@@ -149,25 +149,24 @@ async fn test_dst_spring_forward() {
         },
     ));
     apiserver::services::pairing_service::PairingService::new(
-        apiserver::services::pairing_service::PairingServiceArgs {
-            time_entry_repo: repo.clone(),
-            roster_repo: std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
+        apiserver::services::pairing_service::PairingServiceArgs::new(
+            repo.clone(),
+            std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
                 diesel_pools.clone(),
             )),
-            employee_repo: std::sync::Arc::new(
-                apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
-            ),
-            raw_log_repo: std::sync::Arc::new(
+            std::sync::Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
+                diesel_pools.clone(),
+            )),
+            std::sync::Arc::new(
                 apiserver::repositories::DieselRawAttendanceLogRepository::new(
                     diesel_pools.clone(),
                 ),
             ),
-            shift_repo: std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
+            std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
                 diesel_pools.clone(),
             )),
-            summary_service: summary_service
-                as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
-        },
+            summary_service as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
+        ),
     )
     .reprocess_daily_attendance(ws_id, employment_id, shift_date, tz)
     .await
@@ -340,25 +339,24 @@ async fn test_dst_fall_back() {
         },
     ));
     apiserver::services::pairing_service::PairingService::new(
-        apiserver::services::pairing_service::PairingServiceArgs {
-            time_entry_repo: repo.clone(),
-            roster_repo: std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
+        apiserver::services::pairing_service::PairingServiceArgs::new(
+            repo.clone(),
+            std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
                 diesel_pools.clone(),
             )),
-            employee_repo: std::sync::Arc::new(
-                apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
-            ),
-            raw_log_repo: std::sync::Arc::new(
+            std::sync::Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
+                diesel_pools.clone(),
+            )),
+            std::sync::Arc::new(
                 apiserver::repositories::DieselRawAttendanceLogRepository::new(
                     diesel_pools.clone(),
                 ),
             ),
-            shift_repo: std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
+            std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
                 diesel_pools.clone(),
             )),
-            summary_service: summary_service
-                as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
-        },
+            summary_service as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
+        ),
     )
     .reprocess_daily_attendance(ws_id, employment_id, shift_date, tz)
     .await
@@ -530,25 +528,24 @@ async fn test_dst_fall_back_repeated_hour() {
         },
     ));
     apiserver::services::pairing_service::PairingService::new(
-        apiserver::services::pairing_service::PairingServiceArgs {
-            time_entry_repo: repo.clone(),
-            roster_repo: std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
+        apiserver::services::pairing_service::PairingServiceArgs::new(
+            repo.clone(),
+            std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
                 diesel_pools.clone(),
             )),
-            employee_repo: std::sync::Arc::new(
-                apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
-            ),
-            raw_log_repo: std::sync::Arc::new(
+            std::sync::Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
+                diesel_pools.clone(),
+            )),
+            std::sync::Arc::new(
                 apiserver::repositories::DieselRawAttendanceLogRepository::new(
                     diesel_pools.clone(),
                 ),
             ),
-            shift_repo: std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
+            std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
                 diesel_pools.clone(),
             )),
-            summary_service: summary_service
-                as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
-        },
+            summary_service as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
+        ),
     )
     .reprocess_daily_attendance(ws_id, employment_id, shift_date, tz)
     .await
@@ -716,25 +713,24 @@ async fn test_dst_spring_forward_day_shift() {
         },
     ));
     apiserver::services::pairing_service::PairingService::new(
-        apiserver::services::pairing_service::PairingServiceArgs {
-            time_entry_repo: repo.clone(),
-            roster_repo: std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
+        apiserver::services::pairing_service::PairingServiceArgs::new(
+            repo.clone(),
+            std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
                 diesel_pools.clone(),
             )),
-            employee_repo: std::sync::Arc::new(
-                apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
-            ),
-            raw_log_repo: std::sync::Arc::new(
+            std::sync::Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
+                diesel_pools.clone(),
+            )),
+            std::sync::Arc::new(
                 apiserver::repositories::DieselRawAttendanceLogRepository::new(
                     diesel_pools.clone(),
                 ),
             ),
-            shift_repo: std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
+            std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
                 diesel_pools.clone(),
             )),
-            summary_service: summary_service
-                as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
-        },
+            summary_service as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
+        ),
     )
     .reprocess_daily_attendance(ws_id, employment_id, shift_date, tz)
     .await
