@@ -143,6 +143,7 @@ impl PairingService {
     }
 
     #[tracing::instrument(skip_all, err)]
+    #[allow(clippy::too_many_lines)]
     pub async fn reprocess_attendance_range(
         &self,
         workspace_id: Uuid,
@@ -179,40 +180,15 @@ impl PairingService {
             ))
         })?;
 
-        // 2. Determine raw log fetching window
-        // To be safe, we calculate fetch window for the entire range.
-        // We find the earliest local start of day and latest local next day.
-        let range_start_local = crate::utils::tz::local_to_tz(&tz, start_date, 0, 0, 0)?;
-        let range_end_local =
-            crate::utils::tz::local_to_tz(&tz, end_date + Duration::days(1), 0, 0, 0)?;
-
-        // Buffers around the search window to ensure overnight punches are captured
-        // We can use 12 hours (720 minutes) on both sides
-        let start_search_utc = (range_start_local - Duration::hours(12)).with_timezone(&Utc);
-        let end_search_utc = (range_end_local + Duration::hours(12)).with_timezone(&Utc);
-
-        // Fetch raw logs once
-        let raw_logs = self
-            .raw_log_repo
-            .get_employment_logs_in_time_range(
+        // 2. Fetch logs and adjacent entries
+        let (raw_logs, adjacent_entries) = self
+            .fetch_logs_and_entries_for_range(
+                &auth_token,
                 workspace_id,
                 employment_id,
-                start_search_utc,
-                end_search_utc,
-            )
-            .await?;
-
-        // Fetch adjacent time entries once: from start_date - 2 days to end_date + 2 days
-        let search_start_utc = (range_start_local - Duration::days(2)).with_timezone(&Utc);
-        let search_end_utc = (range_end_local + Duration::days(2)).with_timezone(&Utc);
-
-        let adjacent_entries = self
-            .time_entry_repo
-            .get_employment_time_entries(
-                &auth_token,
-                employment_id,
-                search_start_utc,
-                search_end_utc,
+                start_date,
+                end_date,
+                tz,
             )
             .await?;
 
@@ -221,7 +197,6 @@ impl PairingService {
         let mut curr_date = start_date;
 
         while curr_date <= end_date {
-            // Find EffectiveSchedule for curr_date
             if let Some(sched) = emp_sched.schedules.iter().find(|s| s.date == curr_date) {
                 let day_new_entries = Self::process_single_day_in_range(
                     curr_date,
@@ -239,6 +214,9 @@ impl PairingService {
         }
 
         // 4. Save
+        let range_start_local = crate::utils::tz::local_to_tz(&tz, start_date, 0, 0, 0)?;
+        let range_end_local =
+            crate::utils::tz::local_to_tz(&tz, end_date + Duration::days(1), 0, 0, 0)?;
         let range_start_utc = range_start_local.with_timezone(&Utc);
         let range_end_utc = range_end_local.with_timezone(&Utc);
 
@@ -262,15 +240,16 @@ impl PairingService {
 
         // If the last day of the range has an overnight shift, we must also reprocess the next day
         // to let it self-heal and clear any stolen punches.
-        let last_day_is_overnight = if let Some(sched) = emp_sched.schedules.iter().find(|s| s.date == end_date) {
-            if let (Some(st), Some(et)) = (sched.start_time, sched.end_time) {
-                et < st
+        let last_day_is_overnight =
+            if let Some(sched) = emp_sched.schedules.iter().find(|s| s.date == end_date) {
+                if let (Some(st), Some(et)) = (sched.start_time, sched.end_time) {
+                    et < st
+                } else {
+                    false
+                }
             } else {
                 false
-            }
-        } else {
-            false
-        };
+            };
 
         if last_day_is_overnight {
             let next_date = end_date + Duration::days(1);
@@ -280,7 +259,17 @@ impl PairingService {
                 next_date = %next_date,
                 "Last day of range is overnight, triggering next day reprocessing for self-healing"
             );
-            let _ = self.reprocess_single_day(workspace_id, employment_id, next_date, tz).await?;
+            let next_shift_config = self
+                .reprocess_single_day(workspace_id, employment_id, next_date, tz)
+                .await?;
+            self.propagate_overnight_reprocess(
+                workspace_id,
+                employment_id,
+                next_date,
+                tz,
+                next_shift_config,
+            )
+            .await?;
         }
 
         Ok(())
@@ -379,28 +368,90 @@ impl PairingService {
         );
 
         // Process the target day
-        let shift_config = self.reprocess_single_day(workspace_id, employment_id, date, tz).await?;
+        let shift_config = self
+            .reprocess_single_day(workspace_id, employment_id, date, tz)
+            .await?;
 
-        // If the shift is overnight, also reprocess the next day to allow it to self-heal
-        let is_overnight = if let Some(ref config) = shift_config {
-            config.end_minutes() > 1440
-        } else {
-            false
-        };
+        // Propagate to subsequent days if overnight
+        self.propagate_overnight_reprocess(workspace_id, employment_id, date, tz, shift_config)
+            .await?;
 
-        if is_overnight {
-            let next_date = date + Duration::days(1);
-            info!(
-                workspace_id = %workspace_id,
-                employment_id = %employment_id,
-                next_date = %next_date,
-                "Current shift is overnight, triggering next day reprocessing for self-healing"
-            );
-            // Reprocess the next day once
-            let _ = self.reprocess_single_day(workspace_id, employment_id, next_date, tz).await?;
+        Ok(())
+    }
+
+    async fn propagate_overnight_reprocess(
+        &self,
+        workspace_id: Uuid,
+        employment_id: Uuid,
+        start_date: NaiveDate,
+        tz: Tz,
+        initial_shift_config: Option<PairingShiftConfig>,
+    ) -> Result<(), AppError> {
+        let mut current_date = start_date;
+        let mut shift_config = initial_shift_config;
+        let mut loop_count = 0;
+
+        while let Some(config) = shift_config {
+            if config.end_minutes() > 1440 && loop_count < 7 {
+                current_date += Duration::days(1);
+                info!(
+                    workspace_id = %workspace_id,
+                    employment_id = %employment_id,
+                    next_date = %current_date,
+                    "Shift is overnight, propagating reprocessing to next day for self-healing"
+                );
+                shift_config = self
+                    .reprocess_single_day(workspace_id, employment_id, current_date, tz)
+                    .await?;
+                loop_count += 1;
+            } else {
+                break;
+            }
         }
 
         Ok(())
+    }
+
+    async fn fetch_logs_and_entries_for_range(
+        &self,
+        auth_token: &TenantAuthToken,
+        workspace_id: Uuid,
+        employment_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+        tz: Tz,
+    ) -> Result<(Vec<RawAttendanceLog>, Vec<TimeEntry>), AppError> {
+        let range_start_local = crate::utils::tz::local_to_tz(&tz, start_date, 0, 0, 0)?;
+        let range_end_local =
+            crate::utils::tz::local_to_tz(&tz, end_date + Duration::days(1), 0, 0, 0)?;
+
+        let start_search_utc = (range_start_local - Duration::hours(12)).with_timezone(&Utc);
+        let end_search_utc = (range_end_local + Duration::hours(12)).with_timezone(&Utc);
+
+        let raw_logs = self
+            .raw_log_repo
+            .get_employment_logs_in_time_range(
+                workspace_id,
+                employment_id,
+                start_search_utc,
+                end_search_utc,
+            )
+            .await?;
+
+        let search_start_utc = (range_start_local - Duration::days(2)).with_timezone(&Utc);
+        let search_end_utc = (range_end_local + Duration::days(2)).with_timezone(&Utc);
+
+        let adjacent_entries = self
+            .time_entry_repo
+            .get_employment_time_entries(
+                auth_token,
+                employment_id,
+                search_start_utc,
+                search_end_utc,
+            )
+            .await?;
+
+        Ok((raw_logs, adjacent_entries))
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -944,12 +995,7 @@ mod tests {
         });
 
         let result = service
-            .reprocess_daily_attendance(
-                ws_id,
-                emp_id,
-                test_date,
-                chrono_tz::UTC,
-            )
+            .reprocess_daily_attendance(ws_id, emp_id, test_date, chrono_tz::UTC)
             .await;
 
         assert!(result.is_ok(), "Reprocess failed: {:?}", result.err());
