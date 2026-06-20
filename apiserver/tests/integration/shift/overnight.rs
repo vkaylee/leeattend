@@ -409,8 +409,8 @@ async fn test_overnight_shift_multiple_checkout_punches_subminute_deduplication(
     assert_eq!(day1_entries.len(), 1);
     let entry = &day1_entries[0];
     assert_eq!(entry.punch_in_time(), punch_in_utc);
-    // Should choose the latest punch in the same minute as checkout time (06:25:00 after minute precision conversion)
-    assert_eq!(entry.punch_out_time(), Some(expected_punch_out_utc));
+    // Should preserve the exact timestamp of the first punch (since they are deduplicated)
+    assert_eq!(entry.punch_out_time(), Some(punch_out1_utc));
 
     let meta = entry.generation_metadata().unwrap();
     let log_ids = meta["log_ids"].as_array().unwrap();
@@ -649,16 +649,7 @@ async fn test_overnight_shift_multiple_checkout_punches_ingested_sequentially() 
     let entry = &day1_entries[0];
     assert_eq!(entry.punch_in_time(), punch_in_utc);
 
-    let expected_punch_out_utc = tz
-        .from_local_datetime(
-            &(shift_date + Duration::days(1))
-                .and_hms_opt(6, 25, 0)
-                .unwrap(),
-        )
-        .single()
-        .unwrap()
-        .with_timezone(&Utc);
-    assert_eq!(entry.punch_out_time(), Some(expected_punch_out_utc));
+    assert_eq!(entry.punch_out_time(), Some(punch_out1_utc));
 
     // Verify Day 2 (Day 2 has no shift / is off day)
     let next_date = shift_date + Duration::days(1);

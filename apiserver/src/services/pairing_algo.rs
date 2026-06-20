@@ -100,12 +100,14 @@ impl PairingShiftConfig {
     }
 }
 
+use chrono::{DateTime, Utc};
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PairedSession {
-    // Minutes from midnight of the analysis date.
-    // Can be > 1440 (representing next day).
     start_minutes: i32,
     end_minutes: Option<i32>,
+    start_time: DateTime<Utc>,
+    end_time: Option<DateTime<Utc>>,
     entry_type: EntryType,
     note: Option<PairingNote>,
     is_break_overtime: bool,
@@ -116,6 +118,8 @@ impl PairedSession {
     pub fn new(
         start_minutes: i32,
         end_minutes: Option<i32>,
+        start_time: DateTime<Utc>,
+        end_time: Option<DateTime<Utc>>,
         entry_type: EntryType,
         note: Option<PairingNote>,
         is_break_overtime: bool,
@@ -124,6 +128,8 @@ impl PairedSession {
         Self {
             start_minutes,
             end_minutes,
+            start_time,
+            end_time,
             entry_type,
             note,
             is_break_overtime,
@@ -137,6 +143,14 @@ impl PairedSession {
 
     pub fn end_minutes(&self) -> Option<i32> {
         self.end_minutes
+    }
+
+    pub fn start_time(&self) -> DateTime<Utc> {
+        self.start_time
+    }
+
+    pub fn end_time(&self) -> Option<DateTime<Utc>> {
+        self.end_time
     }
 
     pub fn entry_type(&self) -> &EntryType {
@@ -164,6 +178,7 @@ impl PairedSession {
 pub struct LogEvent {
     id: uuid::Uuid,
     minutes: i32,
+    punch_time: DateTime<Utc>,
     raw_data: Option<serde_json::Value>,
     all_ids: Vec<uuid::Uuid>,
 }
@@ -172,12 +187,14 @@ impl LogEvent {
     pub fn new(
         id: uuid::Uuid,
         minutes: i32,
+        punch_time: DateTime<Utc>,
         raw_data: Option<serde_json::Value>,
         all_ids: Vec<uuid::Uuid>,
     ) -> Self {
         Self {
             id,
             minutes,
+            punch_time,
             raw_data,
             all_ids,
         }
@@ -189,6 +206,10 @@ impl LogEvent {
 
     pub fn minutes(&self) -> i32 {
         self.minutes
+    }
+
+    pub fn punch_time(&self) -> DateTime<Utc> {
+        self.punch_time
     }
 
     pub fn raw_data(&self) -> Option<&serde_json::Value> {
@@ -313,18 +334,6 @@ impl ShiftAwareStrategy {
         }
     }
 
-    fn find_last_idx_within_gap(logs: &[LogEvent], start_minutes: i32, max_gap: i32) -> usize {
-        let mut last_idx = 0;
-        for (i, log) in logs.iter().enumerate().skip(1) {
-            if log.minutes - start_minutes <= max_gap {
-                last_idx = i;
-            } else {
-                break;
-            }
-        }
-        last_idx
-    }
-
     // --- Shared helpers for TD-P2 DRY extraction ---
 
     /// Extract note from a log event's raw_data.
@@ -413,6 +422,67 @@ impl ShiftAwareStrategy {
         let combined_note = Self::combine_notes(start_note, end_note);
         let entry_type = Self::extract_entry_type(first_in_log);
         let is_break_overtime = Self::extract_is_break_overtime(first_in_log);
+
+        let mut sessions = Vec::new();
+
+        if let (Some(b_start), Some(b_end)) = (shift.break_start_minutes, shift.break_end_minutes) {
+            if let Some(last_out_log) = last_out {
+                let end_val = last_out_log.minutes;
+                if start < b_start && end_val > b_end {
+                    // Split into two sessions due to break configuration
+                    let log_ids_1 =
+                        Self::collect_log_ids(logs, start, Some(b_start), &first_in_log.all_ids);
+                    let log_ids_2 =
+                        Self::collect_log_ids(logs, b_end, Some(end_val), &last_out_log.all_ids);
+
+                    let diff_1 = i64::from(b_start - start);
+                    let end_time_1 = first_in_log.punch_time + chrono::Duration::minutes(diff_1);
+
+                    let diff_2 = i64::from(end_val - b_end);
+                    let start_time_2 = last_out_log.punch_time - chrono::Duration::minutes(diff_2);
+                    let end_time_2 = last_out_log.punch_time;
+
+                    sessions.push(PairedSession::new(
+                        start,
+                        Some(b_start),
+                        first_in_log.punch_time,
+                        Some(end_time_1),
+                        entry_type.clone(),
+                        combined_note,
+                        is_break_overtime,
+                        Some(serde_json::json!({
+                            "algorithm": ALGORITHM_NAME,
+                            "tier": "shift_window",
+                            "log_ids": log_ids_1,
+                            "shift_start": shift.start_minutes,
+                            "shift_end": shift.end_minutes,
+                            "break_split": "first_half"
+                        })),
+                    ));
+
+                    sessions.push(PairedSession::new(
+                        b_end,
+                        Some(end_val),
+                        start_time_2,
+                        Some(end_time_2),
+                        entry_type,
+                        None,
+                        is_break_overtime,
+                        Some(serde_json::json!({
+                            "algorithm": ALGORITHM_NAME,
+                            "tier": "shift_window",
+                            "log_ids": log_ids_2,
+                            "shift_start": shift.start_minutes,
+                            "shift_end": shift.end_minutes,
+                            "break_split": "second_half"
+                        })),
+                    ));
+
+                    return sessions;
+                }
+            }
+        }
+
         let final_note = Self::finalize_note(combined_note, end.is_none());
         let single_id = [first_in_log.id];
         let fallback_ids = logs
@@ -422,70 +492,126 @@ impl ShiftAwareStrategy {
             .unwrap_or(&single_id);
         let log_ids = Self::collect_log_ids(logs, start, end, fallback_ids);
 
-        vec![PairedSession {
-            start_minutes: start,
-            end_minutes: end,
+        sessions.push(PairedSession::new(
+            start,
+            end,
+            first_in_log.punch_time,
+            last_out.map(|l| l.punch_time),
             entry_type,
-            note: final_note,
+            final_note,
             is_break_overtime,
-            metadata: Some(serde_json::json!({
+            Some(serde_json::json!({
                 "algorithm": ALGORITHM_NAME,
                 "tier": "shift_window",
                 "log_ids": log_ids,
                 "shift_start": shift.start_minutes,
                 "shift_end": shift.end_minutes
             })),
-        }]
+        ));
+
+        sessions
     }
 
-    /// Tier 2: Anchor-first fallback (original behavior).
-    /// First log = IN, furthest log within 16h = OUT.
+    /// Tier 2: Anchor-first fallback.
+    /// Pairs logs sequentially to allow multi-session per day support, respecting the max gap limit.
     fn pair_anchor_first(logs: &[LogEvent], max_gap: Option<i32>) -> Vec<PairedSession> {
         let max_gap_val = max_gap.unwrap_or(MAX_SESSION_GAP_MINUTES);
-        let first = &logs[0];
-        let last_idx = Self::find_last_idx_within_gap(logs, first.minutes, max_gap_val);
+        let mut sessions = Vec::new();
+        let mut i = 0;
+        while i < logs.len() {
+            let first = &logs[i];
+            let start_time = first.punch_time;
+            let start_note = Self::extract_note(first);
+            let entry_type = Self::extract_entry_type(first);
+            let is_break_overtime = Self::extract_is_break_overtime(first);
 
-        let start = first.minutes;
-        let start_note = Self::extract_note(first);
+            if i + 1 < logs.len() {
+                let second = &logs[i + 1];
+                if second.minutes - first.minutes <= max_gap_val {
+                    let end_time = Some(second.punch_time);
+                    let end_note = Self::extract_note(second);
+                    let combined_note = Self::combine_notes(start_note, end_note);
+                    let log_ids = Self::collect_log_ids(
+                        logs,
+                        first.minutes,
+                        Some(second.minutes),
+                        &first.all_ids,
+                    );
 
-        let (end, end_note) = if last_idx > 0 {
-            let log = &logs[last_idx];
-            (Some(log.minutes), Self::extract_note(log))
-        } else {
-            (None, None)
-        };
+                    sessions.push(PairedSession::new(
+                        first.minutes,
+                        Some(second.minutes),
+                        start_time,
+                        end_time,
+                        entry_type,
+                        combined_note,
+                        is_break_overtime,
+                        Some(serde_json::json!({
+                            "algorithm": ALGORITHM_NAME,
+                            "tier": "anchor_first",
+                            "log_ids": log_ids
+                        })),
+                    ));
+                    i += 2;
+                } else {
+                    let final_note = Self::finalize_note(start_note, true);
+                    let log_ids = first.all_ids.clone();
 
-        let combined_note = Self::combine_notes(start_note, end_note);
-        let entry_type = Self::extract_entry_type(first);
-        let is_break_overtime = Self::extract_is_break_overtime(first);
-        let final_note = Self::finalize_note(combined_note, end.is_none());
-        let log_ids = Self::collect_log_ids(logs, start, end, &first.all_ids);
+                    sessions.push(PairedSession::new(
+                        first.minutes,
+                        None,
+                        start_time,
+                        None,
+                        entry_type,
+                        final_note,
+                        is_break_overtime,
+                        Some(serde_json::json!({
+                            "algorithm": ALGORITHM_NAME,
+                            "tier": "anchor_first",
+                            "log_ids": log_ids
+                        })),
+                    ));
+                    i += 1;
+                }
+            } else {
+                let final_note = Self::finalize_note(start_note, true);
+                let log_ids = first.all_ids.clone();
 
-        vec![PairedSession {
-            start_minutes: start,
-            end_minutes: end,
-            entry_type,
-            note: final_note,
-            is_break_overtime,
-            metadata: Some(serde_json::json!({
-                "algorithm": ALGORITHM_NAME,
-                "tier": "anchor_first",
-                "log_ids": log_ids
-            })),
-        }]
+                sessions.push(PairedSession::new(
+                    first.minutes,
+                    None,
+                    start_time,
+                    None,
+                    entry_type,
+                    final_note,
+                    is_break_overtime,
+                    Some(serde_json::json!({
+                        "algorithm": ALGORITHM_NAME,
+                        "tier": "anchor_first",
+                        "log_ids": log_ids
+                    })),
+                ));
+                i += 1;
+            }
+        }
+        sessions
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::TimeZone;
     use uuid::Uuid;
 
     fn make_log(minutes: i32) -> LogEvent {
         let id = Uuid::new_v4();
+        let punch_time = Utc.with_ymd_and_hms(2026, 6, 20, 0, 0, 0).unwrap()
+            + chrono::Duration::minutes(minutes as i64);
         LogEvent {
             id,
             minutes,
+            punch_time,
             raw_data: None,
             all_ids: vec![id],
         }
@@ -516,9 +642,11 @@ mod tests {
         ];
 
         let sessions = strategy.pair(&logs, &[shift]);
-        assert_eq!(sessions.len(), 1);
+        assert_eq!(sessions.len(), 2);
         assert_eq!(sessions[0].start_minutes, 475);
-        assert_eq!(sessions[0].end_minutes, Some(1025));
+        assert_eq!(sessions[0].end_minutes, Some(720));
+        assert_eq!(sessions[1].start_minutes, 780);
+        assert_eq!(sessions[1].end_minutes, Some(1025));
 
         let meta = sessions[0].metadata.as_ref().unwrap();
         assert_eq!(meta["tier"], "shift_window");
@@ -535,9 +663,11 @@ mod tests {
         ];
 
         let sessions = strategy.pair(&logs, &[shift]);
-        assert_eq!(sessions.len(), 1);
+        assert_eq!(sessions.len(), 2);
         assert_eq!(sessions[0].start_minutes, 475);
-        assert_eq!(sessions[0].end_minutes, Some(1380)); // 23:00 captured!
+        assert_eq!(sessions[0].end_minutes, Some(720));
+        assert_eq!(sessions[1].start_minutes, 780);
+        assert_eq!(sessions[1].end_minutes, Some(1380)); // 23:00 captured!
 
         let meta = sessions[0].metadata.as_ref().unwrap();
         assert_eq!(meta["tier"], "shift_window");
@@ -595,8 +725,9 @@ mod tests {
         let logs = vec![make_log(480), make_log(1500)];
 
         let sessions = strategy.pair(&logs, &[]);
-        assert_eq!(sessions.len(), 1);
+        assert_eq!(sessions.len(), 2);
         assert!(sessions[0].end_minutes.is_none());
+        assert!(sessions[1].end_minutes.is_none());
     }
 
     #[test]
@@ -683,8 +814,9 @@ mod tests {
         ];
 
         let sessions = strategy.pair(&logs, &[]);
-        assert_eq!(sessions.len(), 1);
+        assert_eq!(sessions.len(), 2);
         assert!(sessions[0].end_minutes.is_none());
+        assert!(sessions[1].end_minutes.is_none());
     }
 
     // --- Multiple logs in check-in window picks earliest ---
@@ -700,9 +832,11 @@ mod tests {
         ];
 
         let sessions = strategy.pair(&logs, &[shift]);
-        assert_eq!(sessions.len(), 1);
+        assert_eq!(sessions.len(), 2);
         assert_eq!(sessions[0].start_minutes, 470); // earliest in window
-        assert_eq!(sessions[0].end_minutes, Some(1020));
+        assert_eq!(sessions[0].end_minutes, Some(720));
+        assert_eq!(sessions[1].start_minutes, 780);
+        assert_eq!(sessions[1].end_minutes, Some(1020));
     }
 
     // --- Algorithm name ---
@@ -717,14 +851,18 @@ mod tests {
 
     #[test]
     fn test_paired_session_serde_roundtrip() {
-        let session = PairedSession {
-            start_minutes: 480,
-            end_minutes: Some(1020),
-            entry_type: EntryType::Work,
-            note: None,
-            is_break_overtime: false,
-            metadata: Some(serde_json::json!({"tier": "test"})),
-        };
+        let t1 = Utc.with_ymd_and_hms(2026, 6, 20, 8, 0, 0).unwrap();
+        let t2 = Utc.with_ymd_and_hms(2026, 6, 20, 17, 0, 0).unwrap();
+        let session = PairedSession::new(
+            480,
+            Some(1020),
+            t1,
+            Some(t2),
+            EntryType::Work,
+            None,
+            false,
+            Some(serde_json::json!({"tier": "test"})),
+        );
         let json = serde_json::to_string(&session).unwrap();
         let parsed: PairedSession = serde_json::from_str(&json).unwrap();
         assert_eq!(parsed, session);
@@ -806,9 +944,11 @@ mod tests {
         ];
 
         let sessions = strategy.pair(&logs, &[shift]);
-        assert_eq!(sessions.len(), 1);
+        assert_eq!(sessions.len(), 2);
         assert_eq!(sessions[0].start_minutes, 446); // earliest in window
-        assert_eq!(sessions[0].end_minutes, Some(1020)); // last log
+        assert_eq!(sessions[0].end_minutes, Some(690));
+        assert_eq!(sessions[1].start_minutes, 750);
+        assert_eq!(sessions[1].end_minutes, Some(1020));
     }
 
     // --- Edge case: Log far before shift window (should fallback) ---

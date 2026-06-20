@@ -139,13 +139,14 @@ impl PairingContext {
 
             if let Some(existing) = filtered_log_events
                 .iter_mut()
-                .find(|e| e.minutes() == minutes)
+                .find(|e| (e.punch_time() - log.punch_time()).num_seconds().abs() < 5)
             {
                 existing.push_id(log.id());
             } else {
                 filtered_log_events.push(LogEvent::new(
                     log.id(),
                     minutes,
+                    log.punch_time(),
                     log.raw_data().cloned(),
                     vec![log.id()],
                 ));
@@ -165,21 +166,14 @@ impl PairingContext {
     ) -> Result<Vec<TimeEntry>, AppError> {
         let mut new_entries = Vec::new();
         for session in sessions {
-            let start_dt_local = crate::utils::tz::local_to_tz(&self.tz, self.date, 0, 0, 0)?
-                + Duration::minutes(i64::from(session.start_minutes()));
-            let start_dt_utc = start_dt_local.with_timezone(&Utc);
+            let start_dt_utc = session.start_time();
+            let start_dt_local = start_dt_utc.with_timezone(&self.tz);
 
             if start_dt_local.date_naive() != self.date {
                 continue;
             }
 
-            let end_dt_utc = if let Some(m) = session.end_minutes() {
-                let end_dt_local = crate::utils::tz::local_to_tz(&self.tz, self.date, 0, 0, 0)?
-                    + Duration::minutes(i64::from(m));
-                Some(end_dt_local.with_timezone(&Utc))
-            } else {
-                None
-            };
+            let end_dt_utc = session.end_time();
 
             let duration = end_dt_utc
                 .map(|end| i32::try_from((end - start_dt_utc).num_minutes()).unwrap_or(i32::MAX));
@@ -402,7 +396,7 @@ mod tests {
             Uuid::new_v4(),
             workspace_id,
             employee_id,
-            Utc.with_ymd_and_hms(2026, 5, 20, 8, 30, 45).unwrap(), // Same minute
+            Utc.with_ymd_and_hms(2026, 5, 20, 8, 30, 17).unwrap(), // 2 seconds difference, within 5s window
             LogSource::Manual,
             None,
             None,
@@ -414,7 +408,7 @@ mod tests {
         let logs = vec![log1, log2];
         let events = context.build_log_events(&logs).unwrap();
 
-        // Should be deduplicated to 1 event because they are in the same minute
+        // Should be deduplicated to 1 event because they are within the 5-second proximity window
         assert_eq!(events.len(), 1);
         assert_eq!(events[0].minutes(), 8 * 60 + 30);
     }
@@ -428,19 +422,26 @@ mod tests {
         let workspace_id = Uuid::new_v4();
         let employment_id = Uuid::new_v4();
 
+        let t1_start = Utc.with_ymd_and_hms(2026, 5, 20, 1, 0, 0).unwrap();
+        let t1_end = Utc.with_ymd_and_hms(2026, 5, 20, 10, 0, 0).unwrap();
         // Paired Session from 08:00 to 17:00 (480 mins to 1020 mins)
         let session1 = PairedSession::new(
             480,
             Some(1020),
+            t1_start,
+            Some(t1_end),
             EntryType::Work,
             None,
             false,
             Some(serde_json::json!({"algo": "shift_window"})),
         );
 
+        let t2_start = Utc.with_ymd_and_hms(2026, 5, 20, 11, 0, 0).unwrap();
         // Paired Session missing checkout at 18:00 (1080 mins)
         let session2 = PairedSession::new(
             1080,
+            None,
+            t2_start,
             None,
             EntryType::Work,
             Some(PairingNote::MissingPunchOut),

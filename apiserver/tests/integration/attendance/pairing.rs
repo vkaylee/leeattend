@@ -19,7 +19,10 @@ fn strategy() -> ShiftAwareStrategy {
 
 fn log(minutes: i32) -> LogEvent {
     let id = Uuid::new_v4();
-    LogEvent::new(id, minutes, None, vec![id])
+    use chrono::TimeZone;
+    let punch_time = chrono::Utc.with_ymd_and_hms(2026, 6, 20, 0, 0, 0).unwrap()
+        + chrono::Duration::minutes(minutes as i64);
+    LogEvent::new(id, minutes, punch_time, None, vec![id])
 }
 
 fn day_shift() -> PairingShiftConfig {
@@ -84,8 +87,11 @@ fn tier2_normal_day_within_window() {
     ];
 
     let sessions = strategy().pair(&logs, &[shift]);
+    assert_eq!(sessions.len(), 2);
     assert_eq!(sessions[0].start_minutes(), 475);
-    assert_eq!(sessions[0].end_minutes(), Some(1025));
+    assert_eq!(sessions[0].end_minutes(), Some(720));
+    assert_eq!(sessions[1].start_minutes(), 780);
+    assert_eq!(sessions[1].end_minutes(), Some(1025));
     assert_eq!(tier(&sessions[0]), "shift_window");
 }
 
@@ -99,7 +105,11 @@ fn tier2_early_arrival() {
     ];
 
     let sessions = strategy().pair(&logs, &[shift]);
+    assert_eq!(sessions.len(), 2);
     assert_eq!(sessions[0].start_minutes(), 390);
+    assert_eq!(sessions[0].end_minutes(), Some(720));
+    assert_eq!(sessions[1].start_minutes(), 780);
+    assert_eq!(sessions[1].end_minutes(), Some(1020));
     assert_eq!(tier(&sessions[0]), "shift_window");
 }
 
@@ -113,7 +123,11 @@ fn tier2_late_departure() {
     ];
 
     let sessions = strategy().pair(&logs, &[shift]);
-    assert_eq!(sessions[0].end_minutes(), Some(1080));
+    assert_eq!(sessions.len(), 2);
+    assert_eq!(sessions[0].start_minutes(), 480);
+    assert_eq!(sessions[0].end_minutes(), Some(720));
+    assert_eq!(sessions[1].start_minutes(), 780);
+    assert_eq!(sessions[1].end_minutes(), Some(1080));
     assert_eq!(tier(&sessions[0]), "shift_window");
 }
 
@@ -127,8 +141,11 @@ fn tier2_boundary_exact_buffer_edge() {
     ];
 
     let sessions = strategy().pair(&logs, &[shift]);
+    assert_eq!(sessions.len(), 2);
     assert_eq!(sessions[0].start_minutes(), 360);
-    assert_eq!(sessions[0].end_minutes(), Some(1140));
+    assert_eq!(sessions[0].end_minutes(), Some(720));
+    assert_eq!(sessions[1].start_minutes(), 780);
+    assert_eq!(sessions[1].end_minutes(), Some(1140));
     assert_eq!(tier(&sessions[0]), "shift_window");
 }
 
@@ -172,8 +189,11 @@ fn tier2_overnight_shift() {
     ];
 
     let sessions = strategy().pair(&logs, &[shift]);
+    assert_eq!(sessions.len(), 2);
     assert_eq!(sessions[0].start_minutes(), 1315);
-    assert_eq!(sessions[0].end_minutes(), Some(1805));
+    assert_eq!(sessions[0].end_minutes(), Some(1560));
+    assert_eq!(sessions[1].start_minutes(), 1590);
+    assert_eq!(sessions[1].end_minutes(), Some(1805));
     assert_eq!(tier(&sessions[0]), "shift_window");
 }
 
@@ -250,12 +270,17 @@ fn tier3_many_logs_picks_last_within_limit() {
         log(600),  // 10:00
         log(720),  // 12:00
         log(900),  // 15:00
-        log(1020), // 17:00 — 540 min gap, within limit
+        log(1020), // 17:00
     ];
 
     let sessions = strategy().pair(&logs, &[]);
+    assert_eq!(sessions.len(), 3);
     assert_eq!(sessions[0].start_minutes(), 480);
-    assert_eq!(sessions[0].end_minutes(), Some(1020));
+    assert_eq!(sessions[0].end_minutes(), Some(600));
+    assert_eq!(sessions[1].start_minutes(), 720);
+    assert_eq!(sessions[1].end_minutes(), Some(900));
+    assert_eq!(sessions[2].start_minutes(), 1020);
+    assert_eq!(sessions[2].end_minutes(), None);
 }
 
 // ═══════════════════════════════════════════════════════════════
