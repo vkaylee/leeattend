@@ -39,14 +39,36 @@ impl std::fmt::Display for PairingNote {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BreakInterval {
+    start_minutes: i32,
+    end_minutes: i32,
+}
+
+impl BreakInterval {
+    pub fn new(start_minutes: i32, end_minutes: i32) -> Self {
+        Self {
+            start_minutes,
+            end_minutes,
+        }
+    }
+
+    pub fn start_minutes(&self) -> i32 {
+        self.start_minutes
+    }
+
+    pub fn end_minutes(&self) -> i32 {
+        self.end_minutes
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PairingShiftConfig {
     // All times in minutes from midnight (00:00) of the shift start day.
     // Values can be > 1440 (24h) for overnight shifts.
     start_minutes: i32,
     end_minutes: i32,
-    break_start_minutes: Option<i32>,
-    break_end_minutes: Option<i32>,
+    breaks: Vec<BreakInterval>,
     check_in_buffer_minutes: Option<i32>,
     max_session_gap_minutes: Option<i32>,
 }
@@ -60,11 +82,30 @@ impl PairingShiftConfig {
         check_in_buffer_minutes: Option<i32>,
         max_session_gap_minutes: Option<i32>,
     ) -> Self {
+        let mut breaks = Vec::new();
+        if let (Some(s), Some(e)) = (break_start_minutes, break_end_minutes) {
+            breaks.push(BreakInterval::new(s, e));
+        }
         Self {
             start_minutes,
             end_minutes,
-            break_start_minutes,
-            break_end_minutes,
+            breaks,
+            check_in_buffer_minutes,
+            max_session_gap_minutes,
+        }
+    }
+
+    pub fn new_with_breaks(
+        start_minutes: i32,
+        end_minutes: i32,
+        breaks: Vec<BreakInterval>,
+        check_in_buffer_minutes: Option<i32>,
+        max_session_gap_minutes: Option<i32>,
+    ) -> Self {
+        Self {
+            start_minutes,
+            end_minutes,
+            breaks,
             check_in_buffer_minutes,
             max_session_gap_minutes,
         }
@@ -79,11 +120,15 @@ impl PairingShiftConfig {
     }
 
     pub fn break_start_minutes(&self) -> Option<i32> {
-        self.break_start_minutes
+        self.breaks.first().map(|b| b.start_minutes)
     }
 
     pub fn break_end_minutes(&self) -> Option<i32> {
-        self.break_end_minutes
+        self.breaks.first().map(|b| b.end_minutes)
+    }
+
+    pub fn breaks(&self) -> &[BreakInterval] {
+        &self.breaks
     }
 
     pub fn check_in_buffer_minutes(&self) -> Option<i32> {
@@ -397,6 +442,7 @@ impl ShiftAwareStrategy {
     /// Earliest log near shift start = IN, last log of the day = OUT.
     /// Check-in uses a buffer window to avoid picking up logs from previous day.
     /// Check-out has no buffer — captures any amount of overtime.
+    #[allow(clippy::too_many_lines)]
     fn pair_by_shift_window(logs: &[LogEvent], shift: &PairingShiftConfig) -> Vec<PairedSession> {
         let buffer = shift.check_in_buffer_minutes.unwrap_or(SHIFT_WINDOW_BUFFER);
 
@@ -422,61 +468,80 @@ impl ShiftAwareStrategy {
 
         let mut sessions = Vec::new();
 
-        if let (Some(b_start), Some(b_end)) = (shift.break_start_minutes, shift.break_end_minutes) {
-            if let Some(last_out_log) = last_out {
-                let end_val = last_out_log.minutes;
-                if start < b_start && end_val > b_end {
-                    // Split into two sessions due to break configuration
-                    let log_ids_1 =
-                        Self::collect_log_ids(logs, start, Some(b_start), &first_in_log.all_ids);
-                    let log_ids_2 =
-                        Self::collect_log_ids(logs, b_end, Some(end_val), &last_out_log.all_ids);
-
-                    let diff_1 = i64::from(b_start) - i64::from(start);
-                    let end_time_1 = first_in_log.punch_time + chrono::Duration::minutes(diff_1);
-
-                    let diff_2 = i64::from(end_val) - i64::from(b_end);
-                    let start_time_2 = last_out_log.punch_time - chrono::Duration::minutes(diff_2);
-                    let end_time_2 = last_out_log.punch_time;
-
-                    sessions.push(PairedSession::new(
-                        start,
-                        Some(b_start),
-                        first_in_log.punch_time,
-                        Some(end_time_1),
-                        entry_type.clone(),
-                        combined_note,
-                        is_break_overtime,
-                        Some(serde_json::json!({
-                            "algorithm": ALGORITHM_NAME,
-                            "tier": "shift_window",
-                            "log_ids": log_ids_1,
-                            "shift_start": shift.start_minutes,
-                            "shift_end": shift.end_minutes,
-                            "break_split": "first_half"
-                        })),
-                    ));
-
-                    sessions.push(PairedSession::new(
-                        b_end,
-                        Some(end_val),
-                        start_time_2,
-                        Some(end_time_2),
-                        entry_type,
-                        None,
-                        is_break_overtime,
-                        Some(serde_json::json!({
-                            "algorithm": ALGORITHM_NAME,
-                            "tier": "shift_window",
-                            "log_ids": log_ids_2,
-                            "shift_start": shift.start_minutes,
-                            "shift_end": shift.end_minutes,
-                            "break_split": "second_half"
-                        })),
-                    ));
-
-                    return sessions;
+        if let Some(last_out_log) = last_out {
+            let end_val = last_out_log.minutes;
+            let mut active_breaks = Vec::new();
+            for b in shift.breaks() {
+                if start < b.start_minutes() && end_val > b.end_minutes() {
+                    active_breaks.push(b.clone());
                 }
+            }
+            active_breaks.sort_by_key(BreakInterval::start_minutes);
+
+            if !active_breaks.is_empty() {
+                let k = active_breaks.len();
+                for j in 0..=k {
+                    let seg_start = if j == 0 {
+                        start
+                    } else {
+                        active_breaks[j - 1].end_minutes()
+                    };
+                    let seg_end = if j == k {
+                        end_val
+                    } else {
+                        active_breaks[j].start_minutes()
+                    };
+
+                    let log_ids = if j == 0 {
+                        Self::collect_log_ids(logs, seg_start, Some(seg_end), &first_in_log.all_ids)
+                    } else if j == k {
+                        Self::collect_log_ids(logs, seg_start, Some(seg_end), &last_out_log.all_ids)
+                    } else {
+                        Self::collect_log_ids(logs, seg_start, Some(seg_end), &[])
+                    };
+
+                    let start_time = if j == k {
+                        let diff = i64::from(end_val) - i64::from(seg_start);
+                        last_out_log.punch_time - chrono::Duration::minutes(diff)
+                    } else {
+                        let diff = i64::from(seg_start) - i64::from(start);
+                        first_in_log.punch_time + chrono::Duration::minutes(diff)
+                    };
+
+                    let end_time = if j == k {
+                        last_out_log.punch_time
+                    } else {
+                        let diff = i64::from(seg_end) - i64::from(start);
+                        first_in_log.punch_time + chrono::Duration::minutes(diff)
+                    };
+
+                    let split_name = if j == 0 {
+                        "first_half"
+                    } else if j == k {
+                        "second_half"
+                    } else {
+                        "middle_segment"
+                    };
+
+                    sessions.push(PairedSession::new(
+                        seg_start,
+                        Some(seg_end),
+                        start_time,
+                        Some(end_time),
+                        entry_type.clone(),
+                        if j == 0 { combined_note.clone() } else { None },
+                        is_break_overtime,
+                        Some(serde_json::json!({
+                            "algorithm": ALGORITHM_NAME,
+                            "tier": "shift_window",
+                            "log_ids": log_ids,
+                            "shift_start": shift.start_minutes,
+                            "shift_end": shift.end_minutes,
+                            "break_split": split_name
+                        })),
+                    ));
+                }
+                return sessions;
             }
         }
 
@@ -619,14 +684,14 @@ mod tests {
     }
 
     fn standard_shift() -> PairingShiftConfig {
-        PairingShiftConfig {
-            start_minutes: 480,             // 08:00
-            end_minutes: 1020,              // 17:00
-            break_start_minutes: Some(720), // 12:00
-            break_end_minutes: Some(780),   // 13:00
-            check_in_buffer_minutes: None,
-            max_session_gap_minutes: None,
-        }
+        PairingShiftConfig::new(
+            480,       // 08:00
+            1020,      // 17:00
+            Some(720), // 12:00
+            Some(780), // 13:00
+            None,
+            None,
+        )
     }
 
     // --- Tier 1: Shift Window tests ---
@@ -743,14 +808,11 @@ mod tests {
     #[test]
     fn test_shift_window_overnight_shift() {
         let strategy = get_strategy();
-        let shift = PairingShiftConfig {
-            start_minutes: 1320, // 22:00
-            end_minutes: 1800,   // 06:00 next day (30h from midnight)
-            break_start_minutes: None,
-            break_end_minutes: None,
-            check_in_buffer_minutes: None,
-            max_session_gap_minutes: None,
-        };
+        let shift = PairingShiftConfig::new(
+            1320, // 22:00
+            1800, // 06:00 next day (30h from midnight)
+            None, None, None, None,
+        );
 
         let logs = vec![
             make_log(1310), // 21:50 — within check-in window
@@ -876,14 +938,11 @@ mod tests {
     #[test]
     fn test_overnight_shift_with_overtime() {
         let strategy = get_strategy();
-        let shift = PairingShiftConfig {
-            start_minutes: 1320, // 22:00
-            end_minutes: 1800,   // 06:00 next day
-            break_start_minutes: None,
-            break_end_minutes: None,
-            check_in_buffer_minutes: None,
-            max_session_gap_minutes: None,
-        };
+        let shift = PairingShiftConfig::new(
+            1320, // 22:00
+            1800, // 06:00 next day
+            None, None, None, None,
+        );
 
         // Employee works overtime until 08:00 (2h OT after 06:00 shift end)
         let logs = vec![
@@ -925,14 +984,14 @@ mod tests {
     #[test]
     fn test_rapid_multiple_punches() {
         let strategy = get_strategy();
-        let shift = PairingShiftConfig {
-            start_minutes: 450,             // 07:30
-            end_minutes: 990,               // 16:30
-            break_start_minutes: Some(690), // 11:30
-            break_end_minutes: Some(750),   // 12:30
-            check_in_buffer_minutes: None,
-            max_session_gap_minutes: None,
-        };
+        let shift = PairingShiftConfig::new(
+            450,       // 07:30
+            990,       // 16:30
+            Some(690), // 11:30
+            Some(750), // 12:30
+            None,
+            None,
+        );
 
         // Simulating employee 1541: multiple rapid punches at start, then checkout at 17:00
         let logs = vec![
@@ -976,14 +1035,11 @@ mod tests {
     #[test]
     fn test_overnight_shift_multiple_checkout_punches() {
         let strategy = get_strategy();
-        let shift = PairingShiftConfig {
-            start_minutes: 1080, // 18:00
-            end_minutes: 1560,   // 02:00 next day
-            break_start_minutes: None,
-            break_end_minutes: None,
-            check_in_buffer_minutes: None,
-            max_session_gap_minutes: None,
-        };
+        let shift = PairingShiftConfig::new(
+            1080, // 18:00
+            1560, // 02:00 next day
+            None, None, None, None,
+        );
 
         let logs = vec![make_log(1085), make_log(1825), make_log(1826)];
 
@@ -1076,5 +1132,43 @@ mod tests {
         assert_eq!(sessions.len(), 1);
         assert_eq!(sessions[0].start_minutes, 480);
         assert_eq!(sessions[0].end_minutes, Some(480));
+    }
+
+    #[test]
+    fn test_shift_window_multiple_breaks() {
+        let strategy = get_strategy();
+        let shift = PairingShiftConfig::new_with_breaks(
+            480,
+            1020,
+            vec![BreakInterval::new(600, 630), BreakInterval::new(720, 780)],
+            None,
+            None,
+        );
+
+        let logs = vec![make_log(475), make_log(1025)];
+
+        let sessions = strategy.pair(&logs, Some(&shift));
+        assert_eq!(sessions.len(), 3);
+
+        assert_eq!(sessions[0].start_minutes, 475);
+        assert_eq!(sessions[0].end_minutes, Some(600));
+        assert_eq!(
+            sessions[0].metadata.as_ref().unwrap()["break_split"],
+            "first_half"
+        );
+
+        assert_eq!(sessions[1].start_minutes, 630);
+        assert_eq!(sessions[1].end_minutes, Some(720));
+        assert_eq!(
+            sessions[1].metadata.as_ref().unwrap()["break_split"],
+            "middle_segment"
+        );
+
+        assert_eq!(sessions[2].start_minutes, 780);
+        assert_eq!(sessions[2].end_minutes, Some(1025));
+        assert_eq!(
+            sessions[2].metadata.as_ref().unwrap()["break_split"],
+            "second_half"
+        );
     }
 }
