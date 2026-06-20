@@ -41,7 +41,7 @@ fn standard_shift() -> PairingShiftConfig {
     )
 }
 
-// --- Strategy Tests (from pairing_algo.rs) ---
+// --- Strategy Tests ---
 
 #[test]
 fn test_shift_window_normal_day() {
@@ -465,7 +465,7 @@ fn test_shift_window_multiple_breaks() {
     );
 }
 
-// --- Context Tests (from pairing_context.rs) ---
+// --- Context Tests ---
 
 #[test]
 fn test_utc_timezone_offset_bug() {
@@ -720,7 +720,7 @@ fn test_build_time_entries() {
     assert_eq!(e2.note(), Some("missing_punch_out"));
 }
 
-// --- Service Tests (from pairing_service.rs) ---
+// --- Service Tests ---
 
 #[tokio::test]
 async fn test_process_new_raw_log_duplicate() {

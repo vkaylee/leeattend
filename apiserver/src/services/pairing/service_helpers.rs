@@ -5,11 +5,37 @@ use chrono::{DateTime, Duration, NaiveDate, Utc};
 use chrono_tz::Tz;
 use uuid::Uuid;
 
+use crate::repositories::TimeEntryRepository;
 use crate::services::pairing::service::PairingService;
 
 use super::types::ADJACENT_ENTRY_SEARCH_DAYS;
 
 const LOG_SEARCH_PADDING_HOURS: i64 = 12;
+
+/// Fetch IDs of raw logs already consumed by adjacent days' time entries.
+/// Extracted from the former `ConsumedLogTracker` struct to keep DB I/O
+/// in the service layer (per coding-standards §7 — N+1 Prevention).
+pub(crate) async fn fetch_consumed_log_ids(
+    time_entry_repo: &dyn TimeEntryRepository,
+    auth_token: &TenantAuthToken,
+    employment_id: Uuid,
+    date: NaiveDate,
+    tz: Tz,
+    start_of_day_utc: DateTime<Utc>,
+    next_day_utc: DateTime<Utc>,
+) -> Result<std::collections::HashSet<Uuid>, AppError> {
+    let search_start = start_of_day_utc - Duration::days(ADJACENT_ENTRY_SEARCH_DAYS);
+    let search_end = next_day_utc + Duration::days(ADJACENT_ENTRY_SEARCH_DAYS);
+    let adjacent_entries = time_entry_repo
+        .get_employment_time_entries(auth_token, employment_id, search_start, search_end)
+        .await?;
+
+    Ok(super::context_helpers::extract_consumed_ids(
+        &adjacent_entries,
+        date,
+        tz,
+    ))
+}
 
 pub(crate) async fn fetch_schedules_for_range(
     service: &PairingService,

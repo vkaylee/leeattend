@@ -6,7 +6,7 @@ use chrono_tz::Tz;
 use tracing::info;
 use uuid::Uuid;
 
-use crate::services::pairing::context_helpers::ConsumedLogTracker;
+use crate::services::pairing::context_helpers;
 use crate::services::pairing::service::PairingService;
 
 pub(crate) async fn reprocess_attendance_range(
@@ -136,20 +136,13 @@ fn process_single_day_in_range(
 
     // Exclude logs consumed by adjacent days (excluding current date)
     let mut consumed_log_ids =
-        ConsumedLogTracker::extract_consumed_ids(adjacent_entries, curr_date, tz);
+        context_helpers::extract_consumed_ids(adjacent_entries, curr_date, tz);
 
     // Also exclude logs already consumed by previously processed days in this batch
-    for entry in new_entries_accumulated {
-        if let Some(metadata) = entry.generation_metadata() {
-            if let Ok(paired_meta) =
-                serde_json::from_value::<super::types::PairingMetadata>(metadata.clone())
-            {
-                for id in paired_meta.log_ids() {
-                    consumed_log_ids.insert(*id);
-                }
-            }
-        }
-    }
+    context_helpers::extend_consumed_from_entries(
+        &mut consumed_log_ids,
+        new_entries_accumulated,
+    );
 
     let filtered_raw_logs: Vec<RawAttendanceLog> = raw_logs
         .iter()

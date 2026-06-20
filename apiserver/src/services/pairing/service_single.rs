@@ -6,7 +6,7 @@ use chrono_tz::Tz;
 use tracing::info;
 use uuid::Uuid;
 
-use crate::services::pairing::context_helpers::ConsumedLogTracker;
+use crate::services::pairing::context_helpers;
 use crate::services::pairing::service::PairingService;
 use crate::services::pairing::types::PairingShiftConfig;
 
@@ -52,18 +52,18 @@ pub(crate) async fn reprocess_single_day(
 
     // 3. Exclude logs already consumed by adjacent days
     let consumed_log_ids = if let Some(adjacent) = prefetched_adjacent {
-        ConsumedLogTracker::extract_consumed_ids(adjacent, date, tz)
+        context_helpers::extract_consumed_ids(adjacent, date, tz)
     } else {
-        let tracker = ConsumedLogTracker::new(
+        super::service_helpers::fetch_consumed_log_ids(
             &*service.time_entry_repo,
             &auth_token,
             employment_id,
             date,
             tz,
-        );
-        tracker
-            .get_consumed_log_ids(start_of_day_utc, next_day_utc)
-            .await?
+            start_of_day_utc,
+            next_day_utc,
+        )
+        .await?
     };
 
     let filtered_raw_logs: Vec<RawAttendanceLog> = logs

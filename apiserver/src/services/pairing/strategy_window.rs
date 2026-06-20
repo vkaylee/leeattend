@@ -43,16 +43,18 @@ pub(crate) fn pair_by_shift_window(
 
         if !active_breaks.is_empty() {
             return super::strategy_split::split_by_breaks(
-                logs,
-                start,
-                end_val,
-                &active_breaks,
-                first_in_log,
-                last_out_log,
-                shift,
-                &entry_type,
-                combined_note.as_ref(),
-                is_break_overtime,
+                &super::strategy_split::SplitByBreaksInput {
+                    logs,
+                    start,
+                    end_val,
+                    active_breaks: &active_breaks,
+                    first_in_log,
+                    last_out_log,
+                    shift,
+                    entry_type: &entry_type,
+                    combined_note: combined_note.as_ref(),
+                    is_break_overtime,
+                },
             );
         }
     }
