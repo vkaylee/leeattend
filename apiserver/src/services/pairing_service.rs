@@ -56,12 +56,12 @@ pub struct PairingService {
 }
 
 pub struct PairingServiceArgs {
-    pub(crate) time_entry_repo: Arc<dyn TimeEntryRepository>,
-    pub(crate) roster_repo: Arc<dyn RosterRepository>,
-    pub(crate) employee_repo: Arc<dyn crate::repositories::employee::EmployeeRepository>,
-    pub(crate) raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
-    pub(crate) shift_repo: Arc<dyn ShiftRepository>,
-    pub(crate) summary_service: Arc<dyn SummaryRecalculator>,
+    pub time_entry_repo: Arc<dyn TimeEntryRepository>,
+    pub roster_repo: Arc<dyn RosterRepository>,
+    pub employee_repo: Arc<dyn crate::repositories::employee::EmployeeRepository>,
+    pub raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
+    pub shift_repo: Arc<dyn ShiftRepository>,
+    pub summary_service: Arc<dyn SummaryRecalculator>,
 }
 
 impl PairingService {
@@ -121,11 +121,7 @@ impl PairingService {
         let local_dt = log.punch_time().with_timezone(&tz);
         let local_date = local_dt.date_naive();
 
-        // 4. Reprocess that day
-        self.reprocess_daily_attendance(log.workspace_id(), log.employment_id(), local_date, tz)
-            .await?;
-
-        // 5. Reprocess previous day if early in the morning (Overnight checkouts)
+        // 4. Reprocess previous day first if early in the morning (Overnight checkouts)
         if local_dt.hour() < OVERNIGHT_REPROCESS_CUTOFF_HOUR {
             let prev_date = local_date - Duration::days(1);
             info!(
@@ -133,11 +129,15 @@ impl PairingService {
                 employment_id = %log.employment_id(),
                 local_dt = %local_dt,
                 prev_date = %prev_date,
-                "Log is early in day, reprocessing previous day for overnight checkouts"
+                "Log is early in day, reprocessing previous day first for overnight checkouts"
             );
             self.reprocess_daily_attendance(log.workspace_id(), log.employment_id(), prev_date, tz)
                 .await?;
         }
+
+        // 5. Reprocess that day
+        self.reprocess_daily_attendance(log.workspace_id(), log.employment_id(), local_date, tz)
+            .await?;
 
         Ok(())
     }

@@ -5,7 +5,7 @@
 //!   Tier 2: `anchor_first` fallback (no context)
 
 use apiserver::services::pairing_algo::{
-    self, EntryType, LogEvent, PairedSession, PairingShiftConfig, ShiftAwareStrategy,
+    self, EntryType, LogEvent, PairedSession, PairingShiftConfig, ShiftAwareStrategy, PairingNote,
 };
 use uuid::Uuid;
 
@@ -210,7 +210,7 @@ fn tier3_single_log_missing_out() {
     let sessions = strategy().pair(&[log(480)], &[]);
     assert_eq!(sessions.len(), 1);
     assert!(sessions[0].end_minutes().is_none());
-    assert_eq!(sessions[0].note(), Some("Missing Punch Out"));
+    assert_eq!(sessions[0].note(), Some(&PairingNote::MissingPunchOut));
 }
 
 #[test]

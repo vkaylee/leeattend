@@ -442,3 +442,240 @@ async fn test_overnight_shift_multiple_checkout_punches_subminute_deduplication(
 
     assert_eq!(day2_entries.len(), 0);
 }
+
+#[tokio::test]
+async fn test_overnight_shift_multiple_checkout_punches_ingested_sequentially() {
+    let test_db = TestDatabase::new().await;
+    let pool = test_db.diesel_pools.clone();
+    let factory = TestFactory::new(pool.clone());
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory
+        .workspace()
+        .with_timezone("Asia/Ho_Chi_Minh")
+        .create_with_owner(user_id)
+        .await;
+    let employee_id = factory.employee().with_workspace(ws_id).create().await;
+    let employment_id: Uuid = crate::test_query_scalar_uuid!(
+        &pool.api,
+        "SELECT id FROM employments WHERE employee_id = $1 LIMIT 1",
+        diesel::sql_types::Uuid,
+        employee_id
+    );
+
+    // 1. Overnight Shift: 18:00 -> 02:00 next day
+    let shift_id = factory
+        .shift()
+        .with_workspace(ws_id)
+        .with_name("Overnight Shift 18-02")
+        .with_times(
+            NaiveTime::from_hms_opt(18, 0, 0).unwrap(),
+            NaiveTime::from_hms_opt(2, 0, 0).unwrap(),
+        )
+        .create()
+        .await;
+
+    let shift_date = NaiveDate::from_ymd_opt(2026, 1, 15).unwrap();
+
+    // Assign shift
+    let shift_repo = apiserver::repositories::DieselShiftRepository::new(diesel_pools.clone());
+    use apiserver::repositories::shift_repository::ShiftRepository;
+    shift_repo
+        .assign_employment_shift(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            employment_id,
+            shift_id,
+            shift_date,
+            None,
+        )
+        .await
+        .unwrap();
+
+    // 2. Setup Service
+    let time_entry_repo = std::sync::Arc::new(
+        apiserver::repositories::DieselTimeEntryRepository::new(diesel_pools.clone()),
+    );
+    let summary_service = std::sync::Arc::new(apiserver::services::AttendanceSummaryService::new(
+        apiserver::services::attendance_summary_service::AttendanceSummaryServiceArgs {
+            time_entry_repo: time_entry_repo.clone(),
+            roster_repo: std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
+                diesel_pools.clone(),
+            )),
+            policy_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselAttendancePolicyRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
+            workspace_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselWorkspaceRepository::new(diesel_pools.clone()),
+            ),
+            employee_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
+            ),
+            employment_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselEmploymentRepository::new(diesel_pools.clone()),
+            ),
+            holiday_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselHolidayRepository::new(diesel_pools.clone()),
+            ),
+            leave_request_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselLeaveRequestRepository::new(diesel_pools.clone()),
+            ),
+            daily_summary_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselAttendanceDailySummaryRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
+        },
+    ));
+
+    let service = apiserver::services::pairing_service::PairingService::new(
+        apiserver::services::pairing_service::PairingServiceArgs {
+            time_entry_repo: time_entry_repo.clone(),
+            roster_repo: std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
+                diesel_pools.clone(),
+            )),
+            employee_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
+            ),
+            raw_log_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselRawAttendanceLogRepository::new(
+                    diesel_pools.clone(),
+                ),
+            ),
+            shift_repo: std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
+                diesel_pools.clone(),
+            )),
+            summary_service: summary_service
+                as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
+        },
+    );
+
+    // 3. Process logs sequentially
+    let tz: Tz = "Asia/Ho_Chi_Minh".parse().unwrap();
+    let punch_in_utc = tz
+        .from_local_datetime(&shift_date.and_hms_opt(18, 0, 0).unwrap())
+        .single()
+        .unwrap()
+        .with_timezone(&Utc);
+
+    let log_in = apiserver::models::RawAttendanceLog::new(
+        Uuid::new_v4(),
+        ws_id,
+        employment_id,
+        punch_in_utc,
+        LogSource::Device,
+        None,
+        None,
+        -1,
+        -1,
+        Utc::now(),
+    );
+    let raw_repo =
+        apiserver::repositories::DieselRawAttendanceLogRepository::new(diesel_pools.clone());
+    use apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
+    raw_repo.create_raw_log(ws_id, &log_in).await.unwrap();
+
+    // Process first log (punch-in)
+    service.process_new_raw_log(&log_in).await.unwrap();
+
+    // First checkout log at 06:25:01
+    let punch_out1_utc = tz
+        .from_local_datetime(
+            &(shift_date + Duration::days(1))
+                .and_hms_opt(6, 25, 1)
+                .unwrap(),
+        )
+        .single()
+        .unwrap()
+        .with_timezone(&Utc);
+
+    let log_out1 = apiserver::models::RawAttendanceLog::new(
+        Uuid::new_v4(),
+        ws_id,
+        employment_id,
+        punch_out1_utc,
+        LogSource::Device,
+        None,
+        None,
+        -1,
+        -1,
+        Utc::now(),
+    );
+    raw_repo.create_raw_log(ws_id, &log_out1).await.unwrap();
+
+    // Process second log (first punch-out)
+    service.process_new_raw_log(&log_out1).await.unwrap();
+
+    // Second checkout log at 06:25:02 (same minute)
+    let punch_out2_utc = tz
+        .from_local_datetime(
+            &(shift_date + Duration::days(1))
+                .and_hms_opt(6, 25, 2)
+                .unwrap(),
+        )
+        .single()
+        .unwrap()
+        .with_timezone(&Utc);
+
+    let log_out2 = apiserver::models::RawAttendanceLog::new(
+        Uuid::new_v4(),
+        ws_id,
+        employment_id,
+        punch_out2_utc,
+        LogSource::Device,
+        None,
+        None,
+        -1,
+        -1,
+        Utc::now(),
+    );
+    raw_repo.create_raw_log(ws_id, &log_out2).await.unwrap();
+
+    // Process third log (second punch-out)
+    service.process_new_raw_log(&log_out2).await.unwrap();
+
+    // 4. Verify Day 1 Time Entry contains both raw log IDs in metadata
+    use apiserver::repositories::time_entry_repository::TimeEntryRepository;
+    let day1_entries = time_entry_repo
+        .get_employment_time_entries(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            employment_id,
+            shift_date.and_hms_opt(0, 0, 0).unwrap().and_utc(),
+            shift_date.and_hms_opt(23, 59, 59).unwrap().and_utc(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(day1_entries.len(), 1);
+    let entry = &day1_entries[0];
+    assert_eq!(entry.punch_in_time(), punch_in_utc);
+
+    let expected_punch_out_utc = tz
+        .from_local_datetime(
+            &(shift_date + Duration::days(1))
+                .and_hms_opt(6, 25, 0)
+                .unwrap(),
+        )
+        .single()
+        .unwrap()
+        .with_timezone(&Utc);
+    assert_eq!(entry.punch_out_time(), Some(expected_punch_out_utc));
+
+    // Verify Day 2 (Day 2 has no shift / is off day)
+    let next_date = shift_date + Duration::days(1);
+    let day2_entries = time_entry_repo
+        .get_employment_time_entries(
+            &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
+            employment_id,
+            next_date.and_hms_opt(0, 0, 0).unwrap().and_utc(),
+            next_date.and_hms_opt(23, 59, 59).unwrap().and_utc(),
+        )
+        .await
+        .unwrap();
+
+    // Verify Day 2 has ZERO time entries because the 06:25 punches were claimed by Day 1 overnight shift
+    // and thus ignored during Day 2 reprocessing.
+    assert_eq!(day2_entries.len(), 0);
+}
