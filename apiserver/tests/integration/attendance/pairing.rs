@@ -5,7 +5,7 @@
 //!   Tier 2: `anchor_first` fallback (no context)
 
 use apiserver::services::pairing_algo::{
-    self, EntryType, LogEvent, PairedSession, PairingShiftConfig, ShiftAwareStrategy, PairingNote,
+    self, EntryType, LogEvent, PairedSession, PairingNote, PairingShiftConfig, ShiftAwareStrategy,
 };
 use uuid::Uuid;
 
