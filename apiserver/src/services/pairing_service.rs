@@ -582,6 +582,14 @@ impl<'a> ConsumedLogTracker<'a> {
                 continue;
             }
 
+            // Skip next-day early morning punches because the previous day's overnight shift
+            // has priority over these punches.
+            if entry_local.date_naive() == self.date + Duration::days(1)
+                && entry_local.hour() < OVERNIGHT_REPROCESS_CUTOFF_HOUR
+            {
+                continue;
+            }
+
             if let Some(metadata) = entry.generation_metadata() {
                 if let Ok(paired_meta) = serde_json::from_value::<
                     crate::services::pairing_algo::PairingMetadata,
