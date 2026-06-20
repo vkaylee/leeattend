@@ -10,7 +10,7 @@ use tokio::task::JoinHandle;
 pub struct AttendanceServices {
     pub time_tracking: Arc<crate::services::TimeTrackingService>,
     pub attendance_summary: Arc<crate::services::AttendanceSummaryService>,
-    pub pairing: Arc<crate::services::pairing_service::PairingService>,
+    pub pairing: Arc<dyn crate::services::pairing_service::PairingProcessor>,
     pub adjustment:
         Arc<crate::services::attendance_adjustment_service::AttendanceAdjustmentService>,
     pub attendance: Arc<crate::services::AttendanceLogService>,
@@ -52,19 +52,20 @@ pub async fn build_attendance_services(
         },
     ));
 
-    let pairing = Arc::new(crate::services::pairing_service::PairingService::new(
-        crate::services::pairing_service::PairingServiceArgs {
-            time_entry_repo: Arc::clone(&repos.time_entry),
-            roster_repo: Arc::clone(&repos.roster),
-            employee_repo: Arc::clone(&repos.employee),
-            raw_log_repo: Arc::clone(&repos.raw_log),
-            shift_repo: Arc::new(crate::repositories::DieselShiftRepository::new(
-                diesel_pools.clone(),
-            )),
-            summary_service: Arc::clone(&attendance_summary)
-                as Arc<dyn crate::services::SummaryRecalculator>,
-        },
-    ));
+    let pairing: Arc<dyn crate::services::pairing_service::PairingProcessor> =
+        Arc::new(crate::services::pairing_service::PairingService::new(
+            crate::services::pairing_service::PairingServiceArgs {
+                time_entry_repo: Arc::clone(&repos.time_entry),
+                roster_repo: Arc::clone(&repos.roster),
+                employee_repo: Arc::clone(&repos.employee),
+                raw_log_repo: Arc::clone(&repos.raw_log),
+                shift_repo: Arc::new(crate::repositories::DieselShiftRepository::new(
+                    diesel_pools.clone(),
+                )),
+                summary_service: Arc::clone(&attendance_summary)
+                    as Arc<dyn crate::services::SummaryRecalculator>,
+            },
+        ));
 
     let adjustment = Arc::new(
         crate::services::attendance_adjustment_service::AttendanceAdjustmentService::new(

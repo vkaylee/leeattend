@@ -14,19 +14,19 @@ use crate::models::{
 };
 use crate::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository;
 use crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
-use crate::services::pairing_service::PairingService;
+use crate::services::pairing_service::PairingProcessor;
 
 pub struct AttendanceAdjustmentService {
     adj_repo: Arc<dyn AttendanceAdjustmentRepository>,
     raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
-    pairing_service: Arc<PairingService>,
+    pairing_service: Arc<dyn PairingProcessor>,
 }
 
 impl AttendanceAdjustmentService {
     pub fn new(
         adj_repo: Arc<dyn AttendanceAdjustmentRepository>,
         raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
-        pairing_service: Arc<PairingService>,
+        pairing_service: Arc<dyn PairingProcessor>,
     ) -> Self {
         Self {
             adj_repo,

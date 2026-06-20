@@ -169,8 +169,8 @@ impl WorkerDeps {
     }
 
     /// Build a [`PairingService`](crate::services::pairing_service::PairingService)
-    /// using the shared repository instances.
-    pub fn pairing_service(&self) -> Arc<crate::services::pairing_service::PairingService> {
+    /// using the shared repository instances, returned as `dyn PairingProcessor`.
+    pub fn pairing_service(&self) -> Arc<dyn crate::services::pairing_service::PairingProcessor> {
         Arc::new(crate::services::pairing_service::PairingService::new(
             crate::services::pairing_service::PairingServiceArgs {
                 time_entry_repo: Arc::clone(&self.time_entry_repo),

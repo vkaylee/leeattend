@@ -32,7 +32,7 @@ use crate::services::auth_service::AuthService;
 use crate::services::holiday_leave_service::HolidayLeaveService;
 use crate::services::leave_accrual_service::LeaveAccrualService;
 use crate::services::leave_service::LeaveService;
-use crate::services::pairing_service::PairingService;
+use crate::services::pairing_service::PairingProcessor;
 use crate::services::payroll_service::PayrollService;
 use crate::services::shift_service::ShiftService;
 use crate::services::shift_swap_service::ShiftSwapService;
@@ -108,7 +108,7 @@ pub struct AttendanceState {
     time_tracking_service: Arc<TimeTrackingService>,
     summary_service: Arc<AttendanceSummaryService>,
     log_service: Arc<AttendanceLogService>,
-    pairing_service: Arc<PairingService>,
+    pairing_service: Arc<dyn PairingProcessor>,
     adjustment_service: Arc<AttendanceAdjustmentService>,
     import_service: Arc<AttendanceImportService>,
     time_entry_repo: Arc<dyn TimeEntryRepository>,
@@ -126,7 +126,7 @@ impl AttendanceState {
         time_tracking_service: Arc<TimeTrackingService>,
         summary_service: Arc<AttendanceSummaryService>,
         log_service: Arc<AttendanceLogService>,
-        pairing_service: Arc<PairingService>,
+        pairing_service: Arc<dyn PairingProcessor>,
         adjustment_service: Arc<AttendanceAdjustmentService>,
         import_service: Arc<AttendanceImportService>,
         time_entry_repo: Arc<dyn TimeEntryRepository>,
@@ -170,7 +170,7 @@ impl AttendanceState {
         &self.log_service
     }
 
-    pub fn pairing_service(&self) -> &Arc<PairingService> {
+    pub fn pairing_service(&self) -> &Arc<dyn PairingProcessor> {
         &self.pairing_service
     }
 

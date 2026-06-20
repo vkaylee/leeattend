@@ -21,6 +21,24 @@ impl std::fmt::Display for EntryType {
     }
 }
 
+/// Type-safe pairing note codes.
+/// Resolved to i18n text at the API response layer.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PairingNote {
+    MissingPunchOut,
+    Custom(String),
+}
+
+impl std::fmt::Display for PairingNote {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::MissingPunchOut => write!(f, "missing_punch_out"),
+            Self::Custom(s) => write!(f, "{s}"),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PairingShiftConfig {
     // All times in minutes from midnight (00:00) of the shift start day.
@@ -89,7 +107,7 @@ pub struct PairedSession {
     start_minutes: i32,
     end_minutes: Option<i32>,
     entry_type: EntryType,
-    note: Option<String>,
+    note: Option<PairingNote>,
     is_break_overtime: bool,
     metadata: Option<serde_json::Value>,
 }
@@ -99,7 +117,7 @@ impl PairedSession {
         start_minutes: i32,
         end_minutes: Option<i32>,
         entry_type: EntryType,
-        note: Option<String>,
+        note: Option<PairingNote>,
         is_break_overtime: bool,
         metadata: Option<serde_json::Value>,
     ) -> Self {
@@ -125,8 +143,8 @@ impl PairedSession {
         &self.entry_type
     }
 
-    pub fn note(&self) -> Option<&str> {
-        self.note.as_deref()
+    pub fn note(&self) -> Option<&PairingNote> {
+        self.note.as_ref()
     }
 
     pub fn is_break_overtime(&self) -> bool {
@@ -281,10 +299,15 @@ impl ShiftAwareStrategy {
             .find(|l| l.id != start_id && l.minutes > start_minutes)
     }
 
-    fn combine_notes(start_note: Option<String>, end_note: Option<String>) -> Option<String> {
+    fn combine_notes(
+        start_note: Option<PairingNote>,
+        end_note: Option<PairingNote>,
+    ) -> Option<PairingNote> {
         match (start_note, end_note) {
-            (Some(n1), Some(n2)) => Some(format!("{n1}\n{n2}")),
-            (Some(n1), None) => Some(n1),
+            (Some(PairingNote::Custom(n1)), Some(PairingNote::Custom(n2))) => {
+                Some(PairingNote::Custom(format!("{n1}\n{n2}")))
+            }
+            (Some(n1), None | Some(_)) => Some(n1),
             (None, Some(n2)) => Some(n2),
             (None, None) => None,
         }
@@ -305,12 +328,12 @@ impl ShiftAwareStrategy {
     // --- Shared helpers for TD-P2 DRY extraction ---
 
     /// Extract note from a log event's raw_data.
-    fn extract_note(log: &LogEvent) -> Option<String> {
+    fn extract_note(log: &LogEvent) -> Option<PairingNote> {
         log.raw_data
             .as_ref()
             .and_then(|r| r.get("note"))
             .and_then(|n| n.as_str())
-            .map(std::string::ToString::to_string)
+            .map(|s| PairingNote::Custom(s.to_string()))
     }
 
     /// Extract entry type from a log event's raw_data, defaulting to Work.
@@ -332,12 +355,15 @@ impl ShiftAwareStrategy {
             .unwrap_or(false)
     }
 
-    /// Append "Missing Punch Out" note if no end time.
-    fn finalize_note(note: Option<String>, missing_out: bool) -> Option<String> {
+    /// Append MissingPunchOut note if no end time.
+    fn finalize_note(note: Option<PairingNote>, missing_out: bool) -> Option<PairingNote> {
         if missing_out {
             match note {
-                Some(n) => Some(format!("{n}\nMissing Punch Out")),
-                None => Some("Missing Punch Out".to_string()),
+                Some(PairingNote::Custom(n)) => {
+                    Some(PairingNote::Custom(format!("{n}\nmissing_punch_out")))
+                }
+                None => Some(PairingNote::MissingPunchOut),
+                Some(other) => Some(other),
             }
         } else {
             note
@@ -559,7 +585,7 @@ mod tests {
         assert_eq!(sessions.len(), 1);
         assert_eq!(sessions[0].start_minutes, 480);
         assert!(sessions[0].end_minutes.is_none());
-        assert_eq!(sessions[0].note.as_deref(), Some("Missing Punch Out"));
+        assert_eq!(sessions[0].note, Some(PairingNote::MissingPunchOut));
     }
 
     #[test]
@@ -619,7 +645,7 @@ mod tests {
         assert_eq!(sessions.len(), 1);
         assert_eq!(sessions[0].start_minutes, 480);
         assert!(sessions[0].end_minutes.is_none());
-        assert_eq!(sessions[0].note.as_deref(), Some("Missing Punch Out"));
+        assert_eq!(sessions[0].note, Some(PairingNote::MissingPunchOut));
     }
 
     #[test]
@@ -749,7 +775,7 @@ mod tests {
         assert_eq!(sessions.len(), 1);
         assert_eq!(sessions[0].start_minutes, 478);
         assert!(sessions[0].end_minutes.is_none());
-        assert_eq!(sessions[0].note.as_deref(), Some("Missing Punch Out"));
+        assert_eq!(sessions[0].note, Some(PairingNote::MissingPunchOut));
 
         let meta = sessions[0].metadata.as_ref().unwrap();
         assert_eq!(meta["tier"], "shift_window");

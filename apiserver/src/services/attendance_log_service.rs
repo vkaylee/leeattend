@@ -11,7 +11,7 @@ use crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepo
 use crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
 use crate::repositories::staging_log_repository::StagingLogRepository;
 use crate::repositories::EmployeeRepository;
-use crate::services::pairing_service::PairingService;
+use crate::services::pairing_service::PairingProcessor;
 use crate::services::{agent_log_buffer, AgentLogBuffer, AgentLogEntry};
 use crate::utils::datetime::parse_datetime_with_tz;
 
@@ -21,7 +21,7 @@ pub struct AttendanceLogService {
     raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
     staging_repo: Arc<dyn StagingLogRepository>,
     error_repo: Arc<dyn AttendanceLogErrorRepository>,
-    pairing_service: Arc<PairingService>,
+    pairing_service: Arc<dyn PairingProcessor>,
     #[allow(dead_code)] // Held to keep mpsc Sender alive — dropping closes the worker channel
     log_buffer: Arc<AgentLogBuffer>,
 }
@@ -54,7 +54,7 @@ pub struct ProcessLogArgs<'a> {
 
 impl AttendanceLogService {
     pub fn new(
-        pairing_service: Arc<PairingService>,
+        pairing_service: Arc<dyn PairingProcessor>,
         config: AttendanceLogServiceConfig,
         deps: AttendanceLogServiceDeps,
     ) -> (Self, tokio::task::JoinHandle<()>) {

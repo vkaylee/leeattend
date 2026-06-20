@@ -2,6 +2,10 @@ use crate::diesel_pool::TenantAuthToken;
 use crate::errors::AppError;
 use std::sync::Arc;
 
+/// Hour threshold below which a log is considered "early in the day"
+/// and may belong to an overnight shift from the previous day.
+const OVERNIGHT_REPROCESS_CUTOFF_HOUR: u32 = 12;
+
 use chrono::{DateTime, Duration, NaiveDate, Timelike, Utc};
 use chrono_tz::Tz;
 use tracing::info;
@@ -13,6 +17,32 @@ use crate::repositories::shift_repository::ShiftRepository;
 use crate::models::{RawAttendanceLog, TimeEntry};
 use crate::repositories::roster::RosterRepository;
 use crate::repositories::TimeEntryRepository;
+
+/// Trait abstracting the pairing service's public API for dependency injection.
+///
+/// Enables callers to depend on `Arc<dyn PairingProcessor>` instead of the
+/// concrete `PairingService`, improving unit test isolation.
+#[async_trait::async_trait]
+pub trait PairingProcessor: Send + Sync {
+    async fn process_new_raw_log(&self, log: &RawAttendanceLog) -> Result<(), AppError>;
+
+    async fn reprocess_daily_attendance(
+        &self,
+        workspace_id: Uuid,
+        employment_id: Uuid,
+        date: NaiveDate,
+        tz: Tz,
+    ) -> Result<(), AppError>;
+
+    async fn reprocess_attendance_range(
+        &self,
+        workspace_id: Uuid,
+        employment_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+        tz: Tz,
+    ) -> Result<(), AppError>;
+}
 use crate::services::pairing_algo::{self, PairingShiftConfig};
 use crate::services::SummaryRecalculator;
 
@@ -26,12 +56,12 @@ pub struct PairingService {
 }
 
 pub struct PairingServiceArgs {
-    pub time_entry_repo: Arc<dyn TimeEntryRepository>,
-    pub roster_repo: Arc<dyn RosterRepository>,
-    pub employee_repo: Arc<dyn crate::repositories::employee::EmployeeRepository>,
-    pub raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
-    pub shift_repo: Arc<dyn ShiftRepository>,
-    pub summary_service: Arc<dyn SummaryRecalculator>,
+    pub(crate) time_entry_repo: Arc<dyn TimeEntryRepository>,
+    pub(crate) roster_repo: Arc<dyn RosterRepository>,
+    pub(crate) employee_repo: Arc<dyn crate::repositories::employee::EmployeeRepository>,
+    pub(crate) raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
+    pub(crate) shift_repo: Arc<dyn ShiftRepository>,
+    pub(crate) summary_service: Arc<dyn SummaryRecalculator>,
 }
 
 impl PairingService {
@@ -96,7 +126,7 @@ impl PairingService {
             .await?;
 
         // 5. Reprocess previous day if early in the morning (Overnight checkouts)
-        if local_dt.hour() < 12 {
+        if local_dt.hour() < OVERNIGHT_REPROCESS_CUTOFF_HOUR {
             let prev_date = local_date - Duration::days(1);
             info!(
                 workspace_id = %log.workspace_id(),
@@ -567,7 +597,42 @@ impl<'a> ConsumedLogTracker<'a> {
     }
 }
 
-// local_to_tz is now provided by crate::utils::tz::local_to_tz
+#[async_trait::async_trait]
+impl PairingProcessor for PairingService {
+    async fn process_new_raw_log(&self, log: &RawAttendanceLog) -> Result<(), AppError> {
+        PairingService::process_new_raw_log(self, log).await
+    }
+
+    async fn reprocess_daily_attendance(
+        &self,
+        workspace_id: Uuid,
+        employment_id: Uuid,
+        date: NaiveDate,
+        tz: Tz,
+    ) -> Result<(), AppError> {
+        PairingService::reprocess_daily_attendance(self, workspace_id, employment_id, date, tz)
+            .await
+    }
+
+    async fn reprocess_attendance_range(
+        &self,
+        workspace_id: Uuid,
+        employment_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+        tz: Tz,
+    ) -> Result<(), AppError> {
+        PairingService::reprocess_attendance_range(
+            self,
+            workspace_id,
+            employment_id,
+            start_date,
+            end_date,
+            tz,
+        )
+        .await
+    }
+}
 
 #[cfg(test)]
 mod tests {

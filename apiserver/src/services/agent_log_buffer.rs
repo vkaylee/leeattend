@@ -18,7 +18,7 @@ use crate::utils::id::new_id;
 use crate::repositories::{
     employee::EmployeeRepository, raw_attendance_log_repository::RawAttendanceLogRepository,
 };
-use crate::services::pairing_service::PairingService;
+use crate::services::pairing_service::PairingProcessor;
 use crate::utils::datetime::parse_datetime_with_tz;
 
 /// Entry representing a raw attendance log from an agent
@@ -131,7 +131,7 @@ struct ParsedLogEntry {
 pub async fn run_log_worker(
     employee_repo: Arc<dyn EmployeeRepository>,
     raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
-    pairing_service: Arc<PairingService>,
+    pairing_service: Arc<dyn PairingProcessor>,
     mut receiver: mpsc::Receiver<AgentLogEntry>,
     batch_size: usize,
     flush_interval_ms: u64,
@@ -151,13 +151,13 @@ pub async fn run_log_worker(
                 if let Some(log_entry) = entry {
                     batch.push(log_entry);
                     if batch.len() >= batch_size {
-                        process_batch(&*employee_repo, &*raw_log_repo, &pairing_service, &mut batch).await;
+                        process_batch(&*employee_repo, &*raw_log_repo, &*pairing_service, &mut batch).await;
                     }
                 } else {
                     // Channel closed, drain remaining logs
                     info!("Agent log buffer closed, draining {} remaining logs", batch.len());
                     if !batch.is_empty() {
-                        process_batch(&*employee_repo, &*raw_log_repo, &pairing_service, &mut batch).await;
+                        process_batch(&*employee_repo, &*raw_log_repo, &*pairing_service, &mut batch).await;
                     }
                     break;
                 }
@@ -165,7 +165,7 @@ pub async fn run_log_worker(
             // Flush timer tick
             _ = flush_timer.tick() => {
                 if !batch.is_empty() {
-                    process_batch(&*employee_repo, &*raw_log_repo, &pairing_service, &mut batch).await;
+                    process_batch(&*employee_repo, &*raw_log_repo, &*pairing_service, &mut batch).await;
                 }
             }
         }
@@ -178,7 +178,7 @@ pub async fn run_log_worker(
 async fn process_batch(
     employee_repo: &dyn EmployeeRepository,
     raw_log_repo: &dyn RawAttendanceLogRepository,
-    pairing_service: &PairingService,
+    pairing_service: &dyn PairingProcessor,
     batch: &mut Vec<AgentLogEntry>,
 ) {
     if batch.is_empty() {

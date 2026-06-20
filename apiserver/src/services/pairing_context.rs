@@ -1,9 +1,59 @@
 use crate::errors::AppError;
 use crate::models::{RawAttendanceLog, Shift, TimeEntry};
 use crate::services::pairing_algo::{LogEvent, PairedSession, PairingShiftConfig};
-use chrono::{DateTime, Duration, NaiveDate, Timelike, Utc};
+use chrono::{DateTime, Duration, NaiveDate, NaiveTime, Timelike, Utc};
 use chrono_tz::Tz;
 use uuid::Uuid;
+
+/// Number of minutes in a day (24 hours).
+const MINUTES_PER_DAY: u32 = 1440;
+
+/// Shared helper: convert NaiveTime pair + break times → PairingShiftConfig.
+/// Resolves overnight transitions for both shift times and break times.
+#[allow(clippy::cast_possible_wrap)]
+fn build_config_from_times(
+    start_time: NaiveTime,
+    end_time: NaiveTime,
+    break_start: Option<NaiveTime>,
+    break_end: Option<NaiveTime>,
+    grace_minutes: i32,
+) -> PairingShiftConfig {
+    let start_m = start_time.hour() * 60 + start_time.minute();
+    let mut end_m = end_time.hour() * 60 + end_time.minute();
+
+    if end_time < start_time {
+        end_m += MINUTES_PER_DAY;
+    }
+
+    let mut break_start_mins = break_start.map(|t| t.hour() * 60 + t.minute());
+    let mut break_end_mins = break_end.map(|t| t.hour() * 60 + t.minute());
+
+    if let (Some(bs), Some(be)) = (break_start_mins, break_end_mins) {
+        let mut bsv = bs;
+        let mut bev = be;
+        if bsv < start_m {
+            bsv += MINUTES_PER_DAY;
+        }
+        if bev < bsv {
+            bev += MINUTES_PER_DAY;
+        }
+        break_start_mins = Some(bsv);
+        break_end_mins = Some(bev);
+    }
+
+    PairingShiftConfig::new(
+        start_m as i32,
+        end_m as i32,
+        break_start_mins.map(|m| m as i32),
+        break_end_mins.map(|m| m as i32),
+        if grace_minutes > 0 {
+            Some(grace_minutes)
+        } else {
+            None
+        },
+        None,
+    )
+}
 
 pub struct PairingContext {
     date: NaiveDate,
@@ -22,101 +72,29 @@ impl PairingContext {
         self.tz
     }
 
-    #[allow(clippy::cast_possible_wrap)]
     pub fn build_shift_config(&self, shift: Option<&Shift>) -> Option<PairingShiftConfig> {
         let s = shift?;
-        let start_m = s.start_time.hour() * 60 + s.start_time.minute();
-        let mut end_m = s.end_time.hour() * 60 + s.end_time.minute();
-
-        // Handle Overnight: if end < start, it's next day
-        if s.end_time < s.start_time {
-            end_m += 1440;
-        }
-
-        let mut break_start_mins = s
-            .break_start
-            .map(|t: chrono::NaiveTime| t.hour() * 60 + t.minute());
-        let mut break_end_mins = s
-            .break_end
-            .map(|t: chrono::NaiveTime| t.hour() * 60 + t.minute());
-
-        // Handle break overnight transition if needed
-        if let (Some(bs), Some(be)) = (break_start_mins, break_end_mins) {
-            let mut break_start_val = bs;
-            let mut break_end_val = be;
-
-            if break_start_val < start_m {
-                break_start_val += 1440;
-            }
-            if break_end_val < break_start_val {
-                break_end_val += 1440;
-            }
-
-            break_start_mins = Some(break_start_val);
-            break_end_mins = Some(break_end_val);
-        }
-
-        Some(PairingShiftConfig::new(
-            start_m as i32,
-            end_m as i32,
-            break_start_mins.map(|m| m as i32),
-            break_end_mins.map(|m| m as i32),
-            if s.early_punch_in_grace_period_minutes > 0 {
-                Some(s.early_punch_in_grace_period_minutes)
-            } else {
-                None
-            },
-            None,
+        Some(build_config_from_times(
+            s.start_time,
+            s.end_time,
+            s.break_start,
+            s.break_end,
+            s.early_punch_in_grace_period_minutes,
         ))
     }
 
-    #[allow(clippy::cast_possible_wrap)]
     pub fn build_shift_config_from_schedule(
         &self,
         sched: &crate::models::EffectiveSchedule,
     ) -> Option<PairingShiftConfig> {
         let start_time = sched.start_time?;
         let end_time = sched.end_time?;
-        let start_m = start_time.hour() * 60 + start_time.minute();
-        let mut end_m = end_time.hour() * 60 + end_time.minute();
-
-        // Handle Overnight: if end < start, it's next day
-        if end_time < start_time {
-            end_m += 1440;
-        }
-
-        let mut break_start_mins = sched
-            .break_start
-            .map(|t: chrono::NaiveTime| t.hour() * 60 + t.minute());
-        let mut break_end_mins = sched
-            .break_end
-            .map(|t: chrono::NaiveTime| t.hour() * 60 + t.minute());
-
-        // Handle break overnight transition if needed
-        if let (Some(bs), Some(be)) = (break_start_mins, break_end_mins) {
-            let mut break_start_val = bs;
-            let mut break_end_val = be;
-
-            if break_start_val < start_m {
-                break_start_val += 1440;
-            }
-            if break_end_val < break_start_val {
-                break_end_val += 1440;
-            }
-
-            break_start_mins = Some(break_start_val);
-            break_end_mins = Some(break_end_val);
-        }
-
-        let grace = sched.early_punch_in_grace_period_minutes.unwrap_or(0);
-
-        Some(PairingShiftConfig::new(
-            start_m as i32,
-            end_m as i32,
-            break_start_mins.map(|m| m as i32),
-            break_end_mins.map(|m| m as i32),
-            if grace > 0 { Some(grace) } else { None },
-            None,
+        Some(build_config_from_times(
+            start_time,
+            end_time,
+            sched.break_start,
+            sched.break_end,
+            sched.early_punch_in_grace_period_minutes.unwrap_or(0),
         ))
     }
 
@@ -224,7 +202,7 @@ impl PairingContext {
                 duration,
                 session.is_break_overtime(),
                 session.entry_type().to_string(),
-                session.note().map(String::from),
+                session.note().map(std::string::ToString::to_string),
                 Some(final_metadata),
                 Utc::now(),
                 Utc::now(),
@@ -239,7 +217,7 @@ impl PairingContext {
 mod tests {
     use super::*;
     use crate::models::enums::LogSource;
-    use crate::services::pairing_algo::EntryType;
+    use crate::services::pairing_algo::{EntryType, PairingNote};
     use chrono::{NaiveTime, TimeZone};
 
     #[test]
@@ -465,7 +443,7 @@ mod tests {
             1080,
             None,
             EntryType::Work,
-            Some("Missing Punch Out".to_string()),
+            Some(PairingNote::MissingPunchOut),
             false,
             None,
         );
@@ -510,6 +488,6 @@ mod tests {
         );
         assert_eq!(e2.punch_out_time(), None);
         assert_eq!(e2.duration_minutes(), None);
-        assert_eq!(e2.note(), Some("Missing Punch Out"));
+        assert_eq!(e2.note(), Some("missing_punch_out"));
     }
 }
