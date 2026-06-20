@@ -1441,6 +1441,9 @@
   "reports": {
     "title": "考勤报告",
     "subtitle": "查看和导出员工考勤数据报告。",
+    "timeline": {
+      "title": "出勤时间线分析"
+    },
     "export_excel": "导出 Excel",
     "view_raw_logs": "查看原始日志",
     "all_departments": "全部",
@@ -1535,7 +1538,8 @@
       "reason_placeholder": "输入确认原因...",
       "existing_request": "已有考勤调整请求",
       "submit": "确认考勤",
-      "approve": "审批请求"
+      "approve": "审批请求",
+      "missing_out": "缺少下班打卡"
     },
     "debug_mode_on": "调试：开启",
     "debug_mode_off": "调试：关闭",

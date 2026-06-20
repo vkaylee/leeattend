@@ -51,11 +51,12 @@ function TableHeader({ hideEmployeeName, isDebugMode, t }: { hideEmployeeName: b
   return (
     <thead>
       <tr className="bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-sm border-b border-slate-100 dark:border-slate-800 sticky top-0 z-20">
-        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest sticky left-0 z-20 bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-sm">
+        <th className="w-10 px-2 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest sticky left-0 z-20 bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-sm"></th>
+        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest sticky left-[40px] z-20 bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-sm">
           {t("common.date")}
         </th>
         {!hideEmployeeName ? (
-          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest sticky left-[80px] sm:left-[100px] z-20 bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-sm">
+          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest sticky left-[120px] sm:left-[140px] z-20 bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-sm">
             {t("common.employee")}
           </th>
         ) : null}
@@ -92,7 +93,7 @@ export default function DailyReportTable({
   reprocessingRow,
   t,
 }: DailyReportTableProps) {
-  const colSpan = isDebugMode ? (hideEmployeeName ? 9 : 10) : (hideEmployeeName ? 8 : 9);
+  const colSpan = isDebugMode ? (hideEmployeeName ? 10 : 11) : (hideEmployeeName ? 9 : 10);
 
   return (
     <div className="overflow-auto flex-1 min-h-0">

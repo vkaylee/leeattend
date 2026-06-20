@@ -1441,6 +1441,9 @@
   "reports": {
     "title": "Báo cáo chấm công",
     "subtitle": "Xem và xuất báo cáo dữ liệu chấm công của nhân viên.",
+    "timeline": {
+      "title": "Phân tích dòng thời gian chấm công"
+    },
     "export_excel": "Xuất Excel",
     "view_raw_logs": "Xem Nhật Ký Thô",
     "all_departments": "Tất cả",
@@ -1522,7 +1525,8 @@
       "reason_placeholder": "Nhập lý do xác nhận...",
       "existing_request": "Đã có yêu cầu điều chỉnh trước đó",
       "submit": "Xác nhận công",
-      "approve": "Duyệt yêu cầu"
+      "approve": "Duyệt yêu cầu",
+      "missing_out": "Thiếu giờ ra"
     },
     "debug_mode_on": "Gỡ lỗi: Bật",
     "debug_mode_off": "Gỡ lỗi: Tắt",

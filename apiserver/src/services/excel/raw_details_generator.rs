@@ -105,18 +105,9 @@ pub fn generate(
             &time_fmt,
         )?;
         worksheet.write_string_with_format(row, 5, format_time(report.scheduled_end), &time_fmt)?;
-        worksheet.write_string_with_format(
-            row,
-            6,
-            format_datetime(report.actual_punch_in, tz),
-            &time_fmt,
-        )?;
-        worksheet.write_string_with_format(
-            row,
-            7,
-            format_datetime(report.actual_punch_out, tz),
-            &time_fmt,
-        )?;
+        let (actual_in_str, actual_out_str) = get_punch_times(report, tz);
+        worksheet.write_string_with_format(row, 6, actual_in_str, &time_fmt)?;
+        worksheet.write_string_with_format(row, 7, actual_out_str, &time_fmt)?;
         worksheet.write_number(row, 8, report.computed_std_hours)?;
         worksheet.write_number(row, 9, report.computed_ot_hours)?;
         let ot_status_label = match report.ot_claim_status.as_deref() {
@@ -163,4 +154,146 @@ pub fn generate(
     worksheet.autofit();
 
     Ok(())
+}
+
+fn get_punch_times(report: &DailyAttendanceReport, tz: Tz) -> (String, String) {
+    if let Some(entries_val) = report
+        .generation_metadata
+        .as_ref()
+        .and_then(|m| m.get("time_entries"))
+        .and_then(|v| v.as_array())
+    {
+        let mut parsed_entries = Vec::new();
+        for entry in entries_val {
+            if let Some(in_time_str) = entry.get("punch_in_time").and_then(|t| t.as_str()) {
+                if let Ok(in_time) = chrono::DateTime::parse_from_rfc3339(in_time_str) {
+                    let out_time = entry
+                        .get("punch_out_time")
+                        .and_then(|t| t.as_str())
+                        .and_then(|t| chrono::DateTime::parse_from_rfc3339(t).ok())
+                        .map(|t| t.with_timezone(&chrono::Utc));
+                    parsed_entries.push((in_time.with_timezone(&chrono::Utc), out_time));
+                }
+            }
+        }
+        parsed_entries.sort_by_key(|e| e.0);
+
+        if !parsed_entries.is_empty() {
+            let ins = parsed_entries
+                .iter()
+                .map(|e| format_datetime(Some(e.0), tz))
+                .collect::<Vec<_>>()
+                .join(" | ");
+            let outs = parsed_entries
+                .iter()
+                .map(|e| format_datetime(e.1, tz))
+                .collect::<Vec<_>>()
+                .join(" | ");
+            return (ins, outs);
+        }
+    }
+    (
+        format_datetime(report.actual_punch_in, tz),
+        format_datetime(report.actual_punch_out, tz),
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::{TimeZone, Utc};
+    use serde_json::json;
+
+    #[test]
+    fn test_get_punch_times_fallback() {
+        let tz = chrono_tz::Asia::Ho_Chi_Minh;
+        let report = DailyAttendanceReport {
+            date: NaiveDate::from_ymd_opt(2026, 6, 20).unwrap(),
+            employment_id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
+            employee_name: "Test Employee".to_string(),
+            employee_id_number: "EMP001".to_string(),
+            shift_symbol: None,
+            shift_name: None,
+            scheduled_start: None,
+            scheduled_end: None,
+            break_duration_minutes: None,
+            break_start: None,
+            break_end: None,
+            is_break_auto_deduct: None,
+            actual_punch_in: Some(Utc.with_ymd_and_hms(2026, 6, 20, 1, 0, 0).unwrap()), // 08:00 ICT
+            actual_punch_out: Some(Utc.with_ymd_and_hms(2026, 6, 20, 10, 0, 0).unwrap()), // 17:00 ICT
+            std_work_units: 0,
+            ot_work_units: 0,
+            ot_claim_status: None,
+            unit_type: crate::models::enums::TimekeepingUnit::HOUR,
+            unit_coefficient_hours: 1.0,
+            computed_std_hours: 8.0,
+            computed_ot_hours: 0.0,
+            status: crate::services::attendance_utils::AttendanceStatus::Present,
+            is_holiday: false,
+            is_unscheduled: false,
+            holiday_name: None,
+            generation_metadata: None,
+            is_leave_paid: None,
+            employer_name: None,
+        };
+
+        let (in_str, out_str) = get_punch_times(&report, tz);
+        assert_eq!(in_str, "08:00");
+        assert_eq!(out_str, "17:00");
+    }
+
+    #[test]
+    fn test_get_punch_times_multi_entries() {
+        let tz = chrono_tz::Asia::Ho_Chi_Minh;
+        let metadata = json!({
+            "time_entries": [
+                {
+                    "punch_in_time": "2026-06-20T01:00:00Z", // 08:00 ICT
+                    "punch_out_time": "2026-06-20T05:00:00Z" // 12:00 ICT
+                },
+                {
+                    "punch_in_time": "2026-06-20T06:00:00Z", // 13:00 ICT
+                    "punch_out_time": "2026-06-20T10:00:00Z" // 17:00 ICT
+                }
+            ]
+        });
+
+        let report = DailyAttendanceReport {
+            date: NaiveDate::from_ymd_opt(2026, 6, 20).unwrap(),
+            employment_id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
+            employee_name: "Test Employee".to_string(),
+            employee_id_number: "EMP001".to_string(),
+            shift_symbol: None,
+            shift_name: None,
+            scheduled_start: None,
+            scheduled_end: None,
+            break_duration_minutes: None,
+            break_start: None,
+            break_end: None,
+            is_break_auto_deduct: None,
+            actual_punch_in: Some(Utc.with_ymd_and_hms(2026, 6, 20, 1, 0, 0).unwrap()),
+            actual_punch_out: Some(Utc.with_ymd_and_hms(2026, 6, 20, 10, 0, 0).unwrap()),
+            std_work_units: 0,
+            ot_work_units: 0,
+            ot_claim_status: None,
+            unit_type: crate::models::enums::TimekeepingUnit::HOUR,
+            unit_coefficient_hours: 1.0,
+            computed_std_hours: 8.0,
+            computed_ot_hours: 0.0,
+            status: crate::services::attendance_utils::AttendanceStatus::Present,
+            is_holiday: false,
+            is_unscheduled: false,
+            holiday_name: None,
+            generation_metadata: Some(metadata),
+            is_leave_paid: None,
+            employer_name: None,
+        };
+
+        let (in_str, out_str) = get_punch_times(&report, tz);
+        assert_eq!(in_str, "08:00 | 13:00");
+        assert_eq!(out_str, "12:00 | 17:00");
+    }
 }

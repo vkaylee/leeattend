@@ -1441,6 +1441,9 @@
   "reports": {
     "title": "Attendance Reports",
     "subtitle": "View and export employee attendance data reports.",
+    "timeline": {
+      "title": "Attendance Timeline Analysis"
+    },
     "export_excel": "Export Excel",
     "view_raw_logs": "View Raw Logs",
     "all_departments": "All",
@@ -1522,7 +1525,8 @@
       "reason_placeholder": "Enter confirmation reason...",
       "existing_request": "Existing adjustment request found",
       "submit": "Confirm Attendance",
-      "approve": "Approve Request"
+      "approve": "Approve Request",
+      "missing_out": "Missing Clock Out"
     },
     "debug_mode_on": "Debug: ON",
     "debug_mode_off": "Debug: OFF",

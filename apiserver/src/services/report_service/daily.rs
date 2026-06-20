@@ -415,14 +415,8 @@ impl ReportService {
 
                 let mut metadata_map = serde_json::Map::new();
 
-                let log_metadata: Vec<_> = day_entries
-                    .iter()
-                    .filter_map(|e| e.generation_metadata().cloned())
-                    .collect();
-
-                if !log_metadata.is_empty() {
-                    metadata_map
-                        .insert("time_entries".to_string(), serde_json::json!(log_metadata));
+                if !day_entries.is_empty() {
+                    metadata_map.insert("time_entries".to_string(), serde_json::json!(day_entries));
                 }
 
                 if !daily.traces.is_empty() {

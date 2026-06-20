@@ -1,4 +1,4 @@
-import { RefreshCw, Bug, CheckCircle, ThumbsUp, ThumbsDown } from "lucide-react";
+import { RefreshCw, Bug, CheckCircle, ThumbsUp, ThumbsDown, ChevronRight, ChevronDown } from "lucide-react";
 import React from "react";
 
 import Button from "@/components/ui/button";
@@ -10,33 +10,61 @@ import { formatHours, getUnitTypeI18nKey, buildWorkUnitsTooltip } from "@/lib/ut
 import { ScheduleTracePopover } from "../../shifts/schedule-trace-popover";
 import { ReportOtStatusBadge } from "./report-ot-status-badge";
 import { ReportStatusBadge } from "./report-status-badge";
+import { DailyReportTimeline } from "./daily-report-timeline";
 
-function DailyReportTableRowExpanded({ row }: { row: DailyAttendanceReport }) {
+function DailyReportTableRowExpanded({
+  row,
+  formatTime,
+  t,
+  isDebugMode,
+}: {
+  row: DailyAttendanceReport;
+  formatTime: (time: string | null) => string;
+  t: (key: string) => string;
+  isDebugMode: boolean;
+}) {
   return (
-    <tr className="bg-slate-900/5 animate-in slide-in-from-top-2 duration-500">
-      <td className="px-10 py-10" colSpan={10}>
-        <div className="bg-slate-900 rounded-[3rem] p-10 shadow-2xl border-2 border-amber-200/20 overflow-hidden relative">
-          <div className="flex items-center gap-4 mb-8 border-b border-white/10 pb-6 relative z-10">
-            <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/10 flex items-center justify-center text-amber-400 shadow-inner border border-amber-500/20">
-              <Bug size={20} />
+    <tr className="bg-slate-500/5 dark:bg-slate-950/10 animate-in slide-in-from-top-2 duration-300">
+      <td className="px-10 py-6" colSpan={11}>
+        <div className="bg-white dark:bg-slate-900/90 rounded-[2rem] p-6 shadow-premium border border-slate-100 dark:border-slate-800 overflow-hidden relative">
+          <div className="flex items-center gap-3 mb-6 border-b border-slate-100 dark:border-slate-800 pb-4">
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 flex items-center justify-center text-emerald-500 border border-emerald-500/10">
+              <RefreshCw className="animate-pulse" size={14} />
             </div>
             <div>
-              <Typography className="text-[10px] font-bold text-amber-400 uppercase tracking-[0.3em]" variant="h4">
-                Audit Trail Analysis
+              <Typography className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest" variant="h4">
+                {t("reports.timeline.title") || "Attendance Timeline Analysis"}
               </Typography>
-              <Typography className="text-[9px] text-white/40 uppercase tracking-widest mt-1 font-bold" variant="p">
-                BSON Traceability Metadata — Real-time Evaluator Logs
+              <Typography className="text-[9px] text-slate-400 uppercase tracking-widest mt-0.5 font-bold" variant="p">
+                Visualizing Work Sessions & Scheduled Breaks
               </Typography>
             </div>
           </div>
-          <pre className="text-[11px] font-mono text-emerald-400 leading-relaxed overflow-x-auto custom-scrollbar relative z-10 p-2 selection:bg-emerald-50 dark:bg-emerald-950/20 max-h-[400px]">
-            {JSON.stringify(
-              row.generation_metadata ?? { message: "No metadata available" },
-              null,
-              2
-            )}
-          </pre>
-          <Bug className="absolute -right-16 -bottom-16 w-64 h-64 text-amber-500 opacity-5 -rotate-12 pointer-events-none" />
+          
+          {/* Visual Timeline Component */}
+          <DailyReportTimeline row={row} formatTime={formatTime} t={t} />
+
+          {isDebugMode && (
+            <div className="mt-8 border-t border-slate-100 dark:border-slate-800 pt-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/10 flex items-center justify-center text-amber-500 shadow-inner border border-amber-500/20">
+                  <Bug size={14} />
+                </div>
+                <div>
+                  <Typography className="text-[10px] font-bold text-amber-500 uppercase tracking-widest" variant="h4">
+                    Audit Trail Analysis (JSON debug)
+                  </Typography>
+                </div>
+              </div>
+              <pre className="text-[10px] font-mono text-emerald-400 bg-slate-950/90 dark:bg-slate-950 rounded-2xl leading-relaxed overflow-x-auto p-4 max-h-[300px]">
+                {JSON.stringify(
+                  row.generation_metadata ?? { message: "No metadata available" },
+                  null,
+                  2
+                )}
+              </pre>
+            </div>
+          )}
         </div>
       </td>
     </tr>
@@ -246,24 +274,66 @@ export function DailyReportTableRow({
   const isConfirming = confirmingRow === rowKey;
   const isExpanded = expandedDebugRows.has(rowKey);
   const existingAdjustment = adjustmentMap[rowKey];
+  const metadata = row.generation_metadata as { time_entries?: any[] } | undefined;
+  const timeEntries = metadata?.time_entries ?? [];
 
   return (
     <React.Fragment>
       <tr className={cn("transition-all group", isExpanded ? "bg-amber-50 dark:bg-amber-950/20" : "hover:bg-slate-50 dark:hover:bg-slate-800/50")}>
-        <td className="px-4 py-2.5 font-mono text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase whitespace-nowrap sticky left-0 z-10 bg-white group-hover:bg-slate-50 dark:bg-slate-900 dark:group-hover:bg-slate-800/50 transition-colors">
+        <td className="w-10 px-2 py-2.5 text-center sticky left-0 z-10 bg-white group-hover:bg-slate-50 dark:bg-slate-900 dark:group-hover:bg-slate-800/50 transition-colors">
+          <Button
+            variant="ghost"
+            className="p-1 h-auto text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            onClick={() => onToggleExpandRow(rowKey)}
+          >
+            <ChevronRight size={14} className={cn("transition-transform duration-200", isExpanded && "rotate-90")} />
+          </Button>
+        </td>
+        <td className="px-4 py-2.5 font-mono text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase whitespace-nowrap sticky left-[40px] z-10 bg-white group-hover:bg-slate-50 dark:bg-slate-900 dark:group-hover:bg-slate-800/50 transition-colors">
           {formatDate(row.date)}
         </td>
         {!hideEmployeeName ? (
-          <td className="px-4 py-2.5 font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none whitespace-nowrap sticky left-[80px] sm:left-[100px] z-10 bg-white group-hover:bg-slate-50 dark:bg-slate-900 dark:group-hover:bg-slate-800/50 transition-colors">
+          <td className="px-4 py-2.5 font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none whitespace-nowrap sticky left-[120px] sm:left-[140px] z-10 bg-white group-hover:bg-slate-50 dark:bg-slate-900 dark:group-hover:bg-slate-800/50 transition-colors">
             {row.employee_name}
           </td>
         ) : null}
         <td className="px-4 py-2.5"><ShiftCell row={row} t={t} /></td>
         <td className="px-4 py-2.5 text-center font-mono font-bold text-xs text-slate-700 dark:text-slate-200 tracking-tighter">
-          <div className="shadow-inner bg-slate-50 dark:bg-slate-800/50 rounded-md py-1 px-2 inline-block">{formatTime(row.actual_punch_in)}</div>
+          <div className="flex items-center justify-center gap-1.5">
+            <div className="shadow-inner bg-slate-50 dark:bg-slate-800/50 rounded-md py-1 px-2 inline-block">
+              {formatTime(row.actual_punch_in)}
+            </div>
+            {timeEntries.length > 1 && (
+              <span 
+                className="text-[8px] bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider scale-90 cursor-help"
+                title={timeEntries
+                  .map((e: any, i: number) => {
+                    const inT = formatTime(e.punch_in_time);
+                    const outT = e.punch_out_time ? formatTime(e.punch_out_time) : "---";
+                    return `Session ${i + 1}: ${inT} - ${outT} (${e.entry_type})`;
+                  })
+                  .join("\n")
+                }
+              >
+                Split
+              </span>
+            )}
+          </div>
         </td>
         <td className="px-4 py-2.5 text-center font-mono font-bold text-xs text-slate-700 dark:text-slate-200 tracking-tighter">
-          <div className="shadow-inner bg-slate-50 dark:bg-slate-800/50 rounded-md py-1 px-2 inline-block">{formatTime(row.actual_punch_out)}</div>
+          <div className="flex items-center justify-center gap-1.5">
+            <div className="shadow-inner bg-slate-50 dark:bg-slate-800/50 rounded-md py-1 px-2 inline-block">
+              {formatTime(row.actual_punch_out)}
+            </div>
+            {timeEntries.length > 1 && (
+              <span 
+                className="text-[8px] bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider scale-90 cursor-help opacity-0"
+                title=""
+              >
+                Split
+              </span>
+            )}
+          </div>
         </td>
         <td className="px-4 py-2.5 text-right">
           <div 
@@ -298,7 +368,14 @@ export function DailyReportTableRow({
           />
         </td>
       </tr>
-      {isDebugMode && isExpanded ? <DailyReportTableRowExpanded row={row} /> : null}
+      {isExpanded ? (
+        <DailyReportTableRowExpanded
+          formatTime={formatTime}
+          isDebugMode={isDebugMode}
+          row={row}
+          t={t}
+        />
+      ) : null}
     </React.Fragment>
   );
 }
