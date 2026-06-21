@@ -68,6 +68,7 @@ const GET_LIST_WHITELIST: &[&str] = &[
     "ess_get_my_leave_requests",
     "ess_get_my_shift_swaps",
     "list_employee_contracts",
+    "list_workspace_contracts",
     "list_employee_employments",
     "get_time_history",
     "get_attendance_logs",

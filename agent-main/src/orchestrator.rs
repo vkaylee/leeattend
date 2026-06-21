@@ -1056,10 +1056,10 @@ mod tests {
         let mut ctx = WorkerContext::new(
             log_tx,
             db.clone(),
-            semaphore.clone(),
-            success_cooldown_secs.clone(),
-            device_locks.clone(),
-            time_sync.clone(),
+            semaphore,
+            success_cooldown_secs,
+            device_locks,
+            time_sync,
             1800,
             Some(true),
             60,
@@ -1072,7 +1072,7 @@ mod tests {
         assert_eq!(ctx.inflight_timeout_secs(), 300);
 
         let new_semaphore = Arc::new(Semaphore::new(5));
-        ctx.update_semaphore(new_semaphore.clone());
+        ctx.update_semaphore(new_semaphore);
         assert_eq!(ctx.semaphore().available_permits(), 5);
     }
 
@@ -1090,10 +1090,10 @@ mod tests {
         let ctx = WorkerContext::new(
             log_tx,
             db.clone(),
-            semaphore.clone(),
-            success_cooldown_secs.clone(),
-            device_locks.clone(),
-            time_sync.clone(),
+            semaphore,
+            success_cooldown_secs,
+            device_locks,
+            time_sync,
             1800,
             Some(true),
             60,

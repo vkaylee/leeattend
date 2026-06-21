@@ -283,10 +283,10 @@ impl Worker for ZkWorker {
 
                 for log in logs {
                     models_logs.push(crate::models::AttendanceData {
-                        user_id: log.user_id,
-                        timestamp: log.timestamp.to_string().replace('T', " "),
-                        status: Some(log.status as i32),
-                        punch: Some(log.punch as i32),
+                        user_id: log.user_id().to_owned(),
+                        timestamp: log.timestamp().to_string().replace('T', " "),
+                        status: Some(log.status() as i32),
+                        punch: Some(log.punch() as i32),
                     });
                 }
 

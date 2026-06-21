@@ -383,7 +383,9 @@ mod tests {
         // Ensure cache is initially empty
         {
             let cache = manager.url_cache.read().await;
-            assert!(!cache.contains_key(&ws_id));
+            let contains = cache.contains_key(&ws_id);
+            drop(cache);
+            assert!(!contains);
         }
 
         // Insert a custom URL manually into the cache to simulate it being populated
@@ -422,16 +424,18 @@ mod tests {
         // 2. Set last accessed to 31 minutes ago
         {
             let mut last_accessed = manager.last_accessed.write().await;
-            last_accessed.insert(
-                ws_id,
-                std::time::Instant::now() - std::time::Duration::from_secs(1860),
-            );
+            let target_time = std::time::Instant::now()
+                .checked_sub(std::time::Duration::from_secs(1860))
+                .expect("Instant subtraction overflow");
+            last_accessed.insert(ws_id, target_time);
         }
 
         // 3. Verify it is in pools
         {
             let pools = manager.pools.read().await;
-            assert!(pools.contains_key(&ws_id));
+            let contains = pools.contains_key(&ws_id);
+            drop(pools);
+            assert!(contains);
         }
 
         // 4. Run eviction
@@ -441,10 +445,14 @@ mod tests {
         // 5. Verify it is removed from pools and last_accessed
         {
             let pools = manager.pools.read().await;
-            assert!(!pools.contains_key(&ws_id));
+            let contains_pool = pools.contains_key(&ws_id);
+            drop(pools);
+            assert!(!contains_pool);
 
             let last_accessed = manager.last_accessed.read().await;
-            assert!(!last_accessed.contains_key(&ws_id));
+            let contains_accessed = last_accessed.contains_key(&ws_id);
+            drop(last_accessed);
+            assert!(!contains_accessed);
         }
     }
 }
