@@ -23,6 +23,7 @@ export function useEmployeeContracts(wsId: string, employeeId: string) {
     mutationFn: (data: CreateContractRequest) => createEmployeeContract(wsId, employeeId, data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey });
+      void queryClient.invalidateQueries({ queryKey: ["workspace-contracts", wsId] });
     },
   });
 
@@ -31,6 +32,7 @@ export function useEmployeeContracts(wsId: string, employeeId: string) {
       updateEmployeeContract(wsId, employeeId, contractId, data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey });
+      void queryClient.invalidateQueries({ queryKey: ["workspace-contracts", wsId] });
     },
   });
 
@@ -38,6 +40,7 @@ export function useEmployeeContracts(wsId: string, employeeId: string) {
     mutationFn: (contractId: string) => deleteEmployeeContract(wsId, employeeId, contractId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey });
+      void queryClient.invalidateQueries({ queryKey: ["workspace-contracts", wsId] });
     },
   });
 

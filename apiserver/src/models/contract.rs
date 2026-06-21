@@ -125,3 +125,13 @@ pub struct UpdateContractRequest {
     pub document_id: Option<Uuid>,
     pub notes: Option<String>,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+pub struct EmployeeContractWithEmployee {
+    #[serde(flatten)]
+    pub contract: EmployeeContract,
+    pub employee_name: String,
+    pub employee_code: String,
+    pub employee_id: Uuid,
+}
+

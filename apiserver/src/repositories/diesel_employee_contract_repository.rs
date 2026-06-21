@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::{
     diesel_pool::DieselPools,
     errors::AppError,
-    models::contract::{CreateContractRequest, EmployeeContract, UpdateContractRequest},
+    models::contract::{CreateContractRequest, EmployeeContract, UpdateContractRequest, EmployeeContractWithEmployee},
     models::diesel::employee_contract::{EmployeeContractEntity, UpdateDieselEmployeeContract},
 };
 
@@ -179,6 +179,51 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
             .await?;
 
         Ok(contracts.into_iter().map(Into::into).collect())
+    }
+
+    async fn list_workspace_contracts(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<Vec<EmployeeContractWithEmployee>, AppError> {
+        use crate::schema::employee_contracts::dsl::*;
+        use crate::schema::employments::dsl::{employments, id as emp_emp_id, employee_id as emp_employee_id, deleted_at as emp_deleted_at};
+        use crate::schema::employees::dsl::{employees, id as emp_id, full_name, employee_id_number, deleted_at as employee_deleted_at};
+
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await?,
+        );
+
+        let results = employee_contracts
+            .inner_join(employments.on(employment_id.eq(emp_emp_id)))
+            .inner_join(employees.on(emp_employee_id.eq(emp_id)))
+            .filter(workspace_id.eq(auth_token.workspace_id()))
+            .filter(deleted_at.is_null())
+            .filter(emp_deleted_at.is_null())
+            .filter(employee_deleted_at.is_null())
+            .order(start_date.desc())
+            .select((
+                EmployeeContractEntity::as_select(),
+                full_name,
+                employee_id_number,
+                emp_id,
+            ))
+            .load::<(EmployeeContractEntity, String, String, Uuid)>(&mut *conn)
+            .await?;
+
+        Ok(results
+            .into_iter()
+            .map(|(entity, name, code, emp_uuid)| {
+                EmployeeContractWithEmployee {
+                    contract: entity.into(),
+                    employee_name: name,
+                    employee_code: code,
+                    employee_id: emp_uuid,
+                }
+            })
+            .collect())
     }
 
     async fn list_contracts_batch(

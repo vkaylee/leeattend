@@ -1,7 +1,8 @@
-import { FileText, Pencil, Plus, Trash2, KeyRound } from "lucide-react";
+import { FileText, Pencil, Plus, Trash2, KeyRound, Eye } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 
 import type { ContractStatus, ContractType, EmployeeContract } from "@/lib/api";
 
@@ -79,19 +80,28 @@ export default function EmployeeContractsTab({ wsId, employeeId, formatDate }: E
         <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 opacity-70">
           <FileText className="text-primary-500" size={14} /> {t("employees.details.contracts.title").toUpperCase()}
         </span>
-        <PermissionGate permission="employees:update">
-          <Button 
-            className="flex items-center gap-1.5 text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:bg-primary-50 dark:hover:bg-primary-900/50 py-1.5 px-3 rounded-full transition-colors h-auto shadow-none border-none"
-            onClick={() => {
-              setEditingContract(null);
-              setIsModalOpen(true);
-            }}
-            type="button"
-            variant="ghost"
+        <div className="flex items-center gap-2">
+          <Link
+            to="/econtracts"
+            search={{ q: employeeId }}
+            className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 hover:text-primary-600 dark:text-slate-400 dark:hover:text-primary-400 uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800/50 py-1.5 px-3 rounded-full transition-colors h-auto shadow-none border-none"
           >
-            <Plus size={14} /> {t("employees.details.contracts.sign_contract").toUpperCase()}
-          </Button>
-        </PermissionGate>
+            <Eye size={14} /> VIEW IN REGISTRY
+          </Link>
+          <PermissionGate permission="employees:update">
+            <Button 
+              className="flex items-center gap-1.5 text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:bg-primary-50 dark:hover:bg-primary-900/50 py-1.5 px-3 rounded-full transition-colors h-auto shadow-none border-none"
+              onClick={() => {
+                setEditingContract(null);
+                setIsModalOpen(true);
+              }}
+              type="button"
+              variant="ghost"
+            >
+              <Plus size={14} /> {t("employees.details.contracts.sign_contract").toUpperCase()}
+            </Button>
+          </PermissionGate>
+        </div>
       </div>
 
       <div className="space-y-4 px-2">

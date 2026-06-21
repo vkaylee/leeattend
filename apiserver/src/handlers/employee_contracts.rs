@@ -10,7 +10,7 @@ use uuid::Uuid;
 use crate::{
     errors::{AppError, AppResult},
     handlers::common::MemberContext,
-    models::contract::{CreateContractRequest, EmployeeContract, UpdateContractRequest},
+    models::contract::{CreateContractRequest, EmployeeContract, UpdateContractRequest, EmployeeContractWithEmployee},
     queue::{Job, JobPayload, SyncHireDatePayload, TaskType},
     repositories::employee_contract_repository::EmployeeContractRepository,
     utils::i18n::I18nKey,
@@ -257,3 +257,28 @@ pub async fn delete_contract(
 
     Ok(StatusCode::NO_CONTENT)
 }
+
+/// Lấy danh sách hợp đồng toàn bộ workspace
+#[utoipa::path(
+    get,
+    path = "/api/v1/workspaces/{ws_id}/contracts",
+    params(
+        ("ws_id" = Uuid, Path, description = "Workspace ID"),
+    ),
+    responses(
+        (status = 200, description = "Danh sách hợp đồng toàn hệ thống", body = [EmployeeContractWithEmployee])
+    )
+)]
+pub async fn list_workspace_contracts(
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+    Path(_ws_id): Path<Uuid>,
+) -> AppResult<Json<Vec<EmployeeContractWithEmployee>>> {
+    let contracts = state
+        .employees()
+        .contract_repo()
+        .list_workspace_contracts(&ctx.auth_token)
+        .await?;
+    Ok(Json(contracts))
+}
+

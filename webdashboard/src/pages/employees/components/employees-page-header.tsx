@@ -1,6 +1,7 @@
-import { Upload, UserPlus } from "lucide-react";
+import { Upload, UserPlus, FileText } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "@tanstack/react-router";
 
 import PermissionGate from "@/components/common/permission-gate";
 import Button from "@/components/ui/button";
@@ -25,6 +26,14 @@ export const EmployeesPageHeader = ({
     <PageHeader
       actions={
         <>
+          <Link to="/econtracts">
+            <Button
+              icon={<FileText size={18} />}
+              variant="outline"
+            >
+              CONTRACTS HUB
+            </Button>
+          </Link>
           <PermissionGate permission="employees:create">
             <Button
               data-testid="import-employee-btn"

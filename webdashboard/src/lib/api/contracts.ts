@@ -61,3 +61,21 @@ export async function deleteEmployeeContract(wsId: string, employeeId: string, c
     },
   });
 }
+
+export interface EmployeeContractWithEmployee {
+  contract: EmployeeContract;
+  employee_name: string;
+  employee_code: string;
+  employee_id: string;
+}
+
+export async function fetchWorkspaceContracts(wsId: string): Promise<EmployeeContractWithEmployee[]> {
+  const { data } = await client.GET("/api/v1/workspaces/{ws_id}/contracts" as any, {
+    params: {
+      path: { ws_id: wsId },
+    },
+  });
+  if (!data) throw new Error("No response data");
+  return data as unknown as EmployeeContractWithEmployee[];
+}
+

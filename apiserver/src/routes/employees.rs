@@ -45,6 +45,10 @@ pub fn router() -> Router<Arc<AppState>> {
         )
         // Employee Contracts (v1 prefix as requested)
         .route(
+            "/workspaces/:ws_id/contracts",
+            get(handlers::employee_contracts::list_workspace_contracts),
+        )
+        .route(
             "/workspaces/:ws_id/employees/:employee_id/contracts",
             get(handlers::employee_contracts::list_employee_contracts)
                 .post(handlers::employee_contracts::create_contract),

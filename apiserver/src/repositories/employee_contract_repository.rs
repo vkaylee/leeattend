@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 use crate::errors::AppError;
-use crate::models::contract::{CreateContractRequest, EmployeeContract, UpdateContractRequest};
+use crate::models::contract::{CreateContractRequest, EmployeeContract, UpdateContractRequest, EmployeeContractWithEmployee};
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
@@ -25,6 +25,11 @@ pub trait EmployeeContractRepository: Send + Sync {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employment_id_val: Uuid,
     ) -> Result<Vec<EmployeeContract>, AppError>;
+
+    async fn list_workspace_contracts(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<Vec<EmployeeContractWithEmployee>, AppError>;
 
     async fn list_contracts_batch(
         &self,

@@ -115,6 +115,7 @@ use utoipa::OpenApi;
         crate::handlers::get_compensation_history,
 
         crate::handlers::employee_contracts::list_employee_contracts,
+        crate::handlers::employee_contracts::list_workspace_contracts,
         crate::handlers::employee_contracts::get_contract,
         crate::handlers::employee_contracts::create_contract,
         crate::handlers::employee_contracts::update_contract,
@@ -627,6 +628,7 @@ use utoipa::OpenApi;
             CreateDepartmentRequest,
             UpdateDepartmentRequest,
             EmployeeContract,
+            EmployeeContractWithEmployee,
             CreateContractRequest,
             UpdateContractRequest,
             Employment,

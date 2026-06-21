@@ -16,6 +16,7 @@ import {
   Braces,
   ClipboardList,
   Database,
+  Scale,
 } from "lucide-react";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -160,6 +161,13 @@ const getSystemGroup = (t: TFunction): SettingItem[] => [
     icon: <Database className="w-4 h-4" />,
     label: t("settings.categories.storage", { defaultValue: "Storage" }),
     path: ROUTES.SETTINGS.STORAGE,
+    permissions: ["workspace:settings:read"],
+  },
+  {
+    description: t("settings.categories.econtracts_desc", { defaultValue: "Manage e-signing integrations and credentials" }),
+    icon: <Scale className="w-4 h-4" />,
+    label: t("settings.categories.econtracts", { defaultValue: "e-Contracts Integration" }),
+    path: ROUTES.SETTINGS.ECONTRACTS,
     permissions: ["workspace:settings:read"],
   },
 ];

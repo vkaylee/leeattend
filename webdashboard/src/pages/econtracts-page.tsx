@@ -1,184 +1,197 @@
-import { Scale, Settings, Layers, FileText, Plus, Trash2, Search, Eye, CheckCircle, RefreshCw, KeyRound, Globe, Zap, AlertCircle } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import {
+  Scale,
+  Search,
+  FileText,
+  Plus,
+  Trash2,
+  Pencil,
+  Settings,
+  ChevronRight,
+  Filter
+} from "lucide-react";
+import React, { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link, useSearch } from "@tanstack/react-router";
 
 import PageHeader from "@/components/ui/page-header";
 import Button from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import FormField from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import EmptyState from "@/components/ui/empty-state";
-import { fetchEmployers } from "@/lib/api/employers";
-import { getCurrentWorkspaceId } from "@/lib/api/helpers";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
+import { getCurrentWorkspaceId } from "@/lib/api/helpers";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { fetchWorkspaceContracts, deleteEmployeeContract } from "@/lib/api/contracts";
+import { useAllEmployees } from "@/hooks/use-employees";
+import ContractFormModal from "@/components/features/employees/contract-form-modal";
+import { useConfirm } from "@/hooks/use-confirm";
+import type { EmployeeContract, ContractType, ContractStatus } from "@/lib/api";
 
-import {
-  fetchEContractConfigs,
-  saveEContractConfig,
-  fetchEContractRules,
-  saveEContractRule,
-  deleteEContractRule,
-  fetchEContractEnvelopes,
-  EContractConfig,
-  EContractRoutingRule,
-  EContractEnvelope,
-} from "@/lib/api/econtracts";
+interface SelectEmployeeModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSelect: (employeeId: string) => void;
+  employees: any[];
+}
+
+function SelectEmployeeModal({ isOpen, onClose, onSelect, employees }: SelectEmployeeModalProps) {
+  const { t } = useTranslation();
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    return employees.filter(emp =>
+      emp.full_name.toLowerCase().includes(search.toLowerCase()) ||
+      (emp.employee_id_number && emp.employee_id_number.toLowerCase().includes(search.toLowerCase()))
+    );
+  }, [employees, search]);
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={t("employees.details.contracts.select_employee", { defaultValue: "Select Employee" })}
+      subtitle={t("employees.details.contracts.select_employee_subtitle", { defaultValue: "Select an employee to sign/create a contract" })}
+      icon={<Plus size={24} />}
+    >
+      <div className="space-y-4 pt-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-3.5 text-slate-400" size={16} />
+          <input
+            type="text"
+            placeholder={t("employees.table.search_placeholder", { defaultValue: "Search employee by name or code..." })}
+            className="w-full pl-10 pr-4 h-11 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 dark:bg-slate-900/55 dark:border-slate-800 text-sm"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+
+        <div className="max-h-72 overflow-y-auto space-y-1.5 pr-1">
+          {filtered.length === 0 ? (
+            <div className="text-center py-8 text-slate-400 text-xs">
+              {t("common.no_data", { defaultValue: "No employees found" })}
+            </div>
+          ) : (
+            filtered.map((emp) => (
+              <button
+                key={emp.id}
+                type="button"
+                className="w-full flex items-center justify-between p-3.5 rounded-xl border border-slate-100 hover:border-primary-200 dark:border-slate-800/60 dark:hover:border-primary-900/50 hover:bg-primary-50/20 dark:hover:bg-primary-950/10 text-left transition-all group"
+                onClick={() => {
+                  onSelect(emp.id);
+                  onClose();
+                }}
+              >
+                <div>
+                  <div className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider group-hover:text-primary-600 transition-colors">
+                    {emp.full_name}
+                  </div>
+                  {emp.employee_id_number && (
+                    <div className="text-[10px] font-mono text-slate-400 mt-0.5">
+                      {emp.employee_id_number}
+                    </div>
+                  )}
+                </div>
+                <ChevronRight size={14} className="text-slate-400 group-hover:text-primary-500 transition-colors" />
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+    </Modal>
+  );
+}
 
 export default function EContractsPage() {
   const { t } = useTranslation();
   const toast = useToast();
   const queryClient = useQueryClient();
   const wsId = getCurrentWorkspaceId() || "";
+  const { formatDate } = useDateTimeFormatter();
+  const { confirm, ConfirmationDialog } = useConfirm();
 
-  const [activeTab, setActiveTab] = useState<string>("configs");
-  const [selectedEmployerId, setSelectedEmployerId] = useState<string>("");
+  const searchParams = useSearch({ from: "/_authenticated/_workspace/econtracts" });
+
+  const [search, setSearch] = useState(searchParams.q || "");
+  const [selectedType, setSelectedType] = useState<string>("all");
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
+
+  // Sign contract flow states
+  const [isSelectEmpOpen, setIsSelectEmpOpen] = useState(false);
+  const [activeEmployeeId, setActiveEmployeeId] = useState<string | null>(null);
+  const [isContractFormOpen, setIsContractFormOpen] = useState(false);
+  const [editingContract, setEditingContract] = useState<EmployeeContract | null>(null);
 
   // Queries
-  const { data: employers = [], isLoading: isLoadingEmployers } = useQuery({
-    queryKey: ["employers", wsId],
-    queryFn: () => fetchEmployers(wsId),
+  const { data: contracts = [], isLoading: isLoadingContracts } = useQuery({
+    queryKey: ["workspace-contracts", wsId],
+    queryFn: () => fetchWorkspaceContracts(wsId),
     enabled: !!wsId,
   });
 
-  const { data: configs = [], isLoading: isLoadingConfigs } = useQuery({
-    queryKey: ["econtract-configs", wsId],
-    queryFn: () => fetchEContractConfigs(wsId, employers),
-    enabled: !!wsId && employers.length > 0,
-  });
-
-  const { data: rules = [], isLoading: isLoadingRules } = useQuery({
-    queryKey: ["econtract-rules", wsId],
-    queryFn: () => fetchEContractRules(wsId, employers),
-    enabled: !!wsId && employers.length > 0,
-  });
-
-  const { data: envelopes = [], isLoading: isLoadingEnvelopes } = useQuery({
-    queryKey: ["econtract-envelopes", wsId],
-    queryFn: () => fetchEContractEnvelopes(wsId, employers),
-    enabled: !!wsId && employers.length > 0,
-  });
-
-  // Auto-select first employer
-  useEffect(() => {
-    if (employers.length > 0 && !selectedEmployerId) {
-      setSelectedEmployerId(employers[0].id);
-    }
-  }, [employers, selectedEmployerId]);
+  const { employees = [], isLoading: isLoadingEmployees } = useAllEmployees(wsId);
 
   // Mutations
-  const configMutation = useMutation({
-    mutationFn: (config: EContractConfig) => saveEContractConfig(wsId, config),
+  const deleteMutation = useMutation({
+    mutationFn: ({ employeeId, contractId }: { employeeId: string; contractId: string }) =>
+      deleteEmployeeContract(wsId, employeeId, contractId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["econtract-configs", wsId] });
-      toast.success(t("common.saved_success", { defaultValue: "Saved configuration successfully!" }));
+      queryClient.invalidateQueries({ queryKey: ["workspace-contracts", wsId] });
+      toast.success(t("common.deleted_success", { defaultValue: "Contract deleted successfully" }));
     },
     onError: (err: any) => {
-      toast.error(err.message || "Failed to save configuration");
+      toast.error(err.message || "Failed to delete contract");
     },
   });
 
-  const ruleMutation = useMutation({
-    mutationFn: (rule: Omit<EContractRoutingRule, "id" | "created_at">) => saveEContractRule(wsId, rule),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["econtract-rules", wsId] });
-      toast.success("Routing rule added successfully!");
-    },
-  });
+  const handleDelete = async (employeeId: string, contractId: string, contractNumber?: string | null) => {
+    const isConfirmed = await confirm({
+      title: t("common.delete", { defaultValue: "Delete Contract" }),
+      message: t("employees.details.contracts.delete_confirm", {
+        defaultValue: `Are you sure you want to delete contract ${contractNumber || ""} ? This action cannot be undone.`
+      }),
+      confirmText: t("common.delete", { defaultValue: "Delete" }),
+      cancelText: t("common.cancel", { defaultValue: "Cancel" }),
+    });
 
-  const ruleDeleteMutation = useMutation({
-    mutationFn: (ruleId: string) => deleteEContractRule(wsId, ruleId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["econtract-rules", wsId] });
-      toast.success("Routing rule deleted successfully!");
-    },
-  });
-
-  // Credential configuration state fields
-  const [configForm, setConfigForm] = useState<Partial<EContractConfig>>({
-    provider_type: "smartca",
-    api_url: "",
-    client_id: "",
-    client_secret_encrypted: "",
-    webhook_secret_encrypted: "",
-    hsm_key_alias: "",
-    default_auth_type: "smartca",
-    is_active: true,
-  });
-
-  // Update form fields when active config changes for the selected employer
-  useEffect(() => {
-    if (selectedEmployerId && configs.length > 0) {
-      const activeConf = configs.find((c) => c.employer_id === selectedEmployerId);
-      if (activeConf) {
-        setConfigForm(activeConf);
-      } else {
-        setConfigForm({
-          provider_type: "smartca",
-          api_url: "",
-          client_id: "",
-          client_secret_encrypted: "",
-          webhook_secret_encrypted: "",
-          hsm_key_alias: "",
-          default_auth_type: "smartca",
-          is_active: true,
-        });
-      }
+    if (isConfirmed) {
+      deleteMutation.mutate({ employeeId, contractId });
     }
-  }, [selectedEmployerId, configs]);
-
-  // Form handle for Config save
-  const handleSaveConfig = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedEmployerId) {
-      toast.error("Please select a Legal Entity.");
-      return;
-    }
-    configMutation.mutate({
-      ...configForm,
-      employer_id: selectedEmployerId,
-    } as EContractConfig);
   };
 
-  // Rule Creation Modal state
-  const [isRuleModalOpen, setIsRuleModalOpen] = useState(false);
-  const [newRuleForm, setNewRuleForm] = useState<Partial<EContractRoutingRule>>({
-    signer_country: "VN",
-    signing_method: "smartca",
-    target_provider_type: "smartca",
-    priority: 1,
-  });
-
-  const handleCreateRule = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedEmployerId) return;
-    ruleMutation.mutate({
-      ...newRuleForm,
-      employer_id: selectedEmployerId,
-    } as Omit<EContractRoutingRule, "id" | "created_at">);
-    setIsRuleModalOpen(false);
+  const getContractTypeLabel = (type: ContractType) => {
+    switch (type) {
+      case "probation": return t("employees.details.contracts.types.probation", { defaultValue: "Probation" });
+      case "training": return t("employees.details.contracts.types.training", { defaultValue: "Training" });
+      case "fixed_term": return t("employees.details.contracts.types.fixed_term", { defaultValue: "Fixed Term" });
+      case "indefinite": return t("employees.details.contracts.types.indefinite", { defaultValue: "Indefinite" });
+      default: return type;
+    }
   };
 
-  // Webhook log Modal state
-  const [selectedEnvelopeForLog, setSelectedEnvelopeForLog] = useState<EContractEnvelope | null>(null);
+  const getStatusColor = (status: ContractStatus) => {
+    switch (status) {
+      case "active": return "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800";
+      case "expired": return "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800";
+      case "terminated": return "bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700";
+      case "draft": return "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800";
+      default: return "bg-slate-50 text-slate-500";
+    }
+  };
 
-  // Filters for Envelope dashboard
-  const [envFilterSearch, setEnvFilterSearch] = useState("");
-  const [envFilterProvider, setEnvFilterProvider] = useState("all");
-  const [envFilterStatus, setEnvFilterStatus] = useState("all");
+  const filteredContracts = useMemo(() => {
+    return contracts.filter((c) => {
+      const nameMatch = c.employee_name.toLowerCase().includes(search.toLowerCase());
+      const codeMatch = c.employee_code.toLowerCase().includes(search.toLowerCase());
+      const numMatch = c.contract.contract_number?.toLowerCase().includes(search.toLowerCase()) ?? false;
+      const matchesSearch = nameMatch || codeMatch || numMatch;
 
-  const filteredEnvelopes = envelopes.filter((env) => {
-    const matchesSearch = env.external_envelope_id.toLowerCase().includes(envFilterSearch.toLowerCase()) || 
-      env.id.toLowerCase().includes(envFilterSearch.toLowerCase());
-    const matchesProvider = envFilterProvider === "all" || env.provider_type === envFilterProvider;
-    const matchesStatus = envFilterStatus === "all" || env.status === envFilterStatus;
-    return matchesSearch && matchesProvider && matchesStatus;
-  });
+      const matchesType = selectedType === "all" || c.contract.contract_type === selectedType;
+      const matchesStatus = selectedStatus === "all" || c.contract.status === selectedStatus;
 
-  const employerRules = rules.filter((r) => r.employer_id === selectedEmployerId);
-
-  const activeEmployerName = employers.find((e) => e.id === selectedEmployerId)?.name || "Select Legal Entity";
+      return matchesSearch && matchesType && matchesStatus;
+    });
+  }, [contracts, search, selectedType, selectedStatus]);
 
   if (!wsId) {
     return (
@@ -188,482 +201,240 @@ export default function EContractsPage() {
     );
   }
 
+  const isPageLoading = isLoadingContracts || isLoadingEmployees;
+
   return (
     <div className="space-y-6 animate-in fade-in duration-700 pb-20">
       <PageHeader
         icon={<Scale size={24} />}
-        subtitle="Manage legal entity e-signing credentials, routing precedence rules, and tracking transactions"
-        title="e-Contracts Hub"
-      />
-
-      {/* Global Legal Entity Picker */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-[2rem] shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">
-            Active Legal Entity Context
-          </h2>
-          <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
-            {activeEmployerName.toUpperCase()}
-          </p>
-        </div>
-        <div className="w-full md:w-80">
-          <label className="sr-only" htmlFor="employer-select">Select Legal Entity</label>
-          <select
-            className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 dark:bg-slate-850 dark:border-slate-800 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300"
-            id="employer-select"
-            onChange={(e) => { setSelectedEmployerId(e.target.value); }}
-            value={selectedEmployerId}
+        subtitle="Manage, view, and sign digital employment contracts for all employees across the organization"
+        title="Centralized Contract Registry"
+      >
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            to="/workspace/settings/econtracts"
+            className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-850 hover:text-primary-600 transition-all shadow-sm"
           >
-            {isLoadingEmployers ? (
-              <option>Loading Employers...</option>
-            ) : employers.length === 0 ? (
-              <option>No employers found</option>
-            ) : (
-              employers.map((emp) => (
-                <option key={emp.id} value={emp.id}>
-                  {emp.name.toUpperCase()}
-                </option>
-              ))
-            )}
-          </select>
+            <Settings size={14} /> CONFIGURATIONS
+          </Link>
+          <Button
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold shadow-sm"
+            onClick={() => {
+              setEditingContract(null);
+              setActiveEmployeeId(null);
+              setIsSelectEmpOpen(true);
+            }}
+            variant="secondary"
+          >
+            <Plus size={16} /> SIGN CONTRACT
+          </Button>
+        </div>
+      </PageHeader>
+
+      {/* Search and Filters panel */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-[2rem] shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="relative w-full md:w-80">
+          <Search className="absolute left-3.5 top-3 text-slate-400" size={16} />
+          <input
+            type="text"
+            placeholder="Search employee, ID or contract..."
+            className="w-full pl-10 pr-4 h-10 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 dark:bg-slate-850 dark:border-slate-800 text-xs font-medium"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="w-full md:w-auto flex flex-wrap md:flex-nowrap items-center gap-3">
+          {/* Contract Type select */}
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+              <Filter size={12} /> TYPE
+            </span>
+            <select
+              className="h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 dark:bg-slate-850 dark:border-slate-800 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300"
+              value={selectedType}
+              onChange={(e) => setSelectedType(e.target.value)}
+            >
+              <option value="all">ALL TYPES</option>
+              <option value="probation">PROBATION</option>
+              <option value="training">TRAINING</option>
+              <option value="fixed_term">FIXED TERM</option>
+              <option value="indefinite">INDEFINITE</option>
+            </select>
+          </div>
+
+          {/* Status select */}
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+              <Filter size={12} /> STATUS
+            </span>
+            <select
+              className="h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 dark:bg-slate-850 dark:border-slate-800 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300"
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+            >
+              <option value="all">ALL STATUS</option>
+              <option value="draft">DRAFT</option>
+              <option value="active">ACTIVE</option>
+              <option value="expired">EXPIRED</option>
+              <option value="terminated">TERMINATED</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* Navigation tabs */}
-      <Tabs onValueChange={setActiveTab} value={activeTab}>
-        <TabsList>
-          <TabsTrigger className="flex items-center gap-2 uppercase tracking-widest text-[11px]" value="configs">
-            <Settings size={14} /> Credentials Manager
-          </TabsTrigger>
-          <TabsTrigger className="flex items-center gap-2 uppercase tracking-widest text-[11px]" value="rules">
-            <Layers size={14} /> Routing Priority Rules
-          </TabsTrigger>
-          <TabsTrigger className="flex items-center gap-2 uppercase tracking-widest text-[11px]" value="envelopes">
-            <FileText size={14} /> Envelope Audit Dashboard
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Tab 1 Content: Credentials Manager */}
-        <TabsContent value="configs">
-          <form className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] shadow-sm space-y-6" noValidate onSubmit={handleSaveConfig}>
-            <div className="flex justify-between items-center border-b border-slate-50 dark:border-slate-800 pb-4">
-              <div>
-                <h3 className="text-sm font-bold uppercase tracking-widest text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                  <KeyRound className="text-primary-500" size={16} /> API Integration Credentials
-                </h3>
-                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-0.5">
-                  Configure keys, endpoints, and credentials for CA providers
-                </p>
-              </div>
-              <div className="flex items-center gap-2.5">
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Active Configuration</span>
-                <div
-                  aria-checked={configForm.is_active ?? true}
-                  className={cn(
-                    "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:ring-offset-2",
-                    configForm.is_active ? "bg-primary-600" : "bg-slate-200 dark:bg-slate-800"
-                  )}
-                  onClick={() => { setConfigForm((prev) => ({ ...prev, is_active: !prev.is_active })); }}
-                  onKeyDown={(e) => {
-                    if (e.key === " " || e.key === "Enter") {
-                      e.preventDefault();
-                      setConfigForm((prev) => ({ ...prev, is_active: !prev.is_active }));
-                    }
-                  }}
-                  role="switch"
-                  tabIndex={0}
-                >
-                  <span
-                    className={cn(
-                      "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
-                      configForm.is_active ? "translate-x-5" : "translate-x-0"
-                    )}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest" htmlFor="provider-type-select">
-                  Provider Type
-                  <select
-                    className="w-full h-12 px-3 mt-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-primary-500 focus:border-primary-500 dark:bg-slate-900/50 dark:border-slate-800 text-sm font-semibold"
-                    id="provider-type-select"
-                    onChange={(e) => { setConfigForm((prev) => ({ ...prev, provider_type: e.target.value })); }}
-                    value={configForm.provider_type || "smartca"}
-                  >
-                    <option value="smartca">VN SmartCA / Remote Sign (VNPT)</option>
-                    <option value="hsm">Corporate HSM Signature</option>
-                    <option value="fpt">FPT CeCA Compliance Engine</option>
-                    <option value="docusign">DocuSign International (eIDAS)</option>
-                    <option value="mock">Sandbox Staging Mock Provider</option>
-                  </select>
-                </label>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest" htmlFor="default-auth-select">
-                  Default Authorization Verification
-                  <select
-                    className="w-full h-12 px-3 mt-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-primary-500 focus:border-primary-500 dark:bg-slate-900/50 dark:border-slate-800 text-sm font-semibold"
-                    id="default-auth-select"
-                    onChange={(e) => { setConfigForm((prev) => ({ ...prev, default_auth_type: e.target.value as any })); }}
-                    value={configForm.default_auth_type || "smartca"}
-                  >
-                    <option value="smartca">SmartCA Verification</option>
-                    <option value="sms">SMS OTP Code</option>
-                    <option value="email">Email OTP Code</option>
-                    <option value="hsm">HSM Enterprise Sign</option>
-                  </select>
-                </label>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                id="api-url-input"
-                label="API Gateway Endpoint URL"
-                onChange={(e) => { setConfigForm((prev) => ({ ...prev, api_url: e.target.value })); }}
-                placeholder="VD: https://api.vnpt-smartca.vn/v1"
-                required
-                value={configForm.api_url || ""}
-              />
-              <FormField
-                id="client-id-input"
-                label="Integration Client ID / Access ID"
-                onChange={(e) => { setConfigForm((prev) => ({ ...prev, client_id: e.target.value })); }}
-                placeholder="VD: client_prod_88921"
-                required
-                value={configForm.client_id || ""}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                id="client-secret-input"
-                label="Client Credentials Secret (Encrypted at Rest)"
-                onChange={(e) => { setConfigForm((prev) => ({ ...prev, client_secret_encrypted: e.target.value })); }}
-                placeholder="••••••••••••••••••••••••••••"
-                required
-                type="password"
-                value={configForm.client_secret_encrypted || ""}
-              />
-              <FormField
-                id="webhook-secret-input"
-                label="Webhook Secret (Verify incoming callback events)"
-                onChange={(e) => { setConfigForm((prev) => ({ ...prev, webhook_secret_encrypted: e.target.value })); }}
-                placeholder="VD: whsec_abc123"
-                value={configForm.webhook_secret_encrypted || ""}
-              />
-            </div>
-
-            <FormField
-              id="hsm-alias-input"
-              label="HSM Key Alias (Optional, required if using HSM signatures)"
-              onChange={(e) => { setConfigForm((prev) => ({ ...prev, hsm_key_alias: e.target.value })); }}
-              placeholder="VD: alias_hsm_primary_01"
-              value={configForm.hsm_key_alias || ""}
-            />
-
-            <div className="flex justify-end pt-4 border-t border-slate-50 dark:border-slate-800">
-              <Button loading={configMutation.isPending} type="submit" variant="secondary">
-                SAVE CONFIGURATIONS
-              </Button>
-            </div>
-          </form>
-        </TabsContent>
-
-        {/* Tab 2 Content: Routing Priority Rules */}
-        <TabsContent value="rules">
-          <div className="space-y-6">
-            <div className="flex justify-between items-center px-4">
-              <div>
-                <h3 className="text-sm font-bold uppercase tracking-widest text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                  <Globe className="text-primary-500" size={16} /> Signing Provider Routing Precedence Rules
-                </h3>
-                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-0.5">
-                  Route envelopes to specific signature providers based on country & verification criteria
-                </p>
-              </div>
-              <Button icon={<Plus size={16} />} onClick={() => { setIsRuleModalOpen(true); }} variant="outline">
-                ADD ROUTING RULE
-              </Button>
-            </div>
-
-            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-hidden shadow-sm">
-              {isLoadingRules ? (
-                <div className="p-8 text-center text-xs text-slate-500 animate-pulse">Loading routing rules...</div>
-              ) : employerRules.length === 0 ? (
-                <EmptyState
-                  action={<Button onClick={() => { setIsRuleModalOpen(true); }} variant="secondary">Create First Rule</Button>}
-                  description="No custom routing rules established for this Legal Entity. All envelopes default to Mock Provider."
-                  icon={<Layers size={40} />}
-                  title="No Precedence Rules Found"
-                />
-              ) : (
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50 dark:bg-slate-800/10">
-                      <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">Signer Country</th>
-                      <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">Signing Auth</th>
-                      <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">Routed Provider</th>
-                      <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800 text-center">Priority</th>
-                      <th className="px-8 py-5 border-b border-slate-50 dark:border-slate-800"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {employerRules
-                      .sort((a, b) => b.priority - a.priority)
-                      .map((rule) => (
-                        <tr className="border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/10 transition-colors" key={rule.id}>
-                          <td className="px-8 py-6 text-xs font-mono font-bold text-slate-700 dark:text-slate-200">
-                            {rule.signer_country}
-                          </td>
-                          <td className="px-8 py-6 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
-                            {rule.signing_method}
-                          </td>
-                          <td className="px-8 py-6 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
-                            {rule.target_provider_type}
-                          </td>
-                          <td className="px-8 py-6 text-center text-xs font-bold text-slate-800 dark:text-slate-200">
-                            <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg shadow-sm">
-                              {rule.priority}
-                            </span>
-                          </td>
-                          <td className="px-8 py-6 text-right">
-                            <Button
-                              aria-label="Delete rule"
-                              className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 p-2 rounded-xl transition-colors h-auto w-auto shadow-none border-none"
-                              icon={<Trash2 size={14} />}
-                              onClick={() => { ruleDeleteMutation.mutate(rule.id); }}
-                              size="sm"
-                              variant="ghost"
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
+      {/* Contracts Registry Listing */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] shadow-sm overflow-hidden relative min-h-[400px]">
+        {isPageLoading ? (
+          <div className="p-8 space-y-4 animate-pulse">
+            <div className="h-10 bg-slate-100 dark:bg-slate-800 rounded-xl w-full"></div>
+            <div className="h-16 bg-slate-50 dark:bg-slate-800/60 rounded-xl w-full"></div>
+            <div className="h-16 bg-slate-50 dark:bg-slate-800/60 rounded-xl w-full"></div>
+            <div className="h-16 bg-slate-50 dark:bg-slate-800/60 rounded-xl w-full"></div>
           </div>
-        </TabsContent>
-
-        {/* Tab 3 Content: Envelope Audit Dashboard */}
-        <TabsContent value="envelopes">
-          <div className="space-y-6">
-            {/* Filter toolbar */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-[2rem] shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={16} />
-                <input
-                  className="w-full h-11 pl-11 pr-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold tracking-tight text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all dark:bg-slate-850 dark:border-slate-800"
-                  onChange={(e) => { setEnvFilterSearch(e.target.value); }}
-                  placeholder="Search envelopes by ID..."
-                  type="text"
-                  value={envFilterSearch}
-                />
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="w-40">
-                  <label className="sr-only" htmlFor="provider-filter">Filter by Provider</label>
-                  <select
-                    className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 dark:bg-slate-850 dark:border-slate-800"
-                    id="provider-filter"
-                    onChange={(e) => { setEnvFilterProvider(e.target.value); }}
-                    value={envFilterProvider}
+        ) : filteredContracts.length === 0 ? (
+          <EmptyState
+            icon={<FileText size={48} />}
+            title="No Contracts Found"
+            description={search || selectedType !== "all" || selectedStatus !== "all" 
+              ? "Try adjusting your search criteria or filters to locate specific contracts" 
+              : "No employment contracts have been registered in this workspace yet"}
+          >
+            {(search || selectedType !== "all" || selectedStatus !== "all") && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearch("");
+                  setSelectedType("all");
+                  setSelectedStatus("all");
+                }}
+              >
+                CLEAR FILTERS
+              </Button>
+            )}
+          </EmptyState>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-50 dark:border-slate-800/50">
+                  <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    EMPLOYEE
+                  </th>
+                  <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    CONTRACT NO.
+                  </th>
+                  <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    TYPE
+                  </th>
+                  <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    DURATION
+                  </th>
+                  <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    STATUS
+                  </th>
+                  <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">
+                    ACTIONS
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredContracts.map((c) => (
+                  <tr
+                    key={c.contract.id}
+                    className="border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50/40 dark:hover:bg-slate-850/10 transition-colors group"
                   >
-                    <option value="all">All Providers</option>
-                    <option value="smartca">VN SmartCA</option>
-                    <option value="hsm">Corporate HSM</option>
-                    <option value="fpt">FPT CeCA</option>
-                    <option value="docusign">DocuSign</option>
-                    <option value="mock">Mock Sandbox</option>
-                  </select>
-                </div>
-
-                <div className="w-40">
-                  <label className="sr-only" htmlFor="status-filter">Filter by Status</label>
-                  <select
-                    className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 dark:bg-slate-850 dark:border-slate-800"
-                    id="status-filter"
-                    onChange={(e) => { setEnvFilterStatus(e.target.value); }}
-                    value={envFilterStatus}
-                  >
-                    <option value="all">All Statuses</option>
-                    <option value="draft">Draft</option>
-                    <option value="sent">Sent</option>
-                    <option value="completed">Completed</option>
-                    <option value="voided">Voided</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-hidden shadow-sm">
-              {isLoadingEnvelopes ? (
-                <div className="p-8 text-center text-xs text-slate-500 animate-pulse">Loading envelopes...</div>
-              ) : filteredEnvelopes.length === 0 ? (
-                <EmptyState
-                  description="No signing envelope transactions match the filter criteria."
-                  icon={<FileText size={40} />}
-                  title="No Envelopes Found"
-                />
-              ) : (
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50 dark:bg-slate-800/10">
-                      <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">External ID</th>
-                      <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">Provider</th>
-                      <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">Status</th>
-                      <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">Date Generated</th>
-                      <th className="px-8 py-5 border-b border-slate-50 dark:border-slate-800"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredEnvelopes.map((env) => (
-                      <tr className="border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/10 transition-colors" key={env.id}>
-                        <td className="px-8 py-6 text-xs font-mono font-bold text-slate-800 dark:text-slate-200">
-                          {env.external_envelope_id}
-                        </td>
-                        <td className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-350">
-                          {env.provider_type}
-                        </td>
-                        <td className="px-8 py-6">
-                          <span
-                            className={cn(
-                              "text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full border shadow-sm",
-                              env.status === "completed"
-                                ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
-                                : env.status === "sent"
-                                ? "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
-                                : "bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800/50 dark:text-slate-400 dark:border-slate-750"
-                            )}
-                          >
-                            {env.status}
+                    <td className="px-8 py-5">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide group-hover:text-primary-600 transition-colors">
+                          {c.employee_name}
+                        </span>
+                        {c.employee_code && (
+                          <span className="text-[10px] font-mono text-slate-400 mt-0.5">
+                            {c.employee_code}
                           </span>
-                        </td>
-                        <td className="px-8 py-6 text-xs font-mono text-slate-500 dark:text-slate-400">
-                          {new Date(env.created_at).toLocaleDateString()}
-                        </td>
-                        <td className="px-8 py-6 text-right">
-                          <Button
-                            className="flex items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-primary-600 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-850 hover:bg-slate-50 transition-colors"
-                            icon={<Eye size={12} />}
-                            onClick={() => { setSelectedEnvelopeForLog(env); }}
-                            size="sm"
-                            variant="ghost"
-                          >
-                            WEBHOOK LOGS
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
-
-      {/* Creation Modal for Routing Rules */}
-      <Modal
-        icon={<Plus size={24} />}
-        isOpen={isRuleModalOpen}
-        onClose={() => { setIsRuleModalOpen(false); }}
-        subtitle="Add specific routing configuration priority rules"
-        title="Add Routing Rule"
-      >
-        <form className="space-y-6 pt-4" noValidate onSubmit={handleCreateRule}>
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              id="rule-country-input"
-              label="Signer Country Code (e.g. VN, US)"
-              onChange={(e) => { setNewRuleForm((prev) => ({ ...prev, signer_country: e.target.value.toUpperCase() })); }}
-              required
-              value={newRuleForm.signer_country || ""}
-            />
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest" htmlFor="rule-auth-select">
-                Preferred Signing Auth
-                <select
-                  className="w-full h-10 px-3 mt-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-primary-500 focus:border-primary-500 dark:bg-slate-900/50 dark:border-slate-800 text-sm font-semibold"
-                  id="rule-auth-select"
-                  onChange={(e) => { setNewRuleForm((prev) => ({ ...prev, signing_method: e.target.value as any })); }}
-                  value={newRuleForm.signing_method || "smartca"}
-                >
-                  <option value="smartca">SmartCA Remote OTP</option>
-                  <option value="sms">SMS OTP verification</option>
-                  <option value="email">Email OTP verification</option>
-                  <option value="hsm">HSM Enterprise Sign</option>
-                </select>
-              </label>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest" htmlFor="rule-provider-select">
-                Target Provider Route
-                <select
-                  className="w-full h-10 px-3 mt-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-primary-500 focus:border-primary-500 dark:bg-slate-900/50 dark:border-slate-800 text-sm font-semibold"
-                  id="rule-provider-select"
-                  onChange={(e) => { setNewRuleForm((prev) => ({ ...prev, target_provider_type: e.target.value })); }}
-                  value={newRuleForm.target_provider_type || "smartca"}
-                >
-                  <option value="smartca">VN SmartCA</option>
-                  <option value="hsm">Corporate HSM</option>
-                  <option value="fpt">FPT CeCA</option>
-                  <option value="docusign">DocuSign</option>
-                  <option value="mock">Mock Sandbox</option>
-                </select>
-              </label>
-            </div>
-            <FormField
-              id="rule-priority-input"
-              label="Priority Weight (Integer)"
-              onChange={(e) => { setNewRuleForm((prev) => ({ ...prev, priority: parseInt(e.target.value) || 1 })); }}
-              required
-              type="number"
-              value={String(newRuleForm.priority || 1)}
-            />
-          </div>
-
-          <div className="flex items-center justify-end gap-3 pt-6 border-t border-slate-100 dark:border-slate-800">
-            <Button onClick={() => { setIsRuleModalOpen(false); }} type="button" variant="outline">
-              CANCEL
-            </Button>
-            <Button type="submit" variant="secondary">
-              ADD RULE
-            </Button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* Webhook log details Modal */}
-      <Modal
-        icon={<AlertCircle size={24} />}
-        isOpen={Boolean(selectedEnvelopeForLog)}
-        onClose={() => { setSelectedEnvelopeForLog(null); }}
-        subtitle={`Audit events & incoming webhook responses for ${selectedEnvelopeForLog?.external_envelope_id}`}
-        title="Webhooks & Audit Trail"
-      >
-        {selectedEnvelopeForLog && (
-          <div className="space-y-6 pt-4">
-            <div className="bg-slate-950 p-6 rounded-3xl font-mono text-[11px] text-emerald-400 overflow-x-auto select-all max-h-96 shadow-inner">
-              <pre>{JSON.stringify(selectedEnvelopeForLog.audit_trail_metadata || { message: "No callback metadata captured" }, null, 2)}</pre>
-            </div>
-            <div className="flex items-center justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
-              <Button onClick={() => { setSelectedEnvelopeForLog(null); }} type="button" variant="outline">
-                CLOSE
-              </Button>
-            </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-8 py-5 text-xs font-mono font-semibold text-slate-600 dark:text-slate-350">
+                      {c.contract.contract_number || "—"}
+                    </td>
+                    <td className="px-8 py-5">
+                      <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                        {getContractTypeLabel(c.contract.contract_type)}
+                      </span>
+                    </td>
+                    <td className="px-8 py-5 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                      {formatDate(c.contract.start_date)}
+                      {" → "}
+                      {c.contract.end_date ? formatDate(c.contract.end_date) : "Lâu dài / Permanent"}
+                    </td>
+                    <td className="px-8 py-5">
+                      <span className={cn("text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 border rounded-full shadow-sm", getStatusColor(c.contract.status))}>
+                        {c.contract.status}
+                      </span>
+                    </td>
+                    <td className="px-8 py-5 text-right">
+                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-xl transition-colors h-auto w-auto shadow-none"
+                          onClick={() => {
+                            setEditingContract(c.contract);
+                            setActiveEmployeeId(c.employee_id);
+                            setIsContractFormOpen(true);
+                          }}
+                          size="icon"
+                          variant="ghost"
+                        >
+                          <Pencil size={14} />
+                        </Button>
+                        <Button
+                          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-colors h-auto w-auto shadow-none"
+                          onClick={() => {
+                            void handleDelete(c.employee_id, c.contract.id, c.contract.contract_number);
+                          }}
+                          size="icon"
+                          variant="ghost"
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
-      </Modal>
+      </div>
+
+      {/* Select Employee Flow Step Modal */}
+      <SelectEmployeeModal
+        isOpen={isSelectEmpOpen}
+        onClose={() => setIsSelectEmpOpen(false)}
+        employees={employees}
+        onSelect={(employeeId) => {
+          setActiveEmployeeId(employeeId);
+          setIsContractFormOpen(true);
+        }}
+      />
+
+      {/* Main Contract Form Modal */}
+      {isContractFormOpen && activeEmployeeId && (
+        <ContractFormModal
+          isOpen={isContractFormOpen}
+          onClose={() => {
+            setIsContractFormOpen(false);
+            setActiveEmployeeId(null);
+            setEditingContract(null);
+          }}
+          editingContract={editingContract}
+          wsId={wsId}
+          employeeId={activeEmployeeId}
+        />
+      )}
+
+      {/* Confirmation Dialog Placeholder */}
+      <ConfirmationDialog />
     </div>
   );
 }
