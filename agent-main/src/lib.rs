@@ -8,7 +8,6 @@
     clippy::module_name_repetitions,
     clippy::missing_panics_doc,
     clippy::doc_markdown,
-    clippy::wildcard_imports,
     clippy::struct_field_names,
     clippy::option_if_let_else,
     clippy::items_after_statements,
