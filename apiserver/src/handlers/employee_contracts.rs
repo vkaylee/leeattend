@@ -10,7 +10,10 @@ use uuid::Uuid;
 use crate::{
     errors::{AppError, AppResult},
     handlers::common::MemberContext,
-    models::contract::{CreateContractRequest, EmployeeContract, UpdateContractRequest, EmployeeContractWithEmployee},
+    models::contract::{
+        CreateContractRequest, EmployeeContract, EmployeeContractWithEmployee,
+        UpdateContractRequest,
+    },
     queue::{Job, JobPayload, SyncHireDatePayload, TaskType},
     repositories::employee_contract_repository::EmployeeContractRepository,
     utils::i18n::I18nKey,
@@ -281,4 +284,3 @@ pub async fn list_workspace_contracts(
         .await?;
     Ok(Json(contracts))
 }
-

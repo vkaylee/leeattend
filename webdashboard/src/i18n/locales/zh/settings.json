@@ -314,7 +314,9 @@
       "lifecycle": "入离职流程清单",
       "lifecycle_desc": "管理入职和离职清单模板",
       "storage_desc": "Storage Desc",
-      "storage": "Storage"
+      "storage": "Storage",
+      "econtracts": "电子合同集成",
+      "econtracts_desc": "配置数字签名、签署凭证及合同路由规则。"
     },
     "organization": {
       "departments_redirect_desc": "管理部门结构，分配部门经理，配置薪资规则，并监控每个部门的在职员工数。",

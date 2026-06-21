@@ -314,7 +314,9 @@
       "lifecycle": "Lifecycle Checklists",
       "lifecycle_desc": "Manage onboarding and offboarding checklist templates",
       "storage_desc": "Storage Desc",
-      "storage": "Storage"
+      "storage": "Storage",
+      "econtracts": "e-Contracts Integration",
+      "econtracts_desc": "Configure digital signatures, sign credentials, and rule routing rules."
     },
     "organization": {
       "departments_redirect_desc": "Manage the organizational structure, assign managers, configure payroll rules, and monitor active employee counts for each department.",

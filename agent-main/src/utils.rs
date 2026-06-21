@@ -56,6 +56,22 @@ pub fn normalize_employee_id(id: &str) -> String {
     }
 }
 
+/// Mask employee ID to protect PII in logs
+pub fn mask_user_id(id: &str) -> String {
+    let trimmed = id.trim();
+    let len = trimmed.len();
+    if len <= 4 {
+        "***".to_string()
+    } else {
+        format!(
+            "{}{}***{}",
+            &trimmed[..1],
+            &trimmed[1..2],
+            &trimmed[len - 1..]
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -243,5 +259,13 @@ mod tests {
 
         // Should not crash, device simply doesn't exist
         assert!(store.get_device_metadata("ghost").unwrap().is_none());
+    }
+
+    #[test]
+    fn test_mask_user_id() {
+        assert_eq!(mask_user_id("123"), "***");
+        assert_eq!(mask_user_id("12345"), "12***5");
+        assert_eq!(mask_user_id("EMP001"), "EM***1");
+        assert_eq!(mask_user_id("  EMP001  "), "EM***1");
     }
 }

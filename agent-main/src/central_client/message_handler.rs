@@ -131,7 +131,8 @@ pub async fn handle_incoming_text(
                         parse_composite_key(&msg_id)
                     {
                         debug!(
-                            "🔍 ACK Success: device='{device_id}', user='{user_id}', timestamp='{timestamp_unix}', punch={punch:?}, status={status:?}"
+                            "🔍 ACK Success: device='{device_id}', user='{}', timestamp='{timestamp_unix}', punch={punch:?}, status={status:?}",
+                            crate::utils::mask_user_id(&user_id)
                         );
                     } else {
                         warn!("⚠️ Failed to parse composite key: {msg_id}");

@@ -47,8 +47,8 @@ pub(super) fn parse_composite_key(
 }
 
 pub(super) struct RetryManager {
-    pub(super) retry_count: u32,
-    pub(super) stable_since: Option<Instant>,
+    retry_count: u32,
+    stable_since: Option<Instant>,
 }
 
 impl RetryManager {
@@ -57,6 +57,11 @@ impl RetryManager {
             retry_count: 0,
             stable_since: None,
         }
+    }
+
+    #[cfg(test)]
+    pub(super) const fn retry_count(&self) -> u32 {
+        self.retry_count
     }
 
     pub(super) fn get_delay(&self) -> Duration {
@@ -189,7 +194,7 @@ mod tests {
         manager.record_connection_failed();
         let delay1 = manager.get_delay();
         assert!(delay1.as_secs() >= 1);
-        assert_eq!(manager.retry_count, 1);
+        assert_eq!(manager.retry_count(), 1);
     }
 
     #[test]
@@ -198,7 +203,7 @@ mod tests {
         for _ in 0..15 {
             manager.record_connection_failed();
         }
-        assert_eq!(manager.retry_count, MAX_RETRY_COUNT);
+        assert_eq!(manager.retry_count(), MAX_RETRY_COUNT);
         let delay = manager.get_delay();
         assert!(delay.as_secs() <= 75);
     }

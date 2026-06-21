@@ -21,6 +21,20 @@ impl std::fmt::Display for ZkError {
 
 impl std::error::Error for ZkError {}
 
+impl From<ZkError> for crate::errors::AgentError {
+    fn from(err: ZkError) -> Self {
+        if err.message.contains("timed out") {
+            crate::errors::AgentError::ConnectionTimeout(err.message)
+        } else if err.message.contains("not connected") || err.message.contains("Not connected") {
+            crate::errors::AgentError::DeviceNotConnected
+        } else if err.message.contains("failed") || err.message.contains("Failed") {
+            crate::errors::AgentError::ConnectionFailed(err.message)
+        } else {
+            crate::errors::AgentError::ProtocolError(err.message)
+        }
+    }
+}
+
 pub struct ZkWorker {
     zk: Arc<Mutex<Option<ZK>>>,
     ip: String,
@@ -40,7 +54,7 @@ pub struct ZkWorker {
     /// Timeout (seconds) for connect + initial info fetch
     connect_timeout_secs: u64,
     /// Timeout (seconds) for pulling attendance logs
-    pub inflight_timeout_secs: u64,
+    inflight_timeout_secs: u64,
     /// Concurrency lock to prevent socket leaks and duplicate operations on timeouts
     active_operation_lock: Arc<tokio::sync::Mutex<()>>,
 }
@@ -70,15 +84,15 @@ impl ZkWorker {
             active_operation_lock: Arc::new(tokio::sync::Mutex::new(())),
         }
     }
+
+    pub const fn inflight_timeout_secs(&self) -> u64 {
+        self.inflight_timeout_secs
+    }
 }
 
 #[async_trait]
 impl Worker for ZkWorker {
-    async fn connect(
-        &mut self,
-        ip: &str,
-        port: u16,
-    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+    async fn connect(&mut self, ip: &str, port: u16) -> Result<bool, crate::errors::AgentError> {
         info!("[{ip}] Connecting to ZK device...");
 
         self.ip = ip.to_string();
@@ -180,12 +194,12 @@ impl Worker for ZkWorker {
             Ok(Ok((_, Err(e), _))) => {
                 let msg = format!("❌ [{ip}] Device connection failed: {e}");
                 warn!("{msg}");
-                Err(Box::new(ZkError { message: msg }))
+                Err(ZkError { message: msg }.into())
             }
             Ok(Err(e)) => {
                 let msg = format!("❌ [{ip}] Task join error: {e}");
                 error!("{msg}");
-                Err(Box::new(ZkError { message: msg }))
+                Err(ZkError { message: msg }.into())
             }
             Err(_) => {
                 let timeout_secs = self.connect_timeout_secs;
@@ -214,14 +228,14 @@ impl Worker for ZkWorker {
                     }
                 });
                 let msg = format!("❌ [{ip}] Connection timed out after {timeout_secs}s");
-                Err(Box::new(ZkError { message: msg }))
+                Err(ZkError { message: msg }.into())
             }
         }
     }
 
     async fn get_attendance_logs(
         &mut self,
-    ) -> Result<Vec<crate::models::AttendanceData>, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<Vec<crate::models::AttendanceData>, crate::errors::AgentError> {
         let ip = self.ip.clone();
         let zk_arc = self.zk.clone();
 
@@ -231,9 +245,10 @@ impl Worker for ZkWorker {
             match guard.take() {
                 Some(zk) => zk,
                 None => {
-                    return Err(Box::new(ZkError {
+                    return Err(ZkError {
                         message: "Device not connected".to_string(),
-                    }));
+                    }
+                    .into());
                 }
             }
         };
@@ -285,12 +300,12 @@ impl Worker for ZkWorker {
                 }
                 let msg = format!("[{ip}] Failed to get logs: {e}");
                 warn!("{msg}");
-                Err(Box::new(ZkError { message: msg }))
+                Err(ZkError { message: msg }.into())
             }
             Ok(Err(e)) => {
                 let msg = format!("[{ip}] Task join error during get_logs: {e}");
                 error!("{msg}");
-                Err(Box::new(ZkError { message: msg }))
+                Err(ZkError { message: msg }.into())
             }
             Err(_) => {
                 let timeout_secs = self.inflight_timeout_secs;
@@ -319,7 +334,7 @@ impl Worker for ZkWorker {
                         }
                     }
                 });
-                Err(Box::new(ZkError { message: msg }))
+                Err(ZkError { message: msg }.into())
             }
         }
     }
@@ -327,7 +342,7 @@ impl Worker for ZkWorker {
     async fn get_info(
         &mut self,
         time_sync: &crate::time_sync::TimeSync,
-    ) -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<Value, crate::errors::AgentError> {
         let ip = self.ip.clone();
         let ip_thread = ip.clone();
         let zk_arc = self.zk.clone();
@@ -338,9 +353,10 @@ impl Worker for ZkWorker {
             match guard.take() {
                 Some(zk) => zk,
                 None => {
-                    return Err(Box::new(ZkError {
+                    return Err(ZkError {
                         message: "Device not connected".to_string(),
-                    }));
+                    }
+                    .into());
                 }
             }
         };
@@ -415,13 +431,15 @@ impl Worker for ZkWorker {
                     let mut guard = zk_arc.lock().await;
                     *guard = Some(zk);
                 }
-                Err(Box::new(ZkError {
+                Err(ZkError {
                     message: format!("[{ip}] get_info operation failed: {e}"),
-                }))
+                }
+                .into())
             }
-            Ok(Err(e)) => Err(Box::new(ZkError {
+            Ok(Err(e)) => Err(ZkError {
                 message: format!("[{ip}] Task join error during get_info: {e}"),
-            })),
+            }
+            .into()),
             Err(_) => {
                 let msg =
                     format!("[{ip}] Getting device info timed out after 30s — connection dropped");
@@ -447,7 +465,7 @@ impl Worker for ZkWorker {
                         }
                     }
                 });
-                Err(Box::new(ZkError { message: msg }))
+                Err(ZkError { message: msg }.into())
             }
         }
     }
@@ -624,7 +642,7 @@ mod tests {
     #[test]
     fn test_zk_worker_inflight_timeout_config() {
         let worker = ZkWorker::new(None, None, 60, 600);
-        assert_eq!(worker.inflight_timeout_secs, 600);
+        assert_eq!(worker.inflight_timeout_secs(), 600);
     }
 
     #[test]

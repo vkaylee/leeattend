@@ -6,7 +6,10 @@ use uuid::Uuid;
 use crate::{
     diesel_pool::DieselPools,
     errors::AppError,
-    models::contract::{CreateContractRequest, EmployeeContract, UpdateContractRequest, EmployeeContractWithEmployee},
+    models::contract::{
+        CreateContractRequest, EmployeeContract, EmployeeContractWithEmployee,
+        UpdateContractRequest,
+    },
     models::diesel::employee_contract::{EmployeeContractEntity, UpdateDieselEmployeeContract},
 };
 
@@ -186,8 +189,14 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<EmployeeContractWithEmployee>, AppError> {
         use crate::schema::employee_contracts::dsl::*;
-        use crate::schema::employments::dsl::{employments, id as emp_emp_id, employee_id as emp_employee_id, deleted_at as emp_deleted_at};
-        use crate::schema::employees::dsl::{employees, id as emp_id, full_name, employee_id_number, deleted_at as employee_deleted_at};
+        use crate::schema::employees::dsl::{
+            deleted_at as employee_deleted_at, employee_id_number, employees, full_name,
+            id as emp_id,
+        };
+        use crate::schema::employments::dsl::{
+            deleted_at as emp_deleted_at, employee_id as emp_employee_id, employments,
+            id as emp_emp_id,
+        };
 
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -215,14 +224,14 @@ impl super::EmployeeContractRepository for DieselEmployeeContractRepository {
 
         Ok(results
             .into_iter()
-            .map(|(entity, name, code, emp_uuid)| {
-                EmployeeContractWithEmployee {
+            .map(
+                |(entity, name, code, emp_uuid)| EmployeeContractWithEmployee {
                     contract: entity.into(),
                     employee_name: name,
                     employee_code: code,
                     employee_id: emp_uuid,
-                }
-            })
+                },
+            )
             .collect())
     }
 

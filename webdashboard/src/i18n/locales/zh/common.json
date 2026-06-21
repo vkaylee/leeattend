@@ -1,5 +1,6 @@
 {
   "common": {
+    "deleted_success": "删除成功",
     "back": "返回",
     "error_boundary": {
       "widget_error": "组件错误",

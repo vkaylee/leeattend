@@ -169,6 +169,7 @@
     },
     "table": {
       "name": "Full Name",
+      "search_placeholder": "Search employee by name or code...",
       "id": "ID",
       "hire_date": "Hire Date",
       "status": "Status",
@@ -201,6 +202,9 @@
         "title": "Contract History",
         "sign_contract": "Sign Contract",
         "no_contracts": "No contracts found",
+        "select_employee": "Select Employee",
+        "select_employee_subtitle": "Select an employee to sign/create a contract",
+        "delete_confirm": "Are you sure you want to delete contract {{number}}? This action cannot be undone.",
         "effective_date": "Effective Date",
         "expiration_date": "Expiration Date",
         "indefinite_duration": "Indefinite",

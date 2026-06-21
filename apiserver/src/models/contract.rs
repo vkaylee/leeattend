@@ -134,4 +134,3 @@ pub struct EmployeeContractWithEmployee {
     pub employee_code: String,
     pub employee_id: Uuid,
 }
-

@@ -1,5 +1,6 @@
 {
   "common": {
+    "deleted_success": "Deleted successfully",
     "back": "Back",
     "error_boundary": {
       "widget_error": "Widget Error",

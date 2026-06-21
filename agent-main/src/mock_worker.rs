@@ -29,11 +29,7 @@ impl MockWorker {
 
 #[async_trait]
 impl Worker for MockWorker {
-    async fn connect(
-        &mut self,
-        _ip: &str,
-        _port: u16,
-    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+    async fn connect(&mut self, _ip: &str, _port: u16) -> Result<bool, crate::errors::AgentError> {
         // Simulate connection delay
         tokio::time::sleep(Duration::from_millis(100)).await;
         Ok(true)
@@ -41,7 +37,7 @@ impl Worker for MockWorker {
 
     async fn get_attendance_logs(
         &mut self,
-    ) -> Result<Vec<crate::models::AttendanceData>, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<Vec<crate::models::AttendanceData>, crate::errors::AgentError> {
         // Return a static mock log similar to the Python version
         let log = crate::models::AttendanceData {
             user_id: "999".to_string(),
@@ -55,7 +51,7 @@ impl Worker for MockWorker {
     async fn get_info(
         &mut self,
         _time_sync: &crate::time_sync::TimeSync,
-    ) -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<Value, crate::errors::AgentError> {
         Ok(serde_json::json!({
             "users_count": 100,
             "users_capacity": 1000,

@@ -70,7 +70,7 @@ describe("AgentEditModal", () => {
 
     expect(screen.getByText("Chỉnh sửa Agent")).toBeInTheDocument();
     expect(await screen.findByDisplayValue("Test Agent")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("secret123")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("•••••••• (Leave blank to keep unchanged)")).toBeInTheDocument();
     expect(screen.getByDisplayValue("3")).toBeInTheDocument();
     expect(screen.getByDisplayValue("300")).toBeInTheDocument();
     expect(screen.getByDisplayValue("365")).toBeInTheDocument();

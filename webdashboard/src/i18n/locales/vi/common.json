@@ -1,5 +1,6 @@
 {
   "common": {
+    "deleted_success": "Đã xóa thành công",
     "back": "Quay lại",
     "error_boundary": {
       "widget_error": "Lỗi Widget",

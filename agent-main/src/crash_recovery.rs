@@ -1,5 +1,4 @@
 use log::{info, warn};
-use std::fs;
 use std::path::Path;
 
 const CRASH_MARKER_FILE: &str = ".agent_running";
@@ -30,15 +29,15 @@ impl CrashMarker {
         Self { path }
     }
 
-    pub fn check_crash(&self) -> bool {
-        Path::new(&self.path).exists()
+    pub async fn check_crash(&self) -> bool {
+        tokio::fs::try_exists(&self.path).await.unwrap_or(false)
     }
 
-    pub fn read_crash_info(&self) -> Option<String> {
-        fs::read_to_string(&self.path).ok()
+    pub async fn read_crash_info(&self) -> Option<String> {
+        tokio::fs::read_to_string(&self.path).await.ok()
     }
 
-    pub fn write(&self) -> std::io::Result<()> {
+    pub async fn write(&self) -> std::io::Result<()> {
         let content = format!(
             "pid={}\nstarted={}\n",
             std::process::id(),
@@ -48,14 +47,14 @@ impl CrashMarker {
             && !parent.as_os_str().is_empty()
             && parent != Path::new("")
         {
-            fs::create_dir_all(parent)?;
+            tokio::fs::create_dir_all(parent).await?;
         }
-        fs::write(&self.path, content)
+        tokio::fs::write(&self.path, content).await
     }
 
-    pub fn remove(&self) -> std::io::Result<()> {
-        if Path::new(&self.path).exists() {
-            fs::remove_file(&self.path)?;
+    pub async fn remove(&self) -> std::io::Result<()> {
+        if tokio::fs::try_exists(&self.path).await.unwrap_or(false) {
+            tokio::fs::remove_file(&self.path).await?;
         }
         Ok(())
     }
@@ -81,6 +80,7 @@ pub fn recover_from_crash(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
 
     #[test]
     fn test_crash_marker_path_extraction() {
@@ -119,39 +119,39 @@ mod tests {
         assert!(marker.path.contains("/var/lib/agent/.agent_running"));
     }
 
-    #[test]
-    fn test_crash_marker_write_and_check() {
+    #[tokio::test]
+    async fn test_crash_marker_write_and_check() {
         let tmp = std::env::temp_dir().join("crash_test_write");
         let _ = fs::create_dir_all(&tmp);
         let db_path = tmp.join("test.redb").to_string_lossy().to_string();
 
         let marker = CrashMarker::new(&db_path);
-        assert!(!marker.check_crash());
+        assert!(!marker.check_crash().await);
 
-        marker.write().unwrap();
-        assert!(marker.check_crash());
+        marker.write().await.unwrap();
+        assert!(marker.check_crash().await);
 
-        let info = marker.read_crash_info().unwrap();
+        let info = marker.read_crash_info().await.unwrap();
         assert!(info.contains("pid="));
         assert!(info.contains("started="));
 
-        marker.remove().unwrap();
-        assert!(!marker.check_crash());
+        marker.remove().await.unwrap();
+        assert!(!marker.check_crash().await);
 
         let _ = fs::remove_dir_all(&tmp);
     }
 
-    #[test]
-    fn test_crash_marker_remove_nonexistent() {
+    #[tokio::test]
+    async fn test_crash_marker_remove_nonexistent() {
         let marker = CrashMarker::new("/tmp/crash_test_nonex/data.redb");
         // Should not error when file doesn't exist
-        marker.remove().unwrap();
+        marker.remove().await.unwrap();
     }
 
-    #[test]
-    fn test_crash_marker_read_info_nonexistent() {
+    #[tokio::test]
+    async fn test_crash_marker_read_info_nonexistent() {
         let marker = CrashMarker::new("/tmp/crash_test_noread/data.redb");
-        assert!(marker.read_crash_info().is_none());
+        assert!(marker.read_crash_info().await.is_none());
     }
 
     #[test]

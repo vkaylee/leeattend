@@ -314,7 +314,9 @@
       "lifecycle": "Quy trình Nhân sự",
       "lifecycle_desc": "Quản lý các mẫu danh sách việc cần làm khi tiếp nhận và bàn giao nhân sự",
       "storage_desc": "Storage Desc",
-      "storage": "Storage"
+      "storage": "Storage",
+      "econtracts": "Tích hợp Hợp đồng điện tử",
+      "econtracts_desc": "Cấu hình chữ ký số, thông tin tài khoản ký và quy tắc định tuyến hợp đồng."
     },
     "organization": {
       "departments_redirect_desc": "Quản lý cơ cấu phòng ban, bổ nhiệm Trưởng bộ phận (Manager), thiết lập chính sách lương và theo dõi số lượng nhân sự thuộc từng bộ phận.",

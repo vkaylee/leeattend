@@ -169,6 +169,7 @@
     },
     "table": {
       "name": "全名",
+      "search_placeholder": "按姓名或工号搜索员工...",
       "id": "ID",
       "hire_date": "入职日期",
       "status": "状态",
@@ -201,6 +202,9 @@
         "title": "合同历史",
         "sign_contract": "签订合同",
         "no_contracts": "暂无合同",
+        "select_employee": "选择员工",
+        "select_employee_subtitle": "选择一名员工以签订/创建合同",
+        "delete_confirm": "您确定要删除合同 {{number}} 吗？此操作无法撤销。",
         "effective_date": "生效日期",
         "expiration_date": "到期日期",
         "indefinite_duration": "无固定期限",

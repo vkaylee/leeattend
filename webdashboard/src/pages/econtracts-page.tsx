@@ -73,13 +73,21 @@ function SelectEmployeeModal({ isOpen, onClose, onSelect, employees }: SelectEmp
             </div>
           ) : (
             filtered.map((emp) => (
-              <button
+              <div
                 key={emp.id}
-                type="button"
-                className="w-full flex items-center justify-between p-3.5 rounded-xl border border-slate-100 hover:border-primary-200 dark:border-slate-800/60 dark:hover:border-primary-900/50 hover:bg-primary-50/20 dark:hover:bg-primary-950/10 text-left transition-all group"
+                role="button"
+                tabIndex={0}
+                className="w-full flex items-center justify-between p-3.5 rounded-xl border border-slate-100 hover:border-primary-200 dark:border-slate-800/60 dark:hover:border-primary-900/50 hover:bg-primary-50/20 dark:hover:bg-primary-950/10 text-left cursor-pointer transition-all group focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                 onClick={() => {
                   onSelect(emp.id);
                   onClose();
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onSelect(emp.id);
+                    onClose();
+                  }
                 }}
               >
                 <div>
@@ -93,7 +101,7 @@ function SelectEmployeeModal({ isOpen, onClose, onSelect, employees }: SelectEmp
                   )}
                 </div>
                 <ChevronRight size={14} className="text-slate-400 group-hover:text-primary-500 transition-colors" />
-              </button>
+              </div>
             ))
           )}
         </div>
@@ -209,27 +217,28 @@ export default function EContractsPage() {
         icon={<Scale size={24} />}
         subtitle="Manage, view, and sign digital employment contracts for all employees across the organization"
         title="Centralized Contract Registry"
-      >
-        <div className="flex flex-wrap items-center gap-3">
-          <Link
-            to="/workspace/settings/econtracts"
-            className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-850 hover:text-primary-600 transition-all shadow-sm"
-          >
-            <Settings size={14} /> CONFIGURATIONS
-          </Link>
-          <Button
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold shadow-sm"
-            onClick={() => {
-              setEditingContract(null);
-              setActiveEmployeeId(null);
-              setIsSelectEmpOpen(true);
-            }}
-            variant="secondary"
-          >
-            <Plus size={16} /> SIGN CONTRACT
-          </Button>
-        </div>
-      </PageHeader>
+        actions={
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              to="/workspace/settings/econtracts"
+              className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-850 hover:text-primary-600 transition-all shadow-sm"
+            >
+              <Settings size={14} /> CONFIGURATIONS
+            </Link>
+            <Button
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold shadow-sm"
+              onClick={() => {
+                setEditingContract(null);
+                setActiveEmployeeId(null);
+                setIsSelectEmpOpen(true);
+              }}
+              variant="secondary"
+            >
+              <Plus size={16} /> SIGN CONTRACT
+            </Button>
+          </div>
+        }
+      />
 
       {/* Search and Filters panel */}
       <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-[2rem] shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
@@ -298,8 +307,7 @@ export default function EContractsPage() {
             description={search || selectedType !== "all" || selectedStatus !== "all" 
               ? "Try adjusting your search criteria or filters to locate specific contracts" 
               : "No employment contracts have been registered in this workspace yet"}
-          >
-            {(search || selectedType !== "all" || selectedStatus !== "all") && (
+            action={(search || selectedType !== "all" || selectedStatus !== "all") ? (
               <Button
                 variant="outline"
                 onClick={() => {
@@ -310,8 +318,8 @@ export default function EContractsPage() {
               >
                 CLEAR FILTERS
               </Button>
-            )}
-          </EmptyState>
+            ) : undefined}
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">

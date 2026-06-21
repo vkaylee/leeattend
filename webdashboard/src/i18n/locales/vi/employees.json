@@ -169,6 +169,7 @@
     },
     "table": {
       "name": "Họ và tên",
+      "search_placeholder": "Tìm kiếm nhân viên theo tên hoặc mã...",
       "id": "Mã NV",
       "hire_date": "Ngày vào làm",
       "status": "Trạng thái",
@@ -201,6 +202,9 @@
         "title": "Hợp đồng lao động",
         "sign_contract": "Ký hợp đồng",
         "no_contracts": "Chưa có hợp đồng nào",
+        "select_employee": "Chọn nhân viên",
+        "select_employee_subtitle": "Chọn một nhân viên để tạo/ký hợp đồng",
+        "delete_confirm": "Bạn có chắc chắn muốn xóa hợp đồng {{number}}? Hành động này không thể hoàn tác.",
         "effective_date": "Ngày hiệu lực",
         "expiration_date": "Ngày hết hạn",
         "indefinite_duration": "Không thời hạn",

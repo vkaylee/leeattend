@@ -3,7 +3,9 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 use crate::errors::AppError;
-use crate::models::contract::{CreateContractRequest, EmployeeContract, UpdateContractRequest, EmployeeContractWithEmployee};
+use crate::models::contract::{
+    CreateContractRequest, EmployeeContract, EmployeeContractWithEmployee, UpdateContractRequest,
+};
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]

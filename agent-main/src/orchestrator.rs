@@ -148,7 +148,7 @@ impl Orchestrator {
 
     pub async fn run(&self) -> Result<(), Box<dyn std::error::Error>> {
         self.config.show_summary();
-        self.handle_crash_recovery()?;
+        self.handle_crash_recovery().await?;
         self.setup_signal_handlers();
 
         // Retain last known local config on startup to ensure offline resiliency
@@ -245,7 +245,7 @@ impl Orchestrator {
         info!("⏳ Waiting for shutdown...");
         sleep(Duration::from_secs(1)).await;
 
-        if let Err(e) = self.crash_marker.remove() {
+        if let Err(e) = self.crash_marker.remove().await {
             warn!("Failed to write crash marker: {e}");
         }
         info!("✅ Clean shutdown complete.");
@@ -253,10 +253,10 @@ impl Orchestrator {
         Ok(())
     }
 
-    fn handle_crash_recovery(&self) -> Result<(), Box<dyn std::error::Error>> {
-        if self.crash_marker.check_crash() {
+    async fn handle_crash_recovery(&self) -> Result<(), Box<dyn std::error::Error>> {
+        if self.crash_marker.check_crash().await {
             warn!("⚠️ Detected previous crash or unclean shutdown");
-            if let Some(info) = self.crash_marker.read_crash_info() {
+            if let Some(info) = self.crash_marker.read_crash_info().await {
                 warn!("Previous session info:\n{info}");
             }
 
@@ -264,7 +264,7 @@ impl Orchestrator {
             info!("✅ Crash recovery complete: {recovered} logs reset");
         }
 
-        if let Err(e) = self.crash_marker.write() {
+        if let Err(e) = self.crash_marker.write().await {
             warn!("Failed to write crash marker: {e}");
         }
 
