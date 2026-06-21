@@ -55,4 +55,3 @@ pub(crate) fn extend_consumed_from_entries(
         }
     }
 }
-

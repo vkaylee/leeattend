@@ -139,10 +139,7 @@ fn process_single_day_in_range(
         context_helpers::extract_consumed_ids(adjacent_entries, curr_date, tz);
 
     // Also exclude logs already consumed by previously processed days in this batch
-    context_helpers::extend_consumed_from_entries(
-        &mut consumed_log_ids,
-        new_entries_accumulated,
-    );
+    context_helpers::extend_consumed_from_entries(&mut consumed_log_ids, new_entries_accumulated);
 
     let filtered_raw_logs: Vec<RawAttendanceLog> = raw_logs
         .iter()

@@ -148,8 +148,8 @@ async fn test_dst_spring_forward() {
             ),
         },
     ));
-    apiserver::services::pairing_service::PairingService::new(
-        apiserver::services::pairing_service::PairingServiceArgs::new(
+    apiserver::services::pairing::PairingService::new(
+        apiserver::services::pairing::PairingServiceArgs::new(
             repo.clone(),
             std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
                 diesel_pools.clone(),
@@ -338,8 +338,8 @@ async fn test_dst_fall_back() {
             ),
         },
     ));
-    apiserver::services::pairing_service::PairingService::new(
-        apiserver::services::pairing_service::PairingServiceArgs::new(
+    apiserver::services::pairing::PairingService::new(
+        apiserver::services::pairing::PairingServiceArgs::new(
             repo.clone(),
             std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
                 diesel_pools.clone(),
@@ -527,8 +527,8 @@ async fn test_dst_fall_back_repeated_hour() {
             ),
         },
     ));
-    apiserver::services::pairing_service::PairingService::new(
-        apiserver::services::pairing_service::PairingServiceArgs::new(
+    apiserver::services::pairing::PairingService::new(
+        apiserver::services::pairing::PairingServiceArgs::new(
             repo.clone(),
             std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
                 diesel_pools.clone(),
@@ -712,8 +712,8 @@ async fn test_dst_spring_forward_day_shift() {
             ),
         },
     ));
-    apiserver::services::pairing_service::PairingService::new(
-        apiserver::services::pairing_service::PairingServiceArgs::new(
+    apiserver::services::pairing::PairingService::new(
+        apiserver::services::pairing::PairingServiceArgs::new(
             repo.clone(),
             std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
                 diesel_pools.clone(),

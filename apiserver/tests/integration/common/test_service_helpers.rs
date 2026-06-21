@@ -6,7 +6,7 @@ use std::sync::Arc;
 pub fn build_pairing_service(
     diesel_pools: &DieselPools,
 ) -> (
-    apiserver::services::pairing_service::PairingService,
+    apiserver::services::pairing::PairingService,
     Arc<dyn apiserver::repositories::time_entry_repository::TimeEntryRepository>,
 ) {
     let time_entry_repo = Arc::new(apiserver::repositories::DieselTimeEntryRepository::new(
@@ -46,8 +46,8 @@ pub fn build_pairing_service(
         },
     ));
 
-    let service = apiserver::services::pairing_service::PairingService::new(
-        apiserver::services::pairing_service::PairingServiceArgs::new(
+    let service = apiserver::services::pairing::PairingService::new(
+        apiserver::services::pairing::PairingServiceArgs::new(
             time_entry_repo.clone(),
             Arc::new(apiserver::repositories::DieselRosterRepository::new(
                 diesel_pools.clone(),

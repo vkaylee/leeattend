@@ -244,10 +244,81 @@ async fn process_batch(
         }
     }
 
-    // Trigger pairing for each successfully parsed log
-    for parsed in &parsed_logs {
-        if let Err(e) = pairing_service.process_new_raw_log(&parsed.raw_log).await {
-            error!("Pairing error for log {}: {:?}", parsed.raw_log.id(), e);
+    // Trigger pairing grouped by (workspace_id, employment_id, date) to eliminate N+1 queries.
+    // Instead of calling process_new_raw_log per-log, we group logs and call
+    // reprocess_daily_attendance once per unique (workspace_id, employment_id, date) key.
+    trigger_batch_pairing(pairing_service, &parsed_logs).await;
+}
+
+/// Group parsed logs by `(workspace_id, employment_id, UTC date)` and trigger
+/// `reprocess_daily_attendance` once per unique key (or `reprocess_attendance_range`
+/// when multiple dates exist for the same employee).
+///
+/// This eliminates N+1 queries that occurred when calling `process_new_raw_log` per-log.
+/// Each `process_new_raw_log` call previously triggered ~5+ DB queries internally;
+/// with 100 logs, this caused 500+ queries. The grouped approach reduces this to
+/// ~10 queries per unique (employee, date) key.
+async fn trigger_batch_pairing(
+    pairing_service: &dyn PairingProcessor,
+    parsed_logs: &[ParsedLogEntry],
+) {
+    use std::collections::{BTreeSet, HashMap};
+
+    // Group by (workspace_id, employment_id) → sorted set of dates
+    let mut groups: HashMap<(Uuid, Uuid), BTreeSet<chrono::NaiveDate>> = HashMap::new();
+
+    for parsed in parsed_logs {
+        let log = &parsed.raw_log;
+        // Use UTC date as approximation; reprocess_daily_attendance will
+        // resolve the correct local date via get_employee_timezone_fallback
+        let utc_date = log.punch_time().date_naive();
+        groups
+            .entry((log.workspace_id(), log.employment_id()))
+            .or_default()
+            .insert(utc_date);
+    }
+
+    for ((workspace_id, employment_id), dates) in &groups {
+        if dates.len() == 1 {
+            let Some(&date) = dates.iter().next() else {
+                continue;
+            };
+            if let Err(e) = pairing_service
+                .reprocess_daily_attendance(*workspace_id, *employment_id, date, chrono_tz::UTC)
+                .await
+            {
+                error!(
+                    workspace_id = %workspace_id,
+                    employment_id = %employment_id,
+                    date = %date,
+                    error = %e,
+                    "Batch pairing error for single day"
+                );
+            }
+        } else {
+            let (Some(&min_date), Some(&max_date)) =
+                (dates.iter().next(), dates.iter().next_back())
+            else {
+                continue;
+            };
+            if let Err(e) = pairing_service
+                .reprocess_attendance_range(
+                    *workspace_id,
+                    *employment_id,
+                    min_date,
+                    max_date,
+                    chrono_tz::UTC,
+                )
+                .await
+            {
+                error!(
+                    workspace_id = %workspace_id,
+                    employment_id = %employment_id,
+                    range = %format!("{min_date}..{max_date}"),
+                    error = %e,
+                    "Batch pairing error for date range"
+                );
+            }
         }
     }
 }

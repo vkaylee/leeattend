@@ -28,7 +28,7 @@ impl ShiftAwareStrategy {
         }
 
         let mut sorted_logs = logs.to_vec();
-        sorted_logs.sort_by_key(|l| l.minutes());
+        sorted_logs.sort_by_key(LogEvent::minutes);
 
         // Tier 1: If shift config available, use shift-window-based pairing
         if let Some(shift) = config {

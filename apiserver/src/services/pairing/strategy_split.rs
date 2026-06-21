@@ -80,7 +80,11 @@ pub(crate) fn split_by_breaks(input: &SplitByBreaksInput<'_>) -> Vec<PairedSessi
             start_time,
             Some(end_time),
             input.entry_type.clone(),
-            if j == 0 { input.combined_note.cloned() } else { None },
+            if j == 0 {
+                input.combined_note.cloned()
+            } else {
+                None
+            },
             input.is_break_overtime,
             Some(serde_json::json!({
                 "algorithm": ALGORITHM_NAME,
@@ -94,4 +98,3 @@ pub(crate) fn split_by_breaks(input: &SplitByBreaksInput<'_>) -> Vec<PairedSessi
     }
     sessions
 }
-

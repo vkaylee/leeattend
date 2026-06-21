@@ -4,7 +4,7 @@
 //!   Tier 1: shift_window-based pairing (shift schedule context)
 //!   Tier 2: `anchor_first` fallback (no context)
 
-use apiserver::services::pairing_algo::{
+use apiserver::services::pairing::{
     self, EntryType, LogEvent, PairedSession, PairingNote, PairingShiftConfig, ShiftAwareStrategy,
 };
 use uuid::Uuid;
@@ -14,7 +14,7 @@ use uuid::Uuid;
 // ═══════════════════════════════════════════════════════════════
 
 fn strategy() -> ShiftAwareStrategy {
-    pairing_algo::get_strategy()
+    pairing::get_strategy()
 }
 
 fn log(minutes: i32) -> LogEvent {

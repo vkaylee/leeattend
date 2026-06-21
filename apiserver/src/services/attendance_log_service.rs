@@ -345,7 +345,13 @@ impl AttendanceLogService {
             .await
         {
             Ok(true) => {
-                let _ = self.pairing_service.process_new_raw_log(&raw_log).await;
+                if let Err(e) = self.pairing_service.process_new_raw_log(&raw_log).await {
+                    tracing::error!(
+                        log_id = %raw_log.id(),
+                        error = %e,
+                        "Pairing error in process_parsed_log"
+                    );
+                }
                 Ok(true)
             }
             Ok(false) => Ok(false),

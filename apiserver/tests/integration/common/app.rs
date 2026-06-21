@@ -318,8 +318,8 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         },
     ));
 
-    let pairing_service = Arc::new(apiserver::services::pairing_service::PairingService::new(
-        apiserver::services::pairing_service::PairingServiceArgs::new(
+    let pairing_service = Arc::new(apiserver::services::pairing::PairingService::new(
+        apiserver::services::pairing::PairingServiceArgs::new(
             time_entry_repo.clone(),
             roster_repo.clone(),
             Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
@@ -1023,8 +1023,8 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
         },
     ));
 
-    let pairing_service = Arc::new(apiserver::services::pairing_service::PairingService::new(
-        apiserver::services::pairing_service::PairingServiceArgs::new(
+    let pairing_service = Arc::new(apiserver::services::pairing::PairingService::new(
+        apiserver::services::pairing::PairingServiceArgs::new(
             time_entry_repo.clone(),
             roster_repo.clone(),
             Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
@@ -1772,8 +1772,8 @@ pub async fn setup_app_tower_internal_extended(
         },
     ));
 
-    let pairing_service = Arc::new(apiserver::services::pairing_service::PairingService::new(
-        apiserver::services::pairing_service::PairingServiceArgs::new(
+    let pairing_service = Arc::new(apiserver::services::pairing::PairingService::new(
+        apiserver::services::pairing::PairingServiceArgs::new(
             time_entry_repo.clone(),
             roster_repo.clone(),
             Arc::new(apiserver::repositories::DieselEmployeeRepository::new(

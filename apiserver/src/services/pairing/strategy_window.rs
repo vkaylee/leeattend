@@ -9,7 +9,9 @@ pub(crate) fn pair_by_shift_window(
     logs: &[LogEvent],
     shift: &PairingShiftConfig,
 ) -> Vec<PairedSession> {
-    let buffer = shift.check_in_buffer_minutes().unwrap_or(SHIFT_WINDOW_BUFFER);
+    let buffer = shift
+        .check_in_buffer_minutes()
+        .unwrap_or(SHIFT_WINDOW_BUFFER);
 
     // Find earliest log in check-in window
     let first_in = find_earliest_in_window(logs, shift.start_minutes(), buffer);
@@ -24,7 +26,7 @@ pub(crate) fn pair_by_shift_window(
     // Last Out: take the last log of the day (after check-in)
     let last_out = find_last_out(logs, start, first_in_log.id());
 
-    let end = last_out.map(|l| l.minutes());
+    let end = last_out.map(LogEvent::minutes);
     let start_note = ShiftAwareStrategy::extract_note(first_in_log);
     let end_note = last_out.and_then(ShiftAwareStrategy::extract_note);
     let combined_note = ShiftAwareStrategy::combine_notes(start_note, end_note);
@@ -105,7 +107,7 @@ fn build_single_session(
     let fallback_ids = logs
         .iter()
         .find(|l| l.id() == first_in_log.id())
-        .map(|l| l.all_ids())
+        .map(LogEvent::all_ids)
         .unwrap_or(&single_id);
     let log_ids = ShiftAwareStrategy::collect_log_ids(logs, start, end, fallback_ids);
 
@@ -113,7 +115,7 @@ fn build_single_session(
         start,
         end,
         first_in_log.punch_time(),
-        last_out.map(|l| l.punch_time()),
+        last_out.map(LogEvent::punch_time),
         entry_type,
         final_note,
         is_break_overtime,

@@ -64,8 +64,8 @@ async fn test_process_log_success_with_timezone() {
             ),
         },
     ));
-    let pairing = std::sync::Arc::new(apiserver::services::pairing_service::PairingService::new(
-        apiserver::services::pairing_service::PairingServiceArgs::new(
+    let pairing = std::sync::Arc::new(apiserver::services::pairing::PairingService::new(
+        apiserver::services::pairing::PairingServiceArgs::new(
             repo.clone(),
             std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
                 diesel_pools.clone(),
@@ -204,8 +204,8 @@ async fn test_same_second_punch_with_different_status_allowed() {
             ),
         },
     ));
-    let pairing = std::sync::Arc::new(apiserver::services::pairing_service::PairingService::new(
-        apiserver::services::pairing_service::PairingServiceArgs::new(
+    let pairing = std::sync::Arc::new(apiserver::services::pairing::PairingService::new(
+        apiserver::services::pairing::PairingServiceArgs::new(
             repo.clone(),
             std::sync::Arc::new(apiserver::repositories::DieselRosterRepository::new(
                 diesel_pools.clone(),

@@ -146,10 +146,7 @@ fn process_propagation_day(
     let mut consumed_log_ids =
         context_helpers::extract_consumed_ids(adjacent_entries, current_date, tz);
 
-    context_helpers::extend_consumed_from_entries(
-        &mut consumed_log_ids,
-        new_entries_accumulated,
-    );
+    context_helpers::extend_consumed_from_entries(&mut consumed_log_ids, new_entries_accumulated);
 
     let filtered_raw_logs: Vec<RawAttendanceLog> = raw_logs
         .iter()
