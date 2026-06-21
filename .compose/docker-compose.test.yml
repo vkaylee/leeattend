@@ -314,8 +314,8 @@ services:
       - web
     image: localhost/leeattend-test_webdashboard
     build:
-      context: ..
-      dockerfile: webdashboard/Dockerfile
+      context: ../webdashboard
+      dockerfile: Dockerfile
       target: test
     networks:
       - test_net

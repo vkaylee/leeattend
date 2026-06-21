@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import PageHeader from "@/components/ui/page-header";
-import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 import { TabType } from "../hooks/use-profile-tabs";

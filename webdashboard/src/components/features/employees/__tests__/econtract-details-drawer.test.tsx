@@ -1,11 +1,13 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import React from "react";
+
+import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 
 import { ToastProvider } from "@/components/ui/toast";
 import { saveEContractEnvelope, EContractEnvelope } from "@/lib/api/econtracts";
+
 import EContractDetailsDrawer from "../econtract-details-drawer";
 
 // Mock saveEContractEnvelope API call

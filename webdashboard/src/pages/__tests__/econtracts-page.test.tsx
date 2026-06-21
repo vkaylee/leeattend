@@ -1,13 +1,16 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import React from "react";
+
+import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 
 import { ToastProvider } from "@/components/ui/toast";
-import { fetchWorkspaceContracts, deleteEmployeeContract } from "@/lib/api/contracts";
-import { useAllEmployees } from "@/hooks/use-employees";
 import { useConfirm } from "@/hooks/use-confirm";
+import { useAllEmployees } from "@/hooks/use-employees";
+import Button from "@/components/ui/button";
+import { fetchWorkspaceContracts, deleteEmployeeContract } from "@/lib/api/contracts";
+
 import EContractsPage from "../econtracts-page";
 
 // Mock i18next translation
@@ -69,8 +72,8 @@ vi.mock("@/components/features/employees/contract-form-modal", () => ({
       <div data-testid="mock-contract-form-modal">
         <div>Employee ID: {employeeId}</div>
         <div>Workspace ID: {wsId}</div>
-        {editingContract && <div>Editing: {editingContract.id}</div>}
-        <div role="button" onClick={onClose}>Close Form</div>
+        {!!editingContract && <div>Editing: {editingContract.id}</div>}
+        <Button type="button" onClick={onClose}>Close Form</Button>
       </div>
     );
   },

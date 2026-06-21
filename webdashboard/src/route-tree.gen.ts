@@ -67,6 +67,7 @@ import { Route as AuthenticatedWorkspaceWorkspaceSettingsLifecycleTemplatesRoute
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsLeaveRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/leave"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsHolidaysRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/holidays"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsGeneralRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/general"
+import { Route as AuthenticatedWorkspaceWorkspaceSettingsEcontractsRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/econtracts"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsDangerRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/danger"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/custom-fields"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsConnectivityRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/connectivity"
@@ -600,6 +601,16 @@ const AuthenticatedWorkspaceWorkspaceSettingsGeneralRoute =
       (d) => d.Route,
     ),
   )
+const AuthenticatedWorkspaceWorkspaceSettingsEcontractsRoute =
+  AuthenticatedWorkspaceWorkspaceSettingsEcontractsRouteImport.update({
+    id: "/econtracts",
+    path: "/econtracts",
+    getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/workspace/settings/econtracts.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceWorkspaceSettingsDangerRoute =
   AuthenticatedWorkspaceWorkspaceSettingsDangerRouteImport.update({
     id: "/danger",
@@ -764,6 +775,7 @@ export interface FileRoutesByFullPath {
   "/workspace/settings/connectivity": typeof AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute
   "/workspace/settings/custom-fields": typeof AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute
   "/workspace/settings/danger": typeof AuthenticatedWorkspaceWorkspaceSettingsDangerRoute
+  "/workspace/settings/econtracts": typeof AuthenticatedWorkspaceWorkspaceSettingsEcontractsRoute
   "/workspace/settings/general": typeof AuthenticatedWorkspaceWorkspaceSettingsGeneralRoute
   "/workspace/settings/holidays": typeof AuthenticatedWorkspaceWorkspaceSettingsHolidaysRoute
   "/workspace/settings/leave": typeof AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute
@@ -828,6 +840,7 @@ export interface FileRoutesByTo {
   "/workspace/settings/connectivity": typeof AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute
   "/workspace/settings/custom-fields": typeof AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute
   "/workspace/settings/danger": typeof AuthenticatedWorkspaceWorkspaceSettingsDangerRoute
+  "/workspace/settings/econtracts": typeof AuthenticatedWorkspaceWorkspaceSettingsEcontractsRoute
   "/workspace/settings/general": typeof AuthenticatedWorkspaceWorkspaceSettingsGeneralRoute
   "/workspace/settings/holidays": typeof AuthenticatedWorkspaceWorkspaceSettingsHolidaysRoute
   "/workspace/settings/leave": typeof AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute
@@ -899,6 +912,7 @@ export interface FileRoutesById {
   "/_authenticated/_workspace/workspace/settings/connectivity": typeof AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute
   "/_authenticated/_workspace/workspace/settings/custom-fields": typeof AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute
   "/_authenticated/_workspace/workspace/settings/danger": typeof AuthenticatedWorkspaceWorkspaceSettingsDangerRoute
+  "/_authenticated/_workspace/workspace/settings/econtracts": typeof AuthenticatedWorkspaceWorkspaceSettingsEcontractsRoute
   "/_authenticated/_workspace/workspace/settings/general": typeof AuthenticatedWorkspaceWorkspaceSettingsGeneralRoute
   "/_authenticated/_workspace/workspace/settings/holidays": typeof AuthenticatedWorkspaceWorkspaceSettingsHolidaysRoute
   "/_authenticated/_workspace/workspace/settings/leave": typeof AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute
@@ -969,6 +983,7 @@ export interface FileRouteTypes {
     | "/workspace/settings/connectivity"
     | "/workspace/settings/custom-fields"
     | "/workspace/settings/danger"
+    | "/workspace/settings/econtracts"
     | "/workspace/settings/general"
     | "/workspace/settings/holidays"
     | "/workspace/settings/leave"
@@ -1033,6 +1048,7 @@ export interface FileRouteTypes {
     | "/workspace/settings/connectivity"
     | "/workspace/settings/custom-fields"
     | "/workspace/settings/danger"
+    | "/workspace/settings/econtracts"
     | "/workspace/settings/general"
     | "/workspace/settings/holidays"
     | "/workspace/settings/leave"
@@ -1103,6 +1119,7 @@ export interface FileRouteTypes {
     | "/_authenticated/_workspace/workspace/settings/connectivity"
     | "/_authenticated/_workspace/workspace/settings/custom-fields"
     | "/_authenticated/_workspace/workspace/settings/danger"
+    | "/_authenticated/_workspace/workspace/settings/econtracts"
     | "/_authenticated/_workspace/workspace/settings/general"
     | "/_authenticated/_workspace/workspace/settings/holidays"
     | "/_authenticated/_workspace/workspace/settings/leave"
@@ -1536,6 +1553,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsGeneralRouteImport
       parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRoute
     }
+    "/_authenticated/_workspace/workspace/settings/econtracts": {
+      id: "/_authenticated/_workspace/workspace/settings/econtracts"
+      path: "/econtracts"
+      fullPath: "/workspace/settings/econtracts"
+      preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsEcontractsRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRoute
+    }
     "/_authenticated/_workspace/workspace/settings/danger": {
       id: "/_authenticated/_workspace/workspace/settings/danger"
       path: "/danger"
@@ -1723,6 +1747,7 @@ interface AuthenticatedWorkspaceWorkspaceSettingsRouteChildren {
   AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute
   AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute
   AuthenticatedWorkspaceWorkspaceSettingsDangerRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsDangerRoute
+  AuthenticatedWorkspaceWorkspaceSettingsEcontractsRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsEcontractsRoute
   AuthenticatedWorkspaceWorkspaceSettingsGeneralRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsGeneralRoute
   AuthenticatedWorkspaceWorkspaceSettingsHolidaysRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsHolidaysRoute
   AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute
@@ -1751,6 +1776,8 @@ const AuthenticatedWorkspaceWorkspaceSettingsRouteChildren: AuthenticatedWorkspa
       AuthenticatedWorkspaceWorkspaceSettingsCustomFieldsRoute,
     AuthenticatedWorkspaceWorkspaceSettingsDangerRoute:
       AuthenticatedWorkspaceWorkspaceSettingsDangerRoute,
+    AuthenticatedWorkspaceWorkspaceSettingsEcontractsRoute:
+      AuthenticatedWorkspaceWorkspaceSettingsEcontractsRoute,
     AuthenticatedWorkspaceWorkspaceSettingsGeneralRoute:
       AuthenticatedWorkspaceWorkspaceSettingsGeneralRoute,
     AuthenticatedWorkspaceWorkspaceSettingsHolidaysRoute:

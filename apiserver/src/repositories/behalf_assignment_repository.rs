@@ -21,7 +21,9 @@ pub trait BehalfAssignmentRepository: Send + Sync {
         &self,
         workspace_id: Uuid,
         assignment_type: &str,
-    ) -> AppResult<Vec<BehalfAssignment>>;
+        page: Option<i64>,
+        limit: Option<i64>,
+    ) -> AppResult<(Vec<BehalfAssignment>, i64)>;
 
     async fn check_behalf_permission(
         &self,

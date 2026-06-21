@@ -1,4 +1,3 @@
-/* eslint-disable */
 import { Save, Plus } from "lucide-react";
 import React, { useRef, useState } from "react";
 
@@ -51,7 +50,7 @@ export function TemplateEditor({ initialContent = "", onSave }: TemplateEditorPr
         </div>
         <textarea
           className="flex-1 w-full p-6 resize-none focus:outline-none bg-transparent text-slate-700 dark:text-slate-300 font-mono text-sm leading-relaxed"
-          onChange={(e) => { setContent(e.target.value); }}
+          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => { setContent(e.target.value); }}
           placeholder="Start typing your template here..."
           ref={textareaRef}
           value={content}
@@ -64,7 +63,7 @@ export function TemplateEditor({ initialContent = "", onSave }: TemplateEditorPr
           <Typography className="font-bold text-slate-800 dark:text-slate-200" variant="h4">
             Dynamic Variables
           </Typography>
-          <p className="text-xs text-slate-500 mt-1">Click any chip to insert it at your cursor.</p>
+          <Typography className="text-xs text-slate-500 mt-1" variant="p">Click any chip to insert it at your cursor.</Typography>
         </div>
         <div className="p-4 overflow-y-auto flex-1 flex flex-col gap-6">
           {AVAILABLE_VARIABLES.map((group) => (

@@ -5,8 +5,8 @@ import { useTranslation } from "react-i18next";
 
 import { toast } from "sonner";
 
-import { FileList } from "@/components/files/FileList";
-import { FileUpload } from "@/components/files/FileUpload";
+import { FileList } from "@/components/files/file-list";
+import { FileUpload } from "@/components/files/file-upload";
 import Button from "@/components/ui/button";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { client } from "@/lib/api/client";

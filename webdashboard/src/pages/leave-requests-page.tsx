@@ -98,7 +98,6 @@ export default function LeaveRequestsPage() {
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
-                variant="ghost"
                 className={cn(
                   "flex items-center gap-1.5 h-auto min-w-0 transition-colors group cursor-pointer px-3 py-1.5 rounded-xl border border-transparent bg-transparent font-bold text-[10px] uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800/50",
                   statusFilter !== "all"
@@ -106,6 +105,7 @@ export default function LeaveRequestsPage() {
                     : "text-slate-500 dark:text-slate-400 hover:text-slate-850 dark:hover:text-slate-200"
                 )}
                 type="button"
+                variant="ghost"
               >
                 <span className="flex items-center gap-1.5">
                   {t("common.status")}

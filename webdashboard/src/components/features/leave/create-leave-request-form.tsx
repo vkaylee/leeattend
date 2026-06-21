@@ -5,7 +5,7 @@ import React from "react";
 
 import type { Employee, EmployeeLeaveBalance, LeaveDurationType, LeaveType } from "@/lib/api/types";
 
-import { FileUpload } from "@/components/files/FileUpload";
+import { FileUpload } from "@/components/files/file-upload";
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import FormField from "@/components/ui/form-field";

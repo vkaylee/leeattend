@@ -1,7 +1,7 @@
+import { Link } from "@tanstack/react-router";
 import { Upload, UserPlus, FileText } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "@tanstack/react-router";
 
 import PermissionGate from "@/components/common/permission-gate";
 import Button from "@/components/ui/button";

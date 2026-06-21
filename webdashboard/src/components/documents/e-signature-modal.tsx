@@ -1,7 +1,7 @@
-/* eslint-disable */
 import React, { useState, useRef } from "react";
 
 import Button from "@/components/ui/button";
+import { Typography } from "@/components/ui/typography";
 
 interface ESignatureModalProps {
   documentTitle: string;
@@ -10,15 +10,13 @@ interface ESignatureModalProps {
   onSign: (payload: { signature_image_base64: string; ip_address?: string; user_agent?: string }) => void;
 }
 
-export function ESignatureModal({ isOpen, onClose, onSign, documentTitle }: ESignatureModalProps) {
-  const [activeTab, setActiveTab] = useState<"draw" | "type">("draw");
-  const [typedName, setTypedName] = useState("");
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+interface DrawTabContentProps {
+  canvasRef: React.RefObject<HTMLCanvasElement | null>;
+}
+
+function DrawTabContent({ canvasRef }: DrawTabContentProps) {
   const [isDrawing, setIsDrawing] = useState(false);
 
-  if (!isOpen) return null;
-
-  // Xử lý sự kiện vẽ trên Canvas
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     setIsDrawing(true);
     const canvas = canvasRef.current;
@@ -61,6 +59,81 @@ export function ESignatureModal({ isOpen, onClose, onSign, documentTitle }: ESig
     ctx.clearRect(0, 0, canvas.width, canvas.height);
   };
 
+  return (
+    <div className="space-y-3">
+      <div className="relative border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-900/50 overflow-hidden group">
+        <canvas
+          className="w-full h-[200px] cursor-crosshair touch-none"
+          height={200}
+          onMouseDown={startDrawing}
+          onMouseLeave={stopDrawing}
+          onMouseMove={draw}
+          onMouseUp={stopDrawing}
+          onTouchEnd={stopDrawing}
+          onTouchMove={draw}
+          onTouchStart={startDrawing}
+          ref={canvasRef}
+          width={400}
+        />
+        <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button 
+            className="text-xs px-3 py-1.5 rounded-md shadow-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors h-auto font-normal border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800"
+            onClick={clearCanvas}
+            variant="outline"
+          >
+            Clear Canvas
+          </Button>
+        </div>
+      </div>
+      <Typography className="text-xs text-center text-slate-500 mt-0 mb-0" variant="p">
+        Use your mouse or finger to draw your signature inside the box.
+      </Typography>
+    </div>
+  );
+}
+
+interface TypeTabContentProps {
+  setTypedName: (name: string) => void;
+  typedName: string;
+}
+
+function TypeTabContent({ typedName, setTypedName }: TypeTabContentProps) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2" htmlFor="typedName">
+          Your Full Name
+        </label>
+        <input
+          className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-slate-900 dark:text-white"
+          id="typedName"
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setTypedName(e.target.value); }}
+          placeholder="e.g. John Doe"
+          type="text"
+          value={typedName}
+        />
+      </div>
+      
+      <div className="h-[120px] flex items-center justify-center border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/30">
+        {typedName ? (
+          <span className="text-4xl font-serif text-slate-800 dark:text-slate-200 italic opacity-80" style={{ fontFamily: "'Caveat', 'Dancing Script', cursive" }}>
+            {typedName}
+          </span>
+        ) : (
+          <span className="text-sm text-slate-400">Preview will appear here</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function ESignatureModal({ isOpen, onClose, onSign, documentTitle }: ESignatureModalProps) {
+  const [activeTab, setActiveTab] = useState<"draw" | "type">("draw");
+  const [typedName, setTypedName] = useState("");
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  if (!isOpen) return null;
+
   const handleSign = () => {
     let signatureBase64 = "";
 
@@ -70,15 +143,12 @@ export function ESignatureModal({ isOpen, onClose, onSign, documentTitle }: ESig
         signatureBase64 = canvas.toDataURL("image/png");
       }
     } else {
-      // Simulate typing signature as base64 (In a real app, we'd generate an image from text)
-      // For this implementation, we just encode the text as a placeholder.
       signatureBase64 = `text:${btoa(typedName)}`;
     }
 
     onSign({
       signature_image_base64: signatureBase64,
       user_agent: navigator.userAgent,
-      // IP is usually grabbed by the backend, but we send what we can
     });
   };
 
@@ -89,10 +159,10 @@ export function ESignatureModal({ isOpen, onClose, onSign, documentTitle }: ESig
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
           <div>
-            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Sign Document</h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 truncate max-w-[300px]">
+            <Typography className="text-xl font-semibold text-slate-900 dark:text-white mt-0 mb-0" variant="h2">Sign Document</Typography>
+            <Typography className="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-0 truncate max-w-[300px]" variant="p">
               {documentTitle}
-            </p>
+            </Typography>
           </div>
           <Button 
             className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 h-9 w-9"
@@ -134,63 +204,12 @@ export function ESignatureModal({ isOpen, onClose, onSign, documentTitle }: ESig
 
           {/* Draw Tab */}
           {activeTab === "draw" && (
-            <div className="space-y-3">
-              <div className="relative border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-900/50 overflow-hidden group">
-                <canvas
-                  className="w-full h-[200px] cursor-crosshair touch-none"
-                  height={200}
-                  onMouseDown={startDrawing}
-                  onMouseLeave={stopDrawing}
-                  onMouseMove={draw}
-                  onMouseUp={stopDrawing}
-                  onTouchEnd={stopDrawing}
-                  onTouchMove={draw}
-                  onTouchStart={startDrawing}
-                  ref={canvasRef}
-                  width={400}
-                />
-                <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button 
-                    className="text-xs px-3 py-1.5 rounded-md shadow-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors h-auto font-normal border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800"
-                    onClick={clearCanvas}
-                    variant="outline"
-                  >
-                    Clear Canvas
-                  </Button>
-                </div>
-              </div>
-              <p className="text-xs text-center text-slate-500">
-                Use your mouse or finger to draw your signature inside the box.
-              </p>
-            </div>
+            <DrawTabContent canvasRef={canvasRef} />
           )}
 
           {/* Type Tab */}
           {activeTab === "type" && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Your Full Name
-                </label>
-                <input
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-slate-900 dark:text-white"
-                  onChange={(e) => { setTypedName(e.target.value); }}
-                  placeholder="e.g. John Doe"
-                  type="text"
-                  value={typedName}
-                />
-              </div>
-              
-              <div className="h-[120px] flex items-center justify-center border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/30">
-                {typedName ? (
-                  <span className="text-4xl font-serif text-slate-800 dark:text-slate-200 italic opacity-80" style={{ fontFamily: "'Caveat', 'Dancing Script', cursive" }}>
-                    {typedName}
-                  </span>
-                ) : (
-                  <span className="text-sm text-slate-400">Preview will appear here</span>
-                )}
-              </div>
-            </div>
+            <TypeTabContent setTypedName={setTypedName} typedName={typedName} />
           )}
         </div>
 

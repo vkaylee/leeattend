@@ -7,7 +7,6 @@ import InviteMemberDialog from "@/components/members/invite-member-dialog";
 import MemberTable from "@/components/members/member-table";
 import Button from "@/components/ui/button";
 import PageHeader from "@/components/ui/page-header";
-import { Typography } from "@/components/ui/typography";
 
 export default function MembersPage() {
   const { t } = useTranslation();

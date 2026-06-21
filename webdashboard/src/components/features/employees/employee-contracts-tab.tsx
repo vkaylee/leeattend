@@ -1,20 +1,20 @@
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { FileText, Pencil, Plus, Trash2, KeyRound, Eye } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
 
 import type { ContractStatus, ContractType, EmployeeContract } from "@/lib/api";
 
 import PermissionGate from "@/components/common/permission-gate";
 import Button from "@/components/ui/button";
+import { fetchEContractEnvelopes, EContractEnvelope } from "@/lib/api/econtracts";
+import { fetchEmployers } from "@/lib/api/employers";
 import { cn } from "@/lib/utils";
 import { useEmployeeContracts } from "@/pages/employees/hooks/use-employee-contracts";
-import { fetchEmployers } from "@/lib/api/employers";
-import { fetchEContractEnvelopes, EContractEnvelope } from "@/lib/api/econtracts";
-import EContractDetailsDrawer from "./econtract-details-drawer";
 
 import ContractFormModal from "./contract-form-modal";
+import EContractDetailsDrawer from "./econtract-details-drawer";
 
 interface EmployeeContractsTabProps {
   employeeId: string;
@@ -82,9 +82,9 @@ export default function EmployeeContractsTab({ wsId, employeeId, formatDate }: E
         </span>
         <div className="flex items-center gap-2">
           <Link
-            to="/econtracts"
-            search={{ q: employeeId }}
             className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 hover:text-primary-600 dark:text-slate-400 dark:hover:text-primary-400 uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800/50 py-1.5 px-3 rounded-full transition-colors h-auto shadow-none border-none"
+            search={{ q: employeeId }}
+            to="/econtracts"
           >
             <Eye size={14} /> VIEW IN REGISTRY
           </Link>
@@ -125,7 +125,7 @@ export default function EmployeeContractsTab({ wsId, employeeId, formatDate }: E
                           <span className={cn("text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full border shadow-sm", getStatusColor(contract.status))}>
                             {contract.status === "active" ? t("employees.table.active").toUpperCase() : contract.status.toUpperCase()}
                           </span>
-                          {envelope && (
+                          {!!envelope && (
                             <span
                               className={cn(
                                 "text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full border shadow-sm flex items-center gap-1",
@@ -170,7 +170,7 @@ export default function EmployeeContractsTab({ wsId, employeeId, formatDate }: E
                       </div>
                     </div>
 
-                    {envelope && (
+                    {!!envelope && (
                       <div className="mt-4 flex justify-end relative z-10">
                         <Button
                           className="flex items-center gap-1.5 text-[10px] font-bold text-primary-600 hover:text-primary-700 uppercase tracking-widest py-1.5 px-3.5 rounded-xl border border-primary-100 hover:bg-primary-50/50 transition-colors shadow-none"

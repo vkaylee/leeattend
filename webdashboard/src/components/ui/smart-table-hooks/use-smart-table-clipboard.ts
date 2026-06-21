@@ -127,7 +127,7 @@ export function useSmartTableClipboard<TRow extends ClipboardRow = ClipboardRow>
 
         const cell = cells[targetColIndex];
         const column = cell.column;
-        const meta = column.columnDef.meta as LocalSmartTableColumnMeta | undefined;
+        const meta = column.columnDef.meta;
 
         if (meta?.editable) {
           const rawValue = grid[i][j];

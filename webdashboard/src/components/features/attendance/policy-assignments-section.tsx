@@ -270,8 +270,8 @@ function PolicyAssignmentsSectionContent({ wsId }: { wsId: string }) {
                 </label>
                 <input 
                   className="w-full px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-primary-500/10 outline-none transition-all font-bold text-sm tracking-tight shadow-sm" 
-                  min={0}
                   max={1440}
+                  min={0}
                   onChange={e => {
                     const val = parseInt(e.target.value);
                     setGracePeriodMinutes(isNaN(val) ? undefined : val);

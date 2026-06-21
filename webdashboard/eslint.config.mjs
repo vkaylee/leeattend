@@ -262,7 +262,6 @@ export default tseslint.config(
       'src/pages/onboarding-page.tsx',
       'src/pages/shifts/shift-editor-page.tsx',
       'src/pages/system-admin/tenants-page.tsx',
-      'src/pages/working-patterns-editor-page.tsx',
     ],
     rules: {
       'max-lines': ['warn', { max: 300, skipBlankLines: true, skipComments: true }],

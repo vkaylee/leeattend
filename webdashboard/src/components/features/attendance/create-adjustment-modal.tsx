@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import { format } from "date-fns";
 
-import { FileUpload } from "@/components/files/FileUpload";
+import { FileUpload } from "@/components/files/file-upload";
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import Modal from "@/components/ui/modal";

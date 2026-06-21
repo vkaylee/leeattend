@@ -342,7 +342,7 @@ impl EmployeeSelfServiceRepository for DieselEmployeeRepository {
     }
 
     async fn create_employee_document(&self, doc: &EmployeeDocument) -> Result<(), AppError> {
-        let workspace_id = doc.workspace_id;
+        let workspace_id = doc.workspace_id();
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .tenants_tx

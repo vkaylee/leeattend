@@ -1,10 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import React from "react";
+
+import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 
-import { useToast, ToastProvider } from "@/components/ui/toast";
+import { ToastProvider } from "@/components/ui/toast";
 import {
   fetchEContractConfigs,
   saveEContractConfig,
@@ -14,6 +15,7 @@ import {
   fetchEContractEnvelopes,
 } from "@/lib/api/econtracts";
 import { fetchEmployers } from "@/lib/api/employers";
+
 import EContractsSettingsPage from "../econtracts-settings-page";
 
 // Mock i18next translation
@@ -157,7 +159,7 @@ describe("EContractsSettingsPage Component", () => {
     renderPage();
     expect(screen.getByText("e-Contracts Integration")).toBeInTheDocument();
     await waitFor(() => {
-      expect(screen.getByText("LEEATTEND SOLUTIONS INC.")).toBeInTheDocument();
+      expect(screen.getAllByText("LEEATTEND SOLUTIONS INC.").length).toBeGreaterThan(0);
     });
   });
 
@@ -166,7 +168,7 @@ describe("EContractsSettingsPage Component", () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText("LEEATTEND SOLUTIONS INC.")).toBeInTheDocument();
+      expect(screen.getAllByText("LEEATTEND SOLUTIONS INC.").length).toBeGreaterThan(0);
     });
 
     const select = screen.getByLabelText("Select Legal Entity") as HTMLSelectElement;
@@ -404,7 +406,7 @@ describe("EContractsSettingsPage Component", () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText("LEEATTEND SOLUTIONS INC.")).toBeInTheDocument();
+      expect(screen.getAllByText("LEEATTEND SOLUTIONS INC.").length).toBeGreaterThan(0);
     });
 
     // Select employer-2 (has no rules)
@@ -500,7 +502,7 @@ describe("EContractsSettingsPage Component", () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText("LEEATTEND SOLUTIONS INC.")).toBeInTheDocument();
+      expect(screen.getAllByText("LEEATTEND SOLUTIONS INC.").length).toBeGreaterThan(0);
     });
 
     // Switch to Audit tab

@@ -628,13 +628,15 @@ pub async fn list_behalf_assignments_handler(
     ctx: &MemberContext,
     required_permission: Permission,
     domain_type: &str,
-) -> AppResult<Vec<crate::models::BehalfAssignment>> {
+    page: Option<i64>,
+    limit: Option<i64>,
+) -> AppResult<(Vec<crate::models::BehalfAssignment>, i64)> {
     ctx.require_permission(required_permission)?;
 
     state
         .attendance()
         .behalf_assignment_repo()
-        .list_all_assignments(ctx.workspace_id, domain_type)
+        .list_all_assignments(ctx.workspace_id, domain_type, page, limit)
         .await
 }
 

@@ -1,4 +1,4 @@
-import { Calculator, CheckCircle2, Clock, History, ShieldAlert } from "lucide-react";
+import { Calculator, CheckCircle2, Clock, History } from "lucide-react";
 import React from "react";
 
 import { TFunction } from "i18next";

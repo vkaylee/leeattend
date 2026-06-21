@@ -82,11 +82,14 @@ impl BehalfAssignmentRepository for DieselBehalfAssignmentRepository {
         Ok(affected as u64)
     }
 
+    #[allow(clippy::too_many_lines)]
     async fn list_all_assignments(
         &self,
         workspace_id: Uuid,
         assignment_type: &str,
-    ) -> AppResult<Vec<BehalfAssignment>> {
+        page: Option<i64>,
+        limit: Option<i64>,
+    ) -> AppResult<(Vec<BehalfAssignment>, i64)> {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
                 .tenants_tx
@@ -95,17 +98,38 @@ impl BehalfAssignmentRepository for DieselBehalfAssignmentRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        let rows: Vec<BehalfAssignmentEntity> = behalf_assignments::table
+        let count_query = behalf_assignments::table
+            .filter(behalf_assignments::workspace_id.eq(workspace_id))
+            .filter(behalf_assignments::assignment_type.eq(assignment_type))
+            .into_boxed();
+
+        let total = count_query
+            .count()
+            .get_result::<i64>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let mut query = behalf_assignments::table
             .filter(behalf_assignments::workspace_id.eq(workspace_id))
             .filter(behalf_assignments::assignment_type.eq(assignment_type))
             .order(behalf_assignments::created_at.desc())
             .select(BehalfAssignmentEntity::as_select())
+            .into_boxed();
+
+        if let Some(limit_val) = limit {
+            query = query.limit(limit_val);
+            if let Some(page_val) = page {
+                query = query.offset((page_val - 1) * limit_val);
+            }
+        }
+
+        let rows: Vec<BehalfAssignmentEntity> = query
             .load(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         if rows.is_empty() {
-            return Ok(vec![]);
+            return Ok((vec![], total));
         }
 
         // 1. Fetch Assignee Employees
@@ -187,7 +211,7 @@ impl BehalfAssignmentRepository for DieselBehalfAssignmentRepository {
             results.push(item);
         }
 
-        Ok(results)
+        Ok((results, total))
     }
 
     async fn check_behalf_permission(

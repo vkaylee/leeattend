@@ -5,7 +5,6 @@ import {
   createLocation, 
   updateLocation, 
   deleteLocation,
-  WorkLocation,
   CreateWorkLocationRequest,
   UpdateWorkLocationRequest
 } from "@/lib/api/locations";

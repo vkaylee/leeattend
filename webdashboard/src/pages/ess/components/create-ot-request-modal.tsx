@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
-import { FileUpload } from "@/components/files/FileUpload";
+import { FileUpload } from "@/components/files/file-upload";
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";

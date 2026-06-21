@@ -20,7 +20,8 @@ use crate::services::ReportCoordinator;
 use crate::worker::handlers::{
     AccrualHandler, AttendanceHandler, ClaimStagedLogsHandler, EmployeeImportChunkHandler,
     EmployeeImportHandler, FinalizeImportHandler, LeaveImportHandler, LogIngestionHandler,
-    MergeHandler, NightlyHousekeepingHandler, ReprocessAttendanceHandler, SyncHireDateHandler,
+    MergeHandler, NightlyHousekeepingHandler, PayrollReportHandler, ReprocessAttendanceHandler,
+    SyncHireDateHandler,
 };
 
 // Redis key patterns for monitoring
@@ -471,10 +472,7 @@ impl JobWorker {
             TaskType::MergeResults => {
                 MergeHandler::handle(&self.queue_repo, &self.publisher_repo, &job, &self.deps).await
             }
-            TaskType::PayrollReport => {
-                // Future implementation
-                Err("PayrollReport not implemented".to_string())
-            }
+            TaskType::PayrollReport => PayrollReportHandler::handle(&job, &self.deps).await,
             TaskType::LeaveAccrual => {
                 AccrualHandler::handle(&self.queue_repo, &job, &self.deps).await
             }
@@ -712,6 +710,7 @@ mod tests {
                 task_type,
                 TaskType::AttendanceReport
                     | TaskType::MergeResults
+                    | TaskType::PayrollReport
                     | TaskType::LeaveAccrual
                     | TaskType::LogIngestion
                     | TaskType::ReprocessAttendance
@@ -724,12 +723,7 @@ mod tests {
                     | TaskType::NightlyHousekeeping
             );
 
-            // PayrollReport should be not implemented yet
-            if matches!(task_type, TaskType::PayrollReport) {
-                assert!(!is_implemented);
-            } else {
-                assert!(is_implemented);
-            }
+            assert!(is_implemented);
         }
     }
 

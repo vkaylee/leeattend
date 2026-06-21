@@ -74,8 +74,8 @@ export default function LocationsSettings() {
         {isLoading ? (
           Array.from({ length: 3 }).map((_, index) => (
             <div 
-              key={index}
               className="bg-white dark:bg-slate-900 rounded-[1.75rem] border border-slate-100 dark:border-slate-800 p-5 flex flex-col md:flex-row md:items-center justify-between gap-6 animate-pulse"
+              key={index}
             >
               <div className="flex items-center gap-4 min-w-[240px]">
                 <Skeleton className="w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 shrink-0" />
@@ -100,15 +100,15 @@ export default function LocationsSettings() {
           ))
         ) : locations?.length === 0 ? (
           <EmptyState
-            icon={<MapPin className="w-12 h-12 text-slate-300 dark:text-slate-600" />}
-            title={t("settings.locations.empty_title", { defaultValue: "No Locations" })}
-            description={t("settings.locations.empty_desc", { defaultValue: "Add your first work location to get started." })}
             action={
-              <Button onClick={handleAdd} variant="primary" className="rounded-2xl px-6">
+              <Button className="rounded-2xl px-6" onClick={handleAdd} variant="primary">
                 <Plus className="mr-2" size={16} />
                 {t("settings.locations.add", { defaultValue: "Add Location" })}
               </Button>
             }
+            description={t("settings.locations.empty_desc", { defaultValue: "Add your first work location to get started." })}
+            icon={<MapPin className="w-12 h-12 text-slate-300 dark:text-slate-600" />}
+            title={t("settings.locations.empty_title", { defaultValue: "No Locations" })}
           />
         ) : (
           locations?.map((location) => (
@@ -136,7 +136,7 @@ export default function LocationsSettings() {
                   <Typography className="font-bold text-slate-800 dark:text-slate-200 text-lg leading-tight" variant="h4">
                     {location.name}
                   </Typography>
-                  {location.is_headquarters && (
+                  {!!location.is_headquarters && (
                     <span className="inline-flex text-[9px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest px-2 py-0.5 bg-primary-50 dark:bg-primary-900/30 rounded-full w-fit">
                       {t("settings.locations.hq", { defaultValue: "Headquarters" })}
                     </span>

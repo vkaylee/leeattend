@@ -3,7 +3,7 @@ import { Upload, X, FileText } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { FileUpload } from "@/components/files/FileUpload";
+import { FileUpload } from "@/components/files/file-upload";
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";

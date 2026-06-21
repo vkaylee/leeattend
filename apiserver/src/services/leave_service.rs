@@ -91,7 +91,7 @@ impl LeaveService {
             )
             .await
             .map_err(|e| {
-                tracing::error!(error = %e, "SQLx Error in get_workspace_balances");
+                tracing::error!(error = %e, "Error in get_workspace_balances");
                 AppError::Internal("Internal error".into())
             })?;
 

@@ -438,27 +438,19 @@ pub async fn list_request_behalf_assignments(
     let page = query.page.unwrap_or(1).max(1);
     let limit = query.limit.unwrap_or(50).clamp(1, 3000);
 
-    let mut result = crate::handlers::common::list_behalf_assignments_handler(
+    let (result, total) = crate::handlers::common::list_behalf_assignments_handler(
         &state,
         &ctx,
         Permission::OvertimePoliciesManage,
         "overtime_request",
+        Some(page),
+        Some(limit),
     )
     .await?;
 
-    let total = result.len();
-    let offset = usize::try_from((page - 1) * limit).unwrap_or(0);
-    let paginated_results = if offset >= total {
-        Vec::new()
-    } else {
-        result
-            .drain(offset..std::cmp::min(offset + usize::try_from(limit).unwrap_or(0), total))
-            .collect()
-    };
-
     Ok(Json(PaginatedResponse {
-        data: paginated_results,
-        total,
+        data: result,
+        total: usize::try_from(total).unwrap_or(0),
         page,
         limit,
     }))

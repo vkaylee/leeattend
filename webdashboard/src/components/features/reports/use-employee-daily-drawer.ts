@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 import {
     DailyAttendanceReport,
@@ -18,9 +18,9 @@ interface UseEmployeeDailyDrawerProps {
 }
 
 export function useEmployeeDailyDrawer(props: UseEmployeeDailyDrawerProps) {
-    const { isOpen, workspaceId, employeeId, dateRange, employmentId = "" } = props;
+    const { isOpen, workspaceId, employeeId, dateRange, employmentId } = props;
     const [viewMode, setViewMode] = useState<"daily" | "raw">("daily");
-    const [selectedEmploymentId, setSelectedEmploymentId] = useState<string>(employmentId);
+    const [selectedEmploymentId, setSelectedEmploymentId] = useState<string | undefined>(employmentId);
 
     const [prevEmployeeId, setPrevEmployeeId] = useState<string | null>(null);
     const [prevIsOpen, setPrevIsOpen] = useState<boolean>(false);

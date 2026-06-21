@@ -341,11 +341,13 @@ pub async fn list_adjustment_behalf_assignments(
     Path(_ws_id): Path<Uuid>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<BehalfAssignment>>> {
-    let result = crate::handlers::common::list_behalf_assignments_handler(
+    let (result, _) = crate::handlers::common::list_behalf_assignments_handler(
         &state,
         &ctx,
         Permission::AttendanceAdjustmentsManageBehalf,
         "attendance_adjustment",
+        None,
+        None,
     )
     .await?;
     Ok(Json(result))

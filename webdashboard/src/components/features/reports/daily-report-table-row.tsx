@@ -1,4 +1,4 @@
-import { RefreshCw, Bug, CheckCircle, ThumbsUp, ThumbsDown, ChevronRight, ChevronDown } from "lucide-react";
+import { RefreshCw, Bug, CheckCircle, ThumbsUp, ThumbsDown, ChevronRight } from "lucide-react";
 import React from "react";
 
 import Button from "@/components/ui/button";
@@ -8,9 +8,9 @@ import { cn } from "@/lib/utils";
 import { formatHours, getUnitTypeI18nKey, buildWorkUnitsTooltip } from "@/lib/utils/attendance";
 
 import { ScheduleTracePopover } from "../../shifts/schedule-trace-popover";
+import { DailyReportTimeline, TimeEntry } from "./daily-report-timeline";
 import { ReportOtStatusBadge } from "./report-ot-status-badge";
 import { ReportStatusBadge } from "./report-status-badge";
-import { DailyReportTimeline } from "./daily-report-timeline";
 
 function DailyReportTableRowExpanded({
   row,
@@ -42,9 +42,9 @@ function DailyReportTableRowExpanded({
           </div>
           
           {/* Visual Timeline Component */}
-          <DailyReportTimeline row={row} formatTime={formatTime} t={t} />
+          <DailyReportTimeline formatTime={formatTime} row={row} t={t} />
 
-          {isDebugMode && (
+          {!!isDebugMode && (
             <div className="mt-8 border-t border-slate-100 dark:border-slate-800 pt-6">
               <div className="flex items-center gap-4 mb-4">
                 <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/10 flex items-center justify-center text-amber-500 shadow-inner border border-amber-500/20">
@@ -274,7 +274,7 @@ export function DailyReportTableRow({
   const isConfirming = confirmingRow === rowKey;
   const isExpanded = expandedDebugRows.has(rowKey);
   const existingAdjustment = adjustmentMap[rowKey];
-  const metadata = row.generation_metadata as { time_entries?: any[] } | undefined;
+  const metadata = row.generation_metadata as { time_entries?: TimeEntry[] } | undefined;
   const timeEntries = metadata?.time_entries ?? [];
 
   return (
@@ -282,11 +282,11 @@ export function DailyReportTableRow({
       <tr className={cn("transition-all group", isExpanded ? "bg-amber-50 dark:bg-amber-950/20" : "hover:bg-slate-50 dark:hover:bg-slate-800/50")}>
         <td className="w-10 px-2 py-2.5 text-center sticky left-0 z-10 bg-white group-hover:bg-slate-50 dark:bg-slate-900 dark:group-hover:bg-slate-800/50 transition-colors">
           <Button
-            variant="ghost"
             className="p-1 h-auto text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-            onClick={() => onToggleExpandRow(rowKey)}
+            onClick={() => { onToggleExpandRow(rowKey); }}
+            variant="ghost"
           >
-            <ChevronRight size={14} className={cn("transition-transform duration-200", isExpanded && "rotate-90")} />
+            <ChevronRight className={cn("transition-transform duration-200", isExpanded && "rotate-90")} size={14} />
           </Button>
         </td>
         <td className="px-4 py-2.5 font-mono text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase whitespace-nowrap sticky left-[40px] z-10 bg-white group-hover:bg-slate-50 dark:bg-slate-900 dark:group-hover:bg-slate-800/50 transition-colors">
@@ -307,7 +307,7 @@ export function DailyReportTableRow({
               <span 
                 className="text-[8px] bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider scale-90 cursor-help"
                 title={timeEntries
-                  .map((e: any, i: number) => {
+                  .map((e: TimeEntry, i: number) => {
                     const inT = formatTime(e.punch_in_time);
                     const outT = e.punch_out_time ? formatTime(e.punch_out_time) : "---";
                     return `Session ${i + 1}: ${inT} - ${outT} (${e.entry_type})`;

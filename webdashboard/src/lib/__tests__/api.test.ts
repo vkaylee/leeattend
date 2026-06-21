@@ -219,7 +219,7 @@ describe("api.ts comprehensive tests", () => {
 
     it("fetchAttendanceReport", async () => {
       mockSuccess({});
-      await api.fetchAttendanceReport({ wsId: "ws-1", start: "2026-01-01", end: "2026-01-31" });
+      await api.fetchAttendanceReport({ wsId: "ws-1", start: "2026-01-01", end: "2026-01-31", type: "summary" });
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/reports/attendance?start_date=2026-01-01&end_date=2026-01-31&type=summary"), expect.any(Object));
     });
   });

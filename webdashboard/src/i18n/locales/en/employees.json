@@ -209,11 +209,35 @@
         "expiration_date": "Expiration Date",
         "indefinite_duration": "Indefinite",
         "contract_number": "Contract No: {{number}}",
+        "search_label": "Search contracts",
+        "search_placeholder_input": "Search employee, ID or contract...",
+        "search_no_results": "No matching contracts found.",
+        "empty_state": "Configure and manage employee employment contracts here.",
+        "no_contracts_found": "No contracts found.",
+        "employee": "Employee",
+        "type": "Type",
+        "duration": "Duration",
+        "actions": "Actions",
+        "permanent": "Permanent",
+        "edit": "Edit",
+        "delete": "Delete",
         "types": {
+          "all": "ALL TYPES",
           "probation": "Probation",
+          "probation_upper": "PROBATION",
           "training": "Training",
+          "training_upper": "TRAINING",
           "fixed_term": "Fixed Term",
-          "indefinite": "Indefinite"
+          "fixed_term_upper": "FIXED TERM",
+          "indefinite": "Indefinite",
+          "indefinite_upper": "INDEFINITE"
+        },
+        "status": {
+          "all": "ALL STATUSES",
+          "draft_upper": "DRAFT",
+          "active_upper": "ACTIVE",
+          "expired_upper": "EXPIRED",
+          "terminated_upper": "TERMINATED"
         }
       }
     },

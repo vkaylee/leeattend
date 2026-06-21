@@ -268,20 +268,20 @@ pub struct EmployeeProfileEntity {
 
 impl From<EmployeeProfileEntity> for crate::models::EmployeeProfile {
     fn from(val: EmployeeProfileEntity) -> Self {
-        Self {
-            id: val.id,
-            employee_id: val.employee_id,
-            phone: val.phone,
-            address: val.address,
-            date_of_birth: val.date_of_birth,
-            gender: val.gender,
-            national_id: val.national_id,
-            bank_name: val.bank_name,
-            bank_account_number: val.bank_account_number,
-            bank_branch: val.bank_branch,
-            created_at: val.created_at,
-            updated_at: val.updated_at,
-        }
+        crate::models::EmployeeProfile::new(
+            val.id,
+            val.employee_id,
+            val.phone,
+            val.address,
+            val.date_of_birth,
+            val.gender,
+            val.national_id,
+            val.bank_name,
+            val.bank_account_number,
+            val.bank_branch,
+            val.created_at,
+            val.updated_at,
+        )
     }
 }
 
@@ -299,15 +299,15 @@ pub struct EmployeeEmergencyContactEntity {
 
 impl From<EmployeeEmergencyContactEntity> for crate::models::EmployeeEmergencyContact {
     fn from(val: EmployeeEmergencyContactEntity) -> Self {
-        Self {
-            id: val.id,
-            employee_id: val.employee_id,
-            contact_name: val.contact_name,
-            relationship: val.relationship,
-            phone: val.phone,
-            is_primary: val.is_primary,
-            created_at: val.created_at,
-        }
+        crate::models::EmployeeEmergencyContact::new(
+            val.id,
+            val.employee_id,
+            val.contact_name,
+            val.relationship,
+            val.phone,
+            val.is_primary,
+            val.created_at,
+        )
     }
 }
 
@@ -330,38 +330,38 @@ pub struct EmployeeDocumentEntity {
 
 impl From<EmployeeDocumentEntity> for crate::models::EmployeeDocument {
     fn from(val: EmployeeDocumentEntity) -> Self {
-        Self {
-            id: val.id,
-            employee_id: val.employee_id,
-            workspace_id: val.workspace_id,
-            document_type: val.document_type,
-            file_name: val.file_name,
-            file_path: val.file_path,
-            file_size: val.file_size,
-            mime_type: val.mime_type,
-            expires_at: val.expires_at,
-            is_active: val.is_active,
-            uploaded_by: val.uploaded_by,
-            created_at: val.created_at,
-        }
+        crate::models::EmployeeDocument::new(
+            val.id,
+            val.employee_id,
+            val.workspace_id,
+            val.document_type,
+            val.file_name,
+            val.file_path,
+            val.file_size,
+            val.mime_type,
+            val.expires_at,
+            val.is_active,
+            val.uploaded_by,
+            val.created_at,
+        )
     }
 }
 
 impl From<crate::models::EmployeeDocument> for EmployeeDocumentEntity {
     fn from(val: crate::models::EmployeeDocument) -> Self {
         Self {
-            id: val.id,
-            employee_id: val.employee_id,
-            workspace_id: val.workspace_id,
-            document_type: val.document_type,
-            file_name: val.file_name,
-            file_path: val.file_path,
-            file_size: val.file_size,
-            mime_type: val.mime_type,
-            expires_at: val.expires_at,
-            is_active: val.is_active,
-            uploaded_by: val.uploaded_by,
-            created_at: val.created_at,
+            id: val.id(),
+            employee_id: val.employee_id(),
+            workspace_id: val.workspace_id(),
+            document_type: val.document_type().to_string(),
+            file_name: val.file_name().to_string(),
+            file_path: val.file_path().to_string(),
+            file_size: val.file_size(),
+            mime_type: val.mime_type().to_string(),
+            expires_at: val.expires_at(),
+            is_active: val.is_active(),
+            uploaded_by: val.uploaded_by(),
+            created_at: val.created_at(),
         }
     }
 }

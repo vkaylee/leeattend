@@ -42,7 +42,7 @@ export async function updateWorkspace(
 
 export async function fetchWorkspaceMembers(wsId: string): Promise<WorkspaceMember[]> {
   const { data } = await client.GET("/v1/workspaces/{ws_id}/members", { params: { path: { ws_id: wsId } } });
-  return (data?.data ?? []) as unknown as WorkspaceMember[];
+  return data?.data ?? [];
 }
 
 
@@ -60,7 +60,8 @@ export async function updateWorkspaceMemberRole(wsId: string, userId: string, ro
 
 export async function fetchMemberRoles(wsId: string, userId: string): Promise<MemberRolesResponse> {
   const { data } = await client.GET("/v1/workspaces/{ws_id}/members/{user_id}/roles", { params: { path: { ws_id: wsId, user_id: userId } } });
-  return data as unknown as MemberRolesResponse;
+  if (!data) throw new Error("No response data");
+  return data;
 }
 
 export async function assignExtraRole(wsId: string, userId: string, roleId: string, expiresAt: string): Promise<MemberExtraRole> {

@@ -72,27 +72,27 @@ export default function LeaveSettings() {
               assignments={assignments}
               departments={departments}
               employees={employees}
+              isDeleting={isDeleting}
               isLoading={assignmentsLoading}
               onAssignClick={() => { setIsAssignModalOpen(true); }}
+              onDelete={deleteAssignment}
               onEditClick={(a) => {
                 setEditingAssignment(a);
                 setIsAssignModalOpen(true);
               }}
-              onDelete={deleteAssignment}
-              isDeleting={isDeleting}
             />
           )}
         </div>
       </div>
 
       <AssignPolicyModal 
+        editingAssignment={editingAssignment}
         isOpen={isAssignModalOpen}
         onClose={() => {
           setIsAssignModalOpen(false);
           setEditingAssignment(null);
         }}
         wsId={wsId}
-        editingAssignment={editingAssignment}
       />
     </div>
   );

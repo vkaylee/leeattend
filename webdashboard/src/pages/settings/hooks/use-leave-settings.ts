@@ -17,8 +17,8 @@ export interface LeaveAssignment {
   effective_to: string | null;
   id: string;
   leave_type_name: string;
-  policy_name: string;
   policy_id: string;
+  policy_name: string;
 }
 
 export function useLeaveSettings() {

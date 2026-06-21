@@ -1,14 +1,14 @@
 import { Info, UserPlus, Trash2, Pencil } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { toast } from "sonner";
 
 import { format } from "date-fns";
+import { toast } from "sonner";
 
-import ConfirmDialog from "@/components/ui/confirm-dialog";
 import type { Employee, Department } from "@/lib/api/types";
 
 import Button from "@/components/ui/button";
+import ConfirmDialog from "@/components/ui/confirm-dialog";
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
@@ -18,11 +18,11 @@ interface LeaveAssignmentsTabProps {
   assignments: LeaveAssignment[];
   departments: Department[];
   employees: Employee[];
+  isDeleting: boolean;
   isLoading: boolean;
   onAssignClick: () => void;
-  onEditClick: (assignment: LeaveAssignment) => void;
   onDelete: (id: string) => Promise<void>;
-  isDeleting: boolean;
+  onEditClick: (assignment: LeaveAssignment) => void;
 }
 
 export function LeaveAssignmentsTab({
@@ -147,22 +147,22 @@ export function LeaveAssignmentsTab({
                     </td>
                     <td className="px-6 py-5 text-right flex items-center justify-end gap-2">
                       <Button
-                        className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 px-2 py-1 h-8 rounded-lg transition-colors inline-flex items-center justify-center"
-                        onClick={() => onEditClick(a)}
-                        variant="ghost"
-                        size="sm"
-                        disabled={isDeleting}
                         aria-label={t("common.edit")}
+                        className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 px-2 py-1 h-8 rounded-lg transition-colors inline-flex items-center justify-center"
+                        disabled={isDeleting}
+                        onClick={() => { onEditClick(a); }}
+                        size="sm"
+                        variant="ghost"
                       >
                         <Pencil className="w-4 h-4" />
                       </Button>
                       <Button
-                        className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/20 px-2 py-1 h-8 rounded-lg transition-colors inline-flex items-center justify-center"
-                        onClick={() => setDeletingAssignmentId(a.id)}
-                        variant="ghost"
-                        size="sm"
-                        disabled={isDeleting}
                         aria-label={t("settings.leave.actions.delete")}
+                        className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/20 px-2 py-1 h-8 rounded-lg transition-colors inline-flex items-center justify-center"
+                        disabled={isDeleting}
+                        onClick={() => setDeletingAssignmentId(a.id)}
+                        size="sm"
+                        variant="ghost"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -180,7 +180,7 @@ export function LeaveAssignmentsTab({
         isLoading={isDeleting}
         isOpen={deletingAssignmentId !== null}
         message={t("settings.leave.dialogs.delete_assignment_message")}
-        onClose={() => setDeletingAssignmentId(null)}
+        onClose={() => { setDeletingAssignmentId(null); }}
         onConfirm={handleDeleteConfirm}
         title={t("settings.leave.dialogs.delete_assignment_title")}
         variant="danger"

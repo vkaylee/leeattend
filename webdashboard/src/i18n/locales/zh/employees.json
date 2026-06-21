@@ -209,11 +209,35 @@
         "expiration_date": "到期日期",
         "indefinite_duration": "无固定期限",
         "contract_number": "合同编号: {{number}}",
+        "search_label": "搜索合同",
+        "search_placeholder_input": "按姓名、工号或合同搜索...",
+        "search_no_results": "未找到匹配的合同。",
+        "empty_state": "在此配置和管理员工雇佣合同。",
+        "no_contracts_found": "未找到合同。",
+        "employee": "员工",
+        "type": "合同类型",
+        "duration": "期限",
+        "actions": "操作",
+        "permanent": "无固定期限",
+        "edit": "编辑",
+        "delete": "删除",
         "types": {
+          "all": "所有合同类型",
           "probation": "试用期",
+          "probation_upper": "试用期",
           "training": "培训",
+          "training_upper": "培训",
           "fixed_term": "固定期限",
-          "indefinite": "无固定期限"
+          "fixed_term_upper": "固定期限",
+          "indefinite": "无固定期限",
+          "indefinite_upper": "无固定期限"
+        },
+        "status": {
+          "all": "所有状态",
+          "draft_upper": "草稿",
+          "active_upper": "活跃",
+          "expired_upper": "已过期",
+          "terminated_upper": "已终止"
         }
       }
     },

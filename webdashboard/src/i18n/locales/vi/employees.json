@@ -209,11 +209,35 @@
         "expiration_date": "Ngày hết hạn",
         "indefinite_duration": "Không thời hạn",
         "contract_number": "Số HĐ: {{number}}",
+        "search_label": "Tìm kiếm hợp đồng",
+        "search_placeholder_input": "Tìm theo tên, mã NV hoặc hợp đồng...",
+        "search_no_results": "Không tìm thấy hợp đồng phù hợp.",
+        "empty_state": "Cấu hình và quản lý hợp đồng lao động tại đây.",
+        "no_contracts_found": "Không tìm thấy hợp đồng.",
+        "employee": "Nhân viên",
+        "type": "Loại hợp đồng",
+        "duration": "Thời hạn",
+        "actions": "Thao tác",
+        "permanent": "Vô thời hạn",
+        "edit": "Chỉnh sửa",
+        "delete": "Xóa",
         "types": {
+          "all": "TẤT CẢ LOẠI HĐ",
           "probation": "Thử việc",
+          "probation_upper": "THỬ VIỆC",
           "training": "Đào tạo",
+          "training_upper": "ĐÀO TẠO",
           "fixed_term": "Xác định thời hạn",
-          "indefinite": "Không xác định thời hạn"
+          "fixed_term_upper": "XÁC ĐỊNH THỜI HẠN",
+          "indefinite": "Không xác định thời hạn",
+          "indefinite_upper": "KHÔNG XÁC ĐỊNH THỜI HẠN"
+        },
+        "status": {
+          "all": "TẤT CẢ TRẠNG THÁI",
+          "draft_upper": "BẢN NHÁP",
+          "active_upper": "ĐANG HOẠT ĐỘNG",
+          "expired_upper": "HẾT HẠN",
+          "terminated_upper": "ĐÃ CHẤM DỨT"
         }
       }
     },

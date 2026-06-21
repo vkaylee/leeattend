@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import PageHeader from "@/components/ui/page-header";
-import { Typography } from "@/components/ui/typography";
 import { useMyProfile } from "@/hooks/use-ess";
 import { useMyOtAssignments, useEmployeeQuota } from "@/hooks/use-overtime-requests";
 import { useWorkspace } from "@/hooks/use-workspace";

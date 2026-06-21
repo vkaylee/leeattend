@@ -11,7 +11,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import PageHeader from "@/components/ui/page-header";
-import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 interface PayrollHeaderProps {

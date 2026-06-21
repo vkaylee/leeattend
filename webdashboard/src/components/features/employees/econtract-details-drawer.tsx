@@ -1,16 +1,15 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { X, KeyRound, CheckCircle, Clock, Send, Download, ShieldAlert, Sparkles, FileSignature } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import Sheet from "@/components/ui/sheet";
 import Button from "@/components/ui/button";
-import Modal from "@/components/ui/modal";
 import FormField from "@/components/ui/form-field";
+import Modal from "@/components/ui/modal";
+import Sheet from "@/components/ui/sheet";
 import { useToast } from "@/components/ui/toast";
-import { cn } from "@/lib/utils";
-
 import { EContractEnvelope, saveEContractEnvelope, SignerStatus } from "@/lib/api/econtracts";
+import { cn } from "@/lib/utils";
 
 interface EContractDetailsDrawerProps {
   envelope: EContractEnvelope | null;
@@ -104,13 +103,13 @@ export default function EContractDetailsDrawer({
   return (
     <>
       <Sheet
+        ariaDescribedBy="e-sign-audit-description"
+        ariaLabelledBy="e-sign-audit-title"
         className="!max-w-2xl"
         contentClassName="!p-0"
         hideHeader
         isOpen={isOpen}
         onClose={onClose}
-        ariaLabelledBy="e-sign-audit-title"
-        ariaDescribedBy="e-sign-audit-description"
       >
         {/* Header */}
         <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
@@ -119,10 +118,10 @@ export default function EContractDetailsDrawer({
               <KeyRound size={20} />
             </div>
             <div>
-              <h2 id="e-sign-audit-title" className="text-sm font-bold uppercase tracking-widest text-slate-800 dark:text-slate-100">
+              <h2 className="text-sm font-bold uppercase tracking-widest text-slate-800 dark:text-slate-100" id="e-sign-audit-title">
                 Chi tiết Ký số (e-Sign Audit)
               </h2>
-              <span id="e-sign-audit-description" className="text-[10px] font-mono text-slate-400 uppercase tracking-widest block">
+              <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest block" id="e-sign-audit-description">
                 ID: {envelope.external_envelope_id}
               </span>
             </div>
@@ -201,7 +200,7 @@ export default function EContractDetailsDrawer({
                           {signer.status}
                         </span>
                       </div>
-                      {signer.signed_at && (
+                      {!!signer.signed_at && (
                         <div className="mt-2 text-[8px] font-mono text-slate-400 block uppercase tracking-wider">
                           Đã ký lúc: {new Date(signer.signed_at).toLocaleString()}
                         </div>

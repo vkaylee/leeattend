@@ -136,13 +136,15 @@ vi.mock("@/components/ui/combobox", () => ({
     value, 
     onChange, 
     id, 
-    "data-testid": testId 
+    "data-testid": testId,
+    emptyText
   }: { 
     options: { value: string; label: string }[]; 
     value: string; 
     onChange: (value_: string) => void; 
     id?: string; 
-    "data-testid"?: string 
+    "data-testid"?: string;
+    emptyText?: string;
   }) => (
     <select aria-label="Role"
       data-testid={testId}
@@ -151,6 +153,9 @@ vi.mock("@/components/ui/combobox", () => ({
       value={value}
     >
       <option value="">Select...</option>
+      {options.length === 0 && emptyText ? (
+        <option value="">{emptyText}</option>
+      ) : null}
       {options.map((opt) => (
         <option 
           data-testid={testId ? `${testId}-option-${opt.value}` : `combo-option-${opt.value}`} 

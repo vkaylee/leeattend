@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { Employer } from "../types";
+
 import {
   fetchEContractConfigs,
   saveEContractConfig,
@@ -12,6 +12,7 @@ import {
   EContractRoutingRule,
   EContractEnvelope
 } from "../econtracts";
+import { Employer } from "../types";
 
 const mockEmployers = [
   {

@@ -395,14 +395,14 @@ export default function ContractFormModal({
                   <span className="text-[9px] text-slate-400 font-semibold uppercase tracking-wider mt-0.5 block">Tự động khởi tạo giao dịch ký số trên FPT/SmartCA</span>
                 </div>
                 <input
-                  type="checkbox"
-                  id="enable_esign"
                   className="h-4 w-4 rounded border-slate-350 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                  id="enable_esign"
+                  type="checkbox"
                   {...register("enable_esign")}
                 />
               </label>
 
-              {watchEnableEsign && (
+              {!!watchEnableEsign && (
                 <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-850 animate-in fade-in duration-300">
                   <div className="space-y-2">
                     <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest" htmlFor="esign_auth_type">
@@ -434,16 +434,16 @@ export default function ContractFormModal({
                   <div className="space-y-2">
                     <div className="flex items-start gap-2.5">
                       <input
-                        type="checkbox"
-                        id="consent_privacy"
                         className="mt-0.5 h-4 w-4 rounded border-slate-350 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                        id="consent_privacy"
+                        type="checkbox"
                         {...register("consent_privacy")}
                       />
                       <label className="text-[9px] text-slate-500 font-bold leading-normal uppercase tracking-wider cursor-pointer select-none" htmlFor="consent_privacy">
                         Tôi đồng ý chia sẻ thông tin cá nhân (Họ tên, Email, SĐT, CCCD) cho bên nhà cung cấp dịch vụ ký số CeCA để thực hiện giao dịch này. (Nghị định 13/2023/NĐ-CP)
                       </label>
                     </div>
-                    {errors.consent_privacy && (
+                    {!!errors.consent_privacy && (
                       <Typography className="text-xs text-rose-500 font-medium" variant="p">
                         {errors.consent_privacy.message}
                       </Typography>

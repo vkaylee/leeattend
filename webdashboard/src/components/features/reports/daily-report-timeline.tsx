@@ -3,19 +3,19 @@ import React from "react";
 import { DailyAttendanceReport } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-interface TimeEntry {
-  id: string;
-  entry_type: "work" | "break";
-  punch_in_time: string;
-  punch_out_time: string | null;
+export interface TimeEntry {
   duration_minutes: number | null;
+  entry_type: "work" | "break";
+  id: string;
   is_break_overtime?: boolean;
   note: string | null;
+  punch_in_time: string;
+  punch_out_time: string | null;
 }
 
 interface DailyReportTimelineProps {
-  row: DailyAttendanceReport;
   formatTime: (time: string | null) => string;
+  row: DailyAttendanceReport;
   t: (key: string) => string;
 }
 
@@ -190,7 +190,7 @@ export function DailyReportTimeline({ row, formatTime, t }: DailyReportTimelineP
                     {entry.punch_out_time ? formatTime(entry.punch_out_time) : t("reports.confirm.missing_out")}
                   </span>
                 </div>
-                {entry.note && (
+                {!!entry.note && (
                   <div className="text-[9px] text-orange-300 italic border-t border-white/5 pt-1 mt-1 truncate">
                     Note: {entry.note}
                   </div>

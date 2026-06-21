@@ -278,8 +278,8 @@ function GracePeriodInput({
       <label className={LABEL_BASE}>{t("common.workspace_settings.grace_period_minutes") || "Late Grace Period (minutes)"}</label>
       <input
         className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight shadow-sm"
-        min={0}
         max={1440}
+        min={0}
         onChange={(e) => {
           const val = parseInt(e.target.value);
           setGracePeriodMinutes(isNaN(val) ? 0 : val);

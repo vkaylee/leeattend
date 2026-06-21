@@ -2,51 +2,51 @@
 import { Employer } from "./types";
 
 export interface EContractConfig {
-  id: string;
-  employer_id: string;
-  provider_type: string;
   api_url: string;
   client_id: string;
   client_secret_encrypted: string;
-  webhook_secret_encrypted?: string;
-  hsm_key_alias?: string;
-  default_auth_type: 'sms' | 'email' | 'smartca' | 'hsm';
-  is_active: boolean;
   created_at: string;
+  default_auth_type: 'sms' | 'email' | 'smartca' | 'hsm';
+  employer_id: string;
+  hsm_key_alias?: string;
+  id: string;
+  is_active: boolean;
+  provider_type: string;
   updated_at: string;
+  webhook_secret_encrypted?: string;
 }
 
 export interface EContractRoutingRule {
-  id: string;
+  created_at: string;
   employer_id: string;
+  id: string;
+  priority: number;
   signer_country: string;
   signing_method: 'sms' | 'email' | 'smartca' | 'hsm';
   target_provider_type: string;
-  priority: number;
-  created_at: string;
 }
 
 export interface SignerStatus {
-  signer_id: string;
-  name: string;
   email: string;
+  name: string;
   phone?: string;
   role: string;
   routing_order: number;
-  status: 'pending' | 'signed' | 'voided';
   signed_at?: string;
+  signer_id: string;
+  status: 'pending' | 'signed' | 'voided';
 }
 
 export interface EContractEnvelope {
-  id: string;
-  contract_id: string;
-  employer_id: string;
-  provider_type: string;
-  external_envelope_id: string;
-  status: 'draft' | 'sent' | 'completed' | 'voided';
-  signer_statuses: SignerStatus[];
   audit_trail_metadata?: any;
+  contract_id: string;
   created_at: string;
+  employer_id: string;
+  external_envelope_id: string;
+  id: string;
+  provider_type: string;
+  signer_statuses: SignerStatus[];
+  status: 'draft' | 'sent' | 'completed' | 'voided';
 }
 
 // Helpers
@@ -196,7 +196,7 @@ export async function saveEContractRule(wsId: string, rule: Omit<EContractRoutin
       existing[idx] = {
         ...existing[idx],
         ...rule,
-      } as EContractRoutingRule;
+      };
       localStorage.setItem(key, JSON.stringify(existing));
       return existing[idx];
     }
@@ -206,7 +206,7 @@ export async function saveEContractRule(wsId: string, rule: Omit<EContractRoutin
     ...rule,
     id: `r-${Math.random().toString(36).substr(2, 9)}`,
     created_at: new Date().toISOString(),
-  } as EContractRoutingRule;
+  };
 
   existing.push(newRule);
   localStorage.setItem(key, JSON.stringify(existing));
