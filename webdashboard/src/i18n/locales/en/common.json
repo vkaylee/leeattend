@@ -1,6 +1,8 @@
 {
   "common": {
     "deleted_success": "Deleted successfully",
+    "no_profile": "No Profile Found",
+    "select_month": "Select Month",
     "back": "Back",
     "error_boundary": {
       "widget_error": "Widget Error",
@@ -281,9 +283,15 @@
     "upcoming": "Upcoming",
     "segment": "Segment",
     "no_records_found": "No records found.",
-    "no_profile": "No profile found.",
-    "select_month": "Select Month",
     "uploading": "Uploading...",
+    "file": {
+      "uploading": "Uploading...",
+      "clickToUpload": "Click to upload",
+      "dragAndDrop": "or drag and drop",
+      "maxSize": "Maximum file size: {{size}}MB",
+      "errorSizeExceeded": "File size exceeds the limit of {{size}}MB.",
+      "errorUploadFailed": "Failed to upload file."
+    },
     "payroll": {
       "selection": {
         "all_filtered_selected": "All {{count}} employees in this list are selected.",

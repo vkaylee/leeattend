@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { format } from "date-fns";
@@ -32,20 +32,18 @@ export function useAssignPolicy(
   const [assignPolicyId, setAssignPolicyId] = useState<string>("");
   const [effectiveFrom, setEffectiveFrom] = useState<string>(format(new Date(), "yyyy-MM-dd"));
 
-  useEffect(() => {
+  // Track props for resetting state during render to avoid useEffect cascading renders
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  const [prevEditingAssignment, setPrevEditingAssignment] = useState(editingAssignment);
+
+  if (isOpen !== prevIsOpen || editingAssignment !== prevEditingAssignment) {
+    setPrevIsOpen(isOpen);
+    setPrevEditingAssignment(editingAssignment);
     if (isOpen) {
       if (editingAssignment) {
         setAssigneeType(editingAssignment.assignee_type);
-        if (editingAssignment.assignee_type === "employee") {
-          setAssignEmpId(editingAssignment.assignee_id ?? "");
-          setAssignDeptId("");
-        } else if (editingAssignment.assignee_type === "department") {
-          setAssignDeptId(editingAssignment.assignee_id ?? "");
-          setAssignEmpId("");
-        } else {
-          setAssignEmpId("");
-          setAssignDeptId("");
-        }
+        setAssignEmpId(editingAssignment.assignee_type === "employee" ? (editingAssignment.assignee_id ?? "") : "");
+        setAssignDeptId(editingAssignment.assignee_type === "department" ? (editingAssignment.assignee_id ?? "") : "");
         setAssignPolicyId(editingAssignment.policy_id);
         setEffectiveFrom(format(new Date(editingAssignment.effective_from), "yyyy-MM-dd"));
       } else {
@@ -56,7 +54,7 @@ export function useAssignPolicy(
         setEffectiveFrom(format(new Date(), "yyyy-MM-dd"));
       }
     }
-  }, [isOpen, editingAssignment]);
+  }
 
   const { employees, isLoading: employeesLoading } = useAllEmployees(wsId, { enabled: isOpen });
   

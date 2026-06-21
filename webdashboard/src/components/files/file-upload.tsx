@@ -1,5 +1,6 @@
 import { UploadCloud, X, AlertCircle } from "lucide-react";
 import React, { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
@@ -25,11 +26,12 @@ interface UploadProgressProps {
 }
 
 function UploadProgress({ progress }: UploadProgressProps) {
+  const { t } = useTranslation("common");
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-2xl z-10 animate-in fade-in">
       <div className="w-64 max-w-[80%]">
         <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-          <span>Uploading...</span>
+          <span>{t("common.file.uploading")}</span>
           <span>{Math.round(progress)}%</span>
         </div>
         <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
@@ -124,6 +126,7 @@ export function FileUpload({
   accept = "*",
   className = "",
 }: FileUploadProps) {
+  const { t } = useTranslation("common");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const { uploadAsync: uploadFile, isUploading, progress, error: uploadError } = useFileUpload({
@@ -137,18 +140,18 @@ export function FileUpload({
     async (file: File) => {
       setErrorMsg(null);
       if (file.size > maxSizeMB * 1024 * 1024) {
-        setErrorMsg(`File size exceeds the limit of ${maxSizeMB}MB.`);
+        setErrorMsg(t("common.file.errorSizeExceeded", { size: maxSizeMB }));
         return;
       }
       try {
         const uploadedFile = await uploadFile(file);
         onUploadSuccess?.(uploadedFile);
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : "Failed to upload file.";
+        const message = err instanceof Error ? err.message : t("common.file.errorUploadFailed");
         setErrorMsg(message);
       }
     },
-    [maxSizeMB, uploadFile, onUploadSuccess]
+    [maxSizeMB, uploadFile, onUploadSuccess, t]
   );
 
   const handleDropCallback = useCallback(
@@ -190,13 +193,13 @@ export function FileUpload({
             className="mb-2 font-semibold text-slate-700 dark:text-slate-200 mt-0" 
             variant="small"
           >
-            <span className="text-primary-600 dark:text-primary-400">Click to upload</span> or drag and drop
+            <span className="text-primary-600 dark:text-primary-400">{t("common.file.clickToUpload")}</span> {t("common.file.dragAndDrop")}
           </Typography>
           <Typography 
             className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0" 
             variant="small"
           >
-            Maximum file size: {maxSizeMB}MB
+            {t("common.file.maxSize", { size: maxSizeMB })}
           </Typography>
         </div>
         <input 

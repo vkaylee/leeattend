@@ -1,6 +1,8 @@
 {
   "common": {
     "deleted_success": "Đã xóa thành công",
+    "no_profile": "Không tìm thấy hồ sơ",
+    "select_month": "Chọn tháng",
     "back": "Quay lại",
     "error_boundary": {
       "widget_error": "Lỗi Widget",
@@ -281,9 +283,15 @@
     "upcoming": "Sắp tới",
     "segment": "Dòng lương",
     "no_records_found": "Không tìm thấy bản ghi nào.",
-    "no_profile": "Không tìm thấy hồ sơ.",
-    "select_month": "Chọn tháng",
     "uploading": "Đang tải lên...",
+    "file": {
+      "uploading": "Đang tải lên...",
+      "clickToUpload": "Nhấn để tải lên",
+      "dragAndDrop": "hoặc kéo thả vào đây",
+      "maxSize": "Dung lượng tối đa: {{size}}MB",
+      "errorSizeExceeded": "Dung lượng file vượt quá giới hạn {{size}}MB.",
+      "errorUploadFailed": "Tải file lên thất bại."
+    },
     "payroll": {
       "settings": {
         "global_history": "Lịch sử cấu hình toàn hệ thống",

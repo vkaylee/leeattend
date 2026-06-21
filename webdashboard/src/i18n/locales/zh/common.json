@@ -1,6 +1,8 @@
 {
   "common": {
     "deleted_success": "删除成功",
+    "no_profile": "未找到个人资料",
+    "select_month": "选择月份",
     "back": "返回",
     "error_boundary": {
       "widget_error": "组件错误",
@@ -281,9 +283,15 @@
     "upcoming": "即将到来",
     "segment": "薪资段",
     "no_records_found": "未找到记录。",
-    "no_profile": "未找到个人资料。",
-    "select_month": "选择月份",
     "uploading": "上传中...",
+    "file": {
+      "uploading": "上传中...",
+      "clickToUpload": "点击上传",
+      "dragAndDrop": "或拖放至此处",
+      "maxSize": "最大文件大小: {{size}}MB",
+      "errorSizeExceeded": "文件大小超过限制 {{size}}MB。",
+      "errorUploadFailed": "文件上传失败。"
+    },
     "payroll": {
       "settings": {
         "global_history": "全系统配置历史",

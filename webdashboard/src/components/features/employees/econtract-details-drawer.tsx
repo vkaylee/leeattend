@@ -8,6 +8,7 @@ import FormField from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import Sheet from "@/components/ui/sheet";
 import { useToast } from "@/components/ui/toast";
+import { Typography } from "@/components/ui/typography";
 import { EContractEnvelope, saveEContractEnvelope, SignerStatus } from "@/lib/api/econtracts";
 import { cn } from "@/lib/utils";
 
@@ -118,9 +119,9 @@ export default function EContractDetailsDrawer({
               <KeyRound size={20} />
             </div>
             <div>
-              <h2 className="text-sm font-bold uppercase tracking-widest text-slate-800 dark:text-slate-100" id="e-sign-audit-title">
+              <Typography className="text-sm font-bold uppercase tracking-widest text-slate-800 dark:text-slate-100" id="e-sign-audit-title" variant="h2">
                 Chi tiết Ký số (e-Sign Audit)
-              </h2>
+              </Typography>
               <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest block" id="e-sign-audit-description">
                 ID: {envelope.external_envelope_id}
               </span>
@@ -163,7 +164,7 @@ export default function EContractDetailsDrawer({
 
           {/* Timeline Process steps */}
           <div className="space-y-4">
-            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Trình tự ký hợp đồng (Signing Order)</h3>
+            <Typography className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]" variant="h3">Trình tự ký hợp đồng (Signing Order)</Typography>
             <div className="relative pl-6 space-y-6 before:absolute before:left-[10px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800">
               {envelope.signer_statuses.map((signer, index) => {
                 const isSigned = signer.status === "signed";
@@ -258,22 +259,23 @@ export default function EContractDetailsDrawer({
           <div className="p-4 bg-amber-50/50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900 rounded-2xl flex items-start gap-3">
             <ShieldAlert className="text-amber-500 shrink-0 mt-0.5" size={16} />
             <div>
-              <h4 className="text-xs font-bold text-amber-800 dark:text-amber-400 uppercase tracking-wider">
+              <Typography className="text-xs font-bold text-amber-800 dark:text-amber-400 uppercase tracking-wider" variant="h4">
                 Xác thực bảo mật đa nhân tố
-              </h4>
-              <p className="text-[10px] text-amber-600 dark:text-amber-500 font-semibold uppercase tracking-wider leading-relaxed mt-0.5">
+              </Typography>
+              <Typography className="text-[10px] text-amber-600 dark:text-amber-500 font-semibold uppercase tracking-wider leading-relaxed mt-0.5" variant="p">
                 Vui lòng vẽ chữ ký số và nhập mã xác thực OTP gửi đến Số điện thoại/Email đăng ký để hoàn tất.
-              </p>
+              </Typography>
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest" htmlFor="signature-input">
               Chữ ký số (Draw/Type Signature)
             </label>
             <div className="h-32 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl bg-slate-50/50 dark:bg-slate-900/50 flex flex-col items-center justify-center p-4 relative group">
               <input
                 className="w-full text-center bg-transparent border-none text-2xl font-semibold italic text-primary-600 dark:text-primary-400 focus:outline-none placeholder:text-slate-300"
+                id="signature-input"
                 onChange={(e) => { setSignatureText(e.target.value); }}
                 placeholder="Nhập tên của bạn để tạo chữ ký mẫu"
                 type="text"
