@@ -1,9 +1,9 @@
-use crate::redb_store::RedbStore;
+use crate::database_store::DatabaseStore;
 
 /// Extract device metadata fields from a serde_json info object and persist.
 /// Centralises the 10-field unwrap_or("N/A") pattern.
 pub fn update_metadata_from_info(
-    store: &RedbStore,
+    store: &dyn DatabaseStore,
     device_id: &str,
     info: &serde_json::Value,
     now_ts: i64,
@@ -59,6 +59,7 @@ pub fn normalize_employee_id(id: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::hybrid_database::HybridDatabase;
 
     #[test]
     fn test_normalize_employee_id_removes_leading_zeros() {
@@ -119,8 +120,8 @@ mod tests {
 
     // === update_metadata_from_info tests ===
 
-    fn make_store() -> RedbStore {
-        RedbStore::new(":memory:", 90).expect("in-memory RedbStore")
+    fn make_store() -> HybridDatabase {
+        HybridDatabase::new(":memory:", 1000, 90).expect("in-memory HybridDatabase")
     }
 
     #[test]

@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use async_trait::async_trait;
 use bytes::Bytes;
+use std::collections::HashMap;
 
 use crate::errors::{AppError, AppResult};
 use crate::models::econtract::{RequestEnvelope, WebhookEvent};
@@ -12,7 +12,11 @@ pub struct MockEContractProvider;
 impl EContractProvider for MockEContractProvider {
     async fn create_envelope(&self, envelope: RequestEnvelope) -> AppResult<String> {
         let mock_id = format!("mock-env-{}", uuid::Uuid::new_v4());
-        tracing::info!("Mock eContract: Created envelope {} with title '{}'", mock_id, envelope.title());
+        tracing::info!(
+            "Mock eContract: Created envelope {} with title '{}'",
+            mock_id,
+            envelope.title()
+        );
         Ok(mock_id)
     }
 
@@ -43,7 +47,10 @@ impl EContractProvider for MockEContractProvider {
     }
 
     async fn download_signed_document(&self, envelope_id: &str) -> AppResult<Bytes> {
-        tracing::info!("Mock eContract: Downloading completed document {}", envelope_id);
+        tracing::info!(
+            "Mock eContract: Downloading completed document {}",
+            envelope_id
+        );
         Ok(Bytes::from_static(b"%PDF-1.4 Mock signed document content"))
     }
 }

@@ -32,22 +32,26 @@ pub async fn ws_handler(
     headers: axum::http::HeaderMap,
     State(state): State<Arc<AppState>>,
 ) -> axum::response::Response {
-    let agent_id = headers
-        .get("x-agent-id")
-        .and_then(|v| v.to_str().ok());
-    let token = headers
-        .get("x-token")
-        .and_then(|v| v.to_str().ok());
+    let agent_id = headers.get("x-agent-id").and_then(|v| v.to_str().ok());
+    let token = headers.get("x-token").and_then(|v| v.to_str().ok());
 
     let (Some(agent_id), Some(token)) = (agent_id, token) else {
         warn!("Rejecting WS connection: Missing x-agent-id or x-token header");
         return StatusCode::UNAUTHORIZED.into_response();
     };
 
-    let authorized_agent = match state.agents().service().authorize_agent(agent_id, token).await {
+    let authorized_agent = match state
+        .agents()
+        .service()
+        .authorize_agent(agent_id, token)
+        .await
+    {
         Ok(Some(agent)) => agent,
         Ok(None) => {
-            warn!("Rejecting WS connection for agent {}: Unauthorized", agent_id);
+            warn!(
+                "Rejecting WS connection for agent {}: Unauthorized",
+                agent_id
+            );
             return StatusCode::UNAUTHORIZED.into_response();
         }
         Err(e) => {
@@ -224,7 +228,10 @@ async fn handle_socket(
                         } else if v["type"] == "handshake" {
                             // Handshake is already verified at HTTP header level.
                             // Simply log and ignore to maintain backward compatibility.
-                            info!("Received handshake WS frame from pre-authorized agent {}", agent_id);
+                            info!(
+                                "Received handshake WS frame from pre-authorized agent {}",
+                                agent_id
+                            );
                         }
                     }
                 }

@@ -54,6 +54,7 @@ pub mod adaptive_polling;
 pub mod central_client;
 pub mod config;
 pub mod crash_recovery;
+pub mod database_store;
 pub mod hybrid_database;
 pub mod models;
 pub mod redb_store;

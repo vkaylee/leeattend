@@ -1,7 +1,8 @@
 use crate::adaptive_polling::AdaptivePollingState;
 use crate::central_client::connection::DeviceLocks;
 use crate::config::Config;
-use crate::crash_recovery::{CrashMarker, recover_from_crash};
+use crate::crash_recovery::CrashMarker;
+use crate::database_store::DatabaseStore;
 use crate::hybrid_database::HybridDatabase;
 use crate::mock_worker;
 use crate::models;
@@ -27,45 +28,119 @@ use tokio::sync::{Semaphore, mpsc};
 use tokio::task::JoinHandle;
 use tokio::time::{Duration, sleep};
 use tokio_util::sync::CancellationToken;
+use tracing::Instrument;
 
 /// Shared context passed to every spawned worker.
 #[derive(Clone)]
 pub struct WorkerContext {
-    pub log_tx: mpsc::Sender<(Arc<String>, models::AttendanceData)>,
-    pub hybrid_db: HybridDatabase,
-    pub semaphore: Arc<Semaphore>,
-    pub success_cooldown_secs: Arc<AtomicU64>,
-    pub device_locks: DeviceLocks,
-    pub time_sync: Arc<crate::time_sync::TimeSync>,
-    pub connection_max_lifetime_secs: u64,
+    log_tx: mpsc::Sender<(Arc<String>, models::AttendanceData)>,
+    hybrid_db: Arc<dyn DatabaseStore>,
+    semaphore: Arc<Semaphore>,
+    success_cooldown_secs: Arc<AtomicU64>,
+    device_locks: DeviceLocks,
+    time_sync: Arc<crate::time_sync::TimeSync>,
+    connection_max_lifetime_secs: u64,
     /// Global legacy checksum override for ZK devices
-    pub zk_legacy_checksum: Option<bool>,
+    zk_legacy_checksum: Option<bool>,
     /// Timeout (seconds) for ZK device connect + initial info fetch
-    pub zk_connect_timeout_secs: u64,
+    zk_connect_timeout_secs: u64,
     /// Timeout (seconds) for pulling attendance logs
-    pub inflight_timeout_secs: u64,
+    inflight_timeout_secs: u64,
+}
+
+impl WorkerContext {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        log_tx: mpsc::Sender<(Arc<String>, models::AttendanceData)>,
+        hybrid_db: Arc<dyn DatabaseStore>,
+        semaphore: Arc<Semaphore>,
+        success_cooldown_secs: Arc<AtomicU64>,
+        device_locks: DeviceLocks,
+        time_sync: Arc<crate::time_sync::TimeSync>,
+        connection_max_lifetime_secs: u64,
+        zk_legacy_checksum: Option<bool>,
+        zk_connect_timeout_secs: u64,
+        inflight_timeout_secs: u64,
+    ) -> Self {
+        Self {
+            log_tx,
+            hybrid_db,
+            semaphore,
+            success_cooldown_secs,
+            device_locks,
+            time_sync,
+            connection_max_lifetime_secs,
+            zk_legacy_checksum,
+            zk_connect_timeout_secs,
+            inflight_timeout_secs,
+        }
+    }
+
+    pub fn log_tx(&self) -> mpsc::Sender<(Arc<String>, models::AttendanceData)> {
+        self.log_tx.clone()
+    }
+
+    pub fn hybrid_db(&self) -> Arc<dyn DatabaseStore> {
+        self.hybrid_db.clone()
+    }
+
+    pub fn semaphore(&self) -> Arc<Semaphore> {
+        self.semaphore.clone()
+    }
+
+    pub fn success_cooldown_secs(&self) -> Arc<AtomicU64> {
+        self.success_cooldown_secs.clone()
+    }
+
+    pub fn device_locks(&self) -> DeviceLocks {
+        self.device_locks.clone()
+    }
+
+    pub fn time_sync(&self) -> Arc<crate::time_sync::TimeSync> {
+        self.time_sync.clone()
+    }
+
+    pub fn connection_max_lifetime_secs(&self) -> u64 {
+        self.connection_max_lifetime_secs
+    }
+
+    pub fn zk_legacy_checksum(&self) -> Option<bool> {
+        self.zk_legacy_checksum
+    }
+
+    pub fn zk_connect_timeout_secs(&self) -> u64 {
+        self.zk_connect_timeout_secs
+    }
+
+    pub fn inflight_timeout_secs(&self) -> u64 {
+        self.inflight_timeout_secs
+    }
+
+    pub fn update_semaphore(&mut self, semaphore: Arc<Semaphore>) {
+        self.semaphore = semaphore;
+    }
 }
 
 pub struct Orchestrator {
     config: Arc<Config>,
-    hybrid_db: HybridDatabase,
+    hybrid_db: Arc<dyn DatabaseStore>,
     crash_marker: CrashMarker,
     cancel_token: CancellationToken,
 }
 
 impl Orchestrator {
     pub fn new(config: Config) -> Result<Self, Box<dyn std::error::Error>> {
-        let crash_marker = CrashMarker::new(&config.database_url);
+        let crash_marker = CrashMarker::new(config.database_url());
 
         let hybrid_db = HybridDatabase::new(
-            &config.database_url,
-            config.max_memory_logs,
-            config.signature_ttl_days,
+            config.database_url(),
+            config.max_memory_logs(),
+            config.signature_ttl_days(),
         )?;
 
         Ok(Self {
             config: Arc::new(config),
-            hybrid_db,
+            hybrid_db: Arc::new(hybrid_db),
             crash_marker,
             cancel_token: CancellationToken::new(),
         })
@@ -81,30 +156,28 @@ impl Orchestrator {
             "🔄 Retaining last known local config on startup - awaiting ConfigPush from Server..."
         );
 
-        let mut current_max_workers = self.config.max_concurrent_workers;
+        let mut current_max_workers = self.config.max_concurrent_workers();
         info!("⚙️ Using default Max Workers: {current_max_workers} (until ConfigPush)");
 
         // Shared registries
-        let command_registry = Arc::new(DashMap::new());
         let device_locks: DeviceLocks = Arc::new(DashMap::new());
         let time_sync = Arc::new(crate::time_sync::TimeSync::new());
 
         // Setup central client
         let (central_client, central_rx, mut reload_rx) = crate::central_client::CentralClient::new(
-            self.config.central_server_url.clone(),
-            self.config.agent_id.clone(),
-            self.config.agent_token.clone(),
+            self.config.central_server_url().to_string(),
+            self.config.agent_id().to_string(),
+            self.config.agent_token().to_string(),
             self.hybrid_db.clone(),
-            self.config.inflight_timeout_secs,
-            command_registry.clone(),
+            self.config.inflight_timeout_secs(),
             device_locks.clone(),
             time_sync.clone(),
             self.cancel_token.clone(),
-            self.config.sync_batch_limit,
-            self.config.sync_idle_interval_ms,
-            self.config.sync_backlogged_interval_ms,
-            self.config.sync_moderate_interval_ms,
-            self.config.sync_normal_interval_ms,
+            self.config.sync_batch_limit(),
+            self.config.sync_idle_interval_ms(),
+            self.config.sync_backlogged_interval_ms(),
+            self.config.sync_moderate_interval_ms(),
+            self.config.sync_normal_interval_ms(),
         );
 
         tokio::spawn(central_client.start(central_rx));
@@ -120,18 +193,18 @@ impl Orchestrator {
             (WorkerConfig, CancellationToken, JoinHandle<()>),
         > = HashMap::new();
 
-        let mut worker_ctx = WorkerContext {
-            log_tx: log_tx.clone(),
-            hybrid_db: self.hybrid_db.clone(),
-            semaphore: semaphore.clone(),
-            success_cooldown_secs: Arc::new(AtomicU64::new(self.config.success_cooldown_secs)),
-            device_locks: device_locks.clone(),
-            time_sync: time_sync.clone(),
-            connection_max_lifetime_secs: self.config.connection_max_lifetime_secs,
-            zk_legacy_checksum: self.config.zk_legacy_checksum,
-            zk_connect_timeout_secs: self.config.zk_connect_timeout_secs,
-            inflight_timeout_secs: self.config.inflight_timeout_secs,
-        };
+        let mut worker_ctx = WorkerContext::new(
+            log_tx.clone(),
+            self.hybrid_db.clone(),
+            semaphore.clone(),
+            Arc::new(AtomicU64::new(self.config.success_cooldown_secs())),
+            device_locks.clone(),
+            time_sync.clone(),
+            self.config.connection_max_lifetime_secs(),
+            self.config.zk_legacy_checksum(),
+            self.config.zk_connect_timeout_secs(),
+            self.config.inflight_timeout_secs(),
+        );
 
         // Initial device load
         self.load_initial_devices(&mut worker_registry, &worker_ctx, current_max_workers);
@@ -187,7 +260,7 @@ impl Orchestrator {
                 warn!("Previous session info:\n{info}");
             }
 
-            let recovered = recover_from_crash(self.hybrid_db.store())?;
+            let recovered = self.hybrid_db.recover_from_crash()?;
             info!("✅ Crash recovery complete: {recovered} logs reset");
         }
 
@@ -285,7 +358,7 @@ impl Orchestrator {
             loop {
                 tokio::select! {
                     _ = disk_cleanup_timer.tick() => {
-                        let retention_days = cleanup_hybrid.store()
+                        let retention_days = cleanup_hybrid
                             .get_agent_config("retention_days")
                             .ok()
                             .flatten()
@@ -295,7 +368,7 @@ impl Orchestrator {
                         info!("🧹 Disk Cleanup running ({retention_days}-day retention)");
 
                         let cleanup_hybrid_clone = cleanup_hybrid.clone();
-                        match tokio::task::spawn_blocking(move || cleanup_hybrid_clone.store().cleanup_old_synced_logs(retention_days)).await.unwrap_or(Err(crate::redb_store::StoreError::Internal("Task paniced".into()))) {
+                        match tokio::task::spawn_blocking(move || cleanup_hybrid_clone.cleanup_old_synced_logs(retention_days)).await.unwrap_or(Err(crate::redb_store::StoreError::Internal("Task paniced".into()))) {
                             Ok(deleted) => {
                                 if deleted > 0 {
                                     info!("🧹 Disk cleanup: removed {deleted} old synced logs (>{retention_days} days)");
@@ -308,7 +381,7 @@ impl Orchestrator {
 
                         // Compact database to reclaim freed disk space
                         let compact_hybrid = cleanup_hybrid.clone();
-                        match tokio::task::spawn_blocking(move || compact_hybrid.store().compact()).await.unwrap_or(Err(crate::redb_store::StoreError::Internal("Compaction task paniced".into()))) {
+                        match tokio::task::spawn_blocking(move || compact_hybrid.compact()).await.unwrap_or(Err(crate::redb_store::StoreError::Internal("Compaction task paniced".into()))) {
                             Ok(compacted) => {
                                 if compacted {
                                     info!("🧹 Database compaction complete: reclaimed unused page space");
@@ -333,7 +406,7 @@ impl Orchestrator {
     fn start_signature_eviction_worker(&self) {
         let evict_hybrid = self.hybrid_db.clone();
         let evict_cancel = self.cancel_token.clone();
-        let evict_interval_hours = self.config.signature_cleanup_hours;
+        let evict_interval_hours = self.config.signature_cleanup_hours();
         tokio::spawn(async move {
             info!("🧹 Signature Eviction Worker started (every {evict_interval_hours}h)");
 
@@ -365,7 +438,7 @@ impl Orchestrator {
         worker_ctx: &WorkerContext,
         current_max_workers: usize,
     ) {
-        match self.hybrid_db.store().get_active_devices() {
+        match self.hybrid_db.get_active_devices() {
             Ok(devices) => {
                 if devices.is_empty() {
                     warn!("No active devices found in database. Waiting for config push...");
@@ -397,10 +470,7 @@ impl Orchestrator {
         semaphore: &mut Arc<Semaphore>,
     ) {
         // Check if max_workers changed
-        if let Ok(Some(s)) = self
-            .hybrid_db
-            .store()
-            .get_agent_config("max_concurrent_workers")
+        if let Ok(Some(s)) = self.hybrid_db.get_agent_config("max_concurrent_workers")
             && let Ok(new_val) = s.parse::<usize>()
             && new_val != *current_max_workers
         {
@@ -420,18 +490,15 @@ impl Orchestrator {
                 tokio::time::timeout(Duration::from_secs(5), futures::future::join_all(handles))
                     .await;
             *semaphore = Arc::new(Semaphore::new(*current_max_workers));
-            worker_ctx.semaphore = semaphore.clone();
+            worker_ctx.update_semaphore(semaphore.clone());
         }
         // Check if success_cooldown_secs changed
-        if let Ok(Some(s)) = self
-            .hybrid_db
-            .store()
-            .get_agent_config("success_cooldown_secs")
+        if let Ok(Some(s)) = self.hybrid_db.get_agent_config("success_cooldown_secs")
             && let Ok(new_val) = s.parse::<u64>()
-            && new_val != worker_ctx.success_cooldown_secs.load(Ordering::Relaxed)
+            && new_val != worker_ctx.success_cooldown_secs().load(Ordering::Relaxed)
         {
             let old_val = worker_ctx
-                .success_cooldown_secs
+                .success_cooldown_secs()
                 .swap(new_val, Ordering::Relaxed);
             info!(
                 "⚡ Success Cooldown changed: {old_val}s -> {new_val}s (live-applied to all workers)"
@@ -439,7 +506,7 @@ impl Orchestrator {
         }
 
         // Load new device list
-        let new_devices = match self.hybrid_db.store().get_active_devices() {
+        let new_devices = match self.hybrid_db.get_active_devices() {
             Ok(d) => d,
             Err(e) => {
                 error!("Failed to load devices: {e}");
@@ -524,349 +591,84 @@ fn to_worker_config(d: &crate::redb_store::StoredDevice) -> WorkerConfig {
     }
 }
 
-/// Maximum poll interval to stay below typical ZK device UDP session timeout (~60s).
 const SESSION_SAFE_INTERVAL_SECS: u64 = 45;
+const RECONNECT_WINDOW_SECS: u64 = 3600;
+const RECONNECT_WARN_THRESHOLD: usize = 5;
+const SEEN_LOGS_CAP: usize = 200_000;
 
-pub fn spawn_worker(
+struct DeviceWorkerLoop {
     config: WorkerConfig,
     ctx: WorkerContext,
     token: CancellationToken,
-) -> JoinHandle<()> {
-    let worker_id = Arc::new(config.id.clone());
-    let log_tx = ctx.log_tx;
-    let hybrid_db = ctx.hybrid_db;
-    let sem = ctx.semaphore;
-    let success_cooldown = ctx.success_cooldown_secs;
-    let device_locks = ctx.device_locks;
-    let connection_max_lifetime = ctx.connection_max_lifetime_secs;
-    let zk_legacy_checksum = ctx.zk_legacy_checksum;
-    let zk_connect_timeout_secs = ctx.zk_connect_timeout_secs;
+    worker_id: Arc<String>,
+    retry_count: u32,
+    stable_since: Option<Instant>,
+    reconnect_timestamps: Vec<Instant>,
+    seen_logs: HashSet<u64>,
+}
 
-    tokio::spawn(async move {
-        let mut config = config;
+impl DeviceWorkerLoop {
+    fn new(config: WorkerConfig, ctx: WorkerContext, token: CancellationToken) -> Self {
+        let worker_id = Arc::new(config.id.clone());
+        Self {
+            config,
+            ctx,
+            token,
+            worker_id,
+            retry_count: 0,
+            stable_since: None,
+            reconnect_timestamps: Vec::new(),
+            seen_logs: HashSet::with_capacity(100_000),
+        }
+    }
+
+    async fn run(mut self) {
         info!(
             "[{}] Device Polling Loop started ({})",
-            config.name, config.ip
+            self.config.name, self.config.ip
         );
 
         // Stagger startup: random delay 0-2s per worker to prevent thundering herd
         let stagger = Duration::from_millis(rand::thread_rng().gen_range(0..2000));
-        debug!("[{}] Stagger delay: {:?}", config.name, stagger);
+        debug!("[{}] Stagger delay: {:?}", self.config.name, stagger);
         sleep(stagger).await;
 
-        let mut retry_count: u32 = 0;
-        #[allow(unused_assignments)]
-        let mut stable_since: Option<Instant> = None;
-
-        // Reconnect frequency monitoring: track timestamps of recent reconnects
-        let mut reconnect_timestamps: Vec<Instant> = Vec::new();
-        const RECONNECT_WINDOW_SECS: u64 = 3600; // 1 hour
-        const RECONNECT_WARN_THRESHOLD: usize = 5;
-
-        let mut seen_logs: HashSet<u64> = HashSet::with_capacity(100_000);
-        const SEEN_LOGS_CAP: usize = 200_000;
-
-        while !token.is_cancelled() {
-            if retry_count > 0 {
-                let delay = get_sidecar_retry_delay(retry_count);
+        while !self.token.is_cancelled() {
+            if self.retry_count > 0 {
+                let delay = get_sidecar_retry_delay(self.retry_count);
                 warn!(
                     "[{}] Retry {}/{}, waiting {:?}...",
-                    config.name, retry_count, SIDECAR_MAX_RETRY_COUNT, delay
+                    self.config.name, self.retry_count, SIDECAR_MAX_RETRY_COUNT, delay
                 );
                 sleep(delay).await;
             }
 
-            // Acquire semaphore BEFORE connecting to limit concurrent device access.
-            let connect_permit = match sem.acquire().await {
-                Ok(p) => p,
+            // Attempt to connect and setup
+            let setup_result = self.try_connect_and_setup().await;
+            let (mut worker_impl, mut polling_state) = match setup_result {
+                Ok(val) => val,
                 Err(_) => {
-                    error!(
-                        "[{}] Semaphore closed during connect phase, stopping worker",
-                        config.name
-                    );
-                    return;
-                }
-            };
-
-            // Device lock covers connect + initial get_info to prevent
-            // commands from racing with the connection setup phase.
-            let connect_device_lock = device_locks
-                .entry(config.id.clone())
-                .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())))
-                .clone();
-            let connect_device_guard = connect_device_lock.lock().await;
-
-            let mut worker_impl: Box<dyn Worker> = if config.brand == "mock" {
-                Box::new(mock_worker::MockWorker::new())
-            } else {
-                // Apply global legacy checksum if set, otherwise use per-device config
-                let checksum = config.use_legacy_checksum.or(zk_legacy_checksum);
-                Box::new(zk_worker::ZkWorker::new(
-                    config.password,
-                    checksum,
-                    zk_connect_timeout_secs,
-                    ctx.inflight_timeout_secs,
-                ))
-            };
-
-            info!("[{}] Worker ready (permit acquired).", config.name);
-            stable_since = Some(Instant::now());
-
-            if let Err(e) = worker_impl
-                .connect(&config.ip, u16::try_from(config.port).unwrap_or(4370))
-                .await
-            {
-                error!("[{}] Device connection failed: {}", config.name, e);
-                drop(connect_device_guard);
-                drop(connect_permit);
-                retry_count = std::cmp::min(retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
-                continue;
-            }
-
-            // Smart checksum memory: persist detected mode for future connects
-            if let Some(detected) = worker_impl.detected_checksum_mode() {
-                config.use_legacy_checksum = Some(detected);
-                if let Err(e) = hybrid_db
-                    .store()
-                    .update_device_checksum(&config.id, detected)
-                {
-                    warn!(
-                        "[{}] Failed to persist detected checksum: {}",
-                        config.name, e
-                    );
-                } else {
-                    debug!(
-                        "[{}] Persisted detected checksum: {}",
-                        config.name,
-                        if detected { "legacy" } else { "modern" }
-                    );
-                }
-            }
-
-            match worker_impl.get_info(ctx.time_sync.as_ref()).await {
-                Ok(info) => {
-                    update_metadata_from_info(
-                        hybrid_db.store(),
-                        &config.id,
-                        &info,
-                        ctx.time_sync.corrected_timestamp(),
-                    );
-                }
-                Err(e) => {
-                    warn!(
-                        "[{}] Initial get_info failed: {}, disconnecting and retrying...",
-                        config.name, e
-                    );
-                    worker_impl.disconnect().await;
-                    drop(connect_device_guard);
-                    drop(connect_permit);
-                    retry_count = std::cmp::min(retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
+                    self.retry_count = std::cmp::min(self.retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
                     continue;
                 }
-            }
+            };
 
-            // Connection + initial get_info succeeded — release connect-phase guards.
             let connected_at = Instant::now();
-            drop(connect_device_guard);
-            drop(connect_permit);
-
-            // Note: seen_logs cache is now persisted across reconnections
-
-            let mut polling_state =
-                AdaptivePollingState::with_cooldown(success_cooldown.load(Ordering::Relaxed));
-            let mut poll_count = 0;
             let mut proactive_cooldown = false;
 
-            #[allow(clippy::never_loop)]
-            while !token.is_cancelled() {
-                // Sync live cooldown value (config pushes update the AtomicU64)
-                polling_state.set_cooldown(success_cooldown.load(Ordering::Relaxed));
-
-                // Check connection lifetime — force reconnect if exceeded
-                if connected_at.elapsed() >= Duration::from_secs(connection_max_lifetime) {
-                    info!(
-                        "[{}] Connection lifetime exceeded ({}s), reconnecting...",
-                        config.name, connection_max_lifetime
+            // Execute the inner polling loop
+            match self
+                .poll_cycle(&mut *worker_impl, &mut polling_state, connected_at)
+                .await
+            {
+                Ok(()) => {
+                    proactive_cooldown = true;
+                }
+                Err(e) => {
+                    error!(
+                        "[{}] Polling error: {}, disconnecting...",
+                        self.config.name, e
                     );
-                    break;
-                }
-
-                let permit = match sem.acquire().await {
-                    Ok(p) => p,
-                    Err(_) => {
-                        error!("[{}] Semaphore closed, stopping worker", config.name);
-                        return;
-                    }
-                };
-
-                let device_lock = device_locks
-                    .entry(config.id.clone())
-                    .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())))
-                    .clone();
-                let device_guard = device_lock.lock().await;
-
-                poll_count += 1;
-
-                if poll_count % 5 == 1 {
-                    match worker_impl.get_info(ctx.time_sync.as_ref()).await {
-                        Ok(mut info) => {
-                            update_metadata_from_info(
-                                hybrid_db.store(),
-                                &config.id,
-                                &info,
-                                ctx.time_sync.corrected_timestamp(),
-                            );
-
-                            if info["logs_count"].as_i64() == Some(-1)
-                                && let Ok(Some(meta)) =
-                                    hybrid_db.store().get_device_metadata(&config.id)
-                            {
-                                info["logs_count"] = json!(meta.logs_count.unwrap_or(0));
-                                info["users_count"] = json!(meta.users_count.unwrap_or(0));
-                            }
-                        }
-                        Err(e) => {
-                            error!(
-                                "[{}] Periodic get_info failed: {}, disconnecting...",
-                                config.name, e
-                            );
-                            break;
-                        }
-                    }
-                }
-
-                // Heartbeat: lightweight ping before heavy fetch to detect silent UDP loss
-                if !worker_impl.ping().await {
-                    warn!(
-                        "[{}] Heartbeat ping failed, connection lost — reconnecting...",
-                        config.name
-                    );
-                    break;
-                }
-
-                match worker_impl.get_attendance_logs().await {
-                    Ok(logs_vec) => {
-                        if let Some(since) = stable_since
-                            && since.elapsed()
-                                >= Duration::from_secs(SIDECAR_STABILITY_THRESHOLD_SECS)
-                            && retry_count > 0
-                        {
-                            info!(
-                                "[{}] Connection stable for {}s, resetting retry count",
-                                config.name, SIDECAR_STABILITY_THRESHOLD_SECS
-                            );
-                            retry_count = 0;
-                        }
-
-                        let mut new_count = 0;
-                        {
-                            let fetched_count = logs_vec.len();
-                            let mut duplicate_count = 0;
-
-                            let _ = hybrid_db.store().update_device_counts(
-                                &config.id,
-                                -1,
-                                i64::try_from(fetched_count).unwrap_or(0),
-                                ctx.time_sync.corrected_timestamp(),
-                            );
-
-                            #[allow(unused_variables)]
-                            let mut quick_info = json!({
-                                "logs_count": fetched_count,
-                            });
-                            if let Ok(Some(meta)) =
-                                hybrid_db.store().get_device_metadata(&config.id)
-                            {
-                                quick_info["users_count"] = json!(meta.users_count.unwrap_or(0));
-                                if let Some(mac) = meta.mac {
-                                    quick_info["mac"] = json!(mac);
-                                }
-                            }
-
-                            if !logs_vec.is_empty() {
-                                for attendance in logs_vec {
-                                    let mut hasher = rustc_hash::FxHasher::default();
-                                    attendance.user_id.hash(&mut hasher);
-                                    attendance.timestamp.hash(&mut hasher);
-                                    let key = hasher.finish();
-
-                                    if seen_logs.insert(key) {
-                                        if let Err(e) =
-                                            log_tx.send((worker_id.clone(), attendance)).await
-                                        {
-                                            error!(
-                                                "[{}] Failed to send attendance log: {}",
-                                                config.name, e
-                                            );
-                                        }
-                                        new_count += 1;
-                                    } else {
-                                        duplicate_count += 1;
-                                    }
-                                }
-
-                                if seen_logs.len() > SEEN_LOGS_CAP {
-                                    seen_logs.clear();
-                                    seen_logs.shrink_to(100_000);
-                                    info!(
-                                        "[{}] Cleared seen_logs cache (>{} entries)",
-                                        config.name, SEEN_LOGS_CAP
-                                    );
-                                }
-
-                                if duplicate_count > 0 {
-                                    info!(
-                                        "[{}] Fetched {} logs ({} new, {} duplicates filtered) [interval: {}s]",
-                                        config.name,
-                                        fetched_count,
-                                        new_count,
-                                        duplicate_count,
-                                        polling_state.interval()
-                                    );
-                                } else {
-                                    info!(
-                                        "[{}] Fetched {} logs [interval: {}s]",
-                                        config.name,
-                                        fetched_count,
-                                        polling_state.interval()
-                                    );
-                                }
-                            }
-                        }
-
-                        let (new_interval, changed) = polling_state.update(new_count > 0);
-                        if changed && new_count == 0 {
-                            debug!(
-                                "[{}] No new data for {} polls, increasing interval: {}s",
-                                config.name, polling_state.consecutive_no_new_data, new_interval
-                            );
-                        }
-
-                        // Always disconnect after successfully fetching/processing logs
-                        info!(
-                            "[{}] Polling cycle complete, disconnecting to free device slot (interval: {}s)...",
-                            config.name, new_interval
-                        );
-                        drop(device_guard);
-                        drop(permit);
-                        worker_impl.disconnect().await;
-                        tokio::select! {
-                            _ = token.cancelled() => { return; }
-                            _ = sleep(Duration::from_secs(new_interval)) => {}
-                        }
-                        // Reset interval to base for fresh reconnect if we did a long cooldown
-                        if new_interval > SESSION_SAFE_INTERVAL_SECS {
-                            polling_state.current_interval_secs =
-                                crate::adaptive_polling::BASE_POLL_INTERVAL_SECS;
-                            polling_state.consecutive_no_new_data = 0;
-                        }
-                        proactive_cooldown = true;
-                        break; // → outer loop reconnects cleanly
-                    }
-                    Err(e) => {
-                        error!("[{}] Polling error: {}, disconnecting...", config.name, e);
-                        break;
-                    }
                 }
             }
 
@@ -875,27 +677,443 @@ pub fn spawn_worker(
                 worker_impl.disconnect().await;
             }
 
-            if !token.is_cancelled() && !proactive_cooldown {
-                warn!("[{}] Sidecar connection lost, restarting...", config.name);
-                retry_count = std::cmp::min(retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
+            if !self.token.is_cancelled() && !proactive_cooldown {
+                warn!(
+                    "[{}] Sidecar connection lost, restarting...",
+                    self.config.name
+                );
+                self.retry_count = std::cmp::min(self.retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
 
                 // Reconnect frequency monitoring
                 let now = Instant::now();
-                reconnect_timestamps
+                let config_name = self.config.name.clone();
+                self.reconnect_timestamps
                     .retain(|ts| now.duration_since(*ts).as_secs() < RECONNECT_WINDOW_SECS);
-                reconnect_timestamps.push(now);
-                if reconnect_timestamps.len() >= RECONNECT_WARN_THRESHOLD {
+                self.reconnect_timestamps.push(now);
+                if self.reconnect_timestamps.len() >= RECONNECT_WARN_THRESHOLD {
                     warn!(
                         "⚠️ [{}] High reconnect frequency: {} reconnects in the last hour — possible firmware or network issue",
-                        config.name,
-                        reconnect_timestamps.len()
+                        config_name,
+                        self.reconnect_timestamps.len()
                     );
                 }
             } else if proactive_cooldown {
-                info!("[{}] Cooldown complete, reconnecting...", config.name);
+                info!("[{}] Cooldown complete, reconnecting...", self.config.name);
             }
         }
 
-        info!("[{}] Worker stopped", config.name);
-    })
+        info!("[{}] Worker stopped", self.config.name);
+    }
+
+    async fn try_connect_and_setup(
+        &mut self,
+    ) -> Result<(Box<dyn Worker>, AdaptivePollingState), ()> {
+        let sem = self.ctx.semaphore();
+        let device_locks = self.ctx.device_locks();
+        let hybrid_db = self.ctx.hybrid_db();
+        let zk_legacy_checksum = self.ctx.zk_legacy_checksum();
+        let zk_connect_timeout_secs = self.ctx.zk_connect_timeout_secs();
+        let success_cooldown = self.ctx.success_cooldown_secs();
+
+        // Acquire semaphore BEFORE connecting to limit concurrent device access.
+        let connect_permit = match sem.acquire().await {
+            Ok(p) => p,
+            Err(_) => {
+                error!(
+                    "[{}] Semaphore closed during connect phase, stopping worker",
+                    self.config.name
+                );
+                return Err(());
+            }
+        };
+
+        // Device lock covers connect + initial get_info to prevent
+        // commands from racing with the connection setup phase.
+        let connect_device_lock = device_locks
+            .entry(self.config.id.clone())
+            .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())))
+            .clone();
+        let connect_device_guard = connect_device_lock.lock().await;
+
+        let mut worker_impl: Box<dyn Worker> = if self.config.brand == "mock" {
+            Box::new(mock_worker::MockWorker::new())
+        } else {
+            // Apply global legacy checksum if set, otherwise use per-device config
+            let checksum = self.config.use_legacy_checksum.or(zk_legacy_checksum);
+            Box::new(zk_worker::ZkWorker::new(
+                self.config.password,
+                checksum,
+                zk_connect_timeout_secs,
+                self.ctx.inflight_timeout_secs(),
+            ))
+        };
+
+        info!("[{}] Worker ready (permit acquired).", self.config.name);
+        self.stable_since = Some(Instant::now());
+
+        if let Err(e) = worker_impl
+            .connect(
+                &self.config.ip,
+                u16::try_from(self.config.port).unwrap_or(4370),
+            )
+            .await
+        {
+            error!("[{}] Device connection failed: {}", self.config.name, e);
+            drop(connect_device_guard);
+            drop(connect_permit);
+            return Err(());
+        }
+
+        // Smart checksum memory: persist detected mode for future connects
+        if let Some(detected) = worker_impl.detected_checksum_mode() {
+            self.config.use_legacy_checksum = Some(detected);
+            if let Err(e) = hybrid_db.update_device_checksum(&self.config.id, detected) {
+                warn!(
+                    "[{}] Failed to persist detected checksum: {}",
+                    self.config.name, e
+                );
+            } else {
+                debug!(
+                    "[{}] Persisted detected checksum: {}",
+                    self.config.name,
+                    if detected { "legacy" } else { "modern" }
+                );
+            }
+        }
+
+        match worker_impl.get_info(self.ctx.time_sync().as_ref()).await {
+            Ok(info) => {
+                update_metadata_from_info(
+                    hybrid_db.as_ref(),
+                    &self.config.id,
+                    &info,
+                    self.ctx.time_sync().corrected_timestamp(),
+                );
+            }
+            Err(e) => {
+                warn!(
+                    "[{}] Initial get_info failed: {}, disconnecting and retrying...",
+                    self.config.name, e
+                );
+                worker_impl.disconnect().await;
+                drop(connect_device_guard);
+                drop(connect_permit);
+                return Err(());
+            }
+        }
+
+        // Connection + initial get_info succeeded — release connect-phase guards.
+        drop(connect_device_guard);
+        drop(connect_permit);
+
+        let polling_state =
+            AdaptivePollingState::with_cooldown(success_cooldown.load(Ordering::Relaxed));
+        Ok((worker_impl, polling_state))
+    }
+
+    async fn poll_cycle(
+        &mut self,
+        worker_impl: &mut dyn Worker,
+        polling_state: &mut AdaptivePollingState,
+        connected_at: Instant,
+    ) -> Result<(), String> {
+        let log_tx = self.ctx.log_tx();
+        let hybrid_db = self.ctx.hybrid_db();
+        let sem = self.ctx.semaphore();
+        let success_cooldown = self.ctx.success_cooldown_secs();
+        let device_locks = self.ctx.device_locks();
+        let connection_max_lifetime = self.ctx.connection_max_lifetime_secs();
+
+        let mut poll_count = 0;
+
+        #[allow(clippy::never_loop)]
+        while !self.token.is_cancelled() {
+            // Sync live cooldown value (config pushes update the AtomicU64)
+            polling_state.set_cooldown(success_cooldown.load(Ordering::Relaxed));
+
+            // Check connection lifetime — force reconnect if exceeded
+            if connected_at.elapsed() >= Duration::from_secs(connection_max_lifetime) {
+                info!(
+                    "[{}] Connection lifetime exceeded ({}s), reconnecting...",
+                    self.config.name, connection_max_lifetime
+                );
+                break;
+            }
+
+            let permit = match sem.acquire().await {
+                Ok(p) => p,
+                Err(_) => {
+                    error!("[{}] Semaphore closed, stopping worker", self.config.name);
+                    return Err("Semaphore closed".to_string());
+                }
+            };
+
+            let device_lock = device_locks
+                .entry(self.config.id.clone())
+                .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())))
+                .clone();
+            let device_guard = device_lock.lock().await;
+
+            poll_count += 1;
+
+            if poll_count % 5 == 1 {
+                match worker_impl.get_info(self.ctx.time_sync().as_ref()).await {
+                    Ok(mut info) => {
+                        update_metadata_from_info(
+                            hybrid_db.as_ref(),
+                            &self.config.id,
+                            &info,
+                            self.ctx.time_sync().corrected_timestamp(),
+                        );
+
+                        if info["logs_count"].as_i64() == Some(-1)
+                            && let Ok(Some(meta)) = hybrid_db.get_device_metadata(&self.config.id)
+                        {
+                            info["logs_count"] = json!(meta.logs_count.unwrap_or(0));
+                            info["users_count"] = json!(meta.users_count.unwrap_or(0));
+                        }
+                    }
+                    Err(e) => {
+                        error!(
+                            "[{}] Periodic get_info failed: {}, disconnecting...",
+                            self.config.name, e
+                        );
+                        return Err(format!("Periodic get_info failed: {e}"));
+                    }
+                }
+            }
+
+            // Heartbeat: lightweight ping before heavy fetch to detect silent UDP loss
+            if !worker_impl.ping().await {
+                warn!(
+                    "[{}] Heartbeat ping failed, connection lost — reconnecting...",
+                    self.config.name
+                );
+                return Err("Heartbeat ping failed".to_string());
+            }
+
+            match worker_impl.get_attendance_logs().await {
+                Ok(logs_vec) => {
+                    if let Some(since) = self.stable_since
+                        && since.elapsed() >= Duration::from_secs(SIDECAR_STABILITY_THRESHOLD_SECS)
+                        && self.retry_count > 0
+                    {
+                        info!(
+                            "[{}] Connection stable for {}s, resetting retry count",
+                            self.config.name, SIDECAR_STABILITY_THRESHOLD_SECS
+                        );
+                        self.retry_count = 0;
+                    }
+
+                    let mut new_count = 0;
+                    {
+                        let fetched_count = logs_vec.len();
+                        let mut duplicate_count = 0;
+
+                        let _ = hybrid_db.update_device_counts(
+                            &self.config.id,
+                            -1,
+                            i64::try_from(fetched_count).unwrap_or(0),
+                            self.ctx.time_sync().corrected_timestamp(),
+                        );
+
+                        #[allow(unused_variables)]
+                        let mut quick_info = json!({
+                            "logs_count": fetched_count,
+                        });
+                        if let Ok(Some(meta)) = hybrid_db.get_device_metadata(&self.config.id) {
+                            quick_info["users_count"] = json!(meta.users_count.unwrap_or(0));
+                            if let Some(mac) = meta.mac {
+                                quick_info["mac"] = json!(mac);
+                            }
+                        }
+
+                        if !logs_vec.is_empty() {
+                            for attendance in logs_vec {
+                                let mut hasher = rustc_hash::FxHasher::default();
+                                attendance.user_id.hash(&mut hasher);
+                                attendance.timestamp.hash(&mut hasher);
+                                let key = hasher.finish();
+
+                                if self.seen_logs.insert(key) {
+                                    if let Err(e) =
+                                        log_tx.send((self.worker_id.clone(), attendance)).await
+                                    {
+                                        error!(
+                                            "[{}] Failed to send attendance log: {}",
+                                            self.config.name, e
+                                        );
+                                    }
+                                    new_count += 1;
+                                } else {
+                                    duplicate_count += 1;
+                                }
+                            }
+
+                            if self.seen_logs.len() > SEEN_LOGS_CAP {
+                                self.seen_logs.clear();
+                                self.seen_logs.shrink_to(100_000);
+                                info!(
+                                    "[{}] Cleared seen_logs cache (>{} entries)",
+                                    self.config.name, SEEN_LOGS_CAP
+                                );
+                            }
+
+                            if duplicate_count > 0 {
+                                info!(
+                                    "[{}] Fetched {} logs ({} new, {} duplicates filtered) [interval: {}s]",
+                                    self.config.name,
+                                    fetched_count,
+                                    new_count,
+                                    duplicate_count,
+                                    polling_state.interval()
+                                );
+                            } else {
+                                info!(
+                                    "[{}] Fetched {} logs [interval: {}s]",
+                                    self.config.name,
+                                    fetched_count,
+                                    polling_state.interval()
+                                );
+                            }
+                        }
+                    }
+
+                    let (new_interval, changed) = polling_state.update(new_count > 0);
+                    if changed && new_count == 0 {
+                        debug!(
+                            "[{}] No new data for {} polls, increasing interval: {}s",
+                            self.config.name, polling_state.consecutive_no_new_data, new_interval
+                        );
+                    }
+
+                    // Always disconnect after successfully fetching/processing logs
+                    info!(
+                        "[{}] Polling cycle complete, disconnecting to free device slot (interval: {}s)...",
+                        self.config.name, new_interval
+                    );
+                    drop(device_guard);
+                    drop(permit);
+                    worker_impl.disconnect().await;
+                    tokio::select! {
+                        _ = self.token.cancelled() => { return Ok(()); }
+                        _ = sleep(Duration::from_secs(new_interval)) => {}
+                    }
+                    // Reset interval to base for fresh reconnect if we did a long cooldown
+                    if new_interval > SESSION_SAFE_INTERVAL_SECS {
+                        polling_state.current_interval_secs =
+                            crate::adaptive_polling::BASE_POLL_INTERVAL_SECS;
+                        polling_state.consecutive_no_new_data = 0;
+                    }
+                    return Ok(()); // → outer loop reconnects cleanly
+                }
+                Err(e) => {
+                    return Err(format!("Polling error: {e}"));
+                }
+            }
+        }
+
+        Ok(())
+    }
+}
+
+pub fn spawn_worker(
+    config: WorkerConfig,
+    ctx: WorkerContext,
+    token: CancellationToken,
+) -> JoinHandle<()> {
+    let worker_span = tracing::info_span!(
+        "device_worker",
+        device_id = %config.id,
+        device_ip = %config.ip,
+        device_name = %config.name,
+    );
+
+    tokio::spawn(
+        async move {
+            let poller = DeviceWorkerLoop::new(config, ctx, token);
+            poller.run().await;
+        }
+        .instrument(worker_span),
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::AtomicU64;
+
+    #[tokio::test]
+    async fn test_worker_context_getters_and_setters() {
+        let (log_tx, _log_rx) = mpsc::channel(10);
+        let db =
+            Arc::new(HybridDatabase::new(":memory:", 1000, 90).unwrap()) as Arc<dyn DatabaseStore>;
+        let semaphore = Arc::new(Semaphore::new(2));
+        let success_cooldown_secs = Arc::new(AtomicU64::new(30));
+        let device_locks: DeviceLocks = Arc::new(DashMap::new());
+        let time_sync = Arc::new(crate::time_sync::TimeSync::new());
+
+        let mut ctx = WorkerContext::new(
+            log_tx,
+            db.clone(),
+            semaphore.clone(),
+            success_cooldown_secs.clone(),
+            device_locks.clone(),
+            time_sync.clone(),
+            1800,
+            Some(true),
+            60,
+            300,
+        );
+
+        assert_eq!(ctx.connection_max_lifetime_secs(), 1800);
+        assert_eq!(ctx.zk_legacy_checksum(), Some(true));
+        assert_eq!(ctx.zk_connect_timeout_secs(), 60);
+        assert_eq!(ctx.inflight_timeout_secs(), 300);
+
+        let new_semaphore = Arc::new(Semaphore::new(5));
+        ctx.update_semaphore(new_semaphore.clone());
+        assert_eq!(ctx.semaphore().available_permits(), 5);
+    }
+
+    #[tokio::test]
+    async fn test_device_worker_loop_new() {
+        let (log_tx, _log_rx) = mpsc::channel(10);
+        let db =
+            Arc::new(HybridDatabase::new(":memory:", 1000, 90).unwrap()) as Arc<dyn DatabaseStore>;
+        let semaphore = Arc::new(Semaphore::new(2));
+        let success_cooldown_secs = Arc::new(AtomicU64::new(30));
+        let device_locks: DeviceLocks = Arc::new(DashMap::new());
+        let time_sync = Arc::new(crate::time_sync::TimeSync::new());
+        let token = CancellationToken::new();
+
+        let ctx = WorkerContext::new(
+            log_tx,
+            db.clone(),
+            semaphore.clone(),
+            success_cooldown_secs.clone(),
+            device_locks.clone(),
+            time_sync.clone(),
+            1800,
+            Some(true),
+            60,
+            300,
+        );
+
+        let config = WorkerConfig {
+            id: "dev_test_1".into(),
+            name: "Office 1".into(),
+            brand: "mock".into(),
+            ip: "127.0.0.1".into(),
+            port: 4370,
+            password: None,
+            use_legacy_checksum: None,
+        };
+
+        let worker_loop = DeviceWorkerLoop::new(config, ctx, token);
+        assert_eq!(worker_loop.config.id, "dev_test_1");
+        assert_eq!(*worker_loop.worker_id, "dev_test_1");
+        assert_eq!(worker_loop.retry_count, 0);
+        assert!(worker_loop.seen_logs.is_empty());
+    }
 }

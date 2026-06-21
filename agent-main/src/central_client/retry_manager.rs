@@ -2,7 +2,7 @@ use log::{info, warn};
 use rand::Rng;
 use std::time::{Duration, Instant};
 
-use super::connection::{MAX_RETRY_COUNT, MAX_RETRY_DELAY_SECS, STABILITY_THRESHOLD_SECS};
+use super::connection::{MAX_RETRY_COUNT, MAX_RETRY_DELAY_SECS};
 
 /// Parse composite key "device_id:user_id:timestamp_unix:punch:status" back to components
 /// Uses rsplit to safely handle device_id containing colons
@@ -100,22 +100,6 @@ impl RetryManager {
 
     pub(super) fn record_dropped_prematurely(&mut self) {
         self.record_connection_failed();
-    }
-
-    #[allow(dead_code)]
-    pub(super) fn record_stable(&mut self) {
-        if let Some(since) = self.stable_since {
-            if since.elapsed() >= Duration::from_secs(STABILITY_THRESHOLD_SECS)
-                && self.retry_count > 0
-            {
-                info!("Connection stable for {STABILITY_THRESHOLD_SECS}s, resetting retry count");
-                self.retry_count = 0;
-            }
-            // Keep stable_since as-is to avoid repeated reset logs
-        } else {
-            // First stable call after connection - start the timer
-            self.stable_since = Some(Instant::now());
-        }
     }
 }
 

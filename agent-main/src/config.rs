@@ -3,36 +3,93 @@ use std::env;
 // use std::path::Path;
 
 pub struct Config {
-    pub agent_id: String,
-    pub agent_token: String,
-    pub central_server_url: String,
-    pub database_url: String,
-    pub poll_interval_seconds: u64,
+    agent_id: String,
+    agent_token: String,
+    central_server_url: String,
+    database_url: String,
+    poll_interval_seconds: u64,
     /// Initial max concurrent workers (server overrides via ConfigPush)
-    pub max_concurrent_workers: usize,
+    max_concurrent_workers: usize,
     /// Max in-memory attendance logs before rejecting new inserts
-    pub max_memory_logs: usize,
-    pub signature_ttl_days: i64,
-    pub signature_cleanup_hours: u64,
-    pub inflight_timeout_secs: u64,
+    max_memory_logs: usize,
+    signature_ttl_days: i64,
+    signature_cleanup_hours: u64,
+    inflight_timeout_secs: u64,
     /// Cooldown interval (seconds) after successful fetch with new data.
     /// Device is disconnected during cooldown to free connection slots.
-    pub success_cooldown_secs: u64,
+    success_cooldown_secs: u64,
     /// Max seconds a device connection stays open before forced reconnect
-    pub connection_max_lifetime_secs: u64,
+    connection_max_lifetime_secs: u64,
     /// If set, skip ZK checksum auto-detect handshake (saves 5-10s per connect).
     /// `true` = legacy checksum, `false` = modern checksum, `None` = auto-detect.
-    pub zk_legacy_checksum: Option<bool>,
+    zk_legacy_checksum: Option<bool>,
     /// Timeout (seconds) for ZK device connect + initial info fetch
-    pub zk_connect_timeout_secs: u64,
-    pub sync_batch_limit: usize,
-    pub sync_idle_interval_ms: u64,
-    pub sync_backlogged_interval_ms: u64,
-    pub sync_moderate_interval_ms: u64,
-    pub sync_normal_interval_ms: u64,
+    zk_connect_timeout_secs: u64,
+    sync_batch_limit: usize,
+    sync_idle_interval_ms: u64,
+    sync_backlogged_interval_ms: u64,
+    sync_moderate_interval_ms: u64,
+    sync_normal_interval_ms: u64,
 }
 
 impl Config {
+    pub fn agent_id(&self) -> &str {
+        &self.agent_id
+    }
+    pub fn agent_token(&self) -> &str {
+        &self.agent_token
+    }
+    pub fn central_server_url(&self) -> &str {
+        &self.central_server_url
+    }
+    pub fn database_url(&self) -> &str {
+        &self.database_url
+    }
+    pub fn poll_interval_seconds(&self) -> u64 {
+        self.poll_interval_seconds
+    }
+    pub fn max_concurrent_workers(&self) -> usize {
+        self.max_concurrent_workers
+    }
+    pub fn max_memory_logs(&self) -> usize {
+        self.max_memory_logs
+    }
+    pub fn signature_ttl_days(&self) -> i64 {
+        self.signature_ttl_days
+    }
+    pub fn signature_cleanup_hours(&self) -> u64 {
+        self.signature_cleanup_hours
+    }
+    pub fn inflight_timeout_secs(&self) -> u64 {
+        self.inflight_timeout_secs
+    }
+    pub fn success_cooldown_secs(&self) -> u64 {
+        self.success_cooldown_secs
+    }
+    pub fn connection_max_lifetime_secs(&self) -> u64 {
+        self.connection_max_lifetime_secs
+    }
+    pub fn zk_legacy_checksum(&self) -> Option<bool> {
+        self.zk_legacy_checksum
+    }
+    pub fn zk_connect_timeout_secs(&self) -> u64 {
+        self.zk_connect_timeout_secs
+    }
+    pub fn sync_batch_limit(&self) -> usize {
+        self.sync_batch_limit
+    }
+    pub fn sync_idle_interval_ms(&self) -> u64 {
+        self.sync_idle_interval_ms
+    }
+    pub fn sync_backlogged_interval_ms(&self) -> u64 {
+        self.sync_backlogged_interval_ms
+    }
+    pub fn sync_moderate_interval_ms(&self) -> u64 {
+        self.sync_moderate_interval_ms
+    }
+    pub fn sync_normal_interval_ms(&self) -> u64 {
+        self.sync_normal_interval_ms
+    }
     pub fn load() -> Self {
         let mut fallbacks: Vec<String> = Vec::new();
 

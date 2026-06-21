@@ -15,6 +15,7 @@ pub mod contract;
 pub mod custom_field;
 pub mod department;
 pub mod diesel;
+pub mod econtract;
 pub mod employee;
 pub mod employee_assignment;
 pub mod employer;
@@ -44,7 +45,6 @@ pub mod time_tracking;
 pub mod work_location;
 pub mod workspace;
 pub mod workspace_config;
-pub mod econtract;
 
 // Re-export everything to maintain backward compatibility with all consumers
 pub use agent::*;
@@ -55,6 +55,7 @@ pub use common::*;
 pub use contract::*;
 pub use custom_field::*;
 pub use department::*;
+pub use econtract::*;
 pub use employee::*;
 pub use employee_assignment::*;
 pub use employer::*;
@@ -83,4 +84,3 @@ pub use time_tracking::*;
 pub use work_location::*;
 pub use workspace::*;
 pub use workspace_config::*;
-pub use econtract::*;

@@ -2,7 +2,7 @@ use log::{debug, error, info, warn};
 use std::sync::Arc;
 use tokio::sync::mpsc;
 
-use crate::hybrid_database::HybridDatabase;
+use crate::database_store::DatabaseStore;
 use crate::models::CentralMessage;
 use crate::time_sync::TimeSync;
 
@@ -11,7 +11,7 @@ use super::retry_manager::parse_composite_key;
 
 pub async fn handle_incoming_text(
     text: &str,
-    hybrid_db: &HybridDatabase,
+    hybrid_db: &dyn DatabaseStore,
     reload_tx: &mpsc::Sender<()>,
     central_tx: &mpsc::Sender<CentralMessage>,
     _device_locks: &DeviceLocks,
@@ -24,7 +24,7 @@ pub async fn handle_incoming_text(
                 info!("📥 Received ConfigPush with {} devices", data.devices.len());
 
                 // Compare and log config changes
-                let store = hybrid_db.store();
+                let store = hybrid_db;
                 let mut changes: Vec<String> = Vec::new();
 
                 if let Some(new_val) = data.max_concurrent_workers {
@@ -75,8 +75,7 @@ pub async fn handle_incoming_text(
                 }
 
                 // 1. Capture current active state
-                let old_active_ids: std::collections::HashSet<String> = hybrid_db
-                    .store()
+                let old_active_ids: std::collections::HashSet<String> = store
                     .get_active_devices()
                     .unwrap_or_default()
                     .into_iter()
@@ -86,7 +85,7 @@ pub async fn handle_incoming_text(
                 // 2. Deactivate devices not in this push
                 let pushed_ids: Vec<String> =
                     data.devices.iter().map(|d| d.device_id.clone()).collect();
-                if let Ok(deactivated) = hybrid_db.store().deactivate_devices_not_in(&pushed_ids)
+                if let Ok(deactivated) = store.deactivate_devices_not_in(&pushed_ids)
                     && deactivated > 0
                 {
                     info!("Deactivated {deactivated} stale devices");
@@ -95,7 +94,7 @@ pub async fn handle_incoming_text(
                 // 3. Upsert devices
                 for d in data.devices {
                     let timezone = d.timezone.as_deref().unwrap_or("UTC");
-                    let _ = hybrid_db.store().upsert_device(
+                    let _ = store.upsert_device(
                         &d.device_id,
                         &d.name,
                         &d.ip,
@@ -109,8 +108,7 @@ pub async fn handle_incoming_text(
                 }
 
                 // 4. Capture new active state
-                let new_active_ids: std::collections::HashSet<String> = hybrid_db
-                    .store()
+                let new_active_ids: std::collections::HashSet<String> = store
                     .get_active_devices()
                     .unwrap_or_default()
                     .into_iter()
@@ -156,7 +154,7 @@ pub async fn handle_incoming_text(
                 info!("Received command {id}: {method} (device: {device_id:?})");
                 if method == "get_device_info" {
                     if let Some(did) = device_id {
-                        match hybrid_db.store().get_device_metadata(&did) {
+                        match hybrid_db.get_device_metadata(&did) {
                             Ok(Some(meta)) => {
                                 let info = serde_json::json!({
                                     "mac": meta.mac,

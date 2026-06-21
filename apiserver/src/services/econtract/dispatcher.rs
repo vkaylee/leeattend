@@ -3,8 +3,8 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::errors::{AppError, AppResult};
-use crate::services::econtract::provider::EContractProvider;
 use crate::services::econtract::mock::MockEContractProvider;
+use crate::services::econtract::provider::EContractProvider;
 
 pub struct EContractDispatcher {
     providers: HashMap<String, Arc<dyn EContractProvider>>,
@@ -38,12 +38,15 @@ impl EContractDispatcher {
         // 1. Fetch active routing rules for the employer from the DB.
         // 2. Select the rule with the highest priority matching the country & auth type.
         // 3. Resolve the provider instance (FPT, Viettel, DocuSign) using the rule's target provider.
-        
+
         // For development/mock verification:
         self.providers.get("mock").cloned().ok_or_else(|| {
             AppError::validation_args(
                 crate::utils::i18n::I18nKey::Validation,
-                vec![("details", "Mock e-Contract provider not found in registry".to_string())],
+                vec![(
+                    "details",
+                    "Mock e-Contract provider not found in registry".to_string(),
+                )],
             )
         })
     }
@@ -84,7 +87,9 @@ mod tests {
         assert!(env_id_str.starts_with("mock-env-"));
 
         // 2. Test get_signing_url
-        let url_res = provider.get_signing_url(&env_id_str, "signer-1", "https://redirect.com").await;
+        let url_res = provider
+            .get_signing_url(&env_id_str, "signer-1", "https://redirect.com")
+            .await;
         assert!(url_res.is_ok());
         let url_opt = url_res.unwrap();
         assert!(url_opt.is_some());
@@ -105,6 +110,9 @@ mod tests {
         // 4. Test download_signed_document
         let doc_res = provider.download_signed_document(&env_id_str).await;
         assert!(doc_res.is_ok());
-        assert_eq!(doc_res.unwrap(), bytes::Bytes::from_static(b"%PDF-1.4 Mock signed document content"));
+        assert_eq!(
+            doc_res.unwrap(),
+            bytes::Bytes::from_static(b"%PDF-1.4 Mock signed document content")
+        );
     }
 }

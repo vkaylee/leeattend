@@ -22,6 +22,7 @@ use tokio::sync::mpsc;
 use tokio_tungstenite::accept_async;
 
 use agent::central_client::CentralClient;
+use agent::database_store::DatabaseStore;
 use agent::hybrid_database::HybridDatabase;
 use agent::models::AttendanceData;
 use agent::time_sync::TimeSync;
@@ -86,15 +87,13 @@ async fn test_central_client_connection_and_sync() {
 
     let time_sync = Arc::new(TimeSync::new());
     let device_locks = Arc::new(DashMap::new());
-    let command_registry = Arc::new(DashMap::new());
 
     let (client, _, _reload_rx) = CentralClient::new(
         url,
         "AGENT_1".to_string(),
         "TOKEN".to_string(),
-        hybrid.clone(),
+        Arc::new(hybrid.clone()) as Arc<dyn DatabaseStore>,
         30,
-        command_registry,
         device_locks,
         time_sync,
         CancellationToken::new(),
@@ -161,16 +160,14 @@ async fn test_central_client_cancellation() {
 
     let time_sync = Arc::new(TimeSync::new());
     let device_locks = Arc::new(DashMap::new());
-    let command_registry = Arc::new(DashMap::new());
     let cancel_token = CancellationToken::new();
 
     let (client, central_rx, _reload_rx) = CentralClient::new(
         url,
         "AGENT_1".to_string(),
         "TOKEN".to_string(),
-        hybrid.clone(),
+        Arc::new(hybrid.clone()) as Arc<dyn DatabaseStore>,
         30,
-        command_registry,
         device_locks,
         time_sync,
         cancel_token.clone(),

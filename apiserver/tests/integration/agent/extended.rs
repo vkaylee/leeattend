@@ -54,8 +54,10 @@ async fn test_update_authorized_agent_fields() {
         diesel::sql_types::Text,
         agent_id.clone()
     );
-    assert_eq!(hashed_token, apiserver::crypto::hash_agent_token("new_token_123"));
-
+    assert_eq!(
+        hashed_token,
+        apiserver::crypto::hash_agent_token("new_token_123")
+    );
 
     // 2. Update is_active to false
     let update_req = serde_json::json!({

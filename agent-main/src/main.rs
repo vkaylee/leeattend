@@ -62,7 +62,13 @@ static GLOBAL: MiMalloc = MiMalloc;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+    use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()),
+        )
+        .with(tracing_subscriber::fmt::layer())
+        .init();
 
     // Explicitly install ring as the default CryptoProvider for rustls
     let _ = rustls::crypto::ring::default_provider().install_default();
@@ -72,7 +78,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if args.len() > 1 {
         let config = agent::config::Config::load();
         #[allow(clippy::expect_used)]
-        let hybrid_db = HybridDatabase::new(&config.database_url, 1000, 90)
+        let hybrid_db = HybridDatabase::new(config.database_url(), 1000, 90)
             .expect("Failed to initialize database");
 
         match args[1].as_str() {

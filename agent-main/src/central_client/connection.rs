@@ -10,7 +10,7 @@ use tokio_tungstenite::{
     tungstenite::client::IntoClientRequest, tungstenite::http::HeaderValue,
 };
 
-use crate::hybrid_database::HybridDatabase;
+use crate::database_store::DatabaseStore;
 use crate::models::{AttendanceData, CentralMessage};
 
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -24,8 +24,6 @@ use tokio_util::sync::CancellationToken;
 
 // Retry configuration constants
 pub(super) const CONNECTION_TIMEOUT_SECS: u64 = 30;
-#[allow(dead_code)]
-pub(super) const STABILITY_THRESHOLD_SECS: u64 = 60;
 pub(super) const MAX_RETRY_DELAY_SECS: u64 = 60;
 pub(super) const MAX_RETRY_COUNT: u32 = 10;
 
@@ -37,13 +35,11 @@ pub struct CentralClient {
     url: String,
     agent_id: String,
     token: String,
-    hybrid_db: HybridDatabase,
+    hybrid_db: Arc<dyn DatabaseStore>,
     inflight_timeout_secs: u64,
     tx: mpsc::Sender<CentralMessage>,
     reload_tx: mpsc::Sender<()>,
     is_connected: Arc<AtomicBool>,
-    #[allow(dead_code)]
-    command_registry: Arc<DashMap<String, mpsc::Sender<CentralMessage>>>,
     device_locks: DeviceLocks,
     time_sync: Arc<TimeSync>,
     cancel_token: CancellationToken,
@@ -60,9 +56,8 @@ impl CentralClient {
         url: String,
         agent_id: String,
         token: String,
-        hybrid_db: HybridDatabase,
+        hybrid_db: Arc<dyn DatabaseStore>,
         inflight_timeout_secs: u64,
-        command_registry: Arc<DashMap<String, mpsc::Sender<CentralMessage>>>,
         device_locks: DeviceLocks,
         time_sync: Arc<TimeSync>,
         cancel_token: CancellationToken,
@@ -85,7 +80,6 @@ impl CentralClient {
                 tx,
                 reload_tx,
                 is_connected,
-                command_registry,
                 device_locks,
                 time_sync,
                 cancel_token,
@@ -142,7 +136,7 @@ impl CentralClient {
                 }
 
                 // Block syncing until valid device config is received
-                let device_count = match sync_hybrid.store().get_active_devices() {
+                let device_count = match sync_hybrid.get_active_devices() {
                     Ok(devices) => devices.len(),
                     Err(_) => 0,
                 };
@@ -156,12 +150,12 @@ impl CentralClient {
                 }
 
                 // Periodic cleanup: Move expired logs to DLQ
-                let max_retries = match sync_hybrid.store().get_agent_config("max_retry_count") {
+                let max_retries = match sync_hybrid.get_agent_config("max_retry_count") {
                     Ok(Some(val)) => val.parse::<i64>().unwrap_or(10),
                     _ => 10, // Default: 10 retries
                 };
 
-                if let Ok(moved) = sync_hybrid.store().move_expired_logs_to_dlq(max_retries) {
+                if let Ok(moved) = sync_hybrid.move_expired_logs_to_dlq(max_retries) {
                     if moved > 0 {
                         warn!(
                             "⚠️ Moved {moved} expired logs to dead letter queue (max_retries={max_retries})"
@@ -172,7 +166,6 @@ impl CentralClient {
                 // Periodic stale in-flight reset (every 60 seconds)
                 if last_stale_check.elapsed() >= Duration::from_mins(1) {
                     if let Ok(reset_count) = sync_hybrid
-                        .store()
                         .reset_stale_syncing(i64::try_from(inflight_timeout_secs).unwrap_or(30))
                     {
                         if reset_count > 0 {
@@ -372,7 +365,7 @@ impl CentralClient {
                                     Ok(Message::Text(text)) => {
                                         handle_incoming_text(
                                             &text,
-                                            &read_hybrid,
+                                            read_hybrid.as_ref(),
                                             &read_reload_tx,
                                             &read_tx,
                                             &read_device_locks,

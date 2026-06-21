@@ -41,6 +41,8 @@ pub struct ZkWorker {
     connect_timeout_secs: u64,
     /// Timeout (seconds) for pulling attendance logs
     pub inflight_timeout_secs: u64,
+    /// Concurrency lock to prevent socket leaks and duplicate operations on timeouts
+    active_operation_lock: Arc<tokio::sync::Mutex<()>>,
 }
 
 impl ZkWorker {
@@ -65,6 +67,7 @@ impl ZkWorker {
             detected_checksum: None,
             connect_timeout_secs,
             inflight_timeout_secs,
+            active_operation_lock: Arc::new(tokio::sync::Mutex::new(())),
         }
     }
 }
@@ -95,7 +98,9 @@ impl Worker for ZkWorker {
             );
         }
 
+        let operation_lock = self.active_operation_lock.clone();
         let mut join_handle = tokio::task::spawn_blocking(move || {
+            let _guard = operation_lock.blocking_lock();
             let res = zk.connect(rustzk::ZKProtocol::Auto);
 
             // If connected successfully, fetch static info immediately
@@ -188,6 +193,7 @@ impl Worker for ZkWorker {
                     "⚠️ [{ip}] Connection timed out after {timeout_secs}s — spawning cleanup task for blocking thread"
                 );
                 let ip_clone = ip.to_string();
+                let operation_lock_cleanup = self.active_operation_lock.clone();
                 tokio::spawn(async move {
                     match join_handle.await {
                         Ok((mut zk, _, _)) => {
@@ -195,6 +201,7 @@ impl Worker for ZkWorker {
                                 "[{ip_clone}] Connection background task finished post-timeout. Disconnecting..."
                             );
                             let _ = tokio::task::spawn_blocking(move || {
+                                let _guard = operation_lock_cleanup.blocking_lock();
                                 let _ = zk.disconnect();
                             })
                             .await;
@@ -233,7 +240,9 @@ impl Worker for ZkWorker {
 
         debug!("[{ip}] Fetching attendance logs from device...");
 
+        let operation_lock = self.active_operation_lock.clone();
         let mut join_handle = tokio::task::spawn_blocking(move || {
+            let _guard = operation_lock.blocking_lock();
             let mut zk = zk_val;
             let res = zk.get_attendance().map_err(|e| format!("{e}"));
             (zk, res)
@@ -290,6 +299,7 @@ impl Worker for ZkWorker {
                 );
                 warn!("{msg}");
                 let ip_clone = ip.clone();
+                let operation_lock_cleanup = self.active_operation_lock.clone();
                 tokio::spawn(async move {
                     match join_handle.await {
                         Ok((mut zk, _)) => {
@@ -297,6 +307,7 @@ impl Worker for ZkWorker {
                                 "[{ip_clone}] Get logs background task finished post-timeout. Disconnecting..."
                             );
                             let _ = tokio::task::spawn_blocking(move || {
+                                let _guard = operation_lock_cleanup.blocking_lock();
                                 let _ = zk.disconnect();
                             })
                             .await;
@@ -344,7 +355,9 @@ impl Worker for ZkWorker {
         let cached_logs_cap = self.logs_capacity.unwrap_or(0);
         let last_sync_time = time_sync.corrected_now().to_rfc3339();
 
+        let operation_lock = self.active_operation_lock.clone();
         let mut join_handle = tokio::task::spawn_blocking(move || {
+            let _guard = operation_lock.blocking_lock();
             let mut zk = zk_val;
 
             // Only fetch dynamic checks: get_time and read_sizes (for current counts)
@@ -414,6 +427,7 @@ impl Worker for ZkWorker {
                     format!("[{ip}] Getting device info timed out after 30s — connection dropped");
                 warn!("{msg}");
                 let ip_clone = ip.clone();
+                let operation_lock_cleanup = self.active_operation_lock.clone();
                 tokio::spawn(async move {
                     match join_handle.await {
                         Ok((mut zk, _)) => {
@@ -421,6 +435,7 @@ impl Worker for ZkWorker {
                                 "[{ip_clone}] Get info background task finished post-timeout. Disconnecting..."
                             );
                             let _ = tokio::task::spawn_blocking(move || {
+                                let _guard = operation_lock_cleanup.blocking_lock();
                                 let _ = zk.disconnect();
                             })
                             .await;
@@ -453,7 +468,9 @@ impl Worker for ZkWorker {
             }
         };
 
+        let operation_lock = self.active_operation_lock.clone();
         let mut join_handle = tokio::task::spawn_blocking(move || {
+            let _guard = operation_lock.blocking_lock();
             let mut zk = zk_val;
             // Use get_time() as a lightweight probe — it's a single UDP roundtrip
             let res = zk.get_time().map_err(|e| format!("{e}"));
@@ -487,6 +504,7 @@ impl Worker for ZkWorker {
                     "[{ip}] Ping timed out after 5s — connection likely dead. Spawning cleanup task."
                 );
                 let ip_clone = ip.clone();
+                let operation_lock_cleanup = self.active_operation_lock.clone();
                 tokio::spawn(async move {
                     match join_handle.await {
                         Ok((mut zk, _)) => {
@@ -494,6 +512,7 @@ impl Worker for ZkWorker {
                                 "[{ip_clone}] Ping background task finished post-timeout. Disconnecting..."
                             );
                             let _ = tokio::task::spawn_blocking(move || {
+                                let _guard = operation_lock_cleanup.blocking_lock();
                                 let _ = zk.disconnect();
                             })
                             .await;
@@ -516,7 +535,9 @@ impl Worker for ZkWorker {
         let mut guard = zk_arc.lock().await;
         if let Some(mut zk) = guard.take() {
             let ip_clone = ip.clone();
+            let operation_lock = self.active_operation_lock.clone();
             let join_handle = tokio::task::spawn_blocking(move || {
+                let _guard = operation_lock.blocking_lock();
                 info!("[{ip_clone}] Explicitly disconnecting from ZK device...");
                 let _ = zk.disconnect();
             });

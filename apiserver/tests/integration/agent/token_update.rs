@@ -9,8 +9,13 @@ use uuid::Uuid;
 
 #[tokio::test]
 async fn test_agent_token_update() {
-    let (address, workspace_id, user_id, factory, _tdb): (String, Uuid, Uuid, TestFactory, TestDatabase) =
-        spawn_app_with_factory().await;
+    let (address, workspace_id, user_id, factory, _tdb): (
+        String,
+        Uuid,
+        Uuid,
+        TestFactory,
+        TestDatabase,
+    ) = spawn_app_with_factory().await;
     let client = reqwest::Client::new();
 
     let agent_id = "TOKEN_UPDATE_AGENT";

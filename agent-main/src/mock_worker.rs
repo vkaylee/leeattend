@@ -2,8 +2,8 @@ use crate::worker::Worker;
 use async_trait::async_trait;
 use chrono::Local;
 use serde_json::Value;
-use std::time::Duration;
 use std::sync::Mutex;
+use std::time::Duration;
 
 static MOCK_DETECTED_CHECKSUM: Mutex<Option<bool>> = Mutex::new(None);
 
