@@ -146,3 +146,12 @@ impl CryptoService {
         String::from_utf8(plaintext_bytes).map_err(|_err| CryptoError::DecryptionFailed)
     }
 }
+
+/// Hashes an agent token using SHA-256 for secure verification and storage (SOC 2).
+pub fn hash_agent_token(token: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let mut hasher = Sha256::new();
+    hasher.update(token.as_bytes());
+    format!("{:x}", hasher.finalize())
+}
+

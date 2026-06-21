@@ -157,7 +157,7 @@ impl AgentRepository for DieselAgentRepository {
         let agent = AuthorizedAgentEntity {
             id: id.to_string(),
             name: name.to_string(),
-            token: token.to_string(),
+            token: crate::crypto::hash_agent_token(token),
             is_trusted: None,
             last_ip: None,
             created_at: Some(Utc::now()),

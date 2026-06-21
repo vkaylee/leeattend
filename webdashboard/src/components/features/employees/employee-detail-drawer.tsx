@@ -2,7 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import type { Department, Employee, Employment, WorkspaceMember } from "@/lib/api";
-import type { WorkLocation } from "@/lib/api-generated/models";
+import type { WorkLocation } from "@/lib/api/locations";
 
 import WorkingConditionConfig from "@/components/employees/working-condition-config";
 import EmployeeSalaryConfig from "@/components/payroll/employee-salary-config";

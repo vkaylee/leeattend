@@ -21,7 +21,7 @@ import { useToast } from "@/components/ui/toast";
 import { fetchEmploymentPhases, fetchEmployee, fetchEmployeeEmployments } from "@/lib/api/employees";
 import { useEmployeeContracts } from "@/pages/employees/hooks/use-employee-contracts";
 
-const contractSchema = z.object({
+export const contractSchema = z.object({
   contract_number: z.string().optional(),
   contract_type: z.enum(["probation", "training", "fixed_term", "indefinite"]),
   assign_phase_id: z.string().optional(),
@@ -29,6 +29,10 @@ const contractSchema = z.object({
   start_date: z.string().min(1, { message: "Ngày hiệu lực là bắt buộc" }),
   end_date: z.string().optional(),
   notes: z.string().optional(),
+  enable_esign: z.boolean().optional(),
+  esign_auth_type: z.enum(["sms", "email", "smartca", "hsm"]).optional(),
+  national_id: z.string().optional(),
+  consent_privacy: z.boolean().optional(),
 }).superRefine((data, ctx) => {
   if (data.contract_type !== "indefinite") {
     if (!data.end_date || data.end_date.trim() === "") {
@@ -45,6 +49,22 @@ const contractSchema = z.object({
         code: "custom",
         message: "Ngày hết hạn phải sau ngày hiệu lực",
         path: ["end_date"],
+      });
+    }
+  }
+  if (data.enable_esign) {
+    if (!data.consent_privacy) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Bạn phải đồng ý chia sẻ thông tin cá nhân để thực hiện ký số",
+        path: ["consent_privacy"],
+      });
+    }
+    if (data.esign_auth_type === "smartca" && (!data.national_id || data.national_id.trim() === "")) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Số CCCD/National ID là bắt buộc khi sử dụng SmartCA",
+        path: ["national_id"],
       });
     }
   }
@@ -98,6 +118,10 @@ export default function ContractFormModal({
       contract_number: "",
       notes: "",
       assign_phase_id: "",
+      enable_esign: false,
+      esign_auth_type: "sms",
+      national_id: "",
+      consent_privacy: false,
     },
   });
 
@@ -108,6 +132,15 @@ export default function ContractFormModal({
   const isIndefinite = contractType === "indefinite";
 
   const startDateValue = useWatch({ control, name: "start_date" });
+
+  const watchEnableEsign = useWatch({
+    control,
+    name: "enable_esign",
+  });
+  const watchAuthType = useWatch({
+    control,
+    name: "esign_auth_type",
+  });
 
   const applyDuration = (months?: number, years?: number) => {
     if (!startDateValue) return;
@@ -225,7 +258,7 @@ export default function ContractFormModal({
         subtitle={editingContract ? "Cập nhật thông tin hợp đồng nhân sự" : "Tạo hợp đồng mới cho nhân viên"}
         title={editingContract ? "Chỉnh sửa Hợp đồng" : "Tạo Hợp đồng Mới"}
       >
-      <form className="space-y-6 pt-4" onSubmit={handleSubmit(onSubmit)}>
+      <form className="space-y-6 pt-4" noValidate onSubmit={handleSubmit(onSubmit)}>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <FormField
@@ -351,6 +384,73 @@ export default function ContractFormModal({
                   <option value="terminated">Đã chấm dứt</option>
                 </select>
               </label>
+            </div>
+          )}
+
+          {!editingContract && (
+            <div className="space-y-4 p-5 border border-slate-100 dark:border-slate-800 rounded-3xl bg-slate-50/50 dark:bg-slate-900/30">
+              <label className="flex items-center justify-between cursor-pointer" htmlFor="enable_esign">
+                <div>
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider block">Kích hoạt ký số điện tử (Enable e-Signature)</span>
+                  <span className="text-[9px] text-slate-400 font-semibold uppercase tracking-wider mt-0.5 block">Tự động khởi tạo giao dịch ký số trên FPT/SmartCA</span>
+                </div>
+                <input
+                  type="checkbox"
+                  id="enable_esign"
+                  className="h-4 w-4 rounded border-slate-350 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                  {...register("enable_esign")}
+                />
+              </label>
+
+              {watchEnableEsign && (
+                <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-850 animate-in fade-in duration-300">
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest" htmlFor="esign_auth_type">
+                      Phương thức xác thực (Auth Type)
+                      <select
+                        className="w-full h-10 px-3 mt-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-primary-500 focus:border-primary-500 dark:bg-slate-900/50 dark:border-slate-800 text-sm font-semibold"
+                        id="esign_auth_type"
+                        {...register("esign_auth_type")}
+                      >
+                        <option value="sms">SMS OTP Code</option>
+                        <option value="email">Email OTP Code</option>
+                        <option value="smartca">SmartCA Remote CA (VNPT)</option>
+                        <option value="hsm">Corporate HSM Signature</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  {watchAuthType === "smartca" && (
+                    <FormField
+                      id="national_id"
+                      label="Số CCCD / National ID (Bắt buộc đối với SmartCA)"
+                      {...register("national_id")}
+                      error={errors.national_id?.message}
+                      placeholder="VD: 037123456789"
+                      required
+                    />
+                  )}
+
+                  <div className="space-y-2">
+                    <div className="flex items-start gap-2.5">
+                      <input
+                        type="checkbox"
+                        id="consent_privacy"
+                        className="mt-0.5 h-4 w-4 rounded border-slate-350 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                        {...register("consent_privacy")}
+                      />
+                      <label className="text-[9px] text-slate-500 font-bold leading-normal uppercase tracking-wider cursor-pointer select-none" htmlFor="consent_privacy">
+                        Tôi đồng ý chia sẻ thông tin cá nhân (Họ tên, Email, SĐT, CCCD) cho bên nhà cung cấp dịch vụ ký số CeCA để thực hiện giao dịch này. (Nghị định 13/2023/NĐ-CP)
+                      </label>
+                    </div>
+                    {errors.consent_privacy && (
+                      <Typography className="text-xs text-rose-500 font-medium" variant="p">
+                        {errors.consent_privacy.message}
+                      </Typography>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

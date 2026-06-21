@@ -1,27 +1,24 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-import type { CreateWorkLocationRequest, UpdateWorkLocationRequest, WorkLocation } from "@/lib/api-generated/models";
-
 import { 
-  listLocations, 
+  fetchLocations, 
   createLocation, 
   updateLocation, 
   deleteLocation,
-  getListLocationsQueryKey
-} from "@/lib/api-generated/crate-handlers-locations/crate-handlers-locations";
+  WorkLocation,
+  CreateWorkLocationRequest,
+  UpdateWorkLocationRequest
+} from "@/lib/api/locations";
 
 export const locationKeys = {
-  all: (wsId: string) => getListLocationsQueryKey(wsId),
+  all: (wsId: string) => ["locations", wsId],
 };
 
 export function useLocations(wsId: string) {
   return useQuery({
     queryKey: locationKeys.all(wsId),
     queryFn: async () => {
-      const res = await listLocations(wsId);
-      // listLocations returns res.data which is typed as WorkLocation[] but at runtime is PaginatedLocations (having .data as WorkLocation[])
-      const raw = res.data as unknown as { data?: WorkLocation[] };
-      return raw.data ?? [];
+      return fetchLocations(wsId);
     },
     enabled: !!wsId,
   });

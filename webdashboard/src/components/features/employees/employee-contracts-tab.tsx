@@ -1,6 +1,7 @@
-import { FileText, Pencil, Plus, Trash2 } from "lucide-react";
+import { FileText, Pencil, Plus, Trash2, KeyRound } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "@tanstack/react-query";
 
 import type { ContractStatus, ContractType, EmployeeContract } from "@/lib/api";
 
@@ -8,6 +9,9 @@ import PermissionGate from "@/components/common/permission-gate";
 import Button from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useEmployeeContracts } from "@/pages/employees/hooks/use-employee-contracts";
+import { fetchEmployers } from "@/lib/api/employers";
+import { fetchEContractEnvelopes, EContractEnvelope } from "@/lib/api/econtracts";
+import EContractDetailsDrawer from "./econtract-details-drawer";
 
 import ContractFormModal from "./contract-form-modal";
 
@@ -23,6 +27,21 @@ export default function EmployeeContractsTab({ wsId, employeeId, formatDate }: E
   const [editingContract, setEditingContract] = useState<EmployeeContract | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { t } = useTranslation();
+
+  const [selectedEnvelope, setSelectedEnvelope] = useState<EContractEnvelope | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  const { data: employers = [] } = useQuery({
+    queryKey: ["employers", wsId],
+    queryFn: () => fetchEmployers(wsId),
+    enabled: !!wsId,
+  });
+
+  const { data: envelopes = [] } = useQuery({
+    queryKey: ["econtract-envelopes", wsId],
+    queryFn: () => fetchEContractEnvelopes(wsId, employers),
+    enabled: !!wsId && employers.length > 0,
+  });
 
   if (isLoading) {
     return (
@@ -83,53 +102,85 @@ export default function EmployeeContractsTab({ wsId, employeeId, formatDate }: E
           </div>
         ) : (
           <div className="relative pl-12 space-y-8 before:absolute before:left-[11px] before:top-4 before:bottom-4 before:w-px before:bg-slate-100 dark:before:bg-slate-700">
-            {contracts.map((contract: EmployeeContract, index: number) => (
-              <div className="relative animate-in slide-in-from-left duration-500" key={contract.id}>
-                <div className={cn("absolute -left-[3.15rem] top-1 w-6 h-6 rounded-full border-4 border-white dark:border-slate-900 shadow-xl ring-4 z-10", index === 0 && contract.status === "active" ? 'bg-emerald-50 dark:bg-emerald-950 ring-emerald-50 dark:ring-emerald-900/30 animate-pulse' : 'bg-primary-600 ring-primary-50 dark:ring-primary-900/30')}></div>
-                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-[2rem] shadow-sm hover:shadow-xl hover:shadow-primary-100/10 transition-all group overflow-hidden relative">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <div className="flex items-center gap-3 mb-1.5">
-                        <div className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest">{getContractTypeLabel(contract.contract_type)}</div>
-                        <span className={cn("text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full border shadow-sm", getStatusColor(contract.status))}>
-                          {contract.status === "active" ? t("employees.table.active").toUpperCase() : contract.status.toUpperCase()}
-                        </span>
+            {contracts.map((contract: EmployeeContract, index: number) => {
+              const envelope = envelopes.find((env: EContractEnvelope) => env.contract_id === contract.id);
+              return (
+                <div className="relative animate-in slide-in-from-left duration-500" key={contract.id}>
+                  <div className={cn("absolute -left-[3.15rem] top-1 w-6 h-6 rounded-full border-4 border-white dark:border-slate-900 shadow-xl ring-4 z-10", index === 0 && contract.status === "active" ? 'bg-emerald-50 dark:bg-emerald-950 ring-emerald-50 dark:ring-emerald-900/30 animate-pulse' : 'bg-primary-600 ring-primary-50 dark:ring-primary-900/30')}></div>
+                  <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-[2rem] shadow-sm hover:shadow-xl hover:shadow-primary-100/10 transition-all group overflow-hidden relative">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-3 mb-1.5">
+                          <div className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest">{getContractTypeLabel(contract.contract_type)}</div>
+                          <span className={cn("text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full border shadow-sm", getStatusColor(contract.status))}>
+                            {contract.status === "active" ? t("employees.table.active").toUpperCase() : contract.status.toUpperCase()}
+                          </span>
+                          {envelope && (
+                            <span
+                              className={cn(
+                                "text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full border shadow-sm flex items-center gap-1",
+                                envelope.status === "completed"
+                                  ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                                  : "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+                              )}
+                            >
+                              <KeyRound size={10} /> e-Sign: {envelope.status}
+                            </span>
+                          )}
+                        </div>
+                        {!!contract.contract_number && <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400">{t("employees.details.contracts.contract_number").replace("{{number}}", contract.contract_number)}</div>}
                       </div>
-                      {!!contract.contract_number && <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400">{t("employees.details.contracts.contract_number").replace("{{number}}", contract.contract_number)}</div>}
+                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity relative z-20">
+                        <Button 
+                            className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-xl transition-colors h-auto w-auto shadow-none"
+                            onClick={() => {
+                              setEditingContract(contract);
+                              setIsModalOpen(true);
+                            }}
+                            size="icon"
+                            type="button"
+                            variant="ghost"
+                        >
+                          <Pencil size={14} />
+                        </Button>
+                        <Button className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-colors h-auto w-auto shadow-none" onClick={() => { deleteContract.mutate(contract.id); }} size="icon" type="button" variant="ghost">
+                          <Trash2 size={14} />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity relative z-20">
-                      <Button 
-                          className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-xl transition-colors h-auto w-auto shadow-none"
+                    
+                    <div className="grid grid-cols-2 gap-4 mt-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl relative z-10">
+                      <div>
+                        <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">{t("employees.details.contracts.effective_date")}</div>
+                        <div className="text-xs font-mono font-bold text-slate-700 dark:text-slate-200">{formatDate(contract.start_date)}</div>
+                      </div>
+                      <div>
+                        <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">{t("employees.details.contracts.expiration_date")}</div>
+                        <div className="text-xs font-mono font-bold text-slate-700 dark:text-slate-200">{contract.end_date ? formatDate(contract.end_date) : t("employees.details.contracts.indefinite_duration")}</div>
+                      </div>
+                    </div>
+
+                    {envelope && (
+                      <div className="mt-4 flex justify-end relative z-10">
+                        <Button
+                          className="flex items-center gap-1.5 text-[10px] font-bold text-primary-600 hover:text-primary-700 uppercase tracking-widest py-1.5 px-3.5 rounded-xl border border-primary-100 hover:bg-primary-50/50 transition-colors shadow-none"
                           onClick={() => {
-                            setEditingContract(contract);
-                            setIsModalOpen(true);
+                            setSelectedEnvelope(envelope);
+                            setIsDrawerOpen(true);
                           }}
-                          size="icon"
-                          type="button"
+                          size="sm"
                           variant="ghost"
-                      >
-                        <Pencil size={14} />
-                      </Button>
-                      <Button className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-colors h-auto w-auto shadow-none" onClick={() => { deleteContract.mutate(contract.id); }} size="icon" type="button" variant="ghost">
-                        <Trash2 size={14} />
-                      </Button>
-                    </div>
+                        >
+                          <KeyRound size={12} /> e-Sign Details
+                        </Button>
+                      </div>
+                    )}
+
+                    <FileText className="absolute -right-6 -bottom-6 w-24 h-24 text-slate-100 dark:text-slate-800 opacity-50 -rotate-12 group-hover:rotate-0 transition-transform duration-700 z-0 pointer-events-none" />
                   </div>
-                  
-                  <div className="grid grid-cols-2 gap-4 mt-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl relative z-10">
-                    <div>
-                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">{t("employees.details.contracts.effective_date")}</div>
-                      <div className="text-xs font-mono font-bold text-slate-700 dark:text-slate-200">{formatDate(contract.start_date)}</div>
-                    </div>
-                    <div>
-                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">{t("employees.details.contracts.expiration_date")}</div>
-                      <div className="text-xs font-mono font-bold text-slate-700 dark:text-slate-200">{contract.end_date ? formatDate(contract.end_date) : t("employees.details.contracts.indefinite_duration")}</div>
-                    </div>
-                  </div>
-                  <FileText className="absolute -right-6 -bottom-6 w-24 h-24 text-slate-100 dark:text-slate-800 opacity-50 -rotate-12 group-hover:rotate-0 transition-transform duration-700 z-0 pointer-events-none" />
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -139,6 +190,16 @@ export default function EmployeeContractsTab({ wsId, employeeId, formatDate }: E
         employeeId={employeeId}
         isOpen={isModalOpen}
         onClose={() => { setIsModalOpen(false); }}
+        wsId={wsId}
+      />
+
+      <EContractDetailsDrawer
+        envelope={selectedEnvelope}
+        isOpen={isDrawerOpen}
+        onClose={() => {
+          setIsDrawerOpen(false);
+          setSelectedEnvelope(null);
+        }}
         wsId={wsId}
       />
     </div>

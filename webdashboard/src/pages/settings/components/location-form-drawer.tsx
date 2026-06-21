@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { WorkLocation, CreateWorkLocationRequest, UpdateWorkLocationRequest } from "@/lib/api-generated/models";
+import type { WorkLocation, CreateWorkLocationRequest, UpdateWorkLocationRequest } from "@/lib/api/locations";
 
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";

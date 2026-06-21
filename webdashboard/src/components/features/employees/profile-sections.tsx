@@ -2,7 +2,7 @@ import { Building2, Calendar, MapPin, Check, Globe, Clock, User } from "lucide-r
 import React from "react";
 
 import type { Department, Employee, WorkspaceMember, Employment } from "@/lib/api";
-import type { WorkLocation } from "@/lib/api-generated/models";
+import type { WorkLocation } from "@/lib/api/locations";
 
 import PermissionGate from "@/components/common/permission-gate";
 import Button from "@/components/ui/button";

@@ -3,7 +3,7 @@ import { Pencil, Trash2, UserPlus } from "lucide-react";
 import React, { useState } from "react";
 
 import type { Department, Employee, WorkspaceMember } from "@/lib/api";
-import type { WorkLocation } from "@/lib/api-generated/models";
+import type { WorkLocation } from "@/lib/api/locations";
 
 import PermissionGate from "@/components/common/permission-gate";
 import { CustomFieldSection } from "@/components/custom-fields/custom-field-section";

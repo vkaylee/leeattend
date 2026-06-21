@@ -44,6 +44,7 @@ pub mod time_tracking;
 pub mod work_location;
 pub mod workspace;
 pub mod workspace_config;
+pub mod econtract;
 
 // Re-export everything to maintain backward compatibility with all consumers
 pub use agent::*;
@@ -82,3 +83,4 @@ pub use time_tracking::*;
 pub use work_location::*;
 pub use workspace::*;
 pub use workspace_config::*;
+pub use econtract::*;

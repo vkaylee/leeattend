@@ -45,7 +45,17 @@ async fn test_update_authorized_agent_fields() {
     )
     .unwrap();
     assert_eq!(updated["name"], "New Agent Name");
-    assert_eq!(updated["token"], "new_token_123");
+    assert_eq!(updated["token"], "••••••••");
+
+    // Verify token is hashed in DB
+    let hashed_token: String = crate::test_query_scalar_string!(
+        &factory.diesel_pools.api,
+        "SELECT token AS val FROM authorized_agents WHERE id = $1",
+        diesel::sql_types::Text,
+        agent_id.clone()
+    );
+    assert_eq!(hashed_token, apiserver::crypto::hash_agent_token("new_token_123"));
+
 
     // 2. Update is_active to false
     let update_req = serde_json::json!({

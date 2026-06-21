@@ -39,7 +39,7 @@ export interface FormFieldProps {
   /** Textarea rows (default: 5) */
   rows?: number;
   /** Input type — "textarea" renders a <textarea> */
-  type?: "text" | "date" | "time" | "tel" | "email" | "number" | "textarea";
+  type?: "text" | "date" | "time" | "tel" | "email" | "number" | "textarea" | "password";
   value?: string;
 }
 

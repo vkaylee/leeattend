@@ -9,7 +9,7 @@ import type { EmployeeContract } from "@/lib/api";
 
 import { ToastProvider } from "@/components/ui/toast";
 
-import ContractFormModal from "../contract-form-modal";
+import ContractFormModal, { contractSchema } from "../contract-form-modal";
 
 // Mock useEmployeeContracts hook
 const mockCreateMutateAsync = vi.fn();
@@ -257,6 +257,395 @@ describe("ContractFormModal", () => {
 
     await waitFor(() => {
       expect(mockCreateMutateAsync).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // ── e-Signature fields and validation ─────────────────────────────
+
+  it("renders e-Signature fields conditionally when enabled", async () => {
+    const user = userEvent.setup();
+    renderModal();
+
+    // The e-signature toggle should be present
+    const esignToggle = screen.getByLabelText(/Kích hoạt ký số điện tử/i);
+    expect(esignToggle).toBeDefined();
+    expect(screen.queryByLabelText(/Phương thức xác thực/i)).toBeNull();
+
+    // Toggle on e-signature
+    await user.click(esignToggle);
+
+    // Conditional fields should now be visible
+    expect(screen.getByLabelText(/Phương thức xác thực/i)).toBeDefined();
+    expect(screen.getByLabelText(/Tôi đồng ý chia sẻ thông tin cá nhân/i)).toBeDefined();
+  });
+
+  it("shows conditional CCCD input when SmartCA auth is selected", async () => {
+    const user = userEvent.setup();
+    renderModal();
+
+    const esignToggle = screen.getByLabelText(/Kích hoạt ký số điện tử/i);
+    await user.click(esignToggle);
+
+    const authTypeSelect = screen.getByLabelText(/Phương thức xác thực/i);
+    // By default it is "sms", so CCCD input should not be shown
+    expect(screen.queryByLabelText(/Số CCCD \/ National ID/i)).toBeNull();
+
+    // Select "smartca"
+    await user.selectOptions(authTypeSelect, "smartca");
+
+    // CCCD input should now be visible
+    expect(screen.getByLabelText(/Số CCCD \/ National ID/i)).toBeDefined();
+  });
+
+  it("submits correct e-signature properties in create mode", async () => {
+    const onClose = vi.fn();
+    const user = userEvent.setup();
+    renderModal({ onClose });
+
+    // Enable e-signature
+    const esignToggle = screen.getByLabelText(/Kích hoạt ký số điện tử/i);
+    await user.click(esignToggle);
+
+    // Select "smartca" and fill CCCD
+    const authTypeSelect = screen.getByLabelText(/Phương thức xác thực/i);
+    await user.selectOptions(authTypeSelect, "smartca");
+    
+    const cccdInput = screen.getByLabelText(/Số CCCD \/ National ID/i);
+    await user.type(cccdInput, "037123456789");
+
+    // Accept consent
+    const consentCheckbox = screen.getByLabelText(/Tôi đồng ý chia sẻ thông tin cá nhân/i);
+    await user.click(consentCheckbox);
+
+    // Fill end_date and phase
+    const endDateInput = screen.getByLabelText(/Ngày hết hạn/i);
+    await user.clear(endDateInput);
+    await user.type(endDateInput, "2026-12-31");
+    
+    const phaseSelect = screen.getByLabelText(/Chọn Cột mốc Khởi đầu/i);
+    await user.selectOptions(phaseSelect, "phase-1");
+
+    await user.click(screen.getByText("TẠO MỚI"));
+
+    await waitFor(() => {
+      expect(mockCreateMutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          enable_esign: true,
+          esign_auth_type: "smartca",
+          national_id: "037123456789",
+          consent_privacy: true,
+        })
+      );
+    });
+  });
+
+  // ── Apply duration buttons ─────────────────────────────────────
+  it("applies duration when clicking duration shortcut buttons", async () => {
+    const user = userEvent.setup();
+    renderModal();
+
+    // Click "1 Tháng" button
+    const oneMonthBtn = screen.getByText("1 Tháng");
+    await user.click(oneMonthBtn);
+
+    const endDateInput = screen.getByLabelText<HTMLInputElement>(/Ngày hết hạn/i);
+    expect(endDateInput.value).not.toBe("");
+
+    // Click "1 Năm" button (tests years branch)
+    const oneYearBtn = screen.getByText("1 Năm");
+    await user.click(oneYearBtn);
+    expect(endDateInput.value).not.toBe("");
+  });
+
+  it("handles empty or invalid start date when applying duration", async () => {
+    const user = userEvent.setup();
+    renderModal();
+
+    const startDateInput = screen.getByLabelText(/Ngày hiệu lực/i);
+    const oneMonthBtn = screen.getByText("1 Tháng");
+
+    // Case 1: Empty start date
+    await user.clear(startDateInput);
+    await user.click(oneMonthBtn);
+    const endDateInput = screen.getByLabelText<HTMLInputElement>(/Ngày hết hạn/i);
+    expect(endDateInput.value).toBe("");
+
+    // Case 2: Invalid start date
+    await user.type(startDateInput, "invalid-date");
+    await user.click(oneMonthBtn);
+    expect(endDateInput.value).toBe("");
+  });
+
+  it("applies indefinite duration and updates contract type when 'Lâu dài' is clicked", async () => {
+    const user = userEvent.setup();
+    renderModal();
+
+    const indefiniteBtn = screen.getByText("Lâu dài");
+    await user.click(indefiniteBtn);
+
+    const contractTypeSelect = screen.getByLabelText<HTMLSelectElement>(/Loại hợp đồng/i);
+    expect(contractTypeSelect.value).toBe("indefinite");
+
+    const endDateInput = screen.getByLabelText<HTMLInputElement>(/Ngày hết hạn/i);
+    expect(endDateInput.disabled).toBe(true);
+  });
+
+  it("handles invalid start date format in editing mode when preset is clicked", async () => {
+    const user = userEvent.setup();
+    // Render with an invalid start date in editing contract
+    const invalidContract = { ...mockExistingContract, start_date: "invalid-date" };
+    renderModal({ editingContract: invalidContract });
+
+    const oneMonthBtn = screen.getByText("1 Tháng");
+    await user.click(oneMonthBtn);
+
+    const endDateInput = screen.getByLabelText<HTMLInputElement>(/Ngày hết hạn/i);
+    expect(endDateInput.value).toBe("2025-12-31"); // should return early and not update end_date
+  });
+
+  // ── Validation and error flows ────────────────────────────────
+  it("shows error when submit without selecting assign_phase_id", async () => {
+    const user = userEvent.setup();
+    renderModal();
+
+    // Fill end_date to satisfy validation of probation contract type
+    const endDateInput = screen.getByLabelText(/Ngày hết hạn/i);
+    await user.clear(endDateInput);
+    await user.type(endDateInput, "2026-12-31");
+
+    // Select the empty phase option
+    const phaseSelect = screen.getByLabelText(/Chọn Cột mốc Khởi đầu/i);
+    await user.selectOptions(phaseSelect, "");
+
+    await user.click(screen.getByText("TẠO MỚI"));
+
+    // Verify early return toast
+    expect(await screen.findByText("Vui lòng chọn Cột mốc khởi đầu")).toBeInTheDocument();
+
+    // Should not call createContract
+    expect(mockCreateMutateAsync).not.toHaveBeenCalled();
+  });
+
+  it("shows error toast when updateContract fails", async () => {
+    mockUpdateMutateAsync.mockRejectedValueOnce(new Error("Update failed"));
+    const user = userEvent.setup();
+    renderModal({ editingContract: mockExistingContract });
+
+    await user.click(screen.getByText("CẬP NHẬT"));
+
+    await waitFor(() => {
+      expect(mockUpdateMutateAsync).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // ── Overlapping contract exists handling ───────────────────────
+  it("shows overlap confirmation modal and closes overlapping contract on confirmation", async () => {
+    // Setup createContract mutation mock to fail with "overlapping_contract_exists"
+    mockCreateMutateAsync.mockRejectedValueOnce(new Error("overlapping_contract_exists"));
+    const onClose = vi.fn();
+    const user = userEvent.setup();
+    renderModal({ onClose });
+
+    // Fill end_date and phase
+    const endDateInput = screen.getByLabelText(/Ngày hết hạn/i);
+    await user.clear(endDateInput);
+    await user.type(endDateInput, "2026-12-31");
+
+    const phaseSelect = screen.getByLabelText(/Chọn Cột mốc Khởi đầu/i);
+    await user.selectOptions(phaseSelect, "phase-1");
+
+    // Click submit
+    await user.click(screen.getByText("TẠO MỚI"));
+
+    // Wait for the overlap modal to appear
+    await waitFor(() => {
+      expect(screen.getByText("Trùng Lặp Hợp Đồng")).toBeDefined();
+    });
+
+    // Mock the second call to succeed (it will call createContract with auto_close_overlapping: true)
+    mockCreateMutateAsync.mockResolvedValueOnce({ id: "new-contract-after-overlap" });
+
+    // Click "TỰ ĐỘNG ĐÓNG & TẠO MỚI"
+    const confirmBtn = screen.getByText("TỰ ĐỘNG ĐÓNG & TẠO MỚI");
+    await user.click(confirmBtn);
+
+    await waitFor(() => {
+      expect(mockCreateMutateAsync).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          auto_close_overlapping: true,
+        })
+      );
+      expect(onClose).toHaveBeenCalled();
+    });
+  });
+
+  it("handles error when overlap confirmation fails", async () => {
+    mockCreateMutateAsync.mockRejectedValueOnce(new Error("overlapping_contract_exists"));
+    const user = userEvent.setup();
+    renderModal();
+
+    // Fill end_date and phase
+    const endDateInput = screen.getByLabelText(/Ngày hết hạn/i);
+    await user.clear(endDateInput);
+    await user.type(endDateInput, "2026-12-31");
+
+    const phaseSelect = screen.getByLabelText(/Chọn Cột mốc Khởi đầu/i);
+    await user.selectOptions(phaseSelect, "phase-1");
+
+    await user.click(screen.getByText("TẠO MỚI"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Trùng Lặp Hợp Đồng")).toBeDefined();
+    });
+
+    // Mock the confirmation call to fail
+    mockCreateMutateAsync.mockRejectedValueOnce(new Error("Overlap confirmation failed"));
+
+    const confirmBtn = screen.getByText("TỰ ĐỘNG ĐÓNG & TẠO MỚI");
+    await user.click(confirmBtn);
+
+    await waitFor(() => {
+      expect(mockCreateMutateAsync).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it("allows closing the overlap modal when clicking 'QUAY LẠI SỬA NGÀY'", async () => {
+    mockCreateMutateAsync.mockRejectedValueOnce(new Error("overlapping_contract_exists"));
+    const user = userEvent.setup();
+    renderModal();
+
+    // Fill end_date and phase
+    const endDateInput = screen.getByLabelText(/Ngày hết hạn/i);
+    await user.clear(endDateInput);
+    await user.type(endDateInput, "2026-12-31");
+
+    const phaseSelect = screen.getByLabelText(/Chọn Cột mốc Khởi đầu/i);
+    await user.selectOptions(phaseSelect, "phase-1");
+
+    await user.click(screen.getByText("TẠO MỚI"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Trùng Lặp Hợp Đồng")).toBeDefined();
+    });
+
+    const backBtn = screen.getByText("QUAY LẠI SỬA NGÀY");
+    await user.click(backBtn);
+
+    // Modal should close and return to editing
+    await waitFor(() => {
+      expect(screen.queryByText("Trùng Lặp Hợp Đồng")).toBeNull();
+    });
+  });
+
+  it("allows closing the overlap modal using close dialog icon", async () => {
+    mockCreateMutateAsync.mockRejectedValueOnce(new Error("overlapping_contract_exists"));
+    const user = userEvent.setup();
+    renderModal();
+
+    const endDateInput = screen.getByLabelText(/Ngày hết hạn/i);
+    await user.clear(endDateInput);
+    await user.type(endDateInput, "2026-12-31");
+
+    const phaseSelect = screen.getByLabelText(/Chọn Cột mốc Khởi đầu/i);
+    await user.selectOptions(phaseSelect, "phase-1");
+
+    await user.click(screen.getByText("TẠO MỚI"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Trùng Lặp Hợp Đồng")).toBeDefined();
+    });
+
+    // Close using Close dialog icon
+    const closeDialogIconBtn = screen.getByRole("button", { name: /Close dialog/i });
+    await user.click(closeDialogIconBtn);
+
+    await waitFor(() => {
+      expect(screen.queryByText("Trùng Lặp Hợp Đồng")).toBeNull();
+    });
+  });
+
+  it("changes contract type to fixed_term when clicking duration shortcuts in indefinite mode", async () => {
+    const user = userEvent.setup();
+    renderModal();
+
+    // Select indefinite first
+    const contractTypeSelect = screen.getByLabelText<HTMLSelectElement>(/Loại hợp đồng/i);
+    await user.selectOptions(contractTypeSelect, "indefinite");
+
+    // Click "1 Tháng" button
+    const oneMonthBtn = screen.getByText("1 Tháng");
+    await user.click(oneMonthBtn);
+
+    // Should switch back to fixed_term
+    expect(contractTypeSelect.value).toBe("fixed_term");
+  });
+
+  describe("contractSchema validation rules", () => {
+    it("requires end_date for non-indefinite contract types", () => {
+      const result = contractSchema.safeParse({
+        contract_type: "probation",
+        start_date: "2025-01-01",
+        end_date: "",
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues.some(e => e.path.includes("end_date"))).toBe(true);
+      }
+    });
+
+    it("requires end_date to be after start_date", () => {
+      const result = contractSchema.safeParse({
+        contract_type: "probation",
+        start_date: "2025-01-02",
+        end_date: "2025-01-01",
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues.some(e => e.path.includes("end_date"))).toBe(true);
+      }
+    });
+
+    it("requires GDPR privacy consent when e-Signature is enabled", () => {
+      const result = contractSchema.safeParse({
+        contract_type: "indefinite",
+        start_date: "2025-01-01",
+        enable_esign: true,
+        consent_privacy: false,
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues.some(e => e.path.includes("consent_privacy"))).toBe(true);
+      }
+    });
+
+    it("requires National ID when SmartCA is selected as esign provider", () => {
+      const result = contractSchema.safeParse({
+        contract_type: "indefinite",
+        start_date: "2025-01-01",
+        enable_esign: true,
+        esign_auth_type: "smartca",
+        consent_privacy: true,
+        national_id: "",
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues.some(e => e.path.includes("national_id"))).toBe(true);
+      }
+    });
+
+    it("requires non-empty whitespace-only National ID when SmartCA is selected", () => {
+      const result = contractSchema.safeParse({
+        contract_type: "indefinite",
+        start_date: "2025-01-01",
+        enable_esign: true,
+        esign_auth_type: "smartca",
+        consent_privacy: true,
+        national_id: "    ",
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues.some(e => e.path.includes("national_id"))).toBe(true);
+      }
     });
   });
 });

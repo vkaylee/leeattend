@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { getCurrentWorkspaceId } from "@/lib/api";
-import { WorkLocation } from "@/lib/api-generated/models";
+import { WorkLocation } from "@/lib/api/locations";
 import { cn } from "@/lib/utils";
 
 import LocationFormDrawer from "./components/location-form-drawer";

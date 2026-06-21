@@ -7,6 +7,8 @@ import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { cn } from "@/lib/utils";
 
 interface SheetProps {
+  ariaLabelledBy?: string;
+  ariaDescribedBy?: string;
   children: React.ReactNode;
   className?: string;
   contentClassName?: string;
@@ -97,6 +99,8 @@ function SheetHeader({
 }
 
 export default function Sheet({
+  ariaLabelledBy,
+  ariaDescribedBy,
   isOpen,
   onClose,
   title,
@@ -135,6 +139,8 @@ export default function Sheet({
         {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- Custom interactive element (click-away/backdrop/dropzone); keyboard interaction not applicable */}
         <div
             aria-modal="true"
+            aria-labelledby={ariaLabelledBy}
+            aria-describedby={ariaDescribedBy}
           className={cn(
               "pointer-events-auto w-screen max-w-md transform transition duration-500 ease-in-out bg-white dark:bg-slate-900 shadow-premium-2xl flex flex-col h-full",
               getPanelTransform(side, isOpen),

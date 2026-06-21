@@ -6,7 +6,8 @@ import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { WorkspaceMember } from "@/lib/api";
-import type { WorkLocation } from "@/lib/api-generated/models";
+import type { WorkLocation } from "@/lib/api/locations";
+
 
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";

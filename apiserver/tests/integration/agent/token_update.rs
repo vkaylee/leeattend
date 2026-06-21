@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 #[tokio::test]
 async fn test_agent_token_update() {
-    let (address, workspace_id, user_id, _, _tdb): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+    let (address, workspace_id, user_id, factory, _tdb): (String, Uuid, Uuid, TestFactory, TestDatabase) =
         spawn_app_with_factory().await;
     let client = reqwest::Client::new();
 
@@ -45,7 +45,7 @@ async fn test_agent_token_update() {
 
     assert_eq!(response.status(), StatusCode::OK);
     let updated_agent: serde_json::Value = response.json().await.unwrap();
-    assert_eq!(updated_agent["token"], new_token);
+    assert_eq!(updated_agent["token"], "••••••••");
 
     // 3. Kiểm tra lại bằng GET
     let response = client
@@ -57,5 +57,14 @@ async fn test_agent_token_update() {
         .unwrap();
 
     let fetched_agent: serde_json::Value = response.json().await.unwrap();
-    assert_eq!(fetched_agent["token"], new_token);
+    assert_eq!(fetched_agent["token"], "••••••••");
+
+    // Verify token is hashed in DB
+    let hashed_token: String = crate::test_query_scalar_string!(
+        &factory.diesel_pools.api,
+        "SELECT token AS val FROM authorized_agents WHERE id = $1",
+        diesel::sql_types::Text,
+        agent_id.to_string()
+    );
+    assert_eq!(hashed_token, apiserver::crypto::hash_agent_token(new_token));
 }

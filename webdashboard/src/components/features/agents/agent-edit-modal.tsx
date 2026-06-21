@@ -134,7 +134,7 @@ function AgentEditModalSections({
           <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("common.agents.edit_modal.token_label")}</label>
           <div className="relative group">
             <Key className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 group-focus-within:text-primary-500 dark:group-focus-within:text-primary-400 transition-colors" size={18} />
-            <input className="w-full pl-12 pr-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono text-sm tracking-widest" onChange={(e) => { setToken(e.target.value); }} placeholder={t("common.agents.edit_modal.token_placeholder")} required value={token} />
+            <input className="w-full pl-12 pr-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono text-sm tracking-widest" onChange={(e) => { setToken(e.target.value); }} placeholder="•••••••• (Leave blank to keep unchanged)" value={token} />
           </div>
         </div>
         <div className="space-y-2 px-1">
@@ -201,7 +201,7 @@ function AgentEditModalActions({
 
 function AgentEditModalForm({ agent, isUpdating, updateAgent, onSave, onClose, t }: AgentEditModalFormProps) {
   const [name, setName] = useState(agent.name);
-  const [token, setToken] = useState(agent.token);
+  const [token, setToken] = useState("");
   const [isTrusted, setIsTrusted] = useState(agent.is_trusted);
   const [isActive, setIsActive] = useState(agent.is_active);
   const [maxConcurrentWorkers, setMaxConcurrentWorkers] = useState(agent.max_concurrent_workers);
@@ -215,7 +215,7 @@ function AgentEditModalForm({ agent, isUpdating, updateAgent, onSave, onClose, t
         id: agent.id,
         agent: {
           name,
-          token,
+          ...(token.trim() !== "" ? { token } : {}),
           is_trusted: isTrusted,
           is_active: isActive,
           max_concurrent_workers: maxConcurrentWorkers,

@@ -29,13 +29,75 @@ use crate::AppState;
 
 pub async fn ws_handler(
     ws: WebSocketUpgrade,
+    headers: axum::http::HeaderMap,
     State(state): State<Arc<AppState>>,
-) -> impl IntoResponse {
-    ws.on_upgrade(|socket| handle_socket(socket, state))
+) -> axum::response::Response {
+    let agent_id = headers
+        .get("x-agent-id")
+        .and_then(|v| v.to_str().ok());
+    let token = headers
+        .get("x-token")
+        .and_then(|v| v.to_str().ok());
+
+    let (Some(agent_id), Some(token)) = (agent_id, token) else {
+        warn!("Rejecting WS connection: Missing x-agent-id or x-token header");
+        return StatusCode::UNAUTHORIZED.into_response();
+    };
+
+    let authorized_agent = match state.agents().service().authorize_agent(agent_id, token).await {
+        Ok(Some(agent)) => agent,
+        Ok(None) => {
+            warn!("Rejecting WS connection for agent {}: Unauthorized", agent_id);
+            return StatusCode::UNAUTHORIZED.into_response();
+        }
+        Err(e) => {
+            tracing::error!("Database error authorizing agent {}: {}", agent_id, e);
+            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+        }
+    };
+
+    let mut ws_tz = "UTC".to_string();
+    let mut ws_date_fmt = "DD/MM/YYYY".to_string();
+    let mut ws_time_fmt = "24h".to_string();
+    let workspace_id = authorized_agent.workspace_id;
+
+    if let Ok(Some(ws)) = state
+        .core()
+        .workspace_repo()
+        .get_workspace_by_id(workspace_id)
+        .await
+    {
+        ws_tz = ws.timezone().to_string();
+        ws_date_fmt = ws.date_format().to_string();
+        ws_time_fmt = ws.time_format().to_string();
+    }
+
+    let agent_id = agent_id.to_string();
+
+    ws.on_upgrade(move |socket| {
+        handle_socket(
+            socket,
+            state,
+            agent_id,
+            workspace_id,
+            ws_tz,
+            ws_date_fmt,
+            ws_time_fmt,
+        )
+    })
+    .into_response()
 }
 
 #[allow(clippy::too_many_lines)]
-async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
+async fn handle_socket(
+    socket: WebSocket,
+    state: Arc<AppState>,
+    agent_id: String,
+    workspace_id: Uuid,
+    ws_tz: String,
+    ws_date_fmt: String,
+    ws_time_fmt: String,
+) {
     let (mut sender, mut receiver) = socket.split();
     let (tx, mut rx) = mpsc::unbounded_channel::<Message>();
 
@@ -47,12 +109,26 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
         }
     });
 
-    let mut agent_id = String::new();
-    let mut workspace_id = Uuid::nil();
-    let mut ws_tz = "UTC".to_string();
-    let mut ws_date_fmt = "DD/MM/YYYY".to_string();
-    let mut ws_time_fmt = "24h".to_string();
     let state_clone = Arc::clone(&state);
+
+    // Register the agent immediately since they are already pre-authorized at HTTP level
+    state
+        .agents()
+        .manager()
+        .add_agent(agent_id.clone(), tx.clone())
+        .await;
+
+    let _ = state
+        .agents()
+        .service()
+        .update_last_ip(&agent_id, "websocket_conn")
+        .await;
+
+    let _ = state
+        .agents()
+        .service()
+        .notify_config_update(workspace_id, &agent_id)
+        .await;
 
     let mut recv_task = tokio::spawn(async move {
         while let Some(Ok(message)) = receiver.next().await {
@@ -145,95 +221,10 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                     ));
                                 }
                             }
-                        } else if (v["type"] == "handshake" || !agent_id.is_empty())
-                            && agent_id.is_empty()
-                        {
-                            if let (Some(id), Some(token)) =
-                                (v["agent_id"].as_str(), v["token"].as_str())
-                            {
-                                match state_clone
-                                    .agents()
-                                    .service()
-                                    .authorize_agent(id, token)
-                                    .await
-                                {
-                                    Ok(Some(agent)) => {
-                                        agent_id = id.to_string();
-                                        workspace_id = agent.workspace_id;
-
-                                        // Fetch workspace config for timezone aware parsing
-                                        if let Ok(Some(ws)) = state_clone
-                                            .core()
-                                            .workspace_repo()
-                                            .get_workspace_by_id(workspace_id)
-                                            .await
-                                        {
-                                            ws_tz = ws.timezone().to_string();
-                                            ws_date_fmt = ws.date_format().to_string();
-                                            ws_time_fmt = ws.time_format().to_string();
-                                            info!("Agent {} authorized for workspace {} (Timezone: {})", agent_id, workspace_id, ws_tz);
-                                        }
-
-                                        state_clone
-                                            .agents()
-                                            .manager()
-                                            .add_agent(agent_id.clone(), tx.clone())
-                                            .await;
-
-                                        let _ = state_clone
-                                            .agents()
-                                            .service()
-                                            .update_last_ip(&agent_id, "websocket_conn")
-                                            .await;
-
-                                        let _ = state_clone
-                                            .agents()
-                                            .service()
-                                            .notify_config_update(workspace_id, &agent_id)
-                                            .await;
-                                    }
-                                    Ok(None) => {
-                                        warn!(
-                                            "Agent authorization failed for {}: UNAUTHORIZED_AGENT",
-                                            id
-                                        );
-                                        let _ = tx.send(Message::Text(
-                                            serde_json::json!({
-                                                "type": "error",
-                                                "code": "UNAUTHORIZED_AGENT",
-                                                "message": "Agent ID không hợp lệ."
-                                            })
-                                            .to_string(),
-                                        ));
-                                        break;
-                                    }
-                                    Err(err) => {
-                                        warn!("Agent authorization error for {}: {}", id, err);
-                                        let (code, message) = match err {
-                                            AppError::Validation(ref msg)
-                                                if msg.to_string() == "INVALID_TOKEN" =>
-                                            {
-                                                ("INVALID_TOKEN", "Token không chính xác.")
-                                            }
-                                            AppError::Validation(ref msg)
-                                                if msg.to_string() == "AGENT_NOT_TRUSTED" =>
-                                            {
-                                                ("AGENT_NOT_TRUSTED", "Agent chưa được phê duyệt.")
-                                            }
-                                            _ => ("AUTH_ERROR", "Lỗi xác thực."),
-                                        };
-                                        let _ = tx.send(Message::Text(
-                                            serde_json::json!({
-                                                "type": "error",
-                                                "code": code,
-                                                "message": message
-                                            })
-                                            .to_string(),
-                                        ));
-                                        break;
-                                    }
-                                }
-                            }
+                        } else if v["type"] == "handshake" {
+                            // Handshake is already verified at HTTP header level.
+                            // Simply log and ignore to maintain backward compatibility.
+                            info!("Received handshake WS frame from pre-authorized agent {}", agent_id);
                         }
                     }
                 }
@@ -586,11 +577,15 @@ pub async fn get_authorized_agents(
     let _workspace_id = ctx.workspace_id;
 
     let include_inactive = params.include_inactive.unwrap_or(false);
-    let agents = state
+    let mut agents = state
         .agents()
         .repo()
         .get_workspace_agents(&ctx.auth_token, include_inactive)
         .await?;
+
+    for agent in &mut agents {
+        agent.token = "••••••••".to_string();
+    }
 
     Ok(Json(agents))
 }
@@ -685,12 +680,14 @@ pub async fn get_authorized_agent_by_id(
 ) -> AppResult<Json<AuthorizedAgent>> {
     let _workspace_id = ctx.workspace_id;
 
-    let agent = state
+    let mut agent = state
         .agents()
         .repo()
         .get_agent_by_id_in_workspace(&id, &ctx.auth_token)
         .await?
         .ok_or_else(|| AppError::not_found(I18nKey::AgentNotFound))?;
+
+    agent.token = "••••••••".to_string();
 
     Ok(Json(agent))
 }
@@ -739,7 +736,10 @@ pub async fn update_authorized_agent(
         current_agent.name = name;
     }
     if let Some(token) = req.token {
-        current_agent.token = token;
+        let trimmed_token = token.trim();
+        if trimmed_token != "••••••••" && !trimmed_token.is_empty() {
+            current_agent.token = crate::crypto::hash_agent_token(trimmed_token);
+        }
     }
     if let Some(is_trusted) = req.is_trusted {
         current_agent.is_trusted = is_trusted;
@@ -778,6 +778,8 @@ pub async fn update_authorized_agent(
             .notify_config_update(workspace_id, &current_agent.id)
             .await;
     }
+
+    current_agent.token = "••••••••".to_string();
     Ok(Json(current_agent))
 }
 

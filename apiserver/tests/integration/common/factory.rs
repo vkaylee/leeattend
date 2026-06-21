@@ -715,12 +715,13 @@ impl AgentBuilder {
     pub async fn create(self) -> String {
         tokio::time::timeout(std::time::Duration::from_secs(5), async {
             let ws_id = self.workspace_id.expect("Workspace ID is required for Agent");
+            let hashed_token = apiserver::crypto::hash_agent_token(&self.token);
             crate::test_execute!(
         &self.diesel_pools.api,
         "INSERT INTO authorized_agents (id, name, token, workspace_id, is_trusted, is_active) VALUES ($1, $2, $3, $4, $5, true)",
         diesel::sql_types::Text, &self.id,
         diesel::sql_types::Text, &self.name,
-        diesel::sql_types::Text, &self.token,
+        diesel::sql_types::Text, hashed_token,
         diesel::sql_types::Uuid, ws_id,
         diesel::sql_types::Bool, self.is_trusted
     );

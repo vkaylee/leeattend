@@ -40,6 +40,8 @@ pub mod time_tracking_service;
 pub mod working_pattern_service;
 pub mod workspace_config_service;
 pub mod workspace_service;
+pub mod econtract;
+
 
 pub use agent_service::AgentService;
 pub use approval_workflow::ApprovalWorkflowService;

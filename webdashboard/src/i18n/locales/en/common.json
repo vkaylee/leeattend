@@ -160,6 +160,8 @@
       }
     },
     "employees": "Employees",
+    "econtracts": "e-Contracts",
+    "saved_success": "Saved successfully",
     "departments": "Departments",
     "logs": "Logs",
     "leave_requests": {

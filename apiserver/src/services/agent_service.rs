@@ -66,7 +66,8 @@ impl AgentService {
         let agent = self.repo.find_by_id(id).await?;
 
         if let Some(ref a) = agent {
-            if a.token != token {
+            let hashed_token = crate::crypto::hash_agent_token(token);
+            if a.token != hashed_token {
                 return Err(crate::errors::AppError::validation(
                     crate::utils::i18n::I18nKey::InvalidToken,
                 ));
@@ -113,7 +114,7 @@ mod tests {
                 Ok(Some(AuthorizedAgent {
                     id: id.to_string(),
                     name: "Trusted".to_string(),
-                    token: "valid_token".to_string(),
+                    token: crate::crypto::hash_agent_token("valid_token"),
                     is_trusted: true,
                     last_ip: None,
                     created_at: chrono::Utc::now(),
@@ -128,7 +129,7 @@ mod tests {
                 Ok(Some(AuthorizedAgent {
                     id: id.to_string(),
                     name: "Untrusted".to_string(),
-                    token: "valid_token".to_string(),
+                    token: crate::crypto::hash_agent_token("valid_token"),
                     is_trusted: false,
                     last_ip: None,
                     created_at: chrono::Utc::now(),

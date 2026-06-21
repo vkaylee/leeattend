@@ -160,6 +160,8 @@
       }
     },
     "employees": "员工",
+    "econtracts": "电子合同",
+    "saved_success": "保存成功",
     "departments": "部门",
     "logs": "日志",
     "leave_requests": {

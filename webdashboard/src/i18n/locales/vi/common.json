@@ -160,6 +160,8 @@
       }
     },
     "employees": "Nhân viên",
+    "econtracts": "Hợp đồng điện tử",
+    "saved_success": "Lưu thành công",
     "departments": "Phòng ban",
     "logs": "Nhật ký",
     "leave_requests": {
