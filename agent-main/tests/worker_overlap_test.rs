@@ -547,3 +547,96 @@ async fn test_reload_lifecycle_ordering() {
         "reload:old_awaited must come before new:started"
     );
 }
+
+// ============================================================
+// Caching detected checksum in local worker config
+// ============================================================
+
+#[tokio::test]
+async fn test_spawn_worker_caches_detected_checksum() {
+    use agent::orchestrator::spawn_worker;
+    use agent::orchestrator::WorkerContext;
+    use agent::hybrid_database::HybridDatabase;
+    use agent::time_sync::TimeSync;
+    use std::sync::atomic::AtomicU64;
+    use tokio::sync::Semaphore;
+    use dashmap::DashMap;
+
+    let hybrid_db = HybridDatabase::new(":memory:", 1000, 90).unwrap();
+    let store = hybrid_db.store();
+
+    // 1. Insert a device to DB with use_legacy_checksum = None (auto-detect)
+    let device_id = "DEV_CACHE_TEST";
+    store.upsert_device(
+        device_id,
+        "Test Cache Device",
+        "127.0.0.1",
+        4370,
+        "mock", // use mock brand so it maps to MockWorker
+        "UTC",
+        None, // use_legacy_checksum is None
+        true,
+        123456,
+    ).unwrap();
+
+    // 2. Set mock detected checksum in MockWorker to Some(true)
+    MockWorker::set_mock_detected_checksum(Some(true));
+
+    // 3. Setup WorkerContext
+    let (log_tx, _log_rx) = tokio::sync::mpsc::channel(1000);
+    let semaphore = Arc::new(Semaphore::new(1));
+    let success_cooldown_secs = Arc::new(AtomicU64::new(300));
+    let device_locks = Arc::new(DashMap::new());
+    let time_sync = Arc::new(TimeSync::new());
+
+    let ctx = WorkerContext {
+        log_tx,
+        hybrid_db: hybrid_db.clone(),
+        semaphore,
+        success_cooldown_secs,
+        device_locks,
+        time_sync,
+        connection_max_lifetime_secs: 1800,
+        zk_legacy_checksum: None,
+        zk_connect_timeout_secs: 60,
+        inflight_timeout_secs: 300,
+    };
+
+    let config = WorkerConfig {
+        id: device_id.to_string(),
+        name: "Test Cache Device".to_string(),
+        brand: "mock".to_string(),
+        ip: "127.0.0.1".to_string(),
+        port: 4370,
+        password: None,
+        use_legacy_checksum: None,
+    };
+
+    // 4. Spawn the worker
+    let token = CancellationToken::new();
+    let handle = spawn_worker(config, ctx, token.clone());
+
+    // 5. Poll the database until the checksum is updated, up to 3 seconds
+    // This handles the random stagger delay (0-2s) in spawn_worker loop
+    let start = Instant::now();
+    let mut updated = false;
+    while start.elapsed() < Duration::from_secs(3) {
+        if let Ok(Some(meta)) = store.get_device_metadata(device_id) {
+            if meta.use_legacy_checksum == Some(true) {
+                updated = true;
+                break;
+            }
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+
+    // 6. Cancel the token to stop the worker
+    token.cancel();
+    let _ = handle.await;
+
+    // 7. Verify the device metadata now has use_legacy_checksum = Some(true) in the database
+    assert!(updated, "Detected checksum mode should be persisted to the database within 3s");
+
+    // Clean up mock checksum
+    MockWorker::set_mock_detected_checksum(None);
+}

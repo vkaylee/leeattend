@@ -3,6 +3,9 @@ use async_trait::async_trait;
 use chrono::Local;
 use serde_json::Value;
 use std::time::Duration;
+use std::sync::Mutex;
+
+static MOCK_DETECTED_CHECKSUM: Mutex<Option<bool>> = Mutex::new(None);
 
 pub struct MockWorker;
 
@@ -15,6 +18,12 @@ impl Default for MockWorker {
 impl MockWorker {
     pub const fn new() -> Self {
         Self
+    }
+
+    pub fn set_mock_detected_checksum(val: Option<bool>) {
+        if let Ok(mut guard) = MOCK_DETECTED_CHECKSUM.lock() {
+            *guard = val;
+        }
     }
 }
 
@@ -71,7 +80,7 @@ impl Worker for MockWorker {
     }
 
     fn detected_checksum_mode(&self) -> Option<bool> {
-        None // Mock has no real device to detect from
+        MOCK_DETECTED_CHECKSUM.lock().ok().and_then(|g| *g)
     }
 }
 

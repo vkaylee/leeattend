@@ -543,6 +543,7 @@ pub fn spawn_worker(
     let zk_connect_timeout_secs = ctx.zk_connect_timeout_secs;
 
     tokio::spawn(async move {
+        let mut config = config;
         info!(
             "[{}] Device Polling Loop started ({})",
             config.name, config.ip
@@ -624,6 +625,7 @@ pub fn spawn_worker(
 
             // Smart checksum memory: persist detected mode for future connects
             if let Some(detected) = worker_impl.detected_checksum_mode() {
+                config.use_legacy_checksum = Some(detected);
                 if let Err(e) = hybrid_db
                     .store()
                     .update_device_checksum(&config.id, detected)
