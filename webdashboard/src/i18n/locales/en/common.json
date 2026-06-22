@@ -1,5 +1,10 @@
 {
   "common": {
+    "new_version_banner": {
+      "title": "A new version is available",
+      "refresh": "Refresh",
+      "dismiss": "Dismiss"
+    },
     "deleted_success": "Deleted successfully",
     "no_profile": "No Profile Found",
     "select_month": "Select Month",
@@ -270,6 +275,7 @@
     "leave": "Leave",
     "attendance_confirm": "Confirm Attendance",
     "showing": "Showing",
+    "records": "records",
     "of": "of",
     "reports": "Reports",
     "shifts": "Shifts & Roster",
@@ -717,6 +723,7 @@
       "no_results": "No results found."
     },
     "cancel": "Cancel",
+    "clear": "Clear",
     "confirm": "Confirm",
     "submit": "Submit",
     "back_to_workspace": "Back to Workspace",

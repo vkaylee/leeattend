@@ -29,15 +29,15 @@ interface UseSmartTableClipboardProps<TRow extends ClipboardRow = ClipboardRow> 
   colCount: number;
   editingCell: { rowIndex: number; colIndex: number } | null;
   focusedCell: { rowIndex: number; colIndex: number } | null;
-  localCellValues: Record<string, any>;
-  onBulkCellSave?: (changes: { columnId: string; rowId: string; value: any }[]) => Promise<void> | void;
-  onCellSave?: (rowId: string, columnId: string, value: any) => Promise<void> | void;
+  localCellValues: Record<string, unknown>;
+  onBulkCellSave?: (changes: { columnId: string; rowId: string; value: unknown }[]) => Promise<void> | void;
+  onCellSave?: (rowId: string, columnId: string, value: unknown) => Promise<void> | void;
   rowCount: number;
   rows: TRow[];
   selectedRowIds?: Set<string>;
   setCellErrors: React.Dispatch<React.SetStateAction<Record<string, string>>>;
-  setLocalCellValues: React.Dispatch<React.SetStateAction<Record<string, any>>>;
-  validateCell?: (rowId: string, columnId: string, value: any) => string | null | undefined;
+  setLocalCellValues: React.Dispatch<React.SetStateAction<Record<string, unknown>>>;
+  validateCell?: (rowId: string, columnId: string, value: unknown) => string | null | undefined;
 }
 
 export function useSmartTableClipboard<TRow extends ClipboardRow = ClipboardRow>({
@@ -110,7 +110,7 @@ export function useSmartTableClipboard<TRow extends ClipboardRow = ClipboardRow>
 
     e.preventDefault();
 
-    const changes: { columnId: string; rowId: string; value: any }[] = [];
+    const changes: { columnId: string; rowId: string; value: unknown }[] = [];
     const newErrors = { ...cellErrors };
     const newLocalValues = { ...localCellValues };
 
@@ -131,7 +131,7 @@ export function useSmartTableClipboard<TRow extends ClipboardRow = ClipboardRow>
 
         if (meta?.editable) {
           const rawValue = grid[i][j];
-          let parsedValue: any = rawValue;
+          let parsedValue: unknown = rawValue;
           if (meta.editType === "number") {
             const num = Number(rawValue);
             parsedValue = isNaN(num) ? rawValue : num;

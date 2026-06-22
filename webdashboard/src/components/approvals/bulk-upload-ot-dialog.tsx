@@ -353,7 +353,7 @@ function BulkUploadDialogContent({
         {t("approvals.bulk_upload.description")}
       </Dialog.Description>
       <Button
-        aria-label="Close dialog"
+        aria-label={t("common.close")}
         className="absolute right-5 top-5 h-8 w-8 p-0 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus-visible:ring-2 focus-visible:ring-primary-500 shadow-none border-none"
         icon={<X className="h-4 w-4" />}
         onClick={handleClose}

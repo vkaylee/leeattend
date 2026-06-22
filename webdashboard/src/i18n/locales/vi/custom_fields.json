@@ -54,5 +54,11 @@
   },
   "section_title": "Thông tin bổ sung",
   "no_fields": "Chưa cấu hình trường tùy chỉnh nào cho phần này.",
-  "manage_fields": "Cấu hình trường"
+  "manage_fields": "Cấu hình trường",
+  "filter_title": "Lọc trường tùy chỉnh",
+  "filter_header": "Bộ lọc trường tùy chỉnh",
+  "search_placeholder": "Tìm kiếm theo {{label}}...",
+  "apply": "Áp dụng",
+  "select_options": "Chọn các tùy chọn",
+  "no_options_configured": "Chưa cấu hình tùy chọn nào"
 }

@@ -16,34 +16,34 @@ vi.mock("react-i18next", () => ({
 // Mock recharts
 vi.mock("recharts", () => ({
  
-    RadialBarChart: ({ children, ...props }: { children?: React.ReactNode } & Record<string, unknown>) => (
-        <div data-testid="radial-chart" {...props}>{children}</div>
+    RadialBarChart: ({ children }: { children?: React.ReactNode }) => (
+        <div data-testid="radial-chart">{children}</div>
     ),
  
-    RadialBar: (_props: Record<string, unknown>) => <div data-testid="radial-bar" />,
+    RadialBar: () => <div data-testid="radial-bar" />,
     PolarAngleAxis: () => <div data-testid="polar-axis" />,
  
     ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
         <div data-testid="responsive-container">{children}</div>
     ),
  
-    BarChart: ({ children, ...props }: { children?: React.ReactNode } & Record<string, unknown>) => (
-        <div data-testid="bar-chart" {...props}>{children}</div>
+    BarChart: ({ children }: { children?: React.ReactNode }) => (
+        <div data-testid="bar-chart">{children}</div>
     ),
  
-    Bar: (_props: Record<string, unknown>) => <div data-testid="bar" />,
+    Bar: () => <div data-testid="bar" />,
     XAxis: () => <div data-testid="x-axis" />,
     YAxis: () => <div data-testid="y-axis" />,
     CartesianGrid: () => <div data-testid="cartesian-grid" />,
     Tooltip: () => <div data-testid="tooltip" />,
     Cell: () => <div data-testid="cell" />,
  
-    PieChart: ({ children, ...props }: { children?: React.ReactNode } & Record<string, unknown>) => (
-        <div data-testid="pie-chart" {...props}>{children}</div>
+    PieChart: ({ children }: { children?: React.ReactNode }) => (
+        <div data-testid="pie-chart">{children}</div>
     ),
  
-    Pie: ({ children, ...props }: { children?: React.ReactNode } & Record<string, unknown>) => (
-        <div data-testid="pie" {...props}>{children}</div>
+    Pie: ({ children }: { children?: React.ReactNode }) => (
+        <div data-testid="pie">{children}</div>
     ),
 }));
 

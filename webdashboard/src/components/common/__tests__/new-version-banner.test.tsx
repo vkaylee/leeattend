@@ -4,6 +4,19 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 import { NewVersionBanner } from "../new-version-banner";
 
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string) => {
+      const translations: Record<string, string> = {
+        "common.new_version_banner.title": "A new version is available",
+        "common.new_version_banner.refresh": "Refresh",
+        "common.new_version_banner.dismiss": "Dismiss",
+      };
+      return translations[key] || key;
+    },
+  }),
+}));
+
 describe("NewVersionBanner", () => {
   beforeEach(() => {
     vi.clearAllMocks();

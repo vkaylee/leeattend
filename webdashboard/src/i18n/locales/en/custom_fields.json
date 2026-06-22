@@ -54,5 +54,11 @@
   },
   "section_title": "Custom Information",
   "no_fields": "No custom fields configured for this section yet.",
-  "manage_fields": "Configure Fields"
+  "manage_fields": "Configure Fields",
+  "filter_title": "Filter Custom Fields",
+  "filter_header": "Custom Field Filters",
+  "search_placeholder": "Search by {{label}}...",
+  "apply": "Apply",
+  "select_options": "Select options",
+  "no_options_configured": "No options configured"
 }

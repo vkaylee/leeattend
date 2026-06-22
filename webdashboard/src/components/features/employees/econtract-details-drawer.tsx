@@ -1,16 +1,16 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { X, KeyRound, CheckCircle, Clock, Send, Download, ShieldAlert, Sparkles, FileSignature } from "lucide-react";
+import { X, KeyRound, CheckCircle, Clock, Send, Download, FileSignature } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
-import FormField from "@/components/ui/form-field";
-import Modal from "@/components/ui/modal";
 import Sheet from "@/components/ui/sheet";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { EContractEnvelope, saveEContractEnvelope, SignerStatus } from "@/lib/api/econtracts";
 import { cn } from "@/lib/utils";
+
+import EContractSigningModal from "./econtract-signing-modal";
 
 interface EContractDetailsDrawerProps {
   envelope: EContractEnvelope | null;
@@ -25,14 +25,11 @@ export default function EContractDetailsDrawer({
   onClose,
   wsId,
 }: EContractDetailsDrawerProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation("employees");
   const toast = useToast();
   const queryClient = useQueryClient();
 
   const [isSigningModalOpen, setIsSigningModalOpen] = useState(false);
-  const [signatureText, setSignatureText] = useState("");
-  const [otpCode, setOtpCode] = useState("");
-  const [isOtpSent, setIsOtpSent] = useState(false);
 
   const envelopeMutation = useMutation({
     mutationFn: (env: EContractEnvelope) => saveEContractEnvelope(wsId, env),
@@ -44,7 +41,7 @@ export default function EContractDetailsDrawer({
   if (!envelope) return null;
 
   const handleResendNotification = () => {
-    toast.success("Đã gửi lại yêu cầu ký số thành công đến toàn bộ người ký!");
+    toast.success(t("econtract_drawer.resend_success"));
   };
 
   const handleDownloadPDF = () => {
@@ -55,15 +52,10 @@ export default function EContractDetailsDrawer({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success("Tải xuống tệp PDF hợp đồng thành công!");
+    toast.success(t("econtract_drawer.download_success"));
   };
 
-  const handleCompleteSign = () => {
-    if (!otpCode || otpCode.length < 4) {
-      toast.error("Vui lòng nhập mã OTP hợp lệ!");
-      return;
-    }
-
+  const handleCompleteSign = (otpCode: string, signatureText: string) => {
     // Update signer status to signed
     const updatedSigners: SignerStatus[] = envelope.signer_statuses.map((signer) => {
       if (signer.role === "employee" && signer.status === "pending") {
@@ -93,7 +85,7 @@ export default function EContractDetailsDrawer({
 
     envelopeMutation.mutate(updatedEnv);
     setIsSigningModalOpen(false);
-    toast.success("Bạn đã ký số thành công!");
+    toast.success(t("econtract_drawer.sign_success"));
     onClose();
   };
 
@@ -120,7 +112,7 @@ export default function EContractDetailsDrawer({
             </div>
             <div>
               <Typography className="text-sm font-bold uppercase tracking-widest text-slate-800 dark:text-slate-100" id="e-sign-audit-title" variant="h2">
-                Chi tiết Ký số (e-Sign Audit)
+                {t("econtract_drawer.title")}
               </Typography>
               <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest block" id="e-sign-audit-description">
                 ID: {envelope.external_envelope_id}
@@ -142,13 +134,13 @@ export default function EContractDetailsDrawer({
           {/* General Metadata Card */}
           <div className="p-6 border border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/30 rounded-3xl grid grid-cols-2 gap-4">
             <div>
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">Nhà Cung cấp</span>
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">{t("econtract_drawer.provider")}</span>
               <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
                 {envelope.provider_type}
               </span>
             </div>
             <div>
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">Trạng thái Giao dịch</span>
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">{t("econtract_drawer.transaction_status")}</span>
               <span
                 className={cn(
                   "text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full border shadow-sm inline-block",
@@ -164,9 +156,9 @@ export default function EContractDetailsDrawer({
 
           {/* Timeline Process steps */}
           <div className="space-y-4">
-            <Typography className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]" variant="h3">Trình tự ký hợp đồng (Signing Order)</Typography>
+            <Typography className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]" variant="h3">{t("econtract_drawer.signing_order")}</Typography>
             <div className="relative pl-6 space-y-6 before:absolute before:left-[10px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800">
-              {envelope.signer_statuses.map((signer, index) => {
+              {envelope.signer_statuses.map((signer) => {
                 const isSigned = signer.status === "signed";
                 return (
                   <div className="relative flex items-start gap-4" key={signer.signer_id}>
@@ -186,16 +178,16 @@ export default function EContractDetailsDrawer({
                           <span className="text-xs font-bold text-slate-850 dark:text-slate-100 block">
                             {signer.name}
                           </span>
-                          <span className="text-[9px] text-slate-400 font-semibold block uppercase tracking-wider mt-0.5">
-                            Vai trò: {signer.role === "representative" ? "Đại diện công ty" : "Nhân sự"} • Thứ tự: {signer.routing_order}
+                          <span className="text-[9px] text-slate-400 font-semibold block uppercase tracking-wider mt-0.5 animate-none">
+                            {t("econtract_drawer.role_label")}: {signer.role === "representative" ? t("econtract_drawer.role_rep") : t("econtract_drawer.role_emp")} • {t("econtract_drawer.routing_order")}: {signer.routing_order}
                           </span>
                         </div>
                         <span
                           className={cn(
                             "text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border",
                             isSigned
-                              ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-350"
-                              : "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/40 dark:text-amber-350"
+                              ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-355"
+                              : "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/40 dark:text-amber-355"
                           )}
                         >
                           {signer.status}
@@ -203,7 +195,7 @@ export default function EContractDetailsDrawer({
                       </div>
                       {!!signer.signed_at && (
                         <div className="mt-2 text-[8px] font-mono text-slate-400 block uppercase tracking-wider">
-                          Đã ký lúc: {new Date(signer.signed_at).toLocaleString()}
+                          {t("econtract_drawer.signed_at")}: {new Date(signer.signed_at).toLocaleString()}
                         </div>
                       )}
                     </div>
@@ -221,7 +213,7 @@ export default function EContractDetailsDrawer({
               onClick={handleResendNotification}
               variant="outline"
             >
-              Gửi lại yêu cầu (Resend Notification)
+              {t("econtract_drawer.resend_notif")}
             </Button>
 
             {envelope.status === "completed" ? (
@@ -231,7 +223,7 @@ export default function EContractDetailsDrawer({
                 onClick={handleDownloadPDF}
                 variant="outline"
               >
-                Tải chứng thư (Download PDF)
+                {t("econtract_drawer.download_pdf")}
               </Button>
             ) : isEmployeePending ? (
               <Button
@@ -240,87 +232,19 @@ export default function EContractDetailsDrawer({
                 onClick={() => { setIsSigningModalOpen(true); }}
                 variant="secondary"
               >
-                Ký số ngay (Sign Now)
+                {t("econtract_drawer.sign_now")}
               </Button>
             ) : null}
           </div>
         </div>
       </Sheet>
 
-      {/* Signature Iframe simulation overlay modal */}
-      <Modal
-        icon={<Sparkles size={24} />}
+      <EContractSigningModal
+        envelopeId={envelope.external_envelope_id}
         isOpen={isSigningModalOpen}
         onClose={() => { setIsSigningModalOpen(false); }}
-        subtitle={`SmartCA/OTP Signing Session for ${envelope.external_envelope_id}`}
-        title="Ký Số Điện Tử (E-Sign Portal)"
-      >
-        <div className="space-y-6 pt-4">
-          <div className="p-4 bg-amber-50/50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900 rounded-2xl flex items-start gap-3">
-            <ShieldAlert className="text-amber-500 shrink-0 mt-0.5" size={16} />
-            <div>
-              <Typography className="text-xs font-bold text-amber-800 dark:text-amber-400 uppercase tracking-wider" variant="h4">
-                Xác thực bảo mật đa nhân tố
-              </Typography>
-              <Typography className="text-[10px] text-amber-600 dark:text-amber-500 font-semibold uppercase tracking-wider leading-relaxed mt-0.5" variant="p">
-                Vui lòng vẽ chữ ký số và nhập mã xác thực OTP gửi đến Số điện thoại/Email đăng ký để hoàn tất.
-              </Typography>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest" htmlFor="signature-input">
-              Chữ ký số (Draw/Type Signature)
-            </label>
-            <div className="h-32 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl bg-slate-50/50 dark:bg-slate-900/50 flex flex-col items-center justify-center p-4 relative group">
-              <input
-                className="w-full text-center bg-transparent border-none text-2xl font-semibold italic text-primary-600 dark:text-primary-400 focus:outline-none placeholder:text-slate-300"
-                id="signature-input"
-                onChange={(e) => { setSignatureText(e.target.value); }}
-                placeholder="Nhập tên của bạn để tạo chữ ký mẫu"
-                type="text"
-                value={signatureText}
-              />
-              <span className="absolute bottom-2 text-[9px] text-slate-400 font-bold uppercase tracking-widest opacity-60">
-                Signature Canvas Pad Mock
-              </span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4 items-end">
-            <div className="col-span-2">
-              <FormField
-                id="otp-code-input"
-                label="Mã OTP xác nhận (Verification OTP)"
-                onChange={(e) => { setOtpCode(e.target.value); }}
-                placeholder="VD: 123456"
-                required
-                value={otpCode}
-              />
-            </div>
-            <Button
-              className="h-10 mb-0.5 text-[10px] font-bold uppercase tracking-widest"
-              onClick={() => {
-                setIsOtpSent(true);
-                toast.success("Đã gửi mã OTP đến Số điện thoại của bạn!");
-              }}
-              type="button"
-              variant="outline"
-            >
-              {isOtpSent ? "Gửi lại OTP" : "Lấy mã OTP"}
-            </Button>
-          </div>
-
-          <div className="flex items-center justify-end gap-3 pt-6 border-t border-slate-100 dark:border-slate-800">
-            <Button onClick={() => { setIsSigningModalOpen(false); }} type="button" variant="outline">
-              QUAY LẠI
-            </Button>
-            <Button onClick={handleCompleteSign} type="button" variant="secondary">
-              HOÀN TẤT KÝ SỐ
-            </Button>
-          </div>
-        </div>
-      </Modal>
+        onCompleteSign={handleCompleteSign}
+      />
     </>
   );
 }

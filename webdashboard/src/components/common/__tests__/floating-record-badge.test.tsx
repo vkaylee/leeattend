@@ -1,9 +1,21 @@
 import { render } from "@testing-library/react";
 import React from "react";
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
 import FloatingRecordBadge from "../floating-record-badge";
+
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string) => {
+      const translations: Record<string, string> = {
+        "common.showing": "showing",
+        "common.records": "records",
+      };
+      return translations[key] || key;
+    },
+  }),
+}));
 
 describe("FloatingRecordBadge", () => {
     it("renders loaded and total counts", () => {

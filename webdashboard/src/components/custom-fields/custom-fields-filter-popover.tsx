@@ -17,7 +17,7 @@ export function CustomFieldsFilterPopover({
   customFieldFilters,
   setCustomFieldFilters,
 }: CustomFieldsFilterPopoverProps) {
-  const { t } = useTranslation("custom_fields");
+  const { t } = useTranslation(["custom_fields", "common"]);
 
   // Fetch definitions for employee entity
   const { data: definitions = [] } = useCustomFieldDefinitions("employee");
@@ -75,7 +75,7 @@ export function CustomFieldsFilterPopover({
           variant="outline"
         >
           <Filter size={14} />
-          <span>Filter Custom Fields</span>
+          <span>{t("filter_title")}</span>
           {activeCount > 0 && (
             <span className="min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-primary-600 text-white text-[9px] font-bold rounded-full leading-none">
               {activeCount}
@@ -91,7 +91,7 @@ export function CustomFieldsFilterPopover({
         >
           <div className="flex justify-between items-center pb-4 border-b border-slate-50 dark:border-slate-800">
             <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">
-              Custom Field Filters
+              {t("filter_header")}
             </span>
             {activeCount > 0 && (
               <Button
@@ -99,7 +99,7 @@ export function CustomFieldsFilterPopover({
                 onClick={handleClear}
                 variant="ghost"
               >
-                Clear
+                {t("common.clear")}
               </Button>
             )}
           </div>
@@ -111,7 +111,7 @@ export function CustomFieldsFilterPopover({
                 label={def.field_label}
                 name={def.field_key}
                 onChange={(e) => { handleChange(def.field_key, e.target.value); }}
-                placeholder={`Search by ${def.field_label.toLowerCase()}...`}
+                placeholder={t("search_placeholder", { label: def.field_label })}
                 value={localFilters[def.field_key] ?? ""}
               />
             ))}
@@ -119,7 +119,7 @@ export function CustomFieldsFilterPopover({
 
           <div className="pt-4 border-t border-slate-50 dark:border-slate-800 flex justify-end gap-2">
             <Button onClick={() => { setIsOpen(false); }} size="sm" variant="ghost">
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               icon={<Check size={12} />}
@@ -127,7 +127,7 @@ export function CustomFieldsFilterPopover({
               size="sm"
               variant="primary"
             >
-              Apply
+              {t("apply")}
             </Button>
           </div>
         </Popover.Content>

@@ -1,5 +1,10 @@
 {
   "common": {
+    "new_version_banner": {
+      "title": "发现新版本",
+      "refresh": "刷新",
+      "dismiss": "忽略"
+    },
     "deleted_success": "删除成功",
     "no_profile": "未找到个人资料",
     "select_month": "选择月份",
@@ -270,6 +275,7 @@
     "leave": "休假",
     "attendance_confirm": "确认考勤",
     "showing": "显示",
+    "records": "条记录",
     "of": "共",
     "reports": "报告",
     "shifts": "排班管理",
@@ -717,6 +723,7 @@
       "no_results": "未找到结果。"
     },
     "cancel": "取消",
+    "clear": "清除",
     "confirm": "确认",
     "submit": "提交",
     "back_to_workspace": "返回工作区",

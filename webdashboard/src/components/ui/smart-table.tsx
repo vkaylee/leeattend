@@ -7,6 +7,7 @@ import {
   type SortingState,
   type RowSelectionState,
   type ColumnPinningState,
+  type Column,
 } from "@tanstack/react-table";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import React, { useState, useMemo } from "react";
@@ -54,14 +55,14 @@ export interface SmartTableProps<T> {
   footerRow?: React.ReactNode;
   getRowId: (row: T) => string;
   isLoading?: boolean;
-  onBulkCellSave?: (changes: { rowId: string; columnId: string; value: any }[]) => Promise<void> | void;
-  onCellSave?: (rowId: string, columnId: string, value: any) => Promise<void> | void;
+  onBulkCellSave?: (changes: { rowId: string; columnId: string; value: unknown }[]) => Promise<void> | void;
+  onCellSave?: (rowId: string, columnId: string, value: unknown) => Promise<void> | void;
   onRowClick?: (row: T, e: React.MouseEvent) => void;
   onSelectionChange?: (selectedIds: Set<string>) => void;
   selectedRowIds?: Set<string>;
   stickyLeftColumns?: number;
   stickyRightColumns?: number;
-  validateCell?: (rowId: string, columnId: string, value: any) => string | null | undefined;
+  validateCell?: (rowId: string, columnId: string, value: unknown) => string | null | undefined;
 }
 
 export default function SmartTable<T>({
@@ -99,7 +100,9 @@ export default function SmartTable<T>({
     return selection;
   }, [selectedRowIds, data, getRowId]);
 
-  const handleRowSelectionChange = (updaterOrValue: any) => {
+  const handleRowSelectionChange = (
+    updaterOrValue: RowSelectionState | ((old: RowSelectionState) => RowSelectionState)
+  ) => {
     if (!onSelectionChange) return;
     const newSelection = typeof updaterOrValue === "function" ? updaterOrValue(rowSelection) : updaterOrValue;
     const nextSelectedSet = new Set<string>();
@@ -112,12 +115,19 @@ export default function SmartTable<T>({
   };
 
   // Pinning Configuration
-  const columnIds = useMemo(() => columns.map((col) => col.id || ((col as any).accessorKey as string) || ""), [columns]);
+  const columnIds = useMemo(
+    () =>
+      columns.map(
+        (col) =>
+          col.id || ("accessorKey" in col ? (col.accessorKey as string) : "") || ""
+      ),
+    [columns]
+  );
   const columnPinning = useMemo((): ColumnPinningState => {
     const left: string[] = [];
     const right: string[] = [];
     columns.forEach((col, index) => {
-      const id = col.id || ((col as any).accessorKey as string) || "";
+      const id = col.id || ("accessorKey" in col ? (col.accessorKey as string) : "") || "";
       if (col.meta?.sticky === "left" || (stickyLeftColumns > 0 && index < stickyLeftColumns)) {
         left.push(id);
       }
@@ -152,7 +162,7 @@ export default function SmartTable<T>({
 
   // Grid & Validation States shared with hook modules
   const [cellErrors, setCellErrors] = useState<Record<string, string>>({});
-  const [localCellValues, setLocalCellValues] = useState<Record<string, any>>({});
+  const [localCellValues, setLocalCellValues] = useState<Record<string, unknown>>({});
 
   // 1. Drag selection hook
   const {
@@ -231,7 +241,7 @@ export default function SmartTable<T>({
   };
 
   // Dynamic pin placement inline styles helper
-  const getPinStyles = (column: any): React.CSSProperties => {
+  const getPinStyles = (column: Column<T>): React.CSSProperties => {
     const isPinned = column.getIsPinned();
     if (!isPinned) return {};
     const offset = column.getStart(isPinned);
@@ -382,7 +392,7 @@ export default function SmartTable<T>({
                       if (hasError) {
                         const overrideValue = localCellValues[errorKey];
                         try {
-                          cell.getValue = () => overrideValue;
+                          cell.getValue = () => overrideValue as any;
                           // @ts-ignore
                           cell.renderValue = () => overrideValue;
                         } catch (e) {
@@ -430,7 +440,7 @@ export default function SmartTable<T>({
                                 className="w-full h-full bg-white dark:bg-slate-800 text-sm border-none outline-none ring-2 ring-primary-500 rounded px-2 py-1.5 focus:ring-primary-500"
                                 onBlur={() => { saveCellEdit(rowIndex, colIndex, cell.column, row); }}
                                 onChange={(e) => { setEditValue(e.target.value); }}
-                                value={editValue}
+                                value={editValue as string | number | readonly string[] | undefined}
                               >
                                 {meta.editOptions?.map((opt) => (
                                   <option key={opt.value} value={opt.value}>
@@ -445,7 +455,7 @@ export default function SmartTable<T>({
                                 onBlur={() => { saveCellEdit(rowIndex, colIndex, cell.column, row); }}
                                 onChange={(e) => { setEditValue(e.target.value); }}
                                 type={meta?.editType === "number" ? "number" : "text"}
-                                value={editValue ?? ""}
+                                value={(editValue as string | number | readonly string[] | undefined) ?? ""}
                               />
                             )
                           ) : (

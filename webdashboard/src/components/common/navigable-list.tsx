@@ -165,15 +165,19 @@ function renderTableRow<T>({
       onMouseEnter={() => { listNav.setFocusedIndex(index); }}
       tabIndex={-1}
     >
-      {visibleColumns.map((col) => (
-        <td className="px-8 py-5" key={col.key}>{col.render(item)}</td>
+      {visibleColumns.map((col, colIdx) => (
+        <td className="px-8 py-5 relative" key={col.key}>
+          {showActiveBar && isSelected && colIdx === 0 ? (
+            <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-500" />
+          ) : null}
+          {col.render(item)}
+        </td>
       ))}
       {showChevron ? (
         <td className="px-4 py-5 w-10 text-right">
           <ChevronRight className={cn("w-4 h-4 transition-all", getChevronClass(isFocused))} />
         </td>
       ) : null}
-      {showActiveBar && isSelected ? <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-500" /> : null}
     </tr>
   );
 }

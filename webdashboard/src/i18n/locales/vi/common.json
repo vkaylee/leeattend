@@ -1,5 +1,10 @@
 {
   "common": {
+    "new_version_banner": {
+      "title": "Đã có phiên bản mới",
+      "refresh": "Tải lại",
+      "dismiss": "Bỏ qua"
+    },
     "deleted_success": "Đã xóa thành công",
     "no_profile": "Không tìm thấy hồ sơ",
     "select_month": "Chọn tháng",
@@ -270,6 +275,7 @@
     "leave": "Nghỉ phép",
     "attendance_confirm": "Xác nhận công",
     "showing": "Hiển thị",
+    "records": "bản ghi",
     "of": "trong số",
     "reports": "Báo cáo",
     "shifts": "Ca làm & Lịch trực",
@@ -685,6 +691,7 @@
       "no_results": "Không tìm thấy kết quả."
     },
     "cancel": "Hủy bỏ",
+    "clear": "Xóa",
     "confirm": "Xác nhận",
     "submit": "Gửi",
     "back_to_workspace": "Quay lại Workspace",

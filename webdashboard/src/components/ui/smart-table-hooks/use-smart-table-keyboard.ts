@@ -1,3 +1,4 @@
+import { type ColumnDef, type Row } from "@tanstack/react-table";
 import React, { useState, useEffect, useRef } from "react";
 
 // Local inline interface to avoid dependency loops
@@ -10,20 +11,20 @@ interface LocalSmartTableColumnMeta {
   sticky?: "left" | "right";
 }
 
-interface UseSmartTableKeyboardProps {
+interface UseSmartTableKeyboardProps<TData> {
   cellErrors: Record<string, string>;
   colCount: number;
-  columns: any[];
-  localCellValues: Record<string, any>;
-  onCellSave?: (rowId: string, columnId: string, value: any) => Promise<void> | void;
+  columns: (ColumnDef<TData> & { meta?: LocalSmartTableColumnMeta })[];
+  localCellValues: Record<string, unknown>;
+  onCellSave?: (rowId: string, columnId: string, value: unknown) => Promise<void> | void;
   rowCount: number;
-  rows: any[];
+  rows: Row<TData>[];
   setCellErrors: React.Dispatch<React.SetStateAction<Record<string, string>>>;
-  setLocalCellValues: React.Dispatch<React.SetStateAction<Record<string, any>>>;
-  validateCell?: (rowId: string, columnId: string, value: any) => string | null | undefined;
+  setLocalCellValues: React.Dispatch<React.SetStateAction<Record<string, unknown>>>;
+  validateCell?: (rowId: string, columnId: string, value: unknown) => string | null | undefined;
 }
 
-export function useSmartTableKeyboard({
+export function useSmartTableKeyboard<TData>({
   rowCount,
   colCount,
   columns,
@@ -34,10 +35,10 @@ export function useSmartTableKeyboard({
   setCellErrors,
   localCellValues,
   setLocalCellValues,
-}: UseSmartTableKeyboardProps) {
+}: UseSmartTableKeyboardProps<TData>) {
   const [focusedCell, setFocusedCell] = useState<{ rowIndex: number; colIndex: number } | null>(null);
   const [editingCell, setEditingCell] = useState<{ rowIndex: number; colIndex: number } | null>(null);
-  const [editValue, setEditValue] = useState<any>("");
+  const [editValue, setEditValue] = useState<unknown>("");
 
   const cellRefs = useRef<Record<string, HTMLTableCellElement | null>>({});
 
@@ -58,12 +59,17 @@ export function useSmartTableKeyboard({
     }
   };
 
-  const startCellEdit = (rowIndex: number, colIndex: number, value: any) => {
+  const startCellEdit = (rowIndex: number, colIndex: number, value: unknown) => {
     setEditingCell({ rowIndex, colIndex });
     setEditValue(value);
   };
 
-  const saveCellEdit = (rowIndex: number, colIndex: number, column: any, row: any) => {
+  const saveCellEdit = (
+    rowIndex: number,
+    colIndex: number,
+    column: { id: string; columnDef: { meta?: LocalSmartTableColumnMeta } },
+    row: Row<TData>
+  ) => {
     const errorKey = `${row.id}-${column.id}`;
     let error: string | null | undefined = null;
     if (validateCell) {
@@ -98,8 +104,8 @@ export function useSmartTableKeyboard({
   const handleCellKeyDown = (
     rowIndex: number,
     colIndex: number,
-    column: any,
-    row: any,
+    column: { id: string; columnDef: { meta?: LocalSmartTableColumnMeta } },
+    row: Row<TData>,
     e: React.KeyboardEvent
   ) => {
     // If editing, handle edit keys

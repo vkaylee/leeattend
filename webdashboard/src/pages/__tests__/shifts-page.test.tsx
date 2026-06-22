@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -228,26 +228,29 @@ describe("ShiftsPage - Shift Picker Modal", () => {
     vi.mocked(api.searchEmployees).mockResolvedValue(mockEmployees);
   });
 
-  const renderShiftsPage = () => {
-    return render(
+  const renderShiftsPage = async () => {
+    const res = render(
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
           <ShiftsPage />
         </ToastProvider>
       </QueryClientProvider>
     );
+    const select = await screen.findByTestId("employee-select");
+    await waitFor(() => {
+      expect((select as HTMLSelectElement).options.length).toBeGreaterThan(1);
+    });
+    return res;
   };
- 
 
-  const selectEmployee = async (_user: unknown, employeeId: string) => {
+  const selectEmployee = async (user: ReturnType<typeof userEvent.setup>, employeeId: string) => {
     const select = screen.getByTestId("employee-select");
-    await waitFor(() => { expect((select as HTMLSelectElement).options.length).toBeGreaterThan(1); });
-    fireEvent.change(select, { target: { value: employeeId } });
+    await user.selectOptions(select, employeeId);
   };
 
   describe("Shift Picker Modal - Unit Tests", () => {
     it("should render weekly roster tab by default", async () => {
-      renderShiftsPage();
+      await renderShiftsPage();
 
       await waitFor(() => {
         expect(screen.getByText("WEEKLY ROSTER")).toBeDefined();
@@ -256,7 +259,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
 
     it("should show employee options in select", async () => {
       const user = userEvent.setup();
-      renderShiftsPage();
+      await renderShiftsPage();
 
       // Open combobox
       const trigger = await screen.findByTestId("employee-select");
@@ -270,7 +273,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
 
     it("should allow selecting an employee", async () => {
       const user = userEvent.setup();
-      renderShiftsPage();
+      await renderShiftsPage();
 
       await selectEmployee(user, "emp-1");
 
@@ -281,7 +284,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
 
     it("should allow selecting multiple days by clicking", async () => {
       const user = userEvent.setup();
-      renderShiftsPage();
+      await renderShiftsPage();
 
       await selectEmployee(user, "emp-1");
 
@@ -303,7 +306,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
 
     it("should show assign button when days are selected", async () => {
       const user = userEvent.setup();
-      renderShiftsPage();
+      await renderShiftsPage();
 
       await selectEmployee(user, "emp-1");
 
@@ -325,7 +328,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
 
     it("should open shift picker modal when assign button is clicked", async () => {
       const user = userEvent.setup();
-      renderShiftsPage();
+      await renderShiftsPage();
 
       await selectEmployee(user, "emp-1");
 
@@ -349,7 +352,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
 
     it("should display all available shifts in the modal", async () => {
       const user = userEvent.setup();
-      renderShiftsPage();
+      await renderShiftsPage();
 
       await selectEmployee(user, "emp-1");
 
@@ -375,7 +378,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
 
     it("should display OFF option in the modal", async () => {
       const user = userEvent.setup();
-      renderShiftsPage();
+      await renderShiftsPage();
 
       await selectEmployee(user, "emp-1");
 
@@ -400,7 +403,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
 
     it("should close modal when cancel is clicked", async () => {
       const user = userEvent.setup();
-      renderShiftsPage();
+      await renderShiftsPage();
 
       await selectEmployee(user, "emp-1");
 
@@ -432,7 +435,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
 
     it("should keep selected days when modal is cancelled", async () => {
       const user = userEvent.setup();
-      renderShiftsPage();
+      await renderShiftsPage();
 
       await selectEmployee(user, "emp-1");
 
@@ -469,7 +472,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
   describe("Shift Picker Modal - Integration Tests", () => {
     it("should call bulkUpsertRoster when a shift is selected", async () => {
       const user = userEvent.setup();
-      renderShiftsPage();
+      await renderShiftsPage();
 
       await selectEmployee(user, "emp-1");
 
@@ -504,7 +507,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
 
     it("should call bulkUpsertRoster with null when OFF is selected", async () => {
       const user = userEvent.setup();
-      renderShiftsPage();
+      await renderShiftsPage();
 
       await selectEmployee(user, "emp-1");
 
@@ -542,7 +545,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
 
     it("should close modal after successful shift assignment", async () => {
       const user = userEvent.setup();
-      renderShiftsPage();
+      await renderShiftsPage();
 
       await selectEmployee(user, "emp-1");
 
@@ -571,7 +574,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
 
     it("should handle bulk assignment for multiple selected days", async () => {
       const user = userEvent.setup();
-      renderShiftsPage();
+      await renderShiftsPage();
 
       await selectEmployee(user, "emp-1");
 
@@ -615,7 +618,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
 
     it("should open shift picker from quick actions assign all week", async () => {
       const user = userEvent.setup();
-      renderShiftsPage();
+      await renderShiftsPage();
 
       await selectEmployee(user, "emp-1");
 
@@ -629,7 +632,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
       const user = userEvent.setup();
       const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
-      renderShiftsPage();
+      await renderShiftsPage();
 
       await selectEmployee(user, "emp-1");
 
@@ -668,7 +671,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
       const user = userEvent.setup();
       vi.mocked(api.bulkUpsertRoster).mockRejectedValueOnce(new Error("API Error"));
 
-      renderShiftsPage();
+      await renderShiftsPage();
 
       await selectEmployee(user, "emp-1");
 
@@ -700,7 +703,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
     });
 
     it("should not open modal when no employee is selected", async () => {
-      renderShiftsPage();
+      await renderShiftsPage();
       await waitFor(() => {
         expect(screen.getByTestId("employee-select")).toBeDefined();
       });

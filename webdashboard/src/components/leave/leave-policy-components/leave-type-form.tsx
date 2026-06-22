@@ -68,7 +68,7 @@ export function LeaveTypeForm({
           />
         </div>
 
-        <div className="flex items-center justify-between p-5 rounded-[2rem] bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800">
+        <label className="flex items-center justify-between p-5 rounded-[2rem] bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 cursor-pointer">
           <div className="flex items-center gap-3">
             <div
               className={cn(
@@ -81,15 +81,15 @@ export function LeaveTypeForm({
               {formData.is_paid ? <Wallet size={18} /> : <AlertTriangle size={18} />}
             </div>
             <div>
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight" htmlFor="paid-leave-input">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight">
                 {t("settings.leave.type_form.paid_status", "Paid Status")}
-              </label>
+              </span>
               <Typography className="text-[10px] text-slate-400 dark:text-slate-500" variant="p">
                 {formData.is_paid ? t("settings.leave.type_form.paid_time_off", "Paid time off") : t("settings.leave.type_form.unpaid_leave", "Unpaid leave")}
               </Typography>
             </div>
           </div>
-          <label className="relative inline-flex items-center cursor-pointer">
+          <div className="relative inline-flex items-center">
             <input
               checked={formData.is_paid}
               className="sr-only peer"
@@ -100,8 +100,8 @@ export function LeaveTypeForm({
               type="checkbox"
             />
             <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
-          </label>
-        </div>
+          </div>
+        </label>
 
         <div className="flex items-center justify-between pt-6 border-t border-slate-50 dark:border-slate-800">
           <Button

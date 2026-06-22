@@ -256,7 +256,9 @@ interface RuleRowProps {
   wsId: string;
 }
 
-function getRuleSubtitle(rule: PayrollRuleDefinition, t: any): string {
+import { type TFunction } from "i18next";
+
+function getRuleSubtitle(rule: PayrollRuleDefinition, t: TFunction): string {
   const categoryLabel = rule.category === "statutory_deduction"
     ? t("payroll.statutory_rules.categories.statutory_deduction", "Statutory Deduction")
     : rule.category === "allowance"

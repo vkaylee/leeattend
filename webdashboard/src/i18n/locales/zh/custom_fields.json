@@ -54,5 +54,11 @@
   },
   "section_title": "补充信息",
   "no_fields": "此区域尚未配置任何自定义字段。",
-  "manage_fields": "配置字段"
+  "manage_fields": "配置字段",
+  "filter_title": "筛选自定义字段",
+  "filter_header": "自定义字段筛选",
+  "search_placeholder": "按 {{label}} 搜索...",
+  "apply": "应用",
+  "select_options": "选择选项",
+  "no_options_configured": "未配置选项"
 }

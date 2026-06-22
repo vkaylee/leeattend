@@ -1,4 +1,5 @@
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
 
@@ -14,10 +15,12 @@ interface FloatingRecordBadgeProps {
 const FloatingRecordBadge = memo(function FloatingRecordBadge({
     loaded,
     total,
-    label = "records",
+    label,
     variant = "default",
 }: FloatingRecordBadgeProps) {
+    const { t } = useTranslation();
     const isAmber = variant === "amber";
+    const displayLabel = label ?? t("common.records");
 
     return (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -37,7 +40,7 @@ const FloatingRecordBadge = memo(function FloatingRecordBadge({
                             : "text-slate-500 dark:text-slate-400"
                     )}
                 >
-                    Showing
+                    {t("common.showing")}
                 </span>
 
                 <span
@@ -81,7 +84,7 @@ const FloatingRecordBadge = memo(function FloatingRecordBadge({
                             : "text-slate-500 dark:text-slate-400"
                     )}
                 >
-                    {label}
+                    {displayLabel}
                 </span>
             </div>
         </div>

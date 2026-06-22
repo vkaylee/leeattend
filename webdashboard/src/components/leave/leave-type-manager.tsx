@@ -356,19 +356,19 @@ function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: EditLeaveT
             </div>
           </div>
 
-          <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
+          <label className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 cursor-pointer">
             <div className="flex items-center gap-3">
               <div className="h-9 w-9 rounded-xl bg-primary-50 dark:bg-primary-950/50 text-primary-600 flex items-center justify-center shadow-inner shrink-0">
                 <Plus size={16} />
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight block" htmlFor="approval-req-input">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight block">
                   {t("settings.leave.type_manager.approval_required", "Approval Required")}
-                </label>
+                </span>
                 <Typography className="text-[10px] text-slate-400 dark:text-slate-500" variant="p">{t("settings.leave.type_manager.approval_required_desc", "Managers must approve requests")}</Typography>
               </div>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
+            <div className="relative inline-flex items-center">
               <input
                 checked={config.approval_required}
                 className="sr-only peer"
@@ -379,22 +379,22 @@ function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: EditLeaveT
                 type="checkbox"
               />
               <div className="w-10 h-5.5 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-primary-600"></div>
-            </label>
-          </div>
+            </div>
+          </label>
 
-          <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
+          <label className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 cursor-pointer">
             <div className="flex items-center gap-3">
               <div className="h-9 w-9 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 flex items-center justify-center shadow-inner shrink-0">
                 <Sparkles size={16} />
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight block" htmlFor="doc-req-input">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight block">
                   {t("settings.leave.type_manager.requires_document", "Requires Document")}
-                </label>
+                </span>
                 <Typography className="text-[10px] text-slate-400 dark:text-slate-500" variant="p">{t("settings.leave.type_manager.requires_document_desc", "Proof/Medical cert is mandatory")}</Typography>
               </div>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
+            <div className="relative inline-flex items-center">
               <input
                 checked={config.requires_document}
                 className="sr-only peer"
@@ -405,22 +405,22 @@ function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: EditLeaveT
                 type="checkbox"
               />
               <div className="w-10 h-5.5 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-primary-600"></div>
-            </label>
-          </div>
+            </div>
+          </label>
 
-          <div className="flex items-center justify-between p-4">
+          <label className="flex items-center justify-between p-4 cursor-pointer">
             <div className="flex items-center gap-3">
               <div className="h-9 w-9 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 flex items-center justify-center shadow-inner shrink-0">
                 <AlertTriangle size={16} />
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight block" htmlFor="negative-bal-input">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight block">
                   {t("settings.leave.type_manager.negative_balance", "Negative Balance")}
-                </label>
+                </span>
                 <Typography className="text-[10px] text-slate-400 dark:text-slate-500" variant="p">{t("settings.leave.type_manager.negative_balance_desc", "Allow users to take leave beyond 0")}</Typography>
               </div>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
+            <div className="relative inline-flex items-center">
               <input
                 checked={config.allow_negative_balance}
                 className="sr-only peer"
@@ -431,8 +431,8 @@ function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: EditLeaveT
                 type="checkbox"
               />
               <div className="w-10 h-5.5 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-primary-600"></div>
-            </label>
-          </div>
+            </div>
+          </label>
         </div>
 
         <div className="flex justify-end gap-3 pt-6 border-t border-slate-50 dark:border-slate-800">
