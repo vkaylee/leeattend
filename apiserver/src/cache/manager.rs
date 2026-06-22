@@ -105,7 +105,7 @@ mod tests {
         let mut mock_shift = MockShiftRepository::new();
         mock_shift
             .expect_get_workspace_shifts()
-            .returning(|_, _, _| Box::pin(std::future::ready(Ok(vec![]))));
+            .returning(|_, _, _, _, _| Box::pin(std::future::ready(Ok((vec![], 0)))));
 
         let mock_config = MockWorkspaceConfigRepository::new();
 
@@ -155,7 +155,7 @@ mod tests {
         let mut mock_shift = MockShiftRepository::new();
         mock_shift
             .expect_get_workspace_shifts()
-            .returning(|_, _, _| {
+            .returning(|_, _, _, _, _| {
                 Box::pin(std::future::ready(Err(crate::errors::AppError::Internal(
                     "DB Error".to_string(),
                 ))))

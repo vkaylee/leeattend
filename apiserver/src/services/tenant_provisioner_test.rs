@@ -1,20 +1,23 @@
+use crate::diesel_pool::DieselPools;
 use crate::services::tenant_provisioner::{TenantMigrator, TenantProvisionerTrait};
 use uuid::Uuid;
 
 #[tokio::test]
 async fn test_tenant_migrator_invalid_url() {
-    let migrator = TenantMigrator::new();
-    let workspace_id = Uuid::new_v4();
     let bad_url = "postgres://username:password@localhost:5432/non_existent_db";
+    let pools = DieselPools::for_test(bad_url);
+    let migrator = TenantMigrator::new(pools);
+    let workspace_id = Uuid::new_v4();
     let res = migrator.provision_tenant_db(&workspace_id, bad_url).await;
     assert!(res.is_err());
 }
 
 #[tokio::test]
 async fn test_tenant_migrator_with_empty_url() {
-    let migrator = TenantMigrator::new();
-    let workspace_id = Uuid::new_v4();
     let empty_url = "";
+    let pools = DieselPools::for_test(empty_url);
+    let migrator = TenantMigrator::new(pools);
+    let workspace_id = Uuid::new_v4();
     let res = migrator.provision_tenant_db(&workspace_id, empty_url).await;
     assert!(res.is_err());
 }
@@ -24,7 +27,8 @@ async fn test_tenant_migrator_database_integration_scenarios() {
     if let Ok(db_url) = std::env::var("DATABASE_URL") {
         use diesel::Connection;
         if let Ok(mut conn) = diesel::PgConnection::establish(&db_url) {
-            let migrator = TenantMigrator::new();
+            let pools = DieselPools::for_test(&db_url);
+            let migrator = TenantMigrator::new(pools);
 
             // Scenario 1: Basic provision success
             let workspace_id_1 = Uuid::new_v4();

@@ -8,7 +8,7 @@ async fn test_tenant_provisioner_success() {
     let workspace_id = Uuid::new_v4();
     let db_url = test_db.url();
 
-    let migrator = TenantMigrator::new();
+    let migrator = TenantMigrator::new(test_db.diesel_pools.clone());
     let result = migrator.provision_tenant_db(&workspace_id, &db_url).await;
 
     assert!(

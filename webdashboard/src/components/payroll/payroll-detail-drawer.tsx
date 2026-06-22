@@ -44,6 +44,9 @@ function PayrollDetailHeader({ employee }: { employee: Employee; }) {
           <Dialog.Title className="text-3xl font-bold text-slate-700 dark:text-slate-200 tracking-tight uppercase">
             {employee.full_name}
           </Dialog.Title>
+          <Dialog.Description className="sr-only">
+            {`Salary profile and payroll history for ${employee.full_name}`}
+          </Dialog.Description>
           <div className="flex items-center gap-3">
             <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest bg-white dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
               {employee.employee_id_number}

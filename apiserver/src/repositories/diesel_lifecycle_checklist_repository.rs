@@ -503,6 +503,54 @@ impl LifecycleChecklistRepository for DieselLifecycleChecklistRepository {
         Ok(result.into())
     }
 
+    async fn create_checklist_with_items(
+        &self,
+        auth_token: &TenantAuthToken,
+        checklist: LifecycleChecklistEntity,
+        items: Vec<LifecycleChecklistItemEntity>,
+    ) -> Result<(LifecycleChecklist, Vec<LifecycleChecklistItem>), AppError> {
+        let workspace_id = auth_token.workspace_id();
+        if checklist.workspace_id != workspace_id {
+            return Err(AppError::validation(I18nKey::InvalidWorkspaceId));
+        }
+
+        let mut conn = self
+            .diesel_pools
+            .tenant_transaction_conn(auth_token)
+            .await?;
+
+        conn.transaction::<_, AppError, _>(|conn| {
+            Box::pin(async move {
+                let checklist_result = diesel::insert_into(lifecycle_checklists::table)
+                    .values(&checklist)
+                    .get_result::<LifecycleChecklistEntity>(conn)
+                    .await
+                    .map_err(|e| {
+                        AppError::Internal(format!("db create checklist instance transaction: {e}"))
+                    })?;
+
+                let checklist_items = if items.is_empty() {
+                    Vec::new()
+                } else {
+                    let items_result = diesel::insert_into(lifecycle_checklist_items::table)
+                        .values(&items)
+                        .get_results::<LifecycleChecklistItemEntity>(conn)
+                        .await
+                        .map_err(|e| {
+                            AppError::Internal(format!(
+                                "db insert checklist items transaction: {e}"
+                            ))
+                        })?;
+
+                    items_result.into_iter().map(Into::into).collect()
+                };
+
+                Ok((checklist_result.into(), checklist_items))
+            })
+        })
+        .await
+    }
+
     async fn get_checklist_by_id(
         &self,
         auth_token: &TenantAuthToken,

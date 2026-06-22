@@ -23,7 +23,6 @@ const GET_LIST_WHITELIST: &[&str] = &[
     // Legacy bounded lists to be paginated in future phases (e.g. employee history, schedules, adjustments)
     "get_employee_department_history",
     "list_employee_assignments",
-    "get_shifts",
     "get_workspace_schedules",
     "get_assignment_history",
     "get_employee_rosters",
@@ -33,7 +32,6 @@ const GET_LIST_WHITELIST: &[&str] = &[
     "list_shift_swaps",
     "get_my_leave_requests",
     "get_employee_leave_balances",
-    "get_workspace_leave_requests",
     "get_employee_leave_history",
     "get_leave_policies",
     "get_leave_policy_assignments",

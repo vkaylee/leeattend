@@ -84,7 +84,6 @@ pub trait LifecycleChecklistRepository: Send + Sync {
         id: Uuid,
     ) -> Result<(), AppError>;
 
-    // --- Checklist Instances ---
     async fn create_checklist(
         &self,
         auth_token: &TenantAuthToken,
@@ -93,6 +92,13 @@ pub trait LifecycleChecklistRepository: Send + Sync {
         checklist_type: LifecycleChecklistType,
         created_by: Option<Uuid>,
     ) -> Result<LifecycleChecklist, AppError>;
+
+    async fn create_checklist_with_items(
+        &self,
+        auth_token: &TenantAuthToken,
+        checklist: crate::models::diesel::lifecycle_checklist::LifecycleChecklistEntity,
+        items: Vec<crate::models::diesel::lifecycle_checklist::LifecycleChecklistItemEntity>,
+    ) -> Result<(LifecycleChecklist, Vec<LifecycleChecklistItem>), AppError>;
 
     async fn get_checklist_by_id(
         &self,

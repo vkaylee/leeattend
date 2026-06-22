@@ -38,12 +38,16 @@ impl ShiftService {
         workspace_id: Uuid,
         location_id: Option<Uuid>,
         employer_id: Option<Uuid>,
-    ) -> Result<Vec<Shift>, AppError> {
+        page: Option<i64>,
+        limit: Option<i64>,
+    ) -> Result<(Vec<Shift>, i64), AppError> {
         self.repo
             .get_workspace_shifts(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
                 location_id,
                 employer_id,
+                page,
+                limit,
             )
             .await
     }
@@ -277,14 +281,18 @@ mod tests {
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _location_id: Option<Uuid>,
             _employer_id: Option<Uuid>,
-        ) -> Result<Vec<Shift>, AppError> {
-            Ok(self
+            _page: Option<i64>,
+            _limit: Option<i64>,
+        ) -> Result<(Vec<Shift>, i64), AppError> {
+            let shifts = self
                 .shift
                 .lock()
                 .unwrap()
                 .clone()
                 .map(|s| vec![s])
-                .unwrap_or_default())
+                .unwrap_or_default();
+            let total = shifts.len() as i64;
+            Ok((shifts, total))
         }
 
         async fn update_shift_direct(
@@ -384,21 +392,23 @@ mod tests {
     #[tokio::test]
     async fn test_get_workspace_shifts_empty() {
         let (svc, _) = build_service(None);
-        let result = svc
-            .get_workspace_shifts(Uuid::new_v4(), None, None)
+        let (result, total) = svc
+            .get_workspace_shifts(Uuid::new_v4(), None, None, None, None)
             .await
             .unwrap();
         assert!(result.is_empty());
+        assert_eq!(total, 0);
     }
 
     #[tokio::test]
     async fn test_get_workspace_shifts_with_data() {
         let (svc, _) = build_service(Some(dummy_shift()));
-        let result = svc
-            .get_workspace_shifts(Uuid::new_v4(), None, None)
+        let (result, total) = svc
+            .get_workspace_shifts(Uuid::new_v4(), None, None, None, None)
             .await
             .unwrap();
         assert_eq!(result.len(), 1);
+        assert_eq!(total, 1);
     }
 
     // ── update_shift (is_correction = true) ─────────────────────────────────

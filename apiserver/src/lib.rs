@@ -15,7 +15,8 @@
     clippy::items_after_statements,
     // TECH_DEBT: Defer similar_names to build cleanly
     clippy::similar_names,
-    clippy::too_many_arguments
+    clippy::too_many_arguments,
+    clippy::multiple_crate_versions
 )]
 #![warn(clippy::too_many_lines)]
 #![deny(clippy::clone_on_ref_ptr)]

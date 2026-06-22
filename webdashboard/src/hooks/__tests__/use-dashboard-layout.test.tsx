@@ -100,7 +100,9 @@ describe("useDashboardLayout hook", () => {
 
         await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
-        result.current.setActiveView("trends");
+        act(() => {
+            result.current.setActiveView("trends");
+        });
 
         await waitFor(() => { expect(api.apiFetch).toHaveBeenCalledTimes(2); });
 
@@ -132,7 +134,9 @@ describe("useDashboardLayout hook", () => {
         // In mockPreferences, summary is true
         expect(result.current.collapsedSections.summary).toBe(true);
 
-        result.current.toggleSection("summary");
+        act(() => {
+            result.current.toggleSection("summary");
+        });
 
         await waitFor(() => { expect(api.apiFetch).toHaveBeenCalledTimes(2); });
 

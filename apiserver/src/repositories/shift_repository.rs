@@ -28,7 +28,9 @@ pub trait ShiftRepository: Send + Sync {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         location_id: Option<Uuid>,
         employer_id: Option<Uuid>,
-    ) -> Result<Vec<Shift>, AppError>;
+        page: Option<i64>,
+        limit: Option<i64>,
+    ) -> Result<(Vec<Shift>, i64), AppError>;
 
     async fn update_shift_direct(
         &self,

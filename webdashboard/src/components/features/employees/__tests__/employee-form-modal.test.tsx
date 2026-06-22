@@ -104,12 +104,14 @@ describe("EmployeeFormModal", () => {
         expect(screen.queryByTestId("employees-form-name-input")).toBeNull();
     });
 
-    it("renders form fields in add mode", () => {
+    it("renders form fields in add mode", async () => {
         renderWithClient(<EmployeeFormModal {...defaultProps} />);
-        expect(screen.getByTestId("employees-form-name-input")).toBeDefined();
-        expect(screen.getByTestId("employees-form-id-input")).toBeDefined();
-        expect(screen.getByTestId("employees-form-hire-date-input")).toBeDefined();
-        expect(screen.getByTestId("employees-form-active-checkbox")).toBeDefined();
+        await waitFor(() => {
+            expect(screen.getByTestId("employees-form-name-input")).toBeDefined();
+            expect(screen.getByTestId("employees-form-id-input")).toBeDefined();
+            expect(screen.getByTestId("employees-form-hire-date-input")).toBeDefined();
+            expect(screen.getByTestId("employees-form-active-checkbox")).toBeDefined();
+        });
     });
 
     it("renders form fields in edit mode with pre-filled values", async () => {

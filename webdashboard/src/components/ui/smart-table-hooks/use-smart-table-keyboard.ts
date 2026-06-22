@@ -1,4 +1,4 @@
-import { type ColumnDef, type Row } from "@tanstack/react-table";
+import { type Row } from "@tanstack/react-table";
 import React, { useState, useEffect, useRef } from "react";
 
 // Local inline interface to avoid dependency loops
@@ -11,14 +11,10 @@ interface LocalSmartTableColumnMeta {
   sticky?: "left" | "right";
 }
 
-interface UseSmartTableKeyboardProps<TData> {
-  cellErrors: Record<string, string>;
+interface UseSmartTableKeyboardProps {
   colCount: number;
-  columns: (ColumnDef<TData> & { meta?: LocalSmartTableColumnMeta })[];
-  localCellValues: Record<string, unknown>;
   onCellSave?: (rowId: string, columnId: string, value: unknown) => Promise<void> | void;
   rowCount: number;
-  rows: Row<TData>[];
   setCellErrors: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   setLocalCellValues: React.Dispatch<React.SetStateAction<Record<string, unknown>>>;
   validateCell?: (rowId: string, columnId: string, value: unknown) => string | null | undefined;
@@ -27,15 +23,11 @@ interface UseSmartTableKeyboardProps<TData> {
 export function useSmartTableKeyboard<TData>({
   rowCount,
   colCount,
-  columns,
-  rows,
   validateCell,
   onCellSave,
-  cellErrors,
   setCellErrors,
-  localCellValues,
   setLocalCellValues,
-}: UseSmartTableKeyboardProps<TData>) {
+}: UseSmartTableKeyboardProps) {
   const [focusedCell, setFocusedCell] = useState<{ rowIndex: number; colIndex: number } | null>(null);
   const [editingCell, setEditingCell] = useState<{ rowIndex: number; colIndex: number } | null>(null);
   const [editValue, setEditValue] = useState<unknown>("");
@@ -77,60 +69,39 @@ export function useSmartTableKeyboard<TData>({
     }
 
     if (error) {
-      setCellErrors((prev) => ({ ...prev, [errorKey]: error }));
-      setLocalCellValues((prev) => ({ ...prev, [errorKey]: editValue }));
+      setCellErrors((prev: Record<string, string>) => ({ ...prev, [errorKey]: error }));
+      setLocalCellValues((prev: Record<string, unknown>) => ({ ...prev, [errorKey]: editValue }));
     } else {
-      setCellErrors((prev) => {
-        const copy = { ...prev };
-        delete copy[errorKey];
-        return copy;
+      setCellErrors((prev: Record<string, string>) => {
+        const { [errorKey]: _, ...rest } = prev;
+        return rest;
       });
-      setLocalCellValues((prev) => {
-        const copy = { ...prev };
-        delete copy[errorKey];
-        return copy;
+      setLocalCellValues((prev: Record<string, unknown>) => {
+        const { [errorKey]: _, ...rest } = prev;
+        return rest;
       });
 
       if (onCellSave) {
         const result = onCellSave(row.id, column.id, editValue);
         if (result instanceof Promise) {
-          result.catch((err) => { console.error("Error saving cell:", err); });
+          result.catch((err: unknown) => { console.error("Error saving cell:", err); });
         }
       }
     }
     setEditingCell(null);
   };
 
-  const handleCellKeyDown = (
+  const handleNavigationKey = (
+    key: string,
     rowIndex: number,
     colIndex: number,
-    column: { id: string; columnDef: { meta?: LocalSmartTableColumnMeta } },
-    row: Row<TData>,
-    e: React.KeyboardEvent
-  ) => {
-    // If editing, handle edit keys
-    if (editingCell?.rowIndex === rowIndex && editingCell.colIndex === colIndex) {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        saveCellEdit(rowIndex, colIndex, column, row);
-      } else if (e.key === "Escape") {
-        e.preventDefault();
-        setEditingCell(null);
-      } else if (e.key === "Tab") {
-        e.preventDefault();
-        saveCellEdit(rowIndex, colIndex, column, row);
-        const nextCol = e.shiftKey ? colIndex - 1 : colIndex + 1;
-        moveFocus(rowIndex, nextCol);
-      }
-      return; // Do not process navigation arrows in input fields
-    }
-
-    // Grid Navigation Keys
+    shiftKey: boolean
+  ): { nextCol: number; nextRow: number; handled: boolean } => {
     let nextRow = rowIndex;
     let nextCol = colIndex;
     let handled = false;
 
-    switch (e.key) {
+    switch (key) {
       case "ArrowUp":
         nextRow = Math.max(0, rowIndex - 1);
         handled = true;
@@ -148,8 +119,7 @@ export function useSmartTableKeyboard<TData>({
         handled = true;
         break;
       case "Tab":
-        e.preventDefault();
-        if (e.shiftKey) {
+        if (shiftKey) {
           nextCol = colIndex - 1;
           if (nextCol < 0) {
             nextCol = colCount - 1;
@@ -164,22 +134,52 @@ export function useSmartTableKeyboard<TData>({
         }
         handled = true;
         break;
-      case "Enter":
-      case "F2":
-        {
-          const meta = column.columnDef.meta as LocalSmartTableColumnMeta | undefined;
-          if (meta?.editable) {
-            e.preventDefault();
-            startCellEdit(rowIndex, colIndex, row.getValue(column.id));
-          }
-        }
-        handled = true;
-        break;
       default:
         break;
     }
+    return { nextCol, nextRow, handled };
+  };
 
+  const handleCellKeyDown = (args: {
+    column: { id: string; columnDef: { meta?: LocalSmartTableColumnMeta } };
+    e: React.KeyboardEvent;
+    colIndex: number;
+    row: Row<TData>;
+    rowIndex: number;
+  }) => {
+    const { rowIndex, colIndex, column, row, e } = args;
+
+    // If editing, handle edit keys
+    if (editingCell?.rowIndex === rowIndex && editingCell.colIndex === colIndex) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        saveCellEdit(rowIndex, colIndex, column, row);
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        setEditingCell(null);
+      } else if (e.key === "Tab") {
+        e.preventDefault();
+        saveCellEdit(rowIndex, colIndex, column, row);
+        const nextCol = e.shiftKey ? colIndex - 1 : colIndex + 1;
+        moveFocus(rowIndex, nextCol);
+      }
+      return; // Do not process navigation arrows in input fields
+    }
+
+    if (e.key === "Enter" || e.key === "F2") {
+      const meta = column.columnDef.meta;
+      if (meta?.editable) {
+        e.preventDefault();
+        startCellEdit(rowIndex, colIndex, row.getValue(column.id));
+      }
+      return;
+    }
+
+    const { nextRow, nextCol, handled } = handleNavigationKey(e.key, rowIndex, colIndex, e.shiftKey);
     if (handled) {
+      if (e.key === "Tab") {
+        e.preventDefault();
+      }
       moveFocus(nextRow, nextCol);
     }
   };
@@ -188,7 +188,6 @@ export function useSmartTableKeyboard<TData>({
     focusedCell,
     setFocusedCell,
     editingCell,
-    setEditingCell,
     editValue,
     setEditValue,
     cellRefs,

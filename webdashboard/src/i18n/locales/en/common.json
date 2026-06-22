@@ -1727,5 +1727,24 @@
     "presigned_url_failed": "Presigned Url Failed",
     "s3_upload_failed": "S3 Upload Failed",
     "network_error": "Network Error"
+  },
+  "documents": {
+    "loading_securely": "Loading document securely...",
+    "preview_not_available": "Preview Not Available",
+    "preview_not_supported_desc": "This file type ({{mimeType}}) cannot be previewed directly in the browser. Please download it to view its contents.",
+    "download_file": "Download File",
+    "download_original": "Download Original",
+    "signature": {
+      "draw_tab": "Draw Signature",
+      "type_tab": "Type Signature",
+      "clear_canvas": "Clear Canvas",
+      "draw_instruction": "Use your mouse or finger to draw your signature inside the box.",
+      "name_label": "Your Full Name",
+      "name_placeholder": "e.g. John Doe",
+      "preview_placeholder": "Preview will appear here",
+      "modal_title": "Sign Document",
+      "cancel": "Cancel",
+      "sign_accept": "Sign & Accept"
+    }
   }
 }

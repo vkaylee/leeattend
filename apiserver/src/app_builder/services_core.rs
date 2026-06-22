@@ -26,7 +26,7 @@ pub struct CoreServices {
 }
 
 pub async fn build_core_services(
-    _diesel_pools: &DieselPools,
+    diesel_pools: &DieselPools,
     redis_pool: &Option<RedisPool>,
     _crypto_service: &Option<Arc<CryptoService>>,
     agent_manager: &AgentManager,
@@ -62,7 +62,9 @@ pub async fn build_core_services(
         redis_pool.clone(),
     ));
 
-    let tenant_provisioner = Arc::new(crate::services::tenant_provisioner::TenantMigrator::new());
+    let tenant_provisioner = Arc::new(crate::services::tenant_provisioner::TenantMigrator::new(
+        diesel_pools.clone(),
+    ));
 
     let workspace = Arc::new(crate::services::workspace_service::WorkspaceService::new(
         repos.workspace.clone(),

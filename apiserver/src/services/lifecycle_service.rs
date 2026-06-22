@@ -194,16 +194,22 @@ impl LifecycleService {
                 .unwrap_or_else(|| chrono::Utc::now().naive_utc().date()),
         };
 
-        let checklist = self
-            .repo
-            .create_checklist(
-                &auth_token,
+        let checklist_id = Uuid::new_v4();
+        let checklist_entity =
+            crate::models::diesel::lifecycle_checklist::LifecycleChecklistEntity {
+                id: checklist_id,
+                workspace_id,
                 employment_id,
-                Some(template_id),
-                template.checklist_type(),
-                actor_id,
-            )
-            .await?;
+                template_id: Some(template_id),
+                checklist_type: template.checklist_type().as_str().to_string(),
+                status: ChecklistStatus::InProgress.as_str().to_string(),
+                progress_percent: 0,
+                started_at: Utc::now(),
+                completed_at: None,
+                created_by: actor_id,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            };
 
         let mut item_entities = Vec::new();
         for item in template_items {
@@ -275,7 +281,7 @@ impl LifecycleService {
             item_entities.push(
                 crate::models::diesel::lifecycle_checklist::LifecycleChecklistItemEntity {
                     id: Uuid::new_v4(),
-                    checklist_id: checklist.id(),
+                    checklist_id,
                     template_item_id: Some(item.id()),
                     title: item.title().to_string(),
                     description: item.description().map(String::from),
@@ -294,9 +300,9 @@ impl LifecycleService {
             );
         }
 
-        let items = self
+        let (checklist, items) = self
             .repo
-            .create_checklist_items(&auth_token, item_entities)
+            .create_checklist_with_items(&auth_token, checklist_entity, item_entities)
             .await?;
 
         // If template had no items, complete checklist immediately

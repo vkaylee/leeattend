@@ -101,7 +101,9 @@ impl ShiftRepository for DieselShiftRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         location_id: Option<Uuid>,
         employer_id: Option<Uuid>,
-    ) -> Result<Vec<Shift>, AppError> {
+        page: Option<i64>,
+        limit: Option<i64>,
+    ) -> Result<(Vec<Shift>, i64), AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -110,6 +112,37 @@ impl ShiftRepository for DieselShiftRepository {
                 .await
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
+
+        let mut count_query = shifts::table
+            .filter(shifts::workspace_id.eq(workspace_id))
+            .filter(shifts::is_active.eq(true))
+            .into_boxed();
+
+        if let Some(loc_id) = location_id {
+            count_query = count_query.filter(
+                shifts::location_id
+                    .is_null()
+                    .or(shifts::location_id.eq(loc_id)),
+            );
+        }
+
+        if let Some(emp_id) = employer_id {
+            count_query = count_query.filter(
+                shifts::employer_id
+                    .is_null()
+                    .or(shifts::employer_id.eq(emp_id)),
+            );
+        }
+
+        let total = if page.is_some() || limit.is_some() {
+            count_query
+                .count()
+                .get_result::<i64>(&mut *conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?
+        } else {
+            0
+        };
 
         let mut query = shifts::table
             .filter(shifts::workspace_id.eq(workspace_id))
@@ -132,13 +165,27 @@ impl ShiftRepository for DieselShiftRepository {
             );
         }
 
+        let mut query = query.order(shifts::name.asc());
+
+        if let Some(l) = limit {
+            query = query.limit(l);
+        }
+        if let (Some(p), Some(l)) = (page, limit) {
+            query = query.offset((p - 1) * l);
+        }
+
         let entities: Vec<ShiftEntity> = query
-            .order(shifts::name.asc())
             .load(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        Ok(entities.into_iter().map(Into::into).collect())
+        let final_total = if page.is_some() || limit.is_some() {
+            total
+        } else {
+            i64::try_from(entities.len()).unwrap_or(0)
+        };
+
+        Ok((entities.into_iter().map(Into::into).collect(), final_total))
     }
 
     async fn update_shift_direct(

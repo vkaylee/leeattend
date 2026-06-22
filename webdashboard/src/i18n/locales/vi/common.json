@@ -1727,5 +1727,24 @@
     "presigned_url_failed": "Presigned Url Failed",
     "s3_upload_failed": "S3 Upload Failed",
     "network_error": "Network Error"
+  },
+  "documents": {
+    "loading_securely": "Đang tải tài liệu bảo mật...",
+    "preview_not_available": "Xem trước không khả dụng",
+    "preview_not_supported_desc": "Loại tệp này ({{mimeType}}) không thể xem trực tiếp trên trình duyệt. Vui lòng tải xuống để xem nội dung.",
+    "download_file": "Tải xuống Tệp",
+    "download_original": "Tải xuống Bản gốc",
+    "signature": {
+      "draw_tab": "Vẽ chữ ký",
+      "type_tab": "Nhập chữ ký",
+      "clear_canvas": "Xóa bảng vẽ",
+      "draw_instruction": "Sử dụng chuột hoặc ngón tay để vẽ chữ ký của bạn vào khung bên dưới.",
+      "name_label": "Họ và tên của bạn",
+      "name_placeholder": "VD: Nguyễn Văn A",
+      "preview_placeholder": "Xem trước chữ ký sẽ hiển thị ở đây",
+      "modal_title": "Ký tài liệu",
+      "cancel": "Hủy",
+      "sign_accept": "Ký & Chấp nhận"
+    }
   }
 }

@@ -1727,5 +1727,24 @@
     "presigned_url_failed": "Presigned Url Failed",
     "s3_upload_failed": "S3 Upload Failed",
     "network_error": "Network Error"
+  },
+  "documents": {
+    "loading_securely": "安全加载文档中...",
+    "preview_not_available": "预览不可用",
+    "preview_not_supported_desc": "此文件类型 ({{mimeType}}) 无法直接在浏览器中预览。请下载查看其内容。",
+    "download_file": "下载文件",
+    "download_original": "下载原始文件",
+    "signature": {
+      "draw_tab": "手写签名",
+      "type_tab": "输入签名",
+      "clear_canvas": "清除画板",
+      "draw_instruction": "使用鼠标或手指在方框内绘制您的签名。",
+      "name_label": "您的全名",
+      "name_placeholder": "例如：张三",
+      "preview_placeholder": "预览将在此显示",
+      "modal_title": "签署文档",
+      "cancel": "取消",
+      "sign_accept": "签署并接受"
+    }
   }
 }

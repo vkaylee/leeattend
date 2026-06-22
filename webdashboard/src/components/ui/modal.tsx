@@ -74,6 +74,7 @@ export default function Modal({
           style={{ maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
         >
           {!title && <Dialog.Title className="sr-only">Dialog</Dialog.Title>}
+          {!subtitle && <Dialog.Description className="sr-only">Dialog description</Dialog.Description>}
 
           {/* Header — fixed at top, never shrinks */}
           {Boolean(title ?? icon) && (
@@ -98,11 +99,7 @@ export default function Modal({
                         {subtitle}
                       </Typography>
                     </Dialog.Description>
-                  ) : (
-                    <Dialog.Description className="sr-only">
-                      {title ? `${title} description` : "Dialog description"}
-                    </Dialog.Description>
-                  )}
+                  ) : null}
                 </div>
               </div>
               <Dialog.Close asChild>

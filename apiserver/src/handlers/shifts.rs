@@ -63,17 +63,27 @@ async fn reprocess_after_roster_change(
 
 // --- Shift Handlers ---
 
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct PaginatedShifts {
+    pub data: Vec<Shift>,
+    pub total: usize,
+    pub page: i64,
+    pub limit: i64,
+}
+
 #[derive(serde::Deserialize, utoipa::IntoParams)]
 pub struct GetShiftsQuery {
     pub location_id: Option<Uuid>,
     pub employer_id: Option<Uuid>,
+    pub page: Option<i64>,
+    pub limit: Option<i64>,
 }
 
 #[utoipa::path(
     get,
     path = "/workspaces/{workspace_id}/shifts",
     responses(
-        (status = 200, description = "List of shifts", body = [Shift])
+        (status = 200, description = "List of shifts", body = PaginatedShifts)
     ),
     params(
         ("workspace_id" = Uuid, Path, description = "Workspace ID"),
@@ -84,16 +94,29 @@ pub async fn get_shifts(
     State(state): State<Arc<AppState>>,
     Query(query): Query<GetShiftsQuery>,
     ctx: MemberContext,
-) -> AppResult<Json<Vec<Shift>>> {
+) -> AppResult<Json<crate::models::PaginatedResponse<Shift>>> {
     let workspace_id = ctx.workspace_id;
+    let page = query.page.unwrap_or(1).max(1);
+    let limit = query.limit.unwrap_or(50).clamp(1, 3000);
 
-    let shifts = state
+    let (shifts, total) = state
         .shifts()
         .service()
-        .get_workspace_shifts(workspace_id, query.location_id, query.employer_id)
+        .get_workspace_shifts(
+            workspace_id,
+            query.location_id,
+            query.employer_id,
+            Some(page),
+            Some(limit),
+        )
         .await?;
 
-    Ok(Json(shifts))
+    Ok(Json(crate::models::PaginatedResponse {
+        data: shifts,
+        total: usize::try_from(total).unwrap_or(0),
+        page,
+        limit,
+    }))
 }
 
 #[utoipa::path(

@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
@@ -15,6 +16,7 @@ interface DrawTabContentProps {
 }
 
 function DrawTabContent({ canvasRef }: DrawTabContentProps) {
+  const { t } = useTranslation();
   const [isDrawing, setIsDrawing] = useState(false);
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -81,12 +83,12 @@ function DrawTabContent({ canvasRef }: DrawTabContentProps) {
             onClick={clearCanvas}
             variant="outline"
           >
-            Clear Canvas
+            {t("documents.signature.clear_canvas")}
           </Button>
         </div>
       </div>
       <Typography className="text-xs text-center text-slate-500 mt-0 mb-0" variant="p">
-        Use your mouse or finger to draw your signature inside the box.
+        {t("documents.signature.draw_instruction")}
       </Typography>
     </div>
   );
@@ -98,17 +100,18 @@ interface TypeTabContentProps {
 }
 
 function TypeTabContent({ typedName, setTypedName }: TypeTabContentProps) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2" htmlFor="typedName">
-          Your Full Name
+          {t("documents.signature.name_label")}
         </label>
         <input
           className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-slate-900 dark:text-white"
           id="typedName"
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setTypedName(e.target.value); }}
-          placeholder="e.g. John Doe"
+          placeholder={t("documents.signature.name_placeholder")}
           type="text"
           value={typedName}
         />
@@ -120,7 +123,7 @@ function TypeTabContent({ typedName, setTypedName }: TypeTabContentProps) {
             {typedName}
           </span>
         ) : (
-          <span className="text-sm text-slate-400">Preview will appear here</span>
+          <span className="text-sm text-slate-400">{t("documents.signature.preview_placeholder")}</span>
         )}
       </div>
     </div>
@@ -128,6 +131,7 @@ function TypeTabContent({ typedName, setTypedName }: TypeTabContentProps) {
 }
 
 export function ESignatureModal({ isOpen, onClose, onSign, documentTitle }: ESignatureModalProps) {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<"draw" | "type">("draw");
   const [typedName, setTypedName] = useState("");
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -159,7 +163,9 @@ export function ESignatureModal({ isOpen, onClose, onSign, documentTitle }: ESig
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
           <div>
-            <Typography className="text-xl font-semibold text-slate-900 dark:text-white mt-0 mb-0" variant="h2">Sign Document</Typography>
+            <Typography className="text-xl font-semibold text-slate-900 dark:text-white mt-0 mb-0" variant="h2">
+              {t("documents.signature.modal_title")}
+            </Typography>
             <Typography className="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-0 truncate max-w-[300px]" variant="p">
               {documentTitle}
             </Typography>
@@ -187,7 +193,7 @@ export function ESignatureModal({ isOpen, onClose, onSign, documentTitle }: ESig
               onClick={() => { setActiveTab("draw"); }}
               variant="ghost"
             >
-              Draw Signature
+              {t("documents.signature.draw_tab")}
             </Button>
             <Button
               className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200 h-auto font-medium hover:bg-transparent ${
@@ -198,7 +204,7 @@ export function ESignatureModal({ isOpen, onClose, onSign, documentTitle }: ESig
               onClick={() => { setActiveTab("type"); }}
               variant="ghost"
             >
-              Type Signature
+              {t("documents.signature.type_tab")}
             </Button>
           </div>
 
@@ -220,14 +226,14 @@ export function ESignatureModal({ isOpen, onClose, onSign, documentTitle }: ESig
             onClick={onClose}
             variant="ghost"
           >
-            Cancel
+            {t("documents.signature.cancel")}
           </Button>
           <Button
             className="px-6 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm shadow-blue-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] h-auto font-normal"
             disabled={activeTab === "type" && !typedName.trim()}
             onClick={handleSign}
           >
-            Sign & Accept
+            {t("documents.signature.sign_accept")}
           </Button>
         </div>
 

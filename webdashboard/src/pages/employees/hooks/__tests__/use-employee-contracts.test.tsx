@@ -83,6 +83,7 @@ describe("useEmployeeContracts hook", () => {
       contract_number: "HD-003",
       contract_type: "probation" as const,
       start_date: "2025-03-01",
+      employment_id: "employment-1",
     };
 
     await result.current.createContract.mutateAsync(newContractPayload);

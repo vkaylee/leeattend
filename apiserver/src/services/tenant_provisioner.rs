@@ -22,18 +22,21 @@ pub trait DatabaseMigratorTrait: Send + Sync {
     async fn create_tenant_database(&self, admin_url: &str, db_name: &str) -> AppResult<()>;
 }
 
+use crate::diesel_pool::DieselPools;
+
 /// Runs tenant migrations on an already-existing database.
 ///
 /// This is the default (and currently only) implementation of
 /// `TenantProvisionerTrait`. It connects to the provided `db_url`,
 /// runs all pending tenant-level migrations, and returns the URL
 /// unchanged for downstream Supavisor registration.
-#[derive(Default)]
-pub struct TenantMigrator;
+pub struct TenantMigrator {
+    diesel_pools: DieselPools,
+}
 
 impl TenantMigrator {
-    pub fn new() -> Self {
-        Self
+    pub fn new(diesel_pools: DieselPools) -> Self {
+        Self { diesel_pools }
     }
 }
 
@@ -67,6 +70,25 @@ impl TenantProvisionerTrait for TenantMigrator {
             "Running tenant migrations on provided database"
         );
 
+        // Fetch timezone from workspaces table in system database using the connection pool
+        let mut timezone = "UTC".to_string();
+        {
+            use crate::schema::workspaces;
+            use diesel::prelude::*;
+            use diesel_async::RunQueryDsl;
+
+            if let Ok(mut conn) = self.diesel_pools.api.get().await {
+                if let Ok(tz) = workspaces::table
+                    .filter(workspaces::id.eq(ws_id))
+                    .select(workspaces::timezone)
+                    .first::<String>(&mut *conn)
+                    .await
+                {
+                    timezone = tz;
+                }
+            }
+        }
+
         let db_url_clone = db_url_owned.clone();
         tokio::task::spawn_blocking(move || {
             use diesel::Connection;
@@ -80,28 +102,6 @@ impl TenantProvisionerTrait for TenantMigrator {
             sync_conn
                 .run_pending_migrations(TENANT_MIGRATIONS)
                 .map_err(|e| AppError::Internal(format!("Failed to run tenant migrations: {e}")))?;
-
-            // Ensure Headquarters location exists
-            // Fetch timezone from workspaces table in system database if possible
-            let mut timezone = "UTC".to_string();
-            if let Ok(system_url) = std::env::var("DATABASE_URL") {
-                if let Ok(mut system_conn) = diesel::PgConnection::establish(&system_url) {
-                    #[derive(diesel::QueryableByName)]
-                    struct TimezoneRow {
-                        #[diesel(sql_type = diesel::sql_types::Text)]
-                        timezone: String,
-                    }
-                    use diesel::RunQueryDsl;
-                    if let Ok(rows) = diesel::sql_query("SELECT timezone FROM workspaces WHERE id = $1")
-                        .bind::<diesel::sql_types::Uuid, _>(ws_id)
-                        .load::<TimezoneRow>(&mut system_conn)
-                    {
-                        if let Some(row) = rows.first() {
-                            timezone.clone_from(&row.timezone);
-                        }
-                    }
-                }
-            }
 
             use diesel::RunQueryDsl;
             diesel::sql_query(
@@ -134,15 +134,16 @@ mod tests {
 
     #[test]
     fn test_tenant_migrator_new() {
-        let _migrator = TenantMigrator::new();
+        let pools = DieselPools::for_test("postgres://invalid:invalid@localhost:12345/invalid_db");
+        let _migrator = TenantMigrator::new(pools);
     }
 
     #[tokio::test]
     async fn test_provision_tenant_db_connection_failure() {
-        let migrator = TenantMigrator::new();
-        let workspace_id = Uuid::new_v4();
-        // Use an invalid connection string to force a connection failure
         let invalid_url = "postgres://invalid:invalid@localhost:12345/invalid_db";
+        let pools = DieselPools::for_test(invalid_url);
+        let migrator = TenantMigrator::new(pools);
+        let workspace_id = Uuid::new_v4();
 
         let result = migrator
             .provision_tenant_db(&workspace_id, invalid_url)
@@ -165,7 +166,8 @@ mod tests {
         if let Ok(db_url) = std::env::var("DATABASE_URL") {
             use diesel::Connection;
             if diesel::PgConnection::establish(&db_url).is_ok() {
-                let migrator = TenantMigrator::new();
+                let pools = DieselPools::for_test(&db_url);
+                let migrator = TenantMigrator::new(pools);
                 let workspace_id = Uuid::new_v4();
                 let result = migrator.provision_tenant_db(&workspace_id, &db_url).await;
                 assert!(

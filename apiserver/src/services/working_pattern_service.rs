@@ -59,9 +59,11 @@ pub async fn create_working_pattern(
 
     // For days with >1 shift, validate no time overlaps
     if !day_shifts.is_empty() {
-        let all_shifts = shift_repo
+        let (all_shifts, _) = shift_repo
             .get_workspace_shifts(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                None,
+                None,
                 None,
                 None,
             )
@@ -168,9 +170,11 @@ pub async fn update_working_pattern(
     }
 
     if !day_shifts.is_empty() {
-        let all_shifts = shift_repo
+        let (all_shifts, _) = shift_repo
             .get_workspace_shifts(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                None,
+                None,
                 None,
                 None,
             )
@@ -458,7 +462,9 @@ mod tests {
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _location_id: Option<Uuid>,
             _employer_id: Option<Uuid>,
-        ) -> Result<Vec<Shift>, AppError> {
+            _page: Option<i64>,
+            _limit: Option<i64>,
+        ) -> Result<(Vec<Shift>, i64), AppError> {
             // Provide a few mock shifts for overlap testing
             let s1 = Shift::new(
                 Uuid::from_u128(1),
@@ -504,7 +510,7 @@ mod tests {
                 Utc::now(),
                 Utc::now(),
             );
-            Ok(vec![s1, s2])
+            Ok((vec![s1, s2], 2))
         }
         async fn update_shift_direct(
             &self,

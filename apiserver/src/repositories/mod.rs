@@ -179,4 +179,8 @@ pub mod file_repository;
 pub use file_repository::FileRepository;
 pub mod diesel_file_repository;
 pub use diesel_file_repository::DieselFileRepository;
+pub mod debug_repository;
+pub use debug_repository::DebugRepository;
+pub mod diesel_debug_repository;
+pub use diesel_debug_repository::DieselDebugRepository;
 pub mod raw_models;

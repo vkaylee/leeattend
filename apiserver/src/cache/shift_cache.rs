@@ -54,9 +54,11 @@ impl ShiftCache {
         let shifts: Vec<CachedShift> = self
             .cache
             .get_or_fetch(&key, DEFAULT_CACHE_TTL, || async move {
-                let rows = repo
+                let (rows, _) = repo
                     .get_workspace_shifts(
                         &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
+                        None,
+                        None,
                         None,
                         None,
                     )

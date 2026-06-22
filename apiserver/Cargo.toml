@@ -10,25 +10,25 @@ keywords = ["hrm", "attendance", "api", "rest"]
 categories = ["web-programming"]
 
 [dependencies]
-parking_lot = "0.12"
+parking_lot = { workspace = true }
 axum = { version = "0.7", features = ["macros", "multipart", "ws"] }
-tokio = { version = "1.36", features = ["full"] }
+tokio = { workspace = true }
 deadpool = { version = "0.13.0", features = ["rt_tokio_1"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+serde = { workspace = true }
+serde_json = { workspace = true }
 
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
-futures-util = { version = "0.3.31", features = ["sink"] }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+futures-util = { workspace = true }
 bigdecimal = { version = "0.4.5", features = ["serde"] }
-uuid = { version = "1.19.0", features = ["v4", "v7", "serde"] }
-chrono = { version = "0.4.42", features = ["serde"] }
-chrono-tz = "0.9"
+uuid = { workspace = true }
+chrono = { workspace = true }
+chrono-tz = { workspace = true }
 diesel_migrations = { version = "2.2", features = ["postgres"] }
 diesel = { version = "2.2", features = ["postgres", "chrono", "uuid", "serde_json", "numeric"] }
 diesel-async = { version = "0.8.0", features = ["postgres", "deadpool", "tokio"] }
 tower-http = { version = "0.6.8", features = ["cors", "trace"] }
-async-trait = "0.1.89"
+async-trait = { workspace = true }
 jsonwebtoken = { version = "10.2.0", features = ["rust_crypto"] }
 
 argon2 = "0.5"
@@ -41,17 +41,17 @@ strum_macros = "0.26"
 sha2 = "0.10"
 redis = { version = "0.27", features = ["tokio-comp", "connection-manager"] }
 tokio-stream = { version = "0.1", features = ["time"] }
-tokio-util = { version = "0.7", features = ["rt"] }
+tokio-util = { workspace = true }
 rust_xlsxwriter = "0.79"
 base64 = "0.22.1"
 aes-gcm = "0.10.3"
-rand = "0.8.5"
+rand = { workspace = true }
 moka = { version = "0.12", features = ["future"] }
 utoipa = { version = "5.0", features = ["axum_extras", "chrono", "uuid", "decimal"] }
 utoipa-axum = "0.2"
 thiserror = "2.0.18"
 tower = { version = "0.5.2", features = ["util"] }
-mimalloc = { version = "0.1.52", default-features = false }
+mimalloc = { workspace = true }
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
 percent-encoding = "2.3"
 aws-config = "1"
@@ -70,7 +70,7 @@ mockall = "0.13"
 http = "1.4.0"
 http-body-util = "0.1"
 serial_test = "3.3.1"
-tempfile = "3.24.0"
+tempfile = { workspace = true }
 tokio-test = "0.4.5"
 tokio-tungstenite = { version = "0.26.2", features = ["rustls-tls-webpki-roots"] }
 tokio-postgres = "0.7.17"
