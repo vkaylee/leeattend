@@ -37,6 +37,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{ws_id}/contracts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lấy danh sách hợp đồng toàn bộ workspace */
+        get: operations["list_workspace_contracts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{ws_id}/employees/{employee_id}/contracts": {
         parameters: {
             query?: never;
@@ -5422,6 +5439,12 @@ export interface components {
             /** Format: uuid */
             workspace_id: string;
         };
+        EmployeeContractWithEmployee: components["schemas"]["EmployeeContract"] & {
+            employee_code: string;
+            /** Format: uuid */
+            employee_id: string;
+            employee_name: string;
+        };
         EmployeeDepartmentHistory: {
             /** Format: date-time */
             created_at: string;
@@ -6399,6 +6422,14 @@ export interface components {
             page: number;
             total: number;
         };
+        PaginatedAssignmentHistory: {
+            data: components["schemas"]["AssignmentHistory"][];
+            /** Format: int64 */
+            limit: number;
+            /** Format: int64 */
+            page: number;
+            total: number;
+        };
         PaginatedAttendanceAdjustments: {
             data: components["schemas"]["AttendanceAdjustmentRequest"][];
             /** Format: int64 */
@@ -6426,6 +6457,14 @@ export interface components {
         };
         PaginatedDepartments: {
             data: components["schemas"]["Department"][];
+            /** Format: int64 */
+            limit: number;
+            /** Format: int64 */
+            page: number;
+            total: number;
+        };
+        PaginatedEmployeeSchedules: {
+            data: components["schemas"]["EmployeeSchedule"][];
             /** Format: int64 */
             limit: number;
             /** Format: int64 */
@@ -6490,6 +6529,22 @@ export interface components {
         };
         PaginatedRecruitmentSources: {
             data: components["schemas"]["RecruitmentSource"][];
+            /** Format: int64 */
+            limit: number;
+            /** Format: int64 */
+            page: number;
+            total: number;
+        };
+        PaginatedShiftRosters: {
+            data: components["schemas"]["ShiftRoster"][];
+            /** Format: int64 */
+            limit: number;
+            /** Format: int64 */
+            page: number;
+            total: number;
+        };
+        PaginatedShifts: {
+            data: components["schemas"]["Shift"][];
             /** Format: int64 */
             limit: number;
             /** Format: int64 */
@@ -7880,6 +7935,29 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentStatus"][];
+                };
+            };
+        };
+    };
+    list_workspace_contracts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                ws_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Danh sách hợp đồng toàn hệ thống */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeContractWithEmployee"][];
                 };
             };
         };
@@ -13188,7 +13266,17 @@ export interface operations {
     };
     get_assignment_history: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number | null;
+                limit?: number | null;
+                q?: string | null;
+                year?: number | null;
+                sort_by?: string | null;
+                sort_dir?: string | null;
+                department_id?: string | null;
+                permission?: string | null;
+                custom_field_filters?: string | null;
+            };
             header?: never;
             path: {
                 /** @description Workspace ID */
@@ -13204,7 +13292,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AssignmentHistory"][];
+                    "application/json": components["schemas"]["PaginatedAssignmentHistory"];
                 };
             };
         };
@@ -13665,6 +13753,8 @@ export interface operations {
             query?: {
                 start_date?: string | null;
                 end_date?: string | null;
+                page?: number | null;
+                limit?: number | null;
             };
             header?: never;
             path: {
@@ -13683,7 +13773,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ShiftRoster"][];
+                    "application/json": components["schemas"]["PaginatedShiftRosters"];
                 };
             };
         };
@@ -14087,6 +14177,8 @@ export interface operations {
             query: {
                 start_date: string;
                 end_date: string;
+                page?: number | null;
+                limit?: number | null;
             };
             header?: never;
             path: {
@@ -14103,7 +14195,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EmployeeSchedule"][];
+                    "application/json": components["schemas"]["PaginatedEmployeeSchedules"];
                 };
             };
         };
@@ -14215,6 +14307,8 @@ export interface operations {
             query?: {
                 location_id?: string | null;
                 employer_id?: string | null;
+                page?: number | null;
+                limit?: number | null;
             };
             header?: never;
             path: {
@@ -14231,7 +14325,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Shift"][];
+                    "application/json": components["schemas"]["PaginatedShifts"];
                 };
             };
         };
