@@ -19,7 +19,7 @@ url = "2.5"
 uuid = { workspace = true }
 chrono = { workspace = true }
 chrono-tz = { workspace = true }
-rustzk = "1.0.1"
+rustzk = "1.0.2"
 
 log = "0.4"
 tracing = { workspace = true }
