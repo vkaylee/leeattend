@@ -1710,3 +1710,53 @@ fn test_split_by_breaks_break_outside_session() {
         assert!(session.start_minutes() >= 475);
     }
 }
+
+fn make_log_with_seconds(minutes: i32, seconds: i32) -> LogEvent {
+    let id = Uuid::new_v4();
+    let punch_time = Utc.with_ymd_and_hms(2026, 6, 20, 0, 0, 0).unwrap()
+        + chrono::Duration::minutes(minutes as i64)
+        + chrono::Duration::seconds(seconds as i64);
+    LogEvent {
+        id,
+        minutes,
+        punch_time,
+        raw_data: None,
+        all_ids: vec![id],
+    }
+}
+
+#[test]
+fn test_split_by_breaks_seconds_alignment() {
+    use chrono::Timelike;
+
+    let strategy = get_strategy();
+    let shift = PairingShiftConfig::new_with_breaks(
+        450, // 07:30
+        990, // 16:30
+        vec![BreakInterval::new(690, 750)], // 11:30-12:30
+        None,
+        None,
+    );
+
+    let first_in = make_log_with_seconds(450, 0); // 07:30:00
+    let last_out = make_log_with_seconds(1008, 10); // 16:48:10
+    let logs = vec![first_in, last_out];
+
+    let sessions = strategy.pair(&logs, Some(&shift));
+
+    assert_eq!(sessions.len(), 2);
+    // Segment 1 (07:30 to 11:30)
+    assert_eq!(sessions[0].start_minutes(), 450);
+    assert_eq!(sessions[0].end_minutes(), Some(690));
+    assert_eq!(sessions[0].start_time().second(), 0);
+    assert_eq!(sessions[0].end_time().unwrap().second(), 0);
+
+    // Segment 2 (12:30 to 16:48)
+    assert_eq!(sessions[1].start_minutes(), 750);
+    assert_eq!(sessions[1].end_minutes(), Some(1008));
+    // The start time of Segment 2 (break end) should be aligned to first_in (0 seconds)
+    assert_eq!(sessions[1].start_time().second(), 0);
+    // The end time of Segment 2 (checkout) should be the actual checkout (10 seconds)
+    assert_eq!(sessions[1].end_time().unwrap().second(), 10);
+}
+

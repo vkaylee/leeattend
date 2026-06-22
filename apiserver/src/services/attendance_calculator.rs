@@ -1,5 +1,5 @@
 use crate::models::{EarlyArrivalStrategy, PolicyRules};
-use chrono::{DateTime, Duration, TimeZone};
+use chrono::{DateTime, Duration, TimeZone, Timelike};
 
 #[derive(Debug, Default)]
 pub struct WorkBuckets {
@@ -52,8 +52,30 @@ pub struct DailyCalcInput<T: TimeZone> {
 pub struct AttendanceCalculator;
 
 impl AttendanceCalculator {
+    fn truncate_to_minute<T: TimeZone>(dt: DateTime<T>) -> DateTime<T> {
+        dt.with_second(0)
+            .and_then(|d| d.with_nanosecond(0))
+            .unwrap_or(dt)
+    }
+
     /// Calculate standard and OT buckets using structured input.
     pub fn calculate_buckets<T: TimeZone>(input: &DailyCalcInput<T>) -> WorkBuckets {
+        let input = DailyCalcInput {
+            punch_in: Self::truncate_to_minute(input.punch_in.clone()),
+            punch_out: Self::truncate_to_minute(input.punch_out.clone()),
+            shift_start: input.shift_start.as_ref().map(|dt| Self::truncate_to_minute(dt.clone())),
+            shift_end: input.shift_end.as_ref().map(|dt| Self::truncate_to_minute(dt.clone())),
+            scheduled_break_minutes: input.scheduled_break_minutes,
+            actual_break_minutes: input.actual_break_minutes,
+            break_start: input.break_start.as_ref().map(|dt| Self::truncate_to_minute(dt.clone())),
+            break_end: input.break_end.as_ref().map(|dt| Self::truncate_to_minute(dt.clone())),
+            work_unit: input.work_unit,
+            rounding_policy: input.rounding_policy.clone(),
+            rules: input.rules.clone(),
+            ot_ceiling: input.ot_ceiling.as_ref().map(|dt| Self::truncate_to_minute(dt.clone())),
+            max_early_ot_minutes: input.max_early_ot_minutes,
+        };
+
         let punch_in = &input.punch_in;
         let punch_out = &input.punch_out;
 
@@ -82,9 +104,9 @@ impl AttendanceCalculator {
 
         let effective_ot_start = Self::effective_ot_start(punch_in, &start, &input.rules);
 
-        Self::fill_standard_bucket(input, &start, &end, &mut buckets);
-        Self::fill_early_ot(input, &start, &effective_ot_start, &mut buckets);
-        Self::fill_late_ot(input, &end, &mut buckets);
+        Self::fill_standard_bucket(&input, &start, &end, &mut buckets);
+        Self::fill_early_ot(&input, &start, &effective_ot_start, &mut buckets);
+        Self::fill_late_ot(&input, &end, &mut buckets);
 
         buckets
     }

@@ -1157,4 +1157,32 @@ mod tests {
             assert_eq!(std2, 15);
         }
     }
+
+    // =========================================================================
+    // Seconds truncation / mismatch tests
+    // =========================================================================
+
+    mod seconds_truncation {
+        use super::*;
+
+        #[test]
+        fn test_seconds_truncation_preserves_units() {
+            let punch_in = dt(7, 30);
+            let punch_out = dt(16, 48) + chrono::Duration::seconds(10);
+
+            let input = TestInputBuilder::new()
+                .punch_raw(punch_in, punch_out)
+                .shift_raw(dt(7, 30), dt(16, 30))
+                .scheduled_break(60)
+                .fixed_break(11, 30, 12, 30)
+                .rules_mut(|r| r.set_is_break_auto_deduct(true))
+                .work_unit_cfg(30, "floor")
+                .build();
+
+            let (std_units, ot_units) = AttendanceCalculator::calculate_daily_units(&input);
+
+            assert_eq!(std_units, 16);
+            assert_eq!(ot_units, 0);
+        }
+    }
 }

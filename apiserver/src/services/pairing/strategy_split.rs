@@ -51,10 +51,7 @@ pub(crate) fn split_by_breaks(input: &SplitByBreaksInput<'_>) -> Vec<PairedSessi
             ShiftAwareStrategy::collect_log_ids(input.logs, seg_start, Some(seg_end), &[])
         };
 
-        let start_time = if j == k {
-            let diff = i64::from(input.end_val) - i64::from(seg_start);
-            input.last_out_log.punch_time() - chrono::Duration::minutes(diff)
-        } else {
+        let start_time = {
             let diff = i64::from(seg_start) - i64::from(input.start);
             input.first_in_log.punch_time() + chrono::Duration::minutes(diff)
         };
