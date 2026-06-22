@@ -10,7 +10,7 @@ export async function fetchShifts(wsId: string): Promise<Shift[]> {
     },
   });
   if (!data) throw new Error("No response data");
-  return data;
+  return data.data;
 }
 
 export async function createShift(wsId: string, data: CreateShiftRequest): Promise<Shift> {
@@ -59,7 +59,7 @@ export const fetchWorkspaceSchedules = async (wsId: string, startDate: string, e
     },
   });
   if (!data) throw new Error("No response data");
-  return data;
+  return data.data;
 };
 
 export const fetchAssignmentHistory = async (wsId: string): Promise<AssignmentHistory[]> => {
@@ -69,7 +69,7 @@ export const fetchAssignmentHistory = async (wsId: string): Promise<AssignmentHi
     },
   });
   if (!data) throw new Error("No response data");
-  return data;
+  return data.data;
 };
 
 export const fetchEmployeeRosters = async (
@@ -88,7 +88,7 @@ export const fetchEmployeeRosters = async (
     },
   });
   if (!data) throw new Error("No response data");
-  return data;
+  return data.data;
 }
 
 export async function upsertRoster(wsId: string, employeeId: string, data: Record<string, unknown>): Promise<ShiftRoster> {

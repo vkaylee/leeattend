@@ -72,9 +72,9 @@ export interface SmartTableRowProps<T> {
   editingCell: { rowIndex: number; colIndex: number } | null;
   editValue: unknown;
   focusedCell: { rowIndex: number; colIndex: number } | null;
-  getPinStyles: (column: Column<T, any>) => React.CSSProperties;
+  getPinStyles: (column: Column<T>) => React.CSSProperties;
   handleCellKeyDown: (args: {
-    column: Column<T, any>;
+    column: Column<T>;
     e: React.KeyboardEvent;
     colIndex: number;
     row: Row<T>;
@@ -88,7 +88,7 @@ export interface SmartTableRowProps<T> {
   onRowClick?: (row: T, e: React.MouseEvent) => void;
   row: Row<T>;
   rowIndex: number;
-  saveCellEdit: (rowIndex: number, colIndex: number, column: Column<T, any>, row: Row<T>) => void;
+  saveCellEdit: (rowIndex: number, colIndex: number, column: Column<T>, row: Row<T>) => void;
   selectedRowIds?: Set<string>;
   setEditValue: React.Dispatch<React.SetStateAction<unknown>>;
   setFocusedCell: React.Dispatch<React.SetStateAction<{ rowIndex: number; colIndex: number } | null>>;

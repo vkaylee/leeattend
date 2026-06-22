@@ -72,10 +72,9 @@ export default function Modal({
           )}
           data-testid={testId}
           style={{ maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
-          {...(subtitle ? {} : { "aria-describedby": undefined })}
         >
           {!title && <Dialog.Title className="sr-only">Dialog</Dialog.Title>}
-          {!subtitle && <Dialog.Description className="sr-only">Dialog description</Dialog.Description>}
+          {!subtitle && <Dialog.Description className="sr-only">{title ? `${title} description` : "Dialog description"}</Dialog.Description>}
 
           {/* Header — fixed at top, never shrinks */}
           {Boolean(title ?? icon) && (

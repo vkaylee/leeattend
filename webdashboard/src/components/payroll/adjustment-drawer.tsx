@@ -60,7 +60,7 @@ export default function AdjustmentDrawer({
     <Sheet
       isOpen={isOpen}
       onClose={onClose}
-      subtitle={`${employeeName} • ${employeeAdjustments.length} Pending`}
+      subtitle={`${employeeName} • ${employeeAdjustments.length} ${t("common.pending")}`}
       title={t("payroll.adjustments.title")}
     >
       <div className="space-y-6 pt-4 animate-in fade-in duration-500">
@@ -70,7 +70,7 @@ export default function AdjustmentDrawer({
           <div className="p-16 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-[2.5rem] bg-slate-50 dark:bg-slate-800/30 flex flex-col items-center">
             <div className="bg-white dark:bg-slate-900 w-16 h-16 rounded-3xl flex items-center justify-center shadow-sm mb-4 border border-slate-100 dark:border-slate-800"><CheckCircle2 className="w-8 h-8 text-emerald-400" /></div>
             <Typography className="text-lg font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight" variant="h3">{t("payroll.adjustments.all_clear")}</Typography>
-            <Typography className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1 opacity-50" variant="p">No pending adjustments.</Typography>
+            <Typography className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1 opacity-50" variant="p">{t("payroll.adjustments.no_pending")}</Typography>
           </div>
         ) : (
           employeeAdjustments.map((adj) => (
@@ -79,16 +79,16 @@ export default function AdjustmentDrawer({
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 shadow-inner group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors"><Calendar size={14} /></div>
                   <div>
-                    <Typography className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] leading-none mb-1" variant="p">Requested Date</Typography>
+                    <Typography className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] leading-none mb-1" variant="p">{t("payroll.adjustments.requested_date")}</Typography>
                     <Typography className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight" variant="p">{formatDate(adj.requested_punch_time)}</Typography>
                   </div>
                 </div>
-                <span className="bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border border-amber-100 dark:border-amber-800 shadow-sm animate-pulse">Pending</span>
+                <span className="bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border border-amber-100 dark:border-amber-800 shadow-sm animate-pulse">{t("payroll.adjustments.pending")}</span>
               </div>
 
               <div className="flex items-center gap-4 mb-6">
                 <div className="flex-1 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl text-center border border-slate-100 dark:border-slate-800 shadow-inner group-hover:bg-white dark:hover:bg-slate-900 transition-colors">
-                  <Typography className="text-[8px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mb-1.5 opacity-70" variant="p">Punch Time</Typography>
+                  <Typography className="text-[8px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mb-1.5 opacity-70" variant="p">{t("payroll.adjustments.punch_time")}</Typography>
                   <Typography className="text-sm font-bold text-slate-700 dark:text-slate-200 font-mono tracking-tighter" variant="p">{formatTime(adj.requested_punch_time)}</Typography>
                 </div>
               </div>
@@ -100,8 +100,8 @@ export default function AdjustmentDrawer({
               )}
 
               <div className="grid grid-cols-2 gap-4">
-                <Button className="py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest text-rose-600 dark:text-rose-300 bg-rose-50 dark:bg-rose-950 border border-rose-100 dark:border-rose-800 hover:bg-rose-100 dark:bg-rose-900 transition-all active:scale-95 shadow-sm" data-testid="reject-adjustment-btn" disabled={resolveMutation.isPending} onClick={() => { resolveMutation.mutate({ id: adj.id, status: "rejected" }); }} variant="ghost">Reject</Button>
-                <Button className="py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950 border border-emerald-100 dark:border-emerald-800 hover:bg-emerald-100 dark:bg-emerald-900 transition-all active:scale-95 shadow-sm" data-testid="approve-adjustment-btn" disabled={resolveMutation.isPending} onClick={() => { resolveMutation.mutate({ id: adj.id, status: "approved" }); }} variant="ghost">Approve</Button>
+                <Button className="py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest text-rose-600 dark:text-rose-300 bg-rose-50 dark:bg-rose-950 border border-rose-100 dark:border-rose-800 hover:bg-rose-100 dark:bg-rose-900 transition-all active:scale-95 shadow-sm" data-testid="reject-adjustment-btn" disabled={resolveMutation.isPending} onClick={() => { resolveMutation.mutate({ id: adj.id, status: "rejected" }); }} variant="ghost">{t("common.reject")}</Button>
+                <Button className="py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950 border border-emerald-100 dark:border-emerald-800 hover:bg-emerald-100 dark:bg-emerald-900 transition-all active:scale-95 shadow-sm" data-testid="approve-adjustment-btn" disabled={resolveMutation.isPending} onClick={() => { resolveMutation.mutate({ id: adj.id, status: "approved" }); }} variant="ghost">{t("common.approve")}</Button>
               </div>
             </div>
           ))

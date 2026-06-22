@@ -50,7 +50,7 @@ export default function WorkspaceSwitcher() {
     ...workspaces.map((ws) => ({
       value: ws.id, label: ws.name,
       icon: (<div className="bg-primary-50 dark:bg-primary-950 p-2 rounded-xl border border-primary-100 dark:border-primary-800 shadow-inner group-hover:bg-primary-600 group-hover:text-white transition-all"><Briefcase size={16} /></div>),
-      description: (<div className="flex items-center gap-2 mt-1 opacity-60"><span className="text-[9px] font-bold uppercase tracking-widest">ID:</span><span className="text-[9px] font-mono font-bold">{ws.id.substring(0, 8).toUpperCase()}</span></div>)
+      description: (<div className="flex items-center gap-2 mt-1 opacity-60"><span className="text-[9px] font-bold uppercase tracking-widest">{t("common.id")}:</span><span className="text-[9px] font-mono font-bold">{ws.id.substring(0, 8).toUpperCase()}</span></div>)
     })),
     {
       value: "ADD_NEW", label: t("common.create_workspace"),

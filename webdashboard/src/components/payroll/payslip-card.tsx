@@ -50,18 +50,18 @@ function SegmentCard({ segment, index, canReadSensitive }: { segment: PayrollSeg
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
           <div className="space-y-6">
-            <div className="flex items-center gap-3 mb-2 px-1 opacity-60"><Target className="text-slate-500 dark:text-slate-400" size={14} /><span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">Configuration Applied</span></div>
+            <div className="flex items-center gap-3 mb-2 px-1 opacity-60"><Target className="text-slate-500 dark:text-slate-400" size={14} /><span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">{t("payroll.document.config_applied")}</span></div>
             <div className="grid grid-cols-2 gap-6">
               <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-inner">
-                <Typography className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 opacity-70" variant="p">Base Salary</Typography>
+                <Typography className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 opacity-70" variant="p">{t("payroll.document.base_salary")}</Typography>
                 <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-bold font-mono text-sm tracking-tighter">
                   <Banknote className="text-primary-500 opacity-50" size={14} /> {!canReadSensitive ? "***" : new Intl.NumberFormat('vi-VN').format(typeof segment.applied_base_salary === 'string' ? parseFloat(segment.applied_base_salary) : segment.applied_base_salary)}
                 </div>
               </div>
               <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-inner">
-                <Typography className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 opacity-70" variant="p">Std. Period</Typography>
+                <Typography className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 opacity-70" variant="p">{t("payroll.document.std_period")}</Typography>
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tighter">{segment.applied_std_days} Days</span>
+                  <span className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tighter">{segment.applied_std_days} {t("payroll.document.days")}</span>
                   {segment.std_days_source ? (
                     <Popover.Root>
                       <Popover.Trigger asChild><Button className="p-1.5 rounded-lg bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-600 hover:text-primary-600 dark:text-primary-400 transition-all" variant="ghost"><Info size={12} /></Button></Popover.Trigger>
@@ -72,23 +72,23 @@ function SegmentCard({ segment, index, canReadSensitive }: { segment: PayrollSeg
               </div>
             </div>
             <div className="flex items-center gap-4 px-2">
-              <div className="flex items-center gap-2"><Clock className="text-slate-300 dark:text-slate-600" size={12} /><span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{segment.applied_hours_per_day}h / day</span></div>
+              <div className="flex items-center gap-2"><Clock className="text-slate-300 dark:text-slate-600" size={12} /><span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{segment.applied_hours_per_day}{t("payroll.document.hours_per_day")}</span></div>
               <div className="w-1 h-1 bg-slate-200 dark:bg-slate-600 rounded-full" />
-              <div className="flex items-center gap-2"><Briefcase className="text-slate-300 dark:text-slate-600" size={12} /><span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest italic opacity-60">Dept: Global</span></div>
+              <div className="flex items-center gap-2"><Briefcase className="text-slate-300 dark:text-slate-600" size={12} /><span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest italic opacity-60">{t("payroll.document.dept_global")}</span></div>
             </div>
           </div>
 
           <div className="space-y-6">
-            <div className="flex items-center gap-3 mb-2 px-1 opacity-60"><Calculator className="text-slate-500 dark:text-slate-400" size={14} /><span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">Calculation Outcome</span></div>
+            <div className="flex items-center gap-3 mb-2 px-1 opacity-60"><Calculator className="text-slate-500 dark:text-slate-400" size={14} /><span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">{t("payroll.document.calculation_outcome")}</span></div>
             <div className="bg-primary-600 rounded-[1.5rem] p-6 text-white shadow-xl shadow-primary-100 dark:shadow-black/30 relative overflow-hidden group/out">
               <div className="flex items-center justify-between relative z-10">
                 <div>
-                  <Typography className="text-[9px] font-bold text-primary-200 uppercase tracking-widest mb-1 opacity-80" variant="p">Paid Days</Typography>
+                  <Typography className="text-[9px] font-bold text-primary-200 uppercase tracking-widest mb-1 opacity-80" variant="p">{t("payroll.document.paid_days")}</Typography>
                   <Typography className="text-xl font-bold tracking-tighter" variant="p">{segment.paid_work_days} <span className="text-xs text-primary-300 font-bold">/ {segment.actual_work_days}</span></Typography>
                 </div>
                 <div className="h-10 w-px bg-white dark:bg-slate-900/10" />
                 <div className="text-right">
-                  <Typography className="text-[9px] font-bold text-primary-200 uppercase tracking-widest mb-1 opacity-80" variant="p">Segment Net</Typography>
+                  <Typography className="text-[9px] font-bold text-primary-200 uppercase tracking-widest mb-1 opacity-80" variant="p">{t("payroll.document.segment_net")}</Typography>
                   <Typography className="text-xl font-bold font-mono tracking-tighter" variant="p">{!canReadSensitive ? "***" : new Intl.NumberFormat('vi-VN').format(typeof segment.amount === 'string' ? parseFloat(segment.amount) : segment.amount)}</Typography>
                 </div>
               </div>
@@ -145,7 +145,7 @@ function PayslipCardHeader({ slip, isExpanded, setExpandedId, t, formatMonthYear
         variant="ghost"
       >
         <FileText className="text-slate-300 dark:text-slate-600 group-hover/btn:text-primary-500 transition-colors" size={14} />
-        <span className="text-[9px] font-bold uppercase tracking-widest">Official Payslip</span>
+        <span className="text-[9px] font-bold uppercase tracking-widest">{t("payroll.document.official_payslip")}</span>
       </Button>
       <div className="flex items-center gap-10 pr-2">
         <div className="text-right">
@@ -203,7 +203,7 @@ function PayslipCardBody({ slip, slipAdjustments, onResolveAdjustments, canReadS
         <div className="mt-12 space-y-6">
           <div className="flex items-center gap-3 px-2">
             <div className="w-1.5 h-6 bg-blue-600 rounded-full" />
-            <span className="text-xs font-bold text-slate-800 dark:text-slate-100 uppercase tracking-[0.25em]">{t("common.payroll.table.bonus")} Detail</span>
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-100 uppercase tracking-[0.25em]">{t("payroll.document.bonus_detail")}</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {slip.incentives?.map((inc, index: number) => (
@@ -231,7 +231,7 @@ function PayslipCardBody({ slip, slipAdjustments, onResolveAdjustments, canReadS
             color: "text-blue-600 dark:text-blue-300", 
             prefix: "+" 
           },
-          { label: "Deductions", value: slip.deductions_amount, color: "text-rose-600 dark:text-rose-300", prefix: "-" }
+          { label: t("payroll.document.deductions"), value: slip.deductions_amount, color: "text-rose-600 dark:text-rose-300", prefix: "-" }
         ].map((stat, index) => (
           <div className="p-6 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-[2rem] shadow-inner flex flex-col gap-1" key={index}>
              <Typography className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]" variant="p">{stat.label}</Typography>

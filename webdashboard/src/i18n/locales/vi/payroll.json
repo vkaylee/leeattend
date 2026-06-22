@@ -130,7 +130,11 @@
       "title": "Hiệu chỉnh chấm công",
       "resolved_success": "Đã xử lý hiệu chỉnh thành công",
       "resolved_error": "Lỗi khi xử lý hiệu chỉnh",
-      "all_clear": "Tất cả yêu cầu đã được xử lý!"
+      "all_clear": "Tất cả yêu cầu đã được xử lý!",
+      "no_pending": "Không có yêu cầu hiệu chỉnh nào đang chờ duyệt.",
+      "requested_date": "Ngày yêu cầu",
+      "punch_time": "Giờ chấm công",
+      "pending": "Chờ duyệt"
     },
     "segments": {
       "title": "Chi tiết dòng lương (Segments)"
@@ -163,7 +167,17 @@
       "generated_by": "Tạo bởi LeeAttend",
       "print_payslip": "In phiếu lương",
       "print_hint": "Sử dụng nút In phía trên để lưu PDF hoặc in bản cứng.",
-      "preview_title": "Xem trước phiếu lương"
+      "preview_title": "Xem trước phiếu lương",
+      "config_applied": "Cấu hình được áp dụng",
+      "std_period": "Kỳ công chuẩn",
+      "days": "Ngày",
+      "hours_per_day": "giờ / ngày",
+      "dept_global": "Phòng ban: Global",
+      "calculation_outcome": "Kết quả tính toán",
+      "paid_days": "Ngày công tính lương",
+      "segment_net": "Thực nhận phân đoạn",
+      "official_payslip": "Phiếu lương chính thức",
+      "bonus_detail": "Chi tiết phụ cấp/thưởng"
     },
     "incentives": {
       "title": "Chính sách Thưởng & Ưu đãi",

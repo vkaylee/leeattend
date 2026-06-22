@@ -1,5 +1,6 @@
 {
   "common": {
+    "id": "ID",
     "new_version_banner": {
       "title": "Đã có phiên bản mới",
       "refresh": "Tải lại",

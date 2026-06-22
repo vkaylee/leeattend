@@ -1,18 +1,19 @@
+import { type Row } from "@tanstack/react-table";
 import React, { useState, useEffect } from "react";
 
-interface UseSmartTableDragProps {
+interface UseSmartTableDragProps<T> {
   enableDragSelect: boolean;
   onSelectionChange?: (selectedIds: Set<string>) => void;
-  rows: any[];
+  rows: Row<T>[];
   selectedRowIds?: Set<string>;
 }
 
-export function useSmartTableDrag({
+export function useSmartTableDrag<T>({
   enableDragSelect,
   selectedRowIds,
   rows,
   onSelectionChange,
-}: UseSmartTableDragProps) {
+}: UseSmartTableDragProps<T>) {
   const [dragStartRow, setDragStartRow] = useState<number | null>(null);
   const [dragCurrentRow, setDragCurrentRow] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);

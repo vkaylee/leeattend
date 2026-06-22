@@ -1,5 +1,6 @@
 {
   "common": {
+    "id": "ID",
     "new_version_banner": {
       "title": "A new version is available",
       "refresh": "Refresh",
