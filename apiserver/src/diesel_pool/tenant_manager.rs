@@ -29,9 +29,8 @@ pub struct TenantPoolManager {
     system_db_url: String,
     system_db_pool: Option<DieselPool>,
     max_size: usize,
-    pools: RwLock<HashMap<Uuid, DieselPool>>,
+    pools: moka::future::Cache<Uuid, DieselPool>,
     url_cache: RwLock<HashMap<Uuid, String>>,
-    last_accessed: RwLock<HashMap<Uuid, std::time::Instant>>,
 }
 
 impl TenantPoolManager {
@@ -41,14 +40,18 @@ impl TenantPoolManager {
         system_db_pool: Option<DieselPool>,
         max_size: usize,
     ) -> Self {
+        let pools = moka::future::Cache::builder()
+            .max_capacity(50) // Giới hạn tối đa 50 tenant pools hoạt động đồng thời để tránh cạn kiệt connection
+            .time_to_idle(Duration::from_secs(1800)) // Tự động thu hồi sau 30 phút không hoạt động
+            .build();
+
         Self {
             base_url,
             system_db_url,
             system_db_pool,
             max_size,
-            pools: RwLock::new(HashMap::new()),
+            pools,
             url_cache: RwLock::new(HashMap::new()),
-            last_accessed: RwLock::new(HashMap::new()),
         }
     }
 
@@ -136,11 +139,8 @@ impl TenantPoolManager {
 
     async fn get_or_create_pool(&self, workspace_id: &Uuid) -> Result<DieselPool, AppError> {
         // Fast path
-        {
-            let pools = self.pools.read().await;
-            if let Some(pool) = pools.get(workspace_id) {
-                return Ok(pool.clone());
-            }
+        if let Some(pool) = self.pools.get(workspace_id).await {
+            return Ok(pool);
         }
 
         // Check if we have the tenant URL in the cache
@@ -214,66 +214,18 @@ impl TenantPoolManager {
 
         let pool = self.create_pool_from_url(&tenant_url)?;
 
-        // Acquire write lock to insert the new pool
-        let mut pools = self.pools.write().await;
-        let res = if let Some(existing) = pools.get(workspace_id) {
-            Ok(existing.clone())
-        } else {
-            pools.insert(*workspace_id, pool.clone());
-            Ok(pool)
-        };
-        drop(pools);
-        res
+        self.pools.insert(*workspace_id, pool.clone()).await;
+        Ok(pool)
     }
 
     pub fn start_eviction_task(self: &std::sync::Arc<Self>) {
-        let weak_self = std::sync::Arc::downgrade(self);
-        tokio::spawn(async move {
-            loop {
-                tokio::time::sleep(std::time::Duration::from_secs(60)).await;
-                let Some(manager) = weak_self.upgrade() else {
-                    tracing::info!("TenantPoolManager dropped, stopping eviction task.");
-                    break;
-                };
-                if let Err(e) = manager.evict_idle_pools().await {
-                    tracing::error!("Error during tenant connection pool eviction: {:?}", e);
-                }
-            }
-        });
+        // Tự động quản lý bởi Moka Cache
     }
 
+    #[allow(dead_code)]
     async fn evict_idle_pools(&self) -> Result<(), AppError> {
-        let now = std::time::Instant::now();
-        let idle_timeout = std::time::Duration::from_secs(1800); // 30 minutes
-
-        let mut pools_to_remove = Vec::new();
-        {
-            let accessed = self.last_accessed.read().await;
-            let pools = self.pools.read().await;
-            for &ws_id in pools.keys() {
-                let last_used = accessed.get(&ws_id).copied().unwrap_or(now);
-                if now.duration_since(last_used) > idle_timeout {
-                    pools_to_remove.push(ws_id);
-                }
-            }
-            drop(pools);
-            drop(accessed);
-        }
-
-        if !pools_to_remove.is_empty() {
-            let mut pools = self.pools.write().await;
-            let mut accessed = self.last_accessed.write().await;
-            for ws_id in pools_to_remove {
-                if let Some(pool) = pools.remove(&ws_id) {
-                    tracing::info!(workspace_id = %ws_id, "Evicting idle tenant connection pool");
-                    drop(pool);
-                }
-                accessed.remove(&ws_id);
-            }
-            drop(accessed);
-            drop(pools);
-        }
-
+        // Tự động quản lý bởi Moka Cache
+        self.pools.run_pending_tasks().await;
         Ok(())
     }
 }
@@ -282,12 +234,6 @@ impl TenantPoolManager {
 impl TenantConnectionProvider for TenantPoolManager {
     async fn get_connection(&self, workspace_id: &Uuid) -> Result<DieselConnection, AppError> {
         let pool = self.get_or_create_pool(workspace_id).await?;
-
-        {
-            let mut accessed = self.last_accessed.write().await;
-            accessed.insert(*workspace_id, std::time::Instant::now());
-        }
-
         pool.get()
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))
@@ -421,38 +367,14 @@ mod tests {
         let pool = manager.get_or_create_pool(&ws_id).await;
         assert!(pool.is_ok());
 
-        // 2. Set last accessed to 31 minutes ago
-        {
-            let mut last_accessed = manager.last_accessed.write().await;
-            let target_time = std::time::Instant::now()
-                .checked_sub(std::time::Duration::from_secs(1860))
-                .expect("Instant subtraction overflow");
-            last_accessed.insert(ws_id, target_time);
-        }
+        // 2. Verify it is in pools
+        assert!(manager.pools.get(&ws_id).await.is_some());
 
-        // 3. Verify it is in pools
-        {
-            let pools = manager.pools.read().await;
-            let contains = pools.contains_key(&ws_id);
-            drop(pools);
-            assert!(contains);
-        }
+        // 3. Invalidate
+        manager.pools.invalidate(&ws_id).await;
+        manager.pools.run_pending_tasks().await;
 
-        // 4. Run eviction
-        let evict_res = manager.evict_idle_pools().await;
-        assert!(evict_res.is_ok());
-
-        // 5. Verify it is removed from pools and last_accessed
-        {
-            let pools = manager.pools.read().await;
-            let contains_pool = pools.contains_key(&ws_id);
-            drop(pools);
-            assert!(!contains_pool);
-
-            let last_accessed = manager.last_accessed.read().await;
-            let contains_accessed = last_accessed.contains_key(&ws_id);
-            drop(last_accessed);
-            assert!(!contains_accessed);
-        }
+        // 4. Verify it is removed from pools
+        assert!(manager.pools.get(&ws_id).await.is_none());
     }
 }

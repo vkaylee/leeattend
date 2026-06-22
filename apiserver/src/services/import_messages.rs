@@ -264,6 +264,7 @@ impl AttendanceImportMessages {
 }
 
 /// Localized labels for Excel report output (Summary + Detail sheets).
+#[derive(Debug, Clone, Copy)]
 pub struct ExcelReportMessages {
     // Sheet names
     pub summary_sheet_name: &'static str,

@@ -16,6 +16,7 @@ pub mod common;
 // Domain modules - uncomment as migrated
 pub mod agent;
 pub mod approval;
+pub mod approval_workflow_tests;
 pub mod assignment_rule;
 pub mod attendance;
 pub mod audit;
@@ -38,6 +39,7 @@ pub mod roster;
 pub mod shift;
 pub mod shift_swap;
 pub mod system;
+pub mod tenant_provisioner_tests;
 pub mod workflow_callback;
 pub mod workspace;
 pub mod workspace_config;

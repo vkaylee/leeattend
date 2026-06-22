@@ -40,6 +40,7 @@ else
 fi
 log "Using: $COMPOSE"
 COMPOSE="$COMPOSE --profile migration"
+COMPOSE_DEV="$COMPOSE -f docker-compose.yml -f .compose/docker-compose.dev.yml"
 
 # ─── Check backup file ───
 if [ ! -f "dbbackup/bk.sql" ]; then
@@ -48,16 +49,17 @@ if [ ! -f "dbbackup/bk.sql" ]; then
 fi
 log "Backup file: dbbackup/bk.sql ($(du -h dbbackup/bk.sql | cut -f1))"
 
-# ─── Step 1: Start db + db_legacy ───
+# ─── Step 1: Start db_system + db_workspace + db_legacy ───
 log "Starting database services..."
-$COMPOSE up -d db
-$COMPOSE up -d db_legacy
+$COMPOSE_DEV up -d db_system
+$COMPOSE_DEV up -d db_workspace
+$COMPOSE_DEV up -d db_legacy
 
 # ─── Step 2: Wait for healthy ───
 log "Waiting for databases to be healthy..."
-for svc in db db_legacy; do
+for svc in db_system db_workspace db_legacy; do
     for i in $(seq 1 30); do
-        if $COMPOSE exec "$svc" pg_isready -q 2>/dev/null; then
+        if $COMPOSE exec "$svc" pg_isready -q 2>/dev/null || $COMPOSE exec "$svc" pg_isready -U postgres -q 2>/dev/null || $COMPOSE exec "$svc" pg_isready -U tenant_user -q 2>/dev/null; then
             ok "$svc is ready"
             break
         fi
@@ -71,33 +73,66 @@ done
 
 # ─── Step 3: Restore backup into db_legacy ───
 log "Checking if legacy data needs to be restored..."
-RAILWAY_EXISTS=$($COMPOSE exec db_legacy psql -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname='railway'" 2>/dev/null || echo "")
-if [ "$RAILWAY_EXISTS" = "1" ]; then
-    warn "Database 'railway' already exists in db_legacy, skipping restore"
+# Check if table 'employees' exists in 'railway' database
+RAILWAY_EXISTS=$($COMPOSE_DEV exec db_legacy psql -U postgres -d railway -tAc "SELECT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'employees');" 2>/dev/null || echo "")
+RAILWAY_EXISTS=$(echo "$RAILWAY_EXISTS" | tr -d '\r' | tr -d '\n' | tr -d ' ')
+if [ "$RAILWAY_EXISTS" = "t" ]; then
+    warn "Legacy database 'railway' with valid schema already exists, skipping restore"
 else
     log "Restoring backup into db_legacy (this may take a few minutes)..."
-    $COMPOSE exec db_legacy psql -U postgres -f /dbbackup/bk.sql > /dev/null 2>&1 || {
-        # pg_dumpall may have errors (role exists, etc.) — check if railway DB was created
-        RAILWAY_CHECK=$($COMPOSE exec db_legacy psql -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname='railway'" 2>/dev/null || echo "")
-        if [ "$RAILWAY_CHECK" != "1" ]; then
-            err "Failed to restore backup — 'railway' database not created"
+    $COMPOSE_DEV exec db_legacy psql -U postgres -c "DROP DATABASE IF EXISTS railway;" >/dev/null 2>&1 || true
+    $COMPOSE_DEV exec db_legacy psql -U postgres -c "CREATE DATABASE railway;" >/dev/null 2>&1 || true
+    $COMPOSE_DEV exec db_legacy pg_restore -U postgres --no-owner --no-acl -d railway /dbbackup/bk.sql > /dev/null 2>&1 || {
+        # Check if 'employees' table was created successfully
+        RAILWAY_CHECK=$($COMPOSE_DEV exec db_legacy psql -U postgres -d railway -tAc "SELECT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'employees');" 2>/dev/null || echo "")
+        RAILWAY_CHECK=$(echo "$RAILWAY_CHECK" | tr -d '\r' | tr -d '\n' | tr -d ' ')
+        if [ "$RAILWAY_CHECK" != "t" ]; then
+            err "Failed to restore backup — 'employees' table not created in 'railway' DB"
             exit 1
         fi
-        warn "Restore had some warnings (expected for pg_dumpall), but 'railway' DB exists"
+        warn "Restore had some warnings, but legacy schema exists"
     }
     ok "Backup restored successfully"
 fi
 
-# ─── Step 4: Run system migrations on db ───
-log "Ensuring system DB has migrations applied..."
-# The apiserver handles this on startup. For manual migration, we use diesel directly.
-# For now, we assume the db service has had migrations run by apiserver.
-# If not, user should start apiserver once to apply migrations.
+# Ensure workspaces table exists with tenant workspace ID (needed by migration script)
+$COMPOSE_DEV exec db_legacy psql -U postgres -d railway -c "CREATE TABLE IF NOT EXISTS public.workspaces (id uuid PRIMARY KEY, name varchar(100) NOT NULL);" >/dev/null
+$COMPOSE_DEV exec db_legacy psql -U postgres -d railway -c "INSERT INTO public.workspaces (id, name) VALUES ('6e913c39-24f3-45b5-877d-e307c3e10c88', 'Default Workspace') ON CONFLICT DO NOTHING;" >/dev/null
+
+# ─── Reset database schemas for rollback test ───
+log "Resetting database schemas to ensure clean state for migration rollback tests..."
+$COMPOSE exec db_system psql -U "${DB_USER:-admin}" -d "${DB_NAME:-leeattend}" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" >/dev/null
+$COMPOSE exec db_workspace psql -U tenant_user -d tenant_db -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" >/dev/null
+
+# Calculate number of migrations to test (all except initial squash migration)
+NUM_SYSTEM_MIGS=$(find apiserver/migrations/system -maxdepth 1 -mindepth 1 -type d | wc -l)
+NUM_SYSTEM_REVERT=$((NUM_SYSTEM_MIGS - 1))
+
+NUM_TENANT_MIGS=$(find apiserver/migrations/tenant -maxdepth 1 -mindepth 1 -type d | wc -l)
+NUM_TENANT_REVERT=$((NUM_TENANT_MIGS - 1))
+
+# 4.1: Test system migrations (run -> revert -> run again)
+log "Running rollback test for SYSTEM migrations (reverting $NUM_SYSTEM_REVERT migrations)..."
+$COMPOSE_DEV run --rm --no-deps -e DATABASE_URL="postgres://${DB_USER:-admin}:${DB_PASSWORD:-change_this_password_immediately}@db_system:5432/${DB_NAME:-leeattend}" --entrypoint diesel apiserver migration run --migration-dir ./migrations/system
+if [ "$NUM_SYSTEM_REVERT" -gt 0 ]; then
+    $COMPOSE_DEV run --rm --no-deps -e DATABASE_URL="postgres://${DB_USER:-admin}:${DB_PASSWORD:-change_this_password_immediately}@db_system:5432/${DB_NAME:-leeattend}" --entrypoint diesel apiserver migration revert --number "$NUM_SYSTEM_REVERT" --migration-dir ./migrations/system
+    $COMPOSE_DEV run --rm --no-deps -e DATABASE_URL="postgres://${DB_USER:-admin}:${DB_PASSWORD:-change_this_password_immediately}@db_system:5432/${DB_NAME:-leeattend}" --entrypoint diesel apiserver migration run --migration-dir ./migrations/system
+fi
+ok "SYSTEM migrations rollback test passed!"
+
+# 4.2: Test tenant migrations (run -> revert -> run again)
+log "Running rollback test for TENANT migrations (reverting $NUM_TENANT_REVERT migrations)..."
+$COMPOSE_DEV run --rm --no-deps -e DATABASE_URL="postgres://tenant_user:tenant_password@db_workspace:5432/tenant_db" --entrypoint diesel apiserver migration run --migration-dir ./migrations/tenant
+if [ "$NUM_TENANT_REVERT" -gt 0 ]; then
+    $COMPOSE_DEV run --rm --no-deps -e DATABASE_URL="postgres://tenant_user:tenant_password@db_workspace:5432/tenant_db" --entrypoint diesel apiserver migration revert --number "$NUM_TENANT_REVERT" --migration-dir ./migrations/tenant
+    $COMPOSE_DEV run --rm --no-deps -e DATABASE_URL="postgres://tenant_user:tenant_password@db_workspace:5432/tenant_db" --entrypoint diesel apiserver migration run --migration-dir ./migrations/tenant
+fi
+ok "TENANT migrations rollback test passed!"
 
 # ─── Step 5: Determine ports ───
 # Find the host port mappings for the containers
-DB_PORT=$($COMPOSE port db 5432 2>/dev/null | cut -d: -f2 || echo "5432")
-DB_LEGACY_PORT=$($COMPOSE port db_legacy 5432 2>/dev/null | cut -d: -f2 || echo "")
+DB_PORT=$($COMPOSE_DEV port db_system 5432 2>/dev/null | cut -d: -f2 || echo "5434")
+DB_LEGACY_PORT=$($COMPOSE_DEV port db_legacy 5432 2>/dev/null | cut -d: -f2 || echo "5433")
 
 if [ -z "$DB_LEGACY_PORT" ]; then
     warn "db_legacy port not exposed, will try internal docker network"

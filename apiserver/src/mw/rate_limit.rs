@@ -69,19 +69,21 @@ pub struct RateLimitLayer {
     redis: Option<RedisPool>,
     config: RateLimitConfig,
     jwt_secret: String,
+    in_memory_cache: moka::future::Cache<String, u64>,
 }
 
 impl RateLimitLayer {
     #[must_use]
-    pub const fn new(
-        redis: Option<RedisPool>,
-        config: RateLimitConfig,
-        jwt_secret: String,
-    ) -> Self {
+    pub fn new(redis: Option<RedisPool>, config: RateLimitConfig, jwt_secret: String) -> Self {
+        let in_memory_cache = moka::future::Cache::builder()
+            .max_capacity(10000)
+            .time_to_live(std::time::Duration::from_secs(config.window_secs))
+            .build();
         Self {
             redis,
             config,
             jwt_secret,
+            in_memory_cache,
         }
     }
 }
@@ -95,6 +97,7 @@ impl<S> Layer<S> for RateLimitLayer {
             redis: self.redis.clone(),
             config: self.config.clone(),
             jwt_secret: self.jwt_secret.clone(),
+            in_memory_cache: self.in_memory_cache.clone(),
         }
     }
 }
@@ -108,6 +111,7 @@ pub struct RateLimitService<S> {
     redis: Option<RedisPool>,
     config: RateLimitConfig,
     jwt_secret: String,
+    in_memory_cache: moka::future::Cache<String, u64>,
 }
 
 impl<S> Service<Request<Body>> for RateLimitService<S>
@@ -133,12 +137,8 @@ where
         // Swap so self.inner is the clone (ready) and inner is the original
         std::mem::swap(&mut self.inner, &mut inner);
 
+        let in_memory_cache = self.in_memory_cache.clone();
         Box::pin(async move {
-            // Fail-open: if Redis unavailable, allow request through
-            let Some(pool) = redis else {
-                return inner.call(req).await;
-            };
-
             // ── Resolve identity: user_id (from JWT) or IP ─────────
             let identity = resolve_identity(&req, &jwt_secret);
 
@@ -159,35 +159,53 @@ where
             // Key format: rate:{user_or_ip}:{r|w}:{path_template}
             let key = format!("rate:{identity}:{tier}:{matched_path}");
 
-            // Try rate check — fail-open on Redis errors
-            match check_rate(&pool, &key, max_requests, config.window_secs).await {
-                Ok(true) => inner.call(req).await,
-                Ok(false) => {
-                    tracing::warn!(
-                        identity = %identity,
-                        path = %req.uri().path(),
-                        matched_path = %matched_path,
-                        tier = %tier,
-                        limit = %max_requests,
-                        "Rate limit exceeded"
-                    );
-                    let response = (
-                        StatusCode::TOO_MANY_REQUESTS,
-                        [("Retry-After", config.window_secs.to_string())],
-                        Json(serde_json::json!({
-                            "error": {
-                                "code": "RATE_LIMITED",
-                                "message": "Too many requests. Please try again later."
-                            }
-                        })),
-                    )
-                        .into_response();
-                    Ok(response)
+            // Local helper for in-memory fallback check
+            let in_memory_check = async {
+                let current = in_memory_cache.get(&key).await.unwrap_or(0);
+                let next = current + 1;
+                in_memory_cache.insert(key.clone(), next).await;
+                next <= max_requests
+            };
+
+            // Check limit using Redis if available, fallback to in-memory cache
+            let is_allowed = if let Some(ref pool) = redis {
+                match check_rate(pool, &key, max_requests, config.window_secs).await {
+                    Ok(allowed) => allowed,
+                    Err(e) => {
+                        tracing::error!(error = %e, "Rate limiter Redis error — falling back to in-memory rate limiting");
+                        in_memory_check.await
+                    }
                 }
-                Err(e) => {
-                    tracing::error!(error = %e, "Rate limiter Redis error — allowing request");
-                    inner.call(req).await
-                }
+            } else {
+                tracing::warn!(
+                    "Redis pool not configured — falling back to in-memory rate limiting"
+                );
+                in_memory_check.await
+            };
+
+            if is_allowed {
+                inner.call(req).await
+            } else {
+                tracing::warn!(
+                    identity = %identity,
+                    path = %req.uri().path(),
+                    matched_path = %matched_path,
+                    tier = %tier,
+                    limit = %max_requests,
+                    "Rate limit exceeded"
+                );
+                let response = (
+                    StatusCode::TOO_MANY_REQUESTS,
+                    [("Retry-After", config.window_secs.to_string())],
+                    Json(serde_json::json!({
+                        "error": {
+                            "code": "RATE_LIMITED",
+                            "message": "Too many requests. Please try again later."
+                        }
+                    })),
+                )
+                    .into_response();
+                Ok(response)
             }
         })
     }

@@ -358,17 +358,23 @@ impl MergeHandler {
             }
         }
 
-        // Generate Excel
-        let excel_data = ExcelWriter::write_summary(
-            &all_summaries,
-            workspace_name,
-            date_range,
-            msgs,
-            &cf_headers,
-            &cf_values_map,
-        )?;
-
         let total_records = all_summaries.len();
+        let ws_name = workspace_name.to_string();
+        let messages = *msgs;
+
+        // Generate Excel in thread pool
+        let excel_data = tokio::task::spawn_blocking(move || {
+            ExcelWriter::write_summary(
+                &all_summaries,
+                &ws_name,
+                date_range,
+                &messages,
+                &cf_headers,
+                &cf_values_map,
+            )
+        })
+        .await
+        .map_err(|e| AppError::Internal(format!("Excel generation join error: {e}")))??;
 
         let file_name = format!(
             "attendance_summary_{}_{}.xlsx",
@@ -380,6 +386,7 @@ impl MergeHandler {
     }
 
     /// Merge detail results from all batches.
+    #[allow(clippy::too_many_lines)]
     async fn merge_detail_results(
         batch_results: &[(String, String)],
         workspace_name: &str,
@@ -480,19 +487,26 @@ impl MergeHandler {
             }
         }
 
-        // Generate Excel
-        let excel_data = ExcelWriter::write_detail(
-            &all_reports,
-            workspace_name,
-            date_range,
-            timezone,
-            work_unit_minutes,
-            msgs,
-            &cf_headers,
-            &cf_values_map,
-        )?;
-
         let total_records = all_reports.len();
+        let ws_name = workspace_name.to_string();
+        let tz = timezone.to_string();
+        let messages = *msgs;
+
+        // Generate Excel in thread pool
+        let excel_data = tokio::task::spawn_blocking(move || {
+            ExcelWriter::write_detail(
+                &all_reports,
+                &ws_name,
+                date_range,
+                &tz,
+                work_unit_minutes,
+                &messages,
+                &cf_headers,
+                &cf_values_map,
+            )
+        })
+        .await
+        .map_err(|e| AppError::Internal(format!("Excel generation join error: {e}")))??;
 
         let file_name = format!(
             "attendance_detail_{}_{}.xlsx",

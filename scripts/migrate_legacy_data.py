@@ -19,6 +19,7 @@ import time
 import json
 import psycopg2
 import psycopg2.extras
+import uuid
 from contextlib import contextmanager
 
 # ─────────────────────────────────────────────────────────────────────
@@ -166,6 +167,48 @@ def get_json_columns(conn, table_name: str) -> set[str]:
 COLUMN_RENAMES = {
     "working_pattern_details": {
         "day_of_week": "schedule_day",
+    },
+    "employee_working_patterns": {
+        "employee_id": "employment_id",
+    },
+    "raw_attendance_logs": {
+        "employee_id": "employment_id",
+    },
+    "time_entries": {
+        "employee_id": "employment_id",
+    },
+    "attendance_daily_summaries": {
+        "employee_id": "employment_id",
+    },
+    "leave_balances": {
+        "employee_id": "employment_id",
+    },
+    "leave_requests": {
+        "employee_id": "employment_id",
+    },
+    "shift_rosters": {
+        "employee_id": "employment_id",
+    },
+    "working_conditions": {
+        "employee_id": "employment_id",
+    },
+    "employee_contracts": {
+        "employee_id": "employment_id",
+    },
+    "employee_salary_components": {
+        "employee_id": "employment_id",
+    },
+    "employee_shifts": {
+        "employee_id": "employment_id",
+    },
+    "leave_accrual_logs": {
+        "employee_id": "employment_id",
+    },
+    "overtime_request_employees": {
+        "employee_id": "employment_id",
+    },
+    "payslips": {
+        "employee_id": "employment_id",
     },
 }
 
@@ -509,12 +552,54 @@ def provision_tenant_db(sys_conn, workspace_id: str) -> str:
     return tenant_url
 
 
+def populate_employments_from_employees(tenant_conn, workspace_id):
+    """Create default employer and employment records for each employee in the tenant DB."""
+    log("  Populating default employers and employments for legacy employees...")
+    cur = tenant_conn.cursor()
+    
+    # 1. Ensure we have an employer
+    cur.execute("SELECT id FROM public.employers WHERE workspace_id = %s LIMIT 1", (workspace_id,))
+    employer_row = cur.fetchone()
+    if employer_row:
+        employer_id = employer_row[0]
+    else:
+        employer_id = str(uuid.uuid4())
+        cur.execute(
+            "INSERT INTO public.employers (id, workspace_id, name) VALUES (%s, %s, %s)",
+            (employer_id, workspace_id, "Default Employer")
+        )
+        tenant_conn.commit()
+        log(f"    Created default employer: {employer_id}")
+        
+    # 2. Get all employees
+    cur.execute("SELECT id, hire_date, created_at FROM public.employees")
+    employees = cur.fetchall()
+    
+    # 3. Create employment for each employee, using employee_id as employment_id
+    inserted = 0
+    for emp_id, hire_date, created_at in employees:
+        start_date = hire_date if hire_date else (created_at.date() if created_at else time.strftime('%Y-%m-%d'))
+        cur.execute(
+            """
+            INSERT INTO public.employments (
+                id, workspace_id, employee_id, employer_id, status, start_date, created_at, updated_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT DO NOTHING
+            """,
+            (emp_id, workspace_id, emp_id, employer_id, "active", start_date, created_at, created_at)
+        )
+        inserted += cur.rowcount
+        
+    tenant_conn.commit()
+    log_ok(f"    Created {inserted} default employment record(s)")
+
+
 # ─────────────────────────────────────────────────────────────────────
 # Phase 3: Tenant DB Data Migration
 # ─────────────────────────────────────────────────────────────────────
 
 
-def migrate_tenant_data(src_conn, tenant_url: str):
+def migrate_tenant_data(src_conn, tenant_url: str, workspace_id: str):
     """Migrate tenant-level tables."""
     log("═══════════════════════════════════════")
     log("Phase 3: Tenant DB Data Migration")
@@ -614,6 +699,8 @@ def migrate_tenant_data(src_conn, tenant_url: str):
             continue
         try:
             migrate_table_data(src_conn, tenant_conn, table)
+            if table == "employees":
+                populate_employments_from_employees(tenant_conn, workspace_id)
         except Exception as e:
             log_err(f"  Failed to migrate {table}: {e}")
             # Continue with other tables
@@ -744,7 +831,7 @@ def main():
         tenant_url = provision_tenant_db(sys_conn, ws_id_str)
 
         # Phase 3: Migrate tenant data
-        migrate_tenant_data(src_conn, tenant_url)
+        migrate_tenant_data(src_conn, tenant_url, ws_id_str)
 
     # Phase 4: Verify
     # Use first workspace for verification
