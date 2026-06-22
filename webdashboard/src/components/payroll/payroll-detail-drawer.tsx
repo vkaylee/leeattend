@@ -128,7 +128,10 @@ export default function PayrollDetailDrawer({
     <Dialog.Root onOpenChange={onClose} open={isOpen}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-slate-900/20 backdrop-blur-lg z-50 animate-in fade-in duration-500" />
-        <Dialog.Content className="fixed top-0 right-0 h-full w-full max-w-3xl bg-white dark:bg-slate-900 shadow-premium-2xl z-50 animate-in slide-in-from-right duration-500 flex flex-col outline-none">
+        <Dialog.Content
+          aria-describedby={undefined}
+          className="fixed top-0 right-0 h-full w-full max-w-3xl bg-white dark:bg-slate-900 shadow-premium-2xl z-50 animate-in slide-in-from-right duration-500 flex flex-col outline-none"
+        >
           {/* Header */}
           <PayrollDetailHeader employee={employee} />
 

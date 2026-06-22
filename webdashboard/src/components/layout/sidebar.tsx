@@ -184,7 +184,7 @@ function useSidebarMenuItems(): MenuItem[] {
         { to: ROUTES.ATTENDANCE_ADJUSTMENTS, icon: ClipboardCheck, label: t("common.attendance_confirm"), testId: "sidebar-link-attendance-adjustments", permissions: ["attendance:adjustments:approve", "attendance:adjustments:submit_on_behalf"] },
         { to: ROUTES.SHIFT_SWAPS, icon: ArrowLeftRight, label: t("shift_swaps.title"), testId: "sidebar-link-shift-swaps", permissions: ["shift_swaps:manage"] },
         { to: ROUTES.REPORTS, icon: BarChart3, label: t("common.reports"), testId: "sidebar-link-reports", permissions: ["reports:read"] },
-        { to: ROUTES.APPROVALS_OT, icon: CheckCircle, label: "OT Approvals", testId: "sidebar-link-approvals-ot", permissions: ["overtime:approve", "overtime:claim_on_behalf"] }
+        { to: ROUTES.APPROVALS_OT, icon: CheckCircle, label: t("ot_approvals.title", "OT Approvals"), testId: "sidebar-link-approvals-ot", permissions: ["overtime:approve", "overtime:claim_on_behalf"] }
       ]
     },
     {
@@ -198,8 +198,8 @@ function useSidebarMenuItems(): MenuItem[] {
     {
       section: "system", sectionIcon: Wrench, label: t("settings.title"), testId: "sidebar-section-system", items: [
         { to: ROUTES.INFRA_MONITOR, icon: Activity, label: t("monitor.title"), testId: "sidebar-link-monitor", systemRoles: ["platform_admin", "support"] },
-        { to: ROUTES.SYSTEM_ROLES, icon: ShieldCheck, label: "Platform Admins", testId: "sidebar-link-system-roles", systemRoles: ["platform_admin"] },
-        { to: ROUTES.SYSTEM_DB_CLUSTERS, icon: Server, label: "DB Clusters", testId: "sidebar-link-system-db-clusters", systemRoles: ["platform_admin"] },
+        { to: ROUTES.SYSTEM_ROLES, icon: ShieldCheck, label: t("system_roles.title", "Platform Admins"), testId: "sidebar-link-system-roles", systemRoles: ["platform_admin"] },
+        { to: ROUTES.SYSTEM_DB_CLUSTERS, icon: Server, label: t("db_clusters.title", "DB Clusters"), testId: "sidebar-link-system-db-clusters", systemRoles: ["platform_admin"] },
         { to: ROUTES.SYSTEM_TENANTS, icon: Database, label: t("system_admin.tenants.title"), testId: "sidebar-link-system-tenants", systemRoles: ["platform_admin"] },
         { to: ROUTES.SETTINGS.ROOT, icon: Settings, label: t("settings.title"), testId: "sidebar-link-settings-root", permissions: ["workspace:settings:read", "members:roles:manage"] }
       ]

@@ -72,6 +72,7 @@ export default function Modal({
           )}
           data-testid={testId}
           style={{ maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
+          {...(subtitle ? {} : { "aria-describedby": undefined })}
         >
           {!title && <Dialog.Title className="sr-only">Dialog</Dialog.Title>}
           {!subtitle && <Dialog.Description className="sr-only">Dialog description</Dialog.Description>}

@@ -1,4 +1,7 @@
 {
+  "db_clusters": {
+    "title": "数据库集群"
+  },
   "rolesPage": {
     "confirmDelete": "确认删除",
     "createRole": "创建角色",

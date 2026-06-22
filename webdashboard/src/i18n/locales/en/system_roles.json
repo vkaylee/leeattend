@@ -1,4 +1,7 @@
 {
+  "db_clusters": {
+    "title": "DB Clusters"
+  },
   "rolesPage": {
     "confirmDelete": "Confirm Delete",
     "createRole": "Create Role",

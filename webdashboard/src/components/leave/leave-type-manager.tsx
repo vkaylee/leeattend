@@ -356,7 +356,8 @@ function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: EditLeaveT
             </div>
           </div>
 
-          <label className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 cursor-pointer">
+          <label className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 cursor-pointer" htmlFor="approval-req-input">
+            <span className="sr-only">{t("settings.leave.type_manager.approval_required", "Approval Required")}</span>
             <div className="flex items-center gap-3">
               <div className="h-9 w-9 rounded-xl bg-primary-50 dark:bg-primary-950/50 text-primary-600 flex items-center justify-center shadow-inner shrink-0">
                 <Plus size={16} />
@@ -382,7 +383,8 @@ function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: EditLeaveT
             </div>
           </label>
 
-          <label className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 cursor-pointer">
+          <label className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 cursor-pointer" htmlFor="doc-req-input">
+            <span className="sr-only">{t("settings.leave.type_manager.requires_document", "Requires Document")}</span>
             <div className="flex items-center gap-3">
               <div className="h-9 w-9 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 flex items-center justify-center shadow-inner shrink-0">
                 <Sparkles size={16} />
@@ -408,7 +410,8 @@ function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: EditLeaveT
             </div>
           </label>
 
-          <label className="flex items-center justify-between p-4 cursor-pointer">
+          <label className="flex items-center justify-between p-4 cursor-pointer" htmlFor="negative-bal-input">
+            <span className="sr-only">{t("settings.leave.type_manager.negative_balance", "Negative Balance")}</span>
             <div className="flex items-center gap-3">
               <div className="h-9 w-9 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 flex items-center justify-center shadow-inner shrink-0">
                 <AlertTriangle size={16} />

@@ -1,4 +1,7 @@
 {
+  "db_clusters": {
+    "title": "Cụm Cơ sở Dữ liệu"
+  },
   "rolesPage": {
     "confirmDelete": "Xác nhận xóa",
     "createRole": "Tạo vai trò",

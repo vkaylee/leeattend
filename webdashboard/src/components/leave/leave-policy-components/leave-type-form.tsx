@@ -69,6 +69,7 @@ export function LeaveTypeForm({
         </div>
 
         <label className="flex items-center justify-between p-5 rounded-[2rem] bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 cursor-pointer" htmlFor="paid-leave-input">
+          <span className="sr-only">{t("settings.leave.type_form.paid_status", "Paid Status")}</span>
           <div className="flex items-center gap-3">
             <div
               className={cn(
