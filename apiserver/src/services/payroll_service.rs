@@ -251,13 +251,15 @@ impl PayrollService {
 
         let roster_data = self.roster_provider.get_roster_data(workspace_id).await?;
 
-        let rosters = self
+        let (rosters, _) = self
             .roster_repo
             .get_employment_rosters(
                 &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
                 active_emp_id,
                 start_date,
                 end_date,
+                None,
+                None,
             )
             .await?;
         let payroll_roster_map: HashMap<(Uuid, NaiveDate), Option<Uuid>> = rosters

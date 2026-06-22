@@ -497,13 +497,15 @@ impl LeaveService {
         }
 
         // 3. Fetch rosters for the date range
-        let rosters = self
+        let (rosters, _) = self
             .roster_repo
             .get_employment_rosters(
                 &auth_token,
                 req.employment_id(),
                 req.start_date(),
                 req.end_date(),
+                None,
+                None,
             )
             .await?;
 
@@ -1086,14 +1088,17 @@ mod tests {
             _s: NaiveDate,
             _en: NaiveDate,
             _e: Option<&Vec<Uuid>>,
-        ) -> Result<Vec<crate::models::EmployeeSchedule>, AppError> {
+            _page: Option<i64>,
+            _limit: Option<i64>,
+        ) -> Result<(Vec<crate::models::EmployeeSchedule>, i64), AppError> {
             unimplemented!()
         }
         async fn get_assignment_history(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _l: i64,
-        ) -> Result<Vec<crate::models::AssignmentHistory>, AppError> {
+            _page: Option<i64>,
+            _limit: Option<i64>,
+        ) -> Result<(Vec<crate::models::AssignmentHistory>, i64), AppError> {
             unimplemented!()
         }
         async fn get_employment_rosters(
@@ -1102,8 +1107,10 @@ mod tests {
             _employment_id: Uuid,
             _s: NaiveDate,
             _en: NaiveDate,
-        ) -> Result<Vec<ShiftRoster>, AppError> {
-            Ok(vec![])
+            _page: Option<i64>,
+            _limit: Option<i64>,
+        ) -> Result<(Vec<ShiftRoster>, i64), AppError> {
+            Ok((vec![], 0))
         }
     }
 
@@ -2020,7 +2027,7 @@ mod tests {
         let mut ros_repo = crate::repositories::roster::MockRosterRepository::new();
         ros_repo
             .expect_get_employment_rosters()
-            .returning(|_, _, _, _| Box::pin(async move { Ok(vec![]) }));
+            .returning(|_, _, _, _, _, _| Box::pin(async move { Ok((vec![], 0)) }));
 
         // 4. Mock config repo: returns "auto_cancel" policy
         let mut config_repo =
@@ -2170,7 +2177,7 @@ mod tests {
         let mut ros_repo = crate::repositories::roster::MockRosterRepository::new();
         ros_repo
             .expect_get_employment_rosters()
-            .returning(|_, _, _, _| Box::pin(async move { Ok(vec![]) }));
+            .returning(|_, _, _, _, _, _| Box::pin(async move { Ok((vec![], 0)) }));
 
         // 4. Mock config repo: returns "notify" policy
         let mut config_repo =

@@ -61,8 +61,9 @@ async fn test_get_workspace_schedules_empty() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let schedules = body_json(resp).await;
-    assert!(schedules.as_array().unwrap().is_empty());
+    let body = body_json(resp).await;
+    let schedules = body.get("data").unwrap().as_array().unwrap();
+    assert!(schedules.is_empty());
 }
 
 #[tokio::test]
@@ -107,8 +108,9 @@ async fn test_get_assignment_history_empty() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let history = body_json(resp).await;
-    assert!(history.as_array().unwrap().is_empty());
+    let body = body_json(resp).await;
+    let history = body.get("data").unwrap().as_array().unwrap();
+    assert!(history.is_empty());
 }
 
 #[tokio::test]
@@ -132,8 +134,9 @@ async fn test_get_employee_rosters_empty() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let rosters = body_json(resp).await;
-    assert!(rosters.as_array().unwrap().is_empty());
+    let body = body_json(resp).await;
+    let rosters = body.get("data").unwrap().as_array().unwrap();
+    assert!(rosters.is_empty());
 }
 
 #[tokio::test]

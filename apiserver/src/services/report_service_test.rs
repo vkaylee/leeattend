@@ -831,14 +831,17 @@ mod tests {
             _s: NaiveDate,
             _e: NaiveDate,
             _emp: Option<&Vec<Uuid>>,
-        ) -> Result<Vec<EmployeeSchedule>, AppError> {
+            _page: Option<i64>,
+            _limit: Option<i64>,
+        ) -> Result<(Vec<EmployeeSchedule>, i64), AppError> {
             unimplemented!()
         }
         async fn get_assignment_history(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _l: i64,
-        ) -> Result<Vec<AssignmentHistory>, AppError> {
+            _page: Option<i64>,
+            _limit: Option<i64>,
+        ) -> Result<(Vec<AssignmentHistory>, i64), AppError> {
             unimplemented!()
         }
         async fn get_employment_rosters(
@@ -847,7 +850,9 @@ mod tests {
             _employment_id: Uuid,
             _s: NaiveDate,
             _en: NaiveDate,
-        ) -> Result<Vec<ShiftRoster>, AppError> {
+            _page: Option<i64>,
+            _limit: Option<i64>,
+        ) -> Result<(Vec<ShiftRoster>, i64), AppError> {
             unimplemented!()
         }
         async fn upsert_roster(
@@ -1942,8 +1947,10 @@ mod tests {
             _s: NaiveDate,
             _e: NaiveDate,
             _emp: Option<&Vec<Uuid>>,
-        ) -> Result<Vec<EmployeeSchedule>, AppError> {
-            Ok(vec![EmployeeSchedule::new(
+            _page: Option<i64>,
+            _limit: Option<i64>,
+        ) -> Result<(Vec<EmployeeSchedule>, i64), AppError> {
+            let list = vec![EmployeeSchedule::new(
                 Uuid::nil(),
                 Uuid::nil(),
                 "EMP001".into(),
@@ -1969,13 +1976,16 @@ mod tests {
                     false,
                     None,
                 )],
-            )])
+            )];
+            let total = list.len() as i64;
+            Ok((list, total))
         }
         async fn get_assignment_history(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
-            _l: i64,
-        ) -> Result<Vec<AssignmentHistory>, AppError> {
+            _page: Option<i64>,
+            _limit: Option<i64>,
+        ) -> Result<(Vec<AssignmentHistory>, i64), AppError> {
             unimplemented!()
         }
         async fn get_employment_rosters(
@@ -1984,7 +1994,9 @@ mod tests {
             _employment_id: Uuid,
             _s: NaiveDate,
             _en: NaiveDate,
-        ) -> Result<Vec<ShiftRoster>, AppError> {
+            _page: Option<i64>,
+            _limit: Option<i64>,
+        ) -> Result<(Vec<ShiftRoster>, i64), AppError> {
             unimplemented!()
         }
         async fn upsert_roster(

@@ -54,6 +54,10 @@ impl OutboxJob {
         &self.payload
     }
 
+    pub fn trace_context(&self) -> Option<&str> {
+        self.payload.get("_trace_context").and_then(|v| v.as_str())
+    }
+
     pub fn status(&self) -> &str {
         &self.status
     }

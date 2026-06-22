@@ -65,6 +65,29 @@ impl SystemDbClusterRepository for DieselSystemDbClusterRepository {
         Ok(())
     }
 
+    async fn decrement_active_tenants(&self, cluster_id: Uuid) -> Result<(), AppError> {
+        use crate::schema::system_db_clusters::dsl::*;
+
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.pool
+                .api
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(format!("Failed to get connection: {e}")))?,
+        );
+
+        diesel::update(system_db_clusters.filter(id.eq(cluster_id)))
+            .set((
+                active_tenants.eq(active_tenants - 1),
+                updated_at.eq(chrono::Utc::now()),
+            ))
+            .execute(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("Database error: {e}")))?;
+
+        Ok(())
+    }
+
     async fn create_cluster(
         &self,
         cluster: &NewSystemDbCluster,

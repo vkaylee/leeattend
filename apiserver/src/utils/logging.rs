@@ -264,6 +264,17 @@ where
     }
 }
 
+tokio::task_local! {
+    pub static CURRENT_TRACE_CONTEXT: String;
+}
+
+pub fn get_trace_context() -> Option<String> {
+    CURRENT_TRACE_CONTEXT
+        .try_with(|s| if s.is_empty() { None } else { Some(s.clone()) })
+        .ok()
+        .flatten()
+}
+
 // ── Unit Tests ──────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -279,5 +290,18 @@ mod tests {
         assert_eq!(mask_pii_value("password", "supersecret123"), "[REDACTED]");
         assert_eq!(mask_pii_value("user_phone", "0987654321"), "098****321");
         assert_eq!(mask_pii_value("normal_field", "value"), "value");
+    }
+
+    #[tokio::test]
+    async fn test_trace_context_task_local() {
+        assert!(get_trace_context().is_none());
+
+        CURRENT_TRACE_CONTEXT
+            .scope("test-trace-id".to_string(), async {
+                assert_eq!(get_trace_context(), Some("test-trace-id".to_string()));
+            })
+            .await;
+
+        assert!(get_trace_context().is_none());
     }
 }

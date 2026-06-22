@@ -44,7 +44,7 @@ pub(crate) async fn fetch_schedules_for_range(
     start_date: NaiveDate,
     end_date: NaiveDate,
 ) -> Result<crate::models::EmployeeSchedule, AppError> {
-    let schedules = service
+    let (schedules, _total) = service
         .roster_repo
         .get_workspace_schedules(
             None,
@@ -52,6 +52,8 @@ pub(crate) async fn fetch_schedules_for_range(
             start_date,
             end_date,
             Some(&vec![employment_id]),
+            None,
+            None,
         )
         .await?;
 

@@ -408,6 +408,7 @@ mod tests {
             created_at: chrono::Utc::now(),
             retry_count: 0,
             max_retries: 3,
+            trace_context: None,
         };
 
         let result = LeaveImportHandler::handle(&job, &cache_arc, &queue_arc, &deps).await;

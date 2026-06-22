@@ -34,11 +34,12 @@ impl ReportService {
         let tz: Tz = crate::utils::tz::parse_workspace_tz(workspace.timezone());
 
         // 2. Get schedules for ALL active employees (reuses 6-priority chain logic)
-        let schedules = self
+        let (schedules, _) = self
             .roster_repo
             .get_workspace_schedules(
                 None, // Cache is option, query DB directly
                 auth_token, start_date, end_date, None, // all employees
+                None, None,
             )
             .await
             .map_err(|e| AppError::Internal(format!("Error fetching schedules: {e}")))?;

@@ -23,6 +23,15 @@ impl OutboxJobService {
         payload: serde_json::Value,
     ) -> Result<OutboxJob, AppError> {
         let auth_token = TenantAuthToken::system_override(workspace_id);
+        let mut payload = payload;
+        if let Some(trace_ctx) = crate::utils::logging::get_trace_context() {
+            if let Some(obj) = payload.as_object_mut() {
+                obj.insert(
+                    "_trace_context".to_string(),
+                    serde_json::Value::String(trace_ctx),
+                );
+            }
+        }
         self.outbox_repo
             .insert_job(&auth_token, id, job_type, payload)
             .await
@@ -254,5 +263,48 @@ mod tests {
             .update_job_status(ws_id, job_id, status, err_msg)
             .await;
         assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_create_job_with_trace_context() {
+        let ws_id = Uuid::new_v4();
+        let job_id = Uuid::new_v4();
+        let payload = json!({"test": "data"});
+        let job_type = "TestJob";
+
+        let mut mock_repo = MockOutboxJobRepository::new();
+        let expected_job = OutboxJob::new(
+            job_id,
+            ws_id,
+            job_type.to_string(),
+            json!({"test": "data", "_trace_context": "test-request-id-123"}),
+            "pending".to_string(),
+            None,
+            chrono::Utc::now(),
+            chrono::Utc::now(),
+        );
+
+        let expected_clone = expected_job.clone();
+        mock_repo
+            .expect_insert_job()
+            .withf(move |auth_token, id, j_type, p| {
+                auth_token.workspace_id() == ws_id
+                    && *id == job_id
+                    && j_type == "TestJob"
+                    && *p == json!({"test": "data", "_trace_context": "test-request-id-123"})
+            })
+            .returning(move |_, _, _, _| Ok(expected_clone.clone()));
+
+        let service = OutboxJobService::new(Arc::new(mock_repo));
+
+        let result = crate::utils::logging::CURRENT_TRACE_CONTEXT
+            .scope("test-request-id-123".to_string(), async {
+                service.create_job(ws_id, job_id, job_type, payload).await
+            })
+            .await;
+
+        assert!(result.is_ok());
+        let job = result.unwrap();
+        assert_eq!(job.trace_context(), Some("test-request-id-123"));
     }
 }

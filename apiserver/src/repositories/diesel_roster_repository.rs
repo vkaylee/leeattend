@@ -33,7 +33,9 @@ impl RosterRepository for DieselRosterRepository {
         start_date: NaiveDate,
         end_date: NaiveDate,
         employment_ids: Option<&Vec<Uuid>>,
-    ) -> Result<Vec<EmployeeSchedule>, AppError> {
+        page: Option<i64>,
+        limit: Option<i64>,
+    ) -> Result<(Vec<EmployeeSchedule>, i64), AppError> {
         let workspace_id = auth_token.workspace_id();
         // 1. Fetch Roster Data (Cache or DB)
         let roster_data = match roster_cache {
@@ -71,6 +73,39 @@ impl RosterRepository for DieselRosterRepository {
                         .is_null()
                         .or(crate::schema::employments::end_date.ge(start_date)),
                 );
+        }
+
+        let total = if page.is_some() || limit.is_some() {
+            let mut count_query = crate::schema::employees::table
+                .inner_join(crate::schema::employments::table)
+                .filter(crate::schema::employees::workspace_id.eq(workspace_id))
+                .filter(crate::schema::employments::deleted_at.is_null())
+                .into_boxed();
+
+            if let Some(ids) = employment_ids {
+                count_query = count_query.filter(crate::schema::employments::id.eq_any(ids));
+            } else {
+                count_query = count_query
+                    .filter(crate::schema::employments::start_date.le(end_date))
+                    .filter(
+                        crate::schema::employments::end_date
+                            .is_null()
+                            .or(crate::schema::employments::end_date.ge(start_date)),
+                    );
+            }
+            count_query
+                .count()
+                .get_result::<i64>(&mut *conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("db count: {e}")))?
+        } else {
+            0
+        };
+
+        if let (Some(p), Some(l)) = (page, limit) {
+            let limit_val = l.clamp(1, 3000);
+            let offset_val = (p.max(1) - 1) * limit_val;
+            query = query.limit(limit_val).offset(offset_val);
         }
 
         let employees_entities_raw = query
@@ -328,14 +363,21 @@ impl RosterRepository for DieselRosterRepository {
             ));
         }
 
-        Ok(result)
+        let total = if page.is_some() || limit.is_some() {
+            total
+        } else {
+            i64::try_from(result.len()).unwrap_or(0)
+        };
+
+        Ok((result, total))
     }
 
     async fn get_assignment_history(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        limit: i64,
-    ) -> Result<Vec<crate::models::AssignmentHistory>, AppError> {
+        page: Option<i64>,
+        limit: Option<i64>,
+    ) -> Result<(Vec<crate::models::AssignmentHistory>, i64), AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -344,6 +386,58 @@ impl RosterRepository for DieselRosterRepository {
                 .await
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
+
+        #[derive(diesel::QueryableByName)]
+        struct CountResult {
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
+            count: i64,
+        }
+
+        let count_res = diesel::sql_query(
+            r"
+            SELECT COUNT(*)::BIGINT as count FROM (
+                -- Fixed Assignments
+                SELECT
+                    es.id,
+                    emp.employee_id,
+                    es.created_at
+                FROM employee_shifts es
+                JOIN employments emp ON es.employment_id = emp.id
+                WHERE emp.workspace_id = $1
+
+                UNION ALL
+
+                -- Pattern Assignments
+                SELECT
+                    ewp.id,
+                    emp.employee_id,
+                    ewp.created_at
+                FROM employee_working_patterns ewp
+                JOIN employments emp ON ewp.employment_id = emp.id
+                WHERE emp.workspace_id = $1
+
+                UNION ALL
+
+                -- Roster Assignments
+                SELECT
+                    sr.id,
+                    emp.employee_id,
+                    sr.created_at
+                FROM shift_rosters sr
+                JOIN employments emp ON sr.employment_id = emp.id
+                WHERE emp.workspace_id = $1
+            ) as history
+            ",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+        .get_result::<CountResult>(&mut *conn)
+        .await
+        .map_err(|e| AppError::Internal(format!("db history count: {e}")))?;
+
+        let total = count_res.count;
+
+        let limit_val = limit.unwrap_or(50).clamp(1, 3000);
+        let offset_val = (page.unwrap_or(1).max(1) - 1) * limit_val;
 
         let history = diesel::sql_query(r"
             SELECT
@@ -401,16 +495,17 @@ impl RosterRepository for DieselRosterRepository {
                 WHERE emp.workspace_id = $1
             ) as history
             ORDER BY created_at DESC
-            limit $2
+            limit $2 offset $3
             "
         )
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .bind::<diesel::sql_types::BigInt, _>(limit)
+        .bind::<diesel::sql_types::BigInt, _>(limit_val)
+        .bind::<diesel::sql_types::BigInt, _>(offset_val)
         .load::<crate::models::AssignmentHistory>(&mut *conn)
         .await
         .map_err(|e| AppError::Internal(format!("db history: {e}")))?;
 
-        Ok(history)
+        Ok((history, total))
     }
 
     async fn get_employment_rosters(
@@ -419,7 +514,9 @@ impl RosterRepository for DieselRosterRepository {
         employment_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
-    ) -> Result<Vec<ShiftRoster>, AppError> {
+        page: Option<i64>,
+        limit: Option<i64>,
+    ) -> Result<(Vec<ShiftRoster>, i64), AppError> {
         let workspace_id = auth_token.workspace_id();
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -429,18 +526,51 @@ impl RosterRepository for DieselRosterRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
-        let rosters = crate::schema::shift_rosters::table
+        let mut query = crate::schema::shift_rosters::table
             .inner_join(crate::schema::employments::table)
             .filter(crate::schema::employments::workspace_id.eq(workspace_id))
             .filter(crate::schema::shift_rosters::employment_id.eq(employment_id))
             .filter(crate::schema::shift_rosters::date.ge(start_date))
             .filter(crate::schema::shift_rosters::date.le(end_date))
+            .into_boxed();
+
+        let total = if page.is_some() || limit.is_some() {
+            let count_query = crate::schema::shift_rosters::table
+                .inner_join(crate::schema::employments::table)
+                .filter(crate::schema::employments::workspace_id.eq(workspace_id))
+                .filter(crate::schema::shift_rosters::employment_id.eq(employment_id))
+                .filter(crate::schema::shift_rosters::date.ge(start_date))
+                .filter(crate::schema::shift_rosters::date.le(end_date))
+                .into_boxed();
+            count_query
+                .count()
+                .get_result::<i64>(&mut *conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("db count: {e}")))?
+        } else {
+            0
+        };
+
+        if let (Some(p), Some(l)) = (page, limit) {
+            let limit_val = l.clamp(1, 3000);
+            let offset_val = (p.max(1) - 1) * limit_val;
+            query = query.limit(limit_val).offset(offset_val);
+        }
+
+        let rosters = query
             .select(crate::schema::shift_rosters::all_columns)
             .load::<crate::models::diesel::roster::ShiftRosterEntity>(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
-        Ok(rosters.into_iter().map(Into::into).collect())
+        let data: Vec<ShiftRoster> = rosters.into_iter().map(Into::into).collect();
+        let total = if page.is_some() || limit.is_some() {
+            total
+        } else {
+            i64::try_from(data.len()).unwrap_or(0)
+        };
+
+        Ok((data, total))
     }
 
     async fn get_employment_rosters_batch(
@@ -970,15 +1100,17 @@ mod tests {
         let date = chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
 
         let err = repo
-            .get_workspace_schedules(None, &auth_token, date, date, None)
+            .get_workspace_schedules(None, &auth_token, date, date, None, None, None)
             .await;
         assert!(err.is_err());
 
-        let err = repo.get_assignment_history(&auth_token, 10).await;
+        let err = repo
+            .get_assignment_history(&auth_token, None, Some(10))
+            .await;
         assert!(err.is_err());
 
         let err = repo
-            .get_employment_rosters(&auth_token, Uuid::new_v4(), date, date)
+            .get_employment_rosters(&auth_token, Uuid::new_v4(), date, date, None, None)
             .await;
         assert!(err.is_err());
 

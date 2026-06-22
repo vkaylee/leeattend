@@ -67,7 +67,9 @@ async fn test_bulk_upsert_roster_api_smoke() {
         .unwrap();
 
     assert_eq!(get_res.status(), StatusCode::OK);
-    let rosters: Vec<ShiftRoster> = get_res.json().await.unwrap();
+    let rosters_res: apiserver::models::common::PaginatedResponse<ShiftRoster> =
+        get_res.json().await.unwrap();
+    let rosters = rosters_res.data;
     assert_eq!(rosters.len(), 1);
     assert_eq!(rosters[0].shift_id, Some(shift_id));
 }

@@ -268,6 +268,7 @@ async fn test_employee_import_chunking() {
         workspace_id: ws_id,
         retry_count: 0,
         max_retries: 3,
+        trace_context: None,
     };
 
     let cache: std::sync::Arc<dyn apiserver::repositories::CacheRepository> =
@@ -397,6 +398,7 @@ async fn test_leave_import_chunking() {
         workspace_id: ws_id,
         retry_count: 0,
         max_retries: 3,
+        trace_context: None,
     };
 
     let deps = apiserver::worker::deps::WorkerDeps::new(&diesel_pools.clone());

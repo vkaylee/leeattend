@@ -250,7 +250,7 @@ impl AttendanceSummaryService {
         let tz: Tz = crate::utils::tz::parse_workspace_tz(workspace.timezone());
 
         // 1. Fetch effective schedules in range
-        let schedules = self
+        let (schedules, _) = self
             .roster_repo
             .get_workspace_schedules(
                 None,
@@ -258,6 +258,8 @@ impl AttendanceSummaryService {
                 start_date,
                 end_date,
                 Some(&vec![employment_id]),
+                None,
+                None,
             )
             .await?;
 
@@ -428,7 +430,7 @@ impl AttendanceSummaryService {
 
         let tz: Tz = crate::utils::tz::parse_workspace_tz(workspace.timezone());
 
-        let schedules = self
+        let (schedules, _) = self
             .roster_repo
             .get_workspace_schedules(
                 None,
@@ -436,6 +438,8 @@ impl AttendanceSummaryService {
                 date,
                 date,
                 Some(&vec![employment_id]),
+                None,
+                None,
             )
             .await?;
 
@@ -1342,35 +1346,38 @@ mod tests {
             let shift_id = Uuid::new_v4();
             roster_repo
                 .expect_get_workspace_schedules()
-                .returning(move |_, _, _, _, _| {
+                .returning(move |_, _, _, _, _, _, _| {
                     Box::pin(async move {
-                        Ok(vec![crate::models::EmployeeSchedule::new(
-                            employee_id,
-                            employee_id,
-                            "EMP001".to_string(),
-                            "John Doe".to_string(),
-                            vec![crate::models::EffectiveSchedule::new(
-                                date,
-                                Some(shift_id),
-                                "pattern".to_string(),
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                vec![],
-                                false,
-                                false,
-                                None,
+                        Ok((
+                            vec![crate::models::EmployeeSchedule::new(
+                                employee_id,
+                                employee_id,
+                                "EMP001".to_string(),
+                                "John Doe".to_string(),
+                                vec![crate::models::EffectiveSchedule::new(
+                                    date,
+                                    Some(shift_id),
+                                    "pattern".to_string(),
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    vec![],
+                                    false,
+                                    false,
+                                    None,
+                                )],
                             )],
-                        )])
+                            1,
+                        ))
                     })
                 });
 
@@ -1504,35 +1511,38 @@ mod tests {
 
             roster_repo
                 .expect_get_workspace_schedules()
-                .returning(move |_, _, _, _, _| {
+                .returning(move |_, _, _, _, _, _, _| {
                     Box::pin(async move {
-                        Ok(vec![crate::models::EmployeeSchedule::new(
-                            employee_id,
-                            employee_id,
-                            "EMP001".to_string(),
-                            "John Doe".to_string(),
-                            vec![crate::models::EffectiveSchedule::new(
-                                date,
-                                None,
-                                "pattern".to_string(),
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                vec![],
-                                false,
-                                false,
-                                None,
+                        Ok((
+                            vec![crate::models::EmployeeSchedule::new(
+                                employee_id,
+                                employee_id,
+                                "EMP001".to_string(),
+                                "John Doe".to_string(),
+                                vec![crate::models::EffectiveSchedule::new(
+                                    date,
+                                    None,
+                                    "pattern".to_string(),
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    vec![],
+                                    false,
+                                    false,
+                                    None,
+                                )],
                             )],
-                        )])
+                            1,
+                        ))
                     })
                 });
 
@@ -1662,35 +1672,38 @@ mod tests {
 
             roster_repo
                 .expect_get_workspace_schedules()
-                .returning(move |_, _, _, _, _| {
+                .returning(move |_, _, _, _, _, _, _| {
                     Box::pin(async move {
-                        Ok(vec![crate::models::EmployeeSchedule::new(
-                            employee_id,
-                            employee_id,
-                            "EMP001".to_string(),
-                            "John Doe".to_string(),
-                            vec![crate::models::EffectiveSchedule::new(
-                                date,
-                                None,
-                                "pattern".to_string(),
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                vec![],
-                                false,
-                                false,
-                                None,
+                        Ok((
+                            vec![crate::models::EmployeeSchedule::new(
+                                employee_id,
+                                employee_id,
+                                "EMP001".to_string(),
+                                "John Doe".to_string(),
+                                vec![crate::models::EffectiveSchedule::new(
+                                    date,
+                                    None,
+                                    "pattern".to_string(),
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    vec![],
+                                    false,
+                                    false,
+                                    None,
+                                )],
                             )],
-                        )])
+                            1,
+                        ))
                     })
                 });
 
@@ -1821,35 +1834,38 @@ mod tests {
 
             roster_repo
                 .expect_get_workspace_schedules()
-                .returning(move |_, _, _, _, _| {
+                .returning(move |_, _, _, _, _, _, _| {
                     Box::pin(async move {
-                        Ok(vec![crate::models::EmployeeSchedule::new(
-                            employee_id,
-                            employee_id,
-                            "EMP001".to_string(),
-                            "John Doe".to_string(),
-                            vec![crate::models::EffectiveSchedule::new(
-                                date,
-                                None,
-                                "pattern".to_string(),
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                vec![],
-                                false,
-                                false,
-                                None,
+                        Ok((
+                            vec![crate::models::EmployeeSchedule::new(
+                                employee_id,
+                                employee_id,
+                                "EMP001".to_string(),
+                                "John Doe".to_string(),
+                                vec![crate::models::EffectiveSchedule::new(
+                                    date,
+                                    None,
+                                    "pattern".to_string(),
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    vec![],
+                                    false,
+                                    false,
+                                    None,
+                                )],
                             )],
-                        )])
+                            1,
+                        ))
                     })
                 });
 
@@ -1935,35 +1951,38 @@ mod tests {
 
             roster_repo
                 .expect_get_workspace_schedules()
-                .returning(move |_, _, _, _, _| {
+                .returning(move |_, _, _, _, _, _, _| {
                     Box::pin(async move {
-                        Ok(vec![crate::models::EmployeeSchedule::new(
-                            employee_id,
-                            employee_id,
-                            "EMP001".to_string(),
-                            "John Doe".to_string(),
-                            vec![crate::models::EffectiveSchedule::new(
-                                date,
-                                None,
-                                "pattern".to_string(),
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                vec![],
-                                true,
-                                false,
-                                Some("Test Holiday".to_string()),
+                        Ok((
+                            vec![crate::models::EmployeeSchedule::new(
+                                employee_id,
+                                employee_id,
+                                "EMP001".to_string(),
+                                "John Doe".to_string(),
+                                vec![crate::models::EffectiveSchedule::new(
+                                    date,
+                                    None,
+                                    "pattern".to_string(),
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    vec![],
+                                    true,
+                                    false,
+                                    Some("Test Holiday".to_string()),
+                                )],
                             )],
-                        )])
+                            1,
+                        ))
                     })
                 });
 
@@ -2055,58 +2074,61 @@ mod tests {
 
             roster_repo
                 .expect_get_workspace_schedules()
-                .returning(move |_, _, _, _, _| {
+                .returning(move |_, _, _, _, _, _, _| {
                     Box::pin(async move {
-                        Ok(vec![crate::models::EmployeeSchedule::new(
-                            emp_id,
-                            emp_id,
-                            "EMP001".to_string(),
-                            "John Doe".to_string(),
-                            vec![
-                                crate::models::EffectiveSchedule::new(
-                                    date,
-                                    None,
-                                    "pattern".to_string(),
-                                    None,
-                                    None,
-                                    None,
-                                    None,
-                                    None,
-                                    None,
-                                    None,
-                                    None,
-                                    None,
-                                    None,
-                                    None,
-                                    None,
-                                    vec![],
-                                    false,
-                                    false,
-                                    None,
-                                ),
-                                crate::models::EffectiveSchedule::new(
-                                    date2,
-                                    None,
-                                    "pattern".to_string(),
-                                    None,
-                                    None,
-                                    None,
-                                    None,
-                                    None,
-                                    None,
-                                    None,
-                                    None,
-                                    None,
-                                    None,
-                                    None,
-                                    None,
-                                    vec![],
-                                    false,
-                                    false,
-                                    None,
-                                ),
-                            ],
-                        )])
+                        Ok((
+                            vec![crate::models::EmployeeSchedule::new(
+                                emp_id,
+                                emp_id,
+                                "EMP001".to_string(),
+                                "John Doe".to_string(),
+                                vec![
+                                    crate::models::EffectiveSchedule::new(
+                                        date,
+                                        None,
+                                        "pattern".to_string(),
+                                        None,
+                                        None,
+                                        None,
+                                        None,
+                                        None,
+                                        None,
+                                        None,
+                                        None,
+                                        None,
+                                        None,
+                                        None,
+                                        None,
+                                        vec![],
+                                        false,
+                                        false,
+                                        None,
+                                    ),
+                                    crate::models::EffectiveSchedule::new(
+                                        date2,
+                                        None,
+                                        "pattern".to_string(),
+                                        None,
+                                        None,
+                                        None,
+                                        None,
+                                        None,
+                                        None,
+                                        None,
+                                        None,
+                                        None,
+                                        None,
+                                        None,
+                                        None,
+                                        vec![],
+                                        false,
+                                        false,
+                                        None,
+                                    ),
+                                ],
+                            )],
+                            1,
+                        ))
                     })
                 });
 

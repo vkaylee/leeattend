@@ -53,8 +53,9 @@ async fn test_schedule_shows_holiday_metadata() {
         .await
         .unwrap();
 
-    assert_eq!(res.status(), StatusCode::OK);
-    let schedules: Vec<EmployeeSchedule> = res.json().await.unwrap();
+    let schedules_res: apiserver::models::common::PaginatedResponse<EmployeeSchedule> =
+        res.json().await.unwrap();
+    let schedules = schedules_res.data;
 
     // 3. Verification
     assert_eq!(schedules.len(), 1);

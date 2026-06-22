@@ -90,6 +90,7 @@ async fn test_worker_uses_only_one_connection_per_job() {
             task_type: TaskType::AttendanceReport,
             retry_count: 0,
             max_retries: 3,
+            trace_context: None,
             payload: JobPayload::AttendanceReport(ReportPayload {
                 employee_ids: vec![user_id],
                 date_range: DateRange {
@@ -114,6 +115,7 @@ async fn test_worker_uses_only_one_connection_per_job() {
             task_type: TaskType::MergeResults,
             retry_count: 0,
             max_retries: 3,
+            trace_context: None,
             payload: JobPayload::MergeResults(apiserver::queue::MergePayload {
                 date_range: DateRange {
                     start: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
@@ -137,6 +139,7 @@ async fn test_worker_uses_only_one_connection_per_job() {
             task_type: TaskType::LeaveAccrual,
             retry_count: 0,
             max_retries: 3,
+            trace_context: None,
             payload: JobPayload::LeaveAccrual(apiserver::queue::AccrualPayload {
                 date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
                 force: false,
@@ -153,6 +156,7 @@ async fn test_worker_uses_only_one_connection_per_job() {
             task_type: TaskType::LogIngestion,
             retry_count: 0,
             max_retries: 3,
+            trace_context: None,
             payload: JobPayload::LogIngestion(apiserver::queue::LogIngestionPayload {
                 workspace_id,
                 employee_id_number: "EMP001".to_string(),
@@ -174,6 +178,7 @@ async fn test_worker_uses_only_one_connection_per_job() {
             task_type: TaskType::ReprocessAttendance,
             retry_count: 0,
             max_retries: 3,
+            trace_context: None,
             payload: JobPayload::ReprocessAttendance(apiserver::queue::ReprocessPayload {
                 employee_id: user_id,
                 date_range: DateRange {
@@ -192,6 +197,7 @@ async fn test_worker_uses_only_one_connection_per_job() {
             task_type: TaskType::ClaimStagedLogs,
             retry_count: 0,
             max_retries: 3,
+            trace_context: None,
             payload: JobPayload::ClaimStagedLogs(apiserver::queue::ClaimStagedLogsPayload {
                 workspace_id,
                 employee_id: user_id,
@@ -208,6 +214,7 @@ async fn test_worker_uses_only_one_connection_per_job() {
             task_type: TaskType::LeaveImport,
             retry_count: 0,
             max_retries: 3,
+            trace_context: None,
             payload: JobPayload::LeaveImport(apiserver::queue::LeaveImportPayload {
                 file_path: "test.csv".to_string(),
                 user_id,
@@ -225,6 +232,7 @@ async fn test_worker_uses_only_one_connection_per_job() {
             task_type: TaskType::NightlyHousekeeping,
             retry_count: 0,
             max_retries: 3,
+            trace_context: None,
             payload: JobPayload::NightlyHousekeeping(apiserver::queue::HousekeepingPayload {
                 reference_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             }),
@@ -239,6 +247,7 @@ async fn test_worker_uses_only_one_connection_per_job() {
             task_type: TaskType::EmployeeImport,
             retry_count: 0,
             max_retries: 3,
+            trace_context: None,
             payload: JobPayload::EmployeeImport(apiserver::queue::EmployeeImportPayload {
                 import_job_id: Uuid::new_v4(),
                 user_id,
@@ -254,6 +263,7 @@ async fn test_worker_uses_only_one_connection_per_job() {
             task_type: TaskType::EmployeeImportChunk,
             retry_count: 0,
             max_retries: 3,
+            trace_context: None,
             payload: JobPayload::EmployeeImportChunk(
                 apiserver::queue::EmployeeImportChunkPayload {
                     import_job_id: Uuid::new_v4(),
@@ -274,6 +284,7 @@ async fn test_worker_uses_only_one_connection_per_job() {
             task_type: TaskType::LeaveImportChunk,
             retry_count: 0,
             max_retries: 3,
+            trace_context: None,
             payload: JobPayload::LeaveImportChunk(apiserver::queue::LeaveImportChunkPayload {
                 import_job_id: Uuid::new_v4(),
                 user_id,
@@ -293,6 +304,7 @@ async fn test_worker_uses_only_one_connection_per_job() {
             task_type: TaskType::FinalizeImport,
             retry_count: 0,
             max_retries: 3,
+            trace_context: None,
             payload: JobPayload::FinalizeImport(apiserver::queue::FinalizeImportPayload {
                 import_job_id: Uuid::new_v4(),
             }),

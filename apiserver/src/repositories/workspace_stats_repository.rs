@@ -101,8 +101,8 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             crate::repositories::diesel_roster_repository::DieselRosterRepository::new(
                 self.diesel_pools.clone(),
             );
-        let schedules = roster_repo
-            .get_workspace_schedules(None, auth_token, start_date, today, None)
+        let (schedules, _) = roster_repo
+            .get_workspace_schedules(None, auth_token, start_date, today, None, None, None)
             .await
             .unwrap_or_default();
 
@@ -250,8 +250,8 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
                 crate::repositories::diesel_roster_repository::DieselRosterRepository::new(
                     self.diesel_pools.clone(),
                 );
-            let schedules = roster_repo
-                .get_workspace_schedules(None, auth_token, today, today, None)
+            let (schedules, _) = roster_repo
+                .get_workspace_schedules(None, auth_token, today, today, None, None, None)
                 .await
                 .unwrap_or_default();
 
@@ -471,8 +471,8 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             crate::repositories::diesel_roster_repository::DieselRosterRepository::new(
                 self.diesel_pools.clone(),
             );
-        let schedules = roster_repo
-            .get_workspace_schedules(None, auth_token, today, today, None)
+        let (schedules, _) = roster_repo
+            .get_workspace_schedules(None, auth_token, today, today, None, None, None)
             .await
             .unwrap_or_default();
 
@@ -625,8 +625,8 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             crate::repositories::diesel_roster_repository::DieselRosterRepository::new(
                 self.diesel_pools.clone(),
             );
-        let schedules = roster_repo
-            .get_workspace_schedules(None, auth_token, start_date, today, None)
+        let (schedules, _) = roster_repo
+            .get_workspace_schedules(None, auth_token, start_date, today, None, None, None)
             .await
             .unwrap_or_default();
 

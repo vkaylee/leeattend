@@ -188,9 +188,12 @@ async fn test_get_employee_rosters_date_range() {
             employment_id,
             start,
             end,
+            None,
+            None,
         )
         .await
-        .unwrap();
+        .unwrap()
+        .0;
     assert_eq!(result.len(), 1);
     assert_eq!(result[0].date, NaiveDate::from_ymd_opt(2026, 3, 5).unwrap());
 
@@ -203,9 +206,12 @@ async fn test_get_employee_rosters_date_range() {
             employment_id,
             start_full,
             end_full,
+            None,
+            None,
         )
         .await
-        .unwrap();
+        .unwrap()
+        .0;
     assert_eq!(all.len(), 3);
     // Verify ordering (ASC by date)
     assert!(all[0].date < all[1].date && all[1].date < all[2].date);
@@ -234,9 +240,12 @@ async fn test_get_employee_rosters_empty() {
             employment_id,
             start,
             end,
+            None,
+            None,
         )
         .await
-        .unwrap();
+        .unwrap()
+        .0;
     assert!(result.is_empty());
 }
 
@@ -293,9 +302,12 @@ async fn test_delete_roster() {
             employment_id,
             start,
             end,
+            None,
+            None,
         )
         .await
-        .unwrap();
+        .unwrap()
+        .0;
     assert!(
         remaining.is_empty(),
         "Deleted roster should not be returned"
@@ -391,9 +403,12 @@ async fn test_bulk_upsert_roster() {
             employment_id,
             start,
             end,
+            None,
+            None,
         )
         .await
-        .unwrap();
+        .unwrap()
+        .0;
     assert_eq!(rosters.len(), 3);
     assert_eq!(rosters[0].shift_id, Some(shift_a));
     assert_eq!(rosters[1].shift_id, Some(shift_b));
@@ -471,9 +486,12 @@ async fn test_bulk_upsert_overwrites_existing() {
             employment_id,
             start,
             end,
+            None,
+            None,
         )
         .await
-        .unwrap();
+        .unwrap()
+        .0;
     assert_eq!(rosters.len(), 1);
     assert_eq!(
         rosters[0].shift_id,
@@ -526,10 +544,12 @@ async fn test_get_assignment_history_includes_roster_entries() {
     let history = repo
         .get_assignment_history(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            100,
+            None,
+            Some(100),
         )
         .await
-        .unwrap();
+        .unwrap()
+        .0;
     assert!(
         !history.is_empty(),
         "History should contain the roster entry"
@@ -554,10 +574,12 @@ async fn test_get_assignment_history_empty_workspace() {
     let history = repo
         .get_assignment_history(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            100,
+            None,
+            Some(100),
         )
         .await
-        .unwrap();
+        .unwrap()
+        .0;
     assert!(history.is_empty());
 }
 
@@ -600,10 +622,12 @@ async fn test_get_assignment_history_respects_limit() {
     let history = repo
         .get_assignment_history(
             &apiserver::diesel_pool::TenantAuthToken::system_override(ws_id),
-            3,
+            None,
+            Some(3),
         )
         .await
-        .unwrap();
+        .unwrap()
+        .0;
     assert_eq!(history.len(), 3, "Should respect the limit parameter");
 }
 

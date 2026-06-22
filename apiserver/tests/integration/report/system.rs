@@ -34,6 +34,7 @@ async fn test_job_creation_pipeline_type_safety() {
         retry_count: 0,
         max_retries: 3,
         priority: JobPriority::Normal,
+        trace_context: None,
     };
 
     // Verify struct instantiated correctly (type safety check)

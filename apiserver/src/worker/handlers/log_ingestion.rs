@@ -192,7 +192,7 @@ mod tests {
             .returning(|_, _, _| Box::pin(async { Ok((None, vec![])) }));
         roster_repo
             .expect_get_workspace_schedules()
-            .returning(|_, _, _, _, _| Box::pin(async { Ok(vec![]) }));
+            .returning(|_, _, _, _, _, _, _| Box::pin(async { Ok((vec![], 0)) }));
 
         let mut time_entry_repo =
             crate::repositories::time_entry_repository::MockTimeEntryRepository::new();

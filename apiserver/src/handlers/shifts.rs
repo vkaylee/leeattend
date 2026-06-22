@@ -12,7 +12,8 @@ use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{
     AssignShiftRequest, AssignmentHistory, BulkRosterRequest, CreateRosterRequest,
-    CreateShiftRequest, EmployeeSchedule, Shift, ShiftRoster, UpdateShiftRequest,
+    CreateShiftRequest, EmployeeSchedule, PaginatedResponse, PaginationParams, Shift, ShiftRoster,
+    UpdateShiftRequest,
 };
 use crate::utils::i18n::I18nKey;
 use crate::AppState;
@@ -21,12 +22,40 @@ use crate::AppState;
 pub struct WorkspaceSchedulesQuery {
     pub start_date: String,
     pub end_date: String,
+    pub page: Option<i64>,
+    pub limit: Option<i64>,
 }
 
 #[derive(serde::Deserialize, utoipa::IntoParams)]
 pub struct EmployeeRostersQuery {
     pub start_date: Option<String>,
     pub end_date: Option<String>,
+    pub page: Option<i64>,
+    pub limit: Option<i64>,
+}
+
+#[derive(serde::Serialize, utoipa::ToSchema)]
+pub struct PaginatedEmployeeSchedules {
+    pub data: Vec<EmployeeSchedule>,
+    pub total: usize,
+    pub page: i64,
+    pub limit: i64,
+}
+
+#[derive(serde::Serialize, utoipa::ToSchema)]
+pub struct PaginatedAssignmentHistory {
+    pub data: Vec<AssignmentHistory>,
+    pub total: usize,
+    pub page: i64,
+    pub limit: i64,
+}
+
+#[derive(serde::Serialize, utoipa::ToSchema)]
+pub struct PaginatedShiftRosters {
+    pub data: Vec<ShiftRoster>,
+    pub total: usize,
+    pub page: i64,
+    pub limit: i64,
 }
 
 /// Reprocess attendance for a single (employee, date) after a roster change.
@@ -225,7 +254,7 @@ pub async fn assign_shift(
     get,
     path = "/workspaces/{workspace_id}/schedules",
     responses(
-        (status = 200, description = "Workspace schedules", body = [EmployeeSchedule])
+        (status = 200, description = "Workspace schedules", body = PaginatedEmployeeSchedules)
     ),
     params(
         ("workspace_id" = Uuid, Path, description = "Workspace ID"),
@@ -236,7 +265,7 @@ pub async fn get_workspace_schedules(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Query(query): Query<WorkspaceSchedulesQuery>,
-) -> AppResult<Json<Vec<EmployeeSchedule>>> {
+) -> AppResult<Json<PaginatedResponse<EmployeeSchedule>>> {
     let _workspace_id = ctx.workspace_id;
 
     let start_date = NaiveDate::parse_from_str(&query.start_date, "%Y-%m-%d")
@@ -245,7 +274,10 @@ pub async fn get_workspace_schedules(
     let end_date = NaiveDate::parse_from_str(&query.end_date, "%Y-%m-%d")
         .map_err(|_err| AppError::validation(I18nKey::InvalidEndDateValue))?;
 
-    let schedules = state
+    let page = query.page.unwrap_or(1).max(1);
+    let limit = query.limit.unwrap_or(50).clamp(1, 3000);
+
+    let (schedules, total) = state
         .shifts()
         .roster_repo()
         .get_workspace_schedules(
@@ -254,45 +286,58 @@ pub async fn get_workspace_schedules(
             start_date,
             end_date,
             None,
+            Some(page),
+            Some(limit),
         )
         .await?;
 
-    Ok(Json(schedules))
+    Ok(Json(PaginatedResponse {
+        data: schedules,
+        total: usize::try_from(total).unwrap_or(0),
+        page,
+        limit,
+    }))
 }
 
 #[utoipa::path(
     get,
     path = "/workspaces/{workspace_id}/assignment-history",
     responses(
-        (status = 200, description = "Assignment history", body = [AssignmentHistory])
+        (status = 200, description = "Assignment history", body = PaginatedAssignmentHistory)
     ),
     params(
-        ("workspace_id" = Uuid, Path, description = "Workspace ID")
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        PaginationParams
     )
 )]
 pub async fn get_assignment_history(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-) -> AppResult<Json<Vec<AssignmentHistory>>> {
+    Query(query): Query<PaginationParams>,
+) -> AppResult<Json<PaginatedResponse<AssignmentHistory>>> {
     let _workspace_id = ctx.workspace_id;
+    let page = query.page.unwrap_or(1).max(1);
+    let limit = query.limit.unwrap_or(50).clamp(1, 3000);
 
-    let history = state
+    let (history, total) = state
         .shifts()
         .roster_repo()
-        .get_assignment_history(
-            &ctx.auth_token,
-            50, // Limit to last 50 entries
-        )
+        .get_assignment_history(&ctx.auth_token, Some(page), Some(limit))
         .await?;
 
-    Ok(Json(history))
+    Ok(Json(PaginatedResponse {
+        data: history,
+        total: usize::try_from(total).unwrap_or(0),
+        page,
+        limit,
+    }))
 }
 
 #[utoipa::path(
     get,
     path = "/workspaces/{workspace_id}/employees/{id}/rosters",
     responses(
-        (status = 200, description = "Employee rosters", body = [ShiftRoster])
+        (status = 200, description = "Employee rosters", body = PaginatedShiftRosters)
     ),
     params(
         ("workspace_id" = Uuid, Path, description = "Workspace ID"),
@@ -305,7 +350,7 @@ pub async fn get_employee_rosters(
     Path(params): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
     Query(query): Query<EmployeeRostersQuery>,
-) -> AppResult<Json<Vec<ShiftRoster>>> {
+) -> AppResult<Json<PaginatedResponse<ShiftRoster>>> {
     let (_workspace_id, employee_id) = params;
     let start_date = query
         .start_date
@@ -329,13 +374,28 @@ pub async fn get_employee_rosters(
         .active_employment_id()
         .ok_or_else(|| AppError::validation(I18nKey::NoActiveEmployment))?;
 
-    let rosters = state
+    let page = query.page.unwrap_or(1).max(1);
+    let limit = query.limit.unwrap_or(50).clamp(1, 3000);
+
+    let (rosters, total) = state
         .shifts()
         .roster_repo()
-        .get_employment_rosters(&ctx.auth_token, active_employment_id, start_date, end_date)
+        .get_employment_rosters(
+            &ctx.auth_token,
+            active_employment_id,
+            start_date,
+            end_date,
+            Some(page),
+            Some(limit),
+        )
         .await?;
 
-    Ok(Json(rosters))
+    Ok(Json(PaginatedResponse {
+        data: rosters,
+        total: usize::try_from(total).unwrap_or(0),
+        page,
+        limit,
+    }))
 }
 
 #[utoipa::path(

@@ -21,13 +21,16 @@ pub trait RosterRepository: Send + Sync {
         start_date: NaiveDate,
         end_date: NaiveDate,
         employment_ids: Option<&Vec<Uuid>>,
-    ) -> Result<Vec<EmployeeSchedule>, AppError>;
+        page: Option<i64>,
+        limit: Option<i64>,
+    ) -> Result<(Vec<EmployeeSchedule>, i64), AppError>;
 
     async fn get_assignment_history(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,
-        limit: i64,
-    ) -> Result<Vec<crate::models::AssignmentHistory>, AppError>;
+        page: Option<i64>,
+        limit: Option<i64>,
+    ) -> Result<(Vec<crate::models::AssignmentHistory>, i64), AppError>;
 
     async fn get_employment_rosters(
         &self,
@@ -35,7 +38,9 @@ pub trait RosterRepository: Send + Sync {
         employment_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
-    ) -> Result<Vec<ShiftRoster>, AppError>;
+        page: Option<i64>,
+        limit: Option<i64>,
+    ) -> Result<(Vec<ShiftRoster>, i64), AppError>;
     async fn get_employment_rosters_batch(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

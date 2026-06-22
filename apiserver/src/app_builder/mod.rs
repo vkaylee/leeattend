@@ -196,3 +196,36 @@ impl AppState {
         Ok((state, workers))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::diesel_pool::DieselPools;
+
+    #[tokio::test]
+    async fn test_app_state_build_invalid_db_url() {
+        let invalid_url = "postgres://invalid:invalid@localhost:12345/invalid_db";
+        let diesel_pools = DieselPools::for_test(invalid_url);
+        let result = AppState::build(diesel_pools, None).await;
+        // Since database pools are initialized lazily without eager connection check,
+        // constructing the AppState struct succeeds.
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_app_state_build_env_overrides() {
+        std::env::set_var("APP_ENV", "testing");
+        std::env::set_var("S3_ENDPOINT_URL", "http://localhost:9000");
+        std::env::set_var("S3_BUCKET_NAME", "test-bucket");
+        std::env::set_var("S3_ACCESS_KEY", "test-access");
+        std::env::set_var("S3_SECRET_KEY", "test-secret");
+
+        if let Ok(db_url) = std::env::var("DATABASE_URL") {
+            let diesel_pools = DieselPools::for_test(&db_url);
+            let result = AppState::build(diesel_pools, None).await;
+            if let Ok((state, _workers)) = result {
+                assert!(state.infra().redis().is_none());
+            }
+        }
+    }
+}

@@ -130,6 +130,8 @@ impl AttendanceHandler {
                 start_date,
                 end_date,
                 Some(&employment_ids),
+                None,
+                None,
             )
             .await;
 
@@ -143,7 +145,8 @@ impl AttendanceHandler {
             )
             .await;
 
-        let schedules = schedules_result.map_err(|e| format!("Failed to fetch schedules: {e}"))?;
+        let (schedules, _) =
+            schedules_result.map_err(|e| format!("Failed to fetch schedules: {e}"))?;
 
         let t_fetch = t0.elapsed();
 
@@ -1196,7 +1199,7 @@ mod tests {
         builder
             .roster_repo
             .expect_get_workspace_schedules()
-            .returning(|_, _, _, _, _| Box::pin(async move { Ok(vec![]) }));
+            .returning(|_, _, _, _, _, _, _| Box::pin(async move { Ok((vec![], 0)) }));
         builder
             .time_entry_repo
             .expect_get_workspace_time_entries_batch_by_employments()
@@ -1239,6 +1242,7 @@ mod tests {
             created_at: chrono::Utc::now(),
             retry_count: 0,
             max_retries: 3,
+            trace_context: None,
         };
 
         let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);
@@ -1362,9 +1366,9 @@ mod tests {
         builder
             .roster_repo
             .expect_get_workspace_schedules()
-            .returning(move |_, _, _, _, _| {
+            .returning(move |_, _, _, _, _, _, _| {
                 let sched = schedule.clone();
-                Box::pin(async move { Ok(vec![sched]) })
+                Box::pin(async move { Ok((vec![sched], 1)) })
             });
 
         let punch_in = chrono::Utc.with_ymd_and_hms(2026, 1, 15, 8, 15, 0).unwrap();
@@ -1454,6 +1458,7 @@ mod tests {
             created_at: chrono::Utc::now(),
             retry_count: 0,
             max_retries: 3,
+            trace_context: None,
         };
 
         let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);
@@ -1577,9 +1582,9 @@ mod tests {
         builder
             .roster_repo
             .expect_get_workspace_schedules()
-            .returning(move |_, _, _, _, _| {
+            .returning(move |_, _, _, _, _, _, _| {
                 let sched = schedule.clone();
-                Box::pin(async move { Ok(vec![sched]) })
+                Box::pin(async move { Ok((vec![sched], 1)) })
             });
 
         let punch_in = chrono::Utc.with_ymd_and_hms(2026, 1, 15, 8, 0, 0).unwrap();
@@ -1654,6 +1659,7 @@ mod tests {
             created_at: chrono::Utc::now(),
             retry_count: 0,
             max_retries: 3,
+            trace_context: None,
         };
 
         let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);

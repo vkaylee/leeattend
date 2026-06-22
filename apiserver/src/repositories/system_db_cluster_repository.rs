@@ -11,6 +11,9 @@ pub trait SystemDbClusterRepository: Send + Sync {
     /// Increments the active_tenants count for a specific cluster by 1
     async fn increment_active_tenants(&self, cluster_id: Uuid) -> Result<(), AppError>;
 
+    /// Decrements the active_tenants count for a specific cluster by 1
+    async fn decrement_active_tenants(&self, cluster_id: Uuid) -> Result<(), AppError>;
+
     /// Creates a new cluster record
     async fn create_cluster(
         &self,

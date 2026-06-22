@@ -241,7 +241,7 @@ impl ReportService {
 
         let emp_ids: Vec<Uuid> = paginated_employees.iter().map(|e| e.id).collect();
 
-        let schedules = self
+        let (schedules, _) = self
             .roster_repo
             .get_workspace_schedules(
                 None,
@@ -249,6 +249,8 @@ impl ReportService {
                 args.start_date,
                 args.end_date,
                 Some(&paginated_employment_ids),
+                None,
+                None,
             )
             .await?;
 

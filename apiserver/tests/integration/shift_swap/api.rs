@@ -276,7 +276,7 @@ async fn test_approve_shift_swap_swaps_rosters() {
 
     // 3. Verify rosters were swapped
     // Employee A should now have Evening shift
-    let roster_a: Vec<ShiftRoster> = client
+    let roster_a_res: apiserver::models::common::PaginatedResponse<ShiftRoster> = client
         .get(format!(
             "{}/api/v1/workspaces/{}/employees/{}/rosters",
             s.address, s.workspace_id, s.emp_a
@@ -288,6 +288,7 @@ async fn test_approve_shift_swap_swaps_rosters() {
         .json()
         .await
         .unwrap();
+    let roster_a = roster_a_res.data;
 
     let a_on_date = roster_a.iter().find(|r| r.date == s.swap_date);
     assert!(a_on_date.is_some(), "Employee A should have a roster entry");
@@ -298,7 +299,7 @@ async fn test_approve_shift_swap_swaps_rosters() {
     );
 
     // Employee B should now have Morning shift
-    let roster_b: Vec<ShiftRoster> = client
+    let roster_b_res: apiserver::models::common::PaginatedResponse<ShiftRoster> = client
         .get(format!(
             "{}/api/v1/workspaces/{}/employees/{}/rosters",
             s.address, s.workspace_id, s.emp_b
@@ -310,6 +311,7 @@ async fn test_approve_shift_swap_swaps_rosters() {
         .json()
         .await
         .unwrap();
+    let roster_b = roster_b_res.data;
 
     let b_on_date = roster_b.iter().find(|r| r.date == s.swap_date);
     assert!(b_on_date.is_some(), "Employee B should have a roster entry");
@@ -382,7 +384,7 @@ async fn test_reject_shift_swap() {
     assert_eq!(reject_res.status(), StatusCode::OK);
 
     // Verify original roster still intact for Employee A (Morning)
-    let roster_a: Vec<ShiftRoster> = client
+    let roster_a_res: apiserver::models::common::PaginatedResponse<ShiftRoster> = client
         .get(format!(
             "{}/api/v1/workspaces/{}/employees/{}/rosters",
             s.address, s.workspace_id, s.emp_a
@@ -394,6 +396,7 @@ async fn test_reject_shift_swap() {
         .json()
         .await
         .unwrap();
+    let roster_a = roster_a_res.data;
 
     let a_on_date = roster_a.iter().find(|r| r.date == s.swap_date);
     assert!(a_on_date.is_some());

@@ -170,7 +170,7 @@ mod tests {
             .returning(|_, _, _| Box::pin(async { Ok((None, vec![])) }));
         roster_repo
             .expect_get_workspace_schedules()
-            .returning(|_, _, _, _, _| Box::pin(async { Ok(vec![]) }));
+            .returning(|_, _, _, _, _, _, _| Box::pin(async { Ok((vec![], 0)) }));
 
         let mut raw_log_repo =
             crate::repositories::raw_attendance_log_repository::MockRawAttendanceLogRepository::new(

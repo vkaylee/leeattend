@@ -417,6 +417,7 @@ mod tests {
             created_at: chrono::Utc::now(),
             retry_count: 0,
             max_retries: 3,
+            trace_context: None,
         };
 
         let result = EmployeeImportHandler::handle(&job, &cache_arc, &queue_arc, &deps).await;

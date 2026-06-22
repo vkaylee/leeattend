@@ -239,6 +239,8 @@ pub struct Job {
     pub retry_count: u32,
     /// Maximum retries before failure
     pub max_retries: u32,
+    /// Context tracing (e.g. Request ID) for propagation
+    pub trace_context: Option<String>,
 }
 
 impl Job {
@@ -261,6 +263,7 @@ impl Job {
             created_at: Utc::now(),
             retry_count: 0,
             max_retries: 3,
+            trace_context: crate::utils::logging::get_trace_context(),
         }
     }
 

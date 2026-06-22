@@ -70,6 +70,8 @@ impl WorkspaceService {
         }
 
         // 2. Resolve database_url
+        let mut auto_provisioned_info = None;
+
         let final_db_url = if let Some(url) = database_url {
             url
         } else {
@@ -96,6 +98,8 @@ impl WorkspaceService {
                 .increment_active_tenants(cluster.id)
                 .await?;
 
+            auto_provisioned_info = Some((admin_url.clone(), tenant_db_name.clone(), cluster.id));
+
             // Replace the database name in the url
             let mut parsed_url = reqwest::Url::parse(&admin_url)
                 .map_err(|e| crate::errors::AppError::Internal(e.to_string()))?;
@@ -104,33 +108,77 @@ impl WorkspaceService {
         };
 
         // 3. Run migrations on the provided or newly created database
-        let new_db_url = self
-            .tenant_provisioner
-            .provision_tenant_db(&id, &final_db_url)
-            .await?;
+        let result = async {
+            let new_db_url = self
+                .tenant_provisioner
+                .provision_tenant_db(&id, &final_db_url)
+                .await?;
 
-        // 4. Encrypt the final database URL so ALL workspaces are treated as BYOD in the database
-        let final_encrypted_url = if let Some(encrypted) = custom_db_url_encrypted {
-            encrypted
-        } else {
-            let crypto_service = std::env::var("ENCRYPTION_KEYS_JSON")
-                .ok()
-                .and_then(|keys| crate::crypto::CryptoService::from_json(&keys).ok());
-
-            if let Some(crypto) = crypto_service {
-                crypto.encrypt(&new_db_url).unwrap_or(new_db_url)
+            // 4. Encrypt the final database URL so ALL workspaces are treated as BYOD in the database
+            let final_encrypted_url = if let Some(encrypted) = custom_db_url_encrypted {
+                encrypted
             } else {
-                new_db_url
+                let crypto_service = std::env::var("ENCRYPTION_KEYS_JSON")
+                    .ok()
+                    .and_then(|keys| crate::crypto::CryptoService::from_json(&keys).ok());
+
+                if let Some(crypto) = crypto_service {
+                    crypto.encrypt(&new_db_url).unwrap_or(new_db_url)
+                } else {
+                    new_db_url
+                }
+            };
+
+            // 5. Create workspace with owner using repository
+            let ws = self
+                .workspace_repo
+                .create_workspace_with_owner(id, name, owner_id, Some(final_encrypted_url))
+                .await?;
+
+            Ok(ws)
+        }
+        .await;
+
+        match result {
+            Ok(ws) => Ok(ws),
+            Err(e) => {
+                if let Some((admin_url, tenant_db_name, cluster_id)) = auto_provisioned_info {
+                    tracing::warn!(
+                        workspace_id = %id,
+                        tenant_db_name = %tenant_db_name,
+                        error = %e,
+                        "Workspace onboarding failed. Reverting auto-provisioned resources (Saga compensation)..."
+                    );
+
+                    if let Err(drop_err) = self
+                        .database_migrator
+                        .delete_tenant_database(&admin_url, &tenant_db_name)
+                        .await
+                    {
+                        tracing::error!(
+                            workspace_id = %id,
+                            tenant_db_name = %tenant_db_name,
+                            error = %drop_err,
+                            "Failed to drop tenant database during compensation"
+                        );
+                    }
+
+                    if let Err(dec_err) = self
+                        .system_db_cluster_repo
+                        .decrement_active_tenants(cluster_id)
+                        .await
+                    {
+                        tracing::error!(
+                            workspace_id = %id,
+                            cluster_id = %cluster_id,
+                            error = %dec_err,
+                            "Failed to decrement active tenants count during compensation"
+                        );
+                    }
+                }
+                Err(e)
             }
-        };
-
-        // 5. Create workspace with owner using repository
-        let ws = self
-            .workspace_repo
-            .create_workspace_with_owner(id, name, owner_id, Some(final_encrypted_url))
-            .await?;
-
-        Ok(ws)
+        }
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -668,6 +716,13 @@ mod tests {
         ) -> crate::errors::AppResult<()> {
             Ok(())
         }
+        async fn delete_tenant_database(
+            &self,
+            _admin_url: &str,
+            _db_name: &str,
+        ) -> crate::errors::AppResult<()> {
+            Ok(())
+        }
     }
 
     fn build_service(user_exists: bool) -> WorkspaceService {
@@ -716,6 +771,9 @@ mod tests {
         async fn increment_active_tenants(&self, _cluster_id: Uuid) -> Result<(), AppError> {
             Ok(())
         }
+        async fn decrement_active_tenants(&self, _cluster_id: Uuid) -> Result<(), AppError> {
+            Ok(())
+        }
         async fn create_cluster(
             &self,
             _cluster: &crate::models::system_db_cluster::NewSystemDbCluster,
@@ -755,6 +813,13 @@ mod tests {
     #[async_trait]
     impl crate::services::tenant_provisioner::DatabaseMigratorTrait for FailingMockTenantProvisioner {
         async fn create_tenant_database(
+            &self,
+            _admin_url: &str,
+            _db_name: &str,
+        ) -> crate::errors::AppResult<()> {
+            Ok(())
+        }
+        async fn delete_tenant_database(
             &self,
             _admin_url: &str,
             _db_name: &str,
@@ -922,5 +987,22 @@ mod tests {
         };
         let ws = svc.update_workspace(args).await.unwrap();
         assert!(!ws.name().is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_create_workspace_compensation_on_failure() {
+        let svc = build_service_with_failing_provisioner();
+        let err = svc
+            .create_workspace(
+                Uuid::new_v4(),
+                "Acme Failed",
+                Uuid::new_v4(),
+                None, // database_url = None triggers auto-provisioning database flow
+                None,
+            )
+            .await
+            .unwrap_err();
+        assert!(matches!(err, AppError::Internal(_)));
+        assert!(err.to_string().contains("provisioning failed"));
     }
 }

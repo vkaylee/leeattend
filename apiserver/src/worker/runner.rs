@@ -291,9 +291,10 @@ impl JobWorker {
 
                     let batch_index = job.batch_index;
                     let parent_job_id = job.parent_job_id;
+                    let trace_ctx = job.trace_context.clone().unwrap_or_default();
 
                     // Spawn task to process job
-                    tokio::spawn(async move {
+                    tokio::spawn(crate::utils::logging::CURRENT_TRACE_CONTEXT.scope(trace_ctx, async move {
                         let _permit = permit; // Hold permit until done
 
                         let result = tokio::time::timeout(
@@ -341,7 +342,7 @@ impl JobWorker {
                                 }
                             }
                         }
-                    });
+                    }));
                 }
                 Ok(None) => {
                     // Timeout, no job available - continue loop

@@ -153,7 +153,7 @@ mod tests {
         let sched_emp_id = emp_id;
         let sched_employment_id = employment_id;
         roster_repo.expect_get_workspace_schedules().returning(
-            move |_, _, start_date, end_date, _| {
+            move |_, _, start_date, end_date, _, _, _| {
                 let schedules = vec![
                     crate::models::EffectiveSchedule::new(
                         start_date,
@@ -199,13 +199,16 @@ mod tests {
                     ),
                 ];
                 Box::pin(async move {
-                    Ok(vec![crate::models::EmployeeSchedule::new(
-                        sched_employment_id,
-                        sched_emp_id,
-                        "EMP001".to_string(),
-                        "Test Employee".to_string(),
-                        schedules,
-                    )])
+                    Ok((
+                        vec![crate::models::EmployeeSchedule::new(
+                            sched_employment_id,
+                            sched_emp_id,
+                            "EMP001".to_string(),
+                            "Test Employee".to_string(),
+                            schedules,
+                        )],
+                        1,
+                    ))
                 })
             },
         );
@@ -337,6 +340,7 @@ mod tests {
             created_at: Utc::now(),
             retry_count: 0,
             max_retries: 3,
+            trace_context: None,
         };
 
         let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);

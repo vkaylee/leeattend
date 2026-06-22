@@ -31,6 +31,14 @@ impl apiserver::services::tenant_provisioner::DatabaseMigratorTrait for DummyTen
     ) -> Result<(), apiserver::errors::AppError> {
         Ok(())
     }
+
+    async fn delete_tenant_database(
+        &self,
+        _admin_url: &str,
+        _db_name: &str,
+    ) -> Result<(), apiserver::errors::AppError> {
+        Ok(())
+    }
 }
 
 struct DummySystemDbClusterRepository;
@@ -47,6 +55,12 @@ impl apiserver::repositories::system_db_cluster_repository::SystemDbClusterRepos
         Ok(None)
     }
     async fn increment_active_tenants(
+        &self,
+        _cluster_id: uuid::Uuid,
+    ) -> Result<(), apiserver::errors::AppError> {
+        Ok(())
+    }
+    async fn decrement_active_tenants(
         &self,
         _cluster_id: uuid::Uuid,
     ) -> Result<(), apiserver::errors::AppError> {

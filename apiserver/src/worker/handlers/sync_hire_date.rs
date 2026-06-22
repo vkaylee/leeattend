@@ -272,6 +272,7 @@ mod tests {
             created_at: Utc::now(),
             retry_count: 0,
             max_retries: 3,
+            trace_context: None,
         };
 
         let result = SyncHireDateHandler::process(&job, &deps).await;

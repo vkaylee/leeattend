@@ -949,7 +949,7 @@ async fn test_reprocess_attendance_range_success() {
     mock_roster_repo
         .expect_get_workspace_schedules()
         .times(1)
-        .returning(move |_, _, s_date, e_date, _| {
+        .returning(move |_, _, s_date, e_date, _, _, _| {
             let schedules = vec![
                 crate::models::EffectiveSchedule::new(
                     s_date,
@@ -995,13 +995,15 @@ async fn test_reprocess_attendance_range_success() {
                 ),
             ];
             Box::pin(async move {
-                Ok(vec![crate::models::EmployeeSchedule::new(
+                let list = vec![crate::models::EmployeeSchedule::new(
                     sched_emp_id,
                     sched_emp_id,
                     "EMP001".to_string(),
                     "Test Employee".to_string(),
                     schedules,
-                )])
+                )];
+                let total = list.len() as i64;
+                Ok((list, total))
             })
         });
 
@@ -1139,7 +1141,7 @@ async fn test_propagate_overnight_reprocesses_next_day() {
     mock_roster_repo
         .expect_get_workspace_schedules()
         .times(1)
-        .returning(move |_, _, _, _, _| {
+        .returning(move |_, _, _, _, _, _, _| {
             let sched = crate::models::EffectiveSchedule::new(
                 next_date,
                 None,
@@ -1162,13 +1164,15 @@ async fn test_propagate_overnight_reprocesses_next_day() {
                 None,
             );
             Box::pin(async move {
-                Ok(vec![crate::models::EmployeeSchedule::new(
+                let list = vec![crate::models::EmployeeSchedule::new(
                     emp_id,
                     emp_id,
                     "EMP001".to_string(),
                     "Test".to_string(),
                     vec![sched],
-                )])
+                )];
+                let total = list.len() as i64;
+                Ok((list, total))
             })
         });
 
@@ -1286,7 +1290,7 @@ async fn test_propagate_overnight_no_schedule_graceful() {
     mock_roster_repo
         .expect_get_workspace_schedules()
         .times(1)
-        .returning(|_, _, _, _, _| Box::pin(async { Ok(vec![]) }));
+        .returning(|_, _, _, _, _, _, _| Box::pin(async { Ok((vec![], 0)) }));
 
     let service = PairingService::new(PairingServiceArgs::new(
         Arc::new(MockTimeEntryRepository::new()),
@@ -1326,7 +1330,7 @@ async fn test_range_reprocess_multi_day_with_logs() {
     mock_roster_repo
         .expect_get_workspace_schedules()
         .times(1)
-        .returning(move |_, _, s_date, e_date, _| {
+        .returning(move |_, _, s_date, e_date, _, _, _| {
             let mut schedules = Vec::new();
             let mut d = s_date;
             while d <= e_date {
@@ -1354,13 +1358,15 @@ async fn test_range_reprocess_multi_day_with_logs() {
                 d = d.succ_opt().unwrap();
             }
             Box::pin(async move {
-                Ok(vec![crate::models::EmployeeSchedule::new(
+                let list = vec![crate::models::EmployeeSchedule::new(
                     sched_emp_id,
                     sched_emp_id,
                     "EMP001".to_string(),
                     "Test Employee".to_string(),
                     schedules,
-                )])
+                )];
+                let total = list.len() as i64;
+                Ok((list, total))
             })
         });
 
@@ -1443,7 +1449,7 @@ async fn test_range_reprocess_handles_overnight_tail() {
     let mut mock_roster_combined = MockRosterRepository::new();
     mock_roster_combined
         .expect_get_workspace_schedules()
-        .returning(move |_, _, s_date, e_date, _| {
+        .returning(move |_, _, s_date, e_date, _, _, _| {
             let mut schedules = Vec::new();
             let mut d = s_date;
             while d <= e_date {
@@ -1495,13 +1501,15 @@ async fn test_range_reprocess_handles_overnight_tail() {
                 d = d.succ_opt().unwrap();
             }
             Box::pin(async move {
-                Ok(vec![crate::models::EmployeeSchedule::new(
+                let list = vec![crate::models::EmployeeSchedule::new(
                     emp_id,
                     emp_id,
                     "EMP001".to_string(),
                     "Test".to_string(),
                     schedules,
-                )])
+                )];
+                let total = list.len() as i64;
+                Ok((list, total))
             })
         });
     mock_roster_combined
@@ -1541,7 +1549,7 @@ async fn test_range_reprocess_empty_schedule_day_skipped() {
     mock_roster_repo
         .expect_get_workspace_schedules()
         .times(1)
-        .returning(move |_, _, s_date, _e_date, _| {
+        .returning(move |_, _, s_date, _e_date, _, _, _| {
             // Only return schedule for first day, skip day 2 and 3
             let schedules = vec![crate::models::EffectiveSchedule::new(
                 s_date,
@@ -1565,13 +1573,15 @@ async fn test_range_reprocess_empty_schedule_day_skipped() {
                 None,
             )];
             Box::pin(async move {
-                Ok(vec![crate::models::EmployeeSchedule::new(
+                let list = vec![crate::models::EmployeeSchedule::new(
                     sched_emp_id,
                     sched_emp_id,
                     "EMP001".to_string(),
                     "Test".to_string(),
                     schedules,
-                )])
+                )];
+                let total = list.len() as i64;
+                Ok((list, total))
             })
         });
 

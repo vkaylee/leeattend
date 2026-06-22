@@ -1092,6 +1092,7 @@ mod tests {
             created_at: Utc::now(),
             retry_count: 0,
             max_retries: 3,
+            trace_context: None,
         };
 
         let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);
@@ -1238,6 +1239,7 @@ mod tests {
             created_at: Utc::now(),
             retry_count: 0,
             max_retries: 3,
+            trace_context: None,
         };
 
         let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);

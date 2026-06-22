@@ -32,10 +32,13 @@ pub async fn request_id_middleware(mut request: Request, next: Next) -> Response
     // Wrap the request in a tracing span with the correlation ID
     let span = tracing::info_span!("request", request_id = %request_id_str);
 
-    let mut response = {
-        use tracing::Instrument;
-        next.run(request).instrument(span).await
-    };
+    let request_id_str_clone = request_id_str.clone();
+    let mut response = crate::utils::logging::CURRENT_TRACE_CONTEXT
+        .scope(request_id_str_clone, async move {
+            use tracing::Instrument;
+            next.run(request).instrument(span).await
+        })
+        .await;
 
     // Inject request ID into response header
     if let Ok(val) = HeaderValue::from_str(&request_id_str) {

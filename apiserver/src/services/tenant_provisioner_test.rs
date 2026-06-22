@@ -83,3 +83,17 @@ async fn test_tenant_migrator_database_integration_scenarios() {
         }
     }
 }
+
+#[tokio::test]
+async fn test_create_tenant_database_invalid_url() {
+    use crate::services::tenant_provisioner::DatabaseMigratorTrait;
+    let pools = DieselPools::for_test("postgres://invalid:invalid@localhost:12345/invalid_db");
+    let migrator = TenantMigrator::new(pools);
+    let res = migrator
+        .create_tenant_database(
+            "postgres://invalid:invalid@localhost:12345/invalid_db",
+            "test_db",
+        )
+        .await;
+    assert!(res.is_err());
+}

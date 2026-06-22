@@ -20,6 +20,9 @@ pub trait DatabaseMigratorTrait: Send + Sync {
     /// Encapsulates direct connection to establish/create tenant database,
     /// decoupling the service layer from direct connection management.
     async fn create_tenant_database(&self, admin_url: &str, db_name: &str) -> AppResult<()>;
+
+    /// Deletes/drops a tenant database for cleanup/rollback.
+    async fn delete_tenant_database(&self, admin_url: &str, db_name: &str) -> AppResult<()>;
 }
 
 use crate::diesel_pool::DieselPools;
@@ -54,6 +57,22 @@ impl DatabaseMigratorTrait for TenantMigrator {
             .execute(&mut conn)
             .await
             .map_err(|e| AppError::Internal(format!("Failed to create tenant database: {e}")))?;
+
+        Ok(())
+    }
+
+    async fn delete_tenant_database(&self, admin_url: &str, db_name: &str) -> AppResult<()> {
+        let drop_db_sql = format!("DROP DATABASE {db_name}");
+        use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
+
+        let mut conn = AsyncPgConnection::establish(admin_url).await.map_err(|e| {
+            AppError::Internal(format!("Failed to connect to admin DB for drop: {e}"))
+        })?;
+
+        diesel::sql_query(drop_db_sql)
+            .execute(&mut conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to drop tenant database: {e}")))?;
 
         Ok(())
     }
