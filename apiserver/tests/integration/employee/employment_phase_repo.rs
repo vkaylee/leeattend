@@ -1,6 +1,7 @@
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
 use apiserver::repositories::diesel_employment_phase_repository::DieselEmploymentPhaseRepository;
+use apiserver::repositories::EmploymentPhaseRepository;
 use chrono::NaiveDate;
 use uuid::Uuid;
 
@@ -30,7 +31,7 @@ async fn test_employment_phase_repo_crud() {
         .create_definition(
             ws_id,
             "Probation",
-            Some("Probation period"),
+            Some("Probation period".to_string()),
             "probation",
             &rule_config,
             1,
@@ -74,7 +75,7 @@ async fn test_employment_phase_repo_crud() {
             def.id,
             start_date,
             end_date,
-            Some(&override_config),
+            Some(override_config.clone()),
         )
         .await
         .unwrap();
@@ -123,7 +124,7 @@ async fn test_employment_phase_repo_crud() {
             employment_id,
             phase2.id,
             "terminated",
-            Some("Terminated early"),
+            Some("Terminated early".to_string()),
             admin_id,
         )
         .await

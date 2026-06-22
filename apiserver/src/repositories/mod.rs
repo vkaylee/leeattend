@@ -148,6 +148,8 @@ pub mod diesel_behalf_assignment_repository;
 pub use diesel_behalf_assignment_repository::DieselBehalfAssignmentRepository;
 pub mod diesel_employment_phase_repository;
 pub use diesel_employment_phase_repository::DieselEmploymentPhaseRepository;
+pub mod employment_phase_repository;
+pub use employment_phase_repository::EmploymentPhaseRepository;
 pub mod diesel_working_pattern_repository;
 pub use diesel_working_pattern_repository::DieselWorkingPatternRepository;
 pub mod diesel_salary_base_repository;

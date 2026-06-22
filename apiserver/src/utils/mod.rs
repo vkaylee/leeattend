@@ -11,6 +11,7 @@ pub mod id;
 pub mod logging;
 pub mod masking;
 pub mod serde_helpers;
+pub mod startup_reconciliation;
 pub mod tz;
 pub mod upload;
 

@@ -195,6 +195,7 @@ pub async fn upsert_storage_config(
             AppError::Internal("Failed to upsert storage config".into())
         })?;
 
+    drop(conn);
     // Invalidate cache if StorageResolver supports it
     state.storage().invalidate(workspace_id).await;
 
@@ -272,6 +273,7 @@ pub async fn delete_storage_config(
             AppError::Internal("Failed to update storage config".into())
         })?;
 
+    drop(conn);
     // Invalidate cache
     state.storage().invalidate(workspace_id).await;
 

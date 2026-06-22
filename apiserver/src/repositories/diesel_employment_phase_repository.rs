@@ -19,12 +19,15 @@ impl DieselEmploymentPhaseRepository {
     pub fn new(diesel_pools: DieselPools) -> Self {
         Self { diesel_pools }
     }
+}
 
-    pub async fn create_definition(
+#[async_trait::async_trait]
+impl super::EmploymentPhaseRepository for DieselEmploymentPhaseRepository {
+    async fn create_definition(
         &self,
         workspace_id: Uuid,
         name: &str,
-        description: Option<&str>,
+        description: Option<String>,
         phase_type: &str,
         rule_config: &serde_json::Value,
         display_order: i32,
@@ -41,7 +44,7 @@ impl DieselEmploymentPhaseRepository {
             id: crate::utils::id::new_id(),
             workspace_id,
             name: name.to_string(),
-            description: description.map(ToString::to_string),
+            description,
             phase_type: phase_type.to_string(),
             rule_config: rule_config.clone(),
             is_active: true,
@@ -80,7 +83,7 @@ impl DieselEmploymentPhaseRepository {
         Ok(result.into())
     }
 
-    pub async fn get_definitions(
+    async fn get_definitions(
         &self,
         workspace_id: Uuid,
     ) -> Result<Vec<EmploymentPhaseDefinition>, AppError> {
@@ -107,15 +110,14 @@ impl DieselEmploymentPhaseRepository {
         Ok(entities.into_iter().map(Into::into).collect())
     }
 
-    #[allow(clippy::too_many_arguments)]
-    pub async fn assign_phase(
+    async fn assign_phase(
         &self,
         workspace_id: Uuid,
         employment_id: Uuid,
         phase_definition_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
-        override_config: Option<&serde_json::Value>,
+        override_config: Option<serde_json::Value>,
     ) -> Result<EmployeePhase, AppError> {
         let mut conn = crate::diesel_pool::TransactionConn(
             self.diesel_pools
@@ -129,7 +131,7 @@ impl DieselEmploymentPhaseRepository {
             .checked_sub_days(chrono::Days::new(1))
             .unwrap_or(start_date);
 
-        let override_config_owned = override_config.cloned();
+        let override_config_owned = override_config;
         let result = conn
             .transaction(|conn| {
                 Box::pin(async move {
@@ -173,7 +175,7 @@ impl DieselEmploymentPhaseRepository {
 
                     let result = diesel::insert_into(employee_phases::table)
                         .values(&new_entity)
-                        .get_result::<EmployeePhaseEntity>(&mut *conn)
+                        .get_result::<EmployeePhaseEntity>(conn)
                         .await?;
 
                     Ok::<_, diesel::result::Error>(result)
@@ -185,14 +187,13 @@ impl DieselEmploymentPhaseRepository {
         Ok(result.into())
     }
 
-    #[allow(clippy::too_many_arguments)]
-    pub async fn update_phase_status(
+    async fn update_phase_status(
         &self,
         workspace_id: Uuid,
         employment_id: Uuid,
         phase_id: Uuid,
         status: &str,
-        evaluation_notes: Option<&str>,
+        evaluation_notes: Option<String>,
         evaluated_by: Uuid,
     ) -> Result<EmployeePhase, AppError> {
         let mut conn = crate::diesel_pool::TransactionConn(
@@ -230,7 +231,7 @@ impl DieselEmploymentPhaseRepository {
             .ok_or_else(|| AppError::not_found(I18nKey::EmployeePhaseNotFound))
     }
 
-    pub async fn get_employment_phases(
+    async fn get_employment_phases(
         &self,
         workspace_id: Uuid,
         employment_id: Uuid,

@@ -66,7 +66,7 @@ pub async fn create_employment_phase_definition(
         .create_definition(
             ctx.workspace_id,
             &payload.name,
-            payload.description.as_deref(),
+            payload.description,
             &payload.phase_type,
             &payload.rule_config,
             payload.display_order.unwrap_or(0),
@@ -144,7 +144,7 @@ pub async fn assign_employee_phase(
             payload.phase_definition_id,
             payload.start_date,
             payload.end_date,
-            payload.override_config.as_ref(),
+            payload.override_config,
         )
         .await?;
 
@@ -194,7 +194,7 @@ pub async fn update_employee_phase_status(
             employment_id,
             phase_id,
             &payload.status,
-            payload.evaluation_notes.as_deref(),
+            payload.evaluation_notes,
             ctx.user_id,
         )
         .await?;
@@ -275,7 +275,7 @@ pub async fn assign_employment_phase(
             payload.phase_definition_id,
             payload.start_date,
             payload.end_date,
-            payload.override_config.as_ref(),
+            payload.override_config,
         )
         .await?;
 
@@ -315,7 +315,7 @@ pub async fn update_employment_phase_status(
             employment_id,
             phase_id,
             &payload.status,
-            payload.evaluation_notes.as_deref(),
+            payload.evaluation_notes,
             ctx.user_id,
         )
         .await?;

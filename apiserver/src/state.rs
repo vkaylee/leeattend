@@ -23,8 +23,7 @@ use crate::repositories::time_entry_repository::TimeEntryRepository;
 use crate::repositories::user_repository::UserRepository;
 use crate::repositories::workspace_stats_repository::WorkspaceStatsRepository;
 use crate::repositories::{
-    AgentRepository, BehalfAssignmentRepository, DieselEmployeeContractRepository,
-    EmployeeRepository, WorkspaceRepository,
+    AgentRepository, BehalfAssignmentRepository, EmployeeRepository, WorkspaceRepository,
 };
 use crate::services::attendance_adjustment_service::AttendanceAdjustmentService;
 use crate::services::attendance_import_service::AttendanceImportService;
@@ -53,8 +52,8 @@ pub struct EmployeeState {
     recruitment_service: Arc<RecruitmentService>,
     repo: Arc<dyn EmployeeRepository>,
     employment_repo: Arc<dyn crate::repositories::EmploymentRepository>,
-    contract_repo: Arc<DieselEmployeeContractRepository>,
-    employment_phase_repo: Arc<crate::repositories::DieselEmploymentPhaseRepository>,
+    contract_repo: Arc<dyn crate::repositories::EmployeeContractRepository>,
+    employment_phase_repo: Arc<dyn crate::repositories::EmploymentPhaseRepository>,
 }
 
 impl EmployeeState {
@@ -63,8 +62,8 @@ impl EmployeeState {
         recruitment_service: Arc<RecruitmentService>,
         repo: Arc<dyn EmployeeRepository>,
         employment_repo: Arc<dyn crate::repositories::EmploymentRepository>,
-        contract_repo: Arc<DieselEmployeeContractRepository>,
-        employment_phase_repo: Arc<crate::repositories::DieselEmploymentPhaseRepository>,
+        contract_repo: Arc<dyn crate::repositories::EmployeeContractRepository>,
+        employment_phase_repo: Arc<dyn crate::repositories::EmploymentPhaseRepository>,
     ) -> Self {
         Self {
             service,
@@ -92,13 +91,13 @@ impl EmployeeState {
         &self.employment_repo
     }
 
-    pub fn contract_repo(&self) -> &Arc<DieselEmployeeContractRepository> {
+    pub fn contract_repo(&self) -> &Arc<dyn crate::repositories::EmployeeContractRepository> {
         &self.contract_repo
     }
 
     pub fn employment_phase_repo(
         &self,
-    ) -> &Arc<crate::repositories::DieselEmploymentPhaseRepository> {
+    ) -> &Arc<dyn crate::repositories::EmploymentPhaseRepository> {
         &self.employment_phase_repo
     }
 }

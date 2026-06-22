@@ -15,7 +15,6 @@ use crate::{
         UpdateContractRequest,
     },
     queue::{Job, JobPayload, SyncHireDatePayload, TaskType},
-    repositories::employee_contract_repository::EmployeeContractRepository,
     utils::i18n::I18nKey,
     AppState,
 };
