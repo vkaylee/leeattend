@@ -156,10 +156,10 @@ export default function EContractsPage() {
     return contracts.filter((c) => {
       const nameMatch = c.employee_name.toLowerCase().includes(search.toLowerCase());
       const codeMatch = c.employee_code.toLowerCase().includes(search.toLowerCase());
-      const numMatch = c.contract.contract_number?.toLowerCase().includes(search.toLowerCase()) ?? false;
+      const numMatch = c.contract_number?.toLowerCase().includes(search.toLowerCase()) ?? false;
       const matchesSearch = nameMatch || codeMatch || numMatch;
-      const matchesType = selectedType === "all" || c.contract.contract_type === selectedType;
-      const matchesStatus = selectedStatus === "all" || c.contract.status === selectedStatus;
+      const matchesType = selectedType === "all" || c.contract_type === selectedType;
+      const matchesStatus = selectedStatus === "all" || c.status === selectedStatus;
       return matchesSearch && matchesType && matchesStatus;
     });
   }, [contracts, search, selectedType, selectedStatus]);

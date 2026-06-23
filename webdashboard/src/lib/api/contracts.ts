@@ -62,12 +62,11 @@ export async function deleteEmployeeContract(wsId: string, employeeId: string, c
   });
 }
 
-export interface EmployeeContractWithEmployee {
-  contract: EmployeeContract;
+export type EmployeeContractWithEmployee = EmployeeContract & {
   employee_code: string;
   employee_id: string;
   employee_name: string;
-}
+};
 
 export async function fetchWorkspaceContracts(wsId: string): Promise<EmployeeContractWithEmployee[]> {
   const { data } = await client.GET("/api/v1/workspaces/{ws_id}/contracts" as any, {

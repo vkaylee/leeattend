@@ -114,7 +114,7 @@ export function EContractsTable({
           {contracts.map((c) => (
             <tr
               className="border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50/40 dark:hover:bg-slate-855/10 transition-colors group"
-              key={c.contract.id}
+              key={c.id}
             >
               <td className="px-8 py-5">
                 <div className="flex flex-col">
@@ -129,21 +129,21 @@ export function EContractsTable({
                 </div>
               </td>
               <td className="px-8 py-5 text-xs font-mono font-semibold text-slate-600 dark:text-slate-350">
-                {c.contract.contract_number ?? "—"}
+                {c.contract_number ?? "—"}
               </td>
               <td className="px-8 py-5">
                 <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                  {getContractTypeLabel(c.contract.contract_type)}
+                  {getContractTypeLabel(c.contract_type)}
                 </span>
               </td>
               <td className="px-8 py-5 text-xs text-slate-500 dark:text-slate-400 font-medium">
-                {formatDate(c.contract.start_date)}
+                {formatDate(c.start_date)}
                 {" → "}
-                {c.contract.end_date ? formatDate(c.contract.end_date) : t("employees.details.contracts.permanent", { defaultValue: "Lâu dài / Permanent" })}
+                {c.end_date ? formatDate(c.end_date) : t("employees.details.contracts.permanent", { defaultValue: "Lâu dài / Permanent" })}
               </td>
               <td className="px-8 py-5">
-                <span className={cn("text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 border rounded-full shadow-sm", getStatusColor(c.contract.status))}>
-                  {c.contract.status}
+                <span className={cn("text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 border rounded-full shadow-sm", getStatusColor(c.status))}>
+                  {c.status}
                 </span>
               </td>
               <td className="px-8 py-5 text-right">
@@ -151,7 +151,7 @@ export function EContractsTable({
                   <Button
                     aria-label={t("employees.details.contracts.edit", { defaultValue: "Edit contract" })}
                     className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-xl transition-colors h-auto w-auto shadow-none"
-                    onClick={() => { onEdit(c.contract, c.employee_id); }}
+                    onClick={() => { onEdit(c, c.employee_id); }}
                     size="icon"
                     variant="ghost"
                   >
@@ -160,7 +160,7 @@ export function EContractsTable({
                   <Button
                     aria-label={t("employees.details.contracts.delete", { defaultValue: "Delete contract" })}
                     className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-colors h-auto w-auto shadow-none"
-                    onClick={() => { onDelete(c.employee_id, c.contract.id, c.contract.contract_number); }}
+                    onClick={() => { onDelete(c.employee_id, c.id, c.contract_number); }}
                     size="icon"
                     variant="ghost"
                   >
