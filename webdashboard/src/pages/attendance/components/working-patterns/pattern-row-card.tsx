@@ -35,7 +35,7 @@ function DayTimelinePill({
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <Popover open={isOpen} onOpenChange={setIsOpen} modal={false}>
       <PopoverTrigger asChild>
         <button
           aria-label={`${dayName}: ${hasShifts ? assignedDetails.map((d) => shifts?.find((s) => s.id === d.shift_id)?.name ?? "").join(", ") : t("status_off")}`}
