@@ -206,6 +206,7 @@
       "no_shifts_available": "No shifts available to prefill."
     },
     "confirm_delete": "Are you sure you want to delete pattern \"{{name}}\" ?",
+    "assign_btn": "Assign Working Pattern",
     "bulk_assign_btn": "Bulk Assign",
     "bulk_assign_title": "Bulk Assign Pattern",
     "bulk_assign_subtitle": "Assign pattern to multiple employees at once",

@@ -206,6 +206,7 @@
       "no_shifts_available": "Không có ca làm việc nào để tự động điền."
     },
     "confirm_delete": "Bạn có chắc chắn muốn xóa mẫu \"{{name}}\" ?",
+    "assign_btn": "Gán mẫu lịch làm việc",
     "bulk_assign_btn": "Gán hàng loạt",
     "bulk_assign_title": "Gán lịch hàng loạt",
     "bulk_assign_subtitle": "Gán mẫu lịch cho nhiều nhân viên cùng lúc",
