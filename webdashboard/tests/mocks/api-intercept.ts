@@ -120,7 +120,12 @@ export async function setupApiMocks(page: Page) {
 
     // 5. Departments
     if (/\/api\/(workspaces\/[^/]+\/)?departments\/?$/.exec(pathname) || /\/api\/departments\/?$/.exec(pathname)) {
-      return fulfill(MOCK_DEPARTMENTS);
+      return fulfill({
+        data: MOCK_DEPARTMENTS,
+        total: MOCK_DEPARTMENTS.length,
+        page: 1,
+        limit: 50
+      });
     }
 
     // 6. Attendance Logs
@@ -375,10 +380,28 @@ export async function setupApiMocks(page: Page) {
       return fulfill([]);
     }
     if (pathname.includes('/shifts')) {
-      return fulfill([]);
+      return fulfill({
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 50
+      });
     }
     if (pathname.includes('/schedules')) {
-      return fulfill([]);
+      return fulfill({
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 50
+      });
+    }
+    if (pathname.includes('/assignment-history')) {
+      return fulfill({
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 50
+      });
     }
     if (pathname.includes('/holidays')) {
       return fulfill([]);

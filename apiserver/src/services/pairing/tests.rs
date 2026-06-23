@@ -1731,8 +1731,8 @@ fn test_split_by_breaks_seconds_alignment() {
 
     let strategy = get_strategy();
     let shift = PairingShiftConfig::new_with_breaks(
-        450, // 07:30
-        990, // 16:30
+        450,                                // 07:30
+        990,                                // 16:30
         vec![BreakInterval::new(690, 750)], // 11:30-12:30
         None,
         None,
@@ -1759,4 +1759,3 @@ fn test_split_by_breaks_seconds_alignment() {
     // The end time of Segment 2 (checkout) should be the actual checkout (10 seconds)
     assert_eq!(sessions[1].end_time().unwrap().second(), 10);
 }
-

@@ -220,12 +220,12 @@ mod tests {
         std::env::set_var("S3_ACCESS_KEY", "test-access");
         std::env::set_var("S3_SECRET_KEY", "test-secret");
 
-        if let Ok(db_url) = std::env::var("DATABASE_URL") {
-            let diesel_pools = DieselPools::for_test(&db_url);
-            let result = AppState::build(diesel_pools, None).await;
-            if let Ok((state, _workers)) = result {
-                assert!(state.infra().redis().is_none());
-            }
+        let invalid_url = "postgres://invalid:invalid@localhost:12345/invalid_db";
+        let diesel_pools = DieselPools::for_test(invalid_url);
+        let result = AppState::build(diesel_pools, None).await;
+        assert!(result.is_ok());
+        if let Ok((state, _workers)) = result {
+            assert!(state.infra().redis().is_none());
         }
     }
 }

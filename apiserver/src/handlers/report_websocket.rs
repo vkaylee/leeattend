@@ -236,7 +236,14 @@ async fn handle_report_socket(socket: WebSocket, job_id: Uuid, redis: crate::que
                             StreamMessage::Chunk { .. } => {}
                         }
                     } else {
-                        info!(job_id = %job_id_clone, "Redis subscription closed");
+                        warn!(job_id = %job_id_clone, "Redis subscription closed unexpectedly");
+                        let err_msg = serde_json::json!({
+                            "type": "ERROR",
+                            "message": "Redis connection lost or subscription closed unexpectedly",
+                            "batch_index": null
+                        });
+                        let _ = sender.send(Message::Text(err_msg.to_string())).await;
+                        let _ = sender.close().await;
                         break;
                     }
                 }

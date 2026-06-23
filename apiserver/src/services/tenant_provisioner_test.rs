@@ -97,3 +97,47 @@ async fn test_create_tenant_database_invalid_url() {
         .await;
     assert!(res.is_err());
 }
+
+#[tokio::test]
+async fn test_create_tenant_database_validation_checks() {
+    use crate::services::tenant_provisioner::DatabaseMigratorTrait;
+    let pools = DieselPools::for_test("postgres://invalid:invalid@localhost:12345/invalid_db");
+    let migrator = TenantMigrator::new(pools);
+    let mock_admin_url = "postgres://invalid:invalid@localhost:12345/invalid_db";
+
+    // Scenario 1: Semicolon/Injection try
+    let res = migrator
+        .create_tenant_database(mock_admin_url, "tenant_123; DROP TABLE users;")
+        .await;
+    assert!(res.is_err());
+    assert!(format!("{:?}", res.unwrap_err()).contains("Invalid database name"));
+
+    // Scenario 2: Special character try
+    let res = migrator
+        .create_tenant_database(mock_admin_url, "tenant-123")
+        .await;
+    assert!(res.is_err());
+    assert!(format!("{:?}", res.unwrap_err()).contains("Invalid database name"));
+
+    // Scenario 3: Star character try
+    let res = migrator
+        .create_tenant_database(mock_admin_url, "tenant_*")
+        .await;
+    assert!(res.is_err());
+    assert!(format!("{:?}", res.unwrap_err()).contains("Invalid database name"));
+
+    // Scenario 4: Starts with number
+    let res = migrator
+        .create_tenant_database(mock_admin_url, "1_tenant")
+        .await;
+    assert!(res.is_err());
+    assert!(format!("{:?}", res.unwrap_err()).contains("Invalid database name"));
+
+    // Scenario 5: Too long (>63 characters)
+    let very_long_name = "t".repeat(64);
+    let res = migrator
+        .create_tenant_database(mock_admin_url, &very_long_name)
+        .await;
+    assert!(res.is_err());
+    assert!(format!("{:?}", res.unwrap_err()).contains("Invalid database name"));
+}

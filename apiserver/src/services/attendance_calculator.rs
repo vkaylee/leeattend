@@ -63,16 +63,31 @@ impl AttendanceCalculator {
         let input = DailyCalcInput {
             punch_in: Self::truncate_to_minute(input.punch_in.clone()),
             punch_out: Self::truncate_to_minute(input.punch_out.clone()),
-            shift_start: input.shift_start.as_ref().map(|dt| Self::truncate_to_minute(dt.clone())),
-            shift_end: input.shift_end.as_ref().map(|dt| Self::truncate_to_minute(dt.clone())),
+            shift_start: input
+                .shift_start
+                .as_ref()
+                .map(|dt| Self::truncate_to_minute(dt.clone())),
+            shift_end: input
+                .shift_end
+                .as_ref()
+                .map(|dt| Self::truncate_to_minute(dt.clone())),
             scheduled_break_minutes: input.scheduled_break_minutes,
             actual_break_minutes: input.actual_break_minutes,
-            break_start: input.break_start.as_ref().map(|dt| Self::truncate_to_minute(dt.clone())),
-            break_end: input.break_end.as_ref().map(|dt| Self::truncate_to_minute(dt.clone())),
+            break_start: input
+                .break_start
+                .as_ref()
+                .map(|dt| Self::truncate_to_minute(dt.clone())),
+            break_end: input
+                .break_end
+                .as_ref()
+                .map(|dt| Self::truncate_to_minute(dt.clone())),
             work_unit: input.work_unit,
             rounding_policy: input.rounding_policy.clone(),
             rules: input.rules.clone(),
-            ot_ceiling: input.ot_ceiling.as_ref().map(|dt| Self::truncate_to_minute(dt.clone())),
+            ot_ceiling: input
+                .ot_ceiling
+                .as_ref()
+                .map(|dt| Self::truncate_to_minute(dt.clone())),
             max_early_ot_minutes: input.max_early_ot_minutes,
         };
 

@@ -43,9 +43,39 @@ impl TenantMigrator {
     }
 }
 
+fn validate_db_name(db_name: &str) -> AppResult<()> {
+    if db_name.is_empty() || db_name.len() > 63 {
+        return Err(AppError::Internal(format!(
+            "Invalid database name: length must be 1-63 characters, got {}",
+            db_name.len()
+        )));
+    }
+    let first_char = db_name
+        .chars()
+        .next()
+        .ok_or_else(|| AppError::Internal("Invalid database name: cannot be empty".to_string()))?;
+    if !first_char.is_ascii_alphabetic() && first_char != '_' {
+        return Err(AppError::Internal(
+            "Invalid database name: must start with a letter or underscore".to_string(),
+        ));
+    }
+    if !db_name
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '_')
+    {
+        return Err(AppError::Internal(
+            "Invalid database name: must only contain alphanumeric characters or underscores"
+                .to_string(),
+        ));
+    }
+    Ok(())
+}
+
 #[async_trait]
 impl DatabaseMigratorTrait for TenantMigrator {
     async fn create_tenant_database(&self, admin_url: &str, db_name: &str) -> AppResult<()> {
+        validate_db_name(db_name)?;
+
         let create_db_sql = format!("CREATE DATABASE {db_name}");
         use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
 
@@ -62,6 +92,8 @@ impl DatabaseMigratorTrait for TenantMigrator {
     }
 
     async fn delete_tenant_database(&self, admin_url: &str, db_name: &str) -> AppResult<()> {
+        validate_db_name(db_name)?;
+
         let drop_db_sql = format!("DROP DATABASE {db_name}");
         use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
 
