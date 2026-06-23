@@ -83,6 +83,7 @@ export function ShiftsContent({ hook, monthlyRoster }: ShiftsContentProps) {
           selectedDays={selectedDays}
           selectedEmployee={selectedEmployee}
           weekDays={weekDays}
+          shifts={shifts}
         />
         <PriorityLegend />
         <AssignmentHistory

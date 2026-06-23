@@ -102,55 +102,15 @@ interface RosterCellData {
   traces?: EffectiveSchedule["traces"];
 }
 
-const computeCellData = (
-  daySchedule: EffectiveSchedule | undefined,
-  isSelected: boolean,
-  shifts?: Shift[]
-): RosterCellData => {
-  if (!daySchedule) {
-    return {
-      cellStyles: getCellStyles(undefined, isSelected),
-      hasShift: false,
-      hasTraces: false,
-      isHoliday: false,
-      shiftBgClass: "bg-slate-100/50 dark:bg-slate-800 text-slate-700 dark:text-slate-300",
-      shiftSymbol: "",
-    };
-  }
-
-  const shiftId = daySchedule.shift_id;
-  const hasShift = !!shiftId;
-  const isHoliday = daySchedule.is_holiday ?? false;
-  const holidayName = daySchedule.holiday_name;
-  
-  let shiftSymbol = "";
-  if (hasShift) {
-    const shiftConfig = shifts?.find((s) => s.id === shiftId);
-    shiftSymbol = getShiftSymbol(daySchedule.shift_name, shiftConfig?.report_symbol);
-  }
-
-  const source = daySchedule.source;
-  const shiftBgClass = source === "roster"
-    ? "bg-teal-100/60 dark:bg-teal-950/60 text-teal-800 dark:text-teal-200"
-    : "bg-slate-100/50 dark:bg-slate-800 text-slate-700 dark:text-slate-300";
-
-  const traces = daySchedule.traces ?? [];
-  const hasTraces = traces.length > 0;
-
-  return {
-    cellStyles: getCellStyles(source, isSelected),
-    hasShift,
-    hasTraces,
-    holidayName,
-    isHoliday,
-    shiftBgClass,
-    shiftSymbol,
-    source,
-    traces,
-    shiftName: daySchedule.shift_name,
-    startTime: daySchedule.start_time,
-    endTime: daySchedule.end_time,
-  };
+const getHighestPrioritySource = (schedules: EffectiveSchedule[]): string | undefined => {
+  const sources = schedules.map(s => s.source);
+  if (sources.includes("roster")) return "roster";
+  if (sources.includes("pattern")) return "pattern";
+  if (sources.includes("assignment_rule")) return "assignment_rule";
+  if (sources.includes("department_pattern")) return "department_pattern";
+  if (sources.includes("fixed")) return "fixed";
+  if (sources.includes("department_fixed")) return "department_fixed";
+  return undefined;
 };
 
 
@@ -462,29 +422,18 @@ const RosterGridTable = memo(function RosterGridTable({
                 const dateStr = format(day, "yyyy-MM-dd");
                 const cellKey = `${empSchedule.employee_id ?? ""}:${dateStr}`;
                 const isSelected = selectedCells.has(cellKey);
-                const daySchedule = empSchedule.schedules.find((s) => s.date === dateStr);
-                const cellData = computeCellData(daySchedule, isSelected, shifts);
+                const daySchedules = empSchedule.schedules.filter((s) => s.date === dateStr);
 
                 return (
                   <RosterCell
-                    cellStyles={cellData.cellStyles}
                     dateStr={dateStr}
                     employeeId={empSchedule.employee_id ?? ""}
-                    endTime={cellData.endTime}
-                    hasShift={cellData.hasShift}
-                    hasTraces={cellData.hasTraces}
-                    holidayName={cellData.holidayName}
-                    isHoliday={cellData.isHoliday}
                     isSelected={isSelected}
                     key={dateStr}
                     onMouseDown={onCellMouseDown}
                     onMouseEnter={onCellMouseEnter}
-                    shiftBgClass={cellData.shiftBgClass}
-                    shiftName={cellData.shiftName}
-                    shiftSymbol={cellData.shiftSymbol}
-                    source={cellData.source}
-                    startTime={cellData.startTime}
-                    traces={cellData.traces}
+                    daySchedules={daySchedules}
+                    shifts={shifts}
                   />
                 );
               })}
@@ -498,42 +447,23 @@ const RosterGridTable = memo(function RosterGridTable({
 RosterGridTable.displayName = "RosterGridTable";
 
 interface RosterCellProps {
-  cellStyles: string;
   dateStr: string;
   employeeId: string;
-  endTime?: string | null;
-  hasShift: boolean;
-  hasTraces: boolean;
-  holidayName?: string | null;
-  isHoliday: boolean;
   isSelected: boolean;
   onMouseDown: (employeeId: string, dateStr: string, e: React.MouseEvent) => void;
   onMouseEnter: (employeeId: string, dateStr: string) => void;
-  shiftBgClass: string;
-  shiftName?: string | null;
-  shiftSymbol: string;
-  source?: string;
-  startTime?: string | null;
-  traces?: EffectiveSchedule["traces"];
+  daySchedules: EffectiveSchedule[];
+  shifts?: Shift[];
 }
 
 const RosterCell = memo(function RosterCell({
-  cellStyles,
   dateStr,
   employeeId,
-  hasShift,
-  hasTraces,
-  holidayName,
-  isHoliday,
+  isSelected,
   onMouseDown,
   onMouseEnter,
-  shiftBgClass,
-  shiftSymbol,
-  source,
-  traces,
-  shiftName,
-  startTime,
-  endTime,
+  daySchedules,
+  shifts,
 }: RosterCellProps) {
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent text highlighting while dragging
@@ -544,22 +474,48 @@ const RosterCell = memo(function RosterCell({
     onMouseEnter(employeeId, dateStr);
   };
 
+  const workingSchedules = daySchedules.filter((s) => s.shift_id);
+  const hasShift = workingSchedules.length > 0;
+  const isHoliday = daySchedules.some((s) => s.is_holiday);
+  const holidayName = daySchedules.find((s) => s.holiday_name)?.holiday_name;
+
+  const highestSource = getHighestPrioritySource(daySchedules);
+  const cellStyles = getCellStyles(highestSource, isSelected);
+
+  const allTraces = daySchedules.flatMap((s) => s.traces ?? []);
+  const hasTraces = allTraces.length > 0;
+
   return (
     <td
       className={cellStyles}
       onMouseDown={handleMouseDown}
       onMouseEnter={handleMouseEnter}
     >
-      <div className="py-2.5 px-1 min-h-[44px] flex flex-col justify-center items-center">
+      <div className="py-2.5 px-1 min-h-[44px] flex flex-col justify-center items-center gap-1">
         {hasShift ? (
-          <span className={`text-[10px] font-extrabold tracking-tight px-1.5 py-0.5 rounded-md ${shiftBgClass}`}>
-            {shiftSymbol}
-          </span>
+          <div className="flex flex-col gap-1 items-center">
+            {workingSchedules.map((s, idx) => {
+              const shiftConfig = shifts?.find((sh) => sh.id === s.shift_id);
+              const shiftSymbol = getShiftSymbol(s.shift_name, shiftConfig?.report_symbol);
+              const shiftBgClass = s.source === "roster"
+                ? "bg-teal-100/60 dark:bg-teal-950/60 text-teal-800 dark:text-teal-200"
+                : "bg-slate-100/50 dark:bg-slate-800 text-slate-700 dark:text-slate-300";
+              return (
+                <span
+                  key={idx}
+                  className={`text-[9px] font-extrabold tracking-tight px-1.5 py-0.5 rounded-md ${shiftBgClass}`}
+                  title={`${s.shift_name ?? ""} (${s.start_time?.substring(0, 5) ?? ""} - ${s.end_time?.substring(0, 5) ?? ""})`}
+                >
+                  {shiftSymbol}
+                </span>
+              );
+            })}
+          </div>
         ) : (
           <span className="text-[10px] text-slate-350 dark:text-slate-600 font-bold">—</span>
         )}
 
-        {getSourceIndicator(source)}
+        {getSourceIndicator(highestSource)}
 
         {isHoliday ? (
           <span className="absolute top-1 left-1 text-[8px] bg-amber-100 dark:bg-amber-950 text-amber-600 rounded-full px-0.5 font-extrabold scale-90 border border-amber-200 dark:border-amber-900" title={holidayName ?? "Lễ"}>
@@ -567,15 +523,21 @@ const RosterCell = memo(function RosterCell({
           </span>
         ) : null}
 
-        {hasTraces && traces ? (
+        {hasTraces && allTraces.length > 0 ? (
           <div className="absolute top-0.5 right-0.5 z-30 opacity-0 hover:opacity-100 group-hover:opacity-60 transition-opacity">
             <ScheduleTracePopover 
-              endTime={endTime} 
-              shiftName={shiftName} 
-              shiftSymbol={shiftSymbol}
-              source={source ?? "none"}
-              startTime={startTime}
-              traces={traces}
+              source={highestSource ?? "none"}
+              traces={allTraces}
+              schedules={workingSchedules.map(s => {
+                const shiftConfig = shifts?.find((sh) => sh.id === s.shift_id);
+                const shiftSymbol = getShiftSymbol(s.shift_name, shiftConfig?.report_symbol);
+                return {
+                  shiftName: s.shift_name,
+                  shiftSymbol,
+                  startTime: s.start_time,
+                  endTime: s.end_time,
+                };
+              })}
             />
           </div>
         ) : null}

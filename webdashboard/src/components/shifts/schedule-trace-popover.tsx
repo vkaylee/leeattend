@@ -17,6 +17,12 @@ interface ScheduleTracePopoverProps {
   source: string;
   startTime?: string | null;
   traces: ScheduleTrace[];
+  schedules?: {
+    shiftName?: string | null;
+    shiftSymbol?: string | null;
+    startTime?: string | null;
+    endTime?: string | null;
+  }[];
 }
 
 function AppliedShiftCard({
@@ -31,6 +37,7 @@ function AppliedShiftCard({
   endTime?: string | null;
   shiftSymbol?: string | null;
   t: TFunction;
+  key?: React.Key;
 }) {
   if (!shiftName) {
     return (
@@ -132,7 +139,7 @@ function AppliedRuleSection({ appliedRule, t }: { appliedRule: ScheduleTrace; t:
 
 function OverriddenRulesSection({ overriddenRules, showOverridden, setShowOverridden, t }: { overriddenRules: ScheduleTrace[]; setShowOverridden: (v: boolean) => void; showOverridden: boolean; t: TFunction }) {
   if (overriddenRules.length === 0) return null;
-
+ 
   return (
     <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
       <Button className="flex items-center justify-between w-full group py-1.5 hover:bg-slate-50/50 dark:hover:bg-slate-850/50 rounded-lg px-1.5 transition-all" 
@@ -148,7 +155,7 @@ function OverriddenRulesSection({ overriddenRules, showOverridden, setShowOverri
           <ChevronRight className="text-slate-500 dark:text-slate-400 group-hover:text-slate-650 dark:group-hover:text-slate-250 transition-colors" size={14} />
         )}
       </Button>
-
+ 
       {showOverridden ? (
         <div className="space-y-2 animate-in slide-in-from-top-1.5 duration-200 ease-out">
           {overriddenRules.map((rule, index) => (
@@ -182,15 +189,16 @@ export const ScheduleTracePopover: React.FC<ScheduleTracePopoverProps> = ({
   startTime,
   endTime,
   shiftSymbol,
-}) => {
+  schedules,
+}: ScheduleTracePopoverProps) => {
   const { t } = useTranslation();
   const [showOverridden, setShowOverridden] = useState(false);
-
+ 
   const appliedRule = traces.find(t => t.status === 'applied');
   const overriddenRules = traces.filter(t => t.status === 'overridden');
-
+ 
   if (traces.length === 0) return null;
-
+ 
   return (
     <Popover.Root>
       <Popover.Trigger 
@@ -215,20 +223,35 @@ export const ScheduleTracePopover: React.FC<ScheduleTracePopoverProps> = ({
                 <Typography className="text-sm font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-tight" variant="h3">
                   {t("shifts.traceability.title")}
                 </Typography>
-                <Typography className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest" variant="p">
+                <Typography className="text-[10px] text-slate-450 dark:text-slate-555 font-bold uppercase tracking-widest" variant="p">
                   {t("shifts.traceability.source")}: {source}
                 </Typography>
               </div>
             </div>
-
+ 
             {/* Resolved Shift Card */}
-            <AppliedShiftCard 
-              endTime={endTime}
-              shiftName={shiftName}
-              shiftSymbol={shiftSymbol}
-              startTime={startTime}
-              t={t}
-            />
+            {schedules && schedules.length > 0 ? (
+              <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                {schedules.map((s, idx) => (
+                  <AppliedShiftCard 
+                    key={idx}
+                    endTime={s.endTime}
+                    shiftName={s.shiftName}
+                    shiftSymbol={s.shiftSymbol}
+                    startTime={s.startTime}
+                    t={t}
+                  />
+                ))}
+              </div>
+            ) : (
+              <AppliedShiftCard 
+                endTime={endTime}
+                shiftName={shiftName}
+                shiftSymbol={shiftSymbol}
+                startTime={startTime}
+                t={t}
+              />
+            )}
 
             {appliedRule ? <AppliedRuleSection appliedRule={appliedRule} t={t} /> : null}
             <OverriddenRulesSection overriddenRules={overriddenRules} setShowOverridden={setShowOverridden} showOverridden={showOverridden} t={t} />
