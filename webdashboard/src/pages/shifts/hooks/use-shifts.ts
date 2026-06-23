@@ -38,6 +38,7 @@ export function useShifts(): UseShiftsReturn {
         form.setSelectedPatternId("");
         form.setEndDate("");
         form.setIsForever(true);
+        form.setIsPatternModalOpen(false);
       } else if (type === "bulkRoster") {
         form.setSelectedDays([]);
       } else if (type === "createShift") {

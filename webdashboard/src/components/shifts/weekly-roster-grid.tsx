@@ -42,14 +42,13 @@ interface WeeklyRosterGridProps {
   onClearSelection: () => void;
   onClearWeek: () => void;
   onCopyPreviousWeek: () => void;
- 
+  onAssignPattern: () => void;
   onDeleteRoster: (date: string) => void;
   onNavigateWeek: (direction: "prev" | "next") => void;
   onOpenShiftPicker: (dates: string[]) => void;
   onToggleDaySelection: (dateString: string) => void;
   selectedDays: string[];
   selectedEmployee: Employee;
- 
   weekDays: Date[];
 }
 
@@ -251,12 +250,14 @@ export function WeeklyRosterGridHeader({
   onCopyPreviousWeek,
   onClearWeek,
   onAssignAllWeek,
+  onAssignPattern,
   onNavigateWeek,
   formatDate,
   weekDays
 }: {
   formatDate: (date: string | Date | undefined) => string;
   onAssignAllWeek: () => void;
+  onAssignPattern: () => void;
   onClearWeek: () => void;
   onCopyPreviousWeek: () => void;
   onNavigateWeek: (direction: "prev" | "next") => void;
@@ -284,9 +285,11 @@ export function WeeklyRosterGridHeader({
               if (value === "copy-prev") onCopyPreviousWeek();
               else if (value === "clear-week") onClearWeek();
               else if (value === "assign-all") onAssignAllWeek();
+              else if (value === "assign-pattern") onAssignPattern();
             }}
             options={[
               { value: "copy-prev", label: t("shifts.actions.copy_previous"), icon: <Copy className="w-4 h-4" /> },
+              { value: "assign-pattern", label: t("patterns.assign_btn", "Assign Working Pattern"), icon: <Zap className="w-4 h-4" /> },
               { value: "assign-all", label: t("shifts.actions.assign_all_week"), icon: <CalendarIcon className="w-4 h-4" /> },
               { value: "clear-week", label: t("shifts.actions.clear_week"), icon: <Trash className="w-4 h-4" /> },
             ]}
@@ -315,7 +318,6 @@ export function WeeklyRosterGridHeader({
 
 export function WeeklyRosterGrid({
   selectedEmployee,
-
   onNavigateWeek,
   weekDays,
   selectedDays,
@@ -327,6 +329,7 @@ export function WeeklyRosterGrid({
   onClearWeek,
   onOpenShiftPicker,
   onDeleteRoster,
+  onAssignPattern,
 }: WeeklyRosterGridProps) {
   const { t, i18n } = useTranslation();
   const currentLocale = dateLocales[i18n.language.substring(0, 2)] ?? enUS;
@@ -338,6 +341,7 @@ export function WeeklyRosterGrid({
         <WeeklyRosterGridHeader
           formatDate={formatDate}
           onAssignAllWeek={onAssignAllWeek}
+          onAssignPattern={onAssignPattern}
           onClearWeek={onClearWeek}
           onCopyPreviousWeek={onCopyPreviousWeek}
           onNavigateWeek={onNavigateWeek}

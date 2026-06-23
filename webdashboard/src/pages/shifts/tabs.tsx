@@ -33,19 +33,6 @@ export function ShiftsTabs({ activeTab, setActiveTab, viewMode, setViewMode }: S
           <LayoutGrid size={14} /> {t("shifts.tabs.weekly_roster")}
         </Button>
         <Button className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all ${
-            activeTab === "assignments"
-              ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
-              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-          }`}
-          onClick={() => {
-            setActiveTab("assignments");
-          }}
-          type="button"
-          variant="ghost"
-        >
-          <Zap size={14} /> {t("shifts.tabs.fixed_assignments", "Patterns & Rules")}
-        </Button>
-        <Button className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all ${
             activeTab === "directory"
               ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
               : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"

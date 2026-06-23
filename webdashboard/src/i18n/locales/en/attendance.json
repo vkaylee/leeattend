@@ -214,7 +214,9 @@
       "subtitle": "Setup recurring schedule",
       "submit_btn": "Save Pattern",
       "assign_btn": "Confirm Assignment",
-      "bulk_subtitle": "Schedule Allocation"
+      "bulk_subtitle": "Schedule Allocation",
+      "assign_title": "Assign Working Pattern",
+      "assign_subtitle": "Setup recurring work schedule for employees"
     },
     "validation_pattern_required": "Please select a pattern.",
     "validation_employees_required": "Please select at least one employee.",

@@ -214,7 +214,9 @@
       "subtitle": "Thiết lập lịch tuần hoàn",
       "submit_btn": "Lưu mẫu",
       "assign_btn": "Xác nhận gán",
-      "bulk_subtitle": "Phân bổ lịch trình"
+      "bulk_subtitle": "Phân bổ lịch trình",
+      "assign_title": "Gán lịch tuần/xoay ca",
+      "assign_subtitle": "Thiết lập lịch làm việc lặp lại định kỳ cho nhân viên"
     },
     "validation_pattern_required": "Vui lòng chọn mẫu lịch.",
     "validation_employees_required": "Vui lòng chọn ít nhất một nhân viên.",

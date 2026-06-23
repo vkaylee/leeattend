@@ -93,6 +93,9 @@ export function ShiftsContent({ hook }: ShiftsContentProps) {
           selectedDays={selectedDays}
           selectedEmployee={selectedEmployee}
           weekDays={weekDays}
+          onAssignPattern={() => {
+            hook.setIsPatternModalOpen(true);
+          }}
         />
         <PriorityLegend />
         <AssignmentHistory
@@ -100,25 +103,6 @@ export function ShiftsContent({ hook }: ShiftsContentProps) {
           selectedEmployee={selectedEmployee}
         />
       </div>
-    );
-  }
-
-  if (activeTab === "assignments" && selectedEmployee) {
-    return (
-      <PatternAssignmentForm
-        endDate={endDate}
-        isForever={isForever}
-        isLoading={assignPatternMutation.isPending}
-        onAssign={handleAssign}
-        patterns={patterns}
-        selectedEmployee={selectedEmployee}
-        selectedPatternId={selectedPatternId}
-        setEndDate={setEndDate}
-        setIsForever={setIsForever}
-        setSelectedPatternId={setSelectedPatternId}
-        setStartDate={setStartDate}
-        startDate={startDate}
-      />
     );
   }
 

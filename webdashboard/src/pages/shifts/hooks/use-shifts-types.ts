@@ -58,6 +58,7 @@ export interface UseShiftsReturn {
   isMonthError: boolean;
   isMonthLoading: boolean;
   isShiftPickerOpen: boolean;
+  isPatternModalOpen: boolean;
   maxEarlyOtMinutes: number;
   monthDays: Date[];
   monthError: Error | null;
@@ -90,6 +91,7 @@ export interface UseShiftsReturn {
   setIsFixedBreak: (v: boolean) => void;
   setIsForever: (v: boolean) => void;
   setIsShiftPickerOpen: (v: boolean) => void;
+  setIsPatternModalOpen: (v: boolean) => void;
   setMaxEarlyOtMinutes: (v: number) => void;
   setNewBreakEnd: (v: string) => void;
   setNewBreakStart: (v: string) => void;

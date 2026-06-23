@@ -29,6 +29,9 @@ vi.mock("@/components/shifts/priority-legend", () => ({ PriorityLegend: () => <d
 vi.mock("@/components/shifts/assignment-history", () => ({ AssignmentHistory: () => <div data-testid="assignment-history" /> }));
 
 vi.mock("@/components/shifts/shift-picker-modal", () => ({ ShiftPickerModal: (props: any) => <Button data-testid="picker-modal" onClick={props.onClose} variant="ghost">Close</Button> }));
+vi.mock("@/components/ui/modal", () => ({
+  default: ({ children, isOpen }: any) => isOpen ? <div data-testid="ui-modal">{children}</div> : null
+}));
 
 describe("Shifts Components Unit Tests", () => {
   const mockHook = {
@@ -54,6 +57,8 @@ describe("Shifts Components Unit Tests", () => {
     selectedPatternId: "pat-1",
     setIsForever: vi.fn(),
     setIsShiftPickerOpen: vi.fn(),
+    isPatternModalOpen: false,
+    setIsPatternModalOpen: vi.fn(),
     setSelectedDays: vi.fn(),
     setSelectedPatternId: vi.fn(),
     setStartDate: vi.fn(),
@@ -146,9 +151,9 @@ describe("Shifts Components Unit Tests", () => {
     expect(hook.setSelectedDays).toHaveBeenCalledWith([]);
   });
 
-  it("renders PatternAssignmentForm", () => {
-    const hook = { ...mockHook, activeTab: "assignments" };
-    const { getByTestId } = render(<ShiftsContent hook={hook as any} />);
+  it("renders PatternAssignmentForm inside ShiftsModals", () => {
+    const hook = { ...mockHook, isPatternModalOpen: true };
+    const { getByTestId } = render(<ShiftsModals hook={hook as any} />);
     expect(getByTestId("pattern-form")).toBeDefined();
   });
 

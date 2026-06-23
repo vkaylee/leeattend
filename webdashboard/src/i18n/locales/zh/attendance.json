@@ -214,7 +214,9 @@
       "subtitle": "设置循环日程",
       "submit_btn": "保存模式",
       "assign_btn": "确认分配",
-      "bulk_subtitle": "日程分配"
+      "bulk_subtitle": "日程分配",
+      "assign_title": "分配工作模式",
+      "assign_subtitle": "为员工设置周期性的工作日程"
     },
     "validation_pattern_required": "请选择一个模式。",
     "validation_employees_required": "请选择至少一名员工。",

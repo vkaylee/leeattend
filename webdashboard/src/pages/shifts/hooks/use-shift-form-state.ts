@@ -22,6 +22,7 @@ export function useShiftFormState() {
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [targetDates, setTargetDates] = useState<string[]>([]);
   const [isShiftPickerOpen, setIsShiftPickerOpen] = useState(false);
+  const [isPatternModalOpen, setIsPatternModalOpen] = useState(false);
 
   // Fixed Assignment Form State
   const [selectedPatternId, setSelectedPatternId] = useState("");
@@ -65,6 +66,7 @@ export function useShiftFormState() {
     selectedDays, setSelectedDays,
     targetDates, setTargetDates,
     isShiftPickerOpen, setIsShiftPickerOpen,
+    isPatternModalOpen, setIsPatternModalOpen,
     selectedPatternId, setSelectedPatternId,
     startDate, setStartDate,
     endDate, setEndDate,
