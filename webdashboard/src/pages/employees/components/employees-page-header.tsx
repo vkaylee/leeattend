@@ -12,11 +12,13 @@ import type { Employee } from "../../../lib/api/types";
 interface EmployeesPageHeaderProps {
   setEditingEmployee: (emp: Employee | null) => void;
   setIsImportDialogOpen: (open: boolean) => void;
+  setIsTerminationImportOpen: (open: boolean) => void;
   setIsModalOpen: (open: boolean) => void;
 }
 
 export const EmployeesPageHeader = ({
   setIsImportDialogOpen,
+  setIsTerminationImportOpen,
   setEditingEmployee,
   setIsModalOpen,
 }: EmployeesPageHeaderProps) => {
@@ -34,6 +36,18 @@ export const EmployeesPageHeader = ({
               CONTRACTS HUB
             </Button>
           </Link>
+          <PermissionGate permission="employees:update">
+            <Button
+              data-testid="import-termination-btn"
+              icon={<Upload size={18} />}
+              onClick={() => {
+                setIsTerminationImportOpen(true);
+              }}
+              variant="outline"
+            >
+              IMPORT NGHỈ VIỆC
+            </Button>
+          </PermissionGate>
           <PermissionGate permission="employees:create">
             <Button
               data-testid="import-employee-btn"

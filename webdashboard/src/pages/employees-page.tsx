@@ -21,6 +21,7 @@ export default function EmployeesPage() {
       <EmployeesPageHeader
         setEditingEmployee={page.setEditingEmployee}
         setIsImportDialogOpen={page.setIsImportDialogOpen}
+        setIsTerminationImportOpen={page.setIsTerminationImportOpen}
         setIsModalOpen={page.setIsModalOpen}
       />
 

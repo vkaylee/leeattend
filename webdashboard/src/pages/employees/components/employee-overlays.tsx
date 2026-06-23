@@ -6,6 +6,7 @@ import EmployeeDetailDrawer from "@/components/features/employees/employee-detai
 import EmployeeFormModal from "@/components/features/employees/employee-form-modal";
 import RehireEmployeeModal from "@/components/features/employees/rehire-employee-modal";
 import TransferEmployeeModal from "@/components/features/employees/transfer-employee-modal";
+import EmployeeTerminationImportDialog from "@/components/features/employees/employee-termination-import-dialog";
 
 import type { Employee, Department, EmployeeDepartmentHistory } from "../../../lib/api/types";
 
@@ -19,6 +20,7 @@ interface EmployeeOverlaysProps {
   handleTerminate: (emp: Employee) => Promise<void>;
 
   isImportDialogOpen: boolean;
+  isTerminationImportOpen: boolean;
   isModalOpen: boolean;
   isRehireModalOpen: boolean;
   isTransferModalOpen: boolean;
@@ -28,6 +30,7 @@ interface EmployeeOverlaysProps {
   setEditingEmployee: (emp: Employee | null) => void;
 
   setIsImportDialogOpen: (open: boolean) => void;
+  setIsTerminationImportOpen: (open: boolean) => void;
   setIsModalOpen: (open: boolean) => void;
   setIsRehireModalOpen: (open: boolean) => void;
   setIsTransferModalOpen: (open: boolean) => void;
@@ -49,6 +52,7 @@ export function EmployeeOverlays(props: EmployeeOverlaysProps) {
     handleTerminate,
 
     isImportDialogOpen,
+    isTerminationImportOpen,
     isModalOpen,
     isRehireModalOpen,
     isTransferModalOpen,
@@ -58,6 +62,7 @@ export function EmployeeOverlays(props: EmployeeOverlaysProps) {
     setEditingEmployee,
 
     setIsImportDialogOpen,
+    setIsTerminationImportOpen,
     setIsModalOpen,
     setIsRehireModalOpen,
     setIsTransferModalOpen,
@@ -132,6 +137,12 @@ export function EmployeeOverlays(props: EmployeeOverlaysProps) {
         onClose={() => { setIsImportDialogOpen(false); }}
         targetType="employee"
         title={t("employees.bulk_import_title")}
+      />
+
+      <EmployeeTerminationImportDialog
+        isOpen={isTerminationImportOpen}
+        onClose={() => { setIsTerminationImportOpen(false); }}
+        wsId={wsId}
       />
     </>
   );

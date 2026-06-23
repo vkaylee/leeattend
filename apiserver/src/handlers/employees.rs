@@ -9,10 +9,11 @@ use crate::models::{
 use crate::utils::i18n::I18nKey;
 use crate::AppState;
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Multipart, Path, Query, State},
     http::StatusCode,
     response::{IntoResponse, Json},
 };
+use chrono::Datelike;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -493,4 +494,357 @@ pub async fn get_compensation_history(
     Ok(Json(crate::models::CompensationHistoryResponse {
         timeline,
     }))
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema, Clone)]
+pub struct ProratedLeavePreview {
+    pub leave_type_id: Uuid,
+    pub leave_type_code: String,
+    pub leave_type_name: String,
+    pub old_entitlement: i32,
+    pub new_entitlement: i32,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema, Clone)]
+pub struct ValidTerminationRow {
+    pub row_number: usize,
+    pub employee_id: Uuid,
+    pub employee_code: String,
+    pub full_name: String,
+    pub start_date: chrono::NaiveDate,
+    pub termination_date: chrono::NaiveDate,
+    pub employment_id: Uuid,
+    pub prorated_leaves: Vec<ProratedLeavePreview>,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema, Clone)]
+pub struct InvalidTerminationRow {
+    pub row_number: usize,
+    pub employee_code: Option<String>,
+    pub raw_termination_date: Option<String>,
+    pub reason: String,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema, Clone)]
+pub struct TerminationPreviewResponse {
+    pub valid_rows: Vec<ValidTerminationRow>,
+    pub invalid_rows: Vec<InvalidTerminationRow>,
+    pub can_commit: bool,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema, Clone)]
+pub struct ConfirmTerminationRow {
+    pub employment_id: Uuid,
+    pub termination_date: chrono::NaiveDate,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema, Clone)]
+pub struct ConfirmTerminationRequest {
+    pub rows: Vec<ConfirmTerminationRow>,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema, Clone)]
+pub struct ConfirmTerminationResponse {
+    pub success_count: usize,
+}
+
+#[utoipa::path(
+    post,
+    path = "/workspaces/{workspace_id}/employees/import-termination/preview",
+    request_body(content = String, content_type = "multipart/form-data"),
+    responses(
+        (status = 200, description = "Successfully generated bulk termination preview", body = TerminationPreviewResponse)
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+    )
+)]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
+#[allow(
+    clippy::cast_precision_loss,
+    clippy::cast_possible_truncation,
+    clippy::too_many_lines
+)]
+pub async fn import_termination_preview(
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+    mut multipart: Multipart,
+) -> AppResult<Json<TerminationPreviewResponse>> {
+    ctx.require_permission(Permission::EmployeesUpdate)?;
+
+    let path = crate::utils::upload::extract_uploaded_file(
+        &state,
+        Some(&ctx.auth_token),
+        &mut multipart,
+        "file",
+        crate::utils::upload::MAX_UPLOAD_FILE_SIZE,
+        "imports",
+    )
+    .await?;
+
+    let file_bytes = match tokio::fs::read(&path).await {
+        Ok(bytes) => bytes,
+        Err(e) => {
+            let _ = tokio::fs::remove_file(&path).await;
+            return Err(AppError::Internal(format!(
+                "Failed to read temporary file: {e}"
+            )));
+        }
+    };
+    let _ = tokio::fs::remove_file(&path).await;
+
+    let rows = crate::utils::file_parser::extract_mapped_rows(
+        &file_bytes,
+        &["employee_code", "termination_date"],
+    )?;
+
+    let mut valid_rows = Vec::new();
+    let mut invalid_rows = Vec::new();
+
+    for (line_number, mapped_row) in rows {
+        let raw_code = mapped_row.get("employee_code").cloned().unwrap_or_default();
+        let raw_date = mapped_row
+            .get("termination_date")
+            .cloned()
+            .unwrap_or_default();
+
+        if raw_code.trim().is_empty() {
+            invalid_rows.push(InvalidTerminationRow {
+                row_number: line_number,
+                employee_code: Some(raw_code),
+                raw_termination_date: Some(raw_date),
+                reason: crate::utils::i18n::translate(
+                    &crate::utils::i18n::get_locale(),
+                    "error.full_name_required",
+                ),
+            });
+            continue;
+        }
+
+        let Some(termination_date) = crate::utils::datetime::parse_date(&raw_date) else {
+            invalid_rows.push(InvalidTerminationRow {
+                row_number: line_number,
+                employee_code: Some(raw_code.clone()),
+                raw_termination_date: Some(raw_date.clone()),
+                reason: crate::utils::i18n::translate(
+                    &crate::utils::i18n::get_locale(),
+                    "error.invalid_date_format",
+                ),
+            });
+            continue;
+        };
+
+        let normalized_code = crate::utils::normalize_employee_id(&raw_code);
+        let Some(employee) = state
+            .employees()
+            .repo()
+            .get_employee_by_id_number(&normalized_code, &ctx.auth_token)
+            .await?
+        else {
+            invalid_rows.push(InvalidTerminationRow {
+                row_number: line_number,
+                employee_code: Some(raw_code.clone()),
+                raw_termination_date: Some(raw_date.clone()),
+                reason: crate::utils::i18n::translate(
+                    &crate::utils::i18n::get_locale(),
+                    "error.employee_not_found",
+                ),
+            });
+            continue;
+        };
+
+        let employments = state
+            .employees()
+            .employment_repo()
+            .list_employee_employments(&ctx.auth_token, employee.id())
+            .await?;
+
+        let active_employment = employments.into_iter().find(|emp| emp.status() == "active");
+
+        let Some(active_employment) = active_employment else {
+            invalid_rows.push(InvalidTerminationRow {
+                row_number: line_number,
+                employee_code: Some(raw_code.clone()),
+                raw_termination_date: Some(raw_date.clone()),
+                reason: crate::utils::i18n::translate(
+                    &crate::utils::i18n::get_locale(),
+                    "error.no_active_employment",
+                ),
+            });
+            continue;
+        };
+
+        if termination_date < active_employment.start_date() {
+            let locale = crate::utils::i18n::get_locale();
+            let reason = if locale == "vi" {
+                format!(
+                    "Ngày nghỉ việc không được trước ngày bắt đầu làm việc ({})",
+                    active_employment.start_date().format("%d/%m/%Y")
+                )
+            } else {
+                format!(
+                    "Termination date cannot be before employment start date ({})",
+                    active_employment.start_date().format("%d/%m/%Y")
+                )
+            };
+            invalid_rows.push(InvalidTerminationRow {
+                row_number: line_number,
+                employee_code: Some(raw_code.clone()),
+                raw_termination_date: Some(raw_date.clone()),
+                reason,
+            });
+            continue;
+        }
+
+        // Calculate leave proration preview
+        let year = termination_date.year();
+        let Some(start_of_year) = chrono::NaiveDate::from_ymd_opt(year, 1, 1) else {
+            invalid_rows.push(InvalidTerminationRow {
+                row_number: line_number,
+                employee_code: Some(raw_code.clone()),
+                raw_termination_date: Some(raw_date.clone()),
+                reason: "Invalid start of year".to_string(),
+            });
+            continue;
+        };
+        let Some(end_of_year) = chrono::NaiveDate::from_ymd_opt(year, 12, 31) else {
+            invalid_rows.push(InvalidTerminationRow {
+                row_number: line_number,
+                employee_code: Some(raw_code.clone()),
+                raw_termination_date: Some(raw_date.clone()),
+                reason: "Invalid end of year".to_string(),
+            });
+            continue;
+        };
+
+        let eff_start = std::cmp::max(start_of_year, active_employment.start_date());
+        let days_worked = (termination_date - eff_start).num_days() + 1;
+        let total_days = (end_of_year - start_of_year).num_days() + 1;
+        let proration_fraction = days_worked as f64 / total_days as f64;
+
+        let balances = state
+            .leaves()
+            .balance_repo()
+            .get_employee_balances(&ctx.auth_token, employee.id(), year)
+            .await?;
+
+        let mut prorated_leaves = Vec::new();
+        for emp_bal in balances {
+            let prorated_entitlement =
+                (f64::from(emp_bal.entitlement) * proration_fraction).round() as i32;
+
+            prorated_leaves.push(ProratedLeavePreview {
+                leave_type_id: emp_bal.leave_type_id,
+                leave_type_code: emp_bal.leave_type_code.clone(),
+                leave_type_name: emp_bal.leave_type_name.clone(),
+                old_entitlement: emp_bal.entitlement,
+                new_entitlement: prorated_entitlement,
+            });
+        }
+
+        valid_rows.push(ValidTerminationRow {
+            row_number: line_number,
+            employee_id: employee.id(),
+            employee_code: raw_code.clone(),
+            full_name: employee.full_name().to_string(),
+            start_date: active_employment.start_date(),
+            termination_date,
+            employment_id: active_employment.id(),
+            prorated_leaves,
+        });
+    }
+
+    let can_commit = !valid_rows.is_empty();
+
+    Ok(Json(TerminationPreviewResponse {
+        valid_rows,
+        invalid_rows,
+        can_commit,
+    }))
+}
+
+#[utoipa::path(
+    post,
+    path = "/workspaces/{workspace_id}/employees/import-termination/confirm",
+    request_body = ConfirmTerminationRequest,
+    responses(
+        (status = 200, description = "Successfully confirmed bulk termination", body = ConfirmTerminationResponse)
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+    )
+)]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
+pub async fn import_termination_confirm(
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+    Json(req): Json<ConfirmTerminationRequest>,
+) -> AppResult<Json<ConfirmTerminationResponse>> {
+    ctx.require_permission(Permission::EmployeesUpdate)?;
+
+    let mut success_count = 0;
+    for row in req.rows {
+        state
+            .employees()
+            .service()
+            .terminate_employment(&ctx.auth_token, row.employment_id, row.termination_date)
+            .await?;
+        success_count += 1;
+    }
+
+    Ok(Json(ConfirmTerminationResponse { success_count }))
+}
+
+#[utoipa::path(
+    get,
+    path = "/workspaces/{workspace_id}/employees/import-termination/template",
+    responses(
+        (status = 200, description = "Download bulk termination template Excel file", body = [u8])
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+    )
+)]
+#[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
+pub async fn import_termination_template(
+    State(_state): State<Arc<AppState>>,
+    ctx: MemberContext,
+) -> AppResult<axum::response::Response> {
+    ctx.require_permission(Permission::EmployeesUpdate)?;
+
+    let mut workbook = rust_xlsxwriter::Workbook::new();
+    let worksheet = workbook.add_worksheet();
+
+    worksheet
+        .write_string(0, 0, "employee_code")
+        .map_err(|e| AppError::TemplateError(e.to_string()))?;
+    worksheet
+        .write_string(0, 1, "termination_date")
+        .map_err(|e| AppError::TemplateError(e.to_string()))?;
+
+    // Write a dummy row as an example
+    worksheet
+        .write_string(1, 0, "EMP001")
+        .map_err(|e| AppError::TemplateError(e.to_string()))?;
+    worksheet
+        .write_string(1, 1, "2026-06-30")
+        .map_err(|e| AppError::TemplateError(e.to_string()))?;
+
+    let bytes = workbook
+        .save_to_buffer()
+        .map_err(|e| AppError::TemplateError(e.to_string()))?;
+
+    use axum::http::header;
+
+    axum::response::Response::builder()
+        .header(
+            header::CONTENT_TYPE,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        .header(
+            header::CONTENT_DISPOSITION,
+            "attachment; filename=\"employee_termination_template.xlsx\"",
+        )
+        .body(axum::body::Body::from(bytes))
+        .map_err(|e| AppError::TemplateError(format!("Failed to build response: {e}")))
 }

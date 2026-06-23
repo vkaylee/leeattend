@@ -3,6 +3,7 @@
 //! Parses Excel files containing leave requests, validates rows, submits valid ones,
 //! and generates an error Excel file for failed rows.
 
+use crate::utils::datetime::parse_date;
 use chrono::NaiveDate;
 use rust_xlsxwriter::Workbook;
 use std::sync::Arc;
@@ -453,80 +454,6 @@ impl LeaveImportService {
         let buffer = workbook.save_to_buffer()?;
         Ok(buffer)
     }
-}
-
-/// Parse a date string in various formats.
-fn parse_date(s: &str) -> Option<NaiveDate> {
-    let s = s.trim();
-    if s.is_empty() {
-        return None;
-    }
-
-    // Split on 'T' first to remove any ISO time portion (e.g. 2026-05-29T13:45:00Z)
-    let base_part = s.split('T').next().unwrap_or(s).trim();
-
-    // Extract segments before any time portion containing ':'
-    let mut date_segments = Vec::new();
-    for word in base_part.split_whitespace() {
-        if word.contains(':') {
-            break;
-        }
-        date_segments.push(word);
-    }
-    let date_str = date_segments.join(" ");
-
-    // Split parts by date separators and trim each part
-    let parts: Vec<&str> = date_str.split(&['-', '/', '.']).map(str::trim).collect();
-
-    if parts.len() == 3 {
-        let normalized = parts.join("-");
-        let first_len = parts[0].len();
-        let last_len = parts[2].len();
-
-        if first_len == 4 {
-            // YYYY-MM-DD
-            if let Ok(d) = NaiveDate::parse_from_str(&normalized, "%Y-%m-%d") {
-                return Some(d);
-            }
-        } else if last_len == 4 {
-            // DD-MM-YYYY or MM-DD-YYYY
-            if let Ok(d) = NaiveDate::parse_from_str(&normalized, "%d-%m-%Y") {
-                return Some(d);
-            }
-            if let Ok(d) = NaiveDate::parse_from_str(&normalized, "%m-%d-%Y") {
-                return Some(d);
-            }
-        } else if last_len == 2 {
-            // DD-MM-YY or MM-DD-YY
-            if let Ok(d) = NaiveDate::parse_from_str(&normalized, "%d-%m-%y") {
-                return Some(d);
-            }
-            if let Ok(d) = NaiveDate::parse_from_str(&normalized, "%m-%d-%y") {
-                return Some(d);
-            }
-        } else if first_len == 2 {
-            // YY-MM-DD
-            if let Ok(d) = NaiveDate::parse_from_str(&normalized, "%y-%m-%d") {
-                return Some(d);
-            }
-        }
-    }
-
-    // Fallback: try standard parsing sequentially on date_str
-    if let Ok(d) = NaiveDate::parse_from_str(&date_str, "%Y-%m-%d") {
-        return Some(d);
-    }
-    if let Ok(d) = NaiveDate::parse_from_str(&date_str, "%d/%m/%Y") {
-        return Some(d);
-    }
-    if let Ok(d) = NaiveDate::parse_from_str(&date_str, "%m/%d/%Y") {
-        return Some(d);
-    }
-    if let Ok(d) = NaiveDate::parse_from_str(&date_str, "%d-%m-%Y") {
-        return Some(d);
-    }
-
-    None
 }
 
 /// Parse duration type string to LeaveDurationType.

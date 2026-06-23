@@ -101,6 +101,9 @@ use utoipa::OpenApi;
         crate::handlers::workspaces::delete_employer,
 
         // Phase 3: Staff Management & Rosters
+        crate::handlers::employees::import_termination_preview,
+        crate::handlers::employees::import_termination_confirm,
+        crate::handlers::employees::import_termination_template,
         crate::handlers::get_working_conditions,
         crate::handlers::create_working_condition,
         crate::handlers::delete_working_condition,
@@ -614,6 +617,13 @@ use utoipa::OpenApi;
             crate::handlers::workspaces::employers::PaginatedEmployers,
 
             // Phase 3: Staff Management & Rosters
+            crate::handlers::employees::ProratedLeavePreview,
+            crate::handlers::employees::ValidTerminationRow,
+            crate::handlers::employees::InvalidTerminationRow,
+            crate::handlers::employees::TerminationPreviewResponse,
+            crate::handlers::employees::ConfirmTerminationRow,
+            crate::handlers::employees::ConfirmTerminationRequest,
+            crate::handlers::employees::ConfirmTerminationResponse,
             WorkingCondition,
             crate::handlers::employees::PaginatedWorkingConditions,
             CreateWorkingConditionRequest,

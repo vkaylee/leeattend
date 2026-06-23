@@ -14,6 +14,7 @@ export const useEmployeesModals = () => {
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isRehireModalOpen, setIsRehireModalOpen] = useState(false);
+  const [isTerminationImportOpen, setIsTerminationImportOpen] = useState(false);
   const [selectedDeptId, setSelectedDeptId] = useState<string>("");
 
   useEffect(() => {
@@ -42,6 +43,8 @@ export const useEmployeesModals = () => {
     setIsHistoryModalOpen,
     isRehireModalOpen,
     setIsRehireModalOpen,
+    isTerminationImportOpen,
+    setIsTerminationImportOpen,
     selectedDeptId,
     setSelectedDeptId,
   };

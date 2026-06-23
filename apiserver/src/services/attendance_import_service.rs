@@ -3,7 +3,8 @@ use std::sync::Arc;
 use crate::errors::AppError;
 use crate::utils::i18n::I18nKey;
 
-use chrono::{DateTime, NaiveDate, Utc};
+use crate::utils::datetime::parse_date;
+use chrono::{DateTime, Utc};
 use chrono_tz::Tz;
 
 use tracing::{error, info};
@@ -94,10 +95,8 @@ impl ImportStrategy for EmployeeImportStrategy {
         let hire_date = if hire_date_str.is_empty() {
             Utc::now().with_timezone(&workspace_tz).date_naive()
         } else {
-            NaiveDate::parse_from_str(hire_date_str, "%Y-%m-%d")
-                .or_else(|_| NaiveDate::parse_from_str(hire_date_str, "%d/%m/%Y"))
-                .or_else(|_| NaiveDate::parse_from_str(hire_date_str, "%m/%d/%Y"))
-                .unwrap_or_else(|_| Utc::now().with_timezone(&workspace_tz).date_naive())
+            parse_date(hire_date_str)
+                .unwrap_or_else(|| Utc::now().with_timezone(&workspace_tz).date_naive())
         };
 
         let department_name = row_data

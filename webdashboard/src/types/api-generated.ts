@@ -2647,6 +2647,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workspaces/{workspace_id}/employees/import-termination/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["import_termination_confirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/employees/import-termination/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["import_termination_preview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/employees/import-termination/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["import_termination_template"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workspaces/{workspace_id}/employees/{id}": {
         parameters: {
             query?: never;
@@ -4754,6 +4802,18 @@ export interface components {
         } | {
             Json: unknown;
         };
+        ConfirmTerminationRequest: {
+            rows: components["schemas"]["ConfirmTerminationRow"][];
+        };
+        ConfirmTerminationResponse: {
+            success_count: number;
+        };
+        ConfirmTerminationRow: {
+            /** Format: uuid */
+            employment_id: string;
+            /** Format: date */
+            termination_date: string;
+        };
         /** @enum {string} */
         ContractStatus: "draft" | "active" | "expired" | "terminated";
         /** @enum {string} */
@@ -5848,6 +5908,12 @@ export interface components {
             priority: number;
             rule_config: unknown;
         };
+        InvalidTerminationRow: {
+            employee_code?: string | null;
+            raw_termination_date?: string | null;
+            reason: string;
+            row_number: number;
+        };
         /**
          * @description Metadata for tracking overall job progress.
          *     Stored in Redis with TTL for auto-cleanup.
@@ -6775,6 +6841,16 @@ export interface components {
             new_approver_user_id?: string | null;
             note?: string | null;
         };
+        ProratedLeavePreview: {
+            leave_type_code: string;
+            /** Format: uuid */
+            leave_type_id: string;
+            leave_type_name: string;
+            /** Format: int32 */
+            new_entitlement: number;
+            /** Format: int32 */
+            old_entitlement: number;
+        };
         PunchInRequest: {
             /** Format: uuid */
             employment_id: string;
@@ -7201,6 +7277,11 @@ export interface components {
         };
         TemplatePreviewResponse: {
             filled_content: string;
+        };
+        TerminationPreviewResponse: {
+            can_commit: boolean;
+            invalid_rows: components["schemas"]["InvalidTerminationRow"][];
+            valid_rows: components["schemas"]["ValidTerminationRow"][];
         };
         TimeEntry: {
             /** Format: date-time */
@@ -7652,6 +7733,20 @@ export interface components {
             id: string;
             preferred_language?: string | null;
             system_roles?: string[];
+        };
+        ValidTerminationRow: {
+            employee_code: string;
+            /** Format: uuid */
+            employee_id: string;
+            /** Format: uuid */
+            employment_id: string;
+            full_name: string;
+            prorated_leaves: components["schemas"]["ProratedLeavePreview"][];
+            row_number: number;
+            /** Format: date */
+            start_date: string;
+            /** Format: date */
+            termination_date: string;
         };
         WorkLocation: {
             address?: string | null;
@@ -13467,6 +13562,83 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Employee"];
+                };
+            };
+        };
+    };
+    import_termination_confirm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmTerminationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successfully confirmed bulk termination */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfirmTerminationResponse"];
+                };
+            };
+        };
+    };
+    import_termination_preview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": string;
+            };
+        };
+        responses: {
+            /** @description Successfully generated bulk termination preview */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TerminationPreviewResponse"];
+                };
+            };
+        };
+    };
+    import_termination_template: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Download bulk termination template Excel file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": number[];
                 };
             };
         };

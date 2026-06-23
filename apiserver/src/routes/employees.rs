@@ -7,11 +7,24 @@ use std::sync::Arc;
 use crate::handlers;
 use crate::AppState;
 
+#[allow(clippy::too_many_lines)]
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route(
             "/workspaces/:ws_id/employees/upload",
             post(handlers::upload_employee_excel),
+        )
+        .route(
+            "/workspaces/:ws_id/employees/import-termination/preview",
+            post(handlers::import_termination_preview),
+        )
+        .route(
+            "/workspaces/:ws_id/employees/import-termination/confirm",
+            post(handlers::import_termination_confirm),
+        )
+        .route(
+            "/workspaces/:ws_id/employees/import-termination/template",
+            get(handlers::import_termination_template),
         )
         .route(
             "/workspaces/:ws_id/employees",

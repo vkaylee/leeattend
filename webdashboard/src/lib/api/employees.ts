@@ -10,6 +10,7 @@ import type {
 } from "./types";
 
 import { client } from "./client";
+import { apiFetch } from "./helpers";
 
 export * from "./employee-phases";
 export * from "./employee-conditions";
@@ -218,4 +219,56 @@ export async function fetchCompensationHistory(
   });
   if (!data) throw new Error("No response data");
   return data;
+}
+
+export type TerminationPreviewResponse = components["schemas"]["TerminationPreviewResponse"];
+export type ConfirmTerminationRow = components["schemas"]["ConfirmTerminationRow"];
+
+/** Upload Excel file to preview employee bulk terminations */
+export async function uploadTerminationImportPreview(
+  wsId: string,
+  file: File
+): Promise<TerminationPreviewResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const { data } = await client.POST("/workspaces/{workspace_id}/employees/import-termination/preview", {
+    params: {
+      path: { workspace_id: wsId },
+    },
+    body: formData as any,
+  });
+  if (!data) throw new Error("No response data");
+  return data as unknown as TerminationPreviewResponse;
+}
+
+/** Confirm employee bulk terminations */
+export async function confirmTerminationImport(
+  wsId: string,
+  rows: ConfirmTerminationRow[]
+): Promise<{ success_count: number }> {
+  const { data } = await client.POST("/workspaces/{workspace_id}/employees/import-termination/confirm", {
+    params: {
+      path: { workspace_id: wsId },
+    },
+    body: {
+      rows,
+    },
+  });
+  if (!data) throw new Error("No response data");
+  return data;
+}
+
+/** Download bulk termination Excel template via authenticated fetch */
+export async function downloadTerminationTemplate(wsId: string): Promise<void> {
+  const response = await apiFetch(`/v1/workspaces/${wsId}/employees/import-termination/template`);
+  if (!response.ok) throw new Error("Failed to download template");
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "mau_import_nghi_viec.xlsx";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
 }

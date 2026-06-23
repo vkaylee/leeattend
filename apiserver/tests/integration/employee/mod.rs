@@ -2,6 +2,7 @@
 
 pub mod assignment;
 mod bulk_import;
+mod bulk_termination;
 pub mod contracts;
 mod department_name;
 mod employment_phase_repo;
