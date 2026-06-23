@@ -1,4 +1,4 @@
-use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
+use chrono::{DateTime, NaiveDate, NaiveTime, Utc, Timelike};
 use chrono_tz::Tz;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -177,7 +177,15 @@ pub fn determine_daily_status(input: &DailyStatusInput) -> AttendanceStatus {
             (input.punch_in_time(), input.scheduled_start())
         {
             let grace = input.grace_period_minutes().unwrap_or(5);
-            if punch_in > sched_start + chrono::Duration::minutes(grace.into()) {
+            let punch_in_min = punch_in
+                .with_second(0)
+                .and_then(|t| t.with_nanosecond(0))
+                .unwrap_or(punch_in);
+            let sched_start_min = sched_start
+                .with_second(0)
+                .and_then(|t| t.with_nanosecond(0))
+                .unwrap_or(sched_start);
+            if punch_in_min > sched_start_min + chrono::Duration::minutes(grace.into()) {
                 return AttendanceStatus::Late;
             }
         }
@@ -556,6 +564,23 @@ mod tests {
             has_shift: true,
             is_on_leave: false,
             grace_period_minutes: Some(1),
+        };
+        assert_eq!(determine_daily_status(&input), AttendanceStatus::Present);
+    }
+
+    #[test]
+    fn test_seconds_lateness_alignment() {
+        // Shift starts at 07:30. Punch in at 07:30:10.
+        // Grace period is 0 min. Should be Present because we ignore seconds.
+        let input = DailyStatusInput {
+            has_punch_in: true,
+            punch_in_time: Some(NaiveTime::from_hms_opt(7, 30, 10).expect("valid time")),
+            scheduled_start: Some(NaiveTime::from_hms_opt(7, 30, 0).expect("valid time")),
+            is_holiday: false,
+            is_holiday_paid: false,
+            has_shift: true,
+            is_on_leave: false,
+            grace_period_minutes: Some(0),
         };
         assert_eq!(determine_daily_status(&input), AttendanceStatus::Present);
     }

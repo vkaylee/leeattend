@@ -72,6 +72,7 @@ gha-creds-*.json
 
 # Database Backups
 backups/
+dbbackup/
 
 # Docker Test Cache
 docker-test-cache/
