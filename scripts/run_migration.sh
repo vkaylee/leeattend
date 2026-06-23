@@ -153,16 +153,21 @@ set -a
 source .env 2>/dev/null || true
 set +a
 
+DB_WORKSPACE_PORT=$($COMPOSE_DEV port db_workspace 5432 2>/dev/null | cut -d: -f2 || echo "5435")
+
 LEGACY_DB_URL="postgres://postgres:postgres@localhost:${DB_LEGACY_PORT}/railway"
 SYSTEM_DB_URL="postgres://${DB_USER:-admin}:${DB_PASSWORD:-change_this_password_immediately}@localhost:${DB_PORT}/leeattend"
+WORKSPACE_DB_URL="postgres://tenant_user:tenant_password@localhost:${DB_WORKSPACE_PORT}/tenant_db"
 
 log "Legacy DB URL: localhost:${DB_LEGACY_PORT}/railway"
 log "System DB URL: localhost:${DB_PORT}/leeattend"
+log "Workspace DB URL: localhost:${DB_WORKSPACE_PORT}/tenant_db"
 
 # ─── Step 6: Run Python migration ───
 log "Running migration script..."
 LEGACY_DB_URL="$LEGACY_DB_URL" \
 SYSTEM_DB_URL="$SYSTEM_DB_URL" \
+WORKSPACE_DB_URL="$WORKSPACE_DB_URL" \
 "$SCRIPT_DIR/_python.sh" scripts/migrate_legacy_data.py
 
 EXIT_CODE=$?

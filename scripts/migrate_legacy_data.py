@@ -30,6 +30,7 @@ LEGACY_DB_URL = os.getenv("LEGACY_DB_URL", "postgres://postgres:postgres@localho
 SYSTEM_DB_URL = os.getenv(
     "SYSTEM_DB_URL", "postgres://admin:change_this_password_immediately@localhost:5432/leeattend"
 )
+WORKSPACE_DB_URL = os.getenv("WORKSPACE_DB_URL", SYSTEM_DB_URL)
 
 # Tables to SKIP entirely
 SKIP_TABLES = {
@@ -507,14 +508,14 @@ def provision_tenant_db(sys_conn, workspace_id: str) -> str:
 
     db_name = f"tenant_{workspace_id.replace('-', '')}"
 
-    # Parse system URL to build tenant URL
+    # Parse workspace/tenant host URL to build tenant URL
     import urllib.parse
 
-    parsed = urllib.parse.urlparse(SYSTEM_DB_URL)
+    parsed = urllib.parse.urlparse(WORKSPACE_DB_URL)
     tenant_url = f"{parsed.scheme}://{parsed.username}:{parsed.password}@{parsed.hostname}:{parsed.port or 5432}/{db_name}"
 
     # Create database (needs autocommit)
-    sys_auto = psycopg2.connect(SYSTEM_DB_URL)
+    sys_auto = psycopg2.connect(WORKSPACE_DB_URL)
     sys_auto.autocommit = True
     cur = sys_auto.cursor()
 
@@ -839,7 +840,7 @@ def main():
     db_name = f"tenant_{first_ws.replace('-', '')}"
     import urllib.parse
 
-    parsed = urllib.parse.urlparse(SYSTEM_DB_URL)
+    parsed = urllib.parse.urlparse(WORKSPACE_DB_URL)
     tenant_url = f"{parsed.scheme}://{parsed.username}:{parsed.password}@{parsed.hostname}:{parsed.port or 5432}/{db_name}"
     verify_migration(src_conn, sys_conn, tenant_url)
 
