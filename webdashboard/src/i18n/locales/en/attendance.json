@@ -139,6 +139,8 @@
     "create_submit": "Create Pattern",
     "empty_title": "No patterns yet",
     "empty_desc": "Create a pattern to quickly assign recurring shifts to employees.",
+    "view_mode_grid": "Grid View",
+    "view_mode_list": "List View",
     "create_first": "Create First Pattern",
     "weekly_schedule": "Weekly Schedule",
     "select_pattern": "Select Pattern",

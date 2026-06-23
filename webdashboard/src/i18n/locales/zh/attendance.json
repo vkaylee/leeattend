@@ -139,6 +139,8 @@
     "create_submit": "创建模式",
     "empty_title": "暂无模式",
     "empty_desc": "创建一个模式，以便快速为员工分配循环班次。",
+    "view_mode_grid": "网格视图",
+    "view_mode_list": "列表视图",
     "create_first": "创建第一个模式",
     "weekly_schedule": "每周日程",
     "select_pattern": "选择模式",

@@ -139,6 +139,8 @@
     "create_submit": "Tạo mẫu",
     "empty_title": "Chưa có mẫu nào",
     "empty_desc": "Tạo một mẫu để gán nhanh ca làm việc tuần hoàn cho nhân viên.",
+    "view_mode_grid": "Xem dạng lưới",
+    "view_mode_list": "Xem danh sách",
     "create_first": "Tạo mẫu đầu tiên",
     "weekly_schedule": "Lịch tuần",
     "select_pattern": "Chọn mẫu lịch",
