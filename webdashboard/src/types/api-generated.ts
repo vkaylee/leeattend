@@ -14177,6 +14177,7 @@ export interface operations {
             query: {
                 start_date: string;
                 end_date: string;
+                employment_ids?: string | null;
                 page?: number | null;
                 limit?: number | null;
             };

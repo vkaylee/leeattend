@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 
-import type { Shift } from "@/lib/api/types";
+import type { Shift, EmployeeSchedule } from "@/lib/api/types";
 
 import { getCurrentWorkspaceId } from "@/lib/api";
 
@@ -25,6 +25,8 @@ export function useShifts(): UseShiftsReturn {
     viewMode: form.viewMode,
     monthStart: monthNav.monthStart,
     monthEnd: monthNav.monthEnd,
+    selectedEmployee: form.selectedEmployee,
+    selectedEmployeeIds: form.selectedEmployeeIds,
   });
 
   const mutations = useShiftMutations({
@@ -82,7 +84,10 @@ export function useShifts(): UseShiftsReturn {
     // Handled by updateShiftMutation
   };
 
-  const employeeSchedule = data.allSchedules?.find(s => s.employment_id === form.selectedEmployee?.active_employment_id);
+  const employeeSchedule = data.allSchedules?.find((s: EmployeeSchedule) =>
+    s.employee_id === form.selectedEmployee?.id ||
+    s.employment_id === form.selectedEmployee?.active_employment_id
+  );
 
   return {
     ...form,

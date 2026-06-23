@@ -51,11 +51,21 @@ export async function assignShift(
   });
 }
 
-export const fetchWorkspaceSchedules = async (wsId: string, startDate: string, endDate: string): Promise<EmployeeSchedule[]> => {
+export const fetchWorkspaceSchedules = async (
+  wsId: string,
+  startDate: string,
+  endDate: string,
+  employmentIds?: string[]
+): Promise<EmployeeSchedule[]> => {
   const { data } = await client.GET("/workspaces/{workspace_id}/schedules", {
     params: {
       path: { workspace_id: wsId },
-      query: { start_date: startDate, end_date: endDate },
+      query: {
+        start_date: startDate,
+        end_date: endDate,
+        employment_ids: employmentIds?.join(",") ?? undefined,
+        limit: employmentIds && employmentIds.length > 0 ? 1000 : undefined,
+      },
     },
   });
   if (!data) throw new Error("No response data");

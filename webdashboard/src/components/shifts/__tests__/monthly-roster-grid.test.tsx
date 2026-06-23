@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { render, screen } from "@testing-library/react";
 
 import userEvent from "@testing-library/user-event";
@@ -221,6 +222,10 @@ const createMockHook = (overrides = {}) => {
     setStartDate: vi.fn(),
     setTargetDates: vi.fn(),
     setViewMode: vi.fn(),
+    selectedEmployeeIds: [],
+    selectedEmployees: [],
+    setSelectedEmployeeIds: vi.fn(),
+    setSelectedEmployees: vi.fn(),
     startDate: "",
     targetDates: [],
     updateShiftMutation: {} as unknown as ReturnType<typeof useShifts>["updateShiftMutation"],
@@ -229,6 +234,19 @@ const createMockHook = (overrides = {}) => {
     wsId: "test-ws-id",
     ...overrides,
   } as unknown as ReturnType<typeof useShifts>;
+};
+
+const StatefulGridWrapper = ({ overrides = {} }: { overrides?: any }) => {
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
+  const [selectedEmployees, setSelectedEmployees] = useState<any[]>([]);
+  const hook = createMockHook({
+    selectedEmployeeIds,
+    selectedEmployees,
+    setSelectedEmployeeIds,
+    setSelectedEmployees,
+    ...overrides,
+  });
+  return <MonthlyRosterGrid hook={hook} />;
 };
 
 describe("MonthlyRosterGrid Filtering", () => {
@@ -243,8 +261,7 @@ describe("MonthlyRosterGrid Filtering", () => {
 
   it("renders grid and employee when selected", async () => {
     const user = userEvent.setup();
-    const hook = createMockHook();
-    render(<MonthlyRosterGrid hook={hook} />);
+    render(<StatefulGridWrapper />);
 
     // Check empty state initially
     expect(screen.getByText("shifts.empty_state.title")).toBeInTheDocument();
@@ -261,8 +278,7 @@ describe("MonthlyRosterGrid Filtering", () => {
 
   it("can deselect employee by unchecking their name in the checklist", async () => {
     const user = userEvent.setup();
-    const hook = createMockHook();
-    render(<MonthlyRosterGrid hook={hook} />);
+    render(<StatefulGridWrapper />);
 
     // Select employee "emp-1" (Alice Security)
     const searchInput = screen.getByTestId("mock-employee-search");
@@ -306,8 +322,7 @@ describe("MonthlyRosterGrid Filtering", () => {
 
   it("successfully syncs and renders selected employees missing from preloaded list", async () => {
     const user = userEvent.setup();
-    const hook = createMockHook();
-    render(<MonthlyRosterGrid hook={hook} />);
+    render(<StatefulGridWrapper />);
 
     // Initially shows empty state
     expect(screen.getByText("shifts.empty_state.title")).toBeInTheDocument();

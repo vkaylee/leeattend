@@ -80,7 +80,10 @@ export function useRosterHandlers({
     const previousWeekEnd = addDays(startOfWeek, -1);
     try {
       const previousSchedules = await fetchWorkspaceSchedules(wsId, format(previousWeekStart, 'yyyy-MM-dd'), format(previousWeekEnd, 'yyyy-MM-dd'));
-      const empPrevious = previousSchedules.find((s: EmployeeSchedule) => s.employment_id === selectedEmployee.active_employment_id);
+      const empPrevious = previousSchedules.find((s: EmployeeSchedule) =>
+        s.employee_id === selectedEmployee.id ||
+        s.employment_id === selectedEmployee.active_employment_id
+      );
       if (!empPrevious) { toast.warning(t("shifts.messages.no_previous_data")); return; }
       const items = empPrevious.schedules.map((s: EffectiveSchedule, index: number) => ({ date: format(weekDays[index], 'yyyy-MM-dd'), shift_id: s.shift_id ?? null }));
       mutations.bulkRosterMutation.mutate(items);

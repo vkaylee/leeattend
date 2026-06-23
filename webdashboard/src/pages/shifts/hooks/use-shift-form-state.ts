@@ -17,6 +17,8 @@ export function useShiftFormState() {
   
   // Selection states
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
+  const [selectedEmployees, setSelectedEmployees] = useState<Employee[]>([]);
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [targetDates, setTargetDates] = useState<string[]>([]);
   const [isShiftPickerOpen, setIsShiftPickerOpen] = useState(false);
@@ -83,6 +85,8 @@ export function useShiftFormState() {
     maxEarlyOtMinutes, setMaxEarlyOtMinutes,
     editingShift, setEditingShift,
     isCorrection, setIsCorrection,
-    correctionEffectiveDate, setCorrectionEffectiveDate
+    correctionEffectiveDate, setCorrectionEffectiveDate,
+    selectedEmployeeIds, setSelectedEmployeeIds,
+    selectedEmployees, setSelectedEmployees
   };
 }

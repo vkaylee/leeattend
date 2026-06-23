@@ -22,6 +22,7 @@ use crate::AppState;
 pub struct WorkspaceSchedulesQuery {
     pub start_date: String,
     pub end_date: String,
+    pub employment_ids: Option<String>,
     pub page: Option<i64>,
     pub limit: Option<i64>,
 }
@@ -277,6 +278,20 @@ pub async fn get_workspace_schedules(
     let page = query.page.unwrap_or(1).max(1);
     let limit = query.limit.unwrap_or(50).clamp(1, 3000);
 
+    let parsed_employment_ids = if let Some(ids_str) = &query.employment_ids {
+        if ids_str.trim().is_empty() {
+            None
+        } else {
+            let ids: Result<Vec<Uuid>, _> = ids_str
+                .split(',')
+                .map(|s| Uuid::parse_str(s.trim()))
+                .collect();
+            Some(ids.map_err(|_err| AppError::validation(I18nKey::Validation))?)
+        }
+    } else {
+        None
+    };
+
     let (schedules, total) = state
         .shifts()
         .roster_repo()
@@ -285,7 +300,7 @@ pub async fn get_workspace_schedules(
             &ctx.auth_token,
             start_date,
             end_date,
-            None,
+            parsed_employment_ids.as_ref(),
             Some(page),
             Some(limit),
         )

@@ -15,15 +15,16 @@ export function useMonthlyRoster({ hook }: UseMonthlyRosterProps) {
     handleCopyPreviousMonth,
     employees,
     monthSchedules,
+    selectedEmployeeIds,
+    setSelectedEmployeeIds,
+    selectedEmployees,
+    setSelectedEmployees,
   } = hook;
 
   const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set());
   const [isShiftPickerOpen, setIsShiftPickerOpen] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
-
-  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
-  const [selectedEmployees, setSelectedEmployees] = useState<Employee[]>([]);
 
   const selectedEmployeesMeta = useMemo(() => {
     const list = [...selectedEmployees];
@@ -49,7 +50,7 @@ export function useMonthlyRoster({ hook }: UseMonthlyRosterProps) {
     });
     return list.map((emp) => {
       const existing = monthSchedules?.find(
-        (s) => s.employment_id === emp.active_employment_id
+        (s) => s.employee_id === emp.id || s.employment_id === emp.active_employment_id
       );
       if (existing) {
         return {

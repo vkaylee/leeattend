@@ -128,6 +128,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
         tags: [],
         created_at: "2025-01-01T00:00:00Z",
         updated_at: "2025-01-01T00:00:00Z",
+        active_employment_id: "employment-1",
       },
       {
         id: "emp-2",
@@ -137,6 +138,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
         tags: [],
         created_at: "2025-01-02T00:00:00Z",
         updated_at: "2025-01-02T00:00:00Z",
+        active_employment_id: "employment-2",
       },
     ],
     total: 2,
@@ -180,6 +182,8 @@ describe("ShiftsPage - Shift Picker Modal", () => {
   const mockSchedules = [
     {
       employee_id: "emp-1",
+      full_name: "John Doe",
+      employment_id: "employment-1",
       schedules: [
         {
           date: "2026-01-20",
@@ -466,6 +470,54 @@ describe("ShiftsPage - Shift Picker Modal", () => {
           });
         }
       }
+    });
+
+    it("should query workspace schedules filtered by active employment ID when an employee is selected in weekly mode", async () => {
+      const user = userEvent.setup();
+      await renderShiftsPage();
+
+      // Clear any call history from initial render
+      vi.mocked(api.fetchWorkspaceSchedules).mockClear();
+
+      await selectEmployee(user, "emp-1");
+
+      await waitFor(() => {
+        expect(api.fetchWorkspaceSchedules).toHaveBeenCalledWith(
+          "test-ws-id",
+          expect.any(String),
+          expect.any(String),
+          ["employment-1"]
+        );
+      });
+    });
+
+    it("should query workspace schedules filtered by active employment IDs when employees are selected in monthly mode", async () => {
+      const user = userEvent.setup();
+      await renderShiftsPage();
+
+      // Switch to monthly mode
+      const monthViewBtn = screen.getByText("shifts.monthly.view_month");
+      await user.click(monthViewBtn);
+
+      // Verify that monthly view is loaded
+      await screen.findByTestId("monthly-employee-search");
+
+      // Clear call history of fetchWorkspaceSchedules
+      vi.mocked(api.fetchWorkspaceSchedules).mockClear();
+
+      // Select John Doe (emp-1) in the employee search combobox
+      const searchSelect = screen.getByTestId("monthly-employee-search");
+      await user.selectOptions(searchSelect, "emp-1");
+
+      // Wait for it to refetch with the active employment ID
+      await waitFor(() => {
+        expect(api.fetchWorkspaceSchedules).toHaveBeenCalledWith(
+          "test-ws-id",
+          expect.any(String),
+          expect.any(String),
+          ["employment-1"]
+        );
+      });
     });
   });
 

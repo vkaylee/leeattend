@@ -99,6 +99,10 @@ export interface UseShiftsReturn {
   setNewShiftName: (v: string) => void;
   setNewShiftStart: (v: string) => void;
   setNewShiftSymbol: (v: string) => void;
+  selectedEmployeeIds: string[];
+  selectedEmployees: Employee[];
+  setSelectedEmployeeIds: (v: string[]) => void;
+  setSelectedEmployees: (v: Employee[]) => void;
   setSelectedDays: (v: string[]) => void;
   setSelectedEmployee: (v: Employee | null) => void;
   setSelectedPatternId: (v: string) => void;

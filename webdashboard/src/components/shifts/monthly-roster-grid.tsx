@@ -490,6 +490,7 @@ const RosterToolbar = memo(function RosterToolbar({
         {/* Multi-select search bar */}
         <EmployeeSearch
           clearOnEscape
+          data-testid="monthly-employee-search"
           hideChips
           multiple
           onChange={(val) => {
