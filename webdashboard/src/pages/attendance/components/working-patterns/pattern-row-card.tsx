@@ -35,21 +35,22 @@ function DayTimelinePill({
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen} modal={false}>
+    <Popover modal={false} onOpenChange={setIsOpen} open={isOpen}>
       <PopoverTrigger asChild>
-        <button
+        <Button
           aria-label={`${dayName}: ${hasShifts ? assignedDetails.map((d) => shifts?.find((s) => s.id === d.shift_id)?.name ?? "").join(", ") : t("status_off")}`}
           className={cn(
-            "flex flex-col items-center justify-between min-w-[8rem] h-14 p-2 rounded-xl border transition-all text-left outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900",
+            "flex flex-col items-center justify-between min-w-[8rem] h-14 p-2 rounded-xl border transition-all text-left outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900 font-normal normal-case active:scale-95",
             hasShifts
-              ? "bg-primary-50/50 dark:bg-primary-950/20 border-primary-100 dark:border-primary-800/50 hover:border-primary-300 dark:hover:border-primary-700"
-              : "bg-slate-50/50 dark:bg-slate-800/20 border-slate-100 dark:border-slate-800 opacity-60 hover:opacity-100 hover:border-slate-300 dark:hover:border-slate-700"
+              ? "bg-primary-50/50 dark:bg-primary-950/20 border-primary-100 dark:border-primary-800/50 hover:border-primary-300 dark:hover:border-primary-700 text-slate-700 dark:text-slate-200"
+              : "bg-slate-50/50 dark:bg-slate-800/20 border-slate-100 dark:border-slate-800 opacity-60 hover:opacity-100 hover:border-slate-300 dark:hover:border-slate-700 text-slate-500 dark:text-slate-400"
           )}
-          onBlur={() => setIsOpen(false)}
-          onFocus={() => setIsOpen(true)}
-          onMouseEnter={() => setIsOpen(true)}
-          onMouseLeave={() => setIsOpen(false)}
-          type="button"
+          onBlur={() => { setIsOpen(false); }}
+          onFocus={() => { setIsOpen(true); }}
+          onMouseEnter={() => { setIsOpen(true); }}
+          onMouseLeave={() => { setIsOpen(false); }}
+          size="sm"
+          variant="ghost"
         >
           <span
             className={cn(
@@ -70,8 +71,8 @@ function DayTimelinePill({
                   const shortName = shiftName.length > 12 ? shiftName.substring(0, 12) + "." : shiftName;
                   return (
                     <span
-                      key={i}
                       className="text-[9px] font-bold text-slate-700 dark:text-slate-200 truncate max-w-[7.5rem] uppercase text-center"
+                      key={i}
                     >
                       {shortName}
                     </span>
@@ -84,7 +85,7 @@ function DayTimelinePill({
               </span>
             )}
           </div>
-        </button>
+        </Button>
       </PopoverTrigger>
       <PopoverContent
         className="w-64 p-4 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 pointer-events-none animate-in fade-in zoom-in-95 duration-200"
@@ -96,7 +97,7 @@ function DayTimelinePill({
             <span className="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 tracking-wider">
               {dayName}
             </span>
-            {hasShifts && assignedDetails[0].shift_id && (
+            {!!hasShifts && !!assignedDetails[0].shift_id && (
               <span className="px-2 py-0.5 rounded-md bg-primary-50 dark:bg-primary-950 text-[9px] font-bold text-primary-600 dark:text-primary-400 uppercase">
                 {shifts?.find((s) => s.id === assignedDetails[0].shift_id)?.report_symbol ?? "—"}
               </span>
@@ -108,7 +109,7 @@ function DayTimelinePill({
               const shift = shifts?.find((s) => s.id === d.shift_id);
               if (!shift) return null;
               return (
-                <div key={idx} className="space-y-2.5">
+                <div className="space-y-2.5" key={idx}>
                   <h5 className="font-bold text-sm text-slate-800 dark:text-slate-100 uppercase tracking-tight leading-snug">
                     {shift.name}
                   </h5>
@@ -119,7 +120,7 @@ function DayTimelinePill({
                         {shift.start_time} - {shift.end_time}
                       </span>
                     </div>
-                    {shift.break_start && shift.break_end && (
+                    {!!shift.break_start && !!shift.break_end && (
                       <div className="flex items-center gap-2">
                         <Coffee className="text-amber-500 dark:text-amber-400" size={14} />
                         <span>
@@ -198,7 +199,7 @@ export function PatternRowCard({
               </StatusBadge>
               <StatusBadge variant="primary">
                 {pattern.pattern_type === "rotation"
-                  ? `${t("patterns.badge_rotation", { days: pattern.cycle_length_days }) || `Rotation (${pattern.cycle_length_days}d)`}`
+                  ? (t("patterns.badge_rotation", { days: pattern.cycle_length_days }) || `Rotation (${pattern.cycle_length_days}d)`)
                   : t("patterns.badge_weekly") || "Weekly"}
               </StatusBadge>
             </div>
@@ -214,7 +215,7 @@ export function PatternRowCard({
         <div className="flex items-center gap-2 flex-shrink-0 justify-end">
           <Button
             className="p-2.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/50 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 rounded-xl border border-slate-100/50 dark:border-slate-800/50 transition-all focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:outline-none"
-            onClick={() => onEdit(pattern)}
+            onClick={() => { onEdit(pattern); }}
             title={t("common.edit") || "Edit"}
             type="button"
             variant="ghost"
@@ -223,7 +224,7 @@ export function PatternRowCard({
           </Button>
           <Button
             className="p-2.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/50 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-rose-650 dark:hover:text-rose-400 rounded-xl border border-slate-100/50 dark:border-slate-800/50 transition-all focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:outline-none"
-            onClick={() => onDelete(pattern)}
+            onClick={() => { onDelete(pattern); }}
             title={t("common.delete")}
             type="button"
             variant="ghost"
@@ -242,17 +243,17 @@ export function PatternRowCard({
           <div className="flex gap-1.5">
             {Array.from({ length: Math.min(cycleLength, 7) }).map((_, i) => (
               <div
-                key={i}
                 className="w-32 h-14 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 rounded-xl animate-pulse flex-shrink-0"
+                key={i}
               />
             ))}
           </div>
         ) : (
           detailRows.map(({ day, index }) => (
             <DayTimelinePill
-              key={index}
-              dayName={day}
               dayDetails={details?.filter((d) => d.schedule_day === index) ?? []}
+              dayName={day}
+              key={index}
               shifts={shifts}
             />
           ))

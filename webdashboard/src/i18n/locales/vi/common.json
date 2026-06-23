@@ -840,6 +840,9 @@
       "organization": "Tổ chức",
       "time_leave": "Thời gian & Nghỉ phép",
       "payroll_shifts": "Lương & Ca làm",
+      "shifts_management": "Quản lý ca làm việc",
+      "shifts_rules": "Cấu hình tự động",
+      "payroll": "Lương bổng",
       "system": "Hệ thống",
       "self_service": "Tự phục vụ"
     },
@@ -1746,6 +1749,13 @@
       "modal_title": "Ký tài liệu",
       "cancel": "Hủy",
       "sign_accept": "Ký & Chấp nhận"
+    }
+  },
+  "hide_details": "Ẩn chi tiết",
+  "show_details": "Hiện chi tiết",
+  "shifts": {
+    "rules": {
+      "subtitle": "Quản lý lịch mẫu và các thiết lập tự động hóa phân ca"
     }
   }
 }

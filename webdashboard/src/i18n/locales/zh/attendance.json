@@ -132,6 +132,7 @@
   "patterns": {
     "title": "工作模式",
     "subtitle": "管理员工的循环工作日程",
+    "cycle_summary": "周期 {{total}} 天：{{active}} 班 / {{off}} 休",
     "manage_btn": "管理模式",
     "create_btn": "创建模式",
     "create_title": "创建工作模式",

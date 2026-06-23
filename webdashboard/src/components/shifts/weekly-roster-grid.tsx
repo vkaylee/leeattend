@@ -39,10 +39,10 @@ interface WeeklyRosterGridProps {
   currentLocale?: Locale;
   employeeSchedule?: EmployeeSchedule;
   onAssignAllWeek: () => void;
+  onAssignPattern: () => void;
   onClearSelection: () => void;
   onClearWeek: () => void;
   onCopyPreviousWeek: () => void;
-  onAssignPattern: () => void;
   onDeleteRoster: (date: string) => void;
   onNavigateWeek: (direction: "prev" | "next") => void;
   onOpenShiftPicker: (dates: string[]) => void;

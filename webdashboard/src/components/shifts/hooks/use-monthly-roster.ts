@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
+
 import { format } from "date-fns";
-import { Employee, EmployeeSchedule, Shift } from "@/lib/api/types";
+
 import { useShifts } from "@/pages/shifts/hooks/use-shifts";
 
 interface UseMonthlyRosterProps {

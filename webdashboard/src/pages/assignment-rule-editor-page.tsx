@@ -47,7 +47,7 @@ export default function AssignmentRuleEditorPage() {
   });
 
   const handleCancel = () => {
-    void navigate({ to: "/assignment-rules" });
+    void navigate({ to: "/shifts/rules", search: { tab: "rules" } });
   };
 
   if (!wsId) {

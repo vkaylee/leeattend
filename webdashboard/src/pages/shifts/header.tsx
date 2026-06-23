@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { CalendarRange, Plus } from "lucide-react";
+import { CalendarRange, Plus, Zap } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -25,11 +25,22 @@ export function ShiftsHeader() {
       <div className="flex items-center gap-3">
         <Link
           className="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold px-4 py-2 rounded-xl flex items-center gap-2 border border-slate-200 dark:border-slate-700 shadow-sm transition-all"
-          to={ROUTES.WORKING_PATTERNS}
+          search={{ tab: "patterns" }}
+          to={ROUTES.SHIFTS_RULES}
         >
-          <CalendarRange className="w-4 h-4" />
+          <CalendarRange className="w-4 h-4 text-primary-500" />
           <span className="text-xs uppercase tracking-widest">
             {t("patterns.manage_btn")}
+          </span>
+        </Link>
+        <Link
+          className="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold px-4 py-2 rounded-xl flex items-center gap-2 border border-slate-200 dark:border-slate-700 shadow-sm transition-all"
+          search={{ tab: "rules" }}
+          to={ROUTES.SHIFTS_RULES}
+        >
+          <Zap className="w-4 h-4 text-amber-500" />
+          <span className="text-xs uppercase tracking-widest">
+            {t("rules.title", "Assignment Rules")}
           </span>
         </Link>
         <Link className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-5 py-2 rounded-xl flex items-center gap-2 shadow-md transition-all text-center"

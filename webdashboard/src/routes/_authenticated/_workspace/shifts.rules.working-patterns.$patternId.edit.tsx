@@ -1,0 +1,3 @@
+import { createFileRoute } from "@tanstack/react-router";
+
+export const Route = createFileRoute('/_authenticated/_workspace/shifts/rules/working-patterns/$patternId/edit')({});

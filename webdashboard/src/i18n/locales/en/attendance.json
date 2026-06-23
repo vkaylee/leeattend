@@ -132,6 +132,7 @@
   "patterns": {
     "title": "Working Patterns",
     "subtitle": "Manage recurring work schedules for employees",
+    "cycle_summary": "Cycle {{total}} days: {{active}} active / {{off}} off",
     "manage_btn": "Manage Patterns",
     "create_btn": "Create Pattern",
     "create_title": "Create Working Pattern",

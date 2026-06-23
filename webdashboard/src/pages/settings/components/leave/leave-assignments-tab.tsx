@@ -160,7 +160,7 @@ export function LeaveAssignmentsTab({
                         aria-label={t("settings.leave.actions.delete")}
                         className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/20 px-2 py-1 h-8 rounded-lg transition-colors inline-flex items-center justify-center"
                         disabled={isDeleting}
-                        onClick={() => setDeletingAssignmentId(a.id)}
+                        onClick={() => { setDeletingAssignmentId(a.id); }}
                         size="sm"
                         variant="ghost"
                       >

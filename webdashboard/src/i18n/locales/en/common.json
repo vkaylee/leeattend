@@ -872,6 +872,9 @@
       "organization": "Organization",
       "time_leave": "Time & Leave",
       "payroll_shifts": "Payroll & Shifts",
+      "shifts_management": "Shifts Management",
+      "shifts_rules": "Automation Policy",
+      "payroll": "Payroll",
       "system": "System",
       "self_service": "Self-Service"
     },
@@ -1746,6 +1749,13 @@
       "modal_title": "Sign Document",
       "cancel": "Cancel",
       "sign_accept": "Sign & Accept"
+    }
+  },
+  "hide_details": "Hide details",
+  "show_details": "Show details",
+  "shifts": {
+    "rules": {
+      "subtitle": "Manage recurring schedule templates and automated shift routing rules"
     }
   }
 }

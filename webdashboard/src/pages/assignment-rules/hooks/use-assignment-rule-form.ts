@@ -56,7 +56,7 @@ export function useAssignmentRuleForm(ruleId?: string) {
       toast.success(t("rules.messages.create_success"));
       setIsDirty(false);
       void queryClient.invalidateQueries({ queryKey: ["assignment-rules"] });
-      void navigate({ to: "/assignment-rules" });
+      void navigate({ to: "/shifts/rules", search: { tab: "rules" } });
     },
     onError: () => {
       toast.error(t("rules.messages.create_error", "Failed to create rule"));
@@ -70,7 +70,7 @@ export function useAssignmentRuleForm(ruleId?: string) {
       toast.success(t("rules.messages.update_success"));
       setIsDirty(false);
       void queryClient.invalidateQueries({ queryKey: ["assignment-rules"] });
-      void navigate({ to: "/assignment-rules" });
+      void navigate({ to: "/shifts/rules", search: { tab: "rules" } });
     },
     onError: () => {
       toast.error(t("rules.messages.update_error", "Failed to update rule"));

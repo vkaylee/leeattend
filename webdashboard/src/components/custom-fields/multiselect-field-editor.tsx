@@ -65,8 +65,8 @@ export const MultiselectFieldEditor: React.FC<MultiselectFieldEditorProps> = ({
       <Popover.Root>
         <Popover.Trigger asChild>
           <Button
-            id={fieldId}
             className="flex min-h-[var(--ui-height-md)] w-full items-center justify-between rounded-2xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-6 py-3.5 text-sm font-bold text-primary-600 dark:text-primary-400 transition-all hover:border-primary-200 dark:hover:border-primary-800 hover:bg-white dark:hover:bg-slate-700 focus:outline-none focus:ring-4 focus:ring-primary-500/10 shadow-inner uppercase tracking-tight h-auto"
+            id={fieldId}
             type="button"
             variant="ghost"
           >

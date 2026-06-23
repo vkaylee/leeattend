@@ -7,10 +7,11 @@ import PageHeader from "@/components/ui/page-header";
 import { cn } from "@/lib/utils";
 
 interface PatternHeaderProps {
+  hideTitle?: boolean;
   onBulkAssignClick: () => void;
   onCreateClick: () => void;
-  viewMode: "list" | "grid";
   onViewModeChange: (mode: "list" | "grid") => void;
+  viewMode: "list" | "grid";
 }
 
 export function PatternHeader({
@@ -18,6 +19,7 @@ export function PatternHeader({
   onCreateClick,
   viewMode,
   onViewModeChange,
+  hideTitle,
 }: PatternHeaderProps) {
   const { t } = useTranslation();
 
@@ -26,34 +28,36 @@ export function PatternHeader({
       actions={
         <>
           <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800/60 p-1 rounded-xl mr-2 border border-slate-200/50 dark:border-slate-700/50">
-            <button
+            <Button
               aria-label={t("patterns.view_mode_list")}
               className={cn(
-                "p-2 rounded-lg transition-all focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:outline-none",
+                "p-2 rounded-lg transition-all focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:outline-none h-auto min-w-0 px-2 py-2 font-normal normal-case active:scale-95",
                 viewMode === "list"
                   ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
               )}
-              onClick={() => onViewModeChange("list")}
+              onClick={() => { onViewModeChange("list"); }}
+              size="sm"
               title={t("patterns.view_mode_list")}
-              type="button"
+              variant="ghost"
             >
               <List size={18} />
-            </button>
-            <button
+            </Button>
+            <Button
               aria-label={t("patterns.view_mode_grid")}
               className={cn(
-                "p-2 rounded-lg transition-all focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:outline-none",
+                "p-2 rounded-lg transition-all focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:outline-none h-auto min-w-0 px-2 py-2 font-normal normal-case active:scale-95",
                 viewMode === "grid"
                   ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
               )}
-              onClick={() => onViewModeChange("grid")}
+              onClick={() => { onViewModeChange("grid"); }}
+              size="sm"
               title={t("patterns.view_mode_grid")}
-              type="button"
+              variant="ghost"
             >
               <LayoutGrid size={18} />
-            </button>
+            </Button>
           </div>
           <Button
             icon={<Users size={18} />}
@@ -75,6 +79,7 @@ export function PatternHeader({
         </>
       }
       data-testid="patterns-title"
+      hideTitle={hideTitle}
       icon={<CalendarDays size={24} />}
       subtitle={t("patterns.subtitle")}
       title={t("patterns.title")}

@@ -19,11 +19,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
-import { SmartTableHeader } from "./smart-table/smart-table-header";
-import { SmartTableRow } from "./smart-table/smart-table-row";
 import { useSmartTableClipboard } from "./smart-table-hooks/use-smart-table-clipboard";
 import { useSmartTableDrag } from "./smart-table-hooks/use-smart-table-drag";
 import { useSmartTableKeyboard } from "./smart-table-hooks/use-smart-table-keyboard";
+import { SmartTableHeader } from "./smart-table/smart-table-header";
+import { SmartTableRow } from "./smart-table/smart-table-row";
 
 export interface SmartTableColumnMeta {
   cellClassName?: string;
@@ -81,12 +81,12 @@ export default function SmartTable<T>({
   validateCell,
   selectedRowIds,
   onSelectionChange,
-  enableDragSelect = false,
+  enableDragSelect,
   contextMenuItems,
-  stickyLeftColumns = 0,
-  stickyRightColumns = 0,
-  isLoading = false,
-  emptyMessage = "No data available",
+  stickyLeftColumns,
+  stickyRightColumns,
+  isLoading,
+  emptyMessage,
   className,
   footerRow,
   onRowClick,

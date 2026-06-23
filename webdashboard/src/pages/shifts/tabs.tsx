@@ -1,4 +1,4 @@
-import { LayoutGrid, List, Zap, CalendarDays } from "lucide-react";
+import { LayoutGrid, List, CalendarDays } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 

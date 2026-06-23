@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
+
 import { format } from "date-fns";
 
 import { useAllEmployees } from "@/hooks/use-employees";
@@ -24,12 +25,12 @@ import type { ViewMode } from "./use-shifts-types";
 interface UseShiftDataProps {
   monthEnd?: Date;
   monthStart?: Date;
+  selectedEmployee?: Employee | null;
+  selectedEmployeeIds?: string[];
   startOfWeek: Date;
   viewMode: ViewMode;
   weekDays: Date[];
   wsId: string;
-  selectedEmployee?: Employee | null;
-  selectedEmployeeIds?: string[];
 }
 
 export function useShiftData({

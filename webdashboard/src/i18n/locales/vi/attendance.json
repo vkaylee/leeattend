@@ -132,6 +132,7 @@
   "patterns": {
     "title": "Mẫu lịch làm việc",
     "subtitle": "Quản lý lịch làm việc tuần hoàn cho nhân viên",
+    "cycle_summary": "Chu kỳ {{total}} ngày: {{active}} làm / {{off}} nghỉ",
     "manage_btn": "Quản lý mẫu",
     "create_btn": "Tạo mẫu mới",
     "create_title": "Tạo mẫu lịch làm việc",

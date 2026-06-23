@@ -24,7 +24,7 @@ export default function SearchBox({
     inputRef,
     onKeyDown,
     className,
-    "data-testid": testId = "search-box",
+    "data-testid": testId,
 }: SearchBoxProps) {
     const { t } = useTranslation();
     const displayPlaceholder = placeholder ?? t("common.search");
@@ -49,10 +49,10 @@ export default function SearchBox({
                 value={value}
             />
             {!!value && (
-                <Button className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all active:scale-90"
+                <Button aria-label={t("common.clear")}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all active:scale-90"
                     onClick={() => { onChange(""); }}
                     variant="ghost"
-                    aria-label={t("common.clear")}
                 >
                     <X size={16} />
                 </Button>

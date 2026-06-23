@@ -1,7 +1,8 @@
+import { useQueries } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { CalendarRange, Calendar, Save, ChevronDown, ChevronUp } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { useQueries } from "@tanstack/react-query";
 
 import Button from "@/components/ui/button";
 import StatusBadge from "@/components/ui/status-badge";
@@ -21,8 +22,8 @@ interface PatternAssignmentFormProps {
   setIsForever: (forever: boolean) => void;
   setSelectedPatternId: (id: string) => void;
   setStartDate: (date: string) => void;
-  startDate: string;
   shifts?: Shift[];
+  startDate: string;
 }
 
 function PatternSelector({
@@ -51,9 +52,18 @@ function PatternSelector({
 
   return (
     <div className="space-y-4">
-      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2 ml-1">
-        <CalendarRange size={12} /> {t("patterns.select_pattern")}
-      </label>
+      <div className="flex items-center justify-between ml-1 mr-2">
+        <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2">
+          <CalendarRange size={12} /> {t("patterns.select_pattern")}
+        </label>
+        <Link
+          className="text-[10px] font-extrabold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 hover:underline flex items-center gap-1 transition-all"
+          search={{ tab: "patterns" }}
+          to="/shifts/rules"
+        >
+          {t("patterns.manage_btn", "Manage Patterns")} ↗
+        </Link>
+      </div>
       <div className="max-h-[45vh] lg:max-h-[50vh] min-h-[240px] overflow-y-auto pr-1.5 flex flex-col gap-3.5 custom-scrollbar">
         {patterns?.map((pattern, index) => {
           const detailsQuery = patternDetailsQueries[index];
@@ -92,7 +102,7 @@ function PatternSelector({
               tabIndex={0}
             >
               {/* Pulsing Green Dot in top right when selected */}
-              {isSelected && (
+              {!!isSelected && (
                 <div className="absolute top-4 right-4 w-2 h-2 bg-primary-600 dark:bg-primary-400 rounded-full flex items-center justify-center">
                   <span className="absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75 animate-ping" />
                   <span className="relative inline-flex rounded-full h-1 w-1 bg-primary-600" />
@@ -147,8 +157,6 @@ function PatternSelector({
                         );
                       })()}
                       <div
-                        role="button"
-                        tabIndex={0}
                         className="p-1.5 rounded-lg text-slate-450 hover:text-slate-650 dark:text-slate-550 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -161,6 +169,8 @@ function PatternSelector({
                             setExpandedPatternId(isExpanded ? null : pattern.id);
                           }
                         }}
+                        role="button"
+                        tabIndex={0}
                         title={isExpanded ? t("hide_details") : t("show_details")}
                       >
                         {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
@@ -242,7 +252,7 @@ function PatternSelector({
               )}
 
               {/* Accordion content for long rotation patterns */}
-              {isLongRotation && isExpanded && (
+              {!!isLongRotation && !!isExpanded && (
                 <div className="pt-4 border-t border-slate-150 dark:border-slate-850/80 animate-in slide-in-from-top-2 duration-300 w-full" onClick={(e) => e.stopPropagation()}>
                   <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-1">
                     {Array.from({ length: cycleLength }).map((_, dayIdx) => {
@@ -310,7 +320,7 @@ export function PatternAssignmentForm({
           <div className="flex items-end gap-3.5 w-full">
             <div className="space-y-1.5 w-[140px] sm:w-[150px] flex-shrink-0">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5 ml-1">
-                <Calendar size={12} className="text-slate-400" /> {t("common.effective_from")}
+                <Calendar className="text-slate-400" size={12} /> {t("common.effective_from")}
               </label>
               <input
                 className="w-full bg-slate-50/50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-bold text-xs text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all h-[38px]"
@@ -321,33 +331,33 @@ export function PatternAssignmentForm({
             </div>
             <div className="space-y-1.5 w-[190px] sm:w-[200px] flex-shrink-0">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5 ml-1">
-                <Calendar size={12} className="text-slate-400" /> {t("common.end_date")}
+                <Calendar className="text-slate-400" size={12} /> {t("common.end_date")}
               </label>
               <div className="relative w-full">
                 {isForever ? (
                   <input
+                    className="w-full bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border border-slate-200/80 dark:border-slate-700 rounded-xl pl-3 pr-10 py-2 font-bold text-xs outline-none h-[38px]"
+                    disabled
                     type="text"
                     value={t("common.indefinite")}
-                    disabled
-                    className="w-full bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border border-slate-200/80 dark:border-slate-700 rounded-xl pl-3 pr-10 py-2 font-bold text-xs outline-none h-[38px]"
                   />
                 ) : (
                   <input
+                    className="w-full bg-slate-50/50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-xl pl-3 pr-10 py-2 font-bold text-xs text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all h-[38px]"
+                    onChange={(e) => { setEndDate(e.target.value); }}
                     type="date"
                     value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full bg-slate-50/50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-xl pl-3 pr-10 py-2 font-bold text-xs text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all h-[38px]"
                   />
                 )}
                 <button
-                  type="button"
-                  onClick={() => setIsForever(!isForever)}
-                  title={isForever ? t("common.definite") : t("common.indefinite")}
                   className={`absolute right-1.5 top-1/2 -translate-y-1/2 text-[12px] font-extrabold px-1.5 py-0.5 rounded-lg border transition-all h-[26px] w-[26px] flex items-center justify-center ${
                     isForever
                       ? 'bg-primary-600 text-white border-primary-600 shadow-sm shadow-primary-500/20'
                       : 'bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-350 border-slate-200 dark:border-slate-650 hover:bg-slate-50 dark:hover:bg-slate-600'
                   }`}
+                  onClick={() => { setIsForever(!isForever); }}
+                  title={isForever ? t("common.definite") : t("common.indefinite")}
+                  type="button"
                 >
                   ∞
                 </button>

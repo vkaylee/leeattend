@@ -1,7 +1,8 @@
-import { type TFunction } from "i18next";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Check, ChevronRight, Calculator, CheckCircle2, AlertCircle } from "lucide-react";
 import React, { useMemo } from "react";
+
+import { type TFunction } from "i18next";
 
 import { Typography } from "@/components/ui/typography";
 import { Employee, Payslip, IncentiveEvaluationResult } from "@/lib/api/types";

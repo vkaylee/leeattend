@@ -5,10 +5,10 @@ import React from "react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 
+import Button from "@/components/ui/button";
 import { ToastProvider } from "@/components/ui/toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useAllEmployees } from "@/hooks/use-employees";
-import Button from "@/components/ui/button";
 import { fetchWorkspaceContracts, deleteEmployeeContract } from "@/lib/api/contracts";
 
 import EContractsPage from "../econtracts-page";
@@ -73,7 +73,7 @@ vi.mock("@/components/features/employees/contract-form-modal", () => ({
         <div>Employee ID: {employeeId}</div>
         <div>Workspace ID: {wsId}</div>
         {!!editingContract && <div>Editing: {editingContract.id}</div>}
-        <Button type="button" onClick={onClose}>Close Form</Button>
+        <Button onClick={onClose} type="button">Close Form</Button>
       </div>
     );
   },

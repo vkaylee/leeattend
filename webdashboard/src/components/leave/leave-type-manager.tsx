@@ -379,8 +379,8 @@ function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: EditLeaveT
                 type="checkbox"
               />
               <label
-                htmlFor="approval-req-input"
                 className="w-10 h-5.5 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-primary-600 cursor-pointer"
+                htmlFor="approval-req-input"
               >
                 <span className="sr-only">{t("settings.leave.type_manager.approval_required", "Approval Required")}</span>
               </label>
@@ -410,8 +410,8 @@ function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: EditLeaveT
                 type="checkbox"
               />
               <label
-                htmlFor="doc-req-input"
                 className="w-10 h-5.5 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-primary-600 cursor-pointer"
+                htmlFor="doc-req-input"
               >
                 <span className="sr-only">{t("settings.leave.type_manager.requires_document", "Requires Document")}</span>
               </label>
@@ -441,8 +441,8 @@ function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: EditLeaveT
                 type="checkbox"
               />
               <label
-                htmlFor="negative-bal-input"
                 className="w-10 h-5.5 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-primary-600 cursor-pointer"
+                htmlFor="negative-bal-input"
               >
                 <span className="sr-only">{t("settings.leave.type_manager.negative_balance", "Negative Balance")}</span>
               </label>

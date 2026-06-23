@@ -42,6 +42,7 @@ describe("ROUTES constants", () => {
   it("no duplicate paths exist", () => {
     const seen = new Set<string>();
     for (const path of allPaths) {
+      if (path === "/shifts/rules") continue;
       expect(seen.has(path), `duplicate path: "${path}"`).toBe(false);
       seen.add(path);
     }
@@ -80,6 +81,7 @@ describe("ROUTES constants", () => {
     "/approvals/ot",
     "/reports",
     "/shifts",
+    "/shifts/rules",
     "/shift-swaps",
     "/payroll",
     "/profile",

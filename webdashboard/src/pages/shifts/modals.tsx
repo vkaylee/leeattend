@@ -2,9 +2,9 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { PatternAssignmentForm } from "@/components/shifts/pattern-assignment-form";
 import { ShiftPickerModal } from "@/components/shifts/shift-picker-modal";
 import Modal from "@/components/ui/modal";
-import { PatternAssignmentForm } from "@/components/shifts/pattern-assignment-form";
 
 import { useShifts } from "./hooks/use-shifts";
 
@@ -71,12 +71,12 @@ function PatternAssignmentPicker({ hook }: ShiftsModalsProps) {
     <Modal
       backdropClassName="bg-slate-900/5 dark:bg-slate-950/10 backdrop-blur-none"
       isOpen={isPatternModalOpen}
+      maxWidth="3xl"
       onClose={() => {
         setIsPatternModalOpen(false);
       }}
-      maxWidth="3xl"
-      title={t("patterns.modal.assign_title")}
       subtitle={t("patterns.modal.assign_subtitle")}
+      title={t("patterns.modal.assign_title")}
     >
       <div className="pt-2">
         <PatternAssignmentForm
@@ -91,8 +91,8 @@ function PatternAssignmentPicker({ hook }: ShiftsModalsProps) {
           setIsForever={setIsForever}
           setSelectedPatternId={setSelectedPatternId}
           setStartDate={setStartDate}
-          startDate={startDate}
           shifts={shifts}
+          startDate={startDate}
         />
       </div>
     </Modal>

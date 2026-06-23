@@ -227,7 +227,7 @@ describe("AssignmentRulesPage", () => {
     const createButton = await screen.findByText("CREATE RULE");
     await user.click(createButton);
 
-    expect(mockNavigate).toHaveBeenCalledWith({ to: "/assignment-rules/new" });
+    expect(mockNavigate).toHaveBeenCalledWith({ to: "/shifts/rules/assignment-rules/new" });
   });
 
   it("navigates to edit rule page when edit button is clicked", async () => {
@@ -238,7 +238,7 @@ describe("AssignmentRulesPage", () => {
     const editBtns = screen.getAllByTitle("Edit");
     await user.click(editBtns[0]);
 
-    expect(mockNavigate).toHaveBeenCalledWith({ to: "/assignment-rules/rule-1/edit" });
+    expect(mockNavigate).toHaveBeenCalledWith({ to: `/shifts/rules/assignment-rules/rule-1/edit` });
   });
 
   // ── Delete Tests ──────────────────────────────────────────

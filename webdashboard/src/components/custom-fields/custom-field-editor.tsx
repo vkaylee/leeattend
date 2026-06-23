@@ -1,15 +1,11 @@
-import * as Popover from "@radix-ui/react-popover";
-import { Check, ChevronDown, X } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
 import type { CustomFieldDefinition } from "@/lib/api/types";
 
-import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import FormField from "@/components/ui/form-field";
 import { Typography } from "@/components/ui/typography";
-import { cn } from "@/lib/utils";
 
 import { MultiselectFieldEditor } from "./multiselect-field-editor";
 

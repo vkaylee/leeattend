@@ -106,7 +106,7 @@ function useCreatePatternMutation({ wsId, t, setIsDirty }: MutationParams) {
       toast.success(t("patterns.messages.create_success"));
       void queryClient.invalidateQueries({ queryKey: ["working-patterns"] });
       setIsDirty(false);
-      void navigate({ to: "/working-patterns" });
+      void navigate({ to: "/shifts/rules", search: { tab: "patterns" } });
     },
     onError: () => {
       toast.error(t("patterns.messages.create_error"));
@@ -126,7 +126,7 @@ function useUpdatePatternMutation({ wsId, patternId, t, setIsDirty }: MutationPa
       void queryClient.invalidateQueries({ queryKey: ["working-patterns"] });
       void queryClient.invalidateQueries({ queryKey: ["pattern-details", wsId ?? "", patternId ?? ""] });
       setIsDirty(false);
-      void navigate({ to: "/working-patterns" });
+      void navigate({ to: "/shifts/rules", search: { tab: "patterns" } });
     },
     onError: () => {
       toast.error(t("patterns.messages.update_error"));

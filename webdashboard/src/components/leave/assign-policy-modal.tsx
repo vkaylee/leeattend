@@ -94,7 +94,7 @@ export function AssignPolicyModal({ isOpen, onClose, wsId, editingAssignment }: 
 
         <div className="space-y-2">
           <label className="text-[10px] font-bold text-primary-400 uppercase tracking-widest ml-1" htmlFor="assign-date">{t("common.effective_from")}</label>
-          <input className="w-full px-5 py-4 text-primary-600 dark:text-primary-400 bg-slate-50 dark:bg-slate-800 border border-primary-100 dark:border-primary-800/50 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight" id="assign-date" name="effective_from" onChange={(e) => setEffectiveFrom(e.target.value)} required type="date" value={effectiveFrom} />
+          <input className="w-full px-5 py-4 text-primary-600 dark:text-primary-400 bg-slate-50 dark:bg-slate-800 border border-primary-100 dark:border-primary-800/50 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight" id="assign-date" name="effective_from" onChange={(e) => { setEffectiveFrom(e.target.value); }} required type="date" value={effectiveFrom} />
         </div>
 
         <div className="pt-4 flex gap-4">

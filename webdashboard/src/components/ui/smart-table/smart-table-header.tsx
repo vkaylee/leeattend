@@ -11,8 +11,8 @@ import React from "react";
 import { cn } from "@/lib/utils";
 
 export interface SmartTableHeaderProps<T> {
-  table: Table<T>;
   getPinStyles: (column: Column<T>) => React.CSSProperties;
+  table: Table<T>;
 }
 
 export function SmartTableHeader<T>({ table, getPinStyles }: SmartTableHeaderProps<T>) {

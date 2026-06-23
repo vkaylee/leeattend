@@ -30,7 +30,6 @@ import {
   ArrowLeftRight,
   DollarSign,
   Activity,
-  LayoutGrid,
   Zap
 } from "lucide-react";
 import React from "react";
@@ -188,10 +187,13 @@ function useSidebarMenuItems(): MenuItem[] {
       ]
     },
     {
-      section: "payroll", sectionIcon: Wallet, label: t("common.sections.payroll_shifts"), testId: "sidebar-section-payroll", items: [
+      section: "shifts", sectionIcon: CalendarRange, label: t("common.sections.shifts_management"), testId: "sidebar-section-shifts", items: [
         { to: ROUTES.SHIFTS, icon: CalendarRange, label: t("common.shifts"), testId: "sidebar-link-shifts", permissions: ["shifts:read"] },
-        { to: ROUTES.WORKING_PATTERNS, icon: LayoutGrid, label: t("patterns.title", "Working Patterns"), testId: "sidebar-link-working-patterns", permissions: ["shifts:read"] },
-        { to: ROUTES.ASSIGNMENT_RULES, icon: Zap, label: t("rules.title", "Assignment Rules"), testId: "sidebar-link-assignment-rules", permissions: ["shifts:read"] },
+        { to: ROUTES.SHIFTS_RULES, icon: Zap, label: t("common.sections.shifts_rules", "Automation Policy"), testId: "sidebar-link-shifts-rules", permissions: ["shifts:read"] }
+      ]
+    },
+    {
+      section: "payroll", sectionIcon: Wallet, label: t("common.sections.payroll"), testId: "sidebar-section-payroll", items: [
         { to: ROUTES.PAYROLL, icon: DollarSign, label: t("payroll.title"), testId: "sidebar-link-payroll", permissions: ["payroll:read"] }
       ]
     },
@@ -263,7 +265,7 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
                   role="img"
                   style={{ backgroundImage: `url(${workspace.logo_url})` }}
                 />
-                {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
+                { }
                 {workspace?.tagline ? (
                   <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] line-clamp-1 mt-1" data-testid="sidebar-workspace-tagline">
                     {workspace.tagline}

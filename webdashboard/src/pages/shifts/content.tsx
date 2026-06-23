@@ -4,7 +4,6 @@ import { format } from "date-fns";
 
 import { AssignmentHistory } from "@/components/shifts/assignment-history";
 import { MonthlyRosterGrid } from "@/components/shifts/monthly-roster-grid";
-import { PatternAssignmentForm } from "@/components/shifts/pattern-assignment-form";
 import { PriorityLegend } from "@/components/shifts/priority-legend";
 import { ShiftList } from "@/components/shifts/shift-list";
 import { WeeklyRosterGrid } from "@/components/shifts/weekly-roster-grid";
@@ -66,6 +65,9 @@ export function ShiftsContent({ hook }: ShiftsContentProps) {
             setTargetDates(weekDays.map((d) => format(d, "yyyy-MM-dd")));
             setIsShiftPickerOpen(true);
           }}
+          onAssignPattern={() => {
+            hook.setIsPatternModalOpen(true);
+          }}
           onClearSelection={() => {
             setSelectedDays([]);
           }}
@@ -93,9 +95,6 @@ export function ShiftsContent({ hook }: ShiftsContentProps) {
           selectedDays={selectedDays}
           selectedEmployee={selectedEmployee}
           weekDays={weekDays}
-          onAssignPattern={() => {
-            hook.setIsPatternModalOpen(true);
-          }}
         />
         <PriorityLegend />
         <AssignmentHistory

@@ -11,16 +11,16 @@ import {
   Trash2,
   User
 } from "lucide-react";
-import React, { memo, useEffect, useMemo, useRef, useState } from "react";
+import React, { memo, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { format, isToday as isDateToday } from "date-fns";
 import { vi, enUS, zhCN, type Locale } from "date-fns/locale";
 
-import { Employee, EmployeeSchedule, Shift, EffectiveSchedule } from "@/lib/api/types";
 import { EmployeeSearch } from "@/components/common/employee-search";
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
+import { Employee, EmployeeSchedule, Shift, EffectiveSchedule } from "@/lib/api/types";
 import { useShifts } from "@/pages/shifts/hooks/use-shifts";
 
 import { useMonthlyRoster } from "./hooks/use-monthly-roster";

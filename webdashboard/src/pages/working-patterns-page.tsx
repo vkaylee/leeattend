@@ -8,7 +8,7 @@ import { PatternGrid } from "./attendance/components/working-patterns/pattern-gr
 import { PatternList } from "./attendance/components/working-patterns/pattern-list";
 import { useWorkingPatterns } from "./attendance/hooks/use-working-patterns";
 
-export default function WorkingPatternsPage() {
+export default function WorkingPatternsPage({ hideHeaderTitle }: { hideHeaderTitle?: boolean }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const hook = useWorkingPatterns();
@@ -46,11 +46,12 @@ export default function WorkingPatternsPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-700 pb-20">
       <PatternHeader
+        hideTitle={hideHeaderTitle}
         onBulkAssignClick={() => {
           setIsBulkModalOpen(true);
         }}
         onCreateClick={() => {
-          void navigate({ to: "/working-patterns/new" });
+          void navigate({ to: "/shifts/rules/working-patterns/new" });
         }}
         onViewModeChange={handleViewModeChange}
         viewMode={viewMode}
@@ -63,7 +64,7 @@ export default function WorkingPatternsPage() {
           onDelete={handleDelete}
           onEdit={(pattern) => {
             void navigate({
-              to: "/working-patterns/$patternId/edit",
+              to: "/shifts/rules/working-patterns/$patternId/edit",
               params: { patternId: pattern.id },
             });
           }}
@@ -81,7 +82,7 @@ export default function WorkingPatternsPage() {
           onDelete={handleDelete}
           onEdit={(pattern) => {
             void navigate({
-              to: "/working-patterns/$patternId/edit",
+              to: "/shifts/rules/working-patterns/$patternId/edit",
               params: { patternId: pattern.id },
             });
           }}

@@ -57,8 +57,8 @@ export interface UseShiftsReturn {
   isForever: boolean;
   isMonthError: boolean;
   isMonthLoading: boolean;
-  isShiftPickerOpen: boolean;
   isPatternModalOpen: boolean;
+  isShiftPickerOpen: boolean;
   maxEarlyOtMinutes: number;
   monthDays: Date[];
   monthError: Error | null;
@@ -77,6 +77,8 @@ export interface UseShiftsReturn {
   refetchMonthSchedules: () => Promise<unknown>;
   selectedDays: string[];
   selectedEmployee: Employee | null;
+  selectedEmployeeIds: string[];
+  selectedEmployees: Employee[];
   selectedPatternId: string;
   setActiveTab: (v: TabType) => void;
   setAllowEarlyOt: (v: boolean) => void;
@@ -90,8 +92,8 @@ export interface UseShiftsReturn {
   setIsCreateModalOpen: (v: boolean) => void;
   setIsFixedBreak: (v: boolean) => void;
   setIsForever: (v: boolean) => void;
-  setIsShiftPickerOpen: (v: boolean) => void;
   setIsPatternModalOpen: (v: boolean) => void;
+  setIsShiftPickerOpen: (v: boolean) => void;
   setMaxEarlyOtMinutes: (v: number) => void;
   setNewBreakEnd: (v: string) => void;
   setNewBreakStart: (v: string) => void;
@@ -101,12 +103,10 @@ export interface UseShiftsReturn {
   setNewShiftName: (v: string) => void;
   setNewShiftStart: (v: string) => void;
   setNewShiftSymbol: (v: string) => void;
-  selectedEmployeeIds: string[];
-  selectedEmployees: Employee[];
-  setSelectedEmployeeIds: (v: string[]) => void;
-  setSelectedEmployees: (v: Employee[]) => void;
   setSelectedDays: (v: string[]) => void;
   setSelectedEmployee: (v: Employee | null) => void;
+  setSelectedEmployeeIds: (v: string[]) => void;
+  setSelectedEmployees: (v: Employee[]) => void;
   setSelectedPatternId: (v: string) => void;
   setStartDate: (v: string) => void;
   setTargetDates: (v: string[]) => void;

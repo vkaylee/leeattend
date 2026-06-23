@@ -43,9 +43,10 @@ export const ROUTES = {
   DEVICES: "/devices",
   PROFILE: "/profile",
 
-  // Working patterns
-  WORKING_PATTERNS: "/working-patterns",
-  ASSIGNMENT_RULES: "/assignment-rules",
+  // Working patterns & Rules (unified path)
+  SHIFTS_RULES: "/shifts/rules",
+  WORKING_PATTERNS: "/shifts/rules",
+  ASSIGNMENT_RULES: "/shifts/rules",
 
   // Infra & System
   INFRA_MONITOR: "/infra/monitor",

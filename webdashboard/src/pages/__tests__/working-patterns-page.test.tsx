@@ -141,7 +141,7 @@ describe("WorkingPatternsPage", () => {
 
     await user.click(screen.getByText(/patterns.create_btn/i));
 
-    expect(mockNavigate).toHaveBeenCalledWith({ to: "/working-patterns/new" });
+    expect(mockNavigate).toHaveBeenCalledWith({ to: "/shifts/rules/working-patterns/new" });
   });
 
 

@@ -40,6 +40,7 @@ import { Route as AuthenticatedWorkspaceAssignmentRulesIndexRouteImport } from "
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsRouteImport } from "./routes/_authenticated/_workspace/workspace/settings"
 import { Route as AuthenticatedWorkspaceWorkspacePeopleRouteImport } from "./routes/_authenticated/_workspace/workspace/people"
 import { Route as AuthenticatedWorkspaceWorkingPatternsNewRouteImport } from "./routes/_authenticated/_workspace/working-patterns.new"
+import { Route as AuthenticatedWorkspaceShiftsRulesRouteImport } from "./routes/_authenticated/_workspace/shifts.rules"
 import { Route as AuthenticatedWorkspaceShiftsNewRouteImport } from "./routes/_authenticated/_workspace/shifts.new"
 import { Route as AuthenticatedWorkspaceEssProfileRouteImport } from "./routes/_authenticated/_workspace/ess/profile"
 import { Route as AuthenticatedWorkspaceEssOtRouteImport } from "./routes/_authenticated/_workspace/ess/ot"
@@ -54,6 +55,7 @@ import { Route as AuthenticatedInfraSystemRolesRouteImport } from "./routes/_aut
 import { Route as AuthenticatedInfraSystemDbClustersRouteImport } from "./routes/_authenticated/_infra/system/db-clusters"
 import { Route as AuthenticatedInfraInfraMonitorRouteImport } from "./routes/_authenticated/_infra/infra/monitor"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsIndexRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/index"
+import { Route as AuthenticatedWorkspaceShiftsRulesIndexRouteImport } from "./routes/_authenticated/_workspace/shifts.rules.index"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/workflows"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsTimeRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/time"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsStorageRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/storage"
@@ -78,7 +80,11 @@ import { Route as AuthenticatedWorkspaceShiftsShiftIdEditRouteImport } from "./r
 import { Route as AuthenticatedWorkspaceAssignmentRulesRuleIdEditRouteImport } from "./routes/_authenticated/_workspace/assignment-rules.$ruleId.edit"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsWorkflowsIndexRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/workflows.index"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsWorkflowsNewRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/workflows.new"
+import { Route as AuthenticatedWorkspaceShiftsRulesWorkingPatternsNewRouteImport } from "./routes/_authenticated/_workspace/shifts.rules.working-patterns.new"
+import { Route as AuthenticatedWorkspaceShiftsRulesAssignmentRulesNewRouteImport } from "./routes/_authenticated/_workspace/shifts.rules.assignment-rules.new"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsWorkflowsWorkflowIdEditRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/workflows.$workflowId.edit"
+import { Route as AuthenticatedWorkspaceShiftsRulesWorkingPatternsPatternIdEditRouteImport } from "./routes/_authenticated/_workspace/shifts.rules.working-patterns.$patternId.edit"
+import { Route as AuthenticatedWorkspaceShiftsRulesAssignmentRulesRuleIdEditRouteImport } from "./routes/_authenticated/_workspace/shifts.rules.assignment-rules.$ruleId.edit"
 
 const RegisterRoute = RegisterRouteImport.update({
   id: "/register",
@@ -339,6 +345,12 @@ const AuthenticatedWorkspaceWorkingPatternsNewRoute =
       (d) => d.Route,
     ),
   )
+const AuthenticatedWorkspaceShiftsRulesRoute =
+  AuthenticatedWorkspaceShiftsRulesRouteImport.update({
+    id: "/rules",
+    path: "/rules",
+    getParentRoute: () => AuthenticatedWorkspaceShiftsRoute,
+  } as any)
 const AuthenticatedWorkspaceShiftsNewRoute =
   AuthenticatedWorkspaceShiftsNewRouteImport.update({
     id: "/new",
@@ -475,6 +487,16 @@ const AuthenticatedWorkspaceWorkspaceSettingsIndexRoute =
     path: "/",
     getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsRoute,
   } as any)
+const AuthenticatedWorkspaceShiftsRulesIndexRoute =
+  AuthenticatedWorkspaceShiftsRulesIndexRouteImport.update({
+    id: "/",
+    path: "/",
+    getParentRoute: () => AuthenticatedWorkspaceShiftsRulesRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/shifts.rules.index.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRoute =
   AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRouteImport.update({
     id: "/workflows",
@@ -711,6 +733,26 @@ const AuthenticatedWorkspaceWorkspaceSettingsWorkflowsNewRoute =
       (d) => d.Route,
     ),
   )
+const AuthenticatedWorkspaceShiftsRulesWorkingPatternsNewRoute =
+  AuthenticatedWorkspaceShiftsRulesWorkingPatternsNewRouteImport.update({
+    id: "/working-patterns/new",
+    path: "/working-patterns/new",
+    getParentRoute: () => AuthenticatedWorkspaceShiftsRulesRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/shifts.rules.working-patterns.new.lazy").then(
+      (d) => d.Route,
+    ),
+  )
+const AuthenticatedWorkspaceShiftsRulesAssignmentRulesNewRoute =
+  AuthenticatedWorkspaceShiftsRulesAssignmentRulesNewRouteImport.update({
+    id: "/assignment-rules/new",
+    path: "/assignment-rules/new",
+    getParentRoute: () => AuthenticatedWorkspaceShiftsRulesRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/shifts.rules.assignment-rules.new.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceWorkspaceSettingsWorkflowsWorkflowIdEditRoute =
   AuthenticatedWorkspaceWorkspaceSettingsWorkflowsWorkflowIdEditRouteImport.update(
     {
@@ -721,6 +763,28 @@ const AuthenticatedWorkspaceWorkspaceSettingsWorkflowsWorkflowIdEditRoute =
     } as any,
   ).lazy(() =>
     import("./routes/_authenticated/_workspace/workspace/settings/workflows.$workflowId.edit.lazy").then(
+      (d) => d.Route,
+    ),
+  )
+const AuthenticatedWorkspaceShiftsRulesWorkingPatternsPatternIdEditRoute =
+  AuthenticatedWorkspaceShiftsRulesWorkingPatternsPatternIdEditRouteImport.update(
+    {
+      id: "/working-patterns/$patternId/edit",
+      path: "/working-patterns/$patternId/edit",
+      getParentRoute: () => AuthenticatedWorkspaceShiftsRulesRoute,
+    } as any,
+  ).lazy(() =>
+    import("./routes/_authenticated/_workspace/shifts.rules.working-patterns.$patternId.edit.lazy").then(
+      (d) => d.Route,
+    ),
+  )
+const AuthenticatedWorkspaceShiftsRulesAssignmentRulesRuleIdEditRoute =
+  AuthenticatedWorkspaceShiftsRulesAssignmentRulesRuleIdEditRouteImport.update({
+    id: "/assignment-rules/$ruleId/edit",
+    path: "/assignment-rules/$ruleId/edit",
+    getParentRoute: () => AuthenticatedWorkspaceShiftsRulesRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/shifts.rules.assignment-rules.$ruleId.edit.lazy").then(
       (d) => d.Route,
     ),
   )
@@ -760,6 +824,7 @@ export interface FileRoutesByFullPath {
   "/ess/ot": typeof AuthenticatedWorkspaceEssOtRoute
   "/ess/profile": typeof AuthenticatedWorkspaceEssProfileRoute
   "/shifts/new": typeof AuthenticatedWorkspaceShiftsNewRoute
+  "/shifts/rules": typeof AuthenticatedWorkspaceShiftsRulesRouteWithChildren
   "/working-patterns/new": typeof AuthenticatedWorkspaceWorkingPatternsNewRoute
   "/workspace/people": typeof AuthenticatedWorkspaceWorkspacePeopleRoute
   "/workspace/settings": typeof AuthenticatedWorkspaceWorkspaceSettingsRouteWithChildren
@@ -789,9 +854,14 @@ export interface FileRoutesByFullPath {
   "/workspace/settings/storage": typeof AuthenticatedWorkspaceWorkspaceSettingsStorageRoute
   "/workspace/settings/time": typeof AuthenticatedWorkspaceWorkspaceSettingsTimeRoute
   "/workspace/settings/workflows": typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRouteWithChildren
+  "/shifts/rules/": typeof AuthenticatedWorkspaceShiftsRulesIndexRoute
   "/workspace/settings/": typeof AuthenticatedWorkspaceWorkspaceSettingsIndexRoute
+  "/shifts/rules/assignment-rules/new": typeof AuthenticatedWorkspaceShiftsRulesAssignmentRulesNewRoute
+  "/shifts/rules/working-patterns/new": typeof AuthenticatedWorkspaceShiftsRulesWorkingPatternsNewRoute
   "/workspace/settings/workflows/new": typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsNewRoute
   "/workspace/settings/workflows/": typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsIndexRoute
+  "/shifts/rules/assignment-rules/$ruleId/edit": typeof AuthenticatedWorkspaceShiftsRulesAssignmentRulesRuleIdEditRoute
+  "/shifts/rules/working-patterns/$patternId/edit": typeof AuthenticatedWorkspaceShiftsRulesWorkingPatternsPatternIdEditRoute
   "/workspace/settings/workflows/$workflowId/edit": typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsWorkflowIdEditRoute
 }
 export interface FileRoutesByTo {
@@ -853,9 +923,14 @@ export interface FileRoutesByTo {
   "/workspace/settings/roles": typeof AuthenticatedWorkspaceWorkspaceSettingsRolesRoute
   "/workspace/settings/storage": typeof AuthenticatedWorkspaceWorkspaceSettingsStorageRoute
   "/workspace/settings/time": typeof AuthenticatedWorkspaceWorkspaceSettingsTimeRoute
+  "/shifts/rules": typeof AuthenticatedWorkspaceShiftsRulesIndexRoute
   "/workspace/settings": typeof AuthenticatedWorkspaceWorkspaceSettingsIndexRoute
+  "/shifts/rules/assignment-rules/new": typeof AuthenticatedWorkspaceShiftsRulesAssignmentRulesNewRoute
+  "/shifts/rules/working-patterns/new": typeof AuthenticatedWorkspaceShiftsRulesWorkingPatternsNewRoute
   "/workspace/settings/workflows/new": typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsNewRoute
   "/workspace/settings/workflows": typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsIndexRoute
+  "/shifts/rules/assignment-rules/$ruleId/edit": typeof AuthenticatedWorkspaceShiftsRulesAssignmentRulesRuleIdEditRoute
+  "/shifts/rules/working-patterns/$patternId/edit": typeof AuthenticatedWorkspaceShiftsRulesWorkingPatternsPatternIdEditRoute
   "/workspace/settings/workflows/$workflowId/edit": typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsWorkflowIdEditRoute
 }
 export interface FileRoutesById {
@@ -897,6 +972,7 @@ export interface FileRoutesById {
   "/_authenticated/_workspace/ess/ot": typeof AuthenticatedWorkspaceEssOtRoute
   "/_authenticated/_workspace/ess/profile": typeof AuthenticatedWorkspaceEssProfileRoute
   "/_authenticated/_workspace/shifts/new": typeof AuthenticatedWorkspaceShiftsNewRoute
+  "/_authenticated/_workspace/shifts/rules": typeof AuthenticatedWorkspaceShiftsRulesRouteWithChildren
   "/_authenticated/_workspace/working-patterns/new": typeof AuthenticatedWorkspaceWorkingPatternsNewRoute
   "/_authenticated/_workspace/workspace/people": typeof AuthenticatedWorkspaceWorkspacePeopleRoute
   "/_authenticated/_workspace/workspace/settings": typeof AuthenticatedWorkspaceWorkspaceSettingsRouteWithChildren
@@ -926,9 +1002,14 @@ export interface FileRoutesById {
   "/_authenticated/_workspace/workspace/settings/storage": typeof AuthenticatedWorkspaceWorkspaceSettingsStorageRoute
   "/_authenticated/_workspace/workspace/settings/time": typeof AuthenticatedWorkspaceWorkspaceSettingsTimeRoute
   "/_authenticated/_workspace/workspace/settings/workflows": typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRouteWithChildren
+  "/_authenticated/_workspace/shifts/rules/": typeof AuthenticatedWorkspaceShiftsRulesIndexRoute
   "/_authenticated/_workspace/workspace/settings/": typeof AuthenticatedWorkspaceWorkspaceSettingsIndexRoute
+  "/_authenticated/_workspace/shifts/rules/assignment-rules/new": typeof AuthenticatedWorkspaceShiftsRulesAssignmentRulesNewRoute
+  "/_authenticated/_workspace/shifts/rules/working-patterns/new": typeof AuthenticatedWorkspaceShiftsRulesWorkingPatternsNewRoute
   "/_authenticated/_workspace/workspace/settings/workflows/new": typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsNewRoute
   "/_authenticated/_workspace/workspace/settings/workflows/": typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsIndexRoute
+  "/_authenticated/_workspace/shifts/rules/assignment-rules/$ruleId/edit": typeof AuthenticatedWorkspaceShiftsRulesAssignmentRulesRuleIdEditRoute
+  "/_authenticated/_workspace/shifts/rules/working-patterns/$patternId/edit": typeof AuthenticatedWorkspaceShiftsRulesWorkingPatternsPatternIdEditRoute
   "/_authenticated/_workspace/workspace/settings/workflows/$workflowId/edit": typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsWorkflowIdEditRoute
 }
 export interface FileRouteTypes {
@@ -968,6 +1049,7 @@ export interface FileRouteTypes {
     | "/ess/ot"
     | "/ess/profile"
     | "/shifts/new"
+    | "/shifts/rules"
     | "/working-patterns/new"
     | "/workspace/people"
     | "/workspace/settings"
@@ -997,9 +1079,14 @@ export interface FileRouteTypes {
     | "/workspace/settings/storage"
     | "/workspace/settings/time"
     | "/workspace/settings/workflows"
+    | "/shifts/rules/"
     | "/workspace/settings/"
+    | "/shifts/rules/assignment-rules/new"
+    | "/shifts/rules/working-patterns/new"
     | "/workspace/settings/workflows/new"
     | "/workspace/settings/workflows/"
+    | "/shifts/rules/assignment-rules/$ruleId/edit"
+    | "/shifts/rules/working-patterns/$patternId/edit"
     | "/workspace/settings/workflows/$workflowId/edit"
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -1061,9 +1148,14 @@ export interface FileRouteTypes {
     | "/workspace/settings/roles"
     | "/workspace/settings/storage"
     | "/workspace/settings/time"
+    | "/shifts/rules"
     | "/workspace/settings"
+    | "/shifts/rules/assignment-rules/new"
+    | "/shifts/rules/working-patterns/new"
     | "/workspace/settings/workflows/new"
     | "/workspace/settings/workflows"
+    | "/shifts/rules/assignment-rules/$ruleId/edit"
+    | "/shifts/rules/working-patterns/$patternId/edit"
     | "/workspace/settings/workflows/$workflowId/edit"
   id:
     | "__root__"
@@ -1104,6 +1196,7 @@ export interface FileRouteTypes {
     | "/_authenticated/_workspace/ess/ot"
     | "/_authenticated/_workspace/ess/profile"
     | "/_authenticated/_workspace/shifts/new"
+    | "/_authenticated/_workspace/shifts/rules"
     | "/_authenticated/_workspace/working-patterns/new"
     | "/_authenticated/_workspace/workspace/people"
     | "/_authenticated/_workspace/workspace/settings"
@@ -1133,9 +1226,14 @@ export interface FileRouteTypes {
     | "/_authenticated/_workspace/workspace/settings/storage"
     | "/_authenticated/_workspace/workspace/settings/time"
     | "/_authenticated/_workspace/workspace/settings/workflows"
+    | "/_authenticated/_workspace/shifts/rules/"
     | "/_authenticated/_workspace/workspace/settings/"
+    | "/_authenticated/_workspace/shifts/rules/assignment-rules/new"
+    | "/_authenticated/_workspace/shifts/rules/working-patterns/new"
     | "/_authenticated/_workspace/workspace/settings/workflows/new"
     | "/_authenticated/_workspace/workspace/settings/workflows/"
+    | "/_authenticated/_workspace/shifts/rules/assignment-rules/$ruleId/edit"
+    | "/_authenticated/_workspace/shifts/rules/working-patterns/$patternId/edit"
     | "/_authenticated/_workspace/workspace/settings/workflows/$workflowId/edit"
   fileRoutesById: FileRoutesById
 }
@@ -1364,6 +1462,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedWorkspaceWorkingPatternsNewRouteImport
       parentRoute: typeof AuthenticatedWorkspaceWorkingPatternsRoute
     }
+    "/_authenticated/_workspace/shifts/rules": {
+      id: "/_authenticated/_workspace/shifts/rules"
+      path: "/rules"
+      fullPath: "/shifts/rules"
+      preLoaderRoute: typeof AuthenticatedWorkspaceShiftsRulesRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceShiftsRoute
+    }
     "/_authenticated/_workspace/shifts/new": {
       id: "/_authenticated/_workspace/shifts/new"
       path: "/new"
@@ -1461,6 +1566,13 @@ declare module "@tanstack/react-router" {
       fullPath: "/workspace/settings/"
       preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsIndexRouteImport
       parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRoute
+    }
+    "/_authenticated/_workspace/shifts/rules/": {
+      id: "/_authenticated/_workspace/shifts/rules/"
+      path: "/"
+      fullPath: "/shifts/rules/"
+      preLoaderRoute: typeof AuthenticatedWorkspaceShiftsRulesIndexRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceShiftsRulesRoute
     }
     "/_authenticated/_workspace/workspace/settings/workflows": {
       id: "/_authenticated/_workspace/workspace/settings/workflows"
@@ -1630,12 +1742,40 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsNewRouteImport
       parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRoute
     }
+    "/_authenticated/_workspace/shifts/rules/working-patterns/new": {
+      id: "/_authenticated/_workspace/shifts/rules/working-patterns/new"
+      path: "/working-patterns/new"
+      fullPath: "/shifts/rules/working-patterns/new"
+      preLoaderRoute: typeof AuthenticatedWorkspaceShiftsRulesWorkingPatternsNewRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceShiftsRulesRoute
+    }
+    "/_authenticated/_workspace/shifts/rules/assignment-rules/new": {
+      id: "/_authenticated/_workspace/shifts/rules/assignment-rules/new"
+      path: "/assignment-rules/new"
+      fullPath: "/shifts/rules/assignment-rules/new"
+      preLoaderRoute: typeof AuthenticatedWorkspaceShiftsRulesAssignmentRulesNewRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceShiftsRulesRoute
+    }
     "/_authenticated/_workspace/workspace/settings/workflows/$workflowId/edit": {
       id: "/_authenticated/_workspace/workspace/settings/workflows/$workflowId/edit"
       path: "/$workflowId/edit"
       fullPath: "/workspace/settings/workflows/$workflowId/edit"
       preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsWorkflowIdEditRouteImport
       parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsWorkflowsRoute
+    }
+    "/_authenticated/_workspace/shifts/rules/working-patterns/$patternId/edit": {
+      id: "/_authenticated/_workspace/shifts/rules/working-patterns/$patternId/edit"
+      path: "/working-patterns/$patternId/edit"
+      fullPath: "/shifts/rules/working-patterns/$patternId/edit"
+      preLoaderRoute: typeof AuthenticatedWorkspaceShiftsRulesWorkingPatternsPatternIdEditRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceShiftsRulesRoute
+    }
+    "/_authenticated/_workspace/shifts/rules/assignment-rules/$ruleId/edit": {
+      id: "/_authenticated/_workspace/shifts/rules/assignment-rules/$ruleId/edit"
+      path: "/assignment-rules/$ruleId/edit"
+      fullPath: "/shifts/rules/assignment-rules/$ruleId/edit"
+      preLoaderRoute: typeof AuthenticatedWorkspaceShiftsRulesAssignmentRulesRuleIdEditRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceShiftsRulesRoute
     }
   }
 }
@@ -1679,8 +1819,36 @@ const AuthenticatedWorkspaceAssignmentRulesRouteWithChildren =
     AuthenticatedWorkspaceAssignmentRulesRouteChildren,
   )
 
+interface AuthenticatedWorkspaceShiftsRulesRouteChildren {
+  AuthenticatedWorkspaceShiftsRulesIndexRoute: typeof AuthenticatedWorkspaceShiftsRulesIndexRoute
+  AuthenticatedWorkspaceShiftsRulesAssignmentRulesNewRoute: typeof AuthenticatedWorkspaceShiftsRulesAssignmentRulesNewRoute
+  AuthenticatedWorkspaceShiftsRulesWorkingPatternsNewRoute: typeof AuthenticatedWorkspaceShiftsRulesWorkingPatternsNewRoute
+  AuthenticatedWorkspaceShiftsRulesAssignmentRulesRuleIdEditRoute: typeof AuthenticatedWorkspaceShiftsRulesAssignmentRulesRuleIdEditRoute
+  AuthenticatedWorkspaceShiftsRulesWorkingPatternsPatternIdEditRoute: typeof AuthenticatedWorkspaceShiftsRulesWorkingPatternsPatternIdEditRoute
+}
+
+const AuthenticatedWorkspaceShiftsRulesRouteChildren: AuthenticatedWorkspaceShiftsRulesRouteChildren =
+  {
+    AuthenticatedWorkspaceShiftsRulesIndexRoute:
+      AuthenticatedWorkspaceShiftsRulesIndexRoute,
+    AuthenticatedWorkspaceShiftsRulesAssignmentRulesNewRoute:
+      AuthenticatedWorkspaceShiftsRulesAssignmentRulesNewRoute,
+    AuthenticatedWorkspaceShiftsRulesWorkingPatternsNewRoute:
+      AuthenticatedWorkspaceShiftsRulesWorkingPatternsNewRoute,
+    AuthenticatedWorkspaceShiftsRulesAssignmentRulesRuleIdEditRoute:
+      AuthenticatedWorkspaceShiftsRulesAssignmentRulesRuleIdEditRoute,
+    AuthenticatedWorkspaceShiftsRulesWorkingPatternsPatternIdEditRoute:
+      AuthenticatedWorkspaceShiftsRulesWorkingPatternsPatternIdEditRoute,
+  }
+
+const AuthenticatedWorkspaceShiftsRulesRouteWithChildren =
+  AuthenticatedWorkspaceShiftsRulesRoute._addFileChildren(
+    AuthenticatedWorkspaceShiftsRulesRouteChildren,
+  )
+
 interface AuthenticatedWorkspaceShiftsRouteChildren {
   AuthenticatedWorkspaceShiftsNewRoute: typeof AuthenticatedWorkspaceShiftsNewRoute
+  AuthenticatedWorkspaceShiftsRulesRoute: typeof AuthenticatedWorkspaceShiftsRulesRouteWithChildren
   AuthenticatedWorkspaceShiftsIndexRoute: typeof AuthenticatedWorkspaceShiftsIndexRoute
   AuthenticatedWorkspaceShiftsShiftIdEditRoute: typeof AuthenticatedWorkspaceShiftsShiftIdEditRoute
 }
@@ -1688,6 +1856,8 @@ interface AuthenticatedWorkspaceShiftsRouteChildren {
 const AuthenticatedWorkspaceShiftsRouteChildren: AuthenticatedWorkspaceShiftsRouteChildren =
   {
     AuthenticatedWorkspaceShiftsNewRoute: AuthenticatedWorkspaceShiftsNewRoute,
+    AuthenticatedWorkspaceShiftsRulesRoute:
+      AuthenticatedWorkspaceShiftsRulesRouteWithChildren,
     AuthenticatedWorkspaceShiftsIndexRoute:
       AuthenticatedWorkspaceShiftsIndexRoute,
     AuthenticatedWorkspaceShiftsShiftIdEditRoute:

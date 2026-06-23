@@ -872,6 +872,9 @@
       "organization": "组织",
       "time_leave": "时间与请假",
       "payroll_shifts": "薪资与班次",
+      "shifts_management": "班次管理",
+      "shifts_rules": "自动分配策略",
+      "payroll": "薪资",
       "system": "系统",
       "self_service": "自助服务"
     },
@@ -1746,6 +1749,13 @@
       "modal_title": "签署文档",
       "cancel": "取消",
       "sign_accept": "签署并接受"
+    }
+  },
+  "hide_details": "隐藏详情",
+  "show_details": "显示详情",
+  "shifts": {
+    "rules": {
+      "subtitle": "管理周期性排班模板和自动排班规则"
     }
   }
 }

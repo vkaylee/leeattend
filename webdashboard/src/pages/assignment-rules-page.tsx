@@ -9,7 +9,7 @@ import { Typography } from "@/components/ui/typography";
 import { AssignmentRulesTable } from "./assignment-rules/components/assignment-rules-table";
 import { useAssignmentRules } from "./assignment-rules/hooks/use-assignment-rules";
 
-export default function AssignmentRulesPage() {
+export default function AssignmentRulesPage({ hideHeaderTitle }: { hideHeaderTitle?: boolean }) {
   const navigate = useNavigate();
   const {
     t,
@@ -30,7 +30,7 @@ export default function AssignmentRulesPage() {
           <Button
             icon={<Plus size={18} />}
             onClick={() => {
-              void navigate({ to: "/assignment-rules/new" });
+              void navigate({ to: "/shifts/rules/assignment-rules/new" });
             }}
             variant="primary"
           >
@@ -38,6 +38,7 @@ export default function AssignmentRulesPage() {
           </Button>
         }
         data-testid="assignment-rules-title"
+        hideTitle={hideHeaderTitle}
         subtitle={t("rules.subtitle")}
         title={t("rules.title")}
       />
@@ -49,7 +50,7 @@ export default function AssignmentRulesPage() {
         locations={locations}
         onDelete={handleDelete}
         onEdit={(rule) => {
-          void navigate({ to: `/assignment-rules/${rule.id}/edit` });
+          void navigate({ to: `/shifts/rules/assignment-rules/${rule.id}/edit` });
         }}
         patterns={patterns}
         rules={rules}

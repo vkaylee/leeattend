@@ -181,7 +181,7 @@ describe("AssignmentRuleEditorPage", () => {
     });
 
     expect(mockToastSuccess).toHaveBeenCalled();
-    expect(mockNavigate).toHaveBeenCalledWith({ to: "/assignment-rules" });
+    expect(mockNavigate).toHaveBeenCalledWith({ to: "/shifts/rules", search: { tab: "rules" } });
   });
 
   it("loads and edits an existing rule", async () => {
@@ -217,7 +217,7 @@ describe("AssignmentRuleEditorPage", () => {
     const cancelBtn = await screen.findByText("CANCEL");
     await user.click(cancelBtn);
 
-    expect(mockNavigate).toHaveBeenCalledWith({ to: "/assignment-rules" });
+    expect(mockNavigate).toHaveBeenCalledWith({ to: "/shifts/rules", search: { tab: "rules" } });
   });
 
   it("triggers ConfirmDialog when navigation is blocked", async () => {
