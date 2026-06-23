@@ -271,6 +271,9 @@
     "confirm_delete_msg": "Are you sure you want to delete this rule?"
   },
   "shifts": {
+    "weekly": {
+      "title": "Weekly Roster"
+    },
     "monthly": {
       "title": "Monthly Roster",
       "copy_previous_month": "Copy prev month",

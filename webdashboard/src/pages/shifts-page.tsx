@@ -1,8 +1,11 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { useMonthlyRoster } from "@/components/shifts/hooks/use-monthly-roster";
+import { RosterToolbar } from "@/components/shifts/roster-toolbar";
+
 import { ShiftsContent } from "./shifts/content";
-import { EmployeeSelector, EmptyEmployeeState } from "./shifts/employee-selector";
+import { EmptyEmployeeState } from "./shifts/employee-selector";
 import { ShiftsHeader } from "./shifts/header";
 import { useShifts } from "./shifts/hooks/use-shifts";
 import { ShiftsModals } from "./shifts/modals";
@@ -11,11 +14,12 @@ import { ShiftsTabs } from "./shifts/tabs";
 export default function ShiftsPage() {
   const { t } = useTranslation();
   const hook = useShifts();
+  const monthlyRoster = useMonthlyRoster({ hook });
+  
   const {
     activeTab,
     selectedEmployee,
     setActiveTab,
-    setSelectedEmployee,
     wsId,
     viewMode,
     setViewMode,
@@ -40,19 +44,33 @@ export default function ShiftsPage() {
         viewMode={viewMode}
       />
 
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-        {activeTab !== "directory" && viewMode === "week" ? (
-          <EmployeeSelector
-            onSelect={setSelectedEmployee}
-            selectedEmployeeId={selectedEmployee?.id}
-            wsId={wsId}
-          />
-        ) : null}
+      {activeTab === "weekly-roster" && (
+        <RosterToolbar 
+          hook={hook} 
+          isCopying={monthlyRoster.isCopying}
+          isMutating={monthlyRoster.isMutating}
+          onApplyShift={monthlyRoster.handleApplyShift}
+          onAssignSelected={() => monthlyRoster.setIsShiftPickerOpen(true)}
+          onCancelSelection={() => monthlyRoster.setSelectedCells(new Set())}
+          onClearOverrides={monthlyRoster.handleClearSelectedOverrides}
+          onClearWeekSelection={() => hook.setSelectedDays([])}
+          onCopyMonth={monthlyRoster.handleCopyMonth}
+          onOpenWeekShiftPicker={(dates: string[]) => {
+            hook.setTargetDates(dates);
+            hook.setIsShiftPickerOpen(true);
+          }}
+          selectedCells={monthlyRoster.selectedCells}
+          selectedDays={hook.selectedDays}
+          selectedEmployeesMeta={monthlyRoster.selectedEmployeesMeta}
+          viewMode={viewMode}
+        />
+      )}
 
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
         {!selectedEmployee && activeTab !== "directory" && viewMode === "week" ? (
           <EmptyEmployeeState />
         ) : (
-          <ShiftsContent hook={hook} />
+          <ShiftsContent hook={hook} monthlyRoster={monthlyRoster} />
         )}
       </div>
 
@@ -60,3 +78,4 @@ export default function ShiftsPage() {
     </div>
   );
 }
+

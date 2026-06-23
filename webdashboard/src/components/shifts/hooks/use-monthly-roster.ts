@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 
 import { format } from "date-fns";
 
@@ -216,6 +216,40 @@ export function useMonthlyRoster({ hook }: UseMonthlyRosterProps) {
       setIsCopying(false);
     }
   };
+
+  // Keyboard shortcuts when cells are selected
+  useEffect(() => {
+    if (selectedCells.size === 0) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in inputs or editing content
+      const activeEl = document.activeElement;
+      if (
+        activeEl &&
+        (activeEl.tagName === "INPUT" ||
+          activeEl.tagName === "TEXTAREA" ||
+          activeEl.getAttribute("contenteditable") === "true")
+      ) {
+        return;
+      }
+
+      if (e.key === "a" || e.key === "A") {
+        e.preventDefault();
+        setIsShiftPickerOpen(true);
+      } else if (e.key === "Delete" || e.key === "Backspace") {
+        e.preventDefault();
+        void handleClearSelectedOverrides();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        setSelectedCells(new Set());
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selectedCells.size, setIsShiftPickerOpen, setSelectedCells]);
 
   return {
     selectedCells,

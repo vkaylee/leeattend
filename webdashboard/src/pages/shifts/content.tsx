@@ -2,6 +2,7 @@ import React from "react";
 
 import { format } from "date-fns";
 
+import { useMonthlyRoster } from "@/components/shifts/hooks/use-monthly-roster";
 import { AssignmentHistory } from "@/components/shifts/assignment-history";
 import { MonthlyRosterGrid } from "@/components/shifts/monthly-roster-grid";
 import { PriorityLegend } from "@/components/shifts/priority-legend";
@@ -12,10 +13,11 @@ import { useShifts } from "./hooks/use-shifts";
 
 interface ShiftsContentProps {
   hook: ReturnType<typeof useShifts>;
+  monthlyRoster: ReturnType<typeof useMonthlyRoster>;
 }
 
  
-export function ShiftsContent({ hook }: ShiftsContentProps) {
+export function ShiftsContent({ hook, monthlyRoster }: ShiftsContentProps) {
   const {
     activeTab,
     viewMode,
@@ -48,7 +50,7 @@ export function ShiftsContent({ hook }: ShiftsContentProps) {
   } = hook;
 
   if (activeTab === "weekly-roster" && viewMode === "month") {
-    return <MonthlyRosterGrid hook={hook} />;
+    return <MonthlyRosterGrid hook={hook} monthlyRoster={monthlyRoster} />;
   }
 
   if (!selectedEmployee && activeTab !== "directory" && viewMode === "week") {
@@ -61,26 +63,12 @@ export function ShiftsContent({ hook }: ShiftsContentProps) {
         <WeeklyRosterGrid
           currentDate={currentDate}
           employeeSchedule={employeeSchedule}
-          onAssignAllWeek={() => {
-            setTargetDates(weekDays.map((d) => format(d, "yyyy-MM-dd")));
-            setIsShiftPickerOpen(true);
-          }}
-          onAssignPattern={() => {
-            hook.setIsPatternModalOpen(true);
-          }}
           onClearSelection={() => {
             setSelectedDays([]);
-          }}
-          onClearWeek={() => {
-            handleAssignAllWeek(null);
-          }}
-          onCopyPreviousWeek={() => {
-            void handleCopyPreviousWeek();
           }}
           onDeleteRoster={(date) => {
             deleteRosterMutation.mutate(date);
           }}
-          onNavigateWeek={handleNavigateWeek}
           onOpenShiftPicker={(dates) => {
             setTargetDates(dates);
             setIsShiftPickerOpen(true);

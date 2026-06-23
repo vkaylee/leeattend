@@ -7,6 +7,7 @@ import { describe, it, expect, vi } from "vitest";
 import { useShifts } from "@/pages/shifts/hooks/use-shifts";
 
 import { MonthlyRosterGrid } from "../monthly-roster-grid";
+import { RosterToolbar } from "../roster-toolbar";
 
 // Mock i18next
 vi.mock("react-i18next", () => ({
@@ -236,23 +237,80 @@ const createMockHook = (overrides = {}) => {
   } as unknown as ReturnType<typeof useShifts>;
 };
 
+const createMockMonthlyRoster = (overrides = {}) => {
+  return {
+    selectedCells: new Set<string>(),
+    setSelectedCells: vi.fn(),
+    isShiftPickerOpen: false,
+    setIsShiftPickerOpen: vi.fn(),
+    isCopying: false,
+    isMutating: false,
+    selectedEmployeeIds: [],
+    setSelectedEmployeeIds: vi.fn(),
+    setSelectedEmployees: vi.fn(),
+    selectedEmployeesMeta: [],
+    filteredSchedules: mockMonthSchedules,
+    isDragging: false,
+    handleCellMouseDown: vi.fn(),
+    handleCellMouseEnter: vi.fn(),
+    handleApplyShift: vi.fn(),
+    handleClearSelectedOverrides: vi.fn(),
+    handleCopyMonth: vi.fn(),
+    ...overrides,
+  };
+};
+
 const StatefulGridWrapper = ({ overrides = {} }: { overrides?: any }) => {
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
   const [selectedEmployees, setSelectedEmployees] = useState<any[]>([]);
   const hook = createMockHook({
     selectedEmployeeIds,
     selectedEmployees,
-    setSelectedEmployeeIds,
+    setSelectedEmployeeIds: (ids: any) => {
+      setSelectedEmployeeIds(ids);
+      const meta = mockEmployees.filter((e) => ids.includes(e.id));
+      setSelectedEmployees(meta);
+    },
     setSelectedEmployees,
     ...overrides,
   });
-  return <MonthlyRosterGrid hook={hook} />;
+  const monthlyRoster = createMockMonthlyRoster({
+    selectedEmployeeIds,
+    selectedEmployeesMeta: selectedEmployees,
+    setSelectedEmployeeIds: (ids: any) => {
+      setSelectedEmployeeIds(ids);
+      const meta = mockEmployees.filter((e) => ids.includes(e.id));
+      setSelectedEmployees(meta);
+    },
+    setSelectedEmployees,
+    filteredSchedules: mockMonthSchedules.filter((s) => selectedEmployeeIds.includes(s.employee_id)),
+  });
+  return (
+    <div className="space-y-4">
+      <RosterToolbar
+        hook={hook}
+        isCopying={monthlyRoster.isCopying}
+        isMutating={monthlyRoster.isMutating}
+        onApplyShift={monthlyRoster.handleApplyShift}
+        onAssignSelected={() => monthlyRoster.setIsShiftPickerOpen(true)}
+        onCancelSelection={() => monthlyRoster.setSelectedCells(new Set())}
+        onClearOverrides={monthlyRoster.handleClearSelectedOverrides}
+        selectedCells={monthlyRoster.selectedCells}
+        selectedEmployeesMeta={monthlyRoster.selectedEmployeesMeta}
+        viewMode="month"
+      />
+      <MonthlyRosterGrid hook={hook} monthlyRoster={monthlyRoster as any} />
+    </div>
+  );
 };
 
 describe("MonthlyRosterGrid Filtering", () => {
   it("renders empty state by default when no employees are selected", () => {
     const hook = createMockHook();
-    render(<MonthlyRosterGrid hook={hook} />);
+    const monthlyRoster = createMockMonthlyRoster({
+      filteredSchedules: [],
+    });
+    render(<MonthlyRosterGrid hook={hook} monthlyRoster={monthlyRoster as any} />);
 
     expect(screen.getByText("shifts.empty_state.title")).toBeInTheDocument();
     expect(screen.getByText("shifts.empty_state.desc")).toBeInTheDocument();
@@ -297,18 +355,21 @@ describe("MonthlyRosterGrid Filtering", () => {
 
   it("displays loading state when isMonthLoading or isEmployeesLoading is true", () => {
     const hook1 = createMockHook({ isMonthLoading: true });
-    const { container: container1 } = render(<MonthlyRosterGrid hook={hook1} />);
+    const monthlyRoster1 = createMockMonthlyRoster({ filteredSchedules: [] });
+    const { container: container1 } = render(<MonthlyRosterGrid hook={hook1} monthlyRoster={monthlyRoster1 as any} />);
     expect(container1.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);
 
     const hook2 = createMockHook({ isEmployeesLoading: true });
-    const { container: container2 } = render(<MonthlyRosterGrid hook={hook2} />);
+    const monthlyRoster2 = createMockMonthlyRoster({ filteredSchedules: [] });
+    const { container: container2 } = render(<MonthlyRosterGrid hook={hook2} monthlyRoster={monthlyRoster2 as any} />);
     expect(container2.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);
   });
 
   it("displays error state with retry button when queries fail", async () => {
     const user = userEvent.setup();
     const hook = createMockHook({ isMonthError: true });
-    render(<MonthlyRosterGrid hook={hook} />);
+    const monthlyRoster = createMockMonthlyRoster({ filteredSchedules: [] });
+    render(<MonthlyRosterGrid hook={hook} monthlyRoster={monthlyRoster as any} />);
 
     expect(screen.getByText("common.error")).toBeInTheDocument();
     expect(screen.getByText("shifts.monthly.failed_to_load")).toBeInTheDocument();

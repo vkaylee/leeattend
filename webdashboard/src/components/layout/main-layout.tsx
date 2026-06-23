@@ -23,7 +23,8 @@ import WorkspaceSwitcher from "./workspace-switcher";
 // Stable module-level arrays for sidebar section matching
 const ORG_PATHS: string[] = [ROUTES.PEOPLE, ROUTES.EMPLOYEES, ROUTES.DEPARTMENTS];
 const TIME_PATHS: string[] = [ROUTES.ATTENDANCE_LOGS, ROUTES.LEAVE_REQUESTS, ROUTES.ATTENDANCE_ADJUSTMENTS, ROUTES.REPORTS, ROUTES.LEAVE_BALANCES, ROUTES.SHIFT_SWAPS];
-const PAYROLL_PATHS: string[] = [ROUTES.SHIFTS, ROUTES.PAYROLL];
+const SHIFTS_PATHS: string[] = [ROUTES.SHIFTS, ROUTES.SHIFTS_RULES];
+const PAYROLL_PATHS: string[] = [ROUTES.PAYROLL];
 
 function SidebarOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   if (!isOpen) return null;
@@ -71,6 +72,7 @@ function useSidebarState(locationPathname: string) {
     return {
       org: ORG_PATHS.includes(locationPathname),
       time: TIME_PATHS.includes(locationPathname) || locationPathname === ROUTES.HOME,
+      shifts: SHIFTS_PATHS.includes(locationPathname),
       payroll: PAYROLL_PATHS.includes(locationPathname),
       system: locationPathname.startsWith(ROUTES.SETTINGS.ROOT) || locationPathname.startsWith("/system/") || locationPathname.startsWith("/infra/"),
       ess: locationPathname.startsWith("/ess/"),
@@ -88,6 +90,7 @@ function useSidebarState(locationPathname: string) {
     setOpenSections(previous => ({
       org: false,
       time: false,
+      shifts: false,
       payroll: false,
       system: false,
       ess: false,
@@ -106,6 +109,7 @@ function useSidebarState(locationPathname: string) {
   useEffect(() => {
     const isOrg = ORG_PATHS.includes(locationPathname);
     const isTime = TIME_PATHS.includes(locationPathname);
+    const isShifts = SHIFTS_PATHS.includes(locationPathname);
     const isPayroll = PAYROLL_PATHS.includes(locationPathname);
     const isSystem = locationPathname.startsWith(ROUTES.SETTINGS.ROOT) || locationPathname.startsWith("/system/") || locationPathname.startsWith("/infra/");
     const isEss = locationPathname.startsWith("/ess/");
@@ -123,6 +127,7 @@ function useSidebarState(locationPathname: string) {
         
         update('org', isOrg);
         update('time', isTime);
+        update('shifts', isShifts);
         update('payroll', isPayroll);
         update('system', isSystem);
         update('ess', isEss);

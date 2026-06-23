@@ -2,45 +2,7 @@ import { User } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import { EmployeeSearch } from "@/components/common/employee-search";
 import { Typography } from "@/components/ui/typography";
-import { Employee } from "@/lib/api/types";
-
-interface EmployeeSelectorProps {
-  onSelect: (emp: Employee | null) => void;
-  selectedEmployeeId?: string;
-  wsId: string;
-}
-
-export function EmployeeSelector({
-  onSelect,
-  selectedEmployeeId,
-  wsId,
-}: EmployeeSelectorProps) {
-  const { t } = useTranslation();
-
-  return (
-    <div className="max-w-md mb-8">
-      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block ml-1">
-        {t("common.employees")}
-      </label>
-      <EmployeeSearch
-        clearOnEscape
-        data-testid="employee-select"
-        keyboardShortcut={["/", "Enter"]}
-        onChange={(id) => {
-          if (!id) onSelect(null);
-        }}
-        onSelectEmployee={(emp) => {
-          onSelect(emp);
-        }}
-        placeholder={t("shifts.empty_state.title")}
-        value={selectedEmployeeId ?? ""}
-        workspaceId={wsId}
-      />
-    </div>
-  );
-}
 
 export function EmptyEmployeeState() {
   const { t } = useTranslation();

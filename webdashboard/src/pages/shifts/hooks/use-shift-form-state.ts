@@ -1,24 +1,37 @@
-import { useSearch } from "@tanstack/react-router";
-import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useSearch, useNavigate } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
 
 import { format } from "date-fns";
 
+import { fetchEmployee } from "@/lib/api";
 import type { Shift, Employee } from "@/lib/api/types";
 
 import type { TabType, ViewMode } from "./use-shifts-types";
 
-export function useShiftFormState() {
-  const search = useSearch({ strict: false }) as unknown as { tab?: string };
+export function useShiftFormState(wsId?: string) {
+  const search = useSearch({ strict: false }) as unknown as {
+    tab?: string;
+    view?: string;
+    employeeId?: string;
+    employeeIds?: string;
+  };
+  const navigate = useNavigate();
+
   const tab = typeof search.tab === "string" ? search.tab : "";
   const initialTab = tab === "weekly-roster" || tab === "assignments" || tab === "directory" ? tab : "weekly-roster";
-  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
-  const [viewMode, setViewMode] = useState<ViewMode>("week");
-
+  const [activeTab, setActiveTabState] = useState<TabType>(initialTab);
   
+  const initialView = search.view === "week" || search.view === "month" ? search.view : "week";
+  const [viewMode, setViewModeState] = useState<ViewMode>(initialView);
+
   // Selection states
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
-  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
-  const [selectedEmployees, setSelectedEmployees] = useState<Employee[]>([]);
+  const [selectedEmployee, setSelectedEmployeeState] = useState<Employee | null>(null);
+  
+  const initialIds = typeof search.employeeIds === "string" && search.employeeIds ? search.employeeIds.split(",") : [];
+  const [selectedEmployeeIds, setSelectedEmployeeIdsState] = useState<string[]>(initialIds);
+  const [selectedEmployees, setSelectedEmployeesState] = useState<Employee[]>([]);
+  
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [targetDates, setTargetDates] = useState<string[]>([]);
   const [isShiftPickerOpen, setIsShiftPickerOpen] = useState(false);
@@ -45,6 +58,85 @@ export function useShiftFormState() {
   const [isBreakOvertime, setIsBreakOvertime] = useState(false);
   const [allowEarlyOt, setAllowEarlyOt] = useState(false);
   const [maxEarlyOtMinutes, setMaxEarlyOtMinutes] = useState(60);
+
+  // Load initial selected employee from URL query parameter if present on mount
+  const { data: initialEmployee } = useQuery({
+    queryKey: ["employee", wsId, search.employeeId],
+    queryFn: () => {
+      if (!wsId || !search.employeeId) throw new Error("Missing params");
+      return fetchEmployee(wsId, search.employeeId);
+    },
+    enabled: !!wsId && !!search.employeeId && !selectedEmployee,
+  });
+
+  useEffect(() => {
+    if (initialEmployee && !selectedEmployee) {
+      setSelectedEmployeeState(initialEmployee);
+    }
+  }, [initialEmployee, selectedEmployee]);
+
+  // Reactive state synchronization
+  // 1. In Week View: sync selectedEmployee -> selectedEmployeeIds & selectedEmployees
+  useEffect(() => {
+    if (viewMode === "week") {
+      if (selectedEmployee) {
+        setSelectedEmployeeIdsState([selectedEmployee.id]);
+        setSelectedEmployeesState([selectedEmployee]);
+      } else {
+        setSelectedEmployeeIdsState([]);
+        setSelectedEmployeesState([]);
+      }
+    }
+  }, [selectedEmployee, viewMode]);
+
+  // 2. In Month View: sync selectedEmployeeIds -> selectedEmployee
+  useEffect(() => {
+    if (viewMode === "month") {
+      if (selectedEmployeeIds.length > 0) {
+        if (!selectedEmployee || !selectedEmployeeIds.includes(selectedEmployee.id)) {
+          const match = selectedEmployees.find((e: Employee) => e.id === selectedEmployeeIds[0]);
+          if (match) {
+            setSelectedEmployeeState(match);
+          }
+        }
+      } else {
+        setSelectedEmployeeState(null);
+      }
+    }
+  }, [selectedEmployeeIds, selectedEmployees, viewMode, selectedEmployee]);
+
+  // Custom setters that update URL query params
+  const setActiveTab = (val: TabType) => {
+    setActiveTabState(val);
+    void navigate({
+      search: (prev: any) => ({ ...prev, tab: val }),
+    } as any);
+  };
+
+  const setViewMode = (val: ViewMode) => {
+    setViewModeState(val);
+    void navigate({
+      search: (prev: any) => ({ ...prev, view: val }),
+    } as any);
+  };
+
+  const setSelectedEmployee = (emp: Employee | null) => {
+    setSelectedEmployeeState(emp);
+    void navigate({
+      search: (prev: any) => ({ ...prev, employeeId: emp?.id || undefined }),
+    } as any);
+  };
+
+  const setSelectedEmployeeIds = (ids: string[]) => {
+    setSelectedEmployeeIdsState(ids);
+    void navigate({
+      search: (prev: any) => ({ ...prev, employeeIds: ids.length > 0 ? ids.join(",") : undefined }),
+    } as any);
+  };
+
+  const setSelectedEmployees = (emps: Employee[]) => {
+    setSelectedEmployeesState(emps);
+  };
 
   const setIsFixedBreak = (val: boolean) => {
     setIsFixedBreakState(val);

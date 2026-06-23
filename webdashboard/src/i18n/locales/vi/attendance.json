@@ -271,6 +271,9 @@
     "confirm_delete_msg": "Bạn có chắc chắn muốn xóa quy tắc này không?"
   },
   "shifts": {
+    "weekly": {
+      "title": "Lịch ca tuần"
+    },
     "monthly": {
       "title": "Lịch ca tháng",
       "copy_previous_month": "Copy tháng trước",

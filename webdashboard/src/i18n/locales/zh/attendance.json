@@ -271,6 +271,9 @@
     "confirm_delete_msg": "您确定要删除此规则吗？"
   },
   "shifts": {
+    "weekly": {
+      "title": "每周排班"
+    },
     "monthly": {
       "title": "月度排班",
       "copy_previous_month": "复制上月",

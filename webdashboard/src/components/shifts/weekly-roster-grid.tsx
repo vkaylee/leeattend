@@ -1,13 +1,7 @@
 import type { TFunction } from "i18next";
 
 import {
-  ChevronLeft,
-  ChevronRight,
-  Copy,
-  Trash,
-  Calendar as CalendarIcon,
   X,
-  Plus,
   Clock,
   Zap,
   ShieldCheck,
@@ -21,7 +15,6 @@ import { format } from "date-fns";
 import { vi, enUS, zhCN, type Locale } from "date-fns/locale";
 
 import Button from "@/components/ui/button";
-import { Combobox } from "@/components/ui/combobox";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { Employee, EmployeeSchedule, EffectiveSchedule } from "@/lib/api/types";
@@ -38,13 +31,8 @@ interface WeeklyRosterGridProps {
   currentDate: Date;
   currentLocale?: Locale;
   employeeSchedule?: EmployeeSchedule;
-  onAssignAllWeek: () => void;
-  onAssignPattern: () => void;
   onClearSelection: () => void;
-  onClearWeek: () => void;
-  onCopyPreviousWeek: () => void;
   onDeleteRoster: (date: string) => void;
-  onNavigateWeek: (direction: "prev" | "next") => void;
   onOpenShiftPicker: (dates: string[]) => void;
   onToggleDaySelection: (dateString: string) => void;
   selectedDays: string[];
@@ -244,132 +232,62 @@ function WeeklyRosterDayCard({
   );
 }
 
-export function WeeklyRosterGridHeader({
-  selectedEmployee,
-  t,
-  onCopyPreviousWeek,
-  onClearWeek,
-  onAssignAllWeek,
-  onAssignPattern,
-  onNavigateWeek,
-  formatDate,
-  weekDays
-}: {
-  formatDate: (date: string | Date | undefined) => string;
-  onAssignAllWeek: () => void;
-  onAssignPattern: () => void;
-  onClearWeek: () => void;
-  onCopyPreviousWeek: () => void;
-  onNavigateWeek: (direction: "prev" | "next") => void;
-  selectedEmployee: Employee;
-  t: TFunction;
-  weekDays: Date[];
-}) {
-  return (
-    <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-[32px] border border-slate-200 dark:border-slate-700 shadow-sm">
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 bg-primary-600 rounded-2xl flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-primary-100">
-          {selectedEmployee.full_name[0]}
-        </div>
-        <div>
-          <Typography className="text-lg font-bold text-slate-700 dark:text-slate-200 leading-tight" variant="h2">{selectedEmployee.full_name}</Typography>
-          <Typography className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400" variant="p">{t("shifts.current_week_roster")}</Typography>
-        </div>
-      </div>
 
-      <div className="flex items-center gap-3">
-        <div className="w-56">
-          <Combobox
-            className="h-10 bg-slate-100 dark:bg-slate-700 border-slate-200 dark:border-slate-700 text-[10px] py-2 px-3 rounded-xl uppercase tracking-tighter"
-            onChange={(value) => {
-              if (value === "copy-prev") onCopyPreviousWeek();
-              else if (value === "clear-week") onClearWeek();
-              else if (value === "assign-all") onAssignAllWeek();
-              else if (value === "assign-pattern") onAssignPattern();
-            }}
-            options={[
-              { value: "copy-prev", label: t("shifts.actions.copy_previous"), icon: <Copy className="w-4 h-4" /> },
-              { value: "assign-pattern", label: t("patterns.assign_btn", "Assign Working Pattern"), icon: <Zap className="w-4 h-4" /> },
-              { value: "assign-all", label: t("shifts.actions.assign_all_week"), icon: <CalendarIcon className="w-4 h-4" /> },
-              { value: "clear-week", label: t("shifts.actions.clear_week"), icon: <Trash className="w-4 h-4" /> },
-            ]}
-            placeholder={t("common.quick_actions")}
-          />
-        </div>
-        <Button className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-100 dark:border-slate-800 rounded-xl transition-all"
-          onClick={() => { onNavigateWeek("prev"); }}
-          variant="ghost"
-        >
-          <ChevronLeft size={18} />
-        </Button>
-        <div className="px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-tighter">
-          {formatDate(weekDays[0])} - {formatDate(weekDays[6])}
-        </div>
-        <Button className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-100 dark:border-slate-800 rounded-xl transition-all"
-          onClick={() => { onNavigateWeek("next"); }}
-          variant="ghost"
-        >
-          <ChevronRight size={18} />
-        </Button>
-      </div>
-    </div>
-  );
-}
 
 export function WeeklyRosterGrid({
   selectedEmployee,
-  onNavigateWeek,
   weekDays,
   selectedDays,
   onToggleDaySelection,
   onClearSelection,
   employeeSchedule,
-  onCopyPreviousWeek,
-  onAssignAllWeek,
-  onClearWeek,
   onOpenShiftPicker,
   onDeleteRoster,
-  onAssignPattern,
 }: WeeklyRosterGridProps) {
   const { t, i18n } = useTranslation();
   const currentLocale = dateLocales[i18n.language.substring(0, 2)] ?? enUS;
   const { formatDate, formatTime } = useDateTimeFormatter();
+  React.useEffect(() => {
+    if (selectedDays.length === 0) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in inputs or editing content
+      const activeEl = document.activeElement;
+      if (
+        activeEl &&
+        (activeEl.tagName === "INPUT" ||
+          activeEl.tagName === "TEXTAREA" ||
+          activeEl.getAttribute("contenteditable") === "true")
+      ) {
+        return;
+      }
+
+      if (e.key === "a" || e.key === "A") {
+        e.preventDefault();
+        onOpenShiftPicker(selectedDays);
+      } else if (e.key === "Delete" || e.key === "Backspace") {
+        e.preventDefault();
+        selectedDays.forEach((dateStr) => {
+          const schedule = employeeSchedule?.schedules.find((s) => s.date === dateStr);
+          if (schedule?.source === "roster") {
+            onDeleteRoster(dateStr);
+          }
+        });
+        onClearSelection();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        onClearSelection();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selectedDays, onOpenShiftPicker, onDeleteRoster, onClearSelection, employeeSchedule]);
 
   return (
     <div className="space-y-6">
-      <div className="relative">
-        <WeeklyRosterGridHeader
-          formatDate={formatDate}
-          onAssignAllWeek={onAssignAllWeek}
-          onAssignPattern={onAssignPattern}
-          onClearWeek={onClearWeek}
-          onCopyPreviousWeek={onCopyPreviousWeek}
-          onNavigateWeek={onNavigateWeek}
-          selectedEmployee={selectedEmployee}
-          t={t}
-          weekDays={weekDays}
-        />
-
-        {selectedDays.length > 0 ? (
-          <div className="absolute inset-0 z-40 bg-primary-600 text-white px-6 py-4 rounded-[32px] flex items-center justify-between shadow-xl shadow-primary-100 dark:shadow-black/30 animate-in fade-in duration-300">
-            <div className="flex items-center gap-4">
-              <span className="text-xs font-bold uppercase tracking-widest">
-                {t("shifts.days_selected", { count: selectedDays.length })}
-              </span>
-              <div className="h-4 w-px bg-white dark:bg-slate-900/20" />
-              <Button className="bg-white dark:bg-slate-900/10 border border-white/20 rounded-xl px-4 py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-white dark:hover:bg-slate-900/20 transition-all flex items-center gap-2 cursor-pointer"
-                onClick={() => { onOpenShiftPicker(selectedDays); }}
-                variant="ghost"
-              >
-                <Plus size={14} /> {t("shifts.assign_selected_btn")}
-              </Button>
-            </div>
-            <Button className="hover:bg-white dark:hover:bg-slate-900/10 p-2 rounded-xl transition-all cursor-pointer" onClick={onClearSelection} variant="ghost">
-              <X size={18} />
-            </Button>
-          </div>
-        ) : null}
-      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
         {weekDays.map((day, index) => {

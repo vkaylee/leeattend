@@ -11,12 +11,8 @@ vi.mock("@/components/shifts/monthly-roster-grid", () => ({ MonthlyRosterGrid: (
 vi.mock("@/components/shifts/weekly-roster-grid", () => ({ WeeklyRosterGrid: (props: any) => {
   return (
     <div data-testid="weekly-roster">
-      <Button data-testid="btn-assign-all" onClick={props.onAssignAllWeek} variant="destructive">Assign All</Button>
       <Button data-testid="btn-clear" onClick={props.onClearSelection} variant="destructive">Clear</Button>
-      <Button data-testid="btn-clear-week" onClick={props.onClearWeek} variant="destructive">Clear Week</Button>
-      <Button data-testid="btn-copy" onClick={props.onCopyPreviousWeek} variant="destructive">Copy Week</Button>
       <Button data-testid="btn-delete" onClick={() => props.onDeleteRoster("2026-01-01")} variant="destructive">Delete</Button>
-      <Button data-testid="btn-nav" onClick={() => props.onNavigateWeek("next")} variant="ghost">Nav</Button>
       <Button data-testid="btn-open-picker" onClick={() => props.onOpenShiftPicker(["2026-01-01"])} variant="ghost">Picker</Button>
       <Button data-testid="btn-toggle" onClick={() => props.onToggleDaySelection("2026-01-01")} variant="ghost">Toggle</Button>
       <Button data-testid="btn-toggle-existing" onClick={() => props.onToggleDaySelection("2026-01-02")} variant="ghost">Toggle Ex</Button>
@@ -102,44 +98,51 @@ describe("Shifts Components Unit Tests", () => {
     setNewShiftGrace: vi.fn(),
   };
 
+  const mockMonthlyRoster = {
+    selectedCells: new Set<string>(),
+    setSelectedCells: vi.fn(),
+    isShiftPickerOpen: false,
+    setIsShiftPickerOpen: vi.fn(),
+    isCopying: false,
+    isMutating: false,
+    selectedEmployeeIds: [],
+    setSelectedEmployeeIds: vi.fn(),
+    setSelectedEmployees: vi.fn(),
+    selectedEmployeesMeta: [],
+    filteredSchedules: [],
+    isDragging: false,
+    handleCellMouseDown: vi.fn(),
+    handleCellMouseEnter: vi.fn(),
+    handleApplyShift: vi.fn(),
+    handleClearSelectedOverrides: vi.fn(),
+    handleCopyMonth: vi.fn(),
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it("renders ShiftsContent MonthlyRosterGrid", () => {
-    const { getByTestId } = render(<ShiftsContent hook={mockHook as any} />);
+    const { getByTestId } = render(<ShiftsContent hook={mockHook as any} monthlyRoster={mockMonthlyRoster as any} />);
     expect(getByTestId("monthly-roster")).toBeDefined();
   });
 
   it("renders null for Weekly view without selected employee", () => {
     const hook = { ...mockHook, activeTab: "weekly-roster", viewMode: "week", selectedEmployee: null };
-    const { container } = render(<ShiftsContent hook={hook as any} />);
+    const { container } = render(<ShiftsContent hook={hook as any} monthlyRoster={mockMonthlyRoster as any} />);
     expect(container.firstChild).toBeNull();
   });
 
   it("renders WeeklyRosterGrid and handles callbacks", () => {
     const hook = { ...mockHook, activeTab: "weekly-roster", viewMode: "week" };
-    const { getByTestId } = render(<ShiftsContent hook={hook as any} />);
+    const { getByTestId } = render(<ShiftsContent hook={hook as any} monthlyRoster={mockMonthlyRoster as any} />);
     expect(getByTestId("weekly-roster")).toBeDefined();
-
-    getByTestId("btn-assign-all").click();
-    expect(hook.setTargetDates).toHaveBeenCalled();
-    expect(hook.setIsShiftPickerOpen).toHaveBeenCalledWith(true);
 
     getByTestId("btn-clear").click();
     expect(hook.setSelectedDays).toHaveBeenCalledWith([]);
 
-    getByTestId("btn-clear-week").click();
-    expect(hook.handleAssignAllWeek).toHaveBeenCalledWith(null);
-
-    getByTestId("btn-copy").click();
-    expect(hook.handleCopyPreviousWeek).toHaveBeenCalled();
-
     getByTestId("btn-delete").click();
     expect(hook.deleteRosterMutation.mutate).toHaveBeenCalledWith("2026-01-01");
-
-    getByTestId("btn-nav").click();
-    expect(hook.handleNavigateWeek).toHaveBeenCalledWith("next");
 
     getByTestId("btn-open-picker").click();
     expect(hook.setTargetDates).toHaveBeenCalledWith(["2026-01-01"]);
@@ -159,7 +162,7 @@ describe("Shifts Components Unit Tests", () => {
 
   it("renders ShiftList", () => {
     const hook = { ...mockHook, activeTab: "directory" };
-    const { getByTestId } = render(<ShiftsContent hook={hook as any} />);
+    const { getByTestId } = render(<ShiftsContent hook={hook as any} monthlyRoster={mockMonthlyRoster as any} />);
     expect(getByTestId("shift-list")).toBeDefined();
   });
 

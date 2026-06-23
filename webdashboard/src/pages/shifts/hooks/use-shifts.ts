@@ -17,7 +17,7 @@ export function useShifts(): UseShiftsReturn {
   const navigate = useNavigate();
   const nav = useShiftNavigation();
   const monthNav = useMonthNavigation();
-  const form = useShiftFormState();
+  const form = useShiftFormState(wsId);
   const data = useShiftData({
     wsId,
     startOfWeek: nav.startOfWeek,
