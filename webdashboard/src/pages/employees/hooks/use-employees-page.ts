@@ -29,6 +29,7 @@ export function useEmployeesPage() {
     selectedEmployee: modals.selectedEmployee,
     setEditingEmployee: modals.setEditingEmployee,
     setIsModalOpen: modals.setIsModalOpen,
+    setSelectedEmployee: modals.setSelectedEmployee,
     sortDir: state.sortDir,
     sortKey: state.sortKey,
     wsId,

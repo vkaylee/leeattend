@@ -23,6 +23,7 @@ interface UseEmployeesDataProps {
   selectedEmployee: Employee | null;
   setEditingEmployee: (emp: Employee | null) => void;
   setIsModalOpen: (open: boolean) => void;
+  setSelectedEmployee?: (emp: Employee | null) => void;
   sortDir: SortDir;
   sortKey: SortKey | null;
   wsId: string;
@@ -37,6 +38,7 @@ export const useEmployeesData = ({
   selectedEmployee,
   setIsModalOpen,
   setEditingEmployee,
+  setSelectedEmployee,
   customFieldFilters,
 }: UseEmployeesDataProps) => {
   const { t } = useTranslation();
@@ -118,9 +120,16 @@ export const useEmployeesData = ({
         status: "terminated",
         end_date: data.endDate,
       }),
-    onSuccess: () => {
+    onSuccess: (data: any, variables: { employeeId: string; employmentId: string; endDate: string }) => {
       void queryClient.invalidateQueries({ queryKey: ["employees", wsId] });
       void queryClient.invalidateQueries({ queryKey: ["deptHistory"] });
+      void queryClient.invalidateQueries({ queryKey: ["employee-employments", wsId, variables.employeeId] });
+      if (selectedEmployee && selectedEmployee.id === variables.employeeId) {
+        setSelectedEmployee?.({
+          ...selectedEmployee,
+          active_employment_id: null,
+        });
+      }
       toast.success(t("common.success"));
     },
   });

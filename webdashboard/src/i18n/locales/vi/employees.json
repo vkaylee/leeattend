@@ -184,6 +184,7 @@
       "original_hire_date": "Ngày gia nhập gốc",
       "terminate": "Nghỉ việc",
       "rehire": "Vào làm lại",
+      "terminated_at": "Nghỉ việc ngày",
       "terminate_confirm": "Bạn có chắc muốn cho nhân viên này nghỉ việc?",
       "current_dept": "Phòng ban hiện tại",
       "transfer": "Điều chuyển",

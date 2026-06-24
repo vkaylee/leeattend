@@ -327,11 +327,29 @@ async fn test_bulk_termination_flow() {
     // Dequeue job from redis and process it manually
     let redis = state.infra().redis().unwrap().clone();
     let queue = apiserver::queue::JobQueue::new(redis.clone());
-    let job = queue
-        .dequeue_job(5.0)
-        .await
-        .unwrap()
-        .expect("Job not found in queue");
+    let target_job_id = confirm_res.job_id.as_deref().unwrap();
+    let mut skipped_jobs = Vec::new();
+    let mut target_job = None;
+
+    for _ in 0..20 {
+        if let Some(j) = queue.dequeue_job(5.0).await.unwrap() {
+            if j.parent_job_id.to_string() == target_job_id {
+                target_job = Some(j);
+                break;
+            } else {
+                skipped_jobs.push(j);
+            }
+        } else {
+            break;
+        }
+    }
+
+    // Re-enqueue skipped jobs so other tests can process them
+    if !skipped_jobs.is_empty() {
+        queue.enqueue_jobs(skipped_jobs).await.unwrap();
+    }
+
+    let job = target_job.expect("Job not found in queue");
     let queue_repo: std::sync::Arc<dyn apiserver::repositories::QueueRepository> =
         std::sync::Arc::new(
             apiserver::repositories::queue_repository::RedisQueueRepository::new(redis.clone()),

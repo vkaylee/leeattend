@@ -184,6 +184,7 @@
       "original_hire_date": "原始入职日期",
       "terminate": "终止",
       "rehire": "重新入职",
+      "terminated_at": "离职日期",
       "terminate_confirm": "您确定要让该员工离职吗？",
       "current_dept": "当前部门",
       "transfer": "调动",

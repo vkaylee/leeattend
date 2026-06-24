@@ -71,6 +71,7 @@ vi.mock("@/lib/api", () => ({
                     status: "terminated",
                     primary_location_id: "loc-1",
                     start_date: "2024-06-15",
+                    end_date: "2024-06-20",
                 }
             ]);
         }
@@ -268,12 +269,16 @@ describe("EmployeeDetailDrawer", () => {
         expect(onTerminate).toHaveBeenCalledWith(mockEmployee);
     });
 
-    it("shows rehire button for terminated employee and calls onRehire", async () => {
+    it("shows rehire button and resignation date for terminated employee and calls onRehire", async () => {
         const onRehire = vi.fn();
         const user = userEvent.setup();
         renderWithClient(
             <EmployeeDetailDrawer {...defaultProps} employee={terminatedEmployee} onRehire={onRehire} />
         );
+
+        // Verify resignation date is displayed
+        expect(await screen.findByText(/employees\.details\.terminated_at/i)).toBeDefined();
+        expect(await screen.findByText(/2024-06-20/)).toBeDefined();
 
         await user.click(screen.getByTestId("employees-btn-rehire"));
         expect(onRehire).toHaveBeenCalledWith(terminatedEmployee);

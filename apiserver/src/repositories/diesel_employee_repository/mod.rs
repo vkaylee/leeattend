@@ -36,23 +36,24 @@ pub const EMPLOYEE_SELECT_QUERY: &str = r"
     SELECT
         e.id, e.workspace_id, e.user_id, e.full_name, e.employee_id_number,
         e.tags, e.created_at, e.updated_at,
-        d_cur.name as department_name, emp_cur.primary_location_id, emp_cur.employer_id, emp_cur.id as active_employment_id
+        d_cur.name as department_name, emp_cur.primary_location_id, emp_cur.employer_id,
+        CASE WHEN emp_cur.status = 'active' THEN emp_cur.id ELSE NULL END as active_employment_id
     FROM employees e
     LEFT JOIN (
-        SELECT DISTINCT ON (employee_id) employee_id, employer_id, primary_location_id, department_id, id
+        SELECT DISTINCT ON (employee_id) employee_id, employer_id, primary_location_id, department_id, id, status
         FROM employments
         WHERE deleted_at IS NULL
-        ORDER BY employee_id, start_date DESC, id DESC
+        ORDER BY employee_id, (status = 'active') DESC, start_date DESC, id DESC
     ) emp_cur ON e.id = emp_cur.employee_id
     LEFT JOIN departments d_cur ON emp_cur.department_id = d_cur.id
 ";
 
 pub const EMPLOYEE_DEPT_JOIN: &str = r"
     LEFT JOIN (
-        SELECT DISTINCT ON (employee_id) employee_id, department_id
+        SELECT DISTINCT ON (employee_id) employee_id, department_id, status
         FROM employments
         WHERE deleted_at IS NULL
-        ORDER BY employee_id, start_date DESC, id DESC
+        ORDER BY employee_id, (status = 'active') DESC, start_date DESC, id DESC
     ) emp_sort ON e.id = emp_sort.employee_id
     LEFT JOIN departments d_sort ON emp_sort.department_id = d_sort.id AND d_sort.workspace_id = e.workspace_id
 ";

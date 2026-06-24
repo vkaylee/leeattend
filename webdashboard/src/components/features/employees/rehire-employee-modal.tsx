@@ -44,9 +44,10 @@ export default function RehireEmployeeModal({
       if (!employeeId) throw new Error("No employee selected");
       return rehireEmployee(wsId, employeeId, data);
     },
-    onSuccess: (updatedEmp) => {
+    onSuccess: (updatedEmp: Employee) => {
       void queryClient.invalidateQueries({ queryKey: ["employees", wsId] });
       void queryClient.invalidateQueries({ queryKey: ["employmentHistory", employeeId] });
+      void queryClient.invalidateQueries({ queryKey: ["employee-employments", wsId, employeeId] });
       onClose();
       toast.success(t("common.success"));
       onSuccess?.(updatedEmp);
