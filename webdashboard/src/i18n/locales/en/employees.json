@@ -286,6 +286,15 @@
       "confirm": "Confirm",
       "processing": "Processing..."
     },
+    "terminate": {
+      "title": "Terminate Employment",
+      "subtitle": "End active employment",
+      "confirm_msg": "Confirm ending the employee's active employment period and recalculating prorated leave balances",
+      "terminate_date": "Termination Date",
+      "cancel": "Cancel",
+      "confirm": "Terminate",
+      "processing": "Processing..."
+    },
     "policies": {
       "subtitle": "Attendance Privilege Management",
       "add_btn": "Add Policy",

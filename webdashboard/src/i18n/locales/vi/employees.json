@@ -286,6 +286,15 @@
       "confirm": "Xác nhận",
       "processing": "Đang xử lý..."
     },
+    "terminate": {
+      "title": "Cho thôi việc",
+      "subtitle": "Chấm dứt quá trình làm việc",
+      "confirm_msg": "Xác nhận chấm dứt quá trình làm việc của nhân viên và tính toán lại ngày phép năm",
+      "terminate_date": "Ngày nghỉ việc",
+      "cancel": "Hủy",
+      "confirm": "Thôi việc",
+      "processing": "Đang xử lý..."
+    },
     "policies": {
       "subtitle": "Quản lý đặc quyền chuyên biệt",
       "add_btn": "Thêm chính sách",

@@ -1,13 +1,11 @@
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useConfirm } from "@/hooks/use-confirm";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import {
   getCurrentWorkspaceId,
 } from "@/lib/api";
 
-import { useEmployeeActions } from "./use-employee-actions";
 import { useEmployeesData } from "./use-employees-data";
 import { useEmployeesModals } from "./use-employees-modals";
 import { useEmployeesState, SortKey, SortDir } from "./use-employees-state";
@@ -18,7 +16,6 @@ export function useEmployeesPage() {
   const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId() ?? "";
   const { formatDate } = useDateTimeFormatter();
-  const { confirm, ConfirmationDialog } = useConfirm();
 
   const state = useEmployeesState();
   const modals = useEmployeesModals();
@@ -36,8 +33,6 @@ export function useEmployeesPage() {
     customFieldFilters: state.customFieldFilters,
   });
 
-  const { handleTerminate } = useEmployeeActions({ confirm, terminateMutation: data.terminateMutation });
-
   const searchInputRef = useRef<HTMLInputElement>(null);
   const focusSearch = () => { setTimeout(() => { searchInputRef.current?.focus(); }, 100); };
 
@@ -47,10 +42,8 @@ export function useEmployeesPage() {
   };
 
   return {
-    ConfirmationDialog,
     formatDate,
     handleDrawerClose,
-    handleTerminate,
     searchInputRef,
     t,
     wsId,

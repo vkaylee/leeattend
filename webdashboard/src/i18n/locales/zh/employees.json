@@ -286,6 +286,15 @@
       "confirm": "确认",
       "processing": "正在处理..."
     },
+    "terminate": {
+      "title": "终止雇佣",
+      "subtitle": "结束活跃雇佣",
+      "confirm_msg": "确认结束员工的活跃雇佣期并重新计算比例年假余额",
+      "terminate_date": "离职日期",
+      "cancel": "取消",
+      "confirm": "终止",
+      "processing": "处理中..."
+    },
     "policies": {
       "subtitle": "出勤特权管理",
       "add_btn": "添加政策",

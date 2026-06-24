@@ -6,6 +6,7 @@ import EmployeeDetailDrawer from "@/components/features/employees/employee-detai
 import EmployeeFormModal from "@/components/features/employees/employee-form-modal";
 import RehireEmployeeModal from "@/components/features/employees/rehire-employee-modal";
 import TransferEmployeeModal from "@/components/features/employees/transfer-employee-modal";
+import TerminateEmployeeModal from "@/components/features/employees/terminate-employee-modal";
 import EmployeeTerminationImportDialog from "@/components/features/employees/employee-termination-import-dialog";
 
 import type { Employee, Department, EmployeeDepartmentHistory } from "../../../lib/api/types";
@@ -17,13 +18,13 @@ interface EmployeeOverlaysProps {
 
   formatDate: (date: string) => string;
   handleDrawerClose: () => void;
-  handleTerminate: (emp: Employee) => Promise<void>;
 
   isImportDialogOpen: boolean;
   isTerminationImportOpen: boolean;
   isModalOpen: boolean;
   isRehireModalOpen: boolean;
   isTransferModalOpen: boolean;
+  isTerminateModalOpen: boolean;
   prefillEnrollmentId: string;
   selectedDeptId: string;
   selectedEmployee: Employee | null;
@@ -34,6 +35,7 @@ interface EmployeeOverlaysProps {
   setIsModalOpen: (open: boolean) => void;
   setIsRehireModalOpen: (open: boolean) => void;
   setIsTransferModalOpen: (open: boolean) => void;
+  setIsTerminateModalOpen: (open: boolean) => void;
   setPrefillEnrollmentId: (id: string) => void;
   setSelectedDeptId: (id: string) => void;
   setSelectedEmployee: (emp: Employee | null) => void;
@@ -49,13 +51,13 @@ export function EmployeeOverlays(props: EmployeeOverlaysProps) {
 
     formatDate,
     handleDrawerClose,
-    handleTerminate,
 
     isImportDialogOpen,
     isTerminationImportOpen,
     isModalOpen,
     isRehireModalOpen,
     isTransferModalOpen,
+    isTerminateModalOpen,
     prefillEnrollmentId,
     selectedDeptId,
     selectedEmployee,
@@ -66,6 +68,7 @@ export function EmployeeOverlays(props: EmployeeOverlaysProps) {
     setIsModalOpen,
     setIsRehireModalOpen,
     setIsTransferModalOpen,
+    setIsTerminateModalOpen,
     setPrefillEnrollmentId,
     setSelectedDeptId,
     setSelectedEmployee,
@@ -88,7 +91,7 @@ export function EmployeeOverlays(props: EmployeeOverlaysProps) {
           setIsModalOpen(true);
         }}
         onRehire={() => { setIsRehireModalOpen(true); }}
-        onTerminate={handleTerminate}
+        onTerminate={(_emp) => { setIsTerminateModalOpen(true); }}
         onTransfer={(deptId) => {
           setSelectedDeptId(deptId);
           setIsTransferModalOpen(true);
@@ -115,7 +118,21 @@ export function EmployeeOverlays(props: EmployeeOverlaysProps) {
         wsId={wsId}
       />
 
-
+      <TerminateEmployeeModal
+        activeEmploymentId={selectedEmployee?.active_employment_id ?? null}
+        employeeId={selectedEmployee?.id ?? null}
+        isOpen={isTerminateModalOpen}
+        onClose={() => { setIsTerminateModalOpen(false); }}
+        onSuccess={() => {
+          if (selectedEmployee) {
+            setSelectedEmployee({
+              ...selectedEmployee,
+              active_employment_id: null,
+            });
+          }
+        }}
+        wsId={wsId}
+      />
 
       <RehireEmployeeModal
         employeeId={selectedEmployee?.id ?? null}

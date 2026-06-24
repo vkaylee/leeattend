@@ -13,7 +13,6 @@ export default function EmployeesPage() {
     employees,
     totalItems,
     t,
-    ConfirmationDialog,
   } = page;
 
   return (
@@ -63,8 +62,6 @@ export default function EmployeesPage() {
       <EmployeeOverlays {...page} />
 
       <FloatingRecordBadge label={t("common.pagination.records")} loaded={employees.length} total={totalItems} />
-      
-      <ConfirmationDialog />
     </div>
   );
 }

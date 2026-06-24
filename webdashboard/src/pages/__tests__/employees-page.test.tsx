@@ -309,8 +309,8 @@ describe("EmployeesPage", () => {
         const terminateButton = await screen.findByTestId("employees-btn-terminate");
         await user.click(terminateButton);
 
-        // confirm modal appears, we can use fireEvent to bypass pointer-events: none
-        const confirmModalButton = await screen.findByRole("button", { name: "Confirm" });
+        // terminate modal appears
+        const confirmModalButton = await screen.findByTestId("confirm-terminate-btn");
         fireEvent.click(confirmModalButton);
 
         await waitFor(() => {
