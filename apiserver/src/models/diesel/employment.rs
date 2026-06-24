@@ -24,6 +24,7 @@ pub struct EmploymentEntity {
     pub employment_type: String,
     pub manager_employment_id: Option<Uuid>,
     pub notes: Option<String>,
+    pub termination_reason: Option<String>,
 }
 
 impl From<EmploymentEntity> for Employment {
@@ -43,6 +44,8 @@ impl From<EmploymentEntity> for Employment {
             val.manager_employment_id,
             val.created_at,
             val.updated_at,
+            val.termination_reason,
+            val.notes,
         )
     }
 }
@@ -60,5 +63,6 @@ pub struct UpdateDieselEmployment {
     pub employment_type: Option<String>,
     pub manager_employment_id: Option<Option<Uuid>>,
     pub notes: Option<Option<String>>,
+    pub termination_reason: Option<Option<String>>,
     pub updated_at: Option<DateTime<Utc>>,
 }

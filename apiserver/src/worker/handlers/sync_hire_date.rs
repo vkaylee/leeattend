@@ -126,6 +126,8 @@ impl SyncHireDateHandler {
                                 job_title: None,
                                 employment_type: None,
                                 manager_employment_id: None,
+                                notes: None,
+                                termination_reason: None,
                             },
                         )
                         .await
@@ -200,6 +202,8 @@ mod tests {
                     None,
                     Utc::now(),
                     Utc::now(),
+                    None,
+                    None,
                 )])
             });
 
@@ -221,6 +225,8 @@ mod tests {
                     None,
                     Utc::now(),
                     Utc::now(),
+                    None,
+                    None,
                 ))
             });
 

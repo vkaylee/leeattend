@@ -199,6 +199,8 @@ pub struct SyncHireDatePayload {
 pub struct BulkTerminationRow {
     pub employment_id: Uuid,
     pub termination_date: NaiveDate,
+    pub termination_reason: String,
+    pub termination_notes: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

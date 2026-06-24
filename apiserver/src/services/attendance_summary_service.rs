@@ -969,6 +969,8 @@ mod tests {
                     None,
                     chrono::Utc::now(),
                     chrono::Utc::now(),
+                    None,
+                    None,
                 )))
             });
         repo

@@ -1415,6 +1415,8 @@ mod tests {
                         None,
                         chrono::Utc::now(),
                         chrono::Utc::now(),
+                        None,
+                        None,
                     )
                 })
                 .collect())
@@ -1443,6 +1445,8 @@ mod tests {
                         None,
                         chrono::Utc::now(),
                         chrono::Utc::now(),
+                        None,
+                        None,
                     )
                 })
                 .collect())
@@ -1453,6 +1457,8 @@ mod tests {
             _auth_token: &crate::diesel_pool::TenantAuthToken,
             _employment_id: Uuid,
             _termination_date: chrono::NaiveDate,
+            _termination_reason: String,
+            _notes: Option<String>,
             _balances: Vec<crate::models::LeaveBalance>,
         ) -> Result<crate::models::employment::Employment, AppError> {
             unimplemented!()

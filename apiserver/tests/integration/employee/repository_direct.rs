@@ -1368,6 +1368,7 @@ async fn test_temporal_segment_splitting_and_propagation() {
                 employment_type: "full_time".to_string(),
                 manager_employment_id: None,
                 notes: None,
+                termination_reason: None,
             }
         };
 

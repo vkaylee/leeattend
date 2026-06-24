@@ -307,6 +307,8 @@ mod tests {
                     None,
                     chrono::Utc::now(),
                     chrono::Utc::now(),
+                    None,
+                    None,
                 )))
             });
         builder.employment_repo = employment_repo;

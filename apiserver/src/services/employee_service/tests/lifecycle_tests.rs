@@ -48,6 +48,8 @@ async fn test_terminate_employment_success() -> Result<(), Box<dyn std::error::E
         None,
         Utc::now(),
         Utc::now(),
+        None,
+        None,
     );
 
     let mut mock_employment_repo =
@@ -72,6 +74,8 @@ async fn test_terminate_employment_success() -> Result<(), Box<dyn std::error::E
         None,
         Utc::now(),
         Utc::now(),
+        Some("voluntary_resignation".to_string()),
+        None,
     );
 
     // 2. Mock Leave Balances
@@ -96,7 +100,7 @@ async fn test_terminate_employment_success() -> Result<(), Box<dyn std::error::E
     let mock_emp_terminated_clone = mock_emp_terminated.clone();
     mock_employment_repo
         .expect_terminate_employment_transactional()
-        .returning(move |_, _, _, balances| {
+        .returning(move |_, _, _, _, _, balances| {
             assert_eq!(balances.len(), 1);
             // Assert that entitlement has been prorated.
             // From 2026-01-01 to 2026-06-30 is 181 days. 181 / 365 * 12 = 5.95 -> round to 6.
@@ -115,7 +119,13 @@ async fn test_terminate_employment_success() -> Result<(), Box<dyn std::error::E
     );
 
     let res = svc
-        .terminate_employment(&auth_token, employment_id, termination_date)
+        .terminate_employment(
+            &auth_token,
+            employment_id,
+            termination_date,
+            "voluntary_resignation".to_string(),
+            None,
+        )
         .await;
 
     assert!(res.is_ok());

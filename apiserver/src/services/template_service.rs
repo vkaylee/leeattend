@@ -230,6 +230,8 @@ mod tests {
                     None,
                     Utc::now(),
                     Utc::now(),
+                    None,
+                    None,
                 )))
             });
 

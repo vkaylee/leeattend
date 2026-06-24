@@ -1288,6 +1288,8 @@ mod tests {
                     None,
                     chrono::Utc::now(),
                     chrono::Utc::now(),
+                    None,
+                    None,
                 )])
             });
         if has_emp {
@@ -1309,6 +1311,8 @@ mod tests {
                         None,
                         chrono::Utc::now(),
                         chrono::Utc::now(),
+                        None,
+                        None,
                     )))
                 });
         } else {
@@ -1971,6 +1975,8 @@ mod tests {
             None,
             Utc::now(),
             Utc::now(),
+            None,
+            None,
         );
         employment_repo
             .expect_get_employment_by_id()
@@ -2126,6 +2132,8 @@ mod tests {
             None,
             Utc::now(),
             Utc::now(),
+            None,
+            None,
         );
         employment_repo
             .expect_get_employment_by_id()

@@ -51,7 +51,13 @@ impl BulkTerminationHandler {
 
         for row in &payload.rows {
             match employee_service
-                .terminate_employment(&auth_token, row.employment_id, row.termination_date)
+                .terminate_employment(
+                    &auth_token,
+                    row.employment_id,
+                    row.termination_date,
+                    row.termination_reason.clone(),
+                    row.termination_notes.clone(),
+                )
                 .await
             {
                 Ok(_) => {

@@ -815,6 +815,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                     employment_type: "full_time".to_string(),
                     manager_employment_id: None,
                     notes: None,
+                    termination_reason: None,
                 };
 
                 diesel::insert_into(employments::table)
@@ -918,6 +919,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                     employment_type: "full_time".to_string(),
                     manager_employment_id: None,
                     notes: None,
+                    termination_reason: None,
                 };
 
                 diesel::insert_into(employments::table)
@@ -1027,6 +1029,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                     employment_type: "full_time".to_string(),
                     manager_employment_id: None,
                     notes: None,
+                    termination_reason: None,
                     created_at: chrono::Utc::now(),
                     updated_at: chrono::Utc::now(),
                     deleted_at: None,
@@ -1249,6 +1252,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
                                 employment_type: "full_time".to_string(),
                                 manager_employment_id: None,
                                 notes: None,
+                                termination_reason: None,
                             },
                         );
                         contracts_to_insert.push(

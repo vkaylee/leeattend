@@ -1146,6 +1146,8 @@ diesel::table! {
         employment_type -> Varchar,
         manager_employment_id -> Nullable<Uuid>,
         notes -> Nullable<Text>,
+        #[max_length = 50]
+        termination_reason -> Nullable<Varchar>,
     }
 }
 

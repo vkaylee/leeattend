@@ -3,6 +3,7 @@ use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
 use apiserver::AppState;
 use axum::http::StatusCode;
+use calamine::Reader;
 use rust_xlsxwriter::Workbook;
 use std::sync::Arc;
 use tower::ServiceExt;
@@ -111,6 +112,8 @@ async fn test_bulk_termination_flow() {
         job_title: None,
         employment_type: None,
         manager_employment_id: None,
+        notes: None,
+        termination_reason: None,
     };
     let emp2_employment = state
         .employees()
@@ -139,6 +142,8 @@ async fn test_bulk_termination_flow() {
             &auth_token,
             emp3_employment.id(),
             chrono::NaiveDate::from_ymd_opt(2026, 6, 20).unwrap(),
+            "voluntary_resignation".to_string(),
+            None,
         )
         .await
         .unwrap();
@@ -294,6 +299,8 @@ async fn test_bulk_termination_flow() {
         rows: vec![apiserver::handlers::employees::ConfirmTerminationRow {
             employment_id: emp1_employment.id(),
             termination_date: chrono::NaiveDate::from_ymd_opt(2026, 6, 30).unwrap(),
+            termination_reason: "voluntary_resignation".to_string(),
+            termination_notes: None,
         }],
     };
 
@@ -383,4 +390,198 @@ async fn test_bulk_termination_flow() {
         .unwrap();
     assert_eq!(updated_balances.len(), 1);
     assert_eq!(updated_balances[0].entitlement, 6);
+}
+
+#[tokio::test]
+async fn test_import_termination_template_download() {
+    let (_test_db, factory, _state, app) = setup_app_tower().await;
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+
+    // Call template download endpoint
+    let response = app
+        .clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("GET")
+                .uri(format!(
+                    "/api/v1/workspaces/{ws_id}/employees/import-termination/template"
+                ))
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Check headers
+    let content_type = response
+        .headers()
+        .get(axum::http::header::CONTENT_TYPE)
+        .unwrap();
+    assert_eq!(
+        content_type,
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+
+    let content_disposition = response
+        .headers()
+        .get(axum::http::header::CONTENT_DISPOSITION)
+        .unwrap();
+    assert_eq!(
+        content_disposition,
+        "attachment; filename=\"employee_termination_template.xlsx\""
+    );
+
+    // Read body as bytes
+    let body = axum::body::to_bytes(response.into_body(), 10_000_000)
+        .await
+        .unwrap();
+    assert!(!body.is_empty());
+
+    // Excel/ZIP file signature check
+    assert!(body.starts_with(b"PK\x03\x04"));
+
+    // Verify it is a valid XLSX by loading it via calamine
+    let mut workbook = calamine::Xlsx::new(std::io::Cursor::new(&body))
+        .expect("Generated template must be a valid XLSX container");
+
+    let sheet_names = workbook.sheet_names();
+    assert_eq!(sheet_names.len(), 2);
+    assert_eq!(sheet_names[0], "Template");
+    assert_eq!(sheet_names[1], "Instructions");
+
+    // Verify Template sheet headers
+    let template_range = workbook.worksheet_range("Template").unwrap();
+    let header = template_range
+        .rows()
+        .next()
+        .expect("Template sheet must have a header row");
+    let header_cols: Vec<String> = header
+        .iter()
+        .map(|c| apiserver::utils::file_parser::cell_to_string(Some(c)))
+        .collect();
+    assert_eq!(
+        header_cols,
+        vec![
+            "employee_code".to_string(),
+            "termination_date".to_string(),
+            "termination_reason".to_string(),
+            "termination_notes".to_string(),
+        ]
+    );
+
+    // Verify Instructions sheet contains valid termination reason keys
+    let instructions_range = workbook.worksheet_range("Instructions").unwrap();
+    let mut found_voluntary = false;
+    let mut found_involuntary = false;
+    let mut found_end_of_contract = false;
+    let mut found_retirement = false;
+    let mut found_mutual = false;
+    let mut found_abandonment = false;
+    let mut found_death = false;
+    let mut found_other = false;
+
+    for row in instructions_range.rows() {
+        for cell in row {
+            let val = apiserver::utils::file_parser::cell_to_string(Some(cell));
+            match val.as_str() {
+                "voluntary_resignation" => found_voluntary = true,
+                "involuntary_termination" => found_involuntary = true,
+                "end_of_contract" => found_end_of_contract = true,
+                "retirement" => found_retirement = true,
+                "mutual_agreement" => found_mutual = true,
+                "abandonment" => found_abandonment = true,
+                "death" => found_death = true,
+                "other" => found_other = true,
+                _ => {}
+            }
+        }
+    }
+
+    assert!(
+        found_voluntary,
+        "Instructions must list 'voluntary_resignation'"
+    );
+    assert!(
+        found_involuntary,
+        "Instructions must list 'involuntary_termination'"
+    );
+    assert!(
+        found_end_of_contract,
+        "Instructions must list 'end_of_contract'"
+    );
+    assert!(found_retirement, "Instructions must list 'retirement'");
+    assert!(found_mutual, "Instructions must list 'mutual_agreement'");
+    assert!(found_abandonment, "Instructions must list 'abandonment'");
+    assert!(found_death, "Instructions must list 'death'");
+    assert!(found_other, "Instructions must list 'other'");
+
+    // Call template download endpoint with Vietnamese language parameter
+    let response_vi = app
+        .oneshot(
+            axum::http::Request::builder()
+                .method("GET")
+                .uri(format!(
+                    "/api/v1/workspaces/{ws_id}/employees/import-termination/template?lang=vi"
+                ))
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response_vi.status(), StatusCode::OK);
+
+    let body_vi = axum::body::to_bytes(response_vi.into_body(), 10_000_000)
+        .await
+        .unwrap();
+
+    let mut workbook_vi = calamine::Xlsx::new(std::io::Cursor::new(&body_vi))
+        .expect("Generated template must be a valid XLSX container");
+
+    let sheet_names_vi = workbook_vi.sheet_names();
+    assert_eq!(sheet_names_vi.len(), 2);
+    assert_eq!(sheet_names_vi[0], "Mẫu nhập");
+    assert_eq!(sheet_names_vi[1], "Hướng dẫn");
+
+    let template_range_vi = workbook_vi.worksheet_range("Mẫu nhập").unwrap();
+    let header_vi = template_range_vi
+        .rows()
+        .next()
+        .expect("Template sheet must have a header row");
+    let header_cols_vi: Vec<String> = header_vi
+        .iter()
+        .map(|c| apiserver::utils::file_parser::cell_to_string(Some(c)))
+        .collect();
+    assert_eq!(
+        header_cols_vi,
+        vec![
+            "employee_code".to_string(),
+            "termination_date".to_string(),
+            "termination_reason".to_string(),
+            "termination_notes".to_string(),
+        ]
+    );
+
+    let instructions_range_vi = workbook_vi.worksheet_range("Hướng dẫn").unwrap();
+    let mut found_voluntary_vi = false;
+    for row in instructions_range_vi.rows() {
+        for cell in row {
+            let val = apiserver::utils::file_parser::cell_to_string(Some(cell));
+            if val == "voluntary_resignation" {
+                found_voluntary_vi = true;
+            }
+        }
+    }
+    assert!(
+        found_voluntary_vi,
+        "Instructions must list 'voluntary_resignation' in VI template"
+    );
 }

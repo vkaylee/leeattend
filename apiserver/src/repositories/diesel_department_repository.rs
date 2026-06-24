@@ -519,6 +519,7 @@ impl DepartmentRepository for DieselDepartmentRepository {
                             employment_type: active_seg.employment_type.clone(),
                             manager_employment_id: active_seg.manager_employment_id,
                             notes: notes.clone(),
+                            termination_reason: active_seg.termination_reason.clone(),
                         };
                         diesel::insert_into(employments::table)
                             .values(&new_seg)

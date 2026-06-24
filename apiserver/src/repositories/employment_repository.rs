@@ -37,6 +37,8 @@ pub trait EmploymentRepository: Send + Sync {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employment_id: Uuid,
         termination_date: chrono::NaiveDate,
+        termination_reason: String,
+        notes: Option<String>,
         balances: Vec<crate::models::LeaveBalance>,
     ) -> Result<Employment, AppError>;
 

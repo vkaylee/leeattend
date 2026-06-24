@@ -45,7 +45,7 @@ export default function EmployeeTerminationImportDialog({
 
   const handleDownloadTemplate = async () => {
     try {
-      await downloadTerminationTemplate(wsId);
+      await downloadTerminationTemplate(wsId, i18n.language);
     } catch (err) {
       console.error("Failed to download template:", err);
     }
@@ -106,6 +106,8 @@ export default function EmployeeTerminationImportDialog({
       const rows: ConfirmTerminationRow[] = previewData.valid_rows.map((row) => ({
         employment_id: row.employment_id,
         termination_date: row.termination_date,
+        termination_reason: row.termination_reason,
+        termination_notes: row.termination_notes,
       }));
       const res = await confirmTerminationImport(wsId, rows);
       if (res.job_id) {
@@ -315,6 +317,43 @@ export default function EmployeeTerminationImportDialog({
                     </span>
                   </div>
                 </li>
+                <li className="flex flex-col space-y-1">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 bg-primary-500 dark:bg-primary-400 rounded-full shrink-0" />
+                    <span className="font-mono text-[11px] font-bold bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-800 text-primary-700 dark:text-primary-400 shadow-sm">
+                      termination_reason
+                    </span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">— {t("employees.bulk_termination.termination_reason_title")}</span>
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50">
+                      {t("employees.bulk_termination.required_badge")}
+                    </span>
+                  </div>
+                  <div className="pl-5 space-y-1">
+                    <Typography variant="p" className="text-[11px] text-slate-500 dark:text-slate-400">
+                      {t("employees.bulk_termination.termination_reason_desc")}
+                    </Typography>
+                    <span className="inline-block text-[9px] font-mono font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 px-1.5 py-0.5 rounded">
+                      {t("employees.bulk_termination.termination_reason_valid_values")}
+                    </span>
+                  </div>
+                </li>
+                <li className="flex flex-col space-y-1">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 bg-primary-500 dark:bg-primary-400 rounded-full shrink-0" />
+                    <span className="font-mono text-[11px] font-bold bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-800 text-primary-700 dark:text-primary-400 shadow-sm">
+                      termination_notes
+                    </span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">— {t("employees.bulk_termination.termination_notes_title")}</span>
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-slate-50 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700">
+                      {t("employees.bulk_termination.optional_badge")}
+                    </span>
+                  </div>
+                  <div className="pl-5 space-y-1">
+                    <Typography variant="p" className="text-[11px] text-slate-500 dark:text-slate-400">
+                      {t("employees.bulk_termination.termination_notes_desc")}
+                    </Typography>
+                  </div>
+                </li>
               </ul>
               <div className="mt-4 flex items-center">
                 <Button
@@ -450,6 +489,7 @@ export default function EmployeeTerminationImportDialog({
                         <TableHead>{t("employees.bulk_termination.table_name")}</TableHead>
                         <TableHead>{t("employees.bulk_termination.table_hire_date")}</TableHead>
                         <TableHead>{t("employees.bulk_termination.table_termination_date")}</TableHead>
+                        <TableHead>{t("employees.bulk_termination.table_termination_reason")}</TableHead>
                         <TableHead>{t("employees.bulk_termination.table_prorated_leaves")}</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -466,6 +506,15 @@ export default function EmployeeTerminationImportDialog({
                           <TableCell>{new Date(row.start_date).toLocaleDateString(i18n.language === "vi" ? "vi-VN" : i18n.language === "zh" ? "zh-CN" : "en-US")}</TableCell>
                           <TableCell className="font-bold text-slate-700 dark:text-slate-300">
                             {new Date(row.termination_date).toLocaleDateString(i18n.language === "vi" ? "vi-VN" : i18n.language === "zh" ? "zh-CN" : "en-US")}
+                          </TableCell>
+                          <TableCell>
+                            {row.termination_reason ? (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400">
+                                {t(`employees.terminate.reason.${row.termination_reason}`, { defaultValue: row.termination_reason })}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 italic">—</span>
+                            )}
                           </TableCell>
                           <TableCell>
                             {row.prorated_leaves.length > 0 ? (

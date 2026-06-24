@@ -4806,6 +4806,7 @@ export interface components {
             rows: components["schemas"]["ConfirmTerminationRow"][];
         };
         ConfirmTerminationResponse: {
+            job_id?: string | null;
             success_count: number;
         };
         ConfirmTerminationRow: {
@@ -4813,6 +4814,8 @@ export interface components {
             employment_id: string;
             /** Format: date */
             termination_date: string;
+            termination_notes?: string | null;
+            termination_reason: string;
         };
         /** @enum {string} */
         ContractStatus: "draft" | "active" | "expired" | "terminated";
@@ -5711,11 +5714,13 @@ export interface components {
             job_title?: string | null;
             /** Format: uuid */
             manager_employment_id?: string | null;
+            notes?: string | null;
             /** Format: uuid */
             primary_location_id?: string | null;
             /** Format: date */
             start_date: string;
             status: string;
+            termination_reason?: string | null;
             /** Format: date-time */
             updated_at: string;
             /** Format: uuid */
@@ -7266,7 +7271,7 @@ export interface components {
          * @description Type of task to be processed by workers.
          * @enum {string}
          */
-        TaskType: "attendance_report" | "payroll_report" | "merge_results" | "leave_accrual" | "log_ingestion" | "reprocess_attendance" | "claim_staged_logs" | "leave_import" | "nightly_housekeeping" | "employee_import" | "employee_import_chunk" | "leave_import_chunk" | "finalize_import" | "expiring_contracts_check" | "sync_employee_hire_date";
+        TaskType: "attendance_report" | "payroll_report" | "merge_results" | "leave_accrual" | "log_ingestion" | "reprocess_attendance" | "claim_staged_logs" | "leave_import" | "nightly_housekeeping" | "employee_import" | "employee_import_chunk" | "leave_import_chunk" | "finalize_import" | "expiring_contracts_check" | "sync_employee_hire_date" | "bulk_termination";
         TemplatePreviewRequest: {
             /** Format: uuid */
             employee_id: string;
@@ -7521,11 +7526,15 @@ export interface components {
             job_title?: string | null;
             /** Format: uuid */
             manager_employment_id?: string | null;
+            /** @description Free-text notes about the termination (optional) */
+            notes?: string | null;
             /** Format: uuid */
             primary_location_id?: string | null;
             /** Format: date */
             start_date?: string | null;
             status?: string | null;
+            /** @description Reason for termination — required when status is set to "terminated" */
+            termination_reason?: string | null;
         };
         /** @description Request payload for updating a feature flag. */
         UpdateFeatureFlagRequest: {
@@ -7747,6 +7756,8 @@ export interface components {
             start_date: string;
             /** Format: date */
             termination_date: string;
+            termination_notes?: string | null;
+            termination_reason: string;
         };
         WorkLocation: {
             address?: string | null;
@@ -13582,8 +13593,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Successfully confirmed bulk termination */
-            200: {
+            /** @description Successfully enqueued bulk termination job */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -368,6 +368,7 @@ mod tests {
                 employment_type: "full_time".to_string(),
                 manager_employment_id: None,
                 notes: None,
+                termination_reason: None,
             };
             diesel::insert_into(crate::schema::employments::table)
                 .values(&employment_entity)

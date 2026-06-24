@@ -229,7 +229,7 @@ export default function ProfileTab({
                 <EditTerminationModal
                     employeeId={employee.id}
                     employmentId={terminatedEmployment.id}
-                    currentEndDate={terminatedEmployment.end_date}
+                    currentEndDate={terminatedEmployment.end_date ?? null}
                     isOpen={isEditTerminationModalOpen}
                     onClose={() => setIsEditTerminationModalOpen(false)}
                     wsId={wsId}

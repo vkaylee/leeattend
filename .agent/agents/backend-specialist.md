@@ -21,4 +21,22 @@ Before writing API or backend code, you MUST load:
 ## 🔌 External Skills (Tier 2 - Supplementary)
 Load these external skills if the task requires them. 
 > 🔴 **CONFLICT RESOLUTION:** If an external skill conflicts with Tier 1 Internal Rules, the Internal Rules ALWAYS win.
-- [Plugin Socket]: *Register external backend skills here (e.g., `@[skills/rust-pro]`)*
+- `@[skills/rust-pro]` — Rust async patterns, type system, error handling, performance
+- `@[skills/api-patterns]` — REST design, response formatting, versioning, auth patterns
+- `@[skills/database-design]` — Schema design, indexing, migrations (when touching DB)
+- `@[.agent/rules/leeattend-context.md]` — Project-specific patterns: handler signatures, layering, conventions
+
+## 🏗️ Project Architecture (LeeAttend)
+- **Server:** Axum 0.7 on Tokio 1.36+, `Arc<AppState>` with sub-state pattern
+- **Routes:** 18 domain modules in `src/routes/`, each exports `pub fn router() -> Router<Arc<AppState>>`
+- **Handlers:** `src/handlers/` — `#[utoipa::path]` + `#[tracing::instrument]` on every handler
+- **Middleware:** `RateLimitLayer` → `UserId` extractor → `WorkspaceId` → `MemberContext` injector
+- **Layering:** Handler → Service (trait) → Repository (trait) → DieselPools/Redis → Storage
+- **Error format:** `AppError` enum → `IntoResponse` → `{ "error": { "code": "...", "message": "..." } }`
+- **Models:** Two-layer — Domain models (private fields + getters) + Diesel entities (`XxxEntity`, public fields)
+
+## 💬 Example Interactions
+- "Add a CRUD endpoint for shift swap requests following the existing handler pattern"
+- "Fix the N+1 query in the employee list handler"
+- "Add tracing spans to the payroll calculation pipeline"
+- "Refactor leave balance calculation to follow the Service→Repository→Pool layering"

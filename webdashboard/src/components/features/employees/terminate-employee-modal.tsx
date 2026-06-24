@@ -6,11 +6,12 @@ import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 
 import Button from "@/components/ui/button";
-import FormField from "@/components/ui/form-field";
+import FormField, { INPUT_BASE, LABEL_BASE } from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { updateEmployeeEmployment } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 interface TerminateEmployeeModalProps {
   employeeId: string | null;
@@ -20,6 +21,17 @@ interface TerminateEmployeeModalProps {
   onSuccess?: () => void;
   wsId: string;
 }
+
+const TERMINATION_REASONS = [
+  "voluntary_resignation",
+  "involuntary_termination",
+  "end_of_contract",
+  "retirement",
+  "mutual_agreement",
+  "abandonment",
+  "death",
+  "other",
+] as const;
 
 export default function TerminateEmployeeModal({
   isOpen,
@@ -34,12 +46,14 @@ export default function TerminateEmployeeModal({
   const toast = useToast();
 
   const terminateMutation = useMutation({
-    mutationFn: (endDate: string) => {
+    mutationFn: ({ endDate, reason, notes }: { endDate: string; reason: string; notes: string }) => {
       if (!employeeId) throw new Error("No employee selected");
       if (!activeEmploymentId) throw new Error("No active employment found");
       return updateEmployeeEmployment(wsId, employeeId, activeEmploymentId, {
         status: "terminated",
         end_date: endDate,
+        termination_reason: reason,
+        notes: notes || null,
       });
     },
     onSuccess: () => {
@@ -55,7 +69,11 @@ export default function TerminateEmployeeModal({
   const handleTerminateSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    terminateMutation.mutate(formData.get("endDate") as string);
+    terminateMutation.mutate({
+      endDate: formData.get("endDate") as string,
+      reason: formData.get("reason") as string,
+      notes: formData.get("notes") as string,
+    });
   };
 
   return (
@@ -81,6 +99,39 @@ export default function TerminateEmployeeModal({
             required
             type="date"
           />
+
+          <div className="space-y-3 px-1">
+            <label className={LABEL_BASE} htmlFor="reason">
+              {t("employees.terminate.termination_reason_label")}
+            </label>
+            <select
+              className={cn(
+                "w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all shadow-sm appearance-none cursor-pointer"
+              )}
+              id="reason"
+              name="reason"
+              required
+              defaultValue=""
+            >
+              <option value="" disabled>
+                {t("employees.terminate.termination_reason_placeholder")}
+              </option>
+              {TERMINATION_REASONS.map((key) => (
+                <option key={key} value={key}>
+                  {t(`employees.terminate.reason.${key}`)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <FormField
+            label={t("employees.terminate.termination_notes_label")}
+            placeholder={t("employees.terminate.termination_notes_placeholder")}
+            name="notes"
+            type="textarea"
+            rows={3}
+          />
+
           <div className="pt-6 grid grid-cols-2 gap-6 border-t border-slate-50 dark:border-slate-800">
             <Button onClick={onClose} size="lg" type="button" variant="outline">
               {t("employees.terminate.cancel").toUpperCase()}

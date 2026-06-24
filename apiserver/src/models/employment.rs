@@ -20,6 +20,10 @@ pub struct Employment {
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub termination_reason: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub notes: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     custom_fields: Option<Vec<CustomFieldValueResponse>>,
 }
 
@@ -40,6 +44,8 @@ impl Employment {
         manager_employment_id: Option<Uuid>,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
+        termination_reason: Option<String>,
+        notes: Option<String>,
     ) -> Self {
         Self {
             id,
@@ -56,6 +62,8 @@ impl Employment {
             manager_employment_id,
             created_at,
             updated_at,
+            termination_reason,
+            notes,
             custom_fields: None,
         }
     }
@@ -153,4 +161,8 @@ pub struct UpdateEmploymentRequest {
         deserialize_with = "crate::utils::serde_helpers::deserialize_option_option"
     )]
     pub manager_employment_id: Option<Option<Uuid>>,
+    /// Reason for termination — required when status is set to "terminated"
+    pub termination_reason: Option<String>,
+    /// Free-text notes about the termination (optional)
+    pub notes: Option<String>,
 }

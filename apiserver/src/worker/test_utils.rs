@@ -237,6 +237,8 @@ impl MockWorkerDepsBuilder {
                         None,
                         chrono::Utc::now(),
                         chrono::Utc::now(),
+                        None,
+                        None,
                     ));
                 }
                 Ok(employments)
@@ -260,6 +262,8 @@ impl MockWorkerDepsBuilder {
                     None,
                     chrono::Utc::now(),
                     chrono::Utc::now(),
+                    None,
+                    None,
                 )))
             });
 

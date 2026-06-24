@@ -12,7 +12,7 @@
   - State mutation and data access MUST be controlled via explicitly defined `new()` constructors and getter methods (e.g., `inner()`, `into_inner()`, `name()`).
 
 ## 3. Error Handling & Observability
-- **Structured Errors:** Use domain-specific error types (e.g., `AppError`). Never throw generic `Error`.
+- **Structured Errors:** Use `AppError` with `I18nKey` constructors: `AppError::not_found(I18nKey::NotFound)`, `AppError::auth(I18nKey::InvalidToken)`, `AppError::validation(I18nKey::Validation)`, `AppError::forbidden(I18nKey::Forbidden)`, `AppError::conflict(I18nKey::Conflict)`, `AppError::internal("context: {details}")`. Use the `AppResult<T>` alias. Never throw generic `Error` or pass raw strings.
 - **Error Boundaries:** Wrap all independent UI components in React Error Boundaries.
 - **Telemetry Baseline:** All backend APIs MUST include request tracing/metrics (e.g., OpenTelemetry span/context).
 
@@ -42,3 +42,17 @@ If you see a bug, typo, or poor pattern nearby while working on a file, FIX IT I
 - **Concurrency Safety (Rust):** NEVER hold an OS-level lock (`MutexGuard`, `RwLockReadGuard`) across an `await` point to avoid deadlocks. NEVER use blocking I/O calls (e.g., `std::fs`, `std::thread::sleep`) inside an async runtime; use `tokio` equivalents.
 - **API Contract Design:** ALL APIs returning a collection/list MUST implement Pagination. Never assume small datasets. Do NOT introduce breaking schema changes without bumping the API version.
 - **Frontend Architecture:** Strictly separate Business Logic (Custom Hooks/Services) from UI Components. UI Components must remain "dumb" (Props in, JSX out). Prevent waterfall requests by using parallel fetching (`Promise.all` or Suspense data fetching).
+
+## 10. Related Rulebooks
+When working on specific concerns, also consult:
+- `@[.agent/rules/leeattend-context.md]` — **Read first** — Project patterns, handler signatures, DB conventions, API format
+- `@[.agent/rules/database-rules.md]` — Multi-tenancy, N+1 prevention, migrations, soft deletes
+- `@[.agent/rules/testing-standards.md]` — Test organization, coverage thresholds, `./test.sh` runner
+- `@[.agent/rules/access-control.md]` — RBAC enforcement, JWT, permission granularity
+- `@[.agent/rules/data-governance.md]` — PII masking, data classification, retention
+- `@[.agent/rules/design-rules.md]` — UI/UX, design system, responsive, accessibility
+- `@[.agent/rules/observability-rules.md]` — Tracing, structured logging, metrics
+- `@[.agent/rules/encryption-rules.md]` — Secrets, TLS, key management
+- `@[.agent/rules/configuration-management.md]` — Env vars, fail-fast validation
+- `@[.agent/rules/execution-wrappers.md]` — Hermetic build/test scripts
+- `@[.agent/rules/project-structure.md]` — Component map, commit conventions, directory layout

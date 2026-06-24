@@ -518,6 +518,134 @@ pub fn fmt_msg(template: &str, replacements: &[(&str, &str)]) -> String {
     result
 }
 
+/// Localized messages for termination import operations.
+pub struct TerminationImportMessages {
+    pub template_sheet_name: &'static str,
+    pub instructions_sheet_name: &'static str,
+    pub title_instructions: &'static str,
+    pub header_column: &'static str,
+    pub header_required: &'static str,
+    pub header_desc: &'static str,
+    pub col_employee_code_desc: &'static str,
+    pub col_termination_date_desc: &'static str,
+    pub col_termination_reason_desc: &'static str,
+    pub col_termination_notes_desc: &'static str,
+    pub title_valid_reasons: &'static str,
+    pub reason_header_key: &'static str,
+    pub reason_header_desc: &'static str,
+    pub yes_label: &'static str,
+    pub no_label: &'static str,
+    pub example_notes: &'static str,
+    pub reason_voluntary: &'static str,
+    pub reason_involuntary: &'static str,
+    pub reason_end_of_contract: &'static str,
+    pub reason_retirement: &'static str,
+    pub reason_mutual_agreement: &'static str,
+    pub reason_abandonment: &'static str,
+    pub reason_death: &'static str,
+    pub reason_other: &'static str,
+}
+
+impl TerminationImportMessages {
+    /// Return messages for the given language code.
+    pub fn for_lang(lang: &str) -> Self {
+        match lang {
+            "vi" => Self::vi(),
+            "zh" => Self::zh(),
+            _ => Self::en(),
+        }
+    }
+
+    fn en() -> Self {
+        Self {
+            template_sheet_name: "Template",
+            instructions_sheet_name: "Instructions",
+            title_instructions: "Instructions & Valid Reasons",
+            header_column: "Column",
+            header_required: "Required?",
+            header_desc: "Description",
+            col_employee_code_desc: "Unique employee identifier code",
+            col_termination_date_desc: "Last day of work (YYYY-MM-DD or DD/MM/YYYY)",
+            col_termination_reason_desc: "Reason code (Must select from table below)",
+            col_termination_notes_desc: "Optional comments/notes",
+            title_valid_reasons: "Valid Reason Keys",
+            reason_header_key: "termination_reason Value",
+            reason_header_desc: "Description",
+            yes_label: "Yes",
+            no_label: "No",
+            example_notes: "Relocation to another city",
+            reason_voluntary: "Voluntary Resignation",
+            reason_involuntary: "Involuntary Termination",
+            reason_end_of_contract: "End of Contract",
+            reason_retirement: "Retirement",
+            reason_mutual_agreement: "Mutual Agreement",
+            reason_abandonment: "Job Abandonment",
+            reason_death: "Death",
+            reason_other: "Other",
+        }
+    }
+
+    fn vi() -> Self {
+        Self {
+            template_sheet_name: "Mẫu nhập",
+            instructions_sheet_name: "Hướng dẫn",
+            title_instructions: "Hướng dẫn & Lý do hợp lệ",
+            header_column: "Cột",
+            header_required: "Bắt buộc?",
+            header_desc: "Mô tả",
+            col_employee_code_desc: "Mã số nhân viên duy nhất",
+            col_termination_date_desc:
+                "Ngày làm việc cuối cùng (định dạng YYYY-MM-DD hoặc DD/MM/YYYY)",
+            col_termination_reason_desc:
+                "Mã lý do nghỉ việc (Phải nhập chính xác từ bảng bên dưới)",
+            col_termination_notes_desc: "Ghi chú thêm (không bắt buộc)",
+            title_valid_reasons: "Mã lý do hợp lệ",
+            reason_header_key: "Giá trị của termination_reason",
+            reason_header_desc: "Mô tả lý do",
+            yes_label: "Có",
+            no_label: "Không",
+            example_notes: "Chuyển nhà sang thành phố khác",
+            reason_voluntary: "Nghỉ tự nguyện",
+            reason_involuntary: "Sa thải",
+            reason_end_of_contract: "Hết hạn hợp đồng",
+            reason_retirement: "Nghỉ hưu",
+            reason_mutual_agreement: "Thỏa thuận chấm dứt",
+            reason_abandonment: "Bỏ việc không phép",
+            reason_death: "Từ trần",
+            reason_other: "Lý do khác",
+        }
+    }
+
+    fn zh() -> Self {
+        Self {
+            template_sheet_name: "输入模板",
+            instructions_sheet_name: "使用说明",
+            title_instructions: "使用说明与有效离职原因",
+            header_column: "列名",
+            header_required: "是否必填?",
+            header_desc: "说明",
+            col_employee_code_desc: "唯一的员工编号",
+            col_termination_date_desc: "最后工作日 (YYYY-MM-DD 或 DD/MM/YYYY)",
+            col_termination_reason_desc: "离职原因代码 (必须从下方表格选择)",
+            col_termination_notes_desc: "可选备注/说明",
+            title_valid_reasons: "有效离职原因代码",
+            reason_header_key: "termination_reason 值",
+            reason_header_desc: "原因描述",
+            yes_label: "是",
+            no_label: "否",
+            example_notes: "搬迁至其他城市",
+            reason_voluntary: "自愿辞职",
+            reason_involuntary: "解雇",
+            reason_end_of_contract: "合同到期",
+            reason_retirement: "退休",
+            reason_mutual_agreement: "协商一致",
+            reason_abandonment: "擅自离职",
+            reason_death: "因公/因病去世",
+            reason_other: "其他",
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -653,5 +781,19 @@ mod tests {
             &[],
         );
         assert_eq!(period, "Period: 2026-01-01 to 2026-01-31");
+    }
+
+    #[test]
+    fn test_termination_import_messages_vi() {
+        let msgs = TerminationImportMessages::for_lang("vi");
+        assert_eq!(msgs.template_sheet_name, "Mẫu nhập");
+        assert_eq!(msgs.reason_voluntary, "Nghỉ tự nguyện");
+    }
+
+    #[test]
+    fn test_termination_import_messages_en() {
+        let msgs = TerminationImportMessages::for_lang("en");
+        assert_eq!(msgs.template_sheet_name, "Template");
+        assert_eq!(msgs.reason_voluntary, "Voluntary Resignation");
     }
 }

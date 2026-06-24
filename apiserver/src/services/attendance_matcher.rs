@@ -799,6 +799,8 @@ mod tests {
             None,
             Utc::now(),
             Utc::now(),
+            None,
+            None,
         );
 
         let mut payroll_roster_map = HashMap::new();
@@ -1064,6 +1066,8 @@ mod tests {
             None,
             Utc::now(),
             Utc::now(),
+            None,
+            None,
         );
 
         let mut payroll_roster_map = HashMap::new();
@@ -1249,6 +1253,8 @@ mod tests {
             None,
             Utc::now(),
             Utc::now(),
+            None,
+            None,
         );
 
         let mut payroll_roster_map = HashMap::new();
@@ -1453,6 +1459,8 @@ mod tests {
             None,
             Utc::now(),
             Utc::now(),
+            None,
+            None,
         );
 
         let mut payroll_roster_map = HashMap::new();

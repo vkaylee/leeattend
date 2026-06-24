@@ -53,6 +53,7 @@ impl super::EmploymentRepository for DieselEmploymentRepository {
             employment_type: req.employment_type.clone(),
             manager_employment_id: req.manager_employment_id,
             notes: None,
+            termination_reason: None,
         };
 
         let inserted = diesel::insert_into(employments)
@@ -138,7 +139,8 @@ impl super::EmploymentRepository for DieselEmploymentRepository {
             job_title: req.job_title.clone(),
             employment_type: req.employment_type.clone(),
             manager_employment_id: req.manager_employment_id,
-            notes: None,
+            notes: req.notes.as_ref().map(|n| Some(n.clone())),
+            termination_reason: req.termination_reason.as_ref().map(|r| Some(r.clone())),
             updated_at: Some(Utc::now()),
         };
 
@@ -160,9 +162,11 @@ impl super::EmploymentRepository for DieselEmploymentRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employment_id_val: Uuid,
         termination_date: chrono::NaiveDate,
+        termination_reason: String,
+        notes: Option<String>,
         balances: Vec<crate::models::LeaveBalance>,
     ) -> Result<Employment, AppError> {
-        use crate::schema::employments::dsl::*;
+        use crate::schema::employments::dsl::{deleted_at, employments, id, workspace_id};
         use crate::schema::leave_balances;
         use bigdecimal::BigDecimal;
         use diesel_async::AsyncConnection;
@@ -185,7 +189,8 @@ impl super::EmploymentRepository for DieselEmploymentRepository {
                     job_title: None,
                     employment_type: None,
                     manager_employment_id: None,
-                    notes: None,
+                    notes: Some(notes),
+                    termination_reason: Some(Some(termination_reason)),
                     updated_at: Some(Utc::now()),
                 };
 

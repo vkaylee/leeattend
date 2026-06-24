@@ -515,6 +515,8 @@ pub struct ValidTerminationRow {
     pub termination_date: chrono::NaiveDate,
     pub employment_id: Uuid,
     pub prorated_leaves: Vec<ProratedLeavePreview>,
+    pub termination_reason: String,
+    pub termination_notes: Option<String>,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema, Clone)]
@@ -536,6 +538,8 @@ pub struct TerminationPreviewResponse {
 pub struct ConfirmTerminationRow {
     pub employment_id: Uuid,
     pub termination_date: chrono::NaiveDate,
+    pub termination_reason: String,
+    pub termination_notes: Option<String>,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema, Clone)]
@@ -597,19 +601,32 @@ pub async fn import_termination_preview(
 
     let rows = crate::utils::file_parser::extract_mapped_rows(
         &file_bytes,
-        &["employee_code", "termination_date"],
+        &["employee_code", "termination_date", "termination_reason"],
     )?;
 
     let mut valid_rows = Vec::new();
     let mut invalid_rows = Vec::new();
 
     // 1. Initial parsing step to filter empty rows/bad dates, and gather all unique normalized employee codes.
+    const VALID_TERMINATION_REASONS: &[&str] = &[
+        "voluntary_resignation",
+        "involuntary_termination",
+        "end_of_contract",
+        "retirement",
+        "mutual_agreement",
+        "abandonment",
+        "death",
+        "other",
+    ];
+
     struct ParsedRow {
         row_number: usize,
         raw_code: String,
         normalized_code: String,
         raw_date: String,
         termination_date: chrono::NaiveDate,
+        termination_reason: String,
+        termination_notes: Option<String>,
     }
 
     let mut parsed_rows = Vec::new();
@@ -621,6 +638,14 @@ pub async fn import_termination_preview(
             .get("termination_date")
             .cloned()
             .unwrap_or_default();
+        let raw_reason = mapped_row
+            .get("termination_reason")
+            .cloned()
+            .unwrap_or_default();
+        let termination_notes = mapped_row
+            .get("termination_notes")
+            .cloned()
+            .filter(|s| !s.trim().is_empty());
 
         if raw_code.trim().is_empty() {
             invalid_rows.push(InvalidTerminationRow {
@@ -648,6 +673,31 @@ pub async fn import_termination_preview(
             continue;
         };
 
+        let termination_reason = raw_reason.trim().to_lowercase();
+        if !VALID_TERMINATION_REASONS.contains(&termination_reason.as_str()) {
+            let locale = crate::utils::i18n::get_locale();
+            let reason = if locale == "vi" {
+                format!(
+                    "Lý do nghỉ việc không hợp lệ: '{}'. Các giá trị hợp lệ: {}",
+                    raw_reason,
+                    VALID_TERMINATION_REASONS.join(", ")
+                )
+            } else {
+                format!(
+                    "Invalid termination reason: '{}'. Valid values: {}",
+                    raw_reason,
+                    VALID_TERMINATION_REASONS.join(", ")
+                )
+            };
+            invalid_rows.push(InvalidTerminationRow {
+                row_number: line_number,
+                employee_code: Some(raw_code.clone()),
+                raw_termination_date: Some(raw_date.clone()),
+                reason,
+            });
+            continue;
+        }
+
         let normalized_code = crate::utils::normalize_employee_id(&raw_code);
         normalized_codes.push(normalized_code.clone());
 
@@ -657,6 +707,8 @@ pub async fn import_termination_preview(
             normalized_code,
             raw_date,
             termination_date,
+            termination_reason,
+            termination_notes,
         });
     }
 
@@ -825,6 +877,8 @@ pub async fn import_termination_preview(
             termination_date: row.termination_date,
             employment_id: active_employment.id(),
             prorated_leaves,
+            termination_reason: row.termination_reason,
+            termination_notes: row.termination_notes,
         });
     }
 
@@ -886,6 +940,8 @@ pub async fn import_termination_confirm(
         .map(|r| crate::queue::BulkTerminationRow {
             employment_id: r.employment_id,
             termination_date: r.termination_date,
+            termination_reason: r.termination_reason.clone(),
+            termination_notes: r.termination_notes.clone(),
         })
         .collect();
 
@@ -915,31 +971,171 @@ pub async fn import_termination_confirm(
     ),
     params(
         ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        crate::handlers::leaves::DownloadTemplateQuery,
     )
 )]
 #[tracing::instrument(skip_all, fields(workspace_id = %ctx.workspace_id, user_id = %ctx.user_id))]
+#[allow(clippy::too_many_lines)]
 pub async fn import_termination_template(
     State(_state): State<Arc<AppState>>,
+    axum::extract::Query(query): axum::extract::Query<
+        crate::handlers::leaves::DownloadTemplateQuery,
+    >,
     ctx: MemberContext,
 ) -> AppResult<axum::response::Response> {
     ctx.require_permission(Permission::EmployeesUpdate)?;
 
+    let lang = query.lang.as_deref().unwrap_or("en");
+    let msgs = crate::services::import_messages::TerminationImportMessages::for_lang(lang);
+
     let mut workbook = rust_xlsxwriter::Workbook::new();
+
+    // 1. Template sheet
     let worksheet = workbook.add_worksheet();
+    worksheet
+        .set_name(msgs.template_sheet_name)
+        .map_err(|e| AppError::TemplateError(e.to_string()))?;
+
+    let header_fmt = crate::utils::excel_format_utils::ExcelFormatUtils::header_format();
+    let example_fmt = crate::utils::excel_format_utils::ExcelFormatUtils::example_row_format();
 
     worksheet
-        .write_string(0, 0, "employee_code")
+        .write_string_with_format(0, 0, "employee_code", &header_fmt)
         .map_err(|e| AppError::TemplateError(e.to_string()))?;
     worksheet
-        .write_string(0, 1, "termination_date")
+        .write_string_with_format(0, 1, "termination_date", &header_fmt)
+        .map_err(|e| AppError::TemplateError(e.to_string()))?;
+    worksheet
+        .write_string_with_format(0, 2, "termination_reason", &header_fmt)
+        .map_err(|e| AppError::TemplateError(e.to_string()))?;
+    worksheet
+        .write_string_with_format(0, 3, "termination_notes", &header_fmt)
         .map_err(|e| AppError::TemplateError(e.to_string()))?;
 
     // Write a dummy row as an example
     worksheet
-        .write_string(1, 0, "EMP001")
+        .write_string_with_format(1, 0, "EMP001", &example_fmt)
         .map_err(|e| AppError::TemplateError(e.to_string()))?;
     worksheet
-        .write_string(1, 1, "2026-06-30")
+        .write_string_with_format(1, 1, "2026-06-30", &example_fmt)
+        .map_err(|e| AppError::TemplateError(e.to_string()))?;
+    worksheet
+        .write_string_with_format(1, 2, "voluntary_resignation", &example_fmt)
+        .map_err(|e| AppError::TemplateError(e.to_string()))?;
+    worksheet
+        .write_string_with_format(1, 3, msgs.example_notes, &example_fmt)
+        .map_err(|e| AppError::TemplateError(e.to_string()))?;
+
+    worksheet
+        .set_column_width(0, 20)
+        .map_err(|e| AppError::TemplateError(e.to_string()))?;
+    worksheet
+        .set_column_width(1, 20)
+        .map_err(|e| AppError::TemplateError(e.to_string()))?;
+    worksheet
+        .set_column_width(2, 25)
+        .map_err(|e| AppError::TemplateError(e.to_string()))?;
+    worksheet
+        .set_column_width(3, 40)
+        .map_err(|e| AppError::TemplateError(e.to_string()))?;
+
+    // 2. Instructions sheet
+    let instructions = workbook.add_worksheet();
+    instructions
+        .set_name(msgs.instructions_sheet_name)
+        .map_err(|e| AppError::TemplateError(e.to_string()))?;
+
+    let title_fmt = crate::utils::excel_format_utils::ExcelFormatUtils::title_format();
+    let ref_header_fmt = crate::utils::excel_format_utils::ExcelFormatUtils::ref_header_format();
+
+    instructions
+        .write_string_with_format(0, 0, msgs.title_instructions, &title_fmt)
+        .map_err(|e| AppError::TemplateError(e.to_string()))?;
+
+    // Columns description section
+    instructions
+        .write_string_with_format(2, 0, msgs.header_column, &ref_header_fmt)
+        .map_err(|e| AppError::TemplateError(e.to_string()))?;
+    instructions
+        .write_string_with_format(2, 1, msgs.header_required, &ref_header_fmt)
+        .map_err(|e| AppError::TemplateError(e.to_string()))?;
+    instructions
+        .write_string_with_format(2, 2, msgs.header_desc, &ref_header_fmt)
+        .map_err(|e| AppError::TemplateError(e.to_string()))?;
+
+    let cols = vec![
+        ("employee_code", msgs.yes_label, msgs.col_employee_code_desc),
+        (
+            "termination_date",
+            msgs.yes_label,
+            msgs.col_termination_date_desc,
+        ),
+        (
+            "termination_reason",
+            msgs.yes_label,
+            msgs.col_termination_reason_desc,
+        ),
+        (
+            "termination_notes",
+            msgs.no_label,
+            msgs.col_termination_notes_desc,
+        ),
+    ];
+
+    for (idx, (col, req, desc)) in cols.into_iter().enumerate() {
+        let row = u32::try_from(idx + 3).unwrap_or(0);
+        instructions
+            .write_string(row, 0, col)
+            .map_err(|e| AppError::TemplateError(e.to_string()))?;
+        instructions
+            .write_string(row, 1, req)
+            .map_err(|e| AppError::TemplateError(e.to_string()))?;
+        instructions
+            .write_string(row, 2, desc)
+            .map_err(|e| AppError::TemplateError(e.to_string()))?;
+    }
+
+    // Reasons table section
+    instructions
+        .write_string_with_format(9, 0, msgs.title_valid_reasons, &title_fmt)
+        .map_err(|e| AppError::TemplateError(e.to_string()))?;
+
+    instructions
+        .write_string_with_format(11, 0, msgs.reason_header_key, &ref_header_fmt)
+        .map_err(|e| AppError::TemplateError(e.to_string()))?;
+    instructions
+        .write_string_with_format(11, 1, msgs.reason_header_desc, &ref_header_fmt)
+        .map_err(|e| AppError::TemplateError(e.to_string()))?;
+
+    let reasons = vec![
+        ("voluntary_resignation", msgs.reason_voluntary),
+        ("involuntary_termination", msgs.reason_involuntary),
+        ("end_of_contract", msgs.reason_end_of_contract),
+        ("retirement", msgs.reason_retirement),
+        ("mutual_agreement", msgs.reason_mutual_agreement),
+        ("abandonment", msgs.reason_abandonment),
+        ("death", msgs.reason_death),
+        ("other", msgs.reason_other),
+    ];
+
+    for (idx, (key, desc)) in reasons.into_iter().enumerate() {
+        let row = u32::try_from(idx + 12).unwrap_or(0);
+        instructions
+            .write_string(row, 0, key)
+            .map_err(|e| AppError::TemplateError(e.to_string()))?;
+        instructions
+            .write_string(row, 1, desc)
+            .map_err(|e| AppError::TemplateError(e.to_string()))?;
+    }
+
+    instructions
+        .set_column_width(0, 25)
+        .map_err(|e| AppError::TemplateError(e.to_string()))?;
+    instructions
+        .set_column_width(1, 20)
+        .map_err(|e| AppError::TemplateError(e.to_string()))?;
+    instructions
+        .set_column_width(2, 80)
         .map_err(|e| AppError::TemplateError(e.to_string()))?;
 
     let bytes = workbook

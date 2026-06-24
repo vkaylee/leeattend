@@ -33,7 +33,26 @@ impl EmployeeService {
         auth_token: &crate::diesel_pool::TenantAuthToken,
         employment_id: Uuid,
         termination_date: NaiveDate,
+        termination_reason: String,
+        notes: Option<String>,
     ) -> Result<crate::models::employment::Employment, AppError> {
+        // 0. Validate termination_reason enum
+        const VALID_REASONS: &[&str] = &[
+            "voluntary_resignation",
+            "involuntary_termination",
+            "end_of_contract",
+            "retirement",
+            "mutual_agreement",
+            "abandonment",
+            "death",
+            "other",
+        ];
+        if !VALID_REASONS.contains(&termination_reason.as_str()) {
+            return Err(AppError::validation(
+                crate::utils::i18n::I18nKey::Validation,
+            ));
+        }
+
         // 1. Get employment details
         let employment = self
             .employment_repo
@@ -96,13 +115,15 @@ impl EmployeeService {
             balances_to_upsert.push(balance);
         }
 
-        // 4. Update the employment status, end date, and prorated balances transactionally
+        // 4. Update the employment status, end date, reason, notes, and prorated balances transactionally
         let updated_employment = self
             .employment_repo
             .terminate_employment_transactional(
                 auth_token,
                 employment_id,
                 termination_date,
+                termination_reason,
+                notes,
                 balances_to_upsert,
             )
             .await?;
