@@ -765,6 +765,7 @@ impl JobQueue {
                         TaskType::FinalizeImport => "finalize_import",
                         TaskType::ExpiringContractsCheck => "expiring_contracts_check",
                         TaskType::SyncEmployeeHireDate => "sync_employee_hire_date",
+                        TaskType::BulkTermination => "bulk_termination",
                     })
                     .or_else(|| {
                         job.report_type.as_ref().map(|r| match r {

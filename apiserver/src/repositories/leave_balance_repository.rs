@@ -15,6 +15,13 @@ pub trait LeaveBalanceRepository: Send + Sync {
         employee_id: Uuid,
         year: i32,
     ) -> Result<Vec<EmployeeLeaveBalance>, AppError>;
+
+    async fn get_employee_balances_batch(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employee_ids: &[Uuid],
+        year: i32,
+    ) -> Result<std::collections::HashMap<Uuid, Vec<EmployeeLeaveBalance>>, AppError>;
     async fn get_workspace_balances(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

@@ -245,7 +245,7 @@ export async function uploadTerminationImportPreview(
 export async function confirmTerminationImport(
   wsId: string,
   rows: ConfirmTerminationRow[]
-): Promise<{ success_count: number }> {
+): Promise<{ success_count: number; job_id?: string }> {
   const { data } = await client.POST("/workspaces/{workspace_id}/employees/import-termination/confirm", {
     params: {
       path: { workspace_id: wsId },
@@ -255,7 +255,7 @@ export async function confirmTerminationImport(
     },
   });
   if (!data) throw new Error("No response data");
-  return data;
+  return data as any;
 }
 
 /** Download bulk termination Excel template via authenticated fetch */

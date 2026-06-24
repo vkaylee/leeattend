@@ -20,6 +20,7 @@ const GET_LIST_WHITELIST: &[&str] = &[
     "download_leave_import_template",
     "download_report",
     "download_import_error_file",
+    "import_termination_template",
     // Legacy bounded lists to be paginated in future phases (e.g. employee history, schedules, adjustments)
     "get_employee_department_history",
     "list_employee_assignments",

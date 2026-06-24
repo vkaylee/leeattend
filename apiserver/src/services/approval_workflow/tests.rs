@@ -687,6 +687,13 @@ mod tests {
         ) -> Result<Vec<Employee>, AppError> {
             Ok(vec![])
         }
+        async fn get_employees_by_id_numbers(
+            &self,
+            _id_numbers: &[String],
+            _auth_token: &TenantAuthToken,
+        ) -> Result<Vec<Employee>, AppError> {
+            Ok(vec![])
+        }
         async fn get_all_employees(
             &self,
             _a: &TenantAuthToken,

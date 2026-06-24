@@ -31,6 +31,7 @@ pub enum TaskType {
     FinalizeImport,
     ExpiringContractsCheck,
     SyncEmployeeHireDate,
+    BulkTermination,
 }
 
 /// Job priority level. Controls which Redis queue the job is routed to.
@@ -193,6 +194,18 @@ pub struct SyncHireDatePayload {
     pub triggered_by_contract_id: Option<Uuid>,
 }
 
+/// Payload for bulk employee termination.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BulkTerminationRow {
+    pub employment_id: Uuid,
+    pub termination_date: NaiveDate,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BulkTerminationPayload {
+    pub rows: Vec<BulkTerminationRow>,
+}
+
 /// Job payload variants — each job type carries its own data.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", content = "data")]
@@ -212,6 +225,7 @@ pub enum JobPayload {
     FinalizeImport(FinalizeImportPayload),
     ExpiringContractsCheck(ExpiringContractsPayload),
     SyncEmployeeHireDate(SyncHireDatePayload),
+    BulkTermination(BulkTerminationPayload),
 }
 
 /// A single worker job.
@@ -390,6 +404,13 @@ impl Job {
     pub fn sync_hire_date_payload(&self) -> Option<&SyncHireDatePayload> {
         match &self.payload {
             JobPayload::SyncEmployeeHireDate(p) => Some(p),
+            _ => None,
+        }
+    }
+
+    pub fn bulk_termination_payload(&self) -> Option<&BulkTerminationPayload> {
+        match &self.payload {
+            JobPayload::BulkTermination(p) => Some(p),
             _ => None,
         }
     }

@@ -825,6 +825,19 @@ mod tests {
         ) -> Result<Vec<EmployeeLeaveBalance>, AppError> {
             Ok(self.employee_balances.lock().unwrap().clone())
         }
+        async fn get_employee_balances_batch(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            employee_ids: &[Uuid],
+            _year: i32,
+        ) -> Result<std::collections::HashMap<Uuid, Vec<EmployeeLeaveBalance>>, AppError> {
+            let mut map = std::collections::HashMap::new();
+            let balances = self.employee_balances.lock().unwrap().clone();
+            for &id in employee_ids {
+                map.insert(id, balances.clone());
+            }
+            Ok(map)
+        }
         async fn upsert_leave_balance(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,

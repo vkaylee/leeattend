@@ -36,6 +36,13 @@ impl EmployeeCoreRepository for MockEmployeeRepo {
     ) -> Result<Vec<Employee>, AppError> {
         Ok(vec![])
     }
+    async fn get_employees_by_id_numbers(
+        &self,
+        _id_numbers: &[String],
+        _auth_token: &crate::diesel_pool::TenantAuthToken,
+    ) -> Result<Vec<Employee>, AppError> {
+        Ok(vec![])
+    }
     async fn get_all_employees(
         &self,
         _a: &crate::diesel_pool::TenantAuthToken,

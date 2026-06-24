@@ -41,7 +41,7 @@ fn generate_termination_xlsx(rows: &[(&str, &str)]) -> Vec<u8> {
 
 #[tokio::test]
 async fn test_bulk_termination_flow() {
-    let (_test_db, factory, state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+    let (test_db, factory, state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
 
     let user_id: Uuid = factory.user().create().await;
@@ -323,6 +323,24 @@ async fn test_bulk_termination_flow() {
     let confirm_res: apiserver::handlers::employees::ConfirmTerminationResponse =
         serde_json::from_slice(&confirm_bytes).unwrap();
     assert_eq!(confirm_res.success_count, 1);
+
+    // Dequeue job from redis and process it manually
+    let redis = state.infra().redis().unwrap().clone();
+    let queue = apiserver::queue::JobQueue::new(redis.clone());
+    let job = queue
+        .dequeue_job(5.0)
+        .await
+        .unwrap()
+        .expect("Job not found in queue");
+    let queue_repo: std::sync::Arc<dyn apiserver::repositories::QueueRepository> =
+        std::sync::Arc::new(
+            apiserver::repositories::queue_repository::RedisQueueRepository::new(redis.clone()),
+        );
+    let diesel_pools = apiserver::diesel_pool::DieselPools::for_test(&test_db.url());
+    let deps = apiserver::worker::deps::WorkerDeps::new(&diesel_pools);
+    apiserver::worker::handlers::BulkTerminationHandler::handle(&queue_repo, &job, &deps)
+        .await
+        .unwrap();
 
     // 3. Verify Database State
     let emp1_employment_updated = state

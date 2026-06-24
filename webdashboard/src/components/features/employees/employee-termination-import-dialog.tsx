@@ -15,6 +15,7 @@ import {
   TerminationPreviewResponse,
   ConfirmTerminationRow
 } from "@/lib/api/employees";
+import { fetchJobStatus } from "@/lib/api/leaves";
 
 interface EmployeeTerminationImportDialogProps {
   isOpen: boolean;
@@ -38,6 +39,9 @@ export default function EmployeeTerminationImportDialog({
   const [activeTab, setActiveTab] = useState<"valid" | "invalid">("valid");
   const [importSuccess, setImportSuccess] = useState(false);
   const [successCount, setSuccessCount] = useState(0);
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [jobStatus, setJobStatus] = useState<string | null>(null);
+  const [jobError, setJobError] = useState<string | null>(null);
 
   const handleDownloadTemplate = async () => {
     try {
@@ -62,43 +66,122 @@ export default function EmployeeTerminationImportDialog({
     }
   };
 
+  const pollJob = async (id: string, initialCount: number) => {
+    const POLL_INTERVAL = 2000;
+    const MAX_POLLS = 60;
+    
+    for (let i = 0; i < MAX_POLLS; i++) {
+      try {
+        const statusRes = await fetchJobStatus(wsId, id);
+        setJobStatus(statusRes.status);
+        if (statusRes.status === "completed") {
+          setSuccessCount(initialCount);
+          setImportSuccess(true);
+          void queryClient.invalidateQueries();
+          setConfirming(false);
+          setJobId(null);
+          return;
+        }
+        if (statusRes.status === "failed") {
+          setJobError(statusRes.error_message || "Đã xảy ra lỗi khi xử lý nghỉ việc.");
+          setConfirming(false);
+          setJobId(null);
+          return;
+        }
+      } catch (err) {
+        console.error("Error polling job status:", err);
+      }
+      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL));
+    }
+    setJobError("Hết thời gian chờ xử lý tác vụ nghỉ việc. Vui lòng tải lại trang để kiểm tra.");
+    setConfirming(false);
+    setJobId(null);
+  };
+
   const handleConfirm = async () => {
     if (!previewData || previewData.valid_rows.length === 0) return;
     setConfirming(true);
+    setJobError(null);
     try {
       const rows: ConfirmTerminationRow[] = previewData.valid_rows.map((row) => ({
         employment_id: row.employment_id,
         termination_date: row.termination_date,
       }));
       const res = await confirmTerminationImport(wsId, rows);
-      setSuccessCount(res.success_count);
-      setImportSuccess(true);
-      void queryClient.invalidateQueries();
+      if (res.job_id) {
+        setJobId(res.job_id);
+        setJobStatus("queued");
+        void pollJob(res.job_id, res.success_count);
+      } else {
+        setSuccessCount(res.success_count);
+        setImportSuccess(true);
+        void queryClient.invalidateQueries();
+        setConfirming(false);
+      }
     } catch (err) {
       console.error("Failed to confirm termination import:", err);
-    } finally {
+      setJobError("Lỗi kết nối hoặc yêu cầu không hợp lệ.");
       setConfirming(false);
     }
   };
 
-  const exportErrorsToCSV = () => {
+  const exportErrorsToExcel = async () => {
     if (!previewData || previewData.invalid_rows.length === 0) return;
-    const headers = ["Dòng", "Mã nhân viên", "Ngày nghỉ việc", "Lý do lỗi"];
-    const rows = previewData.invalid_rows.map((r) => [
-      r.row_number,
-      r.employee_code ?? "",
-      r.raw_termination_date ?? "",
-      `"${r.reason.replace(/"/g, '""')}"`
-    ]);
-    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `loi_import_nghi_viec_${Date.now()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      const ExcelJS = await import("exceljs").then((m) =>
+        "default" in m ? m.default : m
+      );
+      const { saveAs } = await import("file-saver");
+
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = "LeeAttend";
+      workbook.created = new Date();
+
+      const worksheet = workbook.addWorksheet("Lỗi Import");
+
+      worksheet.columns = [
+        { header: "Dòng", key: "row_number", width: 10 },
+        { header: "Mã nhân viên", key: "employee_code", width: 20 },
+        { header: "Ngày nghỉ việc", key: "termination_date", width: 20 },
+        { header: "Lý do lỗi", key: "reason", width: 50 },
+      ];
+
+      const headerRow = worksheet.getRow(1);
+      headerRow.eachCell((cell) => {
+        cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFC00000" },
+        };
+        cell.alignment = { horizontal: "center", vertical: "middle" };
+      });
+
+      previewData.invalid_rows.forEach((r) => {
+        worksheet.addRow({
+          row_number: r.row_number,
+          employee_code: r.employee_code ?? "",
+          termination_date: r.raw_termination_date ?? "",
+          reason: r.reason,
+        });
+      });
+
+      worksheet.eachRow((row, rowNum) => {
+        if (rowNum > 1) {
+          const cell1 = row.getCell(1);
+          cell1.alignment = { horizontal: "center" };
+          cell1.font = { bold: true, color: { argb: "FFC00000" } };
+        }
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      saveAs(blob, `loi_import_nghi_viec_${Date.now()}.xlsx`);
+    } catch (err) {
+      console.error("Failed to export errors to Excel:", err);
+    }
   };
 
   const handleClose = () => {
@@ -107,6 +190,9 @@ export default function EmployeeTerminationImportDialog({
     setPreviewData(null);
     setImportSuccess(false);
     setSuccessCount(0);
+    setJobId(null);
+    setJobStatus(null);
+    setJobError(null);
     onClose();
   };
 
@@ -135,6 +221,49 @@ export default function EmployeeTerminationImportDialog({
           <Button className="px-10 mt-4 shadow-sm" variant="secondary" onClick={handleClose}>
             ĐÓNG
           </Button>
+        </div>
+      ) : jobError ? (
+        <div className="flex flex-col items-center justify-center py-10 space-y-6 text-center animate-in zoom-in-95 duration-500">
+          <div className="w-20 h-20 bg-rose-50 dark:bg-rose-950/30 rounded-3xl flex items-center justify-center text-rose-500 shadow-lg border border-rose-100 dark:border-rose-900/50">
+            <AlertCircle size={40} />
+          </div>
+          <div>
+            <Typography variant="h3" className="font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-tight text-xl mb-2 text-rose-600">
+              Lỗi Xử Lý
+            </Typography>
+            <Typography variant="p" className="text-sm text-slate-500 dark:text-slate-400 max-w-md">
+              {jobError}
+            </Typography>
+          </div>
+          <Button
+            className="px-10 mt-4 shadow-sm"
+            variant="primary"
+            onClick={() => {
+              setJobError(null);
+            }}
+          >
+            QUAY LẠI
+          </Button>
+        </div>
+      ) : confirming ? (
+        <div className="flex flex-col items-center justify-center py-12 space-y-6 text-center animate-in fade-in duration-500">
+          <div className="relative flex items-center justify-center">
+            <Loader2 className="animate-spin text-primary-500" size={48} />
+            <RefreshCw className="absolute text-primary-300 animate-pulse" size={24} />
+          </div>
+          <div>
+            <Typography variant="h3" className="font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-tight text-xl mb-2">
+              Đang xử lý dữ liệu
+            </Typography>
+            <Typography variant="p" className="text-sm text-slate-500 dark:text-slate-400 max-w-md">
+              Hệ thống đang tiến hành cập nhật trạng thái nghỉ việc và tính toán lại phép năm cho nhân viên. Vui lòng không đóng trình duyệt.
+            </Typography>
+            {jobId && (
+              <span className="inline-block mt-3 text-[10px] font-mono font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full">
+                Mã tác vụ: {jobId}
+              </span>
+            )}
+          </div>
         </div>
       ) : step === 1 ? (
         <div className="space-y-6 pt-2 animate-in fade-in duration-500">
@@ -325,7 +454,7 @@ export default function EmployeeTerminationImportDialog({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {previewData.valid_rows.map((row) => (
+                      {previewData.valid_rows.map((row: any) => (
                         <TableRow key={row.row_number}>
                           <TableCell className="text-center font-bold text-slate-400">{row.row_number}</TableCell>
                           <TableCell className="font-mono font-bold text-slate-700 dark:text-slate-300">
@@ -341,7 +470,7 @@ export default function EmployeeTerminationImportDialog({
                           <TableCell>
                             {row.prorated_leaves.length > 0 ? (
                               <div className="flex flex-wrap gap-1.5">
-                                {row.prorated_leaves.map((p) => (
+                                {row.prorated_leaves.map((p: any) => (
                                   <span
                                     key={p.leave_type_id}
                                     className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400"
@@ -384,9 +513,9 @@ export default function EmployeeTerminationImportDialog({
                       size="sm"
                       variant="outline"
                       className="border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950 font-bold"
-                      onClick={exportErrorsToCSV}
+                      onClick={exportErrorsToExcel}
                     >
-                      <Download size={14} className="mr-1.5" /> Xuất file lỗi (.csv)
+                      <Download size={14} className="mr-1.5" /> Xuất file lỗi (.xlsx)
                     </Button>
                   </div>
                   <div className="max-h-[350px] overflow-y-auto custom-scrollbar border border-slate-100 dark:border-slate-800 rounded-3xl">
@@ -400,7 +529,7 @@ export default function EmployeeTerminationImportDialog({
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {previewData.invalid_rows.map((row) => (
+                        {previewData.invalid_rows.map((row: any) => (
                           <TableRow key={row.row_number} className="hover:bg-rose-50/20 dark:hover:bg-rose-950/5">
                             <TableCell className="text-center font-bold text-rose-400">{row.row_number}</TableCell>
                             <TableCell className="font-mono text-slate-600 dark:text-slate-400">

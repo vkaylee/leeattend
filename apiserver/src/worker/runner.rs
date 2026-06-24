@@ -18,10 +18,10 @@ use crate::cache::{CacheManager, RosterCache};
 use crate::queue::{Job, JobQueue, RedisPool, TaskType};
 use crate::services::ReportCoordinator;
 use crate::worker::handlers::{
-    AccrualHandler, AttendanceHandler, ClaimStagedLogsHandler, EmployeeImportChunkHandler,
-    EmployeeImportHandler, FinalizeImportHandler, LeaveImportHandler, LogIngestionHandler,
-    MergeHandler, NightlyHousekeepingHandler, PayrollReportHandler, ReprocessAttendanceHandler,
-    SyncHireDateHandler,
+    AccrualHandler, AttendanceHandler, BulkTerminationHandler, ClaimStagedLogsHandler,
+    EmployeeImportChunkHandler, EmployeeImportHandler, FinalizeImportHandler, LeaveImportHandler,
+    LogIngestionHandler, MergeHandler, NightlyHousekeepingHandler, PayrollReportHandler,
+    ReprocessAttendanceHandler, SyncHireDateHandler,
 };
 
 // Redis key patterns for monitoring
@@ -518,6 +518,9 @@ impl JobWorker {
                 NightlyHousekeepingHandler::handle(&self.deps, &job).await
             }
             TaskType::SyncEmployeeHireDate => SyncHireDateHandler::process(&job, &self.deps).await,
+            TaskType::BulkTermination => {
+                BulkTerminationHandler::handle(&self.queue_repo, &job, &self.deps).await
+            }
         };
 
         let elapsed = start.elapsed();
@@ -546,6 +549,7 @@ impl JobWorker {
                 | TaskType::FinalizeImport
                 | TaskType::NightlyHousekeeping
                 | TaskType::SyncEmployeeHireDate
+                | TaskType::BulkTermination
         ) {
             let success = result.is_ok();
             if let Err(e) = self

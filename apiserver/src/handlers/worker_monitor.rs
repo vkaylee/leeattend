@@ -142,6 +142,7 @@ fn compute_job_type_stats(all_recent_jobs: &[crate::queue::JobMetadata]) -> Vec<
                 crate::queue::TaskType::FinalizeImport => "finalize_import",
                 crate::queue::TaskType::ExpiringContractsCheck => "expiring_contracts_check",
                 crate::queue::TaskType::SyncEmployeeHireDate => "sync_employee_hire_date",
+                crate::queue::TaskType::BulkTermination => "bulk_termination",
             })
             .or_else(|| {
                 job.report_type.as_ref().map(|r| match r {

@@ -2,6 +2,7 @@
 
 pub mod accrual;
 pub mod attendance;
+pub mod bulk_termination;
 pub mod claim_staged_logs;
 pub mod employee_import;
 pub mod expiring_contracts;
@@ -17,6 +18,7 @@ pub mod utils;
 
 pub use accrual::AccrualHandler;
 pub use attendance::AttendanceHandler;
+pub use bulk_termination::BulkTerminationHandler;
 pub use claim_staged_logs::ClaimStagedLogsHandler;
 pub use employee_import::{EmployeeImportChunkHandler, EmployeeImportHandler};
 pub use expiring_contracts::ExpiringContractsHandler;

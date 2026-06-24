@@ -546,6 +546,8 @@ pub struct ConfirmTerminationRequest {
 #[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema, Clone)]
 pub struct ConfirmTerminationResponse {
     pub success_count: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub job_id: Option<String>,
 }
 
 #[utoipa::path(
@@ -601,6 +603,18 @@ pub async fn import_termination_preview(
     let mut valid_rows = Vec::new();
     let mut invalid_rows = Vec::new();
 
+    // 1. Initial parsing step to filter empty rows/bad dates, and gather all unique normalized employee codes.
+    struct ParsedRow {
+        row_number: usize,
+        raw_code: String,
+        normalized_code: String,
+        raw_date: String,
+        termination_date: chrono::NaiveDate,
+    }
+
+    let mut parsed_rows = Vec::new();
+    let mut normalized_codes = Vec::new();
+
     for (line_number, mapped_row) in rows {
         let raw_code = mapped_row.get("employee_code").cloned().unwrap_or_default();
         let raw_date = mapped_row
@@ -635,16 +649,75 @@ pub async fn import_termination_preview(
         };
 
         let normalized_code = crate::utils::normalize_employee_id(&raw_code);
-        let Some(employee) = state
-            .employees()
-            .repo()
-            .get_employee_by_id_number(&normalized_code, &ctx.auth_token)
-            .await?
-        else {
+        normalized_codes.push(normalized_code.clone());
+
+        parsed_rows.push(ParsedRow {
+            row_number: line_number,
+            raw_code,
+            normalized_code,
+            raw_date,
+            termination_date,
+        });
+    }
+
+    // 2. Batch fetch Employees
+    let employees_list = state
+        .employees()
+        .repo()
+        .get_employees_by_id_numbers(&normalized_codes, &ctx.auth_token)
+        .await?;
+
+    let employees_by_code: std::collections::HashMap<String, Employee> = employees_list
+        .into_iter()
+        .map(|emp| (emp.employee_id_number().to_string(), emp))
+        .collect();
+
+    let employee_ids: Vec<Uuid> = employees_by_code.values().map(Employee::id).collect();
+
+    // 3. Batch fetch Employments
+    let employments = state
+        .employees()
+        .employment_repo()
+        .get_employments_for_employees(&ctx.auth_token, &employee_ids)
+        .await?;
+
+    let mut employments_by_employee_id: std::collections::HashMap<
+        Uuid,
+        Vec<crate::models::employment::Employment>,
+    > = std::collections::HashMap::new();
+    for emp in employments {
+        employments_by_employee_id
+            .entry(emp.employee_id())
+            .or_default()
+            .push(emp);
+    }
+
+    // 4. Batch fetch Leave Balances
+    let years: std::collections::HashSet<i32> = parsed_rows
+        .iter()
+        .map(|r| r.termination_date.year())
+        .collect();
+
+    let mut balances_by_year_and_employee: std::collections::HashMap<
+        i32,
+        std::collections::HashMap<Uuid, Vec<crate::models::EmployeeLeaveBalance>>,
+    > = std::collections::HashMap::new();
+    for year in years {
+        let batch_balances = state
+            .leaves()
+            .balance_repo()
+            .get_employee_balances_batch(&ctx.auth_token, &employee_ids, year)
+            .await?;
+        balances_by_year_and_employee.insert(year, batch_balances);
+    }
+
+    // 5. Final loop in memory over the parsed rows to validate and build proration previews
+    for row in parsed_rows {
+        let Some(employee) = employees_by_code.get(&row.normalized_code) else {
             invalid_rows.push(InvalidTerminationRow {
-                row_number: line_number,
-                employee_code: Some(raw_code.clone()),
-                raw_termination_date: Some(raw_date.clone()),
+                row_number: row.row_number,
+                employee_code: Some(row.raw_code.clone()),
+                raw_termination_date: Some(row.raw_date.clone()),
                 reason: crate::utils::i18n::translate(
                     &crate::utils::i18n::get_locale(),
                     "error.employee_not_found",
@@ -653,19 +726,20 @@ pub async fn import_termination_preview(
             continue;
         };
 
-        let employments = state
-            .employees()
-            .employment_repo()
-            .list_employee_employments(&ctx.auth_token, employee.id())
-            .await?;
+        let employee_employments = employments_by_employee_id
+            .get(&employee.id())
+            .cloned()
+            .unwrap_or_default();
 
-        let active_employment = employments.into_iter().find(|emp| emp.status() == "active");
+        let active_employment = employee_employments
+            .into_iter()
+            .find(|emp| emp.status() == "active");
 
         let Some(active_employment) = active_employment else {
             invalid_rows.push(InvalidTerminationRow {
-                row_number: line_number,
-                employee_code: Some(raw_code.clone()),
-                raw_termination_date: Some(raw_date.clone()),
+                row_number: row.row_number,
+                employee_code: Some(row.raw_code.clone()),
+                raw_termination_date: Some(row.raw_date.clone()),
                 reason: crate::utils::i18n::translate(
                     &crate::utils::i18n::get_locale(),
                     "error.no_active_employment",
@@ -674,7 +748,7 @@ pub async fn import_termination_preview(
             continue;
         };
 
-        if termination_date < active_employment.start_date() {
+        if row.termination_date < active_employment.start_date() {
             let locale = crate::utils::i18n::get_locale();
             let reason = if locale == "vi" {
                 format!(
@@ -688,45 +762,45 @@ pub async fn import_termination_preview(
                 )
             };
             invalid_rows.push(InvalidTerminationRow {
-                row_number: line_number,
-                employee_code: Some(raw_code.clone()),
-                raw_termination_date: Some(raw_date.clone()),
+                row_number: row.row_number,
+                employee_code: Some(row.raw_code.clone()),
+                raw_termination_date: Some(row.raw_date.clone()),
                 reason,
             });
             continue;
         }
 
         // Calculate leave proration preview
-        let year = termination_date.year();
+        let year = row.termination_date.year();
         let Some(start_of_year) = chrono::NaiveDate::from_ymd_opt(year, 1, 1) else {
             invalid_rows.push(InvalidTerminationRow {
-                row_number: line_number,
-                employee_code: Some(raw_code.clone()),
-                raw_termination_date: Some(raw_date.clone()),
+                row_number: row.row_number,
+                employee_code: Some(row.raw_code.clone()),
+                raw_termination_date: Some(row.raw_date.clone()),
                 reason: "Invalid start of year".to_string(),
             });
             continue;
         };
         let Some(end_of_year) = chrono::NaiveDate::from_ymd_opt(year, 12, 31) else {
             invalid_rows.push(InvalidTerminationRow {
-                row_number: line_number,
-                employee_code: Some(raw_code.clone()),
-                raw_termination_date: Some(raw_date.clone()),
+                row_number: row.row_number,
+                employee_code: Some(row.raw_code.clone()),
+                raw_termination_date: Some(row.raw_date.clone()),
                 reason: "Invalid end of year".to_string(),
             });
             continue;
         };
 
         let eff_start = std::cmp::max(start_of_year, active_employment.start_date());
-        let days_worked = (termination_date - eff_start).num_days() + 1;
+        let days_worked = (row.termination_date - eff_start).num_days() + 1;
         let total_days = (end_of_year - start_of_year).num_days() + 1;
         let proration_fraction = days_worked as f64 / total_days as f64;
 
-        let balances = state
-            .leaves()
-            .balance_repo()
-            .get_employee_balances(&ctx.auth_token, employee.id(), year)
-            .await?;
+        let balances = balances_by_year_and_employee
+            .get(&year)
+            .and_then(|m| m.get(&employee.id()))
+            .cloned()
+            .unwrap_or_default();
 
         let mut prorated_leaves = Vec::new();
         for emp_bal in balances {
@@ -743,12 +817,12 @@ pub async fn import_termination_preview(
         }
 
         valid_rows.push(ValidTerminationRow {
-            row_number: line_number,
+            row_number: row.row_number,
             employee_id: employee.id(),
-            employee_code: raw_code.clone(),
+            employee_code: row.raw_code.clone(),
             full_name: employee.full_name().to_string(),
             start_date: active_employment.start_date(),
-            termination_date,
+            termination_date: row.termination_date,
             employment_id: active_employment.id(),
             prorated_leaves,
         });
@@ -768,7 +842,7 @@ pub async fn import_termination_preview(
     path = "/workspaces/{workspace_id}/employees/import-termination/confirm",
     request_body = ConfirmTerminationRequest,
     responses(
-        (status = 200, description = "Successfully confirmed bulk termination", body = ConfirmTerminationResponse)
+        (status = 202, description = "Successfully enqueued bulk termination job", body = ConfirmTerminationResponse)
     ),
     params(
         ("workspace_id" = Uuid, Path, description = "Workspace ID"),
@@ -782,17 +856,55 @@ pub async fn import_termination_confirm(
 ) -> AppResult<Json<ConfirmTerminationResponse>> {
     ctx.require_permission(Permission::EmployeesUpdate)?;
 
-    let mut success_count = 0;
-    for row in req.rows {
-        state
-            .employees()
-            .service()
-            .terminate_employment(&ctx.auth_token, row.employment_id, row.termination_date)
-            .await?;
-        success_count += 1;
-    }
+    use crate::queue::{Job, JobMetadata, JobPayload, TaskType};
 
-    Ok(Json(ConfirmTerminationResponse { success_count }))
+    let job_id = crate::utils::id::new_id();
+    let total_batches = u32::try_from(req.rows.len()).unwrap_or(0);
+
+    // Set up job metadata in Redis for progress tracking
+    let payload_val = serde_json::to_value(&req).ok();
+    let meta = JobMetadata::new(
+        job_id,
+        total_batches,
+        ctx.workspace_id,
+        ctx.user_id,
+        Some(TaskType::BulkTermination),
+        None,
+        payload_val,
+    );
+
+    let queue = state.infra().job_queue()?;
+    queue
+        .create_job_metadata(&meta)
+        .await
+        .map_err(|e| AppError::BackgroundJobError(format!("Failed to create job metadata: {e}")))?;
+
+    // Map confirm rows to bulk termination rows
+    let bulk_rows = req
+        .rows
+        .iter()
+        .map(|r| crate::queue::BulkTerminationRow {
+            employment_id: r.employment_id,
+            termination_date: r.termination_date,
+        })
+        .collect();
+
+    let job = Job::new(
+        job_id,
+        0,
+        TaskType::BulkTermination,
+        ctx.workspace_id,
+        JobPayload::BulkTermination(crate::queue::BulkTerminationPayload { rows: bulk_rows }),
+    );
+
+    queue.enqueue_jobs(vec![job]).await.map_err(|e| {
+        AppError::BackgroundJobError(format!("Failed to enqueue bulk termination job: {e}"))
+    })?;
+
+    Ok(Json(ConfirmTerminationResponse {
+        success_count: req.rows.len(),
+        job_id: Some(job_id.to_string()),
+    }))
 }
 
 #[utoipa::path(
