@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverAnchor } from "@/components/ui/popover";
 import StatusBadge from "@/components/ui/status-badge";
 import { getCurrentWorkspaceId, fetchPatternDetails } from "@/lib/api";
 import { Shift, WorkingPattern, WorkingPatternDetail } from "@/lib/api/types";
@@ -36,7 +36,7 @@ function DayTimelinePill({
 
   return (
     <Popover modal={false} onOpenChange={setIsOpen} open={isOpen}>
-      <PopoverTrigger asChild>
+      <PopoverAnchor asChild>
         <Button
           aria-label={`${dayName}: ${hasShifts ? assignedDetails.map((d) => shifts?.find((s) => s.id === d.shift_id)?.name ?? "").join(", ") : t("status_off")}`}
           className={cn(
@@ -86,7 +86,7 @@ function DayTimelinePill({
             )}
           </div>
         </Button>
-      </PopoverTrigger>
+      </PopoverAnchor>
       <PopoverContent
         className="w-64 p-4 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 pointer-events-none animate-in fade-in zoom-in-95 duration-200"
         side="top"
