@@ -28,7 +28,7 @@ export default function EmployeeTerminationImportDialog({
   onClose,
   wsId
 }: EmployeeTerminationImportDialogProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation("employees");
   const queryClient = useQueryClient();
 
   const [file, setFile] = useState<File | null>(null);
@@ -200,8 +200,8 @@ export default function EmployeeTerminationImportDialog({
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title="IMPORT DANH SÁCH NGHỈ VIỆC"
-      subtitle="Chấm dứt hợp đồng lao động hàng loạt từ tệp Excel"
+      title={t("employees.bulk_termination.dialog_title")}
+      subtitle={t("employees.bulk_termination.dialog_subtitle")}
       icon={<Upload size={24} />}
       maxWidth={step === 1 ? "lg" : "xl"}
     >
@@ -212,14 +212,14 @@ export default function EmployeeTerminationImportDialog({
           </div>
           <div>
             <Typography variant="h3" className="font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-tight text-xl mb-2">
-              Import Thành Công
+              {t("employees.bulk_termination.import_success_title")}
             </Typography>
             <Typography variant="p" className="text-sm text-slate-500 dark:text-slate-400">
-              Đã xử lý nghỉ việc thành công cho <span className="font-bold text-emerald-600 dark:text-emerald-400">{successCount}</span> nhân viên.
+              {t("employees.bulk_termination.import_success_desc", { count: successCount })}
             </Typography>
           </div>
           <Button className="px-10 mt-4 shadow-sm" variant="secondary" onClick={handleClose}>
-            ĐÓNG
+            {t("employees.bulk_termination.close_btn")}
           </Button>
         </div>
       ) : jobError ? (
@@ -229,7 +229,7 @@ export default function EmployeeTerminationImportDialog({
           </div>
           <div>
             <Typography variant="h3" className="font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-tight text-xl mb-2 text-rose-600">
-              Lỗi Xử Lý
+              {t("employees.bulk_termination.processing_error_title")}
             </Typography>
             <Typography variant="p" className="text-sm text-slate-500 dark:text-slate-400 max-w-md">
               {jobError}
@@ -242,7 +242,7 @@ export default function EmployeeTerminationImportDialog({
               setJobError(null);
             }}
           >
-            QUAY LẠI
+            {t("employees.bulk_termination.back_btn")}
           </Button>
         </div>
       ) : confirming ? (
@@ -253,14 +253,14 @@ export default function EmployeeTerminationImportDialog({
           </div>
           <div>
             <Typography variant="h3" className="font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-tight text-xl mb-2">
-              Đang xử lý dữ liệu
+              {t("employees.bulk_termination.processing_data_title")}
             </Typography>
             <Typography variant="p" className="text-sm text-slate-500 dark:text-slate-400 max-w-md">
-              Hệ thống đang tiến hành cập nhật trạng thái nghỉ việc và tính toán lại phép năm cho nhân viên. Vui lòng không đóng trình duyệt.
+              {t("employees.bulk_termination.processing_data_desc")}
             </Typography>
             {jobId && (
               <span className="inline-block mt-3 text-[10px] font-mono font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full">
-                Mã tác vụ: {jobId}
+                {t("employees.bulk_termination.task_id_label", { id: jobId })}
               </span>
             )}
           </div>
@@ -274,10 +274,10 @@ export default function EmployeeTerminationImportDialog({
             </div>
             <div className="text-xs text-primary-800 dark:text-primary-200 leading-relaxed font-medium pt-0.5 flex-1">
               <Typography variant="p" className="font-bold uppercase tracking-[0.2em] mb-2 text-slate-700 dark:text-slate-300 block">
-                Yêu cầu định dạng tệp tin
+                {t("employees.bulk_termination.format_req_title")}
               </Typography>
               <Typography variant="p" className="text-slate-500 dark:text-slate-400 text-[11px] italic mb-3 block">
-                Hệ thống chỉ chấp nhận định dạng Excel (.xlsx, .xls). Các cột trong tệp tin phải bao gồm:
+                {t("employees.bulk_termination.format_req_desc")}
               </Typography>
               <ul className="space-y-3 mt-2 text-slate-700 dark:text-slate-300 font-medium text-xs">
                 <li className="flex flex-col space-y-1">
@@ -286,13 +286,13 @@ export default function EmployeeTerminationImportDialog({
                     <span className="font-mono text-[11px] font-bold bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-800 text-primary-700 dark:text-primary-400 shadow-sm">
                       employee_code
                     </span>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">— Mã nhân viên</span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">— {t("employees.bulk_termination.employee_code_title")}</span>
                     <span className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50">
-                      Bắt buộc
+                      {t("employees.bulk_termination.required_badge")}
                     </span>
                   </div>
                   <Typography variant="p" className="pl-5 text-[11px] text-slate-500 dark:text-slate-400">
-                    Mã số định danh của nhân viên cần chấm dứt hợp đồng.
+                    {t("employees.bulk_termination.employee_code_desc")}
                   </Typography>
                 </li>
                 <li className="flex flex-col space-y-1">
@@ -301,17 +301,17 @@ export default function EmployeeTerminationImportDialog({
                     <span className="font-mono text-[11px] font-bold bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-800 text-primary-700 dark:text-primary-400 shadow-sm">
                       termination_date
                     </span>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">— Ngày nghỉ việc</span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">— {t("employees.bulk_termination.termination_date_title")}</span>
                     <span className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50">
-                      Bắt buộc
+                      {t("employees.bulk_termination.required_badge")}
                     </span>
                   </div>
                   <div className="pl-5 space-y-1">
                     <Typography variant="p" className="text-[11px] text-slate-500 dark:text-slate-400">
-                      Ngày cuối cùng làm việc của nhân viên tại công ty.
+                      {t("employees.bulk_termination.termination_date_desc")}
                     </Typography>
                     <span className="inline-block text-[9px] font-mono font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 px-1.5 py-0.5 rounded">
-                      Định dạng: YYYY-MM-DD hoặc DD/MM/YYYY
+                      {t("employees.bulk_termination.date_format_tip")}
                     </span>
                   </div>
                 </li>
@@ -323,7 +323,7 @@ export default function EmployeeTerminationImportDialog({
                   type="button"
                   variant="ghost"
                 >
-                  <FileText size={14} /> Tải tệp tin mẫu Excel
+                  <FileText size={14} /> {t("employees.bulk_termination.download_template_btn")}
                 </Button>
               </div>
             </div>
@@ -341,7 +341,7 @@ export default function EmployeeTerminationImportDialog({
           >
             <input
               accept=".xlsx,.xls"
-              aria-label="Tải lên tệp"
+              aria-label={t("employees.bulk_termination.uploading_btn")}
               className="hidden"
               id="file-upload"
               onChange={(e) => {
@@ -358,7 +358,7 @@ export default function EmployeeTerminationImportDialog({
                   {file.name}
                 </Typography>
                 <Typography variant="p" className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                  {(file.size / 1024).toFixed(1)} KB — TỆP SẴN SÀNG
+                  {(file.size / 1024).toFixed(1)} KB — {t("employees.bulk_termination.file_ready_label")}
                 </Typography>
                 <Button
                   className="mt-5 border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950 shadow-sm hover:shadow-md"
@@ -369,7 +369,7 @@ export default function EmployeeTerminationImportDialog({
                   size="sm"
                   variant="outline"
                 >
-                  Chọn tệp khác
+                  {t("employees.bulk_termination.choose_other_file")}
                 </Button>
               </div>
             ) : (
@@ -378,10 +378,10 @@ export default function EmployeeTerminationImportDialog({
                   <Upload className="text-slate-400 dark:text-slate-500" size={28} />
                 </div>
                 <Typography variant="p" className="font-bold text-slate-800 dark:text-slate-200 mb-1 text-lg tracking-tight uppercase">
-                  Kéo thả tệp tin hoặc Nhấn để tìm kiếm
+                  {t("employees.bulk_termination.drag_drop_placeholder")}
                 </Typography>
                 <Typography variant="p" className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                  Hỗ trợ định dạng .xlsx, .xls tối đa 10MB
+                  {t("employees.bulk_termination.file_support_tip")}
                 </Typography>
               </div>
             )}
@@ -390,7 +390,7 @@ export default function EmployeeTerminationImportDialog({
           {/* Actions */}
           <div className="flex gap-4 pt-3 border-t border-slate-200 dark:border-slate-800">
             <Button className="flex-1" onClick={handleClose} size="lg" variant="outline">
-              HỦY
+              {t("employees.bulk_termination.cancel_btn")}
             </Button>
             <Button
               className="flex-[1.5]"
@@ -400,7 +400,7 @@ export default function EmployeeTerminationImportDialog({
               size="lg"
               variant="primary"
             >
-              {loading ? "ĐANG TẢI LÊN..." : "TIẾP TỤC"}
+              {loading ? t("employees.bulk_termination.uploading_btn") : t("employees.bulk_termination.continue_btn")}
             </Button>
           </div>
         </div>
@@ -409,19 +409,19 @@ export default function EmployeeTerminationImportDialog({
           {/* Summary status */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Tổng Số Dòng</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">{t("employees.bulk_termination.total_rows")}</span>
               <span className="text-2xl font-extrabold text-slate-700 dark:text-slate-200">
                 {(previewData?.valid_rows.length ?? 0) + (previewData?.invalid_rows.length ?? 0)}
               </span>
             </div>
             <div className="bg-emerald-50/50 dark:bg-emerald-950/20 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/30">
-              <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider block mb-1">Hợp Lệ (Sẽ Import)</span>
+              <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider block mb-1">{t("employees.bulk_termination.valid_rows_label")}</span>
               <span className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
                 {previewData?.valid_rows.length ?? 0}
               </span>
             </div>
             <div className="bg-rose-50/50 dark:bg-rose-950/20 p-4 rounded-xl border border-rose-100 dark:border-rose-900/30">
-              <span className="text-[10px] font-bold text-rose-500 uppercase tracking-wider block mb-1">Không Hợp Lệ (Lỗi)</span>
+              <span className="text-[10px] font-bold text-rose-500 uppercase tracking-wider block mb-1">{t("employees.bulk_termination.invalid_rows_label")}</span>
               <span className="text-2xl font-extrabold text-rose-600 dark:text-rose-400">
                 {previewData?.invalid_rows.length ?? 0}
               </span>
@@ -432,10 +432,10 @@ export default function EmployeeTerminationImportDialog({
           <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as "valid" | "invalid")}>
             <TabsList>
               <TabsTrigger value="valid">
-                HỢP LỆ ({previewData?.valid_rows.length ?? 0})
+                {t("employees.bulk_termination.tab_valid", { count: previewData?.valid_rows.length ?? 0 })}
               </TabsTrigger>
               <TabsTrigger value="invalid">
-                LỖI ({previewData?.invalid_rows.length ?? 0})
+                {t("employees.bulk_termination.tab_invalid", { count: previewData?.invalid_rows.length ?? 0 })}
               </TabsTrigger>
             </TabsList>
 
@@ -445,12 +445,12 @@ export default function EmployeeTerminationImportDialog({
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-16 text-center">Dòng</TableHead>
-                        <TableHead>Mã NV</TableHead>
-                        <TableHead>Họ và Tên</TableHead>
-                        <TableHead>Ngày Vào Làm</TableHead>
-                        <TableHead>Ngày Nghỉ Việc</TableHead>
-                        <TableHead>Phép Năm Tạm Tính (Cũ &rarr; Mới)</TableHead>
+                        <TableHead className="w-16 text-center">{t("employees.bulk_termination.table_row")}</TableHead>
+                        <TableHead>{t("employees.bulk_termination.table_code")}</TableHead>
+                        <TableHead>{t("employees.bulk_termination.table_name")}</TableHead>
+                        <TableHead>{t("employees.bulk_termination.table_hire_date")}</TableHead>
+                        <TableHead>{t("employees.bulk_termination.table_termination_date")}</TableHead>
+                        <TableHead>{t("employees.bulk_termination.table_prorated_leaves")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -463,9 +463,9 @@ export default function EmployeeTerminationImportDialog({
                           <TableCell className="font-semibold text-slate-800 dark:text-slate-200">
                             {row.full_name}
                           </TableCell>
-                          <TableCell>{new Date(row.start_date).toLocaleDateString("vi-VN")}</TableCell>
+                          <TableCell>{new Date(row.start_date).toLocaleDateString(i18n.language === "vi" ? "vi-VN" : i18n.language === "zh" ? "zh-CN" : "en-US")}</TableCell>
                           <TableCell className="font-bold text-slate-700 dark:text-slate-300">
-                            {new Date(row.termination_date).toLocaleDateString("vi-VN")}
+                            {new Date(row.termination_date).toLocaleDateString(i18n.language === "vi" ? "vi-VN" : i18n.language === "zh" ? "zh-CN" : "en-US")}
                           </TableCell>
                           <TableCell>
                             {row.prorated_leaves.length > 0 ? (
@@ -479,13 +479,13 @@ export default function EmployeeTerminationImportDialog({
                                       {p.leave_type_code}
                                     </span>
                                     <span>
-                                      {p.old_entitlement} &rarr; {p.new_entitlement} ngày
+                                      {p.old_entitlement} &rarr; {p.new_entitlement} {t("employees.bulk_termination.table_prorated_days_suffix")}
                                     </span>
                                   </span>
                                 ))}
                               </div>
                             ) : (
-                              <span className="text-[10px] text-slate-400 italic">Không có thay đổi phép</span>
+                              <span className="text-[10px] text-slate-400 italic">{t("employees.bulk_termination.no_leave_changes")}</span>
                             )}
                           </TableCell>
                         </TableRow>
@@ -496,7 +496,7 @@ export default function EmployeeTerminationImportDialog({
               ) : (
                 <div className="flex flex-col items-center justify-center py-10 border border-dashed border-slate-200 dark:border-slate-800 rounded-3xl">
                   <Typography variant="p" className="text-slate-400 dark:text-slate-600 text-sm font-semibold italic">
-                    Không có dòng dữ liệu hợp lệ nào
+                    {t("employees.bulk_termination.no_valid_rows")}
                   </Typography>
                 </div>
               )}
@@ -507,7 +507,7 @@ export default function EmployeeTerminationImportDialog({
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <Typography variant="p" className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                      Danh sách các hàng có dữ liệu không hợp lệ. Vui lòng tải file lỗi về để sửa và import lại.
+                      {t("employees.bulk_termination.invalid_rows_desc")}
                     </Typography>
                     <Button
                       size="sm"
@@ -515,17 +515,17 @@ export default function EmployeeTerminationImportDialog({
                       className="border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950 font-bold"
                       onClick={exportErrorsToExcel}
                     >
-                      <Download size={14} className="mr-1.5" /> Xuất file lỗi (.xlsx)
+                      <Download size={14} className="mr-1.5" /> {t("employees.bulk_termination.export_errors_btn")}
                     </Button>
                   </div>
                   <div className="max-h-[350px] overflow-y-auto custom-scrollbar border border-slate-100 dark:border-slate-800 rounded-3xl">
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-16 text-center">Dòng</TableHead>
-                          <TableHead>Mã NV Tạm Tính</TableHead>
-                          <TableHead>Ngày Tạm Tính</TableHead>
-                          <TableHead>Lý Do Lỗi</TableHead>
+                          <TableHead className="w-16 text-center">{t("employees.bulk_termination.table_row")}</TableHead>
+                          <TableHead>{t("employees.bulk_termination.table_invalid_code")}</TableHead>
+                          <TableHead>{t("employees.bulk_termination.table_invalid_date")}</TableHead>
+                          <TableHead>{t("employees.bulk_termination.table_invalid_reason")}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -533,10 +533,10 @@ export default function EmployeeTerminationImportDialog({
                           <TableRow key={row.row_number} className="hover:bg-rose-50/20 dark:hover:bg-rose-950/5">
                             <TableCell className="text-center font-bold text-rose-400">{row.row_number}</TableCell>
                             <TableCell className="font-mono text-slate-600 dark:text-slate-400">
-                              {row.employee_code || <span className="italic text-slate-400">Trống</span>}
+                              {row.employee_code || <span className="italic text-slate-400">{t("employees.bulk_termination.empty_label")}</span>}
                             </TableCell>
                             <TableCell className="text-slate-600 dark:text-slate-400">
-                              {row.raw_termination_date || <span className="italic text-slate-400">Trống</span>}
+                              {row.raw_termination_date || <span className="italic text-slate-400">{t("employees.bulk_termination.empty_label")}</span>}
                             </TableCell>
                             <TableCell className="font-bold text-rose-600 dark:text-rose-400 text-xs">
                               {row.reason}
@@ -550,7 +550,7 @@ export default function EmployeeTerminationImportDialog({
               ) : (
                 <div className="flex flex-col items-center justify-center py-10 border border-dashed border-slate-200 dark:border-slate-800 rounded-3xl">
                   <Typography variant="p" className="text-slate-400 dark:text-slate-600 text-sm font-semibold italic">
-                    Không có dòng lỗi nào
+                    {t("employees.bulk_termination.no_invalid_rows")}
                   </Typography>
                 </div>
               )}
@@ -568,7 +568,7 @@ export default function EmployeeTerminationImportDialog({
                 setPreviewData(null);
               }}
             >
-              HỦY VÀ QUAY LẠI
+              {t("employees.bulk_termination.cancel_back_btn")}
             </Button>
             <Button
               className="flex-[1.5]"
@@ -578,8 +578,8 @@ export default function EmployeeTerminationImportDialog({
               onClick={handleConfirm}
             >
               {confirming
-                ? "ĐANG XỬ LÝ..."
-                : `XÁC NHẬN IMPORT (${previewData?.valid_rows.length ?? 0} DÒNG)`}
+                ? t("employees.bulk_termination.processing_btn")
+                : t("employees.bulk_termination.confirm_import_btn", { count: previewData?.valid_rows.length ?? 0 })}
             </Button>
           </div>
         </div>
