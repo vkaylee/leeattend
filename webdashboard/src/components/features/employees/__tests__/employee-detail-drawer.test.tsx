@@ -284,6 +284,25 @@ describe("EmployeeDetailDrawer", () => {
         expect(onRehire).toHaveBeenCalledWith(terminatedEmployee);
     });
 
+    it("shows undo termination button for terminated employee and triggers modal on click", async () => {
+        const onEmployeeUpdate = vi.fn();
+        const user = userEvent.setup();
+        renderWithClient(
+            <EmployeeDetailDrawer {...defaultProps} employee={terminatedEmployee} onEmployeeUpdate={onEmployeeUpdate} />
+        );
+
+        // Wait for queries to load by expecting the resignation date in DOM
+        expect(await screen.findByText(/2024-06-20/)).toBeDefined();
+
+        // Verify undo termination button is displayed
+        const undoBtn = screen.getByTestId("employees-btn-undo-terminate");
+        expect(undoBtn).toBeDefined();
+
+        await user.click(undoBtn);
+        // Verify UndoTerminationModal title is displayed
+        expect(await screen.findByText(/employees\.terminate\.undo_title/i)).toBeDefined();
+    });
+
     // ── Department section ─────────────────────────────────────
 
     it("displays current department name", () => {

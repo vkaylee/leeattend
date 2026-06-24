@@ -97,6 +97,7 @@ export function EmployeeOverlays(props: EmployeeOverlaysProps) {
           setIsTransferModalOpen(true);
         }}
         wsId={wsId}
+        onEmployeeUpdate={setSelectedEmployee}
       />
 
       <EmployeeFormModal

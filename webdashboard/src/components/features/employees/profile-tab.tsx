@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Trash2, UserPlus } from "lucide-react";
+import { Pencil, RotateCcw, Trash2, UserPlus } from "lucide-react";
 import React, { useState } from "react";
 
 import type { Department, Employee, WorkspaceMember } from "@/lib/api";
@@ -10,6 +10,8 @@ import { CustomFieldSection } from "@/components/custom-fields/custom-field-sect
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { fetchEmployeeEmployments, updateEmployeeEmployment } from "@/lib/api";
+import EditTerminationModal from "@/components/features/employees/edit-termination-modal";
+import UndoTerminationModal from "@/components/features/employees/undo-termination-modal";
 
 import type { DeptHistoryEntry } from "./profile-sections";
 
@@ -20,17 +22,23 @@ export function ProfileActions({
     onEdit,
     onTerminate,
     onRehire,
+    onUndoTerminate,
     t,
     terminationDate,
     formatDate,
+    onEditTerminationDate,
+    showEditTerminationDate,
 }: {
     employee: Employee;
     onEdit: (e: Employee) => void;
     onRehire: (e: Employee) => void;
     onTerminate: (e: Employee) => void;
+    onUndoTerminate?: (e: Employee) => void;
     t: (k: string) => string;
     terminationDate?: string | null;
     formatDate: (date: string) => string;
+    onEditTerminationDate?: () => void;
+    showEditTerminationDate?: boolean;
 }) {
     return (
         <div className="grid grid-cols-2 gap-6 items-stretch">
@@ -42,11 +50,26 @@ export function ProfileActions({
                     <Button className="flex items-center justify-center gap-3 py-4 bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 font-bold rounded-2xl hover:bg-rose-100 dark:bg-rose-900 transition-all text-xs uppercase tracking-widest active:scale-95 shadow-sm shadow-rose-900/5 h-auto" data-testid="employees-btn-terminate" onClick={() => { onTerminate(employee); }} type="button" variant="destructive"><Trash2 size={18} /> {t("employees.details.terminate").toUpperCase()}</Button>
                 ) : (
                     <div className="flex flex-col gap-2 w-full justify-between h-full">
-                        <div className="flex items-center justify-center gap-2 py-3 px-4 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-2xl border border-slate-100 dark:border-slate-700/50 text-[10px] uppercase tracking-wider h-11 shadow-inner">
+                        <div className="flex items-center justify-center gap-2 py-3 px-4 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-2xl border border-slate-100 dark:border-slate-700/50 text-[10px] uppercase tracking-wider h-11 shadow-inner relative group">
                             <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 animate-pulse" />
                             {t("employees.details.terminated_at")}: {terminationDate ? formatDate(terminationDate) : "—"}
+                            {showEditTerminationDate && onEditTerminationDate && (
+                                <Button
+                                    onClick={onEditTerminationDate}
+                                    className="ml-2 !h-auto !min-w-0 !p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                                    type="button"
+                                    data-testid="edit-termination-date-btn"
+                                    title={t("employees.terminate.edit_date_title")}
+                                    variant="ghost"
+                                >
+                                    <Pencil size={12} />
+                                </Button>
+                            )}
                         </div>
-                        <Button className="flex items-center justify-center gap-2 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-2xl transition-all text-[10px] uppercase tracking-widest shadow-md active:scale-95 h-9 w-full" data-testid="employees-btn-rehire" onClick={() => { onRehire(employee); }} type="button" variant="primary"><UserPlus size={14} /> {t("employees.details.rehire").toUpperCase()}</Button>
+                        <div className="flex gap-4 w-full">
+                            <Button className="flex items-center justify-center gap-2 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-2xl transition-all text-[10px] uppercase tracking-widest shadow-md active:scale-95 h-9 flex-1" data-testid="employees-btn-rehire" onClick={() => { onRehire(employee); }} type="button" variant="primary"><UserPlus size={14} /> {t("employees.details.rehire").toUpperCase()}</Button>
+                            <Button className="flex items-center justify-center gap-2 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all text-[10px] uppercase tracking-widest shadow-sm active:scale-95 h-9 flex-1" data-testid="employees-btn-undo-terminate" onClick={() => { onUndoTerminate?.(employee); }} type="button" variant="outline"><RotateCcw size={14} /> {t("employees.details.undo_terminate").toUpperCase()}</Button>
+                        </div>
                     </div>
                 )}
             </PermissionGate>
@@ -71,6 +94,7 @@ export interface ProfileTabProps {
     onTransfer: (id: string) => void;
     t: (k: string) => string;
     wsId: string;
+    onEmployeeUpdate?: (emp: Employee) => void;
 }
 
 export default function ProfileTab({
@@ -85,12 +109,15 @@ export default function ProfileTab({
     onRehire,
     onTerminate,
     onTransfer,
-    t
+    t,
+    onEmployeeUpdate
 }: ProfileTabProps) {
     const queryClient = useQueryClient();
     const toast = useToast();
     const [isEditingLocation, setIsEditingLocation] = useState(false);
     const [selectedLocationIdState, setSelectedLocationIdState] = useState<string | null>(null);
+    const [isEditTerminationModalOpen, setIsEditTerminationModalOpen] = useState(false);
+    const [isUndoTerminationModalOpen, setIsUndoTerminationModalOpen] = useState(false);
 
     const { data: employments = [] } = useQuery({
         queryKey: ["employee-employments", wsId, employee.id],
@@ -98,6 +125,7 @@ export default function ProfileTab({
         enabled: !!wsId && !!employee.id,
     });
     const activeEmployment = employments.find(e => e.status === "active") || employments[0];
+    const terminatedEmployment = employments.find(e => e.status === "terminated");
     const activeLocationId = activeEmployment?.primary_location_id ?? "";
 
     const selectedLocationId = selectedLocationIdState ?? activeLocationId;
@@ -148,8 +176,11 @@ export default function ProfileTab({
                 onEdit={onEdit}
                 onRehire={onRehire}
                 onTerminate={onTerminate}
+                onUndoTerminate={() => setIsUndoTerminationModalOpen(true)}
                 t={t}
                 terminationDate={!employee.active_employment_id ? activeEmployment?.end_date : null}
+                onEditTerminationDate={() => setIsEditTerminationModalOpen(true)}
+                showEditTerminationDate={!employee.active_employment_id && !!terminatedEmployment}
             />
 
             <DepartmentSection
@@ -192,6 +223,35 @@ export default function ProfileTab({
 
             {!!activeEmployment?.id && (
                 <CustomFieldSection entityId={activeEmployment.id} entityType="employment" />
+            )}
+
+            {isEditTerminationModalOpen && terminatedEmployment && (
+                <EditTerminationModal
+                    employeeId={employee.id}
+                    employmentId={terminatedEmployment.id}
+                    currentEndDate={terminatedEmployment.end_date}
+                    isOpen={isEditTerminationModalOpen}
+                    onClose={() => setIsEditTerminationModalOpen(false)}
+                    wsId={wsId}
+                />
+            )}
+
+            {isUndoTerminationModalOpen && terminatedEmployment && (
+                <UndoTerminationModal
+                    employeeId={employee.id}
+                    employmentId={terminatedEmployment.id}
+                    isOpen={isUndoTerminationModalOpen}
+                    onClose={() => setIsUndoTerminationModalOpen(false)}
+                    onSuccess={() => {
+                        if (onEmployeeUpdate && terminatedEmployment) {
+                            onEmployeeUpdate({
+                                ...employee,
+                                active_employment_id: terminatedEmployment.id,
+                            });
+                        }
+                    }}
+                    wsId={wsId}
+                />
             )}
         </div>
     );

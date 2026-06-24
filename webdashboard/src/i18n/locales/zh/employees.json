@@ -185,6 +185,7 @@
       "terminate": "终止",
       "rehire": "重新入职",
       "terminated_at": "离职日期",
+      "undo_terminate": "撤销离职",
       "terminate_confirm": "您确定要让该员工离职吗？",
       "current_dept": "当前部门",
       "transfer": "调动",
@@ -293,7 +294,14 @@
       "terminate_date": "离职日期",
       "cancel": "取消",
       "confirm": "终止",
-      "processing": "处理中..."
+      "processing": "处理中...",
+      "edit_date_title": "编辑离职日期",
+      "edit_date_subtitle": "更新员工的离职日期",
+      "edit_confirm": "保存更改",
+      "undo_title": "撤销离职决定",
+      "undo_subtitle": "恢复员工活跃状态",
+      "undo_confirm_msg": "您确定要撤销该员工的离职决定吗？状态将恢复为活跃中。",
+      "undo_confirm": "撤销离职"
     },
     "policies": {
       "subtitle": "出勤特权管理",

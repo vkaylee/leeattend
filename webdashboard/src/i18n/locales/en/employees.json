@@ -185,6 +185,7 @@
       "terminate": "Terminate",
       "rehire": "Rehire",
       "terminated_at": "Terminated on",
+      "undo_terminate": "Undo Termination",
       "terminate_confirm": "Are you sure you want to terminate this employee?",
       "current_dept": "Current Department",
       "transfer": "Transfer",
@@ -293,7 +294,14 @@
       "terminate_date": "Termination Date",
       "cancel": "Cancel",
       "confirm": "Terminate",
-      "processing": "Processing..."
+      "processing": "Processing...",
+      "edit_date_title": "Edit Termination Date",
+      "edit_date_subtitle": "Update the resignation/termination date of the employee",
+      "edit_confirm": "Save Changes",
+      "undo_title": "Undo Termination Decision",
+      "undo_subtitle": "Restore employee to active status",
+      "undo_confirm_msg": "Are you sure you want to undo the termination for this employee? Their status will be restored to Active.",
+      "undo_confirm": "Undo Termination"
     },
     "policies": {
       "subtitle": "Attendance Privilege Management",

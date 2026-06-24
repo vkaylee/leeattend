@@ -185,6 +185,7 @@
       "terminate": "Nghỉ việc",
       "rehire": "Vào làm lại",
       "terminated_at": "Nghỉ việc ngày",
+      "undo_terminate": "Hủy nghỉ việc",
       "terminate_confirm": "Bạn có chắc muốn cho nhân viên này nghỉ việc?",
       "current_dept": "Phòng ban hiện tại",
       "transfer": "Điều chuyển",
@@ -293,7 +294,14 @@
       "terminate_date": "Ngày nghỉ việc",
       "cancel": "Hủy",
       "confirm": "Thôi việc",
-      "processing": "Đang xử lý..."
+      "processing": "Đang xử lý...",
+      "edit_date_title": "Chỉnh sửa ngày nghỉ việc",
+      "edit_date_subtitle": "Cập nhật ngày thôi việc của nhân viên",
+      "edit_confirm": "Lưu thay đổi",
+      "undo_title": "Hủy quyết định thôi việc",
+      "undo_subtitle": "Khôi phục trạng thái hoạt động",
+      "undo_confirm_msg": "Bạn có chắc chắn muốn hủy quyết định thôi việc cho nhân viên này? Trạng thái sẽ được đổi thành Đang hoạt động.",
+      "undo_confirm": "Hủy thôi việc"
     },
     "policies": {
       "subtitle": "Quản lý đặc quyền chuyên biệt",

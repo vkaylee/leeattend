@@ -32,6 +32,7 @@ interface EmployeeDetailDrawerProps {
     onTerminate: (employee: Employee) => void;
     onTransfer: (departmentId: string) => void;
     wsId: string;
+    onEmployeeUpdate?: (emp: Employee) => void;
 }
 
 interface DrawerTabContentProps {
@@ -49,6 +50,7 @@ interface DrawerTabContentProps {
     onTransfer: (id: string) => void;
     t: (k: string) => string;
     wsId: string;
+    onEmployeeUpdate?: (emp: Employee) => void;
 }
 
 const TAB_CONTENT_MAP: Record<DetailTabType, (props: DrawerTabContentProps) => React.ReactNode> = {
@@ -73,6 +75,7 @@ const TAB_CONTENT_MAP: Record<DetailTabType, (props: DrawerTabContentProps) => R
             onTransfer={props.onTransfer}
             t={props.t}
             wsId={props.wsId}
+            onEmployeeUpdate={props.onEmployeeUpdate}
         />
     ),
     salary: (props) => <EmployeeSalaryConfig employeeId={props.employee.id} employmentId={props.activeEmployment?.id ?? ""} wsId={props.wsId} />,
@@ -95,6 +98,7 @@ export default function EmployeeDetailDrawer({
     onTerminate,
     onRehire,
     onTransfer,
+    onEmployeeUpdate,
 }: EmployeeDetailDrawerProps) {
     const { t } = useTranslation();
     const {
@@ -140,6 +144,7 @@ export default function EmployeeDetailDrawer({
                     onTransfer={onTransfer}
                     t={t}
                     wsId={wsId}
+                    onEmployeeUpdate={onEmployeeUpdate}
                 />
             </div>
         </Sheet>
