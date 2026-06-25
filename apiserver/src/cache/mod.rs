@@ -15,7 +15,7 @@ pub use manager::CacheManager;
 pub use redis_cache::RedisCache;
 pub use roster_cache::{
     build_roster_data, RosterCache, RosterData, RosterDeptHistory, RosterFixedAssignment,
-    RosterPatternEntry, RosterShift,
+    RosterInterval, RosterPatternEntry, RosterShift,
 };
 pub use shift_cache::{CachedShift, ShiftCache};
 pub use workspace_cache::{CachedWorkspaceConfig, WorkspaceCache};

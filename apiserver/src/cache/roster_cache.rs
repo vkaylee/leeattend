@@ -168,6 +168,21 @@ pub struct RosterDeptHistory {
     pub effective_date: NaiveDate,
 }
 
+/// One row from `shift_default_intervals` — template interval info for a shift.
+#[derive(Debug, Clone)]
+pub struct RosterInterval {
+    pub interval_id: Uuid,
+    pub sort_order: i32,
+    pub interval_name: Option<String>,
+    pub start_time: NaiveTime,
+    pub end_time: NaiveTime,
+    pub break_duration_minutes: Option<i32>,
+    pub break_start: Option<NaiveTime>,
+    pub break_end: Option<NaiveTime>,
+    pub is_break_auto_deduct: Option<bool>,
+    pub break_is_overtime: Option<bool>,
+}
+
 /// Pre-fetched workspace roster configuration.
 ///
 /// Data is fetched WITHOUT date bounds; the existing resolution loop
@@ -187,6 +202,8 @@ pub struct RosterData {
     pub rule_patterns: HashMap<(Uuid, i32), Vec<Option<Uuid>>>,
     /// employee_id -> dept history entries (ORDER BY effective_date DESC)
     pub dept_history: HashMap<Uuid, Vec<RosterDeptHistory>>,
+    /// shift_id -> interval templates (ORDER BY sort_order ASC)
+    pub shift_intervals: HashMap<Uuid, Vec<RosterInterval>>,
 }
 
 // ---------------------------------------------------------------------------
@@ -212,7 +229,7 @@ pub async fn build_roster_data(
 
     use crate::schema::{
         assignment_rules, employee_shifts, employee_working_patterns, employees, employments,
-        shifts, working_pattern_details, working_patterns,
+        shift_default_intervals, shifts, working_pattern_details, working_patterns,
     };
 
     // 1. Shifts
@@ -327,6 +344,21 @@ pub async fn build_roster_data(
         .await
         .map_err(|e| format!("dept_history: {e}"))?;
 
+    // 9. Shift Default Intervals — template intervals per shift
+    let interval_rows: Vec<crate::models::diesel::roster::ShiftDefaultIntervalEntity> =
+        shift_default_intervals::table
+            .filter(
+                shift_default_intervals::shift_id.eq_any(
+                    shifts::table
+                        .filter(shifts::workspace_id.eq(workspace_id))
+                        .select(shifts::id),
+                ),
+            )
+            .order(shift_default_intervals::sort_order.asc())
+            .load::<crate::models::diesel::roster::ShiftDefaultIntervalEntity>(&mut conn)
+            .await
+            .map_err(|e| format!("shift_intervals: {e}"))?;
+
     // Transform rows into lookup structures
     let shifts_map: HashMap<Uuid, RosterShift> = shift_rows
         .into_iter()
@@ -398,6 +430,25 @@ pub async fn build_roster_data(
             });
     }
 
+    let mut shift_intervals: HashMap<Uuid, Vec<RosterInterval>> = HashMap::new();
+    for r in interval_rows {
+        shift_intervals
+            .entry(r.shift_id)
+            .or_default()
+            .push(RosterInterval {
+                interval_id: r.id,
+                sort_order: r.sort_order,
+                interval_name: r.interval_name,
+                start_time: r.start_time,
+                end_time: r.end_time,
+                break_duration_minutes: r.break_duration_minutes,
+                break_start: r.break_start,
+                break_end: r.break_end,
+                is_break_auto_deduct: r.is_break_auto_deduct,
+                break_is_overtime: r.break_is_overtime,
+            });
+    }
+
     Ok(Arc::new(RosterData {
         shifts: shifts_map,
         fixed_assignments,
@@ -406,6 +457,7 @@ pub async fn build_roster_data(
         active_rules,
         rule_patterns,
         dept_history,
+        shift_intervals,
     }))
 }
 
@@ -730,6 +782,7 @@ mod tests {
             active_rules: Vec::new(),
             rule_patterns: HashMap::new(),
             dept_history: HashMap::new(),
+            shift_intervals: HashMap::new(),
         };
 
         assert!(data.shifts.is_empty());
@@ -751,6 +804,7 @@ mod tests {
             active_rules: Vec::new(),
             rule_patterns: HashMap::new(),
             dept_history: HashMap::new(),
+            shift_intervals: HashMap::new(),
         }
     }
 

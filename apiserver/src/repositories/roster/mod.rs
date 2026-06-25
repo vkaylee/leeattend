@@ -25,6 +25,25 @@ pub trait RosterRepository: Send + Sync {
         limit: Option<i64>,
     ) -> Result<(Vec<EmployeeSchedule>, i64), AppError>;
 
+    /// Segment-centric variant: resolves segments (via intervals) per day
+    /// instead of monolithic schedules.  Returns [`EmployeeSegments`] whose
+    /// `segments` vec may contain multiple entries for the same date when
+    /// a shift has defined intervals or a split-shift pattern is active.
+    ///
+    /// Default implementation returns empty — override for real resolution.
+    async fn get_workspace_segments(
+        &self,
+        _roster_cache: Option<&crate::cache::RosterCache>,
+        _auth_token: &crate::diesel_pool::TenantAuthToken,
+        _start_date: NaiveDate,
+        _end_date: NaiveDate,
+        _employment_ids: Option<&Vec<Uuid>>,
+        _page: Option<i64>,
+        _limit: Option<i64>,
+    ) -> Result<(Vec<crate::models::schedule::EmployeeSegments>, i64), AppError> {
+        Ok((Vec::new(), 0))
+    }
+
     async fn get_assignment_history(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

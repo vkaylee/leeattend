@@ -1,6 +1,8 @@
 use crate::models::shift::{EmployeeShift, Shift, ShiftRoster};
 use crate::models::shift_swap::{ShiftSwapRequest, ShiftSwapStatus};
-use crate::schema::{employee_shifts, shift_rosters, shift_swap_requests, shifts};
+use crate::schema::{
+    employee_shifts, shift_default_intervals, shift_rosters, shift_swap_requests, shifts,
+};
 use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -203,4 +205,23 @@ impl ToSql<AssignmentHistoryTypeSql, Pg> for AssignmentHistoryType {
         }
         Ok(IsNull::No)
     }
+}
+
+/// Diesel entity for `shift_default_intervals`.
+#[derive(Debug, Clone, Queryable, Selectable)]
+#[diesel(table_name = shift_default_intervals)]
+pub struct ShiftDefaultIntervalEntity {
+    pub id: Uuid,
+    pub shift_id: Uuid,
+    pub sort_order: i32,
+    pub interval_name: Option<String>,
+    pub start_time: NaiveTime,
+    pub end_time: NaiveTime,
+    pub break_duration_minutes: Option<i32>,
+    pub break_start: Option<NaiveTime>,
+    pub break_end: Option<NaiveTime>,
+    pub is_break_auto_deduct: Option<bool>,
+    pub break_is_overtime: Option<bool>,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
 }

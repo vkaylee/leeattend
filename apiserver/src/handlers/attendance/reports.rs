@@ -26,6 +26,12 @@ pub struct AttendanceReportQuery {
     pub employee_status: Option<String>,
     pub employer_id: Option<uuid::Uuid>,
     pub employment_id: Option<uuid::Uuid>,
+    /// Opt-in query parameter for segment-centric daily reports.
+    /// When `true`, the handler uses
+    /// [`ReportService::get_segment_attendance_report`] instead of the
+    /// legacy path.
+    #[serde(default)]
+    pub segment_centric: Option<bool>,
 }
 
 #[utoipa::path(
@@ -187,24 +193,57 @@ pub async fn get_attendance_report(
     let end_date = NaiveDate::parse_from_str(end_date_str, "%Y-%m-%d")
         .map_err(|_e| AppError::validation(I18nKey::InvalidEndDateValue))?;
 
+    // Check whether to use the segment-centric report path.
+    let use_segments = params.segment_centric.unwrap_or(false)
+        || state
+            .payroll()
+            .feature_flag_repo()
+            .is_enabled_flag(&ctx.auth_token, "segment_centric_reports")
+            .await
+            .unwrap_or(false);
+
     if report_type == "daily" {
-        let report = state
-            .reports()
-            .service()
-            .get_daily_attendance_report(crate::services::report_service::AttendanceReportArgs {
-                workspace_id,
-                start_date,
-                end_date,
-                page,
-                limit,
-                employee_ids,
-                department_id,
-                sort: None,
-                employee_status: params.employee_status.clone(),
-                employer_id: params.employer_id,
-                employment_id: params.employment_id,
-            })
-            .await?;
+        let report = if use_segments {
+            state
+                .reports()
+                .service()
+                .get_segment_attendance_report(
+                    crate::services::report_service::AttendanceReportArgs {
+                        workspace_id,
+                        start_date,
+                        end_date,
+                        page,
+                        limit,
+                        employee_ids,
+                        department_id,
+                        sort: None,
+                        employee_status: params.employee_status.clone(),
+                        employer_id: params.employer_id,
+                        employment_id: params.employment_id,
+                    },
+                )
+                .await?
+        } else {
+            state
+                .reports()
+                .service()
+                .get_daily_attendance_report(
+                    crate::services::report_service::AttendanceReportArgs {
+                        workspace_id,
+                        start_date,
+                        end_date,
+                        page,
+                        limit,
+                        employee_ids,
+                        department_id,
+                        sort: None,
+                        employee_status: params.employee_status.clone(),
+                        employer_id: params.employer_id,
+                        employment_id: params.employment_id,
+                    },
+                )
+                .await?
+        };
 
         Ok(Json(
             serde_json::to_value(report).map_err(|e| AppError::from(e.to_string()))?,

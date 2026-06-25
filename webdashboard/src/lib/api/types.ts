@@ -175,6 +175,16 @@ export interface DailyAttendanceReport {
   std_work_units: number;
   unit_coefficient_hours: number;
   unit_type: 'DAY' | 'SHIFT' | 'HOUR' | 'MINUTE';
+  // Segment fields (segment-centric report path)
+  segment_id?: string | null;
+  shift_id?: string | null;
+  interval_id?: string | null;
+  interval_name?: string | null;
+  segment_type?: string | null;
+  sort_order?: number | null;
+  segment_count?: number | null;
+  employer_name?: string | null;
+  is_leave_paid?: boolean | null;
 }
 
 // --- Payroll and Shift Models ---

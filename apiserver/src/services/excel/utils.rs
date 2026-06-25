@@ -1,5 +1,21 @@
 use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use chrono_tz::Tz;
+use uuid::Uuid;
+
+/// Per-segment sub-cell for multi-segment days in the timesheet matrix.
+#[derive(Debug, Clone)]
+pub struct SegmentCell {
+    pub segment_id: Option<Uuid>,
+    pub sort_order: i32,
+    pub interval_name: Option<String>,
+    pub segment_type: String,
+    pub scheduled_start: Option<NaiveTime>,
+    pub scheduled_end: Option<NaiveTime>,
+    pub std_work_units: i32,
+    pub ot_work_units: i32,
+    pub punch_in: Option<DateTime<Utc>>,
+    pub punch_out: Option<DateTime<Utc>>,
+}
 
 /// Per-day cell data for the timesheet matrix.
 pub struct DayCell {
@@ -13,6 +29,8 @@ pub struct DayCell {
     pub is_holiday: bool,
     pub status: crate::services::attendance_utils::AttendanceStatus,
     pub is_leave_paid: Option<bool>,
+    /// Per-segment breakdown for multi-segment days.
+    pub segments: Vec<SegmentCell>,
 }
 
 /// Convert work units to hours: units × work_unit_minutes / 60

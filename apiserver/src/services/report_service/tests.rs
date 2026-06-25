@@ -67,6 +67,13 @@ fn make_report(has_punch_in: bool, has_shift: bool) -> DailyAttendanceReport {
         generation_metadata: None,
         is_leave_paid: None,
         employer_name: None,
+        segment_id: None,
+        shift_id: None,
+        interval_id: None,
+        interval_name: None,
+        segment_type: None,
+        sort_order: None,
+        segment_count: None,
     }
 }
 

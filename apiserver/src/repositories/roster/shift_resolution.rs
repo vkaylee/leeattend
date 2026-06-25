@@ -150,12 +150,11 @@ pub fn resolve_effective_shift_from_data<S: ::std::hash::BuildHasher>(
 /// Resolve full work segments for a single employee on a single date.
 ///
 /// Wraps [`resolve_effective_shift_from_data`] and expands each resolved
-/// shift ID into a [`ResolvedSegment`] by looking up the shift definition
-/// in `roster_data.shifts`.
+/// shift ID into one or more [`ResolvedSegment`] structs.
 ///
-/// When a shift has intervals defined in `shift_default_intervals`, they
-/// will be used (once the lookup is wired). For now, each shift produces
-/// a single segment using the shift's own start_time/end_time.
+/// When a shift has intervals defined in `shift_default_intervals`, each
+/// interval produces its own segment.  Otherwise a single segment is created
+/// from the shift itself.
 ///
 /// Returns segments sorted by `scheduled_start`.
 #[allow(clippy::too_many_lines)]
@@ -170,7 +169,7 @@ pub fn resolve_work_segments_from_data<S: ::std::hash::BuildHasher>(
     active_location_id: Option<Uuid>,
     active_employer_id: Option<Uuid>,
 ) -> Vec<ResolvedSegment> {
-    let (shift_ids, source, _traces) = resolve_effective_shift_from_data(
+    let (shift_ids, source, traces) = resolve_effective_shift_from_data(
         roster_data,
         roster_map,
         employment_id,
@@ -182,33 +181,97 @@ pub fn resolve_work_segments_from_data<S: ::std::hash::BuildHasher>(
         active_employer_id,
     );
 
-    let mut segments: Vec<ResolvedSegment> = shift_ids
-        .iter()
-        .enumerate()
-        .filter_map(|(idx, shift_opt)| {
-            let shift_id = (*shift_opt)?;
-            let shift = roster_data.shifts.get(&shift_id)?;
+    let mut segments: Vec<ResolvedSegment> = Vec::new();
 
-            Some(ResolvedSegment {
-                shift_id,
-                interval_id: None,
-                sort_order: i32::try_from(idx).unwrap_or(i32::MAX),
-                scheduled_start: shift.start_time(),
-                scheduled_end: shift.end_time(),
-                source: source.clone(),
-                break_duration_minutes: Some(shift.break_duration_minutes()),
-                break_start: shift.break_start(),
-                break_end: shift.break_end(),
-                is_break_auto_deduct: Some(shift.is_break_auto_deduct()),
-                break_is_overtime: Some(shift.break_is_overtime()),
-                allow_early_ot: shift.allow_early_ot(),
-                max_early_ot_minutes: shift.max_early_ot_minutes(),
-                early_punch_in_grace_period_minutes: shift.early_punch_in_grace_period_minutes(),
-                ot_aggregation_mode: shift.ot_aggregation_mode().to_string(),
-                is_night_shift: shift.is_night_shift(),
-            })
-        })
-        .collect();
+    for (idx, shift_opt) in shift_ids.iter().enumerate() {
+        let Some(shift_id) = *shift_opt else { continue };
+        let Some(shift) = roster_data.shifts.get(&shift_id) else {
+            continue;
+        };
+
+        // Base shift metadata
+        let shift_name = Some(shift.name().to_string());
+        let shift_symbol = shift.report_symbol().map(String::from);
+
+        // Check for interval templates — expand if present
+        if let Some(intervals) = roster_data.shift_intervals.get(&shift_id) {
+            if !intervals.is_empty() {
+                for interval in intervals {
+                    // Interval config takes precedence; fall back to shift defaults
+                    let break_dur = interval
+                        .break_duration_minutes
+                        .or_else(|| Some(shift.break_duration_minutes()));
+                    let break_start = interval.break_start.or_else(|| shift.break_start());
+                    let break_end = interval.break_end.or_else(|| shift.break_end());
+                    let is_auto_deduct = interval
+                        .is_break_auto_deduct
+                        .or_else(|| Some(shift.is_break_auto_deduct()));
+                    let break_ot = interval
+                        .break_is_overtime
+                        .or_else(|| Some(shift.break_is_overtime()));
+
+                    segments.push(ResolvedSegment {
+                        shift_id,
+                        interval_id: Some(interval.interval_id),
+                        sort_order: i32::try_from(idx).unwrap_or(i32::MAX),
+                        scheduled_start: interval.start_time,
+                        scheduled_end: interval.end_time,
+                        source: source.clone(),
+                        date: Some(date),
+                        shift_name: shift_name.clone(),
+                        shift_symbol: shift_symbol.clone(),
+                        interval_name: interval.interval_name.clone(),
+                        segment_type: "work".to_string(),
+                        break_duration_minutes: break_dur,
+                        break_start,
+                        break_end,
+                        is_break_auto_deduct: is_auto_deduct,
+                        break_is_overtime: break_ot,
+                        allow_early_ot: shift.allow_early_ot(),
+                        max_early_ot_minutes: shift.max_early_ot_minutes(),
+                        early_punch_in_grace_period_minutes: shift
+                            .early_punch_in_grace_period_minutes(),
+                        ot_aggregation_mode: shift.ot_aggregation_mode().to_string(),
+                        is_night_shift: shift.is_night_shift(),
+                        traces: traces.clone(),
+                        is_holiday: false,
+                        is_holiday_paid: false,
+                        holiday_name: None,
+                    });
+                }
+                continue; // intervals handled, skip the single-segment fallback
+            }
+        }
+
+        // Fallback: single segment from shift itself (no intervals)
+        segments.push(ResolvedSegment {
+            shift_id,
+            interval_id: None,
+            sort_order: i32::try_from(idx).unwrap_or(i32::MAX),
+            scheduled_start: shift.start_time(),
+            scheduled_end: shift.end_time(),
+            source: source.clone(),
+            date: Some(date),
+            shift_name,
+            shift_symbol,
+            interval_name: None,
+            segment_type: "work".to_string(),
+            break_duration_minutes: Some(shift.break_duration_minutes()),
+            break_start: shift.break_start(),
+            break_end: shift.break_end(),
+            is_break_auto_deduct: Some(shift.is_break_auto_deduct()),
+            break_is_overtime: Some(shift.break_is_overtime()),
+            allow_early_ot: shift.allow_early_ot(),
+            max_early_ot_minutes: shift.max_early_ot_minutes(),
+            early_punch_in_grace_period_minutes: shift.early_punch_in_grace_period_minutes(),
+            ot_aggregation_mode: shift.ot_aggregation_mode().to_string(),
+            is_night_shift: shift.is_night_shift(),
+            traces: traces.clone(),
+            is_holiday: false,
+            is_holiday_paid: false,
+            holiday_name: None,
+        });
+    }
 
     // Sort by scheduled start time for correct segment ordering
     segments.sort_by_key(|s| s.scheduled_start);
@@ -287,6 +350,7 @@ mod tests {
             active_rules: Vec::new(),
             rule_patterns: HashMap::new(),
             dept_history: HashMap::new(),
+            shift_intervals: HashMap::new(),
         })
     }
 
@@ -1702,5 +1766,382 @@ mod tests {
             segments[1].sort_order, 1,
             "sort_order reassigned after sort"
         );
+    }
+
+    // ─── Interval expansion tests ───────────────────────────────────────
+
+    use crate::cache::RosterInterval;
+
+    #[test]
+    fn test_interval_expansion_two_intervals_produces_two_segments() {
+        let emp = Uuid::new_v4();
+        let shift_id = Uuid::new_v4();
+        let interval_1_id = Uuid::new_v4();
+        let interval_2_id = Uuid::new_v4();
+
+        let shift = RosterShift::new(
+            "Split Shift".to_string(),
+            Some("SS".to_string()),
+            chrono::NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
+            chrono::NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
+            60,
+            Some(chrono::NaiveTime::from_hms_opt(12, 0, 0).unwrap()),
+            Some(chrono::NaiveTime::from_hms_opt(13, 0, 0).unwrap()),
+            true,
+            15,
+            false,
+            false,
+            None,
+            "aggregate".to_string(),
+            false,
+        );
+
+        let mut data = (*empty_roster_data()).clone();
+        data.shifts.insert(shift_id, shift);
+        data.fixed_assignments.insert(
+            emp,
+            vec![RosterFixedAssignment {
+                shift_id,
+                start_date: date(2026, 1, 1),
+                end_date: None,
+            }],
+        );
+        data.shift_intervals.insert(
+            shift_id,
+            vec![
+                RosterInterval {
+                    interval_id: interval_1_id,
+                    sort_order: 0,
+                    interval_name: Some("Morning".to_string()),
+                    start_time: chrono::NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
+                    end_time: chrono::NaiveTime::from_hms_opt(12, 0, 0).unwrap(),
+                    break_duration_minutes: Some(15),
+                    break_start: None,
+                    break_end: None,
+                    is_break_auto_deduct: None,
+                    break_is_overtime: None,
+                },
+                RosterInterval {
+                    interval_id: interval_2_id,
+                    sort_order: 1,
+                    interval_name: Some("Afternoon".to_string()),
+                    start_time: chrono::NaiveTime::from_hms_opt(13, 0, 0).unwrap(),
+                    end_time: chrono::NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
+                    break_duration_minutes: None,
+                    break_start: None,
+                    break_end: None,
+                    is_break_auto_deduct: None,
+                    break_is_overtime: None,
+                },
+            ],
+        );
+
+        let data = Arc::new(data);
+        let roster_map = HashMap::new();
+
+        let segments = resolve_work_segments_wrapper(&data, &roster_map, emp, date(2026, 3, 3));
+
+        assert_eq!(segments.len(), 2, "2 intervals → 2 segments");
+        // Morning segment
+        assert_eq!(segments[0].interval_id, Some(interval_1_id));
+        assert_eq!(segments[0].interval_name.as_deref(), Some("Morning"));
+        assert_eq!(
+            segments[0].scheduled_start,
+            chrono::NaiveTime::from_hms_opt(8, 0, 0).unwrap()
+        );
+        assert_eq!(
+            segments[0].scheduled_end,
+            chrono::NaiveTime::from_hms_opt(12, 0, 0).unwrap()
+        );
+        assert_eq!(segments[0].break_duration_minutes, Some(15));
+        assert_eq!(segments[0].sort_order, 0);
+
+        // Afternoon segment
+        assert_eq!(segments[1].interval_id, Some(interval_2_id));
+        assert_eq!(segments[1].interval_name.as_deref(), Some("Afternoon"));
+        assert_eq!(
+            segments[1].scheduled_start,
+            chrono::NaiveTime::from_hms_opt(13, 0, 0).unwrap()
+        );
+        assert_eq!(
+            segments[1].scheduled_end,
+            chrono::NaiveTime::from_hms_opt(17, 0, 0).unwrap()
+        );
+        // Falls back to shift default break (60)
+        assert_eq!(segments[1].break_duration_minutes, Some(60));
+        assert_eq!(segments[1].sort_order, 1);
+
+        // Both inherit shift metadata
+        assert_eq!(segments[0].shift_id, shift_id);
+        assert_eq!(segments[1].shift_id, shift_id);
+        assert_eq!(segments[0].shift_name.as_deref(), Some("Split Shift"));
+        assert_eq!(segments[1].shift_name.as_deref(), Some("Split Shift"));
+        assert_eq!(segments[0].segment_type, "work");
+    }
+
+    #[test]
+    fn test_interval_break_config_overrides_shift_defaults() {
+        let emp = Uuid::new_v4();
+        let shift_id = Uuid::new_v4();
+        let interval_id = Uuid::new_v4();
+
+        let shift = RosterShift::new(
+            "With Break".to_string(),
+            None,
+            chrono::NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
+            chrono::NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
+            60, // shift default break
+            Some(chrono::NaiveTime::from_hms_opt(12, 0, 0).unwrap()),
+            Some(chrono::NaiveTime::from_hms_opt(13, 0, 0).unwrap()),
+            true,
+            15,
+            true, // allow_early_ot at shift level
+            false,
+            None,
+            "per_segment".to_string(),
+            false,
+        );
+
+        let mut data = (*empty_roster_data()).clone();
+        data.shifts.insert(shift_id, shift);
+        data.fixed_assignments.insert(
+            emp,
+            vec![RosterFixedAssignment {
+                shift_id,
+                start_date: date(2026, 1, 1),
+                end_date: None,
+            }],
+        );
+        // Interval overrides break config
+        data.shift_intervals.insert(
+            shift_id,
+            vec![RosterInterval {
+                interval_id,
+                sort_order: 0,
+                interval_name: None,
+                start_time: chrono::NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
+                end_time: chrono::NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
+                break_duration_minutes: Some(30), // overrides shift 60
+                break_start: Some(chrono::NaiveTime::from_hms_opt(11, 30, 0).unwrap()),
+                break_end: Some(chrono::NaiveTime::from_hms_opt(12, 0, 0).unwrap()),
+                is_break_auto_deduct: Some(false), // overrides shift true
+                break_is_overtime: Some(true),     // overrides shift false
+            }],
+        );
+
+        let data = Arc::new(data);
+        let roster_map = HashMap::new();
+
+        let segments = resolve_work_segments_wrapper(&data, &roster_map, emp, date(2026, 3, 3));
+
+        assert_eq!(segments.len(), 1);
+        let seg = &segments[0];
+        // Interval config takes precedence
+        assert_eq!(seg.break_duration_minutes, Some(30));
+        assert_eq!(
+            seg.break_start,
+            Some(chrono::NaiveTime::from_hms_opt(11, 30, 0).unwrap())
+        );
+        assert_eq!(
+            seg.break_end,
+            Some(chrono::NaiveTime::from_hms_opt(12, 0, 0).unwrap())
+        );
+        assert_eq!(seg.is_break_auto_deduct, Some(false));
+        assert_eq!(seg.break_is_overtime, Some(true));
+        // Shift-level configs still inherited
+        assert!(seg.allow_early_ot);
+        assert_eq!(seg.ot_aggregation_mode, "per_segment");
+        assert_eq!(seg.interval_id, Some(interval_id));
+    }
+
+    #[test]
+    fn test_no_intervals_fallback_to_single_segment() {
+        let emp = Uuid::new_v4();
+        let shift_id = Uuid::new_v4();
+
+        let (sid, shift) = make_test_shift(shift_id, "Standard", 9, 0, 18, 0);
+        let mut data = (*empty_roster_data()).clone();
+        data.shifts.insert(sid, shift);
+        data.fixed_assignments.insert(
+            emp,
+            vec![RosterFixedAssignment {
+                shift_id,
+                start_date: date(2026, 1, 1),
+                end_date: None,
+            }],
+        );
+        // NO intervals defined → fallback to single segment from shift
+
+        let data = Arc::new(data);
+        let roster_map = HashMap::new();
+
+        let segments = resolve_work_segments_wrapper(&data, &roster_map, emp, date(2026, 3, 3));
+
+        assert_eq!(segments.len(), 1, "no intervals → 1 segment fallback");
+        assert_eq!(segments[0].shift_id, shift_id);
+        assert_eq!(segments[0].interval_id, None);
+        assert_eq!(segments[0].interval_name, None);
+        assert_eq!(
+            segments[0].scheduled_start,
+            chrono::NaiveTime::from_hms_opt(9, 0, 0).unwrap()
+        );
+        assert_eq!(
+            segments[0].scheduled_end,
+            chrono::NaiveTime::from_hms_opt(18, 0, 0).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_empty_intervals_vec_fallback_to_single_segment() {
+        let emp = Uuid::new_v4();
+        let shift_id = Uuid::new_v4();
+
+        let (sid, shift) = make_test_shift(shift_id, "EmptyIntervals", 10, 0, 14, 0);
+        let mut data = (*empty_roster_data()).clone();
+        data.shifts.insert(sid, shift);
+        data.fixed_assignments.insert(
+            emp,
+            vec![RosterFixedAssignment {
+                shift_id,
+                start_date: date(2026, 1, 1),
+                end_date: None,
+            }],
+        );
+        // Explicitly empty intervals vec → fallback
+        data.shift_intervals.insert(shift_id, vec![]);
+
+        let data = Arc::new(data);
+        let roster_map = HashMap::new();
+
+        let segments = resolve_work_segments_wrapper(&data, &roster_map, emp, date(2026, 3, 3));
+
+        assert_eq!(
+            segments.len(),
+            1,
+            "empty intervals vec → 1 segment fallback"
+        );
+        assert_eq!(segments[0].shift_id, shift_id);
+    }
+
+    #[test]
+    fn test_enriched_segment_fields_populated() {
+        let emp = Uuid::new_v4();
+        let shift_id = Uuid::new_v4();
+        let interval_id = Uuid::new_v4();
+        let test_date = date(2026, 6, 15);
+
+        let shift = RosterShift::new(
+            "Enriched Test".to_string(),
+            Some("ET".to_string()),
+            chrono::NaiveTime::from_hms_opt(7, 0, 0).unwrap(),
+            chrono::NaiveTime::from_hms_opt(15, 0, 0).unwrap(),
+            0,
+            None,
+            None,
+            false,
+            5,
+            false,
+            false,
+            None,
+            "aggregate".to_string(),
+            false,
+        );
+
+        let mut data = (*empty_roster_data()).clone();
+        data.shifts.insert(shift_id, shift);
+        data.fixed_assignments.insert(
+            emp,
+            vec![RosterFixedAssignment {
+                shift_id,
+                start_date: date(2026, 1, 1),
+                end_date: None,
+            }],
+        );
+        data.shift_intervals.insert(
+            shift_id,
+            vec![RosterInterval {
+                interval_id,
+                sort_order: 0,
+                interval_name: Some("Early".to_string()),
+                start_time: chrono::NaiveTime::from_hms_opt(7, 0, 0).unwrap(),
+                end_time: chrono::NaiveTime::from_hms_opt(15, 0, 0).unwrap(),
+                break_duration_minutes: None,
+                break_start: None,
+                break_end: None,
+                is_break_auto_deduct: None,
+                break_is_overtime: None,
+            }],
+        );
+
+        let data = Arc::new(data);
+        let roster_map = HashMap::new();
+
+        let segments = resolve_work_segments_wrapper(&data, &roster_map, emp, test_date);
+
+        assert_eq!(segments.len(), 1);
+        let seg = &segments[0];
+        // Enriched fields from ResolvedSegment
+        assert_eq!(seg.shift_id, shift_id);
+        assert_eq!(seg.shift_name.as_deref(), Some("Enriched Test"));
+        assert_eq!(seg.shift_symbol.as_deref(), Some("ET"));
+        assert_eq!(seg.interval_name.as_deref(), Some("Early"));
+        assert_eq!(seg.segment_type, "work");
+        assert_eq!(seg.date, Some(test_date));
+        // Holiday fields default to false/None (populated later by caller)
+        assert!(!seg.is_holiday);
+        assert!(!seg.is_holiday_paid);
+        assert!(seg.holiday_name.is_none());
+    }
+
+    #[test]
+    fn test_interval_from_different_shift_not_leaked() {
+        // Regression: intervals should only expand the shift they belong to
+        let emp = Uuid::new_v4();
+        let shift_a = Uuid::new_v4();
+        let shift_b = Uuid::new_v4();
+        let interval_a = Uuid::new_v4();
+
+        let (sa_id, shift_a_data) = make_test_shift(shift_a, "Shift A", 8, 0, 12, 0);
+        let (sb_id, shift_b_data) = make_test_shift(shift_b, "Shift B", 13, 0, 17, 0);
+
+        let mut data = (*empty_roster_data()).clone();
+        data.shifts.insert(sa_id, shift_a_data);
+        data.shifts.insert(sb_id, shift_b_data);
+        // Only Shift A has intervals defined
+        data.shift_intervals.insert(
+            shift_a,
+            vec![RosterInterval {
+                interval_id: interval_a,
+                sort_order: 0,
+                interval_name: Some("A-Morning".to_string()),
+                start_time: chrono::NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
+                end_time: chrono::NaiveTime::from_hms_opt(12, 0, 0).unwrap(),
+                break_duration_minutes: None,
+                break_start: None,
+                break_end: None,
+                is_break_auto_deduct: None,
+                break_is_overtime: None,
+            }],
+        );
+        // Fixed assignment gives Shift B
+        data.fixed_assignments.insert(
+            emp,
+            vec![RosterFixedAssignment {
+                shift_id: shift_b,
+                start_date: date(2026, 1, 1),
+                end_date: None,
+            }],
+        );
+
+        let data = Arc::new(data);
+        let roster_map = HashMap::new();
+
+        let segments = resolve_work_segments_wrapper(&data, &roster_map, emp, date(2026, 3, 3));
+
+        // Shift B is assigned, which has NO intervals → 1 segment from shift itself
+        assert_eq!(segments.len(), 1);
+        assert_eq!(segments[0].shift_id, shift_b);
+        assert_eq!(segments[0].interval_id, None);
+        assert_eq!(segments[0].interval_name, None);
     }
 }

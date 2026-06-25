@@ -114,8 +114,24 @@ export function DailyReportTimeline({ row, formatTime, t }: DailyReportTimelineP
     return Math.max(0, Math.min(100, pct));
   };
 
+  const isMultiSegment = (row.segment_count ?? 1) > 1;
+  const hasSegmentData = !!row.segment_type;
+
   return (
     <div className="w-full space-y-6 select-none py-2 px-1">
+      {/* Segment label (segment-centric path) */}
+      {hasSegmentData ? (
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+            {row.interval_name ?? row.segment_type}
+          </span>
+          {isMultiSegment ? (
+            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+              {(row.sort_order ?? 0) + 1} / {row.segment_count}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
       {/* Visual Bar Container */}
       <div className="relative h-9 w-full bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200/50 dark:border-slate-700/50 shadow-inner flex items-center">
         

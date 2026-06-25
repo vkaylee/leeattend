@@ -91,6 +91,14 @@ function getDerivedSource(appliedRule?: ScheduleTrace): string {
   }
 }
 
+const SEGMENT_TYPE_COLORS: Record<string, string> = {
+  work: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-800",
+  standby: "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-300 dark:border-orange-800",
+  on_call: "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-300 dark:border-purple-800",
+  training: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800",
+  travel: "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-950/30 dark:text-slate-300 dark:border-slate-800",
+};
+
 function ShiftCell({ row, t }: { row: DailyAttendanceReport; t: (k: string) => string }) {
   if (!row.scheduled_start) {
     return (
@@ -107,8 +115,34 @@ function ShiftCell({ row, t }: { row: DailyAttendanceReport; t: (k: string) => s
   const appliedRule = traces.find((tr) => tr.status === "applied");
   const derivedSource = getDerivedSource(appliedRule);
 
+  const hasSegmentData = !!row.segment_type;
+  const isMultiSegment = (row.segment_count ?? 1) > 1;
+  const segTypeColor = SEGMENT_TYPE_COLORS[row.segment_type ?? "work"] ?? SEGMENT_TYPE_COLORS.work;
+
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col gap-1">
+      {/* Segment type badge (segment-centric path) */}
+      {hasSegmentData ? (
+        <div className="flex items-center gap-1.5">
+          <span className={cn(
+            "text-[8px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-md border leading-none",
+            segTypeColor
+          )}>
+            {row.segment_type}
+          </span>
+          {isMultiSegment ? (
+            <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 tracking-wider">
+              {(row.sort_order ?? 0) + 1}/{row.segment_count}
+            </span>
+          ) : null}
+          {row.interval_name ? (
+            <span className="text-[9px] font-medium text-slate-500 dark:text-slate-400 truncate max-w-[120px]">
+              {row.interval_name}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="relative w-fit flex items-center">
         <span className={cn(
           "font-bold text-slate-700 dark:text-slate-200 text-xs uppercase tracking-tighter shadow-sm bg-white dark:bg-slate-900 py-0.5 rounded-lg border border-slate-100 dark:border-slate-800",
@@ -129,8 +163,9 @@ function ShiftCell({ row, t }: { row: DailyAttendanceReport; t: (k: string) => s
           </div>
         ) : null}
       </div>
-      {row.break_duration_minutes !== null ? (
-        <span className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] mt-1.5 opacity-70 italic">
+      {/* Break info — only show when NOT in segment mode (break = gap between segments) */}
+      {!hasSegmentData && row.break_duration_minutes !== null ? (
+        <span className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] mt-0.5 opacity-70 italic">
           {row.break_start
             ? `${t("common.break")}: ${row.break_start.substring(0, 5)}-${row.break_end?.substring(0, 5)}`
             : `${t("common.break")}: ${row.break_duration_minutes.toString()}m`}
@@ -277,9 +312,15 @@ export function DailyReportTableRow({
   const metadata = row.generation_metadata as { time_entries?: TimeEntry[] } | undefined;
   const timeEntries = metadata?.time_entries ?? [];
 
+  const isMultiSegment = (row.segment_count ?? 1) > 1;
+
   return (
     <React.Fragment>
-      <tr className={cn("transition-all group", isExpanded ? "bg-amber-50 dark:bg-amber-950/20" : "hover:bg-slate-50 dark:hover:bg-slate-800/50")}>
+      <tr className={cn(
+        "transition-all group",
+        isExpanded ? "bg-amber-50 dark:bg-amber-950/20" : "hover:bg-slate-50 dark:hover:bg-slate-800/50",
+        isMultiSegment && "border-l-2 border-l-blue-300 dark:border-l-blue-700"
+      )}>
         <td className="w-10 px-2 py-2.5 text-center sticky left-0 z-10 bg-white group-hover:bg-slate-50 dark:bg-slate-900 dark:group-hover:bg-slate-800/50 transition-colors">
           <Button
             className="p-1 h-auto text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"

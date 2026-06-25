@@ -237,6 +237,13 @@ mod tests {
             generation_metadata: None,
             is_leave_paid: None,
             employer_name: None,
+            segment_id: None,
+            shift_id: None,
+            interval_id: None,
+            interval_name: None,
+            segment_type: None,
+            sort_order: None,
+            segment_count: None,
         };
 
         let (in_str, out_str) = get_punch_times(&report, tz);
@@ -290,6 +297,13 @@ mod tests {
             generation_metadata: Some(metadata),
             is_leave_paid: None,
             employer_name: None,
+            segment_id: None,
+            shift_id: None,
+            interval_id: None,
+            interval_name: None,
+            segment_type: None,
+            sort_order: None,
+            segment_count: None,
         };
 
         let (in_str, out_str) = get_punch_times(&report, tz);

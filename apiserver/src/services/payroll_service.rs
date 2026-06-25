@@ -1552,6 +1552,7 @@ mod tests {
                 active_rules: Vec::new(),
                 rule_patterns: HashMap::new(),
                 dept_history: HashMap::new(),
+                shift_intervals: HashMap::new(),
             }),
             emp_id_number: "EMP001".into(),
             emp_tags: None,

@@ -372,6 +372,339 @@ impl RosterRepository for DieselRosterRepository {
         Ok((result, total))
     }
 
+    /// Segment-centric variant — see [`RosterRepository::get_workspace_segments`].
+    ///
+    /// Shares the exact same data-loading pipeline as
+    /// [`get_workspace_schedules`] but resolves work segments (with optional
+    /// interval expansion) instead of building flat [`EffectiveSchedule`]
+    /// objects.
+    #[allow(clippy::too_many_lines)]
+    async fn get_workspace_segments(
+        &self,
+        roster_cache: Option<&crate::cache::RosterCache>,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+        employment_ids: Option<&Vec<Uuid>>,
+        page: Option<i64>,
+        limit: Option<i64>,
+    ) -> Result<(Vec<crate::models::schedule::EmployeeSegments>, i64), AppError> {
+        use crate::models::schedule::EmployeeSegments;
+        let workspace_id = auth_token.workspace_id();
+
+        // 1. Roster data (shared cache / loader)
+        let roster_data = if let Some(cache) = roster_cache {
+            cache
+                .get_roster_data(workspace_id, &self.diesel_pools)
+                .await
+                .map_err(|e| {
+                    tracing::error!("RosterCache error: {e}");
+                    AppError::Internal(format!("roster_cache: {e}"))
+                })?
+        } else {
+            crate::cache::build_roster_data(&self.diesel_pools, workspace_id)
+                .await
+                .map_err(|e| {
+                    tracing::error!("build_roster_data error: {e}");
+                    AppError::Internal(format!("roster: {e}"))
+                })?
+        };
+
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        // 2. Paginated employees (identical query structure as get_workspace_schedules)
+        let mut query = crate::schema::employments::table
+            .inner_join(crate::schema::employees::table)
+            .filter(crate::schema::employees::workspace_id.eq(workspace_id))
+            .filter(crate::schema::employments::status.eq("active"))
+            .filter(crate::schema::employments::deleted_at.is_null())
+            .filter(crate::schema::employments::start_date.le(end_date))
+            .filter(
+                crate::schema::employments::end_date
+                    .is_null()
+                    .or(crate::schema::employments::end_date.ge(start_date)),
+            )
+            .into_boxed();
+
+        if let Some(eids) = employment_ids {
+            query = query.filter(crate::schema::employments::id.eq_any(eids.iter().copied()));
+        }
+
+        // Separate count query (build independently to avoid consuming `query`)
+        let mut count_query = crate::schema::employments::table
+            .inner_join(crate::schema::employees::table)
+            .filter(crate::schema::employees::workspace_id.eq(workspace_id))
+            .filter(crate::schema::employments::status.eq("active"))
+            .filter(crate::schema::employments::deleted_at.is_null())
+            .into_boxed();
+        if let Some(eids) = employment_ids {
+            count_query =
+                count_query.filter(crate::schema::employments::id.eq_any(eids.iter().copied()));
+        }
+        let total: i64 = if page.is_some() || limit.is_some() {
+            count_query
+                .count()
+                .get_result::<i64>(&mut *conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("db count: {e}")))?
+        } else {
+            0
+        };
+
+        if let (Some(p), Some(l)) = (page, limit) {
+            let limit_val = l.clamp(1, 3000);
+            let offset_val = (p.max(1) - 1) * limit_val;
+            query = query.limit(limit_val).offset(offset_val);
+        }
+
+        let employees_entities_raw = query
+            .select((
+                crate::schema::employments::id,
+                crate::schema::employees::full_name,
+                crate::schema::employees::employee_id_number,
+                crate::schema::employees::tags,
+                crate::schema::employments::primary_location_id,
+                crate::schema::employees::id,
+            ))
+            .load::<(
+                Uuid,
+                String,
+                String,
+                Option<Vec<Option<String>>>,
+                Option<Uuid>,
+                Uuid,
+            )>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let employees_entities: Vec<(
+            Uuid,
+            String,
+            String,
+            Option<Vec<String>>,
+            Option<Uuid>,
+            Uuid,
+        )> = employees_entities_raw
+            .into_iter()
+            .map(|(emp_id, name, num, tags, primary_loc, employee_id)| {
+                (
+                    emp_id,
+                    name,
+                    num,
+                    tags.map(|v| v.into_iter().flatten().collect()),
+                    primary_loc,
+                    employee_id,
+                )
+            })
+            .collect();
+
+        if employees_entities.is_empty() {
+            return Ok((Vec::new(), total));
+        }
+
+        let emp_ids: Vec<Uuid> = employees_entities
+            .iter()
+            .map(|(id, _, _, _, _, _)| *id)
+            .collect();
+
+        // 3. Batch-load contracts
+        let batch_contracts = crate::schema::employee_contracts::table
+            .inner_join(crate::schema::employments::table)
+            .filter(crate::schema::employee_contracts::workspace_id.eq(workspace_id))
+            .filter(crate::schema::employments::id.eq_any(&emp_ids))
+            .filter(
+                crate::schema::employee_contracts::status
+                    .eq(crate::models::enums::ContractStatus::Active),
+            )
+            .filter(crate::schema::employee_contracts::deleted_at.is_null())
+            .filter(crate::schema::employee_contracts::start_date.le(end_date))
+            .filter(
+                crate::schema::employee_contracts::end_date
+                    .is_null()
+                    .or(crate::schema::employee_contracts::end_date.ge(start_date)),
+            )
+            .select((
+                crate::schema::employee_contracts::all_columns,
+                crate::schema::employments::id,
+                crate::schema::employments::employer_id,
+            ))
+            .load::<(
+                crate::models::diesel::employee_contract::EmployeeContractEntity,
+                Uuid,
+                Uuid,
+            )>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db batch contracts: {e}")))?;
+
+        let mut contracts_by_employment: HashMap<
+            Uuid,
+            Vec<(
+                crate::models::diesel::employee_contract::EmployeeContractEntity,
+                Uuid,
+            )>,
+        > = HashMap::new();
+        for (contract, employment_id, employer_id) in batch_contracts {
+            contracts_by_employment
+                .entry(employment_id)
+                .or_default()
+                .push((contract, employer_id));
+        }
+
+        // 4. Batch-load assignments
+        let batch_assignments = crate::schema::employee_assignments::table
+            .inner_join(crate::schema::employments::table)
+            .filter(crate::schema::employee_assignments::workspace_id.eq(workspace_id))
+            .filter(crate::schema::employments::id.eq_any(&emp_ids))
+            .filter(
+                crate::schema::employee_assignments::status
+                    .eq(crate::models::employee_assignment::AssignmentStatusEnum::Active),
+            )
+            .filter(crate::schema::employee_assignments::start_date.le(end_date))
+            .filter(
+                crate::schema::employee_assignments::end_date
+                    .is_null()
+                    .or(crate::schema::employee_assignments::end_date.ge(start_date)),
+            )
+            .select((
+                crate::schema::employee_assignments::all_columns,
+                crate::schema::employments::id,
+            ))
+            .load::<(crate::models::employee_assignment::EmployeeAssignment, Uuid)>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db batch assignments: {e}")))?;
+
+        let mut assignments_by_employment: HashMap<
+            Uuid,
+            Vec<crate::models::employee_assignment::EmployeeAssignment>,
+        > = HashMap::new();
+        for (assignment, employment_id) in batch_assignments {
+            assignments_by_employment
+                .entry(employment_id)
+                .or_default()
+                .push(assignment);
+        }
+
+        // 5. Holidays
+        let holiday_entities = crate::schema::holidays::table
+            .filter(crate::schema::holidays::workspace_id.eq(workspace_id))
+            .filter(crate::schema::holidays::date.ge(start_date))
+            .filter(crate::schema::holidays::date.le(end_date))
+            .load::<crate::models::diesel::holiday::HolidayEntity>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let holidays_map: HashMap<NaiveDate, crate::models::Holiday> = holiday_entities
+            .into_iter()
+            .map(|e| (e.date, e.into()))
+            .collect();
+
+        // 6. Rosters
+        let rosters_entities = crate::schema::shift_rosters::table
+            .inner_join(crate::schema::employments::table)
+            .filter(crate::schema::employments::workspace_id.eq(workspace_id))
+            .filter(crate::schema::shift_rosters::date.ge(start_date))
+            .filter(crate::schema::shift_rosters::date.le(end_date))
+            .select(crate::schema::shift_rosters::all_columns)
+            .load::<crate::models::diesel::roster::ShiftRosterEntity>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let mut roster_map: HashMap<(Uuid, NaiveDate), Option<Uuid>> = HashMap::new();
+        for r in rosters_entities {
+            roster_map.insert((r.employment_id, r.date), r.shift_id);
+        }
+
+        // 7. Build EmployeeSegments via resolve_work_segments_from_data
+        let mut result = Vec::new();
+
+        for (emp_id, emp_full_name, emp_id_number, emp_tags, primary_loc, employee_id) in
+            employees_entities
+        {
+            // Active employer
+            let active_employer_id = contracts_by_employment
+                .get(&emp_id)
+                .and_then(|contracts| {
+                    contracts
+                        .iter()
+                        .filter(|(c, _)| {
+                            c.start_date <= end_date
+                                && c.end_date.is_none_or(|end| end >= start_date)
+                        })
+                        .max_by_key(|(c, _)| c.start_date)
+                })
+                .map(|(_, employer_id)| *employer_id);
+
+            // Active assignment location
+            let active_location_id = assignments_by_employment
+                .get(&emp_id)
+                .and_then(|assignments| {
+                    assignments
+                        .iter()
+                        .filter(|a| {
+                            a.start_date <= end_date
+                                && a.end_date.is_none_or(|end| end >= start_date)
+                        })
+                        .max_by_key(|a| a.start_date)
+                })
+                .map(|a| a.host_location_id)
+                .or(primary_loc);
+
+            // Resolve segments per-date
+            let mut all_segments = Vec::new();
+            let mut curr_date = start_date;
+            while curr_date <= end_date {
+                let segments =
+                    crate::repositories::roster::shift_resolution::resolve_work_segments_from_data(
+                        &roster_data,
+                        &roster_map,
+                        emp_id,
+                        employee_id,
+                        &emp_id_number,
+                        emp_tags.as_ref(),
+                        curr_date,
+                        active_location_id,
+                        active_employer_id,
+                    );
+
+                let holiday = holidays_map.get(&curr_date);
+                for mut seg in segments {
+                    seg.is_holiday = holiday.is_some();
+                    seg.is_holiday_paid = holiday.is_some_and(crate::models::Holiday::is_paid);
+                    seg.holiday_name = holiday.map(|h| h.name().to_string());
+                    all_segments.push(seg);
+                }
+
+                if let Some(next_date) = curr_date.succ_opt() {
+                    curr_date = next_date;
+                } else {
+                    break;
+                }
+            }
+
+            result.push(EmployeeSegments::new(
+                emp_id,
+                employee_id,
+                emp_id_number.clone(),
+                emp_full_name.clone(),
+                all_segments,
+            ));
+        }
+
+        let total = if page.is_some() || limit.is_some() {
+            total
+        } else {
+            i64::try_from(result.len()).unwrap_or(0)
+        };
+
+        Ok((result, total))
+    }
+
     async fn get_assignment_history(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

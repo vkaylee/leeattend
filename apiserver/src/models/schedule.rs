@@ -288,6 +288,57 @@ impl EmployeeSchedule {
     }
 }
 
+/// Employee-scoped resolved segments for the segment-centric report path.
+///
+/// Mirrors [`EmployeeSchedule`] but carries [`ResolvedSegment`] instead of
+/// [`EffectiveSchedule`], enabling per-segment report rows and time-entry
+/// matching.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EmployeeSegments {
+    employment_id: Uuid,
+    employee_id: Uuid,
+    employee_id_number: String,
+    full_name: String,
+    segments: Vec<crate::models::ResolvedSegment>,
+}
+
+impl EmployeeSegments {
+    pub fn new(
+        employment_id: Uuid,
+        employee_id: Uuid,
+        employee_id_number: String,
+        full_name: String,
+        segments: Vec<crate::models::ResolvedSegment>,
+    ) -> Self {
+        Self {
+            employment_id,
+            employee_id,
+            employee_id_number,
+            full_name,
+            segments,
+        }
+    }
+
+    pub fn employment_id(&self) -> Uuid {
+        self.employment_id
+    }
+    pub fn employee_id(&self) -> Uuid {
+        self.employee_id
+    }
+    pub fn employee_id_number(&self) -> &str {
+        &self.employee_id_number
+    }
+    pub fn full_name(&self) -> &str {
+        &self.full_name
+    }
+    pub fn segments(&self) -> &[crate::models::ResolvedSegment] {
+        &self.segments
+    }
+    pub fn into_segments(self) -> Vec<crate::models::ResolvedSegment> {
+        self.segments
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, diesel::QueryableByName, utoipa::ToSchema)]
 pub struct AssignmentHistory {
     #[diesel(sql_type = diesel::sql_types::Uuid)]

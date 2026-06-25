@@ -1,4 +1,5 @@
-use chrono::NaiveTime;
+use crate::models::ScheduleTrace;
+use chrono::{NaiveDate, NaiveTime};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -12,7 +13,21 @@ pub struct ResolvedSegment {
     pub sort_order: i32,
     pub scheduled_start: NaiveTime,
     pub scheduled_end: NaiveTime,
-    pub source: String, // "roster" | "pattern" | "rule" | "fixed"
+    pub source: String, // "roster" | "pattern" | "assignment_rule" | "fixed"
+    /// When this segment is resolved for a specific date, it is set here.
+    #[serde(default)]
+    pub date: Option<NaiveDate>,
+    /// Shift metadata from RosterShift.
+    #[serde(default)]
+    pub shift_name: Option<String>,
+    #[serde(default)]
+    pub shift_symbol: Option<String>,
+    /// Interval name from ShiftDefaultInterval, if this segment came from one.
+    #[serde(default)]
+    pub interval_name: Option<String>,
+    /// Segment type: "work" | "standby" | "on_call" | "training" | "travel".
+    #[serde(default = "default_segment_type")]
+    pub segment_type: String,
     pub break_duration_minutes: Option<i32>,
     pub break_start: Option<NaiveTime>,
     pub break_end: Option<NaiveTime>,
@@ -23,4 +38,18 @@ pub struct ResolvedSegment {
     pub early_punch_in_grace_period_minutes: i32,
     pub ot_aggregation_mode: String,
     pub is_night_shift: bool,
+    /// Schedule resolution traces.
+    #[serde(default)]
+    pub traces: Vec<ScheduleTrace>,
+    /// Holiday status for the date this segment falls on.
+    #[serde(default)]
+    pub is_holiday: bool,
+    #[serde(default)]
+    pub is_holiday_paid: bool,
+    #[serde(default)]
+    pub holiday_name: Option<String>,
+}
+
+fn default_segment_type() -> String {
+    "work".to_string()
 }

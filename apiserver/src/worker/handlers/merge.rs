@@ -676,6 +676,13 @@ mod tests {
             generation_metadata: None,
             is_leave_paid: None,
             employer_name: None,
+            segment_id: None,
+            shift_id: None,
+            interval_id: None,
+            interval_name: None,
+            segment_type: None,
+            sort_order: None,
+            segment_count: None,
         };
         let report2 = DailyAttendanceReport {
             date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
@@ -707,6 +714,13 @@ mod tests {
             generation_metadata: None,
             is_leave_paid: None,
             employer_name: None,
+            segment_id: None,
+            shift_id: None,
+            interval_id: None,
+            interval_name: None,
+            segment_type: None,
+            sort_order: None,
+            segment_count: None,
         };
 
         let batch_results: Vec<(String, String)> = vec![
@@ -888,6 +902,13 @@ mod tests {
             generation_metadata: None,
             is_leave_paid: None,
             employer_name: None,
+            segment_id: None,
+            shift_id: None,
+            interval_id: None,
+            interval_name: None,
+            segment_type: None,
+            sort_order: None,
+            segment_count: None,
         };
 
         let b1 = vec![
@@ -983,6 +1004,13 @@ mod tests {
             generation_metadata: None,
             is_leave_paid: None,
             employer_name: None,
+            segment_id: None,
+            shift_id: None,
+            interval_id: None,
+            interval_name: None,
+            segment_type: None,
+            sort_order: None,
+            segment_count: None,
         };
         let json = serde_json::to_string(&report).unwrap();
         assert!(json.contains("EMP-002"));
@@ -1189,6 +1217,13 @@ mod tests {
                 generation_metadata: None,
                 is_leave_paid: None,
                 employer_name: None,
+                segment_id: None,
+                shift_id: None,
+                interval_id: None,
+                interval_name: None,
+                segment_type: None,
+                sort_order: None,
+                segment_count: None,
             };
             let json = serde_json::to_string(&vec![report]).unwrap();
             Ok(vec![

@@ -185,6 +185,21 @@ pub struct DailyAttendanceReport {
     pub is_leave_paid: Option<bool>,
     #[serde(default)]
     pub employer_name: Option<String>,
+    // ── Segment fields (segment-centric report path) ──
+    #[serde(default)]
+    pub segment_id: Option<Uuid>,
+    #[serde(default)]
+    pub shift_id: Option<Uuid>,
+    #[serde(default)]
+    pub interval_id: Option<Uuid>,
+    #[serde(default)]
+    pub interval_name: Option<String>,
+    #[serde(default)]
+    pub segment_type: Option<String>,
+    #[serde(default)]
+    pub sort_order: Option<i32>,
+    #[serde(default)]
+    pub segment_count: Option<i32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

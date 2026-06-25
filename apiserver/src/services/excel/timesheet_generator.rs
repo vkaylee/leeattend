@@ -3,7 +3,9 @@ use chrono_tz::Tz;
 use rust_xlsxwriter::{Color, Format, FormatAlign, Workbook};
 use std::collections::BTreeMap;
 
-use super::utils::{ceil_units_to_hours, fmt_h, format_period_label, units_to_hours, DayCell};
+use super::utils::{
+    ceil_units_to_hours, fmt_h, format_period_label, units_to_hours, DayCell, SegmentCell,
+};
 use crate::models::DailyAttendanceReport;
 use crate::services::import_messages::ExcelReportMessages;
 use crate::utils::excel_format_utils::ExcelFormatUtils;
@@ -73,9 +75,27 @@ pub fn generate(
             r.employee_id_number.clone(),
         );
         let day_map = emp_days.entry(key).or_default();
-        day_map.insert(
-            r.date,
-            DayCell {
+        let segment_cell = SegmentCell {
+            segment_id: r.segment_id,
+            sort_order: r.sort_order.unwrap_or(0),
+            interval_name: r.interval_name.clone(),
+            segment_type: r.segment_type.clone().unwrap_or_else(|| "work".to_string()),
+            scheduled_start: r.scheduled_start,
+            scheduled_end: r.scheduled_end,
+            std_work_units: r.std_work_units,
+            ot_work_units: r.ot_work_units,
+            punch_in: r.actual_punch_in,
+            punch_out: r.actual_punch_out,
+        };
+
+        day_map
+            .entry(r.date)
+            .and_modify(|cell| {
+                cell.std_work_units += r.std_work_units;
+                cell.ot_work_units += r.ot_work_units;
+                cell.segments.push(segment_cell.clone());
+            })
+            .or_insert_with(|| DayCell {
                 std_work_units: r.std_work_units,
                 ot_work_units: r.ot_work_units,
                 punch_in: r.actual_punch_in,
@@ -86,8 +106,8 @@ pub fn generate(
                 is_holiday: r.is_holiday,
                 status: r.status,
                 is_leave_paid: r.is_leave_paid,
-            },
-        );
+                segments: vec![segment_cell],
+            });
     }
 
     // Header row (row 3): Employee ID | Employee | Employer | day numbers
