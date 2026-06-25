@@ -30,11 +30,15 @@ fn generate_termination_xlsx(rows: &[(&str, &str)]) -> Vec<u8> {
 
     worksheet.write_string(0, 0, "employee_code").unwrap();
     worksheet.write_string(0, 1, "termination_date").unwrap();
+    worksheet.write_string(0, 2, "termination_reason").unwrap();
 
     for (idx, &(id, date)) in rows.iter().enumerate() {
         let row = (idx + 1) as u32;
         worksheet.write_string(row, 0, id).unwrap();
         worksheet.write_string(row, 1, date).unwrap();
+        worksheet
+            .write_string(row, 2, "voluntary_resignation")
+            .unwrap();
     }
 
     workbook.save_to_buffer().unwrap()

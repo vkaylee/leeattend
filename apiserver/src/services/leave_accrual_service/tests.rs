@@ -658,6 +658,7 @@ async fn test_batch_count_qualifying_days_for_workspace_success() {
                     emp1,
                     Uuid::new_v4(),
                     None,
+                    None,
                     chrono::Utc.with_ymd_and_hms(2026, 1, 15, 8, 0, 0).unwrap(),
                     None,
                     None,

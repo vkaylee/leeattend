@@ -6862,6 +6862,8 @@ export interface components {
             entry_type?: string | null;
             is_break_overtime?: boolean | null;
             note?: string | null;
+            /** Format: uuid */
+            segment_id?: string | null;
         };
         PunchOutRequest: {
             note?: string | null;
@@ -7306,6 +7308,8 @@ export interface components {
             /** Format: date-time */
             punch_out_time?: string | null;
             /** Format: uuid */
+            segment_id?: string | null;
+            /** Format: uuid */
             shift_id?: string | null;
             /** Format: date-time */
             updated_at: string;
@@ -7670,6 +7674,8 @@ export interface components {
             punch_in_time?: string | null;
             /** Format: date-time */
             punch_out_time?: string | null;
+            /** Format: uuid */
+            segment_id?: string | null;
         };
         UpdateUserRequest: {
             avatar_url?: string | null;
@@ -13633,7 +13639,9 @@ export interface operations {
     };
     import_termination_template: {
         parameters: {
-            query?: never;
+            query?: {
+                lang?: string | null;
+            };
             header?: never;
             path: {
                 /** @description Workspace ID */

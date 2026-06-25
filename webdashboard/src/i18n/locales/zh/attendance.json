@@ -705,5 +705,62 @@
       "attachment": "附件 (仅限 PDF)",
       "punch_time": "打卡时间"
     }
+  },
+  "work_segments": {
+    "title": "工作时段",
+    "segment": "时段",
+    "segments": "时段列表",
+    "create_segment": "创建时段",
+    "edit_segment": "编辑时段",
+    "delete_segment": "删除时段",
+    "no_segments": "无工作时段",
+    "sort_order": "顺序",
+    "segment_type": {
+      "work": "工作",
+      "standby": "待命",
+      "on_call": "值班",
+      "training": "培训",
+      "travel": "出差"
+    },
+    "gap_compensation": {
+      "unpaid": "无薪间隙",
+      "standby": "待命薪资",
+      "break": "长休息"
+    },
+    "compensation_rate": "薪资比例",
+    "gap_before": "时段前间隙",
+    "source": {
+      "roster": "手动排班",
+      "pattern": "工作模式",
+      "rule": "分配规则",
+      "fixed": "固定分配",
+      "manual": "手动",
+      "auto": "自动生成"
+    },
+    "bulk_create": "批量创建",
+    "replace_existing": "替换现有时段",
+    "daily_total": "每日总计",
+    "intervals": {
+      "title": "班次时段模板",
+      "interval": "时段",
+      "add_interval": "添加时段",
+      "remove_interval": "移除时段",
+      "interval_name": "时段名称",
+      "start_time": "开始时间",
+      "end_time": "结束时间",
+      "no_intervals": "未定义时段模板，使用班次的开始/结束时间。",
+      "drag_to_reorder": "拖动重新排序"
+    },
+    "ot_aggregation_mode": {
+      "label": "加班计算方式",
+      "aggregate": "汇总（每日总计）",
+      "aggregate_desc": "汇总所有时段工时，统一计算加班",
+      "per_segment": "按时段",
+      "per_segment_desc": "每个时段独立计算加班"
+    },
+    "night_shift": {
+      "label": "夜班",
+      "description": "跨午夜班次 — 工时归属开始日期"
+    }
   }
 }

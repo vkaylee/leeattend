@@ -2730,6 +2730,7 @@ mod tests {
                 Uuid::nil(),
                 Uuid::nil(),
                 Some(Uuid::nil()),
+                None,
                 Utc.with_ymd_and_hms(2023, 1, 1, 9, 0, 0).unwrap(),
                 Some(Utc.with_ymd_and_hms(2023, 1, 1, 17, 0, 0).unwrap()),
                 Some(480),

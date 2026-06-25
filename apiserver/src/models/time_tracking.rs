@@ -55,6 +55,7 @@ pub struct TimeEntry {
     employment_id: Uuid,
     workspace_id: Uuid,
     shift_id: Option<Uuid>,
+    segment_id: Option<Uuid>,
     punch_in_time: DateTime<Utc>,
     punch_out_time: Option<DateTime<Utc>>,
     duration_minutes: Option<i32>,
@@ -73,6 +74,7 @@ impl TimeEntry {
         employment_id: Uuid,
         workspace_id: Uuid,
         shift_id: Option<Uuid>,
+        segment_id: Option<Uuid>,
         punch_in_time: DateTime<Utc>,
         punch_out_time: Option<DateTime<Utc>>,
         duration_minutes: Option<i32>,
@@ -88,6 +90,7 @@ impl TimeEntry {
             employment_id,
             workspace_id,
             shift_id,
+            segment_id,
             punch_in_time,
             punch_out_time,
             duration_minutes,
@@ -114,6 +117,10 @@ impl TimeEntry {
 
     pub fn shift_id(&self) -> Option<Uuid> {
         self.shift_id
+    }
+
+    pub fn segment_id(&self) -> Option<Uuid> {
+        self.segment_id
     }
 
     pub fn punch_in_time(&self) -> DateTime<Utc> {
@@ -150,6 +157,10 @@ impl TimeEntry {
 
     pub fn updated_at(&self) -> DateTime<Utc> {
         self.updated_at
+    }
+
+    pub fn set_segment_id(&mut self, sid: Option<Uuid>) {
+        self.segment_id = sid;
     }
 
     pub fn set_punch_in_time(&mut self, t: DateTime<Utc>) {
@@ -190,6 +201,7 @@ pub struct TimeEntryWithEmployee {
     employment_id: Uuid,
     workspace_id: Uuid,
     shift_id: Option<Uuid>,
+    segment_id: Option<Uuid>,
     punch_in_time: DateTime<Utc>,
     punch_out_time: Option<DateTime<Utc>>,
     duration_minutes: Option<i32>,
@@ -210,6 +222,7 @@ impl TimeEntryWithEmployee {
         employment_id: Uuid,
         workspace_id: Uuid,
         shift_id: Option<Uuid>,
+        segment_id: Option<Uuid>,
         punch_in_time: DateTime<Utc>,
         punch_out_time: Option<DateTime<Utc>>,
         duration_minutes: Option<i32>,
@@ -227,6 +240,7 @@ impl TimeEntryWithEmployee {
             employment_id,
             workspace_id,
             shift_id,
+            segment_id,
             punch_in_time,
             punch_out_time,
             duration_minutes,
@@ -255,6 +269,10 @@ impl TimeEntryWithEmployee {
 
     pub fn shift_id(&self) -> Option<Uuid> {
         self.shift_id
+    }
+
+    pub fn segment_id(&self) -> Option<Uuid> {
+        self.segment_id
     }
 
     pub fn punch_in_time(&self) -> DateTime<Utc> {
@@ -305,6 +323,7 @@ impl TimeEntryWithEmployee {
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
 pub struct PunchInRequest {
     employment_id: Uuid,
+    segment_id: Option<Uuid>,
     entry_type: Option<String>,
     is_break_overtime: Option<bool>,
     note: Option<String>,
@@ -313,12 +332,14 @@ pub struct PunchInRequest {
 impl PunchInRequest {
     pub fn new(
         employment_id: Uuid,
+        segment_id: Option<Uuid>,
         entry_type: Option<String>,
         is_break_overtime: Option<bool>,
         note: Option<String>,
     ) -> Self {
         Self {
             employment_id,
+            segment_id,
             entry_type,
             is_break_overtime,
             note,
@@ -327,6 +348,10 @@ impl PunchInRequest {
 
     pub fn employment_id(&self) -> Uuid {
         self.employment_id
+    }
+
+    pub fn segment_id(&self) -> Option<Uuid> {
+        self.segment_id
     }
 
     pub fn entry_type(&self) -> Option<&str> {
@@ -361,6 +386,7 @@ impl PunchOutRequest {
 pub struct UpdateTimeEntryRequest {
     punch_in_time: Option<DateTime<Utc>>,
     punch_out_time: Option<DateTime<Utc>>,
+    segment_id: Option<Uuid>,
     entry_type: Option<String>,
     note: Option<String>,
 }
@@ -369,12 +395,14 @@ impl UpdateTimeEntryRequest {
     pub fn new(
         punch_in_time: Option<DateTime<Utc>>,
         punch_out_time: Option<DateTime<Utc>>,
+        segment_id: Option<Uuid>,
         entry_type: Option<String>,
         note: Option<String>,
     ) -> Self {
         Self {
             punch_in_time,
             punch_out_time,
+            segment_id,
             entry_type,
             note,
         }
@@ -386,6 +414,10 @@ impl UpdateTimeEntryRequest {
 
     pub fn punch_out_time(&self) -> Option<DateTime<Utc>> {
         self.punch_out_time
+    }
+
+    pub fn segment_id(&self) -> Option<Uuid> {
+        self.segment_id
     }
 
     pub fn entry_type(&self) -> Option<&str> {
@@ -429,6 +461,7 @@ mod tests {
             emp_id,
             ws_id,
             Some(shift_id),
+            None,
             now,
             None,
             None,
@@ -487,6 +520,7 @@ mod tests {
             emp_id,
             ws_id,
             Some(shift_id),
+            None,
             now,
             Some(now),
             Some(0),
@@ -522,12 +556,14 @@ mod tests {
         let emp_id = Uuid::new_v4();
         let req = PunchInRequest::new(
             emp_id,
+            None,
             Some("work".to_string()),
             Some(true),
             Some("Note".to_string()),
         );
 
         assert_eq!(req.employment_id(), emp_id);
+        assert_eq!(req.segment_id(), None);
         assert_eq!(req.entry_type(), Some("work"));
         assert_eq!(req.is_break_overtime(), Some(true));
         assert_eq!(req.note(), Some("Note"));
@@ -545,6 +581,7 @@ mod tests {
         let req = UpdateTimeEntryRequest::new(
             Some(now),
             Some(now),
+            None,
             Some("work".to_string()),
             Some("Note".to_string()),
         );

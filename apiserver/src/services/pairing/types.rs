@@ -76,6 +76,7 @@ impl BreakInterval {
     }
 }
 
+#[must_use]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PairingShiftConfig {
     pub(crate) start_minutes: i32,
@@ -83,6 +84,7 @@ pub struct PairingShiftConfig {
     pub(crate) breaks: Vec<BreakInterval>,
     pub(crate) check_in_buffer_minutes: Option<i32>,
     pub(crate) max_session_gap_minutes: Option<i32>,
+    pub(crate) segment_id: Option<Uuid>,
 }
 
 impl PairingShiftConfig {
@@ -104,6 +106,7 @@ impl PairingShiftConfig {
             breaks,
             check_in_buffer_minutes,
             max_session_gap_minutes,
+            segment_id: None,
         }
     }
 
@@ -120,7 +123,13 @@ impl PairingShiftConfig {
             breaks,
             check_in_buffer_minutes,
             max_session_gap_minutes,
+            segment_id: None,
         }
+    }
+
+    pub fn with_segment_id(mut self, segment_id: Uuid) -> Self {
+        self.segment_id = Some(segment_id);
+        self
     }
 
     pub fn start_minutes(&self) -> i32 {
@@ -149,6 +158,49 @@ impl PairingShiftConfig {
 
     pub fn max_session_gap_minutes(&self) -> Option<i32> {
         self.max_session_gap_minutes
+    }
+
+    pub fn segment_id(&self) -> Option<Uuid> {
+        self.segment_id
+    }
+}
+
+/// A collection of shift configs for a single day.
+/// Used for split-shift / multi-segment pairing where a worker
+/// has multiple scheduled work windows in one calendar day.
+#[must_use]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MultiSegmentConfig {
+    pub segments: Vec<PairingShiftConfig>,
+}
+
+impl MultiSegmentConfig {
+    pub fn new(segments: Vec<PairingShiftConfig>) -> Self {
+        Self { segments }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.segments.is_empty()
+    }
+
+    pub fn single(config: PairingShiftConfig) -> Self {
+        Self {
+            segments: vec![config],
+        }
+    }
+
+    pub fn first(&self) -> Option<&PairingShiftConfig> {
+        self.segments.first()
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &PairingShiftConfig> {
+        self.segments.iter()
+    }
+}
+
+impl From<PairingShiftConfig> for MultiSegmentConfig {
+    fn from(config: PairingShiftConfig) -> Self {
+        Self::single(config)
     }
 }
 

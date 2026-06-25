@@ -614,6 +614,9 @@ impl AttendanceSummaryService {
                 rules: policy_rules,
                 ot_ceiling: None,
                 max_early_ot_minutes: daily_schedule.max_early_ot_minutes(),
+                segment_id: None,
+                ot_aggregation_mode:
+                    crate::services::attendance_calculator::OtAggregationMode::Aggregate,
             },
         );
 
@@ -1400,6 +1403,7 @@ mod tests {
                         employee_id,
                         workspace_id,
                         None,
+                        None,
                         punch_in,
                         Some(punch_out),
                         Some(480),
@@ -1564,6 +1568,7 @@ mod tests {
                         employee_id,
                         workspace_id,
                         None,
+                        None,
                         punch_in,
                         Some(punch_out),
                         Some(480),
@@ -1724,6 +1729,7 @@ mod tests {
                         Uuid::new_v4(),
                         employee_id,
                         workspace_id,
+                        None,
                         None,
                         punch_in,
                         Some(punch_out),
@@ -2004,6 +2010,7 @@ mod tests {
                         Uuid::new_v4(),
                         employee_id,
                         workspace_id,
+                        None,
                         None,
                         punch_in,
                         Some(punch_out),

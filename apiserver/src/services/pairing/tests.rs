@@ -853,6 +853,7 @@ async fn test_reprocess_daily_attendance_excludes_already_paired_logs() {
         emp_id,
         ws_id,
         None,
+        None,
         adjacent_time,
         None,
         None,

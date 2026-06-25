@@ -556,4 +556,116 @@ export type ChecklistAssigneeType = components["schemas"]["ChecklistAssigneeType
 export type ChecklistStatus = components["schemas"]["ChecklistStatus"];
 export type LifecycleChecklistType = components["schemas"]["LifecycleChecklistType"];
 
+// ── Work Segments ──────────────────────────────────────────────────────────
+
+export interface WorkSegment {
+  id: string;
+  workspace_id: string;
+  employment_id: string;
+  date: string;
+  shift_id: string;
+  interval_id?: string | null;
+  sort_order: number;
+  scheduled_start: string;
+  scheduled_end: string;
+  segment_type: 'work' | 'standby' | 'on_call' | 'training' | 'travel';
+  segment_status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+  compensation_rate: number;
+  gap_compensation_before: 'unpaid' | 'standby' | 'break';
+  gap_compensation_rate_before: number;
+  break_config_override?: Record<string, unknown> | null;
+  ot_config_override?: Record<string, unknown> | null;
+  source: 'roster' | 'pattern' | 'rule' | 'fixed' | 'manual' | 'auto';
+  source_detail: Record<string, unknown>;
+  notes?: string | null;
+  generation_metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateWorkSegmentRequest {
+  employment_id: string;
+  date: string;
+  shift_id: string;
+  interval_id?: string | null;
+  sort_order?: number;
+  scheduled_start: string;
+  scheduled_end: string;
+  segment_type?: string;
+  segment_status?: string;
+  compensation_rate?: number;
+  gap_compensation_before?: string;
+  gap_compensation_rate_before?: number;
+  break_config_override?: Record<string, unknown> | null;
+  ot_config_override?: Record<string, unknown> | null;
+  source?: string;
+  source_detail?: Record<string, unknown>;
+  notes?: string | null;
+}
+
+export interface UpdateWorkSegmentRequest {
+  shift_id?: string | null;
+  interval_id?: string | null;
+  sort_order?: number | null;
+  scheduled_start?: string | null;
+  scheduled_end?: string | null;
+  segment_type?: string | null;
+  segment_status?: string | null;
+  compensation_rate?: number | null;
+  gap_compensation_before?: string | null;
+  gap_compensation_rate_before?: number | null;
+  break_config_override?: Record<string, unknown> | null;
+  ot_config_override?: Record<string, unknown> | null;
+  source?: string | null;
+  source_detail?: Record<string, unknown> | null;
+  notes?: string | null;
+}
+
+export interface BulkCreateWorkSegmentsRequest {
+  segments: CreateWorkSegmentRequest[];
+  replace_existing?: boolean;
+}
+
+// ── Shift Default Intervals ─────────────────────────────────────────────────
+
+export interface ShiftDefaultInterval {
+  id: string;
+  shift_id: string;
+  sort_order: number;
+  interval_name?: string | null;
+  start_time: string;
+  end_time: string;
+  break_duration_minutes?: number | null;
+  break_start?: string | null;
+  break_end?: string | null;
+  is_break_auto_deduct?: boolean | null;
+  break_is_overtime?: boolean | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateShiftIntervalRequest {
+  sort_order?: number;
+  interval_name?: string | null;
+  start_time: string;
+  end_time: string;
+  break_duration_minutes?: number | null;
+  break_start?: string | null;
+  break_end?: string | null;
+  is_break_auto_deduct?: boolean | null;
+  break_is_overtime?: boolean | null;
+}
+
+export interface UpdateShiftIntervalRequest {
+  sort_order?: number | null;
+  interval_name?: string | null;
+  start_time?: string | null;
+  end_time?: string | null;
+  break_duration_minutes?: number | null;
+  break_start?: string | null;
+  break_end?: string | null;
+  is_break_auto_deduct?: boolean | null;
+  break_is_overtime?: boolean | null;
+}
+
 

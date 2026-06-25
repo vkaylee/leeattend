@@ -45,6 +45,7 @@ async fn test_attendance_logs_include_employee_details() -> Result<(), Box<dyn s
         emp_employment_id,
         ws_id,
         None,
+        None,
         Utc::now(),
         Some(Utc::now()),
         Some(10),

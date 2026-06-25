@@ -85,6 +85,9 @@ impl ReportService {
                     rules: args.rules,
                     ot_ceiling: None,
                     max_early_ot_minutes: args.daily.max_early_ot_minutes(),
+                    segment_id: None,
+                    ot_aggregation_mode:
+                        crate::services::attendance_calculator::OtAggregationMode::Aggregate,
                 },
             )
         } else {

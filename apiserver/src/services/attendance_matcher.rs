@@ -162,9 +162,19 @@ impl AttendanceMatcher {
                         }
 
                         // Find the work entry that belongs to this shift
+                        // Priority 1: Direct segment_id match (Work Segments model)
+                        // Priority 2: Time-window heuristic (legacy, no segment_id)
                         let matching_entries: Vec<_> = work_entries
                             .iter()
                             .filter(|entry| {
+                                // Direct segment match: if entry has segment_id, it belongs
+                                // to the corresponding work_segment (future: match via segment→shift mapping)
+                                if entry.segment_id().is_some() {
+                                    // Entry is already tagged with a specific segment.
+                                    // In future: match entry.segment_id → work_segment.shift_id == s.id
+                                    // For now: fall through to time-window matching for backward compat
+                                }
+
                                 let punch_in = entry.punch_in_time().with_timezone(&args.ctx.tz);
                                 let prev_end = if shift_idx > 0 {
                                     day_shifts.get(shift_idx - 1).and_then(|prev_s| {
@@ -235,6 +245,11 @@ impl AttendanceMatcher {
                                         rules: rules.clone(),
                                         ot_ceiling,
                                         max_early_ot_minutes: s.max_early_ot_minutes(),
+                                        segment_id: entry.segment_id(),
+                                        ot_aggregation_mode:
+                                            crate::services::attendance_calculator::OtAggregationMode::from_mode(
+                                                s.ot_aggregation_mode(),
+                                            ),
                                     },
                                 );
                                 segment_std_units += std_u;
@@ -632,6 +647,7 @@ mod tests {
             employee_id,
             ws_id,
             None,
+            None,
             punch_in,
             Some(punch_out),
             Some(240),
@@ -744,6 +760,7 @@ mod tests {
             employee_id,
             ws_id,
             None,
+            None,
             punch_in,
             Some(punch_out),
             Some(540),
@@ -772,6 +789,8 @@ mod tests {
             false,
             false,
             None,
+            "aggregate".to_string(),
+            false,
         );
 
         let mut shifts = HashMap::new();
@@ -1011,6 +1030,7 @@ mod tests {
             employee_id,
             ws_id,
             None,
+            None,
             punch_in,
             Some(punch_out),
             Some(540),
@@ -1039,6 +1059,8 @@ mod tests {
             false,
             false,
             None,
+            "aggregate".to_string(),
+            false,
         );
 
         let mut shifts = HashMap::new();
@@ -1198,6 +1220,7 @@ mod tests {
             employee_id,
             ws_id,
             None,
+            None,
             punch_in,
             Some(punch_out),
             Some(660),
@@ -1226,6 +1249,8 @@ mod tests {
             false,
             false,
             None,
+            "aggregate".to_string(),
+            false,
         );
 
         let mut shifts = HashMap::new();
@@ -1404,6 +1429,7 @@ mod tests {
             employee_id,
             ws_id,
             None,
+            None,
             punch_in,
             Some(punch_out),
             Some(540),
@@ -1432,6 +1458,8 @@ mod tests {
             false,
             true, // break_is_overtime = true
             None,
+            "aggregate".to_string(),
+            false,
         );
 
         let mut shifts = HashMap::new();

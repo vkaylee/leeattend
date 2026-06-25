@@ -705,5 +705,62 @@
       "attachment": "Attachment (PDF only)",
       "punch_time": "Punch Time"
     }
+  },
+  "work_segments": {
+    "title": "Work Segments",
+    "segment": "Segment",
+    "segments": "Segments",
+    "create_segment": "Create Segment",
+    "edit_segment": "Edit Segment",
+    "delete_segment": "Delete Segment",
+    "no_segments": "No work segments",
+    "sort_order": "Order",
+    "segment_type": {
+      "work": "Work",
+      "standby": "Standby",
+      "on_call": "On Call",
+      "training": "Training",
+      "travel": "Travel"
+    },
+    "gap_compensation": {
+      "unpaid": "Unpaid Gap",
+      "standby": "Standby Pay",
+      "break": "Long Break"
+    },
+    "compensation_rate": "Compensation Rate",
+    "gap_before": "Gap Before Segment",
+    "source": {
+      "roster": "Manual Roster",
+      "pattern": "Working Pattern",
+      "rule": "Assignment Rule",
+      "fixed": "Fixed Assignment",
+      "manual": "Manual",
+      "auto": "Auto-generated"
+    },
+    "bulk_create": "Bulk Create",
+    "replace_existing": "Replace existing segments",
+    "daily_total": "Daily Total",
+    "intervals": {
+      "title": "Shift Intervals",
+      "interval": "Interval",
+      "add_interval": "Add Interval",
+      "remove_interval": "Remove Interval",
+      "interval_name": "Interval Name",
+      "start_time": "Start Time",
+      "end_time": "End Time",
+      "no_intervals": "No intervals defined. The shift start/end time is used.",
+      "drag_to_reorder": "Drag to reorder intervals"
+    },
+    "ot_aggregation_mode": {
+      "label": "OT Calculation",
+      "aggregate": "Aggregate (Daily Total)",
+      "aggregate_desc": "Sum all hours across segments, apply OT threshold once",
+      "per_segment": "Per Segment",
+      "per_segment_desc": "Calculate OT independently for each segment"
+    },
+    "night_shift": {
+      "label": "Night Shift",
+      "description": "Shift crosses midnight — hours attributed to start day"
+    }
   }
 }

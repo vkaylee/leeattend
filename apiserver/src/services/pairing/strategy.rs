@@ -1,5 +1,5 @@
 use crate::services::pairing::types::{
-    EntryType, LogEvent, PairedSession, PairingNote, PairingShiftConfig,
+    EntryType, LogEvent, MultiSegmentConfig, PairedSession, PairingNote, PairingShiftConfig,
 };
 use tracing::info;
 
@@ -17,11 +17,25 @@ impl ShiftAwareStrategy {
         ALGORITHM_NAME
     }
 
+    /// Legacy entry point: single shift config.
+    /// Delegates to `pair_multi` via MultiSegmentConfig::single().
     #[tracing::instrument(skip_all, fields(log_count = logs.len(), has_config = config.is_some()))]
     pub fn pair(
         &self,
         logs: &[LogEvent],
         config: Option<&PairingShiftConfig>,
+    ) -> Vec<PairedSession> {
+        let multi = config.map(|c| MultiSegmentConfig::single(c.clone()));
+        self.pair_multi(logs, multi.as_ref())
+    }
+
+    /// Multi-segment pairing: runs shift-window pairing independently
+    /// for each segment config, then anchors remaining unpaired logs.
+    #[tracing::instrument(skip_all, fields(log_count = logs.len(), segment_count = config.map_or(0, |c| c.segments.len())))]
+    pub fn pair_multi(
+        &self,
+        logs: &[LogEvent],
+        config: Option<&MultiSegmentConfig>,
     ) -> Vec<PairedSession> {
         if logs.is_empty() {
             return vec![];
@@ -30,9 +44,36 @@ impl ShiftAwareStrategy {
         let mut sorted_logs = logs.to_vec();
         sorted_logs.sort_by_key(LogEvent::minutes);
 
-        // Tier 1: If shift config available, use shift-window-based pairing
-        if let Some(shift) = config {
-            let sessions = Self::pair_by_shift_window(&sorted_logs, shift);
+        // Tier 1: For each segment, run shift-window pairing on remaining logs
+        if let Some(multi) = config {
+            if !multi.is_empty() {
+                let mut all_sessions = Vec::new();
+                let remaining_logs = sorted_logs.clone();
+
+                for segment in multi.iter() {
+                    if remaining_logs.is_empty() {
+                        break;
+                    }
+                    let sessions = Self::pair_by_shift_window(&remaining_logs, segment);
+                    // TODO: Tag sessions with segment.segment_id() via PairedSession metadata
+                    // for proper segment attribution in build_time_entries (future enhancement).
+                    all_sessions.extend(sessions);
+                }
+
+                if !all_sessions.is_empty() {
+                    info!(
+                        tier = "multi_segment",
+                        session_count = all_sessions.len(),
+                        "Multi-segment pairing complete"
+                    );
+                    return all_sessions;
+                }
+            }
+        }
+
+        // Tier 2: Fallback to anchor-first for single config or no config
+        if let Some(cfg) = config.and_then(|c| c.first()) {
+            let sessions = Self::pair_by_shift_window(&sorted_logs, cfg);
             info!(
                 tier = "shift_window",
                 session_count = sessions.len(),
@@ -41,7 +82,7 @@ impl ShiftAwareStrategy {
             return sessions;
         }
 
-        // Tier 2: Fallback to anchor-first (original behavior)
+        // Tier 3: anchor-first fallback
         let sessions = Self::pair_anchor_first(&sorted_logs, None);
         info!(
             tier = "anchor_first",

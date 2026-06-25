@@ -151,6 +151,11 @@ function DayCardShiftDetails({ daySchedules, formatTime, onDeleteRoster, dateStr
 
   return (
     <div className="space-y-3">
+      {workingSchedules.length > 1 && (
+        <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider text-center">
+          {workingSchedules.length} {t("work_segments.segments", "segments")}
+        </div>
+      )}
       {workingSchedules.map((s, idx) => {
         const shiftConfig = shifts?.find((sh) => sh.id === s.shift_id);
         const shiftSymbol = getShiftSymbol(s.shift_name, shiftConfig?.report_symbol);

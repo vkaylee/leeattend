@@ -26,6 +26,7 @@ use crate::queue::RedisPool;
 
 /// A single shift's static configuration.
 #[derive(Debug, Clone)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct RosterShift {
     name: String,
     report_symbol: Option<String>,
@@ -39,9 +40,12 @@ pub struct RosterShift {
     allow_early_ot: bool,
     break_is_overtime: bool,
     max_early_ot_minutes: Option<i32>,
+    ot_aggregation_mode: String,
+    is_night_shift: bool,
 }
 
 impl RosterShift {
+    #[allow(clippy::too_many_arguments, clippy::fn_params_excessive_bools)]
     pub fn new(
         name: String,
         report_symbol: Option<String>,
@@ -55,6 +59,8 @@ impl RosterShift {
         allow_early_ot: bool,
         break_is_overtime: bool,
         max_early_ot_minutes: Option<i32>,
+        ot_aggregation_mode: String,
+        is_night_shift: bool,
     ) -> Self {
         Self {
             name,
@@ -69,6 +75,8 @@ impl RosterShift {
             allow_early_ot,
             break_is_overtime,
             max_early_ot_minutes,
+            ot_aggregation_mode,
+            is_night_shift,
         }
     }
 
@@ -118,6 +126,14 @@ impl RosterShift {
 
     pub fn max_early_ot_minutes(&self) -> Option<i32> {
         self.max_early_ot_minutes
+    }
+
+    pub fn ot_aggregation_mode(&self) -> &str {
+        &self.ot_aggregation_mode
+    }
+
+    pub fn is_night_shift(&self) -> bool {
+        self.is_night_shift
     }
 }
 
@@ -330,6 +346,8 @@ pub async fn build_roster_data(
                     allow_early_ot: r.allow_early_ot,
                     max_early_ot_minutes: r.max_early_ot_minutes,
                     break_is_overtime: r.break_is_overtime,
+                    ot_aggregation_mode: "aggregate".to_string(),
+                    is_night_shift: false,
                 },
             )
         })
@@ -608,6 +626,8 @@ mod tests {
             false,
             false,
             None,
+            "aggregate".to_string(),
+            false,
         );
 
         assert_eq!(shift.name(), "Morning");

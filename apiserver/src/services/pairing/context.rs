@@ -1,7 +1,7 @@
 use crate::errors::AppError;
-use crate::models::{RawAttendanceLog, Shift, TimeEntry};
+use crate::models::{RawAttendanceLog, ResolvedSegment, Shift, TimeEntry};
 use crate::services::pairing::types::{
-    LogEvent, PairedSession, PairingContext, PairingShiftConfig,
+    LogEvent, MultiSegmentConfig, PairedSession, PairingContext, PairingShiftConfig,
 };
 use chrono::{DateTime, Duration, NaiveDate, NaiveTime, Timelike, Utc};
 use chrono_tz::Tz;
@@ -46,6 +46,36 @@ impl PairingContext {
             sched.break_end(),
             sched.early_punch_in_grace_period_minutes().unwrap_or(0),
         ))
+    }
+
+    /// Build a MultiSegmentConfig from resolved work segments.
+    /// Each segment produces a PairingShiftConfig with its own time window and break config.
+    pub fn build_multi_segment_config(
+        &self,
+        segments: &[ResolvedSegment],
+    ) -> Option<MultiSegmentConfig> {
+        if segments.is_empty() {
+            return None;
+        }
+
+        let configs: Vec<PairingShiftConfig> = segments
+            .iter()
+            .map(|seg| {
+                let mut cfg = build_config_from_times(
+                    seg.scheduled_start,
+                    seg.scheduled_end,
+                    seg.break_start,
+                    seg.break_end,
+                    seg.early_punch_in_grace_period_minutes,
+                );
+                if let Some(ref sid) = seg.interval_id {
+                    cfg.segment_id = Some(*sid);
+                }
+                cfg
+            })
+            .collect();
+
+        Some(MultiSegmentConfig::new(configs))
     }
 
     pub fn calculate_fetch_window(
@@ -150,6 +180,7 @@ impl PairingContext {
                 employment_id,
                 workspace_id,
                 shift_id_opt,
+                None,
                 start_dt_utc,
                 end_dt_utc,
                 duration,

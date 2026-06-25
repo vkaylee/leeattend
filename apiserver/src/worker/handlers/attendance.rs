@@ -415,6 +415,9 @@ impl AttendanceHandler {
                             rules: rules.clone(),
                             ot_ceiling: None,
                             max_early_ot_minutes: daily.max_early_ot_minutes(),
+                            segment_id: None,
+                            ot_aggregation_mode:
+                                crate::services::attendance_calculator::OtAggregationMode::Aggregate,
                         },
                     );
 
@@ -631,6 +634,8 @@ impl AttendanceHandler {
                                 rules: rules.clone(),
                                 ot_ceiling: None,
                                 max_early_ot_minutes: daily.max_early_ot_minutes(),
+                                segment_id: None,
+                                ot_aggregation_mode: crate::services::attendance_calculator::OtAggregationMode::Aggregate,
                             },
                         );
 
@@ -930,6 +935,7 @@ mod tests {
             Uuid::new_v4(),
             Uuid::new_v4(),
             None,
+            None,
             chrono::Utc.with_ymd_and_hms(2026, 1, 14, 20, 0, 0).unwrap(),
             None,
             Some(480),
@@ -946,6 +952,7 @@ mod tests {
             entry_jan15_early.employment_id(),
             entry_jan15_early.workspace_id(),
             None,
+            None,
             chrono::Utc.with_ymd_and_hms(2026, 1, 15, 2, 0, 0).unwrap(),
             None,
             Some(480),
@@ -961,6 +968,7 @@ mod tests {
             Uuid::new_v4(),
             entry_jan15_early.employment_id(),
             entry_jan15_early.workspace_id(),
+            None,
             None,
             chrono::Utc.with_ymd_and_hms(2026, 1, 15, 18, 0, 0).unwrap(),
             None,
@@ -1014,6 +1022,7 @@ mod tests {
                     Uuid::new_v4(),
                     emp_id,
                     ws_id,
+                    None,
                     None,
                     chrono::Utc.with_ymd_and_hms(2026, 1, day, 8, 0, 0).unwrap(),
                     None,
@@ -1380,6 +1389,7 @@ mod tests {
             emp_id,
             ws_id,
             None,
+            None,
             punch_in,
             Some(punch_out),
             Some(450),
@@ -1595,6 +1605,7 @@ mod tests {
             Uuid::new_v4(),
             emp_id,
             ws_id,
+            None,
             None,
             punch_in,
             Some(punch_out),

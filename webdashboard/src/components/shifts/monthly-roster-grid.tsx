@@ -494,7 +494,7 @@ const RosterCell = memo(function RosterCell({
       <div className="py-2.5 px-1 min-h-[44px] flex flex-col justify-center items-center gap-1">
         {hasShift ? (
           <div className="flex flex-col gap-1 items-center">
-            {workingSchedules.map((s, idx) => {
+            {workingSchedules.slice(0, 3).map((s, idx) => {
               const shiftConfig = shifts?.find((sh) => sh.id === s.shift_id);
               const shiftSymbol = getShiftSymbol(s.shift_name, shiftConfig?.report_symbol);
               const shiftBgClass = s.source === "roster"
@@ -510,6 +510,11 @@ const RosterCell = memo(function RosterCell({
                 </span>
               );
             })}
+            {workingSchedules.length > 3 && (
+              <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500">
+                +{workingSchedules.length - 3} more
+              </span>
+            )}
           </div>
         ) : (
           <span className="text-[10px] text-slate-350 dark:text-slate-600 font-bold">—</span>

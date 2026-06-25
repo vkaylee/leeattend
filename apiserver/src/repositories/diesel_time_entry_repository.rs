@@ -285,6 +285,7 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
                     domain.employment_id(),
                     domain.workspace_id(),
                     domain.shift_id(),
+                    domain.segment_id(),
                     domain.punch_in_time(),
                     domain.punch_out_time(),
                     domain.duration_minutes(),

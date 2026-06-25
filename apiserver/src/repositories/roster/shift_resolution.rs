@@ -2,9 +2,13 @@
 //!
 //! The `resolve_effective_shift_from_data` function implements the 6-tier
 //! priority chain for resolving which shift applies to an employee on a date.
+//!
+//! The `resolve_work_segments_from_data` function extends this by expanding
+//! resolved shift IDs into full `ResolvedSegment` structs, supporting
+//! split-shift patterns where a single day can have multiple work segments.
 
 use crate::cache::RosterData;
-use crate::models::ScheduleTrace;
+use crate::models::{ResolvedSegment, ScheduleTrace};
 use chrono::NaiveDate;
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -143,6 +147,80 @@ pub fn resolve_effective_shift_from_data<S: ::std::hash::BuildHasher>(
     (vec![None], "none".to_string(), traces)
 }
 
+/// Resolve full work segments for a single employee on a single date.
+///
+/// Wraps [`resolve_effective_shift_from_data`] and expands each resolved
+/// shift ID into a [`ResolvedSegment`] by looking up the shift definition
+/// in `roster_data.shifts`.
+///
+/// When a shift has intervals defined in `shift_default_intervals`, they
+/// will be used (once the lookup is wired). For now, each shift produces
+/// a single segment using the shift's own start_time/end_time.
+///
+/// Returns segments sorted by `scheduled_start`.
+#[allow(clippy::too_many_lines)]
+pub fn resolve_work_segments_from_data<S: ::std::hash::BuildHasher>(
+    roster_data: &RosterData,
+    roster_map: &HashMap<(Uuid, NaiveDate), Option<Uuid>, S>,
+    employment_id: Uuid,
+    employee_id: Uuid,
+    employee_id_number: &str,
+    employee_tags: Option<&Vec<String>>,
+    date: NaiveDate,
+    active_location_id: Option<Uuid>,
+    active_employer_id: Option<Uuid>,
+) -> Vec<ResolvedSegment> {
+    let (shift_ids, source, _traces) = resolve_effective_shift_from_data(
+        roster_data,
+        roster_map,
+        employment_id,
+        employee_id,
+        employee_id_number,
+        employee_tags,
+        date,
+        active_location_id,
+        active_employer_id,
+    );
+
+    let mut segments: Vec<ResolvedSegment> = shift_ids
+        .iter()
+        .enumerate()
+        .filter_map(|(idx, shift_opt)| {
+            let shift_id = (*shift_opt)?;
+            let shift = roster_data.shifts.get(&shift_id)?;
+
+            Some(ResolvedSegment {
+                shift_id,
+                interval_id: None,
+                sort_order: i32::try_from(idx).unwrap_or(i32::MAX),
+                scheduled_start: shift.start_time(),
+                scheduled_end: shift.end_time(),
+                source: source.clone(),
+                break_duration_minutes: Some(shift.break_duration_minutes()),
+                break_start: shift.break_start(),
+                break_end: shift.break_end(),
+                is_break_auto_deduct: Some(shift.is_break_auto_deduct()),
+                break_is_overtime: Some(shift.break_is_overtime()),
+                allow_early_ot: shift.allow_early_ot(),
+                max_early_ot_minutes: shift.max_early_ot_minutes(),
+                early_punch_in_grace_period_minutes: shift.early_punch_in_grace_period_minutes(),
+                ot_aggregation_mode: shift.ot_aggregation_mode().to_string(),
+                is_night_shift: shift.is_night_shift(),
+            })
+        })
+        .collect();
+
+    // Sort by scheduled start time for correct segment ordering
+    segments.sort_by_key(|s| s.scheduled_start);
+
+    // Re-assign sort_order after sorting
+    for (i, seg) in segments.iter_mut().enumerate() {
+        seg.sort_order = i32::try_from(i).unwrap_or(i32::MAX);
+    }
+
+    segments
+}
+
 #[cfg(test)]
 #[allow(
     clippy::too_many_lines,
@@ -153,7 +231,7 @@ pub fn resolve_effective_shift_from_data<S: ::std::hash::BuildHasher>(
 mod tests {
     use super::*;
     use crate::cache::{RosterData, RosterFixedAssignment, RosterPatternEntry};
-    use chrono::NaiveDate;
+    use chrono::{NaiveDate, NaiveTime};
     use std::sync::Arc;
 
     fn resolve_effective_shift_from_data(
@@ -1205,5 +1283,424 @@ mod tests {
         );
         assert_eq!(shifts, vec![Some(shift_id)]);
         assert_eq!(source, "assignment_rule");
+    }
+
+    // ─── Work Segments resolution tests ─────────────────────────────────
+
+    use crate::cache::RosterShift;
+
+    fn make_test_shift(
+        id: Uuid,
+        name: &str,
+        start_h: u32,
+        start_m: u32,
+        end_h: u32,
+        end_m: u32,
+    ) -> (Uuid, RosterShift) {
+        let shift = RosterShift::new(
+            name.to_string(),
+            None,
+            NaiveTime::from_hms_opt(start_h, start_m, 0).unwrap(),
+            NaiveTime::from_hms_opt(end_h, end_m, 0).unwrap(),
+            60,
+            None,
+            None,
+            true,
+            0,
+            false,
+            false,
+            None,
+            "aggregate".to_string(),
+            false,
+        );
+        (id, shift)
+    }
+
+    fn make_night_shift(id: Uuid, name: &str) -> (Uuid, RosterShift) {
+        let shift = RosterShift::new(
+            name.to_string(),
+            None,
+            NaiveTime::from_hms_opt(22, 0, 0).unwrap(),
+            NaiveTime::from_hms_opt(6, 0, 0).unwrap(),
+            30,
+            None,
+            None,
+            true,
+            0,
+            false,
+            false,
+            None,
+            "aggregate".to_string(),
+            true,
+        );
+        (id, shift)
+    }
+
+    fn make_roster_data_with_shifts(shifts_map: Vec<(Uuid, RosterShift)>) -> Arc<RosterData> {
+        let mut data = (*empty_roster_data()).clone();
+        data.shifts = shifts_map.into_iter().collect();
+        Arc::new(data)
+    }
+
+    fn resolve_work_segments_wrapper(
+        roster_data: &RosterData,
+        roster_map: &HashMap<(Uuid, NaiveDate), Option<Uuid>>,
+        emp_id: Uuid,
+        date: NaiveDate,
+    ) -> Vec<crate::models::ResolvedSegment> {
+        super::resolve_work_segments_from_data(
+            roster_data,
+            roster_map,
+            emp_id,
+            emp_id,
+            "EMP001",
+            None,
+            date,
+            None,
+            None,
+        )
+    }
+
+    #[test]
+    fn test_resolve_single_segment_backward_compat() {
+        let emp = Uuid::new_v4();
+        let shift_id = Uuid::new_v4();
+        let (sid, shift) = make_test_shift(shift_id, "Morning", 8, 0, 17, 0);
+
+        let data = make_roster_data_with_shifts(vec![(sid, shift)]);
+        let roster_map = HashMap::new();
+
+        // No assignments → falls through to none → 0 segments
+        let segments = resolve_work_segments_wrapper(&data, &roster_map, emp, date(2026, 3, 3));
+        assert_eq!(segments.len(), 0, "No shift assigned → 0 segments");
+
+        // Now add a fixed assignment
+        let mut data2 = (*data).clone();
+        data2.fixed_assignments.insert(
+            emp,
+            vec![RosterFixedAssignment {
+                shift_id,
+                start_date: date(2026, 1, 1),
+                end_date: None,
+            }],
+        );
+        let data2 = Arc::new(data2);
+
+        let segments = resolve_work_segments_wrapper(&data2, &roster_map, emp, date(2026, 3, 3));
+        assert_eq!(segments.len(), 1, "Fixed assignment → 1 segment");
+        assert_eq!(segments[0].shift_id, shift_id);
+        assert_eq!(segments[0].source, "fixed");
+        assert_eq!(
+            segments[0].scheduled_start,
+            NaiveTime::from_hms_opt(8, 0, 0).unwrap()
+        );
+        assert_eq!(
+            segments[0].scheduled_end,
+            NaiveTime::from_hms_opt(17, 0, 0).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_resolve_split_shift_two_segments() {
+        let emp = Uuid::new_v4();
+        let morning_id = Uuid::new_v4();
+        let evening_id = Uuid::new_v4();
+        let pattern_id = Uuid::new_v4();
+        let target_date = date(2026, 3, 3);
+        let dow = chrono::Datelike::weekday(&target_date).num_days_from_sunday() as i32;
+
+        let (m_id, morning) = make_test_shift(morning_id, "Ca Sáng", 7, 0, 11, 0);
+        let (e_id, evening) = make_test_shift(evening_id, "Ca Chiều", 17, 0, 21, 0);
+
+        let mut data = (*empty_roster_data()).clone();
+        data.shifts = vec![(m_id, morning), (e_id, evening)].into_iter().collect();
+        data.pattern_assignments.insert(
+            emp,
+            vec![
+                weekly_entry(pattern_id, date(2026, 1, 1), None, dow, Some(morning_id)),
+                weekly_entry(pattern_id, date(2026, 1, 1), None, dow, Some(evening_id)),
+            ],
+        );
+        let data = Arc::new(data);
+        let roster_map = HashMap::new();
+
+        let segments = resolve_work_segments_wrapper(&data, &roster_map, emp, target_date);
+
+        assert_eq!(segments.len(), 2, "Split shift → 2 segments");
+        assert_eq!(segments[0].shift_id, morning_id);
+        assert_eq!(segments[1].shift_id, evening_id);
+        assert_eq!(segments[0].source, "pattern");
+        assert_eq!(segments[1].source, "pattern");
+        // Segments must be sorted by scheduled_start
+        assert!(
+            segments[0].scheduled_start < segments[1].scheduled_start,
+            "Morning (07:00) should come before evening (17:00)"
+        );
+        assert_eq!(segments[0].sort_order, 0);
+        assert_eq!(segments[1].sort_order, 1);
+    }
+
+    #[test]
+    fn test_roster_override_produces_segment() {
+        let emp = Uuid::new_v4();
+        let shift_id = Uuid::new_v4();
+        let (sid, shift) = make_test_shift(shift_id, "Roster Shift", 9, 0, 18, 0);
+
+        let data = make_roster_data_with_shifts(vec![(sid, shift)]);
+        let mut roster_map = HashMap::new();
+        roster_map.insert((emp, date(2026, 3, 3)), Some(shift_id));
+
+        let segments = resolve_work_segments_wrapper(&data, &roster_map, emp, date(2026, 3, 3));
+
+        assert_eq!(segments.len(), 1, "Roster override → 1 segment");
+        assert_eq!(segments[0].shift_id, shift_id);
+        assert_eq!(segments[0].source, "roster");
+    }
+
+    #[test]
+    fn test_day_off_produces_zero_segments() {
+        let emp = Uuid::new_v4();
+        let shift_id = Uuid::new_v4();
+        let (sid, shift) = make_test_shift(shift_id, "Some Shift", 8, 0, 17, 0);
+
+        let data = make_roster_data_with_shifts(vec![(sid, shift)]);
+        let mut roster_map = HashMap::new();
+        roster_map.insert((emp, date(2026, 3, 3)), None); // Day off
+
+        let segments = resolve_work_segments_wrapper(&data, &roster_map, emp, date(2026, 3, 3));
+
+        assert_eq!(segments.len(), 0, "Day off → 0 segments");
+    }
+
+    #[test]
+    fn test_no_match_produces_zero_segments() {
+        let emp = Uuid::new_v4();
+        let shift_id = Uuid::new_v4();
+        let (sid, shift) = make_test_shift(shift_id, "Orphan Shift", 8, 0, 17, 0);
+
+        let data = make_roster_data_with_shifts(vec![(sid, shift)]);
+        let roster_map = HashMap::new();
+
+        let segments = resolve_work_segments_wrapper(&data, &roster_map, emp, date(2026, 3, 3));
+
+        assert_eq!(segments.len(), 0, "No match → 0 segments");
+    }
+
+    #[test]
+    fn test_segment_inherits_shift_config() {
+        let emp = Uuid::new_v4();
+        let shift_id = Uuid::new_v4();
+        let shift = RosterShift::new(
+            "Config Test".to_string(),
+            Some("CT".to_string()),
+            NaiveTime::from_hms_opt(6, 30, 0).unwrap(),
+            NaiveTime::from_hms_opt(15, 0, 0).unwrap(),
+            45,
+            Some(NaiveTime::from_hms_opt(11, 0, 0).unwrap()),
+            Some(NaiveTime::from_hms_opt(12, 0, 0).unwrap()),
+            true,
+            10,
+            true,
+            false,
+            Some(120),
+            "per_segment".to_string(),
+            false,
+        );
+
+        let data = make_roster_data_with_shifts(vec![(shift_id, shift)]);
+        let mut roster_map = HashMap::new();
+        roster_map.insert((emp, date(2026, 3, 3)), Some(shift_id));
+
+        let segments = resolve_work_segments_wrapper(&data, &roster_map, emp, date(2026, 3, 3));
+
+        assert_eq!(segments.len(), 1);
+        let seg = &segments[0];
+        assert_eq!(seg.break_duration_minutes, Some(45));
+        assert_eq!(
+            seg.break_start,
+            Some(NaiveTime::from_hms_opt(11, 0, 0).unwrap())
+        );
+        assert_eq!(
+            seg.break_end,
+            Some(NaiveTime::from_hms_opt(12, 0, 0).unwrap())
+        );
+        assert_eq!(seg.is_break_auto_deduct, Some(true));
+        assert_eq!(seg.allow_early_ot, true);
+        assert_eq!(seg.max_early_ot_minutes, Some(120));
+        assert_eq!(seg.early_punch_in_grace_period_minutes, 10);
+        assert_eq!(seg.ot_aggregation_mode, "per_segment");
+        assert_eq!(seg.is_night_shift, false);
+    }
+
+    #[test]
+    fn test_night_shift_segment() {
+        let emp = Uuid::new_v4();
+        let shift_id = Uuid::new_v4();
+        let (sid, shift) = make_night_shift(shift_id, "Ca Đêm");
+
+        let data = make_roster_data_with_shifts(vec![(sid, shift)]);
+        let mut roster_map = HashMap::new();
+        roster_map.insert((emp, date(2026, 3, 3)), Some(shift_id));
+
+        let segments = resolve_work_segments_wrapper(&data, &roster_map, emp, date(2026, 3, 3));
+
+        assert_eq!(segments.len(), 1, "Night shift → 1 segment");
+        let seg = &segments[0];
+        assert!(seg.is_night_shift, "Night shift flag must be true");
+        assert_eq!(
+            seg.scheduled_start,
+            NaiveTime::from_hms_opt(22, 0, 0).unwrap()
+        );
+        assert_eq!(seg.scheduled_end, NaiveTime::from_hms_opt(6, 0, 0).unwrap());
+    }
+
+    #[test]
+    fn test_three_segment_split_shift() {
+        let emp = Uuid::new_v4();
+        let s1_id = Uuid::new_v4();
+        let s2_id = Uuid::new_v4();
+        let s3_id = Uuid::new_v4();
+        let pattern_id = Uuid::new_v4();
+        let target_date = date(2026, 3, 3);
+        let dow = chrono::Datelike::weekday(&target_date).num_days_from_sunday() as i32;
+
+        let (id1, s1) = make_test_shift(s1_id, "Sáng", 6, 0, 10, 0);
+        let (id2, s2) = make_test_shift(s2_id, "Chiều", 13, 0, 17, 0);
+        let (id3, s3) = make_test_shift(s3_id, "Tối", 18, 0, 22, 0);
+
+        let mut data = (*empty_roster_data()).clone();
+        data.shifts = vec![(id1, s1), (id2, s2), (id3, s3)].into_iter().collect();
+        data.pattern_assignments.insert(
+            emp,
+            vec![
+                weekly_entry(pattern_id, date(2026, 1, 1), None, dow, Some(s1_id)),
+                weekly_entry(pattern_id, date(2026, 1, 1), None, dow, Some(s2_id)),
+                weekly_entry(pattern_id, date(2026, 1, 1), None, dow, Some(s3_id)),
+            ],
+        );
+        let data = Arc::new(data);
+        let roster_map = HashMap::new();
+
+        let segments = resolve_work_segments_wrapper(&data, &roster_map, emp, target_date);
+
+        assert_eq!(segments.len(), 3, "3-segment split shift");
+        assert_eq!(segments[0].sort_order, 0);
+        assert_eq!(segments[1].sort_order, 1);
+        assert_eq!(segments[2].sort_order, 2);
+        // Verify ascending order
+        assert!(segments[0].scheduled_start < segments[1].scheduled_start);
+        assert!(segments[1].scheduled_start < segments[2].scheduled_start);
+    }
+
+    #[test]
+    fn test_expired_pattern_no_segments() {
+        let emp = Uuid::new_v4();
+        let shift_id = Uuid::new_v4();
+        let pattern_id = Uuid::new_v4();
+        let target_date = date(2026, 3, 3);
+        let dow = chrono::Datelike::weekday(&target_date).num_days_from_sunday() as i32;
+
+        let (sid, shift) = make_test_shift(shift_id, "Expired", 8, 0, 17, 0);
+        let data = make_roster_data_with_shifts(vec![(sid, shift)]);
+        let mut data = (*data).clone();
+        // Pattern expired before target date
+        data.pattern_assignments.insert(
+            emp,
+            vec![weekly_entry(
+                pattern_id,
+                date(2026, 1, 1),
+                Some(date(2026, 2, 28)),
+                dow,
+                Some(shift_id),
+            )],
+        );
+        let data = Arc::new(data);
+        let roster_map = HashMap::new();
+
+        let segments = resolve_work_segments_wrapper(&data, &roster_map, emp, target_date);
+        assert_eq!(segments.len(), 0, "Expired pattern → no segments");
+    }
+
+    #[test]
+    fn test_segment_with_null_break_fields() {
+        let emp = Uuid::new_v4();
+        let shift_id = Uuid::new_v4();
+        let shift = RosterShift::new(
+            "No Break".to_string(),
+            None,
+            NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
+            NaiveTime::from_hms_opt(16, 0, 0).unwrap(),
+            0,
+            None,
+            None,
+            false,
+            0,
+            false,
+            false,
+            None,
+            "aggregate".to_string(),
+            false,
+        );
+
+        let data = make_roster_data_with_shifts(vec![(shift_id, shift)]);
+        let mut roster_map = HashMap::new();
+        roster_map.insert((emp, date(2026, 3, 3)), Some(shift_id));
+
+        let segments = resolve_work_segments_wrapper(&data, &roster_map, emp, date(2026, 3, 3));
+
+        assert_eq!(segments.len(), 1);
+        let seg = &segments[0];
+        assert_eq!(seg.break_duration_minutes, Some(0));
+        assert_eq!(seg.break_start, None);
+        assert_eq!(seg.break_end, None);
+        assert_eq!(seg.is_break_auto_deduct, Some(false));
+        assert_eq!(seg.break_is_overtime, Some(false));
+    }
+
+    #[test]
+    fn test_segment_sort_order_reassigned_after_sort() {
+        let emp = Uuid::new_v4();
+        let evening_id = Uuid::new_v4();
+        let morning_id = Uuid::new_v4();
+        let pattern_id = Uuid::new_v4();
+        let target_date = date(2026, 3, 3);
+        let dow = chrono::Datelike::weekday(&target_date).num_days_from_sunday() as i32;
+
+        let (e_id, evening) = make_test_shift(evening_id, "Tối", 18, 0, 22, 0);
+        let (m_id, morning) = make_test_shift(morning_id, "Sáng", 6, 0, 10, 0);
+
+        let mut data = (*empty_roster_data()).clone();
+        data.shifts = vec![(e_id, evening), (m_id, morning)].into_iter().collect();
+        // Intentionally add evening first, then morning — sorting should fix order
+        data.pattern_assignments.insert(
+            emp,
+            vec![
+                weekly_entry(pattern_id, date(2026, 1, 1), None, dow, Some(evening_id)),
+                weekly_entry(pattern_id, date(2026, 1, 1), None, dow, Some(morning_id)),
+            ],
+        );
+        let data = Arc::new(data);
+        let roster_map = HashMap::new();
+
+        let segments = resolve_work_segments_wrapper(&data, &roster_map, emp, target_date);
+
+        assert_eq!(segments.len(), 2);
+        // After sorting: morning (06:00) should be first
+        assert_eq!(
+            segments[0].scheduled_start,
+            NaiveTime::from_hms_opt(6, 0, 0).unwrap()
+        );
+        assert_eq!(
+            segments[1].scheduled_start,
+            NaiveTime::from_hms_opt(18, 0, 0).unwrap()
+        );
+        assert_eq!(
+            segments[0].sort_order, 0,
+            "sort_order reassigned after sort"
+        );
+        assert_eq!(
+            segments[1].sort_order, 1,
+            "sort_order reassigned after sort"
+        );
     }
 }

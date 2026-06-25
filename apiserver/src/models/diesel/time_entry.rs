@@ -31,6 +31,7 @@ impl From<TimeEntryEntity> for TimeEntry {
             val.employment_id,
             val.workspace_id,
             val.shift_id,
+            None,
             val.punch_in_time,
             val.punch_out_time,
             val.duration_minutes,

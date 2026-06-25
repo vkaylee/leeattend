@@ -39,6 +39,11 @@ export function ShiftPickerModal({
       title={t("shifts.modal.select_shift_title")}
     >
       <div className="space-y-6 pt-4">
+        {targetDates.length === 1 && (
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 italic text-center">
+            {t("work_segments.segments", "Tip: Assign multiple shifts to the same day for split-shift scheduling.")}
+          </p>
+        )}
         <div className="grid grid-cols-1 gap-3">
           {shifts?.map(shift => (
             <Button className="p-5 rounded-[28px] border-2 text-left transition-all relative overflow-hidden group hover:border-primary-500 hover:bg-primary-50 dark:bg-primary-950/30 border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30"

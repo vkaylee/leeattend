@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 
 import { format } from "date-fns";
 
-import type { Shift, CreateShiftRequest, UpdateShiftRequest } from "@/lib/api/types";
+import type { Shift, CreateShiftRequest, UpdateShiftRequest, ShiftDefaultInterval } from "@/lib/api/types";
 
 import { useToast } from "@/components/ui/toast";
 import {
@@ -17,6 +17,24 @@ import {
   updateShift,
   fetchDefaultAttendanceRules,
 } from "@/lib/api";
+
+export interface IntervalDraft {
+  key: string;
+  intervalName: string;
+  startTime: string;
+  endTime: string;
+  breakDuration: number;
+  breakStart: string;
+  breakEnd: string;
+  isFixedBreak: boolean;
+  isAutoDeduct: boolean;
+}
+
+let _intervalCounter = 0;
+function nextIntervalKey(): string {
+  _intervalCounter += 1;
+  return `iv_${Date.now()}_${_intervalCounter}`;
+}
 
 export function useShiftEditor(shiftId?: string) {
   const { t } = useTranslation();
@@ -54,6 +72,36 @@ export function useShiftEditor(shiftId?: string) {
 
   const setEmployerId = (v: string | null) => {
     setEmployerIdState(v);
+    setIsDirty(true);
+  };
+
+  // Interval/split-shift state
+  const [intervalDrafts, setIntervalDrafts] = useState<IntervalDraft[]>([]);
+  const [otAggregationMode, setOtAggregationMode] = useState<"aggregate" | "per_segment">("aggregate");
+  const [isNightShift, setIsNightShift] = useState(false);
+
+  const addInterval = () => {
+    setIntervalDrafts(prev => [...prev, {
+      key: nextIntervalKey(),
+      intervalName: "",
+      startTime: "08:00",
+      endTime: "17:00",
+      breakDuration: 60,
+      breakStart: "",
+      breakEnd: "",
+      isFixedBreak: false,
+      isAutoDeduct: true,
+    }]);
+    setIsDirty(true);
+  };
+
+  const removeInterval = (key: string) => {
+    setIntervalDrafts(prev => prev.filter(iv => iv.key !== key));
+    setIsDirty(true);
+  };
+
+  const updateIntervalDraft = (key: string, patch: Partial<IntervalDraft>) => {
+    setIntervalDrafts(prev => prev.map(iv => iv.key === key ? { ...iv, ...patch } : iv));
     setIsDirty(true);
   };
 
@@ -102,6 +150,8 @@ export function useShiftEditor(shiftId?: string) {
       setMaxEarlyOtMinutes(editingShift.max_early_ot_minutes ?? 60);
       setLocationIdState(editingShift.location_id ?? null);
       setEmployerIdState(editingShift.employer_id ?? null);
+      setOtAggregationMode((editingShift.ot_aggregation_mode as "aggregate" | "per_segment") ?? "aggregate");
+      setIsNightShift((editingShift as Record<string, unknown>).is_night_shift as boolean ?? false);
       setIsCorrection(false);
       setCorrectionEffectiveDate(format(new Date(), 'yyyy-MM-dd'));
       setIsDirty(false);
@@ -155,6 +205,8 @@ export function useShiftEditor(shiftId?: string) {
       is_break_auto_deduct: isAutoDeduct,
       location_id: locationId,
       employer_id: employerId,
+      ot_aggregation_mode: otAggregationMode,
+      is_night_shift: isNightShift,
     };
 
     if (isFixedBreak && breakStart && breakEnd) {
@@ -242,5 +294,14 @@ export function useShiftEditor(shiftId?: string) {
     setIsDirty,
     blocker,
     workspaceRules,
+    // Intervals / split-shift
+    intervalDrafts,
+    addInterval,
+    removeInterval,
+    updateIntervalDraft,
+    otAggregationMode,
+    setOtAggregationMode: (v: "aggregate" | "per_segment") => { setOtAggregationMode(v); setIsDirty(true); },
+    isNightShift,
+    setIsNightShift: (v: boolean) => { setIsNightShift(v); setIsDirty(true); },
   };
 }

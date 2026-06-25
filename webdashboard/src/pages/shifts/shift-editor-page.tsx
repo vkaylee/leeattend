@@ -62,6 +62,14 @@ export default function ShiftEditorPage() {
     isSaveDisabled,
     blocker,
     workspaceRules,
+    intervalDrafts,
+    addInterval,
+    removeInterval,
+    updateIntervalDraft,
+    otAggregationMode,
+    setOtAggregationMode,
+    isNightShift,
+    setIsNightShift,
   } = useShiftEditor(shiftId);
 
   const { data: locations } = useQuery({
@@ -372,6 +380,76 @@ export default function ShiftEditorPage() {
             </div>
           </div>
 
+          {/* Card 2.5: Intervals / Split-Shift Configuration */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-10 shadow-sm space-y-6">
+            <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800/80 pb-4">
+              <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]" variant="h3">
+                {t("work_segments.intervals.title", "Khung giờ trong ca").toUpperCase()}
+              </Typography>
+              <Button
+                className="text-xs"
+                onClick={addInterval}
+                size="sm"
+                type="button"
+                variant="outline"
+              >
+                + {t("work_segments.intervals.add_interval", "Thêm khung giờ")}
+              </Button>
+            </div>
+
+            {intervalDrafts.length === 0 ? (
+              <div className="text-center py-8 text-slate-400 dark:text-slate-500 text-sm italic">
+                <Info size={24} className="mx-auto mb-2 opacity-40" />
+                {t("work_segments.intervals.no_intervals", "Chưa có khung giờ. Hệ thống dùng giờ bắt đầu/kết thúc của ca.")}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {intervalDrafts.map((iv, idx) => (
+                  <div key={iv.key} className="border border-slate-100 dark:border-slate-800 rounded-2xl p-5 space-y-3 relative">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                        {t("work_segments.intervals.interval", "Khung giờ")} {idx + 1}
+                      </span>
+                      <Button
+                        className="text-xs text-red-500 hover:text-red-700"
+                        onClick={() => removeInterval(iv.key)}
+                        size="sm"
+                        type="button"
+                        variant="ghost"
+                      >
+                        ✕ {t("work_segments.intervals.remove_interval", "Xóa")}
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          {t("work_segments.intervals.start_time", "Bắt đầu")}
+                        </label>
+                        <input
+                          className="w-full mt-1 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-slate-50 dark:bg-slate-800"
+                          onChange={(e) => updateIntervalDraft(iv.key, { startTime: e.target.value })}
+                          type="time"
+                          value={iv.startTime}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          {t("work_segments.intervals.end_time", "Kết thúc")}
+                        </label>
+                        <input
+                          className="w-full mt-1 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-slate-50 dark:bg-slate-800"
+                          onChange={(e) => updateIntervalDraft(iv.key, { endTime: e.target.value })}
+                          type="time"
+                          value={iv.endTime}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Card 3: Correction Config (Only in Edit Mode) */}
           {isEditMode ? (
             <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/60 rounded-[2.5rem] p-10 shadow-sm space-y-6">
@@ -593,6 +671,78 @@ export default function ShiftEditorPage() {
                     </span>
                   </div>
                 </label>
+              </div>
+            </div>
+          </div>
+
+          {/* OT Aggregation Mode */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-8 shadow-sm space-y-4">
+            <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50 dark:border-slate-800/80 pb-4" variant="h3">
+              {t("work_segments.ot_aggregation_mode.label", "Cách tính tăng ca")}
+            </Typography>
+            <div className="space-y-3">
+              <label className="flex items-start gap-3 p-3 rounded-2xl border cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                <input
+                  checked={otAggregationMode === "aggregate"}
+                  className="mt-0.5"
+                  name="otMode"
+                  onChange={() => setOtAggregationMode("aggregate")}
+                  type="radio"
+                />
+                <div>
+                  <span className="text-sm font-bold text-slate-700 dark:text-slate-250 block">
+                    {t("work_segments.ot_aggregation_mode.aggregate", "Gộp (Tổng cả ngày)")}
+                  </span>
+                  <span className="text-xs text-slate-400 dark:text-slate-500">
+                    {t("work_segments.ot_aggregation_mode.aggregate_desc", "Cộng dồn tất cả phiên, tính OT một lần")}
+                  </span>
+                </div>
+              </label>
+              <label className="flex items-start gap-3 p-3 rounded-2xl border cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                <input
+                  checked={otAggregationMode === "per_segment"}
+                  className="mt-0.5"
+                  name="otMode"
+                  onChange={() => setOtAggregationMode("per_segment")}
+                  type="radio"
+                />
+                <div>
+                  <span className="text-sm font-bold text-slate-700 dark:text-slate-250 block">
+                    {t("work_segments.ot_aggregation_mode.per_segment", "Theo từng phiên")}
+                  </span>
+                  <span className="text-xs text-slate-400 dark:text-slate-500">
+                    {t("work_segments.ot_aggregation_mode.per_segment_desc", "Tính OT độc lập cho mỗi phiên")}
+                  </span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          {/* Night Shift Toggle */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-8 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Typography className="text-sm font-bold text-slate-700 dark:text-slate-250" variant="h4">
+                  {t("work_segments.night_shift.label", "Ca đêm")}
+                </Typography>
+                <Typography className="text-xs text-slate-400 dark:text-slate-500 mt-1" variant="p">
+                  {t("work_segments.night_shift.description", "Ca làm qua nửa đêm — giờ làm tính cho ngày bắt đầu")}
+                </Typography>
+              </div>
+              <div
+                aria-checked={isNightShift}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 cursor-pointer ${isNightShift ? 'bg-primary-600' : 'bg-slate-200 dark:bg-slate-700'}`}
+                onClick={() => setIsNightShift(!isNightShift)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setIsNightShift(!isNightShift);
+                  }
+                }}
+                role="switch"
+                tabIndex={0}
+              >
+                <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${isNightShift ? 'translate-x-[1.1rem]' : 'translate-x-0.5'}`} />
               </div>
             </div>
           </div>

@@ -1,5 +1,6 @@
 use crate::models::{EarlyArrivalStrategy, PolicyRules};
 use chrono::{DateTime, Duration, TimeZone, Timelike};
+use uuid::Uuid;
 
 #[derive(Debug, Default)]
 pub struct WorkBuckets {
@@ -7,6 +8,33 @@ pub struct WorkBuckets {
     pub early_ot_minutes: i32,
     pub late_ot_minutes: i32,
     pub break_ot_minutes: i32,
+}
+
+/// Aggregation mode for OT calculation across multiple segments.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum OtAggregationMode {
+    /// Sum all standard time across segments, then apply OT threshold once.
+    Aggregate,
+    /// Calculate OT independently per segment, then sum results.
+    PerSegment,
+}
+
+impl OtAggregationMode {
+    #[must_use]
+    pub fn from_mode(s: &str) -> Self {
+        match s {
+            "per_segment" => Self::PerSegment,
+            _ => Self::Aggregate,
+        }
+    }
+}
+
+/// Result of calculating units across multiple segments.
+#[derive(Debug, Default)]
+pub struct SegmentCalcResult {
+    pub total_standard_units: i32,
+    pub total_ot_units: i32,
+    pub per_segment_buckets: Vec<(Option<Uuid>, WorkBuckets)>,
 }
 
 /// Encapsulates all inputs for break deduction calculation.
@@ -47,6 +75,10 @@ pub struct DailyCalcInput<T: TimeZone> {
     pub rules: PolicyRules,
     pub ot_ceiling: Option<DateTime<T>>,
     pub max_early_ot_minutes: Option<i32>,
+    /// Links this calculation to a specific work segment. None for legacy entries.
+    pub segment_id: Option<Uuid>,
+    /// How OT is aggregated when multiple segments exist in a day.
+    pub ot_aggregation_mode: OtAggregationMode,
 }
 
 pub struct AttendanceCalculator;
@@ -89,6 +121,8 @@ impl AttendanceCalculator {
                 .as_ref()
                 .map(|dt| Self::truncate_to_minute(dt.clone())),
             max_early_ot_minutes: input.max_early_ot_minutes,
+            segment_id: input.segment_id,
+            ot_aggregation_mode: input.ot_aggregation_mode.clone(),
         };
 
         let punch_in = &input.punch_in;
@@ -364,5 +398,75 @@ impl AttendanceCalculator {
         );
 
         (std_units, ot_units)
+    }
+
+    /// Calculate units across multiple segments with configurable OT aggregation.
+    ///
+    /// - `Aggregate`: Sums all standard minutes across segments, then applies the
+    ///   OT threshold once against the total. This is the default behavior matching
+    ///   "1 ca/ngày" expectations where OT is computed on daily totals.
+    /// - `PerSegment`: Computes OT independently for each segment. Late OT from
+    ///   segment N is capped at segment N+1's start (via ot_ceiling). Each segment's
+    ///   OT is summed to produce the daily total.
+    pub fn calculate_segment_units<T: TimeZone>(inputs: &[DailyCalcInput<T>]) -> SegmentCalcResult {
+        if inputs.is_empty() {
+            return SegmentCalcResult::default();
+        }
+
+        // Determine mode from first input (all segments in a day share the same mode)
+        let mode = &inputs[0].ot_aggregation_mode;
+        let mut per_segment = Vec::with_capacity(inputs.len());
+
+        match mode {
+            OtAggregationMode::Aggregate => {
+                // Sum all standard minutes and all OT minutes across segments
+                let mut total_std_minutes = 0i32;
+                let mut total_ot_minutes = 0i32;
+
+                for input in inputs {
+                    let buckets = Self::calculate_buckets(input);
+                    total_std_minutes += buckets.standard_minutes;
+                    total_ot_minutes += buckets.early_ot_minutes
+                        + buckets.late_ot_minutes
+                        + buckets.break_ot_minutes;
+                    per_segment.push((input.segment_id, buckets));
+                }
+
+                let std_units = Self::calculate_units(
+                    total_std_minutes,
+                    inputs[0].work_unit,
+                    &inputs[0].rounding_policy,
+                );
+                let ot_units = Self::calculate_units(
+                    total_ot_minutes,
+                    inputs[0].work_unit,
+                    &inputs[0].rounding_policy,
+                );
+
+                SegmentCalcResult {
+                    total_standard_units: std_units,
+                    total_ot_units: ot_units,
+                    per_segment_buckets: per_segment,
+                }
+            }
+            OtAggregationMode::PerSegment => {
+                let mut total_std_units = 0i32;
+                let mut total_ot_units = 0i32;
+
+                for input in inputs {
+                    let (std_u, ot_u) = Self::calculate_daily_units(input);
+                    total_std_units += std_u;
+                    total_ot_units += ot_u;
+                    let buckets = Self::calculate_buckets(input);
+                    per_segment.push((input.segment_id, buckets));
+                }
+
+                SegmentCalcResult {
+                    total_standard_units: total_std_units,
+                    total_ot_units,
+                    per_segment_buckets: per_segment,
+                }
+            }
+        }
     }
 }

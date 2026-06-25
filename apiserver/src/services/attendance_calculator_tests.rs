@@ -2,9 +2,10 @@
 mod tests {
     use crate::models::{EarlyArrivalStrategy, PolicyRules};
     use crate::services::attendance_calculator::{
-        AttendanceCalculator, BreakDeductionInput, DailyCalcInput, WorkBuckets,
+        AttendanceCalculator, BreakDeductionInput, DailyCalcInput, OtAggregationMode, WorkBuckets,
     };
     use chrono::{DateTime, NaiveDate, NaiveTime, TimeZone, Utc};
+    use uuid::Uuid;
 
     // =========================================================================
     // Test helpers
@@ -60,6 +61,8 @@ mod tests {
         rules: PolicyRules,
         ot_ceiling: Option<DateTime<Utc>>,
         max_early_ot_minutes: Option<i32>,
+        segment_id: Option<Uuid>,
+        ot_aggregation_mode: OtAggregationMode,
     }
 
     impl TestInputBuilder {
@@ -79,6 +82,8 @@ mod tests {
                 rules: mock_rules(),
                 ot_ceiling: None,
                 max_early_ot_minutes: None,
+                segment_id: None,
+                ot_aggregation_mode: OtAggregationMode::Aggregate,
             }
         }
 
@@ -164,6 +169,8 @@ mod tests {
                 rules: self.rules,
                 ot_ceiling: self.ot_ceiling,
                 max_early_ot_minutes: self.max_early_ot_minutes,
+                segment_id: self.segment_id,
+                ot_aggregation_mode: self.ot_aggregation_mode,
             }
         }
 

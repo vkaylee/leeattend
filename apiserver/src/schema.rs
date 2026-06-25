@@ -40,6 +40,22 @@ pub mod sql_types {
     #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "recruitment_source_type"))]
     pub struct RecruitmentSourceType;
+
+    #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "segment_type"))]
+    pub struct SegmentType;
+
+    #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "gap_compensation_type"))]
+    pub struct GapCompensationType;
+
+    #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "segment_status_type"))]
+    pub struct SegmentStatusType;
+
+    #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "ot_aggregation_mode_type"))]
+    pub struct OtAggregationModeType;
 }
 
 diesel::table! {
@@ -1911,6 +1927,56 @@ diesel::table! {
 }
 
 diesel::table! {
+    shift_default_intervals (id) {
+        id -> Uuid,
+        shift_id -> Uuid,
+        sort_order -> Int4,
+        #[max_length = 100]
+        interval_name -> Nullable<Varchar>,
+        start_time -> Time,
+        end_time -> Time,
+        break_duration_minutes -> Nullable<Int4>,
+        break_start -> Nullable<Time>,
+        break_end -> Nullable<Time>,
+        is_break_auto_deduct -> Nullable<Bool>,
+        break_is_overtime -> Nullable<Bool>,
+        created_at -> Nullable<Timestamptz>,
+        updated_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::{SegmentType, GapCompensationType, SegmentStatusType};
+
+    work_segments (id) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        employment_id -> Uuid,
+        date -> Date,
+        shift_id -> Uuid,
+        interval_id -> Nullable<Uuid>,
+        sort_order -> Int4,
+        scheduled_start -> Time,
+        scheduled_end -> Time,
+        segment_type -> SegmentType,
+        segment_status -> SegmentStatusType,
+        compensation_rate -> Numeric,
+        gap_compensation_before -> GapCompensationType,
+        gap_compensation_rate_before -> Numeric,
+        break_config_override -> Nullable<Jsonb>,
+        ot_config_override -> Nullable<Jsonb>,
+        #[max_length = 30]
+        source -> Varchar,
+        source_detail -> Jsonb,
+        notes -> Nullable<Text>,
+        generation_metadata -> Jsonb,
+        created_at -> Nullable<Timestamptz>,
+        updated_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
     user_system_roles (user_id, role_id) {
         user_id -> Uuid,
         role_id -> Uuid,
@@ -2230,8 +2296,12 @@ diesel::joinable!(shifts -> employers (employer_id));
 diesel::joinable!(shifts -> work_locations (location_id));
 diesel::joinable!(storage_configs -> workspaces (workspace_id));
 diesel::joinable!(system_audit_logs -> users (actor_id));
+diesel::joinable!(shift_default_intervals -> shifts (shift_id));
 diesel::joinable!(time_entries -> employments (employment_id));
 diesel::joinable!(time_entries -> shifts (shift_id));
+diesel::joinable!(work_segments -> employments (employment_id));
+diesel::joinable!(work_segments -> shift_default_intervals (interval_id));
+diesel::joinable!(work_segments -> shifts (shift_id));
 diesel::joinable!(user_system_roles -> system_roles (role_id));
 diesel::joinable!(users -> system_files (avatar_file_id));
 diesel::joinable!(working_conditions -> employments (employment_id));
@@ -2355,6 +2425,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     salary_component_base_members,
     salary_component_definitions,
     sessions,
+    shift_default_intervals,
     shift_rosters,
     shift_swap_requests,
     shifts,
@@ -2369,6 +2440,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     work_locations,
     working_conditions,
     working_pattern_details,
+    work_segments,
     working_patterns,
     workspace_config_entries,
     workspace_member_extra_permissions,

@@ -705,5 +705,62 @@
       "attachment": "Minh chứng (chỉ PDF)",
       "punch_time": "Thời gian quẹt thẻ"
     }
+  },
+  "work_segments": {
+    "title": "Phiên làm việc",
+    "segment": "Phiên",
+    "segments": "Các phiên",
+    "create_segment": "Tạo phiên",
+    "edit_segment": "Sửa phiên",
+    "delete_segment": "Xóa phiên",
+    "no_segments": "Không có phiên làm việc",
+    "sort_order": "Thứ tự",
+    "segment_type": {
+      "work": "Làm việc",
+      "standby": "Trực chờ",
+      "on_call": "On Call",
+      "training": "Đào tạo",
+      "travel": "Công tác"
+    },
+    "gap_compensation": {
+      "unpaid": "Nghỉ không lương",
+      "standby": "Trực chờ có lương",
+      "break": "Nghỉ dài"
+    },
+    "compensation_rate": "Tỷ lệ hưởng lương",
+    "gap_before": "Khoảng nghỉ trước phiên",
+    "source": {
+      "roster": "Xếp lịch thủ công",
+      "pattern": "Mẫu lịch làm việc",
+      "rule": "Luật phân ca",
+      "fixed": "Gán cố định",
+      "manual": "Thủ công",
+      "auto": "Tự động"
+    },
+    "bulk_create": "Tạo hàng loạt",
+    "replace_existing": "Thay thế phiên hiện có",
+    "daily_total": "Tổng ngày",
+    "intervals": {
+      "title": "Khung giờ trong ca",
+      "interval": "Khung giờ",
+      "add_interval": "Thêm khung giờ",
+      "remove_interval": "Xóa khung giờ",
+      "interval_name": "Tên khung giờ",
+      "start_time": "Bắt đầu",
+      "end_time": "Kết thúc",
+      "no_intervals": "Chưa có khung giờ. Hệ thống dùng giờ bắt đầu/kết thúc của ca.",
+      "drag_to_reorder": "Kéo để sắp xếp khung giờ"
+    },
+    "ot_aggregation_mode": {
+      "label": "Cách tính tăng ca",
+      "aggregate": "Gộp (Tổng cả ngày)",
+      "aggregate_desc": "Cộng dồn tất cả phiên, tính OT một lần",
+      "per_segment": "Theo từng phiên",
+      "per_segment_desc": "Tính OT độc lập cho mỗi phiên"
+    },
+    "night_shift": {
+      "label": "Ca đêm",
+      "description": "Ca làm qua nửa đêm — giờ làm tính cho ngày bắt đầu"
+    }
   }
 }
