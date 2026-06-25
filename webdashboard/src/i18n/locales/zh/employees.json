@@ -381,6 +381,7 @@
     "hire_date": "入职日期",
     "bulk_import_title": "批量导入员工",
     "bulk_import_btn": "从文件导入",
+    "bulk_termination_btn": "导入离职",
     "import_req": {
       "col_a": "A列：员工ID（必填）",
       "col_b": "B列：全名（必填）",

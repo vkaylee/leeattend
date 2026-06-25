@@ -33,7 +33,7 @@ export const EmployeesPageHeader = ({
               icon={<FileText size={18} />}
               variant="outline"
             >
-              CONTRACTS HUB
+              {t("common.econtracts", { defaultValue: "e-Contracts Hub" }).toUpperCase()}
             </Button>
           </Link>
           <PermissionGate permission="employees:update">
@@ -45,7 +45,7 @@ export const EmployeesPageHeader = ({
               }}
               variant="outline"
             >
-              IMPORT NGHỈ VIỆC
+              {t("employees.bulk_termination_btn").toUpperCase()}
             </Button>
           </PermissionGate>
           <PermissionGate permission="employees:create">

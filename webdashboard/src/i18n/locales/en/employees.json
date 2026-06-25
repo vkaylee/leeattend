@@ -381,6 +381,7 @@
     "hire_date": "Hire Date",
     "bulk_import_title": "Bulk Employee Import",
     "bulk_import_btn": "Import from File",
+    "bulk_termination_btn": "Import Terminations",
     "import_req": {
       "col_a": "Column A: Employee ID (Required)",
       "col_b": "Column B: Full Name (Required)",

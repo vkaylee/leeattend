@@ -381,6 +381,7 @@
     "hire_date": "Ngày vào làm",
     "bulk_import_title": "Nhập nhân viên hàng loạt",
     "bulk_import_btn": "Nhập từ File",
+    "bulk_termination_btn": "Nhập Nghỉ Việc",
     "import_req": {
       "col_a": "Cột A: Mã nhân viên (Bắt buộc)",
       "col_b": "Cột B: Họ và tên (Bắt buộc)",
