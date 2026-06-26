@@ -630,7 +630,11 @@
       "success_approve": "请求已批准",
       "success_reject": "请求已拒绝",
       "fail_process": "审批处理失败",
-      "workflow_configured": "已配置审批流"
+      "workflow_configured": "已配置审批流",
+      "search_placeholder": "按员工姓名或原因搜索..."
+    },
+    "post": {
+      "search_placeholder": "按员工姓名、工号或原因搜索..."
     },
     "evidence": {
       "add": "添加照片",

@@ -630,7 +630,11 @@
       "success_approve": "Đã phê duyệt yêu cầu",
       "success_reject": "Đã từ chối yêu cầu",
       "fail_process": "Phê duyệt thất bại",
-      "workflow_configured": "Đã cấu hình luồng duyệt"
+      "workflow_configured": "Đã cấu hình luồng duyệt",
+      "search_placeholder": "Tìm kiếm theo tên nhân viên hoặc lý do..."
+    },
+    "post": {
+      "search_placeholder": "Tìm kiếm theo tên nhân viên, mã nhân viên hoặc lý do..."
     },
     "evidence": {
       "add": "Thêm ảnh",

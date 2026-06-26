@@ -22,6 +22,7 @@
     "syncing_data": "Đang đồng bộ dữ liệu...",
     "preparing_environment": "Đang chuẩn bị môi trường...",
     "search": "Tìm kiếm...",
+    "loading_more": "Đang tải thêm...",
     "previous": "Trước",
     "next": "Tiếp",
     "ip_address": "Địa chỉ IP",
@@ -1378,6 +1379,34 @@
       "summary": "Tóm tắt hôm nay",
       "charts": "Biểu đồ phân tích",
       "actions": "Thao tác nhanh"
+    },
+    "categories": {
+      "attendance": "Chấm công",
+      "workforce": "Nhân sự",
+      "performance": "Hiệu suất",
+      "summary": "Tổng quan"
+    },
+    "catalog": {
+      "title": "Biểu đồ",
+      "search_placeholder": "Tìm kiếm biểu đồ...",
+      "no_results": "Không tìm thấy biểu đồ",
+      "collapse": "Thu gọn bảng",
+      "expand": "Mở rộng bảng"
+    },
+    "meta": {
+      "kpi_cards": "Chỉ số chính hôm nay",
+      "donut_chart": "Phân tích chấm công theo trạng thái",
+      "quick_stats": "Thống kê tổng quan nhân sự",
+      "attendance_trend": "Xu hướng chấm công 30 ngày",
+      "department_chart": "Tỷ lệ chấm công theo phòng ban",
+      "peak_times": "Phân bố giờ cao điểm check-in",
+      "leave_types": "Phân bố nghỉ phép theo loại",
+      "recruitment_sources": "Phân tích nguồn tuyển dụng",
+      "turnover_analytics": "Phân tích nghỉ việc",
+      "unexcused_absences": "Nghỉ không phép theo thời gian",
+      "overtime_trend": "Xu hướng giờ tăng ca",
+      "lateness_by_day": "Tần suất đi muộn theo ngày",
+      "promo_cards": "Phím tắt thao tác nhanh"
     },
     "lifecycle": {
       "due": "Hạn chót: {{date}}",

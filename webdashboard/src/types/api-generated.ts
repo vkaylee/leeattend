@@ -5050,6 +5050,25 @@ export interface components {
             priority: number;
             rule_config?: unknown;
         };
+        /** @description Interval config within a shift create/update request. */
+        CreateIntervalRequest: {
+            allow_early_ot?: boolean;
+            /** Format: int32 */
+            break_duration_minutes?: number;
+            break_end?: string | null;
+            break_is_overtime?: boolean;
+            break_start?: string | null;
+            /** Format: int32 */
+            early_punch_in_grace_period_minutes?: number;
+            end_time: string;
+            interval_name?: string | null;
+            is_break_auto_deduct?: boolean;
+            is_night_shift?: boolean;
+            /** Format: int32 */
+            max_early_ot_minutes?: number | null;
+            ot_aggregation_mode?: string;
+            start_time: string;
+        };
         CreateLeavePolicyRequest: {
             description?: string | null;
             /** Format: uuid */
@@ -5163,32 +5182,19 @@ export interface components {
             code: string;
             name: string;
         };
-        CreateIntervalRequest: {
-            interval_name?: string | null;
-            start_time: string;
-            end_time: string;
-            /** Format: int32 */
-            break_duration_minutes?: number;
-            break_start?: string | null;
-            break_end?: string | null;
-            is_break_auto_deduct?: boolean;
-            break_is_overtime?: boolean;
-            /** Format: int32 */
-            early_punch_in_grace_period_minutes?: number;
-            allow_early_ot?: boolean;
-            /** Format: int32 */
-            max_early_ot_minutes?: number | null;
-            ot_aggregation_mode?: string;
-            is_night_shift?: boolean;
-        };
         CreateShiftRequest: {
-            name: string;
-            report_symbol?: string | null;
-            /** Format: uuid */
-            location_id?: string | null;
             /** Format: uuid */
             employer_id?: string | null;
+            /**
+             * @description Intervals (time blocks) within this shift. At least 1 required.
+             *     If empty, a default interval spanning the full shift time is auto-created
+             *     (but callers SHOULD provide at least 1).
+             */
             intervals?: components["schemas"]["CreateIntervalRequest"][];
+            /** Format: uuid */
+            location_id?: string | null;
+            name: string;
+            report_symbol?: string | null;
         };
         CreateShiftSwapRequest: {
             reason?: string | null;
@@ -7045,8 +7051,9 @@ export interface components {
             employer_id?: string | null;
             /** Format: uuid */
             id: string;
+            /** @description Intervals are populated by the handler when listing shifts (not on create/update). */
+            intervals?: components["schemas"]["ShiftDefaultIntervalEntity"][] | null;
             is_active: boolean;
-            intervals?: Record<string, unknown>[];
             /** Format: uuid */
             location_id?: string | null;
             name: string;
@@ -7057,6 +7064,35 @@ export interface components {
             updated_at: string;
             /** Format: uuid */
             workspace_id: string;
+        };
+        /** @description Diesel entity for `shift_default_intervals`. */
+        ShiftDefaultIntervalEntity: {
+            allow_early_ot: boolean;
+            /** Format: int32 */
+            break_duration_minutes: number;
+            break_end?: string | null;
+            break_is_overtime: boolean;
+            break_start?: string | null;
+            /** Format: date-time */
+            created_at?: string | null;
+            /** Format: int32 */
+            early_punch_in_grace_period_minutes: number;
+            end_time: string;
+            /** Format: uuid */
+            id: string;
+            interval_name?: string | null;
+            is_break_auto_deduct: boolean;
+            is_night_shift: boolean;
+            /** Format: int32 */
+            max_early_ot_minutes?: number | null;
+            ot_aggregation_mode: string;
+            /** Format: uuid */
+            shift_id: string;
+            /** Format: int32 */
+            sort_order: number;
+            start_time: string;
+            /** Format: date-time */
+            updated_at?: string | null;
         };
         ShiftRoster: {
             /** Format: date-time */
@@ -7617,23 +7653,27 @@ export interface components {
             permissions: string[];
         };
         UpdateShiftRequest: {
-            name: string;
-            report_symbol?: string | null;
-            /** Format: uuid */
-            location_id?: string | null;
+            /**
+             * Format: date
+             * @description Effective date for the new version. If not provided, defaults to today.
+             */
+            effective_date?: string | null;
             /** Format: uuid */
             employer_id?: string | null;
+            /**
+             * @description Intervals (time blocks) to replace the existing intervals for this shift.
+             *     At least 1 required.
+             */
             intervals?: components["schemas"]["CreateIntervalRequest"][];
             /**
              * @description If true, update the current record (Correction).
              *     If false (default), create a new version if interval config changed.
              */
             is_correction?: boolean;
-            /**
-             * Format: date
-             * @description Effective date for the new version. If not provided, defaults to today.
-             */
-            effective_date?: string | null;
+            /** Format: uuid */
+            location_id?: string | null;
+            name: string;
+            report_symbol?: string | null;
         };
         UpdateStorageConfigRequest: {
             access_key?: string | null;
@@ -10887,6 +10927,12 @@ export interface operations {
                 end_date: string;
                 /** @description Optional Employee ID */
                 employee_id?: string;
+                /** @description Page number (1-based) */
+                page?: number;
+                /** @description Items per page */
+                limit?: number;
+                /** @description Filter by OT status */
+                ot_status?: string;
             };
             header?: never;
             path: {
@@ -10902,9 +10948,7 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": components["schemas"]["AttendanceDailySummary"][];
-                };
+                content?: never;
             };
         };
     };
@@ -13124,6 +13168,13 @@ export interface operations {
                 employee_status?: string | null;
                 employer_id?: string | null;
                 employment_id?: string | null;
+                /**
+                 * @description Opt-in query parameter for segment-centric daily reports.
+                 *     When `true`, the handler uses
+                 *     [`ReportService::get_segment_attendance_report`] instead of the
+                 *     legacy path.
+                 */
+                segment_centric?: boolean | null;
             };
             header?: never;
             path: {

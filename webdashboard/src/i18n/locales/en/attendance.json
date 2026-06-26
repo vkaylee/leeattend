@@ -630,7 +630,11 @@
       "success_approve": "Request approved",
       "success_reject": "Request rejected",
       "fail_process": "Failed to process approval",
-      "workflow_configured": "Workflow Configured"
+      "workflow_configured": "Workflow Configured",
+      "search_placeholder": "Search by employee name or reason..."
+    },
+    "post": {
+      "search_placeholder": "Search by employee name, ID or reason..."
     },
     "evidence": {
       "add": "Add Photo",

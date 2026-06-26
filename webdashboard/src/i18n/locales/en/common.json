@@ -22,6 +22,7 @@
     "syncing_data": "Syncing data...",
     "preparing_environment": "Preparing environment...",
     "search": "Search...",
+    "loading_more": "Loading more...",
     "previous": "Previous",
     "next": "Next",
     "ip_address": "IP Address",
@@ -1378,6 +1379,34 @@
       "summary": "Today's Summary",
       "charts": "Analysis Charts",
       "actions": "Quick Actions"
+    },
+    "categories": {
+      "attendance": "Attendance",
+      "workforce": "Workforce",
+      "performance": "Performance",
+      "summary": "Summary"
+    },
+    "catalog": {
+      "title": "Charts",
+      "search_placeholder": "Search charts...",
+      "no_results": "No charts found",
+      "collapse": "Collapse panel",
+      "expand": "Expand panel"
+    },
+    "meta": {
+      "kpi_cards": "Today's key metrics at a glance",
+      "donut_chart": "Attendance breakdown by status",
+      "quick_stats": "Headcount and summary statistics",
+      "attendance_trend": "30-day attendance trend",
+      "department_chart": "Attendance rate by department",
+      "peak_times": "Check-in peak hour distribution",
+      "leave_types": "Leave distribution by type",
+      "recruitment_sources": "New hire source breakdown",
+      "turnover_analytics": "Employee turnover analysis",
+      "unexcused_absences": "Unexcused absences over time",
+      "overtime_trend": "Overtime hours trend",
+      "lateness_by_day": "Lateness frequency by weekday",
+      "promo_cards": "Quick action shortcuts"
     },
     "lifecycle": {
       "due": "Due: {{date}}",

@@ -161,7 +161,7 @@ export async function fetchAttendanceLogs(params: {
     },
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as { data: TimeEntry[]; total: number; page: number; limit: number };
+  return resData as any;
 }
 
 export async function fetchRawAttendanceLogs(params: {
@@ -187,7 +187,7 @@ export async function fetchRawAttendanceLogs(params: {
     },
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as { data: RawAttendanceLog[]; total: number; page: number; limit: number };
+  return resData as any;
 }
 
 export interface FetchAttendanceReportParams {
@@ -375,7 +375,7 @@ export async function fetchAttendanceSummaries(
     }
   });
   if (!resData) throw new Error("No response data");
-  return resData;
+  return Array.isArray(resData) ? resData : (resData as any).data ?? [];
 }
 
 export async function fetchAttendanceSummariesPaginated(
@@ -403,7 +403,7 @@ export async function fetchAttendanceSummariesPaginated(
     }
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as PaginatedResponse<AttendanceDailySummary>;
+  return resData;
 }
 
 export async function enterPaperOt(
@@ -480,7 +480,7 @@ export async function fetchStagingLogs(
     }
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as StagingLogsResponse;
+  return resData as any;
 }
 
 export async function resolveStagingLog(

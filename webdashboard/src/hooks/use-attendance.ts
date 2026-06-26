@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 
+import type { AttendanceDailySummary, PaginatedResponse } from "@/lib/api";
+
 import {
   fetchAttendanceSummaries,
   fetchAttendanceSummariesPaginated,
@@ -9,7 +11,6 @@ import {
   bulkUploadPaperOt,
   claimOt,
 } from "@/lib/api";
-import type { AttendanceDailySummary, PaginatedResponse } from "@/lib/api";
 import { getCurrentWorkspaceId } from "@/lib/api/helpers";
 
 interface SummaryParams {
@@ -25,7 +26,7 @@ export const attendanceKeys = {
 
 // --- OT Manager Hooks ---
 
-export const POST_OT_PAGE_SIZE = 20;
+const POST_OT_PAGE_SIZE = 20;
 
 export function useAttendanceSummaries(start: string, end: string, employeeId?: string) {
   const wsId = getCurrentWorkspaceId();
@@ -74,7 +75,7 @@ export function useAttendanceSummariesInfinite(
   });
 
   const summaries = useMemo(
-    () => infiniteQuery.data?.pages.flatMap((p) => p.data) ?? [],
+    () => infiniteQuery.data?.pages.flatMap((p) => Array.isArray(p.data) ? p.data : []) ?? [],
     [infiniteQuery.data]
   );
 

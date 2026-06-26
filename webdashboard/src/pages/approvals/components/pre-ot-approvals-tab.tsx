@@ -1,16 +1,18 @@
-import { CheckCircle, ArrowRight, Check, X, Paperclip } from "lucide-react";
-import React, { useMemo } from "react";
-import { useTranslation } from "react-i18next";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { CheckCircle, ArrowRight, Check, X, Paperclip } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
+import type { PaginatedResponse } from "@/lib/api";
+import type { OvertimeRequest } from "@/lib/api/overtime-requests";
+
+import SearchBox from "@/components/common/search-box";
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useProcessApproval } from "@/hooks/use-approval-workflows";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
-import type { PaginatedResponse } from "@/lib/api";
 import { overtimeRequestsApi } from "@/lib/api/overtime-requests";
-import type { OvertimeRequest } from "@/lib/api/overtime-requests";
 
 const PRE_OT_PAGE_SIZE = 20;
 
@@ -56,11 +58,25 @@ export function PreOtApprovalsTab({
 
   const { mutate: processApproval, isPending: isProcessing } = useProcessApproval();
 
-  // Filter for pending status
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Filter for pending status, then apply client-side search
   const pendingRequests = useMemo(
     () => allRequests.filter(req => req.status === "pending_approval" || req.status === "draft"),
     [allRequests]
   );
+
+  const filteredRequests = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return pendingRequests;
+    return pendingRequests.filter((req) => {
+      const employeeNames = (req.employees ?? [])
+        .map(e => `${e.full_name ?? ""} ${e.employee_id ?? ""}`.toLowerCase())
+        .join(" ");
+      const reason = (req.reason ?? "").toLowerCase();
+      return employeeNames.includes(q) || reason.includes(q);
+    });
+  }, [pendingRequests, searchQuery]);
 
   const loadMoreRef = useInfiniteScroll<HTMLDivElement>({
     hasNextPage,
@@ -117,7 +133,31 @@ export function PreOtApprovalsTab({
 
   return (
     <div className="space-y-4 m-8">
-      {pendingRequests.map((req) => (
+      <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between">
+        <SearchBox
+          className="max-w-md w-full"
+          onChange={setSearchQuery}
+          placeholder={t("ot_approvals.pre.search_placeholder", { defaultValue: "Search by employee name or reason..." })}
+          value={searchQuery}
+        />
+        {!!searchQuery && (
+          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-100/80 dark:bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-slate-800/50 w-fit shrink-0">
+            {t("ot_approvals.delegated_claim.table.filtered_count", {
+              count: filteredRequests.length,
+              defaultValue: `Found ${filteredRequests.length} entries`
+            })}
+          </span>
+        )}
+      </div>
+
+      {filteredRequests.length === 0 ? (
+        <div className="py-20 text-center flex flex-col items-center">
+          <Typography className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+            {t("ot_approvals.delegated_claim.no_search_results", { defaultValue: "No matching entries found" })}
+          </Typography>
+        </div>
+      ) : (
+        filteredRequests.map((req) => (
         <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-6 flex flex-col md:flex-row gap-6 justify-between shadow-sm hover:shadow-md transition-shadow" key={req.id}>
           <div className="space-y-3 flex-1">
             <div className="flex items-center gap-3">
@@ -158,7 +198,7 @@ export function PreOtApprovalsTab({
                       className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-750 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/40 dark:text-indigo-400 border border-indigo-150 dark:border-indigo-900/50 transition-colors cursor-pointer"
                       icon={<Paperclip className="w-3 h-3" />}
                       key={fileId}
-                      onClick={() => onPreviewAttachment?.(`/api/v1/workspaces/${wsId}/files/${fileId}/download`, `Pre-OT Attachment #${index + 1}`)}
+                      onClick={() => { onPreviewAttachment?.(`/api/v1/workspaces/${wsId}/files/${fileId}/download`, `Pre-OT Attachment #${index + 1}`); }}
                       type="button"
                     >
                       Doc #{index + 1}
@@ -199,7 +239,7 @@ export function PreOtApprovalsTab({
             )}
           </div>
         </div>
-      ))}
+      )))}
 
       {/* Infinite scroll sentinel */}
       <div ref={loadMoreRef}>

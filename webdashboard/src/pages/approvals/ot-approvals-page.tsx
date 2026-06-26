@@ -5,10 +5,11 @@ import { useTranslation } from "react-i18next";
 
 import { addMonths, endOfMonth, format, startOfMonth, subMonths } from "date-fns";
 
-import type { AttendanceDailySummary, DailyAttendanceReport, Employee, PaginatedResponse } from "@/lib/api";
+import type { AttendanceDailySummary, Employee, PaginatedResponse } from "@/lib/api";
 
 import { BulkUploadOtDialog } from "@/components/approvals/bulk-upload-ot-dialog";
 import { ErrorBoundary } from "@/components/common/error-boundary";
+import SearchBox from "@/components/common/search-box";
 import { PDFPreviewModal } from "@/components/files/pdf-preview-modal";
 import { PageTabs, PageTab } from "@/components/ui/page-tabs";
 import { useToast } from "@/components/ui/toast";
@@ -16,7 +17,7 @@ import { Typography } from "@/components/ui/typography";
 import { useApproveOt, useAttendanceSummariesInfinite } from "@/hooks/use-attendance";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { useWorkspace } from "@/hooks/use-workspace";
-import { fetchAttendanceReport, fetchEmployees } from "@/lib/api";
+import { fetchEmployees } from "@/lib/api";
 
 import type { OtSummary } from "./components/ot-approvals-table";
 
@@ -28,31 +29,15 @@ import { OtApprovalsHeader } from "./components/ot-approvals-header";
 import { OtApprovalsTable } from "./components/ot-approvals-table";
 import { PreOtApprovalsTab } from "./components/pre-ot-approvals-tab";
 
-type ReportRow = DailyAttendanceReport & { employee_id_number?: string };
-
-function getEmployeeMap(reportData: ReportRow[]): Map<string, { idNumber: string; name: string }> {
-  const map = new Map<string, { idNumber: string; name: string }>();
-  for (const r of reportData) {
-    if (r.employment_id) {
-      map.set(r.employment_id, {
-        name: r.employee_name || "",
-        idNumber: r.employee_id_number ?? "",
-      });
-    }
-  }
-  return map;
-}
-
 function getPendingSummaries(
   summaries: AttendanceDailySummary[],
   sourceFilter: SourceFilter,
-  employeeMap: Map<string, { idNumber: string; name: string }>
+  employeeNameMap: Map<string, { idNumber: string; name: string }>
 ): OtSummary[] {
   return summaries
-    .filter((s) => s.ot_status === "pending_manager")
     .filter((s) => sourceFilter === "all" || s.entered_via === sourceFilter)
     .map((s) => {
-      const emp = employeeMap.get(s.employment_id);
+      const emp = employeeNameMap.get(s.employment_id);
       return {
         ...s,
         employee_name: emp?.name ?? s.employment_id,
@@ -156,24 +141,18 @@ export default function OtApprovalsPage() {
     return map;
   }, [employeesData]);
 
-  const { data: reportResponse } = useQuery({
-    queryKey: ["attendance-report", workspace?.id, startDate, endDate, "daily"],
-    queryFn: () => {
-      if (!workspace?.id) throw new Error("No workspace ID");
-      return fetchAttendanceReport({
-        wsId: workspace.id,
-        start: startDate,
-        end: endDate,
-        type: "daily",
-        page: 1,
-        limit: 1000,
-      });
-    },
-    enabled: !!workspace?.id,
-  });
-
-  const reportData = useMemo(() => (reportResponse?.data ?? []) as ReportRow[], [reportResponse]);
-  const employeeMap = useMemo(() => getEmployeeMap(reportData), [reportData]);
+  const employeeNameMap = useMemo(() => {
+    const map = new Map<string, { idNumber: string; name: string }>();
+    employeesData?.data.forEach((emp: Employee) => {
+      if (emp.active_employment_id) {
+        map.set(emp.active_employment_id, {
+          name: emp.full_name,
+          idNumber: emp.employee_id_number,
+        });
+      }
+    });
+    return map;
+  }, [employeesData]);
 
   if (permissionsLoading) {
     return (
@@ -183,7 +162,7 @@ export default function OtApprovalsPage() {
     );
   }
 
-  const pendingSummaries = getPendingSummaries(summaries, sourceFilter, employeeMap);
+  const pendingSummaries = getPendingSummaries(summaries, sourceFilter, employeeNameMap);
 
   const handleApprove = async (
     summary: OtSummary,
@@ -386,15 +365,52 @@ function PostOtTabContent({
   hasNextPage,
   isFetchingNextPage,
 }: PostOtTabContentProps) {
+  const { t } = useTranslation(["common", "attendance"]);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredSummaries = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return pendingSummaries;
+    return pendingSummaries.filter((s) => {
+      const name = (s.employee_name ?? "").toLowerCase();
+      const id = (s.employee_id_number ?? "").toLowerCase();
+      const reason = (s.ot_reason ?? "").toLowerCase();
+      return name.includes(q) || id.includes(q) || reason.includes(q);
+    });
+  }, [pendingSummaries, searchQuery]);
+
   if (!canApprove) return null;
   if (isLoading) return <LoadingState />;
+
   return (
     <div className="flex flex-col">
-      <div className="px-8 pt-8 pb-4 border-b border-slate-50 dark:border-slate-800/60">
+      <div className="px-8 pt-8 pb-4 border-b border-slate-50 dark:border-slate-800/60 space-y-4">
+        <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between">
+          <SearchBox
+            className="max-w-md w-full"
+            onChange={setSearchQuery}
+            placeholder={t("ot_approvals.post.search_placeholder", { defaultValue: "Search by employee name, ID or reason..." })}
+            value={searchQuery}
+          />
+          {!!searchQuery && (
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-100/80 dark:bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-slate-800/50 w-fit shrink-0">
+              {t("ot_approvals.delegated_claim.table.filtered_count", {
+                count: filteredSummaries.length,
+                defaultValue: `Found ${filteredSummaries.length} entries`
+              })}
+            </span>
+          )}
+        </div>
         <OtApprovalsFilters setSourceFilter={setSourceFilter} sourceFilter={sourceFilter} />
       </div>
       {!isFetchingNextPage && pendingSummaries.length === 0 ? (
         <EmptyState />
+      ) : pendingSummaries.length > 0 && filteredSummaries.length === 0 ? (
+        <div className="py-20 text-center flex flex-col items-center">
+          <Typography className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider" variant="p">
+            {t("ot_approvals.delegated_claim.no_search_results", { defaultValue: "No matching entries found" })}
+          </Typography>
+        </div>
       ) : (
         <OtApprovalsTable
           fetchNextPage={fetchNextPage}
@@ -404,7 +420,7 @@ function PostOtTabContent({
           isProcessing={isProcessing}
           onAddPhoto={setPhotoTargetSummary}
           onPreviewAttachment={onPreviewAttachment}
-          pendingSummaries={pendingSummaries}
+          pendingSummaries={filteredSummaries}
         />
       )}
     </div>

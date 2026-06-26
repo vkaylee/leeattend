@@ -1,12 +1,13 @@
-import { Check, CheckCircle, Search } from "lucide-react";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { Check, CheckCircle } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { DailyAttendanceReport, PaginatedResponse } from "@/lib/api";
 
 import { ConfirmClaimsDialog } from "@/components/approvals/confirm-claims-dialog";
 import InfiniteScrollSentinel from "@/components/common/infinite-scroll-sentinel";
+import SearchBox from "@/components/common/search-box";
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
@@ -205,17 +206,13 @@ export function DelegatedClaimsTab({
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between">
-        <div className="relative group max-w-md w-full">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-455 dark:text-slate-500 w-4.5 h-4.5 group-focus-within:text-primary-500 dark:group-focus-within:text-primary-400 transition-colors" />
-          <input
-            aria-label={t("common.search", { defaultValue: "Search..." })}
-            className="w-full pl-11 pr-4 py-2.5 bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700/50 rounded-xl outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500/50 dark:focus:border-primary-400/50 transition-all text-xs font-semibold shadow-sm placeholder-slate-400"
-            onChange={(e) => { setSearchQuery(e.target.value); }}
-            placeholder={t("ot_approvals.delegated_claim.search_placeholder", { defaultValue: "Search by employee name or ID..." })}
-            type="text"
-            value={searchQuery}
-          />
-        </div>
+        <SearchBox
+          className="max-w-md w-full"
+          data-testid="delegated-claims-search"
+          onChange={setSearchQuery}
+          placeholder={t("ot_approvals.delegated_claim.search_placeholder", { defaultValue: "Search by employee name or ID..." })}
+          value={searchQuery}
+        />
         {!!searchQuery && (
           <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-100/80 dark:bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-slate-800/50 w-fit">
             {t("ot_approvals.delegated_claim.table.filtered_count", {

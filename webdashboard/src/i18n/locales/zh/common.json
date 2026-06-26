@@ -22,6 +22,7 @@
     "syncing_data": "正在同步数据...",
     "preparing_environment": "正在准备环境...",
     "search": "搜索...",
+    "loading_more": "加载更多...",
     "previous": "上一个",
     "next": "下一个",
     "ip_address": "IP 地址",
@@ -1378,6 +1379,34 @@
       "summary": "摘要",
       "charts": "图表",
       "actions": "操作"
+    },
+    "categories": {
+      "attendance": "考勤",
+      "workforce": "人力",
+      "performance": "绩效",
+      "summary": "概览"
+    },
+    "catalog": {
+      "title": "图表",
+      "search_placeholder": "搜索图表...",
+      "no_results": "未找到图表",
+      "collapse": "收起面板",
+      "expand": "展开面板"
+    },
+    "meta": {
+      "kpi_cards": "今日关键指标一览",
+      "donut_chart": "按状态查看考勤分布",
+      "quick_stats": "人员总数和摘要统计",
+      "attendance_trend": "30天考勤趋势",
+      "department_chart": "各部门考勤率",
+      "peak_times": "签到高峰时段分布",
+      "leave_types": "各类型请假分布",
+      "recruitment_sources": "新员工招聘来源分析",
+      "turnover_analytics": "员工离职分析",
+      "unexcused_absences": "旷工记录随访",
+      "overtime_trend": "加班时长趋势",
+      "lateness_by_day": "工作日迟到频率",
+      "promo_cards": "快捷操作链接"
     },
     "lifecycle": {
       "due": "截止日期: {{date}}",

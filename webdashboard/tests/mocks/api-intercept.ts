@@ -138,6 +138,16 @@ export async function setupApiMocks(page: Page) {
       });
     }
 
+    // 6.5. Attendance Summaries
+    if (/\/attendance\/summaries/.exec(pathname)) {
+      return fulfill({
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 20
+      });
+    }
+
     // 7. Dashboard Stats & Trends
     if (/\/api\/dashboard\/workspace-stats/.exec(pathname)) {
       return fulfill({ employee_count: 2, present_today: 1, on_leave: 0, pending_requests: 0 });

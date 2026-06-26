@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ResilientWidget } from "@/components/common/resilient-widget";
+import ChartCatalogSidebar from "@/components/features/dashboard/chart-catalog-sidebar";
 import CustomizePanel from "@/components/features/dashboard/customize-panel";
 import { DashboardErrorBanner } from "@/components/features/dashboard/dashboard-error-banner";
 import { DashboardHeader } from "@/components/features/dashboard/dashboard-header";
@@ -60,28 +61,47 @@ export default function DashboardPage() {
   const chartElements = useDashboardCharts(widgetOrder, visibleWidgets);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
+    <div className="space-y-6 animate-in fade-in duration-700">
       <DashboardHeader
-        activeView={activeView} setActiveView={setActiveView} setCustomizeOpen={() => { setCustomizeOpen(true); }}
-        setShowSystemTab={setShowSystemTab} showSystemTab={showSystemTab} t={t}
+        onReset={resetToDefault}
+        setShowSystemTab={setShowSystemTab}
+        showSystemTab={showSystemTab}
+        t={t}
       />
 
       <ResilientWidget>
         <PendingTasksWidget />
       </ResilientWidget>
 
-      <div className="animate-in slide-in-from-bottom-4 duration-700">
-        {!showSystemTab ? (
-          <ResilientWidget>
-            <DashboardHrTab
-              chartElements={chartElements} collapsedSections={collapsedSections}
-              donutData={donutData} formatCurrency={formatCurrency}
-              hasDonutData={hasDonutData} hrStats={hrStats}
-              isLoading={isLoading} t={t}
-              toggleSection={toggleSection} visibleWidgets={visibleWidgets}
-            />
-          </ResilientWidget>
-        ) : (
+      {!showSystemTab ? (
+        <div className="flex gap-6 items-start animate-in slide-in-from-bottom-4 duration-700">
+          {/* LEFT: Chart Catalog Sidebar */}
+          <ChartCatalogSidebar
+            allWidgets={allWidgets}
+            visibleWidgets={visibleWidgets}
+            onToggleWidget={toggleWidget}
+          />
+
+          {/* RIGHT: Dashboard content */}
+          <div className="flex-1 min-w-0">
+            <ResilientWidget>
+              <DashboardHrTab
+                chartElements={chartElements}
+                collapsedSections={collapsedSections}
+                donutData={donutData}
+                formatCurrency={formatCurrency}
+                hasDonutData={hasDonutData}
+                hrStats={hrStats}
+                isLoading={isLoading}
+                t={t}
+                toggleSection={toggleSection}
+                visibleWidgets={visibleWidgets}
+              />
+            </ResilientWidget>
+          </div>
+        </div>
+      ) : (
+        <div className="animate-in slide-in-from-bottom-4 duration-700">
           <ResilientWidget>
             <DashboardSystemTab
               activeDevices={activeDevices} agents={agents}
@@ -89,8 +109,8 @@ export default function DashboardPage() {
               isLoading={isLoading} onlineAgents={onlineAgents} t={t}
             />
           </ResilientWidget>
-        )}
-      </div>
+        </div>
+      )}
 
       {error ? <DashboardErrorBanner /> : null}
 
