@@ -67,7 +67,7 @@ export const APP_REGISTRY: AppDefinition[] = [
     id: "dashboard-analytics",
     icon: BarChart3,
     labelKey: "dashboard.catalog.title",
-    descriptionKey: "reports.subtitle",
+    descriptionKey: "appLauncher.descriptions.charts",
     to: ROUTES.DASHBOARD,
     group: "dashboard",
     testId: "app-card-dashboard-analytics",
