@@ -1506,7 +1506,10 @@
       "ot_hours": "Overtime",
       "leave_days": "Leave Days",
       "hours": "Hours",
-      "units": "Units"
+      "units": "Units",
+      "scheduled": "Scheduled",
+      "segment_type": "Segment",
+      "segment_number": "#"
     },
     "quick_stats": {
       "title": "Quick Stats",

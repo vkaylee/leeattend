@@ -1494,7 +1494,10 @@
       "hours": "小时",
       "units": "单位",
       "std_hours": "标准工时",
-      "ot_hours": "加班工时"
+      "ot_hours": "加班工时",
+      "scheduled": "排班",
+      "segment_type": "分段",
+      "segment_number": "#"
     },
     "quick_stats": {
       "title": "快速统计",

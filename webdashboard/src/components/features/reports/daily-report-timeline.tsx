@@ -90,6 +90,9 @@ export function DailyReportTimeline({ row, formatTime, t }: DailyReportTimelineP
   // Sort chronological
   timeEntries.sort((a, b) => a.inMin - b.inMin);
 
+  // Work-only entries (exclude auto-computed breaks) for axis display
+  const workEntries = timeEntries.filter((e) => e.entry_type === "work");
+
   // 3. Determine overall timeline bounds
   let timelineStart = startMin !== null ? startMin - 120 : 480; // Default 08:00 - 2 hours = 06:00
   let timelineEnd = endMin !== null ? endMin + 120 : 1020;    // Default 17:00 + 2 hours = 19:00
@@ -118,10 +121,10 @@ export function DailyReportTimeline({ row, formatTime, t }: DailyReportTimelineP
   const hasSegmentData = !!row.segment_type;
 
   return (
-    <div className="w-full space-y-6 select-none py-2 px-1">
+    <div className="w-full space-y-2 select-none py-2 px-1">
       {/* Segment label (segment-centric path) */}
       {hasSegmentData ? (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 mb-2">
           <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
             {row.interval_name ?? row.segment_type}
           </span>
@@ -132,7 +135,31 @@ export function DailyReportTimeline({ row, formatTime, t }: DailyReportTimelineP
           ) : null}
         </div>
       ) : null}
-      {/* Visual Bar Container */}
+
+      {/* 1. Scheduled Axis (Above Visual Bar) */}
+      <div className="relative h-6 w-full text-[9px] font-bold font-mono text-slate-400 dark:text-slate-500">
+        {startMin !== null && (
+          <div
+            className="absolute flex flex-col items-center -translate-x-1/2 bottom-0"
+            style={{ left: `${getPercent(startMin)}%` }}
+          >
+            <span className="text-blue-500 dark:text-blue-400 mb-1">{formatMinutesToTime(startMin)}</span>
+            <div className="w-px h-1.5 bg-blue-400 dark:bg-blue-600" />
+          </div>
+        )}
+
+        {endMin !== null && (
+          <div
+            className="absolute flex flex-col items-center -translate-x-1/2 bottom-0"
+            style={{ left: `${getPercent(endMin)}%` }}
+          >
+            <span className="text-blue-500 dark:text-blue-400 mb-1">{formatMinutesToTime(endMin)}</span>
+            <div className="w-px h-1.5 bg-blue-400 dark:bg-blue-600" />
+          </div>
+        )}
+      </div>
+
+      {/* 2. Visual Bar Container */}
       <div className="relative h-9 w-full bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200/50 dark:border-slate-700/50 shadow-inner flex items-center">
         
         {/* 1. Scheduled Shift Area (dashed overlay) */}
@@ -217,33 +244,12 @@ export function DailyReportTimeline({ row, formatTime, t }: DailyReportTimelineP
         })}
       </div>
 
-      {/* Axis & Ticks */}
+      {/* 3. Actual Axis (Below Visual Bar) — work entries only (no auto-computed break boundaries) */}
       <div className="relative h-6 w-full text-[9px] font-bold font-mono text-slate-400 dark:text-slate-500">
-        {/* Ticks for punches and schedules */}
-        {startMin !== null && (
-          <div
-            className="absolute flex flex-col items-center -translate-x-1/2"
-            style={{ left: `${getPercent(startMin)}%` }}
-          >
-            <div className="w-px h-1.5 bg-blue-400 dark:bg-blue-600 mb-1" />
-            <span className="text-blue-500 dark:text-blue-400">{formatMinutesToTime(startMin)}</span>
-          </div>
-        )}
-
-        {endMin !== null && (
-          <div
-            className="absolute flex flex-col items-center -translate-x-1/2"
-            style={{ left: `${getPercent(endMin)}%` }}
-          >
-            <div className="w-px h-1.5 bg-blue-400 dark:bg-blue-600 mb-1" />
-            <span className="text-blue-500 dark:text-blue-400">{formatMinutesToTime(endMin)}</span>
-          </div>
-        )}
-
-        {timeEntries.map((e) => (
+        {workEntries.map((e) => (
           <React.Fragment key={`tick-${e.id}`}>
             <div
-              className="absolute flex flex-col items-center -translate-x-1/2"
+              className="absolute flex flex-col items-center -translate-x-1/2 top-0"
               style={{ left: `${getPercent(e.inMin)}%` }}
             >
               <div className="w-px h-1.5 bg-emerald-400 dark:bg-emerald-600 mb-1" />
@@ -253,7 +259,7 @@ export function DailyReportTimeline({ row, formatTime, t }: DailyReportTimelineP
             </div>
             {e.outMin !== null && (
               <div
-                className="absolute flex flex-col items-center -translate-x-1/2"
+                className="absolute flex flex-col items-center -translate-x-1/2 top-0"
                 style={{ left: `${getPercent(e.outMin)}%` }}
               >
                 <div className="w-px h-1.5 bg-emerald-400 dark:bg-emerald-600 mb-1" />

@@ -759,15 +759,15 @@ mod tests {
         // Header row in raw_details_generator.rs is at row 3 (0-indexed)
         let header_row: Vec<_> = sheet_en.rows().nth(3).unwrap().to_vec();
         assert_eq!(header_row[3], Data::String("Employer".to_string()));
-        assert_eq!(header_row[8], Data::String("Std Hours".to_string()));
-        assert_eq!(header_row[9], Data::String("OT Hours".to_string()));
+        assert_eq!(header_row[10], Data::String("Std Hours".to_string()));
+        assert_eq!(header_row[11], Data::String("OT Hours".to_string()));
 
         // Assert data row has correct float values
         // Data rows start at row 4
         let data_row: Vec<_> = sheet_en.rows().nth(4).unwrap().to_vec();
         assert_eq!(data_row[3], Data::String("Google".to_string()));
-        assert_eq!(data_row[8], Data::Float(8.0));
-        assert_eq!(data_row[9], Data::Float(1.5));
+        assert_eq!(data_row[10], Data::Float(8.0));
+        assert_eq!(data_row[11], Data::Float(1.5));
 
         // Assert timesheet headers and values
         let sheet_ts = wb_en.worksheet_range("Timesheet View")?;
@@ -800,13 +800,13 @@ mod tests {
         let sheet_vi = wb_vi.worksheet_range("Chi tiết")?;
         let header_row_vi: Vec<_> = sheet_vi.rows().nth(3).unwrap().to_vec();
         assert_eq!(header_row_vi[3], Data::String("Công ty".to_string()));
-        assert_eq!(header_row_vi[8], Data::String("Giờ chuẩn".to_string()));
-        assert_eq!(header_row_vi[9], Data::String("Giờ tăng ca".to_string()));
+        assert_eq!(header_row_vi[10], Data::String("Giờ chuẩn".to_string()));
+        assert_eq!(header_row_vi[11], Data::String("Giờ tăng ca".to_string()));
 
         let data_row_vi: Vec<_> = sheet_vi.rows().nth(4).unwrap().to_vec();
         assert_eq!(data_row_vi[3], Data::String("Google".to_string()));
-        assert_eq!(data_row_vi[8], Data::Float(8.0));
-        assert_eq!(data_row_vi[9], Data::Float(1.5));
+        assert_eq!(data_row_vi[10], Data::Float(8.0));
+        assert_eq!(data_row_vi[11], Data::Float(1.5));
 
         // Assert timesheet headers in Vietnamese
         let sheet_ts_vi = wb_vi.worksheet_range("Bảng chấm công")?;
@@ -832,8 +832,8 @@ mod tests {
         let sheet_zh = wb_zh.worksheet_range("明细")?;
         let header_row_zh: Vec<_> = sheet_zh.rows().nth(3).unwrap().to_vec();
         assert_eq!(header_row_zh[3], Data::String("雇主".to_string()));
-        assert_eq!(header_row_zh[8], Data::String("标准工时".to_string()));
-        assert_eq!(header_row_zh[9], Data::String("加班工时".to_string()));
+        assert_eq!(header_row_zh[10], Data::String("标准工时".to_string()));
+        assert_eq!(header_row_zh[11], Data::String("加班工时".to_string()));
 
         // Assert timesheet headers in Chinese
         let sheet_ts_zh = wb_zh.worksheet_range("考勤表")?;

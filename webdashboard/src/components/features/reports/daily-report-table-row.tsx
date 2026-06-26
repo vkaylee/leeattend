@@ -25,7 +25,7 @@ function DailyReportTableRowExpanded({
 }) {
   return (
     <tr className="bg-slate-500/5 dark:bg-slate-950/10 animate-in slide-in-from-top-2 duration-300">
-      <td className="px-10 py-6" colSpan={11}>
+      <td className="px-10 py-6" colSpan={isDebugMode ? 12 : 11}>
         <div className="bg-white dark:bg-slate-900/90 rounded-[2rem] p-6 shadow-premium border border-slate-100 dark:border-slate-800 overflow-hidden relative">
           <div className="flex items-center gap-3 mb-6 border-b border-slate-100 dark:border-slate-800 pb-4">
             <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 flex items-center justify-center text-emerald-500 border border-emerald-500/10">
@@ -99,7 +99,39 @@ const SEGMENT_TYPE_COLORS: Record<string, string> = {
   travel: "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-950/30 dark:text-slate-300 dark:border-slate-800",
 };
 
-function ShiftCell({ row, t }: { row: DailyAttendanceReport; t: (k: string) => string }) {
+function SegmentTypeCell({ row, t }: { row: DailyAttendanceReport; t: (k: string) => string }) {
+  if (!row.segment_type) {
+    return (
+      <span className="text-[9px] font-bold text-slate-300 dark:text-slate-600 italic">—</span>
+    );
+  }
+  const segTypeColor = SEGMENT_TYPE_COLORS[row.segment_type] ?? SEGMENT_TYPE_COLORS.work;
+  return (
+    <span className={cn(
+      "text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md border leading-none whitespace-nowrap",
+      segTypeColor
+    )}>
+      {t(`work_segments.segment_type.${row.segment_type}`)}
+    </span>
+  );
+}
+
+function SegmentCounterCell({ row }: { row: DailyAttendanceReport }) {
+  const hasSegmentData = !!row.segment_type;
+  const isMultiSegment = (row.segment_count ?? 1) > 1;
+  if (!hasSegmentData || !isMultiSegment) {
+    return (
+      <span className="text-[9px] font-bold text-slate-300 dark:text-slate-600 italic">—</span>
+    );
+  }
+  return (
+    <span className="text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400 tabular-nums">
+      {(row.sort_order ?? 0) + 1}<span className="text-[8px] opacity-50">/{row.segment_count}</span>
+    </span>
+  );
+}
+
+function ScheduledCell({ row, t }: { row: DailyAttendanceReport; t: (k: string) => string }) {
   if (!row.scheduled_start) {
     return (
       <span className="text-[9px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest italic opacity-50">
@@ -116,33 +148,14 @@ function ShiftCell({ row, t }: { row: DailyAttendanceReport; t: (k: string) => s
   const derivedSource = getDerivedSource(appliedRule);
 
   const hasSegmentData = !!row.segment_type;
-  const isMultiSegment = (row.segment_count ?? 1) > 1;
-  const segTypeColor = SEGMENT_TYPE_COLORS[row.segment_type ?? "work"] ?? SEGMENT_TYPE_COLORS.work;
 
   return (
     <div className="flex flex-col gap-1">
-      {/* Segment type badge (segment-centric path) */}
-      {hasSegmentData ? (
-        <div className="flex items-center gap-1.5">
-          <span className={cn(
-            "text-[8px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-md border leading-none",
-            segTypeColor
-          )}>
-            {row.segment_type}
-          </span>
-          {isMultiSegment ? (
-            <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 tracking-wider">
-              {(row.sort_order ?? 0) + 1}/{row.segment_count}
-            </span>
-          ) : null}
-          {row.interval_name ? (
-            <span className="text-[9px] font-medium text-slate-500 dark:text-slate-400 truncate max-w-[120px]">
-              {row.interval_name}
-            </span>
-          ) : null}
-        </div>
+      {row.interval_name ? (
+        <span className="text-[9px] font-medium text-slate-500 dark:text-slate-400 truncate max-w-[140px]">
+          {row.interval_name}
+        </span>
       ) : null}
-
       <div className="relative w-fit flex items-center">
         <span className={cn(
           "font-bold text-slate-700 dark:text-slate-200 text-xs uppercase tracking-tighter shadow-sm bg-white dark:bg-slate-900 py-0.5 rounded-lg border border-slate-100 dark:border-slate-800",
@@ -277,6 +290,9 @@ export interface DailyReportTableRowProps {
   formatTime: (time: string | null) => string;
   hideEmployeeName: boolean;
   isDebugMode: boolean;
+  isFirstInGroup?: boolean;
+  isLastInGroup?: boolean;
+  isMultiSegmentGroup?: boolean;
   onApproveOt?: (row: DailyAttendanceReport, action: "approved" | "rejected") => void;
   onConfirmClick: (row: DailyAttendanceReport, existing?: AttendanceAdjustmentRequest) => void;
   onReprocessClick: (row: DailyAttendanceReport) => void;
@@ -295,6 +311,9 @@ export function DailyReportTableRow({
   formatTime,
   hideEmployeeName,
   isDebugMode,
+  isFirstInGroup = true,
+  isLastInGroup = true,
+  isMultiSegmentGroup = false,
   onApproveOt,
   onConfirmClick,
   onReprocessClick,
@@ -304,48 +323,67 @@ export function DailyReportTableRow({
   row,
   t,
 }: DailyReportTableRowProps) {
-  const rowKey = `${row.employee_id}-${row.date}`;
-  const isReprocessing = reprocessingRow === rowKey;
-  const isConfirming = confirmingRow === rowKey;
-  const isExpanded = expandedDebugRows.has(rowKey);
-  const existingAdjustment = adjustmentMap[rowKey];
+  const segmentKey = `${row.employee_id}-${row.date}-${row.segment_id ?? row.sort_order ?? '0'}`;
+  const dayKey = `${row.employment_id}-${row.date}`;
+  const dayKeyEmployee = `${row.employee_id}-${row.date}`;
+  const isReprocessing = reprocessingRow === dayKeyEmployee;
+  const isConfirming = confirmingRow === dayKeyEmployee;
+  const isExpanded = expandedDebugRows.has(segmentKey);
+  const existingAdjustment = adjustmentMap[dayKey];
   const metadata = row.generation_metadata as { time_entries?: TimeEntry[] } | undefined;
   const timeEntries = metadata?.time_entries ?? [];
-
-  const isMultiSegment = (row.segment_count ?? 1) > 1;
+  const workEntries = timeEntries.filter((e) => e.entry_type === "work");
+  // Auto-deduct break: the single work period is split by a system-computed break.
+  // Don't show the "Split" badge — the employee only punched at shift start/end.
+  const isAutoDeduct = row.is_break_auto_deduct === true;
+  const hasMultipleSessions = isAutoDeduct
+    ? workEntries.length > 2   // 2 work blocks = 1 session with auto-deduct gap
+    : workEntries.length > 1;
 
   return (
     <React.Fragment>
       <tr className={cn(
         "transition-all group",
         isExpanded ? "bg-amber-50 dark:bg-amber-950/20" : "hover:bg-slate-50 dark:hover:bg-slate-800/50",
-        isMultiSegment && "border-l-2 border-l-blue-300 dark:border-l-blue-700"
+        // Group boundary styling
+        isFirstInGroup && isMultiSegmentGroup && "border-t-2 border-t-blue-200 dark:border-t-blue-800",
+        isMultiSegmentGroup && "border-l-2 border-l-blue-300 dark:border-l-blue-700",
+        !isFirstInGroup && isMultiSegmentGroup && "border-t border-t-blue-100/50 dark:border-t-blue-900/20",
+        isLastInGroup && isMultiSegmentGroup && "border-b border-b-slate-100 dark:border-b-slate-800",
       )}>
         <td className="w-10 px-2 py-2.5 text-center sticky left-0 z-10 bg-white group-hover:bg-slate-50 dark:bg-slate-900 dark:group-hover:bg-slate-800/50 transition-colors">
           <Button
             className="p-1 h-auto text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-            onClick={() => { onToggleExpandRow(rowKey); }}
+            onClick={() => { onToggleExpandRow(segmentKey); }}
             variant="ghost"
           >
             <ChevronRight className={cn("transition-transform duration-200", isExpanded && "rotate-90")} size={14} />
           </Button>
         </td>
-        <td className="px-4 py-2.5 font-mono text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase whitespace-nowrap sticky left-[40px] z-10 bg-white group-hover:bg-slate-50 dark:bg-slate-900 dark:group-hover:bg-slate-800/50 transition-colors">
+        <td className={cn(
+          "px-4 py-2.5 font-mono text-[11px] font-bold uppercase whitespace-nowrap sticky left-[40px] z-10 bg-white group-hover:bg-slate-50 dark:bg-slate-900 dark:group-hover:bg-slate-800/50 transition-colors",
+          !isFirstInGroup && "text-slate-300 dark:text-slate-600"
+        )}>
           {formatDate(row.date)}
         </td>
         {!hideEmployeeName ? (
-          <td className="px-4 py-2.5 font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none whitespace-nowrap sticky left-[120px] sm:left-[140px] z-10 bg-white group-hover:bg-slate-50 dark:bg-slate-900 dark:group-hover:bg-slate-800/50 transition-colors">
+          <td className={cn(
+            "px-4 py-2.5 font-bold text-sm tracking-tight uppercase leading-none whitespace-nowrap sticky left-[120px] sm:left-[140px] z-10 bg-white group-hover:bg-slate-50 dark:bg-slate-900 dark:group-hover:bg-slate-800/50 transition-colors",
+            !isFirstInGroup ? "text-slate-300 dark:text-slate-600" : "text-slate-700 dark:text-slate-200"
+          )}>
             {row.employee_name}
           </td>
         ) : null}
-        <td className="px-4 py-2.5"><ShiftCell row={row} t={t} /></td>
+        <td className="px-3 py-2.5 text-center"><SegmentTypeCell row={row} t={t} /></td>
+        <td className="px-1 py-2.5 text-center"><SegmentCounterCell row={row} /></td>
+        <td className="px-4 py-2.5"><ScheduledCell row={row} t={t} /></td>
         <td className="px-4 py-2.5 text-center font-mono font-bold text-xs text-slate-700 dark:text-slate-200 tracking-tighter">
           <div className="flex items-center justify-center gap-1.5">
             <div className="shadow-inner bg-slate-50 dark:bg-slate-800/50 rounded-md py-1 px-2 inline-block">
               {formatTime(row.actual_punch_in)}
             </div>
-            {timeEntries.length > 1 && (
-              <span 
+            {hasMultipleSessions && (
+              <span
                 className="text-[8px] bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider scale-90 cursor-help"
                 title={timeEntries
                   .map((e: TimeEntry, i: number) => {
@@ -366,8 +404,8 @@ export function DailyReportTableRow({
             <div className="shadow-inner bg-slate-50 dark:bg-slate-800/50 rounded-md py-1 px-2 inline-block">
               {formatTime(row.actual_punch_out)}
             </div>
-            {timeEntries.length > 1 && (
-              <span 
+            {hasMultipleSessions && (
+              <span
                 className="text-[8px] bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider scale-90 cursor-help opacity-0"
                 title=""
               >
@@ -377,7 +415,7 @@ export function DailyReportTableRow({
           </div>
         </td>
         <td className="px-4 py-2.5 text-right">
-          <div 
+          <div
             className="font-mono font-bold text-primary-600 dark:text-primary-400 text-base tracking-tighter leading-none cursor-help"
             title={buildWorkUnitsTooltip(row.std_work_units, t(getUnitTypeI18nKey(row.unit_type)), row.unit_coefficient_hours, row.computed_std_hours)}
           >
@@ -390,7 +428,7 @@ export function DailyReportTableRow({
           <td className="px-4 py-2.5 text-center">
             <Button
               className={cn("p-1.5 rounded-lg transition-all shadow-sm border h-auto", isExpanded ? "bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 border-amber-200" : "bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-300 border-slate-100 dark:border-slate-800 hover:bg-amber-50 dark:bg-amber-950")}
-              onClick={() => { onToggleExpandRow(rowKey); }}
+              onClick={() => { onToggleExpandRow(segmentKey); }}
               variant="ghost"
             >
               <Bug size={16} />

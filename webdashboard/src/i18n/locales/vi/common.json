@@ -1506,7 +1506,10 @@
       "ot_hours": "Tăng ca",
       "leave_days": "Số ngày nghỉ",
       "hours": "Giờ công",
-      "units": "Đơn vị"
+      "units": "Đơn vị",
+      "scheduled": "Phân ca",
+      "segment_type": "Phân đoạn",
+      "segment_number": "#"
     },
     "quick_stats": {
       "title": "Thống kê nhanh",

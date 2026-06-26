@@ -287,7 +287,7 @@ pub struct ExcelReportMessages {
     pub timesheet_employer_header: &'static str,
 
     // Raw details headers
-    pub detail_headers: [&'static str; 13],
+    pub detail_headers: [&'static str; 15],
 
     // Guide page translations
     pub guide_title: &'static str,
@@ -344,6 +344,8 @@ impl ExcelReportMessages {
                 "Employee ID",
                 "Employee Name",
                 "Employer",
+                "Segment Type",
+                "Interval",
                 "Scheduled Start",
                 "Scheduled End",
                 "Actual In",
@@ -407,6 +409,8 @@ impl ExcelReportMessages {
                 "Mã NV",
                 "Tên nhân viên",
                 "Công ty",
+                "Loại phân đoạn",
+                "Tên khung giờ",
                 "Giờ bắt đầu",
                 "Giờ kết thúc",
                 "Giờ vào thực tế",
@@ -464,6 +468,8 @@ impl ExcelReportMessages {
                 "员工编号",
                 "员工姓名",
                 "雇主",
+                "分段类型",
+                "时段名称",
                 "排班开始",
                 "排班结束",
                 "实际签到",
@@ -735,7 +741,7 @@ mod tests {
         assert_eq!(msgs.raw_details_sheet_name, "Raw Details");
         assert_eq!(msgs.summary_headers[0], "Employee Name");
         assert_eq!(msgs.detail_headers[0], "Date");
-        assert_eq!(msgs.detail_headers.len(), 13);
+        assert_eq!(msgs.detail_headers.len(), 15);
     }
 
     #[test]

@@ -94,7 +94,7 @@ describe("DailyReportTable", () => {
         render(<DailyReportTable {...defaultProps} />);
         expect(screen.getByText("common.date")).toBeInTheDocument();
         expect(screen.getByText("common.employee")).toBeInTheDocument();
-        expect(screen.getByText("common.shift")).toBeInTheDocument();
+        expect(screen.getByText("reports.table.scheduled")).toBeInTheDocument();
         expect(screen.getByText("reports.table.std_hours")).toBeInTheDocument();
     });
 
@@ -163,7 +163,7 @@ describe("DailyReportTable", () => {
 
         // But dates and other columns still work
         expect(screen.getByText("common.date")).toBeInTheDocument();
-        expect(screen.getByText("common.shift")).toBeInTheDocument();
+        expect(screen.getByText("reports.table.scheduled")).toBeInTheDocument();
     });
 
     it("shows employee name column by default (hideEmployeeName=false)", () => {
@@ -259,6 +259,396 @@ describe("DailyReportTable", () => {
         expect(screen.getByText("shifts.traceability.applied_shift")).toBeInTheDocument();
         expect(screen.getByText("Mocked Special Shift")).toBeInTheDocument();
         expect(screen.getByText("Override Rule")).toBeInTheDocument();
+    });
+
+    // ── Per-Segment (Option A) Tests ──
+
+    const multiSegmentData: DailyAttendanceReport[] = [
+        {
+            date: "2024-03-20",
+            employee_id: "EMP001",
+            employment_id: "EMP001",
+            employee_name: "John Doe",
+            segment_id: "seg-morning",
+            segment_type: "work",
+            sort_order: 0,
+            segment_count: 2,
+            interval_name: "Ca sáng",
+            scheduled_start: "08:00:00",
+            scheduled_end: "12:00:00",
+            break_duration_minutes: null,
+            break_start: null,
+            break_end: null,
+            actual_punch_in: "07:55:00",
+            actual_punch_out: "12:00:00",
+            std_work_units: 240,
+            ot_work_units: 0,
+            computed_std_hours: 4.0,
+            computed_ot_hours: 0,
+            unit_type: "HOUR",
+            unit_coefficient_hours: 1.0,
+            status: "present",
+            ot_claim_status: "none",
+            generation_metadata: null,
+            workspace_id: "WS1",
+            employee_identifier: "E01",
+            is_break_auto_deduct: false,
+            is_holiday: false
+        } as DailyAttendanceReport,
+        {
+            date: "2024-03-20",
+            employee_id: "EMP001",
+            employment_id: "EMP001",
+            employee_name: "John Doe",
+            segment_id: "seg-afternoon",
+            segment_type: "standby",
+            sort_order: 1,
+            segment_count: 2,
+            interval_name: "Ca chiều",
+            scheduled_start: "13:00:00",
+            scheduled_end: "17:00:00",
+            break_duration_minutes: null,
+            break_start: null,
+            break_end: null,
+            actual_punch_in: "13:05:00",
+            actual_punch_out: "17:02:00",
+            std_work_units: 237,
+            ot_work_units: 2,
+            computed_std_hours: 3.95,
+            computed_ot_hours: 0.5,
+            unit_type: "HOUR",
+            unit_coefficient_hours: 1.0,
+            status: "late",
+            ot_claim_status: "none",
+            generation_metadata: null,
+            workspace_id: "WS1",
+            employee_identifier: "E01",
+            is_break_auto_deduct: false,
+            is_holiday: false
+        } as DailyAttendanceReport,
+    ];
+
+    const mixedSegmentAndRegularData: DailyAttendanceReport[] = [
+        // Multi-segment employee
+        ...multiSegmentData,
+        // Regular (non-segment) employee
+        {
+            date: "2024-03-21",
+            employee_id: "EMP002",
+            employment_id: "EMP002",
+            employee_name: "Jane Smith",
+            segment_type: null,
+            segment_count: null,
+            sort_order: null,
+            segment_id: null,
+            interval_name: null,
+            scheduled_start: "08:00:00",
+            scheduled_end: "17:00:00",
+            break_duration_minutes: 60,
+            break_start: null,
+            break_end: null,
+            actual_punch_in: "08:00:00",
+            actual_punch_out: "17:00:00",
+            std_work_units: 480,
+            ot_work_units: 0,
+            computed_std_hours: 8.0,
+            computed_ot_hours: 0,
+            unit_type: "DAY",
+            unit_coefficient_hours: 8.0,
+            status: "present",
+            ot_claim_status: "none",
+            generation_metadata: null,
+            workspace_id: "WS1",
+            employee_identifier: "E02",
+            is_break_auto_deduct: false,
+            is_holiday: false
+        } as DailyAttendanceReport,
+    ];
+
+    it("renders segment type and segment number columns in header", () => {
+        render(<DailyReportTable {...defaultProps} />);
+        expect(screen.getByText("reports.table.segment_type")).toBeInTheDocument();
+        expect(screen.getByText("reports.table.segment_number")).toBeInTheDocument();
+    });
+
+    it("renders Scheduled header instead of Shift", () => {
+        render(<DailyReportTable {...defaultProps} />);
+        expect(screen.getByText("reports.table.scheduled")).toBeInTheDocument();
+        // "Shift" header should no longer exist
+        expect(screen.queryByText("common.shift")).not.toBeInTheDocument();
+    });
+
+    it("renders multi-segment data as separate rows without React key warnings", () => {
+        const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+        render(
+            <DailyReportTable
+                {...defaultProps}
+                data={multiSegmentData}
+                hideEmployeeName
+            />
+        );
+        // Both segment rows should be rendered
+        expect(screen.getByText(/08:00 — 12:00/)).toBeInTheDocument();
+        expect(screen.getByText(/13:00 — 17:00/)).toBeInTheDocument();
+        // No React duplicate key warnings
+        const keyWarnings = consoleSpy.mock.calls.filter(
+            call => typeof call[0] === "string" && call[0].includes("same key")
+        );
+        expect(keyWarnings).toHaveLength(0);
+        consoleSpy.mockRestore();
+    });
+
+    it("renders segment type badges for multi-segment data", () => {
+        render(
+            <DailyReportTable
+                {...defaultProps}
+                data={multiSegmentData}
+                hideEmployeeName
+            />
+        );
+        // work_segments.segment_type.work and work_segments.segment_type.standby
+        expect(screen.getByText("work_segments.segment_type.work")).toBeInTheDocument();
+        expect(screen.getByText("work_segments.segment_type.standby")).toBeInTheDocument();
+    });
+
+    it("renders segment counter for multi-segment rows", () => {
+        render(
+            <DailyReportTable
+                {...defaultProps}
+                data={multiSegmentData}
+                hideEmployeeName
+            />
+        );
+        // First segment: "1/2", second segment: "2/2"
+        expect(screen.getByText("1")).toBeInTheDocument();
+        expect(screen.getByText("2")).toBeInTheDocument();
+        // Both should have the denominator
+        const denominators = screen.getAllByText(/\/2/);
+        expect(denominators).toHaveLength(2);
+    });
+
+    it("shows muted dash for segment type and counter on non-segment data", () => {
+        const nonSegmentData: DailyAttendanceReport[] = [
+            {
+                date: "2024-03-20",
+                employee_id: "EMP001",
+                employment_id: "EMP001",
+                employee_name: "John Doe",
+                segment_type: null,
+                segment_count: null,
+                sort_order: null,
+                scheduled_start: "08:00:00",
+                scheduled_end: "17:00:00",
+                actual_punch_in: "08:00:00",
+                actual_punch_out: "17:00:00",
+                computed_std_hours: 8.0,
+                computed_ot_hours: 0,
+                std_work_units: 480,
+                ot_work_units: 0,
+                break_duration_minutes: 60,
+                break_start: null,
+                break_end: null,
+                unit_type: "DAY",
+                unit_coefficient_hours: 8.0,
+                status: "present",
+                ot_claim_status: "none",
+                generation_metadata: null,
+                workspace_id: "WS1",
+                employee_identifier: "E01",
+                is_break_auto_deduct: false,
+                is_holiday: false,
+            } as DailyAttendanceReport,
+        ];
+        render(
+            <DailyReportTable
+                {...defaultProps}
+                data={nonSegmentData}
+                hideEmployeeName
+            />
+        );
+        // All dash indicators should appear (two per row: segment type + counter)
+        const dashes = screen.getAllByText("—");
+        expect(dashes.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it("shows break info for non-segment rows", () => {
+        const nonSegmentData: DailyAttendanceReport[] = [
+            {
+                date: "2024-03-20",
+                employee_id: "EMP001",
+                employment_id: "EMP001",
+                employee_name: "John Doe",
+                segment_type: null,
+                segment_count: null,
+                sort_order: null,
+                scheduled_start: "08:00:00",
+                scheduled_end: "17:00:00",
+                break_duration_minutes: 60,
+                break_start: null,
+                break_end: null,
+                actual_punch_in: "08:00:00",
+                actual_punch_out: "17:00:00",
+                computed_std_hours: 8.0,
+                computed_ot_hours: 0,
+                std_work_units: 480,
+                ot_work_units: 0,
+                unit_type: "DAY",
+                unit_coefficient_hours: 8.0,
+                status: "present",
+                ot_claim_status: "none",
+                generation_metadata: null,
+                workspace_id: "WS1",
+                employee_identifier: "E01",
+                is_break_auto_deduct: false,
+                is_holiday: false,
+            } as DailyAttendanceReport,
+        ];
+        render(
+            <DailyReportTable
+                {...defaultProps}
+                data={nonSegmentData}
+                hideEmployeeName
+            />
+        );
+        // Break info should appear: "common.break: 60m"
+        expect(screen.getByText(/common.break: 60m/)).toBeInTheDocument();
+    });
+
+    it("hides break info for segment rows", () => {
+        render(
+            <DailyReportTable
+                {...defaultProps}
+                data={multiSegmentData}
+                hideEmployeeName
+            />
+        );
+        // Break info should NOT appear in segment mode
+        expect(screen.queryByText(/common.break/)).not.toBeInTheDocument();
+    });
+
+    it("applies visual grouping borders for multi-segment rows", () => {
+        render(
+            <DailyReportTable
+                {...defaultProps}
+                data={multiSegmentData}
+                hideEmployeeName
+            />
+        );
+        const rows = screen.getAllByRole("row");
+        // Skip header row
+        const dataRows = rows.slice(1);
+        // First segment row should have top border accent class
+        expect(dataRows[0].className).toContain("border-t-2");
+        expect(dataRows[0].className).toContain("border-l-2");
+        // Second segment row should NOT have top border accent (inner divider instead)
+        expect(dataRows[1].className).not.toContain("border-t-2");
+        expect(dataRows[1].className).toContain("border-l-2");
+    });
+
+    it("mutes date and employee text for non-first segments in a group", () => {
+        render(
+            <DailyReportTable
+                {...defaultProps}
+                data={multiSegmentData}
+                hideEmployeeName={false}
+            />
+        );
+        // Both rows show employee_name "John Doe"
+        const nameCells = screen.getAllByText("John Doe");
+        expect(nameCells).toHaveLength(2);
+        // First occurrence should have the default bold color
+        expect(nameCells[0].className).toContain("text-slate-700");
+        // Second occurrence (non-first in group) should be muted
+        expect(nameCells[1].className).toContain("text-slate-300");
+    });
+
+    it("handles mixed segment and non-segment data without errors", () => {
+        const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+        render(
+            <DailyReportTable
+                {...defaultProps}
+                data={mixedSegmentAndRegularData}
+            />
+        );
+        // Segment rows
+        expect(screen.getByText(/08:00 — 12:00/)).toBeInTheDocument();
+        expect(screen.getByText(/13:00 — 17:00/)).toBeInTheDocument();
+        // Non-segment row
+        expect(screen.getByText(/08:00 — 17:00/)).toBeInTheDocument();
+        // Should have 4 total data rows (3 visible + header)
+        const rows = screen.getAllByRole("row");
+        expect(rows.length).toBeGreaterThanOrEqual(4);
+
+        const keyWarnings = consoleSpy.mock.calls.filter(
+            call => typeof call[0] === "string" && call[0].includes("same key")
+        );
+        expect(keyWarnings).toHaveLength(0);
+        consoleSpy.mockRestore();
+    });
+
+    it("renders correct colSpan for skeleton loading with new columns", () => {
+        render(
+            <DailyReportTable
+                {...defaultProps}
+                isLoading
+                isDebugMode
+                hideEmployeeName={false}
+            />
+        );
+        // Skeleton rows should have 13 <td> elements (isDebugMode=true, hideEmployeeName=false)
+        const skeletonRows = screen.getAllByRole("row").slice(1); // skip header
+        skeletonRows.forEach(row => {
+            expect(row.children.length).toBe(13);
+        });
+    });
+
+    it("renders correct colSpan for hideEmployeeName skeleton loading", () => {
+        render(
+            <DailyReportTable
+                {...defaultProps}
+                isLoading
+                hideEmployeeName
+            />
+        );
+        // Skeleton rows with hideEmployeeName=true, isDebugMode=false → 11 columns
+        const skeletonRows = screen.getAllByRole("row").slice(1);
+        skeletonRows.forEach(row => {
+            expect(row.children.length).toBe(11);
+        });
+    });
+
+    it("segment row expansion uses unique segmentKey per row", () => {
+        const toggleSpy = vi.fn();
+        render(
+            <DailyReportTable
+                {...defaultProps}
+                data={multiSegmentData}
+                hideEmployeeName
+                onToggleExpandRow={toggleSpy}
+            />
+        );
+        const expandButtons = screen.getAllByRole("button").filter(
+            btn => btn.querySelector(".lucide-chevron-right") !== null || btn.className.includes("text-slate-400")
+        );
+        // Click first segment expand button (first button with ChevronRight)
+        const chevronButtons = screen.getAllByRole("button").filter((_, idx) => idx < 2);
+        fireEvent.click(chevronButtons[0]);
+        // Should be called with segmentKey containing segment_id
+        expect(toggleSpy).toHaveBeenCalledWith(
+            expect.stringContaining("seg-morning")
+        );
+    });
+
+    it("uses interval_name as label in scheduled cell for segment rows", () => {
+        render(
+            <DailyReportTable
+                {...defaultProps}
+                data={multiSegmentData}
+                hideEmployeeName
+            />
+        );
+        expect(screen.getByText("Ca sáng")).toBeInTheDocument();
+        expect(screen.getByText("Ca chiều")).toBeInTheDocument();
     });
 });
 

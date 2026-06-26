@@ -7,6 +7,7 @@ import { DailyReportTableRow } from "./daily-report-table-row";
 function SkeletonRow({ hideEmployeeName, isDebugMode }: { hideEmployeeName: boolean; isDebugMode: boolean }) {
   return (
     <tr className="animate-pulse border-b border-slate-50 dark:border-slate-800/50">
+      <td className="px-4 py-4"><div className="h-4 w-6 bg-slate-200 dark:bg-slate-800 rounded"></div></td>
       <td className="px-4 py-4"><div className="h-4 w-20 bg-slate-200 dark:bg-slate-800 rounded"></div></td>
       {!hideEmployeeName ? (
         <td className="px-4 py-4">
@@ -16,6 +17,8 @@ function SkeletonRow({ hideEmployeeName, isDebugMode }: { hideEmployeeName: bool
           </div>
         </td>
       ) : null}
+      <td className="px-4 py-4"><div className="h-4 w-14 bg-slate-200 dark:bg-slate-800 rounded-full mx-auto"></div></td>
+      <td className="px-4 py-4"><div className="h-4 w-8 bg-slate-200 dark:bg-slate-800 rounded mx-auto"></div></td>
       <td className="px-4 py-4"><div className="h-4 w-16 bg-slate-200 dark:bg-slate-800 rounded"></div></td>
       <td className="px-4 py-4"><div className="h-4 w-12 bg-slate-200 dark:bg-slate-800 rounded mx-auto"></div></td>
       <td className="px-4 py-4"><div className="h-4 w-12 bg-slate-200 dark:bg-slate-800 rounded mx-auto"></div></td>
@@ -60,7 +63,13 @@ function TableHeader({ hideEmployeeName, isDebugMode, t }: { hideEmployeeName: b
             {t("common.employee")}
           </th>
         ) : null}
-        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("common.shift")}</th>
+        <th className="px-3 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center">
+          {t("reports.table.segment_type")}
+        </th>
+        <th className="px-1 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center w-10">
+          {t("reports.table.segment_number")}
+        </th>
+        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("reports.table.scheduled")}</th>
         <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center">{t("common.in")}</th>
         <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center">{t("common.out")}</th>
         <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-right">{t("reports.table.std_hours")}</th>
@@ -93,7 +102,7 @@ export default function DailyReportTable({
   reprocessingRow,
   t,
 }: DailyReportTableProps) {
-  const colSpan = isDebugMode ? (hideEmployeeName ? 10 : 11) : (hideEmployeeName ? 9 : 10);
+  const colSpan = isDebugMode ? (hideEmployeeName ? 12 : 13) : (hideEmployeeName ? 11 : 12);
 
   return (
     <div className="overflow-auto flex-1 min-h-0">
@@ -113,7 +122,12 @@ export default function DailyReportTable({
               </td>
             </tr>
           ) : (
-            data.map((row: DailyAttendanceReport) => (
+            data.map((row: DailyAttendanceReport, idx: number, arr: DailyAttendanceReport[]) => {
+              const empDateKey = `${row.employee_id}-${row.date}`;
+              const isFirstInGroup = idx === 0 || `${arr[idx - 1].employee_id}-${arr[idx - 1].date}` !== empDateKey;
+              const isLastInGroup = idx === arr.length - 1 || `${arr[idx + 1].employee_id}-${arr[idx + 1].date}` !== empDateKey;
+              const isMultiSegmentGroup = (row.segment_count ?? 1) > 1;
+              return (
               <DailyReportTableRow
                 adjustmentMap={adjustmentMap}
                 confirmingRow={confirmingRow}
@@ -122,7 +136,10 @@ export default function DailyReportTable({
                 formatTime={formatTime}
                 hideEmployeeName={hideEmployeeName}
                 isDebugMode={isDebugMode}
-                key={`${row.employee_id}-${row.date}`}
+                isFirstInGroup={isFirstInGroup}
+                isLastInGroup={isLastInGroup}
+                isMultiSegmentGroup={isMultiSegmentGroup}
+                key={`${row.employee_id}-${row.date}-${row.segment_id ?? row.sort_order ?? '0'}`}
                 onApproveOt={onApproveOt}
                 onConfirmClick={onConfirmClick}
                 onReprocessClick={onReprocessClick}
@@ -132,7 +149,8 @@ export default function DailyReportTable({
                 row={row}
                 t={t}
               />
-            ))
+              );
+            })
           )}
         </tbody>
       </table>

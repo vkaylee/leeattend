@@ -35,6 +35,14 @@ const mockShifts: Shift[] = [
     break_end: "13:00:00",
     break_duration_minutes: 60,
     is_break_auto_deduct: true,
+    intervals: [{
+      start_time: "08:00:00",
+      end_time: "17:00:00",
+      break_start: "12:00:00",
+      break_end: "13:00:00",
+      break_duration_minutes: 60,
+      is_break_auto_deduct: true,
+    }],
   } as unknown as Shift,
   {
     id: "shift-2",
@@ -45,6 +53,14 @@ const mockShifts: Shift[] = [
     break_end: null,
     break_duration_minutes: 30,
     is_break_auto_deduct: false,
+    intervals: [{
+      start_time: "22:00:00",
+      end_time: "06:00:00",
+      break_start: null,
+      break_end: null,
+      break_duration_minutes: 30,
+      is_break_auto_deduct: false,
+    }],
   } as unknown as Shift,
 ];
 

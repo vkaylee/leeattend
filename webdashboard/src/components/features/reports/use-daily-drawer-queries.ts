@@ -88,6 +88,12 @@ export function useDailyDrawerQueries({
         adjustments.forEach((request) => {
             const key = `${request.employment_id}-${request.requested_date}`;
             map[key] = request;
+            // Also index by employee_id if available (handles id mismatch between endpoints)
+            const empId = (request as Record<string, unknown>).employee_id as string | undefined;
+            if (empId && empId !== request.employment_id) {
+                const empKey = `${empId}-${request.requested_date}`;
+                if (!map[empKey]) map[empKey] = request;
+            }
         });
         return map;
     }, [pendingAdjustmentsResponse]);

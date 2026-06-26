@@ -300,7 +300,7 @@ describe("EmployeesPage", () => {
     it("handles terminating an employee with useConfirm", async () => {
         const user = userEvent.setup();
         renderPage();
-        
+
         // click row to open drawer
         const row = await screen.findByText("Alice Nguyen");
         await user.click(row);
@@ -309,14 +309,17 @@ describe("EmployeesPage", () => {
         const terminateButton = await screen.findByTestId("employees-btn-terminate");
         await user.click(terminateButton);
 
-        // terminate modal appears
+        // terminate modal appears — must fill required fields before confirming
+        const reasonSelect = await screen.findByRole("combobox");
+        fireEvent.change(reasonSelect, { target: { value: "voluntary_resignation" } });
+
         const confirmModalButton = await screen.findByTestId("confirm-terminate-btn");
         fireEvent.click(confirmModalButton);
 
         await waitFor(() => {
             expect(api.updateEmployeeEmployment).toHaveBeenCalledWith(
-                "test-ws-id", 
-                "1", 
+                "test-ws-id",
+                "1",
                 "employment-id-1",
                 expect.objectContaining({ status: "terminated" })
             );

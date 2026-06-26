@@ -14,18 +14,20 @@ describe("ShiftTimelinePreview Tests", () => {
   it("renders basic shift info and duration correctly", () => {
     render(
       <ShiftTimelinePreview
-        allowEarlyOt={false}
-        breakEnd=""
-        breakStart=""
-        isAutoDeduct={true}
-        isBreakOvertime={false}
-        isFixedBreak={false}
-        maxEarlyOtMinutes={0}
-        shiftBreak={60}
-        shiftEnd="17:00"
-        shiftGrace={15}
-        shiftName="Morning Shift"
-        shiftStart="08:00"
+        intervals={[{
+          intervalName: "Morning Shift",
+          startTime: "08:00",
+          endTime: "17:00",
+          breakDuration: 60,
+          breakStart: "",
+          breakEnd: "",
+          isFixedBreak: false,
+          isAutoDeduct: true,
+          isBreakOvertime: false,
+          gracePeriodMinutes: 15,
+          allowEarlyOt: false,
+          maxEarlyOtMinutes: 0,
+        }]}
       />
     );
 
@@ -40,18 +42,20 @@ describe("ShiftTimelinePreview Tests", () => {
   it("handles cross-midnight shifts correctly", () => {
     render(
       <ShiftTimelinePreview
-        allowEarlyOt={false}
-        breakEnd=""
-        breakStart=""
-        isAutoDeduct={true}
-        isBreakOvertime={false}
-        isFixedBreak={false}
-        maxEarlyOtMinutes={0}
-        shiftBreak={60}
-        shiftEnd="06:00"
-        shiftGrace={0}
-        shiftName="Night Shift"
-        shiftStart="22:00"
+        intervals={[{
+          intervalName: "Night Shift",
+          startTime: "22:00",
+          endTime: "06:00",
+          breakDuration: 60,
+          breakStart: "",
+          breakEnd: "",
+          isFixedBreak: false,
+          isAutoDeduct: true,
+          isBreakOvertime: false,
+          gracePeriodMinutes: 0,
+          allowEarlyOt: false,
+          maxEarlyOtMinutes: 0,
+        }]}
       />
     );
 
@@ -64,18 +68,20 @@ describe("ShiftTimelinePreview Tests", () => {
   it("renders fixed break details when isFixedBreak is true", () => {
     render(
       <ShiftTimelinePreview
-        allowEarlyOt={false}
-        breakEnd="13:00"
-        breakStart="12:00"
-        isAutoDeduct={true}
-        isBreakOvertime={false}
-        isFixedBreak={true}
-        maxEarlyOtMinutes={0}
-        shiftBreak={0}
-        shiftEnd="17:00"
-        shiftGrace={0}
-        shiftName="Day Shift"
-        shiftStart="08:00"
+        intervals={[{
+          intervalName: "Day Shift",
+          startTime: "08:00",
+          endTime: "17:00",
+          breakDuration: 0,
+          breakStart: "12:00",
+          breakEnd: "13:00",
+          isFixedBreak: true,
+          isAutoDeduct: true,
+          isBreakOvertime: false,
+          gracePeriodMinutes: 0,
+          allowEarlyOt: false,
+          maxEarlyOtMinutes: 0,
+        }]}
       />
     );
 
@@ -86,18 +92,20 @@ describe("ShiftTimelinePreview Tests", () => {
   it("renders early OT details when allowed", () => {
     render(
       <ShiftTimelinePreview
-        allowEarlyOt={true}
-        breakEnd=""
-        breakStart=""
-        isAutoDeduct={false}
-        isBreakOvertime={false}
-        isFixedBreak={false}
-        maxEarlyOtMinutes={60}
-        shiftBreak={0}
-        shiftEnd="17:00"
-        shiftGrace={0}
-        shiftName="OT Shift"
-        shiftStart="08:00"
+        intervals={[{
+          intervalName: "OT Shift",
+          startTime: "08:00",
+          endTime: "17:00",
+          breakDuration: 0,
+          breakStart: "",
+          breakEnd: "",
+          isFixedBreak: false,
+          isAutoDeduct: false,
+          isBreakOvertime: false,
+          gracePeriodMinutes: 0,
+          allowEarlyOt: true,
+          maxEarlyOtMinutes: 60,
+        }]}
       />
     );
 
