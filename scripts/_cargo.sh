@@ -4,18 +4,34 @@
 SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
 VENV_PYTHON=$("$SCRIPT_DIR/_ensure-venv.sh")
 
+# Detect test-related subcommands (either directly or prefixed with "cargo")
+IS_TEST_CMD=false
+TEST_CMD=""
+ARG_START_INDEX=2
+
 if [ "$1" = "test" ] || [ "$1" = "nextest" ] || [ "$1" = "llvm-cov" ] || [ "$1" = "tarpaulin" ] || [ "$1" = "grcov" ]; then
+    IS_TEST_CMD=true
+    TEST_CMD="$1"
+    ARG_START_INDEX=2
+elif [ "$1" = "cargo" ] && { [ "$2" = "test" ] || [ "$2" = "nextest" ] || [ "$2" = "llvm-cov" ] || [ "$2" = "tarpaulin" ] || [ "$2" = "grcov" ]; }; then
+    IS_TEST_CMD=true
+    TEST_CMD="$2"
+    ARG_START_INDEX=3
+fi
+
+if [ "$IS_TEST_CMD" = true ]; then
     SUGGESTED_CMD="./test.sh api"
-    if [ "$1" = "llvm-cov" ] || [ "$1" = "tarpaulin" ] || [ "$1" = "grcov" ]; then
+    if [ "$TEST_CMD" = "llvm-cov" ] || [ "$TEST_CMD" = "tarpaulin" ] || [ "$TEST_CMD" = "grcov" ]; then
         SUGGESTED_CMD="./test.sh api --coverage"
     fi
     
-    if [ $# -gt 1 ]; then
-        SUGGESTED_CMD="$SUGGESTED_CMD ${*:2}"
+    # Append any extra arguments
+    if [ $# -ge $ARG_START_INDEX ]; then
+        SUGGESTED_CMD="$SUGGESTED_CMD ${*:ARG_START_INDEX}"
     fi
 
     echo "========================================================================="
-    echo "❌ 🤖 [AI AGENT NOTICE] Do NOT use '_cargo.sh $1'!"
+    echo "❌ 🤖 [AI AGENT NOTICE] Do NOT use '_cargo.sh $TEST_CMD'!"
     echo "❌ 🤖 [AI AGENT NOTICE] ALWAYS use './test.sh' for testing and coverage."
     echo "❌ 🤖 [AI AGENT NOTICE] './test.sh' handles environment isolation, timeouts, and PTY state properly."
     echo ""
