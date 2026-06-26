@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import React from "react";
 
-import MainLayout from "@/components/layout/main-layout";
+import AppShell from "@/components/layout/app-shell";
 import { Typography } from "@/components/ui/typography";
 import { workspaceKeys } from "@/hooks/use-workspace";
 import { fetchWorkspaces, getCurrentWorkspaceId, setCurrentWorkspaceId } from "@/lib/api";
@@ -38,5 +38,5 @@ export const Route = createFileRoute("/_authenticated/_workspace")({
     return { workspaces };
   },
   pendingComponent: WorkspacePendingComponent,
-  component: MainLayout,
+  component: AppShell,
 });

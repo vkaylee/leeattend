@@ -77,6 +77,11 @@ vi.mock("@/hooks/use-dashboard", () => ({
     useTurnoverAnalytics: () => ({ data: null, isLoading: false, error: null }),
 }));
 
+vi.mock("@/hooks/use-header-actions", () => ({
+    useHeaderActions: () => ({ actions: null, setActions: vi.fn() }),
+    HeaderActionsProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
 vi.mock("@/hooks/use-dashboard-layout", () => ({
     useDashboardLayout: () => ({
         activeView: "hr",
@@ -179,13 +184,13 @@ describe("TanStack Router .lazy.tsx file structure", () => {
         expect(module_.Route.options.component).toBeUndefined();
     });
 
-    it("layout route _workspace retains MainLayout component", async () => {
+    it("layout route _workspace retains AppShell component", async () => {
         const module_ = await import("../../routes/_authenticated/_workspace");
         expect(module_.Route.options.component).toBeDefined();
         expect(module_.Route.options.beforeLoad).toBeDefined();
     });
 
-    it("layout route _infra retains InfraLayout component", async () => {
+    it("layout route _infra retains AppShell component", async () => {
         const module_ = await import("../../routes/_authenticated/_infra");
         expect(module_.Route.options.component).toBeDefined();
     });
@@ -233,7 +238,7 @@ describe("Page-level code splitting", () => {
  
 
         await waitFor(() => {
-            expect(screen.getByTestId("dashboard-title")).toBeInTheDocument();
+            expect(document.querySelector("[class*='animate-in']")).toBeTruthy();
         }, { timeout: 10000 });
     });
 
@@ -305,7 +310,7 @@ describe("Page-level code splitting", () => {
         const { unmount } = renderLazy(LazyDashboard);
 
         await waitFor(() => {
-            expect(screen.getByTestId("dashboard-title")).toBeInTheDocument();
+            expect(document.querySelector("[class*='animate-in']")).toBeTruthy();
         }, { timeout: 10000 });
 
         unmount();

@@ -1,45 +1,15 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import {
-  LayoutDashboard,
-  History,
-  Settings,
-  UserCircle,
-  Users,
-  Clock,
-  Database,
-  CheckCircle,
-  UserRound,
-  CalendarRange,
-  Building2,
   X,
   ChevronDown,
   ChevronRight,
-  ShieldCheck,
-  Scale,
-  Server,
-  BarChart3,
-  Folder,
-  FolderTree,
-  Timer,
-  Wallet,
-  Wrench,
-  User,
-  Plane,
-  CalendarCheck,
-  ClipboardCheck,
-  ArrowLeftRight,
-  DollarSign,
-  Activity,
-  Zap
 } from "lucide-react";
 import React from "react";
-import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
-import { useMyPermissions } from "@/hooks/use-permissions";
-import { useProfile } from "@/hooks/use-profile";
+import type { MenuGroupType, MenuLinkType } from "@/hooks/use-nav-menu-items";
+import { useFilteredMenuItems } from "@/hooks/use-nav-menu-items";
 import { useWorkspace } from "@/hooks/use-workspace";
-import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 
@@ -47,32 +17,11 @@ interface SidebarProps {
   isCollapsed: boolean;
   isOpen: boolean;
   onClose: () => void;
-  onShowSwitcher: () => void;
   openSections: Partial<Record<string, boolean>>;
   toggleSection: (section: string) => void;
 }
 
-interface MenuItemBase {
-  icon?: React.ElementType;
-  label: string;
-  testId: string;
-  to?: string;
-}
-
-interface MenuSectionType extends MenuItemBase {
-  items: MenuLinkType[];
-  section: string;
-  sectionIcon: React.ElementType;
-}
-
-interface MenuLinkType extends MenuItemBase {
-  exact?: boolean;
-  permissions?: string[];
-  systemRoles?: string[];
-  to: string;
-}
-
-type MenuItem = MenuSectionType | MenuLinkType;
+type MenuItem = MenuLinkType | MenuGroupType;
 
 function SidebarLink({
   to,
@@ -122,7 +71,7 @@ function SidebarSection({
   location,
 }: {
   isCollapsed: boolean;
-  item: MenuSectionType;
+  item: MenuGroupType;
   location: { pathname: string };
   openSections: Partial<Record<string, boolean>>;
   toggleSection: (section: string) => void;
@@ -163,90 +112,15 @@ function SidebarSection({
 }
 
 function useSidebarMenuItems(): MenuItem[] {
-  const { t } = useTranslation(['common', 'employees', 'attendance', 'leave', 'shift_swaps', 'payroll', 'settings', 'system_roles']);
-  return [
-    { to: ROUTES.HOME, icon: LayoutDashboard, label: t("common.dashboard"), exact: true, testId: "sidebar-link-dashboard" },
-    {
-      section: "org", sectionIcon: Folder, label: t("common.sections.organization"), testId: "sidebar-section-org", items: [
-        { to: ROUTES.EMPLOYEES, icon: UserRound, label: t("common.employees"), testId: "sidebar-link-employees", permissions: ["employees:read"] },
-        { to: ROUTES.PEOPLE, icon: Users, label: t("members.title", { defaultValue: "Directory" }), testId: "sidebar-link-people", permissions: ["members:read"] },
-        { to: ROUTES.DEPARTMENTS, icon: Building2, label: t("common.departments"), testId: "sidebar-link-departments", permissions: ["departments:read"] },
-        { to: ROUTES.ORG_CHART, icon: FolderTree, label: t("common.org_chart"), testId: "sidebar-link-org-chart", permissions: ["departments:read"] },
-        { to: ROUTES.ECONTRACTS, icon: Scale, label: t("common.econtracts", { defaultValue: "e-Contracts Hub" }), testId: "sidebar-link-econtracts", permissions: ["employees:update"] }
-      ]
-    },
-    {
-      section: "time", sectionIcon: Timer, label: t("common.sections.time_leave"), testId: "sidebar-section-time", items: [
-        { to: ROUTES.ATTENDANCE_LOGS, icon: CalendarCheck, label: t("attendance_logs.title"), testId: "sidebar-link-attendance-logs", permissions: ["attendance:logs:read"] },
-        { to: ROUTES.LEAVE_REQUESTS, icon: Plane, label: t("leave_requests.title"), testId: "sidebar-link-leave-requests", permissions: ["leave:requests:read", "leave:requests:submit_on_behalf", "leave:requests:approve"] },
-        { to: ROUTES.LEAVE_BALANCES, icon: Scale, label: t("common.leave_balances"), testId: "sidebar-link-leave-balances", permissions: ["leave:balances:read"] },
-        { to: ROUTES.ATTENDANCE_ADJUSTMENTS, icon: ClipboardCheck, label: t("common.attendance_confirm"), testId: "sidebar-link-attendance-adjustments", permissions: ["attendance:adjustments:approve", "attendance:adjustments:submit_on_behalf"] },
-        { to: ROUTES.SHIFT_SWAPS, icon: ArrowLeftRight, label: t("shift_swaps.title"), testId: "sidebar-link-shift-swaps", permissions: ["shift_swaps:manage"] },
-        { to: ROUTES.REPORTS, icon: BarChart3, label: t("common.reports"), testId: "sidebar-link-reports", permissions: ["reports:read"] },
-        { to: ROUTES.APPROVALS_OT, icon: CheckCircle, label: t("ot_approvals.title", "OT Approvals"), testId: "sidebar-link-approvals-ot", permissions: ["overtime:approve", "overtime:claim_on_behalf"] }
-      ]
-    },
-    {
-      section: "shifts", sectionIcon: CalendarRange, label: t("common.sections.shifts_management"), testId: "sidebar-section-shifts", items: [
-        { to: ROUTES.SHIFTS, icon: CalendarRange, label: t("common.shifts"), testId: "sidebar-link-shifts", permissions: ["shifts:read"] },
-        { to: ROUTES.SHIFTS_RULES, icon: Zap, label: t("common.sections.shifts_rules", "Automation Policy"), testId: "sidebar-link-shifts-rules", permissions: ["shifts:read"] }
-      ]
-    },
-    {
-      section: "payroll", sectionIcon: Wallet, label: t("common.sections.payroll"), testId: "sidebar-section-payroll", items: [
-        { to: ROUTES.PAYROLL, icon: DollarSign, label: t("payroll.title"), testId: "sidebar-link-payroll", permissions: ["payroll:read"] }
-      ]
-    },
-    {
-      section: "system", sectionIcon: Wrench, label: t("settings.title"), testId: "sidebar-section-system", items: [
-        { to: ROUTES.INFRA_MONITOR, icon: Activity, label: t("monitor.title"), testId: "sidebar-link-monitor", systemRoles: ["platform_admin", "support"] },
-        { to: ROUTES.SYSTEM_ROLES, icon: ShieldCheck, label: t("system_roles.title", "Platform Admins"), testId: "sidebar-link-system-roles", systemRoles: ["platform_admin"] },
-        { to: ROUTES.SYSTEM_DB_CLUSTERS, icon: Server, label: t("db_clusters.title", "DB Clusters"), testId: "sidebar-link-system-db-clusters", systemRoles: ["platform_admin"] },
-        { to: ROUTES.SYSTEM_TENANTS, icon: Database, label: t("system_admin.tenants.title"), testId: "sidebar-link-system-tenants", systemRoles: ["platform_admin"] },
-        { to: ROUTES.SETTINGS.ROOT, icon: Settings, label: t("settings.title"), testId: "sidebar-link-settings-root", permissions: ["workspace:settings:read", "members:roles:manage"] }
-      ]
-    },
-    {
-      section: "ess", sectionIcon: User, label: t("common.sections.self_service"), testId: "sidebar-section-ess", items: [
-        { to: ROUTES.ESS_PROFILE, icon: UserCircle, label: t("ess.profile.title"), testId: "sidebar-link-ess-profile", permissions: ["ess:profile"] },
-        { to: ROUTES.ESS_ATTENDANCE, icon: History, label: t("ess.attendance.title"), testId: "sidebar-link-ess-attendance", permissions: ["ess:attendance"] },
-        { to: ROUTES.ESS_CLOCK, icon: Clock, label: t("ess.clock.title"), testId: "sidebar-link-ess-clock", permissions: ["ess:clock"] }
-      ]
-    }
-  ];
+  const { dashboard, groups } = useFilteredMenuItems();
+  return [dashboard, ...groups];
 }
 
-// eslint-disable-next-line complexity
 export default function Sidebar({ isOpen, onClose, openSections, toggleSection, isCollapsed }: SidebarProps) {
   const location = useLocation();
-  const { hasAnyPermission } = useMyPermissions();
-  const { user } = useProfile();
   const { workspace } = useWorkspace();
 
-  const menuItems = useSidebarMenuItems();
-
-  const filteredMenuItems = menuItems
-    .map((item: MenuItem) => {
-      if ("section" in item) {
-        const filteredItems = item.items.filter(
-          (subItem: MenuLinkType) => {
-            if (subItem.systemRoles && subItem.systemRoles.length > 0) {
-              return subItem.systemRoles.some((role: string) => user?.system_roles?.includes(role));
-            }
-            const permissions = subItem.permissions;
-            return !permissions || permissions.length === 0 || hasAnyPermission(...permissions);
-          }
-        );
-        return { ...item, items: filteredItems };
-      }
-      return item;
-    })
-    .filter((item: MenuItem) => {
-      if ("section" in item) {
-        return item.items.length > 0;
-      }
-      return true;
-    });
+  const filteredMenuItems = useSidebarMenuItems();
 
   return (
     <div className={cn("fixed inset-y-0 left-0 z-50 flex flex-col bg-white dark:bg-slate-950 border-r border-slate-100 dark:border-slate-800 transition-all duration-300 shadow-xl shadow-slate-200/50 dark:shadow-black/30", isCollapsed ? "w-20" : "w-72", !isOpen && "-translate-x-full lg:translate-x-0")}>

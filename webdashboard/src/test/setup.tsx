@@ -169,6 +169,11 @@ vi.mock("@/components/ui/combobox", () => ({
   ),
 }));
 
+vi.mock("@/hooks/use-header-actions", () => ({
+  useHeaderActions: () => ({ actions: null, setActions: vi.fn() }),
+  HeaderActionsProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn(),
   useParams: () => ({}),

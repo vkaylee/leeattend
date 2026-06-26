@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, fireEvent } from '@testing-library/react';
+import React from 'react';
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -7,29 +8,72 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn(),
   useLocation: () => ({ pathname: "/", search: "", hash: "" }),
- 
   Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
 }));
-import type { ThemeMode } from '@/hooks/use-dark-mode';
 
+import type { ThemeMode } from '@/hooks/use-dark-mode';
 import { DarkModeContext } from '@/context/dark-mode-context-definition';
 
-import Navbar from '../navbar';
+// Mock hooks needed by IconRail
+vi.mock('@/hooks/use-notifications', () => ({
+  useNotifications: () => ({
+    notifications: [],
+    unreadCount: 0,
+    isLoading: false,
+  }),
+}));
 
-// Mock dependencies that Navbar's children need
+vi.mock('@/hooks/use-language', () => ({
+  useLanguage: () => ({
+    currentLanguage: 'vi',
+    currentOption: { code: 'vi', flag: '🇻🇳', name: 'Vietnamese', nativeName: 'Tiếng Việt' },
+    changeLanguage: vi.fn(),
+    languages: [],
+  }),
+}));
+
+vi.mock('@/hooks/use-permissions', () => ({
+  useMyPermissions: () => ({
+    hasAnyPermission: vi.fn(() => true),
+    permissions: [],
+    roles: [],
+    managedDepartmentIds: null,
+    isLoading: false,
+  }),
+}));
+
+vi.mock('@/hooks/use-profile', () => ({
+  useProfile: () => ({
+    user: { full_name: 'Test User', email: 'test@test.com', system_roles: [] },
+    isLoading: false,
+  }),
+}));
+
 vi.mock('@/components/ui/language-switcher', () => ({
   LanguageSwitcher: () => <div data-testid="language-switcher-mock" />,
 }));
+
+import IconRail from '../icon-rail';
 
 const mockSetMode = vi.fn();
 
 const createTestQueryClient = () =>
   new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
 
+const defaultProps = {
+  activeGroup: null as any,
+  isPinned: false,
+  onGroupHover: vi.fn(),
+  onGroupClick: vi.fn(),
+  onTogglePin: vi.fn(),
+  workspaceName: 'Test',
+  onShowWorkspaceSwitcher: vi.fn(),
+};
+
 function renderWithContext(mode: ThemeMode = 'system') {
   const contextValue = {
     mode,
-    resolved: mode === 'dark' ? 'dark' as const : 'light' as const,
+    resolved: (mode === 'dark' ? 'dark' : 'light') as 'light' | 'dark',
     isDark: mode === 'dark',
     setMode: mockSetMode,
   };
@@ -37,57 +81,43 @@ function renderWithContext(mode: ThemeMode = 'system') {
   return render(
     <QueryClientProvider client={createTestQueryClient()}>
       <DarkModeContext.Provider value={contextValue}>
-        <Navbar
-          currentWorkspaceName="Test Workspace"
-          isCollapsed={false}
-          onOpenSidebar={vi.fn()}
-          onToggleCollapsed={vi.fn()}
-        />
+        <IconRail {...defaultProps} />
       </DarkModeContext.Provider>
     </QueryClientProvider>
   );
 }
 
-describe('ThemeToggle (in Navbar)', () => {
+describe('ThemeToggle (in IconRail)', () => {
   beforeEach(() => {
     mockSetMode.mockClear();
   });
 
-  it('renders the theme toggle with 3 buttons', () => {
+  it('renders the theme toggle button in the rail', () => {
     renderWithContext();
-    expect(screen.getByTestId('theme-toggle')).toBeInTheDocument();
-    expect(screen.getByTestId('theme-toggle-light')).toBeInTheDocument();
-    expect(screen.getByTestId('theme-toggle-system')).toBeInTheDocument();
-    expect(screen.getByTestId('theme-toggle-dark')).toBeInTheDocument();
+    expect(screen.getByTestId('nav-rail-theme-toggle')).toBeInTheDocument();
   });
 
-  it('clicking dark button calls setMode("dark")', () => {
+  it('clicking cycles to next theme (light → system)', () => {
     renderWithContext('light');
-    fireEvent.click(screen.getByTestId('theme-toggle-dark'));
-    expect(mockSetMode).toHaveBeenCalledWith('dark');
-  });
-
-  it('clicking light button calls setMode("light")', () => {
-    renderWithContext('dark');
-    fireEvent.click(screen.getByTestId('theme-toggle-light'));
-    expect(mockSetMode).toHaveBeenCalledWith('light');
-  });
-
-  it('clicking system button calls setMode("system")', () => {
-    renderWithContext('dark');
-    fireEvent.click(screen.getByTestId('theme-toggle-system'));
+    fireEvent.click(screen.getByTestId('nav-rail-theme-toggle'));
     expect(mockSetMode).toHaveBeenCalledWith('system');
   });
 
-  it('active button has highlighted style', () => {
-    renderWithContext('dark');
-    const darkButton = screen.getByTestId('theme-toggle-dark');
-    expect(darkButton.className).toContain('bg-white');
+  it('clicking cycles from system to dark', () => {
+    renderWithContext('system');
+    fireEvent.click(screen.getByTestId('nav-rail-theme-toggle'));
+    expect(mockSetMode).toHaveBeenCalledWith('dark');
   });
 
-  it('inactive buttons do not have highlighted style', () => {
+  it('clicking cycles from dark to light', () => {
     renderWithContext('dark');
-    const lightButton = screen.getByTestId('theme-toggle-light');
-    expect(lightButton.className).not.toContain('bg-white');
+    fireEvent.click(screen.getByTestId('nav-rail-theme-toggle'));
+    expect(mockSetMode).toHaveBeenCalledWith('light');
+  });
+
+  it('button has an accessible label', () => {
+    renderWithContext('light');
+    const btn = screen.getByTestId('nav-rail-theme-toggle');
+    expect(btn.getAttribute('aria-label')).toBeTruthy();
   });
 });

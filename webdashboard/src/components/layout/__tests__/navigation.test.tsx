@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import React from 'react';
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -20,7 +20,7 @@ vi.mock('react-i18next', () => ({
 
 // Mock hooks
 const activePermissions = new Set<string>();
-const mockHasAnyPermission = vi.fn((...perms: string[]) => 
+const mockHasAnyPermission = vi.fn((...perms: string[]) =>
   perms.length === 0 || perms.some(p => activePermissions.has(p))
 );
 
@@ -55,6 +55,15 @@ vi.mock('@/hooks/use-notifications', () => ({
     fetchNextPage: vi.fn(),
     hasNextPage: false,
     isFetchingNextPage: false,
+  }),
+}));
+
+vi.mock('@/hooks/use-language', () => ({
+  useLanguage: () => ({
+    currentLanguage: 'vi',
+    currentOption: { code: 'vi', flag: '🇻🇳', name: 'Vietnamese', nativeName: 'Tiếng Việt' },
+    changeLanguage: vi.fn(),
+    languages: [],
   }),
 }));
 
@@ -117,51 +126,64 @@ describe('Navigation Layout Consistency', () => {
           isCollapsed={false}
           isOpen={true}
           onClose={vi.fn()}
-          onShowSwitcher={vi.fn()}
           openSections={{}}
           toggleSection={vi.fn()}
         />
       );
 
-      // Search for logout text (t("common.logout") returns "common.logout" in our mock)
       expect(screen.queryByText(/common\.logout/i)).not.toBeInTheDocument();
       expect(screen.queryByTestId('user-menu-logout')).not.toBeInTheDocument();
     });
   });
 
   describe('Navbar', () => {
-    it('should contain the user profile trigger', () => {
+    it('renders workspace name in breadcrumbs', () => {
       renderWithProviders(
         <Navbar
           currentWorkspaceName="Test Workspace"
-          isCollapsed={false}
           onOpenSidebar={vi.fn()}
-          onToggleCollapsed={vi.fn()}
         />
       );
 
-      expect(screen.getByTestId('navbar-user-menu-trigger')).toBeInTheDocument();
-      expect(screen.getByText(/John Doe/i)).toBeInTheDocument();
+      expect(screen.getByText('Test Workspace')).toBeInTheDocument();
     });
 
-    it('should show user menu with logout when clicking the trigger', async () => {
+    it('has a hamburger button for mobile sidebar', () => {
       renderWithProviders(
-        <Navbar 
+        <Navbar
           currentWorkspaceName="Test Workspace"
-          isCollapsed={false}
           onOpenSidebar={vi.fn()}
-          onToggleCollapsed={vi.fn()}
         />
       );
 
-      const trigger = screen.getByTestId('navbar-user-menu-trigger');
-      fireEvent.click(trigger);
+      const buttons = screen.getAllByRole('button');
+      expect(buttons.length).toBeGreaterThanOrEqual(1);
+    });
 
-      // Radix UI DropdownMenu uses Portals, but RTL screen.getBy should find it
-      // Note: "common.logout" is what t("common.logout") returns in our mock
-      expect(await screen.findByTestId('user-menu-logout-btn')).toBeInTheDocument();
-      expect(screen.getByTestId('user-menu-profile-btn')).toBeInTheDocument();
-      expect(screen.getByTestId('user-menu-settings-btn')).toBeInTheDocument();
+    it('renders page name from current path', () => {
+      renderWithProviders(
+        <Navbar
+          currentWorkspaceName="Test Workspace"
+          onOpenSidebar={vi.fn()}
+        />
+      );
+
+      // Path is "/" which maps to "common.dashboard" → resolves to "common.dashboard" in mock
+      const pageName = screen.getByText('COMMON.DASHBOARD');
+      expect(pageName).toBeInTheDocument();
+    });
+
+    it('renders header at 56px height', () => {
+      const { container } = renderWithProviders(
+        <Navbar
+          currentWorkspaceName="Test Workspace"
+          onOpenSidebar={vi.fn()}
+        />
+      );
+
+      const header = container.querySelector('header');
+      expect(header).toBeInTheDocument();
+      expect(header!.className).toContain('h-14');
     });
   });
 
@@ -172,7 +194,6 @@ describe('Navigation Layout Consistency', () => {
           isCollapsed={false}
           isOpen={true}
           onClose={vi.fn()}
-          onShowSwitcher={vi.fn()}
           openSections={{ time: true }}
           toggleSection={vi.fn()}
         />

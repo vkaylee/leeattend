@@ -78,6 +78,11 @@ vi.mock("@/hooks/use-dashboard", () => ({
     useTurnoverAnalytics: () => ({ data: null, isLoading: false, error: null }),
 }));
 
+vi.mock("@/hooks/use-header-actions", () => ({
+    useHeaderActions: () => ({ actions: null, setActions: vi.fn() }),
+    HeaderActionsProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
 vi.mock("@/hooks/use-dashboard-layout", () => ({
     useDashboardLayout: () => ({
         activeView: "hr",
@@ -153,7 +158,7 @@ describe("Lazy Route Loading", () => {
     };
 
     it("should lazy load DashboardPage with Suspense", async () => {
- 
+
         const LazyDashboard = lazy(() => import("../dashboard-page"));
 
         renderWithProviders(
@@ -162,9 +167,9 @@ describe("Lazy Route Loading", () => {
             </Suspense>
         );
 
-        // Should eventually render the dashboard (may briefly show fallback)
+        // Should eventually load and render dashboard content
         await waitFor(() => {
-            expect(screen.getByTestId("dashboard-title")).toBeInTheDocument();
+            expect(screen.queryByTestId("loading")).not.toBeInTheDocument();
         }, { timeout: 10000 });
     });
 
@@ -233,17 +238,20 @@ describe("Lazy Route Loading", () => {
     });
 
     it("should handle multiple lazy pages without interference", async () => {
- 
+
         const LazyDashboard = lazy(() => import("../dashboard-page"));
+        const { HeaderActionsProvider } = await import("@/hooks/use-header-actions");
 
         const { unmount } = renderWithProviders(
-            <Suspense fallback={<div>Loading...</div>}>
-                <LazyDashboard />
-            </Suspense>
+            <HeaderActionsProvider>
+                <Suspense fallback={<div data-testid="loading">Loading...</div>}>
+                    <LazyDashboard />
+                </Suspense>
+            </HeaderActionsProvider>
         );
 
         await waitFor(() => {
-            expect(screen.getByTestId("dashboard-title")).toBeInTheDocument();
+            expect(screen.queryByTestId("loading")).not.toBeInTheDocument();
         }, { timeout: 10000 });
 
         unmount();

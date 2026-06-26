@@ -138,6 +138,24 @@
     @apply bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-700/40 shadow-premium-lg;
   }
 
+  /* Navigation Rail & Panel */
+  :root {
+    --nav-rail-width: 56px;
+    --nav-panel-width: 240px;
+  }
+
+  .nav-tooltip {
+    @apply absolute left-full ml-3 px-3 py-1.5 bg-slate-800 dark:bg-slate-200
+           text-white dark:text-slate-800 text-xs font-bold rounded-xl
+           whitespace-nowrap opacity-0 invisible transition-all duration-200
+           pointer-events-none shadow-lg;
+  }
+
+  .group:hover .nav-tooltip,
+  .group:focus-visible .nav-tooltip {
+    @apply opacity-100 visible;
+  }
+
   /* Premium Modal Backdrop */
   .modal-backdrop {
     @apply fixed inset-0 z-[9999] flex items-center justify-center p-4 md:p-8 bg-slate-900/20 backdrop-blur-lg animate-in fade-in duration-500;

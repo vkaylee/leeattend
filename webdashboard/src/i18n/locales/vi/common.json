@@ -1789,5 +1789,28 @@
     "rules": {
       "subtitle": "Quản lý lịch mẫu và các thiết lập tự động hóa phân ca"
     }
+  },
+  "appLauncher": {
+    "language": "Ngôn ngữ",
+    "quickAccess": "📌 Truy cập nhanh",
+    "allApps": "🗂️ Tất cả ứng dụng",
+    "empty": {
+      "title": "Không có ứng dụng nào",
+      "desc": "Bạn không có quyền truy cập ứng dụng nào. Liên hệ quản trị viên."
+    },
+    "descriptions": {
+      "directory": "Duyệt và quản lý thành viên cùng vai trò của họ",
+      "org_chart": "Trực quan hóa cấu trúc báo cáo tổ chức",
+      "econtracts": "Quản lý hợp đồng nhân viên và chữ ký điện tử",
+      "leave_balances": "Xem phép năm và số dư còn lại",
+      "attendance_adjustments": "Xem xét và xác nhận yêu cầu điều chỉnh chấm công",
+      "shift_swaps": "Quản lý yêu cầu đổi ca của nhân viên",
+      "approvals_ot": "Xem xét và phê duyệt yêu cầu tăng ca",
+      "shifts": "Tạo và quản lý lịch làm việc, phân ca",
+      "documents": "Truy cập phiếu lương, hợp đồng và tài liệu nhân sự",
+      "infra_monitor": "Giám sát edge agent và tình trạng hệ thống",
+      "db_clusters": "Quản lý cấu hình cụm cơ sở dữ liệu",
+      "tenants": "Quản lý các workspace đa đối tượng thuê"
+    }
   }
 }

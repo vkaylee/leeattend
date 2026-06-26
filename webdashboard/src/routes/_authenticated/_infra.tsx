@@ -1,7 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import InfraLayout from "@/components/layout/infra-layout";
+import AppShell from "@/components/layout/app-shell";
+
+function InfraAppShell() {
+  return <AppShell variant="infra" />;
+}
 
 export const Route = createFileRoute("/_authenticated/_infra")({
-  component: InfraLayout,
+  component: InfraAppShell,
 });

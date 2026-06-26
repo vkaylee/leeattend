@@ -17,6 +17,7 @@ export const ROUTES = {
 
   // Main
   HOME: "/",
+  DASHBOARD: "/dashboard",
   EMPLOYEES: "/employees",
   DEPARTMENTS: "/departments",
   ORG_CHART: "/org-chart",

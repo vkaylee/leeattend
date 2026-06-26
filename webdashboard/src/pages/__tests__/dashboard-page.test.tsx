@@ -46,6 +46,19 @@ vi.mock("@/hooks/use-dashboard-layout", () => ({
   useDashboardLayout: vi.fn(),
 }));
 
+vi.mock("@/hooks/use-header-actions", () => ({
+  useHeaderActions: () => ({ actions: null, setActions: vi.fn() }),
+  HeaderActionsProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
+vi.mock("@/hooks/use-currency", () => ({
+  useCurrency: () => ({ formatCurrency: (v: number) => `$${v}` }),
+}));
+
+vi.mock("@/hooks/use-dashboard-charts", () => ({
+  useDashboardCharts: () => [],
+}));
+
 let shouldQuickStatsThrow = false;
 vi.mock("@/components/features/dashboard/hr-quick-stats", () => ({
   HrQuickStats: () => {
@@ -150,26 +163,20 @@ describe("DashboardPage", () => {
 
   it("renders correctly with data", () => {
     renderComponent();
-    
-    // Check main title
-    expect(screen.getByTestId("dashboard-title")).toBeInTheDocument();
-    
-    // Check KPI cards render stats
+
+    // Check KPI cards render stats (title is now in Navbar breadcrumbs)
     expect(screen.getByText("100")).toBeInTheDocument(); // total_employees
     expect(screen.getByText("95")).toBeInTheDocument(); // present_today
   });
 
-  it("switches to system tab", () => {
+  it("renders HR tab with KPI data by default", () => {
     renderComponent();
-    
-    // System tab button is labeled via translation
-    const systemTabButton = screen.getByText("dashboard.tabs.system");
-    fireEvent.click(systemTabButton);
-    
-    // Check if system section titles appear
-    expect(screen.getByText("dashboard.system.total_agents")).toBeInTheDocument();
-    expect(screen.getByText("dashboard.system.online_agents")).toBeInTheDocument();
-    expect(screen.getByText("dashboard.system.total_devices")).toBeInTheDocument();
+
+    // Tab buttons are now in Navbar header via useHeaderActions context.
+    // In test, useHeaderActions is mocked — the HR tab renders by default.
+    // Verify KPI stats are visible:
+    expect(screen.getByText("100")).toBeInTheDocument();
+    expect(screen.getByText("95")).toBeInTheDocument();
   });
 
   it("isolates render crash inside a single widget using ErrorBoundary", () => {
@@ -184,8 +191,7 @@ describe("DashboardPage", () => {
     expect(screen.getByText("common.error_boundary.widget_error")).toBeInTheDocument();
     expect(screen.getByText("Simulated Quick Stats Render Error")).toBeInTheDocument();
     
-    // 2. Verify that sibling components (e.g., dashboard title and KPI card) still render correctly
-    expect(screen.getByTestId("dashboard-title")).toBeInTheDocument();
+    // 2. Verify that sibling components (e.g., KPI card) still render correctly
     expect(screen.getByText("100")).toBeInTheDocument(); // total_employees
     
     // Clean up

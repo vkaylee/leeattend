@@ -1785,6 +1785,29 @@
   },
   "hide_details": "隐藏详情",
   "show_details": "显示详情",
+  "appLauncher": {
+    "language": "语言",
+    "quickAccess": "📌 快速访问",
+    "allApps": "🗂️ 全部应用",
+    "empty": {
+      "title": "没有可用应用",
+      "desc": "您没有访问任何应用的权限。请联系管理员。"
+    },
+    "descriptions": {
+      "directory": "浏览和管理工作区成员及角色",
+      "org_chart": "可视化组织结构",
+      "econtracts": "管理员工合同和电子签名",
+      "leave_balances": "查看假期配额和余额",
+      "attendance_adjustments": "审核和确认考勤更正请求",
+      "shift_swaps": "管理员工换班请求",
+      "approvals_ot": "审核和批准加班申请",
+      "shifts": "创建和管理班次排班",
+      "documents": "访问工资单、合同和人事文档",
+      "infra_monitor": "监控边缘代理和系统健康",
+      "db_clusters": "管理数据库集群配置",
+      "tenants": "管理多租户工作区实例"
+    }
+  },
   "shifts": {
     "rules": {
       "subtitle": "管理周期性排班模板和自动排班规则"

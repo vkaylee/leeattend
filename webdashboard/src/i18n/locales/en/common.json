@@ -1789,5 +1789,28 @@
     "rules": {
       "subtitle": "Manage recurring schedule templates and automated shift routing rules"
     }
+  },
+  "appLauncher": {
+    "language": "Language",
+    "quickAccess": "📌 Quick Access",
+    "allApps": "🗂️ All Apps",
+    "empty": {
+      "title": "No Apps Available",
+      "desc": "You don't have access to any applications. Contact your administrator."
+    },
+    "descriptions": {
+      "directory": "Browse and manage workspace members and their roles",
+      "org_chart": "Visualize your organization's reporting structure",
+      "econtracts": "Manage employee contracts and e-signatures",
+      "leave_balances": "View leave entitlements and remaining balances",
+      "attendance_adjustments": "Review and confirm attendance correction requests",
+      "shift_swaps": "Manage employee shift exchange requests",
+      "approvals_ot": "Review and approve overtime claims",
+      "shifts": "Create and manage shift schedules and rosters",
+      "documents": "Access payslips, contracts, and HR documents",
+      "infra_monitor": "Monitor edge agents and system health",
+      "db_clusters": "Manage database cluster configurations",
+      "tenants": "Oversee multi-tenant workspace instances"
+    }
   }
 }
