@@ -67,6 +67,7 @@ vi.mock("@/hooks/use-workspace", () => ({
 
 vi.mock("@/hooks/use-attendance", () => ({
   useAttendanceSummaries: vi.fn(),
+  useAttendanceSummariesInfinite: vi.fn(),
   useApproveOt: vi.fn(),
   useEnterPaperOt: vi.fn(() => ({ enterPaperOt: vi.fn(), isSubmitting: false })),
   useBulkUploadPaperOt: vi.fn(() => ({ bulkUploadPaperOt: vi.fn(), isUploading: false })),
@@ -100,6 +101,39 @@ vi.mock("@/hooks/use-overtime-requests", () => ({
 
 vi.mock("@/hooks/use-approval-workflows", () => ({
   useProcessApproval: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
+}));
+
+vi.mock("@/lib/api/overtime-requests", () => ({
+  overtimeRequestsApi: {
+    listRequests: vi.fn(() => Promise.resolve({
+      data: [
+        {
+          id: "req-123",
+          status: "pending_approval",
+          planned_date: "2026-06-04",
+          planned_start_time: "17:00:00",
+          planned_end_time: "19:00:00",
+          planned_minutes: 120,
+          reason: "Late night deploy",
+          employees: [{ employee_id: "EMP-001", full_name: "Test Employee" }],
+        },
+      ],
+      total: 1,
+      page: 1,
+      limit: 20,
+    })),
+    getRequest: vi.fn(),
+    createRequest: vi.fn(),
+    submitRequest: vi.fn(),
+    cancelRequest: vi.fn(),
+    employeeConsent: vi.fn(),
+    getMyAssignments: vi.fn(),
+    getWorkspaceQuotaSummary: vi.fn(),
+    getEmployeeQuota: vi.fn(),
+    listRequestBehalfAssignments: vi.fn(),
+    createRequestBehalfAssignment: vi.fn(),
+    deleteRequestBehalfAssignment: vi.fn(),
+  },
 }));
 
 vi.mock("@/lib/api", async (importOriginal) => {
@@ -152,23 +186,23 @@ const mockSummaries = [
 
 describe("OtApprovalsPage", () => {
   let approveOtMock: ReturnType<typeof vi.fn>;
-  let refetchMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     approveOtMock = vi.fn().mockResolvedValue({});
-    refetchMock = vi.fn();
-    
+
     vi.mocked(attendanceHooks.useApproveOt).mockReturnValue({
       approveOt: approveOtMock,
       isProcessing: false,
     } as unknown as ReturnType<typeof attendanceHooks.useApproveOt>);
 
-    vi.mocked(attendanceHooks.useAttendanceSummaries).mockReturnValue({
+    vi.mocked(attendanceHooks.useAttendanceSummariesInfinite).mockReturnValue({
       summaries: mockSummaries,
       isLoading: false,
-      refetch: refetchMock,
-    } as unknown as ReturnType<typeof attendanceHooks.useAttendanceSummaries>);
+      fetchNextPage: vi.fn(),
+      hasNextPage: false,
+      isFetchingNextPage: false,
+    } as unknown as ReturnType<typeof attendanceHooks.useAttendanceSummariesInfinite>);
   });
 
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -217,7 +251,6 @@ describe("OtApprovalsPage", () => {
         status: "approved",
         manager_note: "Approved via Manager Portal"
       });
-      expect(refetchMock).toHaveBeenCalled();
     });
   });
 
@@ -225,7 +258,7 @@ describe("OtApprovalsPage", () => {
     const user = userEvent.setup();
     renderPage();
     await user.click(screen.getByText("ot_approvals.tabs.post_ot"));
-    
+
     const rejectButtons = screen.getAllByTitle("ot_approvals.actions.reject");
     await user.click(rejectButtons[0]);
 
@@ -237,7 +270,6 @@ describe("OtApprovalsPage", () => {
         status: "rejected",
         manager_note: "Rejected via Manager Portal"
       });
-      expect(refetchMock).toHaveBeenCalled();
     });
   });
 
@@ -260,12 +292,14 @@ describe("OtApprovalsPage", () => {
   });
   
   it("shows empty state when no pending summaries", async () => {
-    vi.mocked(attendanceHooks.useAttendanceSummaries).mockReturnValue({
+    vi.mocked(attendanceHooks.useAttendanceSummariesInfinite).mockReturnValue({
       summaries: [],
       isLoading: false,
-      refetch: refetchMock,
-    } as unknown as ReturnType<typeof attendanceHooks.useAttendanceSummaries>);
-    
+      fetchNextPage: vi.fn(),
+      hasNextPage: false,
+      isFetchingNextPage: false,
+    } as unknown as ReturnType<typeof attendanceHooks.useAttendanceSummariesInfinite>);
+
     const user = userEvent.setup();
     renderPage();
     await user.click(screen.getByText("ot_approvals.tabs.post_ot"));
@@ -336,6 +370,9 @@ describe("OtApprovalsPage", () => {
             ot_claim_status: "claimed",
           },
         ],
+        total: 4,
+        page: 1,
+        limit: 20,
       } as any);
     });
 
@@ -347,7 +384,10 @@ describe("OtApprovalsPage", () => {
     });
 
     it("renders list of claimable entries in table with correct hours", async () => {
+      const user = userEvent.setup();
       renderPage();
+
+      await user.click(screen.getByText("ot_approvals.tabs.delegated_claim"));
 
       await waitFor(() => {
         expect(screen.getByText("John Doe")).toBeInTheDocument();
@@ -363,6 +403,8 @@ describe("OtApprovalsPage", () => {
     it("submits delegated claim with custom reason when claim button is clicked", async () => {
       const user = userEvent.setup();
       renderPage();
+
+      await user.click(screen.getByText("ot_approvals.tabs.delegated_claim"));
 
       await waitFor(() => {
         expect(screen.getByText("John Doe")).toBeInTheDocument();
@@ -396,6 +438,8 @@ describe("OtApprovalsPage", () => {
     it("submits bulk delegated claims when multiple rows are checked and bulk claim is clicked", async () => {
       const user = userEvent.setup();
       renderPage();
+
+      await user.click(screen.getByText("ot_approvals.tabs.delegated_claim"));
 
       await waitFor(() => {
         expect(screen.getByText("John Doe")).toBeInTheDocument();

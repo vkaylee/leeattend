@@ -346,6 +346,79 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
             .map_err(|e| AppError::Internal(format!("db: {e}")))
     }
 
+    async fn get_summaries_paginated(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employment_id: Option<Uuid>,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+        ot_status: Option<OtStatus>,
+        page: i64,
+        limit: i64,
+    ) -> Result<(Vec<AttendanceDailySummary>, usize), AppError> {
+        let workspace_id = auth_token.workspace_id();
+        use crate::schema::attendance_daily_summaries::dsl as ads;
+
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await?,
+        );
+
+        // Count total matching records
+        let mut count_query = ads::attendance_daily_summaries
+            .filter(ads::workspace_id.eq(workspace_id))
+            .filter(ads::date.ge(start_date))
+            .filter(ads::date.le(end_date))
+            .into_boxed();
+
+        if let Some(eid) = employment_id {
+            count_query = count_query.filter(ads::employment_id.eq(eid));
+        }
+
+        if let Some(ref status) = ot_status {
+            count_query = count_query.filter(ads::ot_status.eq(status));
+        }
+
+        let total: i64 = count_query
+            .select(diesel::dsl::count_star())
+            .first(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        // Fetch page
+        let mut data_query = ads::attendance_daily_summaries
+            .filter(ads::workspace_id.eq(workspace_id))
+            .filter(ads::date.ge(start_date))
+            .filter(ads::date.le(end_date))
+            .into_boxed();
+
+        if let Some(eid) = employment_id {
+            data_query = data_query.filter(ads::employment_id.eq(eid));
+        }
+
+        if let Some(status) = ot_status {
+            data_query = data_query.filter(ads::ot_status.eq(status));
+        }
+
+        use crate::models::diesel::attendance_daily_summary::AttendanceDailySummaryEntity;
+
+        let results = data_query
+            .order_by((ads::date.asc(), ads::employment_id.asc()))
+            .limit(limit)
+            .offset((page - 1) * limit)
+            .load::<AttendanceDailySummaryEntity>(&mut *conn)
+            .await
+            .map(|list| list.into_iter().map(Into::into).collect::<Vec<_>>())
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        let total_usize = usize::try_from(total)
+            .map_err(|e| AppError::Internal(format!("Invalid total count: {e}")))?;
+
+        Ok((results, total_usize))
+    }
+
     async fn get_distinct_work_days_from_summary(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

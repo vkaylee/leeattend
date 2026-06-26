@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle, Clock, FileText, ShieldCheck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -13,7 +13,7 @@ import { PDFPreviewModal } from "@/components/files/pdf-preview-modal";
 import { PageTabs, PageTab } from "@/components/ui/page-tabs";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
-import { useApproveOt, useAttendanceSummaries } from "@/hooks/use-attendance";
+import { useApproveOt, useAttendanceSummariesInfinite } from "@/hooks/use-attendance";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { fetchAttendanceReport, fetchEmployees } from "@/lib/api";
@@ -65,6 +65,7 @@ export default function OtApprovalsPage() {
   const toast = useToast();
   const { t } = useTranslation(["common", "attendance"]);
   const { workspace } = useWorkspace();
+  const queryClient = useQueryClient();
   const { hasPermission, isLoading: permissionsLoading } = useMyPermissions();
 
   const canApprove = hasPermission("overtime:approve");
@@ -130,7 +131,13 @@ export default function OtApprovalsPage() {
   const startDate = format(startOfMonth(currentMonth), "yyyy-MM-dd");
   const endDate = format(endOfMonth(currentMonth), "yyyy-MM-dd");
 
-  const { isLoading, refetch, summaries } = useAttendanceSummaries(startDate, endDate);
+  const {
+    summaries,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useAttendanceSummariesInfinite(startDate, endDate, { otStatus: "pending_manager" });
   const { approveOt, isProcessing } = useApproveOt();
 
   const { data: employeesData } = useQuery<PaginatedResponse<Employee>>({
@@ -149,7 +156,7 @@ export default function OtApprovalsPage() {
     return map;
   }, [employeesData]);
 
-  const { data: reportResponse, isLoading: isReportLoading, refetch: refetchReport } = useQuery({
+  const { data: reportResponse } = useQuery({
     queryKey: ["attendance-report", workspace?.id, startDate, endDate, "daily"],
     queryFn: () => {
       if (!workspace?.id) throw new Error("No workspace ID");
@@ -198,8 +205,9 @@ export default function OtApprovalsPage() {
       toast.success(
         approved ? "Overtime approved successfully" : "Overtime rejected successfully"
       );
-      void refetch();
-      void refetchReport();
+      void queryClient.invalidateQueries({ queryKey: ["attendance"] });
+      void queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
+      void queryClient.invalidateQueries({ queryKey: ["attendance-report-delegated"] });
     } catch (e) {
       console.error(e);
       toast.error("Action failed");
@@ -233,8 +241,8 @@ export default function OtApprovalsPage() {
         employeeId={photoTargetSummary ? employmentToEmployeeMap.get(photoTargetSummary.employment_id) : undefined}
         onOpenChange={(open) => { if (!open) setPhotoTargetSummary(null); }}
         onSuccess={() => {
-          void refetch();
-          void refetchReport();
+          void queryClient.invalidateQueries({ queryKey: ["attendance"] });
+          void queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
         }}
         open={!!photoTargetSummary}
         summary={photoTargetSummary}
@@ -243,7 +251,8 @@ export default function OtApprovalsPage() {
       <BulkUploadOtDialog
         onOpenChange={setBulkUploadDialogOpen}
         onSuccess={() => {
-          void refetch();
+          void queryClient.invalidateQueries({ queryKey: ["attendance"] });
+          void queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
         }}
         open={bulkUploadDialogOpen}
       />
@@ -262,22 +271,23 @@ export default function OtApprovalsPage() {
           activeTab={activeTab}
           canApprove={canApprove}
           canCreateOnBehalf={canCreateOnBehalf}
+          endDate={endDate}
+          fetchNextPage={() => { void fetchNextPage(); }}
           handleApprove={handleApprove}
+          hasNextPage={hasNextPage}
+          isFetchingNextPage={isFetchingNextPage}
           isLoading={isLoading}
           isProcessing={isProcessing}
-          isReportLoading={isReportLoading}
           onPreviewAttachment={(url, title) => {
             setPreviewFileUrl(url);
             setPreviewTitle(title);
             setIsPreviewOpen(true);
           }}
           pendingSummaries={pendingSummaries}
-          refetch={refetch}
-          refetchReport={refetchReport}
-          reportData={reportData}
           setPhotoTargetSummary={setPhotoTargetSummary}
           setSourceFilter={setSourceFilter}
           sourceFilter={sourceFilter}
+          startDate={startDate}
           workspace={workspace}
         />
       </div>
@@ -325,30 +335,34 @@ interface TabContentRendererProps {
   activeTab: "pre" | "post" | "delegated_claim" | "behalf_assignments";
   canApprove: boolean;
   canCreateOnBehalf: boolean;
+  endDate: string;
+  fetchNextPage: () => void;
   handleApprove: (
     summary: OtSummary,
     approved: boolean
   ) => Promise<void>;
+  hasNextPage: boolean | undefined;
+  isFetchingNextPage: boolean;
   isLoading: boolean;
   isProcessing: boolean;
-  isReportLoading: boolean;
   onPreviewAttachment?: (fileUrl: string, title: string) => void;
   pendingSummaries: OtSummary[];
-  refetch: () => Promise<unknown>;
-  refetchReport: () => Promise<unknown>;
-  reportData: ReportRow[];
   setPhotoTargetSummary: (summary: OtSummary) => void;
   setSourceFilter: (filter: SourceFilter) => void;
   sourceFilter: SourceFilter;
+  startDate: string;
   workspace: { id: string } | null | undefined;
 }
 
 interface PostOtTabContentProps {
   canApprove: boolean;
+  fetchNextPage: () => void;
   handleApprove: (
     summary: OtSummary,
     approved: boolean
   ) => Promise<void>;
+  hasNextPage: boolean | undefined;
+  isFetchingNextPage: boolean;
   isLoading: boolean;
   isProcessing: boolean;
   onPreviewAttachment?: (fileUrl: string, title: string) => void;
@@ -368,6 +382,9 @@ function PostOtTabContent({
   isProcessing,
   setPhotoTargetSummary,
   onPreviewAttachment,
+  fetchNextPage,
+  hasNextPage,
+  isFetchingNextPage,
 }: PostOtTabContentProps) {
   if (!canApprove) return null;
   if (isLoading) return <LoadingState />;
@@ -376,11 +393,14 @@ function PostOtTabContent({
       <div className="px-8 pt-8 pb-4 border-b border-slate-50 dark:border-slate-800/60">
         <OtApprovalsFilters setSourceFilter={setSourceFilter} sourceFilter={sourceFilter} />
       </div>
-      {pendingSummaries.length === 0 ? (
+      {!isFetchingNextPage && pendingSummaries.length === 0 ? (
         <EmptyState />
       ) : (
         <OtApprovalsTable
+          fetchNextPage={fetchNextPage}
           handleApprove={handleApprove}
+          hasNextPage={hasNextPage}
+          isFetchingNextPage={isFetchingNextPage}
           isProcessing={isProcessing}
           onAddPhoto={setPhotoTargetSummary}
           onPreviewAttachment={onPreviewAttachment}
@@ -397,16 +417,17 @@ function TabContentRenderer({
   canApprove,
   canCreateOnBehalf,
   isLoading,
-  isReportLoading,
   pendingSummaries,
-  reportData,
   handleApprove,
   isProcessing,
   setPhotoTargetSummary,
   setSourceFilter,
   sourceFilter,
-  refetch,
-  refetchReport,
+  startDate,
+  endDate,
+  fetchNextPage,
+  hasNextPage,
+  isFetchingNextPage,
   onPreviewAttachment,
 }: TabContentRendererProps) {
   if (!workspace) return null;
@@ -415,9 +436,9 @@ function TabContentRenderer({
     case "pre":
       return (canApprove || canCreateOnBehalf) ? (
         <ErrorBoundary variant="compact">
-          <PreOtApprovalsTab 
-            canApprove={canApprove} 
-            onPreviewAttachment={onPreviewAttachment} 
+          <PreOtApprovalsTab
+            canApprove={canApprove}
+            onPreviewAttachment={onPreviewAttachment}
             wsId={workspace.id}
           />
         </ErrorBoundary>
@@ -427,7 +448,10 @@ function TabContentRenderer({
         <ErrorBoundary variant="compact">
           <PostOtTabContent
             canApprove={canApprove}
+            fetchNextPage={fetchNextPage}
             handleApprove={handleApprove}
+            hasNextPage={hasNextPage}
+            isFetchingNextPage={isFetchingNextPage}
             isLoading={isLoading}
             isProcessing={isProcessing}
             onPreviewAttachment={onPreviewAttachment}
@@ -442,12 +466,9 @@ function TabContentRenderer({
       return (
         <ErrorBoundary variant="compact">
           <DelegatedClaimsTab
-            isLoading={isReportLoading}
-            refetch={async () => {
-              await refetch();
-              await refetchReport();
-            }}
-            reportData={reportData}
+            endDate={endDate}
+            startDate={startDate}
+            wsId={workspace.id}
           />
         </ErrorBoundary>
       );

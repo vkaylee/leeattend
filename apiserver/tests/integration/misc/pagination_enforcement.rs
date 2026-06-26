@@ -83,7 +83,6 @@ const GET_LIST_WHITELIST: &[&str] = &[
     "get_my_attendance_adjustments",
     "get_workspace_attendance_adjustments",
     "list_behalf_assignments",
-    "get_attendance_summaries",
     "get_generic_job_status",
     "get_employment_phase_definitions",
     "get_employee_phases",

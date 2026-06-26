@@ -1588,6 +1588,19 @@ mod tests {
             Ok(vec![])
         }
 
+        async fn get_summaries_paginated(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employee_id: Option<Uuid>,
+            _start_date: NaiveDate,
+            _end_date: NaiveDate,
+            _ot_status: Option<crate::models::OtStatus>,
+            _page: i64,
+            _limit: i64,
+        ) -> Result<(Vec<crate::models::AttendanceDailySummary>, usize), AppError> {
+            Ok((vec![], 0))
+        }
+
         async fn get_distinct_work_days_from_summary(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,

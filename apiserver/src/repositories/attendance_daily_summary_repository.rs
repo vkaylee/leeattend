@@ -80,6 +80,20 @@ pub trait AttendanceDailySummaryRepository: Send + Sync {
         end_date: NaiveDate,
     ) -> Result<Vec<AttendanceDailySummary>, AppError>;
 
+    /// Paginated variant with optional ot_status filter.
+    /// Returns (data, total_count).
+    #[allow(clippy::too_many_arguments)]
+    async fn get_summaries_paginated(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employment_id: Option<Uuid>,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+        ot_status: Option<OtStatus>,
+        page: i64,
+        limit: i64,
+    ) -> Result<(Vec<AttendanceDailySummary>, usize), AppError>;
+
     async fn get_distinct_work_days_from_summary(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

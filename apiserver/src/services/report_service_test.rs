@@ -1242,6 +1242,18 @@ mod tests {
         ) -> Result<Vec<AttendanceDailySummary>, AppError> {
             unimplemented!()
         }
+        async fn get_summaries_paginated(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _e: Option<Uuid>,
+            _s: NaiveDate,
+            _en: NaiveDate,
+            _ot_status: Option<OtStatus>,
+            _page: i64,
+            _limit: i64,
+        ) -> Result<(Vec<AttendanceDailySummary>, usize), AppError> {
+            unimplemented!()
+        }
         async fn get_distinct_work_days_from_summary(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -2324,6 +2336,18 @@ mod tests {
             _s: NaiveDate,
             _en: NaiveDate,
         ) -> Result<Vec<AttendanceDailySummary>, AppError> {
+            unimplemented!()
+        }
+        async fn get_summaries_paginated(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _e: Option<Uuid>,
+            _s: NaiveDate,
+            _en: NaiveDate,
+            _ot_status: Option<OtStatus>,
+            _page: i64,
+            _limit: i64,
+        ) -> Result<(Vec<AttendanceDailySummary>, usize), AppError> {
             unimplemented!()
         }
         async fn get_distinct_work_days_from_summary(

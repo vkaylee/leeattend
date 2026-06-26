@@ -378,6 +378,34 @@ export async function fetchAttendanceSummaries(
   return resData;
 }
 
+export async function fetchAttendanceSummariesPaginated(
+  wsId: string,
+  start: string,
+  end: string,
+  options?: {
+    employeeId?: string;
+    page?: number;
+    limit?: number;
+    otStatus?: string;
+  }
+): Promise<PaginatedResponse<AttendanceDailySummary>> {
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/summaries", {
+    params: {
+      path: { ws_id: wsId },
+      query: {
+        start_date: start,
+        end_date: end,
+        employee_id: options?.employeeId,
+        page: options?.page,
+        limit: options?.limit,
+        ot_status: options?.otStatus,
+      }
+    }
+  });
+  if (!resData) throw new Error("No response data");
+  return resData as unknown as PaginatedResponse<AttendanceDailySummary>;
+}
+
 export async function enterPaperOt(
   wsId: string,
   employeeId: string,

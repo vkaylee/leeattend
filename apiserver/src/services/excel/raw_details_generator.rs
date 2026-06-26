@@ -99,16 +99,8 @@ pub fn generate(
         worksheet.write_string(row, 2, &report.employee_name)?;
         worksheet.write_string(row, 3, report.employer_name.as_deref().unwrap_or(""))?;
         // Segment columns (Option A: per-segment rows)
-        worksheet.write_string(
-            row,
-            4,
-            report.segment_type.as_deref().unwrap_or(""),
-        )?;
-        worksheet.write_string(
-            row,
-            5,
-            report.interval_name.as_deref().unwrap_or(""),
-        )?;
+        worksheet.write_string(row, 4, report.segment_type.as_deref().unwrap_or(""))?;
+        worksheet.write_string(row, 5, report.interval_name.as_deref().unwrap_or(""))?;
         worksheet.write_string_with_format(
             row,
             6,
@@ -177,7 +169,10 @@ fn get_punch_times(report: &DailyAttendanceReport, tz: Tz) -> (String, String) {
         let mut work_entries = Vec::new();
         for entry in entries_val {
             // Only collect work-type entries — skip auto-computed break boundaries
-            let entry_type = entry.get("entry_type").and_then(|t| t.as_str()).unwrap_or("work");
+            let entry_type = entry
+                .get("entry_type")
+                .and_then(|t| t.as_str())
+                .unwrap_or("work");
             if entry_type != "work" {
                 continue;
             }
@@ -201,10 +196,7 @@ fn get_punch_times(report: &DailyAttendanceReport, tz: Tz) -> (String, String) {
             if is_auto_deduct && work_entries.len() == 2 {
                 let first_in = work_entries.first().map(|e| e.0);
                 let last_out = work_entries.last().and_then(|e| e.1);
-                return (
-                    format_datetime(first_in, tz),
-                    format_datetime(last_out, tz),
-                );
+                return (format_datetime(first_in, tz), format_datetime(last_out, tz));
             }
 
             let ins = work_entries

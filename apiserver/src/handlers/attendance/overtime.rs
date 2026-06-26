@@ -11,7 +11,7 @@ use uuid::Uuid;
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
-use crate::models::AttendanceDailySummary;
+use crate::models::{AttendanceDailySummary, OtStatus, PaginatedResponse};
 use crate::utils::i18n::I18nKey;
 use crate::AppState;
 
@@ -173,6 +173,9 @@ pub struct SummaryQuery {
     pub start_date: NaiveDate,
     pub end_date: NaiveDate,
     pub employee_id: Option<Uuid>,
+    pub page: Option<i64>,
+    pub limit: Option<i64>,
+    pub ot_status: Option<String>,
 }
 
 #[utoipa::path(
@@ -182,10 +185,13 @@ pub struct SummaryQuery {
         ("ws_id" = Uuid, Path, description = "Workspace ID"),
         ("start_date" = NaiveDate, Query, description = "Start date"),
         ("end_date" = NaiveDate, Query, description = "End date"),
-        ("employee_id" = Option<Uuid>, Query, description = "Optional Employee ID")
+        ("employee_id" = Option<Uuid>, Query, description = "Optional Employee ID"),
+        ("page" = Option<i64>, Query, description = "Page number (1-based)"),
+        ("limit" = Option<i64>, Query, description = "Items per page"),
+        ("ot_status" = Option<String>, Query, description = "Filter by OT status")
     ),
     responses(
-        (status = 200, description = "Attendance summaries", body = Vec<AttendanceDailySummary>)
+        (status = 200, description = "Attendance summaries")
     ),
     security(
         ("bearer_auth" = [])
@@ -196,7 +202,7 @@ pub async fn get_attendance_summaries(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Query(query): Query<SummaryQuery>,
-) -> AppResult<Json<Vec<AttendanceDailySummary>>> {
+) -> AppResult<Json<PaginatedResponse<AttendanceDailySummary>>> {
     // RBAC: if user has AttendanceSummariesRead, they can query any employee
     // Otherwise, they can only query their own data
     let has_read_perm = ctx.has_permission(Permission::AttendanceSummariesRead);
@@ -229,25 +235,50 @@ pub async fn get_attendance_summaries(
 
         let active_emp_id = employee.active_employment_id();
         if active_emp_id.is_none() {
-            return Ok(Json(vec![]));
+            return Ok(Json(PaginatedResponse {
+                data: vec![],
+                total: 0,
+                page: query.page.unwrap_or(1),
+                limit: query.limit.unwrap_or(50),
+            }));
         }
         active_emp_id
     } else {
         None
     };
 
-    let summaries = state
+    let page = query.page.unwrap_or(1).max(1);
+    let limit = query.limit.unwrap_or(50).clamp(1, 3000);
+
+    let ot_status = match query.ot_status.as_deref() {
+        Some("pending_manager") => Some(OtStatus::PendingManager),
+        Some("pending_employee") => Some(OtStatus::PendingEmployee),
+        Some("approved") => Some(OtStatus::Approved),
+        Some("rejected") => Some(OtStatus::Rejected),
+        Some("none") => Some(OtStatus::None),
+        _ => None,
+    };
+
+    let (summaries, total) = state
         .attendance()
         .attendance_daily_summary_repo()
-        .get_summaries(
+        .get_summaries_paginated(
             &ctx.auth_token,
             target_employment_id,
             query.start_date,
             query.end_date,
+            ot_status,
+            page,
+            limit,
         )
         .await?;
 
-    Ok(Json(summaries))
+    Ok(Json(PaginatedResponse {
+        data: summaries,
+        total,
+        page,
+        limit,
+    }))
 }
 
 async fn check_claim_behalf_scope(

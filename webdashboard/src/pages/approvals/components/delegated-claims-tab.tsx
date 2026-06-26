@@ -1,21 +1,27 @@
 import { Check, CheckCircle, Search } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { DailyAttendanceReport } from "@/lib/api";
+import type { DailyAttendanceReport, PaginatedResponse } from "@/lib/api";
 
 import { ConfirmClaimsDialog } from "@/components/approvals/confirm-claims-dialog";
+import InfiniteScrollSentinel from "@/components/common/infinite-scroll-sentinel";
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import { fetchAttendanceReport } from "@/lib/api";
 import { cn } from "@/lib/utils";
+
+const DELEGATED_CLAIMS_PAGE_SIZE = 20;
 
 type ReportRow = DailyAttendanceReport & { employee_id_number?: string };
 
 interface DelegatedClaimsTabProps {
-  isLoading: boolean;
-  refetch: () => Promise<unknown>;
-  reportData: ReportRow[];
+  endDate: string;
+  startDate: string;
+  wsId: string;
 }
 
 function LoadingState() {
@@ -31,18 +37,59 @@ function LoadingState() {
 }
 
 export function DelegatedClaimsTab({
-  reportData,
-  isLoading,
-  refetch,
+  wsId,
+  startDate,
+  endDate,
 }: DelegatedClaimsTabProps) {
   const { t } = useTranslation(["common", "attendance"]);
   const toast = useToast();
+  const queryClient = useQueryClient();
   const [confirmClaimsOpen, setConfirmClaimsOpen] = useState(false);
   const [activeRowsToClaim, setActiveRowsToClaim] = useState<ReportRow[]>([]);
 
-  const claimableRows = reportData.filter(
-    (r) => r.ot_claim_status === "pending_employee" && r.computed_ot_hours > 0
+  const {
+    data: paginatedData,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery<PaginatedResponse<DailyAttendanceReport>>({
+    queryKey: ["attendance-report-delegated", wsId, startDate, endDate, "daily"],
+    queryFn: ({ pageParam }) => {
+      return fetchAttendanceReport({
+        wsId,
+        start: startDate,
+        end: endDate,
+        type: "daily",
+        page: pageParam as number,
+        limit: DELEGATED_CLAIMS_PAGE_SIZE,
+      }) as Promise<PaginatedResponse<DailyAttendanceReport>>;
+    },
+    getNextPageParam: (lastPage, allPages) => {
+      const totalLoaded = allPages.reduce((sum, p) => sum + (p.data?.length || 0), 0);
+      return totalLoaded >= (lastPage.total || 0) ? undefined : allPages.length + 1;
+    },
+    initialPageParam: 1,
+    enabled: !!wsId,
+  });
+
+  const allReportData = useMemo(
+    () => (paginatedData?.pages.flatMap((p) => p.data) ?? []) as ReportRow[],
+    [paginatedData]
   );
+
+  const claimableRows = useMemo(
+    () => allReportData.filter(
+      (r) => r.ot_claim_status === "pending_employee" && r.computed_ot_hours > 0
+    ),
+    [allReportData]
+  );
+
+  const loadMoreRef = useInfiniteScroll<HTMLTableRowElement>({
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage: () => { void fetchNextPage(); },
+  });
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
@@ -113,7 +160,7 @@ export function DelegatedClaimsTab({
     return <LoadingState />;
   }
 
-  if (claimableRows.length === 0) {
+  if (!isFetchingNextPage && claimableRows.length === 0) {
     return (
       <div className="py-40 text-center flex flex-col items-center border-4 border-dashed border-slate-50 dark:border-slate-800 m-8 rounded-[3rem] bg-slate-50 dark:bg-slate-800/30">
         <div className="w-24 h-24 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-xl border border-slate-100 dark:border-slate-800 mb-8">
@@ -220,7 +267,7 @@ export function DelegatedClaimsTab({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {filteredRows.length === 0 ? (
+            {!isFetchingNextPage && filteredRows.length === 0 ? (
               <tr>
                 <td className="p-8 text-center text-slate-450 dark:text-slate-500 text-xs font-semibold" colSpan={7}>
                   {t("ot_approvals.delegated_claim.no_search_results", { defaultValue: "No matching entries found" })}
@@ -294,6 +341,11 @@ export function DelegatedClaimsTab({
                 );
               })
             )}
+            <InfiniteScrollSentinel
+              colSpan={7}
+              isFetchingNextPage={isFetchingNextPage}
+              sentinelRef={loadMoreRef}
+            />
           </tbody>
         </table>
       </div>
@@ -310,7 +362,9 @@ export function DelegatedClaimsTab({
             }
             return next;
           });
-          refetch().catch(console.error);
+          void queryClient.invalidateQueries({ queryKey: ["attendance-report-delegated", wsId] });
+          void queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
+          void queryClient.invalidateQueries({ queryKey: ["attendance"] });
         }}
         open={confirmClaimsOpen}
         selectedRows={activeRowsToClaim}

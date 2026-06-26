@@ -60,8 +60,10 @@ async fn test_get_attendance_summaries_empty() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let summaries = body_json(resp).await;
-    assert!(summaries.as_array().unwrap().is_empty());
+    let response = body_json(resp).await;
+    let summaries = response["data"].as_array().unwrap();
+    assert!(summaries.is_empty());
+    assert_eq!(response["total"].as_i64().unwrap(), 0);
 }
 
 #[tokio::test]
@@ -85,8 +87,10 @@ async fn test_get_attendance_summaries_for_employee() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let summaries = body_json(resp).await;
-    assert!(summaries.as_array().unwrap().is_empty());
+    let response = body_json(resp).await;
+    let summaries = response["data"].as_array().unwrap();
+    assert!(summaries.is_empty());
+    assert_eq!(response["total"].as_i64().unwrap(), 0);
 }
 
 #[tokio::test]

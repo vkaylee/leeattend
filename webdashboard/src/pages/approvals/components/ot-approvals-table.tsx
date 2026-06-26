@@ -2,6 +2,8 @@ import { CheckCircle, XCircle, Paperclip, Plus, AlertTriangle } from "lucide-rea
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
+import InfiniteScrollSentinel from "@/components/common/infinite-scroll-sentinel";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 
 export interface OtSummary {
   claimed_ot_minutes: number;
@@ -17,7 +19,10 @@ export interface OtSummary {
 }
 
 interface OtApprovalsTableProps {
+  fetchNextPage: () => void;
   handleApprove: (summary: OtSummary, approved: boolean) => Promise<void>;
+  hasNextPage: boolean | undefined;
+  isFetchingNextPage: boolean;
   isProcessing: boolean;
   onAddPhoto?: (summary: OtSummary) => void;
   onPreviewAttachment?: (fileUrl: string, title: string) => void;
@@ -30,8 +35,17 @@ export function OtApprovalsTable({
   pendingSummaries,
   onAddPhoto,
   onPreviewAttachment,
+  fetchNextPage,
+  hasNextPage,
+  isFetchingNextPage,
 }: OtApprovalsTableProps) {
   const { t } = useTranslation();
+
+  const loadMoreRef = useInfiniteScroll<HTMLTableRowElement>({
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  });
 
   return (
     <div className="overflow-x-auto">
@@ -132,6 +146,11 @@ export function OtApprovalsTable({
               </td>
             </tr>
           ))}
+          <InfiniteScrollSentinel
+            colSpan={8}
+            isFetchingNextPage={isFetchingNextPage}
+            sentinelRef={loadMoreRef}
+          />
         </tbody>
       </table>
     </div>

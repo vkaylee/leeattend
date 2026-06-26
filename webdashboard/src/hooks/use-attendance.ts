@@ -1,12 +1,15 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
 
 import {
   fetchAttendanceSummaries,
+  fetchAttendanceSummariesPaginated,
   approveOt,
   enterPaperOt,
   bulkUploadPaperOt,
   claimOt,
 } from "@/lib/api";
+import type { AttendanceDailySummary, PaginatedResponse } from "@/lib/api";
 import { getCurrentWorkspaceId } from "@/lib/api/helpers";
 
 interface SummaryParams {
@@ -22,9 +25,11 @@ export const attendanceKeys = {
 
 // --- OT Manager Hooks ---
 
+export const POST_OT_PAGE_SIZE = 20;
+
 export function useAttendanceSummaries(start: string, end: string, employeeId?: string) {
   const wsId = getCurrentWorkspaceId();
-  
+
   const query = useQuery({
     queryKey: attendanceKeys.summaries({ start, end, employeeId }),
     queryFn: () => {
@@ -39,6 +44,47 @@ export function useAttendanceSummaries(start: string, end: string, employeeId?: 
     isLoading: query.isLoading,
     isError: query.isError,
     refetch: query.refetch,
+  };
+}
+
+export function useAttendanceSummariesInfinite(
+  start: string,
+  end: string,
+  options?: { employeeId?: string; otStatus?: string }
+) {
+  const wsId = getCurrentWorkspaceId();
+
+  const infiniteQuery = useInfiniteQuery<PaginatedResponse<AttendanceDailySummary>>({
+    queryKey: [...attendanceKeys.all, "summaries", { start, end, employeeId: options?.employeeId, otStatus: options?.otStatus }],
+    queryFn: ({ pageParam }) => {
+      if (!wsId) throw new Error("No workspace");
+      return fetchAttendanceSummariesPaginated(wsId, start, end, {
+        employeeId: options?.employeeId,
+        page: pageParam as number,
+        limit: POST_OT_PAGE_SIZE,
+        otStatus: options?.otStatus,
+      });
+    },
+    getNextPageParam: (lastPage, allPages) => {
+      const totalLoaded = allPages.reduce((sum, p) => sum + (p.data?.length || 0), 0);
+      return totalLoaded >= (lastPage.total || 0) ? undefined : allPages.length + 1;
+    },
+    initialPageParam: 1,
+    enabled: !!wsId,
+  });
+
+  const summaries = useMemo(
+    () => infiniteQuery.data?.pages.flatMap((p) => p.data) ?? [],
+    [infiniteQuery.data]
+  );
+
+  return {
+    summaries,
+    isLoading: infiniteQuery.isLoading,
+    isError: infiniteQuery.isError,
+    fetchNextPage: infiniteQuery.fetchNextPage,
+    hasNextPage: infiniteQuery.hasNextPage,
+    isFetchingNextPage: infiniteQuery.isFetchingNextPage,
   };
 }
 

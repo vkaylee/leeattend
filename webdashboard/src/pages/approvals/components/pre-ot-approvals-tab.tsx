@@ -1,30 +1,72 @@
 import { CheckCircle, ArrowRight, Check, X, Paperclip } from "lucide-react";
-import React from "react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useProcessApproval } from "@/hooks/use-approval-workflows";
-import { useOvertimeRequests } from "@/hooks/use-overtime-requests";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import type { PaginatedResponse } from "@/lib/api";
+import { overtimeRequestsApi } from "@/lib/api/overtime-requests";
+import type { OvertimeRequest } from "@/lib/api/overtime-requests";
 
-export function PreOtApprovalsTab({ 
-  wsId, 
+const PRE_OT_PAGE_SIZE = 20;
+
+export function PreOtApprovalsTab({
+  wsId,
   canApprove,
   onPreviewAttachment,
-}: { 
-  wsId: string; 
+}: {
+  wsId: string;
   canApprove: boolean;
   onPreviewAttachment?: (fileUrl: string, title: string) => void;
 }) {
   const { t } = useTranslation(["common", "attendance"]);
   const toast = useToast();
-  // Fetch pending requests specifically for Pre-OT approval
-  const { data: allRequests, isLoading } = useOvertimeRequests({ limit: 20 });
+  const queryClient = useQueryClient();
+
+  const {
+    data: paginatedData,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery<PaginatedResponse<OvertimeRequest>>({
+    queryKey: ["overtime-requests", wsId, "list", { limit: PRE_OT_PAGE_SIZE }],
+    queryFn: ({ pageParam }) => {
+      return overtimeRequestsApi.listRequests(wsId, {
+        page: pageParam as number,
+        limit: PRE_OT_PAGE_SIZE,
+      });
+    },
+    getNextPageParam: (lastPage, allPages) => {
+      const totalLoaded = allPages.reduce((sum, p) => sum + (p.data?.length || 0), 0);
+      return totalLoaded >= (lastPage.total || 0) ? undefined : allPages.length + 1;
+    },
+    initialPageParam: 1,
+    enabled: !!wsId,
+  });
+
+  const allRequests = useMemo(
+    () => paginatedData?.pages.flatMap((p) => p.data) ?? [],
+    [paginatedData]
+  );
+
   const { mutate: processApproval, isPending: isProcessing } = useProcessApproval();
 
   // Filter for pending status
-  const pendingRequests = (allRequests?.data ?? []).filter(req => req.status === "pending_approval" || req.status === "draft");
+  const pendingRequests = useMemo(
+    () => allRequests.filter(req => req.status === "pending_approval" || req.status === "draft"),
+    [allRequests]
+  );
+
+  const loadMoreRef = useInfiniteScroll<HTMLDivElement>({
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage: () => { void fetchNextPage(); },
+  });
 
   const handleAction = (id: string, action: "approve" | "reject") => {
     processApproval(
@@ -37,6 +79,7 @@ export function PreOtApprovalsTab({
       {
         onSuccess: () => {
           toast.success(action === "approve" ? t("ot_approvals.pre.success_approve") : t("ot_approvals.pre.success_reject"));
+          void queryClient.invalidateQueries({ queryKey: ["overtime-requests", wsId, "list"] });
         },
         onError: () => {
           toast.error(t("ot_approvals.pre.fail_process"));
@@ -56,7 +99,7 @@ export function PreOtApprovalsTab({
     );
   }
 
-  if (pendingRequests.length === 0) {
+  if (!isFetchingNextPage && pendingRequests.length === 0) {
     return (
       <div className="py-40 text-center flex flex-col items-center border-4 border-dashed border-slate-50 dark:border-slate-800 m-8 rounded-[3rem] bg-slate-50 dark:bg-slate-800/30">
         <div className="w-24 h-24 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-xl border border-slate-100 dark:border-slate-800 mb-8">
@@ -158,7 +201,17 @@ export function PreOtApprovalsTab({
         </div>
       ))}
 
-
+      {/* Infinite scroll sentinel */}
+      <div ref={loadMoreRef}>
+        {isFetchingNextPage ? (
+          <div className="flex items-center justify-center gap-3 py-6">
+            <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              {t("common.loading_more", { defaultValue: "Loading more..." })}
+            </span>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
