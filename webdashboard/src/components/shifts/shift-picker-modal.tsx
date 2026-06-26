@@ -53,17 +53,28 @@ export function ShiftPickerModal({
             >
               <div className="font-bold text-sm uppercase tracking-tight text-slate-700 dark:text-slate-200">{shift.name}</div>
               <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
+                {(() => {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const iv = ((shift as any).intervals as any[])?.[0];
+                  const st = iv?.start_time as string ?? '';
+                  const et = iv?.end_time as string ?? '';
+                  const bs = iv?.break_start as string;
+                  const be = iv?.break_end as string;
+                  const bd = iv?.break_duration_minutes as number ?? 0;
+                  return (<>
                 <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold flex items-center gap-1">
-                  <Clock size={10} /> {formatTime(shift.start_time)} - {formatTime(shift.end_time)}
+                  <Clock size={10} /> {st ? formatTime(st) : '—'} - {et ? formatTime(et) : '—'}
                 </div>
                 <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold flex items-center gap-1">
                   <Info size={10} />
-                  {shift.break_start ? (
-                    <span>{shift.break_start.substring(0, 5)}-{shift.break_end?.substring(0, 5)}</span>
+                  {bs ? (
+                    <span>{bs.substring(0, 5)}-{be?.substring(0, 5)}</span>
                   ) : (
-                    <span>{t("common.break")} {shift.break_duration_minutes}m</span>
+                    <span>{t("common.break")} {bd}m</span>
                   )}
                 </div>
+                  </>);
+                })()}
               </div>
             </Button>
           ))}

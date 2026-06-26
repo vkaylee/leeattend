@@ -2,7 +2,7 @@ use super::*;
 use crate::diesel_pool::TenantAuthToken;
 use crate::errors::AppError;
 use crate::models::enums::LogSource;
-use crate::models::{RawAttendanceLog, Shift, TimeEntry};
+use crate::models::{RawAttendanceLog, TimeEntry};
 use crate::services::pairing::service_helpers::retry_with_log;
 use chrono::{NaiveDate, NaiveTime, TimeZone, Utc};
 use std::sync::Arc;
@@ -11,7 +11,6 @@ use uuid::Uuid;
 use crate::repositories::employee::MockEmployeeRepository;
 use crate::repositories::raw_attendance_log_repository::MockRawAttendanceLogRepository;
 use crate::repositories::roster::MockRosterRepository;
-use crate::repositories::shift_repository::MockShiftRepository;
 use crate::repositories::time_entry_repository::MockTimeEntryRepository;
 use crate::services::attendance_summary_service::MockSummaryRecalculator;
 
@@ -473,30 +472,10 @@ fn test_utc_timezone_offset_bug() {
     let tz_utc = chrono_tz::UTC;
     let context_utc = PairingContext::new(date, tz_utc);
 
-    let shift = Shift::new(
-        Uuid::new_v4(),
-        Uuid::new_v4(),
-        "Hành chính".to_string(),
-        None,
-        NaiveTime::from_hms_opt(7, 30, 0).unwrap(),
-        NaiveTime::from_hms_opt(16, 30, 0).unwrap(),
-        60,
-        None,
-        None,
-        false,
-        false,
-        0,
-        false,
-        None,
-        true,
-        None,
-        None,
-        None,
-        Utc::now(),
-        Utc::now(),
-    );
+    let start_time = NaiveTime::from_hms_opt(7, 30, 0).unwrap();
+    let end_time = NaiveTime::from_hms_opt(16, 30, 0).unwrap();
 
-    let shift_config_utc = context_utc.build_shift_config(Some(&shift));
+    let shift_config_utc = context_utc.build_shift_config(start_time, end_time, None, None, 0);
     let (window_start_utc, _window_end_utc) = context_utc
         .calculate_fetch_window(shift_config_utc.as_ref())
         .unwrap();
@@ -541,7 +520,7 @@ fn test_utc_timezone_offset_bug() {
     let tz_hcm = chrono_tz::Asia::Ho_Chi_Minh;
     let context_hcm = PairingContext::new(date, tz_hcm);
 
-    let shift_config_hcm = context_hcm.build_shift_config(Some(&shift));
+    let shift_config_hcm = context_hcm.build_shift_config(start_time, end_time, None, None, 0);
     let (window_start_hcm, _window_end_hcm) = context_hcm
         .calculate_fetch_window(shift_config_hcm.as_ref())
         .unwrap();
@@ -560,30 +539,15 @@ fn test_build_shift_config_overnight() {
     let tz = chrono_tz::UTC;
     let context = PairingContext::new(date, tz);
 
-    let shift = Shift::new(
-        Uuid::new_v4(),
-        Uuid::new_v4(),
-        "Night".to_string(),
-        None,
-        NaiveTime::from_hms_opt(22, 0, 0).unwrap(),
-        NaiveTime::from_hms_opt(6, 0, 0).unwrap(),
-        60,
-        Some(NaiveTime::from_hms_opt(2, 0, 0).unwrap()),
-        Some(NaiveTime::from_hms_opt(3, 0, 0).unwrap()),
-        false,
-        false,
-        0,
-        false,
-        None,
-        true,
-        None,
-        None,
-        None,
-        Utc::now(),
-        Utc::now(),
-    );
-
-    let config = context.build_shift_config(Some(&shift)).unwrap();
+    let config = context
+        .build_shift_config(
+            NaiveTime::from_hms_opt(22, 0, 0).unwrap(),
+            NaiveTime::from_hms_opt(6, 0, 0).unwrap(),
+            Some(NaiveTime::from_hms_opt(2, 0, 0).unwrap()),
+            Some(NaiveTime::from_hms_opt(3, 0, 0).unwrap()),
+            0,
+        )
+        .unwrap();
     assert_eq!(config.start_minutes(), 1320);
     assert_eq!(config.end_minutes(), 360 + 1440);
     assert_eq!(config.break_start_minutes(), Some(120 + 1440));
@@ -735,7 +699,6 @@ async fn test_process_new_raw_log_duplicate() {
         Arc::new(MockRosterRepository::new()),
         Arc::new(MockEmployeeRepository::new()),
         Arc::new(mock_raw_repo),
-        Arc::new(MockShiftRepository::new()),
         Arc::new(MockSummaryRecalculator::new()),
     ));
 
@@ -769,7 +732,6 @@ async fn test_clear_auto_entries() {
         Arc::new(MockRosterRepository::new()),
         Arc::new(MockEmployeeRepository::new()),
         Arc::new(MockRawAttendanceLogRepository::new()),
-        Arc::new(MockShiftRepository::new()),
         Arc::new(MockSummaryRecalculator::new()),
     ));
 
@@ -815,7 +777,6 @@ async fn test_reprocess_daily_attendance_no_logs() {
         Arc::new(mock_roster_repo),
         Arc::new(MockEmployeeRepository::new()),
         Arc::new(mock_raw_repo),
-        Arc::new(MockShiftRepository::new()),
         Arc::new(mock_summary_service),
     ));
 
@@ -927,7 +888,6 @@ async fn test_reprocess_daily_attendance_excludes_already_paired_logs() {
         Arc::new(mock_roster_repo),
         Arc::new(MockEmployeeRepository::new()),
         Arc::new(mock_raw_repo),
-        Arc::new(MockShiftRepository::new()),
         Arc::new(mock_summary_service),
     ));
 
@@ -1035,7 +995,6 @@ async fn test_reprocess_attendance_range_success() {
         Arc::new(mock_roster_repo),
         Arc::new(MockEmployeeRepository::new()),
         Arc::new(mock_raw_repo),
-        Arc::new(MockShiftRepository::new()),
         Arc::new(mock_summary_service),
     ));
 
@@ -1111,7 +1070,6 @@ async fn test_propagate_overnight_does_nothing_for_day_shift() {
         Arc::new(MockRosterRepository::new()),
         Arc::new(MockEmployeeRepository::new()),
         Arc::new(MockRawAttendanceLogRepository::new()),
-        Arc::new(MockShiftRepository::new()),
         Arc::new(MockSummaryRecalculator::new()),
     ));
 
@@ -1204,7 +1162,6 @@ async fn test_propagate_overnight_reprocesses_next_day() {
         Arc::new(mock_roster_repo),
         Arc::new(MockEmployeeRepository::new()),
         Arc::new(mock_raw_repo),
-        Arc::new(MockShiftRepository::new()),
         Arc::new(mock_summary),
     ));
 
@@ -1239,7 +1196,6 @@ async fn test_propagate_overnight_stops_when_next_day_is_day_shift() {
         Arc::new(MockRosterRepository::new()),
         Arc::new(MockEmployeeRepository::new()),
         Arc::new(MockRawAttendanceLogRepository::new()),
-        Arc::new(MockShiftRepository::new()),
         Arc::new(MockSummaryRecalculator::new()),
     ));
 
@@ -1262,7 +1218,6 @@ async fn test_propagate_overnight_none_config_noop() {
         Arc::new(MockRosterRepository::new()),
         Arc::new(MockEmployeeRepository::new()),
         Arc::new(MockRawAttendanceLogRepository::new()),
-        Arc::new(MockShiftRepository::new()),
         Arc::new(MockSummaryRecalculator::new()),
     ));
 
@@ -1298,7 +1253,6 @@ async fn test_propagate_overnight_no_schedule_graceful() {
         Arc::new(mock_roster_repo),
         Arc::new(MockEmployeeRepository::new()),
         Arc::new(MockRawAttendanceLogRepository::new()),
-        Arc::new(MockShiftRepository::new()),
         Arc::new(MockSummaryRecalculator::new()),
     ));
 
@@ -1398,7 +1352,6 @@ async fn test_range_reprocess_multi_day_with_logs() {
         Arc::new(mock_roster_repo),
         Arc::new(MockEmployeeRepository::new()),
         Arc::new(mock_raw_repo),
-        Arc::new(MockShiftRepository::new()),
         Arc::new(mock_summary),
     ));
 
@@ -1431,11 +1384,6 @@ async fn test_range_reprocess_handles_overnight_tail() {
         .returning(|_, _, _, _, _| Ok(()));
 
     // handle_overnight_tail triggers reprocess_single_day for next day
-    // which calls get_effective_shift
-    let mut mock_shift_repo = MockShiftRepository::new();
-    mock_shift_repo
-        .expect_get_shift_by_id()
-        .returning(|_, _| Box::pin(async { Ok(None) }));
 
     let mut mock_summary = MockSummaryRecalculator::new();
     mock_summary
@@ -1522,7 +1470,6 @@ async fn test_range_reprocess_handles_overnight_tail() {
         Arc::new(mock_roster_combined),
         Arc::new(MockEmployeeRepository::new()),
         Arc::new(mock_raw_repo),
-        Arc::new(mock_shift_repo),
         Arc::new(mock_summary),
     ));
 
@@ -1613,7 +1560,6 @@ async fn test_range_reprocess_empty_schedule_day_skipped() {
         Arc::new(mock_roster_repo),
         Arc::new(MockEmployeeRepository::new()),
         Arc::new(mock_raw_repo),
-        Arc::new(MockShiftRepository::new()),
         Arc::new(mock_summary),
     ));
 

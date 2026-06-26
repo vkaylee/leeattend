@@ -20,12 +20,14 @@ async fn test_shift_api_lifecycle_smoke() {
     // 1. Create Shift
     let shift_req = serde_json::json!({
         "name": "Night Shift",
-        "start_time": "22:00:00",
-        "end_time": "06:00:00",
-        "break_duration_minutes": 30,
-        "is_break_auto_deduct": true,
-        "break_is_overtime": false,
-        "early_punch_in_grace_period_minutes": 15
+        "intervals": [{
+            "start_time": "22:00:00",
+            "end_time": "06:00:00",
+            "break_duration_minutes": 30,
+            "is_break_auto_deduct": true,
+            "break_is_overtime": false,
+            "early_punch_in_grace_period_minutes": 15
+        }]
     });
 
     let response = app

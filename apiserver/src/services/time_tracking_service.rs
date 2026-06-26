@@ -22,7 +22,6 @@ pub struct TimeTrackingService {
     employee_repo: Arc<dyn crate::repositories::employee::EmployeeRepository>,
     employment_repo: Arc<dyn crate::repositories::EmploymentRepository>,
     workspace_repo: Arc<dyn WorkspaceRepository>,
-    shift_repo: Arc<dyn crate::repositories::shift_repository::ShiftRepository>,
     holiday_repo: Arc<dyn crate::repositories::holiday_repository::HolidayRepository>,
     leave_request_repo: Arc<dyn crate::repositories::leave_request_repository::LeaveRequestRepository>,
     daily_summary_repo: Arc<dyn crate::repositories::attendance_daily_summary_repository::AttendanceDailySummaryRepository>,
@@ -37,7 +36,6 @@ impl TimeTrackingService {
         employee_repo: Arc<dyn crate::repositories::employee::EmployeeRepository>,
         employment_repo: Arc<dyn crate::repositories::EmploymentRepository>,
         workspace_repo: Arc<dyn WorkspaceRepository>,
-        shift_repo: Arc<dyn crate::repositories::shift_repository::ShiftRepository>,
         holiday_repo: Arc<dyn crate::repositories::holiday_repository::HolidayRepository>,
         leave_request_repo: Arc<
             dyn crate::repositories::leave_request_repository::LeaveRequestRepository,
@@ -51,7 +49,6 @@ impl TimeTrackingService {
             employee_repo,
             employment_repo,
             workspace_repo,
-            shift_repo,
             holiday_repo,
             leave_request_repo,
             daily_summary_repo,
@@ -117,18 +114,16 @@ impl TimeTrackingService {
                 .await?;
 
             if let Some(sid) = shift_id {
-                let shift = self
-                    .shift_repo
-                    .get_shift_by_id(
-                        &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                        sid,
-                    )
-                    .await?
+                let roster_data = self.roster_repo.get_raw_roster_data(workspace_id).await?;
+                let interval = roster_data
+                    .shift_intervals
+                    .get(&sid)
+                    .and_then(|intervals| intervals.first())
                     .ok_or(AppError::Internal("error.shift_not_found".into()))?;
 
-                let start_time = shift.start_time();
+                let start_time = interval.start_time;
                 let grace_minutes =
-                    u32::try_from(shift.early_punch_in_grace_period_minutes()).unwrap_or(0);
+                    u32::try_from(interval.early_punch_in_grace_period_minutes).unwrap_or(0);
 
                 let shift_start = today.and_time(start_time);
                 let earliest_punch =

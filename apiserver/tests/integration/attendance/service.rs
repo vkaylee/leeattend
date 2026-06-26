@@ -78,9 +78,6 @@ async fn test_process_log_success_with_timezone() {
                     diesel_pools.clone(),
                 ),
             ),
-            std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
-                diesel_pools.clone(),
-            )),
             summary_service as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
         ),
     ));
@@ -218,9 +215,6 @@ async fn test_same_second_punch_with_different_status_allowed() {
                     diesel_pools.clone(),
                 ),
             ),
-            std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
-                diesel_pools.clone(),
-            )),
             summary_service as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
         ),
     ));

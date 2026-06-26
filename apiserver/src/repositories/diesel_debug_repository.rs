@@ -214,10 +214,18 @@ impl DebugRepository for DieselDebugRepository {
                         .await
                         .map_err(|_e| AppError::service_unavailable(I18nKey::ServiceUnavailable))?;
 
-                        let _shift_morning: IdRow = diesel::sql_query("INSERT INTO shifts (workspace_id, name, start_time, end_time) VALUES ($1, 'Morning Shift', '08:00:00', '17:00:00') RETURNING id"
+                        let _shift_morning: IdRow = diesel::sql_query("INSERT INTO shifts (workspace_id, name) VALUES ($1, 'Morning Shift') RETURNING id"
                         )
                         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
                         .get_result(conn)
+                        .await
+                        .map_err(|_e| AppError::service_unavailable(I18nKey::ServiceUnavailable))?;
+
+                        // Default interval for the seed shift
+                        diesel::sql_query("INSERT INTO shift_default_intervals (shift_id, sort_order, start_time, end_time) VALUES ($1, 0, '08:00:00', '17:00:00')"
+                        )
+                        .bind::<diesel::sql_types::Uuid, _>(_shift_morning.id)
+                        .execute(conn)
                         .await
                         .map_err(|_e| AppError::service_unavailable(I18nKey::ServiceUnavailable))?;
 

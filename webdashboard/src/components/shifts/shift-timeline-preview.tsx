@@ -4,19 +4,23 @@ import { useTranslation } from "react-i18next";
 
 import { TFunction } from "i18next";
 
-interface ShiftTimelinePreviewProps {
-  allowEarlyOt: boolean;
-  breakEnd: string;
+interface IntervalPreviewData {
+  intervalName: string;
+  startTime: string;
+  endTime: string;
+  breakDuration: number;
   breakStart: string;
+  breakEnd: string;
+  isFixedBreak: boolean;
   isAutoDeduct: boolean;
   isBreakOvertime: boolean;
-  isFixedBreak: boolean;
-  maxEarlyOtMinutes: number;
-  shiftBreak: number;
-  shiftEnd: string;
-  shiftGrace: number;
-  shiftName: string;
-  shiftStart: string;
+  gracePeriodMinutes: number;
+  allowEarlyOt: boolean;
+  maxEarlyOtMinutes: number | null;
+}
+
+interface ShiftTimelinePreviewProps {
+  intervals: IntervalPreviewData[];
 }
 
 const timeToMinutes = (t: string): number => {
@@ -361,20 +365,31 @@ function MetricsGrid({
 }
 
 export function ShiftTimelinePreview({
-  allowEarlyOt,
-  breakEnd,
-  breakStart,
-  isAutoDeduct,
-  isBreakOvertime,
-  isFixedBreak,
-  maxEarlyOtMinutes,
-  shiftBreak,
-  shiftEnd,
-  shiftGrace,
-  shiftName,
-  shiftStart,
+  intervals,
 }: ShiftTimelinePreviewProps) {
   const { t } = useTranslation();
+
+  const iv = intervals[0];
+  if (!iv) {
+    return (
+      <div className="bg-slate-50 dark:bg-slate-800 p-8 rounded-[32px] border border-slate-100 dark:border-slate-700/80 text-center text-slate-400">
+        {t("work_segments.intervals.no_intervals", "Chưa có khung giờ")}
+      </div>
+    );
+  }
+
+  const shiftName = iv.intervalName;
+  const shiftStart = iv.startTime;
+  const shiftEnd = iv.endTime;
+  const shiftBreak = iv.breakDuration;
+  const shiftGrace = iv.gracePeriodMinutes;
+  const breakStart = iv.breakStart;
+  const breakEnd = iv.breakEnd;
+  const isFixedBreak = iv.isFixedBreak;
+  const isAutoDeduct = iv.isAutoDeduct;
+  const isBreakOvertime = iv.isBreakOvertime;
+  const allowEarlyOt = iv.allowEarlyOt;
+  const maxEarlyOtMinutes = iv.maxEarlyOtMinutes ?? 0;
 
   const startMin = timeToMinutes(shiftStart);
   const endMin = timeToMinutes(shiftEnd);

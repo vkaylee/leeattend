@@ -35,7 +35,18 @@ export function ShiftList({ shifts, onEdit, onDelete }: ShiftListProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {shifts?.map(shift => (
+          {shifts?.map(shift => {
+            const firstInterval = (shift as Record<string, unknown>).intervals as Array<Record<string, unknown>> | undefined;
+            const iv = firstInterval?.[0];
+            const startTime = (iv?.start_time as string) ?? null;
+            const endTime = (iv?.end_time as string) ?? null;
+            const breakStart = (iv?.break_start as string) ?? null;
+            const breakEnd = (iv?.break_end as string) ?? null;
+            const breakDuration = (iv?.break_duration_minutes as number) ?? 0;
+            const isAutoDeduct = (iv?.is_break_auto_deduct as boolean) ?? true;
+            const hasFixedBreak = !!(breakStart && breakEnd);
+
+            return (
             <TableRow className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group" key={shift.id}>
               <TableCell className="px-8 py-6">
                 <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase">{shift.name}</div>
@@ -44,23 +55,23 @@ export function ShiftList({ shifts, onEdit, onDelete }: ShiftListProps) {
               <TableCell className="px-8 py-6 text-center">
                 <div className="flex items-center justify-center gap-3">
                   <div className="bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 px-4 py-2 rounded-xl font-mono font-bold text-xs border border-primary-100 dark:border-primary-800 shadow-sm">
-                    {formatTime(shift.start_time)}
+                    {startTime ? formatTime(startTime) : "—"}
                   </div>
                   <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600" />
                   <div className="bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 px-4 py-2 rounded-xl font-mono font-bold text-xs border border-primary-100 dark:border-primary-800 shadow-sm">
-                    {formatTime(shift.end_time)}
+                    {endTime ? formatTime(endTime) : "—"}
                   </div>
                 </div>
               </TableCell>
               <TableCell className="px-8 py-6 text-center">
-                {shift.break_start && shift.break_end ? (
+                {hasFixedBreak ? (
                   <div className="flex flex-col items-center gap-1.5">
                     <div className="flex items-center gap-2 px-3 py-1 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-800 shadow-inner">
-                      <span className="text-[10px] text-slate-600 dark:text-slate-300 font-bold font-mono">{shift.break_start.substring(0, 5)}</span>
+                      <span className="text-[10px] text-slate-600 dark:text-slate-300 font-bold font-mono">{breakStart!.substring(0, 5)}</span>
                       <span className="text-slate-300 dark:text-slate-600 font-bold">-</span>
-                      <span className="text-[10px] text-slate-600 dark:text-slate-300 font-bold font-mono">{shift.break_end.substring(0, 5)}</span>
+                      <span className="text-[10px] text-slate-600 dark:text-slate-300 font-bold font-mono">{breakEnd!.substring(0, 5)}</span>
                     </div>
-                    {shift.is_break_auto_deduct ? (
+                    {isAutoDeduct ? (
                       <div className="text-[8px] font-bold text-blue-500 uppercase tracking-widest flex items-center gap-1 opacity-80">
                         <Zap className="fill-blue-500" size={10} /> {t("shifts.auto_deduct")}
                       </div>
@@ -69,7 +80,7 @@ export function ShiftList({ shifts, onEdit, onDelete }: ShiftListProps) {
                 ) : (
                   <div className="flex items-center justify-center gap-2 font-bold text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                     <Clock className="text-slate-200 dark:text-slate-700" size={14} />
-                    {shift.break_duration_minutes} {t("common.minutes")}
+                    {breakDuration} {t("common.minutes")}
                   </div>
                 )}
               </TableCell>
@@ -80,7 +91,8 @@ export function ShiftList({ shifts, onEdit, onDelete }: ShiftListProps) {
                 </div>
               </TableCell>
             </TableRow>
-          ))}
+          );
+          })}
           {shifts?.length === 0 && (
             <TableRow>
               <TableCell className="py-32 text-center bg-slate-50 dark:bg-slate-800/30" colSpan={4}>

@@ -114,12 +114,17 @@ impl AttendanceMatcher {
                 active_employer_id,
             );
 
-            // Collect resolved shifts sorted by start_time for OT ceiling
-            let mut day_shifts: Vec<_> = shift_ids
+            // Collect (shift_id, first_interval) sorted by start_time for OT ceiling.
+            // Time/break/policy fields now live exclusively on RosterInterval.
+            let mut day_shifts: Vec<(Uuid, &crate::cache::RosterInterval)> = shift_ids
                 .iter()
-                .filter_map(|opt| opt.and_then(|id| args.ctx.roster_data.shifts.get(&id)))
+                .filter_map(|opt| {
+                    let id = (*opt)?;
+                    let interval = args.ctx.roster_data.shift_intervals.get(&id)?.first()?;
+                    Some((id, interval))
+                })
                 .collect();
-            day_shifts.sort_by_key(|s| s.start_time());
+            day_shifts.sort_by_key(|(_, i)| i.start_time);
 
             if let Some(entries) = args.ctx.daily_entries_map.get(&current_date) {
                 let work_entries: Vec<_> = entries
@@ -136,28 +141,28 @@ impl AttendanceMatcher {
                     .sum();
 
                 // Process each shift with OT ceiling = next shift's start
-                for (shift_idx, s) in day_shifts.iter().enumerate() {
+                for (shift_idx, (_shift_id, interval)) in day_shifts.iter().enumerate() {
                     // OT ceiling: cap late OT at next shift's start time
-                    let ot_ceiling = day_shifts.get(shift_idx + 1).and_then(|next_s| {
+                    let ot_ceiling = day_shifts.get(shift_idx + 1).and_then(|(_, next_i)| {
                         args.ctx
                             .tz
-                            .from_local_datetime(&current_date.and_time(next_s.start_time()))
+                            .from_local_datetime(&current_date.and_time(next_i.start_time))
                             .single()
                     });
 
                     let start_dt = args
                         .ctx
                         .tz
-                        .from_local_datetime(&current_date.and_time(s.start_time()))
+                        .from_local_datetime(&current_date.and_time(interval.start_time))
                         .single();
                     let end_dt = args
                         .ctx
                         .tz
-                        .from_local_datetime(&current_date.and_time(s.end_time()))
+                        .from_local_datetime(&current_date.and_time(interval.end_time))
                         .single();
 
                     if let (Some(start), Some(mut end)) = (start_dt, end_dt) {
-                        if s.end_time() < s.start_time() {
+                        if interval.end_time < interval.start_time {
                             end += chrono::Duration::days(1);
                         }
 
@@ -177,11 +182,11 @@ impl AttendanceMatcher {
 
                                 let punch_in = entry.punch_in_time().with_timezone(&args.ctx.tz);
                                 let prev_end = if shift_idx > 0 {
-                                    day_shifts.get(shift_idx - 1).and_then(|prev_s| {
+                                    day_shifts.get(shift_idx - 1).and_then(|(_, prev_i)| {
                                         args.ctx
                                             .tz
                                             .from_local_datetime(
-                                                &current_date.and_time(prev_s.end_time()),
+                                                &current_date.and_time(prev_i.end_time),
                                             )
                                             .single()
                                     })
@@ -204,11 +209,11 @@ impl AttendanceMatcher {
                                     args.ctx.working_conditions.clone(),
                                     current_date,
                                     &crate::domain::policy::resolver::ShiftPolicyOverrides::new(
-                                        Some(s.early_punch_in_grace_period_minutes()),
-                                        Some(s.is_break_auto_deduct()),
-                                        Some(s.allow_early_ot()),
+                                        Some(interval.early_punch_in_grace_period_minutes),
+                                        Some(interval.is_break_auto_deduct),
+                                        Some(interval.allow_early_ot),
                                         args.attendance_rules.early_arrival_strategy,
-                                        s.break_is_overtime() || entry.is_break_overtime(),
+                                        interval.break_is_overtime || entry.is_break_overtime(),
                                     ),
                                 );
 
@@ -218,21 +223,21 @@ impl AttendanceMatcher {
                                         punch_out,
                                         shift_start: Some(start),
                                         shift_end: Some(end),
-                                        scheduled_break_minutes: s.break_duration_minutes(),
+                                        scheduled_break_minutes: interval.break_duration_minutes,
                                         actual_break_minutes,
-                                        break_start: s.break_start().and_then(|t| {
+                                        break_start: interval.break_start.and_then(|t| {
                                             args.ctx
                                                 .tz
                                                 .from_local_datetime(&current_date.and_time(t))
                                                 .single()
                                         }),
-                                        break_end: s.break_end().and_then(|t| {
+                                        break_end: interval.break_end.and_then(|t| {
                                             let mut dt = args
                                                 .ctx
                                                 .tz
                                                 .from_local_datetime(&current_date.and_time(t))
                                                 .single()?;
-                                            if s.break_end() < s.break_start() {
+                                            if interval.break_end < interval.break_start {
                                                 dt += chrono::Duration::days(1);
                                             }
                                             Some(dt)
@@ -244,11 +249,11 @@ impl AttendanceMatcher {
                                             .clone(),
                                         rules: rules.clone(),
                                         ot_ceiling,
-                                        max_early_ot_minutes: s.max_early_ot_minutes(),
+                                        max_early_ot_minutes: interval.max_early_ot_minutes,
                                         segment_id: entry.segment_id(),
                                         ot_aggregation_mode:
                                             crate::services::attendance_calculator::OtAggregationMode::from_mode(
-                                                s.ot_aggregation_mode(),
+                                                &interval.ot_aggregation_mode,
                                             ),
                                     },
                                 );
@@ -776,28 +781,37 @@ mod tests {
         daily_entries_map.insert(date, vec![entry]);
 
         // Define shift: 09:00 to 18:00, 1 hour (60 min) break
-        let shift = RosterShift::new(
-            "Day Shift".to_string(),
-            Some("D".to_string()),
-            NaiveTime::from_hms_opt(9, 0, 0).unwrap(),
-            NaiveTime::from_hms_opt(18, 0, 0).unwrap(),
-            60,
-            Some(NaiveTime::from_hms_opt(12, 0, 0).unwrap()),
-            Some(NaiveTime::from_hms_opt(13, 0, 0).unwrap()),
-            true,
-            0,
-            false,
-            false,
-            None,
-            "aggregate".to_string(),
-            false,
-        );
+        let shift = RosterShift::new("Day Shift".to_string(), Some("D".to_string()));
 
         let mut shifts = HashMap::new();
         shifts.insert(shift_id, shift);
 
+        let interval_id = Uuid::new_v4();
+        let mut shift_intervals = HashMap::new();
+        shift_intervals.insert(
+            shift_id,
+            vec![crate::cache::RosterInterval {
+                interval_id,
+                sort_order: 0,
+                interval_name: None,
+                start_time: NaiveTime::from_hms_opt(9, 0, 0).unwrap(),
+                end_time: NaiveTime::from_hms_opt(18, 0, 0).unwrap(),
+                break_duration_minutes: 60,
+                break_start: Some(NaiveTime::from_hms_opt(12, 0, 0).unwrap()),
+                break_end: Some(NaiveTime::from_hms_opt(13, 0, 0).unwrap()),
+                is_break_auto_deduct: true,
+                break_is_overtime: false,
+                early_punch_in_grace_period_minutes: 0,
+                allow_early_ot: false,
+                max_early_ot_minutes: None,
+                ot_aggregation_mode: "aggregate".to_string(),
+                is_night_shift: false,
+            }],
+        );
+
         let roster_data = RosterData {
             shifts,
+            shift_intervals,
             ..Default::default()
         };
 
@@ -1046,28 +1060,37 @@ mod tests {
         daily_entries_map.insert(date, vec![entry]);
 
         // Define shift: 09:00 to 18:00, 1 hour break
-        let shift = RosterShift::new(
-            "Day Shift".to_string(),
-            Some("D".to_string()),
-            NaiveTime::from_hms_opt(9, 0, 0).unwrap(),
-            NaiveTime::from_hms_opt(18, 0, 0).unwrap(),
-            60,
-            Some(NaiveTime::from_hms_opt(12, 0, 0).unwrap()),
-            Some(NaiveTime::from_hms_opt(13, 0, 0).unwrap()),
-            true,
-            0,
-            false,
-            false,
-            None,
-            "aggregate".to_string(),
-            false,
-        );
+        let shift = RosterShift::new("Day Shift".to_string(), Some("D".to_string()));
 
         let mut shifts = HashMap::new();
         shifts.insert(shift_id, shift);
 
+        let interval_id = Uuid::new_v4();
+        let mut shift_intervals = HashMap::new();
+        shift_intervals.insert(
+            shift_id,
+            vec![crate::cache::RosterInterval {
+                interval_id,
+                sort_order: 0,
+                interval_name: None,
+                start_time: NaiveTime::from_hms_opt(9, 0, 0).unwrap(),
+                end_time: NaiveTime::from_hms_opt(18, 0, 0).unwrap(),
+                break_duration_minutes: 60,
+                break_start: Some(NaiveTime::from_hms_opt(12, 0, 0).unwrap()),
+                break_end: Some(NaiveTime::from_hms_opt(13, 0, 0).unwrap()),
+                is_break_auto_deduct: true,
+                break_is_overtime: false,
+                early_punch_in_grace_period_minutes: 0,
+                allow_early_ot: false,
+                max_early_ot_minutes: None,
+                ot_aggregation_mode: "aggregate".to_string(),
+                is_night_shift: false,
+            }],
+        );
+
         let roster_data = RosterData {
             shifts,
+            shift_intervals,
             ..Default::default()
         };
 
@@ -1236,28 +1259,37 @@ mod tests {
         daily_entries_map.insert(date, vec![entry]);
 
         // Define shift: 09:00 to 18:00, 1 hour break
-        let shift = RosterShift::new(
-            "Day Shift".to_string(),
-            Some("D".to_string()),
-            NaiveTime::from_hms_opt(9, 0, 0).unwrap(),
-            NaiveTime::from_hms_opt(18, 0, 0).unwrap(),
-            60,
-            Some(NaiveTime::from_hms_opt(12, 0, 0).unwrap()),
-            Some(NaiveTime::from_hms_opt(13, 0, 0).unwrap()),
-            true,
-            0,
-            false,
-            false,
-            None,
-            "aggregate".to_string(),
-            false,
-        );
+        let shift = RosterShift::new("Day Shift".to_string(), Some("D".to_string()));
 
         let mut shifts = HashMap::new();
         shifts.insert(shift_id, shift);
 
+        let interval_id = Uuid::new_v4();
+        let mut shift_intervals = HashMap::new();
+        shift_intervals.insert(
+            shift_id,
+            vec![crate::cache::RosterInterval {
+                interval_id,
+                sort_order: 0,
+                interval_name: None,
+                start_time: NaiveTime::from_hms_opt(9, 0, 0).unwrap(),
+                end_time: NaiveTime::from_hms_opt(18, 0, 0).unwrap(),
+                break_duration_minutes: 60,
+                break_start: Some(NaiveTime::from_hms_opt(12, 0, 0).unwrap()),
+                break_end: Some(NaiveTime::from_hms_opt(13, 0, 0).unwrap()),
+                is_break_auto_deduct: true,
+                break_is_overtime: false,
+                early_punch_in_grace_period_minutes: 0,
+                allow_early_ot: false,
+                max_early_ot_minutes: None,
+                ot_aggregation_mode: "aggregate".to_string(),
+                is_night_shift: false,
+            }],
+        );
+
         let roster_data = RosterData {
             shifts,
+            shift_intervals,
             ..Default::default()
         };
 
@@ -1445,28 +1477,37 @@ mod tests {
         daily_entries_map.insert(date, vec![entry]);
 
         // Define shift: 09:00 to 18:00, 1 hour (60 min) break, break_is_overtime = true
-        let shift = RosterShift::new(
-            "Day Shift".to_string(),
-            Some("D".to_string()),
-            NaiveTime::from_hms_opt(9, 0, 0).ok_or("invalid start time")?,
-            NaiveTime::from_hms_opt(18, 0, 0).ok_or("invalid end time")?,
-            60,
-            Some(NaiveTime::from_hms_opt(12, 0, 0).ok_or("invalid break start")?),
-            Some(NaiveTime::from_hms_opt(13, 0, 0).ok_or("invalid break end")?),
-            true,
-            0,
-            false,
-            true, // break_is_overtime = true
-            None,
-            "aggregate".to_string(),
-            false,
-        );
+        let shift = RosterShift::new("Day Shift".to_string(), Some("D".to_string()));
 
         let mut shifts = HashMap::new();
         shifts.insert(shift_id, shift);
 
+        let interval_id = Uuid::new_v4();
+        let mut shift_intervals = HashMap::new();
+        shift_intervals.insert(
+            shift_id,
+            vec![crate::cache::RosterInterval {
+                interval_id,
+                sort_order: 0,
+                interval_name: None,
+                start_time: NaiveTime::from_hms_opt(9, 0, 0).ok_or("invalid start time")?,
+                end_time: NaiveTime::from_hms_opt(18, 0, 0).ok_or("invalid end time")?,
+                break_duration_minutes: 60,
+                break_start: Some(NaiveTime::from_hms_opt(12, 0, 0).ok_or("invalid break start")?),
+                break_end: Some(NaiveTime::from_hms_opt(13, 0, 0).ok_or("invalid break end")?),
+                is_break_auto_deduct: true,
+                break_is_overtime: true,
+                early_punch_in_grace_period_minutes: 0,
+                allow_early_ot: false,
+                max_early_ot_minutes: None,
+                ot_aggregation_mode: "aggregate".to_string(),
+                is_night_shift: false,
+            }],
+        );
+
         let roster_data = RosterData {
             shifts,
+            shift_intervals,
             ..Default::default()
         };
 

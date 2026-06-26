@@ -42,7 +42,6 @@ pub fn build_leave_services(
         Arc::clone(&repos.shift_swap),
         Arc::clone(&repos.roster),
         Arc::clone(&repos.employee),
-        Arc::clone(&repos.shift),
         Arc::clone(&repos.payroll),
     ));
 

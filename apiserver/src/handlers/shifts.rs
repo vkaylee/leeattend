@@ -129,7 +129,7 @@ pub async fn get_shifts(
     let page = query.page.unwrap_or(1).max(1);
     let limit = query.limit.unwrap_or(50).clamp(1, 3000);
 
-    let (shifts, total) = state
+    let (mut shifts, total) = state
         .shifts()
         .service()
         .get_workspace_shifts(
@@ -140,6 +140,47 @@ pub async fn get_shifts(
             Some(limit),
         )
         .await?;
+
+    // Attach intervals to each shift so the frontend can display time/break info
+    if let Some(cache) = state.infra().roster_cache() {
+        if let Ok(roster_data) = cache
+            .get_roster_data(workspace_id, state.infra().diesel())
+            .await
+        {
+            for shift in &mut shifts {
+                if let Some(intervals) = roster_data.shift_intervals.get(&shift.id()) {
+                    let entities: Vec<crate::models::diesel::roster::ShiftDefaultIntervalEntity> =
+                        intervals
+                            .iter()
+                            .map(
+                                |iv| crate::models::diesel::roster::ShiftDefaultIntervalEntity {
+                                    id: iv.interval_id,
+                                    shift_id: shift.id(),
+                                    sort_order: iv.sort_order,
+                                    interval_name: iv.interval_name.clone(),
+                                    start_time: iv.start_time,
+                                    end_time: iv.end_time,
+                                    break_duration_minutes: iv.break_duration_minutes,
+                                    break_start: iv.break_start,
+                                    break_end: iv.break_end,
+                                    is_break_auto_deduct: iv.is_break_auto_deduct,
+                                    break_is_overtime: iv.break_is_overtime,
+                                    early_punch_in_grace_period_minutes: iv
+                                        .early_punch_in_grace_period_minutes,
+                                    allow_early_ot: iv.allow_early_ot,
+                                    max_early_ot_minutes: iv.max_early_ot_minutes,
+                                    ot_aggregation_mode: iv.ot_aggregation_mode.clone(),
+                                    is_night_shift: iv.is_night_shift,
+                                    created_at: None,
+                                    updated_at: None,
+                                },
+                            )
+                            .collect();
+                    shift.intervals = Some(entities);
+                }
+            }
+        }
+    }
 
     Ok(Json(crate::models::PaginatedResponse {
         data: shifts,

@@ -60,9 +60,6 @@ pub fn build_pairing_service(
                     diesel_pools.clone(),
                 ),
             ),
-            Arc::new(apiserver::repositories::DieselShiftRepository::new(
-                diesel_pools.clone(),
-            )),
             summary_service as Arc<dyn apiserver::services::SummaryRecalculator>,
         ),
     );

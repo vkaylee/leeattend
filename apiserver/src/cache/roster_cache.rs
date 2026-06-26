@@ -24,59 +24,19 @@ use crate::queue::RedisPool;
 // Cached data types (Debug + Clone, no Serde — in-memory only)
 // ---------------------------------------------------------------------------
 
-/// A single shift's static configuration.
+/// A single shift's static configuration — lightweight identity envelope.
+/// Time, break, and policy settings live exclusively on `RosterInterval`.
 #[derive(Debug, Clone)]
-#[allow(clippy::struct_excessive_bools)]
 pub struct RosterShift {
     name: String,
     report_symbol: Option<String>,
-    start_time: NaiveTime,
-    end_time: NaiveTime,
-    break_duration_minutes: i32,
-    break_start: Option<NaiveTime>,
-    break_end: Option<NaiveTime>,
-    is_break_auto_deduct: bool,
-    early_punch_in_grace_period_minutes: i32,
-    allow_early_ot: bool,
-    break_is_overtime: bool,
-    max_early_ot_minutes: Option<i32>,
-    ot_aggregation_mode: String,
-    is_night_shift: bool,
 }
 
 impl RosterShift {
-    #[allow(clippy::too_many_arguments, clippy::fn_params_excessive_bools)]
-    pub fn new(
-        name: String,
-        report_symbol: Option<String>,
-        start_time: NaiveTime,
-        end_time: NaiveTime,
-        break_duration_minutes: i32,
-        break_start: Option<NaiveTime>,
-        break_end: Option<NaiveTime>,
-        is_break_auto_deduct: bool,
-        early_punch_in_grace_period_minutes: i32,
-        allow_early_ot: bool,
-        break_is_overtime: bool,
-        max_early_ot_minutes: Option<i32>,
-        ot_aggregation_mode: String,
-        is_night_shift: bool,
-    ) -> Self {
+    pub fn new(name: String, report_symbol: Option<String>) -> Self {
         Self {
             name,
             report_symbol,
-            start_time,
-            end_time,
-            break_duration_minutes,
-            break_start,
-            break_end,
-            is_break_auto_deduct,
-            early_punch_in_grace_period_minutes,
-            allow_early_ot,
-            break_is_overtime,
-            max_early_ot_minutes,
-            ot_aggregation_mode,
-            is_night_shift,
         }
     }
 
@@ -86,54 +46,6 @@ impl RosterShift {
 
     pub fn report_symbol(&self) -> Option<&str> {
         self.report_symbol.as_deref()
-    }
-
-    pub fn start_time(&self) -> NaiveTime {
-        self.start_time
-    }
-
-    pub fn end_time(&self) -> NaiveTime {
-        self.end_time
-    }
-
-    pub fn break_duration_minutes(&self) -> i32 {
-        self.break_duration_minutes
-    }
-
-    pub fn break_start(&self) -> Option<NaiveTime> {
-        self.break_start
-    }
-
-    pub fn break_end(&self) -> Option<NaiveTime> {
-        self.break_end
-    }
-
-    pub fn is_break_auto_deduct(&self) -> bool {
-        self.is_break_auto_deduct
-    }
-
-    pub fn early_punch_in_grace_period_minutes(&self) -> i32 {
-        self.early_punch_in_grace_period_minutes
-    }
-
-    pub fn allow_early_ot(&self) -> bool {
-        self.allow_early_ot
-    }
-
-    pub fn break_is_overtime(&self) -> bool {
-        self.break_is_overtime
-    }
-
-    pub fn max_early_ot_minutes(&self) -> Option<i32> {
-        self.max_early_ot_minutes
-    }
-
-    pub fn ot_aggregation_mode(&self) -> &str {
-        &self.ot_aggregation_mode
-    }
-
-    pub fn is_night_shift(&self) -> bool {
-        self.is_night_shift
     }
 }
 
@@ -169,18 +81,25 @@ pub struct RosterDeptHistory {
 }
 
 /// One row from `shift_default_intervals` — template interval info for a shift.
+/// This is the sole source of truth for all time, break, and policy configuration.
 #[derive(Debug, Clone)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct RosterInterval {
     pub interval_id: Uuid,
     pub sort_order: i32,
     pub interval_name: Option<String>,
     pub start_time: NaiveTime,
     pub end_time: NaiveTime,
-    pub break_duration_minutes: Option<i32>,
+    pub break_duration_minutes: i32,
     pub break_start: Option<NaiveTime>,
     pub break_end: Option<NaiveTime>,
-    pub is_break_auto_deduct: Option<bool>,
-    pub break_is_overtime: Option<bool>,
+    pub is_break_auto_deduct: bool,
+    pub break_is_overtime: bool,
+    pub early_punch_in_grace_period_minutes: i32,
+    pub allow_early_ot: bool,
+    pub max_early_ot_minutes: Option<i32>,
+    pub ot_aggregation_mode: String,
+    pub is_night_shift: bool,
 }
 
 /// Pre-fetched workspace roster configuration.
@@ -368,18 +287,6 @@ pub async fn build_roster_data(
                 RosterShift {
                     name: r.name,
                     report_symbol: r.report_symbol,
-                    start_time: r.start_time,
-                    end_time: r.end_time,
-                    break_duration_minutes: r.break_duration_minutes,
-                    break_start: r.break_start,
-                    break_end: r.break_end,
-                    is_break_auto_deduct: r.is_break_auto_deduct,
-                    early_punch_in_grace_period_minutes: r.early_punch_in_grace_period_minutes,
-                    allow_early_ot: r.allow_early_ot,
-                    max_early_ot_minutes: r.max_early_ot_minutes,
-                    break_is_overtime: r.break_is_overtime,
-                    ot_aggregation_mode: "aggregate".to_string(),
-                    is_night_shift: false,
                 },
             )
         })
@@ -432,6 +339,7 @@ pub async fn build_roster_data(
 
     let mut shift_intervals: HashMap<Uuid, Vec<RosterInterval>> = HashMap::new();
     for r in interval_rows {
+        let is_night_shift = r.is_night_shift || r.end_time < r.start_time;
         shift_intervals
             .entry(r.shift_id)
             .or_default()
@@ -446,6 +354,11 @@ pub async fn build_roster_data(
                 break_end: r.break_end,
                 is_break_auto_deduct: r.is_break_auto_deduct,
                 break_is_overtime: r.break_is_overtime,
+                early_punch_in_grace_period_minutes: r.early_punch_in_grace_period_minutes,
+                allow_early_ot: r.allow_early_ot,
+                max_early_ot_minutes: r.max_early_ot_minutes,
+                ot_aggregation_mode: r.ot_aggregation_mode,
+                is_night_shift,
             });
     }
 
@@ -665,31 +578,15 @@ mod tests {
 
     #[test]
     fn test_roster_shift_construction() {
-        let shift = RosterShift::new(
-            "Morning".to_string(),
-            None,
-            chrono::NaiveTime::from_hms_opt(8, 0, 0).expect("valid time"),
-            chrono::NaiveTime::from_hms_opt(17, 0, 0).expect("valid time"),
-            60,
-            Some(chrono::NaiveTime::from_hms_opt(12, 0, 0).expect("valid time")),
-            Some(chrono::NaiveTime::from_hms_opt(13, 0, 0).expect("valid time")),
-            true,
-            15,
-            false,
-            false,
-            None,
-            "aggregate".to_string(),
-            false,
-        );
+        let shift = RosterShift::new("Morning".to_string(), Some("M".to_string()));
 
         assert_eq!(shift.name(), "Morning");
-        assert_eq!(shift.break_duration_minutes(), 60);
-        assert!(shift.is_break_auto_deduct());
+        assert_eq!(shift.report_symbol(), Some("M"));
 
         // Clone round-trip
         let clone = shift.clone();
         assert_eq!(clone.name(), shift.name());
-        assert_eq!(clone.start_time(), shift.start_time());
+        assert_eq!(clone.report_symbol(), shift.report_symbol());
     }
 
     #[test]

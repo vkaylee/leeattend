@@ -81,13 +81,19 @@ async fn test_shift_fields_mapped_correctly() {
 
     let data = build_roster_data(&diesel_pools, ws).await.unwrap();
     let shift = data.shifts.get(&shift_id).expect("shift must exist");
-
     assert_eq!(shift.name(), "Morning Shift");
-    assert_eq!(shift.start_time(), start);
-    assert_eq!(shift.end_time(), end);
-    assert_eq!(shift.break_duration_minutes(), 45);
-    assert_eq!(shift.early_punch_in_grace_period_minutes(), 10);
-    assert!(shift.allow_early_ot());
+
+    // Time/break/policy fields now live on intervals, not RosterShift
+    let intervals = data
+        .shift_intervals
+        .get(&shift_id)
+        .expect("intervals must exist");
+    let iv = &intervals[0];
+    assert_eq!(iv.start_time, start);
+    assert_eq!(iv.end_time, end);
+    assert_eq!(iv.break_duration_minutes, 45);
+    assert_eq!(iv.early_punch_in_grace_period_minutes, 10);
+    assert!(iv.allow_early_ot);
 }
 
 // ---------------------------------------------------------------------------

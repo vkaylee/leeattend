@@ -177,7 +177,6 @@ impl WorkerDeps {
                 Arc::clone(&self.roster_repo),
                 Arc::clone(&self.employee_repo),
                 Arc::clone(&self.raw_log_repo),
-                Arc::clone(&self.shift_repo),
                 self.summary_service() as Arc<dyn crate::services::SummaryRecalculator>,
             ),
         ))

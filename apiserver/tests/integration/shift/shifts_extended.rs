@@ -199,9 +199,11 @@ async fn test_create_shift_rbac_member_forbidden() {
 
     let body = serde_json::json!({
         "name": "Night Shift",
-        "start_time": "22:00:00",
-        "end_time": "06:00:00",
-        "break_duration_minutes": 30
+        "intervals": [{
+            "start_time": "22:00:00",
+            "end_time": "06:00:00",
+            "break_duration_minutes": 30
+        }]
     });
 
     let resp = app

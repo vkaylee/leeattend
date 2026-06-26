@@ -277,7 +277,6 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         employee_repo.clone(),
         employment_repo.clone(),
         workspace_repo.clone(),
-        shift_repo.clone(),
         holiday_repo.clone(),
         leave_request_repo.clone(),
         attendance_summary_repo.clone(),
@@ -340,9 +339,6 @@ pub async fn spawn_app() -> (String, TestDatabase) {
                 diesel_pools.clone(),
             )),
             raw_log_repo.clone(),
-            Arc::new(apiserver::repositories::DieselShiftRepository::new(
-                diesel_pools.clone(),
-            )),
             attendance_summary_service.clone() as Arc<dyn apiserver::services::SummaryRecalculator>,
         ),
     ));
@@ -490,7 +486,6 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             shift_swap_repo.clone(),
             roster_repo.clone(),
             employee_repo.clone(),
-            shift_repo.clone(),
             payroll_repo.clone(),
         ),
     );
@@ -958,7 +953,6 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
         employee_repo.clone(),
         employment_repo.clone(),
         workspace_repo.clone(),
-        shift_repo.clone(),
         holiday_repo.clone(),
         leave_request_repo.clone(),
         attendance_summary_repo.clone(),
@@ -1045,9 +1039,6 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
                 diesel_pools.clone(),
             )),
             raw_log_repo.clone(),
-            Arc::new(apiserver::repositories::DieselShiftRepository::new(
-                diesel_pools.clone(),
-            )),
             attendance_summary_service.clone() as Arc<dyn apiserver::services::SummaryRecalculator>,
         ),
     ));
@@ -1195,7 +1186,6 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
             shift_swap_repo.clone(),
             roster_repo.clone(),
             employee_repo.clone(),
-            shift_repo.clone(),
             payroll_repo.clone(),
         ),
     );
@@ -1701,7 +1691,6 @@ pub async fn setup_app_tower_internal_extended(
         employee_repo.clone(),
         employment_repo.clone(),
         workspace_repo.clone(),
-        shift_repo.clone(),
         holiday_repo.clone(),
         leave_request_repo.clone(),
         attendance_daily_summary_repo.clone(),
@@ -1794,9 +1783,6 @@ pub async fn setup_app_tower_internal_extended(
                 diesel_pools.clone(),
             )),
             raw_log_repo.clone(),
-            Arc::new(apiserver::repositories::DieselShiftRepository::new(
-                diesel_pools.clone(),
-            )),
             attendance_summary_service.clone() as Arc<dyn apiserver::services::SummaryRecalculator>,
         ),
     ));
@@ -1949,7 +1935,6 @@ pub async fn setup_app_tower_internal_extended(
             shift_swap_repo.clone(),
             roster_repo.clone(),
             employee_repo.clone(),
-            shift_repo.clone(),
             payroll_repo.clone(),
         ),
     );

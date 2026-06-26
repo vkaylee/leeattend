@@ -2,7 +2,6 @@
 //!
 //! Caches shift data for O(1) lookup during attendance calculations.
 
-use chrono::NaiveTime;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -12,20 +11,13 @@ use crate::repositories::shift_repository::ShiftRepository;
 use crate::repositories::{CacheRepository, CacheRepositoryExt};
 use std::sync::Arc;
 
-/// Cached shift data.
-/// Contains all fields needed for attendance calculations.
+/// Cached shift data — identity envelope only.
+/// Time, break, and policy config lives in shift_default_intervals (see RosterCache).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CachedShift {
     pub id: Uuid,
     pub name: String,
-    pub start_time: NaiveTime,
-    pub end_time: NaiveTime,
-    pub break_duration_minutes: Option<i32>,
-    pub break_start: Option<NaiveTime>,
-    pub break_end: Option<NaiveTime>,
-    pub is_break_auto_deduct: Option<bool>,
-    pub allow_early_ot: Option<bool>,
-    pub early_punch_in_grace_period_minutes: Option<i32>,
+    pub report_symbol: Option<String>,
 }
 
 /// Cache for shift data.
@@ -71,16 +63,7 @@ impl ShiftCache {
                     .map(|row| CachedShift {
                         id: row.id(),
                         name: row.name().to_string(),
-                        start_time: row.start_time(),
-                        end_time: row.end_time(),
-                        break_duration_minutes: Some(row.break_duration_minutes()),
-                        break_start: row.break_start(),
-                        break_end: row.break_end(),
-                        is_break_auto_deduct: Some(row.is_break_auto_deduct()),
-                        allow_early_ot: Some(row.allow_early_ot()),
-                        early_punch_in_grace_period_minutes: Some(
-                            row.early_punch_in_grace_period_minutes(),
-                        ),
+                        report_symbol: row.report_symbol().map(String::from),
                     })
                     .collect();
 
@@ -115,14 +98,7 @@ mod tests {
         let shift = CachedShift {
             id: Uuid::new_v4(),
             name: "Day Shift".to_string(),
-            start_time: NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
-            end_time: NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
-            break_duration_minutes: Some(60),
-            break_start: Some(NaiveTime::from_hms_opt(12, 0, 0).unwrap()),
-            break_end: Some(NaiveTime::from_hms_opt(13, 0, 0).unwrap()),
-            is_break_auto_deduct: Some(true),
-            allow_early_ot: Some(false),
-            early_punch_in_grace_period_minutes: Some(15),
+            report_symbol: Some("D".to_string()),
         };
 
         let json = serde_json::to_string(&shift).unwrap();
@@ -130,9 +106,7 @@ mod tests {
 
         assert_eq!(shift.id, decoded.id);
         assert_eq!(shift.name, decoded.name);
-        assert_eq!(shift.start_time, decoded.start_time);
-        assert_eq!(shift.end_time, decoded.end_time);
-        assert_eq!(shift.break_duration_minutes, decoded.break_duration_minutes);
+        assert_eq!(shift.report_symbol, decoded.report_symbol);
     }
 
     #[test]
@@ -140,26 +114,12 @@ mod tests {
         let shift1 = CachedShift {
             id: Uuid::new_v4(),
             name: "Morning".to_string(),
-            start_time: NaiveTime::from_hms_opt(6, 0, 0).unwrap(),
-            end_time: NaiveTime::from_hms_opt(14, 0, 0).unwrap(),
-            break_duration_minutes: Some(30),
-            break_start: None,
-            break_end: None,
-            is_break_auto_deduct: Some(false),
-            allow_early_ot: Some(true),
-            early_punch_in_grace_period_minutes: Some(10),
+            report_symbol: None,
         };
         let shift2 = CachedShift {
             id: Uuid::new_v4(),
             name: "Evening".to_string(),
-            start_time: NaiveTime::from_hms_opt(14, 0, 0).unwrap(),
-            end_time: NaiveTime::from_hms_opt(22, 0, 0).unwrap(),
-            break_duration_minutes: Some(30),
-            break_start: None,
-            break_end: None,
-            is_break_auto_deduct: Some(false),
-            allow_early_ot: Some(false),
-            early_punch_in_grace_period_minutes: Some(5),
+            report_symbol: Some("E".to_string()),
         };
 
         let map: HashMap<Uuid, CachedShift> = vec![shift1.clone(), shift2.clone()]
@@ -175,22 +135,15 @@ mod tests {
     }
 
     #[test]
-    fn test_overnight_shift() {
+    fn test_cached_shift_null_symbol() {
         let shift = CachedShift {
             id: Uuid::new_v4(),
             name: "Night Shift".to_string(),
-            start_time: NaiveTime::from_hms_opt(22, 0, 0).unwrap(),
-            end_time: NaiveTime::from_hms_opt(6, 0, 0).unwrap(), // Next day
-            break_duration_minutes: Some(45),
-            break_start: Some(NaiveTime::from_hms_opt(2, 0, 0).unwrap()),
-            break_end: Some(NaiveTime::from_hms_opt(2, 45, 0).unwrap()),
-            is_break_auto_deduct: Some(true),
-            allow_early_ot: Some(true),
-            early_punch_in_grace_period_minutes: Some(30),
+            report_symbol: None,
         };
 
-        // Overnight shift: end_time < start_time
-        assert!(shift.end_time < shift.start_time);
-        assert_eq!(shift.break_duration_minutes, Some(45));
+        let json = serde_json::to_string(&shift).unwrap();
+        let decoded: CachedShift = serde_json::from_str(&json).unwrap();
+        assert_eq!(decoded.report_symbol, None);
     }
 }

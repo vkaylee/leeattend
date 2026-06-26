@@ -1,4 +1,4 @@
-//! Shift break configuration tests
+//! Shift break configuration tests (interval-based API)
 
 use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
@@ -18,14 +18,16 @@ async fn test_create_shift_with_fixed_break() {
 
     let shift_req = serde_json::json!({
         "name": "Fixed Break Shift",
-        "start_time": "08:00:00",
-        "end_time": "17:00:00",
-        "break_duration_minutes": 60,
-        "break_start": "12:00:00",
-        "break_end": "13:00:00",
-        "is_break_auto_deduct": true,
-        "break_is_overtime": false,
-        "early_punch_in_grace_period_minutes": 15
+        "intervals": [{
+            "start_time": "08:00:00",
+            "end_time": "17:00:00",
+            "break_duration_minutes": 60,
+            "break_start": "12:00:00",
+            "break_end": "13:00:00",
+            "is_break_auto_deduct": true,
+            "break_is_overtime": false,
+            "early_punch_in_grace_period_minutes": 15
+        }]
     });
 
     let response = app
@@ -51,7 +53,7 @@ async fn test_create_shift_with_fixed_break() {
     let created_shift: serde_json::Value = serde_json::from_slice(&body).unwrap();
 
     assert_eq!(created_shift["name"], "Fixed Break Shift");
-    assert_eq!(created_shift["break_start"], "12:00:00");
+    // Time/break fields now live in intervals, not at shift level
 }
 
 #[tokio::test]
@@ -64,11 +66,13 @@ async fn test_create_shift_with_flexible_break() {
 
     let shift_req = serde_json::json!({
         "name": "Flexible Break Shift",
-        "start_time": "09:00:00",
-        "end_time": "18:00:00",
-        "break_duration_minutes": 45,
-        "break_is_overtime": false,
-        "early_punch_in_grace_period_minutes": 10
+        "intervals": [{
+            "start_time": "09:00:00",
+            "end_time": "18:00:00",
+            "break_duration_minutes": 45,
+            "break_is_overtime": false,
+            "early_punch_in_grace_period_minutes": 10
+        }]
     });
 
     let response = app

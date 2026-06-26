@@ -15,21 +15,11 @@ pub struct ShiftEntity {
     pub id: Uuid,
     pub workspace_id: Uuid,
     pub name: String,
-    pub start_time: NaiveTime,
-    pub end_time: NaiveTime,
-    pub break_duration_minutes: i32,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
-    pub break_is_overtime: bool,
-    pub early_punch_in_grace_period_minutes: i32,
-    pub break_start: Option<NaiveTime>,
-    pub break_end: Option<NaiveTime>,
-    pub is_break_auto_deduct: bool,
     pub is_active: bool,
     pub parent_shift_id: Option<Uuid>,
-    pub allow_early_ot: bool,
     pub report_symbol: Option<String>,
-    pub max_early_ot_minutes: Option<i32>,
     pub location_id: Option<Uuid>,
     pub employer_id: Option<Uuid>,
 }
@@ -41,16 +31,6 @@ impl From<ShiftEntity> for Shift {
             entity.workspace_id,
             entity.name,
             entity.report_symbol,
-            entity.start_time,
-            entity.end_time,
-            entity.break_duration_minutes,
-            entity.break_start,
-            entity.break_end,
-            entity.is_break_auto_deduct,
-            entity.break_is_overtime,
-            entity.early_punch_in_grace_period_minutes,
-            entity.allow_early_ot,
-            entity.max_early_ot_minutes,
             entity.is_active,
             entity.parent_shift_id,
             entity.location_id,
@@ -208,8 +188,11 @@ impl ToSql<AssignmentHistoryTypeSql, Pg> for AssignmentHistoryType {
 }
 
 /// Diesel entity for `shift_default_intervals`.
-#[derive(Debug, Clone, Queryable, Selectable)]
+#[derive(
+    Debug, Clone, Queryable, Selectable, Insertable, Serialize, Deserialize, utoipa::ToSchema,
+)]
 #[diesel(table_name = shift_default_intervals)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct ShiftDefaultIntervalEntity {
     pub id: Uuid,
     pub shift_id: Uuid,
@@ -217,11 +200,16 @@ pub struct ShiftDefaultIntervalEntity {
     pub interval_name: Option<String>,
     pub start_time: NaiveTime,
     pub end_time: NaiveTime,
-    pub break_duration_minutes: Option<i32>,
+    pub break_duration_minutes: i32,
     pub break_start: Option<NaiveTime>,
     pub break_end: Option<NaiveTime>,
-    pub is_break_auto_deduct: Option<bool>,
-    pub break_is_overtime: Option<bool>,
+    pub is_break_auto_deduct: bool,
+    pub break_is_overtime: bool,
+    pub early_punch_in_grace_period_minutes: i32,
+    pub allow_early_ot: bool,
+    pub max_early_ot_minutes: Option<i32>,
+    pub ot_aggregation_mode: String,
+    pub is_night_shift: bool,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
 }

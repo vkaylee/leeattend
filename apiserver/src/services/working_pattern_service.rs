@@ -39,7 +39,8 @@ use std::sync::Arc;
 #[tracing::instrument(skip_all, err)]
 pub async fn create_working_pattern(
     repo: Arc<dyn crate::repositories::working_pattern_repository::WorkingPatternRepositoryTrait>,
-    shift_repo: Arc<dyn crate::repositories::shift_repository::ShiftRepository>,
+    _shift_repo: Arc<dyn crate::repositories::shift_repository::ShiftRepository>,
+    roster_repo: Arc<dyn crate::repositories::roster::RosterRepository>,
     workspace_id: Uuid,
     req: CreateWorkingPatternRequest,
 ) -> Result<WorkingPattern, crate::errors::AppError> {
@@ -57,18 +58,9 @@ pub async fn create_working_pattern(
         }
     }
 
-    // For days with >1 shift, validate no time overlaps
+    // For days with >1 shift, validate no time overlaps using interval data
     if !day_shifts.is_empty() {
-        let (all_shifts, _) = shift_repo
-            .get_workspace_shifts(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                None,
-                None,
-                None,
-                None,
-            )
-            .await?;
-        let shift_map: HashMap<Uuid, _> = all_shifts.into_iter().map(|s| (s.id(), s)).collect();
+        let roster_data = roster_repo.get_raw_roster_data(workspace_id).await?;
 
         for shift_ids in day_shifts.values() {
             if shift_ids.len() < 2 {
@@ -78,9 +70,11 @@ pub async fn create_working_pattern(
             let times: Vec<(Uuid, NaiveTime, NaiveTime)> = shift_ids
                 .iter()
                 .filter_map(|id| {
-                    shift_map
+                    roster_data
+                        .shift_intervals
                         .get(id)
-                        .map(|s| (*id, s.start_time(), s.end_time()))
+                        .and_then(|intervals| intervals.first())
+                        .map(|iv| (*id, iv.start_time, iv.end_time))
                 })
                 .collect();
 
@@ -152,7 +146,8 @@ pub async fn create_working_pattern(
 #[tracing::instrument(skip_all, err)]
 pub async fn update_working_pattern(
     repo: Arc<dyn crate::repositories::working_pattern_repository::WorkingPatternRepositoryTrait>,
-    shift_repo: Arc<dyn crate::repositories::shift_repository::ShiftRepository>,
+    _shift_repo: Arc<dyn crate::repositories::shift_repository::ShiftRepository>,
+    roster_repo: Arc<dyn crate::repositories::roster::RosterRepository>,
     workspace_id: Uuid,
     pattern_id: Uuid,
     req: CreateWorkingPatternRequest,
@@ -170,16 +165,7 @@ pub async fn update_working_pattern(
     }
 
     if !day_shifts.is_empty() {
-        let (all_shifts, _) = shift_repo
-            .get_workspace_shifts(
-                &crate::diesel_pool::TenantAuthToken::system_override(workspace_id),
-                None,
-                None,
-                None,
-                None,
-            )
-            .await?;
-        let shift_map: HashMap<Uuid, _> = all_shifts.into_iter().map(|s| (s.id(), s)).collect();
+        let roster_data = roster_repo.get_raw_roster_data(workspace_id).await?;
 
         for shift_ids in day_shifts.values() {
             if shift_ids.len() < 2 {
@@ -189,9 +175,11 @@ pub async fn update_working_pattern(
             let times: Vec<(Uuid, NaiveTime, NaiveTime)> = shift_ids
                 .iter()
                 .filter_map(|id| {
-                    shift_map
+                    roster_data
+                        .shift_intervals
                         .get(id)
-                        .map(|s| (*id, s.start_time(), s.end_time()))
+                        .and_then(|intervals| intervals.first())
+                        .map(|iv| (*id, iv.start_time, iv.end_time))
                 })
                 .collect();
 
@@ -405,12 +393,14 @@ mod tests {
 
     // ─── Async service tests with mock repositories ──────────────────────────
 
+    use crate::cache::{RosterData, RosterInterval};
     use crate::errors::AppError;
     use crate::models::Shift;
     use crate::models::{
         BulkAssignPatternRequest, BulkAssignResponse, EmployeeWorkingPattern, WorkingPattern,
         WorkingPatternDetail,
     };
+    use crate::repositories::roster::MockRosterRepository;
     use crate::repositories::shift_repository::ShiftRepository;
     use crate::repositories::working_pattern_repository::WorkingPatternRepositoryTrait;
     use async_trait::async_trait;
@@ -431,16 +421,6 @@ mod tests {
                 Uuid::new_v4(),
                 auth_token.0,
                 req.name.clone(),
-                None,
-                req.start_time,
-                req.end_time,
-                req.break_duration_minutes,
-                None,
-                None,
-                true,
-                false,
-                0,
-                false,
                 None,
                 true,
                 _p,
@@ -471,16 +451,6 @@ mod tests {
                 Uuid::new_v4(),
                 "S1".into(),
                 None,
-                chrono::NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
-                chrono::NaiveTime::from_hms_opt(12, 0, 0).unwrap(),
-                0,
-                None,
-                None,
-                false,
-                false,
-                0,
-                false,
-                None,
                 true,
                 None,
                 None,
@@ -492,16 +462,6 @@ mod tests {
                 Uuid::from_u128(2),
                 Uuid::new_v4(),
                 "S2".into(),
-                None,
-                chrono::NaiveTime::from_hms_opt(10, 0, 0).unwrap(),
-                chrono::NaiveTime::from_hms_opt(14, 0, 0).unwrap(),
-                0,
-                None,
-                None,
-                false,
-                false,
-                0,
-                false,
                 None,
                 true,
                 None,
@@ -678,24 +638,72 @@ mod tests {
     fn make_repos() -> (
         std::sync::Arc<MockPatternRepo>,
         std::sync::Arc<NopShiftRepo>,
+        std::sync::Arc<MockRosterRepository>,
     ) {
         let pat = std::sync::Arc::new(MockPatternRepo {
             pattern: std::sync::Mutex::new(dummy_pattern()),
         });
         let shift = std::sync::Arc::new(NopShiftRepo);
-        (pat, shift)
+        let roster = std::sync::Arc::new(MockRosterRepository::new());
+        (pat, shift, roster)
+    }
+
+    /// Build a RosterData with two overlapping intervals for shift IDs 1 and 2.
+    fn overlapping_roster_data() -> RosterData {
+        let mut data = RosterData::default();
+        data.shift_intervals.insert(
+            Uuid::from_u128(1),
+            vec![RosterInterval {
+                interval_id: Uuid::new_v4(),
+                sort_order: 0,
+                interval_name: None,
+                start_time: NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
+                end_time: NaiveTime::from_hms_opt(12, 0, 0).unwrap(),
+                break_duration_minutes: 0,
+                break_start: None,
+                break_end: None,
+                is_break_auto_deduct: false,
+                break_is_overtime: false,
+                early_punch_in_grace_period_minutes: 0,
+                allow_early_ot: false,
+                max_early_ot_minutes: None,
+                ot_aggregation_mode: "daily".to_string(),
+                is_night_shift: false,
+            }],
+        );
+        data.shift_intervals.insert(
+            Uuid::from_u128(2),
+            vec![RosterInterval {
+                interval_id: Uuid::new_v4(),
+                sort_order: 0,
+                interval_name: None,
+                start_time: NaiveTime::from_hms_opt(10, 0, 0).unwrap(),
+                end_time: NaiveTime::from_hms_opt(14, 0, 0).unwrap(),
+                break_duration_minutes: 0,
+                break_start: None,
+                break_end: None,
+                is_break_auto_deduct: false,
+                break_is_overtime: false,
+                early_punch_in_grace_period_minutes: 0,
+                allow_early_ot: false,
+                max_early_ot_minutes: None,
+                ot_aggregation_mode: "daily".to_string(),
+                is_night_shift: false,
+            }],
+        );
+        data
     }
 
     #[tokio::test]
     async fn test_list_patterns() {
-        let (repo, _) = make_repos();
+        let (repo, _, _) = make_repos();
         let result = list_patterns(repo, Uuid::new_v4()).await.unwrap();
         assert_eq!(result.len(), 1);
     }
 
     #[tokio::test]
     async fn test_get_pattern_details() {
-        let (repo, _) = make_repos();
+        let (repo, _, _) = make_repos();
         let result = get_pattern_details(repo, Uuid::new_v4(), Uuid::new_v4())
             .await
             .unwrap();
@@ -704,7 +712,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_assign_pattern() {
-        let (repo, _) = make_repos();
+        let (repo, _, _) = make_repos();
         let req = crate::models::AssignPatternRequest {
             pattern_id: Uuid::new_v4(),
             start_date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
@@ -719,7 +727,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_bulk_assign_pattern() {
-        let (repo, _) = make_repos();
+        let (repo, _, _) = make_repos();
         let req = BulkAssignPatternRequest {
             employment_ids: vec![Uuid::new_v4(), Uuid::new_v4()],
             pattern_id: Uuid::new_v4(),
@@ -736,7 +744,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_employment_pattern_history() {
-        let (repo, _) = make_repos();
+        let (repo, _, _) = make_repos();
         let result = get_employment_pattern_history(repo, Uuid::new_v4(), Uuid::new_v4())
             .await
             .unwrap();
@@ -745,7 +753,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_working_pattern() {
-        let (repo, _) = make_repos();
+        let (repo, _, _) = make_repos();
         delete_working_pattern(repo, Uuid::new_v4(), Uuid::new_v4())
             .await
             .unwrap();
@@ -753,7 +761,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_working_pattern_no_overlaps() {
-        let (repo, shift_repo) = make_repos();
+        let (repo, shift_repo, roster_repo) = make_repos();
         let req = crate::models::CreateWorkingPatternRequest {
             name: "Standard 5×8".into(),
             description: Some("Mon-Fri".into()),
@@ -770,7 +778,7 @@ mod tests {
                 },
             ],
         };
-        let result = create_working_pattern(repo, shift_repo, Uuid::new_v4(), req)
+        let result = create_working_pattern(repo, shift_repo, roster_repo, Uuid::new_v4(), req)
             .await
             .unwrap();
         assert_eq!(result.name, "Standard 5×8");
@@ -778,7 +786,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_working_pattern_validation_errors() {
-        let (repo, shift_repo) = make_repos();
+        let (repo, shift_repo, roster_repo) = make_repos();
 
         // 1. Invalid pattern type
         let req1 = crate::models::CreateWorkingPatternRequest {
@@ -788,8 +796,14 @@ mod tests {
             cycle_length_days: None,
             details: vec![],
         };
-        let res1 =
-            create_working_pattern(repo.clone(), shift_repo.clone(), Uuid::new_v4(), req1).await;
+        let res1 = create_working_pattern(
+            repo.clone(),
+            shift_repo.clone(),
+            roster_repo.clone(),
+            Uuid::new_v4(),
+            req1,
+        )
+        .await;
         assert!(res1.is_err());
         assert!(res1
             .unwrap_err()
@@ -804,8 +818,14 @@ mod tests {
             cycle_length_days: Some(400),
             details: vec![],
         };
-        let res2 =
-            create_working_pattern(repo.clone(), shift_repo.clone(), Uuid::new_v4(), req2).await;
+        let res2 = create_working_pattern(
+            repo.clone(),
+            shift_repo.clone(),
+            roster_repo.clone(),
+            Uuid::new_v4(),
+            req2,
+        )
+        .await;
         assert!(res2.is_err());
         assert!(res2
             .unwrap_err()
@@ -823,8 +843,14 @@ mod tests {
                 shift_id: None,
             }],
         };
-        let res3 =
-            create_working_pattern(repo.clone(), shift_repo.clone(), Uuid::new_v4(), req3).await;
+        let res3 = create_working_pattern(
+            repo.clone(),
+            shift_repo.clone(),
+            roster_repo.clone(),
+            Uuid::new_v4(),
+            req3,
+        )
+        .await;
         assert!(res3.is_err());
         assert!(res3
             .unwrap_err()
@@ -832,6 +858,17 @@ mod tests {
             .contains("schedule_day 10 is out of range"));
 
         // 4. Shifts overlap
+        // Set up roster_repo to return overlapping intervals
+        let mut roster_mock = MockRosterRepository::new();
+        let overlap_data = overlapping_roster_data();
+        roster_mock
+            .expect_get_raw_roster_data()
+            .times(1)
+            .return_once(move |_| {
+                Box::pin(std::future::ready(Ok(std::sync::Arc::new(overlap_data))))
+            });
+        let roster_arc = std::sync::Arc::new(roster_mock);
+
         let req4 = crate::models::CreateWorkingPatternRequest {
             name: "Overlap".into(),
             description: None,
@@ -848,8 +885,14 @@ mod tests {
                 },
             ],
         };
-        let res4 =
-            create_working_pattern(repo.clone(), shift_repo.clone(), Uuid::new_v4(), req4).await;
+        let res4 = create_working_pattern(
+            repo.clone(),
+            shift_repo.clone(),
+            roster_arc,
+            Uuid::new_v4(),
+            req4,
+        )
+        .await;
         assert!(res4.is_err());
         assert!(res4
             .unwrap_err()
@@ -859,7 +902,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_working_pattern_validation_errors() {
-        let (repo, shift_repo) = make_repos();
+        let (repo, shift_repo, roster_repo) = make_repos();
 
         // 1. Invalid pattern type
         let req1 = crate::models::CreateWorkingPatternRequest {
@@ -872,6 +915,7 @@ mod tests {
         let res1 = update_working_pattern(
             repo.clone(),
             shift_repo.clone(),
+            roster_repo.clone(),
             Uuid::new_v4(),
             Uuid::new_v4(),
             req1,
@@ -890,6 +934,7 @@ mod tests {
         let res2 = update_working_pattern(
             repo.clone(),
             shift_repo.clone(),
+            roster_repo.clone(),
             Uuid::new_v4(),
             Uuid::new_v4(),
             req2,
@@ -911,6 +956,7 @@ mod tests {
         let res3 = update_working_pattern(
             repo.clone(),
             shift_repo.clone(),
+            roster_repo.clone(),
             Uuid::new_v4(),
             Uuid::new_v4(),
             req3,
@@ -919,6 +965,17 @@ mod tests {
         assert!(res3.is_err());
 
         // 4. Shifts overlap
+        // Set up roster_repo to return overlapping intervals
+        let mut roster_mock2 = MockRosterRepository::new();
+        let overlap_data = overlapping_roster_data();
+        roster_mock2
+            .expect_get_raw_roster_data()
+            .times(1)
+            .return_once(move |_| {
+                Box::pin(std::future::ready(Ok(std::sync::Arc::new(overlap_data))))
+            });
+        let roster_arc2 = std::sync::Arc::new(roster_mock2);
+
         let req4 = crate::models::CreateWorkingPatternRequest {
             name: "Overlap".into(),
             description: None,
@@ -938,6 +995,7 @@ mod tests {
         let res4 = update_working_pattern(
             repo.clone(),
             shift_repo.clone(),
+            roster_arc2,
             Uuid::new_v4(),
             Uuid::new_v4(),
             req4,

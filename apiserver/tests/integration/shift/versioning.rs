@@ -19,12 +19,14 @@ async fn test_shift_versioning_update() {
     // 1. Create Shift V1
     let shift_req = serde_json::json!({
         "name": "Shift V1",
-        "start_time": "09:00:00",
-        "end_time": "17:00:00",
-        "break_duration_minutes": 60,
-        "is_break_auto_deduct": true,
-        "break_is_overtime": false,
-        "early_punch_in_grace_period_minutes": 0
+        "intervals": [{
+            "start_time": "09:00:00",
+            "end_time": "17:00:00",
+            "break_duration_minutes": 60,
+            "is_break_auto_deduct": true,
+            "break_is_overtime": false,
+            "early_punch_in_grace_period_minutes": 0
+        }]
     });
 
     let response = app
@@ -52,12 +54,14 @@ async fn test_shift_versioning_update() {
     // 2. Update as New Version (V2)
     let version_req = serde_json::json!({
         "name": "Shift V2",
-        "start_time": "08:00:00", // Changed
-        "end_time": "16:00:00",
-        "break_duration_minutes": 60,
-        "is_break_auto_deduct": true,
-        "break_is_overtime": false,
-        "early_punch_in_grace_period_minutes": 0,
+        "intervals": [{
+            "start_time": "08:00:00", // Changed
+            "end_time": "16:00:00",
+            "break_duration_minutes": 60,
+            "is_break_auto_deduct": true,
+            "break_is_overtime": false,
+            "early_punch_in_grace_period_minutes": 0
+        }],
         "is_correction": false, // New Version
         "effective_date": "2026-02-01"
     });

@@ -316,33 +316,80 @@ impl RosterRepository for DieselRosterRepository {
                 let holiday = holidays_map.get(&curr_date);
 
                 for effective_shift_id in &effective_shift_ids {
-                    let mut sched = EffectiveSchedule::new(
+                    // Resolve shift metadata (name/symbol) from RosterShift and
+                    // time/break/policy fields from the first RosterInterval.
+                    let (
+                        shift_name,
+                        shift_symbol,
+                        start_time,
+                        end_time,
+                        break_dur,
+                        brk_start,
+                        brk_end,
+                        is_bad,
+                        early_grace,
+                        allow_eot,
+                        bio,
+                        max_eot,
+                    ) = if let Some(sid) = effective_shift_id {
+                        let name = roster_data.shifts.get(sid).map(|s| s.name().to_string());
+                        let sym = roster_data
+                            .shifts
+                            .get(sid)
+                            .and_then(|s| s.report_symbol().map(String::from));
+                        #[allow(clippy::get_first)]
+                        if let Some(first) = roster_data
+                            .shift_intervals
+                            .get(sid)
+                            .and_then(|intervals| intervals.get(0))
+                        {
+                            (
+                                name,
+                                sym,
+                                Some(first.start_time),
+                                Some(first.end_time),
+                                Some(first.break_duration_minutes),
+                                first.break_start,
+                                first.break_end,
+                                Some(first.is_break_auto_deduct),
+                                Some(first.early_punch_in_grace_period_minutes),
+                                Some(first.allow_early_ot),
+                                Some(first.break_is_overtime),
+                                first.max_early_ot_minutes,
+                            )
+                        } else {
+                            (
+                                name, sym, None, None, None, None, None, None, None, None, None,
+                                None,
+                            )
+                        }
+                    } else {
+                        (
+                            None, None, None, None, None, None, None, None, None, None, None, None,
+                        )
+                    };
+
+                    let sched = EffectiveSchedule::new(
                         curr_date,
                         *effective_shift_id,
                         source.clone(),
-                        None, // shift_name
-                        None, // shift_symbol
-                        None, // start_time
-                        None, // end_time
-                        None, // break_duration_minutes
-                        None, // break_start
-                        None, // break_end
-                        None, // is_break_auto_deduct
-                        None, // early_punch_in_grace_period_minutes
-                        None, // allow_early_ot
-                        None, // break_is_overtime
-                        None, // max_early_ot_minutes
+                        shift_name,
+                        shift_symbol,
+                        start_time,
+                        end_time,
+                        break_dur,
+                        brk_start,
+                        brk_end,
+                        is_bad,
+                        early_grace,
+                        allow_eot,
+                        bio,
+                        max_eot,
                         traces.clone(),
                         holiday.is_some(),
                         holiday.is_some_and(crate::models::Holiday::is_paid),
                         holiday.map(|h| h.name().to_string()),
                     );
-
-                    if let Some(sid) = effective_shift_id {
-                        if let Some(shift) = roster_data.shifts.get(sid) {
-                            sched.set_shift_details_from_cache(shift);
-                        }
-                    }
 
                     daily_schedules.push(sched);
                 }

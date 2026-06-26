@@ -1,14 +1,14 @@
 [target.x86_64-unknown-linux-gnu]
 linker = "clang"
 rustflags = [
-    # "-C", "link-arg=-fuse-ld=mold",
-    # "-C", "link-arg=-Wl,--compress-debug-sections=zstd",
-    # "-C", "link-arg=-Wl,--threads",
+    "-C", "link-arg=-fuse-ld=mold",
+    "-C", "link-arg=-Wl,--compress-debug-sections=zstd",
+    "-C", "link-arg=-Wl,--threads",
 ]
 
-[build]
+#[build]
 # Limit parallel jobs to prevent system hanging on WSL
-jobs = 4
+#jobs = 4
 
 [profile.dev]
 # Accelerate linking by not packing debug info into the binary

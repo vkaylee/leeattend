@@ -162,9 +162,6 @@ async fn test_dst_spring_forward() {
                     diesel_pools.clone(),
                 ),
             ),
-            std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
-                diesel_pools.clone(),
-            )),
             summary_service as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
         ),
     )
@@ -352,9 +349,6 @@ async fn test_dst_fall_back() {
                     diesel_pools.clone(),
                 ),
             ),
-            std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
-                diesel_pools.clone(),
-            )),
             summary_service as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
         ),
     )
@@ -541,9 +535,6 @@ async fn test_dst_fall_back_repeated_hour() {
                     diesel_pools.clone(),
                 ),
             ),
-            std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
-                diesel_pools.clone(),
-            )),
             summary_service as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
         ),
     )
@@ -726,9 +717,6 @@ async fn test_dst_spring_forward_day_shift() {
                     diesel_pools.clone(),
                 ),
             ),
-            std::sync::Arc::new(apiserver::repositories::DieselShiftRepository::new(
-                diesel_pools.clone(),
-            )),
             summary_service as std::sync::Arc<dyn apiserver::services::SummaryRecalculator>,
         ),
     )

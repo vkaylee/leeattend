@@ -119,16 +119,28 @@ pub(crate) async fn fetch_effective_shift_config(
         .get_effective_shift(auth_token, employment_id, date)
         .await?;
 
-    let shift = if let Some(shift_id) = shift_id_opt {
-        service
-            .shift_repo
-            .get_shift_by_id(auth_token, shift_id)
-            .await?
+    let shift_config = if let Some(shift_id) = shift_id_opt {
+        let roster_data = service
+            .roster_repo
+            .get_raw_roster_data(auth_token.workspace_id())
+            .await?;
+        roster_data
+            .shift_intervals
+            .get(&shift_id)
+            .and_then(|intervals| intervals.first())
+            .and_then(|interval| {
+                context.build_shift_config(
+                    interval.start_time,
+                    interval.end_time,
+                    interval.break_start,
+                    interval.break_end,
+                    interval.early_punch_in_grace_period_minutes,
+                )
+            })
     } else {
         None
     };
 
-    let shift_config = context.build_shift_config(shift.as_ref());
     Ok((shift_id_opt, shift_config, serde_json::json!(traces)))
 }
 

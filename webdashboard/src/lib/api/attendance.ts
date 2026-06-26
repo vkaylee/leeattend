@@ -161,7 +161,7 @@ export async function fetchAttendanceLogs(params: {
     },
   });
   if (!resData) throw new Error("No response data");
-  return resData;
+  return resData as unknown as { data: TimeEntry[]; total: number; page: number; limit: number };
 }
 
 export async function fetchRawAttendanceLogs(params: {
@@ -187,7 +187,7 @@ export async function fetchRawAttendanceLogs(params: {
     },
   });
   if (!resData) throw new Error("No response data");
-  return resData;
+  return resData as unknown as { data: RawAttendanceLog[]; total: number; page: number; limit: number };
 }
 
 export interface FetchAttendanceReportParams {
@@ -338,7 +338,7 @@ export async function checkReprocessStatus(wsId: string, jobId: string): Promise
     params: { path: { ws_id: wsId, job_id: jobId } }
   });
   if (!resData) throw new Error("No response data");
-  return resData;
+  return resData as GenericJobStatus;
 }
 
 export interface AttendanceStats {
@@ -452,7 +452,7 @@ export async function fetchStagingLogs(
     }
   });
   if (!resData) throw new Error("No response data");
-  return resData;
+  return resData as unknown as StagingLogsResponse;
 }
 
 export async function resolveStagingLog(

@@ -1,4 +1,4 @@
- 
+
 /* eslint-disable complexity, max-lines-per-function, max-lines */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBlocker, useNavigate } from "@tanstack/react-router";
@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 
 import { format } from "date-fns";
 
-import type { Shift, CreateShiftRequest, UpdateShiftRequest, ShiftDefaultInterval } from "@/lib/api/types";
+import type { Shift, CreateShiftRequest, UpdateShiftRequest } from "@/lib/api/types";
 
 import { useToast } from "@/components/ui/toast";
 import {
@@ -28,12 +28,38 @@ export interface IntervalDraft {
   breakEnd: string;
   isFixedBreak: boolean;
   isAutoDeduct: boolean;
+  isBreakOvertime: boolean;
+  gracePeriodMinutes: number;
+  allowEarlyOt: boolean;
+  maxEarlyOtMinutes: number | null;
+  otAggregationMode: "aggregate" | "per_segment";
+  isNightShift: boolean;
 }
 
 let _intervalCounter = 0;
 function nextIntervalKey(): string {
   _intervalCounter += 1;
   return `iv_${Date.now()}_${_intervalCounter}`;
+}
+
+function makeDefaultInterval(): IntervalDraft {
+  return {
+    key: nextIntervalKey(),
+    intervalName: "",
+    startTime: "08:00",
+    endTime: "17:00",
+    breakDuration: 60,
+    breakStart: "",
+    breakEnd: "",
+    isFixedBreak: false,
+    isAutoDeduct: true,
+    isBreakOvertime: false,
+    gracePeriodMinutes: 15,
+    allowEarlyOt: false,
+    maxEarlyOtMinutes: null,
+    otAggregationMode: "aggregate",
+    isNightShift: false,
+  };
 }
 
 export function useShiftEditor(shiftId?: string) {
@@ -45,23 +71,11 @@ export function useShiftEditor(shiftId?: string) {
 
   const isEditMode = !!shiftId;
 
-  // Form State
+  // Form State — shift envelope only
   const [shiftName, setShiftName] = useState("");
   const [shiftSymbol, setShiftSymbol] = useState("");
-  const [shiftStart, setShiftStart] = useState("08:00");
-  const [shiftEnd, setShiftEnd] = useState("17:00");
-  const [shiftBreak, setShiftBreak] = useState(60);
-  const [shiftGrace, setShiftGrace] = useState(15);
-  const [breakStart, setBreakStart] = useState("");
-  const [breakEnd, setBreakEnd] = useState("");
-  const [isFixedBreak, setIsFixedBreakState] = useState(false);
-  const [isAutoDeduct, setIsAutoDeduct] = useState(true);
-  const [isBreakOvertime, setIsBreakOvertime] = useState(false);
-  const [allowEarlyOt, setAllowEarlyOt] = useState(false);
-  const [maxEarlyOtMinutes, setMaxEarlyOtMinutes] = useState(60);
   const [isCorrection, setIsCorrection] = useState(false);
   const [correctionEffectiveDate, setCorrectionEffectiveDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-
   const [locationId, setLocationIdState] = useState<string | null>(null);
   const [employerId, setEmployerIdState] = useState<string | null>(null);
 
@@ -75,28 +89,19 @@ export function useShiftEditor(shiftId?: string) {
     setIsDirty(true);
   };
 
-  // Interval/split-shift state
-  const [intervalDrafts, setIntervalDrafts] = useState<IntervalDraft[]>([]);
-  const [otAggregationMode, setOtAggregationMode] = useState<"aggregate" | "per_segment">("aggregate");
-  const [isNightShift, setIsNightShift] = useState(false);
+  // Interval state — all time/break/policy lives here
+  const [intervalDrafts, setIntervalDrafts] = useState<IntervalDraft[]>([makeDefaultInterval()]);
 
   const addInterval = () => {
-    setIntervalDrafts(prev => [...prev, {
-      key: nextIntervalKey(),
-      intervalName: "",
-      startTime: "08:00",
-      endTime: "17:00",
-      breakDuration: 60,
-      breakStart: "",
-      breakEnd: "",
-      isFixedBreak: false,
-      isAutoDeduct: true,
-    }]);
+    setIntervalDrafts(prev => [...prev, makeDefaultInterval()]);
     setIsDirty(true);
   };
 
   const removeInterval = (key: string) => {
-    setIntervalDrafts(prev => prev.filter(iv => iv.key !== key));
+    setIntervalDrafts(prev => {
+      if (prev.length <= 1) return prev; // must keep at least 1
+      return prev.filter(iv => iv.key !== key);
+    });
     setIsDirty(true);
   };
 
@@ -106,15 +111,6 @@ export function useShiftEditor(shiftId?: string) {
   };
 
   const [isDirty, setIsDirty] = useState(false);
-
-  const setIsFixedBreak = (val: boolean) => {
-    setIsFixedBreakState(val);
-    setIsDirty(true);
-    if (!val && isBreakOvertime) {
-      setIsBreakOvertime(false);
-      setIsAutoDeduct(true);
-    }
-  };
 
   // Fetch all shifts to find editing shift
   const { data: shifts, isLoading: isLoadingShifts } = useQuery<Shift[]>({
@@ -136,24 +132,33 @@ export function useShiftEditor(shiftId?: string) {
   useEffect(() => {
     if (isEditMode && editingShift) {
       setShiftName(editingShift.name);
-      setShiftSymbol(editingShift.report_symbol ?? "");
-      setShiftStart(editingShift.start_time.substring(0, 5));
-      setShiftEnd(editingShift.end_time.substring(0, 5));
-      setShiftBreak(editingShift.break_duration_minutes);
-      setShiftGrace(editingShift.early_punch_in_grace_period_minutes);
-      setBreakStart(editingShift.break_start?.substring(0, 5) ?? "");
-      setBreakEnd(editingShift.break_end?.substring(0, 5) ?? "");
-      setIsFixedBreakState(!!editingShift.break_start);
-      setIsAutoDeduct(editingShift.is_break_auto_deduct);
-      setIsBreakOvertime(editingShift.break_is_overtime);
-      setAllowEarlyOt(editingShift.allow_early_ot);
-      setMaxEarlyOtMinutes(editingShift.max_early_ot_minutes ?? 60);
-      setLocationIdState(editingShift.location_id ?? null);
-      setEmployerIdState(editingShift.employer_id ?? null);
-      setOtAggregationMode((editingShift.ot_aggregation_mode as "aggregate" | "per_segment") ?? "aggregate");
-      setIsNightShift((editingShift as Record<string, unknown>).is_night_shift as boolean ?? false);
+      setShiftSymbol((editingShift as Record<string, unknown>).report_symbol as string ?? "");
+      setLocationIdState((editingShift as Record<string, unknown>).location_id as string ?? null);
+      setEmployerIdState((editingShift as Record<string, unknown>).employer_id as string ?? null);
       setIsCorrection(false);
       setCorrectionEffectiveDate(format(new Date(), 'yyyy-MM-dd'));
+
+      // Load intervals from shift — if present, use them; otherwise create default
+      const intervals = (editingShift as Record<string, unknown>).intervals as Array<Record<string, unknown>> | undefined;
+      if (intervals && intervals.length > 0) {
+        setIntervalDrafts(intervals.map((iv: Record<string, unknown>) => ({
+          key: nextIntervalKey(),
+          intervalName: (iv.interval_name as string) ?? "",
+          startTime: ((iv.start_time as string) ?? "08:00").substring(0, 5),
+          endTime: ((iv.end_time as string) ?? "17:00").substring(0, 5),
+          breakDuration: (iv.break_duration_minutes as number) ?? 60,
+          breakStart: ((iv.break_start as string) ?? "").substring(0, 5),
+          breakEnd: ((iv.break_end as string) ?? "").substring(0, 5),
+          isFixedBreak: !!(iv.break_start as string),
+          isAutoDeduct: (iv.is_break_auto_deduct as boolean) ?? true,
+          isBreakOvertime: (iv.break_is_overtime as boolean) ?? false,
+          gracePeriodMinutes: (iv.early_punch_in_grace_period_minutes as number) ?? 15,
+          allowEarlyOt: (iv.allow_early_ot as boolean) ?? false,
+          maxEarlyOtMinutes: (iv.max_early_ot_minutes as number) ?? null,
+          otAggregationMode: (iv.ot_aggregation_mode as "aggregate" | "per_segment") ?? "aggregate",
+          isNightShift: (iv.is_night_shift as boolean) ?? false,
+        })));
+      }
       setIsDirty(false);
     }
   }, [editingShift, isEditMode]);
@@ -189,38 +194,37 @@ export function useShiftEditor(shiftId?: string) {
   });
 
   const isSaving = createShiftMutation.isPending || updateShiftMutation.isPending;
-  const isSaveDisabled = isSaving || !shiftName || !shiftStart || !shiftEnd || (allowEarlyOt && (!maxEarlyOtMinutes || maxEarlyOtMinutes <= 0));
+  const hasValidIntervals = intervalDrafts.length > 0 && intervalDrafts.every(iv => iv.startTime && iv.endTime);
+  const isSaveDisabled = isSaving || !shiftName || !hasValidIntervals;
+
+  const padTime = (t: string) => t.length === 5 ? t + ":00" : t;
 
   const buildPayload = () => {
-    const base = {
-      name: shiftName,
-      report_symbol: shiftSymbol || null,
-      start_time: shiftStart + (shiftStart.length === 5 ? ":00" : ""),
-      end_time: shiftEnd + (shiftEnd.length === 5 ? ":00" : ""),
-      break_duration_minutes: shiftBreak,
-      early_punch_in_grace_period_minutes: shiftGrace,
-      break_is_overtime: isBreakOvertime,
-      allow_early_ot: allowEarlyOt,
-      max_early_ot_minutes: allowEarlyOt ? maxEarlyOtMinutes : null,
-      is_break_auto_deduct: isAutoDeduct,
-      location_id: locationId,
-      employer_id: employerId,
-      ot_aggregation_mode: otAggregationMode,
-      is_night_shift: isNightShift,
-    };
-
-    if (isFixedBreak && breakStart && breakEnd) {
-      return {
-        ...base,
-        break_start: breakStart + (breakStart.length === 5 ? ":00" : ""),
-        break_end: breakEnd + (breakEnd.length === 5 ? ":00" : ""),
+    const intervals = intervalDrafts.map(iv => {
+      const payload: Record<string, unknown> = {
+        interval_name: iv.intervalName || null,
+        start_time: padTime(iv.startTime),
+        end_time: padTime(iv.endTime),
+        break_duration_minutes: iv.breakDuration,
+        break_start: iv.isFixedBreak && iv.breakStart ? padTime(iv.breakStart) : null,
+        break_end: iv.isFixedBreak && iv.breakEnd ? padTime(iv.breakEnd) : null,
+        is_break_auto_deduct: iv.isAutoDeduct,
+        break_is_overtime: iv.isBreakOvertime,
+        early_punch_in_grace_period_minutes: iv.gracePeriodMinutes,
+        allow_early_ot: iv.allowEarlyOt,
+        max_early_ot_minutes: iv.allowEarlyOt ? iv.maxEarlyOtMinutes : null,
+        ot_aggregation_mode: iv.otAggregationMode,
+        is_night_shift: iv.isNightShift,
       };
-    }
+      return payload;
+    });
 
     return {
-      ...base,
-      break_start: null,
-      break_end: null,
+      name: shiftName,
+      report_symbol: shiftSymbol || null,
+      location_id: locationId,
+      employer_id: employerId,
+      intervals,
     };
   };
 
@@ -237,10 +241,10 @@ export function useShiftEditor(shiftId?: string) {
           ...payload,
           is_correction: isCorrection,
           effective_date: isCorrection ? undefined : correctionEffectiveDate,
-        },
+        } as unknown as UpdateShiftRequest,
       });
     } else {
-      createShiftMutation.mutate(payload);
+      createShiftMutation.mutate(payload as unknown as CreateShiftRequest);
     }
   };
 
@@ -257,32 +261,6 @@ export function useShiftEditor(shiftId?: string) {
     setShiftName: (v: string) => { setShiftName(v); setIsDirty(true); },
     shiftSymbol,
     setShiftSymbol: (v: string) => { setShiftSymbol(v); setIsDirty(true); },
-    shiftStart,
-    setShiftStart: (v: string) => { setShiftStart(v); setIsDirty(true); },
-    shiftEnd,
-    setShiftEnd: (v: string) => { setShiftEnd(v); setIsDirty(true); },
-    shiftBreak,
-    setShiftBreak: (v: number) => { setShiftBreak(v); setIsDirty(true); },
-    shiftGrace,
-    setShiftGrace: (v: number) => { setShiftGrace(v); setIsDirty(true); },
-    breakStart,
-    setBreakStart: (v: string) => { setBreakStart(v); setIsDirty(true); },
-    breakEnd,
-    setBreakEnd: (v: string) => { setBreakEnd(v); setIsDirty(true); },
-    isFixedBreak,
-    setIsFixedBreak,
-    isAutoDeduct,
-    setIsAutoDeduct: (v: boolean) => { setIsAutoDeduct(v); setIsDirty(true); },
-    isBreakOvertime,
-    setIsBreakOvertime: (v: boolean) => { setIsBreakOvertime(v); setIsDirty(true); },
-    allowEarlyOt,
-    setAllowEarlyOt: (v: boolean) => { setAllowEarlyOt(v); setIsDirty(true); },
-    maxEarlyOtMinutes,
-    setMaxEarlyOtMinutes: (v: number) => { setMaxEarlyOtMinutes(v); setIsDirty(true); },
-    isCorrection,
-    setIsCorrection: (v: boolean) => { setIsCorrection(v); setIsDirty(true); },
-    correctionEffectiveDate,
-    setCorrectionEffectiveDate: (v: string) => { setCorrectionEffectiveDate(v); setIsDirty(true); },
     locationId,
     setLocationId,
     employerId,
@@ -294,14 +272,14 @@ export function useShiftEditor(shiftId?: string) {
     setIsDirty,
     blocker,
     workspaceRules,
-    // Intervals / split-shift
+    // Intervals — all config is per-interval
     intervalDrafts,
     addInterval,
     removeInterval,
     updateIntervalDraft,
-    otAggregationMode,
-    setOtAggregationMode: (v: "aggregate" | "per_segment") => { setOtAggregationMode(v); setIsDirty(true); },
-    isNightShift,
-    setIsNightShift: (v: boolean) => { setIsNightShift(v); setIsDirty(true); },
+    isCorrection,
+    setIsCorrection: (v: boolean) => { setIsCorrection(v); setIsDirty(true); },
+    correctionEffectiveDate,
+    setCorrectionEffectiveDate: (v: string) => { setCorrectionEffectiveDate(v); setIsDirty(true); },
   };
 }

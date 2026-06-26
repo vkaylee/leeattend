@@ -8,7 +8,6 @@ use uuid::Uuid;
 
 use crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
 use crate::repositories::roster::RosterRepository;
-use crate::repositories::shift_repository::ShiftRepository;
 use crate::repositories::TimeEntryRepository;
 use crate::services::SummaryRecalculator;
 
@@ -348,7 +347,6 @@ pub struct PairingServiceArgs {
     pub(crate) roster_repo: Arc<dyn RosterRepository>,
     pub(crate) employee_repo: Arc<dyn crate::repositories::employee::EmployeeRepository>,
     pub(crate) raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
-    pub(crate) shift_repo: Arc<dyn ShiftRepository>,
     pub(crate) summary_service: Arc<dyn SummaryRecalculator>,
 }
 
@@ -358,7 +356,6 @@ impl PairingServiceArgs {
         roster_repo: Arc<dyn RosterRepository>,
         employee_repo: Arc<dyn crate::repositories::employee::EmployeeRepository>,
         raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
-        shift_repo: Arc<dyn ShiftRepository>,
         summary_service: Arc<dyn SummaryRecalculator>,
     ) -> Self {
         Self {
@@ -366,7 +363,6 @@ impl PairingServiceArgs {
             roster_repo,
             employee_repo,
             raw_log_repo,
-            shift_repo,
             summary_service,
         }
     }

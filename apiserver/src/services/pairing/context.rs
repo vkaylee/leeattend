@@ -1,5 +1,5 @@
 use crate::errors::AppError;
-use crate::models::{RawAttendanceLog, ResolvedSegment, Shift, TimeEntry};
+use crate::models::{RawAttendanceLog, ResolvedSegment, TimeEntry};
 use crate::services::pairing::types::{
     LogEvent, MultiSegmentConfig, PairedSession, PairingContext, PairingShiftConfig,
 };
@@ -22,14 +22,20 @@ impl PairingContext {
         self.tz
     }
 
-    pub fn build_shift_config(&self, shift: Option<&Shift>) -> Option<PairingShiftConfig> {
-        let s = shift?;
+    pub fn build_shift_config(
+        &self,
+        start_time: NaiveTime,
+        end_time: NaiveTime,
+        break_start: Option<NaiveTime>,
+        break_end: Option<NaiveTime>,
+        grace_minutes: i32,
+    ) -> Option<PairingShiftConfig> {
         Some(build_config_from_times(
-            s.start_time(),
-            s.end_time(),
-            s.break_start(),
-            s.break_end(),
-            s.early_punch_in_grace_period_minutes(),
+            start_time,
+            end_time,
+            break_start,
+            break_end,
+            grace_minutes,
         ))
     }
 

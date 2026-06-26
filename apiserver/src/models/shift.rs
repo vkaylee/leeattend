@@ -22,47 +22,31 @@ pub struct AssignShiftRequest {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, utoipa::ToSchema)]
-#[allow(clippy::struct_excessive_bools)]
 pub struct Shift {
     id: Uuid,
     workspace_id: Uuid,
     name: String,
     report_symbol: Option<String>,
-    start_time: NaiveTime,
-    end_time: NaiveTime,
-    break_duration_minutes: i32,
-    break_start: Option<NaiveTime>,
-    break_end: Option<NaiveTime>,
-    is_break_auto_deduct: bool,
-    break_is_overtime: bool,
-    early_punch_in_grace_period_minutes: i32,
-    allow_early_ot: bool,
-    max_early_ot_minutes: Option<i32>,
     is_active: bool,
     parent_shift_id: Option<Uuid>,
     location_id: Option<Uuid>,
     employer_id: Option<Uuid>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
+    /// Intervals are populated by the handler when listing shifts (not on create/update).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub intervals: Option<Vec<ShiftDefaultIntervalEntity>>,
 }
 
+/// Re-export the diesel entity as the API interval response type
+pub use crate::models::diesel::roster::ShiftDefaultIntervalEntity;
+
 impl Shift {
-    #[allow(clippy::too_many_arguments, clippy::fn_params_excessive_bools)]
     pub fn new(
         id: Uuid,
         workspace_id: Uuid,
         name: String,
         report_symbol: Option<String>,
-        start_time: NaiveTime,
-        end_time: NaiveTime,
-        break_duration_minutes: i32,
-        break_start: Option<NaiveTime>,
-        break_end: Option<NaiveTime>,
-        is_break_auto_deduct: bool,
-        break_is_overtime: bool,
-        early_punch_in_grace_period_minutes: i32,
-        allow_early_ot: bool,
-        max_early_ot_minutes: Option<i32>,
         is_active: bool,
         parent_shift_id: Option<Uuid>,
         location_id: Option<Uuid>,
@@ -75,22 +59,13 @@ impl Shift {
             workspace_id,
             name,
             report_symbol,
-            start_time,
-            end_time,
-            break_duration_minutes,
-            break_start,
-            break_end,
-            is_break_auto_deduct,
-            break_is_overtime,
-            early_punch_in_grace_period_minutes,
-            allow_early_ot,
-            max_early_ot_minutes,
             is_active,
             parent_shift_id,
             location_id,
             employer_id,
             created_at,
             updated_at,
+            intervals: None,
         }
     }
 
@@ -105,36 +80,6 @@ impl Shift {
     }
     pub fn report_symbol(&self) -> Option<&str> {
         self.report_symbol.as_deref()
-    }
-    pub fn start_time(&self) -> NaiveTime {
-        self.start_time
-    }
-    pub fn end_time(&self) -> NaiveTime {
-        self.end_time
-    }
-    pub fn break_duration_minutes(&self) -> i32 {
-        self.break_duration_minutes
-    }
-    pub fn break_start(&self) -> Option<NaiveTime> {
-        self.break_start
-    }
-    pub fn break_end(&self) -> Option<NaiveTime> {
-        self.break_end
-    }
-    pub fn is_break_auto_deduct(&self) -> bool {
-        self.is_break_auto_deduct
-    }
-    pub fn break_is_overtime(&self) -> bool {
-        self.break_is_overtime
-    }
-    pub fn early_punch_in_grace_period_minutes(&self) -> i32 {
-        self.early_punch_in_grace_period_minutes
-    }
-    pub fn allow_early_ot(&self) -> bool {
-        self.allow_early_ot
-    }
-    pub fn max_early_ot_minutes(&self) -> Option<i32> {
-        self.max_early_ot_minutes
     }
     pub fn is_active(&self) -> bool {
         self.is_active
@@ -165,63 +110,71 @@ pub(super) fn default_true() -> bool {
     true
 }
 
+/// Interval config within a shift create/update request.
+#[derive(Debug, Clone, Deserialize, utoipa::ToSchema)]
+#[allow(clippy::struct_excessive_bools)]
+pub struct CreateIntervalRequest {
+    #[serde(default)]
+    pub interval_name: Option<String>,
+    pub start_time: NaiveTime,
+    pub end_time: NaiveTime,
+    #[serde(default)]
+    pub break_duration_minutes: i32,
+    #[serde(default)]
+    pub break_start: Option<NaiveTime>,
+    #[serde(default)]
+    pub break_end: Option<NaiveTime>,
+    #[serde(default = "default_true")]
+    pub is_break_auto_deduct: bool,
+    #[serde(default)]
+    pub break_is_overtime: bool,
+    #[serde(default)]
+    pub early_punch_in_grace_period_minutes: i32,
+    #[serde(default)]
+    pub allow_early_ot: bool,
+    #[serde(default)]
+    pub max_early_ot_minutes: Option<i32>,
+    #[serde(default = "default_aggregate")]
+    pub ot_aggregation_mode: String,
+    #[serde(default)]
+    pub is_night_shift: bool,
+}
+
+fn default_aggregate() -> String {
+    "aggregate".to_string()
+}
+
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct CreateShiftRequest {
     pub name: String,
     #[serde(default)]
     pub report_symbol: Option<String>,
-    pub start_time: NaiveTime,
-    pub end_time: NaiveTime,
-    pub break_duration_minutes: i32,
-    #[serde(default)]
-    pub break_start: Option<NaiveTime>,
-    #[serde(default)]
-    pub break_end: Option<NaiveTime>,
-    #[serde(default = "default_true")]
-    pub is_break_auto_deduct: bool,
-    #[serde(default)]
-    pub break_is_overtime: bool,
-    #[serde(default)]
-    pub early_punch_in_grace_period_minutes: i32,
-    #[serde(default)]
-    pub allow_early_ot: bool,
-    #[serde(default)]
-    pub max_early_ot_minutes: Option<i32>,
     #[serde(default)]
     pub location_id: Option<Uuid>,
     #[serde(default)]
     pub employer_id: Option<Uuid>,
+    /// Intervals (time blocks) within this shift. At least 1 required.
+    /// If empty, a default interval spanning the full shift time is auto-created
+    /// (but callers SHOULD provide at least 1).
+    #[serde(default)]
+    pub intervals: Vec<CreateIntervalRequest>,
 }
 
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
-#[allow(clippy::struct_excessive_bools)]
 pub struct UpdateShiftRequest {
     pub name: String,
     #[serde(default)]
     pub report_symbol: Option<String>,
-    pub start_time: NaiveTime,
-    pub end_time: NaiveTime,
-    pub break_duration_minutes: i32,
-    #[serde(default)]
-    pub break_start: Option<NaiveTime>,
-    #[serde(default)]
-    pub break_end: Option<NaiveTime>,
-    #[serde(default = "default_true")]
-    pub is_break_auto_deduct: bool,
-    #[serde(default)]
-    pub break_is_overtime: bool,
-    #[serde(default)]
-    pub early_punch_in_grace_period_minutes: i32,
-    #[serde(default)]
-    pub allow_early_ot: bool,
-    #[serde(default)]
-    pub max_early_ot_minutes: Option<i32>,
     #[serde(default)]
     pub location_id: Option<Uuid>,
     #[serde(default)]
     pub employer_id: Option<Uuid>,
+    /// Intervals (time blocks) to replace the existing intervals for this shift.
+    /// At least 1 required.
+    #[serde(default)]
+    pub intervals: Vec<CreateIntervalRequest>,
     /// If true, update the current record (Correction).
-    /// If false (default), create a new version if time-related fields changed.
+    /// If false (default), create a new version if interval config changed.
     #[serde(default)]
     pub is_correction: bool,
     /// Effective date for the new version. If not provided, defaults to today.
@@ -268,23 +221,27 @@ mod tests {
     fn test_create_shift_request_defaults() {
         let json = r#"{
             "name": "Morning",
-            "start_time": "08:00:00",
-            "end_time": "17:00:00",
-            "break_duration_minutes": 60
+            "intervals": [{
+                "start_time": "08:00:00",
+                "end_time": "17:00:00",
+                "break_duration_minutes": 60
+            }]
         }"#;
         let req: CreateShiftRequest = serde_json::from_str(json).unwrap();
         assert_eq!(req.name, "Morning");
-        assert_eq!(req.start_time, NaiveTime::from_hms_opt(8, 0, 0).unwrap());
-        assert_eq!(req.end_time, NaiveTime::from_hms_opt(17, 0, 0).unwrap());
-        assert_eq!(req.break_duration_minutes, 60);
-        assert!(req.is_break_auto_deduct); // default_true()
-        assert!(!req.break_is_overtime); // default false
-        assert_eq!(req.early_punch_in_grace_period_minutes, 0);
-        assert!(!req.allow_early_ot);
-        assert!(req.max_early_ot_minutes.is_none());
         assert!(req.report_symbol.is_none());
-        assert!(req.break_start.is_none());
-        assert!(req.break_end.is_none());
+        assert_eq!(req.intervals.len(), 1);
+        let iv = &req.intervals[0];
+        assert_eq!(iv.start_time, NaiveTime::from_hms_opt(8, 0, 0).unwrap());
+        assert_eq!(iv.end_time, NaiveTime::from_hms_opt(17, 0, 0).unwrap());
+        assert_eq!(iv.break_duration_minutes, 60);
+        assert!(iv.is_break_auto_deduct); // default_true()
+        assert!(!iv.break_is_overtime); // default false
+        assert_eq!(iv.early_punch_in_grace_period_minutes, 0);
+        assert!(!iv.allow_early_ot);
+        assert!(iv.max_early_ot_minutes.is_none());
+        assert!(iv.break_start.is_none());
+        assert!(iv.break_end.is_none());
     }
 
     #[test]
@@ -292,34 +249,44 @@ mod tests {
         let json = r#"{
             "name": "Night",
             "report_symbol": "N",
-            "start_time": "22:00:00",
-            "end_time": "06:00:00",
-            "break_duration_minutes": 30,
-            "break_start": "01:00:00",
-            "break_end": "01:30:00",
-            "is_break_auto_deduct": false,
-            "break_is_overtime": true,
-            "early_punch_in_grace_period_minutes": 15,
-            "allow_early_ot": true,
-            "max_early_ot_minutes": 120
+            "intervals": [{
+                "interval_name": "Night Block",
+                "start_time": "22:00:00",
+                "end_time": "06:00:00",
+                "break_duration_minutes": 30,
+                "break_start": "01:00:00",
+                "break_end": "01:30:00",
+                "is_break_auto_deduct": false,
+                "break_is_overtime": true,
+                "early_punch_in_grace_period_minutes": 15,
+                "allow_early_ot": true,
+                "max_early_ot_minutes": 120,
+                "is_night_shift": true
+            }]
         }"#;
         let req: CreateShiftRequest = serde_json::from_str(json).unwrap();
         assert_eq!(req.name, "Night");
         assert_eq!(req.report_symbol.as_deref(), Some("N"));
-        assert!(!req.is_break_auto_deduct);
-        assert!(req.break_is_overtime);
-        assert_eq!(req.early_punch_in_grace_period_minutes, 15);
-        assert!(req.allow_early_ot);
-        assert_eq!(req.max_early_ot_minutes, Some(120));
+        assert_eq!(req.intervals.len(), 1);
+        let iv = &req.intervals[0];
+        assert_eq!(iv.interval_name.as_deref(), Some("Night Block"));
+        assert!(!iv.is_break_auto_deduct);
+        assert!(iv.break_is_overtime);
+        assert_eq!(iv.early_punch_in_grace_period_minutes, 15);
+        assert!(iv.allow_early_ot);
+        assert_eq!(iv.max_early_ot_minutes, Some(120));
+        assert!(iv.is_night_shift);
     }
 
     #[test]
     fn test_update_shift_request_with_correction() {
         let json = r#"{
             "name": "Morning Updated",
-            "start_time": "07:30:00",
-            "end_time": "16:30:00",
-            "break_duration_minutes": 45,
+            "intervals": [{
+                "start_time": "07:30:00",
+                "end_time": "16:30:00",
+                "break_duration_minutes": 45
+            }],
             "is_correction": true,
             "effective_date": "2026-04-01"
         }"#;
@@ -336,14 +303,17 @@ mod tests {
     fn test_update_shift_request_defaults() {
         let json = r#"{
             "name": "Morning",
-            "start_time": "08:00:00",
-            "end_time": "17:00:00",
-            "break_duration_minutes": 60
+            "intervals": [{
+                "start_time": "08:00:00",
+                "end_time": "17:00:00",
+                "break_duration_minutes": 60
+            }]
         }"#;
         let req: UpdateShiftRequest = serde_json::from_str(json).unwrap();
         assert!(!req.is_correction);
         assert!(req.effective_date.is_none());
-        assert!(req.is_break_auto_deduct); // default_true
+        assert_eq!(req.intervals.len(), 1);
+        assert!(req.intervals[0].is_break_auto_deduct); // default_true
     }
 
     #[test]

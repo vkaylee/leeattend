@@ -41,7 +41,7 @@ function CellEditControl({
         onBlur={onBlur}
         onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { setEditValue(e.target.value); }}
         ref={selectRef}
-        value={editValue}
+        value={editValue as string}
       >
         {editOptions?.map((opt) => (
           <option key={opt.value} value={opt.value}>
@@ -59,7 +59,7 @@ function CellEditControl({
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setEditValue(e.target.value); }}
       ref={inputRef}
       type={editType === "number" ? "number" : "text"}
-      value={(editValue) ?? ""}
+      value={(editValue as string) ?? ""}
     />
   );
 }

@@ -517,18 +517,26 @@ impl ShiftBuilder {
 
     pub async fn create(self) -> Uuid {
         tokio::time::timeout(std::time::Duration::from_secs(5), async {
-            crate::test_query_scalar_uuid!(
+            let ws_id = self.workspace_id.expect("Workspace ID is required for Shift");
+            let shift_id: Uuid = crate::test_query_scalar_uuid!(
                 &self.diesel_pools.api,
-                "INSERT INTO shifts (workspace_id, name, start_time, end_time, break_duration_minutes, break_is_overtime, early_punch_in_grace_period_minutes, allow_early_ot) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id",
-                diesel::sql_types::Uuid, self.workspace_id.expect("Workspace ID is required for Shift"),
-                diesel::sql_types::Text, self.name,
+                "INSERT INTO shifts (workspace_id, name) VALUES ($1, $2) RETURNING id",
+                diesel::sql_types::Uuid, ws_id,
+                diesel::sql_types::Text, self.name
+            );
+            // Insert default interval with time/break/policy data
+            crate::test_execute!(
+                &self.diesel_pools.api,
+                "INSERT INTO shift_default_intervals (shift_id, sort_order, start_time, end_time, break_duration_minutes, break_is_overtime, early_punch_in_grace_period_minutes, allow_early_ot) VALUES ($1, 0, $2, $3, $4, $5, $6, $7)",
+                diesel::sql_types::Uuid, shift_id,
                 diesel::sql_types::Time, self.start_time,
                 diesel::sql_types::Time, self.end_time,
                 diesel::sql_types::Integer, self.break_duration_minutes,
                 diesel::sql_types::Bool, self.break_is_overtime,
                 diesel::sql_types::Integer, self.early_punch_in_grace_period_minutes,
                 diesel::sql_types::Bool, self.allow_early_ot
-            )
+            );
+            shift_id
         }).await.expect("Shift creation timed out")
     }
 

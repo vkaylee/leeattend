@@ -32,7 +32,6 @@ pub async fn build_attendance_services(
         Arc::clone(&repos.employee),
         Arc::clone(&repos.employment),
         Arc::clone(&repos.workspace),
-        Arc::clone(&repos.shift),
         Arc::clone(&repos.holiday),
         Arc::clone(&repos.leave_request),
         Arc::clone(&repos.attendance_daily_summary),
@@ -59,9 +58,6 @@ pub async fn build_attendance_services(
                 Arc::clone(&repos.roster),
                 Arc::clone(&repos.employee),
                 Arc::clone(&repos.raw_log),
-                Arc::new(crate::repositories::DieselShiftRepository::new(
-                    diesel_pools.clone(),
-                )),
                 Arc::clone(&attendance_summary) as Arc<dyn crate::services::SummaryRecalculator>,
             ),
         ));

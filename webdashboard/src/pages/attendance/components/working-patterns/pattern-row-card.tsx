@@ -114,20 +114,29 @@ function DayTimelinePill({
                     {shift.name}
                   </h5>
                   <div className="flex flex-col gap-1.5 text-xs text-slate-600 dark:text-slate-350">
+                    {(() => {
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      const iv = ((shift as any).intervals as any[])?.[0];
+                      const st = (iv?.start_time as string)?.substring(0, 5) ?? '--';
+                      const et = (iv?.end_time as string)?.substring(0, 5) ?? '--';
+                      const bs = iv?.break_start as string;
+                      const be = iv?.break_end as string;
+                      const bd = (iv?.break_duration_minutes as number) ?? 0;
+                      return (<>
                     <div className="flex items-center gap-2">
                       <Clock className="text-primary-500 dark:text-primary-400" size={14} />
-                      <span className="font-semibold">
-                        {shift.start_time} - {shift.end_time}
-                      </span>
+                      <span className="font-semibold">{st} - {et}</span>
                     </div>
-                    {!!shift.break_start && !!shift.break_end && (
+                    {bs && be ? (
                       <div className="flex items-center gap-2">
                         <Coffee className="text-amber-500 dark:text-amber-400" size={14} />
                         <span>
-                          {t("shifts.table.break_time")}: {shift.break_start} - {shift.break_end} ({shift.break_duration_minutes}m)
+                          {t("shifts.table.break_time")}: {bs.substring(0,5)} - {be.substring(0,5)} ({bd}m)
                         </span>
                       </div>
-                    )}
+                    ) : null}
+                      </>);
+                    })()}
                   </div>
                 </div>
               );

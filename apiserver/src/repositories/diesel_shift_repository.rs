@@ -6,10 +6,10 @@ use uuid::Uuid;
 
 use crate::diesel_pool::DieselPools;
 use crate::errors::AppError;
-use crate::models::diesel::roster::{EmployeeShiftEntity, ShiftEntity};
+use crate::models::diesel::roster::{EmployeeShiftEntity, ShiftDefaultIntervalEntity, ShiftEntity};
 use crate::models::shift::Shift;
 use crate::repositories::shift_repository::ShiftRepository;
-use crate::schema::{employee_shifts, shifts};
+use crate::schema::{employee_shifts, shift_default_intervals, shifts};
 
 pub struct DieselShiftRepository {
     diesel_pools: DieselPools,
@@ -43,20 +43,10 @@ impl ShiftRepository for DieselShiftRepository {
             id: Uuid::new_v4(),
             workspace_id,
             name: req.name.clone(),
-            start_time: req.start_time,
-            end_time: req.end_time,
-            break_duration_minutes: req.break_duration_minutes,
             created_at: Some(Utc::now()),
             updated_at: Some(Utc::now()),
-            break_is_overtime: req.break_is_overtime,
-            early_punch_in_grace_period_minutes: req.early_punch_in_grace_period_minutes,
-            break_start: req.break_start,
-            break_end: req.break_end,
-            is_break_auto_deduct: req.is_break_auto_deduct,
             is_active,
             parent_shift_id,
-            allow_early_ot: req.allow_early_ot,
-            max_early_ot_minutes: req.max_early_ot_minutes,
             report_symbol: req.report_symbol.clone(),
             location_id: req.location_id,
             employer_id: req.employer_id,
@@ -67,6 +57,40 @@ impl ShiftRepository for DieselShiftRepository {
             .get_result(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        // Insert intervals for this shift — at least 1 required
+        if req.intervals.is_empty() {
+            return Err(AppError::validation(
+                crate::utils::i18n::I18nKey::Validation,
+            ));
+        }
+        for (i, iv) in req.intervals.iter().enumerate() {
+            let interval_entity = ShiftDefaultIntervalEntity {
+                id: Uuid::new_v4(),
+                shift_id: entity.id,
+                sort_order: i32::try_from(i).unwrap_or(0),
+                interval_name: iv.interval_name.clone(),
+                start_time: iv.start_time,
+                end_time: iv.end_time,
+                break_duration_minutes: iv.break_duration_minutes,
+                break_start: iv.break_start,
+                break_end: iv.break_end,
+                is_break_auto_deduct: iv.is_break_auto_deduct,
+                break_is_overtime: iv.break_is_overtime,
+                early_punch_in_grace_period_minutes: iv.early_punch_in_grace_period_minutes,
+                allow_early_ot: iv.allow_early_ot,
+                max_early_ot_minutes: iv.max_early_ot_minutes,
+                ot_aggregation_mode: iv.ot_aggregation_mode.clone(),
+                is_night_shift: iv.is_night_shift,
+                created_at: Some(Utc::now()),
+                updated_at: Some(Utc::now()),
+            };
+            diesel::insert_into(shift_default_intervals::table)
+                .values(&interval_entity)
+                .execute(&mut *conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("db insert interval: {e}")))?;
+        }
 
         Ok(entity.into())
     }
@@ -209,17 +233,6 @@ impl ShiftRepository for DieselShiftRepository {
             .set((
                 shifts::name.eq(&req.name),
                 shifts::report_symbol.eq(&req.report_symbol),
-                shifts::start_time.eq(req.start_time),
-                shifts::end_time.eq(req.end_time),
-                shifts::break_duration_minutes.eq(req.break_duration_minutes),
-                shifts::break_start.eq(req.break_start),
-                shifts::break_end.eq(req.break_end),
-                shifts::is_break_auto_deduct.eq(req.is_break_auto_deduct),
-                shifts::break_is_overtime.eq(req.break_is_overtime),
-                shifts::early_punch_in_grace_period_minutes
-                    .eq(req.early_punch_in_grace_period_minutes),
-                shifts::allow_early_ot.eq(req.allow_early_ot),
-                shifts::max_early_ot_minutes.eq(req.max_early_ot_minutes),
                 shifts::location_id.eq(req.location_id),
                 shifts::employer_id.eq(req.employer_id),
                 shifts::updated_at.eq(Utc::now()),
@@ -227,6 +240,47 @@ impl ShiftRepository for DieselShiftRepository {
             .get_result(&mut *conn)
             .await
             .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        // Replace intervals: delete old, insert new
+        diesel::delete(
+            shift_default_intervals::table.filter(shift_default_intervals::shift_id.eq(id)),
+        )
+        .execute(&mut *conn)
+        .await
+        .map_err(|e| AppError::Internal(format!("db delete intervals: {e}")))?;
+
+        if req.intervals.is_empty() {
+            return Err(AppError::validation(
+                crate::utils::i18n::I18nKey::Validation,
+            ));
+        }
+        for (i, iv) in req.intervals.iter().enumerate() {
+            let interval_entity = ShiftDefaultIntervalEntity {
+                id: Uuid::new_v4(),
+                shift_id: entity.id,
+                sort_order: i32::try_from(i).unwrap_or(0),
+                interval_name: iv.interval_name.clone(),
+                start_time: iv.start_time,
+                end_time: iv.end_time,
+                break_duration_minutes: iv.break_duration_minutes,
+                break_start: iv.break_start,
+                break_end: iv.break_end,
+                is_break_auto_deduct: iv.is_break_auto_deduct,
+                break_is_overtime: iv.break_is_overtime,
+                early_punch_in_grace_period_minutes: iv.early_punch_in_grace_period_minutes,
+                allow_early_ot: iv.allow_early_ot,
+                max_early_ot_minutes: iv.max_early_ot_minutes,
+                ot_aggregation_mode: iv.ot_aggregation_mode.clone(),
+                is_night_shift: iv.is_night_shift,
+                created_at: Some(Utc::now()),
+                updated_at: Some(Utc::now()),
+            };
+            diesel::insert_into(shift_default_intervals::table)
+                .values(&interval_entity)
+                .execute(&mut *conn)
+                .await
+                .map_err(|e| AppError::Internal(format!("db insert interval: {e}")))?;
+        }
 
         Ok(entity.into())
     }

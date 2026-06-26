@@ -193,7 +193,7 @@ function PatternSelector({
                         const badgeText = isOff ? "OFF" : (shiftInfo.report_symbol ?? shiftInfo.name.substring(0, 2).toUpperCase());
                         const tooltipTitle = isOff 
                           ? t("status_off") 
-                          : `${shiftInfo.name} (${shiftInfo.start_time} - ${shiftInfo.end_time})`;
+                          : `${shiftInfo.name} (${(shiftInfo as any).intervals?.[0]?.start_time ?? '--'} - ${(shiftInfo as any).intervals?.[0]?.end_time ?? '--'})`;
                         const pillClass = isOff
                           ? "bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-200/55 dark:border-slate-700/55 opacity-75"
                           : "bg-primary-50 dark:bg-primary-950/40 text-primary-700 dark:text-primary-300 border-primary-100 dark:border-primary-800/80";
@@ -229,7 +229,7 @@ function PatternSelector({
                         const badgeText = isOff ? "OFF" : (shiftInfo.report_symbol ?? shiftInfo.name.substring(0, 2).toUpperCase());
                         const tooltipTitle = isOff 
                           ? t("status_off") 
-                          : `${shiftInfo.name} (${shiftInfo.start_time} - ${shiftInfo.end_time})`;
+                          : `${shiftInfo.name} (${(shiftInfo as any).intervals?.[0]?.start_time ?? '--'} - ${(shiftInfo as any).intervals?.[0]?.end_time ?? '--'})`;
                         const pillClass = isOff
                           ? "bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-200/55 dark:border-slate-700/55 opacity-75"
                           : "bg-primary-50 dark:bg-primary-950/40 text-primary-700 dark:text-primary-300 border-primary-100 dark:border-primary-800/80";
@@ -262,7 +262,7 @@ function PatternSelector({
                       const badgeText = isOff ? "OFF" : (shiftInfo.report_symbol ?? shiftInfo.name.substring(0, 2).toUpperCase());
                       const tooltipTitle = isOff 
                         ? t("status_off") 
-                        : `${shiftInfo.name} (${shiftInfo.start_time} - ${shiftInfo.end_time})`;
+                        : `${shiftInfo.name} (${(shiftInfo as any).intervals?.[0]?.start_time ?? '--'} - ${(shiftInfo as any).intervals?.[0]?.end_time ?? '--'})`;
                       const pillClass = isOff
                         ? "bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-200/55 dark:border-slate-700/55 opacity-75"
                         : "bg-primary-50 dark:bg-primary-950/40 text-primary-700 dark:text-primary-300 border-primary-100 dark:border-primary-800/80";

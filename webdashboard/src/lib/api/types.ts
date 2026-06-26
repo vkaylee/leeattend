@@ -645,11 +645,16 @@ export interface ShiftDefaultInterval {
   interval_name?: string | null;
   start_time: string;
   end_time: string;
-  break_duration_minutes?: number | null;
+  break_duration_minutes: number;
   break_start?: string | null;
   break_end?: string | null;
-  is_break_auto_deduct?: boolean | null;
-  break_is_overtime?: boolean | null;
+  is_break_auto_deduct: boolean;
+  break_is_overtime: boolean;
+  early_punch_in_grace_period_minutes: number;
+  allow_early_ot: boolean;
+  max_early_ot_minutes?: number | null;
+  ot_aggregation_mode: string;
+  is_night_shift: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -659,11 +664,16 @@ export interface CreateShiftIntervalRequest {
   interval_name?: string | null;
   start_time: string;
   end_time: string;
-  break_duration_minutes?: number | null;
+  break_duration_minutes?: number;
   break_start?: string | null;
   break_end?: string | null;
-  is_break_auto_deduct?: boolean | null;
-  break_is_overtime?: boolean | null;
+  is_break_auto_deduct?: boolean;
+  break_is_overtime?: boolean;
+  early_punch_in_grace_period_minutes?: number;
+  allow_early_ot?: boolean;
+  max_early_ot_minutes?: number | null;
+  ot_aggregation_mode?: string;
+  is_night_shift?: boolean;
 }
 
 export interface UpdateShiftIntervalRequest {
@@ -671,11 +681,16 @@ export interface UpdateShiftIntervalRequest {
   interval_name?: string | null;
   start_time?: string | null;
   end_time?: string | null;
-  break_duration_minutes?: number | null;
+  break_duration_minutes?: number;
   break_start?: string | null;
   break_end?: string | null;
-  is_break_auto_deduct?: boolean | null;
-  break_is_overtime?: boolean | null;
+  is_break_auto_deduct?: boolean;
+  break_is_overtime?: boolean;
+  early_punch_in_grace_period_minutes?: number;
+  allow_early_ot?: boolean;
+  max_early_ot_minutes?: number | null;
+  ot_aggregation_mode?: string;
+  is_night_shift?: boolean;
 }
 
 

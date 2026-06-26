@@ -209,39 +209,21 @@ impl EffectiveSchedule {
         self.holiday_name.as_deref()
     }
 
-    /// Populate shift details after construction (used by roster repository
-    /// when resolving shift data post-construction).
-    pub fn set_shift_details(&mut self, shift: &crate::models::Shift) {
-        self.shift_name = Some(shift.name().to_string());
-        self.shift_symbol = shift.report_symbol().map(String::from);
-        self.start_time = Some(shift.start_time());
-        self.end_time = Some(shift.end_time());
-        self.break_duration_minutes = Some(shift.break_duration_minutes());
-        self.break_start = shift.break_start();
-        self.break_end = shift.break_end();
-        self.is_break_auto_deduct = Some(shift.is_break_auto_deduct());
+    /// Populate shift details from a resolved segment (the first segment for a date).
+    pub fn populate_from_segment(&mut self, segment: &crate::models::ResolvedSegment) {
+        self.shift_name.clone_from(&segment.shift_name);
+        self.shift_symbol.clone_from(&segment.shift_symbol);
+        self.start_time = Some(segment.scheduled_start);
+        self.end_time = Some(segment.scheduled_end);
+        self.break_duration_minutes = segment.break_duration_minutes;
+        self.break_start = segment.break_start;
+        self.break_end = segment.break_end;
+        self.is_break_auto_deduct = segment.is_break_auto_deduct;
         self.early_punch_in_grace_period_minutes =
-            Some(shift.early_punch_in_grace_period_minutes());
-        self.allow_early_ot = Some(shift.allow_early_ot());
-        self.break_is_overtime = Some(shift.break_is_overtime());
-        self.max_early_ot_minutes = shift.max_early_ot_minutes();
-    }
-
-    /// Populate shift details from a cached `RosterShift`.
-    pub fn set_shift_details_from_cache(&mut self, shift: &crate::cache::RosterShift) {
-        self.shift_name = Some(shift.name().to_string());
-        self.shift_symbol = shift.report_symbol().map(String::from);
-        self.start_time = Some(shift.start_time());
-        self.end_time = Some(shift.end_time());
-        self.break_duration_minutes = Some(shift.break_duration_minutes());
-        self.break_start = shift.break_start();
-        self.break_end = shift.break_end();
-        self.is_break_auto_deduct = Some(shift.is_break_auto_deduct());
-        self.early_punch_in_grace_period_minutes =
-            Some(shift.early_punch_in_grace_period_minutes());
-        self.allow_early_ot = Some(shift.allow_early_ot());
-        self.break_is_overtime = Some(shift.break_is_overtime());
-        self.max_early_ot_minutes = shift.max_early_ot_minutes();
+            Some(segment.early_punch_in_grace_period_minutes);
+        self.allow_early_ot = Some(segment.allow_early_ot);
+        self.break_is_overtime = segment.break_is_overtime;
+        self.max_early_ot_minutes = segment.max_early_ot_minutes;
     }
 }
 

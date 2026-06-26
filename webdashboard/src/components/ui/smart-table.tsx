@@ -126,10 +126,12 @@ export default function SmartTable<T>({
     const right: string[] = [];
     columns.forEach((col, index) => {
       const id = col.id || ("accessorKey" in col ? (col.accessorKey as string) : "") || "";
-      if (col.meta?.sticky === "left" || (stickyLeftColumns > 0 && index < stickyLeftColumns)) {
+      const sLC = stickyLeftColumns ?? 0;
+      const sRC = stickyRightColumns ?? 0;
+      if (col.meta?.sticky === "left" || (sLC > 0 && index < sLC)) {
         left.push(id);
       }
-      if (col.meta?.sticky === "right" || (stickyRightColumns > 0 && index >= columns.length - stickyRightColumns)) {
+      if (col.meta?.sticky === "right" || (sRC > 0 && index >= columns.length - sRC)) {
         right.push(id);
       }
     });
@@ -169,7 +171,7 @@ export default function SmartTable<T>({
     handleRowMouseDown,
     handleRowMouseEnter,
   } = useSmartTableDrag({
-    enableDragSelect,
+    enableDragSelect: enableDragSelect ?? false,
     selectedRowIds,
     rows,
     onSelectionChange,

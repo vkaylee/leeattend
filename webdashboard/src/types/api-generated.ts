@@ -5163,26 +5163,32 @@ export interface components {
             code: string;
             name: string;
         };
-        CreateShiftRequest: {
-            allow_early_ot?: boolean;
+        CreateIntervalRequest: {
+            interval_name?: string | null;
+            start_time: string;
+            end_time: string;
             /** Format: int32 */
-            break_duration_minutes: number;
-            break_end?: string | null;
-            break_is_overtime?: boolean;
+            break_duration_minutes?: number;
             break_start?: string | null;
+            break_end?: string | null;
+            is_break_auto_deduct?: boolean;
+            break_is_overtime?: boolean;
             /** Format: int32 */
             early_punch_in_grace_period_minutes?: number;
-            /** Format: uuid */
-            employer_id?: string | null;
-            end_time: string;
-            is_break_auto_deduct?: boolean;
-            /** Format: uuid */
-            location_id?: string | null;
+            allow_early_ot?: boolean;
             /** Format: int32 */
             max_early_ot_minutes?: number | null;
+            ot_aggregation_mode?: string;
+            is_night_shift?: boolean;
+        };
+        CreateShiftRequest: {
             name: string;
             report_symbol?: string | null;
-            start_time: string;
+            /** Format: uuid */
+            location_id?: string | null;
+            /** Format: uuid */
+            employer_id?: string | null;
+            intervals?: components["schemas"]["CreateIntervalRequest"][];
         };
         CreateShiftSwapRequest: {
             reason?: string | null;
@@ -7033,32 +7039,20 @@ export interface components {
             std_working_days: string;
         };
         Shift: {
-            allow_early_ot: boolean;
-            /** Format: int32 */
-            break_duration_minutes: number;
-            break_end?: string | null;
-            break_is_overtime: boolean;
-            break_start?: string | null;
             /** Format: date-time */
             created_at: string;
-            /** Format: int32 */
-            early_punch_in_grace_period_minutes: number;
             /** Format: uuid */
             employer_id?: string | null;
-            end_time: string;
             /** Format: uuid */
             id: string;
             is_active: boolean;
-            is_break_auto_deduct: boolean;
+            intervals?: Record<string, unknown>[];
             /** Format: uuid */
             location_id?: string | null;
-            /** Format: int32 */
-            max_early_ot_minutes?: number | null;
             name: string;
             /** Format: uuid */
             parent_shift_id?: string | null;
             report_symbol?: string | null;
-            start_time: string;
             /** Format: date-time */
             updated_at: string;
             /** Format: uuid */
@@ -7623,35 +7617,23 @@ export interface components {
             permissions: string[];
         };
         UpdateShiftRequest: {
-            allow_early_ot?: boolean;
-            /** Format: int32 */
-            break_duration_minutes: number;
-            break_end?: string | null;
-            break_is_overtime?: boolean;
-            break_start?: string | null;
-            /** Format: int32 */
-            early_punch_in_grace_period_minutes?: number;
+            name: string;
+            report_symbol?: string | null;
+            /** Format: uuid */
+            location_id?: string | null;
+            /** Format: uuid */
+            employer_id?: string | null;
+            intervals?: components["schemas"]["CreateIntervalRequest"][];
+            /**
+             * @description If true, update the current record (Correction).
+             *     If false (default), create a new version if interval config changed.
+             */
+            is_correction?: boolean;
             /**
              * Format: date
              * @description Effective date for the new version. If not provided, defaults to today.
              */
             effective_date?: string | null;
-            /** Format: uuid */
-            employer_id?: string | null;
-            end_time: string;
-            is_break_auto_deduct?: boolean;
-            /**
-             * @description If true, update the current record (Correction).
-             *     If false (default), create a new version if time-related fields changed.
-             */
-            is_correction?: boolean;
-            /** Format: uuid */
-            location_id?: string | null;
-            /** Format: int32 */
-            max_early_ot_minutes?: number | null;
-            name: string;
-            report_symbol?: string | null;
-            start_time: string;
         };
         UpdateStorageConfigRequest: {
             access_key?: string | null;

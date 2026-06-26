@@ -39,6 +39,7 @@ pub async fn create_pattern(
     let pattern = service::create_working_pattern(
         Arc::clone(state.shifts().working_pattern_repo()),
         Arc::clone(state.shifts().shift_repo()),
+        Arc::clone(state.shifts().roster_repo()),
         ctx.workspace_id,
         req,
     )
@@ -246,6 +247,7 @@ pub async fn update_pattern(
     let pattern = service::update_working_pattern(
         Arc::clone(state.shifts().working_pattern_repo()),
         Arc::clone(state.shifts().shift_repo()),
+        Arc::clone(state.shifts().roster_repo()),
         ctx.workspace_id,
         pattern_id,
         req,

@@ -20,7 +20,6 @@ pub struct ShiftSwapService {
     swap_repo: Arc<dyn ShiftSwapRepository>,
     roster_repo: Arc<dyn RosterRepository>,
     employee_repo: Arc<dyn EmployeeRepository>,
-    shift_repo: Arc<dyn crate::repositories::shift_repository::ShiftRepository>,
     payroll_repo: Arc<dyn crate::repositories::payroll_repository::PayrollRepository>,
 }
 
@@ -29,14 +28,12 @@ impl ShiftSwapService {
         swap_repo: Arc<dyn ShiftSwapRepository>,
         roster_repo: Arc<dyn RosterRepository>,
         employee_repo: Arc<dyn EmployeeRepository>,
-        shift_repo: Arc<dyn crate::repositories::shift_repository::ShiftRepository>,
         payroll_repo: Arc<dyn crate::repositories::payroll_repository::PayrollRepository>,
     ) -> Self {
         Self {
             swap_repo,
             roster_repo,
             employee_repo,
-            shift_repo,
             payroll_repo,
         }
     }
@@ -104,39 +101,47 @@ impl ShiftSwapService {
                 .await
             {
                 if let Some(max_daily) = ps.max_ot_hours_per_day {
-                    // Compare shift durations: will the receiving employee get a much longer shift?
-                    let req_shift = self
-                        .shift_repo
-                        .get_shift_by_id(
-                            &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
-                            req_shift_id,
-                        )
+                    // Compare shift durations via resolved intervals
+                    let roster_data = self
+                        .roster_repo
+                        .get_raw_roster_data(ws_id)
                         .await
-                        .unwrap_or(None);
-                    let tgt_shift = self
-                        .shift_repo
-                        .get_shift_by_id(
-                            &crate::diesel_pool::TenantAuthToken::system_override(ws_id),
-                            tgt_shift_id,
-                        )
-                        .await
-                        .unwrap_or(None);
-                    if let (Some(rs), Some(ts)) = (req_shift, tgt_shift) {
-                        let compute_duration_minutes = |s: &crate::models::Shift| -> i64 {
-                            let mut dur = (s.end_time() - s.start_time()).num_minutes();
+                        .unwrap_or_default();
+                    let req_interval = roster_data
+                        .shift_intervals
+                        .get(&req_shift_id)
+                        .and_then(|ivs| ivs.first());
+                    let tgt_interval = roster_data
+                        .shift_intervals
+                        .get(&tgt_shift_id)
+                        .and_then(|ivs| ivs.first());
+                    if let (Some(ri), Some(ti)) = (req_interval, tgt_interval) {
+                        let compute_duration_minutes = |start: chrono::NaiveTime,
+                                                        end: chrono::NaiveTime,
+                                                        break_mins: i32|
+                         -> i64 {
+                            let mut dur = (end - start).num_minutes();
                             if dur <= 0 {
                                 dur += 24 * 60;
                             } // overnight shift
-                            dur - i64::from(s.break_duration_minutes())
+                            dur - i64::from(break_mins)
                         };
                         let std_hours = ps.hours_per_day;
                         let max_total_minutes =
                             (std_hours + max_daily) * rust_decimal::Decimal::from(60);
 
                         // Requester gets target's shift
-                        let req_new_dur = compute_duration_minutes(&ts);
+                        let req_new_dur = compute_duration_minutes(
+                            ti.start_time,
+                            ti.end_time,
+                            ti.break_duration_minutes,
+                        );
                         // Target gets requester's shift
-                        let tgt_new_dur = compute_duration_minutes(&rs);
+                        let tgt_new_dur = compute_duration_minutes(
+                            ri.start_time,
+                            ri.end_time,
+                            ri.break_duration_minutes,
+                        );
 
                         use rust_decimal::prelude::ToPrimitive;
                         let max_minutes = max_total_minutes.to_i64().unwrap_or(i64::MAX);
@@ -639,7 +644,6 @@ mod tests {
     use crate::repositories::employee::MockEmployeeRepository;
     use crate::repositories::payroll_repository::MockPayrollRepository;
     use crate::repositories::roster::MockRosterRepository;
-    use crate::repositories::shift_repository::MockShiftRepository;
     use crate::repositories::shift_swap_repository::MockShiftSwapRepository;
     use chrono::NaiveDate;
 
@@ -647,14 +651,12 @@ mod tests {
         swap_repo: MockShiftSwapRepository,
         roster_repo: MockRosterRepository,
         employee_repo: MockEmployeeRepository,
-        shift_repo: MockShiftRepository,
         payroll_repo: MockPayrollRepository,
     ) -> ShiftSwapService {
         ShiftSwapService::new(
             Arc::new(swap_repo),
             Arc::new(roster_repo),
             Arc::new(employee_repo),
-            Arc::new(shift_repo),
             Arc::new(payroll_repo),
         )
     }
@@ -665,7 +667,6 @@ mod tests {
             MockShiftSwapRepository::new(),
             MockRosterRepository::new(),
             MockEmployeeRepository::new(),
-            MockShiftRepository::new(),
             MockPayrollRepository::new(),
         );
 
@@ -779,13 +780,7 @@ mod tests {
             .expect_get_payroll_settings_at()
             .returning(|_, _| Ok(None));
 
-        let service = build_service(
-            swap_repo,
-            roster_repo,
-            emp_repo,
-            MockShiftRepository::new(),
-            payroll_repo,
-        );
+        let service = build_service(swap_repo, roster_repo, emp_repo, payroll_repo);
 
         let req = CreateShiftSwapRequest {
             requester_id: req_id,
@@ -851,7 +846,6 @@ mod tests {
             swap_repo,
             roster_repo,
             employee_repo,
-            MockShiftRepository::new(),
             MockPayrollRepository::new(),
         );
 
@@ -897,7 +891,6 @@ mod tests {
             swap_repo,
             MockRosterRepository::new(),
             MockEmployeeRepository::new(),
-            MockShiftRepository::new(),
             MockPayrollRepository::new(),
         );
 

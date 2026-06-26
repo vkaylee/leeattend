@@ -72,7 +72,7 @@ async fn test_punch_in_grace_period_enforcement_smoke() {
 
     crate::test_execute!(
         &factory.diesel_pools.api,
-        "UPDATE shifts SET start_time = $1, end_time = $2 WHERE id = $3",
+        "UPDATE shift_default_intervals SET start_time = $1, end_time = $2 WHERE shift_id = $3",
         diesel::sql_types::Time,
         test_start,
         diesel::sql_types::Time,
@@ -105,7 +105,7 @@ async fn test_punch_in_grace_period_enforcement_smoke() {
 
     crate::test_execute!(
         &factory.diesel_pools.api,
-        "UPDATE shifts SET start_time = $1 WHERE id = $2",
+        "UPDATE shift_default_intervals SET start_time = $1 WHERE shift_id = $2",
         diesel::sql_types::Time,
         test_start_time,
         diesel::sql_types::Uuid,
@@ -149,7 +149,7 @@ async fn test_punch_in_grace_period_enforcement_smoke() {
     // Now update shift to have a large grace period (6 hours)
     crate::test_execute!(
         &factory.diesel_pools.api,
-        "UPDATE shifts SET early_punch_in_grace_period_minutes = 360 WHERE id = $1",
+        "UPDATE shift_default_intervals SET early_punch_in_grace_period_minutes = 360 WHERE shift_id = $1",
         diesel::sql_types::Uuid,
         shift_id
     );

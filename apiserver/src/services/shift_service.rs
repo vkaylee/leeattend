@@ -68,17 +68,13 @@ impl ShiftService {
             .await?
             .ok_or_else(|| AppError::not_found(I18nKey::ShiftNotFound))?;
 
-        let has_time_changes = old_shift.start_time() != req.start_time
-            || old_shift.end_time() != req.end_time
-            || old_shift.break_duration_minutes() != req.break_duration_minutes
-            || old_shift.break_start() != req.break_start
-            || old_shift.break_end() != req.break_end
-            || old_shift.allow_early_ot() != req.allow_early_ot
-            || old_shift.max_early_ot_minutes() != req.max_early_ot_minutes
+        let has_envelope_changes = old_shift.name() != req.name
+            || old_shift.report_symbol().map(String::from) != req.report_symbol
             || old_shift.location_id() != req.location_id
             || old_shift.employer_id() != req.employer_id;
+        let has_interval_changes = !req.intervals.is_empty();
 
-        if req.is_correction || !has_time_changes {
+        if req.is_correction || (!has_envelope_changes && !has_interval_changes) {
             // Direct update
             self.repo
                 .update_shift_direct(
@@ -93,14 +89,6 @@ impl ShiftService {
                 .effective_date
                 .unwrap_or_else(|| Local::now().date_naive());
 
-            // For complex versioning that involves multiple steps, we use the repo method
-            // which handles its own transaction or logical grouping.
-            // Note: Since we are in transition, some complex logic might still be SQLx-specific.
-
-            // 1. Create new version & migrate assignments in one go if repo supports it,
-            // or perform steps sequentially.
-
-            // Since update_assignments_to_new_version is currently a separate method:
             let new_shift = self
                 .repo
                 .create_shift(
@@ -108,19 +96,9 @@ impl ShiftService {
                     &crate::models::CreateShiftRequest {
                         name: req.name,
                         report_symbol: req.report_symbol,
-                        start_time: req.start_time,
-                        end_time: req.end_time,
-                        break_duration_minutes: req.break_duration_minutes,
-                        break_start: req.break_start,
-                        break_end: req.break_end,
-                        is_break_auto_deduct: req.is_break_auto_deduct,
-                        break_is_overtime: req.break_is_overtime,
-                        early_punch_in_grace_period_minutes: req
-                            .early_punch_in_grace_period_minutes,
-                        allow_early_ot: req.allow_early_ot,
-                        max_early_ot_minutes: req.max_early_ot_minutes,
                         location_id: req.location_id,
                         employer_id: req.employer_id,
+                        intervals: req.intervals.clone(),
                     },
                     true,
                     Some(shift_id),
@@ -197,16 +175,6 @@ mod tests {
             Uuid::new_v4(),
             "Morning".into(),
             None,
-            NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
-            NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
-            60,
-            None,
-            None,
-            true,
-            false,
-            0,
-            false,
-            None,
             true,
             None,
             None,
@@ -249,16 +217,6 @@ mod tests {
                 auth_token.0,
                 req.name.clone(),
                 req.report_symbol.clone(),
-                req.start_time,
-                req.end_time,
-                req.break_duration_minutes,
-                req.break_start,
-                req.break_end,
-                req.is_break_auto_deduct,
-                req.break_is_overtime,
-                req.early_punch_in_grace_period_minutes,
-                req.allow_early_ot,
-                req.max_early_ot_minutes,
                 true,
                 parent,
                 req.location_id,
@@ -361,18 +319,23 @@ mod tests {
         CreateShiftRequest {
             name: "Night".into(),
             report_symbol: None,
-            start_time: NaiveTime::from_hms_opt(22, 0, 0).unwrap(),
-            end_time: NaiveTime::from_hms_opt(6, 0, 0).unwrap(),
-            break_duration_minutes: 30,
-            break_start: None,
-            break_end: None,
-            is_break_auto_deduct: true,
-            break_is_overtime: false,
-            early_punch_in_grace_period_minutes: 0,
-            allow_early_ot: false,
-            max_early_ot_minutes: None,
             location_id: None,
             employer_id: None,
+            intervals: vec![crate::models::CreateIntervalRequest {
+                interval_name: None,
+                start_time: NaiveTime::from_hms_opt(22, 0, 0).unwrap(),
+                end_time: NaiveTime::from_hms_opt(6, 0, 0).unwrap(),
+                break_duration_minutes: 30,
+                break_start: None,
+                break_end: None,
+                is_break_auto_deduct: true,
+                break_is_overtime: false,
+                early_punch_in_grace_period_minutes: 0,
+                allow_early_ot: false,
+                max_early_ot_minutes: None,
+                ot_aggregation_mode: "aggregate".to_string(),
+                is_night_shift: false,
+            }],
         }
     }
 
@@ -419,18 +382,23 @@ mod tests {
         let req = UpdateShiftRequest {
             name: "Updated Morning".into(),
             report_symbol: None,
-            start_time: NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
-            end_time: NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
-            break_duration_minutes: 60,
-            break_start: None,
-            break_end: None,
-            is_break_auto_deduct: true,
-            break_is_overtime: false,
-            early_punch_in_grace_period_minutes: 0,
-            allow_early_ot: false,
-            max_early_ot_minutes: None,
             location_id: None,
             employer_id: None,
+            intervals: vec![crate::models::CreateIntervalRequest {
+                interval_name: None,
+                start_time: NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
+                end_time: NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
+                break_duration_minutes: 60,
+                break_start: None,
+                break_end: None,
+                is_break_auto_deduct: true,
+                break_is_overtime: false,
+                early_punch_in_grace_period_minutes: 0,
+                allow_early_ot: false,
+                max_early_ot_minutes: None,
+                ot_aggregation_mode: "aggregate".to_string(),
+                is_night_shift: false,
+            }],
             is_correction: true,
             effective_date: None,
         };
@@ -447,18 +415,23 @@ mod tests {
         let req = UpdateShiftRequest {
             name: "X".into(),
             report_symbol: None,
-            start_time: NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
-            end_time: NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
-            break_duration_minutes: 60,
-            break_start: None,
-            break_end: None,
-            is_break_auto_deduct: true,
-            break_is_overtime: false,
-            early_punch_in_grace_period_minutes: 0,
-            allow_early_ot: false,
-            max_early_ot_minutes: None,
             location_id: None,
             employer_id: None,
+            intervals: vec![crate::models::CreateIntervalRequest {
+                interval_name: None,
+                start_time: NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
+                end_time: NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
+                break_duration_minutes: 60,
+                break_start: None,
+                break_end: None,
+                is_break_auto_deduct: true,
+                break_is_overtime: false,
+                early_punch_in_grace_period_minutes: 0,
+                allow_early_ot: false,
+                max_early_ot_minutes: None,
+                ot_aggregation_mode: "aggregate".to_string(),
+                is_night_shift: false,
+            }],
             is_correction: false,
             effective_date: None,
         };
@@ -476,19 +449,24 @@ mod tests {
         let req = UpdateShiftRequest {
             name: "Morning V2".into(),
             report_symbol: None,
-            // Different time → triggers new version creation
-            start_time: NaiveTime::from_hms_opt(7, 30, 0).unwrap(),
-            end_time: NaiveTime::from_hms_opt(16, 30, 0).unwrap(),
-            break_duration_minutes: 60,
-            break_start: None,
-            break_end: None,
-            is_break_auto_deduct: true,
-            break_is_overtime: false,
-            early_punch_in_grace_period_minutes: 0,
-            allow_early_ot: false,
-            max_early_ot_minutes: None,
             location_id: None,
             employer_id: None,
+            // Different time → triggers new version creation
+            intervals: vec![crate::models::CreateIntervalRequest {
+                interval_name: None,
+                start_time: NaiveTime::from_hms_opt(7, 30, 0).unwrap(),
+                end_time: NaiveTime::from_hms_opt(16, 30, 0).unwrap(),
+                break_duration_minutes: 60,
+                break_start: None,
+                break_end: None,
+                is_break_auto_deduct: true,
+                break_is_overtime: false,
+                early_punch_in_grace_period_minutes: 0,
+                allow_early_ot: false,
+                max_early_ot_minutes: None,
+                ot_aggregation_mode: "aggregate".to_string(),
+                is_night_shift: false,
+            }],
             is_correction: false,
             effective_date: Some(NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()),
         };

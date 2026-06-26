@@ -44,19 +44,21 @@ export function createMockShift(overrides?: Partial<Shift>): Shift {
   return {
     id: "shift-123",
     name: "Morning Shift",
-    start_time: "09:00:00",
-    end_time: "17:00:00",
-    break_duration_minutes: 60,
-    allow_early_ot: false,
-    break_is_overtime: false,
-    early_punch_in_grace_period_minutes: 0,
     is_active: true,
-    is_break_auto_deduct: false,
     workspace_id: "ws-123",
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    intervals: [{
+      start_time: "09:00:00",
+      end_time: "17:00:00",
+      break_duration_minutes: 60,
+      is_break_auto_deduct: false,
+      break_is_overtime: false,
+      early_punch_in_grace_period_minutes: 0,
+      allow_early_ot: false,
+    }],
     ...overrides,
-  };
+  } as Shift;
 }
 
 export function createMockLeaveType(overrides?: Partial<LeaveType>): LeaveType {

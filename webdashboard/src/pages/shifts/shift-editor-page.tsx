@@ -1,8 +1,8 @@
- 
+
 /* eslint-disable max-lines-per-function, complexity */
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { ArrowLeft, Save, Info, Zap } from "lucide-react";
+import { ArrowLeft, Save, Info, Zap, Clock } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -28,32 +28,6 @@ export default function ShiftEditorPage() {
     setShiftName,
     shiftSymbol,
     setShiftSymbol,
-    shiftStart,
-    setShiftStart,
-    shiftEnd,
-    setShiftEnd,
-    shiftBreak,
-    setShiftBreak,
-    shiftGrace,
-    setShiftGrace,
-    breakStart,
-    setBreakStart,
-    breakEnd,
-    setBreakEnd,
-    isFixedBreak,
-    setIsFixedBreak,
-    isAutoDeduct,
-    setIsAutoDeduct,
-    isBreakOvertime,
-    setIsBreakOvertime,
-    allowEarlyOt,
-    setAllowEarlyOt,
-    maxEarlyOtMinutes,
-    setMaxEarlyOtMinutes,
-    isCorrection,
-    setIsCorrection,
-    correctionEffectiveDate,
-    setCorrectionEffectiveDate,
     locationId,
     setLocationId,
     employerId,
@@ -66,10 +40,10 @@ export default function ShiftEditorPage() {
     addInterval,
     removeInterval,
     updateIntervalDraft,
-    otAggregationMode,
-    setOtAggregationMode,
-    isNightShift,
-    setIsNightShift,
+    isCorrection,
+    setIsCorrection,
+    correctionEffectiveDate,
+    setCorrectionEffectiveDate,
   } = useShiftEditor(shiftId);
 
   const { data: locations } = useQuery({
@@ -156,11 +130,11 @@ export default function ShiftEditorPage() {
 
       {/* Two-Column Form Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        
-        {/* Left Column: Form config inputs (takes 2 cols on lg) */}
+
+        {/* Left Column: Shift identity + Intervals (takes 2 cols on lg) */}
         <div className="lg:col-span-2 space-y-8">
-          
-          {/* Card 1: Basic Shift Config */}
+
+          {/* Card 1: Shift Identity */}
           <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-10 shadow-sm space-y-6">
             <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50 dark:border-slate-800/80 pb-4" variant="h3">
               {t("shifts.modal.basic_info", "Thông tin cơ bản").toUpperCase()}
@@ -181,7 +155,7 @@ export default function ShiftEditorPage() {
                   value={shiftName}
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest" htmlFor="shift_symbol_input">
                   {t("shifts.modal.report_symbol", "Ký hiệu báo cáo")}
@@ -242,145 +216,9 @@ export default function ShiftEditorPage() {
                 />
               </div>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest" htmlFor="shift_start_input">
-                  {t("shifts.modal.start_time")} <span className="text-red-500">*</span>
-                </label>
-                <input
-                  className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-5 py-3.5 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all outline-none"
-                  id="shift_start_input"
-                  onChange={(e) => { setShiftStart(e.target.value); }}
-                  required
-                  type="time"
-                  value={shiftStart}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest" htmlFor="shift_end_input">
-                  {t("shifts.modal.end_time")} <span className="text-red-500">*</span>
-                </label>
-                <input
-                  className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-5 py-3.5 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all outline-none"
-                  id="shift_end_input"
-                  onChange={(e) => { setShiftEnd(e.target.value); }}
-                  required
-                  type="time"
-                  value={shiftEnd}
-                />
-              </div>
-            </div>
           </div>
 
-          {/* Card 2: Grace period & Early OT */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-10 shadow-sm space-y-6">
-            <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50 dark:border-slate-800/80 pb-4" variant="h3">
-              {t("shifts.modal.ot_grace_config", "Chính sách đi muộn & Tăng ca").toUpperCase()}
-            </Typography>
-
-            {/* Grace Period */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest" htmlFor="shift_grace_input">
-                  {t("shifts.grace_period")}
-                </label>
-                <div className="group relative">
-                  <Info className="text-slate-300 dark:text-slate-650 cursor-help" size={12} />
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-3 bg-slate-800 text-white text-[10px] rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 normal-case leading-normal font-normal">
-                    {t("shifts.grace_period_desc")}
-                  </div>
-                </div>
-              </div>
-              <input
-                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-5 py-3.5 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all outline-none"
-                id="shift_grace_input"
-                min="0"
-                onChange={(e) => { setShiftGrace(parseInt(e.target.value) || 0); }}
-                type="number"
-                value={shiftGrace}
-              />
-            </div>
-
-            {/* Early OT Config */}
-            <div className="p-6 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 rounded-3xl space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1 pr-4">
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-200 block">
-                    {t("shifts.modal.allow_early_ot", "Cho phép tính tăng ca sớm")}
-                  </span>
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-normal leading-normal">
-                    {t("shifts.modal.allow_early_ot_help", "Tính thời gian làm việc trước ca là tăng ca sớm (Early OT)")}
-                  </span>
-                </div>
-                <div
-                  aria-checked={allowEarlyOt}
-                  aria-label={t("shifts.modal.allow_early_ot", "Cho phép tính tăng ca sớm")}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 cursor-pointer ${allowEarlyOt ? 'bg-primary-600' : 'bg-slate-200 dark:bg-slate-700'}`}
-                  onClick={() => { setAllowEarlyOt(!allowEarlyOt); }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      setAllowEarlyOt(!allowEarlyOt);
-                    }
-                  }}
-                  role="switch"
-                  tabIndex={0}
-                >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white dark:bg-slate-900 transition-transform ${allowEarlyOt ? 'translate-x-6' : 'translate-x-1'}`} />
-                </div>
-              </div>
-
-              {/* Workspace Inheritance Notice */}
-              {workspaceRules?.early_arrival_strategy === "block" && (
-                <div className="text-xs bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 flex items-start gap-2.5 text-amber-600 dark:text-amber-400 animate-in fade-in slide-in-from-top-1 duration-250">
-                  <Info className="mt-0.5 shrink-0" size={14} />
-                  <span>
-                    {t("shifts.modal.early_arrival_notice_block")}
-                  </span>
-                </div>
-              )}
-              {workspaceRules?.early_arrival_strategy === "clamp" && (
-                <div className="text-xs bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 flex items-start gap-2.5 text-blue-600 dark:text-blue-400 animate-in fade-in slide-in-from-top-1 duration-250">
-                  <Info className="mt-0.5 shrink-0" size={14} />
-                  <span>
-                    {t("shifts.modal.early_arrival_notice_clamp", { grace: shiftGrace })}
-                  </span>
-                </div>
-              )}
-              {workspaceRules?.early_arrival_strategy === "allow" && (
-                <div className="text-xs bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 flex items-start gap-2.5 text-emerald-600 dark:text-emerald-450 animate-in fade-in slide-in-from-top-1 duration-250">
-                  <Info className="mt-0.5 shrink-0" size={14} />
-                  <span>
-                    {t("shifts.modal.early_arrival_notice_allow")}
-                  </span>
-                </div>
-              )}
-
-              {allowEarlyOt ? (
-                <div className="space-y-2 pt-3 border-t border-slate-200/50 dark:border-slate-700/50 animate-in fade-in slide-in-from-top-2 duration-300">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block" htmlFor="max-early-ot">
-                    {t("shifts.modal.max_early_ot", "Giới hạn tăng ca sớm tối đa (phút)")} <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-3.5 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all outline-none"
-                    id="max-early-ot"
-                    min="1"
-                    onChange={(e) => { setMaxEarlyOtMinutes(parseInt(e.target.value) || 0); }}
-                    type="number"
-                    value={maxEarlyOtMinutes}
-                  />
-                  {maxEarlyOtMinutes <= 0 ? (
-                    <span className="text-[10px] text-red-500 block font-medium">
-                      {t("shifts.modal.max_early_ot_required", "Vui lòng nhập số phút giới hạn lớn hơn 0.")}
-                    </span>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-          </div>
-
-          {/* Card 2.5: Intervals / Split-Shift Configuration */}
+          {/* Card 2: Intervals (each with full time/break/policy config) */}
           <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-10 shadow-sm space-y-6">
             <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800/80 pb-4">
               <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]" variant="h3">
@@ -403,23 +241,41 @@ export default function ShiftEditorPage() {
                 {t("work_segments.intervals.no_intervals", "Chưa có khung giờ. Hệ thống dùng giờ bắt đầu/kết thúc của ca.")}
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {intervalDrafts.map((iv, idx) => (
-                  <div key={iv.key} className="border border-slate-100 dark:border-slate-800 rounded-2xl p-5 space-y-3 relative">
+                  <div key={iv.key} className="border border-slate-100 dark:border-slate-800 rounded-2xl p-5 space-y-4 relative">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
                         {t("work_segments.intervals.interval", "Khung giờ")} {idx + 1}
                       </span>
-                      <Button
-                        className="text-xs text-red-500 hover:text-red-700"
-                        onClick={() => removeInterval(iv.key)}
-                        size="sm"
-                        type="button"
-                        variant="ghost"
-                      >
-                        ✕ {t("work_segments.intervals.remove_interval", "Xóa")}
-                      </Button>
+                      {intervalDrafts.length > 1 ? (
+                        <Button
+                          className="text-xs text-red-500 hover:text-red-700"
+                          onClick={() => removeInterval(iv.key)}
+                          size="sm"
+                          type="button"
+                          variant="ghost"
+                        >
+                          ✕ {t("work_segments.intervals.remove_interval", "Xóa")}
+                        </Button>
+                      ) : null}
                     </div>
+
+                    {/* Interval name */}
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        {t("work_segments.intervals.interval_name", "Tên khung giờ")}
+                      </label>
+                      <input
+                        className="w-full mt-1 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-slate-50 dark:bg-slate-800"
+                        onChange={(e) => updateIntervalDraft(iv.key, { intervalName: e.target.value })}
+                        placeholder={idx === 0 ? "VD: Ca sáng, Ca chính..." : "VD: Ca chiều, Tăng ca..."}
+                        type="text"
+                        value={iv.intervalName}
+                      />
+                    </div>
+
+                    {/* Time range */}
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
@@ -427,7 +283,7 @@ export default function ShiftEditorPage() {
                         </label>
                         <input
                           className="w-full mt-1 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-slate-50 dark:bg-slate-800"
-                          onChange={(e) => updateIntervalDraft(iv.key, { startTime: e.target.value })}
+                          onChange={(e) => updateIntervalDraft(iv.key, { startTime: e.target.value, isNightShift: e.target.value > iv.endTime })}
                           type="time"
                           value={iv.startTime}
                         />
@@ -438,11 +294,180 @@ export default function ShiftEditorPage() {
                         </label>
                         <input
                           className="w-full mt-1 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-slate-50 dark:bg-slate-800"
-                          onChange={(e) => updateIntervalDraft(iv.key, { endTime: e.target.value })}
+                          onChange={(e) => updateIntervalDraft(iv.key, { endTime: e.target.value, isNightShift: iv.startTime > e.target.value })}
                           type="time"
                           value={iv.endTime}
                         />
                       </div>
+                    </div>
+
+                    {/* Night shift indicator (auto-derived) */}
+                    {iv.startTime > iv.endTime ? (
+                      <div className="text-[10px] text-indigo-500 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/20 px-3 py-1.5 rounded-lg flex items-center gap-2">
+                        <Clock size={12} />
+                        {t("work_segments.night_shift.label", "Ca đêm")} — {t("work_segments.night_shift.description", "Giờ làm qua nửa đêm")}
+                      </div>
+                    ) : null}
+
+                    {/* Break Config */}
+                    <div className="border-t border-slate-100 dark:border-slate-800 pt-3 space-y-3">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        {t("shifts.modal.break_config", "Thiết lập giờ nghỉ")}
+                      </span>
+
+                      {/* Fixed Break Toggle */}
+                      <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-350">{t("shifts.types.fixed", "Giờ nghỉ cố định")}</span>
+                        <div
+                          aria-checked={iv.isFixedBreak}
+                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 cursor-pointer ${iv.isFixedBreak ? 'bg-primary-600' : 'bg-slate-200 dark:bg-slate-700'}`}
+                          onClick={() => {
+                            const next = !iv.isFixedBreak;
+                            updateIntervalDraft(iv.key, {
+                              isFixedBreak: next,
+                              isBreakOvertime: next ? iv.isBreakOvertime : false,
+                              isAutoDeduct: next ? iv.isAutoDeduct : true,
+                            });
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); }
+                          }}
+                          role="switch"
+                          tabIndex={0}
+                        >
+                          <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white dark:bg-slate-900 transition-transform ${iv.isFixedBreak ? 'translate-x-5' : 'translate-x-1'}`} />
+                        </div>
+                      </div>
+
+                      {iv.isFixedBreak ? (
+                        <div className="grid grid-cols-2 gap-3 animate-in fade-in duration-350">
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-400 uppercase">{t("shifts.modal.break_start")}</label>
+                            <input
+                              className="w-full mt-1 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-slate-50 dark:bg-slate-800"
+                              onChange={(e) => updateIntervalDraft(iv.key, { breakStart: e.target.value })}
+                              type="time"
+                              value={iv.breakStart}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-400 uppercase">{t("shifts.modal.break_end")}</label>
+                            <input
+                              className="w-full mt-1 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-slate-50 dark:bg-slate-800"
+                              onChange={(e) => updateIntervalDraft(iv.key, { breakEnd: e.target.value })}
+                              type="time"
+                              value={iv.breakEnd}
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="animate-in fade-in duration-350">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase block">{t("shifts.modal.break_duration")} ({t("common.minutes")})</label>
+                          <input
+                            className="w-full mt-1 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-slate-50 dark:bg-slate-800"
+                            onChange={(e) => updateIntervalDraft(iv.key, { breakDuration: parseInt(e.target.value) || 0 })}
+                            type="number"
+                            value={iv.breakDuration}
+                          />
+                        </div>
+                      )}
+
+                      {/* Break Policy */}
+                      <div className="space-y-2">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{t("shifts.modal.break_policy_label")}</span>
+                        {[
+                          { val: { isAutoDeduct: true, isBreakOvertime: false }, label: t("shifts.modal.break_policy_auto_deduct"), help: t("shifts.modal.break_policy_auto_deduct_help") },
+                          { val: { isAutoDeduct: false, isBreakOvertime: false }, label: t("shifts.modal.break_policy_no_deduct"), help: t("shifts.modal.break_policy_no_deduct_help") },
+                          { val: { isAutoDeduct: false, isBreakOvertime: true }, label: t("shifts.modal.break_policy_overtime"), help: iv.isFixedBreak ? t("shifts.modal.break_policy_overtime_help") : t("shifts.modal.break_policy_overtime_disabled_hint"), disabled: !iv.isFixedBreak },
+                        ].map((opt, oi) => (
+                          <label
+                            key={oi}
+                            className={`flex items-start gap-3 p-3 rounded-xl border transition-all ${opt.disabled ? "bg-slate-100/50 dark:bg-slate-900/20 border-slate-200/50 opacity-60 cursor-not-allowed" : "bg-slate-50 dark:bg-slate-800/40 border-slate-100 dark:border-slate-800/80 cursor-pointer hover:bg-slate-100/50"}`}
+                          >
+                            <input
+                              checked={iv.isAutoDeduct === opt.val.isAutoDeduct && iv.isBreakOvertime === opt.val.isBreakOvertime}
+                              className="mt-0.5 w-4 h-4 text-primary-600 cursor-pointer"
+                              disabled={opt.disabled}
+                              name={`break_policy_${iv.key}`}
+                              onChange={() => updateIntervalDraft(iv.key, opt.val)}
+                              type="radio"
+                            />
+                            <div>
+                              <span className="text-xs font-bold text-slate-700 dark:text-slate-200 block">{opt.label}</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400 block">{opt.help}</span>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Grace period & Early OT */}
+                    <div className="border-t border-slate-100 dark:border-slate-800 pt-3 space-y-3">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        {t("shifts.modal.ot_grace_config", "Chính sách đi muộn & Tăng ca")}
+                      </span>
+
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t("shifts.grace_period")}</label>
+                        <input
+                          className="w-full mt-1 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-slate-50 dark:bg-slate-800"
+                          min="0"
+                          onChange={(e) => updateIntervalDraft(iv.key, { gracePeriodMinutes: parseInt(e.target.value) || 0 })}
+                          type="number"
+                          value={iv.gracePeriodMinutes}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
+                        <div>
+                          <span className="text-xs font-bold text-slate-600 dark:text-slate-200 block">{t("shifts.modal.allow_early_ot", "Cho phép tính tăng ca sớm")}</span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400">{t("shifts.modal.allow_early_ot_help", "Tính thời gian làm việc trước ca là tăng ca sớm")}</span>
+                        </div>
+                        <div
+                          aria-checked={iv.allowEarlyOt}
+                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer ${iv.allowEarlyOt ? 'bg-primary-600' : 'bg-slate-200 dark:bg-slate-700'}`}
+                          onClick={() => updateIntervalDraft(iv.key, { allowEarlyOt: !iv.allowEarlyOt })}
+                          role="switch"
+                          tabIndex={0}
+                        >
+                          <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white dark:bg-slate-900 transition-transform ${iv.allowEarlyOt ? 'translate-x-5' : 'translate-x-1'}`} />
+                        </div>
+                      </div>
+
+                      {iv.allowEarlyOt ? (
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t("shifts.modal.max_early_ot", "Giới hạn tăng ca sớm tối đa (phút)")}</label>
+                          <input
+                            className="w-full mt-1 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-slate-50 dark:bg-slate-800"
+                            min="1"
+                            onChange={(e) => updateIntervalDraft(iv.key, { maxEarlyOtMinutes: parseInt(e.target.value) || null })}
+                            type="number"
+                            value={iv.maxEarlyOtMinutes ?? ""}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
+
+                    {/* OT Aggregation Mode */}
+                    <div className="border-t border-slate-100 dark:border-slate-800 pt-3 space-y-2">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        {t("work_segments.ot_aggregation_mode.label", "Cách tính tăng ca")}
+                      </span>
+                      {[
+                        { val: "aggregate" as const, label: t("work_segments.ot_aggregation_mode.aggregate", "Gộp (Tổng cả ngày)") },
+                        { val: "per_segment" as const, label: t("work_segments.ot_aggregation_mode.per_segment", "Theo từng phiên") },
+                      ].map(opt => (
+                        <label key={opt.val} className="flex items-start gap-3 p-3 rounded-xl border cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                          <input
+                            checked={iv.otAggregationMode === opt.val}
+                            className="mt-0.5"
+                            name={`otMode_${iv.key}`}
+                            onChange={() => updateIntervalDraft(iv.key, { otAggregationMode: opt.val })}
+                            type="radio"
+                          />
+                          <span className="text-sm font-bold text-slate-700 dark:text-slate-250">{opt.label}</span>
+                        </label>
+                      ))}
                     </div>
                   </div>
                 ))}
@@ -501,266 +526,10 @@ export default function ShiftEditorPage() {
           ) : null}
         </div>
 
-        {/* Right Column: Break Configuration & Visual Timeline (1 col on lg) */}
+        {/* Right Column: Visual Timeline Preview */}
         <div className="space-y-8">
-          
-          {/* Break Configuration Card */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-8 shadow-sm space-y-6">
-            <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50 dark:border-slate-800/80 pb-4" variant="h3">
-              {t("shifts.modal.break_config", "Thiết lập giờ nghỉ")}
-            </Typography>
-
-            {/* Fixed Break Toggle */}
-            <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800">
-              <span className="text-xs font-bold text-slate-650 dark:text-slate-350">{t("shifts.types.fixed", "Giờ nghỉ cố định")}</span>
-              <div
-                aria-checked={isFixedBreak}
-                aria-label={t("shifts.types.fixed")}
-                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 cursor-pointer ${isFixedBreak ? 'bg-primary-600' : 'bg-slate-200 dark:bg-slate-700'}`}
-                onClick={() => { setIsFixedBreak(!isFixedBreak); }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    setIsFixedBreak(!isFixedBreak);
-                  }
-                }}
-                role="switch"
-                tabIndex={0}
-              >
-                <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white dark:bg-slate-900 transition-transform ${isFixedBreak ? 'translate-x-5' : 'translate-x-1'}`} />
-              </div>
-            </div>
-
-            {/* Break Times / Duration Inputs */}
-            {isFixedBreak ? (
-              <div className="grid grid-cols-2 gap-4 animate-in fade-in duration-350">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase" htmlFor="break_start_input">{t("shifts.modal.break_start")}</label>
-                  <input
-                    className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-4 py-3 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all outline-none"
-                    id="break_start_input"
-                    onChange={(e) => { setBreakStart(e.target.value); }}
-                    type="time"
-                    value={breakStart}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase" htmlFor="break_end_input">{t("shifts.modal.break_end")}</label>
-                  <input
-                    className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-4 py-3 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all outline-none"
-                    id="break_end_input"
-                    onChange={(e) => { setBreakEnd(e.target.value); }}
-                    type="time"
-                    value={breakEnd}
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2 animate-in fade-in duration-350">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block" htmlFor="break_duration_input">
-                  {t("shifts.modal.break_duration")} ({t("common.minutes")})
-                </label>
-                <input
-                  className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-4 py-3 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all outline-none"
-                  id="break_duration_input"
-                  onChange={(e) => { setShiftBreak(parseInt(e.target.value) || 0); }}
-                  type="number"
-                  value={shiftBreak}
-                />
-              </div>
-            )}
-
-            {/* Break Policy Radios */}
-            <div className="space-y-3 pt-2">
-              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">
-                {t("shifts.modal.break_policy_label")}
-              </label>
-              
-              <div className="space-y-2">
-                
-                {/* Option 1: Auto Deduct */}
-                <label
-                  aria-label={t("shifts.modal.break_policy_auto_deduct")}
-                  className="flex items-start gap-3 p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800/80 cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-800/30 transition-all"
-                  htmlFor="break_policy_auto_deduct"
-                >
-                  <input
-                    checked={isAutoDeduct && !isBreakOvertime ? true : false}
-                    className="mt-0.5 w-4 h-4 text-primary-600 border-slate-350 dark:border-slate-700 focus:ring-primary-500 cursor-pointer"
-                    id="break_policy_auto_deduct"
-                    name="break_policy"
-                    onChange={() => {
-                      setIsAutoDeduct(true);
-                      setIsBreakOvertime(false);
-                    }}
-                    type="radio"
-                  />
-                  <div className="space-y-1">
-                    <span className="text-xs font-bold text-slate-750 dark:text-slate-200 cursor-pointer block">
-                      {t("shifts.modal.break_policy_auto_deduct")}
-                    </span>
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-normal leading-normal">
-                      {t("shifts.modal.break_policy_auto_deduct_help")}
-                    </span>
-                  </div>
-                </label>
-
-                {/* Option 2: No Deduct */}
-                <label
-                  aria-label={t("shifts.modal.break_policy_no_deduct")}
-                  className="flex items-start gap-3 p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800/80 cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-800/30 transition-all"
-                  htmlFor="break_policy_no_deduct"
-                >
-                  <input
-                    checked={!isAutoDeduct && !isBreakOvertime}
-                    className="mt-0.5 w-4 h-4 text-primary-600 border-slate-355 dark:border-slate-700 focus:ring-primary-500 cursor-pointer"
-                    id="break_policy_no_deduct"
-                    name="break_policy"
-                    onChange={() => {
-                      setIsAutoDeduct(false);
-                      setIsBreakOvertime(false);
-                    }}
-                    type="radio"
-                  />
-                  <div className="space-y-1">
-                    <span className="text-xs font-bold text-slate-755 dark:text-slate-200 cursor-pointer block">
-                      {t("shifts.modal.break_policy_no_deduct")}
-                    </span>
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-normal leading-normal">
-                      {t("shifts.modal.break_policy_no_deduct_help")}
-                    </span>
-                  </div>
-                </label>
-
-                {/* Option 3: Break Overtime */}
-                <label
-                  aria-label={t("shifts.modal.break_policy_overtime")}
-                  className={`flex items-start gap-3 p-4 rounded-2xl border transition-all ${
-                    !isFixedBreak
-                      ? "bg-slate-100/50 dark:bg-slate-900/20 border-slate-200/50 dark:border-slate-800/30 opacity-60 cursor-not-allowed"
-                      : "bg-slate-50 dark:bg-slate-800/40 border-slate-100 dark:border-slate-800/80 cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-800/30"
-                  }`}
-                  htmlFor="break_policy_overtime"
-                >
-                  <input
-                    checked={isBreakOvertime}
-                    className={`mt-0.5 w-4 h-4 text-primary-600 border-slate-355 dark:border-slate-700 focus:ring-primary-500 ${
-                      !isFixedBreak ? "cursor-not-allowed" : "cursor-pointer"
-                    }`}
-                    disabled={!isFixedBreak}
-                    id="break_policy_overtime"
-                    name="break_policy"
-                    onChange={() => {
-                      setIsAutoDeduct(false);
-                      setIsBreakOvertime(true);
-                    }}
-                    type="radio"
-                  />
-                  <div className="space-y-1">
-                    <span className={`text-xs font-bold block ${!isFixedBreak ? "text-slate-400 dark:text-slate-500 cursor-not-allowed" : "text-slate-700 dark:text-slate-200 cursor-pointer"}`}>
-                      {t("shifts.modal.break_policy_overtime")}
-                    </span>
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-normal leading-normal">
-                      {!isFixedBreak ? (
-                        <span className="text-amber-600 dark:text-amber-500 font-medium">
-                          ⚠️ {t("shifts.modal.break_policy_overtime_disabled_hint")}
-                        </span>
-                      ) : (
-                        t("shifts.modal.break_policy_overtime_help")
-                      )}
-                    </span>
-                  </div>
-                </label>
-              </div>
-            </div>
-          </div>
-
-          {/* OT Aggregation Mode */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-8 shadow-sm space-y-4">
-            <Typography className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50 dark:border-slate-800/80 pb-4" variant="h3">
-              {t("work_segments.ot_aggregation_mode.label", "Cách tính tăng ca")}
-            </Typography>
-            <div className="space-y-3">
-              <label className="flex items-start gap-3 p-3 rounded-2xl border cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                <input
-                  checked={otAggregationMode === "aggregate"}
-                  className="mt-0.5"
-                  name="otMode"
-                  onChange={() => setOtAggregationMode("aggregate")}
-                  type="radio"
-                />
-                <div>
-                  <span className="text-sm font-bold text-slate-700 dark:text-slate-250 block">
-                    {t("work_segments.ot_aggregation_mode.aggregate", "Gộp (Tổng cả ngày)")}
-                  </span>
-                  <span className="text-xs text-slate-400 dark:text-slate-500">
-                    {t("work_segments.ot_aggregation_mode.aggregate_desc", "Cộng dồn tất cả phiên, tính OT một lần")}
-                  </span>
-                </div>
-              </label>
-              <label className="flex items-start gap-3 p-3 rounded-2xl border cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                <input
-                  checked={otAggregationMode === "per_segment"}
-                  className="mt-0.5"
-                  name="otMode"
-                  onChange={() => setOtAggregationMode("per_segment")}
-                  type="radio"
-                />
-                <div>
-                  <span className="text-sm font-bold text-slate-700 dark:text-slate-250 block">
-                    {t("work_segments.ot_aggregation_mode.per_segment", "Theo từng phiên")}
-                  </span>
-                  <span className="text-xs text-slate-400 dark:text-slate-500">
-                    {t("work_segments.ot_aggregation_mode.per_segment_desc", "Tính OT độc lập cho mỗi phiên")}
-                  </span>
-                </div>
-              </label>
-            </div>
-          </div>
-
-          {/* Night Shift Toggle */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-8 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <Typography className="text-sm font-bold text-slate-700 dark:text-slate-250" variant="h4">
-                  {t("work_segments.night_shift.label", "Ca đêm")}
-                </Typography>
-                <Typography className="text-xs text-slate-400 dark:text-slate-500 mt-1" variant="p">
-                  {t("work_segments.night_shift.description", "Ca làm qua nửa đêm — giờ làm tính cho ngày bắt đầu")}
-                </Typography>
-              </div>
-              <div
-                aria-checked={isNightShift}
-                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 cursor-pointer ${isNightShift ? 'bg-primary-600' : 'bg-slate-200 dark:bg-slate-700'}`}
-                onClick={() => setIsNightShift(!isNightShift)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    setIsNightShift(!isNightShift);
-                  }
-                }}
-                role="switch"
-                tabIndex={0}
-              >
-                <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${isNightShift ? 'translate-x-[1.1rem]' : 'translate-x-0.5'}`} />
-              </div>
-            </div>
-          </div>
-
-          {/* Visual Shift Timeline Preview */}
           <ShiftTimelinePreview
-            allowEarlyOt={allowEarlyOt}
-            breakEnd={breakEnd}
-            breakStart={breakStart}
-            isAutoDeduct={isAutoDeduct}
-            isBreakOvertime={isBreakOvertime}
-            isFixedBreak={isFixedBreak}
-            maxEarlyOtMinutes={maxEarlyOtMinutes}
-            shiftBreak={shiftBreak}
-            shiftEnd={shiftEnd}
-            shiftGrace={shiftGrace}
-            shiftName={shiftName}
-            shiftStart={shiftStart}
+            intervals={intervalDrafts}
           />
         </div>
       </div>
