@@ -19,8 +19,8 @@ const LEAVE_COLORS = [
     "#ec4899", // pink-500  — Maternity
     "#f59e0b", // amber-500 — Unpaid
     "#10b981", // emerald-500
-    "#10b981", // emerald-500
     "#06b6d4", // cyan-500
+    "#8b5cf6", // violet-500
     "#f97316", // orange-500
 ];
 
