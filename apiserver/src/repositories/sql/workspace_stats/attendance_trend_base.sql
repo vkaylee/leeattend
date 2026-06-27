@@ -10,7 +10,9 @@ daily_present AS (
            COUNT(DISTINCT te.employment_id) AS present
     FROM days d
     LEFT JOIN time_entries te
-        ON (te.punch_in_time AT TIME ZONE $3)::date = d.date
+        ON te.punch_in_time >= $3
+        AND te.punch_in_time < $4
+        AND (te.punch_in_time AT TIME ZONE $5)::date = d.date
         AND te.employment_id IN (SELECT id FROM active_employments)
     GROUP BY d.date
 ),
@@ -19,7 +21,7 @@ daily_leave AS (
            COUNT(DISTINCT lr.employment_id) AS on_leave
     FROM days d
     LEFT JOIN (
-        leave_requests lr 
+        leave_requests lr
         JOIN employments emp ON lr.employment_id = emp.id AND emp.deleted_at IS NULL
     ) ON lr.status IN ('approved', 'pre_approved')
       AND lr.start_date <= d.date

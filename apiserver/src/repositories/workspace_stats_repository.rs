@@ -6,10 +6,12 @@ use crate::models::{
 };
 use async_trait::async_trait;
 use chrono::{Datelike, NaiveDate, Utc};
+use chrono_tz::Tz;
 use diesel_async::RunQueryDsl;
 
 use crate::repositories::raw_models::workspace_stats::*;
 use crate::repositories::roster::RosterRepository;
+use crate::utils::tz;
 use uuid::Uuid;
 
 #[cfg_attr(test, mockall::automock)]
@@ -55,18 +57,26 @@ impl DieselWorkspaceStatsRepository {
         Self { diesel_pools }
     }
 
-    async fn get_timezone(&self, auth_token: &crate::diesel_pool::TenantAuthToken) -> String {
+    /// Return the current calendar date in the workspace's local timezone.
+    ///
+    /// Replaces the incorrect `Utc::now().date_naive()` which gives
+    /// the UTC calendar date, not the workspace-local "today".
+    fn workspace_local_date(tz: &Tz) -> NaiveDate {
+        Utc::now().with_timezone(tz).date_naive()
+    }
+
+    async fn get_timezone(&self, auth_token: &crate::diesel_pool::TenantAuthToken) -> Tz {
         let workspace_id = auth_token.workspace_id();
 
         let Ok(mut conn) = self.diesel_pools.api.get().await else {
-            return "UTC".to_string();
+            return chrono_tz::UTC;
         };
 
         diesel::sql_query("SELECT timezone::text FROM workspaces WHERE id = $1")
             .bind::<diesel::sql_types::Uuid, _>(workspace_id)
             .get_result::<TzRow>(&mut *conn)
             .await
-            .map_or_else(|_| "UTC".to_string(), |r| r.timezone)
+            .map_or(chrono_tz::UTC, |r| tz::parse_workspace_tz(&r.timezone))
     }
 }
 
@@ -78,9 +88,20 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<AttendanceTrendPoint>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let today = Utc::now().date_naive();
-        let tz_str = self.get_timezone(auth_token).await;
+        let tz = self.get_timezone(auth_token).await;
+        let tz_name = tz.name();
+        let today = Self::workspace_local_date(&tz);
         let start_date = today - chrono::Duration::days(29);
+
+        let utc_range_start = tz::start_of_day_utc(&tz, start_date)
+            .map_err(|e| AppError::Internal(format!("Invalid start date: {e}")))?;
+        let utc_range_end_exclusive = tz::start_of_day_utc(
+            &tz,
+            today
+                .succ_opt()
+                .ok_or_else(|| AppError::Internal("Date overflow".to_string()))?,
+        )
+        .map_err(|e| AppError::Internal(format!("Invalid end date: {e}")))?;
 
         let mut conn = self
             .diesel_pools
@@ -92,7 +113,9 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         ))
         .bind::<diesel::sql_types::Date, _>(today)
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .bind::<diesel::sql_types::Text, _>(&tz_str)
+        .bind::<diesel::sql_types::Timestamptz, _>(utc_range_start)
+        .bind::<diesel::sql_types::Timestamptz, _>(utc_range_end_exclusive)
+        .bind::<diesel::sql_types::Text, _>(tz_name)
         .load(&mut *conn)
         .await?;
 
@@ -109,9 +132,9 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         // Fetch first punches in range
         let punch_rows: Vec<EmployeeFirstPunchRow> =
             diesel::sql_query(include_str!("sql/workspace_stats/first_punches_range.sql"))
-                .bind::<diesel::sql_types::Date, _>(start_date)
-                .bind::<diesel::sql_types::Date, _>(today)
-                .bind::<diesel::sql_types::Text, _>(&tz_str)
+                .bind::<diesel::sql_types::Timestamptz, _>(utc_range_start)
+                .bind::<diesel::sql_types::Timestamptz, _>(utc_range_end_exclusive)
+                .bind::<diesel::sql_types::Text, _>(tz_name)
                 .bind::<diesel::sql_types::Uuid, _>(workspace_id)
                 .load(&mut *conn)
                 .await
@@ -171,7 +194,9 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         range: &str,
     ) -> Result<Vec<DepartmentAttendancePoint>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let today = Utc::now().date_naive();
+        let tz = self.get_timezone(auth_token).await;
+        let tz_name = tz.name();
+        let today = Self::workspace_local_date(&tz);
         let start_date = match range {
             "week" => today - chrono::Duration::days(6),
             _ => today,
@@ -194,17 +219,23 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             return Ok(vec![]);
         }
 
-        let start_dt = start_date
-            .and_hms_opt(0, 0, 0)
-            .and_then(|t| t.and_local_timezone(Utc).single())
-            .ok_or_else(|| AppError::Internal("Invalid date".to_string()))?;
+        let utc_range_start = tz::start_of_day_utc(&tz, start_date)
+            .map_err(|e| AppError::Internal(format!("Invalid date: {e}")))?;
+        let utc_range_end_exclusive = tz::start_of_day_utc(
+            &tz,
+            today
+                .succ_opt()
+                .ok_or_else(|| AppError::Internal("Date overflow".to_string()))?,
+        )
+        .map_err(|e| AppError::Internal(format!("Invalid date: {e}")))?;
 
         let present_rows: Vec<PresentRow> = diesel::sql_query(include_str!(
             "sql/workspace_stats/department_attendance_present.sql"
         ))
         .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .bind::<diesel::sql_types::Timestamptz, _>(start_dt)
+        .bind::<diesel::sql_types::Timestamptz, _>(utc_range_start)
         .bind::<diesel::sql_types::Date, _>(today)
+        .bind::<diesel::sql_types::Timestamptz, _>(utc_range_end_exclusive)
         .load(&mut *conn)
         .await
         .unwrap_or_else(|e| {
@@ -218,14 +249,23 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             .collect();
 
         let late_map: std::collections::HashMap<Uuid, i64> = if range == "today" {
-            let tz_str = self.get_timezone(auth_token).await;
+            let utc_today_start = tz::start_of_day_utc(&tz, today)
+                .map_err(|e| AppError::Internal(format!("Invalid date: {e}")))?;
+            let utc_today_end_exclusive = tz::start_of_day_utc(
+                &tz,
+                today
+                    .succ_opt()
+                    .ok_or_else(|| AppError::Internal("Date overflow".to_string()))?,
+            )
+            .map_err(|e| AppError::Internal(format!("Invalid date: {e}")))?;
 
             // Fetch today's first punches
             let punch_rows: Vec<EmployeeFirstPunchTodayRow> =
                 diesel::sql_query(include_str!("sql/workspace_stats/first_punches_today.sql"))
-                    .bind::<diesel::sql_types::Date, _>(today)
+                    .bind::<diesel::sql_types::Timestamptz, _>(utc_today_start)
+                    .bind::<diesel::sql_types::Timestamptz, _>(utc_today_end_exclusive)
                     .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-                    .bind::<diesel::sql_types::Text, _>(&tz_str)
+                    .bind::<diesel::sql_types::Text, _>(tz_name)
                     .load(&mut *conn)
                     .await
                     .unwrap_or_default();
@@ -326,7 +366,8 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<OvertimeTrendPoint>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let today = Utc::now().date_naive();
+        let tz = self.get_timezone(auth_token).await;
+        let today = Self::workspace_local_date(&tz);
         let mut conn = self
             .diesel_pools
             .tenant_transaction_conn(auth_token)
@@ -367,106 +408,218 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<WorkspaceStats, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let mut conn = self
-            .diesel_pools
-            .tenant_transaction_conn(auth_token)
-            .await?;
+        let tz = self.get_timezone(auth_token).await;
+        let tz_name = tz.name();
+        let today = Self::workspace_local_date(&tz);
 
-        let total_employees: i64 = diesel::sql_query(
-            "SELECT COUNT(*)::bigint as count FROM employments WHERE workspace_id = $1 AND status = 'active' AND deleted_at IS NULL",
+        let utc_today_start = tz::start_of_day_utc(&tz, today)
+            .map_err(|e| AppError::Internal(format!("Invalid date: {e}")))?;
+        let utc_today_end_exclusive = tz::start_of_day_utc(
+            &tz,
+            today
+                .succ_opt()
+                .ok_or_else(|| AppError::Internal("Date overflow".to_string()))?,
         )
-        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .get_result::<CountRow>(&mut *conn)
-        .await
-        .map(|r| r.count)
-        .unwrap_or(0);
+        .map_err(|e| AppError::Internal(format!("Invalid date: {e}")))?;
 
-        let tz_str = self.get_timezone(auth_token).await;
-        let today = Utc::now().date_naive();
-        let start_of_day = today
-            .and_hms_opt(0, 0, 0)
-            .and_then(|t| t.and_local_timezone(Utc).single())
-            .ok_or_else(|| AppError::Internal("Invalid date calculation".to_string()))?;
+        // ── Phase 1: Run 8 independent read queries in parallel ─────
+        // Each future acquires its own connection from the tenant pool
+        // and handles query errors gracefully (matching original behavior).
 
-        let present_today: i64 = diesel::sql_query(
-            "SELECT COUNT(DISTINCT employment_id)::bigint as count FROM time_entries
-         WHERE (punch_in_time AT TIME ZONE $3)::date = $1::date
-         AND employment_id IN (SELECT id FROM employments WHERE workspace_id = $2 AND deleted_at IS NULL)",
-        )
-        .bind::<diesel::sql_types::Date, _>(today)
-        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .bind::<diesel::sql_types::Text, _>(&tz_str)
-        .get_result::<CountRow>(&mut *conn)
-        .await
-        .map(|r| r.count)
-        .unwrap_or(0);
+        let pools = self.diesel_pools.clone();
 
-        let pending_leave: i64 = diesel::sql_query(
-            "SELECT COUNT(*)::bigint as count FROM leave_requests
-         WHERE status = 'pending'
-         AND employment_id IN (SELECT id FROM employments WHERE workspace_id = $1 AND deleted_at IS NULL)",
-        )
-        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .get_result::<CountRow>(&mut *conn)
-        .await
-        .map(|r| r.count)
-        .unwrap_or(0);
+        let f_total_employees = {
+            let pools = pools.clone();
+            async move {
+                let mut conn = pools.tenant_transaction_conn(auth_token).await?;
+                Ok::<i64, AppError>(
+                    diesel::sql_query(
+                        "SELECT COUNT(*)::bigint as count FROM employments WHERE workspace_id = $1 AND status = 'active' AND deleted_at IS NULL",
+                    )
+                    .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+                    .get_result::<CountRow>(&mut *conn)
+                    .await
+                    .map(|r| r.count)
+                    .unwrap_or(0),
+                )
+            }
+        };
 
-        let payroll: rust_decimal::Decimal = diesel::sql_query(include_str!(
-            "sql/workspace_stats/workspace_stats_payroll.sql"
-        ))
-        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-        .get_result::<DecimalRow>(&mut *conn)
-        .await
-        .map(|r| r.amount)
-        .unwrap_or(rust_decimal::Decimal::ZERO);
+        let f_present_today = {
+            let pools = pools.clone();
+            async move {
+                let mut conn = pools.tenant_transaction_conn(auth_token).await?;
+                Ok::<i64, AppError>(
+                    diesel::sql_query(
+                        "SELECT COUNT(DISTINCT employment_id)::bigint as count FROM time_entries
+                         WHERE punch_in_time >= $1
+                         AND punch_in_time < $2
+                         AND employment_id IN (SELECT id FROM employments WHERE workspace_id = $3 AND deleted_at IS NULL)",
+                    )
+                    .bind::<diesel::sql_types::Timestamptz, _>(utc_today_start)
+                    .bind::<diesel::sql_types::Timestamptz, _>(utc_today_end_exclusive)
+                    .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+                    .get_result::<CountRow>(&mut *conn)
+                    .await
+                    .map(|r| r.count)
+                    .unwrap_or(0),
+                )
+            }
+        };
 
-        let on_leave_today: i64 = diesel::sql_query(
-        "SELECT COUNT(DISTINCT lr.employment_id)::bigint as count FROM leave_requests lr
-         WHERE lr.status IN ('approved', 'pre_approved')
-         AND lr.start_date <= $1 AND lr.end_date >= $1
-         AND lr.employment_id IN (SELECT id FROM employments WHERE workspace_id = $2 AND status = 'active' AND deleted_at IS NULL)",
-    )
-    .bind::<diesel::sql_types::Date, _>(today)
-    .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-    .get_result::<CountRow>(&mut *conn)
-    .await
-    .map(|r| r.count)
-    .unwrap_or(0);
+        let f_pending_leave = {
+            let pools = pools.clone();
+            async move {
+                let mut conn = pools.tenant_transaction_conn(auth_token).await?;
+                Ok::<i64, AppError>(
+                    diesel::sql_query(
+                        "SELECT COUNT(*)::bigint as count FROM leave_requests
+                         WHERE status = 'pending'
+                         AND employment_id IN (SELECT id FROM employments WHERE workspace_id = $1 AND deleted_at IS NULL)",
+                    )
+                    .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+                    .get_result::<CountRow>(&mut *conn)
+                    .await
+                    .map(|r| r.count)
+                    .unwrap_or(0),
+                )
+            }
+        };
+
+        let f_payroll = {
+            let pools = pools.clone();
+            async move {
+                let mut conn = pools.tenant_transaction_conn(auth_token).await?;
+                Ok::<rust_decimal::Decimal, AppError>(
+                    diesel::sql_query(include_str!("sql/workspace_stats/workspace_stats_payroll.sql"))
+                        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+                        .get_result::<DecimalRow>(&mut *conn)
+                        .await
+                        .map(|r| r.amount)
+                        .unwrap_or(rust_decimal::Decimal::ZERO),
+                )
+            }
+        };
+
+        let f_on_leave_today = {
+            let pools = pools.clone();
+            async move {
+                let mut conn = pools.tenant_transaction_conn(auth_token).await?;
+                Ok::<i64, AppError>(
+                    diesel::sql_query(
+                        "SELECT COUNT(DISTINCT lr.employment_id)::bigint as count FROM leave_requests lr
+                         WHERE lr.status IN ('approved', 'pre_approved')
+                         AND lr.start_date <= $1 AND lr.end_date >= $1
+                         AND lr.employment_id IN (SELECT id FROM employments WHERE workspace_id = $2 AND status = 'active' AND deleted_at IS NULL)",
+                    )
+                    .bind::<diesel::sql_types::Date, _>(today)
+                    .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+                    .get_result::<CountRow>(&mut *conn)
+                    .await
+                    .map(|r| r.count)
+                    .unwrap_or(0),
+                )
+            }
+        };
+
+        let f_first_punches = {
+            let pools = pools.clone();
+            async move {
+                let mut conn = pools.tenant_transaction_conn(auth_token).await?;
+                Ok::<Vec<EmployeeFirstPunchTodayRow>, AppError>(
+                    diesel::sql_query(
+                        include_str!("sql/workspace_stats/first_punches_today.sql"),
+                    )
+                    .bind::<diesel::sql_types::Timestamptz, _>(utc_today_start)
+                    .bind::<diesel::sql_types::Timestamptz, _>(utc_today_end_exclusive)
+                    .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+                    .bind::<diesel::sql_types::Text, _>(tz_name)
+                    .load(&mut *conn)
+                    .await
+                    .unwrap_or_default(),
+                )
+            }
+        };
+
+        let f_last_punches = {
+            let pools = pools.clone();
+            async move {
+                let mut conn = pools.tenant_transaction_conn(auth_token).await?;
+                Ok::<Vec<EmployeeLastPunchRow>, AppError>(
+                    diesel::sql_query(
+                        include_str!("sql/workspace_stats/last_punches_today.sql"),
+                    )
+                    .bind::<diesel::sql_types::Timestamptz, _>(utc_today_start)
+                    .bind::<diesel::sql_types::Timestamptz, _>(utc_today_end_exclusive)
+                    .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+                    .bind::<diesel::sql_types::Text, _>(tz_name)
+                    .load(&mut *conn)
+                    .await
+                    .unwrap_or_default(),
+                )
+            }
+        };
+
+        let f_avg_work = {
+            let pools = pools.clone();
+            async move {
+                let mut conn = pools.tenant_transaction_conn(auth_token).await?;
+                Ok::<Option<f64>, AppError>(
+                    diesel::sql_query(
+                        "SELECT AVG(duration_minutes)::float8 as amount FROM time_entries
+                         WHERE punch_in_time >= $1
+                         AND punch_in_time < $2
+                         AND punch_out_time IS NOT NULL
+                         AND duration_minutes > 0
+                         AND employment_id IN (SELECT id FROM employments WHERE workspace_id = $3 AND status = 'active' AND deleted_at IS NULL)",
+                    )
+                    .bind::<diesel::sql_types::Timestamptz, _>(utc_today_start)
+                    .bind::<diesel::sql_types::Timestamptz, _>(utc_today_end_exclusive)
+                    .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+                    .get_result::<FloatRow>(&mut *conn)
+                    .await
+                    .ok()
+                    .and_then(|r| r.amount),
+                )
+            }
+        };
+
+        // try_join! short-circuits on connection errors but individual
+        // query failures are already handled within each future.
+        let (
+            total_employees,
+            present_today,
+            pending_leave,
+            payroll,
+            on_leave_today,
+            first_punch_rows,
+            last_punch_rows,
+            avg_work_minutes,
+        ) = tokio::try_join!(
+            f_total_employees,
+            f_present_today,
+            f_pending_leave,
+            f_payroll,
+            f_on_leave_today,
+            f_first_punches,
+            f_last_punches,
+            f_avg_work,
+        )?;
 
         let absent_today = (total_employees - present_today - on_leave_today).max(0);
 
-        // Fetch today's first punches
-        let first_punch_rows: Vec<EmployeeFirstPunchTodayRow> =
-            diesel::sql_query(include_str!("sql/workspace_stats/first_punches_today.sql"))
-                .bind::<diesel::sql_types::Date, _>(today)
-                .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-                .bind::<diesel::sql_types::Text, _>(&tz_str)
-                .load(&mut *conn)
-                .await
-                .unwrap_or_default();
+        // ── Phase 2: Fetch schedules (separate to avoid pool pressure) ──
 
         let first_punch_map: std::collections::HashMap<Uuid, chrono::NaiveTime> = first_punch_rows
             .into_iter()
             .map(|r| (r.employee_id, r.first_punch))
             .collect();
 
-        // Fetch today's last punches
-        let last_punch_rows: Vec<EmployeeLastPunchRow> =
-            diesel::sql_query(include_str!("sql/workspace_stats/last_punches_today.sql"))
-                .bind::<diesel::sql_types::Date, _>(today)
-                .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-                .bind::<diesel::sql_types::Text, _>(&tz_str)
-                .load(&mut *conn)
-                .await
-                .unwrap_or_default();
-
         let last_punch_map: std::collections::HashMap<Uuid, chrono::NaiveTime> = last_punch_rows
             .into_iter()
             .map(|r| (r.employee_id, r.last_punch_out))
             .collect();
 
-        // Resolve today's schedules
         let roster_repo =
             crate::repositories::diesel_roster_repository::DieselRosterRepository::new(
                 self.diesel_pools.clone(),
@@ -499,20 +652,6 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             }
         }
 
-        let avg_work_minutes: Option<f64> = diesel::sql_query(
-        "SELECT AVG(duration_minutes)::float8 as amount FROM time_entries
-         WHERE punch_in_time >= $1
-         AND punch_out_time IS NOT NULL
-         AND duration_minutes > 0
-         AND employment_id IN (SELECT id FROM employments WHERE workspace_id = $2 AND status = 'active' AND deleted_at IS NULL)",
-    )
-    .bind::<diesel::sql_types::Timestamptz, _>(start_of_day)
-    .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-    .get_result::<FloatRow>(&mut *conn)
-    .await
-    .ok()
-    .and_then(|r| r.amount);
-
         let avg_work_hours_today = avg_work_minutes.unwrap_or(0.0) / 60.0;
 
         Ok(WorkspaceStats {
@@ -533,11 +672,18 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<PeakTimeSlot>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let today = Utc::now().date_naive();
-        let start_of_day = today
-            .and_hms_opt(0, 0, 0)
-            .and_then(|t| t.and_local_timezone(Utc).single())
-            .ok_or_else(|| AppError::Internal("Invalid date".to_string()))?;
+        let tz = self.get_timezone(auth_token).await;
+        let today = Self::workspace_local_date(&tz);
+
+        let utc_start = tz::start_of_day_utc(&tz, today)
+            .map_err(|e| AppError::Internal(format!("Invalid date: {e}")))?;
+        let utc_end_exclusive = tz::start_of_day_utc(
+            &tz,
+            today
+                .succ_opt()
+                .ok_or_else(|| AppError::Internal("Date overflow".to_string()))?,
+        )
+        .map_err(|e| AppError::Internal(format!("Invalid date: {e}")))?;
 
         let mut conn = self
             .diesel_pools
@@ -546,7 +692,8 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
 
         let rows: Vec<SlotRow> =
             diesel::sql_query(include_str!("sql/workspace_stats/peak_times.sql"))
-                .bind::<diesel::sql_types::Timestamptz, _>(start_of_day)
+                .bind::<diesel::sql_types::Timestamptz, _>(utc_start)
+                .bind::<diesel::sql_types::Timestamptz, _>(utc_end_exclusive)
                 .bind::<diesel::sql_types::Uuid, _>(workspace_id)
                 .load(&mut *conn)
                 .await
@@ -572,7 +719,8 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<LeaveTypeBreakdown>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let today = Utc::now().date_naive();
+        let tz = self.get_timezone(auth_token).await;
+        let today = Self::workspace_local_date(&tz);
         let month_start = NaiveDate::from_ymd_opt(today.year(), today.month(), 1)
             .ok_or_else(|| AppError::Internal("Invalid date".to_string()))?;
 
@@ -611,9 +759,20 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         auth_token: &crate::diesel_pool::TenantAuthToken,
     ) -> Result<Vec<LatenessByDay>, AppError> {
         let workspace_id = auth_token.workspace_id();
-        let today = Utc::now().date_naive();
+        let tz = self.get_timezone(auth_token).await;
+        let tz_name = tz.name();
+        let today = Self::workspace_local_date(&tz);
         let start_date = today - chrono::Duration::days(29);
-        let tz_str = self.get_timezone(auth_token).await;
+
+        let utc_start = tz::start_of_day_utc(&tz, start_date)
+            .map_err(|e| AppError::Internal(format!("Invalid start date: {e}")))?;
+        let utc_end_exclusive = tz::start_of_day_utc(
+            &tz,
+            today
+                .succ_opt()
+                .ok_or_else(|| AppError::Internal("Date overflow".to_string()))?,
+        )
+        .map_err(|e| AppError::Internal(format!("Invalid end date: {e}")))?;
 
         let mut conn = self
             .diesel_pools
@@ -633,9 +792,9 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         // Fetch first punches in range
         let punch_rows: Vec<EmployeeFirstPunchRow> =
             diesel::sql_query(include_str!("sql/workspace_stats/first_punches_range.sql"))
-                .bind::<diesel::sql_types::Date, _>(start_date)
-                .bind::<diesel::sql_types::Date, _>(today)
-                .bind::<diesel::sql_types::Text, _>(&tz_str)
+                .bind::<diesel::sql_types::Timestamptz, _>(utc_start)
+                .bind::<diesel::sql_types::Timestamptz, _>(utc_end_exclusive)
+                .bind::<diesel::sql_types::Text, _>(tz_name)
                 .bind::<diesel::sql_types::Uuid, _>(workspace_id)
                 .load(&mut *conn)
                 .await

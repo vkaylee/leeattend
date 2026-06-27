@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -171,7 +171,7 @@ describe("UnexcusedAbsencesChart", () => {
     });
 
     it("calls useUnexcusedAbsences with groupBy parameter", () => {
- 
+
         vi.mocked(dashboardHooks.useUnexcusedAbsences).mockReturnValue({
             data: mockData,
             isLoading: false,
@@ -185,5 +185,50 @@ describe("UnexcusedAbsencesChart", () => {
             expect.any(String),
             "department"
         );
+    });
+
+    it("switches groupBy to employee when employee toggle clicked", () => {
+        const mockHook = vi.mocked(dashboardHooks.useUnexcusedAbsences);
+        mockHook.mockReturnValue({
+            data: mockData,
+            isLoading: false,
+        } as unknown as ReturnType<typeof dashboardHooks.useUnexcusedAbsences>);
+
+        renderWithProviders(<UnexcusedAbsencesChart />);
+
+        fireEvent.click(screen.getByText("dashboard.hr.group_by_employee"));
+
+        expect(mockHook).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.any(String),
+            "employee"
+        );
+    });
+
+    it("switches range preset when 30 Days is clicked", () => {
+        const mockHook = vi.mocked(dashboardHooks.useUnexcusedAbsences);
+        mockHook.mockReturnValue({
+            data: mockData,
+            isLoading: false,
+        } as unknown as ReturnType<typeof dashboardHooks.useUnexcusedAbsences>);
+
+        renderWithProviders(<UnexcusedAbsencesChart />);
+
+        fireEvent.click(screen.getByText("dashboard.hr.last_30_days_range"));
+
+        // Should have been called again with new start/end dates
+        expect(mockHook).toHaveBeenCalledTimes(2);
+    });
+
+    it("handles missing data gracefully (undefined data, not loading)", () => {
+        vi.mocked(dashboardHooks.useUnexcusedAbsences).mockReturnValue({
+            data: undefined,
+            isLoading: false,
+        } as unknown as ReturnType<typeof dashboardHooks.useUnexcusedAbsences>);
+
+        renderWithProviders(<UnexcusedAbsencesChart />);
+
+        // Should show empty state
+        expect(screen.getByText("common.no_data")).toBeInTheDocument();
     });
 });

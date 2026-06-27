@@ -2,19 +2,18 @@ import { BasePage } from './base-page';
 
 export class Navbar extends BasePage {
   async logout() {
-    // Click User Profile Menu Trigger
-    await this.page.getByTestId('navbar-user-menu-trigger').click();
-    // Click Logout button in the dropdown
-    await this.page.getByTestId('user-menu-logout-btn').click();
+    // Direct logout button in DSM icon rail
+    await this.page.getByTestId('nav-rail-logout').click();
   }
 
   async openProfile() {
-    await this.page.getByTestId('navbar-user-menu-trigger').click();
-    await this.page.getByTestId('user-menu-profile-btn').click();
+    // Direct profile link in DSM icon rail
+    await this.page.getByTestId('nav-rail-user-avatar').click();
   }
 
   async openSettings() {
-    await this.page.getByTestId('navbar-user-menu-trigger').click();
-    await this.page.getByTestId('user-menu-settings-btn').click();
+    // Settings Hub is accessible via the nav rail system button or direct navigation
+    // The DSM shell uses nav-panel groups for navigation
+    await this.page.goto('/workspace/settings');
   }
 }

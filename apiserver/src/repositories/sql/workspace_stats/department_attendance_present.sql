@@ -13,5 +13,5 @@ FROM time_entries te
 JOIN employments emp_te ON te.employment_id = emp_te.id AND emp_te.workspace_id = $1 AND emp_te.deleted_at IS NULL
 JOIN latest_dept ld ON ld.employee_id = emp_te.employee_id
 WHERE te.punch_in_time >= $2
+  AND te.punch_in_time < $4
 GROUP BY ld.department_id
-

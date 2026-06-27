@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -130,7 +130,7 @@ describe("DepartmentAttendanceChart", () => {
     });
 
     it("shows Today and This Week toggle buttons", () => {
- 
+
         vi.mocked(dashboardHooks.useDepartmentAttendance).mockReturnValue({
             data: mockDeptData,
             isLoading: false,
@@ -140,5 +140,33 @@ describe("DepartmentAttendanceChart", () => {
 
         expect(screen.getByText("dashboard.hr.today")).toBeInTheDocument();
         expect(screen.getByText("dashboard.hr.this_week")).toBeInTheDocument();
+    });
+
+    it("switches range from today to week when This Week is clicked", () => {
+        const mockHook = vi.mocked(dashboardHooks.useDepartmentAttendance);
+        mockHook.mockReturnValue({
+            data: mockDeptData,
+            isLoading: false,
+        } as unknown as ReturnType<typeof dashboardHooks.useDepartmentAttendance>);
+
+        renderWithProviders(<DepartmentAttendanceChart />);
+
+        // Click "This Week" toggle
+        fireEvent.click(screen.getByText("dashboard.hr.this_week"));
+
+        // Hook should have been called with "week" range
+        expect(mockHook).toHaveBeenCalledWith("week");
+    });
+
+    it("handles missing data gracefully (undefined data, not loading)", () => {
+        vi.mocked(dashboardHooks.useDepartmentAttendance).mockReturnValue({
+            data: undefined,
+            isLoading: false,
+        } as unknown as ReturnType<typeof dashboardHooks.useDepartmentAttendance>);
+
+        renderWithProviders(<DepartmentAttendanceChart />);
+
+        // Should show empty state
+        expect(screen.getByText("common.no_data")).toBeInTheDocument();
     });
 });

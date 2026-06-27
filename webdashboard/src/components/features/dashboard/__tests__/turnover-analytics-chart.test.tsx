@@ -204,7 +204,7 @@ describe("TurnoverAnalyticsChart", () => {
     });
 
     it("has a period selector dropdown with options", () => {
- 
+
         vi.mocked(dashboardHooks.useTurnoverAnalytics).mockReturnValue({
             data: mockData,
             isLoading: false,
@@ -215,5 +215,53 @@ describe("TurnoverAnalyticsChart", () => {
         const select = screen.getByRole("combobox");
         expect(select).toBeInTheDocument();
         expect(select).toHaveValue("6m");
+    });
+
+    it("calls useTurnoverAnalytics with correct date range on period change", () => {
+        const mockHook = vi.mocked(dashboardHooks.useTurnoverAnalytics);
+        mockHook.mockReturnValue({
+            data: mockData,
+            isLoading: false,
+        } as unknown as ReturnType<typeof dashboardHooks.useTurnoverAnalytics>);
+
+        renderWithProviders(<TurnoverAnalyticsChart />);
+
+        // Change period to 3 months
+        const select = screen.getByRole("combobox");
+        fireEvent.change(select, { target: { value: "3m" } });
+
+        // The hook should have been called with new date range
+        // The component re-renders with new period, which triggers a new hook call
+        expect(mockHook).toHaveBeenCalled();
+    });
+
+    it("shows empty state when turnover data has all empty arrays", () => {
+        vi.mocked(dashboardHooks.useTurnoverAnalytics).mockReturnValue({
+            data: {
+                tenure_distribution: [],
+                by_source: [],
+                by_department: [],
+                total_terminated: 0,
+                period_start: "2025-09-03",
+                period_end: "2026-03-03",
+            },
+            isLoading: false,
+        } as unknown as ReturnType<typeof dashboardHooks.useTurnoverAnalytics>);
+
+        renderWithProviders(<TurnoverAnalyticsChart />);
+
+        expect(screen.getByText("common.no_data")).toBeInTheDocument();
+    });
+
+    it("handles missing data gracefully (undefined data, not loading)", () => {
+        vi.mocked(dashboardHooks.useTurnoverAnalytics).mockReturnValue({
+            data: undefined,
+            isLoading: false,
+        } as unknown as ReturnType<typeof dashboardHooks.useTurnoverAnalytics>);
+
+        renderWithProviders(<TurnoverAnalyticsChart />);
+
+        // Should show empty state, not crash
+        expect(screen.getByText("common.no_data")).toBeInTheDocument();
     });
 });

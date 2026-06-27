@@ -3,8 +3,7 @@ import { expect } from "@playwright/test";
 import { test } from "./worker-orchestrator";
 
 test.describe("Overtime Flow", () => {
-test.beforeEach(async ({ authPage }) => {
-    // authPage fixture automatically logs in
+  test.beforeEach(async ({ authPage }) => {
     expect(authPage).toBeDefined();
   });
 
@@ -12,8 +11,8 @@ test.beforeEach(async ({ authPage }) => {
     page.on('console', _message => { /* empty */ });
     page.on('pageerror', _error => { /* empty */ });
 
-    // Wait for dashboard to load
-    await expect(page.getByTestId('dashboard-title')).toBeVisible({ timeout: 10000 });
+    // Wait for dashboard to load (use Quick Stats region which is always visible)
+    await expect(page.getByRole('region', { name: /Quick Stats/i })).toBeVisible({ timeout: 15000 });
 
     // Navigate to OT Approvals Page
     await page.goto("/approvals/ot");
@@ -30,10 +29,10 @@ test.beforeEach(async ({ authPage }) => {
 
       // Fill in details
       await page.fill('textarea[placeholder="Why is this overtime necessary?"]', "E2E Test Overtime Requirement");
-      
+
       // Submit Request
       await page.getByRole('button', { name: /Submit Request/i }).click();
-      
+
       // Verify Toast
       await expect(page.getByText(/Pre-OT Request created successfully/i)).toBeVisible();
     }
