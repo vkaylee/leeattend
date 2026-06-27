@@ -55,10 +55,11 @@ export interface MenuGroupType {
   items: MenuLinkType[];
 }
 
-export type NavGroup = "dashboard" | "org" | "time" | "shifts" | "payroll" | "system" | "ess";
+export type NavGroup = "dashboard" | "settings" | "org" | "time" | "shifts" | "payroll" | "system" | "ess";
 
 export interface NavMenuStructure {
   dashboard: MenuLinkType;
+  settings: MenuLinkType;
   groups: MenuGroupType[];
 }
 
@@ -80,6 +81,14 @@ export function useNavMenuItems(): NavMenuStructure {
     label: t("common.dashboard"),
     exact: true,
     testId: "sidebar-link-dashboard",
+  };
+
+  const settings: MenuLinkType = {
+    to: ROUTES.SETTINGS.ROOT,
+    icon: Settings,
+    label: t("settings.title"),
+    testId: "sidebar-link-settings",
+    permissions: ["workspace:settings:read", "members:roles:manage"],
   };
 
   const groups: MenuGroupType[] = [
@@ -133,14 +142,13 @@ export function useNavMenuItems(): NavMenuStructure {
     {
       section: "system",
       sectionIcon: Wrench,
-      label: t("settings.title"),
+      label: t("common.sections.system"),
       testId: "sidebar-section-system",
       items: [
         { to: ROUTES.INFRA_MONITOR, icon: Activity, label: t("monitor.title"), testId: "sidebar-link-monitor", systemRoles: ["platform_admin", "support"] },
         { to: ROUTES.SYSTEM_ROLES, icon: ShieldCheck, label: t("system_roles.title", "Platform Admins"), testId: "sidebar-link-system-roles", systemRoles: ["platform_admin"] },
         { to: ROUTES.SYSTEM_DB_CLUSTERS, icon: Server, label: t("db_clusters.title", "DB Clusters"), testId: "sidebar-link-system-db-clusters", systemRoles: ["platform_admin"] },
         { to: ROUTES.SYSTEM_TENANTS, icon: Database, label: t("system_admin.tenants.title"), testId: "sidebar-link-system-tenants", systemRoles: ["platform_admin"] },
-        { to: ROUTES.SETTINGS.ROOT, icon: Settings, label: t("settings.title"), testId: "sidebar-link-settings-root", permissions: ["workspace:settings:read", "members:roles:manage"] },
       ],
     },
     {
@@ -156,7 +164,7 @@ export function useNavMenuItems(): NavMenuStructure {
     },
   ];
 
-  return { dashboard, groups };
+  return { dashboard, settings, groups };
 }
 
 // ── Filtering logic (identical to sidebar.tsx lines 228-249) ───────
@@ -166,7 +174,7 @@ export function useNavMenuItems(): NavMenuStructure {
  * Mirrors the exact logic from sidebar.tsx.
  */
 export function useFilteredMenuItems(): NavMenuStructure {
-  const { dashboard, groups } = useNavMenuItems();
+  const { dashboard, settings, groups } = useNavMenuItems();
   const { hasAnyPermission } = useMyPermissions();
   const { user } = useProfile();
 
@@ -185,7 +193,7 @@ export function useFilteredMenuItems(): NavMenuStructure {
     })
     .filter((group) => group.items.length > 0);
 
-  return { dashboard, groups: filteredGroups };
+  return { dashboard, settings, groups: filteredGroups };
 }
 
 // ── Path-based active group detection ──────────────────────────────
@@ -211,7 +219,8 @@ export function getActiveNavGroup(pathname: string): NavGroup | null {
   if (TIME_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) return "time";
   if (SHIFTS_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) return "shifts";
   if (PAYROLL_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) return "payroll";
-  if (pathname.startsWith(ROUTES.SETTINGS.ROOT) || pathname.startsWith("/system/") || pathname.startsWith("/infra/")) return "system";
+  if (pathname.startsWith(ROUTES.SETTINGS.ROOT)) return "settings";
+  if (pathname.startsWith("/system/") || pathname.startsWith("/infra/")) return "system";
   if (pathname.startsWith("/ess/")) return "ess";
   return null;
 }

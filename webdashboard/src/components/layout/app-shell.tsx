@@ -105,11 +105,11 @@ export default function AppShell({ variant = "workspace" }: AppShellProps) {
   const isOrgChart = location.pathname.endsWith("/org-chart");
 
   // Determine if the floating panel should be visible
-  const panelOpen = activeGroup !== null && activeGroup !== "dashboard";
+  const panelOpen = activeGroup !== null && activeGroup !== "dashboard" && activeGroup !== "settings";
 
-  // Handle group click: always open the panel. Close only via Escape / click-outside / navigate.
+  // Handle group click: open panel for most groups, navigate directly for dashboard/settings
   const handleGroupClick = (group: string) => {
-    if (group === "dashboard") return;
+    if (group === "dashboard" || group === "settings") return;
     setActiveGroup(group as typeof activeGroup);
   };
 

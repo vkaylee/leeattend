@@ -64,11 +64,9 @@ export const ROUTES = {
   // Workspace Settings (Unified Control Panel)
   SETTINGS: {
     ROOT: "/workspace/settings",
-    OVERVIEW: "/workspace/settings/overview",
     ROLES: "/workspace/settings/roles",
     PERMISSIONS: "/workspace/settings/permissions",
     GENERAL: "/workspace/settings/general",
-    PEOPLE: "/workspace/settings/people",
     ORGANIZATION: "/workspace/settings/organization",
     TIME: "/workspace/settings/time",
     PAYROLL: "/workspace/settings/payroll",

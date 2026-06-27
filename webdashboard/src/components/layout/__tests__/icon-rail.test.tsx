@@ -26,7 +26,7 @@ vi.mock("@/hooks/use-permissions", () => ({
 
 vi.mock("@/hooks/use-profile", () => ({
   useProfile: () => ({
-    user: { id: "x", email: "a@b.com", full_name: "Test User", system_roles: [] },
+    user: { id: "x", email: "a@b.com", full_name: "Test User", system_roles: ["platform_admin"] },
     isLoading: false,
   }),
 }));
@@ -101,10 +101,11 @@ describe("IconRail", () => {
     expect(screen.getByTestId("nav-rail-logo")).toBeInTheDocument();
   });
 
-  it("renders all 7 group icons", () => {
+  it("renders all 8 group icons (dashboard + settings + 6 groups)", () => {
     render(<IconRail {...defaultProps} />, { wrapper: Wrapper });
 
     expect(screen.getByTestId("nav-rail-group-dashboard")).toBeInTheDocument();
+    expect(screen.getByTestId("nav-rail-group-settings")).toBeInTheDocument();
     expect(screen.getByTestId("nav-rail-group-org")).toBeInTheDocument();
     expect(screen.getByTestId("nav-rail-group-time")).toBeInTheDocument();
     expect(screen.getByTestId("nav-rail-group-shifts")).toBeInTheDocument();
@@ -229,7 +230,7 @@ describe("IconRail", () => {
     const { container } = render(<IconRail {...defaultProps} />, { wrapper: Wrapper });
 
     const tooltips = container.querySelectorAll('[role="tooltip"]');
-    expect(tooltips.length).toBeGreaterThanOrEqual(7); // groups + bottom controls
+    expect(tooltips.length).toBeGreaterThanOrEqual(8); // groups + bottom controls
   });
 
   // ── Edge cases ───────────────────────────────────────────────
@@ -294,7 +295,27 @@ describe("IconRail", () => {
     expect(onHover).not.toHaveBeenCalled();
   });
 
-  // ── Click on Dashboard (Link) ─────────────────────────────────
+  // ── Click on Dashboard & Settings (Links) ────────────────────
+
+  it("settings icon is a link to /workspace/settings", () => {
+    render(<IconRail {...defaultProps} />, { wrapper: Wrapper });
+
+    const settingsBtn = screen.getByTestId("nav-rail-group-settings");
+    expect(settingsBtn.tagName).toBe("A");
+    expect(settingsBtn.getAttribute("href")).toBe("/workspace/settings");
+  });
+
+  it("settings icon navigates directly (Link), does not trigger FloatingPanel", () => {
+    const onClick = vi.fn();
+    render(<IconRail {...defaultProps} onGroupClick={onClick} />, { wrapper: Wrapper });
+
+    const settingsBtn = screen.getByTestId("nav-rail-group-settings");
+    // Settings is a Link like Dashboard — clicking navigates directly, not via onGroupClick
+    expect(settingsBtn.tagName).toBe("A");
+    fireEvent.click(settingsBtn);
+    // onGroupClick is NOT called for direct-link icons (dashboard & settings)
+    expect(onClick).not.toHaveBeenCalled();
+  });
 
   it("dashboard icon is a link to /", () => {
     render(<IconRail {...defaultProps} />, { wrapper: Wrapper });

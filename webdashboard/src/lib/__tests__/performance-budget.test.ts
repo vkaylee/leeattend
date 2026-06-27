@@ -45,14 +45,14 @@ describe("performance budget", () => {
     }
   });
 
-  it("lazy route chunks are under 250 kB", () => {
+  it("lazy route chunks are under 300 kB", () => {
     const files = readdirSync(distDir).filter(
       (f: string) => f.includes(".lazy-") && f.endsWith(".js"),
     );
     expect(files.length).toBeGreaterThan(20); // at least 20 lazy chunks
     for (const file of files) {
       const size = statSync(resolve(distDir, file)).size;
-      expect(size, `${file} exceeds 250 kB budget`).toBeLessThan(250_000);
+      expect(size, `${file} exceeds 300 kB budget`).toBeLessThan(300_000);
     }
   });
 

@@ -38,7 +38,7 @@ export default function IconRail({
   onShowWorkspaceSwitcher,
 }: IconRailProps) {
   const { t } = useTranslation();
-  const { dashboard, groups } = useFilteredMenuItems();
+  const { dashboard, settings, groups } = useFilteredMenuItems();
   const { user } = useProfile();
   const { mode, setMode } = useDarkModeContext();
   const { currentLanguage, changeLanguage, currentOption } = useLanguage();
@@ -111,6 +111,20 @@ export default function IconRail({
           testId="nav-rail-group-dashboard"
           to={ROUTES.HOME}
         />
+
+        {settings && (
+          <RailIconButton
+            group="settings"
+            icon={settings.icon}
+            isActive={activeGroup === "settings"}
+            label={settings.label}
+            onClick={() => { onGroupClick("settings"); }}
+            onMouseEnter={() => { onGroupHover("settings"); }}
+            onMouseLeave={() => { onGroupHover(null); }}
+            testId="nav-rail-group-settings"
+            to={settings.to}
+          />
+        )}
 
         {groups.map((g) => (
           <RailIconButton
@@ -288,7 +302,7 @@ function RailIconButton({
     </>
   );
 
-  if (to && group === "dashboard") {
+  if (to && (group === "dashboard" || group === "settings")) {
     return (
       <Link
         aria-label={label}

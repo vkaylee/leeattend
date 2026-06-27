@@ -497,7 +497,11 @@ const AuthenticatedWorkspaceWorkspaceSettingsIndexRoute =
     id: "/",
     path: "/",
     getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/workspace/settings/index.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceShiftsRulesIndexRoute =
   AuthenticatedWorkspaceShiftsRulesIndexRouteImport.update({
     id: "/",

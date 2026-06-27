@@ -88,7 +88,6 @@ describe("ROUTES constants", () => {
     // Settings (under /workspace/settings)
     "/workspace/settings",
     "/workspace/settings/general",
-    "/workspace/settings/people",
     "/workspace/settings/time",
     "/workspace/settings/payroll",
     "/workspace/settings/leave",

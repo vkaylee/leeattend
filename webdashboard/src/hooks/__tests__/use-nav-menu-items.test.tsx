@@ -65,12 +65,17 @@ describe("useNavMenuItems", () => {
     vi.clearAllMocks();
   });
 
-  it("returns dashboard and 6 groups", () => {
+  it("returns dashboard, settings, and 6 groups", () => {
     const { result } = renderHook(() => useNavMenuItems(), { wrapper });
 
     expect(result.current.dashboard).toBeDefined();
     expect(result.current.dashboard.to).toBe("/");
     expect(result.current.dashboard.testId).toBe("sidebar-link-dashboard");
+
+    expect(result.current.settings).toBeDefined();
+    expect(result.current.settings.to).toBe("/workspace/settings");
+    expect(result.current.settings.testId).toBe("sidebar-link-settings");
+    expect(result.current.settings.icon).toBeDefined();
 
     expect(result.current.groups).toHaveLength(6);
     const sections = result.current.groups.map((g) => g.section);
@@ -153,7 +158,7 @@ describe("useFilteredMenuItems", () => {
 
     const systemGroup = result.current.groups.find((g) => g.section === "system");
     expect(systemGroup).toBeDefined();
-    // platform_admin should see all system items (4 role-gated + 1 settings)
+    // platform_admin should see all 4 role-gated system items
     expect(systemGroup!.items.length).toBeGreaterThanOrEqual(4);
   });
 
@@ -163,10 +168,8 @@ describe("useFilteredMenuItems", () => {
     const { result } = renderHook(() => useFilteredMenuItems(), { wrapper });
 
     const systemGroup = result.current.groups.find((g) => g.section === "system");
-    // Without system roles, only settings item might show if user has workspace:settings:read
-    if (systemGroup) {
-      expect(systemGroup.items.every((i) => !i.systemRoles || i.systemRoles.length === 0)).toBe(true);
-    }
+    // Without system roles, system group should be empty (all items gated behind roles)
+    expect(systemGroup).toBeUndefined();
   });
 });
 
@@ -209,8 +212,14 @@ describe("getActiveNavGroup", () => {
     expect(getActiveNavGroup("/payroll")).toBe("payroll");
   });
 
-  it('returns "system" for /workspace/settings', () => {
-    expect(getActiveNavGroup("/workspace/settings")).toBe("system");
+  it('returns "settings" for /workspace/settings', () => {
+    expect(getActiveNavGroup("/workspace/settings")).toBe("settings");
+  });
+
+  it('returns "settings" for /workspace/settings sub-pages', () => {
+    expect(getActiveNavGroup("/workspace/settings/general")).toBe("settings");
+    expect(getActiveNavGroup("/workspace/settings/time")).toBe("settings");
+    expect(getActiveNavGroup("/workspace/settings/danger")).toBe("settings");
   });
 
   it('returns "system" for /system/roles', () => {

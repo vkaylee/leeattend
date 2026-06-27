@@ -294,13 +294,11 @@
       "overtime_desc": "Overtime settings",
       "general": "General",
       "organization": "Organization",
-      "people": "People",
       "time": "Time & Attendance",
       "payroll": "Payroll",
       "connectivity": "Connectivity",
       "general_desc": "Branding and basic workspace options.",
       "organization_desc": "Manage company details and branding.",
-      "people_desc": "Manage employees, departments and roles.",
       "time_desc": "Configure shifts, rosters and attendance rules.",
       "payroll_desc": "Manage standard work days and formulas.",
       "connectivity_desc": "Manage device connections and network.",
@@ -397,8 +395,13 @@
       "title": "Overtime Settings"
     },
     "title": "Settings Hub",
-    "navigation": "Navigation",
     "admin_only": "Administrators only",
+    "hub": {
+      "empty": {
+        "title": "No Settings Available",
+        "desc": "You don't have permission to access any settings. Contact your administrator."
+      }
+    },
     "leave": {
       "title": "Leave Settings",
       "desc": "Configure leave types and accrual policies for your workspace.",
@@ -619,9 +622,6 @@
       "operations": "Operations",
       "security_system": "Security & System",
       "workspace": "Workspace"
-    },
-    "tabs": {
-      "members": "Members"
     },
     "workflows": {
       "general_section": "General Config",
