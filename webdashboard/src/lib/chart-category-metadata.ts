@@ -20,8 +20,8 @@ export type ChartCategory = "attendance" | "workforce" | "performance" | "summar
 
 export interface ChartMeta {
   category: ChartCategory;
-  icon: React.ElementType;
   descriptionKey: string;
+  icon: React.ElementType;
 }
 
 export const CHART_METADATA: Record<WidgetId, ChartMeta> = {

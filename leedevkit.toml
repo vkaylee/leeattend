@@ -1,0 +1,36 @@
+[project]
+name = "LeeAttend"
+namespace = "leeattend"
+languages = ["rust", "typescript"]
+
+[services.apiserver]
+dockerfile = "./apiserver"
+lang = "rust"
+ports = [3000]
+health_check = "/api/v1/health"
+cargo = true
+
+[services.agent-main]
+dockerfile = "./agent-main"
+lang = "rust"
+cargo = true
+
+[services.webdashboard]
+dockerfile = "./webdashboard"
+lang = "typescript"
+ports = [5173]
+bun = true
+
+[targets]
+api = ["apiserver", "agent-main"]
+web = ["webdashboard"]
+all = ["apiserver", "agent-main", "webdashboard"]
+
+[ai]
+rules_dir = ".attendagent/rules"
+override_manifest = ".attendagent/overrides.yaml"
+
+[addons]
+skills = [
+    { url = "https://github.com/addyosmani/agent-skills.git", version = "main" },
+]

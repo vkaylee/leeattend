@@ -11,7 +11,6 @@ import { useNavSidebar } from "@/hooks/use-nav-sidebar";
 import { useTheme } from "@/hooks/use-theme";
 import { useWorkspaces } from "@/hooks/use-workspace";
 import { getCurrentWorkspaceId } from "@/lib/api";
-import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 import Button from "../ui/button";
@@ -78,7 +77,7 @@ function WorkspaceSwitcherModal({ isOpen, onClose }: { isOpen: boolean; onClose:
 
 // ── AppShell ───────────────────────────────────────────────────────
 
-export default function AppShell({ variant = "workspace" }: AppShellProps) {
+export default function AppShell({ variant }: AppShellProps) {
   useTheme();
   useI18nSync();
   const location = useLocation();

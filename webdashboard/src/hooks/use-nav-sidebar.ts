@@ -1,31 +1,32 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { NavGroup } from "@/hooks/use-nav-menu-items";
+
 import { getActiveNavGroup } from "@/hooks/use-nav-menu-items";
 
 // ── Types ──────────────────────────────────────────────────────────
 
 export interface NavSidebarState {
-  /** Whether the floating panel is pinned (locked open). Persisted in localStorage. */
-  isPinned: boolean;
   /** Which group's floating panel is currently visible. */
   activeGroup: NavGroup | null;
-  /** Whether the mobile drawer is open. */
-  isMobileOpen: boolean;
-  /** Toggle pin state. */
-  togglePin: () => void;
-  /** Set the active group (for explicit click — bypasses debounce, blocks hover-close). */
-  setActiveGroup: (group: NavGroup | null) => void;
   /** Hover handler with 150ms debounce for open, 300ms for close. */
   handleGroupHover: (group: NavGroup | null) => void;
   /** Call when mouse enters the floating panel — cancels pending close. */
   handlePanelEnter: () => void;
   /** Call when mouse leaves the floating panel while not pinned. */
   handlePanelLeave: () => void;
-  /** Open/close the mobile drawer. */
-  setMobileOpen: (open: boolean) => void;
+  /** Whether the mobile drawer is open. */
+  isMobileOpen: boolean;
+  /** Whether the floating panel is pinned (locked open). Persisted in localStorage. */
+  isPinned: boolean;
   /** The auto-detected active group from the current path. */
   pathActiveGroup: NavGroup | null;
+  /** Set the active group (for explicit click — bypasses debounce, blocks hover-close). */
+  setActiveGroup: (group: NavGroup | null) => void;
+  /** Open/close the mobile drawer. */
+  setMobileOpen: (open: boolean) => void;
+  /** Toggle pin state. */
+  togglePin: () => void;
 }
 
 const PIN_STORAGE_KEY = "nav-rail-pinned";

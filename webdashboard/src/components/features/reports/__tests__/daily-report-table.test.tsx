@@ -590,9 +590,9 @@ describe("DailyReportTable", () => {
         render(
             <DailyReportTable
                 {...defaultProps}
-                isLoading
-                isDebugMode
                 hideEmployeeName={false}
+                isDebugMode
+                isLoading
             />
         );
         // Skeleton rows should have 13 <td> elements (isDebugMode=true, hideEmployeeName=false)
@@ -606,8 +606,8 @@ describe("DailyReportTable", () => {
         render(
             <DailyReportTable
                 {...defaultProps}
-                isLoading
                 hideEmployeeName
+                isLoading
             />
         );
         // Skeleton rows with hideEmployeeName=true, isDebugMode=false → 11 columns

@@ -4,8 +4,9 @@ import { useState, useEffect } from "react";
 
 import { format } from "date-fns";
 
-import { fetchEmployee } from "@/lib/api";
 import type { Shift, Employee } from "@/lib/api/types";
+
+import { fetchEmployee } from "@/lib/api";
 
 import type { TabType, ViewMode } from "./use-shifts-types";
 

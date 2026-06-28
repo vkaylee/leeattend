@@ -2,8 +2,8 @@ import { Link, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import Button from "@/components/ui/button";
 import { AuthLayout } from "@/components/ui/auth-layout";
+import Button from "@/components/ui/button";
 import { LABEL_BASE } from "@/components/ui/form-field";
 import { Typography } from "@/components/ui/typography";
 import { resetPassword } from "@/lib/api";
@@ -114,7 +114,7 @@ export default function ResetPasswordPage() {
           <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-2xl p-5 text-center animate-in fade-in zoom-in-95 duration-300">
             <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/50 rounded-full flex items-center justify-center mx-auto mb-3">
               <svg className="w-6 h-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                <path d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
             <p className="text-amber-800 dark:text-amber-200 font-semibold text-sm">
@@ -133,7 +133,7 @@ export default function ResetPasswordPage() {
         </div>
       ) : step === Step.Form ? (
         /* New password form */
-        <form className="space-y-5" onSubmit={handleSubmit} noValidate>
+        <form className="space-y-5" noValidate onSubmit={handleSubmit}>
           <div className="space-y-2">
             <label className={LABEL_BASE} htmlFor="new-password">
               {t("auth.new_password")}
@@ -181,7 +181,7 @@ export default function ResetPasswordPage() {
           <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-5 text-center animate-in fade-in zoom-in-95 duration-300">
             <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/50 rounded-full flex items-center justify-center mx-auto mb-3">
               <svg className="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
             <p className="text-emerald-800 dark:text-emerald-200 font-semibold text-sm">

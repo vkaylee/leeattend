@@ -28,11 +28,11 @@ interface EmployeeDetailDrawerProps {
     isOpen: boolean;
     onClose: () => void;
     onEdit: (employee: Employee) => void;
+    onEmployeeUpdate?: (emp: Employee) => void;
     onRehire: (employee: Employee) => void;
     onTerminate: (employee: Employee) => void;
     onTransfer: (departmentId: string) => void;
     wsId: string;
-    onEmployeeUpdate?: (emp: Employee) => void;
 }
 
 interface DrawerTabContentProps {
@@ -45,12 +45,12 @@ interface DrawerTabContentProps {
     linkedUser?: WorkspaceMember;
     locations?: WorkLocation[];
     onEdit: (e: Employee) => void;
+    onEmployeeUpdate?: (emp: Employee) => void;
     onRehire: (e: Employee) => void;
     onTerminate: (e: Employee) => void;
     onTransfer: (id: string) => void;
     t: (k: string) => string;
     wsId: string;
-    onEmployeeUpdate?: (emp: Employee) => void;
 }
 
 const TAB_CONTENT_MAP: Record<DetailTabType, (props: DrawerTabContentProps) => React.ReactNode> = {
@@ -70,12 +70,12 @@ const TAB_CONTENT_MAP: Record<DetailTabType, (props: DrawerTabContentProps) => R
             linkedUser={props.linkedUser}
             locations={props.locations}
             onEdit={props.onEdit}
+            onEmployeeUpdate={props.onEmployeeUpdate}
             onRehire={props.onRehire}
             onTerminate={props.onTerminate}
             onTransfer={props.onTransfer}
             t={props.t}
             wsId={props.wsId}
-            onEmployeeUpdate={props.onEmployeeUpdate}
         />
     ),
     salary: (props) => <EmployeeSalaryConfig employeeId={props.employee.id} employmentId={props.activeEmployment?.id ?? ""} wsId={props.wsId} />,
@@ -139,12 +139,12 @@ export default function EmployeeDetailDrawer({
                     linkedUser={linkedUser}
                     locations={locations}
                     onEdit={onEdit}
+                    onEmployeeUpdate={onEmployeeUpdate}
                     onRehire={onRehire}
                     onTerminate={onTerminate}
                     onTransfer={onTransfer}
                     t={t}
                     wsId={wsId}
-                    onEmployeeUpdate={onEmployeeUpdate}
                 />
             </div>
         </Sheet>

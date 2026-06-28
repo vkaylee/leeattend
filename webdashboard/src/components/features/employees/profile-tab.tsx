@@ -7,11 +7,11 @@ import type { WorkLocation } from "@/lib/api/locations";
 
 import PermissionGate from "@/components/common/permission-gate";
 import { CustomFieldSection } from "@/components/custom-fields/custom-field-section";
+import EditTerminationModal from "@/components/features/employees/edit-termination-modal";
+import UndoTerminationModal from "@/components/features/employees/undo-termination-modal";
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { fetchEmployeeEmployments, updateEmployeeEmployment } from "@/lib/api";
-import EditTerminationModal from "@/components/features/employees/edit-termination-modal";
-import UndoTerminationModal from "@/components/features/employees/undo-termination-modal";
 
 import type { DeptHistoryEntry } from "./profile-sections";
 
@@ -53,18 +53,18 @@ export function ProfileActions({
                         <div className="flex items-center justify-center gap-2 py-3 px-4 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-2xl border border-slate-100 dark:border-slate-700/50 text-[10px] uppercase tracking-wider h-11 shadow-inner relative group">
                             <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 animate-pulse" />
                             {t("employees.details.terminated_at")}: {terminationDate ? formatDate(terminationDate) : "—"}
-                            {showEditTerminationDate && onEditTerminationDate && (
+                            {!!showEditTerminationDate && !!onEditTerminationDate && (
                                 <Button
-                                    onClick={onEditTerminationDate}
                                     className="ml-2 !h-auto !min-w-0 !p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
-                                    type="button"
                                     data-testid="edit-termination-date-btn"
+                                    onClick={onEditTerminationDate}
                                     title={t("employees.terminate.edit_date_title")}
+                                    type="button"
                                     variant="ghost"
                                 >
                                     <Pencil size={12} />
                                 </Button>
-                            )}
+                              )}
                         </div>
                         <div className="flex gap-4 w-full">
                             <Button className="flex items-center justify-center gap-2 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-2xl transition-all text-[10px] uppercase tracking-widest shadow-md active:scale-95 h-9 flex-1" data-testid="employees-btn-rehire" onClick={() => { onRehire(employee); }} type="button" variant="primary"><UserPlus size={14} /> {t("employees.details.rehire").toUpperCase()}</Button>
@@ -89,12 +89,12 @@ export interface ProfileTabProps {
     linkedUser: WorkspaceMember | undefined;
     locations?: WorkLocation[];
     onEdit: (e: Employee) => void;
+    onEmployeeUpdate?: (emp: Employee) => void;
     onRehire: (e: Employee) => void;
     onTerminate: (e: Employee) => void;
     onTransfer: (id: string) => void;
     t: (k: string) => string;
     wsId: string;
-    onEmployeeUpdate?: (emp: Employee) => void;
 }
 
 export default function ProfileTab({
@@ -174,13 +174,13 @@ export default function ProfileTab({
                 employee={employee}
                 formatDate={formatDate}
                 onEdit={onEdit}
+                onEditTerminationDate={() => setIsEditTerminationModalOpen(true)}
                 onRehire={onRehire}
                 onTerminate={onTerminate}
                 onUndoTerminate={() => setIsUndoTerminationModalOpen(true)}
+                showEditTerminationDate={!employee.active_employment_id && !!terminatedEmployment}
                 t={t}
                 terminationDate={!employee.active_employment_id ? activeEmployment?.end_date : null}
-                onEditTerminationDate={() => setIsEditTerminationModalOpen(true)}
-                showEditTerminationDate={!employee.active_employment_id && !!terminatedEmployment}
             />
 
             <DepartmentSection
@@ -225,18 +225,18 @@ export default function ProfileTab({
                 <CustomFieldSection entityId={activeEmployment.id} entityType="employment" />
             )}
 
-            {isEditTerminationModalOpen && terminatedEmployment && (
+            {!!isEditTerminationModalOpen && !!terminatedEmployment && (
                 <EditTerminationModal
+                    currentEndDate={terminatedEmployment.end_date ?? null}
                     employeeId={employee.id}
                     employmentId={terminatedEmployment.id}
-                    currentEndDate={terminatedEmployment.end_date ?? null}
                     isOpen={isEditTerminationModalOpen}
                     onClose={() => setIsEditTerminationModalOpen(false)}
                     wsId={wsId}
                 />
-            )}
+              )}
 
-            {isUndoTerminationModalOpen && terminatedEmployment && (
+            {!!isUndoTerminationModalOpen && !!terminatedEmployment && (
                 <UndoTerminationModal
                     employeeId={employee.id}
                     employmentId={terminatedEmployment.id}
@@ -252,7 +252,7 @@ export default function ProfileTab({
                     }}
                     wsId={wsId}
                 />
-            )}
+              )}
         </div>
     );
 }

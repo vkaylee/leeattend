@@ -2,8 +2,8 @@ import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import Button from "@/components/ui/button";
 import { AuthLayout } from "@/components/ui/auth-layout";
+import Button from "@/components/ui/button";
 import { LABEL_BASE } from "@/components/ui/form-field";
 import { Typography } from "@/components/ui/typography";
 import { forgotPassword } from "@/lib/api";
@@ -91,7 +91,7 @@ export default function ForgotPasswordPage() {
 
       {step === Step.Form ? (
         /* Email form */
-        <form className="space-y-5" onSubmit={handleSubmit} noValidate>
+        <form className="space-y-5" noValidate onSubmit={handleSubmit}>
           <div className="space-y-2">
             <label className={LABEL_BASE} htmlFor="email-address">
               {t("auth.email")}
@@ -139,7 +139,7 @@ export default function ForgotPasswordPage() {
           <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-5 text-center animate-in fade-in zoom-in-95 duration-300">
             <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/50 rounded-full flex items-center justify-center mx-auto mb-3">
               <svg className="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+                <path d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
             <p className="text-emerald-800 dark:text-emerald-200 font-semibold text-sm">

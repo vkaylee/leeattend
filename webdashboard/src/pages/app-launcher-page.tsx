@@ -1,5 +1,8 @@
+import { Layers } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+
+import type { NavGroup } from "@/hooks/use-nav-menu-items";
 
 import AppCard from "@/components/features/app-launcher/app-card";
 import QuickStatsBar from "@/components/features/app-launcher/quick-stats-bar";
@@ -11,8 +14,6 @@ import { useMyPermissions } from "@/hooks/use-permissions";
 import { useProfile } from "@/hooks/use-profile";
 import { useQuickAccess } from "@/hooks/use-quick-access";
 import { APP_REGISTRY, GROUP_LABEL_KEYS, type AppDefinition } from "@/lib/app-registry";
-import type { NavGroup } from "@/hooks/use-nav-menu-items";
-import { Layers } from "lucide-react";
 
 // ── Helpers ────────────────────────────────────────────────────────
 
@@ -140,7 +141,7 @@ export default function AppLauncherPage() {
 
         <div className="space-y-8">
           {Array.from(groupedApps.entries()).map(([group, apps]) => (
-            <div key={group} data-testid={`launcher-group-${group}`}>
+            <div data-testid={`launcher-group-${group}`} key={group}>
               {/* Group header */}
               <Typography
                 className="text-sm font-bold text-slate-600 dark:text-slate-300 mb-3 flex items-center gap-2"

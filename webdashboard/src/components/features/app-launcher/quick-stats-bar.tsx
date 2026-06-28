@@ -10,10 +10,10 @@ import { cn } from "@/lib/utils";
 // ── Types ──────────────────────────────────────────────────────────
 
 interface StatItem {
+  accentClass: string;
   icon: React.ElementType;
   labelKey: string;
   value: string;
-  accentClass: string;
 }
 
 // ── Component ──────────────────────────────────────────────────────

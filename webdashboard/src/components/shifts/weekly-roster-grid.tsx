@@ -15,7 +15,6 @@ import { format } from "date-fns";
 import { vi, enUS, zhCN, type Locale } from "date-fns/locale";
 
 import Button from "@/components/ui/button";
-import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { Employee, EmployeeSchedule, EffectiveSchedule, Shift } from "@/lib/api/types";
 
@@ -37,8 +36,8 @@ interface WeeklyRosterGridProps {
   onToggleDaySelection: (dateString: string) => void;
   selectedDays: string[];
   selectedEmployee: Employee;
-  weekDays: Date[];
   shifts?: Shift[];
+  weekDays: Date[];
 }
 
 interface DayCardHeaderProps {
@@ -87,31 +86,31 @@ function DayCardSourceTags({ daySchedules, t }: DayCardSourceTagsProps) {
         switch (source) {
           case "roster":
             return (
-              <span key={source} className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-300 border border-teal-100 uppercase tracking-tighter flex items-center gap-1">
+              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-300 border border-teal-100 uppercase tracking-tighter flex items-center gap-1" key={source}>
                 <Zap size={8} /> {t("shifts.types.flexible")}
               </span>
             );
           case "pattern":
             return (
-              <span key={source} className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 border border-blue-100 dark:border-blue-800 uppercase tracking-tighter flex items-center gap-1">
+              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 border border-blue-100 dark:border-blue-800 uppercase tracking-tighter flex items-center gap-1" key={source}>
                 <ShieldCheck size={8} /> {t("patterns.title")}
               </span>
             );
           case "department_pattern":
             return (
-              <span key={source} className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 uppercase tracking-tighter flex items-center gap-1">
+              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 uppercase tracking-tighter flex items-center gap-1" key={source}>
                 <Building2 size={8} /> {t("patterns.title")}
               </span>
             );
           case "fixed":
             return (
-              <span key={source} className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-800 uppercase tracking-tighter flex items-center gap-1">
+              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-800 uppercase tracking-tighter flex items-center gap-1" key={source}>
                 <ShieldCheck size={8} /> {t("shifts.types.fixed")}
               </span>
             );
           case "department_fixed":
             return (
-              <span key={source} className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-800 uppercase tracking-tighter flex items-center gap-1">
+              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-800 uppercase tracking-tighter flex items-center gap-1" key={source}>
                 <Building2 size={8} /> {t("common.department")}
               </span>
             );
@@ -128,8 +127,8 @@ interface DayCardShiftDetailsProps {
   daySchedules: EffectiveSchedule[];
   formatTime: (time: string | null | undefined) => string;
   onDeleteRoster: (date: string) => void;
-  t: TFunction;
   shifts?: Shift[];
+  t: TFunction;
 }
 
 const getShiftSymbol = (shiftName?: string | null, reportSymbol?: string | null) => {
@@ -161,14 +160,14 @@ function DayCardShiftDetails({ daySchedules, formatTime, onDeleteRoster, dateStr
         const shiftSymbol = getShiftSymbol(s.shift_name, shiftConfig?.report_symbol);
         return (
           <div
-            key={idx}
             className={`p-4 rounded-[24px] relative group/item animate-in zoom-in-95 border ${s.source === 'roster' ? 'bg-teal-50 dark:bg-teal-950/50 border-teal-100' : 'bg-primary-50 dark:bg-primary-950 border-blue-100 dark:border-blue-800'}`}
+            key={idx}
           >
             <div className="flex justify-between items-start gap-2">
               <div className={`font-bold text-xs mb-1 uppercase tracking-tight leading-tight ${s.source === 'roster' ? 'text-teal-700 dark:text-teal-300' : 'text-blue-700 dark:text-blue-300'}`}>
                 {s.shift_name}
               </div>
-              {s.traces && s.traces.length > 0 && (
+              {!!s.traces && s.traces.length > 0 && (
                 <div className="shrink-0">
                   <ScheduleTracePopover 
                     endTime={s.end_time} 
@@ -225,8 +224,8 @@ interface WeeklyRosterDayCardProps {
   isToday: boolean;
   onDeleteRoster: (date: string) => void;
   onToggleDaySelection: (dateString: string) => void;
-  t: TFunction;
   shifts?: Shift[];
+  t: TFunction;
 }
 
 function WeeklyRosterDayCard({
@@ -263,7 +262,7 @@ function WeeklyRosterDayCard({
       <DayCardHeader currentLocale={currentLocale} day={day} holidayName={holidayName} isHoliday={isHoliday} isSelected={isSelected} isToday={isToday} />
       <div className="flex-1 space-y-4">
         <DayCardSourceTags daySchedules={daySchedules} t={t} />
-        <DayCardShiftDetails dateString={dateString} daySchedules={daySchedules} formatTime={formatTime} onDeleteRoster={onDeleteRoster} t={t} shifts={shifts} />
+        <DayCardShiftDetails dateString={dateString} daySchedules={daySchedules} formatTime={formatTime} onDeleteRoster={onDeleteRoster} shifts={shifts} t={t} />
       </div>
     </div>
   );
@@ -350,8 +349,8 @@ export function WeeklyRosterGrid({
               key={index}
               onDeleteRoster={onDeleteRoster}
               onToggleDaySelection={onToggleDaySelection}
-              t={t}
               shifts={shifts}
+              t={t}
             />
           );
         })}

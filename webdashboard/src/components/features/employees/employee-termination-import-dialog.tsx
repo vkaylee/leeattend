@@ -1,13 +1,13 @@
+import { useQueryClient } from "@tanstack/react-query";
+import { Upload, FileText, Loader2, CheckCircle2, AlertCircle, RefreshCw, Download } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQueryClient } from "@tanstack/react-query";
-import { Upload, FileText, Loader2, CheckCircle2, AlertCircle, RefreshCw, X, Download } from "lucide-react";
+
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
-import { Typography } from "@/components/ui/typography";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Typography } from "@/components/ui/typography";
 import {
   uploadTerminationImportPreview,
   confirmTerminationImport,
@@ -16,6 +16,7 @@ import {
   ConfirmTerminationRow
 } from "@/lib/api/employees";
 import { fetchJobStatus } from "@/lib/api/leaves";
+import { cn } from "@/lib/utils";
 
 interface EmployeeTerminationImportDialogProps {
   isOpen: boolean;
@@ -200,12 +201,12 @@ export default function EmployeeTerminationImportDialog({
 
   return (
     <Modal
-      isOpen={isOpen}
-      onClose={handleClose}
-      title={t("employees.bulk_termination.dialog_title")}
-      subtitle={t("employees.bulk_termination.dialog_subtitle")}
       icon={<Upload size={24} />}
+      isOpen={isOpen}
       maxWidth={step === 1 ? "lg" : "xl"}
+      onClose={handleClose}
+      subtitle={t("employees.bulk_termination.dialog_subtitle")}
+      title={t("employees.bulk_termination.dialog_title")}
     >
       {importSuccess ? (
         <div className="flex flex-col items-center justify-center py-10 space-y-6 text-center animate-in zoom-in-95 duration-500">
@@ -213,14 +214,14 @@ export default function EmployeeTerminationImportDialog({
             <CheckCircle2 size={40} />
           </div>
           <div>
-            <Typography variant="h3" className="font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-tight text-xl mb-2">
+            <Typography className="font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-tight text-xl mb-2" variant="h3">
               {t("employees.bulk_termination.import_success_title")}
             </Typography>
-            <Typography variant="p" className="text-sm text-slate-500 dark:text-slate-400">
+            <Typography className="text-sm text-slate-500 dark:text-slate-400" variant="p">
               {t("employees.bulk_termination.import_success_desc", { count: successCount })}
             </Typography>
           </div>
-          <Button className="px-10 mt-4 shadow-sm" variant="secondary" onClick={handleClose}>
+          <Button className="px-10 mt-4 shadow-sm" onClick={handleClose} variant="secondary">
             {t("employees.bulk_termination.close_btn")}
           </Button>
         </div>
@@ -230,19 +231,19 @@ export default function EmployeeTerminationImportDialog({
             <AlertCircle size={40} />
           </div>
           <div>
-            <Typography variant="h3" className="font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-tight text-xl mb-2 text-rose-600">
+            <Typography className="font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-tight text-xl mb-2 text-rose-600" variant="h3">
               {t("employees.bulk_termination.processing_error_title")}
             </Typography>
-            <Typography variant="p" className="text-sm text-slate-500 dark:text-slate-400 max-w-md">
+            <Typography className="text-sm text-slate-500 dark:text-slate-400 max-w-md" variant="p">
               {jobError}
             </Typography>
           </div>
           <Button
             className="px-10 mt-4 shadow-sm"
-            variant="primary"
             onClick={() => {
               setJobError(null);
             }}
+            variant="primary"
           >
             {t("employees.bulk_termination.back_btn")}
           </Button>
@@ -254,13 +255,13 @@ export default function EmployeeTerminationImportDialog({
             <RefreshCw className="absolute text-primary-300 animate-pulse" size={24} />
           </div>
           <div>
-            <Typography variant="h3" className="font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-tight text-xl mb-2">
+            <Typography className="font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-tight text-xl mb-2" variant="h3">
               {t("employees.bulk_termination.processing_data_title")}
             </Typography>
-            <Typography variant="p" className="text-sm text-slate-500 dark:text-slate-400 max-w-md">
+            <Typography className="text-sm text-slate-500 dark:text-slate-400 max-w-md" variant="p">
               {t("employees.bulk_termination.processing_data_desc")}
             </Typography>
-            {jobId && (
+            {!!jobId && (
               <span className="inline-block mt-3 text-[10px] font-mono font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full">
                 {t("employees.bulk_termination.task_id_label", { id: jobId })}
               </span>
@@ -275,10 +276,10 @@ export default function EmployeeTerminationImportDialog({
               <AlertCircle size={18} />
             </div>
             <div className="text-xs text-primary-800 dark:text-primary-200 leading-relaxed font-medium pt-0.5 flex-1">
-              <Typography variant="p" className="font-bold uppercase tracking-[0.2em] mb-2 text-slate-700 dark:text-slate-300 block">
+              <Typography className="font-bold uppercase tracking-[0.2em] mb-2 text-slate-700 dark:text-slate-300 block" variant="p">
                 {t("employees.bulk_termination.format_req_title")}
               </Typography>
-              <Typography variant="p" className="text-slate-500 dark:text-slate-400 text-[11px] italic mb-3 block">
+              <Typography className="text-slate-500 dark:text-slate-400 text-[11px] italic mb-3 block" variant="p">
                 {t("employees.bulk_termination.format_req_desc")}
               </Typography>
               <ul className="space-y-3 mt-2 text-slate-700 dark:text-slate-300 font-medium text-xs">
@@ -293,7 +294,7 @@ export default function EmployeeTerminationImportDialog({
                       {t("employees.bulk_termination.required_badge")}
                     </span>
                   </div>
-                  <Typography variant="p" className="pl-5 text-[11px] text-slate-500 dark:text-slate-400">
+                  <Typography className="pl-5 text-[11px] text-slate-500 dark:text-slate-400" variant="p">
                     {t("employees.bulk_termination.employee_code_desc")}
                   </Typography>
                 </li>
@@ -309,7 +310,7 @@ export default function EmployeeTerminationImportDialog({
                     </span>
                   </div>
                   <div className="pl-5 space-y-1">
-                    <Typography variant="p" className="text-[11px] text-slate-500 dark:text-slate-400">
+                    <Typography className="text-[11px] text-slate-500 dark:text-slate-400" variant="p">
                       {t("employees.bulk_termination.termination_date_desc")}
                     </Typography>
                     <span className="inline-block text-[9px] font-mono font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 px-1.5 py-0.5 rounded">
@@ -329,7 +330,7 @@ export default function EmployeeTerminationImportDialog({
                     </span>
                   </div>
                   <div className="pl-5 space-y-1">
-                    <Typography variant="p" className="text-[11px] text-slate-500 dark:text-slate-400">
+                    <Typography className="text-[11px] text-slate-500 dark:text-slate-400" variant="p">
                       {t("employees.bulk_termination.termination_reason_desc")}
                     </Typography>
                     <span className="inline-block text-[9px] font-mono font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 px-1.5 py-0.5 rounded">
@@ -349,7 +350,7 @@ export default function EmployeeTerminationImportDialog({
                     </span>
                   </div>
                   <div className="pl-5 space-y-1">
-                    <Typography variant="p" className="text-[11px] text-slate-500 dark:text-slate-400">
+                    <Typography className="text-[11px] text-slate-500 dark:text-slate-400" variant="p">
                       {t("employees.bulk_termination.termination_notes_desc")}
                     </Typography>
                   </div>
@@ -393,10 +394,10 @@ export default function EmployeeTerminationImportDialog({
                 <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg shadow-emerald-200/50 dark:shadow-emerald-900/30 rotate-3 group-hover:rotate-0 transition-transform">
                   <FileText className="text-emerald-600 dark:text-emerald-300" size={28} />
                 </div>
-                <Typography variant="p" className="font-bold text-slate-800 dark:text-slate-200 mb-1 text-lg tracking-tight uppercase">
+                <Typography className="font-bold text-slate-800 dark:text-slate-200 mb-1 text-lg tracking-tight uppercase" variant="p">
                   {file.name}
                 </Typography>
-                <Typography variant="p" className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                <Typography className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest" variant="p">
                   {(file.size / 1024).toFixed(1)} KB — {t("employees.bulk_termination.file_ready_label")}
                 </Typography>
                 <Button
@@ -416,10 +417,10 @@ export default function EmployeeTerminationImportDialog({
                 <div className="w-16 h-16 bg-white dark:bg-slate-900 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg border border-slate-200 dark:border-slate-700 -rotate-3 group-hover:rotate-0 transition-all">
                   <Upload className="text-slate-400 dark:text-slate-500" size={28} />
                 </div>
-                <Typography variant="p" className="font-bold text-slate-800 dark:text-slate-200 mb-1 text-lg tracking-tight uppercase">
+                <Typography className="font-bold text-slate-800 dark:text-slate-200 mb-1 text-lg tracking-tight uppercase" variant="p">
                   {t("employees.bulk_termination.drag_drop_placeholder")}
                 </Typography>
-                <Typography variant="p" className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                <Typography className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest" variant="p">
                   {t("employees.bulk_termination.file_support_tip")}
                 </Typography>
               </div>
@@ -468,7 +469,7 @@ export default function EmployeeTerminationImportDialog({
           </div>
 
           {/* Preview Tabs */}
-          <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as "valid" | "invalid")}>
+          <Tabs onValueChange={(val) => setActiveTab(val as "valid" | "invalid")} value={activeTab}>
             <TabsList>
               <TabsTrigger value="valid">
                 {t("employees.bulk_termination.tab_valid", { count: previewData?.valid_rows.length ?? 0 })}
@@ -521,8 +522,8 @@ export default function EmployeeTerminationImportDialog({
                               <div className="flex flex-wrap gap-1.5">
                                 {row.prorated_leaves.map((p: any) => (
                                   <span
-                                    key={p.leave_type_id}
                                     className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400"
+                                    key={p.leave_type_id}
                                   >
                                     <span className="font-mono text-primary-600 dark:text-primary-400">
                                       {p.leave_type_code}
@@ -544,7 +545,7 @@ export default function EmployeeTerminationImportDialog({
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-10 border border-dashed border-slate-200 dark:border-slate-800 rounded-3xl">
-                  <Typography variant="p" className="text-slate-400 dark:text-slate-600 text-sm font-semibold italic">
+                  <Typography className="text-slate-400 dark:text-slate-600 text-sm font-semibold italic" variant="p">
                     {t("employees.bulk_termination.no_valid_rows")}
                   </Typography>
                 </div>
@@ -555,16 +556,16 @@ export default function EmployeeTerminationImportDialog({
               {previewData && previewData.invalid_rows.length > 0 ? (
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <Typography variant="p" className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium" variant="p">
                       {t("employees.bulk_termination.invalid_rows_desc")}
                     </Typography>
                     <Button
-                      size="sm"
-                      variant="outline"
                       className="border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950 font-bold"
                       onClick={exportErrorsToExcel}
+                      size="sm"
+                      variant="outline"
                     >
-                      <Download size={14} className="mr-1.5" /> {t("employees.bulk_termination.export_errors_btn")}
+                      <Download className="mr-1.5" size={14} /> {t("employees.bulk_termination.export_errors_btn")}
                     </Button>
                   </div>
                   <div className="max-h-[350px] overflow-y-auto custom-scrollbar border border-slate-100 dark:border-slate-800 rounded-3xl">
@@ -579,7 +580,7 @@ export default function EmployeeTerminationImportDialog({
                       </TableHeader>
                       <TableBody>
                         {previewData.invalid_rows.map((row: any) => (
-                          <TableRow key={row.row_number} className="hover:bg-rose-50/20 dark:hover:bg-rose-950/5">
+                          <TableRow className="hover:bg-rose-50/20 dark:hover:bg-rose-950/5" key={row.row_number}>
                             <TableCell className="text-center font-bold text-rose-400">{row.row_number}</TableCell>
                             <TableCell className="font-mono text-slate-600 dark:text-slate-400">
                               {row.employee_code || <span className="italic text-slate-400">{t("employees.bulk_termination.empty_label")}</span>}
@@ -598,7 +599,7 @@ export default function EmployeeTerminationImportDialog({
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-10 border border-dashed border-slate-200 dark:border-slate-800 rounded-3xl">
-                  <Typography variant="p" className="text-slate-400 dark:text-slate-600 text-sm font-semibold italic">
+                  <Typography className="text-slate-400 dark:text-slate-600 text-sm font-semibold italic" variant="p">
                     {t("employees.bulk_termination.no_invalid_rows")}
                   </Typography>
                 </div>
@@ -610,21 +611,21 @@ export default function EmployeeTerminationImportDialog({
           <div className="flex gap-4 pt-3 border-t border-slate-200 dark:border-slate-800">
             <Button
               className="flex-1"
-              variant="outline"
               onClick={() => {
                 setStep(1);
                 setFile(null);
                 setPreviewData(null);
               }}
+              variant="outline"
             >
               {t("employees.bulk_termination.cancel_back_btn")}
             </Button>
             <Button
               className="flex-[1.5]"
-              variant="primary"
               disabled={confirming || !previewData || previewData.valid_rows.length === 0}
               loading={confirming}
               onClick={handleConfirm}
+              variant="primary"
             >
               {confirming
                 ? t("employees.bulk_termination.processing_btn")

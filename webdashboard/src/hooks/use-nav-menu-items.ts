@@ -1,3 +1,5 @@
+import type React from "react";
+
 import {
   LayoutDashboard,
   History,
@@ -28,7 +30,6 @@ import {
   Activity,
   Zap
 } from "lucide-react";
-import type React from "react";
 import { useTranslation } from "react-i18next";
 
 import { useMyPermissions } from "@/hooks/use-permissions";
@@ -38,29 +39,29 @@ import { ROUTES } from "@/lib/routes";
 // ── Types ──────────────────────────────────────────────────────────
 
 export interface MenuLinkType {
+  exact?: boolean;
   icon?: React.ElementType;
   label: string;
-  testId: string;
-  to: string;
-  exact?: boolean;
   permissions?: string[];
   systemRoles?: string[];
+  testId: string;
+  to: string;
 }
 
 export interface MenuGroupType {
+  items: MenuLinkType[];
+  label: string;
   section: string;
   sectionIcon: React.ElementType;
-  label: string;
   testId: string;
-  items: MenuLinkType[];
 }
 
 export type NavGroup = "dashboard" | "settings" | "org" | "time" | "shifts" | "payroll" | "system" | "ess";
 
 export interface NavMenuStructure {
   dashboard: MenuLinkType;
-  settings: MenuLinkType;
   groups: MenuGroupType[];
+  settings: MenuLinkType;
 }
 
 // ── Menu definitions (extracted from sidebar.tsx) ──────────────────

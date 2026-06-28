@@ -10,9 +10,9 @@ import { useToast } from "@/components/ui/toast";
 import { updateEmployeeEmployment } from "@/lib/api";
 
 interface EditTerminationModalProps {
+  currentEndDate: string | null;
   employeeId: string | null;
   employmentId: string | null;
-  currentEndDate: string | null;
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;

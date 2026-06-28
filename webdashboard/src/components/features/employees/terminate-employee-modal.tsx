@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 
 import Button from "@/components/ui/button";
-import FormField, { INPUT_BASE, LABEL_BASE } from "@/components/ui/form-field";
+import FormField, { LABEL_BASE } from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
@@ -14,8 +14,8 @@ import { updateEmployeeEmployment } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 interface TerminateEmployeeModalProps {
-  employeeId: string | null;
   activeEmploymentId: string | null;
+  employeeId: string | null;
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
@@ -108,12 +108,12 @@ export default function TerminateEmployeeModal({
               className={cn(
                 "w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all shadow-sm appearance-none cursor-pointer"
               )}
+              defaultValue=""
               id="reason"
               name="reason"
               required
-              defaultValue=""
             >
-              <option value="" disabled>
+              <option disabled value="">
                 {t("employees.terminate.termination_reason_placeholder")}
               </option>
               {TERMINATION_REASONS.map((key) => (
@@ -126,10 +126,10 @@ export default function TerminateEmployeeModal({
 
           <FormField
             label={t("employees.terminate.termination_notes_label")}
-            placeholder={t("employees.terminate.termination_notes_placeholder")}
             name="notes"
-            type="textarea"
+            placeholder={t("employees.terminate.termination_notes_placeholder")}
             rows={3}
+            type="textarea"
           />
 
           <div className="pt-6 grid grid-cols-2 gap-6 border-t border-slate-50 dark:border-slate-800">

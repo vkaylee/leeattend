@@ -2,8 +2,8 @@ import { useNavigate, Link, useLocation } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
-import Button from "@/components/ui/button";
 import { AuthLayout } from "@/components/ui/auth-layout";
+import Button from "@/components/ui/button";
 import { LABEL_BASE } from "@/components/ui/form-field";
 import { Typography } from "@/components/ui/typography";
 import {
@@ -94,16 +94,16 @@ export default function LoginPage() {
       {/* Error alert */}
       {error ? (
         <div
+          aria-live="polite"
           className="mb-6 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 p-4 rounded-2xl text-sm font-medium animate-in slide-in-from-top-3 duration-300"
           role="alert"
-          aria-live="polite"
         >
           {error}
         </div>
       ) : null}
 
       {/* Login form */}
-      <form className="space-y-5" onSubmit={handleLogin} noValidate>
+      <form className="space-y-5" noValidate onSubmit={handleLogin}>
         <div className="space-y-2">
           <label className={LABEL_BASE} htmlFor="email-address">
             {t("auth.email")}

@@ -1,11 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import { Pin, PinOff, Sun, Moon, Globe, Bell, LogOut, UserCircle } from "lucide-react";
+import { Pin, PinOff, Sun, Moon, Bell, LogOut, UserCircle } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import type { NavGroup } from "@/hooks/use-nav-menu-items";
+
 import { useDarkModeContext } from "@/context/use-dark-mode-context";
 import { useLanguage } from "@/hooks/use-language";
-import type { NavGroup } from "@/hooks/use-nav-menu-items";
 import { useFilteredMenuItems } from "@/hooks/use-nav-menu-items";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useProfile } from "@/hooks/use-profile";
@@ -17,12 +18,12 @@ import { cn } from "@/lib/utils";
 interface IconRailProps {
   activeGroup: NavGroup | null;
   isPinned: boolean;
-  onGroupHover: (group: NavGroup | null) => void;
   onGroupClick: (group: NavGroup) => void;
-  onTogglePin: () => void;
-  workspaceName?: string;
-  workspaceLogoUrl?: string;
+  onGroupHover: (group: NavGroup | null) => void;
   onShowWorkspaceSwitcher: () => void;
+  onTogglePin: () => void;
+  workspaceLogoUrl?: string;
+  workspaceName?: string;
 }
 
 // ── Component ──────────────────────────────────────────────────────
@@ -51,7 +52,7 @@ export default function IconRail({
 
   // ── Theme cycle: Light → System → Dark ─────────────────────────
   const cycleTheme = () => {
-    const modes: Array<"light" | "system" | "dark"> = ["light", "system", "dark"];
+    const modes: ("light" | "system" | "dark")[] = ["light", "system", "dark"];
     const idx = modes.indexOf(mode);
     setMode(modes[(idx + 1) % 3]);
   };
@@ -63,7 +64,7 @@ export default function IconRail({
 
   // ── Language cycle: EN → VI → ZH ────────────────────────────────
   const cycleLanguage = () => {
-    const codes: Array<"en" | "vi" | "zh"> = ["vi", "en", "zh"];
+    const codes: ("en" | "vi" | "zh")[] = ["vi", "en", "zh"];
     const idx = codes.indexOf(currentLanguage);
     const next = codes[(idx + 1) % codes.length];
     void changeLanguage(next);
@@ -112,7 +113,7 @@ export default function IconRail({
           to={ROUTES.HOME}
         />
 
-        {settings && (
+        {!!settings && (
           <RailIconButton
             group="settings"
             icon={settings.icon}
@@ -265,10 +266,10 @@ interface RailIconButtonProps {
   icon?: React.ElementType;
   isActive: boolean;
   label: string;
-  testId: string;
+  onClick: () => void;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
-  onClick: () => void;
+  testId: string;
   to?: string;
 }
 

@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react";
+
 import { describe, it, expect, vi } from "vitest";
 
 import { DailyAttendanceReport } from "@/lib/api";
@@ -346,9 +347,9 @@ describe("DailyReportTableRow — Segment Cells", () => {
             <table><tbody>
                 <DailyReportTableRow
                     {...defaultProps}
-                    row={baseNonSegmentRow}
                     isFirstInGroup
                     isMultiSegmentGroup={false}
+                    row={baseNonSegmentRow}
                 />
             </tbody></table>
         );
@@ -391,8 +392,8 @@ describe("DailyReportTableRow — Segment Cells", () => {
             <table><tbody>
                 <DailyReportTableRow
                     {...defaultProps}
-                    row={noSegIdRow}
                     onToggleExpandRow={toggleSpy}
+                    row={noSegIdRow}
                 />
             </tbody></table>
         );
@@ -411,8 +412,8 @@ describe("DailyReportTableRow — Segment Cells", () => {
             <table><tbody>
                 <DailyReportTableRow
                     {...defaultProps}
-                    row={baseNonSegmentRow}
                     onToggleExpandRow={toggleSpy}
+                    row={baseNonSegmentRow}
                 />
             </tbody></table>
         );
@@ -438,8 +439,8 @@ describe("DailyReportTableRow — Segment Cells", () => {
             <table><tbody>
                 <DailyReportTableRow
                     {...defaultProps}
-                    row={baseNonSegmentRow}
                     adjustmentMap={adjustmentMap}
+                    row={baseNonSegmentRow}
                 />
             </tbody></table>
         );
@@ -453,9 +454,9 @@ describe("DailyReportTableRow — Segment Cells", () => {
             <table><tbody>
                 <DailyReportTableRow
                     {...defaultProps}
-                    row={baseNonSegmentRow}
-                    reprocessingRow="EMP002-2024-03-21"
                     confirmingRow="EMP002-2024-03-21"
+                    reprocessingRow="EMP002-2024-03-21"
+                    row={baseNonSegmentRow}
                 />
             </tbody></table>
         );

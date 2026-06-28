@@ -181,7 +181,7 @@ export default function SettingsHubPage() {
         </section>
       ))}
 
-      {dangerItem && (
+      {!!dangerItem && (
         <section aria-label={dangerItem.label} data-testid="settings-section-danger">
           <Typography
             className="text-xs font-bold text-rose-400 dark:text-rose-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2"

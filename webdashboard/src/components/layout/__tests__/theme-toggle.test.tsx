@@ -12,6 +12,7 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 import type { ThemeMode } from '@/hooks/use-dark-mode';
+
 import { DarkModeContext } from '@/context/dark-mode-context-definition';
 
 // Mock hooks needed by IconRail

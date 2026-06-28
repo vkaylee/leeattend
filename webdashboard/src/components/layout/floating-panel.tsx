@@ -3,8 +3,9 @@ import { Pin, PinOff, ChevronRight, X } from "lucide-react";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useFocusTrap } from "@/hooks/use-focus-trap";
 import type { MenuGroupType, MenuLinkType, NavGroup } from "@/hooks/use-nav-menu-items";
+
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { useFilteredMenuItems } from "@/hooks/use-nav-menu-items";
 import { cn } from "@/lib/utils";
 
@@ -12,13 +13,13 @@ import { cn } from "@/lib/utils";
 
 interface FloatingPanelProps {
   group: NavGroup | null;
-  isPinned: boolean;
   isOpen: boolean;
+  isPinned: boolean;
   onClose: () => void;
-  onNavigate: () => void;
-  onTogglePin: () => void;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
+  onNavigate: () => void;
+  onTogglePin: () => void;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────
@@ -94,7 +95,6 @@ export default function FloatingPanel({
 
   return (
     <aside
-      ref={containerRef}
       aria-label={currentGroup.label}
       className={cn(
         "hidden md:flex fixed top-0 h-full z-40 flex-col",
@@ -109,6 +109,7 @@ export default function FloatingPanel({
       data-testid={`nav-panel-${group}`}
       onMouseEnter={panelMouseEnter}
       onMouseLeave={panelMouseLeave}
+      ref={containerRef}
       role="menu"
     >
       {/* Header */}
@@ -204,7 +205,7 @@ function FloatingPanelLink({
         </span>
       ) : null}
       <span className="text-sm font-bold truncate flex-1">{item.label}</span>
-      {isActive && <ChevronRight className="h-3 w-3 opacity-50 shrink-0" />}
+      {!!isActive && <ChevronRight className="h-3 w-3 opacity-50 shrink-0" />}
     </Link>
   );
 }

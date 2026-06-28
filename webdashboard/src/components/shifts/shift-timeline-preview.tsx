@@ -5,18 +5,18 @@ import { useTranslation } from "react-i18next";
 import { TFunction } from "i18next";
 
 interface IntervalPreviewData {
-  intervalName: string;
-  startTime: string;
-  endTime: string;
+  allowEarlyOt: boolean;
   breakDuration: number;
-  breakStart: string;
   breakEnd: string;
-  isFixedBreak: boolean;
+  breakStart: string;
+  endTime: string;
+  gracePeriodMinutes: number;
+  intervalName: string;
   isAutoDeduct: boolean;
   isBreakOvertime: boolean;
-  gracePeriodMinutes: number;
-  allowEarlyOt: boolean;
+  isFixedBreak: boolean;
   maxEarlyOtMinutes: number | null;
+  startTime: string;
 }
 
 interface ShiftTimelinePreviewProps {

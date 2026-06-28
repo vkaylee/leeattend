@@ -1,4 +1,5 @@
 import type React from "react";
+
 import {
   LayoutDashboard,
   UserRound,
@@ -27,20 +28,21 @@ import {
 } from "lucide-react";
 
 import type { NavGroup } from "@/hooks/use-nav-menu-items";
+
 import { ROUTES } from "@/lib/routes";
 
 // ── Types ──────────────────────────────────────────────────────────
 
 export interface AppDefinition {
-  id: string;
-  icon: React.ElementType;
-  labelKey: string;
   descriptionKey: string;
-  to: string;
   group: NavGroup;
+  icon: React.ElementType;
+  id: string;
+  labelKey: string;
   permissions?: string[];
   systemRoles?: string[];
   testId: string;
+  to: string;
 }
 
 // ── Registry ───────────────────────────────────────────────────────

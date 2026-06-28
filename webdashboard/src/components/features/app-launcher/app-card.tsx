@@ -3,6 +3,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import type { AppDefinition } from "@/lib/app-registry";
+
 import { cn } from "@/lib/utils";
 
 // ── Types ──────────────────────────────────────────────────────────

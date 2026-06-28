@@ -237,13 +237,13 @@ export default function ShiftEditorPage() {
 
             {intervalDrafts.length === 0 ? (
               <div className="text-center py-8 text-slate-400 dark:text-slate-500 text-sm italic">
-                <Info size={24} className="mx-auto mb-2 opacity-40" />
+                <Info className="mx-auto mb-2 opacity-40" size={24} />
                 {t("work_segments.intervals.no_intervals", "Chưa có khung giờ. Hệ thống dùng giờ bắt đầu/kết thúc của ca.")}
               </div>
             ) : (
               <div className="space-y-6">
                 {intervalDrafts.map((iv, idx) => (
-                  <div key={iv.key} className="border border-slate-100 dark:border-slate-800 rounded-2xl p-5 space-y-4 relative">
+                  <div className="border border-slate-100 dark:border-slate-800 rounded-2xl p-5 space-y-4 relative" key={iv.key}>
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
                         {t("work_segments.intervals.interval", "Khung giờ")} {idx + 1}
@@ -251,7 +251,7 @@ export default function ShiftEditorPage() {
                       {intervalDrafts.length > 1 ? (
                         <Button
                           className="text-xs text-red-500 hover:text-red-700"
-                          onClick={() => removeInterval(iv.key)}
+                          onClick={() => { removeInterval(iv.key); }}
                           size="sm"
                           type="button"
                           variant="ghost"
@@ -268,7 +268,7 @@ export default function ShiftEditorPage() {
                       </label>
                       <input
                         className="w-full mt-1 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-slate-50 dark:bg-slate-800"
-                        onChange={(e) => updateIntervalDraft(iv.key, { intervalName: e.target.value })}
+                        onChange={(e) => { updateIntervalDraft(iv.key, { intervalName: e.target.value }); }}
                         placeholder={idx === 0 ? "VD: Ca sáng, Ca chính..." : "VD: Ca chiều, Tăng ca..."}
                         type="text"
                         value={iv.intervalName}
@@ -283,7 +283,7 @@ export default function ShiftEditorPage() {
                         </label>
                         <input
                           className="w-full mt-1 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-slate-50 dark:bg-slate-800"
-                          onChange={(e) => updateIntervalDraft(iv.key, { startTime: e.target.value, isNightShift: e.target.value > iv.endTime })}
+                          onChange={(e) => { updateIntervalDraft(iv.key, { startTime: e.target.value, isNightShift: e.target.value > iv.endTime }); }}
                           type="time"
                           value={iv.startTime}
                         />
@@ -294,7 +294,7 @@ export default function ShiftEditorPage() {
                         </label>
                         <input
                           className="w-full mt-1 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-slate-50 dark:bg-slate-800"
-                          onChange={(e) => updateIntervalDraft(iv.key, { endTime: e.target.value, isNightShift: iv.startTime > e.target.value })}
+                          onChange={(e) => { updateIntervalDraft(iv.key, { endTime: e.target.value, isNightShift: iv.startTime > e.target.value }); }}
                           type="time"
                           value={iv.endTime}
                         />
@@ -345,7 +345,7 @@ export default function ShiftEditorPage() {
                             <label className="text-[10px] font-bold text-slate-400 uppercase">{t("shifts.modal.break_start")}</label>
                             <input
                               className="w-full mt-1 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-slate-50 dark:bg-slate-800"
-                              onChange={(e) => updateIntervalDraft(iv.key, { breakStart: e.target.value })}
+                              onChange={(e) => { updateIntervalDraft(iv.key, { breakStart: e.target.value }); }}
                               type="time"
                               value={iv.breakStart}
                             />
@@ -354,7 +354,7 @@ export default function ShiftEditorPage() {
                             <label className="text-[10px] font-bold text-slate-400 uppercase">{t("shifts.modal.break_end")}</label>
                             <input
                               className="w-full mt-1 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-slate-50 dark:bg-slate-800"
-                              onChange={(e) => updateIntervalDraft(iv.key, { breakEnd: e.target.value })}
+                              onChange={(e) => { updateIntervalDraft(iv.key, { breakEnd: e.target.value }); }}
                               type="time"
                               value={iv.breakEnd}
                             />
@@ -365,7 +365,7 @@ export default function ShiftEditorPage() {
                           <label className="text-[10px] font-bold text-slate-400 uppercase block">{t("shifts.modal.break_duration")} ({t("common.minutes")})</label>
                           <input
                             className="w-full mt-1 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-slate-50 dark:bg-slate-800"
-                            onChange={(e) => updateIntervalDraft(iv.key, { breakDuration: parseInt(e.target.value) || 0 })}
+                            onChange={(e) => { updateIntervalDraft(iv.key, { breakDuration: parseInt(e.target.value) || 0 }); }}
                             type="number"
                             value={iv.breakDuration}
                           />
@@ -381,15 +381,15 @@ export default function ShiftEditorPage() {
                           { val: { isAutoDeduct: false, isBreakOvertime: true }, label: t("shifts.modal.break_policy_overtime"), help: iv.isFixedBreak ? t("shifts.modal.break_policy_overtime_help") : t("shifts.modal.break_policy_overtime_disabled_hint"), disabled: !iv.isFixedBreak },
                         ].map((opt, oi) => (
                           <label
-                            key={oi}
                             className={`flex items-start gap-3 p-3 rounded-xl border transition-all ${opt.disabled ? "bg-slate-100/50 dark:bg-slate-900/20 border-slate-200/50 opacity-60 cursor-not-allowed" : "bg-slate-50 dark:bg-slate-800/40 border-slate-100 dark:border-slate-800/80 cursor-pointer hover:bg-slate-100/50"}`}
+                            key={oi}
                           >
                             <input
                               checked={iv.isAutoDeduct === opt.val.isAutoDeduct && iv.isBreakOvertime === opt.val.isBreakOvertime}
                               className="mt-0.5 w-4 h-4 text-primary-600 cursor-pointer"
                               disabled={opt.disabled}
                               name={`break_policy_${iv.key}`}
-                              onChange={() => updateIntervalDraft(iv.key, opt.val)}
+                              onChange={() => { updateIntervalDraft(iv.key, opt.val); }}
                               type="radio"
                             />
                             <div>
@@ -412,7 +412,7 @@ export default function ShiftEditorPage() {
                         <input
                           className="w-full mt-1 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-slate-50 dark:bg-slate-800"
                           min="0"
-                          onChange={(e) => updateIntervalDraft(iv.key, { gracePeriodMinutes: parseInt(e.target.value) || 0 })}
+                          onChange={(e) => { updateIntervalDraft(iv.key, { gracePeriodMinutes: parseInt(e.target.value) || 0 }); }}
                           type="number"
                           value={iv.gracePeriodMinutes}
                         />
@@ -426,7 +426,7 @@ export default function ShiftEditorPage() {
                         <div
                           aria-checked={iv.allowEarlyOt}
                           className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer ${iv.allowEarlyOt ? 'bg-primary-600' : 'bg-slate-200 dark:bg-slate-700'}`}
-                          onClick={() => updateIntervalDraft(iv.key, { allowEarlyOt: !iv.allowEarlyOt })}
+                          onClick={() => { updateIntervalDraft(iv.key, { allowEarlyOt: !iv.allowEarlyOt }); }}
                           role="switch"
                           tabIndex={0}
                         >
@@ -440,7 +440,7 @@ export default function ShiftEditorPage() {
                           <input
                             className="w-full mt-1 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-slate-50 dark:bg-slate-800"
                             min="1"
-                            onChange={(e) => updateIntervalDraft(iv.key, { maxEarlyOtMinutes: parseInt(e.target.value) || null })}
+                            onChange={(e) => { updateIntervalDraft(iv.key, { maxEarlyOtMinutes: parseInt(e.target.value) || null }); }}
                             type="number"
                             value={iv.maxEarlyOtMinutes ?? ""}
                           />
@@ -457,12 +457,12 @@ export default function ShiftEditorPage() {
                         { val: "aggregate" as const, label: t("work_segments.ot_aggregation_mode.aggregate", "Gộp (Tổng cả ngày)") },
                         { val: "per_segment" as const, label: t("work_segments.ot_aggregation_mode.per_segment", "Theo từng phiên") },
                       ].map(opt => (
-                        <label key={opt.val} className="flex items-start gap-3 p-3 rounded-xl border cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                        <label className="flex items-start gap-3 p-3 rounded-xl border cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors" key={opt.val}>
                           <input
                             checked={iv.otAggregationMode === opt.val}
                             className="mt-0.5"
                             name={`otMode_${iv.key}`}
-                            onChange={() => updateIntervalDraft(iv.key, { otAggregationMode: opt.val })}
+                            onChange={() => { updateIntervalDraft(iv.key, { otAggregationMode: opt.val }); }}
                             type="radio"
                           />
                           <span className="text-sm font-bold text-slate-700 dark:text-slate-250">{opt.label}</span>

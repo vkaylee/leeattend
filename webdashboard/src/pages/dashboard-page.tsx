@@ -1,6 +1,6 @@
+import { Cpu, RotateCcw, Users } from "lucide-react";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Cpu, RotateCcw, Users } from "lucide-react";
 
 import { ResilientWidget } from "@/components/common/resilient-widget";
 import ChartCatalogSidebar from "@/components/features/dashboard/chart-catalog-sidebar";
@@ -140,8 +140,8 @@ export default function DashboardPage() {
         <div className="flex gap-6 items-start animate-in slide-in-from-bottom-4 duration-700">
           <ChartCatalogSidebar
             allWidgets={allWidgets}
-            visibleWidgets={visibleWidgets}
             onToggleWidget={toggleWidget}
+            visibleWidgets={visibleWidgets}
           />
           <div className="flex-1 min-w-0">
             <ResilientWidget>

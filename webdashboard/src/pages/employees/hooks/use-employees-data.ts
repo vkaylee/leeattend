@@ -124,7 +124,7 @@ export const useEmployeesData = ({
       void queryClient.invalidateQueries({ queryKey: ["employees", wsId] });
       void queryClient.invalidateQueries({ queryKey: ["deptHistory"] });
       void queryClient.invalidateQueries({ queryKey: ["employee-employments", wsId, variables.employeeId] });
-      if (selectedEmployee && selectedEmployee.id === variables.employeeId) {
+      if (selectedEmployee?.id === variables.employeeId) {
         setSelectedEmployee?.({
           ...selectedEmployee,
           active_employment_id: null,

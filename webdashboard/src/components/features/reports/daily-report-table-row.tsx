@@ -311,9 +311,9 @@ export function DailyReportTableRow({
   formatTime,
   hideEmployeeName,
   isDebugMode,
-  isFirstInGroup = true,
-  isLastInGroup = true,
-  isMultiSegmentGroup = false,
+  isFirstInGroup,
+  isLastInGroup,
+  isMultiSegmentGroup,
   onApproveOt,
   onConfirmClick,
   onReprocessClick,
@@ -382,7 +382,7 @@ export function DailyReportTableRow({
             <div className="shadow-inner bg-slate-50 dark:bg-slate-800/50 rounded-md py-1 px-2 inline-block">
               {formatTime(row.actual_punch_in)}
             </div>
-            {hasMultipleSessions && (
+            {!!hasMultipleSessions && (
               <span
                 className="text-[8px] bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider scale-90 cursor-help"
                 title={timeEntries
@@ -404,7 +404,7 @@ export function DailyReportTableRow({
             <div className="shadow-inner bg-slate-50 dark:bg-slate-800/50 rounded-md py-1 px-2 inline-block">
               {formatTime(row.actual_punch_out)}
             </div>
-            {hasMultipleSessions && (
+            {!!hasMultipleSessions && (
               <span
                 className="text-[8px] bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider scale-90 cursor-help opacity-0"
                 title=""

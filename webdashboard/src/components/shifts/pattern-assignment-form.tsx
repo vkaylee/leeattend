@@ -253,7 +253,7 @@ function PatternSelector({
 
               {/* Accordion content for long rotation patterns */}
               {!!isLongRotation && !!isExpanded && (
-                <div className="pt-4 border-t border-slate-150 dark:border-slate-850/80 animate-in slide-in-from-top-2 duration-300 w-full" onClick={(e) => e.stopPropagation()}>
+                <div className="pt-4 border-t border-slate-150 dark:border-slate-850/80 animate-in slide-in-from-top-2 duration-300 w-full" onClick={(e) => { e.stopPropagation(); }}>
                   <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-1">
                     {Array.from({ length: cycleLength }).map((_, dayIdx) => {
                       const shiftInfo = getDayShiftInfo(dayIdx);

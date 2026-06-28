@@ -1,7 +1,9 @@
 import { render, screen } from "@testing-library/react";
+
 import { describe, it, expect, vi } from "vitest";
 
 import { DailyAttendanceReport } from "@/lib/api";
+
 import { DailyReportTimeline, TimeEntry } from "../daily-report-timeline";
 
 vi.mock("react-i18next", () => ({
@@ -99,7 +101,7 @@ describe("DailyReportTimeline — Axis filtering", () => {
             generation_metadata: { time_entries: timeEntries },
         } as DailyAttendanceReport;
 
-        render(<DailyReportTimeline row={row} formatTime={formatTime} t={t} />);
+        render(<DailyReportTimeline formatTime={formatTime} row={row} t={t} />);
 
         // Work entry boundaries should be in the DOM
         expect(screen.getByText("07:19")).toBeInTheDocument();
@@ -136,7 +138,7 @@ describe("DailyReportTimeline — Axis filtering", () => {
             generation_metadata: { time_entries: breakOnlyEntries },
         } as DailyAttendanceReport;
 
-        render(<DailyReportTimeline row={row} formatTime={formatTime} t={t} />);
+        render(<DailyReportTimeline formatTime={formatTime} row={row} t={t} />);
 
         // No work entries → axis should not show any times (fallback to empty)
         // The axis div exists but should have no time labels
@@ -171,7 +173,7 @@ describe("DailyReportTimeline — Axis filtering", () => {
             generation_metadata: { time_entries: multiSessionEntries },
         } as DailyAttendanceReport;
 
-        render(<DailyReportTimeline row={row} formatTime={formatTime} t={t} />);
+        render(<DailyReportTimeline formatTime={formatTime} row={row} t={t} />);
 
         // Both work sessions should have their in/out times in the axis
         expect(screen.getByText("07:00")).toBeInTheDocument();
@@ -213,7 +215,7 @@ describe("DailyReportTimeline — Axis filtering", () => {
             generation_metadata: { time_entries: timeEntries },
         } as DailyAttendanceReport;
 
-        render(<DailyReportTimeline row={row} formatTime={formatTime} t={t} />);
+        render(<DailyReportTimeline formatTime={formatTime} row={row} t={t} />);
 
         // Break label should appear in the visual bar (gray block)
         const breakLabels = screen.getAllByText("common.break");
@@ -230,7 +232,7 @@ describe("DailyReportTimeline — Axis filtering", () => {
             generation_metadata: { time_entries: [] as TimeEntry[] },
         } as DailyAttendanceReport;
 
-        render(<DailyReportTimeline row={segmentRow} formatTime={formatTime} t={t} />);
+        render(<DailyReportTimeline formatTime={formatTime} row={segmentRow} t={t} />);
 
         expect(screen.getByText("Ca sáng")).toBeInTheDocument();
         // Segment counter shows "1 / 2" in the badge
@@ -243,7 +245,7 @@ describe("DailyReportTimeline — Axis filtering", () => {
             generation_metadata: { time_entries: [] as TimeEntry[] },
         } as DailyAttendanceReport;
 
-        render(<DailyReportTimeline row={row} formatTime={formatTime} t={t} />);
+        render(<DailyReportTimeline formatTime={formatTime} row={row} t={t} />);
 
         // Should render without crashing — scheduled axis should still show
         expect(screen.getByText("07:30")).toBeInTheDocument();

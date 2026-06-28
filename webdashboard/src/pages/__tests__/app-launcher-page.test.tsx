@@ -1,6 +1,7 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent } from "@testing-library/react";
 import React, { Suspense } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import AppLauncherPage from "@/pages/app-launcher-page";

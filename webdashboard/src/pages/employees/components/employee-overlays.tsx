@@ -4,10 +4,10 @@ import { useTranslation } from "react-i18next";
 import AttendanceImportDialog from "@/components/features/attendance/attendance-import-dialog";
 import EmployeeDetailDrawer from "@/components/features/employees/employee-detail-drawer";
 import EmployeeFormModal from "@/components/features/employees/employee-form-modal";
-import RehireEmployeeModal from "@/components/features/employees/rehire-employee-modal";
-import TransferEmployeeModal from "@/components/features/employees/transfer-employee-modal";
-import TerminateEmployeeModal from "@/components/features/employees/terminate-employee-modal";
 import EmployeeTerminationImportDialog from "@/components/features/employees/employee-termination-import-dialog";
+import RehireEmployeeModal from "@/components/features/employees/rehire-employee-modal";
+import TerminateEmployeeModal from "@/components/features/employees/terminate-employee-modal";
+import TransferEmployeeModal from "@/components/features/employees/transfer-employee-modal";
 
 import type { Employee, Department, EmployeeDepartmentHistory } from "../../../lib/api/types";
 
@@ -20,22 +20,22 @@ interface EmployeeOverlaysProps {
   handleDrawerClose: () => void;
 
   isImportDialogOpen: boolean;
-  isTerminationImportOpen: boolean;
   isModalOpen: boolean;
   isRehireModalOpen: boolean;
-  isTransferModalOpen: boolean;
   isTerminateModalOpen: boolean;
+  isTerminationImportOpen: boolean;
+  isTransferModalOpen: boolean;
   prefillEnrollmentId: string;
   selectedDeptId: string;
   selectedEmployee: Employee | null;
   setEditingEmployee: (emp: Employee | null) => void;
 
   setIsImportDialogOpen: (open: boolean) => void;
-  setIsTerminationImportOpen: (open: boolean) => void;
   setIsModalOpen: (open: boolean) => void;
   setIsRehireModalOpen: (open: boolean) => void;
-  setIsTransferModalOpen: (open: boolean) => void;
   setIsTerminateModalOpen: (open: boolean) => void;
+  setIsTerminationImportOpen: (open: boolean) => void;
+  setIsTransferModalOpen: (open: boolean) => void;
   setPrefillEnrollmentId: (id: string) => void;
   setSelectedDeptId: (id: string) => void;
   setSelectedEmployee: (emp: Employee | null) => void;
@@ -90,6 +90,7 @@ export function EmployeeOverlays(props: EmployeeOverlaysProps) {
           setEditingEmployee(emp);
           setIsModalOpen(true);
         }}
+        onEmployeeUpdate={setSelectedEmployee}
         onRehire={() => { setIsRehireModalOpen(true); }}
         onTerminate={(_emp) => { setIsTerminateModalOpen(true); }}
         onTransfer={(deptId) => {
@@ -97,7 +98,6 @@ export function EmployeeOverlays(props: EmployeeOverlaysProps) {
           setIsTransferModalOpen(true);
         }}
         wsId={wsId}
-        onEmployeeUpdate={setSelectedEmployee}
       />
 
       <EmployeeFormModal

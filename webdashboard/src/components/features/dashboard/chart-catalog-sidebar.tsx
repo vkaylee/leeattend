@@ -1,5 +1,5 @@
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { WidgetId } from "@/hooks/use-dashboard-layout";
@@ -42,8 +42,8 @@ function useCollapsedState() {
 
 interface ChartCatalogSidebarProps {
   allWidgets: { id: WidgetId; labelKey: string }[];
-  visibleWidgets: Record<WidgetId, boolean>;
   onToggleWidget: (id: WidgetId) => void;
+  visibleWidgets: Record<WidgetId, boolean>;
 }
 
 export default function ChartCatalogSidebar({
@@ -74,7 +74,7 @@ export default function ChartCatalogSidebar({
       grouped[cat] = allWidgets
         .filter((w) => {
           const meta = CHART_METADATA[w.id];
-          if (!meta || meta.category !== cat) return false;
+          if (meta?.category !== cat) return false;
           if (!query) return true;
           const label = t(w.labelKey).toLowerCase();
           return label.includes(query);
@@ -130,7 +130,7 @@ export default function ChartCatalogSidebar({
                 "focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500",
                 "transition-colors",
               )}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { setSearchQuery(e.target.value); }}
               placeholder={t("dashboard.catalog.search_placeholder")}
               type="text"
               value={searchQuery}
@@ -179,7 +179,7 @@ export default function ChartCatalogSidebar({
                           : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-700 dark:hover:text-slate-200",
                       )}
                       key={widgetId}
-                      onClick={() => onToggleWidget(widgetId)}
+                      onClick={() => { onToggleWidget(widgetId); }}
                       role="switch"
                       tabIndex={0}
                       title={collapsed ? label : undefined}
@@ -194,7 +194,7 @@ export default function ChartCatalogSidebar({
                             : "border-slate-300 dark:border-slate-600",
                         )}
                       >
-                        {isVisible && (
+                        {!!isVisible && (
                           <svg
                             className="w-2.5 h-2.5 text-white"
                             fill="none"
@@ -209,9 +209,7 @@ export default function ChartCatalogSidebar({
                         )}
                       </span>
 
-                      {!collapsed && Icon && (
-                        <Icon className="shrink-0" size={15} />
-                      )}
+                      {!collapsed && !!Icon && <Icon className="shrink-0" size={15} />}
 
                       {!collapsed && (
                         <span className="flex-1 text-left text-xs font-medium truncate">

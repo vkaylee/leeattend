@@ -1,11 +1,13 @@
-import { render, screen, fireEvent } from "@testing-library/react";
-import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { LayoutDashboard } from "lucide-react";
+import React from "react";
+
+import { describe, it, expect, vi } from "vitest";
+
+import type { AppDefinition } from "@/lib/app-registry";
 
 import AppCard from "@/components/features/app-launcher/app-card";
-import type { AppDefinition } from "@/lib/app-registry";
 
 // ── Wrapper ───────────────────────────────────────────────────────
 

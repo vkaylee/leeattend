@@ -1,9 +1,7 @@
 import React from "react";
 
-import { format } from "date-fns";
-
-import { useMonthlyRoster } from "@/components/shifts/hooks/use-monthly-roster";
 import { AssignmentHistory } from "@/components/shifts/assignment-history";
+import { useMonthlyRoster } from "@/components/shifts/hooks/use-monthly-roster";
 import { MonthlyRosterGrid } from "@/components/shifts/monthly-roster-grid";
 import { PriorityLegend } from "@/components/shifts/priority-legend";
 import { ShiftList } from "@/components/shifts/shift-list";
@@ -82,8 +80,8 @@ export function ShiftsContent({ hook, monthlyRoster }: ShiftsContentProps) {
           }}
           selectedDays={selectedDays}
           selectedEmployee={selectedEmployee}
-          weekDays={weekDays}
           shifts={shifts}
+          weekDays={weekDays}
         />
         <PriorityLegend />
         <AssignmentHistory

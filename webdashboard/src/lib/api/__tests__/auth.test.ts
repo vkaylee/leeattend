@@ -6,8 +6,8 @@ vi.mock("../helpers", () => ({
   TIMEOUT: { DEFAULT: 10000, REPORT_OPERATION: 180000, QUICK: 5000 },
 }));
 
-import { apiFetch } from "../helpers";
 import { forgotPassword, resetPassword } from "../auth";
+import { apiFetch } from "../helpers";
 
 describe("forgotPassword", () => {
   beforeEach(() => {

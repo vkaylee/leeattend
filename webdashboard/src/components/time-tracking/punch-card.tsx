@@ -1,11 +1,12 @@
 import { Clock, Layers } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import type { WorkSegment } from "@/lib/api/types";
+
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { TimeEntry } from "@/lib/api";
-import type { WorkSegment } from "@/lib/api/types";
 
 import { HoldToPunchButton } from "./hold-to-punch-button";
 
@@ -14,9 +15,9 @@ interface PunchCardProps {
   isPunching: boolean;
   onPunch: () => Promise<void>;
   onRequestAdjustment: () => void;
-  userName: string;
   /** Today's scheduled work segments, sorted by start time */
   todaySegments?: WorkSegment[];
+  userName: string;
 }
 
 export function PunchCard({
@@ -61,7 +62,7 @@ export function PunchCard({
         </div>
       </div>
 
-      {todaySegments && todaySegments.length > 1 && (
+      {!!todaySegments && todaySegments.length > 1 && (
         <div className="w-full mb-6 relative z-10">
           <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
             <Layers size={12} />
@@ -72,12 +73,12 @@ export function PunchCard({
               const isActive = activeEntry?.segment_id === seg.id;
               return (
                 <div
-                  key={seg.id ?? i}
                   className={`flex items-center justify-between px-3 py-1.5 rounded-xl text-xs transition-colors ${
                     isActive
                       ? "bg-primary-50 dark:bg-primary-950/50 text-primary-700 dark:text-primary-300 font-bold"
                       : "bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400"
                   }`}
+                  key={seg.id ?? i}
                 >
                   <span>
                     {seg.shift_id ? `Segment ${i + 1}` : t("work_segments.segment", "Segment")} {i + 1}

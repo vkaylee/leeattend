@@ -1,17 +1,17 @@
 import { apiFetch, TIMEOUT } from "./helpers";
 
 export interface SmtpConfigData {
+  base_url?: string;
+  from?: string;
   host?: string;
+  password?: string;
   port?: number;
   username?: string;
-  password?: string;
-  from?: string;
-  base_url?: string;
 }
 
 export interface SmtpTestResponse {
-  success: boolean;
   message: string;
+  success: boolean;
 }
 
 export async function fetchSmtpConfig(): Promise<SmtpConfigData> {

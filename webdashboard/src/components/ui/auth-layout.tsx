@@ -1,15 +1,14 @@
-import { type ReactNode, useState, useCallback } from "react";
-import { useTranslation } from "react-i18next";
 import {
   Shield,
   Globe,
   Check,
 } from "lucide-react";
+import { type ReactNode, useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
-
+import { cn } from "@/lib/utils";
 
 import { VietnameseFlag, EnglishFlag, ChineseFlag } from "./icons/flags";
-import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Pre-auth Language Switcher — no API sync (safe before login)
@@ -17,7 +16,7 @@ import { cn } from "@/lib/utils";
 
 type AuthLang = "vi" | "en" | "zh";
 
-const AUTH_LANGUAGES: Array<{ code: AuthLang; nativeName: string; Flag: React.ComponentType<{ className?: string }> }> = [
+const AUTH_LANGUAGES: { code: AuthLang; nativeName: string; Flag: React.ComponentType<{ className?: string }> }[] = [
   { code: "vi", nativeName: "Tiếng Việt", Flag: VietnameseFlag },
   { code: "en", nativeName: "English",    Flag: EnglishFlag },
   { code: "zh", nativeName: "中文",        Flag: ChineseFlag },
@@ -122,14 +121,14 @@ function AuthLanguageSwitcher() {
 const ATTENDANCE_BARS = [72, 88, 65, 92, 78, 95, 83];
 const DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
 
-const MOCK_EMPLOYEES: Array<{
+const MOCK_EMPLOYEES: {
   name: string;
   role: string;
   status: "present" | "late" | "leave";
   time: string;
   initials: string;
   hue: string;
-}> = [
+}[] = [
   { name: "Nguyen Van A", role: "Engineering",  status: "present", time: "08:02", initials: "NA", hue: "150" },
   { name: "Tran Thi B",  role: "Marketing",   status: "late",    time: "09:14", initials: "TB", hue: "220" },
   { name: "Le Van C",   role: "HR",           status: "leave",   time: "--:--", initials: "LC", hue: "280" },
@@ -173,8 +172,8 @@ function DashboardMockup() {
           <div className="grid grid-cols-3 gap-2">
             {STAT_CARDS.map(({ value, label, color, border }) => (
               <div
-                key={label}
                 className={`rounded-xl p-3 bg-gradient-to-br ${color} border ${border}`}
+                key={label}
                 style={{ animation: "auth-fade-in 0.5s ease-out both" }}
               >
                 <p className="text-white font-bold text-lg leading-none">{value}</p>
@@ -188,7 +187,7 @@ function DashboardMockup() {
             <p className="text-white/50 text-[10px] font-semibold uppercase tracking-widest mb-3">Weekly Attendance</p>
             <div className="flex items-end gap-1.5 h-14">
               {ATTENDANCE_BARS.map((h, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                <div className="flex-1 flex flex-col items-center gap-1" key={i}>
                   <div
                     className="w-full rounded-t-sm origin-bottom"
                     style={{
@@ -213,8 +212,8 @@ function DashboardMockup() {
               const s = STATUS_STYLE[status];
               return (
                 <div
-                  key={name}
                   className="flex items-center gap-3 rounded-xl px-3 py-2 transition-colors"
+                  key={name}
                   style={{
                     background: "rgba(255,255,255,0.04)",
                     animation: "auth-fade-in 0.4s ease-out both",
@@ -266,8 +265,8 @@ function FeaturePills() {
     <div className="flex flex-wrap gap-2">
       {FEATURE_PILLS.map(({ icon, text }, i) => (
         <span
-          key={text}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold text-white/60 border border-white/10 bg-white/5"
+          key={text}
           style={{
             animation: "auth-fade-in 0.5s ease-out both",
             animationDelay: `${600 + i * 80}ms`,

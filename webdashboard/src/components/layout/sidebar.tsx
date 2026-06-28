@@ -6,8 +6,9 @@ import {
 } from "lucide-react";
 import React from "react";
 
-import Button from "@/components/ui/button";
 import type { MenuGroupType, MenuLinkType } from "@/hooks/use-nav-menu-items";
+
+import Button from "@/components/ui/button";
 import { useFilteredMenuItems } from "@/hooks/use-nav-menu-items";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { cn } from "@/lib/utils";

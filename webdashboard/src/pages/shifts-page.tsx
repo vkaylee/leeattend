@@ -50,10 +50,10 @@ export default function ShiftsPage() {
           isCopying={monthlyRoster.isCopying}
           isMutating={monthlyRoster.isMutating}
           onApplyShift={monthlyRoster.handleApplyShift}
-          onAssignSelected={() => monthlyRoster.setIsShiftPickerOpen(true)}
-          onCancelSelection={() => monthlyRoster.setSelectedCells(new Set())}
+          onAssignSelected={() => { monthlyRoster.setIsShiftPickerOpen(true); }}
+          onCancelSelection={() => { monthlyRoster.setSelectedCells(new Set()); }}
           onClearOverrides={monthlyRoster.handleClearSelectedOverrides}
-          onClearWeekSelection={() => hook.setSelectedDays([])}
+          onClearWeekSelection={() => { hook.setSelectedDays([]); }}
           onCopyMonth={monthlyRoster.handleCopyMonth}
           onOpenWeekShiftPicker={(dates: string[]) => {
             hook.setTargetDates(dates);

@@ -238,7 +238,7 @@ export async function uploadTerminationImportPreview(
     body: formData as any,
   });
   if (!data) throw new Error("No response data");
-  return data as unknown as TerminationPreviewResponse;
+  return data;
 }
 
 /** Confirm employee bulk terminations */

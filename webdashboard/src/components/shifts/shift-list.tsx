@@ -36,7 +36,7 @@ export function ShiftList({ shifts, onEdit, onDelete }: ShiftListProps) {
         </TableHeader>
         <TableBody>
           {shifts?.map(shift => {
-            const firstInterval = (shift as Record<string, unknown>).intervals as Array<Record<string, unknown>> | undefined;
+            const firstInterval = (shift as Record<string, unknown>).intervals as Record<string, unknown>[] | undefined;
             const iv = firstInterval?.[0];
             const startTime = (iv?.start_time as string) ?? null;
             const endTime = (iv?.end_time as string) ?? null;
@@ -67,9 +67,9 @@ export function ShiftList({ shifts, onEdit, onDelete }: ShiftListProps) {
                 {hasFixedBreak ? (
                   <div className="flex flex-col items-center gap-1.5">
                     <div className="flex items-center gap-2 px-3 py-1 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-800 shadow-inner">
-                      <span className="text-[10px] text-slate-600 dark:text-slate-300 font-bold font-mono">{breakStart!.substring(0, 5)}</span>
+                      <span className="text-[10px] text-slate-600 dark:text-slate-300 font-bold font-mono">{breakStart.substring(0, 5)}</span>
                       <span className="text-slate-300 dark:text-slate-600 font-bold">-</span>
-                      <span className="text-[10px] text-slate-600 dark:text-slate-300 font-bold font-mono">{breakEnd!.substring(0, 5)}</span>
+                      <span className="text-[10px] text-slate-600 dark:text-slate-300 font-bold font-mono">{breakEnd.substring(0, 5)}</span>
                     </div>
                     {isAutoDeduct ? (
                       <div className="text-[8px] font-bold text-blue-500 uppercase tracking-widest flex items-center gap-1 opacity-80">

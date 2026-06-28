@@ -4,8 +4,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
-  Sparkles,
-  Trash2,
   User
 } from "lucide-react";
 import React, { memo, useEffect, useRef, useState } from "react";
@@ -16,7 +14,7 @@ import { vi, enUS, zhCN, type Locale } from "date-fns/locale";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
-import { Employee, EmployeeSchedule, Shift, EffectiveSchedule } from "@/lib/api/types";
+import { EmployeeSchedule, Shift, EffectiveSchedule } from "@/lib/api/types";
 import { useShifts } from "@/pages/shifts/hooks/use-shifts";
 
 import { useMonthlyRoster } from "./hooks/use-monthly-roster";
@@ -427,12 +425,12 @@ const RosterGridTable = memo(function RosterGridTable({
                 return (
                   <RosterCell
                     dateStr={dateStr}
+                    daySchedules={daySchedules}
                     employeeId={empSchedule.employee_id ?? ""}
                     isSelected={isSelected}
                     key={dateStr}
                     onMouseDown={onCellMouseDown}
                     onMouseEnter={onCellMouseEnter}
-                    daySchedules={daySchedules}
                     shifts={shifts}
                   />
                 );
@@ -448,11 +446,11 @@ RosterGridTable.displayName = "RosterGridTable";
 
 interface RosterCellProps {
   dateStr: string;
+  daySchedules: EffectiveSchedule[];
   employeeId: string;
   isSelected: boolean;
   onMouseDown: (employeeId: string, dateStr: string, e: React.MouseEvent) => void;
   onMouseEnter: (employeeId: string, dateStr: string) => void;
-  daySchedules: EffectiveSchedule[];
   shifts?: Shift[];
 }
 
@@ -502,8 +500,8 @@ const RosterCell = memo(function RosterCell({
                 : "bg-slate-100/50 dark:bg-slate-800 text-slate-700 dark:text-slate-300";
               return (
                 <span
-                  key={idx}
                   className={`text-[9px] font-extrabold tracking-tight px-1.5 py-0.5 rounded-md ${shiftBgClass}`}
+                  key={idx}
                   title={`${s.shift_name ?? ""} (${s.start_time?.substring(0, 5) ?? ""} - ${s.end_time?.substring(0, 5) ?? ""})`}
                 >
                   {shiftSymbol}
@@ -531,8 +529,6 @@ const RosterCell = memo(function RosterCell({
         {hasTraces && allTraces.length > 0 ? (
           <div className="absolute top-0.5 right-0.5 z-30 opacity-0 hover:opacity-100 group-hover:opacity-60 transition-opacity">
             <ScheduleTracePopover 
-              source={highestSource ?? "none"}
-              traces={allTraces}
               schedules={workingSchedules.map(s => {
                 const shiftConfig = shifts?.find((sh) => sh.id === s.shift_id);
                 const shiftSymbol = getShiftSymbol(s.shift_name, shiftConfig?.report_symbol);
@@ -543,6 +539,8 @@ const RosterCell = memo(function RosterCell({
                   endTime: s.end_time,
                 };
               })}
+              source={highestSource ?? "none"}
+              traces={allTraces}
             />
           </div>
         ) : null}

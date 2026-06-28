@@ -2,8 +2,8 @@ import { useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import Button from "@/components/ui/button";
 import { AuthLayout } from "@/components/ui/auth-layout";
+import Button from "@/components/ui/button";
 import { LABEL_BASE } from "@/components/ui/form-field";
 import { Typography } from "@/components/ui/typography";
 import {
@@ -17,10 +17,10 @@ import {
 import { ROUTES } from "@/lib/routes";
 
 interface RegisterFormData {
+  confirm_password: string;
   email: string;
   full_name: string;
   password: string;
-  confirm_password: string;
 }
 
 const INITIAL_FORM: RegisterFormData = {
@@ -79,13 +79,13 @@ export default function RegisterPage() {
     setFormData((previous) => ({ ...previous, [e.target.name]: e.target.value }));
   };
 
-  const fields: Array<{
+  const fields: {
     id: keyof RegisterFormData;
     labelKey: string;
     type: string;
     placeholder: string;
     autoComplete?: string;
-  }> = [
+  }[] = [
     {
       id: "full_name",
       labelKey: "auth.display_name",
@@ -167,7 +167,7 @@ export default function RegisterPage() {
       ) : null}
 
       {/* Register form */}
-      <form className="space-y-4" onSubmit={handleSubmit} noValidate>
+      <form className="space-y-4" noValidate onSubmit={handleSubmit}>
         {fields.map((field) => (
           <div className="space-y-2" key={field.id}>
             <label className={LABEL_BASE} htmlFor={field.id}>

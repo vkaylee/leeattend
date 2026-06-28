@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
 // The global vitest setup mocks use-header-actions.
 // These tests verify the mock contract that all component tests rely on.

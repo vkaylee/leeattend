@@ -12,17 +12,17 @@ import { ScheduleTrace } from '../../lib/api/types';
 
 interface ScheduleTracePopoverProps {
   endTime?: string | null;
-  shiftName?: string | null;
-  shiftSymbol?: string | null;
-  source: string;
-  startTime?: string | null;
-  traces: ScheduleTrace[];
   schedules?: {
     shiftName?: string | null;
     shiftSymbol?: string | null;
     startTime?: string | null;
     endTime?: string | null;
   }[];
+  shiftName?: string | null;
+  shiftSymbol?: string | null;
+  source: string;
+  startTime?: string | null;
+  traces: ScheduleTrace[];
 }
 
 function AppliedShiftCard({
@@ -234,8 +234,8 @@ export const ScheduleTracePopover: React.FC<ScheduleTracePopoverProps> = ({
               <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
                 {schedules.map((s, idx) => (
                   <AppliedShiftCard 
-                    key={idx}
                     endTime={s.endTime}
+                    key={idx}
                     shiftName={s.shiftName}
                     shiftSymbol={s.shiftSymbol}
                     startTime={s.startTime}

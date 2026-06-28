@@ -12,8 +12,8 @@ import type { Employee } from "../../../lib/api/types";
 interface EmployeesPageHeaderProps {
   setEditingEmployee: (emp: Employee | null) => void;
   setIsImportDialogOpen: (open: boolean) => void;
-  setIsTerminationImportOpen: (open: boolean) => void;
   setIsModalOpen: (open: boolean) => void;
+  setIsTerminationImportOpen: (open: boolean) => void;
 }
 
 export const EmployeesPageHeader = ({

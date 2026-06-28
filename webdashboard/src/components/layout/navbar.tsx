@@ -71,7 +71,7 @@ export default function Navbar({ currentWorkspaceName, onOpenSidebar }: NavbarPr
       </nav>
 
       {/* Quick Actions slot (injected by child pages via context) */}
-      {actions && (
+      {!!actions && (
         <div className="flex items-center gap-2 shrink-0">
           {actions}
         </div>

@@ -1,0 +1,4 @@
+#!/bin/bash
+# Delegates to leedevkit orchestrator
+DEVKIT_ROOT="${DEVKIT_HOME:-$HOME/.leedevkit/current}"
+exec "$DEVKIT_ROOT/bin/leedevkit" "$@"
