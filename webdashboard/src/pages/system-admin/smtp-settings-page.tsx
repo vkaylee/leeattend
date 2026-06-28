@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Mail, Save, Send, CheckCircle, XCircle, Loader2, ShieldCheck, AlertTriangle } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
@@ -15,15 +15,6 @@ import {
   type SmtpConfigData,
 } from "@/lib/api/smtp-config";
 
-const EMPTY_CONFIG: SmtpConfigData = {
-  host: "",
-  port: 587,
-  username: "",
-  password: "",
-  from: "",
-  base_url: "",
-};
-
 export default function SmtpSettingsPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -34,7 +25,6 @@ export default function SmtpSettingsPage() {
     queryFn: fetchSmtpConfig,
   });
 
-  const [form, setForm] = useState<SmtpConfigData>(EMPTY_CONFIG);
   const [dirty, setDirty] = useState(false);
   const [testEmail, setTestEmail] = useState("");
   const [testResult, setTestResult] = useState<{
@@ -42,27 +32,23 @@ export default function SmtpSettingsPage() {
     message: string;
   } | null>(null);
   const [testing, setTesting] = useState(false);
-  const [initialized, setInitialized] = useState(false);
   // Track verification status: null = untested, Date = last successful test
   const [verifiedAt, setVerifiedAt] = useState<Date | null>(null);
 
-  // Sync form when data loads (one-shot)
-  useEffect(() => {
-    if (!initialized && config) {
-      setForm({
-        host: config.host ?? "",
-        port: config.port ?? 587,
-        username: config.username ?? "",
-        password: config.password ?? "",
-        from: config.from ?? "",
-        base_url: config.base_url ?? "",
-      });
-      setInitialized(true);
-    }
-  }, [config, initialized]);
+  // Derive form state from config; only track overrides for dirty tracking
+  const [overrides, setOverrides] = useState<Partial<SmtpConfigData>>({});
+
+  const form: SmtpConfigData = useMemo(() => ({
+    host: overrides.host ?? config?.host ?? "",
+    port: overrides.port ?? config?.port ?? 587,
+    username: overrides.username ?? config?.username ?? "",
+    password: overrides.password ?? config?.password ?? "",
+    from: overrides.from ?? config?.from ?? "",
+    base_url: overrides.base_url ?? config?.base_url ?? "",
+  }), [config, overrides]);
 
   const updateField = (field: keyof SmtpConfigData, value: string | number) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    setOverrides((prev) => ({ ...prev, [field]: value }));
     setDirty(true);
   };
 
@@ -112,13 +98,13 @@ export default function SmtpSettingsPage() {
     }
   };
 
-  const fields: Array<{
+  const fields: {
     key: keyof SmtpConfigData;
     label: string;
     type: string;
     placeholder: string;
     hint?: string;
-  }> = [
+  }[] = [
     {
       key: "host",
       label: t("smtp.host", "SMTP Host"),
@@ -169,7 +155,7 @@ export default function SmtpSettingsPage() {
       <div className="space-y-5 p-8">
         <Skeleton className="h-8 w-64" />
         {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" key={i} />
         ))}
       </div>
     );
@@ -221,7 +207,7 @@ export default function SmtpSettingsPage() {
                 value={type === "number" ? (form[key] as number) || "" : (form[key] as string) ?? ""}
               />
               {hint ? (
-                <p className="text-[11px] text-slate-400 dark:text-slate-500">{hint}</p>
+                <Typography className="text-[11px] text-slate-400 dark:text-slate-500" variant="p">{hint}</Typography>
               ) : null}
             </div>
           ))}
@@ -252,9 +238,9 @@ export default function SmtpSettingsPage() {
             <span>{t("smtp.untested_reminder", "You haven't tested this configuration yet. We strongly recommend sending a test email before relying on this for password resets.")}</span>
           </div>
         ) : null}
-        <p className="text-sm text-slate-500 dark:text-slate-400">
+        <Typography className="text-sm text-slate-500 dark:text-slate-400" variant="p">
           {t("smtp.test_desc", "Send a test email to verify your SMTP configuration works.")}
-        </p>
+        </Typography>
 
         <div className="flex gap-3 items-end">
           <div className="flex-1 space-y-1.5">

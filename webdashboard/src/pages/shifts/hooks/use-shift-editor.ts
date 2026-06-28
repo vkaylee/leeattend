@@ -19,21 +19,21 @@ import {
 } from "@/lib/api";
 
 export interface IntervalDraft {
-  key: string;
-  intervalName: string;
-  startTime: string;
-  endTime: string;
+  allowEarlyOt: boolean;
   breakDuration: number;
-  breakStart: string;
   breakEnd: string;
-  isFixedBreak: boolean;
+  breakStart: string;
+  endTime: string;
+  gracePeriodMinutes: number;
+  intervalName: string;
   isAutoDeduct: boolean;
   isBreakOvertime: boolean;
-  gracePeriodMinutes: number;
-  allowEarlyOt: boolean;
+  isFixedBreak: boolean;
+  isNightShift: boolean;
+  key: string;
   maxEarlyOtMinutes: number | null;
   otAggregationMode: "aggregate" | "per_segment";
-  isNightShift: boolean;
+  startTime: string;
 }
 
 let _intervalCounter = 0;
@@ -139,7 +139,7 @@ export function useShiftEditor(shiftId?: string) {
       setCorrectionEffectiveDate(format(new Date(), 'yyyy-MM-dd'));
 
       // Load intervals from shift — if present, use them; otherwise create default
-      const intervals = (editingShift as Record<string, unknown>).intervals as Array<Record<string, unknown>> | undefined;
+      const intervals = (editingShift as Record<string, unknown>).intervals as Record<string, unknown>[] | undefined;
       if (intervals && intervals.length > 0) {
         setIntervalDrafts(intervals.map((iv: Record<string, unknown>) => ({
           key: nextIntervalKey(),

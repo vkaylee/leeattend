@@ -1,8 +1,8 @@
 import { CheckCircle, XCircle, Paperclip, Plus, AlertTriangle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import Button from "@/components/ui/button";
 import InfiniteScrollSentinel from "@/components/common/infinite-scroll-sentinel";
+import Button from "@/components/ui/button";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 
 export interface OtSummary {
@@ -176,7 +176,7 @@ function EvidenceCell({
     return (
       <Button
         className="inline-flex items-center gap-1.5 text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline cursor-pointer bg-transparent border-none p-0 h-auto normal-case shadow-none"
-        onClick={() => onPreviewAttachment?.(summary.paper_form_photo_url!, `OT Claim Evidence - ${summary.employee_name ?? summary.employment_id}`)}
+        onClick={() => { onPreviewAttachment?.(summary.paper_form_photo_url!, `OT Claim Evidence - ${summary.employee_name ?? summary.employment_id}`); }}
         variant="ghost"
       >
         <Paperclip className="w-3.5 h-3.5" />

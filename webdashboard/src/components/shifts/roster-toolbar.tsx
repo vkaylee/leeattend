@@ -37,13 +37,13 @@ interface RosterActionBarProps {
   cancelLabel: string;
   clearLabel: string;
   isMutating: boolean;
+  onApplyShift: (shiftId: string | null) => void;
   onAssignSelected: () => void;
   onCancel: () => void;
   onClearOverrides: () => void;
   selectedCount: number;
   selectedLabel: string;
   shifts?: Shift[];
-  onApplyShift: (shiftId: string | null) => void;
 }
 
 const RosterActionBar = memo(function RosterActionBar({
@@ -71,15 +71,15 @@ const RosterActionBar = memo(function RosterActionBar({
 
       <div className="flex items-center gap-2.5">
         {/* Quick Assign Presets */}
-        {shifts && shifts.length > 0 && (
+        {!!shifts && shifts.length > 0 && (
           <div className="hidden md:flex items-center gap-1.5 mr-2 bg-white/10 p-1 rounded-xl">
             <span className="text-[9px] text-white/70 font-bold uppercase tracking-wider px-1.5">Quick:</span>
             {shifts.slice(0, 3).map((shift) => (
               <Button
-                key={shift.id}
                 className="px-2.5 py-1 bg-white/20 hover:bg-white text-white hover:text-primary-700 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer border border-transparent hover:border-white/10"
                 disabled={isMutating}
-                onClick={() => onApplyShift(shift.id)}
+                key={shift.id}
+                onClick={() => { onApplyShift(shift.id); }}
                 variant="ghost"
               >
                 {shift.report_symbol || shift.name.substring(0, 2).toUpperCase()}
@@ -119,28 +119,28 @@ RosterActionBar.displayName = "RosterActionBar";
 
 interface RosterToolbarProps {
   hook: ReturnType<typeof useShifts>;
-  viewMode: "week" | "month";
   // For month view
   isCopying?: boolean;
+  isMutating?: boolean;
+  onApplyShift?: (shiftId: string | null) => void;
+  onAssignSelected?: () => void;
+  onCancelSelection?: () => void;
+  onClearOverrides?: () => void;
+  onClearWeekSelection?: () => void;
   onCopyMonth?: () => void;
-  selectedEmployeesMeta?: Employee[];
+  onOpenWeekShiftPicker?: (dates: string[]) => void;
   // Month action bar overlays
   selectedCells?: Set<string>;
-  onCancelSelection?: () => void;
-  onAssignSelected?: () => void;
-  onClearOverrides?: () => void;
-  onApplyShift?: (shiftId: string | null) => void;
-  isMutating?: boolean;
   // Week action bar overlays
   selectedDays?: string[];
-  onClearWeekSelection?: () => void;
-  onOpenWeekShiftPicker?: (dates: string[]) => void;
+  selectedEmployeesMeta?: Employee[];
+  viewMode: "week" | "month";
 }
 
 export const RosterToolbar = memo(function RosterToolbar({
   hook,
   viewMode,
-  isCopying = false,
+  isCopying,
   onCopyMonth,
   selectedEmployeesMeta,
   selectedCells,
@@ -148,7 +148,7 @@ export const RosterToolbar = memo(function RosterToolbar({
   onAssignSelected,
   onClearOverrides,
   onApplyShift,
-  isMutating = false,
+  isMutating,
   selectedDays,
   onClearWeekSelection,
   onOpenWeekShiftPicker,
@@ -197,7 +197,7 @@ export const RosterToolbar = memo(function RosterToolbar({
                   ? t("shifts.weekly.title", "Lịch tuần") 
                   : t("shifts.monthly.title", "Lịch tháng")}
               </Typography>
-              {viewMode === "week" && hook.selectedEmployee && (
+              {viewMode === "week" && !!hook.selectedEmployee && (
                 <Typography className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 leading-none mt-0.5" variant="p">
                   {t("shifts.current_week_roster")}
                 </Typography>
@@ -290,7 +290,7 @@ export const RosterToolbar = memo(function RosterToolbar({
               </div>
 
               {/* Selected Checklist (Stick) */}
-              {selectedEmployeesMeta && selectedEmployeesMeta.length > 0 && (
+              {!!selectedEmployeesMeta && selectedEmployeesMeta.length > 0 && (
                 <div className="flex flex-wrap gap-2.5 p-3.5 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 animate-in fade-in slide-in-from-top-2 duration-300">
                   <div className="w-full text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">
                     {t("shifts.monthly.selected_employees", "Nhân sự đang chọn ({{count}})", { count: selectedEmployeesMeta.length })}
@@ -338,7 +338,7 @@ export const RosterToolbar = memo(function RosterToolbar({
               </div>
 
               {/* Quick Actions Dropdown for Week view when employee is selected */}
-              {hook.selectedEmployee && (
+              {!!hook.selectedEmployee && (
                 <div className="w-full md:w-56">
                   <Combobox
                     className="h-10 bg-slate-100 dark:bg-slate-700 border-slate-200 dark:border-slate-700 text-[10px] py-2 px-3 rounded-xl uppercase tracking-tighter"
@@ -364,12 +364,12 @@ export const RosterToolbar = memo(function RosterToolbar({
       </div>
 
       {/* Month Selection Action Bar Overlay */}
-      {viewMode === "month" && selectedCells && selectedCells.size > 0 && (
+      {viewMode === "month" && !!selectedCells && selectedCells.size > 0 && (
         <RosterActionBar
           assignLabel={t("shifts.monthly.assign_selected")}
           cancelLabel={t("common.cancel")}
           clearLabel={t("shifts.monthly.clear_month")}
-          isMutating={isMutating}
+          isMutating={isMutating ?? false}
           onApplyShift={onApplyShift ?? (() => {})}
           onAssignSelected={onAssignSelected ?? (() => {})}
           onCancel={onCancelSelection ?? (() => {})}
@@ -381,7 +381,7 @@ export const RosterToolbar = memo(function RosterToolbar({
       )}
 
       {/* Week Selection Action Bar Overlay */}
-      {viewMode === "week" && selectedDays && selectedDays.length > 0 && (
+      {viewMode === "week" && !!selectedDays && selectedDays.length > 0 && (
         <div className="absolute inset-0 z-40 bg-primary-600 text-white px-6 py-4 rounded-[28px] flex items-center justify-between shadow-xl shadow-primary-100 dark:shadow-black/30 animate-in fade-in duration-300">
           <div className="flex items-center gap-4">
             <span className="text-xs font-bold uppercase tracking-widest">
