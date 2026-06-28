@@ -151,6 +151,7 @@ impl AppState {
             crate::ReportState::new(services.report, coordinator, repos.stats),
             crate::CoreState::new(
                 services.auth,
+                services.email,
                 services.workspace,
                 repos.workspace,
                 repos.audit,
@@ -187,6 +188,7 @@ impl AppState {
                 services.tenant_provisioner,
                 crypto_service,
                 repos.system_db_cluster,
+                repos.system_settings,
             ),
             services.storage_resolver,
             services.file,

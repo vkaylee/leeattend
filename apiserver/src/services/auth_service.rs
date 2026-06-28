@@ -247,4 +247,50 @@ impl AuthService {
 
         Ok(())
     }
+
+    #[tracing::instrument(skip(self), err)]
+    pub async fn create_password_reset_token(&self, user_id: Uuid) -> AppResult<String> {
+        let token = Uuid::new_v4().to_string();
+        let key = format!("pwd_reset:{token}");
+        if let Some(redis_pool) = &self.redis_pool {
+            let mut conn = redis_pool.conn();
+            use redis::AsyncCommands;
+            // set token with 15 mins (900s) TTL
+            conn.set_ex::<_, _, ()>(&key, user_id.to_string(), 900)
+                .await
+                .map_err(|e| {
+                    AppError::Redis(format!("Failed to save reset token to Redis: {e}"))
+                })?;
+            Ok(token)
+        } else {
+            Err(AppError::Redis("Redis pool not initialized".to_string()))
+        }
+    }
+
+    #[tracing::instrument(skip(self), err)]
+    pub async fn verify_and_consume_reset_token(&self, token: &str) -> AppResult<Uuid> {
+        let key = format!("pwd_reset:{token}");
+        if let Some(redis_pool) = &self.redis_pool {
+            let mut conn = redis_pool.conn();
+            use redis::AsyncCommands;
+            let user_id_str: Option<String> = conn.get(&key).await.map_err(|e| {
+                AppError::Redis(format!("Failed to retrieve reset token from Redis: {e}"))
+            })?;
+
+            let Some(user_id_str) = user_id_str else {
+                return Err(AppError::validation(I18nKey::ResetTokenInvalid));
+            };
+
+            // Delete the token immediately (single-use)
+            let _: Result<(), _> = conn.del(&key).await;
+
+            let user_id = Uuid::parse_str(&user_id_str).map_err(|e| {
+                tracing::warn!("Invalid reset token UUID format: {e}");
+                AppError::validation(I18nKey::ResetTokenInvalid)
+            })?;
+            Ok(user_id)
+        } else {
+            Err(AppError::Redis("Redis pool not initialized".to_string()))
+        }
+    }
 }

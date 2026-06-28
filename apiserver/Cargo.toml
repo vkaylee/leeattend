@@ -60,6 +60,8 @@ aws-credential-types = "1"
 clamav-client = { version = "2.2.0", features = ["tokio"] }
 bytes = "1"
 regex = "1.10.4"
+lettre = { version = "0.11", features = ["tokio1-native-tls", "smtp-transport"] }
+
 
 
 [lints]

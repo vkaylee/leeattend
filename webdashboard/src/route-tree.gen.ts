@@ -9,8 +9,10 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from "./routes/__root"
+import { Route as ResetPasswordRouteImport } from "./routes/reset-password"
 import { Route as RegisterRouteImport } from "./routes/register"
 import { Route as LoginRouteImport } from "./routes/login"
+import { Route as ForgotPasswordRouteImport } from "./routes/forgot-password"
 import { Route as AuthenticatedRouteImport } from "./routes/_authenticated"
 import { Route as AuthenticatedOnboardingRouteImport } from "./routes/_authenticated/onboarding"
 import { Route as AuthenticatedWorkspaceRouteImport } from "./routes/_authenticated/_workspace"
@@ -52,6 +54,7 @@ import { Route as AuthenticatedWorkspaceDocumentsTemplatesRouteImport } from "./
 import { Route as AuthenticatedWorkspaceAssignmentRulesNewRouteImport } from "./routes/_authenticated/_workspace/assignment-rules.new"
 import { Route as AuthenticatedWorkspaceApprovalsOtRouteImport } from "./routes/_authenticated/_workspace/approvals/ot"
 import { Route as AuthenticatedInfraSystemTenantsRouteImport } from "./routes/_authenticated/_infra/system/tenants"
+import { Route as AuthenticatedInfraSystemSmtpRouteImport } from "./routes/_authenticated/_infra/system/smtp"
 import { Route as AuthenticatedInfraSystemRolesRouteImport } from "./routes/_authenticated/_infra/system/roles"
 import { Route as AuthenticatedInfraSystemDbClustersRouteImport } from "./routes/_authenticated/_infra/system/db-clusters"
 import { Route as AuthenticatedInfraInfraMonitorRouteImport } from "./routes/_authenticated/_infra/infra/monitor"
@@ -87,6 +90,13 @@ import { Route as AuthenticatedWorkspaceWorkspaceSettingsWorkflowsWorkflowIdEdit
 import { Route as AuthenticatedWorkspaceShiftsRulesWorkingPatternsPatternIdEditRouteImport } from "./routes/_authenticated/_workspace/shifts.rules.working-patterns.$patternId.edit"
 import { Route as AuthenticatedWorkspaceShiftsRulesAssignmentRulesRuleIdEditRouteImport } from "./routes/_authenticated/_workspace/shifts.rules.assignment-rules.$ruleId.edit"
 
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: "/reset-password",
+  path: "/reset-password",
+  getParentRoute: () => rootRouteImport,
+} as any).lazy(() =>
+  import("./routes/reset-password.lazy").then((d) => d.Route),
+)
 const RegisterRoute = RegisterRouteImport.update({
   id: "/register",
   path: "/register",
@@ -97,6 +107,13 @@ const LoginRoute = LoginRouteImport.update({
   path: "/login",
   getParentRoute: () => rootRouteImport,
 } as any).lazy(() => import("./routes/login.lazy").then((d) => d.Route))
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: "/forgot-password",
+  path: "/forgot-password",
+  getParentRoute: () => rootRouteImport,
+} as any).lazy(() =>
+  import("./routes/forgot-password.lazy").then((d) => d.Route),
+)
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: "/_authenticated",
   getParentRoute: () => rootRouteImport,
@@ -462,6 +479,16 @@ const AuthenticatedInfraSystemTenantsRoute =
       (d) => d.Route,
     ),
   )
+const AuthenticatedInfraSystemSmtpRoute =
+  AuthenticatedInfraSystemSmtpRouteImport.update({
+    id: "/system/smtp",
+    path: "/system/smtp",
+    getParentRoute: () => AuthenticatedInfraRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_infra/system/smtp.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedInfraSystemRolesRoute =
   AuthenticatedInfraSystemRolesRouteImport.update({
     id: "/system/roles",
@@ -806,8 +833,10 @@ const AuthenticatedWorkspaceShiftsRulesAssignmentRulesRuleIdEditRoute =
 
 export interface FileRoutesByFullPath {
   "/": typeof AuthenticatedWorkspaceIndexRoute
+  "/forgot-password": typeof ForgotPasswordRoute
   "/login": typeof LoginRoute
   "/register": typeof RegisterRoute
+  "/reset-password": typeof ResetPasswordRoute
   "/onboarding": typeof AuthenticatedOnboardingRoute
   "/assignment-rules": typeof AuthenticatedWorkspaceAssignmentRulesRouteWithChildren
   "/attendance-adjustments": typeof AuthenticatedWorkspaceAttendanceAdjustmentsRoute
@@ -830,6 +859,7 @@ export interface FileRoutesByFullPath {
   "/infra/monitor": typeof AuthenticatedInfraInfraMonitorRoute
   "/system/db-clusters": typeof AuthenticatedInfraSystemDbClustersRoute
   "/system/roles": typeof AuthenticatedInfraSystemRolesRoute
+  "/system/smtp": typeof AuthenticatedInfraSystemSmtpRoute
   "/system/tenants": typeof AuthenticatedInfraSystemTenantsRoute
   "/approvals/ot": typeof AuthenticatedWorkspaceApprovalsOtRoute
   "/assignment-rules/new": typeof AuthenticatedWorkspaceAssignmentRulesNewRoute
@@ -882,8 +912,10 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   "/": typeof AuthenticatedWorkspaceIndexRoute
+  "/forgot-password": typeof ForgotPasswordRoute
   "/login": typeof LoginRoute
   "/register": typeof RegisterRoute
+  "/reset-password": typeof ResetPasswordRoute
   "/onboarding": typeof AuthenticatedOnboardingRoute
   "/attendance-adjustments": typeof AuthenticatedWorkspaceAttendanceAdjustmentsRoute
   "/attendance-logs": typeof AuthenticatedWorkspaceAttendanceLogsRoute
@@ -903,6 +935,7 @@ export interface FileRoutesByTo {
   "/infra/monitor": typeof AuthenticatedInfraInfraMonitorRoute
   "/system/db-clusters": typeof AuthenticatedInfraSystemDbClustersRoute
   "/system/roles": typeof AuthenticatedInfraSystemRolesRoute
+  "/system/smtp": typeof AuthenticatedInfraSystemSmtpRoute
   "/system/tenants": typeof AuthenticatedInfraSystemTenantsRoute
   "/approvals/ot": typeof AuthenticatedWorkspaceApprovalsOtRoute
   "/assignment-rules/new": typeof AuthenticatedWorkspaceAssignmentRulesNewRoute
@@ -953,8 +986,10 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   "/_authenticated": typeof AuthenticatedRouteWithChildren
+  "/forgot-password": typeof ForgotPasswordRoute
   "/login": typeof LoginRoute
   "/register": typeof RegisterRoute
+  "/reset-password": typeof ResetPasswordRoute
   "/_authenticated/_infra": typeof AuthenticatedInfraRouteWithChildren
   "/_authenticated/_workspace": typeof AuthenticatedWorkspaceRouteWithChildren
   "/_authenticated/onboarding": typeof AuthenticatedOnboardingRoute
@@ -980,6 +1015,7 @@ export interface FileRoutesById {
   "/_authenticated/_infra/infra/monitor": typeof AuthenticatedInfraInfraMonitorRoute
   "/_authenticated/_infra/system/db-clusters": typeof AuthenticatedInfraSystemDbClustersRoute
   "/_authenticated/_infra/system/roles": typeof AuthenticatedInfraSystemRolesRoute
+  "/_authenticated/_infra/system/smtp": typeof AuthenticatedInfraSystemSmtpRoute
   "/_authenticated/_infra/system/tenants": typeof AuthenticatedInfraSystemTenantsRoute
   "/_authenticated/_workspace/approvals/ot": typeof AuthenticatedWorkspaceApprovalsOtRoute
   "/_authenticated/_workspace/assignment-rules/new": typeof AuthenticatedWorkspaceAssignmentRulesNewRoute
@@ -1034,8 +1070,10 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | "/"
+    | "/forgot-password"
     | "/login"
     | "/register"
+    | "/reset-password"
     | "/onboarding"
     | "/assignment-rules"
     | "/attendance-adjustments"
@@ -1058,6 +1096,7 @@ export interface FileRouteTypes {
     | "/infra/monitor"
     | "/system/db-clusters"
     | "/system/roles"
+    | "/system/smtp"
     | "/system/tenants"
     | "/approvals/ot"
     | "/assignment-rules/new"
@@ -1110,8 +1149,10 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | "/"
+    | "/forgot-password"
     | "/login"
     | "/register"
+    | "/reset-password"
     | "/onboarding"
     | "/attendance-adjustments"
     | "/attendance-logs"
@@ -1131,6 +1172,7 @@ export interface FileRouteTypes {
     | "/infra/monitor"
     | "/system/db-clusters"
     | "/system/roles"
+    | "/system/smtp"
     | "/system/tenants"
     | "/approvals/ot"
     | "/assignment-rules/new"
@@ -1180,8 +1222,10 @@ export interface FileRouteTypes {
   id:
     | "__root__"
     | "/_authenticated"
+    | "/forgot-password"
     | "/login"
     | "/register"
+    | "/reset-password"
     | "/_authenticated/_infra"
     | "/_authenticated/_workspace"
     | "/_authenticated/onboarding"
@@ -1207,6 +1251,7 @@ export interface FileRouteTypes {
     | "/_authenticated/_infra/infra/monitor"
     | "/_authenticated/_infra/system/db-clusters"
     | "/_authenticated/_infra/system/roles"
+    | "/_authenticated/_infra/system/smtp"
     | "/_authenticated/_infra/system/tenants"
     | "/_authenticated/_workspace/approvals/ot"
     | "/_authenticated/_workspace/assignment-rules/new"
@@ -1260,12 +1305,21 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
 }
 
 declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
+    "/reset-password": {
+      id: "/reset-password"
+      path: "/reset-password"
+      fullPath: "/reset-password"
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     "/register": {
       id: "/register"
       path: "/register"
@@ -1278,6 +1332,13 @@ declare module "@tanstack/react-router" {
       path: "/login"
       fullPath: "/login"
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/forgot-password": {
+      id: "/forgot-password"
+      path: "/forgot-password"
+      fullPath: "/forgot-password"
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     "/_authenticated": {
@@ -1567,6 +1628,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedInfraSystemTenantsRouteImport
       parentRoute: typeof AuthenticatedInfraRoute
     }
+    "/_authenticated/_infra/system/smtp": {
+      id: "/_authenticated/_infra/system/smtp"
+      path: "/system/smtp"
+      fullPath: "/system/smtp"
+      preLoaderRoute: typeof AuthenticatedInfraSystemSmtpRouteImport
+      parentRoute: typeof AuthenticatedInfraRoute
+    }
     "/_authenticated/_infra/system/roles": {
       id: "/_authenticated/_infra/system/roles"
       path: "/system/roles"
@@ -1812,6 +1880,7 @@ interface AuthenticatedInfraRouteChildren {
   AuthenticatedInfraInfraMonitorRoute: typeof AuthenticatedInfraInfraMonitorRoute
   AuthenticatedInfraSystemDbClustersRoute: typeof AuthenticatedInfraSystemDbClustersRoute
   AuthenticatedInfraSystemRolesRoute: typeof AuthenticatedInfraSystemRolesRoute
+  AuthenticatedInfraSystemSmtpRoute: typeof AuthenticatedInfraSystemSmtpRoute
   AuthenticatedInfraSystemTenantsRoute: typeof AuthenticatedInfraSystemTenantsRoute
 }
 
@@ -1820,6 +1889,7 @@ const AuthenticatedInfraRouteChildren: AuthenticatedInfraRouteChildren = {
   AuthenticatedInfraSystemDbClustersRoute:
     AuthenticatedInfraSystemDbClustersRoute,
   AuthenticatedInfraSystemRolesRoute: AuthenticatedInfraSystemRolesRoute,
+  AuthenticatedInfraSystemSmtpRoute: AuthenticatedInfraSystemSmtpRoute,
   AuthenticatedInfraSystemTenantsRoute: AuthenticatedInfraSystemTenantsRoute,
 }
 
@@ -2118,8 +2188,10 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

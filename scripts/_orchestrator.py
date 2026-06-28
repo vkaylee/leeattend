@@ -62,6 +62,7 @@ def log_error(msg: str, file: typing.TextIO = sys.stderr) -> None:
 
 class Orchestrator:
     def __init__(self) -> None:
+        self.results: dict[str, dict[str, typing.Any]] = {}  # phase -> {status, duration, details}
         prog_name = (
             "manage.sh"
             if "manage" in sys.argv
@@ -193,7 +194,9 @@ class Orchestrator:
             parents=[parent_parser],
             description="LeeAttend Enterprise Test Orchestrator - Automatically handles environments, mocking, and parallel execution.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="Examples for AI Agents:\n  ./test.sh all                 # Run full-stack test suite (lint, unit, e2e)\n  ./test.sh webdashboard --unit-only # Run only frontend unit tests\n  ./test.sh api --pattern auth       # Run backend tests matching 'auth'\n  ./test.sh infra               # Verify project configuration and linting\n\nNotes for AI: Always prefer specific targets (e.g., 'apiserver') over 'all' for faster feedback.",
+            epilog="Examples for AI Agents:\n  ./test.sh all                 # Run full-stack test suite (lint, unit, e2e)\n  ./test.sh webdashboard --unit-only # Run only frontend unit tests\n  ./test.sh api --pattern auth       # Run backend tests matching 'auth'\n  ./test.sh infra               # Verify project configuration and linting\n\nNotes for AI: Always prefer specific targets (e.g., 'apiserver') over 'all' for faster feedback.
+  ./test.sh api --lint-only --fix  # Auto-fix formatting before committing
+  ./test.sh all --json             # Full suite with machine-readable summary",
         )
         test_parser.add_argument(
             "target",
@@ -226,6 +229,17 @@ class Orchestrator:
         )
         test_parser.add_argument(
             "--timeout", type=int, default=1800, help="Test execution timeout in seconds"
+        )
+        test_parser.add_argument(
+            "--fix",
+            action="store_true",
+            help="Auto-fix formatting issues (cargo fmt, eslint --fix) instead of just checking",
+        )
+        test_parser.add_argument(
+            "--json",
+            action="store_true",
+            dest="json_output",
+            help="Output machine-readable JSON summary at the end (for AI agents)",
         )
 
     def _setup_manage_parser(
@@ -399,6 +413,11 @@ class Orchestrator:
 
         self.print_test_summary(target or "all")
 
+        if getattr(args, "json_output", False) and self.results:
+            import json
+
+            print(json.dumps(self.results, indent=2), file=sys.stderr, flush=True)
+
         is_single_phase = (
             getattr(args, "lint_only", False)
             or getattr(args, "unit_only", False)
@@ -439,7 +458,11 @@ class Orchestrator:
         log_info(f"🔹 Running {phase_name}...")
         func_map: dict[str, typing.Callable[..., typing.Any]] = {
             "Startup": lambda: _lifecycle_up(mode),
-            "Linting": lambda: leeattend_run_lint(getattr(args, "component", "") or "", mode),
+            "Linting": lambda: leeattend_run_lint(
+                getattr(args, "component", "") or "",
+                mode,
+                fix=getattr(args, "fix", False),
+            ),
             "Unit Tests": lambda: leeattend_run_unit(
                 getattr(args, "component", "") or "",
                 mode,
@@ -462,7 +485,14 @@ class Orchestrator:
             log_error(f"Unknown phase: {phase_name}")
             sys.exit(1)
 
+        start = time.time()
         res = func()
+        elapsed = time.time() - start
+
+        self.results[phase_name] = {
+            "status": "pass" if res else "fail",
+            "duration_s": round(elapsed, 1),
+        }
 
         if granular_mode:
             log_info(f"🔹 Tearing down isolated environment for: {phase_name} ({granular_mode})")
@@ -488,7 +518,9 @@ class Orchestrator:
                     log_warn(
                         f"\n💡 Tip: To focus on integration/E2E tests only, run:\n   ./test.sh {target} --e2e-only\n"
                     )
-            sys.exit(1)
+            # Continue to next phase instead of immediate exit — AI needs all results
+            if phase_name != "Linting":  # lint failures are non-blocking
+                sys.exit(1)
 
     def handle_manage(self, args: argparse.Namespace) -> None:
         """Handle 'manage' commands using a dispatch map for simplicity."""

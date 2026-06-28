@@ -1,5 +1,5 @@
 import { client } from "./client";
-import { apiFetch, setAccessToken, setRefreshToken, setCurrentUserId, clearAuthSession } from "./helpers";
+import { apiFetch, setAccessToken, setRefreshToken, setCurrentUserId, clearAuthSession, TIMEOUT } from "./helpers";
 import { AuthResponse, RegisterRequest, ChangePasswordRequest, User } from "./types";
 
 export async function login(username: string, password: string): Promise<AuthResponse> {
@@ -80,4 +80,45 @@ export async function fetchMyPermissions(): Promise<{
     roles: string[];
     managed_department_ids: string[] | null;
   };
+}
+
+/**
+ * Request a password reset link. The backend always returns 200 OK
+ * to prevent email enumeration, even if the email is not registered.
+ */
+export async function forgotPassword(email: string): Promise<void> {
+  const response = await apiFetch("/v1/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+    timeout: TIMEOUT.DEFAULT,
+  });
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => null);
+    throw new Error(
+      (errorBody as { message?: string })?.message ?? "Failed to send reset link",
+    );
+  }
+}
+
+/**
+ * Reset password using a token received via email.
+ * Returns a success message on completion.
+ */
+export async function resetPassword(
+  token: string,
+  newPassword: string,
+): Promise<string> {
+  const response = await apiFetch("/v1/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ token, new_password: newPassword }),
+    timeout: TIMEOUT.DEFAULT,
+  });
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => null);
+    throw new Error(
+      (errorBody as { message?: string })?.message ?? "Failed to reset password",
+    );
+  }
+  const data = (await response.json()) as { message?: string };
+  return data.message ?? "Password reset successfully";
 }

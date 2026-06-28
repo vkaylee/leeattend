@@ -21,6 +21,7 @@ pub struct Services {
     pub adjustment:
         Arc<crate::services::attendance_adjustment_service::AttendanceAdjustmentService>,
     pub auth: Arc<crate::services::auth_service::AuthService>,
+    pub email: Arc<crate::services::email_service::EmailService>,
     pub shift: Arc<crate::services::shift_service::ShiftService>,
     pub tenant_provisioner: Arc<dyn crate::services::tenant_provisioner::TenantProvisionerTrait>,
     pub workspace: Arc<crate::services::workspace_service::WorkspaceService>,
@@ -99,6 +100,7 @@ pub async fn build_services(
             pairing: attendance.pairing,
             adjustment: attendance.adjustment,
             auth: core.auth,
+            email: core.email,
             shift: core.shift,
             tenant_provisioner: core.tenant_provisioner,
             workspace: core.workspace,

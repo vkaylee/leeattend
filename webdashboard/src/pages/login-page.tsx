@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
+import { AuthLayout } from "@/components/ui/auth-layout";
 import { LABEL_BASE } from "@/components/ui/form-field";
 import { Typography } from "@/components/ui/typography";
 import {
@@ -21,9 +22,7 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const from = (location.state as { from?: string } | null)?.from ?? ROUTES.HOME;
-
   const userId = getCurrentUserId();
- 
 
   useEffect(() => {
     if (userId) {
@@ -36,80 +35,135 @@ export default function LoginPage() {
   }
 
   const performLogin = async (loginEmail: string, loginPass: string) => {
-    setIsSubmitting(true); setError(null);
+    setIsSubmitting(true);
+    setError(null);
     try {
       await apiLogin(loginEmail, loginPass);
-      // Điều hướng về trang trước đó hoặc Dashboard
       void navigate({ to: from, replace: true });
     } catch (error_: unknown) {
       setError(error_ instanceof Error ? error_.message : t("auth.login_error"));
-    } finally { setIsSubmitting(false); }
- 
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleLogin = async (e: React.SyntheticEvent) => { e.preventDefault(); await performLogin(email, password); };
-  const _handleFastLogin = undefined; // Removed: no seeded admin credentials
+  const handleLogin = async (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    await performLogin(email, password);
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-6 relative overflow-hidden animate-in fade-in duration-1000">
-      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary-100 dark:bg-primary-900/30 rounded-full blur-[140px] animate-pulse duration-[12s]" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-100/30 dark:bg-blue-900/20 rounded-full blur-[140px] animate-pulse duration-[10s]" />
-      
-      <div className="max-w-md w-full space-y-12 p-12 bg-white dark:bg-slate-900 rounded-[3.5rem] shadow-premium-2xl relative z-10 animate-in zoom-in-95 duration-1000 border border-white/60">
-        <div className="text-center">
-          <div className="bg-slate-900 w-24 h-24 rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 shadow-2xl shadow-slate-400 dark:shadow-black/40 transform hover:rotate-6 hover:scale-110 transition-all duration-700 group/logo">
-             <span className="text-white text-5xl font-bold italic tracking-tighter group-hover:text-primary-400 transition-colors pl-3">L</span>
+    <AuthLayout>
+      {/* Logo + Title */}
+      <div className="mb-10">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="bg-slate-900 dark:bg-slate-800 w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl shadow-slate-300/50 dark:shadow-black/40 transform hover:rotate-6 hover:scale-110 transition-all duration-500 group/logo flex-shrink-0">
+            <span className="text-white text-2xl font-bold italic tracking-tighter group-hover/logo:text-primary-400 transition-colors pl-0.5">
+              L
+            </span>
           </div>
-          <Typography className="text-5xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter uppercase leading-normal pt-2 px-4" variant="h2">Attend</Typography>
-          <Typography className="mt-4 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-[0.3em] text-[10px] opacity-60 leading-relaxed" variant="p">
-            {t("auth.slogan").toUpperCase()}
-          </Typography>
+          <div>
+            <Typography
+              className="text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight leading-none"
+              variant="h1"
+            >
+              LeeAttend
+            </Typography>
+            <p className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-[0.3em] mt-1">
+              {t("auth.slogan")}
+            </p>
+          </div>
         </div>
 
-        {error ? (
-          <div className="bg-rose-50 dark:bg-rose-950 border-2 border-rose-100 dark:border-rose-800 text-rose-600 dark:text-rose-300 p-5 rounded-[2rem] text-[11px] font-bold uppercase tracking-widest text-center animate-in slide-in-from-top-4 shadow-inner" role="alert">
-            {error}
-          </div>
-        ) : null}
-
-        <div className="space-y-10">
-
-
-          <form className="space-y-8" onSubmit={handleLogin}>
-            <div className="space-y-6">
-              <div className="space-y-3 px-1">
-                <label className={LABEL_BASE}>{t("auth.email")}</label>
-                <div className="relative group">
-                  <input autoComplete="email" className="block w-full px-6 py-4.5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-200 rounded-[1.5rem] focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 focus:bg-white dark:focus:bg-slate-900 transition-all font-bold placeholder:text-slate-300 dark:placeholder:text-slate-600 dark:text-slate-300 text-sm tracking-tight shadow-inner" data-testid="login-email-input" id="email-address" name="email" onChange={(e) => { setEmail(e.target.value); }} placeholder="email@company.com" required type="email" value={email} />
-                </div>
-              </div>
-              <div className="space-y-3 px-1">
-                <label className={LABEL_BASE}>{t("auth.password")}</label>
-                <div className="relative group">
-                  <input autoComplete="current-password" className="block w-full px-6 py-4.5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-200 rounded-[1.5rem] focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 focus:bg-white dark:focus:bg-slate-900 transition-all font-bold placeholder:text-slate-300 dark:placeholder:text-slate-600 dark:text-slate-300 text-sm tracking-[0.3em] shadow-inner" data-testid="login-password-input" id="password" name="password" onChange={(e) => { setPassword(e.target.value); }} placeholder="••••••••" required type="password" value={password} />
-                </div>
-              </div>
-            </div>
-
-            <Button
-              className="w-full"
-              data-testid="login-submit-btn"
-              disabled={isSubmitting}
-              loading={isSubmitting}
-              size="lg"
-              type="submit"
-              variant="secondary"
+        <div>
+          <h2 className="text-2xl font-bold text-slate-700 dark:text-slate-200 tracking-tight">
+            {t("auth.login.title")}
+          </h2>
+          <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">
+            {t("auth.no_account")}{" "}
+            <Link
+              className="font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors"
+              to={ROUTES.REGISTER}
             >
-              {isSubmitting ? t("auth.processing").toUpperCase() : t("auth.login_btn").toUpperCase()}
-            </Button>
-
-            <div className="text-center pt-2">
-              <span className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest opacity-60">{t("auth.no_account")} </span>
-              <Link className="font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:text-primary-300 text-[10px] uppercase tracking-widest transition-colors ml-1" to={ROUTES.REGISTER}>{t("auth.register_now").toUpperCase()}</Link>
-            </div>
-          </form>
+              {t("auth.register_now")}
+            </Link>
+          </p>
         </div>
       </div>
-    </div>
+
+      {/* Error alert */}
+      {error ? (
+        <div
+          className="mb-6 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 p-4 rounded-2xl text-sm font-medium animate-in slide-in-from-top-3 duration-300"
+          role="alert"
+          aria-live="polite"
+        >
+          {error}
+        </div>
+      ) : null}
+
+      {/* Login form */}
+      <form className="space-y-5" onSubmit={handleLogin} noValidate>
+        <div className="space-y-2">
+          <label className={LABEL_BASE} htmlFor="email-address">
+            {t("auth.email")}
+          </label>
+          <input
+            autoComplete="email"
+            className="block w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400 focus:bg-white dark:focus:bg-slate-900 transition-all text-sm font-medium placeholder:text-slate-300 dark:placeholder:text-slate-600 shadow-sm"
+            data-testid="login-email-input"
+            id="email-address"
+            name="email"
+            onChange={(e) => { setEmail(e.target.value); }}
+            placeholder="email@company.com"
+            required
+            type="email"
+            value={email}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className={LABEL_BASE} htmlFor="password">
+            {t("auth.password")}
+          </label>
+          <input
+            autoComplete="current-password"
+            className="block w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400 focus:bg-white dark:focus:bg-slate-900 transition-all text-sm font-medium placeholder:text-slate-300 dark:placeholder:text-slate-600 tracking-[0.3em] shadow-sm"
+            data-testid="login-password-input"
+            id="password"
+            name="password"
+            onChange={(e) => { setPassword(e.target.value); }}
+            placeholder="••••••••"
+            required
+            type="password"
+            value={password}
+          />
+        </div>
+
+        <div className="flex justify-end">
+          <Link
+            className="text-xs font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors"
+            data-testid="forgot-password-link"
+            to={ROUTES.FORGOT_PASSWORD}
+          >
+            {t("auth.forgot_password")}
+          </Link>
+        </div>
+
+        <div className="pt-2">
+          <Button
+            className="w-full"
+            data-testid="login-submit-btn"
+            disabled={isSubmitting}
+            loading={isSubmitting}
+            size="lg"
+            type="submit"
+            variant="secondary"
+          >
+            {isSubmitting ? t("auth.processing") : t("auth.login_btn")}
+          </Button>
+        </div>
+      </form>
+    </AuthLayout>
   );
 }

@@ -61,8 +61,8 @@ impl DieselWorkspaceStatsRepository {
     ///
     /// Replaces the incorrect `Utc::now().date_naive()` which gives
     /// the UTC calendar date, not the workspace-local "today".
-    fn workspace_local_date(tz: &Tz) -> NaiveDate {
-        Utc::now().with_timezone(tz).date_naive()
+    fn workspace_local_date(tz: Tz) -> NaiveDate {
+        Utc::now().with_timezone(&tz).date_naive()
     }
 
     async fn get_timezone(&self, auth_token: &crate::diesel_pool::TenantAuthToken) -> Tz {
@@ -90,7 +90,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         let workspace_id = auth_token.workspace_id();
         let tz = self.get_timezone(auth_token).await;
         let tz_name = tz.name();
-        let today = Self::workspace_local_date(&tz);
+        let today = Self::workspace_local_date(tz);
         let start_date = today - chrono::Duration::days(29);
 
         let utc_range_start = tz::start_of_day_utc(&tz, start_date)
@@ -196,7 +196,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         let workspace_id = auth_token.workspace_id();
         let tz = self.get_timezone(auth_token).await;
         let tz_name = tz.name();
-        let today = Self::workspace_local_date(&tz);
+        let today = Self::workspace_local_date(tz);
         let start_date = match range {
             "week" => today - chrono::Duration::days(6),
             _ => today,
@@ -367,7 +367,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
     ) -> Result<Vec<OvertimeTrendPoint>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let tz = self.get_timezone(auth_token).await;
-        let today = Self::workspace_local_date(&tz);
+        let today = Self::workspace_local_date(tz);
         let mut conn = self
             .diesel_pools
             .tenant_transaction_conn(auth_token)
@@ -410,7 +410,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         let workspace_id = auth_token.workspace_id();
         let tz = self.get_timezone(auth_token).await;
         let tz_name = tz.name();
-        let today = Self::workspace_local_date(&tz);
+        let today = Self::workspace_local_date(tz);
 
         let utc_today_start = tz::start_of_day_utc(&tz, today)
             .map_err(|e| AppError::Internal(format!("Invalid date: {e}")))?;
@@ -491,12 +491,14 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             async move {
                 let mut conn = pools.tenant_transaction_conn(auth_token).await?;
                 Ok::<rust_decimal::Decimal, AppError>(
-                    diesel::sql_query(include_str!("sql/workspace_stats/workspace_stats_payroll.sql"))
-                        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-                        .get_result::<DecimalRow>(&mut *conn)
-                        .await
-                        .map(|r| r.amount)
-                        .unwrap_or(rust_decimal::Decimal::ZERO),
+                    diesel::sql_query(include_str!(
+                        "sql/workspace_stats/workspace_stats_payroll.sql"
+                    ))
+                    .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+                    .get_result::<DecimalRow>(&mut *conn)
+                    .await
+                    .map(|r| r.amount)
+                    .unwrap_or(rust_decimal::Decimal::ZERO),
                 )
             }
         };
@@ -527,16 +529,14 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             async move {
                 let mut conn = pools.tenant_transaction_conn(auth_token).await?;
                 Ok::<Vec<EmployeeFirstPunchTodayRow>, AppError>(
-                    diesel::sql_query(
-                        include_str!("sql/workspace_stats/first_punches_today.sql"),
-                    )
-                    .bind::<diesel::sql_types::Timestamptz, _>(utc_today_start)
-                    .bind::<diesel::sql_types::Timestamptz, _>(utc_today_end_exclusive)
-                    .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-                    .bind::<diesel::sql_types::Text, _>(tz_name)
-                    .load(&mut *conn)
-                    .await
-                    .unwrap_or_default(),
+                    diesel::sql_query(include_str!("sql/workspace_stats/first_punches_today.sql"))
+                        .bind::<diesel::sql_types::Timestamptz, _>(utc_today_start)
+                        .bind::<diesel::sql_types::Timestamptz, _>(utc_today_end_exclusive)
+                        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+                        .bind::<diesel::sql_types::Text, _>(tz_name)
+                        .load(&mut *conn)
+                        .await
+                        .unwrap_or_default(),
                 )
             }
         };
@@ -546,16 +546,14 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
             async move {
                 let mut conn = pools.tenant_transaction_conn(auth_token).await?;
                 Ok::<Vec<EmployeeLastPunchRow>, AppError>(
-                    diesel::sql_query(
-                        include_str!("sql/workspace_stats/last_punches_today.sql"),
-                    )
-                    .bind::<diesel::sql_types::Timestamptz, _>(utc_today_start)
-                    .bind::<diesel::sql_types::Timestamptz, _>(utc_today_end_exclusive)
-                    .bind::<diesel::sql_types::Uuid, _>(workspace_id)
-                    .bind::<diesel::sql_types::Text, _>(tz_name)
-                    .load(&mut *conn)
-                    .await
-                    .unwrap_or_default(),
+                    diesel::sql_query(include_str!("sql/workspace_stats/last_punches_today.sql"))
+                        .bind::<diesel::sql_types::Timestamptz, _>(utc_today_start)
+                        .bind::<diesel::sql_types::Timestamptz, _>(utc_today_end_exclusive)
+                        .bind::<diesel::sql_types::Uuid, _>(workspace_id)
+                        .bind::<diesel::sql_types::Text, _>(tz_name)
+                        .load(&mut *conn)
+                        .await
+                        .unwrap_or_default(),
                 )
             }
         };
@@ -673,7 +671,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
     ) -> Result<Vec<PeakTimeSlot>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let tz = self.get_timezone(auth_token).await;
-        let today = Self::workspace_local_date(&tz);
+        let today = Self::workspace_local_date(tz);
 
         let utc_start = tz::start_of_day_utc(&tz, today)
             .map_err(|e| AppError::Internal(format!("Invalid date: {e}")))?;
@@ -720,7 +718,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
     ) -> Result<Vec<LeaveTypeBreakdown>, AppError> {
         let workspace_id = auth_token.workspace_id();
         let tz = self.get_timezone(auth_token).await;
-        let today = Self::workspace_local_date(&tz);
+        let today = Self::workspace_local_date(tz);
         let month_start = NaiveDate::from_ymd_opt(today.year(), today.month(), 1)
             .ok_or_else(|| AppError::Internal("Invalid date".to_string()))?;
 
@@ -761,7 +759,7 @@ impl WorkspaceStatsRepository for DieselWorkspaceStatsRepository {
         let workspace_id = auth_token.workspace_id();
         let tz = self.get_timezone(auth_token).await;
         let tz_name = tz.name();
-        let today = Self::workspace_local_date(&tz);
+        let today = Self::workspace_local_date(tz);
         let start_date = today - chrono::Duration::days(29);
 
         let utc_start = tz::start_of_day_utc(&tz, start_date)

@@ -404,6 +404,123 @@ pub async fn system_health(
     })))
 }
 
+// ── SMTP Config ───────────────────────────────────────────────────────────────
+
+/// Get the current SMTP configuration from system_settings (DB).
+/// Returns an empty object if not yet configured.
+#[utoipa::path(
+    get,
+    path = "/system/smtp/config",
+    responses(
+        (status = 200, description = "Current SMTP config", body = serde_json::Value),
+        (status = 403, description = "Forbidden")
+    )
+)]
+pub async fn get_smtp_config(
+    State(state): State<Arc<AppState>>,
+    ctx: SystemContext,
+    _api_ctx: ApiContext,
+) -> AppResult<Json<serde_json::Value>> {
+    ctx.require_role(SystemRoleType::PlatformAdmin)?;
+
+    let repo = state.infra().system_settings_repo();
+    let config = repo
+        .get("smtp")
+        .await?
+        .unwrap_or_else(|| serde_json::Value::Object(serde_json::Map::new()));
+
+    Ok(Json(config))
+}
+
+/// Update the SMTP configuration. Persists to DB and invalidates the Redis cache
+/// so all instances pick up the new config immediately.
+#[utoipa::path(
+    put,
+    path = "/system/smtp/config",
+    request_body = serde_json::Value,
+    responses(
+        (status = 200, description = "Config saved"),
+        (status = 403, description = "Forbidden")
+    )
+)]
+pub async fn set_smtp_config(
+    State(state): State<Arc<AppState>>,
+    ctx: SystemContext,
+    _api_ctx: ApiContext,
+    Json(body): Json<serde_json::Value>,
+) -> AppResult<Json<serde_json::Value>> {
+    ctx.require_role(SystemRoleType::PlatformAdmin)?;
+
+    let repo = state.infra().system_settings_repo();
+    repo.set("smtp", &body).await?;
+
+    // Invalidate Redis cache so all instances reload immediately
+    if let Some(redis) = state.infra().redis() {
+        let mut conn = redis.conn();
+        let _: () = redis::cmd("DEL")
+            .arg("smtp:config")
+            .query_async(&mut conn)
+            .await
+            .map_err(|e| tracing::warn!("Failed to invalidate Redis smtp:config cache: {e}"))
+            .unwrap_or(());
+    }
+
+    Ok(Json(serde_json::json!({"saved": true})))
+}
+
+// ── SMTP Test ──────────────────────────────────────────────────────────────────
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct SmtpTestRequest {
+    /// Email address to send the test message to.
+    pub to_email: String,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct SmtpTestResponse {
+    pub success: bool,
+    pub message: String,
+}
+
+/// Send a test email to verify SMTP configuration is working.
+///
+/// Requires **PlatformAdmin** system role.
+#[utoipa::path(
+    post,
+    path = "/system/smtp/test",
+    request_body = SmtpTestRequest,
+    responses(
+        (status = 200, description = "Test email sent", body = SmtpTestResponse),
+        (status = 403, description = "Forbidden — requires PlatformAdmin"),
+        (status = 500, description = "SMTP error details")
+    )
+)]
+pub async fn test_smtp(
+    State(state): State<Arc<AppState>>,
+    ctx: SystemContext,
+    _api_ctx: ApiContext,
+    Json(req): Json<SmtpTestRequest>,
+) -> AppResult<Json<SmtpTestResponse>> {
+    ctx.require_role(SystemRoleType::PlatformAdmin)?;
+
+    // Quick validation
+    if req.to_email.is_empty() || !req.to_email.contains('@') {
+        return Err(AppError::validation(I18nKey::Validation));
+    }
+
+    let email_service = state.core().email_service();
+    match email_service.send_test_email(&req.to_email).await {
+        Ok(msg) => Ok(Json(SmtpTestResponse {
+            success: true,
+            message: msg,
+        })),
+        Err(e) => Ok(Json(SmtpTestResponse {
+            success: false,
+            message: e.to_string(),
+        })),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

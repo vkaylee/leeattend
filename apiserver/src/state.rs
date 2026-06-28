@@ -469,6 +469,7 @@ impl ReportState {
 /// Auth, workspace, user management
 pub struct CoreState {
     auth_service: Arc<AuthService>,
+    email_service: Arc<crate::services::EmailService>,
     workspace_service: Arc<WorkspaceService>,
     workspace_repo: Arc<dyn WorkspaceRepository>,
     audit_repo: Arc<dyn AuditLogRepository>,
@@ -496,6 +497,7 @@ impl CoreState {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         auth_service: Arc<AuthService>,
+        email_service: Arc<crate::services::EmailService>,
         workspace_service: Arc<WorkspaceService>,
         workspace_repo: Arc<dyn WorkspaceRepository>,
         audit_repo: Arc<dyn AuditLogRepository>,
@@ -522,6 +524,7 @@ impl CoreState {
     ) -> Self {
         Self {
             auth_service,
+            email_service,
             workspace_service,
             workspace_repo,
             audit_repo,
@@ -546,6 +549,10 @@ impl CoreState {
 
     pub fn auth_service(&self) -> &Arc<AuthService> {
         &self.auth_service
+    }
+
+    pub fn email_service(&self) -> &Arc<crate::services::EmailService> {
+        &self.email_service
     }
 
     pub fn workspace_service(&self) -> &Arc<WorkspaceService> {
@@ -675,6 +682,7 @@ pub struct InfraState {
     tenant_provisioner: Arc<dyn crate::services::tenant_provisioner::TenantProvisionerTrait>,
     crypto_service: Option<Arc<crate::crypto::CryptoService>>,
     system_db_cluster_repo: Arc<dyn crate::repositories::SystemDbClusterRepository>,
+    system_settings_repo: Arc<dyn crate::repositories::SystemSettingsRepository>,
 }
 
 impl InfraState {
@@ -687,6 +695,7 @@ impl InfraState {
         tenant_provisioner: Arc<dyn crate::services::tenant_provisioner::TenantProvisionerTrait>,
         crypto_service: Option<Arc<crate::crypto::CryptoService>>,
         system_db_cluster_repo: Arc<dyn crate::repositories::SystemDbClusterRepository>,
+        system_settings_repo: Arc<dyn crate::repositories::SystemSettingsRepository>,
     ) -> Self {
         Self {
             diesel,
@@ -697,6 +706,7 @@ impl InfraState {
             tenant_provisioner,
             crypto_service,
             system_db_cluster_repo,
+            system_settings_repo,
         }
     }
 
@@ -736,6 +746,14 @@ impl InfraState {
         &self,
     ) -> &Arc<dyn crate::repositories::SystemDbClusterRepository> {
         &self.system_db_cluster_repo
+    }
+
+    pub fn system_settings_repo(&self) -> &Arc<dyn crate::repositories::SystemSettingsRepository> {
+        &self.system_settings_repo
+    }
+
+    pub fn redis_pool(&self) -> Option<&RedisPool> {
+        self.redis.as_ref()
     }
 
     /// Get Redis pool, returning `ServiceUnavailable` if Redis is not configured.

@@ -15,7 +15,7 @@ echo "🔄 Synchronizing API types..."
 
 # 1. Generate OpenAPI spec from Backend
 echo "📡 Generating OpenAPI spec from Backend..."
-"$SCRIPT_DIR/_cargo.sh" run --bin apiserver --quiet -- gen-openapi > "$PROJECT_ROOT/webdashboard/openapi.raw.json"
+"$SCRIPT_DIR/_cargo.sh" run --bin apiserver -- gen-openapi > "$PROJECT_ROOT/webdashboard/openapi.raw.json"
 # Strip container logs (everything before the first '{')
 sed -n '/^{/,$p' "$PROJECT_ROOT/webdashboard/openapi.raw.json" > "$PROJECT_ROOT/webdashboard/openapi.json"
 rm -f "$PROJECT_ROOT/webdashboard/openapi.raw.json"

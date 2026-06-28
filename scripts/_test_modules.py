@@ -31,9 +31,19 @@ def _safe_pattern_quoted(pattern: str) -> str:
     return ""
 
 
-def leeattend_run_lint(component_filter: str = "", mode: str = "all") -> bool:
-    """Run linting (clippy, fmt, eslint, type-check)."""
+def leeattend_run_lint(component_filter: str = "", mode: str = "all", fix: bool = False) -> bool:
+    """Run linting (fmt check/clippy/eslint). Use fix=True to auto-format."""
     tasks: list[tuple[str, str, list[str]]] = []
+
+    # ── Fast local pre-check (no Docker, instant feedback) ──
+    # Runs first so AI agents get immediate results without waiting for Docker.
+    import shutil as _shutil
+
+    if mode in ("all", "api", "integration") and _shutil.which("cargo"):
+        fmt_cmd = ["cargo", "fmt", "--all"]  # pragma: no cover - host-dependent
+        if not fix:  # pragma: no cover - host-dependent
+            fmt_cmd.extend(["--", "--check"])
+        tasks.append(("rust-backend-fmt-check", "host", fmt_cmd))  # pragma: no cover
 
     if mode in ("all", "api", "integration"):
         pkg_name = "agent" if component_filter == "agent-main" else component_filter
@@ -42,9 +52,10 @@ def leeattend_run_lint(component_filter: str = "", mode: str = "all") -> bool:
             if component_filter in ["apiserver", "agent-main"]
             else "--workspace"
         )
+        fmt_flag = "" if fix else "-- --check"
         backend_cmd = build_compose_exec(
             "apiserver",
-            f"cargo clippy {pkg_flag} -- -D warnings && cargo fmt --all -- --check",
+            f"cargo fmt --all {fmt_flag} && cargo clippy {pkg_flag} -- -D warnings",
             workdir="/workspace",
             mode=mode,
         )
@@ -63,7 +74,11 @@ def leeattend_run_lint(component_filter: str = "", mode: str = "all") -> bool:
         tasks.append(("rust-backend-tenant-isolation-linter", "apiserver", tenant_isolation_cmd))
 
     if mode in ("all", "web"):
-        lint_cmd = build_compose_exec("webdashboard", "bun run lint", mode=mode)
+        lint_cmd = build_compose_exec(
+            "webdashboard",
+            "bun run lint:fix" if fix else "bun run lint",
+            mode=mode,
+        )
         tasks.append(("webdashboard-lint", "webdashboard", lint_cmd))
 
         typecheck_cmd = build_compose_exec("webdashboard", "bun run type-check", mode=mode)

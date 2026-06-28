@@ -1,5 +1,5 @@
 use axum::{
-    routing::{delete, get, patch},
+    routing::{delete, get, patch, post},
     Router,
 };
 use std::sync::Arc;
@@ -9,6 +9,12 @@ use crate::AppState;
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
+        // SMTP config & test (PlatformAdmin only)
+        .route(
+            "/system/smtp/config",
+            get(system_admin::get_smtp_config).put(system_admin::set_smtp_config),
+        )
+        .route("/system/smtp/test", post(system_admin::test_smtp))
         // System role management (PlatformAdmin only)
         .route("/system/roles", get(system_admin::list_system_roles))
         .route(

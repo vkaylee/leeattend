@@ -8,8 +8,8 @@ use std::sync::Arc;
 
 use crate::errors::{AppError, AppResult};
 use crate::models::{
-    AuthResponse, ChangePasswordRequest, LoginRequest, RefreshRequest, RegisterRequest,
-    UpdateUserRequest, User, UserResponse,
+    AuthResponse, ChangePasswordRequest, ForgotPasswordRequest, LoginRequest, RefreshRequest,
+    RegisterRequest, ResetPasswordRequest, UpdateUserRequest, User, UserResponse,
 };
 use crate::utils::i18n::I18nKey;
 
@@ -713,6 +713,117 @@ pub async fn get_users(
         .collect();
 
     Ok(Json(user_responses))
+}
+
+#[utoipa::path(
+    post,
+    path = "/auth/forgot-password",
+    request_body = ForgotPasswordRequest,
+    responses(
+        (status = 200, description = "Forgot password request accepted. If email exists, a reset link will be sent.")
+    )
+)]
+#[tracing::instrument(skip_all, fields(email = %req.email))]
+pub async fn forgot_password(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<ForgotPasswordRequest>,
+) -> AppResult<impl IntoResponse> {
+    // Silent: skip validation to prevent email enumeration.
+    // If the email looks invalid, still return 200 OK with generic response.
+    if !req.email.contains('@') || req.email.trim().is_empty() {
+        return Ok(Json(
+            serde_json::json!({"message": "If this email is registered, a reset link will be sent."}),
+        ));
+    }
+
+    // Silent lookup to prevent email enumeration
+    let user_opt = state
+        .core()
+        .user_repo()
+        .get_user_by_email(&req.email)
+        .await?;
+
+    if let Some(user) = user_opt {
+        let token = state
+            .core()
+            .auth_service()
+            .create_password_reset_token(user.id())
+            .await?;
+
+        // Send email in background / async task so the HTTP response is not delayed
+        let email_service = Arc::clone(state.core().email_service());
+        let email_clone = req.email.clone();
+        tokio::spawn(async move {
+            if let Err(e) = email_service
+                .send_password_reset(&email_clone, &token)
+                .await
+            {
+                tracing::error!(
+                    error = ?e,
+                    recipient = %crate::utils::masking::mask_email(&email_clone),
+                    "Failed to send password reset email"
+                );
+            }
+        });
+    } else {
+        tracing::info!(
+            recipient = %crate::utils::masking::mask_email(&req.email),
+            "Forgot password requested for non-existent email"
+        );
+    }
+
+    Ok(Json(
+        serde_json::json!({"message": "If this email is registered, a reset link will be sent."}),
+    ))
+}
+
+#[utoipa::path(
+    post,
+    path = "/auth/reset-password",
+    request_body = ResetPasswordRequest,
+    responses(
+        (status = 200, description = "Successfully reset password")
+    )
+)]
+#[tracing::instrument(skip_all)]
+pub async fn reset_password(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<ResetPasswordRequest>,
+) -> AppResult<impl IntoResponse> {
+    // 1. Verify and consume the token
+    let user_id = state
+        .core()
+        .auth_service()
+        .verify_and_consume_reset_token(&req.token)
+        .await?;
+
+    // 2. Validate new password strength
+    validate_password(&req.new_password)?;
+
+    // 3. Hash new password
+    let new_password = req.new_password.clone();
+    let new_hash = tokio::task::spawn_blocking(move || AuthService::hash_password(&new_password))
+        .await
+        .map_err(|e| AppError::Internal(format!("Failed to spawn blocking task: {e}")))??;
+
+    // 4. Update DB via repository
+    state
+        .core()
+        .user_repo()
+        .update_password_hash(user_id, &new_hash)
+        .await?;
+
+    // 5. Revoke all sessions (Force re-login on all devices)
+    if let Err(e) = state
+        .core()
+        .auth_service()
+        .revoke_all_sessions_for_user(user_id)
+        .await
+    {
+        tracing::error!(error = ?e, user_id = %user_id, "Failed to revoke sessions after password reset");
+    }
+
+    Ok(StatusCode::OK)
 }
 
 #[cfg(test)]

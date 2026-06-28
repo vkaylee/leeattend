@@ -557,7 +557,7 @@ def populate_employments_from_employees(tenant_conn, workspace_id):
     """Create default employer and employment records for each employee in the tenant DB."""
     log("  Populating default employers and employments for legacy employees...")
     cur = tenant_conn.cursor()
-    
+
     # 1. Ensure we have an employer
     cur.execute("SELECT id FROM public.employers WHERE workspace_id = %s LIMIT 1", (workspace_id,))
     employer_row = cur.fetchone()
@@ -567,19 +567,23 @@ def populate_employments_from_employees(tenant_conn, workspace_id):
         employer_id = str(uuid.uuid4())
         cur.execute(
             "INSERT INTO public.employers (id, workspace_id, name) VALUES (%s, %s, %s)",
-            (employer_id, workspace_id, "Default Employer")
+            (employer_id, workspace_id, "Default Employer"),
         )
         tenant_conn.commit()
         log(f"    Created default employer: {employer_id}")
-        
+
     # 2. Get all employees
     cur.execute("SELECT id, hire_date, created_at FROM public.employees")
     employees = cur.fetchall()
-    
+
     # 3. Create employment for each employee, using employee_id as employment_id
     inserted = 0
     for emp_id, hire_date, created_at in employees:
-        start_date = hire_date if hire_date else (created_at.date() if created_at else time.strftime('%Y-%m-%d'))
+        start_date = (
+            hire_date
+            if hire_date
+            else (created_at.date() if created_at else time.strftime("%Y-%m-%d"))
+        )
         cur.execute(
             """
             INSERT INTO public.employments (
@@ -587,10 +591,19 @@ def populate_employments_from_employees(tenant_conn, workspace_id):
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT DO NOTHING
             """,
-            (emp_id, workspace_id, emp_id, employer_id, "active", start_date, created_at, created_at)
+            (
+                emp_id,
+                workspace_id,
+                emp_id,
+                employer_id,
+                "active",
+                start_date,
+                created_at,
+                created_at,
+            ),
         )
         inserted += cur.rowcount
-        
+
     tenant_conn.commit()
     log_ok(f"    Created {inserted} default employment record(s)")
 

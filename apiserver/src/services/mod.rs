@@ -8,6 +8,7 @@ pub mod attendance_utils;
 pub mod audit_service;
 pub mod auth_service;
 pub mod custom_field_service;
+pub mod email_service;
 pub mod employee_service;
 pub mod employer_service;
 pub mod excel;
@@ -73,6 +74,7 @@ pub use attendance_summary_service::{AttendanceSummaryService, SummaryRecalculat
 pub mod holiday_leave_service;
 
 pub use auth_service::AuthService;
+pub use email_service::EmailService;
 pub use holiday_leave_service::HolidayLeaveService;
 pub mod outbox_job_service;
 pub use outbox_job_service::OutboxJobService;

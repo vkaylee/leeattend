@@ -176,6 +176,34 @@ impl std::fmt::Debug for ChangePasswordRequest {
     }
 }
 
+#[derive(Serialize, Deserialize, Clone, utoipa::ToSchema)]
+pub struct ForgotPasswordRequest {
+    pub email: String,
+}
+
+impl std::fmt::Debug for ForgotPasswordRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ForgotPasswordRequest")
+            .field("email", &crate::utils::masking::mask_email(&self.email))
+            .finish()
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, utoipa::ToSchema)]
+pub struct ResetPasswordRequest {
+    pub token: String,
+    pub new_password: String,
+}
+
+impl std::fmt::Debug for ResetPasswordRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ResetPasswordRequest")
+            .field("token", &"***")
+            .field("new_password", &"***")
+            .finish()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

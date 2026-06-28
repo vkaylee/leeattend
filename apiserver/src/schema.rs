@@ -1889,6 +1889,16 @@ diesel::table! {
 }
 
 diesel::table! {
+    system_settings (key) {
+        #[max_length = 100]
+        key -> Varchar,
+        value_json -> Jsonb,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     system_roles (id) {
         id -> Uuid,
         name -> Text,
@@ -2429,6 +2439,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     system_audit_logs,
     system_db_clusters,
     system_files,
+    system_settings,
     system_roles,
     time_entries,
     user_system_roles,

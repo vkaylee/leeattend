@@ -11,6 +11,7 @@ pub struct CoreServices {
     pub employee: Arc<crate::services::EmployeeService>,
     pub outbox: Arc<crate::services::OutboxJobService>,
     pub auth: Arc<crate::services::auth_service::AuthService>,
+    pub email: Arc<crate::services::email_service::EmailService>,
     pub workspace: Arc<crate::services::workspace_service::WorkspaceService>,
     pub location: Arc<crate::services::LocationService>,
     pub employer: Arc<crate::services::EmployerService>,
@@ -25,13 +26,15 @@ pub struct CoreServices {
     pub shift: Arc<crate::services::shift_service::ShiftService>,
 }
 
-pub async fn build_core_services(
-    diesel_pools: &DieselPools,
-    redis_pool: &Option<RedisPool>,
-    _crypto_service: &Option<Arc<CryptoService>>,
-    agent_manager: &AgentManager,
+fn build_auth_and_people_services(
+    redis_pool: Option<&RedisPool>,
     repos: &Repositories,
-) -> Result<CoreServices, Box<dyn std::error::Error>> {
+) -> (
+    Arc<crate::services::LifecycleService>,
+    Arc<crate::services::EmployeeService>,
+    Arc<crate::services::OutboxJobService>,
+    Arc<crate::services::auth_service::AuthService>,
+) {
     let lifecycle = Arc::new(crate::services::LifecycleService::new(
         Arc::clone(&repos.lifecycle),
         Arc::clone(&repos.employee),
@@ -59,8 +62,21 @@ pub async fn build_core_services(
     let auth = Arc::new(crate::services::auth_service::AuthService::new(
         repos.user.clone(),
         repos.session.clone(),
-        redis_pool.clone(),
+        redis_pool.cloned(),
     ));
+
+    (lifecycle, employee, outbox, auth)
+}
+
+pub async fn build_core_services(
+    diesel_pools: &DieselPools,
+    redis_pool: &Option<RedisPool>,
+    _crypto_service: &Option<Arc<CryptoService>>,
+    agent_manager: &AgentManager,
+    repos: &Repositories,
+) -> Result<CoreServices, Box<dyn std::error::Error>> {
+    let (lifecycle, employee, outbox, auth) =
+        build_auth_and_people_services(redis_pool.as_ref(), repos);
 
     let tenant_provisioner = Arc::new(crate::services::tenant_provisioner::TenantMigrator::new(
         diesel_pools.clone(),
@@ -119,11 +135,17 @@ pub async fn build_core_services(
         repos.shift.clone(),
     ));
 
+    let email = Arc::new(crate::services::email_service::EmailService::new(
+        redis_pool.clone(),
+        Some(repos.system_settings.clone()),
+    ));
+
     Ok(CoreServices {
         lifecycle,
         employee,
         outbox,
         auth,
+        email,
         workspace,
         location,
         employer,

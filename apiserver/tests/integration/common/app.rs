@@ -745,6 +745,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         ),
         apiserver::CoreState::new(
             auth_service,
+            Arc::new(apiserver::services::EmailService::new(None, None)),
             workspace_service,
             workspace_repo.clone(),
             audit_repo.clone(),
@@ -794,6 +795,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
                         .map(std::sync::Arc::new)
                 }),
             Arc::new(apiserver::repositories::diesel_system_db_cluster_repository::DieselSystemDbClusterRepository::new(diesel_pools.clone())),
+            Arc::new(apiserver::repositories::diesel_system_settings_repository::DieselSystemSettingsRepository::new(diesel_pools.clone())),
         ),
         storage_resolver.clone(),
         file_service.clone(),
@@ -1445,6 +1447,7 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
         ),
         apiserver::CoreState::new(
             auth_service,
+            Arc::new(apiserver::services::EmailService::new(None, None)),
             workspace_service,
             workspace_repo.clone(),
             audit_repo.clone(),
@@ -1494,6 +1497,7 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
                         .map(std::sync::Arc::new)
                 }),
             Arc::new(apiserver::repositories::diesel_system_db_cluster_repository::DieselSystemDbClusterRepository::new(diesel_pools.clone())),
+            Arc::new(apiserver::repositories::diesel_system_settings_repository::DieselSystemSettingsRepository::new(diesel_pools.clone())),
         ),
         storage_resolver.clone(),
         file_service.clone(),
@@ -2198,6 +2202,7 @@ pub async fn setup_app_tower_internal_extended(
         ),
         apiserver::CoreState::new(
             auth_service,
+            Arc::new(apiserver::services::EmailService::new(None, None)),
             workspace_service,
             workspace_repo.clone(),
             audit_repo.clone(),
@@ -2247,6 +2252,7 @@ pub async fn setup_app_tower_internal_extended(
                         .map(std::sync::Arc::new)
                 }),
             Arc::new(apiserver::repositories::diesel_system_db_cluster_repository::DieselSystemDbClusterRepository::new(diesel_pools.clone())),
+            Arc::new(apiserver::repositories::diesel_system_settings_repository::DieselSystemSettingsRepository::new(diesel_pools.clone())),
         ),
         storage_resolver.clone(),
         file_service.clone(),

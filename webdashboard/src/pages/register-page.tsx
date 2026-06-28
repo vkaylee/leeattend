@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
+import { AuthLayout } from "@/components/ui/auth-layout";
 import { LABEL_BASE } from "@/components/ui/form-field";
 import { Typography } from "@/components/ui/typography";
 import {
@@ -15,13 +16,27 @@ import {
 } from "@/lib/api";
 import { ROUTES } from "@/lib/routes";
 
+interface RegisterFormData {
+  email: string;
+  full_name: string;
+  password: string;
+  confirm_password: string;
+}
+
+const INITIAL_FORM: RegisterFormData = {
+  email: "",
+  full_name: "",
+  password: "",
+  confirm_password: "",
+};
+
 export default function RegisterPage() {
   const { t } = useTranslation();
   const userId = getCurrentUserId();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({ email: "", full_name: "", password: "", confirm_password: "" });
+  const [formData, setFormData] = useState<RegisterFormData>(INITIAL_FORM);
 
   if (userId) {
     void navigate({ to: ROUTES.HOME, replace: true });
@@ -29,71 +44,162 @@ export default function RegisterPage() {
   }
 
   const handleSubmit = async (e: React.SyntheticEvent) => {
-    e.preventDefault(); setError(null);
-    if (formData.password !== formData.confirm_password) { setError(t("auth.password_mismatch")); return; }
-    if (formData.password.length < 6) { setError(t("auth.password_too_short")); return; }
+    e.preventDefault();
+    setError(null);
+
+    if (formData.password !== formData.confirm_password) {
+      setError(t("auth.password_mismatch"));
+      return;
+    }
+    if (formData.password.length < 6) {
+      setError(t("auth.password_too_short"));
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const response: AuthResponse = await register({ email: formData.email, password: formData.password, full_name: formData.full_name });
-      setCurrentUserId(response.user.id); setAccessToken(response.access_token); setRefreshToken(response.refresh_token);
+      const response: AuthResponse = await register({
+        email: formData.email,
+        password: formData.password,
+        full_name: formData.full_name,
+      });
+      setCurrentUserId(response.user.id);
+      setAccessToken(response.access_token);
+      setRefreshToken(response.refresh_token);
       window.location.href = ROUTES.ONBOARDING;
     } catch (error_: unknown) {
       const message = error_ instanceof Error ? error_.message : String(error_);
       setError(message || t("auth.registration_failed"));
-    } finally { setIsLoading(false); }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => { setFormData((previous) => ({ ...previous, [e.target.name]: e.target.value })); };
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((previous) => ({ ...previous, [e.target.name]: e.target.value }));
+  };
+
+  const fields: Array<{
+    id: keyof RegisterFormData;
+    labelKey: string;
+    type: string;
+    placeholder: string;
+    autoComplete?: string;
+  }> = [
+    {
+      id: "full_name",
+      labelKey: "auth.display_name",
+      type: "text",
+      placeholder: "Nguyen Van A",
+      autoComplete: "name",
+    },
+    {
+      id: "email",
+      labelKey: "auth.email",
+      type: "email",
+      placeholder: "email@company.com",
+      autoComplete: "email",
+    },
+    {
+      id: "password",
+      labelKey: "auth.password",
+      type: "password",
+      placeholder: "••••••••",
+      autoComplete: "new-password",
+    },
+    {
+      id: "confirm_password",
+      labelKey: "auth.confirm_password",
+      type: "password",
+      placeholder: "••••••••",
+      autoComplete: "new-password",
+    },
+  ];
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-6 relative overflow-hidden animate-in fade-in duration-1000">
-      <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary-100 dark:bg-primary-900/30 rounded-full blur-[140px] animate-pulse duration-[12s]" />
-      <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-100/30 dark:bg-blue-900/20 rounded-full blur-[140px] animate-pulse duration-[10s]" />
-      
-      <div className="max-w-md w-full space-y-10 p-12 bg-white dark:bg-slate-900 rounded-[3.5rem] shadow-premium-2xl relative z-10 animate-in zoom-in-95 duration-1000 border border-white/60">
-        <div className="text-center">
-          <div className="bg-slate-900 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-slate-400 dark:shadow-black/40 transform hover:rotate-6 hover:scale-110 transition-all duration-700 group/logo">
-             <span className="text-white text-4xl font-bold italic tracking-tighter group-hover:text-primary-400 transition-colors">L</span>
+    <AuthLayout>
+      {/* Logo + Title */}
+      <div className="mb-8">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="bg-slate-900 dark:bg-slate-800 w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl shadow-slate-300/50 dark:shadow-black/40 transform hover:rotate-6 hover:scale-110 transition-all duration-500 group/logo flex-shrink-0">
+            <span className="text-white text-2xl font-bold italic tracking-tighter group-hover/logo:text-primary-400 transition-colors pl-0.5">
+              L
+            </span>
           </div>
-          <Typography className="text-4xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter uppercase leading-normal pt-2" variant="h2">{t("auth.register_title")}</Typography>
-          <Typography className="mt-4 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-[0.3em] text-[9px] opacity-60 leading-relaxed" variant="p">
-            {t("auth.slogan").toUpperCase()}
-          </Typography>
+          <div>
+            <Typography
+              className="text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight leading-none"
+              variant="h1"
+            >
+              LeeAttend
+            </Typography>
+            <p className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-[0.3em] mt-1">
+              {t("auth.slogan")}
+            </p>
+          </div>
         </div>
 
-        {error ? (
-          <div className="bg-rose-50 dark:bg-rose-950 border-2 border-rose-100 dark:border-rose-800 text-rose-600 dark:text-rose-300 p-5 rounded-[2rem] text-[11px] font-bold uppercase tracking-widest text-center animate-in slide-in-from-top-4 shadow-inner" role="alert">
-            {error}
-          </div>
-        ) : null}
-
-        <form className="space-y-8" onSubmit={handleSubmit}>
-          <div className="space-y-5">
-            {[
-              { id: "full_name", label: "display_name", type: "text", placeholder: "Nguyen Van A" },
-              { id: "email", label: "email", type: "email", placeholder: "email@congty.com", auto: "email" },
-              { id: "password", label: "password", type: "password", placeholder: "••••••••", auto: "new-password" },
-              { id: "confirm_password", label: "confirm_password", type: "password", placeholder: "••••••••", auto: "new-password" }
-            ].map((field) => (
-              <div className="space-y-2 px-1" key={field.id}>
-                <label className={LABEL_BASE} htmlFor={field.id}>{t(`auth.${field.label}`)}</label>
-                <input autoComplete={field.auto} className="block w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-200 rounded-[1.5rem] focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 focus:bg-white dark:focus:bg-slate-900 transition-all font-bold placeholder:text-slate-300 dark:placeholder:text-slate-600 dark:text-slate-300 text-sm tracking-tight shadow-inner" id={field.id} name={field.id} onChange={handleChange} placeholder={field.placeholder} required type={field.type} value={formData[field.id as keyof typeof formData]} />
-              </div>
-            ))}
-          </div>
-
-          <div className="pt-2">
-            <Button className="w-full" disabled={isLoading} loading={isLoading} size="lg" type="submit" variant="secondary">
-              {isLoading ? t("auth.creating_account").toUpperCase() : t("auth.register_btn").toUpperCase()}
-            </Button>
-          </div>
-
-          <div className="text-center pt-2">
-            <span className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest opacity-60">{t("auth.already_have_account")} </span>
-            <Link className="font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:text-primary-300 text-[10px] uppercase tracking-widest transition-colors ml-1" to={ROUTES.LOGIN}>{t("auth.login.title").toUpperCase()}</Link>
-          </div>
-        </form>
+        <div>
+          <h2 className="text-2xl font-bold text-slate-700 dark:text-slate-200 tracking-tight">
+            {t("auth.register_title")}
+          </h2>
+          <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">
+            {t("auth.already_have_account")}{" "}
+            <Link
+              className="font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors"
+              to={ROUTES.LOGIN}
+            >
+              {t("auth.login.title")}
+            </Link>
+          </p>
+        </div>
       </div>
-    </div>
+
+      {/* Error alert */}
+      {error ? (
+        <div
+          aria-live="polite"
+          className="mb-5 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 p-4 rounded-2xl text-sm font-medium animate-in slide-in-from-top-3 duration-300"
+          role="alert"
+        >
+          {error}
+        </div>
+      ) : null}
+
+      {/* Register form */}
+      <form className="space-y-4" onSubmit={handleSubmit} noValidate>
+        {fields.map((field) => (
+          <div className="space-y-2" key={field.id}>
+            <label className={LABEL_BASE} htmlFor={field.id}>
+              {t(field.labelKey)}
+            </label>
+            <input
+              autoComplete={field.autoComplete}
+              className="block w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400 focus:bg-white dark:focus:bg-slate-900 transition-all text-sm font-medium placeholder:text-slate-300 dark:placeholder:text-slate-600 shadow-sm"
+              id={field.id}
+              name={field.id}
+              onChange={handleChange}
+              placeholder={field.placeholder}
+              required
+              type={field.type}
+              value={formData[field.id]}
+            />
+          </div>
+        ))}
+
+        <div className="pt-2">
+          <Button
+            className="w-full"
+            disabled={isLoading}
+            loading={isLoading}
+            size="lg"
+            type="submit"
+            variant="secondary"
+          >
+            {isLoading ? t("auth.creating_account") : t("auth.register_btn")}
+          </Button>
+        </div>
+      </form>
+    </AuthLayout>
   );
 }

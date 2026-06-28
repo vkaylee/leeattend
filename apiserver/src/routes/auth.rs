@@ -17,6 +17,9 @@ pub fn router(state: &Arc<AppState>) -> Router<Arc<AppState>> {
             mw::rate_limit::RateLimitConfig::default(),
             state.core().jwt_secret().to_string(),
         ))
+        // ── Below the rate-limiter: these have their own internal rate limiting ──
+        .route("/auth/forgot-password", post(handlers::forgot_password))
+        .route("/auth/reset-password", post(handlers::reset_password))
         .route("/health", get(handlers::health_check))
         .route("/health/ready", get(handlers::readiness_check))
         .route("/auth/refresh", post(handlers::refresh_token))

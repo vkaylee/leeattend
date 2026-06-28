@@ -22,6 +22,7 @@ vi.mock("@tanstack/react-router", () => ({
 // Mock i18next
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
+    i18n: { language: "en", changeLanguage: () => Promise.resolve() },
     t: (key: string) => {
       const translations: Record<string, string> = {
         "auth.register_title": "Register",
@@ -72,7 +73,7 @@ describe("RegisterPage", () => {
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
     expect(screen.getByLabelText("Password")).toBeInTheDocument();
     expect(screen.getByLabelText("Confirm Password")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "REGISTER NOW" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Register Now" })).toBeInTheDocument();
   });
 
   it("redirects to HOME if user is already logged in", () => {
@@ -89,7 +90,7 @@ describe("RegisterPage", () => {
     await user.type(screen.getByLabelText("Email"), "test@test.com");
     await user.type(screen.getByLabelText("Password"), "password123");
     await user.type(screen.getByLabelText("Confirm Password"), "password456");
-    await user.click(screen.getByRole("button", { name: "REGISTER NOW" }));
+    await user.click(screen.getByRole("button", { name: "Register Now" }));
 
     expect(screen.getByText("Passwords do not match")).toBeInTheDocument();
     expect(api.register).not.toHaveBeenCalled();
@@ -103,7 +104,7 @@ describe("RegisterPage", () => {
     await user.type(screen.getByLabelText("Email"), "test@test.com");
     await user.type(screen.getByLabelText("Password"), "12345");
     await user.type(screen.getByLabelText("Confirm Password"), "12345");
-    await user.click(screen.getByRole("button", { name: "REGISTER NOW" }));
+    await user.click(screen.getByRole("button", { name: "Register Now" }));
 
     expect(screen.getByText("Password too short")).toBeInTheDocument();
     expect(api.register).not.toHaveBeenCalled();
@@ -125,7 +126,7 @@ describe("RegisterPage", () => {
     await user.type(screen.getByLabelText("Password"), "password123");
     await user.type(screen.getByLabelText("Confirm Password"), "password123");
 
-    await user.click(screen.getByRole("button", { name: "REGISTER NOW" }));
+    await user.click(screen.getByRole("button", { name: "Register Now" }));
 
     await waitFor(() => {
       expect(api.register).toHaveBeenCalledWith({
@@ -152,7 +153,7 @@ describe("RegisterPage", () => {
     await user.type(screen.getByLabelText("Password"), "password123");
     await user.type(screen.getByLabelText("Confirm Password"), "password123");
 
-    await user.click(screen.getByRole("button", { name: "REGISTER NOW" }));
+    await user.click(screen.getByRole("button", { name: "Register Now" }));
 
     await waitFor(() => {
       expect(screen.getByText("Email already taken")).toBeInTheDocument();

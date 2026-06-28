@@ -271,3 +271,172 @@ async fn test_regular_user_cannot_manage_system_roles() {
         .unwrap();
     assert_eq!(res.status(), StatusCode::FORBIDDEN);
 }
+
+// ── SMTP Config & Test endpoints ───────────────────────────────────────────
+
+#[tokio::test]
+async fn test_smtp_config_crud_requires_platform_admin() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let admin_id = factory.user().create().await;
+    let regular_id = factory.user().create().await;
+
+    assign_system_role(&factory.diesel_pools, admin_id, "platform_admin").await;
+
+    // Admin can GET config (empty by default)
+    let res = app
+        .clone()
+        .oneshot(make_req(
+            "GET",
+            "/api/v1/system/smtp/config",
+            admin_id,
+            None,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+    let body = body_json(res).await;
+    assert!(
+        body.is_object(),
+        "Config should be a JSON object, got: {body}"
+    );
+
+    // Regular user gets 403
+    let res = app
+        .clone()
+        .oneshot(make_req(
+            "GET",
+            "/api/v1/system/smtp/config",
+            regular_id,
+            None,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::FORBIDDEN);
+}
+
+#[tokio::test]
+async fn test_smtp_config_put_and_get_roundtrip() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let admin_id = factory.user().create().await;
+    assign_system_role(&factory.diesel_pools, admin_id, "platform_admin").await;
+
+    let smtp_config = json!({
+        "host": "smtp.gmail.com",
+        "port": 587,
+        "username": "admin@company.com",
+        "password": "test-password-123",
+        "from": "LeeAttend <noreply@leeattend.com>",
+        "base_url": "https://app.example.com"
+    });
+
+    // PUT config
+    let res = app
+        .clone()
+        .oneshot(make_req(
+            "PUT",
+            "/api/v1/system/smtp/config",
+            admin_id,
+            Some(smtp_config.clone()),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+    let body = body_json(res).await;
+    assert_eq!(body["saved"], true);
+
+    // GET config and verify roundtrip
+    let res = app
+        .clone()
+        .oneshot(make_req(
+            "GET",
+            "/api/v1/system/smtp/config",
+            admin_id,
+            None,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+    let body = body_json(res).await;
+    assert_eq!(body["host"], "smtp.gmail.com");
+    assert_eq!(body["port"], 587);
+    assert_eq!(body["username"], "admin@company.com");
+}
+
+#[tokio::test]
+async fn test_smtp_test_endpoint_dev_mode() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let admin_id = factory.user().create().await;
+    assign_system_role(&factory.diesel_pools, admin_id, "platform_admin").await;
+
+    // In dev mode (no SMTP configured), test should fail gracefully
+    let res = app
+        .clone()
+        .oneshot(make_req(
+            "POST",
+            "/api/v1/system/smtp/test",
+            admin_id,
+            Some(json!({ "to_email": "test@example.com" })),
+        ))
+        .await
+        .unwrap();
+    // Always returns 200 (handler returns Ok even on failure — wrapped in SmtpTestResponse)
+    assert_eq!(res.status(), StatusCode::OK);
+    let body = body_json(res).await;
+    assert_eq!(body["success"], false);
+    assert!(
+        body["message"]
+            .as_str()
+            .unwrap_or("")
+            .contains("SMTP is not configured"),
+        "Should report missing SMTP config, got: {}",
+        body["message"]
+    );
+}
+
+#[tokio::test]
+async fn test_smtp_test_endpoint_rejects_non_admin() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let regular_id = factory.user().create().await;
+
+    let res = app
+        .clone()
+        .oneshot(make_req(
+            "POST",
+            "/api/v1/system/smtp/test",
+            regular_id,
+            Some(json!({ "to_email": "test@example.com" })),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::FORBIDDEN);
+}
+
+#[tokio::test]
+async fn test_smtp_test_validates_email() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let admin_id = factory.user().create().await;
+    assign_system_role(&factory.diesel_pools, admin_id, "platform_admin").await;
+
+    // Missing @ or empty should return validation error
+    let res = app
+        .clone()
+        .oneshot(make_req(
+            "POST",
+            "/api/v1/system/smtp/test",
+            admin_id,
+            Some(json!({ "to_email": "not-an-email" })),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+}

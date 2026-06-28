@@ -11,6 +11,8 @@ pub const ALL_KEYS: &[&str] = &[
     "error.forbidden",
     "error.not_found",
     "error.validation",
+    "error.reset_token_invalid",
+    "error.reset_token_expired",
     "error.internal",
     "error.conflict",
     "error.service_unavailable",
@@ -274,6 +276,8 @@ pub enum I18nKey {
     LeaveCustomHoursSingleDay,
     LeaveStartTimeBeforeEndTime,
     LeaveNotFoundAfterUpdate,
+    ResetTokenInvalid,
+    ResetTokenExpired,
 }
 
 impl I18nKey {
@@ -412,6 +416,8 @@ impl I18nKey {
             Self::LeaveCustomHoursSingleDay => "error.leave_custom_hours_single_day",
             Self::LeaveStartTimeBeforeEndTime => "error.leave_start_time_before_end_time",
             Self::LeaveNotFoundAfterUpdate => "error.leave_not_found_after_update",
+            Self::ResetTokenInvalid => "error.reset_token_invalid",
+            Self::ResetTokenExpired => "error.reset_token_expired",
         }
     }
 }
@@ -554,6 +560,8 @@ impl std::str::FromStr for I18nKey {
             "error.leave_custom_hours_single_day" => Ok(Self::LeaveCustomHoursSingleDay),
             "error.leave_start_time_before_end_time" => Ok(Self::LeaveStartTimeBeforeEndTime),
             "error.leave_not_found_after_update" => Ok(Self::LeaveNotFoundAfterUpdate),
+            "error.reset_token_invalid" => Ok(Self::ResetTokenInvalid),
+            "error.reset_token_expired" => Ok(Self::ResetTokenExpired),
             _ => Err(()),
         }
     }
@@ -653,6 +661,8 @@ fn lookup_en(key: &str) -> Option<&'static str> {
         "error.forbidden" => Some("Permission denied"),
         "error.not_found" => Some("Resource not found"),
         "error.validation" => Some("Validation failed"),
+        "error.reset_token_invalid" => Some("This reset link is invalid or has expired."),
+        "error.reset_token_expired" => Some("This reset link has expired."),
         "error.internal" => Some("An internal server error occurred."),
         "error.conflict" => Some("A conflict occurred."),
         "error.service_unavailable" => Some("Service unavailable."),
@@ -807,6 +817,8 @@ fn lookup_vi(key: &str) -> Option<&'static str> {
         "error.forbidden" => Some("Không có quyền truy cập"),
         "error.not_found" => Some("Không tìm thấy tài nguyên"),
         "error.validation" => Some("Lỗi kiểm tra dữ liệu"),
+        "error.reset_token_invalid" => Some("Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn."),
+        "error.reset_token_expired" => Some("Liên kết đặt lại mật khẩu đã hết hạn."),
         "error.internal" => Some("Đã xảy ra lỗi hệ thống."),
         "error.conflict" => Some("Đã xảy ra xung đột dữ liệu."),
         "error.service_unavailable" => Some("Dịch vụ hiện không khả dụng."),
@@ -947,6 +959,8 @@ fn lookup_zh(key: &str) -> Option<&'static str> {
         "error.forbidden" => Some("权限拒绝"),
         "error.not_found" => Some("未找到资源"),
         "error.validation" => Some("数据验证失败"),
+        "error.reset_token_invalid" => Some("该密码重置链接无效或已过期。"),
+        "error.reset_token_expired" => Some("该密码重置链接已过期。"),
         "error.internal" => Some("发生系统内部错误。"),
         "error.conflict" => Some("数据冲突。"),
         "error.service_unavailable" => Some("服务暂不可用。"),
@@ -1284,6 +1298,8 @@ mod tests {
             I18nKey::LeaveCustomHoursSingleDay,
             I18nKey::LeaveStartTimeBeforeEndTime,
             I18nKey::LeaveNotFoundAfterUpdate,
+            I18nKey::ResetTokenInvalid,
+            I18nKey::ResetTokenExpired,
         ];
 
         for variant in &variants {

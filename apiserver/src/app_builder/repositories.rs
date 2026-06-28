@@ -38,6 +38,7 @@ pub struct Repositories {
     pub file: Arc<dyn crate::repositories::FileRepository>,
     pub signature: Arc<dyn crate::repositories::SignatureRepository>,
     pub system_db_cluster: Arc<dyn crate::repositories::system_db_cluster_repository::SystemDbClusterRepository>,
+    pub system_settings: Arc<dyn crate::repositories::system_settings_repository::SystemSettingsRepository>,
     pub workspace_config: Arc<dyn crate::repositories::workspace_config_repository::WorkspaceConfigRepository>,
     pub approval_workflow: Arc<dyn crate::repositories::approval_workflow_repository::ApprovalWorkflowRepository>,
     pub overtime_request: Arc<dyn crate::repositories::overtime_request_repository::OvertimeRequestRepository>,
@@ -177,6 +178,11 @@ pub fn build_repositories(
         )),
     );
     let system_db_cluster = Arc::new(crate::repositories::diesel_system_db_cluster_repository::DieselSystemDbClusterRepository::new(diesel_pools.clone()));
+    let system_settings = Arc::new(
+        crate::repositories::diesel_system_settings_repository::DieselSystemSettingsRepository::new(
+            diesel_pools.clone(),
+        ),
+    );
     let workspace_config = Arc::new(crate::repositories::diesel_workspace_config_repository::DieselWorkspaceConfigRepository::new(diesel_pools.clone()));
     let approval_workflow = Arc::new(crate::repositories::diesel_approval_workflow_repository::DieselApprovalWorkflowRepository::new(diesel_pools.clone()));
     let overtime_request = Arc::new(crate::repositories::diesel_overtime_request_repository::DieselOvertimeRequestRepository::new(diesel_pools.clone()));
@@ -252,6 +258,7 @@ pub fn build_repositories(
         file,
         signature,
         system_db_cluster,
+        system_settings,
         workspace_config,
         approval_workflow,
         overtime_request,
