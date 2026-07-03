@@ -8,7 +8,8 @@ import { useTranslation } from 'react-i18next';
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 
-import { ScheduleTrace } from '../../lib/api/types';
+import { HorizontalBadgeChain, PriorityChainVertical } from './priority-chain';
+import type { ScheduleTrace } from '../../lib/api/types';
 
 interface ScheduleTracePopoverProps {
   endTime?: string | null;
@@ -25,6 +26,8 @@ interface ScheduleTracePopoverProps {
   traces: ScheduleTrace[];
 }
 
+// Priority chain visuals are defined in priority-chain.tsx
+// (kept separate to honour SRP — this file focuses on Applied/Overridden state)
 function AppliedShiftCard({
   shiftName,
   startTime,
@@ -229,6 +232,12 @@ export const ScheduleTracePopover: React.FC<ScheduleTracePopoverProps> = ({
               </div>
             </div>
  
+            {/* Priority chain — always visible so user understands resolution order */}
+            <div className="space-y-2">
+              <HorizontalBadgeChain source={source} t={t} />
+              <PriorityChainVertical appliedRule={appliedRule} source={source} t={t} />
+            </div>
+
             {/* Resolved Shift Card */}
             {schedules && schedules.length > 0 ? (
               <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">

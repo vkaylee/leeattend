@@ -1,11 +1,31 @@
 //! Pure shift resolution logic — no DB access.
 //!
-//! The `resolve_effective_shift_from_data` function implements the 6-tier
+//! The `resolve_effective_shift_from_data` function implements the 5-tier
 //! priority chain for resolving which shift applies to an employee on a date.
 //!
 //! The `resolve_work_segments_from_data` function extends this by expanding
 //! resolved shift IDs into full `ResolvedSegment` structs, supporting
 //! split-shift patterns where a single day can have multiple work segments.
+//!
+//! ## Priority Chain (highest → lowest)
+//!
+//! | Tier | Source       | Priority | Description                                              |
+//! |------|-------------|----------|----------------------------------------------------------|
+//! | P1   | `roster`    | 100      | Manual daily override (strongest)                        |
+//! | P2   | `pattern`   | 80       | Individual working pattern (weekly / rotation)           |
+//! | P3   | `rule`      | 60       | Dynamic assignment rules (dept + tags + location + employer) |
+//! | P4   | `fixed`     | 20       | Fixed individual shift assignment (fallback)             |
+//! | P5   | `none`      | 0        | No shift resolved (day off)                              |
+//!
+//! ### Why no separate "Department Pattern" or "Department Fixed" tiers?
+//!
+//! Legacy designs (e.g. Deputy, BambooHR) use dedicated P4/P6 tiers for
+//! department-level scheduling. LeeAttend intentionally **subsumes** both
+//! into the Dynamic Rules engine (P3), which accepts `department_id`,
+//! `tags`, `location_id`, and `employer_id` conditions.  This is strictly
+//! more flexible: a single rule can express "department X on Monday" (P4
+//! equivalent) or "department X always" (P6 equivalent) without requiring
+//! dedicated code paths.  See `rule_evaluator.rs` for the match logic.
 
 use crate::cache::RosterData;
 use crate::models::{ResolvedSegment, ScheduleTrace};
@@ -17,14 +37,27 @@ use uuid::Uuid;
 /// pre-loaded [`RosterData`] and a roster override map.
 ///
 /// Priority chain (highest wins):
-///   P1 Roster → P2 Individual Pattern → P3 Dynamic Rules →
-///   P4 Department Pattern → P5 Fixed Assignment → P6 Department Fixed
+///   P1 Roster (manual daily override)
+///   P2 Individual Pattern (weekly / rotation)
+///   P3 Dynamic Assignment Rules (dept + tags + location + employer)
+///   P5 Fixed Assignment (permanent individual fallback)
+///   — (no shift → day off)
 ///
 /// Returns `(shift_ids, source_label, traces)` where `shift_ids` may contain
 /// multiple entries for split-shift patterns.
 ///
 /// This is a **pure function** — no DB access — making it cheap to call in a
 /// tight loop and easy to unit-test.
+///
+/// ## Source values
+///
+/// | source              | origin tier                                            |
+/// |---------------------|--------------------------------------------------------|
+/// | `"roster"`          | P1 — manual roster override for this date              |
+/// | `"pattern"`         | P2 — matched via `employee_working_patterns`           |
+/// | `"assignment_rule"` | P3 — matched via dynamic `assignment_rules` engine     |
+/// | `"fixed"`           | P4 — fallback via `employee_shifts` (permanent assign) |
+/// | `"none"`            | No shift resolved (day off / no active assignment)     |
 #[allow(clippy::too_many_lines)]
 pub fn resolve_effective_shift_from_data<S: ::std::hash::BuildHasher>(
     roster_data: &RosterData,

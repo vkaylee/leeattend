@@ -45,11 +45,11 @@ export default function DashboardPage() {
 
   // ── Stable refs for callbacks (prevents effect re-fire from non-memoized deps) ─
   const tRef = useRef(t);
-  tRef.current = t;
   const resetRef = useRef(resetToDefault);
-  resetRef.current = resetToDefault;
   const setActionsRef = useRef(setActions);
-  setActionsRef.current = setActions;
+  useEffect(() => { tRef.current = t; }, [t]);
+  useEffect(() => { resetRef.current = resetToDefault; }, [resetToDefault]);
+  useEffect(() => { setActionsRef.current = setActions; }, [setActions]);
 
   // ── Inject header actions ─────────────────────────────────────
   useEffect(() => {

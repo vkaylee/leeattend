@@ -131,8 +131,10 @@ export function useNavSidebar(locationPathname: string): NavSidebarState {
 
   // Track pathname at timer set time — stale timers from before
   // navigation are silently ignored when they fire.
+  // pathRef is intentionally mutated inside effect (not state) — safe pattern.
   const pathRef = useRef(locationPathname);
-  pathRef.current = locationPathname;
+  // eslint-disable-next-line react-hooks/immutability
+  useEffect(() => { pathRef.current = locationPathname; }, [locationPathname]);
 
   // Cleanup all timers on unmount
   useEffect(() => {

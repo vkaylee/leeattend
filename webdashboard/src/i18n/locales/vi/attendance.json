@@ -425,15 +425,16 @@
       "priority_hierarchy": "Thứ tự ưu tiên",
       "p100_manual": "Lịch trực (Gán trực tiếp)",
       "p80_pattern": "Chu kỳ cá nhân",
-      "p60_rules": "Quy tắc tự động",
-      "p40_dept_pattern": "Chu kỳ phòng ban",
+      "p60_rules": "Quy tắc động",
+      "p60_rules_subsumes": "(bao gồm Chu kỳ phòng ban & Mặc định phòng ban)",
       "p20_fixed": "Gán ca cố định",
-      "p10_dept_fixed": "Mặc định phòng ban",
+      "p0_none": "Ngày nghỉ",
       "override_hint": "Bạn muốn ghi đè logic này? Hãy gán Lịch trực thủ công cho ngày này (Ưu tiên 100).",
       "highest_priority_hint": "Đây là lịch trực thủ công và có mức ưu tiên cao nhất.",
       "highest_priority": "Ưu tiên cao nhất",
-      "lowest_priority": "Mặc định hệ thống",
-      "hierarchy_explanation": "Các quy tắc được đánh giá từ trên xuống dưới. Các nút cao hơn sẽ ghi đè các nút thấp hơn."
+      "lowest_priority": "Không có ca (Ngày nghỉ)",
+      "hierarchy_explanation": "Các tầng được đánh giá từ trên xuống. Tầng khớp đầu tiên thắng — tầng cao hơn ghi đè tầng thấp hơn.",
+      "tier_subsumed_note": "Quy tắc động (P3) xử lý điều kiện phòng ban, nhãn, địa điểm, và nhà tuyển dụng — không cần tầng Chu kỳ phòng ban / Mặc định phòng ban riêng."
     },
     "label": "Ca làm & Lịch trực"
   },

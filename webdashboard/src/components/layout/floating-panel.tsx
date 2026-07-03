@@ -110,7 +110,6 @@ export default function FloatingPanel({
       onMouseEnter={panelMouseEnter}
       onMouseLeave={panelMouseLeave}
       ref={containerRef}
-      role="menu"
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-4 border-b border-slate-100 dark:border-slate-800 shrink-0 min-h-[56px]">

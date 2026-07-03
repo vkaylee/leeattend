@@ -425,15 +425,16 @@
       "priority_hierarchy": "优先级层级",
       "p100_manual": "手动排班",
       "p80_pattern": "个人模式",
-      "p60_rules": "自动规则",
-      "p40_dept_pattern": "部门模式",
+      "p60_rules": "动态规则",
+      "p60_rules_subsumes": "(包含部门模式与部门默认)",
       "p20_fixed": "固定分配",
-      "p10_dept_fixed": "部门默认",
+      "p0_none": "休息日",
       "override_hint": "想覆盖此逻辑？为此天分配手动排班 (优先级 100)。",
       "highest_priority_hint": "这是手动排班，具有最高优先级。",
       "highest_priority": "最高优先级",
-      "lowest_priority": "系统默认",
-      "hierarchy_explanation": "规则从上到下评估。上方节点覆盖下方节点。"
+      "lowest_priority": "无班次 (休息日)",
+      "hierarchy_explanation": "各层级从上到下评估。首个匹配的层级胜出 — 高层级覆盖低层级。",
+      "tier_subsumed_note": "动态规则 (P3) 处理部门、标签、地点和雇主条件 — 无需单独的部门模式/部门默认层级。"
     },
     "label": "排班与日历"
   },

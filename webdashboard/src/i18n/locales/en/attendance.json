@@ -425,15 +425,16 @@
       "priority_hierarchy": "Priority Hierarchy",
       "p100_manual": "Manual Roster",
       "p80_pattern": "Individual Pattern",
-      "p60_rules": "Auto Rules",
-      "p40_dept_pattern": "Dept Pattern",
+      "p60_rules": "Dynamic Rules",
+      "p60_rules_subsumes": "(covers Dept Pattern & Dept Default)",
       "p20_fixed": "Fixed Assignment",
-      "p10_dept_fixed": "Dept Default",
+      "p0_none": "Day Off",
       "override_hint": "Want to override this? Assign a Manual Roster for this day (Priority 100).",
       "highest_priority_hint": "This is a manual roster and has highest priority.",
       "highest_priority": "Highest Priority",
-      "lowest_priority": "System Default",
-      "hierarchy_explanation": "Rules are evaluated from top to bottom. Higher nodes override lower ones."
+      "lowest_priority": "No Shift (Day Off)",
+      "hierarchy_explanation": "Tiers are evaluated top-down. First match wins — higher tiers override lower ones.",
+      "tier_subsumed_note": "Dynamic Rules (P3) handle department, tag, location, and employer conditions — no separate Dept Pattern / Dept Default tiers needed."
     },
     "label": "Shifts & Roster"
   },

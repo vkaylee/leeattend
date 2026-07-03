@@ -33,7 +33,7 @@ impl ReportService {
 
         let tz: Tz = crate::utils::tz::parse_workspace_tz(workspace.timezone());
 
-        // 2. Get schedules for ALL active employees (reuses 6-priority chain logic)
+        // 2. Get schedules for ALL active employees (reuses 5-tier priority resolution)
         let (schedules, _) = self
             .roster_repo
             .get_workspace_schedules(
