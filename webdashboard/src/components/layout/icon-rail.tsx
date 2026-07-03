@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Pin, PinOff, Sun, Moon, Bell, LogOut, UserCircle } from "lucide-react";
-import React from "react";
+import React, { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
 import type { NavGroup } from "@/hooks/use-nav-menu-items";
@@ -73,7 +74,7 @@ export default function IconRail({
   return (
     <nav
       aria-label={t("common.settings.navigation", "Navigation")}
-      className="hidden md:flex fixed inset-y-0 left-0 z-50 w-14 flex-col bg-white dark:bg-slate-950 border-r border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-black/30"
+      className="hidden md:flex fixed inset-y-0 left-0 z-50 w-14 flex-col overflow-x-clip bg-white dark:bg-slate-950 border-r border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-black/30"
       role="navigation"
     >
       {/* Logo */}
@@ -163,63 +164,20 @@ export default function IconRail({
         />
 
         {/* Language cycle */}
-        <button
-          aria-label={t("appLauncher.language", "Language") + ": " + langTooltip}
-          className="flex items-center justify-center w-full h-11 rounded-xl transition-all duration-200 group relative text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900"
-          data-testid="nav-rail-lang-toggle"
+        <LanguageButton
+          langLabel={langLabel}
           onClick={cycleLanguage}
-          type="button"
-        >
-          <span className="text-[11px] font-black tracking-tighter">
-            {langLabel}
-          </span>
-          <RailTooltip label={langTooltip} />
-        </button>
+          tooltip={langTooltip}
+        />
 
         {/* Notifications */}
-        <Link
-          aria-label={t("common.notifications")}
-          className="flex items-center justify-center w-full h-11 rounded-xl transition-all duration-200 group relative text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900"
-          data-testid="nav-rail-notifications"
-          to={ROUTES.NOTIFICATIONS}
-        >
-          <div className="relative">
-            <Bell className="h-4 w-4" />
-            {unreadCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center leading-none">
-                {unreadCount > 99 ? "99+" : unreadCount}
-              </span>
-            )}
-          </div>
-          <RailTooltip label={t("common.notifications") + (unreadCount > 0 ? ` (${unreadCount})` : "")} />
-        </Link>
+        <NotificationsButton unreadCount={unreadCount} />
 
         {/* Avatar */}
-        <Link
-          aria-label={t("common.profile")}
-          className="flex items-center justify-center w-full h-11 rounded-xl transition-all duration-200 group relative hover:bg-slate-50 dark:hover:bg-slate-900"
-          data-testid="nav-rail-user-avatar"
-          to={ROUTES.ESS_PROFILE}
-        >
-          <div className="w-7 h-7 rounded-lg bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-800 flex items-center justify-center font-bold text-[10px] shadow-sm group-hover:bg-primary-600 dark:group-hover:bg-primary-500 group-hover:text-white transition-all duration-300">
-            {user?.full_name ? user.full_name.charAt(0).toUpperCase() : (
-              <UserCircle className="h-4 w-4" />
-            )}
-          </div>
-          <RailTooltip label={t("common.profile")} />
-        </Link>
+        <AvatarButton userName={user?.full_name ?? undefined} />
 
         {/* Logout */}
-        <button
-          aria-label={t("common.logout")}
-          className="flex items-center justify-center w-full h-11 rounded-xl transition-all duration-200 group relative text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30"
-          data-testid="nav-rail-logout"
-          onClick={handleLogout}
-          type="button"
-        >
-          <LogOut className="h-4 w-4" />
-          <RailTooltip label={t("common.logout")} />
-        </button>
+        <LogoutButton onLogout={handleLogout} />
       </div>
     </nav>
   );
@@ -240,22 +198,36 @@ function RailControlButton({
   onClick: () => void;
   "data-testid": string;
 }) {
+  const ref = useRef<HTMLButtonElement>(null);
+  const [hovered, setHovered] = useState(false);
+
   return (
-    <button
-      aria-label={label}
-      className={cn(
-        "flex items-center justify-center w-full h-11 rounded-xl transition-all duration-200 group relative",
-        active
-          ? "text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950"
-          : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900",
+    <>
+      <button
+        ref={ref}
+        aria-label={label}
+        className={cn(
+          "flex items-center justify-center w-full h-11 rounded-xl transition-all duration-200 group relative",
+          active
+            ? "text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950"
+            : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900",
+        )}
+        data-testid={props["data-testid"]}
+        onBlur={() => { setHovered(false); }}
+        onClick={onClick}
+        onFocus={() => { setHovered(true); }}
+        onMouseEnter={() => { setHovered(true); }}
+        onMouseLeave={() => { setHovered(false); }}
+        type="button"
+      >
+        <Icon className="h-4 w-4" />
+      </button>
+      {/* Tooltip rendered via portal to escape overflow-x-clip on parent */}
+      {hovered && ref.current && createPortal(
+        <RailTooltipLabel label={label} targetRef={ref} />,
+        document.body,
       )}
-      data-testid={props["data-testid"]}
-      onClick={onClick}
-      type="button"
-    >
-      <Icon className="h-4 w-4" />
-      <RailTooltip label={label} />
-    </button>
+    </>
   );
 }
 
@@ -284,6 +256,18 @@ function RailIconButton({
   onClick,
   to,
 }: RailIconButtonProps) {
+  const ref = useRef<HTMLAnchorElement | HTMLButtonElement>(null);
+  const [hovered, setHovered] = useState(false);
+
+  const handleEnter = () => {
+    setHovered(true);
+    onMouseEnter();
+  };
+  const handleLeave = () => {
+    setHovered(false);
+    onMouseLeave();
+  };
+
   const sharedClasses = cn(
     "flex items-center justify-center w-full h-11 rounded-xl transition-all duration-200 group relative",
     isActive
@@ -299,49 +283,225 @@ function RailIconButton({
     <>
       {activeIndicator}
       {Icon ? <Icon className="h-4 w-4" /> : null}
-      <RailTooltip label={label} />
     </>
   );
 
+  const tooltipPortal = hovered && ref.current
+    ? createPortal(
+        <RailTooltipLabel label={label} targetRef={ref} />,
+        document.body,
+      )
+    : null;
+
   if (to && (group === "dashboard" || group === "settings")) {
     return (
-      <Link
-        aria-label={label}
-        className={sharedClasses}
-        data-testid={testId}
-        onMouseEnter={onMouseEnter}
-        onMouseLeave={onMouseLeave}
-        to={to as "/"}
-      >
-        {content}
-      </Link>
+      <>
+        <Link
+          ref={ref as React.Ref<HTMLAnchorElement>}
+          aria-label={label}
+          className={sharedClasses}
+          data-testid={testId}
+          onBlur={() => { setHovered(false); }}
+          onFocus={() => { setHovered(true); }}
+          onMouseEnter={handleEnter}
+          onMouseLeave={handleLeave}
+          to={to as "/"}
+        >
+          {content}
+        </Link>
+        {tooltipPortal}
+      </>
     );
   }
 
   return (
-    <button
-      aria-label={label}
-      className={sharedClasses}
-      data-testid={testId}
-      onClick={onClick}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-      type="button"
-    >
-      {content}
-    </button>
+    <>
+      <button
+        ref={ref as React.Ref<HTMLButtonElement>}
+        aria-label={label}
+        className={sharedClasses}
+        data-testid={testId}
+        onClick={onClick}
+        onBlur={() => { setHovered(false); }}
+        onFocus={() => { setHovered(true); }}
+        onMouseEnter={handleEnter}
+        onMouseLeave={handleLeave}
+        type="button"
+      >
+        {content}
+      </button>
+      {tooltipPortal}
+    </>
   );
 }
 
-// ── Internal: Tooltip ──────────────────────────────────────────────
+// ── Internal: Tooltip (portal-positioned) ──────────────────────────
 
-function RailTooltip({ label }: { label: string }) {
+function RailTooltipLabel({
+  label,
+  targetRef,
+}: {
+  label: string;
+  targetRef: React.RefObject<HTMLElement | null>;
+}) {
+  const rect = targetRef.current?.getBoundingClientRect();
+  if (!rect) return null;
+
+  const top = rect.top + rect.height / 2;
+  const left = rect.right + 12; // ml-3 (12px)
+
   return (
     <span
-      className="absolute left-full ml-3 px-3 py-1.5 bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-800 text-xs font-bold rounded-xl whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-visible:opacity-100 group-focus-visible:visible transition-all duration-200 pointer-events-none shadow-lg z-[60]"
+      className="fixed px-3 py-1.5 bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-800 text-xs font-bold rounded-xl whitespace-nowrap pointer-events-none shadow-lg z-[60]"
       role="tooltip"
+      style={{ top, left, transform: "translateY(-50%)" }}
     >
       {label}
     </span>
+  );
+}
+
+// ── Internal: Language Button ──────────────────────────────────────
+
+function LanguageButton({
+  langLabel,
+  onClick,
+  tooltip,
+}: {
+  langLabel: string;
+  onClick: () => void;
+  tooltip: string;
+}) {
+  const { t } = useTranslation();
+  const ref = useRef<HTMLButtonElement>(null);
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <>
+      <button
+        ref={ref}
+        aria-label={t("appLauncher.language", "Language") + ": " + tooltip}
+        className="flex items-center justify-center w-full h-11 rounded-xl transition-all duration-200 group relative text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900"
+        data-testid="nav-rail-lang-toggle"
+        onBlur={() => { setHovered(false); }}
+        onClick={onClick}
+        onFocus={() => { setHovered(true); }}
+        onMouseEnter={() => { setHovered(true); }}
+        onMouseLeave={() => { setHovered(false); }}
+        type="button"
+      >
+        <span className="text-[11px] font-black tracking-tighter">
+          {langLabel}
+        </span>
+      </button>
+      {hovered && ref.current && createPortal(
+        <RailTooltipLabel label={tooltip} targetRef={ref} />,
+        document.body,
+      )}
+    </>
+  );
+}
+
+// ── Internal: Notifications Button ────────────────────────────────
+
+function NotificationsButton({ unreadCount }: { unreadCount: number }) {
+  const { t } = useTranslation();
+  const ref = useRef<HTMLAnchorElement>(null);
+  const [hovered, setHovered] = useState(false);
+
+  const label = t("common.notifications") + (unreadCount > 0 ? ` (${unreadCount})` : "");
+
+  return (
+    <>
+      <Link
+        ref={ref}
+        aria-label={t("common.notifications")}
+        className="flex items-center justify-center w-full h-11 rounded-xl transition-all duration-200 group relative text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900"
+        data-testid="nav-rail-notifications"
+        onBlur={() => { setHovered(false); }}
+        onFocus={() => { setHovered(true); }}
+        onMouseEnter={() => { setHovered(true); }}
+        onMouseLeave={() => { setHovered(false); }}
+        to={ROUTES.NOTIFICATIONS}
+      >
+        <div className="relative">
+          <Bell className="h-4 w-4" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center leading-none">
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          )}
+        </div>
+      </Link>
+      {hovered && ref.current && createPortal(
+        <RailTooltipLabel label={label} targetRef={ref} />,
+        document.body,
+      )}
+    </>
+  );
+}
+
+// ── Internal: Avatar Button ────────────────────────────────────────
+
+function AvatarButton({ userName }: { userName?: string }) {
+  const { t } = useTranslation();
+  const ref = useRef<HTMLAnchorElement>(null);
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <>
+      <Link
+        ref={ref}
+        aria-label={t("common.profile")}
+        className="flex items-center justify-center w-full h-11 rounded-xl transition-all duration-200 group relative hover:bg-slate-50 dark:hover:bg-slate-900"
+        data-testid="nav-rail-user-avatar"
+        onBlur={() => { setHovered(false); }}
+        onFocus={() => { setHovered(true); }}
+        onMouseEnter={() => { setHovered(true); }}
+        onMouseLeave={() => { setHovered(false); }}
+        to={ROUTES.ESS_PROFILE}
+      >
+        <div className="w-7 h-7 rounded-lg bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-800 flex items-center justify-center font-bold text-[10px] shadow-sm group-hover:bg-primary-600 dark:group-hover:bg-primary-500 group-hover:text-white transition-all duration-300">
+          {userName ? userName.charAt(0).toUpperCase() : (
+            <UserCircle className="h-4 w-4" />
+          )}
+        </div>
+      </Link>
+      {hovered && ref.current && createPortal(
+        <RailTooltipLabel label={t("common.profile")} targetRef={ref} />,
+        document.body,
+      )}
+    </>
+  );
+}
+
+// ── Internal: Logout Button ────────────────────────────────────────
+
+function LogoutButton({ onLogout }: { onLogout: () => void }) {
+  const { t } = useTranslation();
+  const ref = useRef<HTMLButtonElement>(null);
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <>
+      <button
+        ref={ref}
+        aria-label={t("common.logout")}
+        className="flex items-center justify-center w-full h-11 rounded-xl transition-all duration-200 group relative text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+        data-testid="nav-rail-logout"
+        onBlur={() => { setHovered(false); }}
+        onClick={onLogout}
+        onFocus={() => { setHovered(true); }}
+        onMouseEnter={() => { setHovered(true); }}
+        onMouseLeave={() => { setHovered(false); }}
+        type="button"
+      >
+        <LogOut className="h-4 w-4" />
+      </button>
+      {hovered && ref.current && createPortal(
+        <RailTooltipLabel label={t("common.logout")} targetRef={ref} />,
+        document.body,
+      )}
+    </>
   );
 }

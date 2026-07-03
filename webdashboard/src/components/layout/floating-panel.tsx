@@ -148,7 +148,7 @@ export default function FloatingPanel({
       </div>
 
       {/* Sub-items */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar py-3 px-3 space-y-1" role="group">
+      <div className="flex-1 overflow-y-auto custom-scrollbar py-3 px-3 space-y-1" role="menu">
         {currentGroup.items.map((item) => (
           <FloatingPanelLink
             isActive={

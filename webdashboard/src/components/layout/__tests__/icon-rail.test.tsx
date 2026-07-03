@@ -227,11 +227,42 @@ describe("IconRail", () => {
 
   // ── Tooltip ──────────────────────────────────────────────────
 
-  it("renders tooltips with group labels", () => {
+  it("renders tooltip via portal when hovering an icon", () => {
+    render(<IconRail {...defaultProps} />, { wrapper: Wrapper });
+
+    // Tooltips are rendered via portal to <body> on hover — none visible at rest
+    expect(document.body.querySelectorAll('[role="tooltip"]').length).toBe(0);
+
+    // Hover the org icon → tooltip appears in document.body
+    const orgBtn = screen.getByTestId("nav-rail-group-org");
+    fireEvent.mouseEnter(orgBtn);
+    const tooltips = document.body.querySelectorAll('[role="tooltip"]');
+    expect(tooltips.length).toBe(1);
+
+    // Mouse leave → tooltip disappears
+    fireEvent.mouseLeave(orgBtn);
+    expect(document.body.querySelectorAll('[role="tooltip"]').length).toBe(0);
+  });
+
+  it("renders tooltip via portal on keyboard focus", () => {
+    render(<IconRail {...defaultProps} />, { wrapper: Wrapper });
+
+    const orgBtn = screen.getByTestId("nav-rail-group-org");
+    fireEvent.focus(orgBtn);
+    expect(document.body.querySelectorAll('[role="tooltip"]').length).toBe(1);
+
+    fireEvent.blur(orgBtn);
+    expect(document.body.querySelectorAll('[role="tooltip"]').length).toBe(0);
+  });
+
+  it("does NOT cause horizontal scrollbar on the rail", () => {
     const { container } = render(<IconRail {...defaultProps} />, { wrapper: Wrapper });
 
-    const tooltips = container.querySelectorAll('[role="tooltip"]');
-    expect(tooltips.length).toBeGreaterThanOrEqual(8); // groups + bottom controls
+    // The nav element must have overflow-x-clip to prevent tooltips from
+    // triggering a horizontal scrollbar on the page
+    const nav = container.querySelector('nav[role="navigation"]');
+    expect(nav).toBeTruthy();
+    expect(nav?.className).toContain('overflow-x-clip');
   });
 
   // ── Edge cases ───────────────────────────────────────────────
