@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useRef, useState, useEffect } from "react";
 
 import { TFunction } from "i18next";
 
@@ -62,6 +62,10 @@ export function useBulkReprocess(wsId: string, t: TFunction) {
   const [showReprocessConfirm, setShowReprocessConfirm] = useState(false);
   const [pollingJobId, setPollingJobId] = useState<string | null>(null);
 
+  // In-flight guard: prevents double-clicking the bulk "Confirm" button from
+  // firing two reprocessAllAttendance jobs before isPending flips true.
+  const bulkReprocessInFlight = useRef(false);
+
   const jobStatusQuery = useQuery({
     queryKey: ["generic-job-status", wsId, pollingJobId],
     queryFn: () => {
@@ -97,20 +101,35 @@ export function useBulkReprocess(wsId: string, t: TFunction) {
 
   const reprocessMutation = useMutation({
     mutationFn: () => reprocessAllAttendance(wsId, reprocessStart, reprocessEnd),
+    onMutate: () => {
+      bulkReprocessInFlight.current = true;
+    },
     onSuccess: (data) => {
       setPollingJobId(data.job_id);
     },
     onError: (e: Error) => {
       toast.error(e.message || t("common.error"));
     },
+    onSettled: () => {
+      bulkReprocessInFlight.current = false;
+    },
   });
+
+  // Lead-edge debounced submit. The "Confirm" button is already disabled while
+  // isPending, but this ref blocks the (rare) case where a second click sneaks
+  // into the same tick before React Query flips isPending.
+  const submitBulkReprocess = () => {
+    if (bulkReprocessInFlight.current) return;
+    reprocessMutation.mutate();
+  };
 
   return {
     jobStatus: jobStatusQuery.data,
+    isPending: reprocessMutation.isPending,
     pollingJobId,
     reprocessEnd,
-    reprocessMutation,
     reprocessStart,
+    submitBulkReprocess,
     setReprocessEnd,
     setReprocessStart,
     setShowReprocessConfirm,

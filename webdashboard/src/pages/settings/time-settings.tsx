@@ -132,11 +132,12 @@ function TimeSettingsContent({
   const [newValidFrom, setNewValidFrom] = useState(() => new Date().toISOString().split("T")[0]);
 
   const {
+    isPending: isBulkReprocessPending,
     jobStatus,
     pollingJobId,
     reprocessEnd,
-    reprocessMutation,
     reprocessStart,
+    submitBulkReprocess,
     setReprocessEnd,
     setReprocessStart,
     setShowReprocessConfirm,
@@ -191,16 +192,14 @@ function TimeSettingsContent({
       </div>
       <ReprocessModal
         isOpen={showReprocessConfirm}
-        isPending={reprocessMutation.isPending}
+        isPending={isBulkReprocessPending}
         jobStatus={jobStatus}
         onClose={() => {
-          if (!reprocessMutation.isPending && !pollingJobId) {
+          if (!isBulkReprocessPending && !pollingJobId) {
             setShowReprocessConfirm(false);
           }
         }}
-        onSubmit={() => {
-          reprocessMutation.mutate();
-        }}
+        onSubmit={submitBulkReprocess}
         pollingJobId={pollingJobId}
         reprocessEnd={reprocessEnd}
         reprocessStart={reprocessStart}

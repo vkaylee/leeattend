@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import {
     DailyAttendanceReport,
@@ -37,7 +37,14 @@ export function useEmployeeDailyDrawer(props: UseEmployeeDailyDrawerProps) {
     const [expandedDebugRows, setExpandedDebugRows] = useState<Set<string>>(new Set());
     const [reprocessingRow, setReprocessingRow] = useState<string | null>(null);
     const [confirmingRow, setConfirmingRow] = useState<string | null>(null);
-    
+
+    // In-flight guard: prevents double-clicking the modal's "Confirm Reprocess"
+    // button from firing concurrent mutate calls before React flips isPending.
+    // Without this the backend could receive overlapping reprocess requests for the
+    // same (employee, day) and write 4 work sessions instead of 2.
+    const reprocessInFlight = useRef(false);
+    const resolveUnscheduledInFlight = useRef(false);
+
     const {
         confirmDialog, setConfirmDialog,
         confirmModalData, setConfirmModalData,
@@ -79,7 +86,16 @@ export function useEmployeeDailyDrawer(props: UseEmployeeDailyDrawerProps) {
 
     const handleResolveSubmit = (shiftId: string) => {
         if (!resolveModalData) return;
-        resolveUnscheduledMutation.mutate({ row: resolveModalData.row, shiftId });
+        if (resolveUnscheduledInFlight.current) return; // debounce lead-edge
+        resolveUnscheduledInFlight.current = true;
+        resolveUnscheduledMutation.mutate(
+            { row: resolveModalData.row, shiftId },
+            {
+                onSettled: () => {
+                    resolveUnscheduledInFlight.current = false;
+                },
+            },
+        );
     };
 
     const handleReprocessClick = (row: DailyAttendanceReport) => {
@@ -90,8 +106,17 @@ export function useEmployeeDailyDrawer(props: UseEmployeeDailyDrawerProps) {
 
     const handleConfirmReprocess = () => {
         if (!confirmDialog) return;
+        if (reprocessInFlight.current) return; // debounce lead-edge
+        reprocessInFlight.current = true;
         setReprocessingRow(`${confirmDialog.employeeId}-${confirmDialog.date}`);
-        reprocessMutation.mutate({ empId: confirmDialog.employeeId, date: confirmDialog.date });
+        reprocessMutation.mutate(
+            { empId: confirmDialog.employeeId, date: confirmDialog.date },
+            {
+                onSettled: () => {
+                    reprocessInFlight.current = false;
+                },
+            },
+        );
     };
 
     const handleConfirmClick = (row: DailyAttendanceReport, existing?: AttendanceAdjustmentRequest) => {

@@ -221,6 +221,32 @@ describe("EmployeeDailyDrawer", () => {
         });
     });
 
+    it("debounces double-click on reprocess confirm button: only one mutation", async () => {
+        const user = userEvent.setup();
+        renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
+
+        // Wait for data to load
+        await screen.findByText(/08:00 — 17:00/i);
+
+        // Open the reprocess modal
+        const reprocessBtns = await screen.findAllByTitle("reports.reprocess.tooltip");
+        await user.click(reprocessBtns[0]);
+        await screen.findByText("reports.reprocess.confirm_title");
+
+        // Click confirm twice quickly: the second click must be ignored by the
+        // lead-edge in-flight guard, so reprocessAttendance is invoked exactly
+        // once (no concurrent reprocess / no duplicated sessions).
+        const confirmButton = await screen.findByRole("button", {
+            name: /reports.reprocess.confirm/i,
+        });
+        await user.click(confirmButton);
+        await user.click(confirmButton);
+
+        await waitFor(() => {
+            expect(api.reprocessAttendance).toHaveBeenCalledTimes(1);
+        });
+    });
+
     it("opens confirm attendance modal and calls adminConfirmAttendance mutation", async () => {
         const user = userEvent.setup();
         renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);

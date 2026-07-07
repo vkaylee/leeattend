@@ -1,9 +1,30 @@
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Datelike, NaiveDate, Utc};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use std::collections::HashMap;
 use uuid::Uuid;
+
+/// Stable per-(employee, calendar-day) advisory-lock key.
+///
+/// Used with Postgres `pg_advisory_xact_lock` inside `replace_time_entries` so
+/// that two concurrent reprocess runs for the same calendar day serialize their
+/// DELETE+INSERT. Without this lock the two transactions can interleave
+/// (both DELETE the old rows, both INSERT two new rows) and the daily report
+/// ends up with 4 duplicated work sessions instead of 2.
+///
+/// Derivation: XOR-fold the two `u64` halves of the UUID with a bit-packed
+/// (year:32, ordinal:32) view of the local date. Bijective per (year, day-of-
+/// year), so distinct calendar days never collide.
+pub(crate) fn reprocess_advisory_lock_key(employment_id: Uuid, date: NaiveDate) -> i64 {
+    let (hi, lo) = employment_id.as_u64_pair();
+    // Year offset so distinct calendar days never collide. Using `cast_signed`
+    // makes the sign-preserving cast explicit to clippy's pedantic lint.
+    let year = u64::try_from(date.year()).unwrap_or(0);
+    let ordinal = date.ordinal(); // 1..366
+    let date_key = (year << 32) | u64::from(ordinal);
+    (hi ^ lo ^ date_key).cast_signed()
+}
 
 use crate::errors::AppError;
 use crate::models::diesel::time_entry::{
@@ -455,8 +476,20 @@ impl TimeEntryRepository for DieselTimeEntryRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
+        // Acquire a per-(employee, calendar-day) transaction advisory lock
+        // before mutating the row set. Concurrent reprocess runs targeting the
+        // same calendar day serialize here so a DELETE+INSERT cannot interleave
+        // into a double-inserted set of sessions. Auto-released on COMMIT/ROLLBACK.
+        // See `reprocess_advisory_lock_key` for derivation.
+        let lock_key = reprocess_advisory_lock_key(employment_id, start_time.date_naive());
+
         conn.transaction::<_, diesel::result::Error, _>(|conn| {
             Box::pin(async move {
+                diesel::sql_query("SELECT pg_advisory_xact_lock($1)")
+                    .bind::<diesel::sql_types::BigInt, _>(lock_key)
+                    .execute(conn)
+                    .await?;
+
                 diesel::delete(
                     time_entries::table
                         .filter(time_entries::workspace_id.eq(workspace_id))
@@ -517,5 +550,34 @@ mod tests {
         let pools = DieselPools::for_test(&test_db_url);
         let _repo = DieselTimeEntryRepository::new(pools);
         // DI connection test passes if it compiles
+    }
+
+    /// Verifies the lock key is a pure function of (employment_id, date):
+    /// identical inputs yield the same key, distinct days yield distinct keys.
+    #[test]
+    fn test_advisory_lock_key_stable_and_unique() {
+        use chrono::NaiveDate;
+
+        let emp = Uuid::parse_str("11111111-1111-1111-1111-111111111111").unwrap();
+        let d1 = NaiveDate::from_ymd_opt(2026, 7, 3).unwrap();
+        let d2 = NaiveDate::from_ymd_opt(2026, 7, 4).unwrap();
+
+        // Deterministic
+        assert_eq!(
+            reprocess_advisory_lock_key(emp, d1),
+            reprocess_advisory_lock_key(emp, d1)
+        );
+
+        // Keyed by both employment_id and date
+        assert_ne!(
+            reprocess_advisory_lock_key(emp, d1),
+            reprocess_advisory_lock_key(emp, d2),
+            "different days must yield different keys"
+        );
+        assert_ne!(
+            reprocess_advisory_lock_key(emp, d1),
+            reprocess_advisory_lock_key(Uuid::new_v4(), d1),
+            "different employees must yield different keys"
+        );
     }
 }

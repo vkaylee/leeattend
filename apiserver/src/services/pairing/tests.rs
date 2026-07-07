@@ -429,6 +429,95 @@ fn test_pair_zero_minute_gap_between_logs() {
     assert_eq!(sessions[0].end_minutes(), Some(480));
 }
 
+/// Regression test for the "4 sessions" bug.
+///
+/// Scenario: scheduled shift 07:30–16:30 with a single break 11:30–12:30. The
+/// employee records five raw punches on the same day: one early check-in at
+/// 07:22, three duplicate 15:06 punches (device retransmits) and a 16:45
+/// check-out. The pairing algorithm MUST collapse the three 15:06 duplicates
+/// (they sit strictly between first-in and last-out) and yield exactly 2 work
+/// sessions split on the configured break.
+///
+/// Before the fix this was observed at the DB layer (4 rows in `time_entries`
+/// after concurrent reprocess), but the pairing unit must also never emit >2
+/// sessions for the single-day input.
+#[test]
+fn test_shift_window_reproduces_4_session_bug_scenario() {
+    let strategy = get_strategy();
+    // 07:30-16:30, break 11:30-12:30
+    let shift = PairingShiftConfig::new_with_breaks(
+        450,
+        990,
+        vec![BreakInterval::new(690, 750)],
+        None,
+        None,
+    );
+
+    // 07:22 = 442 min; three 15:06 = 906 min (within break gap region);
+    // 16:45 = 1005 min.
+    let logs = vec![
+        make_log(442), // 07:22 check-in
+        make_log(906), // 15:06 duplicate #1
+        make_log(906), // 15:06 duplicate #2
+        make_log(906), // 15:06 duplicate #3
+        make_log(1005), // 16:45 check-out
+    ];
+
+    let sessions = strategy.pair(&logs, Some(&shift));
+
+    // Exactly 2 work sessions: morning (checkin..break) and afternoon
+    // (break..checkout).
+    assert_eq!(
+        sessions.len(),
+        2,
+        "paired session count for the bug scenario must be exactly 2 (got {:?})",
+        sessions.iter().map(|s| (s.start_minutes(), s.end_minutes())).collect::<Vec<_>>()
+    );
+
+    // Segment 1: 07:22 → 11:30
+    assert_eq!(sessions[0].start_minutes(), 442);
+    assert_eq!(sessions[0].end_minutes(), Some(690));
+
+    // Segment 2: 12:30 → 16:45
+    assert_eq!(sessions[1].start_minutes(), 750);
+    assert_eq!(sessions[1].end_minutes(), Some(1005));
+
+    // Both segments are tagged as the shift-window break-split tier.
+    assert_eq!(sessions[0].metadata().unwrap()["break_split"], "first_half");
+    assert_eq!(sessions[1].metadata().unwrap()["break_split"], "second_half");
+}
+
+/// The deduplication window in `build_log_events` is 5 seconds. Duplicate
+/// punches spaced > 5 seconds apart produce distinct `LogEvent`s at the same
+/// minute-of-day. The strategy must still emit exactly 2 sessions regardless
+/// of how many distinct-but-temporally-coincident events straddle the break.
+#[test]
+fn test_shift_window_many_duplicate_mid_break_punches() {
+    let strategy = get_strategy();
+    let shift = PairingShiftConfig::new_with_breaks(
+        450,
+        990,
+        vec![BreakInterval::new(690, 750)],
+        None,
+        None,
+    );
+
+    let mut logs = vec![make_log(442) /* 07:22 check-in */];
+    // Add 10 duplicate 15:06 events (each is a distinct UUID, the timestamps
+    // differ by < 5 seconds so they survive dedup; all have minute 906).
+    for _ in 0..10 {
+        logs.push(make_log(906));
+    }
+    logs.push(make_log(1005)); // 16:45 check-out
+
+    let sessions = strategy.pair(&logs, Some(&shift));
+    assert_eq!(
+        sessions.len(),
+        2,
+        "strategy must ignore interior duplicate punches and split only on the configured break"
+    );
+}
+
 #[test]
 fn test_shift_window_multiple_breaks() {
     let strategy = get_strategy();
