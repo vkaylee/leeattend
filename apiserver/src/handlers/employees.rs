@@ -517,6 +517,8 @@ pub struct ValidTerminationRow {
     pub prorated_leaves: Vec<ProratedLeavePreview>,
     pub termination_reason: String,
     pub termination_notes: Option<String>,
+    #[serde(default)]
+    pub warnings: Vec<String>,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema, Clone)]
@@ -631,6 +633,7 @@ pub async fn import_termination_preview(
 
     let mut parsed_rows = Vec::new();
     let mut normalized_codes = Vec::new();
+    let mut seen_codes = std::collections::HashSet::new();
 
     for (line_number, mapped_row) in rows {
         let raw_code = mapped_row.get("employee_code").cloned().unwrap_or_default();
@@ -699,6 +702,21 @@ pub async fn import_termination_preview(
         }
 
         let normalized_code = crate::utils::normalize_employee_id(&raw_code);
+        if !seen_codes.insert(normalized_code.clone()) {
+            let locale = crate::utils::i18n::get_locale();
+            let reason = if locale == "vi" {
+                "Mã nhân viên bị lặp lại trong tệp".to_string()
+            } else {
+                "Duplicate employee code in the file".to_string()
+            };
+            invalid_rows.push(InvalidTerminationRow {
+                row_number: line_number,
+                employee_code: Some(raw_code),
+                raw_termination_date: Some(raw_date),
+                reason,
+            });
+            continue;
+        }
         normalized_codes.push(normalized_code.clone());
 
         parsed_rows.push(ParsedRow {
@@ -783,18 +801,43 @@ pub async fn import_termination_preview(
             .cloned()
             .unwrap_or_default();
 
-        let active_employment = employee_employments
-            .into_iter()
-            .find(|emp| emp.status() == "active");
+        // Accept any non-terminated employment (active, probation, onboarding, etc.).
+        // This is consistent with `terminate_employment` in lifecycle.rs which only
+        // blocks when status == "terminated". If multiple candidates exist, prefer
+        // the one with the latest start_date.
+        let mut warnings = Vec::new();
+        let active_employment = {
+            let mut candidates: Vec<_> = employee_employments
+                .clone()
+                .into_iter()
+                .filter(|emp| emp.status() != "terminated")
+                .collect();
+            candidates.sort_by(|a, b| b.start_date().cmp(&a.start_date()));
+            if candidates.len() > 1 {
+                let locale = crate::utils::i18n::get_locale();
+                let warning_msg = if locale == "vi" {
+                    format!("Tìm thấy {} hợp đồng chưa kết thúc. Đã tự động chọn hợp đồng mới nhất (bắt đầu ngày {}).", candidates.len(), candidates[0].start_date().format("%d/%m/%Y"))
+                } else {
+                    format!("Found {} non-terminated employments. Automatically selected the latest one (starting {}).", candidates.len(), candidates[0].start_date().format("%d/%m/%Y"))
+                };
+                warnings.push(warning_msg);
+            }
+            candidates.into_iter().next()
+        };
 
         let Some(active_employment) = active_employment else {
+            let error_key = if employee_employments.is_empty() {
+                "error.no_active_employment"
+            } else {
+                "error.employee_already_terminated"
+            };
             invalid_rows.push(InvalidTerminationRow {
                 row_number: row.row_number,
                 employee_code: Some(row.raw_code.clone()),
                 raw_termination_date: Some(row.raw_date.clone()),
                 reason: crate::utils::i18n::translate(
                     &crate::utils::i18n::get_locale(),
-                    "error.no_active_employment",
+                    error_key,
                 ),
             });
             continue;
@@ -879,6 +922,7 @@ pub async fn import_termination_preview(
             prorated_leaves,
             termination_reason: row.termination_reason,
             termination_notes: row.termination_notes,
+            warnings,
         });
     }
 
@@ -909,6 +953,19 @@ pub async fn import_termination_confirm(
     Json(req): Json<ConfirmTerminationRequest>,
 ) -> AppResult<Json<ConfirmTerminationResponse>> {
     ctx.require_permission(Permission::EmployeesUpdate)?;
+
+    let employment_ids: Vec<Uuid> = req.rows.iter().map(|r| r.employment_id).collect();
+    let employments = state
+        .employees()
+        .employment_repo()
+        .get_employments_by_ids(&ctx.auth_token, &employment_ids)
+        .await?;
+
+    for emp in employments {
+        if emp.status() == "terminated" {
+            return Err(AppError::validation(I18nKey::EmploymentInactive));
+        }
+    }
 
     use crate::queue::{Job, JobMetadata, JobPayload, TaskType};
 

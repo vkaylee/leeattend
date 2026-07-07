@@ -274,7 +274,7 @@ async fn test_bulk_termination_flow() {
             || inv_row_emp2.reason.contains("cannot be before")
     );
 
-    // Check EMP003 (no active employment)
+    // Check EMP003 (already terminated)
     let inv_row_emp3 = preview
         .invalid_rows
         .iter()
@@ -282,7 +282,7 @@ async fn test_bulk_termination_flow() {
         .unwrap();
     assert_eq!(
         inv_row_emp3.reason,
-        apiserver::utils::i18n::translate("vi", "error.no_active_employment")
+        apiserver::utils::i18n::translate("vi", "error.employee_already_terminated")
     );
 
     // Check EMP999 (employee not found)
@@ -587,5 +587,432 @@ async fn test_import_termination_template_download() {
     assert!(
         found_voluntary_vi,
         "Instructions must list 'voluntary_resignation' in VI template"
+    );
+}
+
+/// Regression test: employee với employment status `probation` phải được chấp nhận
+/// bởi preview endpoint (không bị reject với `error.no_active_employment`).
+///
+/// Trước khi fix: handler chỉ tìm `status == "active"`.
+/// Sau khi fix: bất kỳ employment nào chưa `terminated` (kể cả `probation`) đều hợp lệ.
+#[tokio::test]
+async fn test_bulk_termination_non_active_employment_is_accepted() {
+    let (test_db, factory, state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let user_id: Uuid = factory.user().create().await;
+    let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
+    let auth_token = apiserver::diesel_pool::TenantAuthToken::system_override(ws_id);
+
+    // 1. Tạo employee — factory tự tạo employment với status = 'active'
+    let emp_id = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_employee_id_number("EMP-PROBATION-01")
+        .with_full_name("Alice Probation")
+        .create()
+        .await;
+
+    // 2. Lấy employment vừa tạo và hạ status xuống 'probation'
+    //    Mô phỏng: nhân viên chưa được nhân sự chuyển sang trạng thái chính thức
+    let employments = state
+        .employees()
+        .employment_repo()
+        .list_employee_employments(&auth_token, emp_id)
+        .await
+        .unwrap();
+    let probation_emp = employments
+        .iter()
+        .find(|e| e.status() == "active")
+        .expect("Factory must create an active employment")
+        .clone();
+
+    crate::test_execute!(
+        &test_db.diesel_pools.api,
+        "UPDATE employments SET status = 'probation' WHERE id = $1",
+        diesel::sql_types::Uuid,
+        probation_emp.id()
+    );
+
+    // 3. Tạo file import với employee này
+    let mut workbook = Workbook::new();
+    let worksheet = workbook.add_worksheet();
+    worksheet.write_string(0, 0, "employee_code").unwrap();
+    worksheet.write_string(0, 1, "termination_date").unwrap();
+    worksheet.write_string(0, 2, "termination_reason").unwrap();
+    worksheet.write_string(1, 0, "EMP-PROBATION-01").unwrap();
+    worksheet.write_string(1, 1, "2026-07-01").unwrap();
+    worksheet
+        .write_string(1, 2, "voluntary_resignation")
+        .unwrap();
+    let xlsx_bytes = workbook.save_to_buffer().unwrap();
+
+    let boundary = "boundary-probation-test";
+    let mut body = Vec::new();
+    body.extend_from_slice(format!("--{boundary}\r\n").as_bytes());
+    body.extend_from_slice(
+        b"Content-Disposition: form-data; name=\"file\"; filename=\"probation.xlsx\"\r\n\r\n",
+    );
+    body.extend_from_slice(&xlsx_bytes);
+    body.extend_from_slice(format!("\r\n--{boundary}--\r\n").as_bytes());
+    let content_type = format!("multipart/form-data; boundary={boundary}");
+
+    // 4. Gọi preview endpoint
+    let response = app
+        .oneshot(
+            axum::http::Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/workspaces/{ws_id}/employees/import-termination/preview"
+                ))
+                .header("Content-Type", content_type)
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::from(body))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body_bytes = axum::body::to_bytes(response.into_body(), 50_000)
+        .await
+        .unwrap();
+    let preview: apiserver::handlers::employees::TerminationPreviewResponse =
+        serde_json::from_slice(&body_bytes).unwrap();
+
+    // 5. Employee probation phải nằm trong valid_rows — không phải invalid_rows
+    assert_eq!(
+        preview.invalid_rows.len(),
+        0,
+        "Probation employee must NOT be rejected: {:?}",
+        preview.invalid_rows
+    );
+    assert_eq!(preview.valid_rows.len(), 1);
+    let valid_row = &preview.valid_rows[0];
+    assert_eq!(valid_row.employee_code, "EMP-PROBATION-01");
+    assert_eq!(valid_row.employment_id, probation_emp.id());
+    assert!(preview.can_commit);
+}
+
+/// Test Option C: Nhân viên có >= 2 employments chưa kết thúc
+/// Hệ thống sẽ tự động chọn cái mới nhất và đính kèm warning cảnh báo.
+#[tokio::test]
+async fn test_bulk_termination_option_c_multiple_employments_warning() {
+    let (test_db, factory, state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let user_id: Uuid = factory.user().create().await;
+    let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
+    let auth_token = apiserver::diesel_pool::TenantAuthToken::system_override(ws_id);
+
+    let emp_id = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_employee_id_number("EMP-MULTI-01")
+        .with_full_name("Multi Employment Guy")
+        .create()
+        .await;
+
+    let employments = state
+        .employees()
+        .employment_repo()
+        .list_employee_employments(&auth_token, emp_id)
+        .await
+        .unwrap();
+    let emp1 = &employments[0];
+
+    // Tạo thêm một employment nữa bằng SQL để giả lập trạng thái 2 hợp đồng chưa kết thúc
+    let new_emp_id = Uuid::new_v4();
+    crate::test_execute!(
+        &test_db.diesel_pools.api,
+        "INSERT INTO employments (id, workspace_id, employee_id, employer_id, status, start_date, employment_type, created_at, updated_at) VALUES ($1, $2, $3, $4, 'probation', '2026-07-02', 'full_time', NOW(), NOW())",
+        diesel::sql_types::Uuid,
+        new_emp_id,
+        diesel::sql_types::Uuid,
+        ws_id,
+        diesel::sql_types::Uuid,
+        emp_id,
+        diesel::sql_types::Uuid,
+        emp1.employer_id()
+    );
+
+    let mut workbook = Workbook::new();
+    let worksheet = workbook.add_worksheet();
+    worksheet.write_string(0, 0, "employee_code").unwrap();
+    worksheet.write_string(0, 1, "termination_date").unwrap();
+    worksheet.write_string(0, 2, "termination_reason").unwrap();
+    worksheet.write_string(1, 0, "EMP-MULTI-01").unwrap();
+    worksheet.write_string(1, 1, "2026-07-05").unwrap();
+    worksheet
+        .write_string(1, 2, "voluntary_resignation")
+        .unwrap();
+    let xlsx_bytes = workbook.save_to_buffer().unwrap();
+
+    let boundary = "boundary-multi-test";
+    let mut body = Vec::new();
+    body.extend_from_slice(format!("--{boundary}\r\n").as_bytes());
+    body.extend_from_slice(
+        b"Content-Disposition: form-data; name=\"file\"; filename=\"multi.xlsx\"\r\n\r\n",
+    );
+    body.extend_from_slice(&xlsx_bytes);
+    body.extend_from_slice(format!("\r\n--{boundary}--\r\n").as_bytes());
+    let content_type = format!("multipart/form-data; boundary={boundary}");
+
+    let response = app
+        .oneshot(
+            axum::http::Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/workspaces/{ws_id}/employees/import-termination/preview"
+                ))
+                .header("Content-Type", content_type)
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::from(body))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body_bytes = axum::body::to_bytes(response.into_body(), 50_000)
+        .await
+        .unwrap();
+    let preview: apiserver::handlers::employees::TerminationPreviewResponse =
+        serde_json::from_slice(&body_bytes).unwrap();
+
+    assert_eq!(preview.valid_rows.len(), 1);
+    let valid_row = &preview.valid_rows[0];
+    assert_eq!(valid_row.warnings.len(), 1);
+    assert!(
+        valid_row.warnings[0].contains("Tìm thấy 2 hợp đồng chưa kết thúc")
+            || valid_row.warnings[0].contains("Found 2 non-terminated employments")
+    );
+}
+
+/// Test Option D: Trùng lặp cùng 1 mã nhân viên trong file Excel
+#[tokio::test]
+async fn test_bulk_termination_option_d_duplicate_in_file_rejected() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let user_id: Uuid = factory.user().create().await;
+    let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
+
+    let _emp_id = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_employee_id_number("EMP-DUP-01")
+        .with_full_name("Double Trouble")
+        .create()
+        .await;
+
+    let mut workbook = Workbook::new();
+    let worksheet = workbook.add_worksheet();
+    worksheet.write_string(0, 0, "employee_code").unwrap();
+    worksheet.write_string(0, 1, "termination_date").unwrap();
+    worksheet.write_string(0, 2, "termination_reason").unwrap();
+    // Row 1
+    worksheet.write_string(1, 0, "EMP-DUP-01").unwrap();
+    worksheet.write_string(1, 1, "2026-07-05").unwrap();
+    worksheet
+        .write_string(1, 2, "voluntary_resignation")
+        .unwrap();
+    // Row 2 (Duplicate)
+    worksheet.write_string(2, 0, "EMP-DUP-01").unwrap();
+    worksheet.write_string(2, 1, "2026-07-06").unwrap();
+    worksheet
+        .write_string(2, 2, "voluntary_resignation")
+        .unwrap();
+    let xlsx_bytes = workbook.save_to_buffer().unwrap();
+
+    let boundary = "boundary-dup-test";
+    let mut body = Vec::new();
+    body.extend_from_slice(format!("--{boundary}\r\n").as_bytes());
+    body.extend_from_slice(
+        b"Content-Disposition: form-data; name=\"file\"; filename=\"dup.xlsx\"\r\n\r\n",
+    );
+    body.extend_from_slice(&xlsx_bytes);
+    body.extend_from_slice(format!("\r\n--{boundary}--\r\n").as_bytes());
+    let content_type = format!("multipart/form-data; boundary={boundary}");
+
+    let response = app
+        .oneshot(
+            axum::http::Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/workspaces/{ws_id}/employees/import-termination/preview"
+                ))
+                .header("Content-Type", content_type)
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::from(body))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body_bytes = axum::body::to_bytes(response.into_body(), 50_000)
+        .await
+        .unwrap();
+    let preview: apiserver::handlers::employees::TerminationPreviewResponse =
+        serde_json::from_slice(&body_bytes).unwrap();
+
+    // 1 row must be valid, the duplicate row (Row 2) must be invalid
+    assert_eq!(preview.valid_rows.len(), 1);
+    assert_eq!(preview.invalid_rows.len(), 1);
+    let invalid_row = &preview.invalid_rows[0];
+    assert_eq!(invalid_row.row_number, 3);
+
+    assert!(
+        invalid_row.reason.contains("Mã nhân viên bị lặp lại")
+            || invalid_row.reason.contains("Duplicate employee code")
+    );
+}
+
+/// Test Option F: Kiểm tra lúc Confirm.
+/// Nếu employment đã bị terminated trước đó (do user khác confirm trước hoặc lý do khác),
+/// request confirm sẽ bị block ngay lập tức với lỗi Validation error.
+#[tokio::test]
+async fn test_bulk_termination_option_f_confirm_validation_fails_for_terminated() {
+    let (test_db, factory, state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let user_id: Uuid = factory.user().create().await;
+    let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
+    let auth_token = apiserver::diesel_pool::TenantAuthToken::system_override(ws_id);
+
+    let emp_id = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_employee_id_number("EMP-CONFIRM-FAIL")
+        .with_full_name("Terminated Guy")
+        .create()
+        .await;
+
+    let employments = state
+        .employees()
+        .employment_repo()
+        .list_employee_employments(&auth_token, emp_id)
+        .await
+        .unwrap();
+    let emp = &employments[0];
+
+    // Cập nhật trạng thái thành terminated
+    crate::test_execute!(
+        &test_db.diesel_pools.api,
+        "UPDATE employments SET status = 'terminated' WHERE id = $1",
+        diesel::sql_types::Uuid,
+        emp.id()
+    );
+
+    let confirm_payload = apiserver::handlers::employees::ConfirmTerminationRequest {
+        rows: vec![apiserver::handlers::employees::ConfirmTerminationRow {
+            employment_id: emp.id(),
+            termination_date: chrono::NaiveDate::from_ymd_opt(2026, 7, 1).unwrap(),
+            termination_reason: "voluntary_resignation".to_string(),
+            termination_notes: None,
+        }],
+    };
+
+    let response = app
+        .oneshot(
+            axum::http::Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/workspaces/{ws_id}/employees/import-termination/confirm"
+                ))
+                .header("Content-Type", "application/json")
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::from(
+                    serde_json::to_vec(&confirm_payload).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
+
+/// Test Option A: Nhân viên hoàn toàn không có hợp đồng lao động nào
+/// Hệ thống phải báo lỗi "error.no_active_employment".
+#[tokio::test]
+async fn test_bulk_termination_no_employments_returns_error_no_active_employment() {
+    let (test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let user_id: Uuid = factory.user().create().await;
+    let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
+
+    let emp_id = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_employee_id_number("EMP-NO-EMP-01")
+        .with_full_name("No Employment Guy")
+        .create()
+        .await;
+
+    // Xóa toàn bộ hợp đồng lao động của employee này để test trường hợp trống hoàn toàn
+    crate::test_execute!(
+        &test_db.diesel_pools.api,
+        "DELETE FROM employments WHERE employee_id = $1",
+        diesel::sql_types::Uuid,
+        emp_id
+    );
+
+    let mut workbook = Workbook::new();
+    let worksheet = workbook.add_worksheet();
+    worksheet.write_string(0, 0, "employee_code").unwrap();
+    worksheet.write_string(0, 1, "termination_date").unwrap();
+    worksheet.write_string(0, 2, "termination_reason").unwrap();
+    worksheet.write_string(1, 0, "EMP-NO-EMP-01").unwrap();
+    worksheet.write_string(1, 1, "2026-07-05").unwrap();
+    worksheet
+        .write_string(1, 2, "voluntary_resignation")
+        .unwrap();
+    let xlsx_bytes = workbook.save_to_buffer().unwrap();
+
+    let boundary = "boundary-no-emp-test";
+    let mut body = Vec::new();
+    body.extend_from_slice(format!("--{boundary}\r\n").as_bytes());
+    body.extend_from_slice(
+        b"Content-Disposition: form-data; name=\"file\"; filename=\"no_emp.xlsx\"\r\n\r\n",
+    );
+    body.extend_from_slice(&xlsx_bytes);
+    body.extend_from_slice(format!("\r\n--{boundary}--\r\n").as_bytes());
+    let content_type = format!("multipart/form-data; boundary={boundary}");
+
+    let response = app
+        .oneshot(
+            axum::http::Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/workspaces/{ws_id}/employees/import-termination/preview"
+                ))
+                .header("Content-Type", content_type)
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::from(body))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body_bytes = axum::body::to_bytes(response.into_body(), 50_000)
+        .await
+        .unwrap();
+    let preview: apiserver::handlers::employees::TerminationPreviewResponse =
+        serde_json::from_slice(&body_bytes).unwrap();
+
+    assert_eq!(preview.valid_rows.len(), 0);
+    assert_eq!(preview.invalid_rows.len(), 1);
+    let invalid_row = &preview.invalid_rows[0];
+    assert_eq!(
+        invalid_row.reason,
+        apiserver::utils::i18n::translate("vi", "error.no_active_employment")
     );
 }

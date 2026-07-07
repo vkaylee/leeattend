@@ -104,6 +104,23 @@ pub fn parse_date(s: &str) -> Option<chrono::NaiveDate> {
         return None;
     }
 
+    // Try parsing as numeric Excel serial date (e.g. "46199" or "46199.0")
+    if let Ok(val) = s.parse::<f64>() {
+        // Excel serial date representation:
+        // values < 1.0 are invalid dates (they are time only), and negative is invalid.
+        // Excel leap year bug: 1900 is treated as a leap year, so day 60 is Feb 29, 1900.
+        // We start Excel epoch at 1899-12-31 (day 1 is 1900-01-01).
+        if val >= 1.0 && val < 2958466.0 { // limit to year 9999
+            let days = val as i64;
+            // Adjust for Excel leap year bug (Feb 29, 1900 is day 60)
+            let adjusted_days = if days < 60 { days } else { days - 1 };
+            if let Some(epoch) = NaiveDate::from_ymd_opt(1899, 12, 31) {
+                return epoch.checked_add_signed(chrono::Duration::days(adjusted_days));
+            }
+        }
+    }
+
+
     // Split on 'T' first to remove any ISO time portion (e.g. 2026-05-29T13:45:00Z)
     let base_part = s.split('T').next().unwrap_or(s).trim();
 
@@ -337,4 +354,20 @@ mod tests {
         let res = parse_datetime_with_tz("not-a-date", "UTC", None, None);
         assert!(res.is_err());
     }
+
+    #[test]
+    fn test_parse_date_formats() {
+        assert_eq!(parse_date("2026-06-26"), Some(chrono::NaiveDate::from_ymd_opt(2026, 6, 26).unwrap()));
+        assert_eq!(parse_date("26-06-2026"), Some(chrono::NaiveDate::from_ymd_opt(2026, 6, 26).unwrap()));
+        assert_eq!(parse_date("26/06/2026"), Some(chrono::NaiveDate::from_ymd_opt(2026, 6, 26).unwrap()));
+        // Excel serial date tests
+        assert_eq!(parse_date("46199"), Some(chrono::NaiveDate::from_ymd_opt(2026, 6, 26).unwrap()));
+        assert_eq!(parse_date("46199.0"), Some(chrono::NaiveDate::from_ymd_opt(2026, 6, 26).unwrap()));
+        assert_eq!(parse_date("1"), Some(chrono::NaiveDate::from_ymd_opt(1900, 1, 1).unwrap()));
+        assert_eq!(parse_date("59"), Some(chrono::NaiveDate::from_ymd_opt(1900, 2, 28).unwrap()));
+        assert_eq!(parse_date("60"), Some(chrono::NaiveDate::from_ymd_opt(1900, 2, 28).unwrap()));
+        assert_eq!(parse_date("61"), Some(chrono::NaiveDate::from_ymd_opt(1900, 3, 1).unwrap()));
+    }
 }
+
+
