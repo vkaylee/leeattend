@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, Edit, Trash2, Clock, Coffee } from "lucide-react";
+import { CalendarDays, Edit, Trash2 } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -10,6 +10,8 @@ import { Typography } from "@/components/ui/typography";
 import { getCurrentWorkspaceId, fetchPatternDetails } from "@/lib/api";
 import { Shift, WorkingPattern, WorkingPatternDetail } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
+
+import { PatternPopoverDetails } from "./pattern-popover-details";
 
 interface PatternRowCardProps {
   expandedPatternId: string | null;
@@ -93,65 +95,11 @@ function DayTimelinePill({
         side="top"
         sideOffset={8}
       >
-        <div className="space-y-3">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/60 pb-2">
-            <span className="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 tracking-wider">
-              {dayName}
-            </span>
-            {!!hasShifts && !!assignedDetails[0].shift_id && (
-              <span className="px-2 py-0.5 rounded-md bg-primary-50 dark:bg-primary-950 text-[9px] font-bold text-primary-600 dark:text-primary-400 uppercase">
-                {shifts?.find((s) => s.id === assignedDetails[0].shift_id)?.report_symbol ?? "—"}
-              </span>
-            )}
-          </div>
-
-          {hasShifts ? (
-            assignedDetails.map((d, idx) => {
-              const shift = shifts?.find((s) => s.id === d.shift_id);
-              if (!shift) return null;
-              return (
-                <div className="space-y-2.5" key={idx}>
-                  <Typography className="font-bold text-sm text-slate-800 dark:text-slate-100 uppercase tracking-tight leading-snug" variant="h5">
-                    {shift.name}
-                  </Typography>
-                  <div className="flex flex-col gap-1.5 text-xs text-slate-600 dark:text-slate-350">
-                    {(() => {
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      const iv = ((shift as any).intervals as any[])?.[0];
-                      const st = (iv?.start_time as string)?.substring(0, 5) ?? '--';
-                      const et = (iv?.end_time as string)?.substring(0, 5) ?? '--';
-                      const bs = iv?.break_start as string;
-                      const be = iv?.break_end as string;
-                      const bd = (iv?.break_duration_minutes as number) ?? 0;
-                      return (<>
-                    <div className="flex items-center gap-2">
-                      <Clock className="text-primary-500 dark:text-primary-400" size={14} />
-                      <span className="font-semibold">{st} - {et}</span>
-                    </div>
-                    {bs && be ? (
-                      <div className="flex items-center gap-2">
-                        <Coffee className="text-amber-500 dark:text-amber-400" size={14} />
-                        <span>
-                          {t("shifts.table.break_time")}: {bs.substring(0,5)} - {be.substring(0,5)} ({bd}m)
-                        </span>
-                      </div>
-                    ) : null}
-                      </>);
-                    })()}
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            <div className="py-2 text-center text-xs font-semibold text-slate-400 dark:text-slate-500 italic uppercase tracking-wider">
-              {t("shifts.monthly.off_day") || "Rest Day"}
-            </div>
-          )}
-        </div>
+        <PatternPopoverDetails dayDetails={dayDetails} dayName={dayName} shifts={shifts} />
       </PopoverContent>
     </Popover>
   );
-}
+};
 
 export function PatternRowCard({
   onDelete,

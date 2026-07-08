@@ -9,6 +9,8 @@ import type {
   CompensationHistoryResponse,
 } from "./types";
 
+export type { Employment } from "./types";
+
 import { client } from "./client";
 import { apiFetch } from "./helpers";
 
@@ -217,7 +219,7 @@ export async function fetchCompensationHistory(
   const { data } = await client.GET("/workspaces/{workspace_id}/employees/{id}/compensation-history", {
     params: {
       path: { workspace_id: wsId, id: employeeId },
-      query: { employment_id: employmentId || undefined } as any,
+      query: { employment_id: employmentId || undefined },
     },
   });
   if (!data) throw new Error("No response data");
@@ -238,7 +240,7 @@ export async function uploadTerminationImportPreview(
     params: {
       path: { workspace_id: wsId },
     },
-    body: formData as any,
+    body: formData as unknown as never,
   });
   if (!data) throw new Error("No response data");
   return data;
@@ -258,7 +260,7 @@ export async function confirmTerminationImport(
     },
   });
   if (!data) throw new Error("No response data");
-  return data as any;
+  return data as { success_count: number; job_id?: string };
 }
 
 /** Download bulk termination Excel template via authenticated fetch */

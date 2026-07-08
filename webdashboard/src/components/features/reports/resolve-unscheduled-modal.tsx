@@ -2,6 +2,8 @@ import { AlertTriangle, CalendarCheck } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import type { ShiftWithIntervals } from "@/pages/shifts/hooks/use-shifts-types";
+
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { Typography } from "@/components/ui/typography";
@@ -82,7 +84,7 @@ export default function ResolveUnscheduledModal({
                         <option value="">-- {t("reports.unscheduled.select_shift")} --</option>
                         {(shifts ?? []).map((shift: Shift) => (
                             <option key={shift.id} value={shift.id}>
-                                {shift.name} ({String((shift as any).intervals?.[0]?.start_time ?? '--').substring(0, 5)} — {String((shift as any).intervals?.[0]?.end_time ?? '--').substring(0, 5)})
+                                {shift.name} ({String((shift as ShiftWithIntervals).intervals?.[0]?.start_time ?? '--').substring(0, 5)} — {String((shift as ShiftWithIntervals).intervals?.[0]?.end_time ?? '--').substring(0, 5)})
                             </option>
                         ))}
                     </select>

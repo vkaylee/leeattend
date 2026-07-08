@@ -222,8 +222,8 @@ export default function EmployeeLifecycleTab({ employmentId }: EmployeeLifecycle
               {/* Items List */}
               <div className="space-y-4">
                 {activeChecklist.items
-                  ?.sort((a: any, b: any) => a.display_order - b.display_order)
-                  .map((item: any) => {
+                  ?.sort((a: LifecycleChecklistItem, b: LifecycleChecklistItem) => a.display_order - b.display_order)
+                  .map((item: LifecycleChecklistItem) => {
                     const isCompleted = item.status === "completed";
                     const isEditingNotes = editingNotesItemId === item.id;
 

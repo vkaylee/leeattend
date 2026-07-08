@@ -32,7 +32,7 @@ export const MultiselectFieldEditor: React.FC<MultiselectFieldEditorProps> = ({
     }
     if (typeof value === "string") {
       try {
-        const parsed = JSON.parse(value);
+        const parsed: unknown = JSON.parse(value);
         if (Array.isArray(parsed)) return parsed.map(String);
       } catch {
         return value ? [value] : [];

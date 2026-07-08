@@ -136,8 +136,8 @@ export default tseslint.config(
 
 
       // --- Option C: Enterprise Hardening ---
-      'complexity': ['warn', 10],
-      'max-lines-per-function': ['warn', { max: 150, skipBlankLines: true, skipComments: true }],
+      'complexity': ['error', 10],
+      'max-lines-per-function': ['error', { max: 150, skipBlankLines: true, skipComments: true }],
       'max-params': ['warn', 4],
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       
@@ -159,12 +159,12 @@ export default tseslint.config(
       ] }],
 
       // Additional warning levels to avoid test blocks on legacy code
-      '@typescript-eslint/no-unsafe-assignment': 'warn',
-      '@typescript-eslint/no-unsafe-member-access': 'warn',
-      '@typescript-eslint/no-unsafe-call': 'warn',
-      '@typescript-eslint/no-unsafe-argument': 'warn',
-      '@typescript-eslint/no-unsafe-return': 'warn',
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unsafe-assignment': 'error',
+      '@typescript-eslint/no-unsafe-member-access': 'error',
+      '@typescript-eslint/no-unsafe-call': 'error',
+      '@typescript-eslint/no-unsafe-argument': 'error',
+      '@typescript-eslint/no-unsafe-return': 'error',
+      '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-base-to-string': 'warn',
       '@typescript-eslint/no-confusing-void-expression': 'warn',
       'jsx-a11y/click-events-have-key-events': 'warn',
@@ -218,15 +218,10 @@ export default tseslint.config(
       'src/types/api-generated.ts',
       'src/lib/api-generated/**/*',
       // Legacy files violating max-lines limits (> 200 lines)
-      'src/hooks/use-dashboard-layout.ts',
-      'src/hooks/use-dashboard.ts',
-      'src/hooks/use-working-pattern-form.ts',
       'src/lib/api/attendance.ts',
-      'src/lib/api/helpers.ts',
       'src/lib/api/leaves.ts',
       'src/lib/api/payroll.ts',
       'src/lib/api/types.ts',
-      'src/lib/permission-groups.ts',
       'src/pages/attendance/hooks/use-working-patterns.ts',
     ],
     rules: {

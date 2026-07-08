@@ -91,7 +91,7 @@ export async function submitAttendanceAdjustment(
 ): Promise<AttendanceAdjustmentRequest> {
   const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/attendance/adjustments", {
     params: { path: { ws_id: wsId } },
-    body: data as any
+    body: data
   });
   if (!resData) throw new Error("No response data");
   return resData;
@@ -110,11 +110,11 @@ export async function fetchWorkspaceAttendanceAdjustments(
     params: {
       path: { ws_id: wsId },
       query: {
-        status: params?.status,
+        status: params?.status as "pending" | "approved" | "rejected" | null | undefined,
         employee_id: params?.employee_id === "all" ? undefined : params?.employee_id,
         page: params?.page,
         limit: params?.limit,
-      } as any,
+      },
     }
   });
   if (!resData) throw new Error("No response data");
@@ -161,7 +161,7 @@ export async function fetchAttendanceLogs(params: {
     },
   });
   if (!resData) throw new Error("No response data");
-  return resData as any;
+  return resData as unknown as { data: TimeEntry[]; total: number; page: number; limit: number };
 }
 
 export async function fetchRawAttendanceLogs(params: {
@@ -187,7 +187,7 @@ export async function fetchRawAttendanceLogs(params: {
     },
   });
   if (!resData) throw new Error("No response data");
-  return resData as any;
+  return resData as unknown as { data: RawAttendanceLog[]; total: number; page: number; limit: number };
 }
 
 export interface FetchAttendanceReportParams {
@@ -375,7 +375,7 @@ export async function fetchAttendanceSummaries(
     }
   });
   if (!resData) throw new Error("No response data");
-  return Array.isArray(resData) ? resData : (resData as any).data ?? [];
+  return Array.isArray(resData) ? resData : (resData as { data?: AttendanceDailySummary[] }).data ?? [];
 }
 
 export async function fetchAttendanceSummariesPaginated(
@@ -473,14 +473,16 @@ export async function fetchStagingLogs(
   page = 1,
   limit = 50
 ): Promise<StagingLogsResponse> {
+  // NOTE: page/limit are sent even though the OpenAPI schema marks query as `never`.
+  // The backend accepts them via the standard openapi-fetch params passthrough.
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/staging-logs", {
     params: {
       path: { ws_id: wsId },
-      query: { page, limit } as unknown as never
-    }
-  });
+      query: { page, limit },
+    },
+  } as never);
   if (!resData) throw new Error("No response data");
-  return resData as any;
+  return resData;
 }
 
 export async function resolveStagingLog(

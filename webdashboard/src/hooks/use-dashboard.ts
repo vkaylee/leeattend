@@ -2,27 +2,32 @@ import { useQuery } from "@tanstack/react-query";
 
 import { apiFetch } from "@/lib/api";
 
+import {
+  type AttendanceTrendPoint,
+  type DepartmentAttendancePoint,
+  type LatenessByDay,
+  type LeaveTypeBreakdown,
+  type OvertimeTrendPoint,
+  type PeakTimeSlot,
+  type RecruitmentSourceBreakdown,
+  type TurnoverAnalytics,
+  type UnexcusedAbsencesPoint,
+  type WorkspaceStats,
+} from "./use-dashboard-types";
 import { useWorkspace } from "./use-workspace";
 
-export interface WorkspaceStats {
-  absent_today: number;
-  avg_work_hours_today: number;
-  early_departure_today: number;
-  estimated_monthly_payroll: string;
-  late_today: number;
-  on_leave_today: number;
-  pending_leave_requests: number;
-  present_today: number;
-  total_employees: number;
-}
-
-export interface AttendanceTrendPoint {
-  absent: number;
-  date: string;
-  late: number;
-  on_leave: number;
-  present: number;
-}
+export type {
+  AttendanceTrendPoint,
+  DepartmentAttendancePoint,
+  LatenessByDay,
+  LeaveTypeBreakdown,
+  OvertimeTrendPoint,
+  PeakTimeSlot,
+  RecruitmentSourceBreakdown,
+  TurnoverAnalytics,
+  UnexcusedAbsencesPoint,
+  WorkspaceStats,
+} from "./use-dashboard-types";
 
 export function useDashboardStats() {
   const { workspace } = useWorkspace();
@@ -64,15 +69,6 @@ export function useAttendanceTrend() {
   });
 }
 
-export interface DepartmentAttendancePoint {
-  absent: number;
-  department_id: string;
-  department_name: string;
-  late: number;
-  on_leave: number;
-  on_time: number;
-}
-
 export function useDepartmentAttendance(range: "today" | "week" = "today") {
   const { workspace } = useWorkspace();
 
@@ -93,17 +89,6 @@ export function useDepartmentAttendance(range: "today" | "week" = "today") {
     },
     enabled: !!workspace,
   });
-}
-
-export interface UnexcusedAbsencesPoint {
-  consecutive_count: number;
-  department_id: string;
-  department_name: string;
-  employee_id?: string;
-  employee_name?: string;
-  total_absent_count: number;
-  total_leave_count: number;
-  unexcused_count: number;
 }
 
 export function useUnexcusedAbsences(startDate?: string, endDate?: string, groupBy?: "department" | "employee") {
@@ -131,12 +116,6 @@ export function useUnexcusedAbsences(startDate?: string, endDate?: string, group
   });
 }
 
-export interface OvertimeTrendPoint {
-  approved_ot_hours: number;
-  date: string;
-  system_ot_hours: number;
-}
-
 export function useOvertimeTrend() {
   const { workspace } = useWorkspace();
 
@@ -158,12 +137,6 @@ export function useOvertimeTrend() {
 }
 
 // ── Peak Check-in/Check-out Times ──────────────────────────
-
-export interface PeakTimeSlot {
-  check_in: number;
-  check_out: number;
-  time_slot: string; // e.g. "07:30-08:00"
-}
 
 export function usePeakTimes() {
   const { workspace } = useWorkspace();
@@ -187,11 +160,6 @@ export function usePeakTimes() {
 
 // ── Leave Types Breakdown ──────────────────────────────────
 
-export interface LeaveTypeBreakdown {
-  count: number;
-  leave_type: string; // e.g. "Sick", "Annual", "Maternity"
-}
-
 export function useLeaveTypesBreakdown() {
   const { workspace } = useWorkspace();
 
@@ -213,12 +181,6 @@ export function useLeaveTypesBreakdown() {
 }
 
 // ── Lateness by Day of Week ────────────────────────────────
-
-export interface LatenessByDay {
-  avg_late_minutes: number;
-  day: string; // e.g. "Mon", "Tue", ...
-  late_count: number;
-}
 
 export function useLatenessByDay() {
   const { workspace } = useWorkspace();
@@ -242,12 +204,6 @@ export function useLatenessByDay() {
 
 // ── Recruitment Source Breakdown ──────────────────────────────────
 
-export interface RecruitmentSourceBreakdown {
-  count: number;
-  source_name: string;
-  source_type: string;
-}
-
 export function useRecruitmentSourceBreakdown() {
   const { workspace } = useWorkspace();
 
@@ -269,31 +225,6 @@ export function useRecruitmentSourceBreakdown() {
 }
 
 // ── Turnover Analytics ─────────────────────────────────────────────
-
-export interface TurnoverTenureBucket {
-  bucket: string;
-  count: number;
-}
-
-export interface TurnoverBySource {
-  count: number;
-  source_name: string;
-  source_type: string;
-}
-
-export interface TurnoverByDepartment {
-  count: number;
-  department_name: string;
-}
-
-export interface TurnoverAnalytics {
-  by_department: TurnoverByDepartment[];
-  by_source: TurnoverBySource[];
-  period_end: string;
-  period_start: string;
-  tenure_distribution: TurnoverTenureBucket[];
-  total_terminated: number;
-}
 
 export function useTurnoverAnalytics(startDate: string, endDate: string) {
   const { workspace } = useWorkspace();

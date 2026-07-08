@@ -2,6 +2,8 @@ import { Edit2, Check, X, Loader2 } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import type { CustomFieldDefinition, CustomFieldValueResponse } from "@/lib/api/types";
+
 import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
@@ -18,6 +20,32 @@ import { CustomFieldRenderer } from "./custom-field-renderer";
 interface CustomFieldSectionProps {
   entityId: string;
   entityType: "employee" | "employment" | "department";
+}
+
+function buildInitialFormValues(
+  definitions: CustomFieldDefinition[],
+  values: CustomFieldValueResponse[],
+): Record<string, unknown> {
+  const initial: Record<string, unknown> = {};
+  definitions.forEach((def) => {
+    const valueObj = values.find((v) => v.definition_id === def.id);
+    initial[def.id] = valueObj ? valueObj.value : def.default_value ?? null;
+  });
+  return initial;
+}
+
+function buildValidationErrors(
+  definitions: CustomFieldDefinition[],
+  formValues: Record<string, unknown>,
+): Record<string, string> {
+  const nextErrors: Record<string, string> = {};
+  definitions.forEach((def) => {
+    const val = formValues[def.id];
+    if (def.is_required && (val === null || val === undefined || val === "")) {
+      nextErrors[def.id] = `${def.field_label} is required`;
+    }
+  });
+  return nextErrors;
 }
 
 export const CustomFieldSection: React.FC<CustomFieldSectionProps> = ({
@@ -52,14 +80,44 @@ export const CustomFieldSection: React.FC<CustomFieldSectionProps> = ({
       : hasPermission("employees:update");
 
   const startEditing = () => {
-    const initial: Record<string, unknown> = {};
-    definitions.forEach((def) => {
-      const valueObj = values.find((v) => v.definition_id === def.id);
-      initial[def.id] = valueObj ? valueObj.value : def.default_value ?? null;
-    });
-    setFormValues(initial);
+    setFormValues(buildInitialFormValues(definitions, values));
     setErrors({});
     setIsEditing(true);
+  };
+
+  const handleValueChange = (defId: string, val: unknown) => {
+    setFormValues((prev) => ({ ...prev, [defId]: val }));
+    if (errors[defId]) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[defId];
+        return next;
+      });
+    }
+  };
+
+  const handleSave = () => {
+    const nextErrors = buildValidationErrors(definitions, formValues);
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
+      toast.error("Please fill in all required custom fields.", "Validation Error");
+      return;
+    }
+
+    const payload = Object.entries(formValues).map(([defId, val]) => ({
+      definition_id: defId,
+      value: val,
+    }));
+
+    setValues(payload, {
+      onSuccess: () => {
+        setIsEditing(false);
+        toast.success(t("values_updated"));
+      },
+      onError: (err) => {
+        toast.error(err instanceof Error ? err.message : "Failed to update custom fields");
+      },
+    });
   };
 
   if (isLoadingDefs || isLoadingValues) {
@@ -76,51 +134,6 @@ export const CustomFieldSection: React.FC<CustomFieldSectionProps> = ({
   if (definitions.length === 0) {
     return null; // Don't show section if no fields configured
   }
-
-  const handleValueChange = (defId: string, val: unknown) => {
-    setFormValues((prev) => ({ ...prev, [defId]: val }));
-    // Clear error
-    if (errors[defId]) {
-      setErrors((prev) => {
-        const next = { ...prev };
-        delete next[defId];
-        return next;
-      });
-    }
-  };
-
-  const handleSave = () => {
-    // Basic validation
-    const nextErrors: Record<string, string> = {};
-    definitions.forEach((def) => {
-      const val = formValues[def.id];
-      if (def.is_required && (val === null || val === undefined || val === "")) {
-        nextErrors[def.id] = `${def.field_label} is required`;
-      }
-    });
-
-    if (Object.keys(nextErrors).length > 0) {
-      setErrors(nextErrors);
-      toast.error("Please fill in all required custom fields.", "Validation Error");
-      return;
-    }
-
-    // Prepare payload
-    const payload = Object.entries(formValues).map(([defId, val]) => ({
-      definition_id: defId,
-      value: val,
-    }));
-
-    setValues(payload, {
-      onSuccess: () => {
-        setIsEditing(false);
-        toast.success(t("values_updated"));
-      },
-      onError: (err) => {
-        toast.error(err instanceof Error ? err.message : "Failed to update custom fields");
-      },
-    });
-  };
 
   return (
     <div className="p-8 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl space-y-6 shadow-sm transition-all hover:shadow-md">

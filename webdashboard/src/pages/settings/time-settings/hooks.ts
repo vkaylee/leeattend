@@ -3,6 +3,8 @@ import { useRef, useState, useEffect } from "react";
 
 import { TFunction } from "i18next";
 
+import type { GenericJobStatus } from "@/lib/api/attendance";
+
 import { useToast } from "@/components/ui/toast";
 import {
   reprocessAllAttendance,
@@ -73,7 +75,7 @@ export function useBulkReprocess(wsId: string, t: TFunction) {
       return checkReprocessStatus(wsId, pollingJobId);
     },
     enabled: !!pollingJobId,
-    refetchInterval: (query: any) => {
+    refetchInterval: (query: { state: { data: GenericJobStatus | null | undefined } }) => {
       const data = query.state.data;
       return data && (data.status === "completed" || data.status === "failed") ? false : 3000;
     },
@@ -89,9 +91,9 @@ export function useBulkReprocess(wsId: string, t: TFunction) {
           setShowReprocessConfirm(false);
           setPollingJobId(null);
         }, 0);
-      } else if (jobStatusQuery.data.status === "failed") {
+      } else if (jobStatusQuery.data?.status === "failed") {
         setTimeout(() => {
-          toast.error("Process failed: " + (jobStatusQuery.data.error ?? "Unknown error"));
+          toast.error("Process failed: " + (jobStatusQuery.data?.error ?? "Unknown error"));
           setShowReprocessConfirm(false);
           setPollingJobId(null);
         }, 0);
@@ -124,7 +126,7 @@ export function useBulkReprocess(wsId: string, t: TFunction) {
   };
 
   return {
-    jobStatus: jobStatusQuery.data,
+    jobStatus: jobStatusQuery.data ?? undefined,
     isPending: reprocessMutation.isPending,
     pollingJobId,
     reprocessEnd,

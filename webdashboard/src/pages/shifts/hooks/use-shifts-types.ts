@@ -17,6 +17,11 @@ import {
 export type TabType = "weekly-roster" | "assignments" | "directory";
 export type ViewMode = "week" | "month";
 
+// Runtime extension: intervals exist at runtime but are not in the generated API schema.
+export type ShiftWithIntervals = Shift & {
+  intervals?: { start_time?: string; end_time?: string }[];
+};
+
 export interface UseShiftsReturn {
   activeTab: TabType;
   allowEarlyOt: boolean;

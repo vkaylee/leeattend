@@ -144,8 +144,8 @@ export default function AppShell({ variant }: AppShellProps) {
         activeGroup={activeGroup ?? pathActiveGroup}
         isPinned={isPinned}
         onClickGroup={handleGroupClick}
-        onHoverGroup={handleGroupHover}
         onClickWorkspaceSwitcher={() => { setShowSwitcher(true); }}
+        onHoverGroup={handleGroupHover}
         onTogglePin={togglePin}
         workspaceLogoUrl={currentWorkspace?.logo_url ?? undefined}
         workspaceName={currentWorkspace?.name ?? "LeeAttend"}

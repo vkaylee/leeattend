@@ -693,4 +693,9 @@ export interface UpdateShiftIntervalRequest {
   start_time?: string | null;
 }
 
+// --- Termination Import Row Types (from openapi-generated schemas) ---
+export type ValidTerminationRow = components["schemas"]["ValidTerminationRow"];
+export type InvalidTerminationRow = components["schemas"]["InvalidTerminationRow"];
+export type ProratedLeavePreview = components["schemas"]["ProratedLeavePreview"];
+
 

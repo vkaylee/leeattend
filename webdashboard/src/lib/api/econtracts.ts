@@ -38,7 +38,7 @@ export interface SignerStatus {
 }
 
 export interface EContractEnvelope {
-  audit_trail_metadata?: any;
+  audit_trail_metadata?: unknown;
   contract_id: string;
   created_at: string;
   employer_id: string;
@@ -152,13 +152,13 @@ export async function fetchEContractConfigs(wsId: string, employers: Employer[])
   await delay(300);
   initMockData(wsId, employers);
   const data = localStorage.getItem(getStorageKey("configs", wsId));
-  return data ? JSON.parse(data) : [];
+  return data ? (JSON.parse(data) as EContractConfig[]) : [];
 }
 
 export async function saveEContractConfig(wsId: string, config: EContractConfig): Promise<EContractConfig> {
   await delay(400);
   const key = getStorageKey("configs", wsId);
-  const existing: EContractConfig[] = JSON.parse(localStorage.getItem(key) || "[]");
+  const existing: EContractConfig[] = JSON.parse(localStorage.getItem(key) || "[]") as EContractConfig[];
   const idx = existing.findIndex((c) => c.employer_id === config.employer_id && c.provider_type === config.provider_type);
   
   const updatedConfig = {
@@ -182,13 +182,13 @@ export async function fetchEContractRules(wsId: string, employers: Employer[]): 
   await delay(300);
   initMockData(wsId, employers);
   const data = localStorage.getItem(getStorageKey("rules", wsId));
-  return data ? JSON.parse(data) : [];
+  return data ? (JSON.parse(data) as EContractRoutingRule[]) : [];
 }
 
 export async function saveEContractRule(wsId: string, rule: Omit<EContractRoutingRule, "id" | "created_at"> & { id?: string }): Promise<EContractRoutingRule> {
   await delay(300);
   const key = getStorageKey("rules", wsId);
-  const existing: EContractRoutingRule[] = JSON.parse(localStorage.getItem(key) || "[]");
+  const existing: EContractRoutingRule[] = JSON.parse(localStorage.getItem(key) || "[]") as EContractRoutingRule[];
   
   if (rule.id) {
     const idx = existing.findIndex((r) => r.id === rule.id);
@@ -216,7 +216,7 @@ export async function saveEContractRule(wsId: string, rule: Omit<EContractRoutin
 export async function deleteEContractRule(wsId: string, ruleId: string): Promise<void> {
   await delay(200);
   const key = getStorageKey("rules", wsId);
-  const existing: EContractRoutingRule[] = JSON.parse(localStorage.getItem(key) || "[]");
+  const existing: EContractRoutingRule[] = JSON.parse(localStorage.getItem(key) || "[]") as EContractRoutingRule[];
   const filtered = existing.filter((r) => r.id !== ruleId);
   localStorage.setItem(key, JSON.stringify(filtered));
 }
@@ -225,13 +225,13 @@ export async function fetchEContractEnvelopes(wsId: string, employers: Employer[
   await delay(400);
   initMockData(wsId, employers);
   const data = localStorage.getItem(getStorageKey("envelopes", wsId));
-  return data ? JSON.parse(data) : [];
+  return data ? (JSON.parse(data) as EContractEnvelope[]) : [];
 }
 
 export async function saveEContractEnvelope(wsId: string, envelope: EContractEnvelope): Promise<EContractEnvelope> {
   await delay(300);
   const key = getStorageKey("envelopes", wsId);
-  const existing: EContractEnvelope[] = JSON.parse(localStorage.getItem(key) || "[]");
+  const existing: EContractEnvelope[] = JSON.parse(localStorage.getItem(key) || "[]") as EContractEnvelope[];
   const idx = existing.findIndex((e) => e.id === envelope.id);
   if (idx > -1) {
     existing[idx] = envelope;

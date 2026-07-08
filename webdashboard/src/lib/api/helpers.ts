@@ -1,6 +1,11 @@
-import { ROUTES } from "@/lib/routes";
-
+import {
+  getFullUrl,
+  handleUnauthorized,
+  TIMEOUT,
+} from "./api-fetch-helpers";
 import { API_BASE_URL } from "./config";
+
+export { TIMEOUT } from "./api-fetch-helpers";
 
 export function getAccessToken(): string | null {
   return localStorage.getItem("access_token");
@@ -102,18 +107,6 @@ export interface ApiFetchOptions extends RequestInit {
 }
 
 /**
- * Timeout constants for different operation types
- */
-export const TIMEOUT = {
-  /** Standard API calls (10 seconds) */
-  DEFAULT: 10000,
-  /** Report generation and large file operations (3 minutes) */
-  REPORT_OPERATION: 180000,
-  /** Health checks and quick operations (5 seconds) */
-  QUICK: 5000,
-} as const;
-
-/**
  * Wrapper for fetch to handle 401 and refresh token
  *
  * @param url - API endpoint URL
@@ -182,91 +175,6 @@ export async function apiFetch(
     clearTimeout(id);
     throw error;
   }
-}
-
-function getFullUrl(url: string): string {
-  if (url.startsWith("http") || url.startsWith(API_BASE_URL)) {
-    return url;
-  }
-  const path = url.startsWith("/") ? url : `/${url}`;
-  return `${API_BASE_URL}${path}`;
-}
-
-interface UnauthorizedParams {
-  controller: AbortController;
-  fetchOptions: RequestInit;
-  fullUrl: string;
-  headers: Headers;
-  timeoutId: number | ReturnType<typeof setTimeout>;
-}
-
-let refreshPromise: Promise<boolean> | null = null;
-
-export async function forceRefreshToken(): Promise<boolean> {
-  if (refreshPromise) {
-    return refreshPromise; // Xếp hàng chờ nếu đang có request refresh
-  }
-
-  refreshPromise = (async () => {
-    const refreshToken = getRefreshToken();
-    if (!refreshToken) return false;
-
-    try {
-      const refreshResponse = await fetch(`${API_BASE_URL}/v1/auth/refresh`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ refresh_token: refreshToken }),
-      });
-
-      if (refreshResponse.ok) {
-        const data = (await refreshResponse.json()) as { access_token: string; refresh_token: string };
-        setAccessToken(data.access_token);
-        setRefreshToken(data.refresh_token);
-        return true;
-      }
-    } catch (e) {
-      console.error("Token refresh failed", e);
-    }
-    return false;
-  })().finally(() => {
-    refreshPromise = null;
-  });
-
-  return refreshPromise;
-}
-
-async function handleUnauthorized({
-  fullUrl,
-  fetchOptions,
-  headers,
-  controller,
-  timeoutId
-}: UnauthorizedParams): Promise<Response> {
-  const success = await forceRefreshToken();
-  if (success) {
-    const token = getAccessToken();
-    const retryHeaders = new Headers(headers);
-    if (token) {
-      retryHeaders.set("Authorization", `Bearer ${token}`);
-    }
-    
-    const retryResponse = await fetch(fullUrl, {
-      ...fetchOptions,
-      headers: retryHeaders,
-      credentials: "include",
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-    return retryResponse;
-  }
-  
-  console.warn("Session expired (401). Redirecting to login...");
-  clearAuthSession();
-  if (window.location.pathname !== ROUTES.LOGIN) {
-    window.location.href = ROUTES.LOGIN;
-  }
-  throw new Error("Session expired");
 }
 
 export async function fetchHealth(): Promise<{ status: string }> {

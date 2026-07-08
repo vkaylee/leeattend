@@ -25,17 +25,18 @@ export function TabsList({ children, className = "" }: { children: React.ReactNo
   );
 }
 
+type TabsTriggerProps = {
+  value: string;
+  children: React.ReactNode;
+  className?: string;
+} & React.ComponentPropsWithoutRef<"button">;
+
 export function TabsTrigger({
   value,
   children,
   className = "",
   ...props
-}: {
-  value: string;
-  children: React.ReactNode;
-  className?: string;
-  [key: string]: any;
-}) {
+}: TabsTriggerProps) {
   const context = useContext(TabsContext);
   if (!context) throw new Error("TabsTrigger must be used within Tabs");
 

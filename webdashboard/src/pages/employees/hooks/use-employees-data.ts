@@ -2,6 +2,8 @@ import { useQuery, useInfiniteQuery, useMutation, useQueryClient, keepPreviousDa
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
+import type { Employment } from "@/lib/api/employees";
+
 import { useToast } from "@/components/ui/toast";
 import {
   searchEmployees,
@@ -123,7 +125,7 @@ export const useEmployeesData = ({
         status: "terminated",
         end_date: data.endDate,
       }),
-    onSuccess: (data: any, variables: { employeeId: string; employmentId: string; endDate: string }) => {
+    onSuccess: (data: Employment, variables: { employeeId: string; employmentId: string; endDate: string }) => {
       void queryClient.invalidateQueries({ queryKey: ["employees", wsId] });
       void queryClient.invalidateQueries({ queryKey: ["deptHistory"] });
       void queryClient.invalidateQueries({ queryKey: ["employee-employments", wsId, variables.employeeId] });

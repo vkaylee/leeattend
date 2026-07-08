@@ -2,6 +2,8 @@ import { Clock, Info } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import type { ShiftWithIntervals } from "@/pages/shifts/hooks/use-shifts-types";
+
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { Typography } from "@/components/ui/typography";
@@ -55,13 +57,15 @@ export function ShiftPickerModal({
               <div className="font-bold text-sm uppercase tracking-tight text-slate-700 dark:text-slate-200">{shift.name}</div>
               <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
                 {(() => {
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  const iv = ((shift as any).intervals as any[])?.[0];
-                  const st = iv?.start_time as string ?? '';
-                  const et = iv?.end_time as string ?? '';
-                  const bs = iv?.break_start as string;
-                  const be = iv?.break_end as string;
-                  const bd = iv?.break_duration_minutes as number ?? 0;
+                  const typedShift = shift as ShiftWithIntervals;
+                  const iv = typedShift.intervals?.[0] as
+                    | { start_time?: string; end_time?: string; break_start?: string; break_end?: string; break_duration_minutes?: number }
+                    | undefined;
+                  const st = iv?.start_time ?? '';
+                  const et = iv?.end_time ?? '';
+                  const bs = iv?.break_start;
+                  const be = iv?.break_end;
+                  const bd = iv?.break_duration_minutes ?? 0;
                   return (<>
                 <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold flex items-center gap-1">
                   <Clock size={10} /> {st ? formatTime(st) : '—'} - {et ? formatTime(et) : '—'}

@@ -69,7 +69,7 @@ export type EmployeeContractWithEmployee = EmployeeContract & {
 };
 
 export async function fetchWorkspaceContracts(wsId: string): Promise<EmployeeContractWithEmployee[]> {
-  const { data } = await client.GET("/api/v1/workspaces/{ws_id}/contracts" as any, {
+  const { data } = await client.GET("/api/v1/workspaces/{ws_id}/contracts", {
     params: {
       path: { ws_id: wsId },
     },

@@ -1,4 +1,3 @@
-import { client } from "./client";
 import { http } from "./untyped";
 
 export async function fetchFolders(wsId: string) {

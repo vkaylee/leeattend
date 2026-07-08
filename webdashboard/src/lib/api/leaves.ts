@@ -24,7 +24,7 @@ export async function submitLeaveRequest(
     params: {
       path: { ws_id: wsId },
     },
-    body: data as any, // Cast to any temporarily if openapi-typescript generation is pending
+    body: data,
   });
   if (!resData) throw new Error("No response data");
   return resData;
@@ -47,7 +47,7 @@ export async function fetchWorkspaceLeaveRequests(
         employee_id: params?.employee_id === "all" ? undefined : params?.employee_id,
         page: params?.page,
         limit: params?.limit,
-      } as any,
+      },
     },
   });
   if (!resData) throw new Error("No response data");

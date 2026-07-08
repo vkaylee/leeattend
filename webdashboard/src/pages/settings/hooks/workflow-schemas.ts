@@ -32,7 +32,7 @@ export interface WorkspaceMemberDef {
   user_id: string;
 }
 
-export const createDefaultFormValues = (entityType: string, t?: (key: string, options?: any) => string): WorkflowFormValues => ({
+export const createDefaultFormValues = (entityType: string, t?: (key: string, options?: Record<string, unknown>) => string): WorkflowFormValues => ({
   name: "",
   entity_type: entityType,
   description: "",

@@ -34,7 +34,7 @@ export function TooltipPortal({
       return;
     }
     const measure = () => {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setRect(el.getBoundingClientRect());
     };
     measure();

@@ -8,6 +8,7 @@ import {
   type ColumnPinningState,
   type Column,
   type Row,
+  type RowData,
 } from "@tanstack/react-table";
 import React, { useState, useMemo } from "react";
 
@@ -35,14 +36,9 @@ export interface SmartTableColumnMeta {
 }
 
 declare module "@tanstack/react-table" {
-  interface ColumnMeta<_TData, _TValue> {
-    cellClassName?: string;
-    editable?: boolean;
-    editOptions?: { value: string; label: string }[];
-    editType?: "text" | "number" | "select";
-    headerClassName?: string;
-    sticky?: "left" | "right";
-  }
+  // augments @tanstack/react-table ColumnMeta using locally-defined SmartTableColumnMeta
+   
+  interface ColumnMeta<TData extends RowData, TValue> extends SmartTableColumnMeta {}
 }
 
 export interface ContextMenuItem {

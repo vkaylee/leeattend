@@ -3,6 +3,12 @@ import { Upload, FileText, Loader2, CheckCircle2, AlertCircle, RefreshCw, Downlo
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import type {
+  ValidTerminationRow,
+  InvalidTerminationRow,
+  ProratedLeavePreview,
+} from "@/lib/api/types";
+
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
@@ -13,7 +19,7 @@ import {
   confirmTerminationImport,
   downloadTerminationTemplate,
   TerminationPreviewResponse,
-  ConfirmTerminationRow
+  ConfirmTerminationRow,
 } from "@/lib/api/employees";
 import { fetchJobStatus } from "@/lib/api/leaves";
 import { cn } from "@/lib/utils";
@@ -495,7 +501,7 @@ export default function EmployeeTerminationImportDialog({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {previewData.valid_rows.map((row: any) => (
+                      {previewData.valid_rows.map((row: ValidTerminationRow) => (
                         <TableRow key={row.row_number}>
                           <TableCell className="text-center font-bold text-slate-400">{row.row_number}</TableCell>
                           <TableCell className="font-mono font-bold text-slate-700 dark:text-slate-300">
@@ -520,7 +526,7 @@ export default function EmployeeTerminationImportDialog({
                           <TableCell>
                             {row.prorated_leaves.length > 0 ? (
                               <div className="flex flex-wrap gap-1.5">
-                                {row.prorated_leaves.map((p: any) => (
+                                {row.prorated_leaves.map((p: ProratedLeavePreview) => (
                                   <span
                                     className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400"
                                     key={p.leave_type_id}
@@ -579,7 +585,7 @@ export default function EmployeeTerminationImportDialog({
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {previewData.invalid_rows.map((row: any) => (
+                        {previewData.invalid_rows.map((row: InvalidTerminationRow) => (
                           <TableRow className="hover:bg-rose-50/20 dark:hover:bg-rose-950/5" key={row.row_number}>
                             <TableCell className="text-center font-bold text-rose-400">{row.row_number}</TableCell>
                             <TableCell className="font-mono text-slate-600 dark:text-slate-400">

@@ -95,7 +95,7 @@ export default function IconRail({
           onClick={() => { onClickGroup("settings"); }} onHover={(h) => { onHoverGroup(h ? "settings" : null); }}
           testId="nav-rail-group-settings" to={settings.to} />
         {groups.map((g) => (
-          <MenuLink key={g.section} group={g.section as NavGroup} icon={g.sectionIcon} isActive={activeGroup === g.section} label={g.label}
+          <MenuLink group={g.section as NavGroup} icon={g.sectionIcon} isActive={activeGroup === g.section} key={g.section} label={g.label}
             onClick={() => { onClickGroup(g.section as NavGroup); }} onHover={(h) => { onHoverGroup(h ? (g.section as NavGroup) : null); }}
             testId={`nav-rail-group-${g.section}`} />
         ))}
@@ -106,7 +106,7 @@ export default function IconRail({
           label={isPinned ? t("common.collapse", "Unpin") : t("common.expand", "Pin")} onClick={onTogglePin} />
         <IconTooltipButton data-testid="nav-rail-theme-toggle" icon={ThemeIcon} label={t(`common.theme.${mode}`, mode)} onClick={cycleTheme} />
         <IconLanguageButton langLabel={langLabel} onClick={cycleLanguage} tooltip={langTooltip} />
-        <IconTooltipLink data-testid="nav-rail-notifications" to={ROUTES.NOTIFICATIONS} aria-label={t("common.notifications")}>
+        <IconTooltipLink aria-label={t("common.notifications")} data-testid="nav-rail-notifications" to={ROUTES.NOTIFICATIONS}>
           <div className="relative">
             <Bell className="h-4 w-4" />
             {unreadCount > 0 && (
@@ -116,7 +116,7 @@ export default function IconRail({
             )}
           </div>
         </IconTooltipLink>
-        <IconTooltipLink data-testid="nav-rail-user-avatar" to={ROUTES.ESS_PROFILE} aria-label={t("common.profile")}>
+        <IconTooltipLink aria-label={t("common.profile")} data-testid="nav-rail-user-avatar" to={ROUTES.ESS_PROFILE}>
           <div className="w-7 h-7 rounded-lg bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-800 flex items-center justify-center font-bold text-[10px] shadow-sm group-hover:bg-primary-600 dark:group-hover:bg-primary-500 group-hover:text-white transition-all duration-300">
             {user?.full_name ? user.full_name.charAt(0).toUpperCase() : <UserCircle className="h-4 w-4" />}
           </div>
@@ -155,7 +155,7 @@ function MenuLink({ group, icon: Icon, isActive, label, onClick, onHover, testId
 
   if (to && (group === "dashboard" || group === "settings")) {
     return (
-      <Link {...handlers} aria-label={label} className={cls} data-testid={testId} ref={refCb as React.RefCallback<HTMLAnchorElement>} to={to as "/"}>
+      <Link {...handlers} aria-label={label} className={cls} data-testid={testId} ref={refCb} to={to as "/"}>
         {inner}
         <TooltipPortal el={el} hovered={hovered} label={label} />
       </Link>
@@ -163,7 +163,7 @@ function MenuLink({ group, icon: Icon, isActive, label, onClick, onHover, testId
   }
 
   return (
-    <button {...handlers} aria-label={label} className={cls} data-testid={testId} onClick={onClick} ref={refCb as React.RefCallback<HTMLButtonElement>} type="button">
+    <button {...handlers} aria-label={label} className={cls} data-testid={testId} onClick={onClick} ref={refCb} type="button">
       <div className="relative">{inner}</div>
       <TooltipPortal el={el} hovered={hovered} label={label} />
     </button>
@@ -221,7 +221,7 @@ function IconTooltipLink({
       onFocus={() => { setHovered(true); }}
       onMouseEnter={() => { setHovered(true); }}
       onMouseLeave={() => { setHovered(false); }}
-      ref={refCb as React.RefCallback<HTMLAnchorElement>}
+      ref={refCb}
       to={to}
     >
       {children}

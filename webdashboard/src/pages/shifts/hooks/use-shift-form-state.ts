@@ -10,13 +10,15 @@ import { fetchEmployee } from "@/lib/api";
 
 import type { TabType, ViewMode } from "./use-shifts-types";
 
+interface ShiftSearchParams {
+  employeeId?: string;
+  employeeIds?: string;
+  tab?: string;
+  view?: string;
+}
+
 export function useShiftFormState(wsId?: string) {
-  const search = useSearch({ strict: false }) as unknown as {
-    tab?: string;
-    view?: string;
-    employeeId?: string;
-    employeeIds?: string;
-  };
+  const search = useSearch({ strict: false }) as unknown as ShiftSearchParams;
   const navigate = useNavigate();
 
   const tab = typeof search.tab === "string" ? search.tab : "";
@@ -110,29 +112,33 @@ export function useShiftFormState(wsId?: string) {
   const setActiveTab = (val: TabType) => {
     setActiveTabState(val);
     void navigate({
-      search: (prev: any) => ({ ...prev, tab: val }),
-    } as any);
+      to: "/shifts",
+      search: { tab: val, employeeId: search.employeeId, employeeIds: search.employeeIds },
+    });
   };
 
   const setViewMode = (val: ViewMode) => {
     setViewModeState(val);
     void navigate({
-      search: (prev: any) => ({ ...prev, view: val }),
-    } as any);
+      to: "/shifts",
+      search: { view: val, employeeId: search.employeeId, employeeIds: search.employeeIds },
+    });
   };
 
   const setSelectedEmployee = (emp: Employee | null) => {
     setSelectedEmployeeState(emp);
     void navigate({
-      search: (prev: any) => ({ ...prev, employeeId: emp?.id || undefined }),
-    } as any);
+      to: "/shifts",
+      search: { tab: search.tab, employeeId: emp?.id, employeeIds: search.employeeIds },
+    });
   };
 
   const setSelectedEmployeeIds = (ids: string[]) => {
     setSelectedEmployeeIdsState(ids);
     void navigate({
-      search: (prev: any) => ({ ...prev, employeeIds: ids.length > 0 ? ids.join(",") : undefined }),
-    } as any);
+      to: "/shifts",
+      search: { tab: search.tab, employeeId: search.employeeId, employeeIds: ids.length > 0 ? ids.join(",") : undefined },
+    });
   };
 
   const setSelectedEmployees = (emps: Employee[]) => {

@@ -93,9 +93,9 @@ export async function forgotPassword(email: string): Promise<void> {
     timeout: TIMEOUT.DEFAULT,
   });
   if (!response.ok) {
-    const errorBody = await response.json().catch(() => null);
+    const errorBody = (await response.json().catch(() => null)) as { message?: string } | null;
     throw new Error(
-      (errorBody as { message?: string })?.message ?? "Failed to send reset link",
+      errorBody?.message ?? "Failed to send reset link",
     );
   }
 }
@@ -114,9 +114,9 @@ export async function resetPassword(
     timeout: TIMEOUT.DEFAULT,
   });
   if (!response.ok) {
-    const errorBody = await response.json().catch(() => null);
+    const errorBody = (await response.json().catch(() => null)) as { message?: string } | null;
     throw new Error(
-      (errorBody as { message?: string })?.message ?? "Failed to reset password",
+      errorBody?.message ?? "Failed to reset password",
     );
   }
   const data = (await response.json()) as { message?: string };

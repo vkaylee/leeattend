@@ -70,13 +70,14 @@ export default function EContractDetailsDrawer({
 
     const isAllSigned = updatedSigners.every((s) => s.status === "signed");
 
+    const existingMeta = envelope.audit_trail_metadata as { webhook_events?: { event: string; timestamp: string }[] } | undefined;
     const updatedEnv: EContractEnvelope = {
       ...envelope,
       status: isAllSigned ? "completed" : "sent",
       signer_statuses: updatedSigners,
       audit_trail_metadata: {
         webhook_events: [
-          ...(envelope.audit_trail_metadata?.webhook_events || []),
+          ...(existingMeta?.webhook_events || []),
           { event: "signer.employee.signed", timestamp: new Date().toISOString() },
           ...(isAllSigned ? [{ event: "envelope.completed", timestamp: new Date().toISOString() }] : []),
         ],

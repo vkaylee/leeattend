@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { CreateWorkingPatternRequest, UpdateWorkingPatternRequest, WorkingPatternDetailRequest, WorkingPatternDetail } from "@/lib/api/types";
+import type { CreateWorkingPatternRequest, UpdateWorkingPatternRequest } from "@/lib/api/types";
 
 import { useToast } from "@/components/ui/toast";
 import {
@@ -15,7 +15,14 @@ import {
   updateWorkingPattern,
 } from "@/lib/api";
 
+import {
+  getFirstShiftId,
+  initializeGridFromDetails,
+  shouldInit,
+} from "./use-working-pattern-form-helpers";
 import { useWorkingPatternGrid } from "./use-working-pattern-grid";
+
+export { isCycleLengthInvalid, convertGridToDetails } from "./use-working-pattern-form-helpers";
 
 function usePatternGridState() {
   const [patternType, setPatternType] = useState<"weekly" | "rotation">("weekly");
@@ -84,10 +91,6 @@ function usePatternGridState() {
   };
 }
 
-export function isCycleLengthInvalid(patternType: string, len: number): boolean {
-  return patternType === "rotation" && (len < 1 || len > 366);
-}
-
 interface MutationParams {
   patternId?: string;
   setIsDirty: (dirty: boolean) => void;
@@ -135,14 +138,6 @@ function useUpdatePatternMutation({ wsId, patternId, t, setIsDirty }: MutationPa
 }
 
 
-
-function shouldInit(isEditMode: boolean, pattern: unknown, loading: boolean, init: boolean): boolean {
-  return isEditMode && Boolean(pattern) && !loading && !init;
-}
-
-function getFirstShiftId(shiftsList: { id: string }[]): string | undefined {
-  return shiftsList[0]?.id;
-}
 
 function getShiftsQueryOptions(wsId: string | null) {
   return {
@@ -265,24 +260,3 @@ export function useWorkingPatternForm(patternId?: string) {
   };
 }
 
-function initializeGridFromDetails(len: number, details: WorkingPatternDetail[]): string[][] {
-  const grid = Array.from({ length: len }, () => [] as string[]);
-  details.forEach((detail) => {
-    if (detail.shift_id && detail.schedule_day >= 0 && detail.schedule_day < len) {
-      grid[detail.schedule_day].push(detail.shift_id);
-    }
-  });
-  return grid;
-}
-
-export function convertGridToDetails(grid: string[][]): WorkingPatternDetailRequest[] {
-  return grid.flatMap((shiftIds, scheduleDay) => {
-    if (shiftIds.length === 0) {
-      return [{ schedule_day: scheduleDay, shift_id: null as string | null }];
-    }
-    return shiftIds.map((shiftId) => ({
-      schedule_day: scheduleDay,
-      shift_id: shiftId,
-    }));
-  });
-}
