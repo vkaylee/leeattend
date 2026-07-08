@@ -28,8 +28,10 @@ export default function EmployeesPage() {
         customFieldFilters={page.customFieldFilters}
         departments={page.departments}
         filterDeptIds={page.filterDeptIds}
+        filterStatus={page.filterStatus}
         setCustomFieldFilters={page.setCustomFieldFilters}
         setFilterDeptIds={page.setFilterDeptIds}
+        setFilterStatus={page.setFilterStatus}
         toggleDeptFilter={page.toggleDeptFilter}
         updateCustomFieldFilter={page.updateCustomFieldFilter}
       />

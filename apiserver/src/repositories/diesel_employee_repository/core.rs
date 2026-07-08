@@ -206,9 +206,19 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
             String::new()
         };
 
+        let status_filter = match options.status() {
+            Some("active") => {
+                " AND EXISTS (SELECT 1 FROM employments emp WHERE emp.employee_id = e.id AND emp.status = 'active' AND emp.deleted_at IS NULL)"
+            }
+            Some("terminated") => {
+                " AND NOT EXISTS (SELECT 1 FROM employments emp WHERE emp.employee_id = e.id AND emp.status = 'active' AND emp.deleted_at IS NULL)"
+            }
+            _ => "",
+        };
+
         let where_clause = &search_sql.where_clause;
         let count_sql = format!(
-            "SELECT COUNT(*)::bigint as count FROM employees e {where_clause}{dept_filter}{perm_filter}{filter_sql}"
+            "SELECT COUNT(*)::bigint as count FROM employees e {where_clause}{status_filter}{dept_filter}{perm_filter}{filter_sql}"
         );
 
         let count_search_param = if search_sql.has_search {
@@ -278,7 +288,7 @@ impl EmployeeCoreRepository for DieselEmployeeRepository {
         let where_clause = &search_sql.where_clause;
         let order_clause = &search_sql.order_clause;
         let sql = format!(
-            "{EMPLOYEE_SELECT_QUERY} {dept_join} {where_clause}{data_dept_filter}{data_perm_filter}{filter_sql} {order_clause} LIMIT $3 OFFSET $4"
+            "{EMPLOYEE_SELECT_QUERY} {dept_join} {where_clause}{status_filter}{data_dept_filter}{data_perm_filter}{filter_sql} {order_clause} LIMIT $3 OFFSET $4"
         );
 
         let (search_str_1, search_str_2) = if search_sql.has_search {

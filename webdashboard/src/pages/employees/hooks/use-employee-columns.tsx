@@ -55,6 +55,17 @@ export const useEmployeeColumns = ({
       onHeaderClick: () => { toggleSort("name"); },
     },
     {
+      render: (emp) => (
+        <span className="font-mono font-bold text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-tight">
+          {emp.employee_id_number}
+        </span>
+      ),
+      cellClassName: "py-6",
+      header: <span className="inline-flex items-center">{t("employees.form.employee_id")}{renderSortIcon("id")}</span>,
+      key: "id",
+      onHeaderClick: () => { toggleSort("id"); },
+    },
+    {
       render: (emp) => emp.department_name ? (
         <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-blue-100 dark:border-blue-800">
           <Building2 className="opacity-60" size={12} />{emp.department_name}

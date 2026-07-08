@@ -8,6 +8,7 @@ export type SortDir = "asc" | "desc";
 export const useEmployeesState = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterDeptIds, setFilterDeptIds] = useState<string[]>([]);
+  const [filterStatus, setFilterStatus] = useState<string>("active");
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [customFieldFilters, setCustomFieldFilters] = useState<Record<string, string>>({});
@@ -45,6 +46,8 @@ export const useEmployeesState = () => {
     setSearchTerm,
     filterDeptIds,
     setFilterDeptIds,
+    filterStatus,
+    setFilterStatus,
     sortKey,
     setSortKey,
     sortDir,

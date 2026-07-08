@@ -221,7 +221,8 @@ pub async fn get_employees(
                 department_ids,
                 query.permission,
                 filter_ids,
-            ),
+            )
+            .with_status(query.status.clone()),
         )
         .await?;
 

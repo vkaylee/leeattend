@@ -1279,6 +1279,7 @@ mod tests {
             I18nKey::EmployeeAlreadyActive,
             I18nKey::RehireDateInvalid,
             I18nKey::NoActiveEmployment,
+            I18nKey::EmployeeAlreadyTerminated,
             I18nKey::OverlappingEmployment,
             I18nKey::CustomFieldNotFound,
             I18nKey::TemplateNotFound,

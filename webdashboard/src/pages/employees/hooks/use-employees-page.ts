@@ -23,6 +23,7 @@ export function useEmployeesPage() {
   const data = useEmployeesData({
     debouncedSearch: state.debouncedSearch,
     filterDeptIds: state.filterDeptIds,
+    filterStatus: state.filterStatus,
     selectedEmployee: modals.selectedEmployee,
     setEditingEmployee: modals.setEditingEmployee,
     setIsModalOpen: modals.setIsModalOpen,

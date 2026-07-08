@@ -40,6 +40,7 @@ export interface SearchEmployeesParams {
   query: string;
   sortBy?: string;
   sortDir?: string;
+  status?: string;
   wsId: string;
 }
 
@@ -56,6 +57,7 @@ export async function searchEmployees(
     departmentIds,
     permission,
     customFieldFilters,
+    status,
   } = params;
 
   const { data } = await client.GET("/workspaces/{workspace_id}/employees", {
@@ -70,6 +72,7 @@ export async function searchEmployees(
         department_id: (departmentIds && departmentIds.length > 0) ? departmentIds.join(",") : undefined,
         permission: permission ?? undefined,
         custom_field_filters: customFieldFilters ?? undefined,
+        status: status ?? undefined,
       },
     },
   });

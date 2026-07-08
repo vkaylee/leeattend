@@ -18,6 +18,7 @@ pub struct EmployeeFilterOptions {
     department_ids: Option<Vec<Uuid>>,
     permission: Option<String>,
     filter_ids: Option<Vec<Uuid>>,
+    status: Option<String>,
 }
 
 impl EmployeeFilterOptions {
@@ -40,6 +41,7 @@ impl EmployeeFilterOptions {
             department_ids,
             permission,
             filter_ids,
+            status: None,
         }
     }
 
@@ -91,6 +93,12 @@ impl EmployeeFilterOptions {
         self
     }
 
+    #[must_use]
+    pub fn with_status(mut self, status: Option<String>) -> Self {
+        self.status = status;
+        self
+    }
+
     pub fn search_query(&self) -> Option<&str> {
         self.search_query.as_deref()
     }
@@ -121,6 +129,10 @@ impl EmployeeFilterOptions {
 
     pub fn filter_ids(&self) -> Option<&[Uuid]> {
         self.filter_ids.as_deref()
+    }
+
+    pub fn status(&self) -> Option<&str> {
+        self.status.as_deref()
     }
 }
 

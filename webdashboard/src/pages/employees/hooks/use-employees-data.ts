@@ -20,6 +20,7 @@ interface UseEmployeesDataProps {
   customFieldFilters: Record<string, string>;
   debouncedSearch: string;
   filterDeptIds: string[];
+  filterStatus: string;
   selectedEmployee: Employee | null;
   setEditingEmployee: (emp: Employee | null) => void;
   setIsModalOpen: (open: boolean) => void;
@@ -35,6 +36,7 @@ export const useEmployeesData = ({
   sortKey,
   sortDir,
   filterDeptIds,
+  filterStatus,
   selectedEmployee,
   setIsModalOpen,
   setEditingEmployee,
@@ -54,14 +56,14 @@ export const useEmployeesData = ({
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ["employees", wsId, debouncedSearch, sortKey, sortDir, filterDeptIds, customFieldFilters],
+    queryKey: ["employees", wsId, debouncedSearch, sortKey, sortDir, filterDeptIds, customFieldFilters, filterStatus],
     queryFn: ({ pageParam }) => {
       const apiSortKeyMapping = { name: "name", id: "employee_id_number", department: "department", status: "status" } as const;
       const apiSortKey = sortKey ? apiSortKeyMapping[sortKey] : undefined;
       const cfString = Object.entries(customFieldFilters)
-        .filter(([_, val]) => !!val)
-        .map(([key, val]) => `${key}:${val}`)
-        .join(",");
+         .filter(([_, val]) => !!val)
+         .map(([key, val]) => `${key}:${val}`)
+         .join(",");
       return searchEmployees({
         wsId,
         query: debouncedSearch,
@@ -71,6 +73,7 @@ export const useEmployeesData = ({
         sortDir,
         departmentIds: filterDeptIds.length > 0 ? filterDeptIds : undefined,
         customFieldFilters: cfString || undefined,
+        status: filterStatus,
       });
     },
     getNextPageParam: (lastPage, allPages) => {
