@@ -19,12 +19,37 @@ use crate::worker::handlers::utils::ImportTimeoutGuard;
 pub struct LeaveImportHandler;
 
 impl LeaveImportHandler {
+    pub async fn handle(
+        job: &Job,
+        cache: &std::sync::Arc<dyn crate::repositories::CacheRepository>,
+        queue_repo: &std::sync::Arc<dyn crate::repositories::QueueRepository>,
+        deps: &crate::worker::deps::WorkerDeps,
+    ) -> Result<(), String> {
+        if let Err(e) = Self::handle_internal(job, cache, queue_repo, deps).await {
+            let payload = job.leave_import_payload();
+            if let Some(p) = payload {
+                let import_repo = &*deps.import_job_repo;
+                let _ = import_repo
+                    .update_job_progress(
+                        &crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id),
+                        p.import_job_id,
+                        0,
+                        ImportJobStatus::Failed,
+                        Some(e.clone()),
+                    )
+                    .await;
+            }
+            return Err(e);
+        }
+        Ok(())
+    }
+
     #[allow(
         clippy::too_many_lines,
         clippy::cast_possible_truncation,
         clippy::cast_possible_wrap
     )]
-    pub async fn handle(
+    async fn handle_internal(
         job: &Job,
         cache: &std::sync::Arc<dyn crate::repositories::CacheRepository>,
         queue_repo: &std::sync::Arc<dyn crate::repositories::QueueRepository>,
@@ -413,5 +438,91 @@ mod tests {
 
         let result = LeaveImportHandler::handle(&job, &cache_arc, &queue_arc, &deps).await;
         assert!(result.is_ok(), "Handler failed: {:?}", result.err());
+    }
+
+    #[tokio::test]
+    async fn test_leave_import_handler_failure() {
+        let import_job_id = Uuid::new_v4();
+        let ws_id = Uuid::new_v4();
+
+        // Create a temp file without employee_code header to trigger failure
+        let temp_file = NamedTempFile::new().unwrap();
+        let file_path = temp_file.path().to_str().unwrap().to_string() + ".xlsx";
+        let mut workbook = rust_xlsxwriter::Workbook::new();
+        let sheet = workbook.add_worksheet();
+        sheet.write_string(0, 0, "invalid_header").unwrap(); // missing employee_code
+        workbook.save(&file_path).unwrap();
+
+        let mut import_repo =
+            crate::repositories::import_job_repository::MockImportJobRepository::new();
+        import_repo
+            .expect_update_job_progress()
+            .times(2)
+            .returning(|_, _, _, status, err_opt| {
+                match status {
+                    ImportJobStatus::Processing => {
+                        assert!(err_opt.is_none());
+                    }
+                    ImportJobStatus::Failed => {
+                        assert!(err_opt.is_some());
+                    }
+                    _ => panic!("Unexpected status: {:?}", status),
+                }
+                Ok(())
+            });
+
+        let queue = crate::repositories::queue_repository::MockQueueRepository::new();
+        let cache = crate::repositories::cache_repository::MockCacheRepository::new();
+        let cache_arc: Arc<dyn crate::repositories::CacheRepository> = Arc::new(cache);
+        let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);
+
+        let mut workspace_repo =
+            crate::repositories::workspace_repository::MockWorkspaceRepository::new();
+        workspace_repo.expect_get_workspace_by_id().returning(|id| {
+            Box::pin(async move {
+                Ok(Some(crate::models::Workspace::new(
+                    id,
+                    "Mocked Workspace".into(),
+                    "YYYY-MM-DD".into(),
+                    "HH:mm:ss".into(),
+                    "UTC".into(),
+                    "#000000".into(),
+                    "vi".into(),
+                    None,
+                    None,
+                    "split".into(),
+                    rust_decimal::Decimal::new(15, 1),
+                    chrono::Utc::now(),
+                    None,
+                )))
+            })
+        });
+
+        let mut builder = MockWorkerDepsBuilder::new();
+        builder.import_job_repo = import_repo;
+        builder.workspace_repo = workspace_repo;
+        let deps = builder.build();
+
+        let job = Job {
+            job_id: Uuid::new_v4(),
+            parent_job_id: import_job_id,
+            batch_index: 0,
+            task_type: TaskType::LeaveImport,
+            workspace_id: ws_id,
+            payload: JobPayload::LeaveImport(LeaveImportPayload {
+                import_job_id,
+                user_id: Uuid::new_v4(),
+                file_path,
+                auto_approve: true,
+            }),
+            priority: JobPriority::Normal,
+            created_at: chrono::Utc::now(),
+            retry_count: 0,
+            max_retries: 3,
+            trace_context: None,
+        };
+
+        let result = LeaveImportHandler::handle(&job, &cache_arc, &queue_arc, &deps).await;
+        assert!(result.is_err(), "Handler should fail");
     }
 }
