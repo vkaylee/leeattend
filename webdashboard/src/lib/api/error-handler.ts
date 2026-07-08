@@ -16,10 +16,10 @@ export type ErrorSeverity = "error" | "warning";
 export interface ParsedApiError {
   /** i18n key (without namespace prefix) — see `common.errors.*`. */
   messageKey: string;
-  /** Toast severity. */
-  severity: ErrorSeverity;
   /** Original error (for logs / Sentry). */
   original: unknown;
+  /** Toast severity. */
+  severity: ErrorSeverity;
 }
 
 /**

@@ -1,6 +1,5 @@
 import { ClipboardList, Plus, CheckCircle2, Circle, AlertCircle, FileText } from "lucide-react";
-import React, { useState } from "react";
-import { useTranslation } from "react-i18next";
+import { useState } from "react";
 
 import type { LifecycleChecklistItem, ChecklistItemStatus } from "@/lib/api/types";
 
@@ -22,8 +21,7 @@ interface EmployeeLifecycleTabProps {
   wsId: string;
 }
 
-export default function EmployeeLifecycleTab({ employmentId, wsId }: EmployeeLifecycleTabProps) {
-  const { t } = useTranslation();
+export default function EmployeeLifecycleTab({ employmentId }: EmployeeLifecycleTabProps) {
   const toast = useToast();
 
   const [selectedTemplateId, setSelectedTemplateId] = useState("");

@@ -143,9 +143,9 @@ export default function AppShell({ variant }: AppShellProps) {
       <IconRail
         activeGroup={activeGroup ?? pathActiveGroup}
         isPinned={isPinned}
-        onGroupClick={handleGroupClick}
-        onGroupHover={handleGroupHover}
-        onShowWorkspaceSwitcher={() => { setShowSwitcher(true); }}
+        onClickGroup={handleGroupClick}
+        onHoverGroup={handleGroupHover}
+        onClickWorkspaceSwitcher={() => { setShowSwitcher(true); }}
         onTogglePin={togglePin}
         workspaceLogoUrl={currentWorkspace?.logo_url ?? undefined}
         workspaceName={currentWorkspace?.name ?? "LeeAttend"}

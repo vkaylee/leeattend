@@ -67,7 +67,7 @@ function PayrollDetailHeader({ employee }: { employee: Employee; }) {
   );
 }
 
-function PayrollDetailSummary({ employee, payslips, canReadSensitive, hireDate }: { employee: Employee; payslips: Payslip[]; canReadSensitive: boolean; hireDate: string; }) {
+function PayrollDetailSummary({ payslips, canReadSensitive, hireDate }: { employee: Employee; payslips: Payslip[]; canReadSensitive: boolean; hireDate: string; }) {
   const { t } = useTranslation();
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

@@ -44,7 +44,7 @@ export function EmployeeFilterChips({
               ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm"
               : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-transparent"
           )}
-          onClick={() => setFilterStatus("active")}
+          onClick={() => { setFilterStatus("active"); }}
           variant="ghost"
         >
           <UserCheck className="mr-1.5 opacity-70" size={12} />
@@ -57,7 +57,7 @@ export function EmployeeFilterChips({
               ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm"
               : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-transparent"
           )}
-          onClick={() => setFilterStatus("terminated")}
+          onClick={() => { setFilterStatus("terminated"); }}
           variant="ghost"
         >
           <UserX className="mr-1.5 opacity-70" size={12} />
@@ -70,7 +70,7 @@ export function EmployeeFilterChips({
               ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm"
               : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-transparent"
           )}
-          onClick={() => setFilterStatus("all")}
+          onClick={() => { setFilterStatus("all"); }}
           variant="ghost"
         >
           <Users className="mr-1.5 opacity-70" size={12} />
@@ -78,7 +78,7 @@ export function EmployeeFilterChips({
         </Button>
       </div>
 
-      {hasActiveFilters && (
+      {!!hasActiveFilters && (
         <div className="flex items-center gap-2 flex-wrap animate-in slide-in-from-top-4 duration-300" data-testid="active-filter-chips">
           <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mr-1">
             {t("employees.filtering_by", "Đang lọc")}

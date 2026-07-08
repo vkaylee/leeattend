@@ -8,10 +8,17 @@ import type {
   UpdateShiftIntervalRequest,
 } from "./types";
 
-import { client } from "./client";
+import { http } from "./untyped";
 
 // Paths not yet registered in the generated OpenAPI types.
-// Use per-call type assertions until the OpenAPI spec is updated.
+// Use the untyped `http` accessor (single `as any` cast at the boundary)
+// so call-sites stay fully typed and eslint stays quiet.
+
+async function getJson<T>(p: Promise<unknown>): Promise<T> {
+  const res = (await p) as { data: T };
+  if (!res.data) throw new Error("No response data");
+  return res.data;
+}
 
 // ── Work Segments ──────────────────────────────────────────────────────────
 
@@ -28,42 +35,34 @@ export async function fetchWorkSegments(
     limit?: number;
   }
 ): Promise<WorkSegment[]> {
-  const { data } = (await (client as any).GET("/workspaces/{workspace_id}/work-segments", {
-    params: {
-      path: { workspace_id: wsId },
-      query: params as unknown as Record<string, unknown>,
-    },
-  })) as { data: { data: WorkSegment[] } };
-  if (!data) throw new Error("No response data");
-  return data.data;
+  return getJson<{ data: WorkSegment[] }>(
+    http.GET("/workspaces/{workspace_id}/work-segments", {
+      params: {
+        path: { workspace_id: wsId },
+        query: params as unknown as Record<string, unknown>,
+      },
+    }),
+  ).then(r => r.data);
 }
 
 export async function createWorkSegment(
   wsId: string,
   body: CreateWorkSegmentRequest
 ): Promise<WorkSegment> {
-  const { data } = (await (client as any).POST("/workspaces/{workspace_id}/work-segments", {
+  return getJson<WorkSegment>(http.POST("/workspaces/{workspace_id}/work-segments", {
     params: { path: { workspace_id: wsId } },
-    body,
-  })) as { data: WorkSegment };
-  if (!data) throw new Error("No response data");
-  return data;
+    body: body as unknown as Record<string, unknown>,
+  }));
 }
 
 export async function getWorkSegment(
   wsId: string,
   segmentId: string
 ): Promise<WorkSegment> {
-  const { data } = (await (client as any).GET(
+  return getJson<WorkSegment>(http.GET(
     "/workspaces/{workspace_id}/work-segments/{segment_id}",
-    {
-      params: {
-        path: { workspace_id: wsId, segment_id: segmentId },
-      },
-    }
-  )) as { data: WorkSegment };
-  if (!data) throw new Error("No response data");
-  return data;
+    { params: { path: { workspace_id: wsId, segment_id: segmentId } } },
+  ));
 }
 
 export async function updateWorkSegment(
@@ -71,22 +70,20 @@ export async function updateWorkSegment(
   segmentId: string,
   body: UpdateWorkSegmentRequest
 ): Promise<WorkSegment> {
-  const { data } = (await (client as any).PUT(
+  return getJson<WorkSegment>(http.PUT(
     "/workspaces/{workspace_id}/work-segments/{segment_id}",
     {
       params: { path: { workspace_id: wsId, segment_id: segmentId } },
-      body,
-    }
-  )) as { data: WorkSegment };
-  if (!data) throw new Error("No response data");
-  return data;
+      body: body as unknown as Record<string, unknown>,
+    },
+  ));
 }
 
 export async function deleteWorkSegment(
   wsId: string,
   segmentId: string
 ): Promise<void> {
-  await (client as any).DELETE("/workspaces/{workspace_id}/work-segments/{segment_id}", {
+  await http.DELETE("/workspaces/{workspace_id}/work-segments/{segment_id}", {
     params: { path: { workspace_id: wsId, segment_id: segmentId } },
   });
 }
@@ -95,23 +92,24 @@ export async function bulkCreateWorkSegments(
   wsId: string,
   body: BulkCreateWorkSegmentsRequest
 ): Promise<WorkSegment[]> {
-  const { data } = (await (client as any).POST("/workspaces/{workspace_id}/work-segments/bulk", {
+  return getJson<WorkSegment[]>(http.POST("/workspaces/{workspace_id}/work-segments/bulk", {
     params: { path: { workspace_id: wsId } },
-    body,
-  })) as { data: WorkSegment[] };
-  if (!data) throw new Error("No response data");
-  return data;
+    body: body as unknown as Record<string, unknown>,
+  }));
 }
 
 export async function scheduleWorkSegments(
   wsId: string,
   params: { start_date: string; end_date: string; employment_ids?: string[] }
 ): Promise<{ scheduled: number; skipped: number }> {
-  const { data } = (await (client as any).GET("/workspaces/{workspace_id}/work-segments/schedule", {
-    params: { path: { workspace_id: wsId }, query: params as unknown as Record<string, unknown> },
-  })) as { data: { scheduled: number; skipped: number } };
-  if (!data) throw new Error("No response data");
-  return data;
+  return getJson<{ scheduled: number; skipped: number }>(
+    http.GET("/workspaces/{workspace_id}/work-segments/schedule", {
+      params: {
+        path: { workspace_id: wsId },
+        query: params as unknown as Record<string, unknown>,
+      },
+    }),
+  );
 }
 
 // ── Shift Intervals ─────────────────────────────────────────────────────────
@@ -120,11 +118,11 @@ export async function fetchShiftIntervals(
   wsId: string,
   shiftId: string
 ): Promise<ShiftDefaultInterval[]> {
-  const { data } = (await (client as any).GET("/workspaces/{workspace_id}/shifts/{shift_id}/intervals", {
-    params: { path: { workspace_id: wsId, shift_id: shiftId } },
-  })) as { data: ShiftDefaultInterval[] };
-  if (!data) throw new Error("No response data");
-  return data;
+  return getJson<ShiftDefaultInterval[]>(
+    http.GET("/workspaces/{workspace_id}/shifts/{shift_id}/intervals", {
+      params: { path: { workspace_id: wsId, shift_id: shiftId } },
+    }),
+  );
 }
 
 export async function createShiftInterval(
@@ -132,12 +130,13 @@ export async function createShiftInterval(
   shiftId: string,
   body: CreateShiftIntervalRequest
 ): Promise<ShiftDefaultInterval> {
-  const { data } = (await (client as any).POST("/workspaces/{workspace_id}/shifts/{shift_id}/intervals", {
-    params: { path: { workspace_id: wsId, shift_id: shiftId } },
-    body,
-  })) as { data: ShiftDefaultInterval };
-  if (!data) throw new Error("No response data");
-  return data;
+  return getJson<ShiftDefaultInterval>(http.POST(
+    "/workspaces/{workspace_id}/shifts/{shift_id}/intervals",
+    {
+      params: { path: { workspace_id: wsId, shift_id: shiftId } },
+      body: body as unknown as Record<string, unknown>,
+    },
+  ));
 }
 
 export async function updateShiftInterval(
@@ -146,15 +145,13 @@ export async function updateShiftInterval(
   intervalId: string,
   body: UpdateShiftIntervalRequest
 ): Promise<ShiftDefaultInterval> {
-  const { data } = (await (client as any).PUT(
+  return getJson<ShiftDefaultInterval>(http.PUT(
     "/workspaces/{workspace_id}/shifts/{shift_id}/intervals/{interval_id}",
     {
       params: { path: { workspace_id: wsId, shift_id: shiftId, interval_id: intervalId } },
-      body,
-    }
-  )) as { data: ShiftDefaultInterval };
-  if (!data) throw new Error("No response data");
-  return data;
+      body: body as unknown as Record<string, unknown>,
+    },
+  ));
 }
 
 export async function deleteShiftInterval(
@@ -162,11 +159,9 @@ export async function deleteShiftInterval(
   shiftId: string,
   intervalId: string
 ): Promise<void> {
-  await (client as any).DELETE(
+  await http.DELETE(
     "/workspaces/{workspace_id}/shifts/{shift_id}/intervals/{interval_id}",
-    {
-      params: { path: { workspace_id: wsId, shift_id: shiftId, interval_id: intervalId } },
-    }
+    { params: { path: { workspace_id: wsId, shift_id: shiftId, interval_id: intervalId } } },
   );
 }
 
@@ -175,8 +170,8 @@ export async function reorderShiftIntervals(
   shiftId: string,
   intervalIds: string[]
 ): Promise<void> {
-  await (client as any).POST("/workspaces/{workspace_id}/shifts/{shift_id}/intervals/reorder", {
+  await http.POST("/workspaces/{workspace_id}/shifts/{shift_id}/intervals/reorder", {
     params: { path: { workspace_id: wsId, shift_id: shiftId } },
-    body: { interval_ids: intervalIds },
+    body: { interval_ids: intervalIds } as unknown as Record<string, unknown>,
   });
 }

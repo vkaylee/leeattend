@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import React from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 
@@ -38,8 +38,8 @@ export function CreateOtRequestModal({
   const toast = useToast();
   const { mutateAsync: createRequest, isPending } = useCreateOvertimeRequest();
 
-  const [ownerId] = React.useState<string>(() => crypto.randomUUID());
-  const [attachmentFileIds, setAttachmentFileIds] = React.useState<string[]>([]);
+  const [ownerId] = useState<string>(() => crypto.randomUUID());
+  const [attachmentFileIds, setAttachmentFileIds] = useState<string[]>([]);
 
   const form = useForm<OtRequestFormValues>({
     resolver: zodResolver(otRequestSchema),

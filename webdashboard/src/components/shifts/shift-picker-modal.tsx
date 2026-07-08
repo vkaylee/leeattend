@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
+import { Typography } from "@/components/ui/typography";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { Shift } from "@/lib/api";
 
@@ -40,9 +41,9 @@ export function ShiftPickerModal({
     >
       <div className="space-y-6 pt-4">
         {targetDates.length === 1 && (
-          <p className="text-[10px] text-slate-400 dark:text-slate-500 italic text-center">
+          <Typography className="text-[10px] text-slate-400 dark:text-slate-500 italic text-center" variant="p">
             {t("work_segments.segments", "Tip: Assign multiple shifts to the same day for split-shift scheduling.")}
-          </p>
+          </Typography>
         )}
         <div className="grid grid-cols-1 gap-3">
           {shifts?.map(shift => (

@@ -1,6 +1,4 @@
 import React from "react";
-import { useTranslation } from "react-i18next";
-
 import type { CustomFieldDefinition } from "@/lib/api/types";
 
 import { Combobox } from "@/components/ui/combobox";
@@ -22,8 +20,6 @@ export const CustomFieldEditor: React.FC<CustomFieldEditorProps> = ({
   onChange,
   error,
 }) => {
-  const { t } = useTranslation("custom_fields");
-
   // Parse options list
   const getOptions = () => {
     const opts = definition.options;

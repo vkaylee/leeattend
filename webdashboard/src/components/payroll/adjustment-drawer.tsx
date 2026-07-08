@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { MessageSquare, Calendar, CheckCircle2 } from "lucide-react";
-import React from "react";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
@@ -24,7 +24,6 @@ interface AdjustmentDrawerProps {
 export default function AdjustmentDrawer({
   isOpen,
   onClose,
-  employeeId,
   employmentId,
   employeeName,
   onAdjustmentResolved
@@ -41,7 +40,7 @@ export default function AdjustmentDrawer({
     enabled: isOpen && !!wsId,
   });
 
-  const employeeAdjustments = React.useMemo(() => {
+  const employeeAdjustments = useMemo(() => {
     const list = paginatedAdjustments?.data ?? [];
     return list.filter(adj => adj.employment_id === employmentId);
   }, [paginatedAdjustments, employmentId]);

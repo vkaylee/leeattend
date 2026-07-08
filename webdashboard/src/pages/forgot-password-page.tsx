@@ -60,21 +60,21 @@ export default function ForgotPasswordPage() {
             >
               LeeAttend
             </Typography>
-            <p className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-[0.3em] mt-1">
+            <Typography className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-[0.3em] mt-1" variant="p">
               {t("auth.slogan")}
-            </p>
+            </Typography>
           </div>
         </div>
 
         <div>
-          <h2 className="text-2xl font-bold text-slate-700 dark:text-slate-200 tracking-tight">
+          <Typography className="text-2xl font-bold text-slate-700 dark:text-slate-200 tracking-tight" variant="h2">
             {t("auth.forgot_password_title")}
-          </h2>
-          <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">
+          </Typography>
+          <Typography className="text-slate-400 dark:text-slate-500 text-sm mt-1" variant="p">
             {step === Step.Form
               ? t("auth.forgot_password_desc")
               : t("auth.reset_link_sent")}
-          </p>
+          </Typography>
         </div>
       </div>
 
@@ -142,9 +142,9 @@ export default function ForgotPasswordPage() {
                 <path d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
-            <p className="text-emerald-800 dark:text-emerald-200 font-semibold text-sm">
+            <Typography className="text-emerald-800 dark:text-emerald-200 font-semibold text-sm" variant="p">
               {t("auth.reset_link_sent_desc", { email })}
-            </p>
+            </Typography>
           </div>
 
           <div className="text-center">

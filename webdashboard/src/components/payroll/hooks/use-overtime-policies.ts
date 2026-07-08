@@ -27,7 +27,7 @@ export function useCreateOvertimePolicy(wsId: string, options?: { onSuccess?: ()
 
   return useMutation({
     mutationFn: (data: Parameters<typeof createOvertimePolicy>[1]) => createOvertimePolicy(wsId, data),
-    onSuccess: (data) => {
+    onSuccess: (_data) => {
       void queryClient.invalidateQueries({ queryKey: ["overtime-policies", wsId] });
       toast.success(t("common.success"));
       if (options?.onSuccess) {

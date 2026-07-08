@@ -10,7 +10,6 @@ interface CustomFieldRendererProps {
 
 export const CustomFieldRenderer: React.FC<CustomFieldRendererProps> = ({
   value,
-  className = "",
 }) => {
   const val = value.value;
 

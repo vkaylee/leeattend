@@ -85,21 +85,6 @@ const getSourceIndicator = (source?: string) => {
   }
 };
 
-interface RosterCellData {
-  cellStyles: string;
-  endTime?: string | null;
-  hasShift: boolean;
-  hasTraces: boolean;
-  holidayName?: string | null;
-  isHoliday: boolean;
-  shiftBgClass: string;
-  shiftName?: string | null;
-  shiftSymbol: string;
-  source?: string;
-  startTime?: string | null;
-  traces?: EffectiveSchedule["traces"];
-}
-
 const getHighestPrioritySource = (schedules: EffectiveSchedule[]): string | undefined => {
   const sources = schedules.map(s => s.source);
   if (sources.includes("roster")) return "roster";
@@ -147,16 +132,10 @@ export function MonthlyRosterGrid({ hook, monthlyRoster }: MonthlyRosterGridProp
 
   const {
     monthDays,
-    currentMonth,
-    handleNavigateMonth,
-    monthSchedules,
     isMonthLoading,
     isMonthError,
     refetchMonthSchedules,
     shifts,
-    handleMonthBulkAssign,
-    handleMonthDeleteRoster,
-    handleCopyPreviousMonth,
     employees,
     isEmployeesLoading,
     isEmployeesError,
@@ -165,25 +144,15 @@ export function MonthlyRosterGrid({ hook, monthlyRoster }: MonthlyRosterGridProp
 
   const {
     selectedCells,
-    setSelectedCells,
     isShiftPickerOpen,
     setIsShiftPickerOpen,
-    isCopying,
-    isMutating,
     selectedEmployeeIds,
-    setSelectedEmployeeIds,
-    setSelectedEmployees,
-    selectedEmployeesMeta,
     filteredSchedules,
     isDragging,
     handleCellMouseDown,
     handleCellMouseEnter,
     handleApplyShift,
-    handleClearSelectedOverrides,
-    handleCopyMonth,
   } = monthlyRoster;
-
-  const monthHeaderLabel = format(currentMonth, "MMMM yyyy", { locale: currentLocale });
 
 
   useEffect(() => {

@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverAnchor } from "@/components/ui/popover";
 import StatusBadge from "@/components/ui/status-badge";
+import { Typography } from "@/components/ui/typography";
 import { getCurrentWorkspaceId, fetchPatternDetails } from "@/lib/api";
 import { Shift, WorkingPattern, WorkingPatternDetail } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
@@ -110,9 +111,9 @@ function DayTimelinePill({
               if (!shift) return null;
               return (
                 <div className="space-y-2.5" key={idx}>
-                  <h5 className="font-bold text-sm text-slate-800 dark:text-slate-100 uppercase tracking-tight leading-snug">
+                  <Typography className="font-bold text-sm text-slate-800 dark:text-slate-100 uppercase tracking-tight leading-snug" variant="h5">
                     {shift.name}
-                  </h5>
+                  </Typography>
                   <div className="flex flex-col gap-1.5 text-xs text-slate-600 dark:text-slate-350">
                     {(() => {
                       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -199,9 +200,9 @@ export function PatternRowCard({
             <CalendarDays size={22} />
           </div>
           <div className="min-w-0">
-            <h4 className="font-bold text-base text-slate-700 dark:text-slate-200 leading-tight uppercase tracking-tight truncate">
+            <Typography className="font-bold text-base text-slate-700 dark:text-slate-200 leading-tight uppercase tracking-tight truncate" variant="h4">
               {pattern.name}
-            </h4>
+            </Typography>
             <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
               <StatusBadge variant={pattern.is_active ? "success" : "neutral"}>
                 {pattern.is_active ? t("status_active_caps") : t("status_off")}

@@ -2,6 +2,7 @@ import * as Sentry from "@sentry/react";
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
 import React, { Suspense } from "react";
+
 import { toast } from "sonner";
 
 import { ErrorBoundary } from "./components/common/error-boundary";
@@ -10,8 +11,8 @@ import { NewVersionBanner } from "./components/common/new-version-banner";
 import { DarkModeProvider } from "./context/dark-mode-context";
 import { DebugProvider } from "./context/debug-context";
 import { useVersionCheck } from "./hooks/use-version-check";
-import { parseApiError } from "./lib/api/error-handler";
 import i18n from "./i18n/config";
+import { parseApiError } from "./lib/api/error-handler";
 import { createAppRouter } from "./router";
 
 

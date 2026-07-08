@@ -39,8 +39,8 @@ export default function DashboardPage() {
   const { setActions } = useHeaderActions();
 
   const {
-    activeView, visibleWidgets, widgetOrder, collapsedSections, isSaving,
-    setActiveView, toggleWidget, setWidgetOrder, toggleSection, resetToDefault, allWidgets,
+    visibleWidgets, widgetOrder, collapsedSections, isSaving,
+    toggleWidget, setWidgetOrder, toggleSection, resetToDefault, allWidgets,
   } = useDashboardLayout();
 
   // ── Stable refs for callbacks (prevents effect re-fire from non-memoized deps) ─

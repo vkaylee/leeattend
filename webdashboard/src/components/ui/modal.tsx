@@ -1,6 +1,6 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
-import React from "react";
+import { useEffect } from "react";
 
 import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
@@ -40,7 +40,7 @@ export default function Modal({
   testId,
   title,
 }: ModalProps) {
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
     } else {

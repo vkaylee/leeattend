@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { UserPlus } from "lucide-react";
-import React from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { format } from "date-fns";
@@ -31,7 +31,7 @@ export default function RehireEmployeeModal({
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();
-  const [selectedEmployerId, setSelectedEmployerId] = React.useState("");
+  const [selectedEmployerId, setSelectedEmployerId] = useState("");
 
   const { data: employers = [] } = useQuery({
     queryKey: ["employers", wsId],

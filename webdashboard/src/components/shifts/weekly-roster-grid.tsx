@@ -8,7 +8,7 @@ import {
   Building2,
   PartyPopper,
 } from "lucide-react";
-import React from "react";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import { format } from "date-fns";
@@ -271,7 +271,6 @@ function WeeklyRosterDayCard({
 
 
 export function WeeklyRosterGrid({
-  selectedEmployee,
   weekDays,
   selectedDays,
   onToggleDaySelection,
@@ -283,8 +282,8 @@ export function WeeklyRosterGrid({
 }: WeeklyRosterGridProps) {
   const { t, i18n } = useTranslation();
   const currentLocale = dateLocales[i18n.language.substring(0, 2)] ?? enUS;
-  const { formatDate, formatTime } = useDateTimeFormatter();
-  React.useEffect(() => {
+  const { formatTime } = useDateTimeFormatter();
+  useEffect(() => {
     if (selectedDays.length === 0) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {

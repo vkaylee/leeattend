@@ -23,11 +23,11 @@ export interface UsePaginationOptions {
 
 export interface UsePaginationReturn {
   page: number;
-  setPage: (page: number) => void;
   pageSize: number;
-  setPageSize: (size: number) => void;
   /** Reset to initial page (call when filters/search change). */
   reset: () => void;
+  setPage: (page: number) => void;
+  setPageSize: (size: number) => void;
 }
 
 export function usePagination(

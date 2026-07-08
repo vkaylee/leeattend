@@ -133,17 +133,17 @@ export default function RegisterPage() {
             >
               LeeAttend
             </Typography>
-            <p className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-[0.3em] mt-1">
+            <Typography className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-[0.3em] mt-1" variant="p">
               {t("auth.slogan")}
-            </p>
+            </Typography>
           </div>
         </div>
 
         <div>
-          <h2 className="text-2xl font-bold text-slate-700 dark:text-slate-200 tracking-tight">
+          <Typography className="text-2xl font-bold text-slate-700 dark:text-slate-200 tracking-tight" variant="h2">
             {t("auth.register_title")}
-          </h2>
-          <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">
+          </Typography>
+          <Typography className="text-slate-400 dark:text-slate-500 text-sm mt-1" variant="p">
             {t("auth.already_have_account")}{" "}
             <Link
               className="font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors"
@@ -151,7 +151,7 @@ export default function RegisterPage() {
             >
               {t("auth.login.title")}
             </Link>
-          </p>
+          </Typography>
         </div>
       </div>
 

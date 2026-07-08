@@ -43,7 +43,7 @@ export function LeaveAssignmentsTab({
       try {
         await onDelete(deletingAssignmentId);
         toast.success(t("settings.leave.messages.delete_assignment_success"));
-      } catch (err) {
+      } catch {
         toast.error(t("settings.leave.messages.delete_assignment_error"));
       } finally {
         setDeletingAssignmentId(null);

@@ -7,8 +7,6 @@ import { components } from '@/types/api-generated';
 import { computeSHA256 } from '@/utils/hash';
 
 type WorkspaceFile = components['schemas']['WorkspaceFile'];
-type PresignedUploadBody = components['schemas']['CreateUploadUrlRequest'] & { content_hash?: string };
-
 export interface UseFileUploadOptions {
   category: string;
   onError?: (error: Error) => void;

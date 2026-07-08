@@ -35,7 +35,6 @@ export default function ShiftEditorPage() {
     handleSubmit,
     isSaveDisabled,
     blocker,
-    workspaceRules,
     intervalDrafts,
     addInterval,
     removeInterval,

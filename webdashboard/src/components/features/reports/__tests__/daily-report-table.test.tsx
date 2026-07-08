@@ -627,9 +627,6 @@ describe("DailyReportTable", () => {
                 onToggleExpandRow={toggleSpy}
             />
         );
-        const expandButtons = screen.getAllByRole("button").filter(
-            btn => btn.querySelector(".lucide-chevron-right") !== null || btn.className.includes("text-slate-400")
-        );
         // Click first segment expand button (first button with ChevronRight)
         const chevronButtons = screen.getAllByRole("button").filter((_, idx) => idx < 2);
         fireEvent.click(chevronButtons[0]);

@@ -76,11 +76,11 @@ function Wrapper({ children }: { children: React.ReactNode }) {
 const defaultProps = {
   activeGroup: null as any,
   isPinned: false,
-  onGroupHover: vi.fn(),
-  onGroupClick: vi.fn(),
+  onHoverGroup: vi.fn(),
+  onClickGroup: vi.fn(),
   onTogglePin: vi.fn(),
   workspaceName: "LeeAttend",
-  onShowWorkspaceSwitcher: vi.fn(),
+  onClickWorkspaceSwitcher: vi.fn(),
 };
 
 // ── Tests ─────────────────────────────────────────────────────────
@@ -135,9 +135,9 @@ describe("IconRail", () => {
     expect(logo.textContent).toContain("T");
   });
 
-  it("calls onShowWorkspaceSwitcher when logo clicked", () => {
+  it("calls onClickWorkspaceSwitcher when logo clicked", () => {
     const onShow = vi.fn();
-    render(<IconRail {...defaultProps} onShowWorkspaceSwitcher={onShow} />, { wrapper: Wrapper });
+    render(<IconRail {...defaultProps} onClickWorkspaceSwitcher={onShow} />, { wrapper: Wrapper });
 
     fireEvent.click(screen.getByTestId("nav-rail-logo"));
     expect(onShow).toHaveBeenCalled();
@@ -205,17 +205,17 @@ describe("IconRail", () => {
 
   // ── Group interaction ────────────────────────────────────────
 
-  it("calls onGroupClick when a group is clicked", () => {
+  it("calls onClickGroup when a group is clicked", () => {
     const onClick = vi.fn();
-    render(<IconRail {...defaultProps} onGroupClick={onClick} />, { wrapper: Wrapper });
+    render(<IconRail {...defaultProps} onClickGroup={onClick} />, { wrapper: Wrapper });
 
     fireEvent.click(screen.getByTestId("nav-rail-group-org"));
     expect(onClick).toHaveBeenCalledWith("org");
   });
 
-  it("calls onGroupHover on mouse enter/leave", () => {
+  it("calls onHoverGroup on mouse enter/leave", () => {
     const onHover = vi.fn();
-    render(<IconRail {...defaultProps} onGroupHover={onHover} />, { wrapper: Wrapper });
+    render(<IconRail {...defaultProps} onHoverGroup={onHover} />, { wrapper: Wrapper });
 
     const orgBtn = screen.getByTestId("nav-rail-group-org");
     fireEvent.mouseEnter(orgBtn);
@@ -291,9 +291,9 @@ describe("IconRail", () => {
 
   // ── Keyboard & focus ─────────────────────────────────────────
 
-  it("Enter key on group icon triggers onGroupClick", () => {
+  it("Enter key on group icon triggers onClickGroup", () => {
     const onClick = vi.fn();
-    render(<IconRail {...defaultProps} onGroupClick={onClick} />, { wrapper: Wrapper });
+    render(<IconRail {...defaultProps} onClickGroup={onClick} />, { wrapper: Wrapper });
 
     const orgBtn = screen.getByTestId("nav-rail-group-org");
     fireEvent.keyDown(orgBtn, { key: "Enter" });
@@ -303,27 +303,27 @@ describe("IconRail", () => {
     expect(onClick).toHaveBeenCalledWith("org");
   });
 
-  it("focus on a group icon does NOT trigger hover", () => {
+  it("focus on a group icon does NOT trigger hoverGroup", () => {
     const onHover = vi.fn();
-    render(<IconRail {...defaultProps} onGroupHover={onHover} />, { wrapper: Wrapper });
+    render(<IconRail {...defaultProps} onHoverGroup={onHover} />, { wrapper: Wrapper });
 
     const orgBtn = screen.getByTestId("nav-rail-group-org");
     fireEvent.focus(orgBtn);
 
-    // onFocus is NOT wired to onGroupHover anymore — focus should not trigger hover
+    // Focus triggers tooltip hover internally but NOT onGroupHover callback
+    // (only onMouseEnter/Leave call onHoverGroup)
     expect(onHover).not.toHaveBeenCalled();
   });
 
-  it("blur on a group icon does NOT trigger hover(null)", () => {
+  it("blur on a group icon does NOT trigger hoverGroup(null)", () => {
     const onHover = vi.fn();
-    render(<IconRail {...defaultProps} onGroupHover={onHover} />, { wrapper: Wrapper });
+    render(<IconRail {...defaultProps} onHoverGroup={onHover} />, { wrapper: Wrapper });
 
     const orgBtn = screen.getByTestId("nav-rail-group-org");
     fireEvent.focus(orgBtn);
     fireEvent.blur(orgBtn);
 
-    // onBlur is NOT wired — should not have called onGroupHover
-    // (onMouseEnter/Leave are the only triggers)
+    // Blur only hides the tooltip; it does NOT call onHoverGroup
     expect(onHover).not.toHaveBeenCalled();
   });
 

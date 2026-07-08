@@ -13,7 +13,6 @@ import { useTranslation } from "react-i18next";
 import PermissionGate from "@/components/common/permission-gate";
 import { TableSkeleton } from "@/components/common/table-skeleton";
 import PermissionManagementModal from "@/components/features/settings/permission-management-modal";
-import { useMyPermissions } from "@/hooks/use-permissions";
 import RoleManagementModal from "@/components/features/settings/role-management-modal";
 import Button from "@/components/ui/button";
 import {
@@ -26,6 +25,7 @@ import {
 } from "@/components/ui/table";
 import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
+import { useMyPermissions } from "@/hooks/use-permissions";
 import { useWorkspaceMembers, useWorkspaceRoles } from "@/hooks/use-workspace";
 import { WorkspaceRole, WorkspaceMember } from "@/lib/api";
 import { cn, maskEmail } from "@/lib/utils";

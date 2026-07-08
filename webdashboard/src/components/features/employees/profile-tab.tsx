@@ -174,10 +174,10 @@ export default function ProfileTab({
                 employee={employee}
                 formatDate={formatDate}
                 onEdit={onEdit}
-                onEditTerminationDate={() => setIsEditTerminationModalOpen(true)}
+                onEditTerminationDate={() => { setIsEditTerminationModalOpen(true); }}
                 onRehire={onRehire}
                 onTerminate={onTerminate}
-                onUndoTerminate={() => setIsUndoTerminationModalOpen(true)}
+                onUndoTerminate={() => { setIsUndoTerminationModalOpen(true); }}
                 showEditTerminationDate={!employee.active_employment_id && !!terminatedEmployment}
                 t={t}
                 terminationDate={!employee.active_employment_id ? activeEmployment?.end_date : null}
@@ -231,7 +231,7 @@ export default function ProfileTab({
                     employeeId={employee.id}
                     employmentId={terminatedEmployment.id}
                     isOpen={isEditTerminationModalOpen}
-                    onClose={() => setIsEditTerminationModalOpen(false)}
+                    onClose={() => { setIsEditTerminationModalOpen(false); }}
                     wsId={wsId}
                 />
               )}
@@ -241,7 +241,7 @@ export default function ProfileTab({
                     employeeId={employee.id}
                     employmentId={terminatedEmployment.id}
                     isOpen={isUndoTerminationModalOpen}
-                    onClose={() => setIsUndoTerminationModalOpen(false)}
+                    onClose={() => { setIsUndoTerminationModalOpen(false); }}
                     onSuccess={() => {
                         if (onEmployeeUpdate && terminatedEmployment) {
                             onEmployeeUpdate({

@@ -32,12 +32,12 @@ import type { ScheduleTrace } from '../../lib/api/types';
 interface TierMeta {
   /** i18n key suffix (combined with "shifts.traceability." prefix) */
   i18nKey: string;
-  /** backend source labels that map to this tier */
-  sources: string[];
-  /** numeric priority (100 = highest) */
-  priority: number;
   /** lucide icon component */
   Icon: React.FC<{ size?: number; className?: string }>;
+  /** numeric priority (100 = highest) */
+  priority: number;
+  /** backend source labels that map to this tier */
+  sources: string[];
 }
 
 const TIER_MAP: readonly TierMeta[] = [
@@ -84,24 +84,22 @@ export function HorizontalBadgeChain({ source, t }: HorizontalBadgeChainProps) {
             >
               <tier.Icon size={10} />
               <span>{t(`shifts.traceability.${tier.i18nKey}`)}</span>
-              {isApplied && <span className="text-[8px]">✅</span>}
+              {!!isApplied && <span className="text-[8px]">✅</span>}
             </div>
             {idx < TIER_MAP.length - 1 && (
-              <ChevronRight size={10} className="text-slate-300 dark:text-slate-600 shrink-0" />
+              <ChevronRight className="text-slate-300 dark:text-slate-600 shrink-0" size={10} />
             )}
           </React.Fragment>
         );
       })}
 
-      {isDayOff && (
-        <>
-          <ChevronRight size={10} className="text-slate-300 dark:text-slate-600 shrink-0" />
+      {!!isDayOff && <>
+          <ChevronRight className="text-slate-300 dark:text-slate-600 shrink-0" size={10} />
           <div className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-extrabold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-500">
             <Ban size={10} />
             <span>{t('shifts.traceability.p0_none')}</span>
           </div>
-        </>
-      )}
+        </>}
     </div>
   );
 }
@@ -111,8 +109,8 @@ export function HorizontalBadgeChain({ source, t }: HorizontalBadgeChainProps) {
 // ---------------------------------------------------------------------------
 
 interface PriorityChainVerticalProps {
-  source: string;
   appliedRule: ScheduleTrace | undefined;
+  source: string;
   t: TFunction;
 }
 
@@ -152,7 +150,7 @@ export function PriorityChainVertical({ source, appliedRule, t }: PriorityChainV
                 {isApplied ? (
                   <CheckCircle2 size={12} />
                 ) : (
-                  <ArrowDown size={10} className={isSkipped ? 'opacity-40' : 'opacity-20'} />
+                  <ArrowDown className={isSkipped ? 'opacity-40' : 'opacity-20'} size={10} />
                 )}
               </div>
 
@@ -178,17 +176,17 @@ export function PriorityChainVertical({ source, appliedRule, t }: PriorityChainV
               </span>
 
               {/* Status label */}
-              {isApplied && (
+              {!!isApplied && (
                 <span className="text-[8px] font-extrabold px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-800 uppercase tracking-wider">
                   {t('shifts.traceability.applied')}
                 </span>
               )}
-              {isSkipped && (
+              {!!isSkipped && (
                 <span className="text-[8px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                   skip
                 </span>
               )}
-              {isBelow && (
+              {!!isBelow && (
                 <span className="text-[8px] font-extrabold text-slate-300 dark:text-slate-600 uppercase tracking-wider">
                   —
                 </span>
@@ -215,7 +213,7 @@ export function PriorityChainVertical({ source, appliedRule, t }: PriorityChainV
       </div>
 
       {/* Rule reason (if applied rule has explanation) */}
-      {appliedRule?.reason && (
+      {!!appliedRule?.reason && (
         <div className="pt-2 mt-2 border-t border-emerald-100 dark:border-emerald-800/40">
           <Typography className="text-[9px] text-emerald-700 dark:text-emerald-300/80 font-medium leading-relaxed flex gap-1.5" variant="p">
             <span className="shrink-0">▸</span>

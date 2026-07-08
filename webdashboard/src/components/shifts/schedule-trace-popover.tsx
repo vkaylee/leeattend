@@ -8,8 +8,9 @@ import { useTranslation } from 'react-i18next';
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 
-import { HorizontalBadgeChain, PriorityChainVertical } from './priority-chain';
 import type { ScheduleTrace } from '../../lib/api/types';
+
+import { HorizontalBadgeChain, PriorityChainVertical } from './priority-chain';
 
 interface ScheduleTracePopoverProps {
   endTime?: string | null;

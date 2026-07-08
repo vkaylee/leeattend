@@ -1,4 +1,4 @@
-import React from "react";
+import { Fragment, isValidElement, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ErrorBoundary } from "@/components/common/error-boundary";
@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 export interface TabConfig {
   colorScheme: "amber" | "emerald" | "rose" | "blue" | "slate";
-  icon?: React.ReactNode;
+  icon?: ReactNode;
   id: string;
   label: string;
 }
@@ -60,18 +60,18 @@ function ApprovalListTabs({ activeTab, onTabChange, tabs }: { activeTab: string;
 
 interface ApprovalListLayoutProps {
   activeTab: string;
-  banner?: React.ReactNode;
-  children?: React.ReactNode;
+  banner?: ReactNode;
+  children?: ReactNode;
   emptyMessage?: string;
-  headerActions?: React.ReactNode;
+  headerActions?: ReactNode;
   hideHeader?: boolean;
   hideTabs?: boolean;
   isEmpty?: boolean;
   isLoading?: boolean;
-  modals?: React.ReactNode;
+  modals?: ReactNode;
   onTabChange: (tabId: string) => void;
   subtitle?: string;
-  tableHeaders: React.ReactNode[];
+  tableHeaders: ReactNode[];
   tabs?: TabConfig[];
   title?: string;
 }
@@ -125,8 +125,8 @@ export default function ApprovalListLayout({
           <thead>
             <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-primary-100 dark:border-primary-800/50">
               {tableHeaders.map((header, index) => {
-                if (React.isValidElement(header) && (header.type === "th" || header.type === "td")) {
-                  return <React.Fragment key={index}>{header}</React.Fragment>;
+                if (isValidElement(header) && (header.type === "th" || header.type === "td")) {
+                  return <Fragment key={index}>{header}</Fragment>;
                 }
 
                 const isFirst = index === 0;

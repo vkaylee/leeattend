@@ -74,17 +74,17 @@ export default function ResetPasswordPage() {
             >
               LeeAttend
             </Typography>
-            <p className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-[0.3em] mt-1">
+            <Typography className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-[0.3em] mt-1" variant="p">
               {t("auth.slogan")}
-            </p>
+            </Typography>
           </div>
         </div>
 
         <div>
-          <h2 className="text-2xl font-bold text-slate-700 dark:text-slate-200 tracking-tight">
+          <Typography className="text-2xl font-bold text-slate-700 dark:text-slate-200 tracking-tight" variant="h2">
             {t("auth.reset_password_title")}
-          </h2>
-          <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">
+          </Typography>
+          <Typography className="text-slate-400 dark:text-slate-500 text-sm mt-1" variant="p">
             {t("auth.back_to_login")}
             {" "}
             <Link
@@ -93,7 +93,7 @@ export default function ResetPasswordPage() {
             >
               {t("auth.login.title")}
             </Link>
-          </p>
+          </Typography>
         </div>
       </div>
 
@@ -117,9 +117,9 @@ export default function ResetPasswordPage() {
                 <path d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
-            <p className="text-amber-800 dark:text-amber-200 font-semibold text-sm">
+            <Typography className="text-amber-800 dark:text-amber-200 font-semibold text-sm" variant="p">
               {t("auth.reset_token_invalid")}
-            </p>
+            </Typography>
           </div>
 
           <div className="text-center">
@@ -184,9 +184,9 @@ export default function ResetPasswordPage() {
                 <path d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
-            <p className="text-emerald-800 dark:text-emerald-200 font-semibold text-sm">
+            <Typography className="text-emerald-800 dark:text-emerald-200 font-semibold text-sm" variant="p">
               {t("auth.reset_success")}
-            </p>
+            </Typography>
           </div>
 
           <div className="text-center">

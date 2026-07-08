@@ -5,6 +5,8 @@ import { useTranslation } from "react-i18next";
 
 import type { MenuGroupType, MenuLinkType, NavGroup } from "@/hooks/use-nav-menu-items";
 
+import Button from "@/components/ui/button";
+import { Typography } from "@/components/ui/typography";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { useFilteredMenuItems } from "@/hooks/use-nav-menu-items";
 import { cn } from "@/lib/utils";
@@ -113,36 +115,34 @@ export default function FloatingPanel({
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-4 border-b border-slate-100 dark:border-slate-800 shrink-0 min-h-[56px]">
-        <h2 className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate">
+        <Typography className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate" variant="h2">
           {currentGroup.label}
-        </h2>
+        </Typography>
         <div className="flex items-center gap-1">
           {/* Pin toggle */}
-          <button
+          <Button
             aria-label={isPinned ? t("common.collapse", "Unpin") : t("common.expand", "Pin")}
             className={cn(
-              "p-2 rounded-xl transition-colors",
+              "h-8 w-8",
               isPinned
                 ? "text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950"
                 : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800",
             )}
             data-testid={`nav-panel-pin-${group}`}
+            icon={isPinned ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
             onClick={onTogglePin}
-            type="button"
-          >
-            {isPinned ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
-          </button>
+            variant="ghost"
+          />
           {/* Close button (only when not pinned) */}
           {!isPinned && (
-            <button
+            <Button
               aria-label={t("common.close")}
-              className="p-2 rounded-xl text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="h-8 w-8 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
               data-testid={`nav-panel-close-${group}`}
+              icon={<X className="h-3.5 w-3.5" />}
               onClick={onClose}
-              type="button"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
+              variant="ghost"
+            />
           )}
         </div>
       </div>

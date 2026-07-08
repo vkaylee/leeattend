@@ -55,7 +55,7 @@ export default function EContractDetailsDrawer({
     toast.success(t("econtract_drawer.download_success"));
   };
 
-  const handleCompleteSign = (otpCode: string, signatureText: string) => {
+  const handleCompleteSign = (_otpCode: string, _signatureText: string) => {
     // Update signer status to signed
     const updatedSigners: SignerStatus[] = envelope.signer_statuses.map((signer) => {
       if (signer.role === "employee" && signer.status === "pending") {

@@ -1,9 +1,9 @@
 import { createLazyFileRoute } from "@tanstack/react-router";
-import React, { Suspense } from "react";
+import { Suspense, lazy } from "react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 
-const SettingsHubPage = React.lazy(() => import("@/pages/settings/settings-hub-page"));
+const SettingsHubPage = lazy(() => import("@/pages/settings/settings-hub-page"));
 
 function SettingsHubFallback() {
   return (

@@ -91,7 +91,7 @@ export default function ContractFormModal({
   const toast = useToast();
   const { createContract, updateContract } = useEmployeeContracts(wsId, employeeId);
   const { data: phases } = useQuery({ queryKey: ["employment-phases", wsId], queryFn: () => fetchEmploymentPhases(wsId), enabled: !!wsId });
-  const { data: employee } = useQuery({ queryKey: ["employee", wsId, employeeId], queryFn: () => fetchEmployee(wsId, employeeId), enabled: !!wsId && !!employeeId && isOpen });
+  useQuery({ queryKey: ["employee", wsId, employeeId], queryFn: () => fetchEmployee(wsId, employeeId), enabled: !!wsId && !!employeeId && isOpen });
   const { data: employments = [] } = useQuery({
     queryKey: ["employee-employments", wsId, employeeId],
     queryFn: () => fetchEmployeeEmployments(wsId, employeeId),

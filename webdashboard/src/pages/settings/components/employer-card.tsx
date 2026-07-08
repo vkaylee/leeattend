@@ -6,9 +6,9 @@ import React from "react";
 import type { Employer, Employee } from "@/lib/api/types";
 
 import Button from "@/components/ui/button";
-import { maskEmail, maskPhone } from "@/lib/utils";
 import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
+import { maskEmail, maskPhone } from "@/lib/utils";
 
 export interface EmployerCardProps {
   employees: Employee[];

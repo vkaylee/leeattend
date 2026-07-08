@@ -6,6 +6,7 @@ import {
 import { type ReactNode, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 
+import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 import { VietnameseFlag, EnglishFlag, ChineseFlag } from "./icons/flags";
@@ -176,15 +177,15 @@ function DashboardMockup() {
                 key={label}
                 style={{ animation: "auth-fade-in 0.5s ease-out both" }}
               >
-                <p className="text-white font-bold text-lg leading-none">{value}</p>
-                <p className="text-white/50 text-[10px] font-medium mt-1 uppercase tracking-wide">{label}</p>
+                <Typography className="text-white font-bold text-lg leading-none" variant="p">{value}</Typography>
+                <Typography className="text-white/50 text-[10px] font-medium mt-1 uppercase tracking-wide" variant="p">{label}</Typography>
               </div>
             ))}
           </div>
 
           {/* Attendance chart */}
           <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.04)" }}>
-            <p className="text-white/50 text-[10px] font-semibold uppercase tracking-widest mb-3">Weekly Attendance</p>
+            <Typography className="text-white/50 text-[10px] font-semibold uppercase tracking-widest mb-3" variant="p">Weekly Attendance</Typography>
             <div className="flex items-end gap-1.5 h-14">
               {ATTENDANCE_BARS.map((h, i) => (
                 <div className="flex-1 flex flex-col items-center gap-1" key={i}>
@@ -207,7 +208,7 @@ function DashboardMockup() {
 
           {/* Employee list */}
           <div className="space-y-1.5">
-            <p className="text-white/50 text-[10px] font-semibold uppercase tracking-widest mb-2">Today&apos;s Status</p>
+            <Typography className="text-white/50 text-[10px] font-semibold uppercase tracking-widest mb-2" variant="p">Today&apos;s Status</Typography>
             {MOCK_EMPLOYEES.map(({ name, role, status, time, initials, hue }, idx) => {
               const s = STATUS_STYLE[status];
               return (
@@ -229,8 +230,8 @@ function DashboardMockup() {
                   </div>
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-white/80 text-xs font-semibold truncate leading-none">{name}</p>
-                    <p className="text-white/35 text-[10px] truncate mt-0.5">{role}</p>
+                    <Typography className="text-white/80 text-xs font-semibold truncate leading-none" variant="p">{name}</Typography>
+                    <Typography className="text-white/35 text-[10px] truncate mt-0.5" variant="p">{role}</Typography>
                   </div>
                   {/* Status */}
                   <div className={`flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide ${s.badge}`}>
@@ -331,21 +332,23 @@ function BrandPanel() {
 
         {/* Headline */}
         <div>
-          <h2
+          <Typography
             className="text-white font-bold leading-tight tracking-tight"
             style={{
               fontSize: "clamp(1.6rem, 2.2vw, 2.4rem)",
               animation: "auth-fade-in 0.6s ease-out both",
             }}
+            variant="h2"
           >
             {t("auth.brand.headline")}
-          </h2>
-          <p
+          </Typography>
+          <Typography
             className="text-white/40 text-xs font-semibold uppercase tracking-[0.25em] mt-2"
             style={{ animation: "auth-fade-in 0.6s ease-out 0.1s both" }}
+            variant="p"
           >
             {t("auth.brand.subline")}
-          </p>
+          </Typography>
         </div>
 
         {/* Dashboard mockup */}

@@ -41,7 +41,7 @@ export default function EmployeeTerminationImportDialog({
   const [importSuccess, setImportSuccess] = useState(false);
   const [successCount, setSuccessCount] = useState(0);
   const [jobId, setJobId] = useState<string | null>(null);
-  const [jobStatus, setJobStatus] = useState<string | null>(null);
+  const [, setJobStatus] = useState<string | null>(null);
   const [jobError, setJobError] = useState<string | null>(null);
 
   const handleDownloadTemplate = async () => {
@@ -469,7 +469,7 @@ export default function EmployeeTerminationImportDialog({
           </div>
 
           {/* Preview Tabs */}
-          <Tabs onValueChange={(val) => setActiveTab(val as "valid" | "invalid")} value={activeTab}>
+          <Tabs onValueChange={(val) => { setActiveTab(val as "valid" | "invalid"); }} value={activeTab}>
             <TabsList>
               <TabsTrigger value="valid">
                 {t("employees.bulk_termination.tab_valid", { count: previewData?.valid_rows.length ?? 0 })}

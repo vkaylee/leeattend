@@ -1,11 +1,11 @@
 import { createLazyFileRoute } from "@tanstack/react-router";
-import React, { Suspense } from "react";
+import { Suspense, lazy } from "react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import DashboardPage from "@/pages/dashboard-page";
 
 // Lazy-load the app launcher to keep the main bundle lean
-const AppLauncherPage = React.lazy(() => import("@/pages/app-launcher-page"));
+const AppLauncherPage = lazy(() => import("@/pages/app-launcher-page"));
 
 function AppLauncherFallback() {
   return (

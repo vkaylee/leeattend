@@ -164,7 +164,6 @@ describe("EContractsSettingsPage Component", () => {
   });
 
   it("switches context when select employer changes", async () => {
-    const user = userEvent.setup();
     renderPage();
 
     await waitFor(() => {

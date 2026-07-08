@@ -203,12 +203,6 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 );
 
 describe("BehalfAssignmentsTab", () => {
-  const mockEmployees = [
-    { id: "emp-1", full_name: "Alice Smith", employee_id_number: "E001", user_id: "user-1" },
-    { id: "emp-2", full_name: "Bob Jones", employee_id_number: "E002", user_id: "user-2" },
-    { id: "emp-3", full_name: "Charlie Brown", employee_id_number: "E003", user_id: "user-3" },
-  ];
-
   const mockDepartments = [
     { id: "dept-1", name: "Engineering", description: "Eng department", active_employee_count: 5, created_at: "", updated_at: "", workspace_id: "ws-1" },
     { id: "dept-2", name: "Marketing", description: "Mkt department", active_employee_count: 5, created_at: "", updated_at: "", workspace_id: "ws-1" },

@@ -149,9 +149,9 @@ export default function LocationsSettings() {
                 <Typography className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1" variant="p">
                   {t("settings.locations.address", { defaultValue: "Address" })}
                 </Typography>
-                <p className="text-sm text-slate-600 dark:text-slate-300 font-medium truncate">
+                <Typography className="text-sm text-slate-600 dark:text-slate-300 font-medium truncate" variant="p">
                   {location.address ?? "—"}
-                </p>
+                </Typography>
               </div>
 
               {/* Middle Section: Timezone */}

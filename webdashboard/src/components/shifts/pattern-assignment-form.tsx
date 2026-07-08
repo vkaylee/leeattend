@@ -1,7 +1,7 @@
 import { useQueries } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { CalendarRange, Calendar, Save, ChevronDown, ChevronUp } from "lucide-react";
-import React from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
@@ -39,7 +39,7 @@ function PatternSelector({
 }) {
   const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId() ?? "";
-  const [expandedPatternId, setExpandedPatternId] = React.useState<string | null>(null);
+  const [expandedPatternId, setExpandedPatternId] = useState<string | null>(null);
 
   const patternDetailsQueries = useQueries({
     queries: (patterns ?? []).map((pattern) => ({
@@ -291,7 +291,6 @@ function PatternSelector({
 }
 
 export function PatternAssignmentForm({
-  selectedEmployee,
   patterns,
   selectedPatternId,
   setSelectedPatternId,

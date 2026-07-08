@@ -12,7 +12,7 @@ import {
   Plus,
   X,
 } from "lucide-react";
-import React, { memo } from "react";
+import { memo, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
 import { format } from "date-fns";
@@ -156,9 +156,9 @@ export const RosterToolbar = memo(function RosterToolbar({
   const { i18n, t } = useTranslation();
   const currentLocale = dateLocales[i18n.language.substring(0, 2)] ?? enUS;
 
-  const selectedMetaRef = React.useRef<Employee[]>(selectedEmployeesMeta || []);
+  const selectedMetaRef = useRef<Employee[]>(selectedEmployeesMeta || []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     selectedMetaRef.current = selectedEmployeesMeta || [];
   }, [selectedEmployeesMeta]);
   const { formatDate } = useDateTimeFormatter();

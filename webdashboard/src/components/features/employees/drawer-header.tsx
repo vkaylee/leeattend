@@ -1,5 +1,5 @@
 import { ChevronDown, X, User, FolderOpen, FileText, Milestone, ArrowLeftRight, DollarSign, History, Settings, CheckSquare } from "lucide-react";
-import React from "react";
+import { createElement } from "react";
 
 import type { Employee } from "@/lib/api";
 
@@ -77,7 +77,7 @@ export default function DrawerHeader({
                             variant="ghost"
                         >
                             <span className="flex items-center gap-3">
-                                {React.createElement(activeTabObj.icon, { size: 14, className: "text-primary-500" })}
+                                {createElement(activeTabObj.icon, { size: 14, className: "text-primary-500" })}
                                 {activeTabObj.label.toUpperCase()}
                             </span>
                             <ChevronDown className="text-slate-400 dark:text-slate-500 transition-transform duration-200" size={14} />
@@ -97,7 +97,7 @@ export default function DrawerHeader({
                                     setActiveDetailTab(tab.id);
                                 }}
                             >
-                                {React.createElement(tab.icon, {
+                                {createElement(tab.icon, {
                                     size: 12,
                                     className: cn(
                                         activeDetailTab === tab.id

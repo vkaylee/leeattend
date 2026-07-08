@@ -65,7 +65,6 @@ describe("SmartTable Component", () => {
   });
 
   it("handles sorting clicks", () => {
-    const handleSort = vi.fn();
     renderSmartTable();
 
     const header = screen.getByText("Name");
