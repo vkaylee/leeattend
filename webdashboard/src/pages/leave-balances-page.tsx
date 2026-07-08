@@ -14,6 +14,7 @@ export default function LeaveBalancesPage() {
     setSearchTerm,
     page,
     setPage,
+    resetPagination,
     selectedYear,
     setSelectedYear,
     selectedEmployee,
@@ -44,11 +45,11 @@ export default function LeaveBalancesPage() {
           selectedYear={selectedYear}
           setSearchTerm={(term) => {
             setSearchTerm(term);
-            setPage(1);
+            resetPagination();
           }}
           setSelectedYear={(year) => {
             setSelectedYear(year);
-            setPage(1);
+            resetPagination();
           }}
           totalItems={totalItems}
         />

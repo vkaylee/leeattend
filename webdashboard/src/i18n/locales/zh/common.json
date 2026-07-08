@@ -224,7 +224,9 @@
           "delete_success": "政策删除成功！",
           "assign_success": "政策分配成功！",
           "confirm_delete": "您确定要删除此政策吗？"
-        }
+        },
+        "edit_assignment_subtitle": "Modify assignment rules and effective dates.",
+        "edit_assignment_title": "EDIT POLICY ASSIGNMENT"
       },
       "title": "请假申请",
       "subtitle": "批准和管理人员缺勤",
@@ -1072,7 +1074,8 @@
       },
       "validation_pattern_required": "请选择一个模式。",
       "validation_employees_required": "请至少选择一名员工。",
-      "bulk_assign_submit": "确认分配"
+      "bulk_assign_submit": "确认分配",
+      "cycle_summary": "\"Chu kỳ {{total"
     },
     "rules": {
       "title": "自动分配规则",
@@ -1225,7 +1228,18 @@
         "error_zero_minutes": "分钟数必须大于 0",
         "error_exceeds_system": "申请时长不能超过系统检测到的加班时长",
         "system_detected": "系统检测到",
-        "close": "关闭"
+        "close": "关闭",
+        "request": "Request OT",
+        "subtitle": "Request overtime or respond to assignments",
+        "title": "My Overtime",
+        "quota_title": "Overtime Quota",
+        "quota_subtitle": "Your limits and usage",
+        "no_quota": "No quota configured",
+        "no_assignments": "No Overtime Assignments",
+        "no_assignments_desc": "You don't have any pending overtime requests or assignments.",
+        "request_success": "Overtime request created successfully",
+        "request_title": "Request Overtime",
+        "attachment": "Attachment (PDF ONLY)"
       }
     },
     "columns": "列",
@@ -1783,10 +1797,17 @@
     "no_assignments_configured": "未配置代表分配"
   },
   "errors": {
-    "upload_failed": "Upload Failed",
-    "presigned_url_failed": "Presigned Url Failed",
-    "s3_upload_failed": "S3 Upload Failed",
-    "network_error": "Network Error"
+    "network": "网络错误。请检查您的连接。",
+    "unauthorized": "会话已过期。请重新登录。",
+    "forbidden": "您没有权限执行此操作。",
+    "not_found": "未找到请求的资源。",
+    "validation": "请检查您的输入并重试。",
+    "server": "出错了。请稍后再试。",
+    "unknown": "发生了意外错误。",
+    "network_error": "网络错误。请检查您的连接。",
+    "presigned_url_failed": "无法生成上传链接。请重试。",
+    "s3_upload_failed": "文件上传失败。请重试。",
+    "upload_failed": "上传失败。"
   },
   "documents": {
     "loading_securely": "安全加载文档中...",

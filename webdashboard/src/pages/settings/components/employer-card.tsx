@@ -6,6 +6,7 @@ import React from "react";
 import type { Employer, Employee } from "@/lib/api/types";
 
 import Button from "@/components/ui/button";
+import { maskEmail, maskPhone } from "@/lib/utils";
 import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
 
@@ -14,11 +15,12 @@ export interface EmployerCardProps {
   employer: Employer;
   onDelete: (id: string) => Promise<void>;
   onEdit: (employer: Employer) => void;
+  showRawPII?: boolean;
   t: TFunction;
 }
 
 // eslint-disable-next-line max-lines-per-function, complexity
-export function EmployerCard({ employer, employees, onEdit, onDelete, t }: EmployerCardProps) {
+export function EmployerCard({ employer, employees, onEdit, onDelete, showRawPII = false, t }: EmployerCardProps) {
   const { confirm, ConfirmationDialog } = useConfirm();
 
   const linkedEmployeeCount = employees.filter((e) => e.employer_id === employer.id).length;
@@ -121,11 +123,11 @@ export function EmployerCard({ employer, employees, onEdit, onDelete, t }: Emplo
               <span className="text-xs font-semibold tracking-tight">
                 {employer.phone && employer.email ? (
                   <span className="font-medium text-slate-700 dark:text-slate-300">
-                    {employer.phone} | {employer.email}
+                    {showRawPII ? employer.phone : maskPhone(employer.phone)} | {showRawPII ? employer.email : maskEmail(employer.email)}
                   </span>
                 ) : (
                   <span className="font-medium text-slate-700 dark:text-slate-300">
-                    {employer.phone ?? employer.email}
+                    {showRawPII ? (employer.phone ?? employer.email) : maskPhone(employer.phone) || maskEmail(employer.email)}
                   </span>
                 )}
               </span>

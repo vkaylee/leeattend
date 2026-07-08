@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { useDateTimeFormatter } from "../use-datetime";
+import { useLanguage } from "../use-language";
 import { useWorkspace } from "../use-workspace";
 
 // Mock useWorkspace
@@ -11,9 +12,21 @@ vi.mock("../use-workspace", () => ({
   useWorkspace: vi.fn(),
 }));
 
+// Mock useLanguage (returns default 'vi' — not the focus of these tests)
+vi.mock("../use-language", () => ({
+  useLanguage: vi.fn(),
+}));
+
 describe("useDateTimeFormatter hook", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useLanguage).mockReturnValue({
+      currentLanguage: "vi",
+      currentOption: { code: "vi", flag: "🇻🇳", name: "Vietnamese", nativeName: "Tiếng Việt" },
+      languages: [],
+      changeLanguage: vi.fn(),
+      userPreference: undefined,
+    } as never);
   });
 
   it("formats date and time correctly with default workspace settings (VN)", () => {

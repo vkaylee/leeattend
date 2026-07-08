@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import PermissionGate from "@/components/common/permission-gate";
 import { TableSkeleton } from "@/components/common/table-skeleton";
 import PermissionManagementModal from "@/components/features/settings/permission-management-modal";
+import { useMyPermissions } from "@/hooks/use-permissions";
 import RoleManagementModal from "@/components/features/settings/role-management-modal";
 import Button from "@/components/ui/button";
 import {
@@ -27,7 +28,7 @@ import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useWorkspaceMembers, useWorkspaceRoles } from "@/hooks/use-workspace";
 import { WorkspaceRole, WorkspaceMember } from "@/lib/api";
-import { cn } from "@/lib/utils";
+import { cn, maskEmail } from "@/lib/utils";
 
 const roleColorMap: Record<string, string> = {
   teal: "bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-300 border-teal-100",
@@ -92,6 +93,8 @@ function MemberRoleCell({ member, roles }: { member: WorkspaceMember; roles: Wor
 export default function MemberTable() {
   const { t } = useTranslation();
   const { confirm, ConfirmationDialog } = useConfirm();
+  const { hasPermission } = useMyPermissions();
+  const canReadPII = hasPermission("employees:pii:read");
   const { members, isLoading: membersLoading, removeMember } = useWorkspaceMembers();
   const { roles, isLoading: rolesLoading } = useWorkspaceRoles();
   const isLoading = membersLoading || rolesLoading;
@@ -145,7 +148,7 @@ export default function MemberTable() {
                     <div>
                       <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none mb-1.5">{member.full_name ?? t("common.no_name")}</div>
                       <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-bold flex items-center gap-2 opacity-70">
-                        <Mail className="text-primary-400" size={12} /> {member.email}
+                        <Mail className="text-primary-400" size={12} /> {canReadPII ? member.email : maskEmail(member.email)}
                       </div>
                     </div>
                   </div>

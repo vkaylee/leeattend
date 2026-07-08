@@ -224,7 +224,9 @@
           "delete_success": "Xóa chính sách thành công!",
           "assign_success": "Gán chính sách thành công!",
           "confirm_delete": "Bạn có chắc chắn muốn xóa chính sách này không?"
-        }
+        },
+        "edit_assignment_subtitle": "Modify assignment rules and effective dates.",
+        "edit_assignment_title": "EDIT POLICY ASSIGNMENT"
       },
       "title": "Yêu cầu nghỉ phép",
       "subtitle": "Duyệt và quản lý thời gian nghỉ của nhân sự",
@@ -1040,7 +1042,8 @@
       },
       "validation_pattern_required": "Vui lòng chọn một mẫu.",
       "validation_employees_required": "Vui lòng chọn ít nhất một nhân viên.",
-      "bulk_assign_submit": "Xác nhận gán"
+      "bulk_assign_submit": "Xác nhận gán",
+      "cycle_summary": "\"Chu kỳ {{total"
     },
     "rules": {
       "title": "Quy tắc phân ca tự động",
@@ -1193,7 +1196,18 @@
         "error_zero_minutes": "Số phút phải lớn hơn 0",
         "error_exceeds_system": "Không thể yêu cầu nhiều hơn số phút OT hệ thống ghi nhận",
         "system_detected": "Hệ thống ghi nhận",
-        "close": "Đóng"
+        "close": "Đóng",
+        "request": "Request OT",
+        "subtitle": "Request overtime or respond to assignments",
+        "title": "My Overtime",
+        "quota_title": "Overtime Quota",
+        "quota_subtitle": "Your limits and usage",
+        "no_quota": "No quota configured",
+        "no_assignments": "No Overtime Assignments",
+        "no_assignments_desc": "You don't have any pending overtime requests or assignments.",
+        "request_success": "Overtime request created successfully",
+        "request_title": "Request Overtime",
+        "attachment": "Attachment (PDF ONLY)"
       }
     },
     "columns": "Cột",
@@ -1783,10 +1797,17 @@
     "no_assignments_configured": "Chưa có cấu hình behalf assignment"
   },
   "errors": {
-    "upload_failed": "Upload Failed",
-    "presigned_url_failed": "Presigned Url Failed",
-    "s3_upload_failed": "S3 Upload Failed",
-    "network_error": "Network Error"
+    "network": "Lỗi mạng. Vui lòng kiểm tra kết nối.",
+    "unauthorized": "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
+    "forbidden": "Bạn không có quyền thực hiện hành động này.",
+    "not_found": "Không tìm thấy tài nguyên được yêu cầu.",
+    "validation": "Vui lòng kiểm tra dữ liệu nhập và thử lại.",
+    "server": "Đã xảy ra lỗi. Vui lòng thử lại sau.",
+    "unknown": "Đã xảy ra lỗi không mong đợi.",
+    "network_error": "Lỗi mạng. Vui lòng kiểm tra kết nối.",
+    "presigned_url_failed": "Không thể tạo URL tải lên. Vui lòng thử lại.",
+    "s3_upload_failed": "Tải file thất bại. Vui lòng thử lại.",
+    "upload_failed": "Tải lên thất bại."
   },
   "documents": {
     "loading_securely": "Đang tải tài liệu bảo mật...",

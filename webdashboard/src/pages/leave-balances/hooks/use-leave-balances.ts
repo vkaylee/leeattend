@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useDebounce } from "@/hooks/use-debounce";
+import { usePagination } from "@/hooks/use-pagination";
 import { fetchWorkspaceLeaveBalances, getCurrentWorkspaceId, triggerAccrualRun, fetchJobStatus } from "@/lib/api";
 import { WorkspaceLeaveBalance } from "@/lib/api/types";
 
@@ -14,7 +15,7 @@ export function useLeaveBalances() {
   const queryClient = useQueryClient();
   const wsId = getCurrentWorkspaceId();
   const [searchTerm, setSearchTerm] = useState("");
-  const [page, setPage] = useState(1);
+  const { page, setPage, reset } = usePagination({ initialPageSize: 20 });
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const { confirm, ConfirmationDialog } = useConfirm();
   const limit = 20;
@@ -96,6 +97,7 @@ export function useLeaveBalances() {
     setSearchTerm,
     page,
     setPage,
+    resetPagination: reset,
     selectedYear,
     setSelectedYear,
     selectedEmployee,

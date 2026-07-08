@@ -8,6 +8,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ToastProvider } from "../../components/ui/toast";
 import i18n from "../../i18n/config";
 import * as api from "../../lib/api";
+import { maskEmail, maskPhone } from "../../lib/utils";
 import EmployersPage from "../settings/employers-page";
 
 // Mock TanStack Router
@@ -115,8 +116,17 @@ describe("EmployersPage", () => {
     expect(screen.getByText("REG-222")).toBeDefined();
     expect(screen.getByText("2020-05-15")).toBeDefined();
     expect(screen.getAllByText(/USA \(USD\)/).length).toBe(2);
-    expect(screen.getByText(/trade@example.com/)).toBeDefined();
-    expect(screen.getByText(/shop@example.com/)).toBeDefined();
+    // PII is masked by default (no employees:pii:read permission in test).
+    // Contact line renders "phone | email" in a single span alongside an icon,
+    // so match on container text content rather than exact standalone text.
+    const employerCards = document.querySelectorAll("[class*='group relative']");
+    expect(employerCards.length).toBe(2);
+    const card1Text = employerCards[0]?.textContent ?? "";
+    const card2Text = employerCards[1]?.textContent ?? "";
+    expect(card1Text).toContain(maskPhone("+15551234"));
+    expect(card1Text).toContain(maskEmail("trade@example.com"));
+    expect(card2Text).toContain(maskPhone("+15555678"));
+    expect(card2Text).toContain(maskEmail("shop@example.com"));
   });
 
   it("renders empty state when no employers exist", async () => {

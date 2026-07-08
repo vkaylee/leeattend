@@ -1,10 +1,19 @@
 import { format } from "date-fns";
+import { enUS, vi, zhCN, type Locale } from "date-fns/locale";
 
+import { useLanguage } from "./use-language";
 import { useWorkspace } from "./use-workspace";
+
+const LOCALE_MAP: Record<string, Locale> = {
+  vi,
+  en: enUS,
+  zh: zhCN,
+};
 
 export function useDateTimeFormatter() {
   const { workspace } = useWorkspace();
-  
+  const { currentLanguage } = useLanguage();
+
   const dateFormat = workspace?.date_format ?? "DD/MM/YYYY";
   const timeFormat = workspace?.time_format ?? "24h";
 
@@ -14,13 +23,15 @@ export function useDateTimeFormatter() {
   const datePattern = dateFormat
     .replace("DD", "dd")
     .replace("YYYY", "yyyy");
-  
+
   const timePattern = timeFormat === "12h" ? "hh:mm a" : "HH:mm";
+
+  const dateFnsLocale = LOCALE_MAP[currentLanguage] ?? enUS;
 
   const formatDate = (date: string | Date | null | undefined) => {
     if (!date) return "---";
     try {
-      return format(new Date(date), datePattern);
+      return format(new Date(date), datePattern, { locale: dateFnsLocale });
     } catch {
       return String(date);
     }
@@ -37,7 +48,7 @@ export function useDateTimeFormatter() {
         d = new Date();
         d.setHours(parseInt(h), parseInt(m), s ? parseInt(s) : 0);
       }
-      return format(d, timePattern);
+      return format(d, timePattern, { locale: dateFnsLocale });
     } catch {
       return String(date);
     }
@@ -52,7 +63,7 @@ export function useDateTimeFormatter() {
         d = new Date();
         d.setHours(parseInt(h), parseInt(m), s ? parseInt(s) : 0);
       }
-      return format(d, "HH:mm");
+      return format(d, "HH:mm", { locale: dateFnsLocale });
     } catch {
       return "";
     }
@@ -61,7 +72,7 @@ export function useDateTimeFormatter() {
   const formatDateTime = (date: string | Date | null | undefined) => {
     if (!date) return "---";
     try {
-      return format(new Date(date), `${datePattern} ${timePattern}`);
+      return format(new Date(date), `${datePattern} ${timePattern}`, { locale: dateFnsLocale });
     } catch {
       return String(date);
     }
@@ -72,7 +83,7 @@ export function useDateTimeFormatter() {
     try {
       // Use localized month and year based on datePattern
       const pattern = datePattern.includes("dd/MM") ? "MM/yyyy" : datePattern.includes("MM/dd") ? "MM/yyyy" : "yyyy-MM";
-      return format(new Date(date), pattern);
+      return format(new Date(date), pattern, { locale: dateFnsLocale });
     } catch {
       return String(date);
     }

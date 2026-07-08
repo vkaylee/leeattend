@@ -169,6 +169,25 @@ vi.mock("@/components/ui/combobox", () => ({
   ),
 }));
 
+// Mock useLanguage (depends on useProfile → API) so that components consuming
+// useDateTimeFormatter (which now reads i18n language) don't crash during
+// render. Self-contained: uses fake profile data without touching use-profile
+// module so individual test files can still mock use-profile themselves.
+vi.mock("@/hooks/use-language", () => ({
+  useLanguage: () => ({
+    currentLanguage: "vi",
+    currentOption: { code: "vi", flag: "🇻🇳", name: "Vietnamese", nativeName: "Tiếng Việt" },
+    languages: [
+      { code: "vi", flag: "🇻🇳", name: "Vietnamese", nativeName: "Tiếng Việt" },
+      { code: "en", flag: "🇺🇸", name: "English", nativeName: "English" },
+      { code: "zh", flag: "🇨🇳", name: "Chinese", nativeName: "中文" },
+    ],
+    changeLanguage: () => Promise.resolve(),
+    userPreference: undefined,
+  }),
+  SUPPORTED_LANGUAGES: ["vi", "en", "zh"],
+}));
+
 vi.mock("@/hooks/use-header-actions", () => ({
   useHeaderActions: () => ({ actions: null, setActions: vi.fn() }),
   HeaderActionsProvider: ({ children }: { children: React.ReactNode }) => children,
