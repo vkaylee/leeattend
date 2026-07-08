@@ -184,10 +184,9 @@ export default function AppShell({ variant }: AppShellProps) {
           <div
             className={cn(
               isOrgChart
-                ? "w-full h-full animate-in fade-in duration-500"
-                : "max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both",
+                ? "w-full h-full"
+                : "max-w-7xl mx-auto",
             )}
-            key={location.pathname}
           >
             <ErrorBoundary>
               <Outlet />

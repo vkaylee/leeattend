@@ -10,7 +10,9 @@ export function createAppRouter(queryClient: QueryClient) {
     routeTree,
     context: { queryClient },
     defaultPreload: "intent",
-    defaultPreloadStaleTime: 0,
+    defaultPreloadStaleTime: 30_000, // Keep preloaded data fresh for 30s
+    defaultPendingMs: 200,           // Don't show skeleton for fast navigations (<200ms)
+    defaultPendingMinMs: 300,        // Once shown, keep skeleton visible for at least 300ms (avoid flash)
     scrollRestoration: true,
     defaultPendingComponent: GlobalPageSkeleton,
     defaultErrorComponent: RouteErrorFallback,
