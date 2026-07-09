@@ -62,7 +62,8 @@
     },
     "tabs": {
       "recorded": "Đã ghi nhận",
-      "unknown": "Chưa xác định"
+      "unknown": "Chưa xác định",
+      "unrecorded": "Vắng đầu ca"
     },
     "unknown_id": "ID chưa xác định",
     "not_in_system": "Chưa có trong hệ thống",
@@ -84,6 +85,22 @@
       "copy_id": "Copy Employee ID",
       "copy_time": "Copy Punch Time"
     }
+  },
+  "unrecorded_shifts": {
+    "title": "Danh sách vắng đầu ca hôm nay",
+    "subtitle": "Nhân sự có lịch làm việc nhưng chưa chấm công và không nghỉ phép.",
+    "export_btn": "Xuất Excel",
+    "filter_dept": "Lọc theo bộ phận",
+    "all_departments": "Tất cả bộ phận",
+    "columns": {
+      "employee_code": "Mã NV",
+      "employee_name": "Họ và Tên",
+      "department": "Bộ phận",
+      "shift_in": "Giờ vào ca",
+      "shift_out": "Giờ ra ca"
+    },
+    "empty": "Không có nhân sự nào vắng mặt đầu ca hôm nay.",
+    "empty_hint": "Tất cả nhân sự đã chấm công hoặc đã đăng ký nghỉ phép."
   },
   "attendance_import": {
     "subtitle": "Nhập dữ liệu hàng loạt",

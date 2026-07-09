@@ -62,7 +62,8 @@
     },
     "tabs": {
       "recorded": "已记录",
-      "unknown": "未识别"
+      "unknown": "未识别",
+      "unrecorded": "缺勤班次"
     },
     "unknown_id": "未知ID",
     "not_in_system": "系统中不存在",
@@ -773,5 +774,21 @@
       "label": "夜班",
       "description": "跨午夜班次 — 工时归属开始日期"
     }
+  },
+  "unrecorded_shifts": {
+    "title": "今日缺勤班次",
+    "subtitle": "已排班但未签到且未获批请假的员工。",
+    "export_btn": "导出 Excel",
+    "filter_dept": "按部门筛选",
+    "all_departments": "所有部门",
+    "columns": {
+      "employee_code": "员工编号",
+      "employee_name": "姓名",
+      "department": "部门",
+      "shift_in": "上班时间",
+      "shift_out": "下班时间"
+    },
+    "empty": "今日无缺勤员工。",
+    "empty_hint": "所有员工已签到或已获批请假。"
   }
 }

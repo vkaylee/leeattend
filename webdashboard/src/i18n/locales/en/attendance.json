@@ -62,7 +62,8 @@
     },
     "tabs": {
       "recorded": "Recorded Logs",
-      "unknown": "Unidentified"
+      "unknown": "Unidentified",
+      "unrecorded": "No-Show Shifts"
     },
     "unknown_id": "Unknown ID",
     "not_in_system": "Not in system",
@@ -84,6 +85,22 @@
       "copy_id": "Copy Employee ID",
       "copy_time": "Copy Punch Time"
     }
+  },
+  "unrecorded_shifts": {
+    "title": "Today's No-Show Shifts",
+    "subtitle": "Employees with a scheduled shift who have not checked in and are not on approved leave.",
+    "export_btn": "Export Excel",
+    "filter_dept": "Filter by Department",
+    "all_departments": "All Departments",
+    "columns": {
+      "employee_code": "Emp. Code",
+      "employee_name": "Full Name",
+      "department": "Department",
+      "shift_in": "Shift Start",
+      "shift_out": "Shift End"
+    },
+    "empty": "No employees are absent at shift start today.",
+    "empty_hint": "All employees have checked in or are on approved leave."
   },
   "attendance_import": {
     "subtitle": "Bulk Data Import",
