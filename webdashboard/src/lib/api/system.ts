@@ -1,31 +1,23 @@
-import { http } from "./untyped";
+import { components } from "@/types/api-generated";
 
-export interface SystemRoleAssignment {
-  assigned_at: string;
-  assigned_by?: string;
-  role_name: string;
-  user_id: string;
-}
+import { client, fetch, fire } from "./client";
 
-export interface SystemRoleInfo {
-  assignees: SystemRoleAssignment[];
-  description: string;
-  id: string;
-  name: string;
-}
-
-export interface AssignSystemRoleRequest {
-  role_name: string;
-}
+// Re-exported for downstream consumers that imported these from here.
+export type SystemRoleAssignment = components["schemas"]["SystemRoleAssignment"];
+export type SystemRoleInfo = components["schemas"]["SystemRoleInfo"];
+export type AssignSystemRoleRequest = components["schemas"]["AssignSystemRoleRequest"];
+export type SystemDbCluster = components["schemas"]["SystemDbCluster"];
+export type CreateDbClusterRequestPayload = components["schemas"]["CreateDbClusterRequest"];
 
 export async function fetchSystemRoles(): Promise<SystemRoleInfo[]> {
-  const { data: resData } = await http.GET("/system/roles");
+  const { data: resData } = await client.GET("/system/roles");
   if (!resData) throw new Error("No response data");
-  return resData as unknown as SystemRoleInfo[];
+  return resData;
 }
 
 export async function fetchUserSystemRoles(userId: string): Promise<SystemRoleAssignment[]> {
-  const { data: resData } = await http.GET("/system/users/{user_id}/roles", {
+  // Schema advertises `string[]`; runtime payload is the richer assignment list.
+  const { data: resData } = await client.GET("/system/users/{user_id}/roles", {
     params: { path: { user_id: userId } }
   });
   if (!resData) throw new Error("No response data");
@@ -33,20 +25,20 @@ export async function fetchUserSystemRoles(userId: string): Promise<SystemRoleAs
 }
 
 export async function assignSystemRole(userId: string, request: AssignSystemRoleRequest): Promise<void> {
-  await http.POST("/system/users/{user_id}/roles", {
+  await client.POST("/system/users/{user_id}/roles", {
     params: { path: { user_id: userId } },
-    body: request as never
+    body: request,
   });
 }
 
 export async function revokeSystemRole(userId: string, roleName: string): Promise<void> {
-  await http.DELETE("/system/users/{user_id}/roles/{role_name}", {
+  await client.DELETE("/system/users/{user_id}/roles/{role_name}", {
     params: { path: { user_id: userId, role_name: roleName } }
   });
 }
 
 export async function fetchSystemHealth(): Promise<Record<string, unknown>> {
-  const { data: resData } = await http.GET("/system/health");
+  const { data: resData } = await client.GET("/system/health");
   if (!resData) throw new Error("No response data");
   return resData as Record<string, unknown>;
 }
@@ -65,24 +57,25 @@ export interface CreateTenantRequestPayload {
 }
 
 export async function fetchSystemTenants(): Promise<SystemTenant[]> {
-  const { data: resData } = await http.GET("/system/tenants", {});
+  const { data: resData } = await fetch<SystemTenant[]>("GET", "/system/tenants", {});
   if (!resData) throw new Error("No response data");
-  return resData as SystemTenant[];
+  return resData;
 }
 
 export async function fetchStaleTenants(): Promise<SystemTenant[]> {
-  const { data: resData } = await http.GET("/system/tenants/stale", {});
+  const { data: resData } = await fetch<SystemTenant[]>("GET", "/system/tenants/stale", {});
   if (!resData) throw new Error("No response data");
-  return resData as SystemTenant[];
+  return resData;
 }
 
 export async function createSystemTenant(request: CreateTenantRequestPayload): Promise<void> {
-  await http.POST("/system/tenants", { body: request as never });
-
+  await fire("POST", "/system/tenants", { body: request });
 }
 
 export async function deleteSystemTenant(tenantId: string): Promise<void> {
-  await http.DELETE("/system/tenants/{tenant_id}", { params: { path: { tenant_id: tenantId } } });
+  await fire("DELETE", "/system/tenants/{tenant_id}", {
+    params: { path: { tenant_id: tenantId } }
+  });
 }
 
 export interface TenantConfig {
@@ -108,65 +101,44 @@ export interface TenantConnectionStats {
 }
 
 export async function fetchSystemTenantStats(tenantId: string): Promise<TenantConnectionStats> {
-  const { data: resData } = await http.GET("/system/tenants/{tenant_id}/stats", {
+  const { data: resData } = await fetch<TenantConnectionStats>("GET", "/system/tenants/{tenant_id}/stats", {
     params: { path: { tenant_id: tenantId } },
   });
   if (!resData) throw new Error("No response data");
-  return resData as TenantConnectionStats;
+  return resData;
 }
 
 export async function updateTenantDatabase(tenantId: string, customDbUrl: string): Promise<void> {
-  await http.PUT("/system/tenants/{tenant_id}/database", {
+  await fire("PUT", "/system/tenants/{tenant_id}/database", {
     params: { path: { tenant_id: tenantId } },
     body: { database_url: customDbUrl },
   });
 }
 
-export interface SystemDbCluster {
-  active_tenants: number;
-  admin_database_url: string;
-  created_at: string;
-  id: string;
-  is_active: boolean;
-  max_tenants: number;
-  name: string;
-  region: string;
-  updated_at: string;
-}
-
-export interface CreateDbClusterRequestPayload {
-  admin_database_url: string;
-  is_active: boolean;
-  max_tenants: number;
-  name: string;
-  region: string;
-}
-
 export async function fetchSystemDbClusters(): Promise<SystemDbCluster[]> {
-  const { data: resData } = await http.GET<SystemDbCluster[]>("/system/db-clusters");
+  const { data: resData } = await client.GET("/system/db-clusters");
   if (!resData) throw new Error("No response data");
   return resData;
 }
 
 export async function createSystemDbCluster(request: CreateDbClusterRequestPayload): Promise<SystemDbCluster> {
-  const { data: resData } = await http.POST<SystemDbCluster>("/system/db-clusters", {
-    body: request as never
+  const { data: resData } = await client.POST("/system/db-clusters", {
+    body: request,
   });
   if (!resData) throw new Error("No response data");
   return resData;
 }
 
 export async function deleteSystemDbCluster(id: string): Promise<void> {
-  await http.DELETE("/system/db-clusters/{id}", {
+  await client.DELETE("/system/db-clusters/{id}", {
     params: { path: { id } }
   });
 }
 
 export async function updateSystemDbClusterStatus(id: string, isActive: boolean): Promise<SystemDbCluster> {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
-  const { data: resData } = await (http as unknown as { PATCH: <T>(p: string, i: { params?: { path?: Record<string, unknown> }; body?: unknown }) => Promise<{ data: T }> }).PATCH<SystemDbCluster>("/system/db-clusters/{id}/status", {
+  const { data: resData } = await client.PATCH("/system/db-clusters/{id}/status", {
     params: { path: { id } },
-    body: { is_active: isActive }
+    body: { is_active: isActive },
   });
   if (!resData) throw new Error("No response data");
   return resData;

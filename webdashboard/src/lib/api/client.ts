@@ -113,3 +113,38 @@ export const client = createClient<paths>({
   fetch: customFetch
 });
 
+// Typed wrappers for paths not yet in the generated OpenAPI `paths` schema.
+// The hand-rolled `as unknown as` cast (via a typed function signature) lets
+// call sites keep a generic return type without module-level `client as any`.
+// When a path lands in openapi raw.json and the schema is regenerated, migrate
+// the call site to the typed `client.METHOD(...)` and drop the helper.
+// Deliberately NOT called `http` — that name previously masked an `any` client.
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
+export async function fetch<T>(
+  method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH",
+  path: string,
+  init?: {
+    params?: { path?: Record<string, unknown>; query?: Record<string, unknown> };
+    body?: unknown;
+  },
+): Promise<{ data: T }> {
+  const fn = client[method] as unknown as (
+    p: string,
+    i?: unknown,
+  ) => Promise<{ data: T }>;
+  return fn(path, init);
+}
+
+// Fire-and-forget variant for mutations whose response body is discarded.
+// Avoids passing `void` as a generic type argument (banned by lint).
+export async function fire(
+  method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH",
+  path: string,
+  init?: {
+    params?: { path?: Record<string, unknown>; query?: Record<string, unknown> };
+    body?: unknown;
+  },
+): Promise<void> {
+  await fetch<undefined>(method, path, init);
+}
+

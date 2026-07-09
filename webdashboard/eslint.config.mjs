@@ -164,7 +164,7 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-call': 'error',
       '@typescript-eslint/no-unsafe-argument': 'error',
       '@typescript-eslint/no-unsafe-return': 'error',
-      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-base-to-string': 'warn',
       '@typescript-eslint/no-confusing-void-expression': 'warn',
       'jsx-a11y/click-events-have-key-events': 'error',

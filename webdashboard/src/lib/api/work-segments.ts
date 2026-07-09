@@ -1,24 +1,19 @@
-import type {
-  WorkSegment,
-  CreateWorkSegmentRequest,
-  UpdateWorkSegmentRequest,
-  BulkCreateWorkSegmentsRequest,
-  ShiftDefaultInterval,
-  CreateShiftIntervalRequest,
-  UpdateShiftIntervalRequest,
+import {
+  type BulkCreateWorkSegmentsRequest,
+  type CreateShiftIntervalRequest,
+  type CreateWorkSegmentRequest,
+  type ShiftDefaultInterval,
+  type UpdateShiftIntervalRequest,
+  type UpdateWorkSegmentRequest,
+  type WorkSegment,
 } from "./types";
+import { fetch, fire } from "./client";
 
-import { http } from "./untyped";
-
-// Paths not yet registered in the generated OpenAPI types.
-// Use the untyped `http` accessor (single `as any` cast at the boundary)
-// so call-sites stay fully typed and eslint stays quiet.
-
-async function getJson<T>(p: Promise<unknown>): Promise<T> {
-  const res = (await p) as { data: T };
-  if (!res.data) throw new Error("No response data");
-  return res.data;
-}
+// /workspaces/{workspace_id}/work-segments* and shifts/{shift_id}/intervals*
+// paths are not yet registered in the generated OpenAPI schema. They route
+// through the typed `fetchUntyped` wrapper so call-site bodies stay typed and
+// the data shape is asserted locally. When these paths land in openapi.raw.json
+// and the schema is regenerated, migrate to the typed `client.METHOD(...)`.
 
 // ── Work Segments ──────────────────────────────────────────────────────────
 
@@ -35,34 +30,38 @@ export async function fetchWorkSegments(
     limit?: number;
   }
 ): Promise<WorkSegment[]> {
-  return getJson<{ data: WorkSegment[] }>(
-    http.GET("/workspaces/{workspace_id}/work-segments", {
-      params: {
-        path: { workspace_id: wsId },
-        query: params as unknown as Record<string, unknown>,
-      },
-    }),
-  ).then(r => r.data);
+  const { data: resData } = await fetch<{ data: WorkSegment[] }>("GET", "/workspaces/{workspace_id}/work-segments", {
+    params: {
+      path: { workspace_id: wsId },
+      query: params,
+    },
+  });
+  if (!resData) throw new Error("No response data");
+  return resData.data;
 }
 
 export async function createWorkSegment(
   wsId: string,
   body: CreateWorkSegmentRequest
 ): Promise<WorkSegment> {
-  return getJson<WorkSegment>(http.POST("/workspaces/{workspace_id}/work-segments", {
+  const { data: resData } = await fetch<WorkSegment>("POST", "/workspaces/{workspace_id}/work-segments", {
     params: { path: { workspace_id: wsId } },
-    body: body as unknown as Record<string, unknown>,
-  }));
+    body,
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function getWorkSegment(
   wsId: string,
   segmentId: string
 ): Promise<WorkSegment> {
-  return getJson<WorkSegment>(http.GET(
+  const { data: resData } = await fetch<WorkSegment>("GET",
     "/workspaces/{workspace_id}/work-segments/{segment_id}",
     { params: { path: { workspace_id: wsId, segment_id: segmentId } } },
-  ));
+  );
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function updateWorkSegment(
@@ -70,20 +69,22 @@ export async function updateWorkSegment(
   segmentId: string,
   body: UpdateWorkSegmentRequest
 ): Promise<WorkSegment> {
-  return getJson<WorkSegment>(http.PUT(
+  const { data: resData } = await fetch<WorkSegment>("PUT",
     "/workspaces/{workspace_id}/work-segments/{segment_id}",
     {
       params: { path: { workspace_id: wsId, segment_id: segmentId } },
-      body: body as unknown as Record<string, unknown>,
+      body,
     },
-  ));
+  );
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function deleteWorkSegment(
   wsId: string,
   segmentId: string
 ): Promise<void> {
-  await http.DELETE("/workspaces/{workspace_id}/work-segments/{segment_id}", {
+  await fire("DELETE", "/workspaces/{workspace_id}/work-segments/{segment_id}", {
     params: { path: { workspace_id: wsId, segment_id: segmentId } },
   });
 }
@@ -92,24 +93,26 @@ export async function bulkCreateWorkSegments(
   wsId: string,
   body: BulkCreateWorkSegmentsRequest
 ): Promise<WorkSegment[]> {
-  return getJson<WorkSegment[]>(http.POST("/workspaces/{workspace_id}/work-segments/bulk", {
+  const { data: resData } = await fetch<WorkSegment[]>("POST", "/workspaces/{workspace_id}/work-segments/bulk", {
     params: { path: { workspace_id: wsId } },
-    body: body as unknown as Record<string, unknown>,
-  }));
+    body,
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function scheduleWorkSegments(
   wsId: string,
   params: { start_date: string; end_date: string; employment_ids?: string[] }
 ): Promise<{ scheduled: number; skipped: number }> {
-  return getJson<{ scheduled: number; skipped: number }>(
-    http.GET("/workspaces/{workspace_id}/work-segments/schedule", {
-      params: {
-        path: { workspace_id: wsId },
-        query: params as unknown as Record<string, unknown>,
-      },
-    }),
-  );
+  const { data: resData } = await fetch<{ scheduled: number; skipped: number }>("GET", "/workspaces/{workspace_id}/work-segments/schedule", {
+    params: {
+      path: { workspace_id: wsId },
+      query: params,
+    },
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 // ── Shift Intervals ─────────────────────────────────────────────────────────
@@ -118,11 +121,11 @@ export async function fetchShiftIntervals(
   wsId: string,
   shiftId: string
 ): Promise<ShiftDefaultInterval[]> {
-  return getJson<ShiftDefaultInterval[]>(
-    http.GET("/workspaces/{workspace_id}/shifts/{shift_id}/intervals", {
-      params: { path: { workspace_id: wsId, shift_id: shiftId } },
-    }),
-  );
+  const { data: resData } = await fetch<ShiftDefaultInterval[]>("GET", "/workspaces/{workspace_id}/shifts/{shift_id}/intervals", {
+    params: { path: { workspace_id: wsId, shift_id: shiftId } },
+  });
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function createShiftInterval(
@@ -130,13 +133,15 @@ export async function createShiftInterval(
   shiftId: string,
   body: CreateShiftIntervalRequest
 ): Promise<ShiftDefaultInterval> {
-  return getJson<ShiftDefaultInterval>(http.POST(
+  const { data: resData } = await fetch<ShiftDefaultInterval>("POST",
     "/workspaces/{workspace_id}/shifts/{shift_id}/intervals",
     {
       params: { path: { workspace_id: wsId, shift_id: shiftId } },
-      body: body as unknown as Record<string, unknown>,
+      body,
     },
-  ));
+  );
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function updateShiftInterval(
@@ -145,13 +150,15 @@ export async function updateShiftInterval(
   intervalId: string,
   body: UpdateShiftIntervalRequest
 ): Promise<ShiftDefaultInterval> {
-  return getJson<ShiftDefaultInterval>(http.PUT(
+  const { data: resData } = await fetch<ShiftDefaultInterval>("PUT",
     "/workspaces/{workspace_id}/shifts/{shift_id}/intervals/{interval_id}",
     {
       params: { path: { workspace_id: wsId, shift_id: shiftId, interval_id: intervalId } },
-      body: body as unknown as Record<string, unknown>,
+      body,
     },
-  ));
+  );
+  if (!resData) throw new Error("No response data");
+  return resData;
 }
 
 export async function deleteShiftInterval(
@@ -159,7 +166,7 @@ export async function deleteShiftInterval(
   shiftId: string,
   intervalId: string
 ): Promise<void> {
-  await http.DELETE(
+  await fire("DELETE",
     "/workspaces/{workspace_id}/shifts/{shift_id}/intervals/{interval_id}",
     { params: { path: { workspace_id: wsId, shift_id: shiftId, interval_id: intervalId } } },
   );
@@ -170,8 +177,8 @@ export async function reorderShiftIntervals(
   shiftId: string,
   intervalIds: string[]
 ): Promise<void> {
-  await http.POST("/workspaces/{workspace_id}/shifts/{shift_id}/intervals/reorder", {
+  await fire("POST", "/workspaces/{workspace_id}/shifts/{shift_id}/intervals/reorder", {
     params: { path: { workspace_id: wsId, shift_id: shiftId } },
-    body: { interval_ids: intervalIds } as unknown as Record<string, unknown>,
+    body: { interval_ids: intervalIds },
   });
 }

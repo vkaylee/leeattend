@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import type { AssignSystemRoleRequest } from "@/lib/api";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useSystemRoles } from "@/hooks/use-system-roles";
@@ -28,7 +29,7 @@ export function useSystemRolesUI() {
     if (!selectedRole || !userIdInput.trim()) return;
     try {
       setAssignError("");
-      await assignRole({ userId: userIdInput.trim(), request: { role_name: selectedRole } });
+      await assignRole({ userId: userIdInput.trim(), request: { role_name: selectedRole as AssignSystemRoleRequest["role_name"] } });
       setIsModalOpen(false);
       toast.success(t("system_roles.messages.assign_success", { role: selectedRole }));
     } catch (error: unknown) {
