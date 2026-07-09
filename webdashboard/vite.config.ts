@@ -199,8 +199,20 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
           // blob. App code is left to Rollup's default splitting — TanStack
           // Router's lazy routes already code-split per route.
           manualChunks(id: string) {
-            if (!id.includes("node_modules")) return undefined;
             const normalized = id.replace(/\\/g, "/");
+            // i18n: keep config + locale JSON out of the shared "common" chunks.
+            // Without this, Rollup inlines ~35 KB of locale data into every
+            // common chunk (we measured 65-77% of each common chunk = locale
+            // JSON), triplicating ~106 KB across the app. A stable per-locale
+            // chunk is lazy-loaded by i18next *only* when that language activates.
+            if (normalized.includes("/src/i18n/")) {
+              if (normalized.includes("/locales/")) {
+                const lng = normalized.split("/locales/")[1]?.split("/")[0];
+                return lng ? `locale-${lng}` : "i18n-locales";
+              }
+              return "i18n-config";
+            }
+            if (!id.includes("node_modules")) return undefined;
             if (
               normalized.includes("node_modules/react/") ||
               normalized.includes("node_modules/react-dom/") ||
