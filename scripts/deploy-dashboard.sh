@@ -126,5 +126,32 @@ echo "☁️ [3/3] Deploying to Cloudflare Pages..."
 # We use a bash wrapper inside the container to ensure environment variables are expanded correctly
 "${COMPOSE_CMD[@]}" bash webdashboard -c "bunx wrangler pages deploy dist --project-name \"\$CLOUDFLARE_PROJECT_NAME\" --branch \"\${CLOUDFLARE_BRANCH:-main}\"" </dev/null
 
+# Step 4: Purge Cloudflare edge cache so the new deployment is served
+# immediately. Without this, edge nodes may keep serving the stale index.html
+# (referencing old asset hashes) until the cache expires, causing white-screen
+# errors on custom domains. Requires CLOUDFLARE_ZONE_ID + a token with the
+# Cache Purge permission. Skipped gracefully if the zone id is unset.
+echo ""
+if [ -n "${CLOUDFLARE_ZONE_ID:-}" ]; then
+  echo "🧹 [4/4] Purging Cloudflare cache for zone ${CLOUDFLARE_ZONE_ID}..."
+  PURGE_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+    "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/purge_cache" \
+    -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+    -H "Content-Type: application/json" \
+    -d '{"purge_everything": true}')
+  PURGE_STATUS=$(echo "$PURGE_RESPONSE" | tail -1)
+  PURGE_BODY=$(echo "$PURGE_RESPONSE" | sed '$d')
+  if [ "$PURGE_STATUS" = "200" ]; then
+    echo "  ✅ Cache purged successfully."
+  else
+    echo "  ⚠️  Cache purge returned HTTP ${PURGE_STATUS}: ${PURGE_BODY}"
+    echo "     The deploy itself succeeded — cache will expire naturally."
+  fi
+else
+  echo "ℹ️  [4/4] Skipping cache purge (set CLOUDFLARE_ZONE_ID to enable)."
+  echo "   Note: without purge, custom domains may show a stale page until the"
+  echo "   edge cache expires. Purge manually in the Cloudflare dashboard."
+fi
+
 echo ""
 echo "✅ Deployment process completed successfully!"
