@@ -9,7 +9,6 @@ import { Typography } from "@/components/ui/typography";
 import {
   register,
   setAccessToken,
-  setRefreshToken,
   setCurrentUserId,
   getCurrentUserId,
   AuthResponse,
@@ -65,7 +64,8 @@ export default function RegisterPage() {
       });
       setCurrentUserId(response.user.id);
       setAccessToken(response.access_token);
-      setRefreshToken(response.refresh_token);
+      // refresh_token is persisted by the backend in an HttpOnly cookie —
+      // the frontend never reads it.
       window.location.href = ROUTES.ONBOARDING;
     } catch (error_: unknown) {
       const message = error_ instanceof Error ? error_.message : String(error_);

@@ -88,7 +88,7 @@ export function CreateLeaveRequestModal({ isOpen, onClose, wsId, leaveTypes, t }
     e.preventDefault(); 
     if (!leaveTypeId) { toast.error(t("leave_requests.invalid_leave_type")); return; }
     if (!empIdToUse) { toast.error("Please select an employee"); return; }
-    if (!activeEmployment) { toast.error("Không tìm thấy thông tin công việc"); return; }
+    if (!activeEmployment) { toast.error(t("leave_requests.no_employment_info", "Không tìm thấy thông tin công việc")); return; }
  
     const payload: {
       employment_id: string;

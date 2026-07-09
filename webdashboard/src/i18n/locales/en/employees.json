@@ -466,6 +466,11 @@
       "cancel_back_btn": "Cancel & Back",
       "processing_btn": "Processing...",
       "confirm_import_btn": "Confirm Import ({{count}} Rows)"
+    },
+    "assignments": {
+      "start_date": "Start Date",
+      "end_date": "End Date",
+      "no_end_date": "Indefinite"
     }
   },
   "profile": {

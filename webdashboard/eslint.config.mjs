@@ -167,9 +167,9 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-base-to-string': 'warn',
       '@typescript-eslint/no-confusing-void-expression': 'warn',
-      'jsx-a11y/click-events-have-key-events': 'warn',
-      'jsx-a11y/no-static-element-interactions': 'warn',
-      'jsx-a11y/label-has-associated-control': 'warn',
+      'jsx-a11y/click-events-have-key-events': 'error',
+      'jsx-a11y/no-static-element-interactions': 'error',
+      'jsx-a11y/label-has-associated-control': 'error',
       '@typescript-eslint/require-await': 'warn',
       '@typescript-eslint/only-throw-error': 'warn',
       '@typescript-eslint/ban-ts-comment': 'warn',
@@ -184,7 +184,7 @@ export default tseslint.config(
       '@typescript-eslint/prefer-optional-chain': 'warn',
       '@typescript-eslint/use-unknown-in-catch-callback-variable': 'warn',
       '@typescript-eslint/no-deprecated': 'warn',
-      'jsx-a11y/no-autofocus': 'warn',
+      'jsx-a11y/no-autofocus': 'error',
       'react/no-unescaped-entities': 'warn',
       'react-hooks/set-state-in-effect': 'warn',
       'react-hooks/preserve-manual-memoization': 'warn',
@@ -300,6 +300,12 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-argument': 'off',
       'max-lines-per-function': 'off',
       'complexity': 'off',
+      // jsx-a11y rules are for runtime DOM; test files use testing-library
+      // which has its own a11y assertions via jest-dom.
+      'jsx-a11y/click-events-have-key-events': 'off',
+      'jsx-a11y/no-static-element-interactions': 'off',
+      'jsx-a11y/label-has-associated-control': 'off',
+      'jsx-a11y/no-autofocus': 'off',
     },
   }
 );

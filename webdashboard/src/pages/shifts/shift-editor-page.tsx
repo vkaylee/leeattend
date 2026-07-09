@@ -380,13 +380,16 @@ export default function ShiftEditorPage() {
                           { val: { isAutoDeduct: false, isBreakOvertime: true }, label: t("shifts.modal.break_policy_overtime"), help: iv.isFixedBreak ? t("shifts.modal.break_policy_overtime_help") : t("shifts.modal.break_policy_overtime_disabled_hint"), disabled: !iv.isFixedBreak },
                         ].map((opt, oi) => (
                           <label
+                            aria-label={`${opt.label} ${opt.help}`}
                             className={`flex items-start gap-3 p-3 rounded-xl border transition-all ${opt.disabled ? "bg-slate-100/50 dark:bg-slate-900/20 border-slate-200/50 opacity-60 cursor-not-allowed" : "bg-slate-50 dark:bg-slate-800/40 border-slate-100 dark:border-slate-800/80 cursor-pointer hover:bg-slate-100/50"}`}
+                            htmlFor={`break_policy_${iv.key}_${oi}`}
                             key={oi}
                           >
                             <input
                               checked={iv.isAutoDeduct === opt.val.isAutoDeduct && iv.isBreakOvertime === opt.val.isBreakOvertime}
                               className="mt-0.5 w-4 h-4 text-primary-600 cursor-pointer"
                               disabled={opt.disabled}
+                              id={`break_policy_${iv.key}_${oi}`}
                               name={`break_policy_${iv.key}`}
                               onChange={() => { updateIntervalDraft(iv.key, opt.val); }}
                               type="radio"
@@ -426,6 +429,7 @@ export default function ShiftEditorPage() {
                           aria-checked={iv.allowEarlyOt}
                           className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer ${iv.allowEarlyOt ? 'bg-primary-600' : 'bg-slate-200 dark:bg-slate-700'}`}
                           onClick={() => { updateIntervalDraft(iv.key, { allowEarlyOt: !iv.allowEarlyOt }); }}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); updateIntervalDraft(iv.key, { allowEarlyOt: !iv.allowEarlyOt }); } }}
                           role="switch"
                           tabIndex={0}
                         >

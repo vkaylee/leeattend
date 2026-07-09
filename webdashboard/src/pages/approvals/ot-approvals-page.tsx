@@ -170,7 +170,7 @@ export default function OtApprovalsPage() {
   ) => {
     const employeeId = employmentToEmployeeMap.get(summary.employment_id);
     if (!employeeId) {
-      toast.error("Không tìm thấy thông tin nhân viên hoạt động");
+      toast.error(t("ot_approvals.no_active_employee", "Không tìm thấy thông tin nhân viên hoạt động"));
       return;
     }
     try {

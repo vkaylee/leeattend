@@ -256,6 +256,8 @@
       "all_locations": "Tất cả địa điểm",
       "employee_id_numbers": "Mã số nhân viên"
     },
+    "start_date_fallback": "Từ trước",
+    "end_date_fallback": "Vô thời hạn",
     "conditions_title": "Điều kiện khớp",
     "condition_help": "Để trống để khớp với tất cả nhân viên (trong phạm vi các điều kiện khác).",
     "messages": {
@@ -699,7 +701,9 @@
         "title": "Không có bản ghi chờ khai báo",
         "description": "Tất cả giờ tăng ca đã được khai báo hoặc không có thời gian tăng ca phát sinh."
       }
-    }
+    },
+    "no_active_employee": "Không tìm thấy nhân viên hoạt động",
+    "no_employee_info": "Không tìm thấy thông tin nhân viên"
   },
   "attendance": {
     "log": {

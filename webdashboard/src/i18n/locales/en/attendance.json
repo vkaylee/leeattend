@@ -256,6 +256,8 @@
       "all_locations": "All Locations",
       "employee_id_numbers": "Employee ID Numbers"
     },
+    "start_date_fallback": "From the beginning",
+    "end_date_fallback": "Indefinite",
     "conditions_title": "Matching Conditions",
     "condition_help": "Leave empty to match all employees (within scope of other conditions).",
     "messages": {
@@ -699,7 +701,9 @@
         "title": "No pending entries to claim",
         "description": "All overtime has been claimed, or no overtime hours were computed for the selected period."
       }
-    }
+    },
+    "no_active_employee": "No active employee found",
+    "no_employee_info": "Employee information not found"
   },
   "attendance": {
     "log": {

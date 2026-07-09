@@ -1,5 +1,5 @@
 import { client } from "./client";
-import { apiFetch, setAccessToken, setRefreshToken, setCurrentUserId, clearAuthSession, TIMEOUT } from "./helpers";
+import { apiFetch, setAccessToken, setCurrentUserId, clearAuthSession, TIMEOUT } from "./helpers";
 import { AuthResponse, RegisterRequest, ChangePasswordRequest, User } from "./types";
 
 export async function login(username: string, password: string): Promise<AuthResponse> {
@@ -7,8 +7,10 @@ export async function login(username: string, password: string): Promise<AuthRes
     body: { email: username, password },
   });
   if (!data) throw new Error("Login failed");
+  // access_token is held in-memory (see token-store.ts). The corresponding
+  // refresh_token is persisted by the backend inside an HttpOnly cookie —
+  // the frontend never sees it.
   setAccessToken(data.access_token);
-  setRefreshToken(data.refresh_token);
   setCurrentUserId(data.user.id);
   return data;
 }

@@ -7,9 +7,7 @@ import { API_BASE_URL } from "./config";
 import {
   clearAuthSession,
   getAccessToken,
-  getRefreshToken,
   setAccessToken,
-  setRefreshToken,
 } from "./helpers";
 
 export const TIMEOUT = {
@@ -29,15 +27,16 @@ export async function forceRefreshToken(): Promise<boolean> {
   }
 
   refreshPromise = (async () => {
-    const refreshToken = getRefreshToken();
-    if (!refreshToken) return false;
-
     try {
+      // Send an EMPTY body. The backend refresh endpoint first tries the body,
+      // then falls back to the HttpOnly `refresh_token` cookie
+      // (apiserver/src/handlers/auth.rs::refresh_token, lines 405-414).
+      // The frontend NEVER reads the refresh token directly.
       const refreshResponse = await fetch(`${API_BASE_URL}/v1/auth/refresh`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ refresh_token: refreshToken }),
+        body: JSON.stringify({}),
       });
 
       if (refreshResponse.ok) {
@@ -46,7 +45,10 @@ export async function forceRefreshToken(): Promise<boolean> {
           refresh_token: string;
         };
         setAccessToken(data.access_token);
-        setRefreshToken(data.refresh_token);
+        // NOTE: we deliberately IGNORE the returned refresh_token. The new
+        // refresh token is rotated inside the HttpOnly cookie by the backend
+        // (Set-Cookie header on this response). Storing it in JS-accessible
+        // memory would be a security regression.
         return true;
       }
     } catch (e) {

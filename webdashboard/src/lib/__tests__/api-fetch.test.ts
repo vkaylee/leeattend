@@ -1,12 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-import { apiFetch } from "../api/helpers";
+import { apiFetch, getAccessToken, getCurrentUserId, getCurrentWorkspaceId, setAccessToken, setCurrentUserId, setCurrentWorkspaceId } from "../api/helpers";
 
 describe("apiFetch utility", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn());
     vi.useFakeTimers();
     localStorage.clear();
+    // Tokens now live in the in-memory store (lib/api/token-store.ts).
+    setAccessToken(null);
+    setCurrentUserId(null);
+    setCurrentWorkspaceId(null);
   });
 
   afterEach(() => {
@@ -119,30 +123,34 @@ describe("apiFetch utility", () => {
     });
 
     it("should clear auth session and redirect on 401 response", async () => {
+      // Pre-condition: tokens exist in the in-memory store.
+      setAccessToken("stale");
+      setCurrentUserId("u-1");
+      setCurrentWorkspaceId("ws-1");
+
       vi.mocked(fetch).mockResolvedValue({ status: 401, ok: false } as unknown as Response);
 
       await expect(apiFetch("/test")).rejects.toThrow("Session expired");
 
-      // Verify all auth keys are cleared
- 
-      expect(localStorage.getItem("access_token")).toBeNull();
-      expect(localStorage.getItem("refresh_token")).toBeNull();
-      expect(localStorage.getItem("active_user_id")).toBeNull();
-      expect(localStorage.getItem("active_workspace_id")).toBeNull();
+      // Verify all auth keys are cleared from the in-memory store.
+      // (Tokens no longer live in localStorage — see lib/api/token-store.ts.)
+      expect(getAccessToken()).toBeNull();
+      expect(getCurrentUserId()).toBeNull();
+      expect(getCurrentWorkspaceId()).toBeNull();
 
       // Verify redirect to login
       expect(window.location.href).toBe("/login");
     });
 
     it("should not redirect if already on login page", async () => {
+      setAccessToken("stale");
       window.location.pathname = "/login";
       vi.mocked(fetch).mockResolvedValue({ status: 401, ok: false } as unknown as Response);
 
       await expect(apiFetch("/test")).rejects.toThrow("Session expired");
 
-      // Auth should still be cleared
- 
-      expect(localStorage.getItem("access_token")).toBeNull();
+      // Auth should still be cleared from the in-memory store.
+      expect(getAccessToken()).toBeNull();
 
       // Should NOT set href when already on /login
       expect(window.location.href).toBe("");

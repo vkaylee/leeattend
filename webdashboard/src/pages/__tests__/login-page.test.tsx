@@ -21,12 +21,14 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 // Mock the API library
+// NOTE: setRefreshToken is intentionally absent — the refresh token is no
+// longer handled by the frontend (persisted as a HttpOnly cookie by the
+// backend). The login page must NOT call any setRefreshToken.
 vi.mock("../../lib/api", () => ({
   login: vi.fn(),
   getCurrentUserId: vi.fn(),
   setCurrentUserId: vi.fn(),
   setAccessToken: vi.fn(),
-  setRefreshToken: vi.fn(),
 }));
 
 describe("LoginPage", () => {

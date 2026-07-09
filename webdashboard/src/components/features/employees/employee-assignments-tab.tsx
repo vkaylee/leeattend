@@ -143,15 +143,15 @@ export default function EmployeeAssignmentsTab({ wsId, employeeId, formatDate }:
 
                   <div className="grid grid-cols-2 gap-4 mt-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl relative z-10">
                     <div>
-                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">Ngày bắt đầu</div>
+                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">{t("employees.assignments.start_date", "Ngày bắt đầu")}</div>
                       <div className="text-xs font-mono font-bold text-slate-700 dark:text-slate-200">
                         {formatDate(assignment.start_date)}
                       </div>
                     </div>
                     <div>
-                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">Ngày kết thúc</div>
+                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">{t("employees.assignments.end_date", "Ngày kết thúc")}</div>
                       <div className="text-xs font-mono font-bold text-slate-700 dark:text-slate-200">
-                        {assignment.end_date ? formatDate(assignment.end_date) : "Vô thời hạn"}
+                        {assignment.end_date ? formatDate(assignment.end_date) : t("employees.assignments.no_end_date", "Vô thời hạn")}
                       </div>
                     </div>
                   </div>

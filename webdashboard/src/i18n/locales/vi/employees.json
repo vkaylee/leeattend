@@ -466,6 +466,11 @@
       "cancel_back_btn": "Hủy Và Quay Lại",
       "processing_btn": "Đang xử lý...",
       "confirm_import_btn": "Xác Nhận Import ({{count}} Dòng)"
+    },
+    "assignments": {
+      "start_date": "Ngày bắt đầu",
+      "end_date": "Ngày kết thúc",
+      "no_end_date": "Vô thời hạn"
     }
   },
   "profile": {

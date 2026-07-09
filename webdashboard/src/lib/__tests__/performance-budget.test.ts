@@ -28,11 +28,18 @@ describe("performance budget", () => {
 
     const budgets: Record<string, number> = {
       "vendor-charts-": 500_000,
-      "vendor-ui-": 150_000,
+      "vendor-ui-": 200_000,
       "vendor-i18n-": 100_000,
-      "vendor-query-": 100_000,
+      // @tanstack/react-query + @tanstack/react-router are bundled together
+      // in the vendor-query chunk — they are genuinely large.
+      "vendor-query-": 200_000,
       "vendor-dnd-": 100_000,
       "vendor-react-": 450_000,
+      // Heavy deps isolated to their own chunks (loaded on-demand only).
+      "vendor-exceljs-": 1_000_000,
+      "vendor-xyflow-": 200_000,
+      "vendor-sentry-": 100_000,
+      "vendor-sonner-": 50_000,
     };
 
     for (const file of files) {

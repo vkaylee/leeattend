@@ -1,11 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+import {
+  getAccessToken,
+  getCurrentUserId,
+  setCurrentUserId,
+  setAccessToken,
+} from "../api/helpers";
 import * as api from "../api";
 
 describe("api.ts comprehensive tests", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn());
     localStorage.clear();
+    // Tokens now live in the in-memory store (see lib/api/token-store.ts).
+    // Reset via the public API so this test file starts clean.
+    setAccessToken(null);
+    setCurrentUserId(null);
   });
 
  
@@ -437,14 +447,17 @@ describe("api.ts comprehensive tests", () => {
       mockSuccess({ access_token: "at", refresh_token: "rt", user: { id: "u1" } });
       await api.login("user", "pass");
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/auth/login"), expect.objectContaining({ method: "POST" }));
-      expect(localStorage.getItem("access_token")).toBe("at");
+      // access_token is now held in the in-memory store, not localStorage.
+      expect(getAccessToken()).toBe("at");
     });
 
     it("logout", async () => {
       mockSuccess({});
+      setAccessToken("existing"); // pre-condition: a token exists
       await api.logout();
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/auth/logout"), expect.objectContaining({ method: "POST" }));
-      expect(localStorage.getItem("access_token")).toBeNull();
+      // access_token is wiped from the in-memory store on logout.
+      expect(getAccessToken()).toBeNull();
     });
 
     it("register", async () => {

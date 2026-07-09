@@ -175,7 +175,8 @@
     "download_errors": "下载错误文件",
     "import_excel": "导入 Excel",
     "add": "创建申请",
-    "upload_failed_count": "导入失败：{{errors}} 行有错误。"
+    "upload_failed_count": "导入失败：{{errors}} 行有错误。",
+    "no_employment_info": "未找到就业信息"
   },
   "leave_import": {
     "title": "导入请假单",

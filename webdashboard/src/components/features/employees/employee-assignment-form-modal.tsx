@@ -1,5 +1,6 @@
 import { Briefcase } from "lucide-react";
 import React, { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useForm, Controller } from "react-hook-form";
 
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
@@ -164,6 +165,7 @@ export default function EmployeeAssignmentFormModal({
   wsId,
   employeeId,
 }: EmployeeAssignmentFormModalProps) {
+  const { t } = useTranslation();
   const {
     register,
     handleSubmit,
@@ -199,7 +201,7 @@ export default function EmployeeAssignmentFormModal({
             <div className="space-y-1">
               <FormField
                 error={errors.start_date?.message}
-                label="Ngày bắt đầu"
+                label={t("employees.assignments.start_date", "Ngày bắt đầu")}
                 required
                 type="date"
                 {...register("start_date")}
@@ -208,7 +210,7 @@ export default function EmployeeAssignmentFormModal({
 
             <FormField
               error={errors.end_date?.message}
-              label="Ngày kết thúc"
+              label={t("employees.assignments.end_date", "Ngày kết thúc")}
               type="date"
               {...register("end_date")}
             />

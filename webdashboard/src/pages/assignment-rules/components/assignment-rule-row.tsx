@@ -39,7 +39,7 @@ export const AssignmentRuleRow: React.FC<AssignmentRuleRowProps> = ({
       <td className="px-8 py-6">
         <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none mb-1">{rule.name}</div>
         <div className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold tracking-tight mb-2">
-          {rule.start_date ? rule.start_date : "Từ trước"} ~ {rule.end_date ? rule.end_date : "Vô thời hạn"}
+          {rule.start_date ? rule.start_date : t("rules.start_date_fallback", "Từ trước")} ~ {rule.end_date ? rule.end_date : t("rules.end_date_fallback", "Vô thời hạn")}
         </div>
         {!rule.is_active && <StatusBadge variant="danger">{t("common.inactive").toUpperCase()}</StatusBadge>}
       </td>

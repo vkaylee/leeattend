@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/check-budget.mjs",
+    "build:fast": "vite build",
     "analyze": "ANALYZE=true vite build",
     "preview": "vite preview",
     "lint": "bun scripts/lint.mjs src",
@@ -16,7 +17,7 @@
     "check-i18n": "node ../scripts/locales/reconcile_locales.js",
     "type-check": "tsc --noEmit",
     "type-check:test": "tsc --noEmit -p tsconfig.test.json",
-    "test": "NODE_OPTIONS='--experimental-require-module' vitest run --bail 1",
+    "test": "NODE_OPTIONS='--experimental-require-module' vitest run",
     "test:coverage": "NODE_OPTIONS='--experimental-require-module' vitest run --coverage",
     "test:e2e": "PLAYWRIGHT_TEST=true npx playwright test",
     "tauri": "tauri",

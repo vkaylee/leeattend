@@ -175,7 +175,8 @@
     "download_errors": "Download error file",
     "import_excel": "Import Excel",
     "add": "Create Request",
-    "upload_failed_count": "Import failed: {{errors}} rows with errors."
+    "upload_failed_count": "Import failed: {{errors}} rows with errors.",
+    "no_employment_info": "Employment information not found"
   },
   "leave_import": {
     "title": "Import Leave Requests",

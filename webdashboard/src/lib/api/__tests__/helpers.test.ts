@@ -3,8 +3,6 @@ import { describe, it, expect, beforeEach, afterEach, vi, Mock } from 'vitest';
 import {
   getAccessToken,
   setAccessToken,
-  getRefreshToken,
-  setRefreshToken,
   getCurrentWorkspaceId,
   setCurrentWorkspaceId,
   getCurrentUserId,
@@ -17,7 +15,12 @@ import {
 
 describe('Token helpers', () => {
   beforeEach(() => {
-    localStorage.clear();
+    // Reset the in-memory store between tests. The store is a module-level
+    // singleton, so we wipe via the public API (set to the zero value) rather
+    // than touching localStorage — tokens no longer live there.
+    setAccessToken(null);
+    setCurrentWorkspaceId(null);
+    setCurrentUserId(null);
   });
 
   it('getAccessToken returns null when not set', () => {
@@ -29,14 +32,15 @@ describe('Token helpers', () => {
     expect(getAccessToken()).toBe('my-token-123');
   });
 
-  it('getRefreshToken returns null when not set', () => {
-    expect(getRefreshToken()).toBeNull();
+  it('setAccessToken(null) clears the token', () => {
+    setAccessToken('temp');
+    setAccessToken(null);
+    expect(getAccessToken()).toBeNull();
   });
 
-  it('setRefreshToken / getRefreshToken roundtrip', () => {
-    setRefreshToken('refresh-456');
-    expect(getRefreshToken()).toBe('refresh-456');
-  });
+  // NOTE: there are NO getRefreshToken / setRefreshToken tests anymore.
+  // The refresh token is persisted exclusively as an HttpOnly cookie set by
+  // the backend; the frontend must never read it.
 });
 
 describe('Workspace helpers', () => {
@@ -71,25 +75,32 @@ describe('User ID helpers', () => {
 
 describe('clearAuthSession', () => {
   beforeEach(() => {
-    localStorage.clear();
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
   });
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it('clears all auth-related localStorage keys', () => {
+  it('wipes in-memory credentials', () => {
     setAccessToken('token');
-    setRefreshToken('refresh');
     setCurrentWorkspaceId('ws');
     setCurrentUserId('user');
 
     clearAuthSession();
 
     expect(getAccessToken()).toBeNull();
-    expect(getRefreshToken()).toBeNull();
     expect(getCurrentWorkspaceId()).toBeNull();
     expect(getCurrentUserId()).toBeNull();
+  });
+
+  it('calls the backend logout endpoint to expire HttpOnly cookies', async () => {
+    const mockFetch = globalThis.fetch as Mock;
+    clearAuthSession();
+    await new Promise(r => setTimeout(r, 0));
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('/auth/logout'),
+      expect.objectContaining({ method: 'POST', credentials: 'include' }),
+    );
   });
 });
 
@@ -190,7 +201,7 @@ describe('apiFetch interceptor logic', () => {
 
 describe('Token Refresh Mutex (Stampede Prevention)', () => {
   beforeEach(() => {
-    localStorage.clear();
+    setAccessToken(null);
     vi.stubGlobal('fetch', vi.fn());
   });
 
@@ -200,8 +211,6 @@ describe('Token Refresh Mutex (Stampede Prevention)', () => {
   });
 
   it('batches concurrent refresh requests into a single fetch call', async () => {
-    setRefreshToken('refresh-abc');
-
     const mockFetch = globalThis.fetch as Mock;
     let resolveRefresh: (value: any) => void;
     // Create a delayed promise to simulate network latency for refresh
@@ -211,7 +220,9 @@ describe('Token Refresh Mutex (Stampede Prevention)', () => {
 
     mockFetch.mockReturnValue(delayedResponse);
 
-    // Call forceRefreshToken 3 times concurrently
+    // Call forceRefreshToken 3 times concurrently.
+    // The backend reads the refresh_token from an HttpOnly cookie, so the
+    // frontend sends an empty body.
     const promises = [
       forceRefreshToken(),
       forceRefreshToken(),
@@ -220,8 +231,12 @@ describe('Token Refresh Mutex (Stampede Prevention)', () => {
 
     // Wait a tick to ensure they all hit the if (refreshPromise) branch
     await new Promise(r => setTimeout(r, 0));
-    
+
     expect(mockFetch).toHaveBeenCalledTimes(1); // Only ONE network call should be made!
+    // Verify the body is EMPTY — the refresh token is NOT sent by the frontend.
+    const [, options] = mockFetch.mock.calls[0];
+    expect(options.body).toBe(JSON.stringify({}));
+    expect(options.credentials).toBe('include'); // so the HttpOnly cookie travels
 
     // Now resolve the network call
     resolveRefresh!({

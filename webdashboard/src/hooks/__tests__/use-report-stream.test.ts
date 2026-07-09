@@ -2,6 +2,8 @@ import { renderHook, waitFor, act } from "@testing-library/react";
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
+import { getAccessToken, getCurrentUserId, getCurrentWorkspaceId, setAccessToken, setCurrentUserId, setCurrentWorkspaceId } from "@/lib/api/helpers";
+
 import type { UseReportStreamResult } from "../use-report-stream";
 
 import { useReportStream } from "../use-report-stream";
@@ -528,8 +530,10 @@ describe("useReportStream Hook", () => {
     });
 
     it("should attempt token refresh on close code 1006 while connecting", async () => {
-      localStorage.setItem("access_token", "expired-jwt");
-      localStorage.setItem("refresh_token", "valid-refresh-token");
+      // Tokens now live in the in-memory store (lib/api/token-store.ts).
+      // The refresh_token is NOT set here — it's persisted as an HttpOnly
+      // cookie by the backend and travels with credentials: 'include'.
+      setAccessToken("expired-jwt");
 
       // Mock successful token refresh
       const mockFetch = vi.fn().mockResolvedValue({
@@ -558,7 +562,11 @@ describe("useReportStream Hook", () => {
           expect.stringContaining("/auth/refresh"),
           expect.objectContaining({
             method: "POST",
-            body: JSON.stringify({ refresh_token: "valid-refresh-token" }),
+            // The frontend sends an EMPTY body — the backend reads the
+            // HttpOnly refresh_token cookie directly (see
+            // apiserver/src/handlers/auth.rs::refresh_token, lines 405-414).
+            body: JSON.stringify({}),
+            credentials: "include",
           })
         );
       });
@@ -568,9 +576,16 @@ describe("useReportStream Hook", () => {
     });
 
     it("should redirect to login when refresh token is missing on 1006", async () => {
-      localStorage.setItem("access_token", "expired-jwt");
-      localStorage.setItem("active_user_id", "user-123");
-      // NO refresh_token set
+      // Tokens now live in the in-memory store. No refresh_token is set
+      // because it's an HttpOnly cookie — if the cookie is missing, the
+      // backend refresh will fail and clearAuthSession is called.
+      setAccessToken("expired-jwt");
+      setCurrentUserId("user-123");
+
+      // Simulate the backend refresh failing because no refresh_token cookie
+      // is present (401 / non-ok response from /auth/refresh).
+      const mockFetch = vi.fn().mockResolvedValue({ ok: false, status: 401 });
+      vi.stubGlobal("fetch", mockFetch);
 
       renderHook(() => useReportStream({ jobId: "test-job" }));
 
@@ -582,17 +597,20 @@ describe("useReportStream Hook", () => {
         mockOnClose!({ code: 1006, reason: "" } as CloseEvent);
       });
 
-      // When refresh fails, clearAuthSession is called (clears localStorage)
+      // When refresh fails, clearAuthSession is called (clears the in-memory store)
       await waitFor(() => {
-        expect(localStorage.getItem("access_token")).toBeNull();
-        expect(localStorage.getItem("active_user_id")).toBeNull();
+        expect(getAccessToken()).toBeNull();
+        expect(getCurrentUserId()).toBeNull();
       });
     });
 
     it("should redirect to login when refresh API returns non-ok on 1006", async () => {
-      localStorage.setItem("access_token", "expired-jwt");
-      localStorage.setItem("refresh_token", "invalid-refresh-token");
-      localStorage.setItem("active_user_id", "user-123");
+      // Tokens now live in the in-memory store (lib/api/token-store.ts).
+      setAccessToken("expired-jwt");
+      setCurrentUserId("user-123");
+      // NOTE: refresh_token is NOT set here — it is persisted as an HttpOnly
+      // cookie by the backend and is invisible to JS. The refresh endpoint
+      // reads the cookie directly.
 
       const mockFetch = vi.fn().mockResolvedValue({ ok: false });
       vi.stubGlobal("fetch", mockFetch);
@@ -607,16 +625,15 @@ describe("useReportStream Hook", () => {
         mockOnClose!({ code: 1006, reason: "" } as CloseEvent);
       });
 
-      // Refresh failed -> clearAuthSession called -> localStorage cleared
+      // Refresh failed -> clearAuthSession called -> in-memory store cleared
       await waitFor(() => {
-        expect(localStorage.getItem("access_token")).toBeNull();
-        expect(localStorage.getItem("active_user_id")).toBeNull();
+        expect(getAccessToken()).toBeNull();
+        expect(getCurrentUserId()).toBeNull();
       });
     });
 
     it("should NOT attempt token refresh on normal close codes (1000, 1001)", async () => {
-      localStorage.setItem("access_token", "valid-jwt");
-      localStorage.setItem("refresh_token", "valid-refresh-token");
+      setAccessToken("valid-jwt");
 
       const mockFetch = vi.fn();
       vi.stubGlobal("fetch", mockFetch);
@@ -637,8 +654,7 @@ describe("useReportStream Hook", () => {
     });
 
     it("should NOT attempt refresh on 1006 if already past connecting state", async () => {
-      localStorage.setItem("access_token", "valid-jwt");
-      localStorage.setItem("refresh_token", "valid-refresh-token");
+      setAccessToken("valid-jwt");
 
       const mockFetch = vi.fn();
       vi.stubGlobal("fetch", mockFetch);
@@ -664,8 +680,7 @@ describe("useReportStream Hook", () => {
     });
 
     it("should reconnect with new token after successful refresh", async () => {
-      localStorage.setItem("access_token", "expired-jwt");
-      localStorage.setItem("refresh_token", "valid-refresh");
+      setAccessToken("expired-jwt");
 
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
@@ -696,10 +711,10 @@ describe("useReportStream Hook", () => {
     });
 
     it("should clear auth session on redirect to login", async () => {
-      localStorage.setItem("access_token", "expired-jwt");
-      localStorage.setItem("active_user_id", "user-123");
-      localStorage.setItem("active_workspace_id", "ws-123");
-      localStorage.setItem("refresh_token", "bad-refresh");
+      setAccessToken("expired-jwt");
+      setCurrentUserId("user-123");
+      setCurrentWorkspaceId("ws-123");
+      // refresh_token is NOT set here — it's an HttpOnly cookie (JS-invisible).
 
       const mockFetch = vi.fn().mockResolvedValue({ ok: false });
       vi.stubGlobal("fetch", mockFetch);
@@ -714,12 +729,11 @@ describe("useReportStream Hook", () => {
         mockOnClose!({ code: 1006, reason: "" } as CloseEvent);
       });
 
-      // clearAuthSession removes all auth-related localStorage keys
+      // clearAuthSession wipes the in-memory store
       await waitFor(() => {
-        expect(localStorage.getItem("access_token")).toBeNull();
-        expect(localStorage.getItem("active_user_id")).toBeNull();
-        expect(localStorage.getItem("active_workspace_id")).toBeNull();
-        expect(localStorage.getItem("refresh_token")).toBeNull();
+        expect(getAccessToken()).toBeNull();
+        expect(getCurrentUserId()).toBeNull();
+        expect(getCurrentWorkspaceId()).toBeNull();
       });
     });
   });

@@ -4,54 +4,50 @@ import {
   TIMEOUT,
 } from "./api-fetch-helpers";
 import { API_BASE_URL } from "./config";
+import {
+  clearMemorySession,
+  getAccessToken as storeGetAccessToken,
+  getCurrentUserId as storeGetCurrentUserId,
+  getCurrentWorkspaceId as storeGetCurrentWorkspaceId,
+  setAccessToken as storeSetAccessToken,
+  setCurrentUserId as storeSetCurrentUserId,
+  setCurrentWorkspaceId as storeSetCurrentWorkspaceId,
+} from "./token-store";
 
-export { TIMEOUT } from "./api-fetch-helpers";
+export { TIMEOUT, forceRefreshToken } from "./api-fetch-helpers";
 
-export function getAccessToken(): string | null {
-  return localStorage.getItem("access_token");
-}
+// Access token + context-ID accessors read from the in-memory store
+// (NOT localStorage — see token-store.ts).
+export const getAccessToken = storeGetAccessToken;
+export const getCurrentWorkspaceId = storeGetCurrentWorkspaceId;
+export const getCurrentUserId = storeGetCurrentUserId;
 
-export function setAccessToken(token: string) {
-  localStorage.setItem("access_token", token);
-}
+// setAccessToken / setCurrentWorkspaceId / setCurrentUserId are re-exported
+// from token-store so existing callers keep working unchanged.
+export const setAccessToken = storeSetAccessToken;
+export const setCurrentWorkspaceId = storeSetCurrentWorkspaceId;
+export const setCurrentUserId = storeSetCurrentUserId;
 
-export function getRefreshToken(): string | null {
-  return localStorage.getItem("refresh_token");
-}
-
-export function setRefreshToken(token: string) {
-  localStorage.setItem("refresh_token", token);
-}
-
-export function getCurrentWorkspaceId(): string | null {
-  return localStorage.getItem("active_workspace_id");
-}
-
-export function setCurrentWorkspaceId(id: string) {
-  localStorage.setItem("active_workspace_id", id);
-}
-
-export function getCurrentUserId(): string | null {
-  return localStorage.getItem("active_user_id");
-}
-
-export const setCurrentUserId = (id: string) => {
-  localStorage.setItem("active_user_id", id);
-};
+// NOTE: getRefreshToken / setRefreshToken are INTENTIONALLY removed.
+// The refresh token is persisted exclusively as an HttpOnly cookie set by the
+// backend (`apiserver/src/handlers/auth.rs::create_auth_cookies`). JS can no
+// longer read it — by design. The refresh endpoint reads the cookie directly,
+// so the frontend never needs to touch the refresh token.
 
 export const clearAuthSession = () => {
-  localStorage.removeItem("active_user_id");
-  localStorage.removeItem("active_workspace_id");
-  localStorage.removeItem("access_token");
-  localStorage.removeItem("refresh_token");
+  // Wipe in-memory credentials immediately (synchronous, before navigation).
+  clearMemorySession();
 
-  // Call backend to clear HttpOnly cookies
-  fetch(`${API_BASE_URL}/v1/auth/logout`, { 
-    method: "POST", 
+  // Ask the backend to expire the HttpOnly cookies. Best-effort: if this call
+  // fails (network down, tab closed) the cookies still expire naturally via
+  // Max-Age. We intentionally do NOT `await` — logout must be fire-and-forget
+  // so the user isn't blocked on a slow/flaky network call.
+  fetch(`${API_BASE_URL}/v1/auth/logout`, {
+    method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({})
-  }).catch(console.error);
+    body: JSON.stringify({}),
+  }).catch(() => { /* silent — cookies expire via Max-Age server-side */ });
 };
 
 function getHeaders() {

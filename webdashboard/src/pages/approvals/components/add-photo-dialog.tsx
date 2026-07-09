@@ -45,7 +45,7 @@ export function AddPhotoDialog({
       return;
     }
     if (!employeeId) {
-      setError("Không tìm thấy thông tin nhân viên");
+      setError(t("ot_approvals.no_employee_info", "Không tìm thấy thông tin nhân viên"));
       return;
     }
     setError(null);

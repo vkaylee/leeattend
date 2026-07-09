@@ -45,10 +45,12 @@ vi.mock("react-i18next", () => ({
 }));
 
 // Mock APIs
+// NOTE: setRefreshToken is intentionally absent — the refresh token is no
+// longer handled by the frontend (it is persisted as an HttpOnly cookie by
+// the backend). The register page must NOT call any setRefreshToken.
 vi.mock("../../lib/api", () => ({
   register: vi.fn(),
   setAccessToken: vi.fn(),
-  setRefreshToken: vi.fn(),
   setCurrentUserId: vi.fn(),
   getCurrentUserId: vi.fn(),
 }));
@@ -138,7 +140,8 @@ describe("RegisterPage", () => {
 
     expect(api.setCurrentUserId).toHaveBeenCalledWith("user-123");
     expect(api.setAccessToken).toHaveBeenCalledWith("access-token");
-    expect(api.setRefreshToken).toHaveBeenCalledWith("refresh-token");
+    // The refresh token is NOT handled by the frontend — it arrives via
+    // HttpOnly cookie set by the backend on the register response.
     expect(window.location.href).toBe(ROUTES.ONBOARDING);
   });
 

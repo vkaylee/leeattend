@@ -466,6 +466,11 @@
       "cancel_back_btn": "取消并返回",
       "processing_btn": "正在处理...",
       "confirm_import_btn": "确认导入 ({{count}} 行)"
+    },
+    "assignments": {
+      "start_date": "开始日期",
+      "end_date": "结束日期",
+      "no_end_date": "无限期"
     }
   },
   "profile": {

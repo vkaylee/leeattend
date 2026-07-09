@@ -188,54 +188,68 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
         },
       },
     },
-    test: {
-      globals: true,
-      environment: "jsdom",
-      setupFiles: ["./src/test/setup.ts"],
-      exclude: ["**/node_modules/**", "**/dist/**", "**/tests/**"],
-      coverage: {
-        provider: "v8",
-        reporter: ["text", "json", "html"],
-      },
-    },
     build: {
-      chunkSizeWarningLimit: 1000,
+      // Warn when any single chunk exceeds 500KB (down from 1000KB). This
+      // surfaces accidental bundling of heavy deps into the main entry.
+      chunkSizeWarningLimit: 500,
       rollupOptions: {
         output: {
+          // Explicit vendor chunking keeps third-party code in long-lived
+          // chunks (cached across deploys) and prevents a single huge vendor
+          // blob. App code is left to Rollup's default splitting — TanStack
+          // Router's lazy routes already code-split per route.
           manualChunks(id: string) {
-            if (id.includes("node_modules")) {
-              const normalized = id.replace(/\\/g, "/");
-              if (
-                normalized.includes("node_modules/react/") ||
-                normalized.includes("node_modules/react-dom/") ||
-                normalized.includes("node_modules/react-router-dom/")
-              ) {
-                return "vendor-react";
-              }
-              if (normalized.includes("node_modules/@tanstack/react-query/")) {
-                return "vendor-query";
-              }
-              if (normalized.includes("node_modules/recharts/")) {
-                return "vendor-charts";
-              }
-              if (
-                normalized.includes("node_modules/i18next/") ||
-                normalized.includes("node_modules/react-i18next/") ||
-                normalized.includes("node_modules/i18next-browser-languagedetector/")
-              ) {
-                return "vendor-i18n";
-              }
-              if (normalized.includes("node_modules/@dnd-kit/")) {
-                return "vendor-dnd";
-              }
-              if (
-                normalized.includes("node_modules/@radix-ui/") ||
-                normalized.includes("node_modules/cmdk/") ||
-                normalized.includes("node_modules/lucide-react/")
-              ) {
-                return "vendor-ui";
-              }
+            if (!id.includes("node_modules")) return undefined;
+            const normalized = id.replace(/\\/g, "/");
+            if (
+              normalized.includes("node_modules/react/") ||
+              normalized.includes("node_modules/react-dom/") ||
+              normalized.includes("node_modules/react-router-dom/")
+            ) {
+              return "vendor-react";
             }
+            if (normalized.includes("node_modules/@tanstack/")) {
+              return "vendor-query";
+            }
+            if (normalized.includes("node_modules/recharts/")) {
+              return "vendor-charts";
+            }
+            if (
+              normalized.includes("node_modules/i18next/") ||
+              normalized.includes("node_modules/react-i18next/") ||
+              normalized.includes("node_modules/i18next-browser-languagedetector/")
+            ) {
+              return "vendor-i18n";
+            }
+            if (normalized.includes("node_modules/@dnd-kit/")) {
+              return "vendor-dnd";
+            }
+            if (
+              normalized.includes("node_modules/@radix-ui/") ||
+              normalized.includes("node_modules/cmdk/") ||
+              normalized.includes("node_modules/lucide-react/")
+            ) {
+              return "vendor-ui";
+            }
+            // Heavy deps used only on specific async paths — give them their
+            // own chunk so they never land in the initial bundle.
+            if (normalized.includes("node_modules/exceljs/")) {
+              return "vendor-exceljs";
+            }
+            if (normalized.includes("node_modules/@xyflow/")) {
+              return "vendor-xyflow";
+            }
+            if (normalized.includes("node_modules/sentry/") || normalized.includes("node_modules/@sentry/")) {
+              return "vendor-sentry";
+            }
+            if (normalized.includes("node_modules/sonner/")) {
+              return "vendor-sonner";
+            }
+            // Return undefined for anything else — let Rollup apply its
+            // default splitting. (A catch-all "vendor-shared" here creates a
+            // circular dependency with vendor-react because some shared libs
+            // depend on react and vice-versa.)
+            return undefined;
           },
         },
       },

@@ -185,7 +185,13 @@ export function PatternCard({
       )}
 
       {isLongRotation && isExpanded && (
-        <div className="pt-4 border-t border-slate-150 dark:border-slate-850/80 animate-in slide-in-from-top-2 duration-300 w-full" onClick={(e) => { e.stopPropagation(); }}>
+        <div
+          className="pt-4 border-t border-slate-150 dark:border-slate-850/80 animate-in slide-in-from-top-2 duration-300 w-full"
+          onClick={(e) => { e.stopPropagation(); }}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') e.stopPropagation(); }}
+          role="button"
+          tabIndex={0}
+        >
           <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-1">
             {Array.from({ length: cycleLength }).map((_, dayIdx) =>
               renderDayPill(getDayShiftInfo(details, shifts, dayIdx), `D${dayIdx + 1}`, t)

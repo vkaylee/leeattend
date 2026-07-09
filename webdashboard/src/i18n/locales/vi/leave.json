@@ -175,7 +175,8 @@
     "download_errors": "Tải file lỗi",
     "import_excel": "Import Excel",
     "add": "Tạo yêu cầu",
-    "upload_failed_count": "Import thất bại: {{errors}} dòng lỗi."
+    "upload_failed_count": "Import thất bại: {{errors}} dòng lỗi.",
+    "no_employment_info": "Không tìm thấy thông tin công việc"
   },
   "leave_import": {
     "title": "Import đơn nghỉ phép",

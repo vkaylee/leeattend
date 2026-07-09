@@ -256,6 +256,8 @@
       "all_locations": "所有地点",
       "employee_id_numbers": "员工编号"
     },
+    "start_date_fallback": "从开始",
+    "end_date_fallback": "无限期",
     "conditions_title": "匹配条件",
     "condition_help": "留空以匹配所有员工 (在其他条件范围内)。",
     "messages": {
@@ -699,7 +701,9 @@
         "title": "暂无待代申报记录",
         "description": "所有加班时间已申报完毕，或没有生成加班工时。"
       }
-    }
+    },
+    "no_active_employee": "未找到在职员工",
+    "no_employee_info": "未找到员工信息"
   },
   "attendance": {
     "log": {

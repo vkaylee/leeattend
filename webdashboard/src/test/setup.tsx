@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom";
-import { vi } from "vitest";
+import { beforeEach, vi } from "vitest";
 
 import attendance from "../i18n/locales/vi/attendance.json";
 import common from "../i18n/locales/vi/common.json";
@@ -168,6 +168,60 @@ vi.mock("@/components/ui/combobox", () => ({
     </select>
   ),
 }));
+
+// Bridge localStorage auth-token WRITES to the in-memory token store so that
+// existing tests (which set access_token / active_workspace_id / active_user_id
+// via localStorage.setItem) keep working unchanged after the token-store
+// migration (see lib/api/token-store.ts).
+//
+// Why patch Storage.prototype: many tests call localStorage.setItem directly in
+// their setup, and many components read getCurrentWorkspaceId() etc. at render
+// time. The bridge translates the legacy localStorage write path into the new
+// memory store synchronously, with zero per-test edits required.
+//
+// Keys bridged: access_token, active_workspace_id, active_user_id
+// NOT bridged by design: refresh_token (now HttpOnly-only — tests must NOT set
+// it), i18nextLng, debug_*, theme, and other non-auth localStorage keys.
+import {
+  setAccessToken as storeSetAccessToken,
+  setCurrentWorkspaceId as storeSetWorkspaceId,
+  setCurrentUserId as storeSetUserId,
+  clearMemorySession,
+} from "../lib/api/token-store";
+
+const BRIDGED_KEYS = new Set(["access_token", "active_workspace_id", "active_user_id"]);
+
+function bridgeWrite(key: string | null, value: string | null) {
+  if (key === null || !BRIDGED_KEYS.has(key)) return;
+  switch (key) {
+    case "access_token": storeSetAccessToken(value); break;
+    case "active_workspace_id": storeSetWorkspaceId(value); break;
+    case "active_user_id": storeSetUserId(value); break;
+  }
+}
+
+// Patch Storage.prototype so every setItem/removeItem/clear on localStorage is
+// bridged. Performed once at setup-file load (runs once per test file).
+// The original methods are .bind()'d to the Storage prototype so the
+// unbound-method lint rule is satisfied (it flags bare method references
+// captured in closures).
+const boundSetItem = Storage.prototype.setItem.bind(localStorage);
+const boundRemoveItem = Storage.prototype.removeItem.bind(localStorage);
+Storage.prototype.setItem = (key: string, value: string): void => {
+  boundSetItem(key, value);
+  bridgeWrite(key, value);
+};
+Storage.prototype.removeItem = (key: string): void => {
+  boundRemoveItem(key);
+  bridgeWrite(key, null);
+};
+
+beforeEach(() => {
+  // Reset the in-memory singleton between tests so state never leaks.
+  clearMemorySession();
+  // Clear the localStorage mirrors too (kept in sync with the bridge).
+  BRIDGED_KEYS.forEach((key) => { localStorage.removeItem(key); });
+});
 
 // Mock useLanguage (depends on useProfile → API) so that components consuming
 // useDateTimeFormatter (which now reads i18n language) don't crash during
