@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment */
 import type { ApprovalActionLog, BehalfAssignment, CreateBehalfAssignmentRequest, PaginatedResponse } from './types';
 
-import { client } from './client';
+import { client, fetch, fire } from './client';
 
 
 
@@ -129,7 +128,7 @@ export const overtimeRequestsApi = {
   },
 
   cancelRequest: async (workspaceId: string, id: string): Promise<void> => {
-    await (client.PUT as any)("/v1/workspaces/{ws_id}/overtime/requests/{id}/cancel", {
+    await fire("PUT", "/v1/workspaces/{ws_id}/overtime/requests/{id}/cancel", {
       params: {
         path: { ws_id: workspaceId, id },
       },
@@ -153,35 +152,43 @@ export const overtimeRequestsApi = {
   },
 
   getMyAssignments: async (employmentId: string): Promise<MyOvertimeAssignment[]> => {
-    const { data } = await (client.GET as any)("/v1/workspaces/{ws_id}/payroll/overtime/assignments", {
-      params: {
-        path: { employmentId },
-      },
-    });
+    // TODO: path template uses {ws_id} but call sites historically pass {employmentId}.
+    // Preserves existing behaviour — verify the backend route before renaming.
+    // `fetch<T>` return type is `{ data: T }` (Assertion), so TS flags the guard
+    // below as "unnecessary". Kept deliberately: openapi-fetch can return
+    // `{ data: undefined }` on 204/empty bodies, and `client` response typing is
+    // erased by the generic cast inside the helper — the guard is the last line
+    // of runtime defence against a missing payload.
+    const { data } = await fetch<MyOvertimeAssignment[]>(
+      "GET",
+      "/v1/workspaces/{ws_id}/payroll/overtime/assignments",
+      { params: { path: { employmentId } } },
+    );
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!data) throw new Error("No response data");
-    return data as MyOvertimeAssignment[];
+    return data;
   },
 
   getWorkspaceQuotaSummary: async (workspaceId: string, month: string): Promise<QuotaSummary[]> => {
-    const { data } = await (client.GET as any)("/v1/workspaces/{ws_id}/overtime/quota/summary", {
-      params: {
-        path: { ws_id: workspaceId },
-        query: { month },
-      },
-    });
+    const { data } = await fetch<QuotaSummary[]>(
+      "GET",
+      "/v1/workspaces/{ws_id}/overtime/quota/summary",
+      { params: { path: { ws_id: workspaceId }, query: { month } } },
+    );
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!data) throw new Error("No response data");
-    return data as QuotaSummary[];
+    return data;
   },
 
   getEmployeeQuota: async (workspaceId: string, employeeId: string, date: string): Promise<QuotaSummary> => {
-    const { data } = await (client.GET as any)("/v1/workspaces/{ws_id}/overtime/quota/{employee_id}", {
-      params: {
-        path: { ws_id: workspaceId, employee_id: employeeId },
-        query: { date },
-      },
-    });
+    const { data } = await fetch<QuotaSummary>(
+      "GET",
+      "/v1/workspaces/{ws_id}/overtime/quota/{employee_id}",
+      { params: { path: { ws_id: workspaceId, employee_id: employeeId }, query: { date } } },
+    );
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!data) throw new Error("No response data");
-    return data as QuotaSummary;
+    return data;
   },
 
   listRequestBehalfAssignments: async (workspaceId: string): Promise<BehalfAssignment[]> => {

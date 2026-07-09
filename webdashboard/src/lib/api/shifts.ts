@@ -106,7 +106,7 @@ export async function upsertRoster(wsId: string, employeeId: string, data: Recor
     params: {
       path: { workspace_id: wsId, id: employeeId },
     },
-    body: data as unknown as never,
+    body: data as never,
   });
   if (!result) throw new Error("No response data");
   return result;

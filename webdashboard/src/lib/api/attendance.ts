@@ -257,14 +257,14 @@ export async function uploadAttendance(
   if (endpoint === "/employees/upload") {
     const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/employees/upload", {
       params: { path: { ws_id: wsId } },
-      body: formData as unknown as never,
+      body: formData as never,
     });
     if (!resData) throw new Error("No response data");
     return resData as { job_id: string };
   } else {
     const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/attendance/upload", {
       params: { path: { ws_id: wsId } },
-      body: formData as unknown as never,
+      body: formData as never,
     });
     if (!resData) throw new Error("No response data");
     return resData as { job_id: string };
@@ -442,7 +442,7 @@ export async function bulkUploadPaperOt(
 
   const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/attendance/paper-forms/overtime/bulk", {
     params: { path: { ws_id: wsId } },
-    body: formData as unknown as never
+    body: formData as never
   });
   if (!resData) throw new Error("No response data");
   return resData;

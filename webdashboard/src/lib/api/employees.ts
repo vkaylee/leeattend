@@ -127,7 +127,7 @@ export async function createEmployee(
     params: {
       path: { workspace_id: wsId },
     },
-    body: employee as unknown as never,
+    body: employee as never,
   });
   if (!data) throw new Error("No response data");
   return data;
@@ -142,7 +142,7 @@ export async function updateEmployee(
     params: {
       path: { workspace_id: wsId, id },
     },
-    body: employee as unknown as never,
+    body: employee as never,
   });
   if (!data) throw new Error("No response data");
   return data;
@@ -240,7 +240,7 @@ export async function uploadTerminationImportPreview(
     params: {
       path: { workspace_id: wsId },
     },
-    body: formData as unknown as never,
+    body: formData as never,
   });
   if (!data) throw new Error("No response data");
   return data;

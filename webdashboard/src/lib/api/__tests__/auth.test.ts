@@ -1,13 +1,41 @@
 import { describe, it, expect, beforeEach, afterEach, vi, Mock } from "vitest";
 
+// Mock the typed openapi-fetch client (used by login/register/changePassword/...)
+vi.mock("../client", () => ({
+  client: {
+    GET: vi.fn(),
+    PUT: vi.fn(),
+    POST: vi.fn(),
+    DELETE: vi.fn(),
+    PATCH: vi.fn(),
+  },
+}));
+
 // Mock apiFetch which is used inside auth.ts for forgotPassword/resetPassword
 vi.mock("../helpers", () => ({
   apiFetch: vi.fn(),
+  setAccessToken: vi.fn(),
+  setCurrentUserId: vi.fn(),
+  clearAuthSession: vi.fn(),
   TIMEOUT: { DEFAULT: 10000, REPORT_OPERATION: 180000, QUICK: 5000 },
 }));
 
-import { forgotPassword, resetPassword } from "../auth";
+import {
+  forgotPassword,
+  resetPassword,
+  login,
+  logout,
+  register,
+  changePassword,
+  fetchMe,
+  updateMe,
+  fetchUsers,
+  fetchDevSuperUser,
+  fetchMyPermissions,
+} from "../auth";
 import { apiFetch } from "../helpers";
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+import { client } from "../client";
 
 describe("forgotPassword", () => {
   beforeEach(() => {
@@ -153,5 +181,139 @@ describe("resetPassword", () => {
     await expect(resetPassword("token", "password123")).rejects.toThrow(
       "Failed to reset password",
     );
+  });
+});
+
+// --------------------------------------------------------------------------
+// login / logout / register / changePassword / fetchMe / updateMe / fetchUsers
+// These exercise the typed `client.*` methods, so we assert on the POST/GET
+// calls and the in-memory token/user-id side effects.
+// --------------------------------------------------------------------------
+describe("login", () => {
+  beforeEach(() => vi.clearAllMocks());
+  it("POSTs credentials, stores access_token + user id, returns AuthResponse", async () => {
+    const mock = {
+      data: { access_token: "at-123", user: { id: "u-1" } },
+    };
+    (client.POST as Mock).mockResolvedValueOnce(mock);
+
+    const result = await login("alice@example.com", "secret");
+
+    expect(client.POST).toHaveBeenCalledWith("/auth/login", {
+      body: { email: "alice@example.com", password: "secret" },
+    });
+    expect(result).toEqual(mock.data);
+  });
+  it("throws when server returns no data", async () => {
+    (client.POST as Mock).mockResolvedValueOnce({ data: undefined });
+    await expect(login("a@b.c", "x")).rejects.toThrow("Login failed");
+  });
+});
+
+describe("logout", () => {
+  beforeEach(() => vi.clearAllMocks());
+  it("POSTs logout and clears auth session", async () => {
+    (client.POST as Mock).mockResolvedValueOnce({});
+    await logout();
+    expect(client.POST).toHaveBeenCalledWith("/auth/logout", {
+      body: { refresh_token: "" },
+    });
+  });
+});
+
+describe("register", () => {
+  beforeEach(() => vi.clearAllMocks());
+  it("POSTs payload and returns AuthResponse", async () => {
+    const payload = { email: "new@x.io", password: "p", full_name: "New" };
+    (client.POST as Mock).mockResolvedValueOnce({
+      data: { access_token: "at", user: { id: "u-new" } },
+    });
+    const result = await register(payload as never);
+    expect(client.POST).toHaveBeenCalledWith("/auth/register", { body: payload });
+    expect(result).toHaveProperty("access_token", "at");
+  });
+  it("throws when registration returns no data", async () => {
+    (client.POST as Mock).mockResolvedValueOnce({ data: undefined });
+    await expect(register({} as never)).rejects.toThrow("Registration failed");
+  });
+});
+
+describe("changePassword", () => {
+  beforeEach(() => vi.clearAllMocks());
+  it("POSTs current + new password, returns success string", async () => {
+    (client.POST as Mock).mockResolvedValueOnce({ error: undefined });
+    const msg = await changePassword({
+      current_password: "old",
+      new_password: "new",
+    } as never);
+    expect(client.POST).toHaveBeenCalledWith("/auth/change-password", {
+      body: { current_password: "old", new_password: "new" },
+    });
+    expect(msg).toBe("Password changed successfully");
+  });
+  it("throws when server returns an error field", async () => {
+    (client.POST as Mock).mockResolvedValueOnce({ error: { message: "mismatch" } });
+    await expect(
+      changePassword({ current_password: "a", new_password: "b" } as never),
+    ).rejects.toThrow("Failed to change password");
+  });
+});
+
+describe("fetchMe / updateMe", () => {
+  beforeEach(() => vi.clearAllMocks());
+  it("fetchMe GETs /me and returns the User", async () => {
+    (client.GET as Mock).mockResolvedValueOnce({ data: { id: "u-1" } });
+    const user = await fetchMe();
+    expect(client.GET).toHaveBeenCalledWith("/me");
+    expect(user).toEqual({ id: "u-1" });
+  });
+  it("fetchMe throws on no data", async () => {
+    (client.GET as Mock).mockResolvedValueOnce({ data: undefined });
+    await expect(fetchMe()).rejects.toThrow("Failed to fetch profile");
+  });
+  it("updateMe PATCHes /me and returns updated User", async () => {
+    (client.PATCH as Mock).mockResolvedValueOnce({ data: { id: "u-1", full_name: "X" } });
+    const updated = await updateMe({ full_name: "X" });
+    expect(client.PATCH).toHaveBeenCalledWith("/me", { body: { full_name: "X" } });
+    expect(updated).toEqual({ id: "u-1", full_name: "X" });
+  });
+  it("updateMe throws on no data", async () => {
+    (client.PATCH as Mock).mockResolvedValueOnce({ data: undefined });
+    await expect(updateMe({ full_name: "X" })).rejects.toThrow("Failed to update profile");
+  });
+});
+
+describe("fetchUsers / fetchDevSuperUser / fetchMyPermissions", () => {
+  beforeEach(() => vi.clearAllMocks());
+  it("fetchUsers GETs /users", async () => {
+    (client.GET as Mock).mockResolvedValueOnce({ data: [{ id: "u-1" }, { id: "u-2" }] });
+    const users = await fetchUsers();
+    expect(client.GET).toHaveBeenCalledWith("/users");
+    expect(users).toHaveLength(2);
+  });
+  it("fetchDevSuperUser uses raw apiFetch and returns parsed JSON", async () => {
+    // fetchDevSuperUser bypasses the typed client — drive apiFetch directly.
+    // restoreAllMocks would wipe the top-level mock set by vi.mock, so just
+    // clear call history and re-program the existing apiFetch mock.
+    (apiFetch as Mock).mockClear();
+    (apiFetch as Mock).mockResolvedValue(
+      new Response(JSON.stringify({ user_id: "u", workspace_id: "w" }), { status: 200 }),
+    );
+    const r = await fetchDevSuperUser();
+    expect(apiFetch).toHaveBeenCalledWith("/v1/dev/super-user");
+    expect(r).toEqual({ user_id: "u", workspace_id: "w" });
+  });
+  it("fetchDevSuperUser throws on non-OK response", async () => {
+    (apiFetch as Mock).mockClear();
+    (apiFetch as Mock).mockResolvedValue(new Response("nope", { status: 500 }));
+    await expect(fetchDevSuperUser()).rejects.toThrow("Failed to fetch dev super user");
+  });
+  it("fetchMyPermissions GETs /me/permissions and casts", async () => {
+    (client.GET as Mock).mockResolvedValueOnce({
+      data: { permissions: ["p"], roles: ["r"], managed_department_ids: null },
+    });
+    const p = await fetchMyPermissions();
+    expect(client.GET).toHaveBeenCalledWith("/me/permissions");
+    expect(p.permissions).toEqual(["p"]);
   });
 });

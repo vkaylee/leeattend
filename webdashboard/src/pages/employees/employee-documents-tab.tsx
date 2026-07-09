@@ -43,7 +43,7 @@ export function EmployeeDocumentsTab({ employeeId }: EmployeeDocumentsTabProps) 
 
       if (error) {
         toast.error("Failed to load documents");
-        throw new Error((error as any)?.message || "Failed to load documents");
+        throw new Error((error as { message?: string })?.message || "Failed to load documents");
       }
 
       return data;

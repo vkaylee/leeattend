@@ -11,7 +11,9 @@ import {
   TIMEOUT,
   apiFetch,
   forceRefreshToken,
+  fetchHealth,
 } from '../helpers';
+import { getFullUrl } from '../api-fetch-helpers';
 
 describe('Token helpers', () => {
   beforeEach(() => {
@@ -196,6 +198,161 @@ describe('apiFetch interceptor logic', () => {
 
     // Await promise to prevent unhandled rejection and use the variable
     await expect(promise).rejects.toThrow();
+  });
+});
+
+describe('getFullUrl', () => {
+  // In the vitest environment import.meta.env.DEV is true, so API_BASE_URL
+  // resolves to "/api" (see config.ts). We assert against that contract.
+
+  it('returns absolute http(s) URLs unchanged (covers the early-return branch)', () => {
+    expect(getFullUrl('https://example.com/v1/health')).toBe(
+      'https://example.com/v1/health',
+    );
+  });
+
+  it('returns paths already prefixed with API_BASE_URL unchanged', () => {
+    expect(getFullUrl('/api/v1/x')).toBe('/api/v1/x');
+  });
+
+  it('prepends API_BASE_URL for bare relative paths', () => {
+    expect(getFullUrl('v1/health')).toBe('/api/v1/health');
+  });
+
+  it('normalises a leading slash before prepending', () => {
+    expect(getFullUrl('/v1/health')).toBe('/api/v1/health');
+  });
+});
+
+describe('forceRefreshToken failure path', () => {
+  beforeEach(() => {
+    setAccessToken(null);
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')));
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('returns false and logs when refresh fetch rejects (catch path)', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const result = await forceRefreshToken();
+    expect(result).toBe(false);
+    expect(errorSpy).toHaveBeenCalledWith(
+      'Token refresh failed',
+      expect.any(Error),
+    );
+    errorSpy.mockRestore();
+  });
+});
+
+describe('handleUnauthorized (401 retry-on-refresh) via apiFetch', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    setAccessToken(null);
+    vi.stubGlobal('fetch', vi.fn());
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it('retrying once on 401 with a fresh token after forceRefreshToken succeeds', async () => {
+    const mockFetch = globalThis.fetch as Mock;
+    // 1st call: the original request returns 401
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ message: 'unauthorized' }), { status: 401 }),
+    );
+    // 2nd call: the refresh POST returns a new access_token
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ access_token: 'new-at', refresh_token: 'new-rt' }),
+        { status: 200 },
+      ),
+    );
+    // 3rd call: retry of the original request succeeds
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ ok: true }), { status: 200 }),
+    );
+
+    const promise = apiFetch('/v1/secured');
+    await vi.runAllTimersAsync();
+    const response = await promise;
+
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+    // refresh endpoint hit with empty body + credentials:include
+    const refreshCall = mockFetch.mock.calls[1];
+    expect(refreshCall[0]).toContain('/v1/auth/refresh');
+    const refreshOpts = refreshCall[1] as RequestInit;
+    expect(refreshOpts.credentials).toBe('include');
+    expect(refreshOpts.body).toBe(JSON.stringify({}));
+    // retry carried the bearer token
+    const retryOpts = mockFetch.mock.calls[2][1] as RequestInit;
+    expect((retryOpts.headers as Headers).get('Authorization')).toBe(
+      'Bearer new-at',
+    );
+    expect(response.status).toBe(200);
+    expect(getAccessToken()).toBe('new-at');
+  });
+
+  it('redirects to login + throws when forceRefreshToken fails on 401', async () => {
+    // happy-dom window.location is read-only; gently swap it for an assignable
+    // stand-in so we can assert the redirect without triggering navigation.
+    const fakeLocation = { pathname: '/workspace', href: '' };
+    const originalLocation = window.location;
+    Object.defineProperty(window, 'location', {
+      value: fakeLocation,
+      writable: true,
+      configurable: true,
+    });
+
+    // Default: every bare fetch resolves to a 200 OK. This also covers the
+    // fire-and-forget logout POST inside clearAuthSession (3rd+ calls).
+    const mockFetch = globalThis.fetch as Mock;
+    mockFetch.mockResolvedValue(
+      new Response(JSON.stringify({ ok: true }), { status: 200 }),
+    );
+    // 1st call: original request → 401
+    mockFetch.mockResolvedValueOnce(new Response('unauth', { status: 401 }));
+    // 2nd call: refresh POST fails (non-OK)
+    mockFetch.mockResolvedValueOnce(new Response('boom', { status: 500 }));
+
+    const promise = apiFetch('/v1/secured');
+    await vi.runAllTimersAsync();
+
+    await expect(promise).rejects.toThrow('Session expired');
+    // redirected somewhere (handleUnauthorized sets window.location.href)
+    expect(fakeLocation.href).not.toBe('');
+    // credentials wiped
+    expect(getAccessToken()).toBeNull();
+
+    Object.defineProperty(window, 'location', {
+      value: originalLocation,
+      writable: true,
+      configurable: true,
+    });
+  });
+});
+
+describe('fetchHealth', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn());
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('GETs /v1/health and returns parsed status JSON', async () => {
+    const mockFetch = globalThis.fetch as Mock;
+    mockFetch.mockResolvedValue(
+      new Response(JSON.stringify({ status: 'ok' }), { status: 200 }),
+    );
+    const result = await fetchHealth();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(mockFetch.mock.calls[0][0]).toContain('/v1/health');
+    expect(result).toEqual({ status: 'ok' });
   });
 });
 

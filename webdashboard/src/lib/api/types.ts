@@ -1,5 +1,26 @@
 import { components } from "@/types/api-generated";
 
+// Pure 1:1 schema aliases moved to ./api-generated-reexports.
+// Types.ts now only carries overrides (Omit/&), hand-written
+// interfaces, and schema gaps (Group B/C).
+// Anchor aliases: Group A names referenced by overrides below.
+// Kept here (not in the barrel) so they can be used in local scope.
+export type Department = components["schemas"]["Department"];
+export type Employee = components["schemas"]["Employee"];
+export type EmployeeProfile = components["schemas"]["EmployeeProfile"];
+export type EmployeeSalaryComponent = components["schemas"]["EmployeeSalaryComponent"];
+export type Employment = components["schemas"]["Employment"];
+export type IncentiveEvaluationResult = components["schemas"]["IncentiveEvaluationResult"];
+export type MemberExtraRole = components["schemas"]["MemberExtraRole"];
+export type SalaryComponentWithDefinition = components["schemas"]["SalaryComponentWithDefinition"];
+export type Shift = components["schemas"]["Shift"];
+export type TimeEntry = components["schemas"]["TimeEntry"];
+export type WorkerHeartbeat = components["schemas"]["WorkerHeartbeat"];
+export type WorkingPatternDetailRequest = components["schemas"]["WorkingPatternDetailRequest"];
+export type Workspace = components["schemas"]["Workspace"];
+
+export * from "./api-generated-reexports";
+
 export interface DeviceInfo {
   device_time: string;
   firmware?: string;
@@ -15,14 +36,6 @@ export interface DeviceInfo {
   users_count: number;
 }
 
-export type DeviceStatus = components["schemas"]["DeviceStatus"];
-export type AgentStatus = components["schemas"]["AgentStatus"];
-export type Device = components["schemas"]["Device"];
-export type AuthorizedAgent = components["schemas"]["AuthorizedAgent"];
-export type Workspace = components["schemas"]["Workspace"];
-export type Employer = components["schemas"]["Employer"];
-export type CreateEmployerRequest = components["schemas"]["CreateEmployerRequest"];
-export type UpdateEmployerRequest = components["schemas"]["UpdateEmployerRequest"];
 
 export interface User {
   avatar_url?: string | null;
@@ -35,9 +48,6 @@ export interface User {
   system_roles?: string[];
 }
 
-export type UpdateUserRequest = components["schemas"]["UpdateUserRequest"];
-export type ChangePasswordRequest = components["schemas"]["ChangePasswordRequest"];
-export type RegisterRequest = components["schemas"]["RegisterRequest"];
 
 export interface WorkspaceMember {
   avatar_url?: string | null;
@@ -58,11 +68,7 @@ export type WorkspaceRole = Omit<components["schemas"]["WorkspaceRole"], "descri
   description?: string | null;
 };
 
-export type AuthResponse = components["schemas"]["AuthResponse"];
 // --- Timekeeping Models ---
-export type Employee = components["schemas"]["Employee"];
-export type Employment = components["schemas"]["Employment"];
-export type TimeEntry = components["schemas"]["TimeEntry"];
 export type AttendanceEntry = TimeEntry;
 
 export interface RawAttendanceLog {
@@ -82,7 +88,6 @@ export interface RawAttendanceLog {
 }
 
 export type LeaveDurationType = 'full_day' | 'first_half' | 'second_half' | 'custom_hours';
-export type LeaveRequest = components["schemas"]["LeaveRequest"];
 
 export interface EmployeeLeaveBalance {
   accrued_amount: number;
@@ -97,7 +102,6 @@ export interface EmployeeLeaveBalance {
   used: number;
 }
 
-export type WorkspaceLeaveBalance = components["schemas"]["WorkspaceLeaveBalance"];
 export type AttendanceAdjustmentRequest = Omit<components["schemas"]["AttendanceAdjustmentRequest"], "requested_punch_in_time" | "requested_punch_out_time"> & { 
   requested_date?: string;
   requested_punch_time: string;
@@ -146,7 +150,6 @@ export type AuditLog = Omit<components["schemas"]["AuditLog"], "actor_id" | "tar
   target_user_id?: string;
 };
 
-export type Holiday = components["schemas"]["Holiday"];
 
 export interface DailyAttendanceReport {
   actual_punch_in: string | null;
@@ -188,11 +191,6 @@ export interface DailyAttendanceReport {
 }
 
 // --- Payroll and Shift Models ---
-export type Shift = components["schemas"]["Shift"];
-export type CreateShiftRequest = components["schemas"]["CreateShiftRequest"];
-export type UpdateShiftRequest = components["schemas"]["UpdateShiftRequest"];
-export type PayrollSettings = components["schemas"]["PayrollSettings"];
-export type UpdatePayrollSettingsRequest = components["schemas"]["UpdatePayrollSettingsRequest"];
 
 export interface ConfigRecord {
   created_at?: string;
@@ -205,10 +203,6 @@ export interface ConfigRecord {
   std_working_days: number;
 }
 
-export type SalaryComponentDefinition = components["schemas"]["SalaryComponentDefinition"];
-export type CreateSalaryComponentRequest = components["schemas"]["CreateSalaryComponentRequest"];
-export type CreatePayrollRuleDefinitionRequest = components["schemas"]["CreatePayrollRuleDefinitionRequest"];
-export type EmployeeSalaryComponent = components["schemas"]["EmployeeSalaryComponent"];
 export type EmployeeSalaryComponentDetail = EmployeeSalaryComponent & {
   name: string;
   code: string;
@@ -229,20 +223,12 @@ export interface PayrollSegment {
   std_days_source?: string | null;
 }
 
-export type IncentiveEvaluationResult = components["schemas"]["IncentiveEvaluationResult"];
-export type SalaryComponentWithDefinition = components["schemas"]["SalaryComponentWithDefinition"];
-export type SalaryBaseGroup = components["schemas"]["SalaryBaseGroup"];
-export type SalaryBaseGroupMember = components["schemas"]["SalaryBaseGroupMember"];
 export type Payslip = components["schemas"]["Payslip"] & { 
   incentives?: IncentiveEvaluationResult[];
   segments?: PayrollSegment[];
   salary_components?: SalaryComponentWithDefinition[];
 };
 
-export type CompensationHistoryResponse = components["schemas"]["CompensationHistoryResponse"];
-export type CompensationTimelineEvent = components["schemas"]["CompensationTimelineEvent"];
-export type CompensationChangeDetails = components["schemas"]["CompensationChangeDetails"];
-export type CompensationEmploymentContext = components["schemas"]["CompensationEmploymentContext"];
 
 
 export interface RuleCondition {
@@ -251,18 +237,7 @@ export interface RuleCondition {
   value: number;
 }
 
-export type IncentiveTier = components["schemas"]["IncentiveTier"];
-export type PayrollIncentivePolicy = components["schemas"]["PayrollIncentivePolicy"];
-export type PayrollIncentivePolicyResponse = components["schemas"]["PayrollIncentivePolicyResponse"];
-export type AssigneeType = components["schemas"]["AssigneeType"];
-export type BatchCalculatePayrollRequest = components["schemas"]["BatchCalculatePayrollRequest"];
-export type BatchCalculateResult = components["schemas"]["BatchCalculateResult"];
-export type BatchCalculatePayrollResponse = components["schemas"]["BatchCalculatePayrollResponse"];
 // --- Department Models ---
-export type Department = components["schemas"]["Department"];
-export type EmployeeDepartmentHistory = components["schemas"]["EmployeeDepartmentHistory"];
-export type ShiftRoster = components["schemas"]["ShiftRoster"];
-export type AttendanceImportJob = components["schemas"]["AttendanceImportJob"];
 
 export interface ReportExportJobProgress {
   completed_batches: number;
@@ -340,15 +315,12 @@ export interface RecentJob {
   workspace_id: string;
 }
 
-export type WorkerHeartbeat = components["schemas"]["WorkerHeartbeat"];
 
 export interface MemberRolesResponse {
   extra: MemberExtraRole[];
   primary: string;
 }
 
-export type MemberExtraRole = components["schemas"]["MemberExtraRole"];
-export type MemberExtraPermission = components["schemas"]["MemberExtraPermission"];
 
 export interface EmploymentPeriod {
   created_at: string;
@@ -360,8 +332,6 @@ export interface EmploymentPeriod {
   updated_at: string;
 }
 
-export type LeaveTypeConfig = components["schemas"]["LeaveTypeConfig"];
-export type LeaveType = components["schemas"]["LeaveType"];
 
 export interface LeavePolicy {
   created_at: string;
@@ -394,14 +364,10 @@ export type SeniorityBonus = Omit<components["schemas"]["SeniorityBonus"], "bonu
 export type LeavePolicyConfig = Omit<components["schemas"]["LeavePolicyConfig"], "seniority_bonus"> & {
   seniority_bonus?: SeniorityBonus[];
 };
-export type ScheduleTrace = components["schemas"]["ScheduleTrace"];
-export type EffectiveSchedule = components["schemas"]["EffectiveSchedule"];
 export type EmployeeSchedule = Omit<components["schemas"]["EmployeeSchedule"], "employee_id_number"> & {
   employee_id_number?: string;
   employee_id?: string;
 };
-export type AssignmentHistory = components["schemas"]["AssignmentHistory"];
-export type LeaveHistoryItem = components["schemas"]["LeaveHistoryItem"];
 // --- Assignment (Secondment) Models ---
 
 export const AssignmentStatus = {
@@ -413,12 +379,8 @@ export const AssignmentStatus = {
 export type AssignmentStatus = typeof AssignmentStatus[keyof typeof AssignmentStatus];
 
 export type EmployeeAssignment = Omit<components["schemas"]["EmployeeAssignment"], "status"> & { status: AssignmentStatus };
-export type CreateEmployeeAssignmentRequest = components["schemas"]["CreateEmployeeAssignmentRequest"];
 export type UpdateEmployeeAssignmentRequest = components["schemas"]["UpdateEmployeeAssignmentRequest"] & { host_location_id?: string | null };
 // --- Employee Self-Service (ESS) Types ---
-export type EmployeeProfile = components["schemas"]["EmployeeProfile"];
-export type EmployeeEmergencyContact = components["schemas"]["EmployeeEmergencyContact"];
-export type EmployeeDocument = components["schemas"]["EmployeeDocument"];
 export type MyProfileResponse = Omit<components["schemas"]["MyProfileResponse"], "profile"> & {
   profile?: components["schemas"]["EmployeeProfile"] | null;
 };
@@ -434,15 +396,10 @@ export interface UpdateProfileRequest {
   phone?: string;
 }
 
-export type CreateEmergencyContactRequest = components["schemas"]["CreateEmergencyContactRequest"];
 // --- Working Pattern Models ---
 export type WorkingPattern = Omit<components["schemas"]["WorkingPattern"], "description"> & {
   description?: string;
 };
-export type WorkingPatternDetail = components["schemas"]["WorkingPatternDetail"];
-export type EmployeeWorkingPattern = components["schemas"]["EmployeeWorkingPattern"];
-export type WorkingPatternDetailRequest = components["schemas"]["WorkingPatternDetailRequest"];
-export type CreateWorkingPatternRequest = components["schemas"]["CreateWorkingPatternRequest"];
 
 export interface UpdateWorkingPatternRequest {
 
@@ -458,14 +415,8 @@ export interface UpdateWorkingPatternRequest {
 
 }
 
-export type AssignPatternRequest = components["schemas"]["AssignPatternRequest"];
-export type BulkAssignResponse = components["schemas"]["BulkAssignResponse"];
-export type BulkAssignPatternRequest = components["schemas"]["BulkAssignPatternRequest"];
 export type WorkingCondition = Omit<components["schemas"]["WorkingCondition"], "type_"> & { type: string };
-export type CreateWorkingConditionRequest = components["schemas"]["CreateWorkingConditionRequest"];
 // --- Payroll Models ---
-export type OvertimePolicy = components["schemas"]["OvertimePolicy"];
-export type OvertimeRule = components["schemas"]["OvertimeRule"];
 export type LeavePolicyAssignmentDetail = Omit<components["schemas"]["LeavePolicyAssignmentDetail"], "effective_to"> & {
   effective_to: string | null;
 };
@@ -475,8 +426,6 @@ export type AttendanceDailySummary = Omit<components["schemas"]["AttendanceDaily
   ot_reason?: string | null;
 };
 // --- Payroll Rules ---
-export type PayrollRuleDefinition = components["schemas"]["PayrollRuleDefinition"];
-export type PayrollRuleTier = components["schemas"]["PayrollRuleTier"];
 export type PayrollRuleAssignment = Omit<components["schemas"]["PayrollRuleAssignment"], "override_config"> & {
   override_config?: unknown;
 };
@@ -490,11 +439,7 @@ export type EmploymentPhaseDefinition = Omit<components["schemas"]["EmploymentPh
 export type EmployeePhase = Omit<components["schemas"]["EmployeePhase"], "rule_config"> & {
   rule_config?: EmploymentPhaseRuleConfig;
 };
-export type CreateEmploymentPhaseDefinitionRequest = components["schemas"]["CreateEmploymentPhaseDefinitionRequest"];
-export type AssignEmployeePhaseRequest = components["schemas"]["AssignEmployeePhaseRequest"];
-export type UpdateEmployeePhaseStatusRequest = components["schemas"]["UpdateEmployeePhaseStatusRequest"];
 // --- Workspace Config (EAV) ---
-export type WorkspaceConfigEntry = components["schemas"]["WorkspaceConfigEntry"];
 
 export interface CreateConfigEntryRequest {
   config_key: string;
@@ -527,44 +472,13 @@ export interface ApprovalWorkflowStep {
 export type ApprovalWorkflow = components["schemas"]["ApprovalWorkflow"] & {
   steps?: ApprovalWorkflowStep[];
 };
-export type CreateWorkflowRequest = components["schemas"]["CreateWorkflowRequest"];
-export type ApprovalActionLog = components["schemas"]["ApprovalActionLog"];
-export type ProcessApprovalRequest = components["schemas"]["ProcessApprovalRequest"];
 // --- Overtime Requests ---
 export type OtRequestStatus = "draft" | "pending_approval" | "approved" | "partially_accepted" | "active" | "completed" | "cancelled" | "rejected";
 export type ConsentStatus = "pending" | "accepted" | "declined";
-export type OvertimeRequestEmployee = components["schemas"]["OvertimeRequestEmployee"];
-export type OvertimeRequest = components["schemas"]["OvertimeRequest"];
-export type OvertimeRequestDetail = components["schemas"]["OvertimeRequestDetail"];
-export type CreateOvertimeRequestPayload = components["schemas"]["CreateOvertimeRequestPayload"];
-export type BehalfAssignment = components["schemas"]["BehalfAssignment"];
-export type CreateBehalfAssignmentRequest = components["schemas"]["CreateBehalfAssignmentRequest"];
 
 // --- Custom Fields Models ---
-export type CustomFieldDefinition = components["schemas"]["CustomFieldDefinition"];
-export type CreateCustomFieldDefinitionRequest = components["schemas"]["CreateCustomFieldDefinitionRequest"];
-export type UpdateCustomFieldDefinitionRequest = components["schemas"]["UpdateCustomFieldDefinitionRequest"];
-export type SetCustomFieldValueRequest = components["schemas"]["SetCustomFieldValueRequest"];
-export type BulkSetCustomFieldValuesRequest = components["schemas"]["BulkSetCustomFieldValuesRequest"];
-export type CustomFieldValueResponse = components["schemas"]["CustomFieldValueResponse"];
 
 // --- Lifecycle Onboarding/Offboarding Models ---
-export type LifecycleChecklistTemplate = components["schemas"]["LifecycleChecklistTemplate"];
-export type CreateLifecycleChecklistTemplateRequest = components["schemas"]["CreateLifecycleChecklistTemplateRequest"];
-export type UpdateLifecycleChecklistTemplateRequest = components["schemas"]["UpdateLifecycleChecklistTemplateRequest"];
-export type LifecycleChecklistTemplateItem = components["schemas"]["LifecycleChecklistTemplateItem"];
-export type CreateLifecycleChecklistTemplateItemRequest = components["schemas"]["CreateLifecycleChecklistTemplateItemRequest"];
-export type UpdateLifecycleChecklistTemplateItemRequest = components["schemas"]["UpdateLifecycleChecklistTemplateItemRequest"];
-export type LifecycleChecklistResponse = components["schemas"]["LifecycleChecklistResponse"];
-export type LifecycleChecklistItem = components["schemas"]["LifecycleChecklistItem"];
-export type ChecklistItemStatus = components["schemas"]["ChecklistItemStatus"];
-export type CreateChecklistRequest = components["schemas"]["CreateChecklistRequest"];
-export type PendingTaskResponse = components["schemas"]["PendingTaskResponse"];
-export type UpdateChecklistItemStatusRequest = components["schemas"]["UpdateChecklistItemStatusRequest"];
-export type ChecklistCategory = components["schemas"]["ChecklistCategory"];
-export type ChecklistAssigneeType = components["schemas"]["ChecklistAssigneeType"];
-export type ChecklistStatus = components["schemas"]["ChecklistStatus"];
-export type LifecycleChecklistType = components["schemas"]["LifecycleChecklistType"];
 
 // ── Work Segments ──────────────────────────────────────────────────────────
 
@@ -694,8 +608,5 @@ export interface UpdateShiftIntervalRequest {
 }
 
 // --- Termination Import Row Types (from openapi-generated schemas) ---
-export type ValidTerminationRow = components["schemas"]["ValidTerminationRow"];
-export type InvalidTerminationRow = components["schemas"]["InvalidTerminationRow"];
-export type ProratedLeavePreview = components["schemas"]["ProratedLeavePreview"];
 
 

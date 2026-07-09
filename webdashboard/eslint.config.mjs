@@ -164,7 +164,12 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-call': 'error',
       '@typescript-eslint/no-unsafe-argument': 'error',
       '@typescript-eslint/no-unsafe-return': 'error',
-      '@typescript-eslint/no-explicit-any': 'warn',
+      // PI 2: promoted from warn → error. Production src is now at 0 literal
+      // `as any` (only the typed `client as unknown as` generic cast remains,
+      // which this rule does not flag). Test files are still explicitly set to
+      // 'off' by the test-files override lower in this config, so this only
+      // hardens production code and blocks regressions from future `as any`.
+      '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-base-to-string': 'warn',
       '@typescript-eslint/no-confusing-void-expression': 'warn',
       'jsx-a11y/click-events-have-key-events': 'error',
