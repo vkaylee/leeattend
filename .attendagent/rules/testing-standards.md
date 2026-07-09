@@ -32,6 +32,12 @@
 - **Code Coverage:** Minimum **80%** coverage for all new business logic.
 - **Mandatory Pass:** A task is NOT complete until `./leedevkit test <target>` passes successfully.
 
+### 2.1 Coverage Baseline Protection (ANTI-DRIFT)
+- **Coverage thresholds are floors, not aspirational targets.** `vitest.config.ts` enforces per-path thresholds (e.g. `./src/lib/api/` ≥ 80/55/90/85 stmts/branch/fn/lines). A PR that drops coverage below the floor fails CI.
+- **Boy Scout for coverage:** When you touch a file, check its coverage. If the file is below the floor, add tests in the SAME PR. Never leave a file less tested than you found it.
+- **Baseline is the moving floor.** After each coverage-improving PR, the floor may be raised to the new baseline. The floor only moves up, never down.
+- **Coverage is part of Definition of Done.** A feature PR without adequate test coverage is incomplete — same weight as a failing typecheck.
+
 ## 3. Verification Pipeline
 > 🔴 **Execution Priority:** Security → Lint → Schema → Tests → UX → SEO → Performance
 

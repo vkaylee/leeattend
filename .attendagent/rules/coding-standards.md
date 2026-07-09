@@ -43,7 +43,33 @@ If you see a bug, typo, or poor pattern nearby while working on a file, FIX IT I
 - **API Contract Design:** ALL APIs returning a collection/list MUST implement Pagination. Never assume small datasets. Do NOT introduce breaking schema changes without bumping the API version.
 - **Frontend Architecture:** Strictly separate Business Logic (Custom Hooks/Services) from UI Components. UI Components must remain "dumb" (Props in, JSX out). Prevent waterfall requests by using parallel fetching (`Promise.all` or Suspense data fetching).
 
-## 10. Related Rulebooks
+## 10. Type Safety & Type Ownership (ANTI-DRIFT)
+
+> 🔴 **The cost of type drift is silent runtime corruption. Stop it at the source.**
+
+### 10.1 The Zero-Cast Standard (Frontend)
+| Pattern | Verdict | Action |
+|---|---|---|
+| `x as any` | ❌ FORBIDDEN in production code | `eslint no-explicit-any: error` blocks this. Re-architect the type instead. |
+| `x as unknown as Y` | ⚠️ LOAD-BEARING DRIFT MASK | Every such cast hides a real schema-vs-type mismatch. The correct fix is updating `openapi.raw.json` + regen, not keeping the cast. |
+| `formData as never` | ⚠️ LAST RESORT for FormData uploads | Permitted ONLY when the API client types the body as something incompatible with `FormData`. Keep a TODO to fix the schema. |
+| `<T>` generic on helper | ✅ PREFERRED | Use `fetch<T>()` / `fire()` for paths not yet in the typed OpenAPI schema. |
+
+- **Rule:** `@typescript-eslint/no-explicit-any: error` is enforced on all production source. Test files remain `off`. Generated files are eslint-ignored.
+- **Rule:** A pull request that adds a NEW `as unknown as X` MUST include either (a) the schema-update PR that removes the need, or (b) an ADR explaining why the drift is permanent.
+
+### 10.2 Type Ownership — Single Source of Truth
+- **Generated types win.** `src/types/api-generated.ts` + `src/lib/api/api-generated-reexports.ts` are generated from `openapi.raw.json` → **never edit by hand**.
+- **Hand-written types are the exception.** `src/lib/api/types.ts` carries ONLY: (a) generic helpers (`PaginatedResponse<T>`), (b) UI-only composites not in the API, (c) temporary overrides for schema gaps (with a TODO to regen).
+- **Never re-define a generated type by hand.** If `components["schemas"]["Workspace"]` already exists, `types.ts` must NOT declare another `Workspace`. If the hand-written version differs, that is drift — fix the schema, delete the copy.
+- **Escape hatches (`client as any`, `untyped.ts`) are FORBIDDEN.** Use `fetch<T>()` / `fire()` helpers for untyped paths. If a path has no schema, add it to `openapi.raw.json` and regenerate.
+
+### 10.3 Barrel-File Convention
+- One barrel per concern. Heavy pure-reexport sets go in their own barrel (e.g. `api-generated-reexports.ts`), not inside the hand-written file.
+- The hand-written file `types.ts` MUST carry `export * from "<barrel>"` so consumer import paths stay stable.
+- 13–15 anchor aliases (Group-A names referenced by Group-B overrides) remain in the hand-written file to keep local scoping.
+
+## 11. Related Rulebooks
 When working on specific concerns, also consult:
 - `@[.agent/rules/leeattend-context.md]` — **Read first** — Project patterns, handler signatures, DB conventions, API format
 - `@[.agent/rules/database-rules.md]` — Multi-tenancy, N+1 prevention, migrations, soft deletes
@@ -55,4 +81,4 @@ When working on specific concerns, also consult:
 - `@[.agent/rules/encryption-rules.md]` — Secrets, TLS, key management
 - `@[.agent/rules/configuration-management.md]` — Env vars, fail-fast validation
 - `@[.agent/rules/execution-wrappers.md]` — Hermetic build/test scripts
-- `@[.agent/rules/project-structure.md]` — Component map, commit conventions, directory layout
+- `@[.agent/rules/project-structure.md]` — Component map, directory layout, type ownership

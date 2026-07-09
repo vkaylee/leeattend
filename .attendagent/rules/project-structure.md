@@ -55,3 +55,27 @@ Request → Middleware (RateLimitLayer → UserId → WorkspaceId → MemberCont
 - Service → Repository trait ONLY (never depend on `diesel_*` impl directly)
 - Repository → DieselPools ONLY (never access pool from Service or Handler)
 - NEVER skip a layer
+
+## 6. Frontend Type Architecture (Web Dashboard)
+
+### 6.1 Type Ownership — Single Source of Truth
+| Source | Path | Hand-edit? | Role |
+|---|---|---|---|
+| Generated OpenAPI | `src/types/api-generated.ts` | ❌ NEVER | Canonical API types |
+| Generated barrel | `src/lib/api/api-generated-reexports.ts` | ❌ NEVER | 1:1 aliases of generated schemas |
+| Hand-written | `src/lib/api/types.ts` | ✅ ONLY for exceptions | Generic helpers, UI-only composites, temporary schema-gap overrides |
+
+- **Rule:** If a type exists in `api-generated.ts`, it MUST NOT be re-declared in `types.ts`. Duplication = drift.
+- **Rule:** `types.ts` MUST carry `export * from "./api-generated-reexports"` so consumer import paths stay stable.
+- **Rule:** Temporary overrides in `types.ts` MUST carry a TODO comment pointing to the schema gap to close.
+
+### 6.2 Barrel-File Convention
+- Heavy pure-reexport sets (>20 aliases) go in their own barrel file, not inside the hand-written file.
+- The hand-written file re-exports the barrel via `export * from "<barrel>"`.
+- Anchor aliases (Group-A names referenced by Group-B overrides) remain in the hand-written file to keep local scoping.
+- One barrel per concern — do not mix unrelated re-exports.
+
+### 6.3 API Client Escape-Hatch Discipline
+- **FORBIDDEN:** `client as any`, `untyped.ts`, module-level escape hatches.
+- **PREFERRED:** `fetch<T>()` / `fire()` helpers for paths not yet in the typed schema.
+- **TODO obligation:** Every `fetch<T>()` / `fire()` call on an untyped path MUST carry a TODO to add the path to `openapi.raw.json` and migrate to typed `client.METHOD(...)` after regen.
