@@ -84,8 +84,7 @@ export function useAttendanceAdjustmentsPage() {
     try {
       const excelJSModule = await import("exceljs");
       const ExcelJS = "default" in excelJSModule ? excelJSModule.default : excelJSModule;
-      const fileSaverModule = await import("file-saver") as unknown as { saveAs: (blob: Blob, filename: string) => void; default?: { saveAs: (blob: Blob, filename: string) => void } };
-      const saveAs = fileSaverModule.saveAs ?? fileSaverModule.default?.saveAs ?? fileSaverModule;
+      const { saveAs } = await import("file-saver");
 
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Template");

@@ -54,7 +54,7 @@ export function LeavePolicyManager({ wsId }: LeavePolicyManagerProps) {
 
   const mutation = useMutation({
     mutationFn: (data: Partial<LeavePolicy>) => 
-      editingPolicy ? updateLeavePolicy(wsId, editingPolicy.id, data) : createLeavePolicy(wsId, data as unknown as Parameters<typeof createLeavePolicy>[1]),
+      editingPolicy ? updateLeavePolicy(wsId, editingPolicy.id, data) : createLeavePolicy(wsId, data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["leave-policies"] });
       toast.success(editingPolicy ? t("settings.leave.policy_manager.success_update", "Policy updated") : t("settings.leave.policy_manager.success_create", "Policy created"));

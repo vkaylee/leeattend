@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
-import { client } from "@/lib/api/client";
+import { fetch } from "@/lib/api/client";
 import { components } from "@/types/api-generated";
 
 type WorkspaceFile = components["schemas"]["WorkspaceFile"];
@@ -118,19 +118,10 @@ export function FilePreview({ file, workspaceId, className = "" }: FilePreviewPr
       setIsLoading(true);
       setError(null);
       try {
-        const { data, error: apiError } = await client.GET("/v1/workspaces/{ws_id}/files/{id}/url", {
-          params: {
-            path: {
-              ws_id: workspaceId,
-              id: file.id,
-            },
-          },
-        }) as unknown as { data: { url?: string } | undefined; error: unknown };
+        const { data } = await fetch<{ url?: string } | undefined>("GET", "/v1/workspaces/{ws_id}/files/{id}/url", {
+          params: { path: { ws_id: workspaceId, id: file.id } },
+        });
 
-        if (apiError) {
-          throw new Error("Failed to load preview url");
-        }
-        
         if (isMounted && data?.url) {
           setPreviewUrl(data.url);
         }
@@ -150,14 +141,10 @@ export function FilePreview({ file, workspaceId, className = "" }: FilePreviewPr
 
   const handleDownload = async () => {
     try {
-      const { data, error: apiError } = await client.GET("/v1/workspaces/{ws_id}/files/{id}/url", {
+      const { data } = await fetch<{ url?: string } | undefined>("GET", "/v1/workspaces/{ws_id}/files/{id}/url", {
         params: { path: { ws_id: workspaceId, id: file.id } },
-      }) as unknown as { data: { url?: string } | undefined; error: unknown };
-      
-      if (apiError) {
-        throw new Error("Failed to fetch download url");
-      }
-      
+      });
+
       if (data?.url) {
         window.open(data.url, "_blank");
       }

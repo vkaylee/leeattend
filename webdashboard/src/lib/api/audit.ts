@@ -1,12 +1,12 @@
 import type { AuditLog, PaginatedResponse } from "./types";
 
-import { client } from "./client";
+import { client, fetch } from "./client";
 
 export const fetchAuditLogs = async (
   workspaceId: string,
   params: { page: number; limit: number; action?: string; startDate?: string; endDate?: string }
 ): Promise<PaginatedResponse<AuditLog>> => {
-  const { data: resData } = await client.GET("/workspaces/{ws_id}/audit-logs", {
+  const { data: resData } = await fetch<PaginatedResponse<AuditLog>>("GET", "/workspaces/{ws_id}/audit-logs", {
     params: {
       path: { ws_id: workspaceId },
       query: {
@@ -19,6 +19,6 @@ export const fetchAuditLogs = async (
     },
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as PaginatedResponse<AuditLog>;
+  return resData;
 };
 

@@ -88,35 +88,31 @@ export interface QuotaSummary {
 
 export const overtimeRequestsApi = {
   listRequests: async (workspaceId: string, params?: Record<string, unknown>): Promise<PaginatedResponse<OvertimeRequest>> => {
-    const { data } = await client.GET("/v1/workspaces/{ws_id}/overtime/requests", {
+    const { data } = await fetch<PaginatedResponse<OvertimeRequest>>("GET", "/v1/workspaces/{ws_id}/overtime/requests", {
       params: {
         path: { ws_id: workspaceId },
-        query: params as unknown as undefined,
+        query: params,
       },
     });
     if (!data) throw new Error("No response data");
-    return data as unknown as PaginatedResponse<OvertimeRequest>;
+    return data;
   },
 
   getRequest: async (workspaceId: string, id: string): Promise<OvertimeRequestDetail> => {
-    const { data } = await client.GET("/v1/workspaces/{ws_id}/overtime/requests/{id}", {
-      params: {
-        path: { ws_id: workspaceId, id },
-      },
+    const { data } = await fetch<OvertimeRequestDetail>("GET", "/v1/workspaces/{ws_id}/overtime/requests/{id}", {
+      params: { path: { ws_id: workspaceId, id } },
     });
     if (!data) throw new Error("No response data");
-    return data as unknown as OvertimeRequestDetail;
+    return data;
   },
 
   createRequest: async (workspaceId: string, payload: CreateOvertimeRequestPayload): Promise<OvertimeRequest> => {
-    const { data } = await client.POST("/v1/workspaces/{ws_id}/overtime/requests", {
-      params: {
-        path: { ws_id: workspaceId },
-      },
+    const { data } = await fetch<OvertimeRequest>("POST", "/v1/workspaces/{ws_id}/overtime/requests", {
+      params: { path: { ws_id: workspaceId } },
       body: payload,
     });
     if (!data) throw new Error("No response data");
-    return data as unknown as OvertimeRequest;
+    return data;
   },
 
   submitRequest: async (workspaceId: string, id: string): Promise<void> => {
@@ -152,17 +148,15 @@ export const overtimeRequestsApi = {
   },
 
   getMyAssignments: async (employmentId: string): Promise<MyOvertimeAssignment[]> => {
-    // TODO: path template uses {ws_id} but call sites historically pass {employmentId}.
-    // Preserves existing behaviour — verify the backend route before renaming.
     // `fetch<T>` return type is `{ data: T }` (Assertion), so TS flags the guard
     // below as "unnecessary". Kept deliberately: openapi-fetch can return
-    // `{ data: undefined }` on 204/empty bodies, and `client` response typing is
+    // `{ data: undefined }` on 204/empty bodies, and the response typing is
     // erased by the generic cast inside the helper — the guard is the last line
     // of runtime defence against a missing payload.
     const { data } = await fetch<MyOvertimeAssignment[]>(
       "GET",
       "/v1/workspaces/{ws_id}/payroll/overtime/assignments",
-      { params: { path: { employmentId } } },
+      { params: { path: { ws_id: employmentId } } },
     );
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!data) throw new Error("No response data");

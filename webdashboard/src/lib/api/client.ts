@@ -113,11 +113,14 @@ export const client = createClient<paths>({
   fetch: customFetch
 });
 
-// Typed wrappers for paths not yet in the generated OpenAPI `paths` schema.
-// The hand-rolled `as unknown as` cast (via a typed function signature) lets
-// call sites keep a generic return type without module-level `client as any`.
-// When a path lands in openapi raw.json and the schema is regenerated, migrate
-// the call site to the typed `client.METHOD(...)` and drop the helper.
+// Typed wrappers for paths whose response type is a hand-written override
+// (Group-B Omit/& or Group-C interface) rather than the raw generated schema.
+// The single cast below is the sanctioned generic-dispatch escape hatch
+// (coding-standard §10.1 `<T>` on helper = PREFERRED): `client[method]` with a
+// method union yields an un-callable union of function types, so we collapse it
+// to one callable signature here and let every call site stay cast-free.
+// When a path's hand-written type is deleted in favour of the generated schema,
+// migrate the call site to the typed `client.METHOD(...)` and drop the helper.
 // Deliberately NOT called `http` — that name previously masked an `any` client.
 // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 export async function fetch<T>(
@@ -128,7 +131,7 @@ export async function fetch<T>(
     body?: unknown;
   },
 ): Promise<{ data: T }> {
-  const fn = client[method] as unknown as (
+  const fn = client[method] as (
     p: string,
     i?: unknown,
   ) => Promise<{ data: T }>;

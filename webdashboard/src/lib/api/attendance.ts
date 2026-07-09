@@ -1,4 +1,4 @@
-import { client } from "./client";
+import { client, fetch } from "./client";
 import { apiFetch, getCurrentWorkspaceId, TIMEOUT } from "./helpers";
 import {
   TimeEntry,
@@ -148,7 +148,7 @@ export async function fetchAttendanceLogs(params: {
   const wsId = getCurrentWorkspaceId();
   if (!wsId) throw new Error("Workspace not selected");
 
-  const { data: resData } = await client.GET("/workspaces/{workspace_id}/attendance/logs", {
+  const { data: resData } = await fetch<{ data: TimeEntry[]; total: number; page: number; limit: number }>("GET", "/workspaces/{workspace_id}/attendance/logs", {
     params: {
       path: { workspace_id: wsId },
       query: {
@@ -161,7 +161,7 @@ export async function fetchAttendanceLogs(params: {
     },
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as { data: TimeEntry[]; total: number; page: number; limit: number };
+  return resData;
 }
 
 export async function fetchRawAttendanceLogs(params: {
@@ -174,7 +174,7 @@ export async function fetchRawAttendanceLogs(params: {
   const wsId = getCurrentWorkspaceId();
   if (!wsId) throw new Error("Workspace not selected");
 
-  const { data: resData } = await client.GET("/workspaces/{workspace_id}/attendance/raw-logs", {
+  const { data: resData } = await fetch<{ data: RawAttendanceLog[]; total: number; page: number; limit: number }>("GET", "/workspaces/{workspace_id}/attendance/raw-logs", {
     params: {
       path: { workspace_id: wsId },
       query: {
@@ -187,7 +187,7 @@ export async function fetchRawAttendanceLogs(params: {
     },
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as { data: RawAttendanceLog[]; total: number; page: number; limit: number };
+  return resData;
 }
 
 export interface FetchAttendanceReportParams {

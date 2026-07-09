@@ -1,4 +1,4 @@
-import { client } from "./client";
+import { client, fetch } from "./client";
 
 export type ShiftSwapStatus = "pending_target" | "pending_admin" | "approved" | "rejected" | "cancelled";
 
@@ -26,14 +26,14 @@ export async function fetchShiftSwaps(
     wsId: string,
     status?: ShiftSwapStatus,
 ): Promise<ShiftSwapRequest[]> {
-    const { data } = await client.GET("/workspaces/{workspace_id}/shift-swaps", {
+    const { data } = await fetch<ShiftSwapRequest[]>("GET", "/workspaces/{workspace_id}/shift-swaps", {
         params: {
             path: { workspace_id: wsId },
             query: { status: status },
         },
     });
     if (!data) throw new Error("No response data");
-    return data as unknown as ShiftSwapRequest[];
+    return data;
 }
 
 export async function createShiftSwap(
@@ -45,14 +45,12 @@ export async function createShiftSwap(
         reason?: string;
     },
 ): Promise<ShiftSwapRequest> {
-    const { data: resData } = await client.POST("/workspaces/{workspace_id}/shift-swaps", {
-        params: {
-            path: { workspace_id: wsId },
-        },
+    const { data: resData } = await fetch<ShiftSwapRequest>("POST", "/workspaces/{workspace_id}/shift-swaps", {
+        params: { path: { workspace_id: wsId } },
         body: data,
     });
     if (!resData) throw new Error("No response data");
-    return resData as unknown as ShiftSwapRequest;
+    return resData;
 }
 
 export async function approveShiftSwap(

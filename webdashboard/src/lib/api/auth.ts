@@ -1,4 +1,4 @@
-import { client } from "./client";
+import { client, fetch } from "./client";
 import { apiFetch, setAccessToken, setCurrentUserId, clearAuthSession, TIMEOUT } from "./helpers";
 import { AuthResponse, RegisterRequest, ChangePasswordRequest, User } from "./types";
 
@@ -76,12 +76,12 @@ export async function fetchMyPermissions(): Promise<{
   roles: string[];
   managed_department_ids: string[] | null;
 }> {
-  const { data } = await client.GET("/me/permissions");
-  return data as unknown as {
+  const { data } = await fetch<{
     permissions: string[];
     roles: string[];
     managed_department_ids: string[] | null;
-  };
+  }>("GET", "/me/permissions");
+  return data;
 }
 
 /**

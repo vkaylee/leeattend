@@ -9,29 +9,25 @@ import type {
   WorkingPatternDetail, 
 } from "./types";
 
-import { client } from "./client";
+import { client, fetch } from "./client";
 
 
 
 export async function fetchWorkingPatterns(wsId: string): Promise<WorkingPattern[]> {
-  const { data } = await client.GET("/workspaces/{workspace_id}/working-patterns", {
-    params: {
-      path: { workspace_id: wsId },
-    },
+  const { data } = await fetch<WorkingPattern[]>("GET", "/workspaces/{workspace_id}/working-patterns", {
+    params: { path: { workspace_id: wsId } },
   });
   if (!data) throw new Error("No response data");
-  return data as unknown as WorkingPattern[];
+  return data;
 }
 
 export async function createWorkingPattern(wsId: string, data: CreateWorkingPatternRequest): Promise<WorkingPattern> {
-  const { data: result } = await client.POST("/workspaces/{workspace_id}/working-patterns", {
-    params: {
-      path: { workspace_id: wsId },
-    },
+  const { data: result } = await fetch<WorkingPattern>("POST", "/workspaces/{workspace_id}/working-patterns", {
+    params: { path: { workspace_id: wsId } },
     body: data,
   });
   if (!result) throw new Error("No response data");
-  return result as unknown as WorkingPattern;
+  return result;
 }
 
 export async function updateWorkingPattern(
@@ -39,14 +35,12 @@ export async function updateWorkingPattern(
   patternId: string,
   data: UpdateWorkingPatternRequest
 ): Promise<WorkingPattern> {
-  const { data: result } = await client.PUT("/workspaces/{workspace_id}/working-patterns/{pattern_id}", {
-    params: {
-      path: { workspace_id: wsId, pattern_id: patternId },
-    },
+  const { data: result } = await fetch<WorkingPattern>("PUT", "/workspaces/{workspace_id}/working-patterns/{pattern_id}", {
+    params: { path: { workspace_id: wsId, pattern_id: patternId } },
     body: data,
   });
   if (!result) throw new Error("No response data");
-  return result as unknown as WorkingPattern;
+  return result;
 }
 
 export async function fetchPatternDetails(wsId: string, patternId: string): Promise<WorkingPatternDetail[]> {

@@ -17,11 +17,11 @@ export async function fetchSystemRoles(): Promise<SystemRoleInfo[]> {
 
 export async function fetchUserSystemRoles(userId: string): Promise<SystemRoleAssignment[]> {
   // Schema advertises `string[]`; runtime payload is the richer assignment list.
-  const { data: resData } = await client.GET("/system/users/{user_id}/roles", {
-    params: { path: { user_id: userId } }
+  const { data: resData } = await fetch<SystemRoleAssignment[]>("GET", "/system/users/{user_id}/roles", {
+    params: { path: { user_id: userId } },
   });
   if (!resData) throw new Error("No response data");
-  return resData as unknown as SystemRoleAssignment[];
+  return resData;
 }
 
 export async function assignSystemRole(userId: string, request: AssignSystemRoleRequest): Promise<void> {

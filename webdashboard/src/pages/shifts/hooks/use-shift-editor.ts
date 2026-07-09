@@ -8,6 +8,9 @@ import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 
 import type { Shift, CreateShiftRequest, UpdateShiftRequest } from "@/lib/api/types";
+import type { components } from "@/types/api-generated";
+
+type CreateIntervalRequest = components["schemas"]["CreateIntervalRequest"];
 
 import { useToast } from "@/components/ui/toast";
 import {
@@ -199,25 +202,22 @@ export function useShiftEditor(shiftId?: string) {
 
   const padTime = (t: string) => t.length === 5 ? t + ":00" : t;
 
-  const buildPayload = () => {
-    const intervals = intervalDrafts.map(iv => {
-      const payload: Record<string, unknown> = {
-        interval_name: iv.intervalName || null,
-        start_time: padTime(iv.startTime),
-        end_time: padTime(iv.endTime),
-        break_duration_minutes: iv.breakDuration,
-        break_start: iv.isFixedBreak && iv.breakStart ? padTime(iv.breakStart) : null,
-        break_end: iv.isFixedBreak && iv.breakEnd ? padTime(iv.breakEnd) : null,
-        is_break_auto_deduct: iv.isAutoDeduct,
-        break_is_overtime: iv.isBreakOvertime,
-        early_punch_in_grace_period_minutes: iv.gracePeriodMinutes,
-        allow_early_ot: iv.allowEarlyOt,
-        max_early_ot_minutes: iv.allowEarlyOt ? iv.maxEarlyOtMinutes : null,
-        ot_aggregation_mode: iv.otAggregationMode,
-        is_night_shift: iv.isNightShift,
-      };
-      return payload;
-    });
+  const buildPayload = (): CreateShiftRequest => {
+    const intervals: CreateIntervalRequest[] = intervalDrafts.map(iv => ({
+      interval_name: iv.intervalName || null,
+      start_time: padTime(iv.startTime),
+      end_time: padTime(iv.endTime),
+      break_duration_minutes: iv.breakDuration,
+      break_start: iv.isFixedBreak && iv.breakStart ? padTime(iv.breakStart) : null,
+      break_end: iv.isFixedBreak && iv.breakEnd ? padTime(iv.breakEnd) : null,
+      is_break_auto_deduct: iv.isAutoDeduct,
+      break_is_overtime: iv.isBreakOvertime,
+      early_punch_in_grace_period_minutes: iv.gracePeriodMinutes,
+      allow_early_ot: iv.allowEarlyOt,
+      max_early_ot_minutes: iv.allowEarlyOt ? iv.maxEarlyOtMinutes : null,
+      ot_aggregation_mode: iv.otAggregationMode,
+      is_night_shift: iv.isNightShift,
+    }));
 
     return {
       name: shiftName,
@@ -235,16 +235,14 @@ export function useShiftEditor(shiftId?: string) {
     const payload = buildPayload();
 
     if (isEditMode && shiftId) {
-      updateShiftMutation.mutate({
-        id: shiftId,
-        data: {
-          ...payload,
-          is_correction: isCorrection,
-          effective_date: isCorrection ? undefined : correctionEffectiveDate,
-        } as unknown as UpdateShiftRequest,
-      });
+      const updatePayload: UpdateShiftRequest = {
+        ...payload,
+        is_correction: isCorrection,
+        effective_date: isCorrection ? undefined : correctionEffectiveDate,
+      };
+      updateShiftMutation.mutate({ id: shiftId, data: updatePayload });
     } else {
-      createShiftMutation.mutate(payload as unknown as CreateShiftRequest);
+      createShiftMutation.mutate(payload);
     }
   };
 

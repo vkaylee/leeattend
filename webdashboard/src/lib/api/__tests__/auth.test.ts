@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi, Mock } from "vitest";
 
 // Mock the typed openapi-fetch client (used by login/register/changePassword/...)
+// and the untyped fetch<T>() helper (used by fetchMyPermissions/...).
 vi.mock("../client", () => ({
   client: {
     GET: vi.fn(),
@@ -9,6 +10,7 @@ vi.mock("../client", () => ({
     DELETE: vi.fn(),
     PATCH: vi.fn(),
   },
+  fetch: vi.fn(),
 }));
 
 // Mock apiFetch which is used inside auth.ts for forgotPassword/resetPassword
@@ -308,12 +310,13 @@ describe("fetchUsers / fetchDevSuperUser / fetchMyPermissions", () => {
     (apiFetch as Mock).mockResolvedValue(new Response("nope", { status: 500 }));
     await expect(fetchDevSuperUser()).rejects.toThrow("Failed to fetch dev super user");
   });
-  it("fetchMyPermissions GETs /me/permissions and casts", async () => {
-    (client.GET as Mock).mockResolvedValueOnce({
+  it("fetchMyPermissions GETs /me/permissions via fetch<T>()", async () => {
+    const { fetch: fetchMock } = await import("../client");
+    (fetchMock as Mock).mockResolvedValueOnce({
       data: { permissions: ["p"], roles: ["r"], managed_department_ids: null },
     });
     const p = await fetchMyPermissions();
-    expect(client.GET).toHaveBeenCalledWith("/me/permissions");
+    expect(fetchMock).toHaveBeenCalledWith("GET", "/me/permissions");
     expect(p.permissions).toEqual(["p"]);
   });
 });

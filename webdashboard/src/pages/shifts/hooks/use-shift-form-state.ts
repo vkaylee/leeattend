@@ -18,7 +18,10 @@ interface ShiftSearchParams {
 }
 
 export function useShiftFormState(wsId?: string) {
-  const search = useSearch({ strict: false }) as unknown as ShiftSearchParams;
+  // strict: false returns a permissive search type; the single-level cast to the
+  // local ShiftSearchParams shape documents the optional tab/view/employee fields
+  // the hook reads (codebase idiom — see shifts-rules-page.tsx).
+  const search = useSearch({ strict: false }) as ShiftSearchParams;
   const navigate = useNavigate();
 
   const tab = typeof search.tab === "string" ? search.tab : "";

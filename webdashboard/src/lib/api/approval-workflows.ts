@@ -1,5 +1,3 @@
-import type { paths } from '@/types/api-generated';
-
 import type { 
   ApproverType, 
   ApprovalWorkflow, 
@@ -7,7 +5,7 @@ import type {
   ApprovalActionLog 
 } from './types';
 
-import { client } from './client';
+import { client, fetch } from './client';
 
 export interface WorkflowStepRequest {
   action_required: string;
@@ -58,11 +56,9 @@ export const approvalWorkflowsApi = {
   },
 
   updateWorkflow: async (workspaceId: string, id: string, payload: UpdateWorkflowRequest): Promise<ApprovalWorkflow> => {
-    const { data: resData } = await client.PUT("/workspaces/{ws_id}/approval-workflows/{id}", {
-      params: {
-        path: { ws_id: workspaceId, id }
-      },
-      body: payload as unknown as paths["/workspaces/{ws_id}/approval-workflows/{id}"]["put"]["requestBody"]["content"]["application/json"]
+    const { data: resData } = await fetch<ApprovalWorkflow>("PUT", "/workspaces/{ws_id}/approval-workflows/{id}", {
+      params: { path: { ws_id: workspaceId, id } },
+      body: payload,
     });
     if (!resData) throw new Error("No response data");
     return resData;

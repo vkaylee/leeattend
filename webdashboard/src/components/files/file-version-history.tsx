@@ -7,7 +7,7 @@ import { toast } from "sonner";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
-import { client } from "@/lib/api/client";
+import { fetch } from "@/lib/api/client";
 import { formatBytes } from "@/lib/utils";
 import { components } from "@/types/api-generated";
 
@@ -108,19 +108,9 @@ export function FileVersionHistory({ fileId, workspaceId, className = "" }: File
   const { data: versions, isLoading, error } = useQuery({
     queryKey: ["file-versions", workspaceId, fileId],
     queryFn: async () => {
-      const { data, error: apiError } = await client.GET("/v1/workspaces/{ws_id}/files/{id}/versions", {
-        params: {
-          path: {
-            ws_id: workspaceId,
-            id: fileId,
-          },
-        },
-      }) as unknown as { data: WorkspaceFile[] | undefined; error: unknown };
-
-      if (apiError) {
-        const errorMsg = (apiError as { message?: string }).message ?? "Failed to load version history";
-        throw new Error(errorMsg);
-      }
+      const { data } = await fetch<WorkspaceFile[] | undefined>("GET", "/v1/workspaces/{ws_id}/files/{id}/versions", {
+        params: { path: { ws_id: workspaceId, id: fileId } },
+      });
       return data;
     },
     enabled: Boolean(workspaceId && fileId),
@@ -128,12 +118,10 @@ export function FileVersionHistory({ fileId, workspaceId, className = "" }: File
 
   const handleDownloadVersion = async (versionId: string) => {
     try {
-      const { data, error: apiError } = await client.GET("/v1/workspaces/{ws_id}/files/{id}/url", {
+      const { data } = await fetch<{ url?: string } | undefined>("GET", "/v1/workspaces/{ws_id}/files/{id}/url", {
         params: { path: { ws_id: workspaceId, id: versionId } },
-      }) as unknown as { data: { url?: string } | undefined; error: unknown };
-      
-      if (apiError) throw new Error("Failed to get download URL");
-      
+      });
+
       if (data?.url) window.open(data.url, "_blank");
     } catch {
       toast.error("Download failed.");

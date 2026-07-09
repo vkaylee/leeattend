@@ -5,6 +5,7 @@ import Button from "@/components/ui/button";
 import { LABEL_BASE } from "@/components/ui/form-field";
 
 export interface BankDetailsFormData {
+  [key: string]: string;
   bank_account_number: string;
   bank_branch: string;
   bank_name: string;
@@ -64,7 +65,7 @@ export function BankDetailsSection({
               }}
               placeholder={field.placeholder}
               type="text"
-              value={(formData as unknown as Record<string, string>)[field.key] || ""}
+              value={formData[field.key] || ""}
             />
           </div>
         ))}

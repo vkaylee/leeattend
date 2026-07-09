@@ -64,6 +64,9 @@ type GenericTFunction = (
 ) => string;
 
 // eslint-disable-next-line import-x/no-named-as-default-member
+// i18next's public TFunction type does not structurally overlap the simplified
+// GenericTFunction signature used here, so this sanctioned `as unknown as`
+// bridges the two (coding-standard §10.1). Not a drift mask — kept deliberate.
 const originalT = i18n.t.bind(i18n) as unknown as GenericTFunction;
 
 const mergeNsOption = (opts: unknown, ns: string): Record<string, unknown> | undefined => {
@@ -112,6 +115,8 @@ interface CustomI18n {
   t: GenericTFunction;
 }
 
+// Sanctioned bridge: assigns the custom t wrapper onto the i18next instance
+// (coding-standard §10.1). Not a drift mask — kept deliberate.
 (i18n as unknown as CustomI18n).t = customT;
 
 export default i18n;

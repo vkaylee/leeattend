@@ -85,19 +85,19 @@ global.ResizeObserver = class ResizeObserver {
 };
 
 // Mock fetch to prevent Happy DOM from attempting real HTTP requests and aborting them on teardown
-global.fetch = vi.fn(() => 
-  Promise.resolve({
-    json: () => Promise.resolve({}),
-    text: () => Promise.resolve(""),
-    blob: () => Promise.resolve(new Blob()),
-    ok: true,
-    status: 200,
-    headers: new Headers(),
-  } as unknown as Response)
+global.fetch = vi.fn(() =>
+  Promise.resolve(
+    new Response(null, {
+      status: 200,
+      headers: new Headers(),
+    }),
+  ),
 );
 
-// Mock EventSource for SSE
-class MockEventSource {
+// Mock EventSource for SSE. Implements the EventSource interface so the
+// instance-side usage is type-safe; the partial `as EventSource` on the class
+// value bridges the constructor signature the runtime doesn't exercise.
+class MockEventSource implements EventSource {
   static readonly CONNECTING = 0;
   static readonly OPEN = 1;
   static readonly CLOSED = 2;
@@ -107,9 +107,10 @@ class MockEventSource {
 
   url: string;
   readyState = 0;
-  onopen = null;
-  onmessage = null;
-  onerror = null;
+  withCredentials = false;
+  onopen: ((this: EventSource, ev: Event) => any) | null = null;
+  onmessage: ((this: EventSource, ev: MessageEvent) => any) | null = null;
+  onerror: ((this: EventSource, ev: Event) => any) | null = null;
 
   constructor(url: string) {
     this.url = url;
@@ -121,7 +122,7 @@ class MockEventSource {
   dispatchEvent = vi.fn();
 }
 
-global.EventSource = MockEventSource as unknown as typeof EventSource;
+global.EventSource = MockEventSource as typeof EventSource;
 
 // Mock window.confirm which is missing in happy-dom
 if (typeof window !== "undefined") {

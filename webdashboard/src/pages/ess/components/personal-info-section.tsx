@@ -6,6 +6,7 @@ import { Combobox } from "@/components/ui/combobox";
 import { LABEL_BASE } from "@/components/ui/form-field";
 
 export interface PersonalInfoFormData {
+  [key: string]: string;
   address: string;
   date_of_birth: string;
   gender: string;
@@ -68,7 +69,7 @@ export function PersonalInfoSection({
               }}
               placeholder={field.placeholder}
               type={field.type}
-              value={(formData as unknown as Record<string, string>)[field.key]}
+              value={formData[field.key]}
             />
           </div>
         ))}
