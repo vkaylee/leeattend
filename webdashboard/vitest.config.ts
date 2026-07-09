@@ -32,14 +32,32 @@ export default defineConfig({
         'src/test/**/*.ts',
         'src/test/**/*.tsx',
       ],
-      // Thresholds set to current baseline + modest margin. Raising these
-      // should be done incrementally as new tests are added for critical
-        // paths (auth, payroll, attendance, RBAC). See P6 in the 5-debt plan.
+      // Global floors track the post-debt-2 whole-project baseline (July
+      // 2026: ~68% stmts / 60% branch / 62% funcs / 70% lines) with a
+      // small margin above it so CI fails on real regression. The untested
+      // UI modules sit well below the API layer, so the per-path floor for
+      // ./src/lib/api/ is set higher to protect the backbone (see below).
+      //
+      // Branch coverage on the API layer is structurally capped below ~70%
+      // because the test boundary is the apiFetch chokepoint: the branches
+      // inside customFetch (URL sanitization, body extraction) and inside
+      // openapi-fetch's response parser are exercised by client.test.ts but
+      // not by per-module tests that mock apiFetch. Raising this further
+      // requires integration tests that hit a real server.
       thresholds: {
-        lines: 65,
-        functions: 55,
-        branches: 55,
         statements: 65,
+        branches: 58,
+        functions: 60,
+        lines: 68,
+        // Per-path floor for the API data-fetching backbone (570+ imports
+        // depend on it). These numbers mirror the coverage achieved in the
+        // debt-2 pass; do not lower them without re-running coverage.
+        "./src/lib/api/": {
+          statements: 80,
+          branches: 55,
+          functions: 90,
+          lines: 85,
+        },
       },
     },
   },
