@@ -176,6 +176,7 @@ export interface DailyAttendanceReport {
   ot_work_units: number;
   scheduled_end: string | null;
   scheduled_start: string | null;
+  grace_period_minutes?: number | null;
   segment_count?: number | null;
   // Segment fields (segment-centric report path)
   segment_id?: string | null;

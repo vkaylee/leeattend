@@ -203,6 +203,7 @@ export interface FetchAttendanceReportParams {
   start: string;
   type?: "summary" | "daily";
   wsId: string;
+  shiftType?: string[];
 }
 
 export async function fetchAttendanceReport(
@@ -221,6 +222,7 @@ export async function fetchAttendanceReport(
     employeeStatus,
     employerId,
     employmentId,
+    shiftType,
   } = params;
   
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/reports/attendance", {
@@ -238,6 +240,7 @@ export async function fetchAttendanceReport(
         employee_status: employeeStatus,
         employer_id: employerId ?? undefined,
         employment_id: employmentId ?? undefined,
+        shift_type: shiftType?.join(",") ?? undefined,
       },
     },
   });
