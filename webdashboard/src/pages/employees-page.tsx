@@ -42,6 +42,7 @@ export default function EmployeesPage() {
         employees={page.employees}
         fetchNextPage={page.fetchNextPage}
         filterDeptIds={page.filterDeptIds}
+        filterStatus={page.filterStatus}
         hasNextPage={page.hasNextPage}
         isFetching={page.isFetching}
         isFetchingNextPage={page.isFetchingNextPage}
@@ -52,6 +53,7 @@ export default function EmployeesPage() {
         selectedEmployee={page.selectedEmployee}
         setCustomFieldFilters={page.setCustomFieldFilters}
         setFilterDeptIds={page.setFilterDeptIds}
+        setFilterStatus={page.setFilterStatus}
         setSearchTerm={page.setSearchTerm}
         setSelectedEmployee={page.setSelectedEmployee}
         sortDir={page.sortDir}

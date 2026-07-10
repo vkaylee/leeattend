@@ -380,19 +380,70 @@ describe("EmployeesPage", () => {
         }, { timeout: 3000 });
     });
 
-    it("sends sort_by=status when clicking Status header", async () => {
+    it("renders status filter button in Status column header", async () => {
+        renderPage();
+        await screen.findByText("Alice Nguyen");
+
+        const filterButton = screen.getByTestId("status-filter-btn");
+        expect(filterButton).toBeDefined();
+    });
+
+    it("opens status filter popover and shows status options", async () => {
         const user = userEvent.setup();
         renderPage();
         await screen.findByText("Alice Nguyen");
 
- 
+        const filterButton = screen.getByTestId("status-filter-btn");
+        await user.click(filterButton);
+
+        await waitFor(() => {
+            expect(screen.getByTestId("status-filter-option-active")).toBeDefined();
+            expect(screen.getByTestId("status-filter-option-terminated")).toBeDefined();
+            expect(screen.getByTestId("status-filter-option-all")).toBeDefined();
+        });
+    });
+
+    it("sends status=terminated when selecting the terminated option", async () => {
+        const user = userEvent.setup();
+        renderPage();
+        await screen.findByText("Alice Nguyen");
+
+        // Open status filter popover
+        await user.click(screen.getByTestId("status-filter-btn"));
+
+        // Click "Terminated" option
         vi.mocked(api.searchEmployees).mockClear();
-        const statusHeader = findHeaderByText("employees.table.status");
-        await user.click(statusHeader);
+        const terminatedOption = await screen.findByTestId("status-filter-option-terminated");
+        await user.click(terminatedOption);
 
         await waitFor(() => {
             expect(api.searchEmployees).toHaveBeenCalledWith(
-                expect.objectContaining({ sortBy: "status", sortDir: "asc" })
+                expect.objectContaining({ status: "terminated" })
+            );
+        });
+    });
+
+    it("removes status filter and resets to active when clicking the status chip X", async () => {
+        const user = userEvent.setup();
+        renderPage();
+        await screen.findByText("Alice Nguyen");
+
+        // Select terminated via popover
+        await user.click(screen.getByTestId("status-filter-btn"));
+        await user.click(await screen.findByTestId("status-filter-option-terminated"));
+
+        // Wait for status chip to appear
+        await waitFor(() => {
+            expect(screen.getByTestId("status-chip-terminated")).toBeDefined();
+        });
+
+        // Click the chip to remove it
+        vi.mocked(api.searchEmployees).mockClear();
+        await user.click(screen.getByTestId("status-chip-terminated"));
+
+        await waitFor(() => {
+            expect(api.searchEmployees).toHaveBeenCalledWith(
+                expect.objectContaining({ status: "active" })
             );
         });
     });

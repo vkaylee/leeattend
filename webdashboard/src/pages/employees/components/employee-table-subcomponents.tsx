@@ -1,5 +1,5 @@
 import * as Popover from "@radix-ui/react-popover";
-import { Building2, Check, ListFilter, X } from "lucide-react";
+import { Building2, Check, ListFilter, UserCheck, UserX, Users, X } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -29,6 +29,88 @@ export const EmployeeNameCell = ({ employee, isSelected }: EmployeeNameCellProps
     </div>
   </div>
 );
+
+interface StatusFilterHeaderProps {
+  filterStatus: string;
+  setFilterStatus: (status: string) => void;
+}
+
+export const StatusFilterHeader = ({
+  filterStatus,
+  setFilterStatus,
+}: StatusFilterHeaderProps) => {
+  const { t } = useTranslation();
+
+  const options: { value: string; label: string; icon: React.ReactNode }[] = [
+    { value: "active", label: t("employees.table.active", "Hoạt động"), icon: <UserCheck size={12} /> },
+    { value: "terminated", label: t("employees.table.terminated", "Đã nghỉ việc"), icon: <UserX size={12} /> },
+    { value: "all", label: t("common.all", "Tất cả"), icon: <Users size={12} /> },
+  ];
+
+  return (
+    <Popover.Root>
+      <Popover.Trigger asChild>
+        <Button
+          className={cn(
+            "relative h-5 w-5 rounded transition-colors p-0 border-none shadow-none hover:bg-transparent",
+            filterStatus !== "active"
+              ? "text-primary-600 dark:text-primary-400"
+              : "text-slate-400 dark:text-slate-500 opacity-60 hover:opacity-100 hover:text-primary-600"
+          )}
+          data-testid="status-filter-btn"
+          onClick={(e) => { e.stopPropagation(); }}
+          title={t("employees.filter_status", "Filter by status")}
+          variant="ghost"
+        >
+          <ListFilter size={12} />
+        </Button>
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content
+          align="end"
+          className="z-[10000] w-52 overflow-hidden rounded-2xl border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 shadow-2xl dark:shadow-black/30 animate-in fade-in zoom-in-95 duration-200"
+          onClick={(e) => { e.stopPropagation(); }}
+          sideOffset={8}
+        >
+          <div className="px-3 pt-2 pb-1.5">
+            <div className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">
+              {t("employees.filter_status", "Filter by status")}
+            </div>
+          </div>
+          <div className="max-h-60 overflow-y-auto custom-scrollbar">
+            {options.map((opt) => {
+              const isChecked = filterStatus === opt.value;
+              return (
+                <Button
+                  className={cn(
+                    "h-auto w-full px-3 py-2.5 flex items-center gap-3 rounded-xl text-[11px] font-bold uppercase tracking-wide transition-colors border-none shadow-none justify-start",
+                    isChecked
+                      ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-900"
+                      : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  )}
+                  data-testid={`status-filter-option-${opt.value}`}
+                  key={opt.value}
+                  onClick={() => { setFilterStatus(opt.value); }}
+                  variant="ghost"
+                >
+                  <div className={cn("w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors",
+                    isChecked
+                      ? "bg-primary-600 border-primary-600 text-white"
+                      : "border-slate-300 dark:border-slate-600"
+                  )}>
+                    {isChecked ? <Check size={10} strokeWidth={3} /> : null}
+                  </div>
+                  <span className="opacity-60">{opt.icon}</span>
+                  <span className="truncate">{opt.label}</span>
+                </Button>
+              );
+            })}
+          </div>
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+};
 
 interface DepartmentFilterHeaderProps {
   departments: Department[] | undefined;

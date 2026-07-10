@@ -16,6 +16,7 @@ interface EmployeeTableProps {
   employees: Employee[];
   fetchNextPage: () => void;
   filterDeptIds: string[];
+  filterStatus: string;
   hasNextPage: boolean | undefined;
   isFetching: boolean;
   isFetchingNextPage: boolean;
@@ -26,6 +27,7 @@ interface EmployeeTableProps {
   selectedEmployee: Employee | null;
   setCustomFieldFilters: (filters: Record<string, string>) => void;
   setFilterDeptIds: (ids: string[]) => void;
+  setFilterStatus: (status: string) => void;
   setSearchTerm: (s: string) => void;
   setSelectedEmployee: (emp: Employee) => void;
   sortDir: SortDir;
@@ -42,6 +44,7 @@ export function EmployeeTable(props: EmployeeTableProps) {
     employees,
     fetchNextPage,
     filterDeptIds,
+    filterStatus,
     hasNextPage,
     isFetching,
     isFetchingNextPage,
@@ -51,6 +54,7 @@ export function EmployeeTable(props: EmployeeTableProps) {
     searchTerm,
     selectedEmployee,
     setFilterDeptIds,
+    setFilterStatus,
     setSearchTerm,
     setSelectedEmployee,
     sortDir,
@@ -64,8 +68,10 @@ export function EmployeeTable(props: EmployeeTableProps) {
   const employeeColumns = useEmployeeColumns({
     departments,
     filterDeptIds,
+    filterStatus,
     selectedEmployee,
     setFilterDeptIds,
+    setFilterStatus,
     sortDir,
     sortKey,
     toggleDeptFilter,

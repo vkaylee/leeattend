@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import { useDebounce } from "@/hooks/use-debounce";
 
-export type SortKey = "name" | "id" | "department" | "status";
+export type SortKey = "name" | "id" | "department";
 export type SortDir = "asc" | "desc";
 
 export const useEmployeesState = () => {

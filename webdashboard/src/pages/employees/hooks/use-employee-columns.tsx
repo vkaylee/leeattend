@@ -9,13 +9,15 @@ import StatusBadge from "@/components/ui/status-badge";
 import type { Employee, Department } from "../../../lib/api/types";
 import type { SortKey, SortDir } from "./use-employees-page";
 
-import { DepartmentFilterHeader, EmployeeNameCell } from "../components/employee-table-subcomponents";
+import { DepartmentFilterHeader, EmployeeNameCell, StatusFilterHeader } from "../components/employee-table-subcomponents";
 
 interface UseEmployeeColumnsProps {
   departments: Department[] | undefined;
   filterDeptIds: string[];
+  filterStatus: string;
   selectedEmployee: Employee | null;
   setFilterDeptIds: (ids: string[]) => void;
+  setFilterStatus: (status: string) => void;
   sortDir: SortDir;
   sortKey: SortKey | null;
   toggleDeptFilter: (id: string) => void;
@@ -25,8 +27,10 @@ interface UseEmployeeColumnsProps {
 export const useEmployeeColumns = ({
   departments,
   filterDeptIds,
+  filterStatus,
   selectedEmployee,
   setFilterDeptIds,
+  setFilterStatus,
   sortDir,
   sortKey,
   toggleDeptFilter,
@@ -95,19 +99,28 @@ export const useEmployeeColumns = ({
         </StatusBadge>
       ),
       cellClassName: "py-6 text-center",
-      header: <span className="inline-flex items-center">{t("employees.table.status")}{renderSortIcon("status")}</span>,
+      header: (
+        <span className="inline-flex items-center gap-2">
+          <span>{t("employees.table.status")}</span>
+          <StatusFilterHeader
+            filterStatus={filterStatus}
+            setFilterStatus={setFilterStatus}
+          />
+        </span>
+      ),
       headerClassName: "text-center",
       key: "status",
-      onHeaderClick: () => { toggleSort("status"); },
     },
   ], [
     renderSortIcon,
     t,
-    filterDeptIds, 
-    departments, 
-    selectedEmployee, 
-    toggleSort, 
-    setFilterDeptIds, 
+    filterDeptIds,
+    filterStatus,
+    departments,
+    selectedEmployee,
+    toggleSort,
+    setFilterDeptIds,
+    setFilterStatus,
     toggleDeptFilter
   ]);
 

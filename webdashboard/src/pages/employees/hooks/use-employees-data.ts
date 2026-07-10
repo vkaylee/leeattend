@@ -60,7 +60,7 @@ export const useEmployeesData = ({
   } = useInfiniteQuery({
     queryKey: ["employees", wsId, debouncedSearch, sortKey, sortDir, filterDeptIds, customFieldFilters, filterStatus],
     queryFn: ({ pageParam }) => {
-      const apiSortKeyMapping = { name: "name", id: "employee_id_number", department: "department", status: "status" } as const;
+      const apiSortKeyMapping = { name: "name", id: "employee_id_number", department: "department" } as const;
       const apiSortKey = sortKey ? apiSortKeyMapping[sortKey] : undefined;
       const cfString = Object.entries(customFieldFilters)
          .filter(([_, val]) => !!val)
