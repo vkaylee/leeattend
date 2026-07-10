@@ -98,11 +98,29 @@
       "department": "Bộ phận",
       "shift_type": "Phân ca",
       "shift_in": "Giờ vào ca",
-      "shift_out": "Giờ ra ca"
+      "shift_out": "Giờ ra ca",
+      "zone": "Trạng thái"
     },
     "empty": "Không có nhân sự nào vắng mặt đầu ca hôm nay.",
     "empty_hint": "Tất cả nhân sự đã chấm công hoặc đã đăng ký nghỉ phép.",
-    "export_date": "Ngày"
+    "export_date": "Ngày",
+    "zone_header": "Trạng thái",
+    "zone_a": "Chờ",
+    "zone_b": "Cần xác minh",
+    "zone_c": "Vắng (kết thúc ca)",
+    "zone_a_hint": "Còn {{minutes}} phút",
+    "zone_b_hint": "Quá hạn {{minutes}} phút",
+    "filter_date_from": "Từ ngày",
+    "filter_date_to": "Đến ngày",
+    "filter_shift_type": "Loại ca",
+    "filter_shift_type_empty": "Không có loại ca",
+    "filter_shift_inactive": "ngừng",
+    "filter_employee": "Nhân viên",
+    "only_zone_b": "Chỉ Cần xác minh",
+    "clear_filters": "Xóa lọc",
+    "empty_zone_b": "Không có nhân sự cần xác minh.",
+    "empty_zone_b_hint": "Tất cả nhân sự trong ca đã chấm công hoặc vẫn trong thời gian grace.",
+    "viewing_past": "Lịch sử — bản ghi đã cố định"
   },
   "attendance_import": {
     "subtitle": "Nhập dữ liệu hàng loạt",

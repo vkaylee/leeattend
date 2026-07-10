@@ -787,10 +787,28 @@
       "department": "部门",
       "shift_type": "排班",
       "shift_in": "上班时间",
-      "shift_out": "下班时间"
+      "shift_out": "下班时间",
+      "zone": "状态"
     },
     "empty": "今日无缺勤员工。",
     "empty_hint": "所有员工已签到或已获批请假。",
-    "export_date": "日期"
+    "export_date": "日期",
+    "zone_header": "状态",
+    "zone_a": "等待中",
+    "zone_b": "需核实",
+    "zone_c": "缺勤（班次已结束）",
+    "zone_a_hint": "剩余 {{minutes}} 分钟",
+    "zone_b_hint": "超时 {{minutes}} 分钟",
+    "filter_date_from": "开始日期",
+    "filter_date_to": "结束日期",
+    "filter_shift_type": "班次类型",
+    "filter_shift_type_empty": "暂无班次类型",
+    "filter_shift_inactive": "停用",
+    "filter_employee": "员工",
+    "only_zone_b": "仅显示需核实",
+    "clear_filters": "清除筛选",
+    "empty_zone_b": "暂无需要核实的员工。",
+    "empty_zone_b_hint": "所有在岗员工已签到或仍在宽限时间内。",
+    "viewing_past": "历史记录 — 已固定"
   }
 }

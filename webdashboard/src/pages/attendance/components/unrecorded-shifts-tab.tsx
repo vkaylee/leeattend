@@ -1,5 +1,14 @@
 import { format } from "date-fns";
-import { Building2, Download, Loader2, UserX } from "lucide-react";
+import {
+  AlertTriangle,
+  Building2,
+  Check,
+  Clock,
+  Download,
+  Loader2,
+  UserX,
+  X,
+} from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
@@ -11,23 +20,35 @@ import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import {
   DailyAttendanceReport,
   PaginatedResponse,
+  ScheduleTrace,
   fetchAttendanceReport,
   getCurrentWorkspaceId,
-  ScheduleTrace,
 } from "@/lib/api";
 import { exportNoShowToExcel, type NoShowRow } from "@/lib/excel-no-show";
 import { useAllEmployees } from "@/hooks/use-employees";
 import { ScheduleTracePopover } from "@/components/shifts/schedule-trace-popover";
+import {
+  computeNoShowRows,
+  useNoShowRows,
+  type ZonedNoShowRow,
+} from "../hooks/use-no-show-rows";
+import { ShiftTypePicker } from "./shift-type-picker";
 
 // Number of employees fetched per backend page. For a single-day report this
 // is roughly one row per employee, so this is also ~rows per page.
 const EMPLOYEE_PAGE_SIZE = 30;
 
+const ZoneIcon = ({ zone }: { zone: ZonedNoShowRow["zone"] }) => {
+  // Decorative — the accessible name lives on the parent cell, so hide from AT.
+  if (zone === "b") return <AlertTriangle aria-hidden="true" className="size-3.5" />;
+  if (zone === "a") return <Clock aria-hidden="true" className="size-3.5" />;
+  return <Check aria-hidden="true" className="size-3.5" />;
+};
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function formatShiftTime(timeStr: string | null | undefined): string {
   if (!timeStr) return "—";
-  // scheduled_start/end comes as HH:MM:SS from the backend
   try {
     const parts = timeStr.split(":");
     if (parts.length >= 2) {
@@ -39,11 +60,29 @@ function formatShiftTime(timeStr: string | null | undefined): string {
   return timeStr;
 }
 
-// ── Types ──────────────────────────────────────────────────────────────────
-
-interface EnrichedRow extends DailyAttendanceReport {
-  department_name: string;
-  employee_id_number: string;
+/** i18n key + hint for a zone label. Kept next to the icon/text so the row is
+ *  never distinguishable by color alone (WCAG 2.1 AA — multi-channel cues). */
+function zoneLabel(
+  row: ZonedNoShowRow,
+  t: (k: string, o?: Record<string, unknown>) => string,
+): { key: string; hint: string | null } {
+  if (row.zone === "b") {
+    return {
+      key: t("unrecorded_shifts.zone_b"),
+      hint: row.zoneMinutes == null
+        ? null
+        : t("unrecorded_shifts.zone_b_hint", { minutes: row.zoneMinutes }),
+    };
+  }
+  if (row.zone === "a") {
+    return {
+      key: t("unrecorded_shifts.zone_a"),
+      hint: row.zoneMinutes == null
+        ? null
+        : t("unrecorded_shifts.zone_a_hint", { minutes: row.zoneMinutes }),
+    };
+  }
+  return { key: t("unrecorded_shifts.zone_c"), hint: null };
 }
 
 // ── Skeleton ───────────────────────────────────────────────────────────────
@@ -81,15 +120,41 @@ export function UnrecordedShiftsTab() {
   const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId();
   const queryClient = useQueryClient();
-  const [selectedDept, setSelectedDept] = useState<string>("__all__");
-  const [isExporting, setIsExporting] = useState(false);
 
   const today = format(new Date(), "yyyy-MM-dd");
-  const queryKey = ["unrecorded-shifts", wsId, today];
 
-  // Infinite-scroll fetch of today's daily attendance report. The backend
-  // paginates at the employee level (`total` = total matching employees), so
-  // hasNextPage compares distinct employment_ids loaded against that total.
+  // ── Filter state ──────────────────────────────────────────────────────────
+  const [dateRange, setDateRange] = useState<{ start: string; end: string }>({
+    start: today,
+    end: today,
+  });
+  const [selectedDept, setSelectedDept] = useState<string>("__all__");
+  const [selectedShiftTypes, setSelectedShiftTypes] = useState<string[]>([]);
+  const [employeeIds, setEmployeeIds] = useState<string[]>([]);
+  const [onlyZoneB, setOnlyZoneB] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  // Live clock: re-renders once a second so Zone A countdown / Zone B elapsed
+  // labels tick in real time, and rows flip A→B at `start + grace`.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => { setNow(new Date()); }, 1000);
+    return () => { clearInterval(id); };
+  }, []);
+
+  // NOTE: `selectedDept` is intentionally excluded — department filtering is
+  // client-side (instant, no refetch) matching the original behavior. Shift type
+  // and employee filters are server-side, so they belong in the key.
+  const queryKey = [
+    "unrecorded-shifts",
+    wsId,
+    dateRange.start,
+    dateRange.end,
+    selectedShiftTypes,
+    employeeIds,
+  ];
+
+  // Infinite-scroll fetch of the daily attendance report for the selected range.
   const {
     data: reportData,
     isLoading: isReportLoading,
@@ -97,50 +162,46 @@ export function UnrecordedShiftsTab() {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery<PaginatedResponse<DailyAttendanceReport>>({
-    queryKey: ["unrecorded-shifts", wsId, today],
+    queryKey,
     queryFn: async ({ pageParam }) =>
       (await fetchAttendanceReport({
         wsId: wsId!,
-        start: today,
-        end: today,
+        start: dateRange.start,
+        end: dateRange.end,
         type: "daily",
         page: pageParam as number,
         limit: EMPLOYEE_PAGE_SIZE,
+        employeeIds: employeeIds.length > 0 ? employeeIds : undefined,
+        shiftType: selectedShiftTypes.length > 0 ? selectedShiftTypes : undefined,
       })) as PaginatedResponse<DailyAttendanceReport>,
     initialPageParam: 1,
     getNextPageParam: (lastPage, allPages) => {
       const loadedEmployees = new Set(
-        allPages.flatMap((p) => p.data.map((r) => r.employment_id))
+        allPages.flatMap((p) => p.data.map((r) => r.employment_id)),
       ).size;
       return loadedEmployees >= lastPage.total ? undefined : allPages.length + 1;
     },
     enabled: !!wsId,
-    staleTime: 2 * 60 * 1000, // 2 min — fresh enough for real-time HR usage
+    staleTime: 2 * 60 * 1000,
   });
 
-  // Fetch all employees for department name resolution
   const { employees, isLoading: isEmpLoading } = useAllEmployees(wsId);
-
   const isLoading = isReportLoading || isEmpLoading;
 
-  // Eagerly drain every page once the first page lands. The table still
-  // renders progressively via the sentinel, but the export button badge must
-  // reflect the true total (not just page 1), and the export handler reads the
-  // full dataset from this cache — so we pull all pages in the background.
+  // Eagerly drain every page once the first page lands (export badge + export
+  // handler read the full dataset from cache); table renders progressively.
   useEffect(() => {
     if (hasNextPage && !isFetchingNextPage) {
       void fetchNextPage();
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  // IntersectionObserver sentinel fires fetchNextPage when scrolled into view.
   const loadMoreRef = useInfiniteScroll<HTMLTableRowElement>({
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage: () => { void fetchNextPage(); },
   });
 
-  // Build employee lookup map: employee_id -> { department_name, employee_id_number }
   const employeeMap = useMemo(() => {
     const map = new Map<string, { department_name: string; employee_id_number: string }>();
     for (const emp of employees) {
@@ -152,50 +213,44 @@ export function UnrecordedShiftsTab() {
     return map;
   }, [employees]);
 
-  // Flatten all loaded pages into a single row list.
   const allRows = useMemo(
     (): DailyAttendanceReport[] =>
       reportData?.pages?.flatMap((p) => p.data) ?? [],
-    [reportData]
+    [reportData],
   );
 
-  // Enrich raw report rows with employee department/code, then keep only
-  // absent ones. Shared by the table render and the export handler so both
-  // always agree on the row shape and filter.
-  const enrichAndFilter = useCallback(
-    (rows: DailyAttendanceReport[]): EnrichedRow[] =>
-      rows
-        .filter((row) => row.status === "absent")
-        .map((row) => {
-          const empInfo = employeeMap.get(row.employee_id) ?? {
-            department_name: "—",
-            employee_id_number: "—",
-          };
-          return {
-            ...row,
-            department_name: empInfo.department_name,
-            employee_id_number: empInfo.employee_id_number,
-          };
-        }),
-    [employeeMap],
-  );
+  // ── Enrichment + zone computation (single source for table + export) ──────
+  const absentRows = useNoShowRows({
+    rows: allRows,
+    employeeMap,
+    now,
+    viewingDate: dateRange.start,
+  });
 
-  // Absent rows from the currently loaded pages (drives the table).
-  const absentRows = useMemo(
-    () => enrichAndFilter(allRows),
-    [allRows, enrichAndFilter],
-  );
+  // Department options from the loaded absent rows (client-side convenience).
+  const departments = useMemo(() => {
+    const depts = new Set(absentRows.map((r) => r.department_name).filter((d) => d !== "—"));
+    return Array.from(depts).sort();
+  }, [absentRows]);
 
-  // Exports ALL absent rows across every page — not just the ones already
-  // loaded by infinite scroll. Drains the query first, then reads the full
-  // dataset straight from the query cache so nothing is missed.
+  // Final filtered list: shift-type/employee are already filtered server-side;
+  // department + Zone-B toggle are client-side.
+  const filteredRows = useMemo(() => {
+    let rows = absentRows;
+    if (selectedDept !== "__all__") {
+      rows = rows.filter((r) => r.department_name === selectedDept);
+    }
+    if (onlyZoneB) {
+      rows = rows.filter((r) => r.zone === "b");
+    }
+    return rows;
+  }, [absentRows, selectedDept, onlyZoneB]);
+
+  // ── Export (drains all pages, then writes the .xlsx) ─────────────────────
   const handleExport = useCallback(async () => {
     if (!wsId) return;
     setIsExporting(true);
     try {
-      // Drain remaining pages. Each fetchNextPage appends to the cached
-      // query data; we re-read hasNextPage from the fresh cache every loop.
-      // A hard cap guards against a runaway loop if the backend misbehaves.
       let guard = 0;
       while (guard < 1000) {
         const cache = queryClient.getQueryData<{
@@ -213,18 +268,18 @@ export function UnrecordedShiftsTab() {
         guard++;
       }
 
-      // Read the now-complete dataset from the cache.
       const fullCache = queryClient.getQueryData<{
         pages: PaginatedResponse<DailyAttendanceReport>[];
         pageParams: readonly number[];
       }>(queryKey);
       const allReportRows = fullCache?.pages?.flatMap((p) => p.data) ?? [];
 
-      const absent = enrichAndFilter(allReportRows);
-      const rows =
-        selectedDept === "__all__"
-          ? absent
-          : absent.filter((r) => r.department_name === selectedDept);
+      const rows = computeNoShowRows({
+        rows: allReportRows,
+        employeeMap,
+        now,
+        viewingDate: dateRange.start,
+      }).filter((r) => (selectedDept === "__all__" ? true : r.department_name === selectedDept));
 
       const noShowRows: NoShowRow[] = rows.map((r) => ({
         employee_id_number: r.employee_id_number,
@@ -233,8 +288,9 @@ export function UnrecordedShiftsTab() {
         shift_name: r.shift_name ?? null,
         scheduled_start: r.scheduled_start ?? null,
         scheduled_end: r.scheduled_end ?? null,
+        zone_label: zoneLabel(r, t).key,
       }));
-      void exportNoShowToExcel(noShowRows, { t, date: today });
+      void exportNoShowToExcel(noShowRows, { t, date: dateRange.start });
     } finally {
       setIsExporting(false);
     }
@@ -243,28 +299,24 @@ export function UnrecordedShiftsTab() {
     queryClient,
     queryKey,
     fetchNextPage,
-    enrichAndFilter,
+    employeeMap,
+    now,
+    dateRange.start,
     selectedDept,
     t,
-    today,
   ]);
 
-  // Collect unique department names for the filter dropdown
-  const departments = useMemo(() => {
-    const depts = new Set(absentRows.map((r) => r.department_name).filter((d) => d !== "—"));
-    return Array.from(depts).sort();
-  }, [absentRows]);
+  const isViewingPast = dateRange.start < today;
 
-  // Apply department filter
-  const filteredRows = useMemo(
-    () =>
-      selectedDept === "__all__"
-        ? absentRows
-        : absentRows.filter((r) => r.department_name === selectedDept),
-    [absentRows, selectedDept]
-  );
+  const clearFilters = () => {
+    setSelectedDept("__all__");
+    setSelectedShiftTypes([]);
+    setEmployeeIds([]);
+    setOnlyZoneB(false);
+  };
 
   const columns = {
+    zone: t("unrecorded_shifts.zone_header"),
     employee_code: t("unrecorded_shifts.columns.employee_code"),
     employee_name: t("unrecorded_shifts.columns.employee_name"),
     department: t("unrecorded_shifts.columns.department"),
@@ -273,9 +325,6 @@ export function UnrecordedShiftsTab() {
     shift_out: t("unrecorded_shifts.columns.shift_out"),
   };
 
-  // Build trace lookup: `${employment_id}-${date}` → ScheduleTrace[] — mirrors
-  // the daily-report-table-row pattern so the Phân ca column can render the
-  // ScheduleTracePopover when a row carries generation_metadata traces.
   const tracesByKey = useMemo(() => {
     const map = new Map<string, ScheduleTrace[]>();
     for (const row of allRows) {
@@ -290,7 +339,7 @@ export function UnrecordedShiftsTab() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Header row */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100">
@@ -302,28 +351,6 @@ export function UnrecordedShiftsTab() {
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
-          {/* Department filter */}
-          <div className="relative">
-            <Building2
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-              size={14}
-            />
-            <select
-              className="pl-8 pr-8 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 appearance-none cursor-pointer hover:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 transition-all"
-              id="unrecorded-dept-filter"
-              onChange={(e) => { setSelectedDept(e.target.value); }}
-              value={selectedDept}
-            >
-              <option value="__all__">{t("unrecorded_shifts.all_departments")}</option>
-              {departments.map((dept) => (
-                <option key={dept} value={dept}>
-                  {dept}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Export button — drains all pages before writing the file. */}
           <Button
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest"
             disabled={absentRows.length === 0 || isLoading || isExporting}
@@ -331,11 +358,7 @@ export function UnrecordedShiftsTab() {
             onClick={() => { void handleExport(); }}
             variant="outline"
           >
-            {isExporting ? (
-              <Loader2 size={14} className="animate-spin" />
-            ) : (
-              <Download size={14} />
-            )}
+            {isExporting ? <Loader2 className="animate-spin" size={14} /> : <Download size={14} />}
             {t("unrecorded_shifts.export_btn")}
             {absentRows.length > 0 && !isExporting && (
               <span className="ml-1 px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-full text-[9px]">
@@ -346,13 +369,104 @@ export function UnrecordedShiftsTab() {
         </div>
       </div>
 
+      {/* Filters bar */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-3 flex flex-wrap items-center gap-3">
+        {/* Date range */}
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Building2
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+              size={14}
+            />
+            <input
+              aria-label={t("common.from_date")}
+              className="pl-8 pr-3 py-2 rounded-xl text-[11px] font-bold bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-300 outline-none focus:ring-2 focus:ring-primary-500/30"
+              onChange={(e) => { setDateRange((p) => ({ ...p, start: e.target.value })); }}
+              type="date"
+              value={dateRange.start}
+            />
+          </div>
+          <span className="text-slate-300 dark:text-slate-600">–</span>
+          <input
+            aria-label={t("common.to_date")}
+            className="px-3 py-2 rounded-xl text-[11px] font-bold bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-300 outline-none focus:ring-2 focus:ring-primary-500/30"
+            onChange={(e) => { setDateRange((p) => ({ ...p, end: e.target.value })); }}
+            type="date"
+            value={dateRange.end}
+          />
+        </div>
+
+        {/* Department */}
+        <div className="relative">
+          <Building2
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+            size={14}
+          />
+          <select
+            className="pl-8 pr-8 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-300 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+            id="unrecorded-dept-filter"
+            onChange={(e) => { setSelectedDept(e.target.value); }}
+            value={selectedDept}
+          >
+            <option value="__all__">{t("unrecorded_shifts.all_departments")}</option>
+            {departments.map((dept) => (
+              <option key={dept} value={dept}>{dept}</option>
+            ))}
+          </select>
+        </div>
+
+        <ShiftTypePicker onChange={setSelectedShiftTypes} selected={selectedShiftTypes} />
+
+        {/* Only Zone B toggle */}
+        <Button
+          aria-pressed={onlyZoneB}
+          className={cn(
+            "px-3 py-2 gap-2 normal-case",
+            onlyZoneB
+              ? "bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40"
+              : "text-slate-500 dark:text-slate-400 hover:border-amber-300 dark:hover:border-amber-700",
+          )}
+          id="unrecorded-only-zone-b"
+          onClick={() => { setOnlyZoneB((v) => !v); }}
+          variant="outline"
+        >
+          <AlertTriangle className="size-3.5" />
+          {t("unrecorded_shifts.only_zone_b")}
+        </Button>
+
+        <Button
+          className="px-2 py-2 gap-1.5 normal-case font-bold text-slate-400 dark:text-slate-500"
+          onClick={clearFilters}
+          variant="ghost"
+        >
+          <X className="size-3.5" />
+          {t("unrecorded_shifts.clear_filters")}
+        </Button>
+
+        {isViewingPast && (
+          <span className="text-[10px] text-slate-400 italic">
+            {t("unrecorded_shifts.viewing_past", {
+              defaultValue: "Historical — fixed records",
+            })}
+          </span>
+        )}
+      </div>
+
       {/* Table */}
       {isLoading ? (
         <TableSkeleton />
       ) : filteredRows.length === 0 ? (
         <EmptyState
-          empty={t("unrecorded_shifts.empty")}
-          hint={t("unrecorded_shifts.empty_hint")}
+          empty={
+            onlyZoneB
+              ? t("unrecorded_shifts.empty_zone_b")
+              : t("unrecorded_shifts.empty")
+          }
+          hint={
+            onlyZoneB
+              ? t("unrecorded_shifts.empty_zone_b_hint")
+              : t("unrecorded_shifts.empty_hint")
+          }
         />
       ) : (
         <div className="rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
@@ -360,6 +474,9 @@ export function UnrecordedShiftsTab() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700">
+                  <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                    {columns.zone}
+                  </th>
                   <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 whitespace-nowrap">
                     {columns.employee_code}
                   </th>
@@ -381,78 +498,110 @@ export function UnrecordedShiftsTab() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {filteredRows.map((row, idx) => (
-                  <tr
-                    className={cn(
-                      "transition-colors hover:bg-rose-50/40 dark:hover:bg-rose-950/20 group",
-                      idx % 2 === 0
-                        ? "bg-white dark:bg-slate-900"
-                        : "bg-slate-50/50 dark:bg-slate-800/30"
-                    )}
-                    key={`${row.employment_id}-${row.date}`}
-                  >
-                    {/* Employee Code */}
-                    <td className="px-5 py-3.5">
-                      <span className="font-mono font-bold text-[10px] text-primary-600 dark:text-primary-400 uppercase tracking-tight bg-primary-50 dark:bg-primary-950 px-2 py-1 rounded-lg border border-primary-100 dark:border-primary-800">
-                        {row.employee_id_number}
-                      </span>
-                    </td>
+                {filteredRows.map((row, idx) => {
+                  const { key, hint } = zoneLabel(row, t);
+                  const rowBg =
+                    row.zone === "b"
+                      ? "bg-amber-50/60 dark:bg-amber-950/25 border-l-2 border-l-amber-400 dark:border-l-amber-500"
+                      : row.zone === "a"
+                        ? "bg-slate-50/60 dark:bg-slate-800/40"
+                        : "bg-rose-50/40 dark:bg-rose-950/15";
+                  const chip =
+                    row.zone === "b"
+                      ? "bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300"
+                      : row.zone === "a"
+                        ? "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                        : "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300";
+                  return (
+                    <tr
+                      className={cn(
+                        "transition-colors group",
+                        rowBg,
+                        row.zone !== "b" && "hover:bg-rose-50/40 dark:hover:bg-rose-950/20",
+                        idx % 2 === 0 ? "" : "bg-opacity-50",
+                      )}
+                      key={`${row.employment_id}-${row.date}`}
+                    >
+                      {/* Zone — never color-only: icon + text + aria-label */}
+                      <td className="px-5 py-3.5">
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest",
+                            chip,
+                          )}
+                        >
+                          <ZoneIcon zone={row.zone} />
+                          <span>{key}</span>
+                          {hint && <span className="opacity-70 normal-case tracking-normal">· {hint}</span>}
+                          <span className="sr-only">
+                            {key}{hint ? `, ${hint}` : ""}
+                          </span>
+                        </span>
+                      </td>
 
-                    {/* Name */}
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center shrink-0">
-                          <UserX className="text-rose-500 dark:text-rose-400" size={14} />
+                      {/* Employee Code */}
+                      <td className="px-5 py-3.5">
+                        <span className="font-mono font-bold text-[10px] text-primary-600 dark:text-primary-400 uppercase tracking-tight bg-primary-50 dark:bg-primary-950 px-2 py-1 rounded-lg border border-primary-100 dark:border-primary-800">
+                          {row.employee_id_number}
+                        </span>
+                      </td>
+
+                      {/* Name */}
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-xl bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center shrink-0">
+                            <UserX className="text-rose-500 dark:text-rose-400" size={14} />
+                          </div>
+                          <span className="font-bold text-sm text-slate-800 dark:text-slate-100 tracking-tight">
+                            {row.employee_name}
+                          </span>
                         </div>
-                        <span className="font-bold text-sm text-slate-800 dark:text-slate-100 tracking-tight">
-                          {row.employee_name}
+                      </td>
+
+                      {/* Department */}
+                      <td className="px-5 py-3.5">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-blue-100 dark:border-blue-800">
+                          <Building2 size={10} />
+                          {row.department_name}
                         </span>
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* Department */}
-                    <td className="px-5 py-3.5">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-blue-100 dark:border-blue-800">
-                        <Building2 size={10} />
-                        {row.department_name}
-                      </span>
-                    </td>
+                      {/* Phân ca */}
+                      <td className="px-5 py-3.5">
+                        <div className="relative flex items-center gap-1 w-fit">
+                          <span className="font-bold text-slate-700 dark:text-slate-200 text-xs tracking-tight">
+                            {row.shift_name ?? "—"}
+                          </span>
+                          <ScheduleTracePopover
+                            endTime={row.scheduled_end}
+                            shiftName={row.shift_name}
+                            shiftSymbol={row.shift_symbol}
+                            source="system"
+                            startTime={row.scheduled_start}
+                            traces={tracesByKey.get(`${row.employment_id}-${row.date}`) ?? []}
+                          />
+                        </div>
+                      </td>
 
-                    {/* Phân ca (shift type + traceability popover) */}
-                    <td className="px-5 py-3.5">
-                      <div className="relative flex items-center gap-1 w-fit">
-                        <span className="font-bold text-slate-700 dark:text-slate-200 text-xs tracking-tight">
-                          {row.shift_name ?? "—"}
+                      {/* Shift In */}
+                      <td className="px-5 py-3.5 text-center">
+                        <span className="font-mono font-bold text-sm text-slate-700 dark:text-slate-200 tabular-nums bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-lg">
+                          {formatShiftTime(row.scheduled_start)}
                         </span>
-                        <ScheduleTracePopover
-                          endTime={row.scheduled_end}
-                          shiftName={row.shift_name}
-                          shiftSymbol={row.shift_symbol}
-                          source="system"
-                          startTime={row.scheduled_start}
-                          traces={tracesByKey.get(`${row.employment_id}-${row.date}`) ?? []}
-                        />
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* Shift In */}
-                    <td className="px-5 py-3.5 text-center">
-                      <span className="font-mono font-bold text-sm text-slate-700 dark:text-slate-200 tabular-nums bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-lg">
-                        {formatShiftTime(row.scheduled_start)}
-                      </span>
-                    </td>
-
-                    {/* Shift Out */}
-                    <td className="px-5 py-3.5 text-center">
-                      <span className="font-mono font-bold text-sm text-slate-700 dark:text-slate-200 tabular-nums bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-lg">
-                        {formatShiftTime(row.scheduled_end)}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                      {/* Shift Out */}
+                      <td className="px-5 py-3.5 text-center">
+                        <span className="font-mono font-bold text-sm text-slate-700 dark:text-slate-200 tabular-nums bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-lg">
+                          {formatShiftTime(row.scheduled_end)}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
                 {hasNextPage && (
                   <InfiniteScrollSentinel
-                    colSpan={6}
+                    colSpan={7}
                     isFetchingNextPage={!!isFetchingNextPage}
                     sentinelRef={loadMoreRef}
                   />

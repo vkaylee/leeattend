@@ -28,6 +28,7 @@ export interface NoShowRow {
   shift_name: string | null;
   scheduled_start: string | null;
   scheduled_end: string | null;
+  zone_label: string | null;
 }
 
 interface ExportOptions {
@@ -45,6 +46,7 @@ const COLUMNS: Array<{ key: keyof NoShowRow; i18nKey: string; width: number }> =
   { key: "shift_name", i18nKey: "shift_type", width: 20 },
   { key: "scheduled_start", i18nKey: "shift_in", width: 16 },
   { key: "scheduled_end", i18nKey: "shift_out", width: 16 },
+  { key: "zone_label", i18nKey: "zone", width: 22 },
 ];
 
 /**

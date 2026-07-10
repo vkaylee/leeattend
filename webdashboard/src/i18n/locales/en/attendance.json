@@ -98,11 +98,29 @@
       "department": "Department",
       "shift_type": "Shift Type",
       "shift_in": "Shift Start",
-      "shift_out": "Shift End"
+      "shift_out": "Shift End",
+      "zone": "Zone"
     },
     "empty": "No employees are absent at shift start today.",
     "empty_hint": "All employees have checked in or are on approved leave.",
-    "export_date": "Date"
+    "export_date": "Date",
+    "zone_header": "Zone",
+    "zone_a": "Waiting",
+    "zone_b": "Needs verification",
+    "zone_c": "Absent (shift ended)",
+    "zone_a_hint": "{{minutes}} min left",
+    "zone_b_hint": "Overdue {{minutes}} min",
+    "filter_date_from": "From",
+    "filter_date_to": "To",
+    "filter_shift_type": "Shift type",
+    "filter_shift_type_empty": "No shift types",
+    "filter_shift_inactive": "inactive",
+    "filter_employee": "Employee",
+    "only_zone_b": "Only Needs Verification",
+    "clear_filters": "Clear filters",
+    "empty_zone_b": "No employees need verification.",
+    "empty_zone_b_hint": "All in-shift employees have checked in or are still within grace.",
+    "viewing_past": "Historical — fixed records"
   },
   "attendance_import": {
     "subtitle": "Bulk Data Import",
