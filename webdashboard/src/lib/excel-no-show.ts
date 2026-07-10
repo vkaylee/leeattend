@@ -25,6 +25,7 @@ export interface NoShowRow {
   employee_id_number: string;
   employee_name: string;
   department_name: string;
+  shift_name: string | null;
   scheduled_start: string | null;
   scheduled_end: string | null;
 }
@@ -36,11 +37,12 @@ interface ExportOptions {
   date: string;
 }
 
-// Column order matches the table: code, name, department, shift in, shift out.
+// Column order matches the table: code, name, department, shift type, shift in, shift out.
 const COLUMNS: Array<{ key: keyof NoShowRow; i18nKey: string; width: number }> = [
   { key: "employee_id_number", i18nKey: "employee_code", width: 18 },
   { key: "employee_name", i18nKey: "employee_name", width: 30 },
   { key: "department_name", i18nKey: "department", width: 24 },
+  { key: "shift_name", i18nKey: "shift_type", width: 20 },
   { key: "scheduled_start", i18nKey: "shift_in", width: 16 },
   { key: "scheduled_end", i18nKey: "shift_out", width: 16 },
 ];

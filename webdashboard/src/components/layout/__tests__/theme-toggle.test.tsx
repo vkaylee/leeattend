@@ -64,11 +64,11 @@ const createTestQueryClient = () =>
 const defaultProps = {
   activeGroup: null as any,
   isPinned: false,
-  onGroupHover: vi.fn(),
-  onGroupClick: vi.fn(),
+  onHoverGroup: vi.fn(),
+  onClickGroup: vi.fn(),
   onTogglePin: vi.fn(),
   workspaceName: 'Test',
-  onShowWorkspaceSwitcher: vi.fn(),
+  onClickWorkspaceSwitcher: vi.fn(),
 };
 
 function renderWithContext(mode: ThemeMode = 'system') {

@@ -96,6 +96,7 @@
       "employee_code": "Emp. Code",
       "employee_name": "Full Name",
       "department": "Department",
+      "shift_type": "Shift Type",
       "shift_in": "Shift Start",
       "shift_out": "Shift End"
     },

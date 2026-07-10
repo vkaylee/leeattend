@@ -339,13 +339,13 @@ describe("IconRail", () => {
 
   it("settings icon navigates directly (Link), does not trigger FloatingPanel", () => {
     const onClick = vi.fn();
-    render(<IconRail {...defaultProps} onGroupClick={onClick} />, { wrapper: Wrapper });
+    // Settings is a Link — click is handled by the router, not the click handler
+    render(<IconRail {...defaultProps} onClickGroup={onClick} />, { wrapper: Wrapper });
 
     const settingsBtn = screen.getByTestId("nav-rail-group-settings");
-    // Settings is a Link like Dashboard — clicking navigates directly, not via onGroupClick
     expect(settingsBtn.tagName).toBe("A");
     fireEvent.click(settingsBtn);
-    // onGroupClick is NOT called for direct-link icons (dashboard & settings)
+    // onClickGroup is NOT called for direct-link icons (dashboard & settings)
     expect(onClick).not.toHaveBeenCalled();
   });
 

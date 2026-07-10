@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import type { TFunction } from "i18next";
 
 import { describe, it, expect } from "vitest";
 
@@ -11,7 +12,9 @@ const mockDonutData = [
     { name: "On Leave", value: 2, fill: "#6366f1" },
 ];
 
-const mockT = (key: string) => key;
+// Cast through `unknown` so the unbranded arrow function satisfies
+// TFunction's `$TFunctionBrand` (the brand is a compile-time-only marker).
+const mockT = ((key: string) => key) as unknown as TFunction;
 
 describe("AttendanceBreakdown", () => {
     it("renders the donut chart when data is available", () => {

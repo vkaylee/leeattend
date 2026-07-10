@@ -8,36 +8,25 @@ import ReportStats from "../../reports/report-stats";
 
 const mockT = (key: string) => key;
 
-const mockSummaryData: AttendanceSummary[] = [
+const mockSummaryData = [
     {
         employee_id: "emp-001",
         employee_name: "Alice",
-        department_name: "Engineering",
         computed_std_hours: 40,
         computed_ot_hours: 8,
-        present_days: 5,
-        absent_days: 0,
-        late_days: 1,
-        on_leave_days: 0,
     },
     {
         employee_id: "emp-002",
         employee_name: "Bob",
-        department_name: "Sales",
         computed_std_hours: 35,
         computed_ot_hours: 12,
-        present_days: 5,
-        absent_days: 0,
-        late_days: 0,
-        on_leave_days: 0,
     },
-];
+] as unknown as AttendanceSummary[];
 
-const mockDailyData: DailyAttendanceReport[] = [
+const mockDailyData = [
     {
         employee_id: "emp-001",
         employee_name: "Alice",
-        department_name: "Engineering",
         date: "2026-06-01",
         computed_std_hours: 8,
         computed_ot_hours: 2,
@@ -46,7 +35,6 @@ const mockDailyData: DailyAttendanceReport[] = [
     {
         employee_id: "emp-002",
         employee_name: "Bob",
-        department_name: "Sales",
         date: "2026-06-01",
         computed_std_hours: 7,
         computed_ot_hours: 3,
@@ -55,13 +43,12 @@ const mockDailyData: DailyAttendanceReport[] = [
     {
         employee_id: "emp-001",
         employee_name: "Alice",
-        department_name: "Engineering",
         date: "2026-06-02",
         computed_std_hours: 8,
         computed_ot_hours: 0,
         status: "present",
     },
-];
+] as unknown as DailyAttendanceReport[];
 
 describe("ReportStats", () => {
     describe("summary report type", () => {
@@ -137,19 +124,14 @@ describe("ReportStats", () => {
         });
 
         it("handles null computed_hours gracefully (treats as 0)", () => {
-            const dataWithNulls: AttendanceSummary[] = [
+            const dataWithNulls = [
                 {
                     employee_id: "emp-001",
                     employee_name: "Alice",
-                    department_name: "Engineering",
                     computed_std_hours: undefined as unknown as number,
                     computed_ot_hours: undefined as unknown as number,
-                    present_days: 0,
-                    absent_days: 0,
-                    late_days: 0,
-                    on_leave_days: 0,
                 },
-            ];
+            ] as unknown as AttendanceSummary[];
 
             render(
                 <ReportStats filteredData={dataWithNulls} reportType="summary" t={mockT} />
@@ -163,19 +145,14 @@ describe("ReportStats", () => {
         });
 
         it("handles single employee data", () => {
-            const singleEmployee: AttendanceSummary[] = [
+            const singleEmployee = [
                 {
                     employee_id: "emp-001",
                     employee_name: "Alice",
-                    department_name: "Engineering",
                     computed_std_hours: 42,
                     computed_ot_hours: 5,
-                    present_days: 5,
-                    absent_days: 0,
-                    late_days: 0,
-                    on_leave_days: 0,
                 },
-            ];
+            ] as unknown as AttendanceSummary[];
 
             render(
                 <ReportStats filteredData={singleEmployee} reportType="summary" t={mockT} />
@@ -187,17 +164,12 @@ describe("ReportStats", () => {
         });
 
         it("handles large datasets efficiently", () => {
-            const largeData: AttendanceSummary[] = Array.from({ length: 100 }, (_, i) => ({
+            const largeData = Array.from({ length: 100 }, (_, i) => ({
                 employee_id: `emp-${String(i).padStart(3, "0")}`,
                 employee_name: `Employee ${i}`,
-                department_name: "Engineering",
                 computed_std_hours: 40,
                 computed_ot_hours: 5,
-                present_days: 5,
-                absent_days: 0,
-                late_days: 0,
-                on_leave_days: 0,
-            }));
+            })) as unknown as AttendanceSummary[];
 
             render(
                 <ReportStats filteredData={largeData} reportType="summary" t={mockT} />

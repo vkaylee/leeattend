@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
 
 vi.mock("../helpers", () => ({
   apiFetch: vi.fn(),
@@ -43,9 +43,8 @@ import {
 // call createObjectURL/revokeObjectURL. Happy-DOM's URL stub is not implemented,
 // so we install a no-op mock once here (runs after imports, before tests).
 beforeAll(() => {
-  // @ts-expect-error augment for test env
+  // Augment the URL API for the happy-dom test env (no-op stubs).
   URL.createObjectURL = () => "blob:mock";
-  // @ts-expect-error augment for test env
   URL.revokeObjectURL = () => {};
   if (!document.body) {
     document.body = document.createElement("body");
@@ -187,7 +186,7 @@ describe("leaves API", () => {
     const result = await createLeavePolicy("ws-1", {
       leave_type_id: "lt-1",
       name: "Sick",
-      rule_config: {},
+      rule_config: {} as never,
     });
     expect(result).toEqual(mock);
   });

@@ -21,22 +21,21 @@ const { mockExportNoShowToExcel } = vi.hoisted(() => ({
 // simulate the sentinel scrolling into view — the trigger that fires
 // fetchNextPage in the infinite-scroll hook.
 // ---------------------------------------------------------------------------
-let intersectionCallback: IntersectionObserverCallback | null = null;
-class MockIntersectionObserver implements IntersectionObserver {
-  constructor(cb: IntersectionObserverCallback) {
+type LooseIntersectionObserverCallback = (
+  entries: IntersectionObserverEntry[],
+  observer: IntersectionObserver,
+) => void;
+
+let intersectionCallback: LooseIntersectionObserverCallback | null = null;
+class MockIntersectionObserver {
+  constructor(cb: LooseIntersectionObserverCallback) {
     intersectionCallback = cb;
   }
-  observe() { /* sentinel is "mounted" */ }
-  unobserve() { /* empty */ }
-  disconnect() { /* empty */ }
-  get root() { return null; }
-  get rootMargin() { return ""; }
-  get thresholds() { return []; }
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
   static fire(isIntersecting: boolean) {
-    intersectionCallback?.(
-      [{ isIntersecting } as IntersectionObserverEntry],
-      null as unknown as IntersectionObserver,
-    );
+    intersectionCallback?.([{ isIntersecting } as IntersectionObserverEntry], null as unknown as IntersectionObserver);
   }
 }
 window.IntersectionObserver =
@@ -87,6 +86,7 @@ function makeRow(
     ot_work_units: 0,
     scheduled_end: "17:00:00",
     scheduled_start: "08:00:00",
+    shift_name: "Morning Shift",
     status: "absent",
     std_work_units: 0,
     unit_coefficient_hours: 1,
@@ -155,6 +155,28 @@ describe("UnrecordedShiftsTab", () => {
     expect(screen.getAllByText("Engineering").length).toBeGreaterThanOrEqual(1);
     // Employee code badge resolved from employeeMap
     expect(screen.getByText("EMP001")).toBeInTheDocument();
+  });
+
+  it("renders the Shift Type column with the shift_name value", async () => {
+    vi.mocked(api.fetchAttendanceReport).mockResolvedValue({
+      data: [
+        makeRow({ employment_id: "employment-1", employee_id: "emp-1", employee_name: "Alice", shift_name: "Morning Shift" }),
+        makeRow({ employment_id: "employment-2", employee_id: "emp-2", employee_name: "Bob", shift_name: null }),
+      ],
+      total: 2,
+      page: 1,
+      limit: 30,
+    } as never);
+
+    renderTab();
+
+    // Header
+    expect(await screen.findByText("unrecorded_shifts.columns.shift_type")).toBeInTheDocument();
+    // Row with a shift name shows it
+    expect(screen.getByText("Morning Shift")).toBeInTheDocument();
+    // Row with null shift name renders an em-dash
+    const dashes = screen.getAllByText("—");
+    expect(dashes.length).toBeGreaterThanOrEqual(1);
   });
 
   it("filters out rows whose status is not 'absent'", async () => {

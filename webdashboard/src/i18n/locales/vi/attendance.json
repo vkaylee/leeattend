@@ -96,6 +96,7 @@
       "employee_code": "Mã NV",
       "employee_name": "Họ và Tên",
       "department": "Bộ phận",
+      "shift_type": "Phân ca",
       "shift_in": "Giờ vào ca",
       "shift_out": "Giờ ra ca"
     },

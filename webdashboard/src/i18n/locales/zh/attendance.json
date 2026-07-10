@@ -785,6 +785,7 @@
       "employee_code": "员工编号",
       "employee_name": "姓名",
       "department": "部门",
+      "shift_type": "排班",
       "shift_in": "上班时间",
       "shift_out": "下班时间"
     },

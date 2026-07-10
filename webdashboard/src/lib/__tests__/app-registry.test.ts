@@ -69,7 +69,7 @@ describe("APP_REGISTRY", () => {
   });
 
   it("all app routes reference valid ROUTES constants or paths", () => {
-    const validPaths = new Set(Object.values(ROUTES).flatMap((v) =>
+    const validPaths = new Set<string>(Object.values(ROUTES).flatMap((v) =>
       typeof v === "string" ? [v] : Object.values(v)
     ));
 

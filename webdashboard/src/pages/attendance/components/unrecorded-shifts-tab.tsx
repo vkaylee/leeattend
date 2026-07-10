@@ -13,9 +13,11 @@ import {
   PaginatedResponse,
   fetchAttendanceReport,
   getCurrentWorkspaceId,
+  ScheduleTrace,
 } from "@/lib/api";
 import { exportNoShowToExcel, type NoShowRow } from "@/lib/excel-no-show";
 import { useAllEmployees } from "@/hooks/use-employees";
+import { ScheduleTracePopover } from "@/components/shifts/schedule-trace-popover";
 
 // Number of employees fetched per backend page. For a single-day report this
 // is roughly one row per employee, so this is also ~rows per page.
@@ -151,6 +153,7 @@ export function UnrecordedShiftsTab() {
         employee_id_number: r.employee_id_number,
         employee_name: r.employee_name,
         department_name: r.department_name,
+        shift_name: r.shift_name ?? null,
         scheduled_start: r.scheduled_start ?? null,
         scheduled_end: r.scheduled_end ?? null,
       }));
@@ -195,9 +198,25 @@ export function UnrecordedShiftsTab() {
     employee_code: t("unrecorded_shifts.columns.employee_code"),
     employee_name: t("unrecorded_shifts.columns.employee_name"),
     department: t("unrecorded_shifts.columns.department"),
+    shift_type: t("unrecorded_shifts.columns.shift_type"),
     shift_in: t("unrecorded_shifts.columns.shift_in"),
     shift_out: t("unrecorded_shifts.columns.shift_out"),
   };
+
+  // Build trace lookup: `${employment_id}-${date}` → ScheduleTrace[] — mirrors
+  // the daily-report-table-row pattern so the Phân ca column can render the
+  // ScheduleTracePopover when a row carries generation_metadata traces.
+  const tracesByKey = useMemo(() => {
+    const map = new Map<string, ScheduleTrace[]>();
+    for (const row of allRows) {
+      const meta = row.generation_metadata as { schedule_traces?: ScheduleTrace[] } | undefined;
+      const traces = meta?.schedule_traces;
+      if (traces && traces.length > 0) {
+        map.set(`${row.employment_id}-${row.date}`, traces);
+      }
+    }
+    return map;
+  }, [allRows]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -276,6 +295,9 @@ export function UnrecordedShiftsTab() {
                   <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 whitespace-nowrap">
                     {columns.department}
                   </th>
+                  <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                    {columns.shift_type}
+                  </th>
                   <th className="px-5 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 whitespace-nowrap">
                     {columns.shift_in}
                   </th>
@@ -322,6 +344,23 @@ export function UnrecordedShiftsTab() {
                       </span>
                     </td>
 
+                    {/* Phân ca (shift type + traceability popover) */}
+                    <td className="px-5 py-3.5">
+                      <div className="relative flex items-center gap-1 w-fit">
+                        <span className="font-bold text-slate-700 dark:text-slate-200 text-xs tracking-tight">
+                          {row.shift_name ?? "—"}
+                        </span>
+                        <ScheduleTracePopover
+                          endTime={row.scheduled_end}
+                          shiftName={row.shift_name}
+                          shiftSymbol={row.shift_symbol}
+                          source="system"
+                          startTime={row.scheduled_start}
+                          traces={tracesByKey.get(`${row.employment_id}-${row.date}`) ?? []}
+                        />
+                      </div>
+                    </td>
+
                     {/* Shift In */}
                     <td className="px-5 py-3.5 text-center">
                       <span className="font-mono font-bold text-sm text-slate-700 dark:text-slate-200 tabular-nums bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-lg">
@@ -339,7 +378,7 @@ export function UnrecordedShiftsTab() {
                 ))}
                 {hasNextPage && (
                   <InfiniteScrollSentinel
-                    colSpan={5}
+                    colSpan={6}
                     isFetchingNextPage={!!isFetchingNextPage}
                     sentinelRef={loadMoreRef}
                   />

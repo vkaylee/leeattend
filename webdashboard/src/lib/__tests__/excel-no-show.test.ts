@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import type { TFunction } from "i18next";
 
 import type { NoShowRow } from "../excel-no-show";
 import { exportNoShowToExcel } from "../excel-no-show";
@@ -70,13 +71,16 @@ const mockSaveAs = vi.fn();
 vi.mock("file-saver", () => ({ saveAs: mockSaveAs }));
 
 // ── i18n helper ──────────────────────────────────────────────────────────
-const t = (key: string) => key;
+// Cast through `unknown` so the unbranded arrow function satisfies
+// TFunction's `$TFunctionBrand` (the brand is a compile-time-only marker).
+const t = ((key: string) => key) as unknown as TFunction;
 
 const ROWS: NoShowRow[] = [
   {
     employee_id_number: "EMP001",
     employee_name: "Alice",
     department_name: "Engineering",
+    shift_name: "Morning Shift",
     scheduled_start: "08:00:00",
     scheduled_end: "17:00:00",
   },
@@ -84,6 +88,7 @@ const ROWS: NoShowRow[] = [
     employee_id_number: "EMP002",
     employee_name: "Bob",
     department_name: "HR",
+    shift_name: null,
     scheduled_start: null,
     scheduled_end: null,
   },
@@ -107,10 +112,10 @@ describe("exportNoShowToExcel", () => {
     );
   });
 
-  it("sets 5 columns matching the table order", async () => {
+  it("sets 6 columns matching the table order", async () => {
     await exportNoShowToExcel(ROWS, { t, date: "2026-07-10" });
 
-    expect(mockWorksheet.columns).toHaveLength(5);
+    expect(mockWorksheet.columns).toHaveLength(6);
     expect(mockWorksheet.columns[0].header).toBe(
       "unrecorded_shifts.columns.employee_code",
     );
@@ -121,9 +126,12 @@ describe("exportNoShowToExcel", () => {
       "unrecorded_shifts.columns.department",
     );
     expect(mockWorksheet.columns[3].header).toBe(
-      "unrecorded_shifts.columns.shift_in",
+      "unrecorded_shifts.columns.shift_type",
     );
     expect(mockWorksheet.columns[4].header).toBe(
+      "unrecorded_shifts.columns.shift_in",
+    );
+    expect(mockWorksheet.columns[5].header).toBe(
       "unrecorded_shifts.columns.shift_out",
     );
   });
@@ -133,9 +141,9 @@ describe("exportNoShowToExcel", () => {
 
     expect(mockGetCell).toHaveBeenCalledWith("A1");
     expect(mockGetCell).toHaveBeenCalledWith("A2");
-    // Both rows span all 5 columns.
-    expect(mockWorksheet.mergeCells).toHaveBeenCalledWith(1, 1, 1, 5);
-    expect(mockWorksheet.mergeCells).toHaveBeenCalledWith(2, 1, 2, 5);
+    // Both rows span all 6 columns.
+    expect(mockWorksheet.mergeCells).toHaveBeenCalledWith(1, 1, 1, 6);
+    expect(mockWorksheet.mergeCells).toHaveBeenCalledWith(2, 1, 2, 6);
   });
 
   it("writes the header row at row 4 and data starting at row 5", async () => {
@@ -149,12 +157,16 @@ describe("exportNoShowToExcel", () => {
   it("renders null shift times as an em-dash", async () => {
     await exportNoShowToExcel(ROWS, { t, date: "2026-07-10" });
 
-    // Bob is the second row → data row 6. His start/end are null → "—".
-    expect(makeCell(6, 4).value).toBe("—"); // scheduled_start
-    expect(makeCell(6, 5).value).toBe("—"); // scheduled_end
-    // Alice (row 5) keeps her real times.
-    expect(makeCell(5, 4).value).toBe("08:00:00");
+    // Bob is the second row → data row 6. shift_name is null → "—", and his
+    // start/end are also null → "—". With the new shift_type column inserted
+    // before start/end, the mapped columns are: 4=shift_name, 5=start, 6=end.
+    expect(makeCell(6, 4).value).toBe("—"); // shift_name
+    expect(makeCell(6, 5).value).toBe("—"); // scheduled_start
+    expect(makeCell(6, 6).value).toBe("—"); // scheduled_end
+    // Alice (row 5) keeps her real values.
     expect(makeCell(5, 1).value).toBe("EMP001");
+    expect(makeCell(5, 4).value).toBe("Morning Shift"); // shift_name
+    expect(makeCell(5, 5).value).toBe("08:00:00");
   });
 
   it("sets auto-filter and freezes panes when rows exist", async () => {
@@ -162,7 +174,7 @@ describe("exportNoShowToExcel", () => {
 
     expect(mockWorksheet.autoFilter).toEqual({
       from: { row: 4, column: 1 },
-      to: { row: 5 + ROWS.length - 1, column: 5 },
+      to: { row: 5 + ROWS.length - 1, column: 6 },
     });
     expect(mockWorksheet.views).toEqual([
       { state: "frozen", ySplit: 4 },

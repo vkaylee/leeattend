@@ -267,7 +267,7 @@ describe("api.ts comprehensive tests", () => {
 
     it("createLeavePolicy", async () => {
       mockSuccess({});
-      await api.createLeavePolicy("ws-1", { name: "P", leave_type_id: "lt-1", rule_config: {} });
+      await api.createLeavePolicy("ws-1", { name: "P", leave_type_id: "lt-1", rule_config: {} as never });
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/leave/policies"), expect.objectContaining({ method: "POST" }));
     });
 
@@ -339,13 +339,13 @@ describe("api.ts comprehensive tests", () => {
 
     it("createShift", async () => {
       mockSuccess({});
-      await api.createShift("ws-1", { name: "S", break_duration_minutes: 0, start_time: "08:00", end_time: "17:00" });
+      await api.createShift("ws-1", { name: "S" });
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/shifts"), expect.objectContaining({ method: "POST" }));
     });
 
     it("updateShift", async () => {
       mockSuccess({});
-      await api.updateShift("ws-1", "s1", { name: "U", break_duration_minutes: 0, start_time: "08:00", end_time: "17:00" });
+      await api.updateShift("ws-1", "s1", { name: "U" });
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/shifts/s1"), expect.objectContaining({ method: "PUT" }));
     });
 

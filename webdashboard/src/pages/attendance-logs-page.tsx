@@ -10,6 +10,7 @@ import { AttendanceLogsFilters } from "./attendance/components/attendance-logs-f
 import { AttendanceLogsHeader } from "./attendance/components/attendance-logs-header";
 import { AttendanceLogsTabs } from "./attendance/components/attendance-logs-tabs";
 import { useAttendanceLogsPage } from "./attendance/hooks/use-attendance-logs-page";
+import { UnrecordedShiftsTab } from "./attendance/components/unrecorded-shifts-tab";
 
 type AttendanceLogsState = ReturnType<typeof useAttendanceLogsPage>;
 
@@ -44,6 +45,10 @@ function TabContent({ state }: { state: AttendanceLogsState }) {
   } = state;
 
   if (!wsId) return null;
+
+  if (activeTab === "unrecorded") {
+    return <UnrecordedShiftsTab />;
+  }
 
   if (activeTab === "recorded") {
     return (
@@ -110,12 +115,14 @@ export default function AttendanceLogsPage() {
       <AttendanceLogsHeader dateRange={state.dateRange} setIsImportDialogOpen={setIsImportDialogOpen} />
       <AttendanceLogsTabs activeTab={activeTab} setActiveTab={state.setActiveTab} stagingCount={stagingCount} />
       <TabContent state={state} />
-      <FloatingRecordBadge 
-        label={t("common.pagination.records")} 
-        loaded={activeTab === "recorded" ? allRecordedLogs.length : allStagingLogs.length} 
-        total={activeTab === "recorded" ? recordedTotal : stagingTotal} 
-        variant={activeTab === "recorded" ? undefined : "amber"} 
-      />
+      {activeTab !== "unrecorded" && (
+        <FloatingRecordBadge 
+          label={t("common.pagination.records")} 
+          loaded={activeTab === "recorded" ? allRecordedLogs.length : allStagingLogs.length} 
+          total={activeTab === "recorded" ? recordedTotal : stagingTotal} 
+          variant={activeTab === "recorded" ? undefined : "amber"} 
+        />
+      )}
       <AttendanceImportDialog
         endpoint="/attendance/logs/upload"
         expectedColumns={[

@@ -41,6 +41,10 @@ const allWidgets: { id: WidgetId; labelKey: string }[] = [
 ];
 
 const defaultVisibleWidgets: Record<WidgetId, boolean> = {
+    kpi_cards: true,
+    donut_chart: true,
+    quick_stats: true,
+    promo_cards: false,
     attendance_trend: true,
     department_chart: true,
     peak_times: true,
@@ -207,7 +211,7 @@ describe("ChartCatalogSidebar", () => {
             <ChartCatalogSidebar
                 allWidgets={[]}
                 onToggleWidget={vi.fn()}
-                visibleWidgets={{}}
+                visibleWidgets={{} as Record<WidgetId, boolean>}
             />
         );
 

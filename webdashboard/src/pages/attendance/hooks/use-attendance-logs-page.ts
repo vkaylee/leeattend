@@ -23,7 +23,7 @@ import {
 
 const PAGE_SIZE = 20;
 
-export type TabType = "recorded" | "unknown";
+export type TabType = "recorded" | "unknown" | "unrecorded";
 export type FilterMode = "this_month" | "last_month" | "custom" | "specific_month";
 
 function useAttendanceDateRange(urlFrom: string | null, urlTo: string | null) {
