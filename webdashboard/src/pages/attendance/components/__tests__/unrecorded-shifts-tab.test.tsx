@@ -403,6 +403,51 @@ describe("UnrecordedShiftsTab", () => {
     expect(options.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
+  it("drains every page before exporting so no rows are missed", async () => {
+    // Page 1 returns 2 absent rows but total is 4 → hasNextPage is true, so a
+    // naive export would only catch the first 2. The handler must fetch the
+    // remaining pages first.
+    const page1Rows = [
+      makeRow({ employment_id: "employment-1", employee_id: "emp-1", employee_name: "Alice" }),
+      makeRow({ employment_id: "employment-2", employee_id: "emp-2", employee_name: "Bob" }),
+    ];
+    const page2Rows = [
+      makeRow({ employment_id: "employment-3", employee_id: "emp-3", employee_name: "Carol" }),
+      makeRow({ employment_id: "employment-4", employee_id: "emp-4", employee_name: "Dave" }),
+    ];
+
+    vi.mocked(api.fetchAttendanceReport).mockImplementation(
+      (args) =>
+        Promise.resolve({
+          data: (args.page as number) === 1 ? page1Rows : page2Rows,
+          total: 4,
+          page: args.page as number,
+          limit: 30,
+        }) as never,
+    );
+
+    renderTab();
+    expect(await screen.findByText("Alice")).toBeInTheDocument();
+
+    const exportBtn = document.getElementById("unrecorded-export-btn") as HTMLButtonElement;
+    expect(exportBtn).not.toBeDisabled();
+    exportBtn.click();
+
+    await waitFor(() => {
+      expect(mockExportNoShowToExcel).toHaveBeenCalledTimes(1);
+    });
+    // Both pages were fetched during the export drain.
+    expect(api.fetchAttendanceReport).toHaveBeenCalledWith(
+      expect.objectContaining({ page: 2 }),
+    );
+
+    const [rows] = mockExportNoShowToExcel.mock.calls[0] as [
+      Array<{ employee_name: string }>,
+    ];
+    const names = rows.map((r) => r.employee_name).sort();
+    expect(names).toEqual(["Alice", "Bob", "Carol", "Dave"]);
+  });
+
   it("disables the export button while loading or when there are no rows", async () => {
     // No absent rows → button disabled even after data loads.
     vi.mocked(api.fetchAttendanceReport).mockResolvedValue({

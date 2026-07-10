@@ -1,8 +1,8 @@
 import { format } from "date-fns";
-import { Building2, Download, UserX } from "lucide-react";
+import { Building2, Download, Loader2, UserX } from "lucide-react";
 import React, { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 
 import Button from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -80,9 +80,12 @@ function EmptyState({ empty, hint }: { empty: string; hint: string }) {
 export function UnrecordedShiftsTab() {
   const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId();
+  const queryClient = useQueryClient();
   const [selectedDept, setSelectedDept] = useState<string>("__all__");
+  const [isExporting, setIsExporting] = useState(false);
 
   const today = format(new Date(), "yyyy-MM-dd");
+  const queryKey = ["unrecorded-shifts", wsId, today];
 
   // Infinite-scroll fetch of today's daily attendance report. The backend
   // paginates at the employee level (`total` = total matching employees), so
@@ -146,9 +149,73 @@ export function UnrecordedShiftsTab() {
     [reportData]
   );
 
-  // Maps enriched rows to the Excel module's shape and triggers the download.
-  const handleExport = useCallback(
-    (rows: EnrichedRow[], reportDate: string) => {
+  // Enrich raw report rows with employee department/code, then keep only
+  // absent ones. Shared by the table render and the export handler so both
+  // always agree on the row shape and filter.
+  const enrichAndFilter = useCallback(
+    (rows: DailyAttendanceReport[]): EnrichedRow[] =>
+      rows
+        .filter((row) => row.status === "absent")
+        .map((row) => {
+          const empInfo = employeeMap.get(row.employee_id) ?? {
+            department_name: "—",
+            employee_id_number: "—",
+          };
+          return {
+            ...row,
+            department_name: empInfo.department_name,
+            employee_id_number: empInfo.employee_id_number,
+          };
+        }),
+    [employeeMap],
+  );
+
+  // Absent rows from the currently loaded pages (drives the table).
+  const absentRows = useMemo(
+    () => enrichAndFilter(allRows),
+    [allRows, enrichAndFilter],
+  );
+
+  // Exports ALL absent rows across every page — not just the ones already
+  // loaded by infinite scroll. Drains the query first, then reads the full
+  // dataset straight from the query cache so nothing is missed.
+  const handleExport = useCallback(async () => {
+    if (!wsId) return;
+    setIsExporting(true);
+    try {
+      // Drain remaining pages. Each fetchNextPage appends to the cached
+      // query data; we re-read hasNextPage from the fresh cache every loop.
+      // A hard cap guards against a runaway loop if the backend misbehaves.
+      let guard = 0;
+      while (guard < 1000) {
+        const cache = queryClient.getQueryData<{
+          pages: PaginatedResponse<DailyAttendanceReport>[];
+          pageParams: readonly number[];
+        }>(queryKey);
+        const pages = cache?.pages ?? [];
+        if (pages.length === 0) break;
+        const loadedEmployees = new Set(
+          pages.flatMap((p) => p.data.map((r) => r.employment_id)),
+        ).size;
+        const total = pages[pages.length - 1]?.total ?? 0;
+        if (loadedEmployees >= total) break;
+        await fetchNextPage();
+        guard++;
+      }
+
+      // Read the now-complete dataset from the cache.
+      const fullCache = queryClient.getQueryData<{
+        pages: PaginatedResponse<DailyAttendanceReport>[];
+        pageParams: readonly number[];
+      }>(queryKey);
+      const allReportRows = fullCache?.pages?.flatMap((p) => p.data) ?? [];
+
+      const absent = enrichAndFilter(allReportRows);
+      const rows =
+        selectedDept === "__all__"
+          ? absent
+          : absent.filter((r) => r.department_name === selectedDept);
+
       const noShowRows: NoShowRow[] = rows.map((r) => ({
         employee_id_number: r.employee_id_number,
         employee_name: r.employee_name,
@@ -157,27 +224,20 @@ export function UnrecordedShiftsTab() {
         scheduled_start: r.scheduled_start ?? null,
         scheduled_end: r.scheduled_end ?? null,
       }));
-      void exportNoShowToExcel(noShowRows, { t, date: reportDate });
-    },
-    [t],
-  );
-
-  // Filter daily rows to only absent ones and enrich with employee data
-  const absentRows = useMemo((): EnrichedRow[] => {
-    return allRows
-      .filter((row) => row.status === "absent")
-      .map((row) => {
-        const empInfo = employeeMap.get(row.employee_id) ?? {
-          department_name: "—",
-          employee_id_number: "—",
-        };
-        return {
-          ...row,
-          department_name: empInfo.department_name,
-          employee_id_number: empInfo.employee_id_number,
-        };
-      });
-  }, [allRows, employeeMap]);
+      void exportNoShowToExcel(noShowRows, { t, date: today });
+    } finally {
+      setIsExporting(false);
+    }
+  }, [
+    wsId,
+    queryClient,
+    queryKey,
+    fetchNextPage,
+    enrichAndFilter,
+    selectedDept,
+    t,
+    today,
+  ]);
 
   // Collect unique department names for the filter dropdown
   const departments = useMemo(() => {
@@ -253,19 +313,23 @@ export function UnrecordedShiftsTab() {
             </select>
           </div>
 
-          {/* Export button */}
+          {/* Export button — drains all pages before writing the file. */}
           <Button
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest"
-            disabled={filteredRows.length === 0 || isLoading}
+            disabled={absentRows.length === 0 || isLoading || isExporting}
             id="unrecorded-export-btn"
-            onClick={() => { handleExport(filteredRows, today); }}
+            onClick={() => { void handleExport(); }}
             variant="outline"
           >
-            <Download size={14} />
+            {isExporting ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <Download size={14} />
+            )}
             {t("unrecorded_shifts.export_btn")}
-            {filteredRows.length > 0 && (
+            {absentRows.length > 0 && !isExporting && (
               <span className="ml-1 px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-full text-[9px]">
-                {filteredRows.length}
+                {absentRows.length}
               </span>
             )}
           </Button>
