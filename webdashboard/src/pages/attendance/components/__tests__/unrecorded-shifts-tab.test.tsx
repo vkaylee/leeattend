@@ -47,7 +47,12 @@ window.IntersectionObserver =
 vi.mock("../../../../lib/api", () => ({
   fetchAttendanceReport: vi.fn(),
   fetchEmployees: vi.fn(),
+  fetchShifts: vi.fn(),
   getCurrentWorkspaceId: vi.fn(),
+}));
+
+vi.mock("@/hooks/use-employees", () => ({
+  useAllEmployees: () => ({ employees: makeEmployees(60), isLoading: false }),
 }));
 
 // The Excel module dynamically imports exceljs + file-saver; mock it so the
@@ -87,6 +92,7 @@ function makeRow(
     scheduled_end: "17:00:00",
     scheduled_start: "08:00:00",
     shift_name: "Morning Shift",
+    grace_period_minutes: 15,
     status: "absent",
     std_work_units: 0,
     unit_coefficient_hours: 1,
@@ -123,6 +129,7 @@ describe("UnrecordedShiftsTab", () => {
       page: 1,
       limit: 500,
     } as never);
+    vi.mocked(api.fetchShifts).mockResolvedValue([]);
   });
 
   const renderTab = () =>

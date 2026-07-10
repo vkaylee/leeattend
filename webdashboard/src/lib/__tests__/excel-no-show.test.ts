@@ -83,6 +83,7 @@ const ROWS: NoShowRow[] = [
     shift_name: "Morning Shift",
     scheduled_start: "08:00:00",
     scheduled_end: "17:00:00",
+    zone_label: "Needs verification",
   },
   {
     employee_id_number: "EMP002",
@@ -91,6 +92,7 @@ const ROWS: NoShowRow[] = [
     shift_name: null,
     scheduled_start: null,
     scheduled_end: null,
+    zone_label: null,
   },
 ];
 
@@ -112,10 +114,10 @@ describe("exportNoShowToExcel", () => {
     );
   });
 
-  it("sets 6 columns matching the table order", async () => {
+  it("sets 7 columns matching the table order (incl. zone)", async () => {
     await exportNoShowToExcel(ROWS, { t, date: "2026-07-10" });
 
-    expect(mockWorksheet.columns).toHaveLength(6);
+    expect(mockWorksheet.columns).toHaveLength(7);
     expect(mockWorksheet.columns[0].header).toBe(
       "unrecorded_shifts.columns.employee_code",
     );
@@ -134,6 +136,9 @@ describe("exportNoShowToExcel", () => {
     expect(mockWorksheet.columns[5].header).toBe(
       "unrecorded_shifts.columns.shift_out",
     );
+    expect(mockWorksheet.columns[6].header).toBe(
+      "unrecorded_shifts.columns.zone",
+    );
   });
 
   it("writes a merged title row and a merged date row", async () => {
@@ -141,9 +146,9 @@ describe("exportNoShowToExcel", () => {
 
     expect(mockGetCell).toHaveBeenCalledWith("A1");
     expect(mockGetCell).toHaveBeenCalledWith("A2");
-    // Both rows span all 6 columns.
-    expect(mockWorksheet.mergeCells).toHaveBeenCalledWith(1, 1, 1, 6);
-    expect(mockWorksheet.mergeCells).toHaveBeenCalledWith(2, 1, 2, 6);
+    // Both rows span all 7 columns.
+    expect(mockWorksheet.mergeCells).toHaveBeenCalledWith(1, 1, 1, 7);
+    expect(mockWorksheet.mergeCells).toHaveBeenCalledWith(2, 1, 2, 7);
   });
 
   it("writes the header row at row 4 and data starting at row 5", async () => {
@@ -174,7 +179,7 @@ describe("exportNoShowToExcel", () => {
 
     expect(mockWorksheet.autoFilter).toEqual({
       from: { row: 4, column: 1 },
-      to: { row: 5 + ROWS.length - 1, column: 6 },
+      to: { row: 5 + ROWS.length - 1, column: 7 },
     });
     expect(mockWorksheet.views).toEqual([
       { state: "frozen", ySplit: 4 },
