@@ -100,7 +100,8 @@
       "shift_out": "Giờ ra ca"
     },
     "empty": "Không có nhân sự nào vắng mặt đầu ca hôm nay.",
-    "empty_hint": "Tất cả nhân sự đã chấm công hoặc đã đăng ký nghỉ phép."
+    "empty_hint": "Tất cả nhân sự đã chấm công hoặc đã đăng ký nghỉ phép.",
+    "export_date": "Ngày"
   },
   "attendance_import": {
     "subtitle": "Nhập dữ liệu hàng loạt",

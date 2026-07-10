@@ -158,6 +158,7 @@
     "add_btn": "Add Employee",
     "search_placeholder": "Search by name or ID...",
     "filter_department": "Filter by department",
+    "filter_status": "Filter by status",
     "clear_filter": "Clear filter",
     "no_departments": "No departments yet",
     "filtering_by": "Filtering by",

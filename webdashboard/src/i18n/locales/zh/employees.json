@@ -158,6 +158,7 @@
     "add_btn": "添加员工",
     "search_placeholder": "按名称或 ID 搜索...",
     "filter_department": "按部门筛选",
+    "filter_status": "按状态筛选",
     "clear_filter": "清除筛选",
     "no_departments": "暂无部门",
     "filtering_by": "正在筛选",

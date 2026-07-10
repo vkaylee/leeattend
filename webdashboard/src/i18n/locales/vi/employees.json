@@ -158,6 +158,7 @@
     "add_btn": "Thêm nhân viên",
     "search_placeholder": "Tìm theo tên hoặc mã nhân viên...",
     "filter_department": "Lọc theo phòng ban",
+    "filter_status": "Lọc theo trạng thái",
     "clear_filter": "Xóa bộ lọc",
     "no_departments": "Chưa có phòng ban",
     "filtering_by": "Đang lọc",

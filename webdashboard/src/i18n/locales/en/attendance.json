@@ -100,7 +100,8 @@
       "shift_out": "Shift End"
     },
     "empty": "No employees are absent at shift start today.",
-    "empty_hint": "All employees have checked in or are on approved leave."
+    "empty_hint": "All employees have checked in or are on approved leave.",
+    "export_date": "Date"
   },
   "attendance_import": {
     "subtitle": "Bulk Data Import",
