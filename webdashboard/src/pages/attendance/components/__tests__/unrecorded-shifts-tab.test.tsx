@@ -448,6 +448,154 @@ describe("UnrecordedShiftsTab", () => {
     expect(names).toEqual(["Alice", "Bob", "Carol", "Dave"]);
   });
 
+  it("applies the department filter across all drained pages", async () => {
+    // emp-1,3 → Engineering (even index); emp-2,4 → HR (odd index). Two pages,
+    // but the HR filter must drop the Engineering rows on BOTH pages — not just
+    // the first one that's already loaded.
+    const page1Rows = [
+      makeRow({ employment_id: "employment-1", employee_id: "emp-1", employee_name: "Eng Alice" }),
+      makeRow({ employment_id: "employment-2", employee_id: "emp-2", employee_name: "HR Bob" }),
+    ];
+    const page2Rows = [
+      makeRow({ employment_id: "employment-3", employee_id: "emp-3", employee_name: "Eng Carol" }),
+      makeRow({ employment_id: "employment-4", employee_id: "emp-4", employee_name: "HR Dave" }),
+    ];
+
+    vi.mocked(api.fetchAttendanceReport).mockImplementation(
+      (args) =>
+        Promise.resolve({
+          data: (args.page as number) === 1 ? page1Rows : page2Rows,
+          total: 4,
+          page: args.page as number,
+          limit: 30,
+        }) as never,
+    );
+
+    renderTab();
+    expect(await screen.findByText("Eng Alice")).toBeInTheDocument();
+
+    // Select "HR" from the department filter dropdown.
+    const deptSelect = document.getElementById("unrecorded-dept-filter") as HTMLSelectElement;
+    deptSelect.value = "HR";
+    deptSelect.dispatchEvent(new Event("change", { bubbles: true }));
+    await waitFor(() => {
+      expect(screen.queryByText("Eng Alice")).not.toBeInTheDocument();
+    });
+
+    const exportBtn = document.getElementById("unrecorded-export-btn") as HTMLButtonElement;
+    expect(exportBtn).not.toBeDisabled();
+    exportBtn.click();
+
+    await waitFor(() => {
+      expect(mockExportNoShowToExcel).toHaveBeenCalledTimes(1);
+    });
+
+    const [rows] = mockExportNoShowToExcel.mock.calls[0] as [
+      Array<{ employee_name: string }>,
+    ];
+    const names = rows.map((r) => r.employee_name).sort();
+    // Only the HR employees from both pages make it through.
+    expect(names).toEqual(["HR Bob", "HR Dave"]);
+  });
+
+  it("includes the shift_name field in every exported row", async () => {
+    vi.mocked(api.fetchAttendanceReport).mockResolvedValue({
+      data: [
+        makeRow({
+          employment_id: "employment-1",
+          employee_id: "emp-1",
+          employee_name: "Alice",
+          shift_name: "Morning Shift",
+        }),
+        makeRow({
+          employment_id: "employment-2",
+          employee_id: "emp-2",
+          employee_name: "Bob",
+          shift_name: null,
+        }),
+      ],
+      total: 2,
+      page: 1,
+      limit: 30,
+    } as never);
+
+    renderTab();
+    expect(await screen.findByText("Alice")).toBeInTheDocument();
+
+    const exportBtn = document.getElementById("unrecorded-export-btn") as HTMLButtonElement;
+    exportBtn.click();
+
+    await waitFor(() => {
+      expect(mockExportNoShowToExcel).toHaveBeenCalledTimes(1);
+    });
+
+    const [rows] = mockExportNoShowToExcel.mock.calls[0] as [
+      Array<{ employee_name: string; shift_name: string | null }>,
+    ];
+    expect(rows).toHaveLength(2);
+    expect(rows[0].shift_name).toBe("Morning Shift");
+    // A null shift_name is preserved as null (the Excel module renders "—").
+    expect(rows[1].shift_name).toBeNull();
+  });
+
+  it("disables the button and shows a spinner while draining pages", async () => {
+    // Page 2 is held on a deferred promise from the start. The initial
+    // auto-load only fetches page 1, so the table renders; the drain triggered
+    // by Export then blocks on page 2 — that's the in-flight state we assert.
+    let resolvePage2!: () => void;
+    const page2Blocking = new Promise<void>((resolve) => { resolvePage2 = resolve; });
+
+    const page1Rows = [
+      makeRow({ employment_id: "employment-1", employee_id: "emp-1", employee_name: "Alice" }),
+    ];
+    const page2Rows = [
+      makeRow({ employment_id: "employment-2", employee_id: "emp-2", employee_name: "Bob" }),
+    ];
+
+    vi.mocked(api.fetchAttendanceReport).mockImplementation(
+      (args) => {
+        if ((args.page as number) === 2) {
+          // Block the drain until we explicitly release it.
+          return page2Blocking.then(() => ({
+            data: page2Rows,
+            total: 2,
+            page: 2,
+            limit: 30,
+          })) as never;
+        }
+        return Promise.resolve({
+          data: page1Rows,
+          total: 2,
+          page: 1,
+          limit: 30,
+        }) as never;
+      },
+    );
+
+    renderTab();
+    // Page 1 resolves immediately → table shows Alice.
+    expect(await screen.findByText("Alice")).toBeInTheDocument();
+
+    const exportBtn = document.getElementById("unrecorded-export-btn") as HTMLButtonElement;
+    expect(exportBtn).not.toBeDisabled();
+
+    exportBtn.click();
+
+    // While page 2 is pending the button enters the exporting state.
+    await waitFor(() => {
+      expect(exportBtn).toBeDisabled();
+    });
+    expect(exportBtn.querySelector(".animate-spin")).not.toBeNull();
+
+    // Release the drain → export completes and the button recovers.
+    resolvePage2();
+    await waitFor(() => {
+      expect(mockExportNoShowToExcel).toHaveBeenCalledTimes(1);
+    });
+    expect(exportBtn).not.toBeDisabled();
+    expect(exportBtn.querySelector(".animate-spin")).toBeNull();
+  });
+
   it("disables the export button while loading or when there are no rows", async () => {
     // No absent rows → button disabled even after data loads.
     vi.mocked(api.fetchAttendanceReport).mockResolvedValue({
