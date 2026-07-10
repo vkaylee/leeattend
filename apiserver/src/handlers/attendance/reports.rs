@@ -26,6 +26,9 @@ pub struct AttendanceReportQuery {
     pub employee_status: Option<String>,
     pub employer_id: Option<uuid::Uuid>,
     pub employment_id: Option<uuid::Uuid>,
+    /// Comma-separated shift names to filter no-show rows by shift type.
+    #[serde(default)]
+    pub shift_type: Option<String>,
     /// Opt-in query parameter for segment-centric daily reports.
     /// When `true`, the handler uses
     /// [`ReportService::get_segment_attendance_report`] instead of the
@@ -188,6 +191,8 @@ pub async fn get_attendance_report(
         }
     }
 
+    let shift_type = params.shift_type.clone();
+
     let start_date = NaiveDate::parse_from_str(start_date_str, "%Y-%m-%d")
         .map_err(|_e| AppError::validation(I18nKey::InvalidStartDateValue))?;
     let end_date = NaiveDate::parse_from_str(end_date_str, "%Y-%m-%d")
@@ -220,6 +225,7 @@ pub async fn get_attendance_report(
                         employee_status: params.employee_status.clone(),
                         employer_id: params.employer_id,
                         employment_id: params.employment_id,
+                        shift_type,
                     },
                 )
                 .await?
@@ -240,6 +246,7 @@ pub async fn get_attendance_report(
                         employee_status: params.employee_status.clone(),
                         employer_id: params.employer_id,
                         employment_id: params.employment_id,
+                        shift_type,
                     },
                 )
                 .await?
@@ -265,6 +272,7 @@ pub async fn get_attendance_report(
                     employee_status: params.employee_status.clone(),
                     employer_id: params.employer_id,
                     employment_id: params.employment_id,
+                    shift_type,
                 },
             )
             .await?;

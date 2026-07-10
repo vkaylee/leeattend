@@ -91,6 +91,7 @@ async fn test_daily_report_employee_filtering() {
             employee_status: None,
             employer_id: None,
             employment_id: None,
+            shift_type: None,
         })
         .await
         .expect("Failed to get report");
@@ -111,6 +112,7 @@ async fn test_daily_report_employee_filtering() {
             employee_status: None,
             employer_id: None,
             employment_id: None,
+            shift_type: None,
         })
         .await
         .expect("Failed to get report");
@@ -201,6 +203,7 @@ async fn test_attendance_report_resigned_employee_filtering() {
             employee_status: Some("active".to_string()),
             employer_id: None,
             employment_id: None,
+            shift_type: None,
         })
         .await
         .expect("Failed to get report");
@@ -222,6 +225,7 @@ async fn test_attendance_report_resigned_employee_filtering() {
             employee_status: Some("active".to_string()),
             employer_id: None,
             employment_id: None,
+            shift_type: None,
         })
         .await
         .expect("Failed to get report");
@@ -243,6 +247,7 @@ async fn test_attendance_report_resigned_employee_filtering() {
             employee_status: Some("all".to_string()),
             employer_id: None,
             employment_id: None,
+            shift_type: None,
         })
         .await
         .expect("Failed to get report");
@@ -263,6 +268,7 @@ async fn test_attendance_report_resigned_employee_filtering() {
             employee_status: Some("terminated".to_string()),
             employer_id: None,
             employment_id: None,
+            shift_type: None,
         })
         .await
         .expect("Failed to get report");
@@ -378,6 +384,7 @@ async fn test_report_multi_employment_and_employer() {
                 employee_status: None,
                 employer_id: None,
                 employment_id: None,
+                shift_type: None,
             },
         )
         .await
@@ -408,6 +415,7 @@ async fn test_report_multi_employment_and_employer() {
                 employee_status: None,
                 employer_id: Some(first_employer_id),
                 employment_id: None,
+                shift_type: None,
             },
         )
         .await
@@ -434,6 +442,7 @@ async fn test_report_multi_employment_and_employer() {
                 employee_status: None,
                 employer_id: None,
                 employment_id: Some(second_employment_id),
+                shift_type: None,
             },
         )
         .await

@@ -47,6 +47,7 @@ fn make_report(has_punch_in: bool, has_shift: bool) -> DailyAttendanceReport {
         shift_name: None,
         scheduled_start,
         scheduled_end,
+        grace_period_minutes: None,
         break_duration_minutes: None,
         break_start: None,
         break_end: None,
@@ -171,5 +172,123 @@ fn test_shift_name_serialization_roundtrip() {
         decoded.shift_name,
         Some("Morning Shift".to_string()),
         "shift_name should survive JSON roundtrip"
+    );
+}
+
+// ── No-show zone support: grace_period_minutes field ──
+
+#[test]
+fn test_grace_period_minutes_serialization_roundtrip() {
+    let mut report = make_report(false, true);
+    report.grace_period_minutes = Some(15);
+
+    let json = serde_json::to_string(&report).unwrap();
+    let decoded: DailyAttendanceReport = serde_json::from_str(&json).unwrap();
+
+    assert_eq!(
+        decoded.grace_period_minutes,
+        Some(15),
+        "grace_period_minutes should survive JSON roundtrip"
+    );
+}
+
+#[test]
+fn test_grace_period_minutes_serde_default_when_missing() {
+    let report = make_report(false, true);
+    assert_eq!(report.grace_period_minutes, None);
+
+    let mut json_value: serde_json::Value = serde_json::to_value(&report).unwrap();
+    json_value
+        .as_object_mut()
+        .unwrap()
+        .remove("grace_period_minutes");
+    assert!(json_value.get("grace_period_minutes").is_none());
+
+    let decoded: DailyAttendanceReport = serde_json::from_value(json_value).unwrap();
+    assert_eq!(
+        decoded.grace_period_minutes,
+        None,
+        "missing grace_period_minutes should default to None via #[serde(default)]"
+    );
+}
+
+// ── No-show zone support: shift_type filter (pure helper) ──
+
+fn make_report_with_shift(
+    has_punch_in: bool,
+    has_shift: bool,
+    shift_name: Option<&str>,
+) -> DailyAttendanceReport {
+    let mut report = make_report(has_punch_in, has_shift);
+    report.shift_name = shift_name.map(String::from);
+    report
+}
+
+#[test]
+fn test_shift_type_filter_includes_matching() {
+    let rows = vec![
+        make_report_with_shift(false, true, Some("Morning Shift")),
+        make_report_with_shift(false, true, Some("Night Shift")),
+    ];
+    let filtered = super::daily::filter_by_shift_type(
+        rows,
+        Some(vec!["Morning Shift".to_string()]),
+    );
+    assert_eq!(filtered.len(), 1);
+    assert_eq!(filtered[0].shift_name, Some("Morning Shift".to_string()));
+}
+
+#[test]
+fn test_shift_type_filter_excludes_non_matching() {
+    let rows = vec![
+        make_report_with_shift(false, true, Some("Morning Shift")),
+        make_report_with_shift(false, true, Some("Night Shift")),
+    ];
+    let filtered =
+        super::daily::filter_by_shift_type(rows, Some(vec!["Afternoon Shift".to_string()]));
+    assert!(
+        filtered.is_empty(),
+        "no rows match the filter → empty result"
+    );
+}
+
+#[test]
+fn test_shift_type_filter_none_returns_all() {
+    let rows = vec![
+        make_report_with_shift(false, true, Some("Morning Shift")),
+        make_report_with_shift(false, true, Some("Night Shift")),
+        make_report_with_shift(true, true, None),
+    ];
+    let filtered = super::daily::filter_by_shift_type(rows, None);
+    assert_eq!(filtered.len(), 3, "no filter → all rows returned");
+}
+
+#[test]
+fn test_shift_type_filter_comma_separated_multiple() {
+    let rows = vec![
+        make_report_with_shift(false, true, Some("Morning Shift")),
+        make_report_with_shift(false, true, Some("Night Shift")),
+        make_report_with_shift(false, true, Some("Afternoon Shift")),
+    ];
+    let filtered = super::daily::filter_by_shift_type(
+        rows,
+        Some(vec!["Morning Shift".to_string(), "Night Shift".to_string()]),
+    );
+    assert_eq!(filtered.len(), 2);
+    let names: Vec<_> = filtered.iter().filter_map(|r| r.shift_name.clone()).collect();
+    assert!(names.contains(&"Morning Shift".to_string()));
+    assert!(names.contains(&"Night Shift".to_string()));
+}
+
+#[test]
+fn test_shift_type_filter_handles_null_shift_name() {
+    let rows = vec![make_report_with_shift(true, true, None)];
+    let filtered = super::daily::filter_by_shift_type(
+        rows,
+        Some(vec!["Morning Shift".to_string()]),
+    );
+    assert!(
+        filtered.is_empty(),
+        "rows with null shift_name are excluded by a shift filter"
     );
 }

@@ -28,6 +28,7 @@ pub struct AttendanceReportArgs {
     pub employee_status: Option<String>,
     pub employer_id: Option<Uuid>,
     pub employment_id: Option<Uuid>,
+    pub shift_type: Option<String>,
 }
 
 pub struct CalculateDayUnitsArgs<'a, 'b> {

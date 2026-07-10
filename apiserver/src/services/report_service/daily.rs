@@ -8,6 +8,23 @@ use chrono::{NaiveDate, TimeZone, Utc};
 use chrono_tz::Tz;
 use uuid::Uuid;
 
+/// Pure post-join shift-type filter. Applied to the already-built report rows
+/// (after status computation) so pagination counts stay correct. O(rows).
+/// Mirrors the existing in-memory `employer_id` filter — extracted for unit testing.
+pub(crate) fn filter_by_shift_type(
+    reports: Vec<DailyAttendanceReport>,
+    shift_names: Option<Vec<String>>,
+) -> Vec<DailyAttendanceReport> {
+    if let Some(names) = shift_names {
+        reports
+            .into_iter()
+            .filter(|r| r.shift_name.as_ref().map_or(false, |n| names.contains(n)))
+            .collect()
+    } else {
+        reports
+    }
+}
+
 impl ReportService {
     /// Shared calculation for a single day's standard/OT units.
     pub(crate) fn calculate_day_units(args: CalculateDayUnitsArgs<'_, '_>) -> (i32, i32) {
@@ -117,6 +134,16 @@ impl ReportService {
         let limit = args.limit.unwrap_or(20);
 
         let auth_token = crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id);
+
+        // Shift-type filter (comma-separated shift names), applied post-join to keep
+        // pagination at employee level. Mirrors the existing `employee_ids` split.
+        let shift_names: Option<Vec<String>> = args.shift_type.as_ref().map(|s| {
+            s.split(',')
+                .map(str::trim)
+                .filter(|p| !p.is_empty())
+                .map(String::from)
+                .collect()
+        });
 
         let (paginated_employees, total_employees, employments, paginated_employment_ids) =
             if let Some(specific_employment_id) = args.employment_id {
@@ -383,6 +410,12 @@ impl ReportService {
                 );
                 let rules = PolicyResolver::apply_shift_overrides(base_rules, &overrides);
 
+                // Resolved late/absence grace for this employee-day (default 15 when the
+                // attendance policy leaves it unset). Captured once and reused both for
+                // status determination and as the row-level `grace_period_minutes` field
+                // so the frontend computes A/B/C no-show zones with the *same* value.
+                let grace_minutes = rules.grace_period_minutes();
+
                 let (std_work_units, ot_work_units) =
                     Self::calculate_day_units(CalculateDayUnitsArgs {
                         day_entries,
@@ -414,7 +447,7 @@ impl ReportService {
                         holiday_entry.is_none_or(crate::models::Holiday::is_paid),
                         daily.shift_id().is_some(),
                         is_on_leave,
-                        Some(rules.grace_period_minutes()),
+                        Some(grace_minutes),
                     ),
                 );
 
@@ -453,6 +486,7 @@ impl ReportService {
                     shift_name: daily.shift_name().map(String::from),
                     scheduled_start: daily.start_time(),
                     scheduled_end: daily.end_time(),
+                    grace_period_minutes: Some(grace_minutes),
                     break_duration_minutes: daily.break_duration_minutes(),
                     break_start: daily.break_start(),
                     break_end: daily.break_end(),
@@ -491,6 +525,9 @@ impl ReportService {
             }
         }
 
+        // Post-join shift-type filter (O(rows), mirrors the existing employer_id filter).
+        let reports = filter_by_shift_type(reports, shift_names);
+
         Ok(PaginatedResponse {
             data: reports,
             total: usize::try_from(total_employees).unwrap_or(0),
@@ -528,6 +565,16 @@ impl ReportService {
         let limit = args.limit.unwrap_or(20);
 
         let auth_token = crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id);
+
+        // Shift-type filter (comma-separated shift names), applied post-join to keep
+        // pagination at employee level. Mirrors the existing `employee_ids` split.
+        let shift_names: Option<Vec<String>> = args.shift_type.as_ref().map(|s| {
+            s.split(',')
+                .map(str::trim)
+                .filter(|p| !p.is_empty())
+                .map(String::from)
+                .collect()
+        });
 
         // Fetch segments (segment-centric data path)
         let (paginated_employees, total_employees, employments, paginated_employment_ids) =
@@ -916,6 +963,11 @@ impl ReportService {
                         })
                         .unwrap_or((calc_result.total_standard_units, calc_result.total_ot_units));
 
+                    // Resolved late/absence grace for this segment row (default 15).
+                    let segment_grace = emp_attendance_rules
+                        .grace_period_minutes
+                        .unwrap_or(crate::domain::policy::defaults::DEFAULT_GRACE_PERIOD_MINUTES);
+
                     let status = crate::services::attendance_utils::determine_daily_status(
                         &crate::services::attendance_utils::DailyStatusInput::new(
                             actual_punch_in.is_some(),
@@ -925,9 +977,7 @@ impl ReportService {
                             holiday_entry.is_none_or(crate::models::Holiday::is_paid),
                             true,
                             is_on_leave,
-                            Some(emp_attendance_rules.grace_period_minutes.unwrap_or(
-                                crate::domain::policy::defaults::DEFAULT_GRACE_PERIOD_MINUTES,
-                            )),
+                            Some(segment_grace),
                         ),
                     );
 
@@ -950,6 +1000,7 @@ impl ReportService {
                         shift_name: seg.shift_name.clone(),
                         scheduled_start: Some(seg.scheduled_start),
                         scheduled_end: Some(seg.scheduled_end),
+                        grace_period_minutes: Some(segment_grace),
                         break_duration_minutes: seg.break_duration_minutes,
                         break_start: seg.break_start,
                         break_end: seg.break_end,
@@ -985,6 +1036,9 @@ impl ReportService {
                 }
             }
         }
+
+        // Post-join shift-type filter (O(rows), mirrors the existing employer_id filter).
+        let reports = filter_by_shift_type(reports, shift_names);
 
         Ok(PaginatedResponse {
             data: reports,

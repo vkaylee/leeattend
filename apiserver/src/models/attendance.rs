@@ -156,6 +156,8 @@ pub struct DailyAttendanceReport {
     pub shift_name: Option<String>,
     pub scheduled_start: Option<NaiveTime>,
     pub scheduled_end: Option<NaiveTime>,
+    #[serde(default)]
+    pub grace_period_minutes: Option<i32>,
     pub break_duration_minutes: Option<i32>,
     pub break_start: Option<NaiveTime>,
     pub break_end: Option<NaiveTime>,
