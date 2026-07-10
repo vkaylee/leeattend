@@ -263,8 +263,10 @@ describe("UnrecordedShiftsTab", () => {
 
   // ── Infinite scroll: multi-page fetch ───────────────────────────────────
 
-  it("fetches the next page via the sentinel when scrolled into view", async () => {
-    // Page 1 returns 30 absent rows; total is 60 → hasNextPage is true.
+  it("eagerly drains every page so the badge/export see the full total", async () => {
+    // Page 1 returns 30 absent rows; total is 60 → hasNextPage is true. The
+    // eager-drain effect (mounted alongside the sentinel) must pull page 2 in
+    // the background, so all 60 rows end up in memory without a scroll.
     const page1Rows = Array.from({ length: 30 }, (_, i) =>
       makeRow({
         employment_id: `employment-${i + 1}`,
@@ -292,25 +294,18 @@ describe("UnrecordedShiftsTab", () => {
 
     renderTab();
 
-    // First page renders.
+    // First page renders immediately.
     expect(await screen.findByText("Employee 1")).toBeInTheDocument();
-    expect(api.fetchAttendanceReport).toHaveBeenCalledTimes(1);
 
-    // The sentinel observer must have been created (sentinel <tr ref> mounted).
-    await waitFor(() => {
-      expect(intersectionCallback).not.toBeNull();
-    });
-
-    // Simulate the sentinel scrolling into view → triggers fetchNextPage.
-    MockIntersectionObserver.fire(true);
-
-    // Second page is fetched and its rows are appended.
+    // The eager-drain effect fetches the remaining page in the background.
     await waitFor(() => {
       expect(api.fetchAttendanceReport).toHaveBeenCalledTimes(2);
     });
     expect(api.fetchAttendanceReport).toHaveBeenLastCalledWith(
       expect.objectContaining({ page: 2, limit: 30 }),
     );
+
+    // Page 2 rows are appended to the table.
     expect(await screen.findByText("Employee 31")).toBeInTheDocument();
   });
 
@@ -496,6 +491,44 @@ describe("UnrecordedShiftsTab", () => {
     const names = rows.map((r) => r.employee_name).sort();
     // Only the HR employees from both pages make it through.
     expect(names).toEqual(["HR Bob", "HR Dave"]);
+  });
+
+  it("shows the total absent count on the export badge, not just page 1", async () => {
+    // 60 absent employees across 2 pages. Before the eager drain, the badge
+    // would have shown only the first 30. It must reflect the full 60.
+    const page1Rows = Array.from({ length: 30 }, (_, i) =>
+      makeRow({
+        employment_id: `employment-${i + 1}`,
+        employee_id: `emp-${i + 1}`,
+        employee_name: `Employee ${i + 1}`,
+      }),
+    );
+    const page2Rows = Array.from({ length: 30 }, (_, i) =>
+      makeRow({
+        employment_id: `employment-${i + 31}`,
+        employee_id: `emp-${i + 31}`,
+        employee_name: `Employee ${i + 31}`,
+      }),
+    );
+
+    vi.mocked(api.fetchAttendanceReport).mockImplementation(
+      (args) =>
+        Promise.resolve({
+          data: args.page === 1 ? page1Rows : page2Rows,
+          total: 60,
+          page: args.page as number,
+          limit: 30,
+        }) as never,
+    );
+
+    renderTab();
+    expect(await screen.findByText("Employee 1")).toBeInTheDocument();
+
+    const exportBtn = document.getElementById("unrecorded-export-btn") as HTMLButtonElement;
+    // Badge shows the full total once the eager drain completes.
+    await waitFor(() => {
+      expect(exportBtn).toHaveTextContent("60");
+    });
   });
 
   it("includes the shift_name field in every exported row", async () => {

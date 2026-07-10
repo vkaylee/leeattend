@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { Building2, Download, Loader2, UserX } from "lucide-react";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -122,6 +122,16 @@ export function UnrecordedShiftsTab() {
   const { employees, isLoading: isEmpLoading } = useAllEmployees(wsId);
 
   const isLoading = isReportLoading || isEmpLoading;
+
+  // Eagerly drain every page once the first page lands. The table still
+  // renders progressively via the sentinel, but the export button badge must
+  // reflect the true total (not just page 1), and the export handler reads the
+  // full dataset from this cache — so we pull all pages in the background.
+  useEffect(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      void fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // IntersectionObserver sentinel fires fetchNextPage when scrolled into view.
   const loadMoreRef = useInfiniteScroll<HTMLTableRowElement>({
