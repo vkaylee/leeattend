@@ -53,9 +53,10 @@ describe("Employee Self-Service (ESS) API Client", () => {
     expect(result).toEqual(mockProfile);
   });
 
-  it("fetchMyProfile should throw an error if no data is returned", async () => {
+  it("fetchMyProfile returns null when no data is returned (no longer throws)", async () => {
     vi.mocked(client.GET).mockResolvedValueOnce({ data: null } as any);
-    await expect(fetchMyProfile()).rejects.toThrow("No response data");
+    const result = await fetchMyProfile();
+    expect(result).toBeNull();
   });
 
   it("updateMyProfile should make a PUT call to /ess/profile", async () => {

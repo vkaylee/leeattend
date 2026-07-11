@@ -89,7 +89,7 @@ describe("fetchMyBehalfTargets", () => {
 
     await expect(
       fetchMyBehalfTargets("ws-test-123", "leave"),
-    ).rejects.toThrow("Failed to fetch behalf targets: 403");
+    ).rejects.toThrow("[403]");
   });
 
   it("returns empty array when API returns empty list", async () => {

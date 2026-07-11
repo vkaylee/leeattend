@@ -17,7 +17,6 @@ export async function fetchWorkingPatterns(wsId: string): Promise<WorkingPattern
   const { data } = await fetch<WorkingPattern[]>("GET", "/workspaces/{workspace_id}/working-patterns", {
     params: { path: { workspace_id: wsId } },
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -49,7 +48,6 @@ export async function fetchPatternDetails(wsId: string, patternId: string): Prom
       path: { workspace_id: wsId, pattern_id: patternId },
     },
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -91,7 +89,6 @@ export async function fetchEmployeePatternHistory(
       path: { workspace_id: wsId, id: employmentId },
     },
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 

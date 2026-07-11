@@ -398,6 +398,7 @@ use utoipa::OpenApi;
         crate::handlers::attendance::time_tracking::update_time_entry,
         crate::handlers::attendance::time_tracking::delete_time_entry,
         crate::handlers::attendance::reports::get_attendance_report,
+        crate::handlers::attendance::no_show::get_no_show_report,
 
         // Attendance Policies Paths
         crate::handlers::attendance::policies::get_default_attendance_rules,

@@ -3,7 +3,6 @@ import { AgentStatus, Device, AuthorizedAgent, DeviceInfo } from "./types";
 
 export async function fetchAgents(): Promise<AgentStatus[]> {
   const { data: resData } = await client.GET("/agents");
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -16,7 +15,6 @@ export async function sendAgentCommand(agentId: string, command: unknown): Promi
 
 export async function fetchDevices(): Promise<Device[]> {
   const { data: resData } = await client.GET("/devices");
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -24,7 +22,6 @@ export async function createDevice(device: Partial<Device>): Promise<{ id: strin
   const { data: resData } = await client.POST("/devices", {
     body: device as never,
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -47,7 +44,6 @@ export async function fetchAuthorizedAgents(includeInactive = false): Promise<Au
       query: { include_inactive: includeInactive },
     },
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -55,7 +51,6 @@ export async function fetchAuthorizedAgentById(id: string): Promise<AuthorizedAg
   const { data: resData } = await client.GET("/authorized-agents/{id}", {
     params: { path: { id } },
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -63,7 +58,6 @@ export async function createAuthorizedAgent(agent: Partial<AuthorizedAgent>): Pr
   const { data: resData } = await client.POST("/authorized-agents", {
     body: agent as never,
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -79,7 +73,6 @@ export async function updateAuthorizedAgent(id: string, agent: Partial<Authorize
     params: { path: { id } },
     body: agent as never,
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -93,7 +86,6 @@ export async function fetchDeviceInfo(id: string): Promise<DeviceInfo> {
   const { data: resData } = await fetch<DeviceInfo>("GET", "/devices/{id}/info", {
     params: { path: { id } },
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 

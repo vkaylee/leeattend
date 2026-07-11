@@ -6,6 +6,7 @@
  * a concrete list of Employee records.
  */
 
+import { ApiError } from "./errors";
 import type { Employee } from "./types";
 
 import { apiFetch } from "./helpers";
@@ -30,9 +31,7 @@ export async function fetchMyBehalfTargets(
     `/v1/workspaces/${wsId}/${path}`,
   );
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch behalf targets: ${response.status}`);
-  }
+  if (!response.ok) await ApiError.rejectResponse(response);
 
   return response.json() as Promise<Employee[]>;
 }

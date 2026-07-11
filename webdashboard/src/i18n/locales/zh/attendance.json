@@ -809,6 +809,15 @@
     "clear_filters": "清除筛选",
     "empty_zone_b": "暂无需要核实的员工。",
     "empty_zone_b_hint": "所有在岗员工已签到或仍在宽限时间内。",
-    "viewing_past": "历史记录 — 已固定"
+    "viewing_past": "历史记录 — 已固定",
+    "timeline": "时间轴",
+    "now_badge": "现在",
+    "scrubber_label": "参考时间滑块，当前 {{time}} {{date}}，使用左右方向键移动",
+    "export_reference_time": "参考时间",
+    "step_back": "后退一小时",
+    "step_forward": "前进一小时",
+    "step_forward": "前进一小时",
+    "jump_to_now": "现在",
+    "export_reference_time": "参考时间"
   }
 }

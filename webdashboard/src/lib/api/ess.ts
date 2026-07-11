@@ -23,7 +23,6 @@ import {
 
 export async function fetchMyProfile(): Promise<MyProfileResponse> {
   const { data: resData } = await client.GET("/ess/profile");
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -33,7 +32,6 @@ export async function updateMyProfile(
   const { data: resData } = await client.PUT("/ess/profile", {
     body: data,
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -43,7 +41,6 @@ export async function fetchMyEmergencyContacts(): Promise<
   EmployeeEmergencyContact[]
 > {
   const { data: resData } = await client.GET("/ess/emergency-contacts");
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -53,7 +50,6 @@ export async function addEmergencyContact(
   const { data: resData } = await client.POST("/ess/emergency-contacts", {
     body: data,
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -69,7 +65,6 @@ export async function deleteEmergencyContact(contactId: string): Promise<void> {
 
 export async function fetchMyDocuments(): Promise<EmployeeDocument[]> {
   const { data: resData } = await client.GET("/ess/documents");
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -79,7 +74,6 @@ export async function fetchMyDocuments(): Promise<EmployeeDocument[]> {
 
 export async function fetchMyPayslips(): Promise<Payslip[]> {
   const { data: resData } = await client.GET("/ess/payslips");
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -101,7 +95,6 @@ export async function fetchMyAttendance(
       },
     },
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -118,7 +111,6 @@ export async function fetchMyTimeEntries(
       },
     },
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -128,7 +120,6 @@ export async function punchMySelf(
   const { data: resData } = await client.POST("/ess/punch", {
     body: data ?? {},
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -136,13 +127,11 @@ export async function punchMySelf(
 
 export async function fetchEssLeaveBalances(): Promise<EmployeeLeaveBalance[]> {
   const { data: resData } = await client.GET("/ess/leave/balances");
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
 export async function fetchEssLeaveRequests(): Promise<LeaveRequest[]> {
   const { data: resData } = await client.GET("/ess/leave/requests");
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 

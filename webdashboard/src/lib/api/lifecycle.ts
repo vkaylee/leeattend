@@ -21,7 +21,6 @@ export async function fetchLifecycleTemplates(
       path: { ws_id: wsId },
     },
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -35,7 +34,6 @@ export async function createLifecycleTemplate(
     },
     body,
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -48,7 +46,6 @@ export async function getLifecycleTemplate(
       path: { ws_id: wsId, id },
     },
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -63,7 +60,6 @@ export async function updateLifecycleTemplate(
     },
     body,
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -88,7 +84,6 @@ export async function fetchLifecycleTemplateItems(
       path: { ws_id: wsId, id },
     },
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -103,7 +98,6 @@ export async function createLifecycleTemplateItem(
     },
     body,
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -117,7 +111,6 @@ export async function getLifecycleTemplateItem(
       path: { ws_id: wsId, tid, iid },
     },
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -133,7 +126,6 @@ export async function updateLifecycleTemplateItem(
     },
     body,
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -159,7 +151,6 @@ export async function fetchLifecycleChecklists(
       path: { ws_id: wsId, emp_id: empId },
     },
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -174,7 +165,6 @@ export async function createLifecycleChecklist(
     },
     body,
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -187,7 +177,6 @@ export async function getLifecycleChecklist(
       path: { ws_id: wsId, id },
     },
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -203,7 +192,6 @@ export async function updateChecklistItemStatus(
     },
     body,
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -216,6 +204,5 @@ export async function fetchMyPendingTasks(
       path: { ws_id: wsId },
     },
   });
-  if (!data) throw new Error("No response data");
   return data;
 }

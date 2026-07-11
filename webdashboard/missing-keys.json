@@ -1,1 +1,62 @@
-[]
+[
+  {
+    "file": "src/components/features/employees/employee-termination-import-dialog.tsx",
+    "key": "employees.bulk_termination.download_error",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/employees/employee-termination-import-dialog.tsx",
+    "key": "employees.bulk_termination.download_error",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/employees/employee-termination-import-dialog.tsx",
+    "key": "employees.bulk_termination.download_error",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/employees/employee-termination-import-dialog.tsx",
+    "key": "employees.bulk_termination.upload_error",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/employees/employee-termination-import-dialog.tsx",
+    "key": "employees.bulk_termination.upload_error",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/employees/employee-termination-import-dialog.tsx",
+    "key": "employees.bulk_termination.upload_error",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/employees/employee-termination-import-dialog.tsx",
+    "key": "employees.bulk_termination.confirm_error",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/employees/employee-termination-import-dialog.tsx",
+    "key": "employees.bulk_termination.confirm_error",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/employees/employee-termination-import-dialog.tsx",
+    "key": "employees.bulk_termination.confirm_error",
+    "lang": "zh"
+  },
+  {
+    "file": "src/components/features/employees/employee-termination-import-dialog.tsx",
+    "key": "employees.bulk_termination.export_error",
+    "lang": "en"
+  },
+  {
+    "file": "src/components/features/employees/employee-termination-import-dialog.tsx",
+    "key": "employees.bulk_termination.export_error",
+    "lang": "vi"
+  },
+  {
+    "file": "src/components/features/employees/employee-termination-import-dialog.tsx",
+    "key": "employees.bulk_termination.export_error",
+    "lang": "zh"
+  }
+]

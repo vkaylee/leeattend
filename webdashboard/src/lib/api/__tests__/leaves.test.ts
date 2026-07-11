@@ -375,6 +375,6 @@ describe("leaves API", () => {
       ok: false,
       status: 404,
     } as unknown as Response);
-    await expect(downloadLeaveImportErrors("ws-1", "j-1")).rejects.toThrow("Failed to download errors");
+    await expect(downloadLeaveImportErrors("ws-1", "j-1")).rejects.toThrow("[404]");
   });
 });

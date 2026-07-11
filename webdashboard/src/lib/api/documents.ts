@@ -6,7 +6,6 @@ export async function fetchFolders(wsId: string) {
       path: { ws_id: wsId },
     },
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -20,7 +19,6 @@ export async function createFolder(wsId: string, name: string, parentFolderId?: 
       parent_folder_id: parentFolderId ?? null,
     },
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -33,7 +31,6 @@ export async function renameFolder(wsId: string, id: string, name: string) {
       name,
     },
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -43,7 +40,6 @@ export async function deleteFolder(wsId: string, id: string) {
       path: { ws_id: wsId, id },
     },
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -57,13 +53,11 @@ export async function distributeDocument(wsId: string, documentId: string, targe
       target_employee_ids: targetEmployeeIds,
     },
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
 export async function fetchPendingAcknowledgements() {
   const { data } = await client.GET("/v1/ess/documents/pending", {});
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -73,7 +67,6 @@ export async function acknowledgeDocument(id: string) {
       path: { id },
     },
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -88,6 +81,5 @@ export async function previewTemplate(wsId: string, templateContent: string, emp
       manual_variables: manualVariables ?? null,
     },
   });
-  if (!data) throw new Error("No response data");
   return data;
 }

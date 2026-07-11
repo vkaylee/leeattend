@@ -17,7 +17,6 @@ export async function createDepartment(
     params: { path: { ws_id: wsId } },
     body: data
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -30,7 +29,6 @@ export async function updateDepartment(
     params: { path: { ws_id: wsId, id } },
     body: data
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 

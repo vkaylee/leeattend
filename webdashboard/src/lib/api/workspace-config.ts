@@ -26,7 +26,6 @@ export const workspaceConfigApi = {
         query: prefix ? { prefix } : undefined,
       },
     });
-    if (!resData) throw new Error("No response data");
     return resData;
   },
 
@@ -69,7 +68,6 @@ export const workspaceConfigApi = {
         value: value as components["schemas"]["ConfigValue"],
       },
     });
-    if (!resData) throw new Error("No response data");
     return resData;
   },
 

@@ -11,7 +11,6 @@ export type CreateDbClusterRequestPayload = components["schemas"]["CreateDbClust
 
 export async function fetchSystemRoles(): Promise<SystemRoleInfo[]> {
   const { data: resData } = await client.GET("/system/roles");
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -20,7 +19,6 @@ export async function fetchUserSystemRoles(userId: string): Promise<SystemRoleAs
   const { data: resData } = await fetch<SystemRoleAssignment[]>("GET", "/system/users/{user_id}/roles", {
     params: { path: { user_id: userId } },
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -58,13 +56,11 @@ export interface CreateTenantRequestPayload {
 
 export async function fetchSystemTenants(): Promise<SystemTenant[]> {
   const { data: resData } = await fetch<SystemTenant[]>("GET", "/system/tenants", {});
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
 export async function fetchStaleTenants(): Promise<SystemTenant[]> {
   const { data: resData } = await fetch<SystemTenant[]>("GET", "/system/tenants/stale", {});
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -104,7 +100,6 @@ export async function fetchSystemTenantStats(tenantId: string): Promise<TenantCo
   const { data: resData } = await fetch<TenantConnectionStats>("GET", "/system/tenants/{tenant_id}/stats", {
     params: { path: { tenant_id: tenantId } },
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -117,7 +112,6 @@ export async function updateTenantDatabase(tenantId: string, customDbUrl: string
 
 export async function fetchSystemDbClusters(): Promise<SystemDbCluster[]> {
   const { data: resData } = await client.GET("/system/db-clusters");
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -125,7 +119,6 @@ export async function createSystemDbCluster(request: CreateDbClusterRequestPaylo
   const { data: resData } = await client.POST("/system/db-clusters", {
     body: request,
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -140,6 +133,5 @@ export async function updateSystemDbClusterStatus(id: string, isActive: boolean)
     params: { path: { id } },
     body: { is_active: isActive },
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }

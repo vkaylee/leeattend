@@ -43,7 +43,7 @@ export default function DbClustersPage() {
   const createMutation = useMutation({
     mutationFn: (data: CreateDbClusterRequestPayload) => createSystemDbCluster(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["system-db-clusters"] }).catch(console.error);
+      void queryClient.invalidateQueries({ queryKey: ["system-db-clusters"] });
       toast.success(t("common.success", { defaultValue: "Successfully created DB cluster" }));
       setIsModalOpen(false);
       setFormData({
@@ -62,7 +62,7 @@ export default function DbClustersPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteSystemDbCluster(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["system-db-clusters"] }).catch(console.error);
+      void queryClient.invalidateQueries({ queryKey: ["system-db-clusters"] });
       toast.success(t("common.success", { defaultValue: "Successfully deleted DB cluster" }));
     },
     onError: (error) => {
@@ -73,7 +73,7 @@ export default function DbClustersPage() {
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) => updateSystemDbClusterStatus(id, isActive),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["system-db-clusters"] }).catch(console.error);
+      void queryClient.invalidateQueries({ queryKey: ["system-db-clusters"] });
       toast.success(t("common.success", { defaultValue: "Successfully updated cluster status" }));
     },
     onError: (error) => {
@@ -188,7 +188,7 @@ export default function DbClustersPage() {
 
                 <div className="bg-slate-50 dark:bg-slate-800/50 p-4 flex justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
                   <Button
-                    onClick={() => { toggleStatus(cluster).catch(console.error); }}
+                    onClick={() => { void toggleStatus(cluster); }}
                     size="sm"
                     title={cluster.is_active ? "Deactivate" : "Activate"}
                     variant="ghost"
@@ -196,7 +196,7 @@ export default function DbClustersPage() {
                     {cluster.is_active ? <PowerOff className="w-4 h-4 text-slate-500" /> : <Power className="w-4 h-4 text-emerald-500" />}
                   </Button>
                   <Button
-                    onClick={() => { handleDelete(cluster).catch(console.error); }}
+                    onClick={() => { void handleDelete(cluster); }}
                     size="sm"
                     title="Delete Cluster"
                     variant="ghost"

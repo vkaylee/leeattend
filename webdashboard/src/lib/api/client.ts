@@ -3,7 +3,7 @@ import createClient from "openapi-fetch";
 import type { paths } from "@/types/api-generated";
 
 import { API_BASE_URL } from "./config";
-import { ApiError, AppErrorResponse } from "./errors";
+import { ApiError } from "./errors";
 import { apiFetch } from "./helpers";
 
 async function extractRequestInfo(
@@ -66,25 +66,7 @@ function cleanApiPath(urlStr: string): string {
 }
 
 async function handleResponseError(res: Response): Promise<never> {
-  let errorBody: AppErrorResponse | undefined;
-  let errorText = "";
-  
-  try {
-    const clonedRes = res.clone();
-    errorText = await clonedRes.text();
-    if (errorText) {
-      errorBody = JSON.parse(errorText) as AppErrorResponse;
-    }
-  } catch {
-    // Ignore parsing errors
-  }
-
-  throw new ApiError(
-    res.status,
-    res.statusText,
-    errorBody?.error_code,
-    errorBody ?? (errorText ? { message: errorText } : undefined)
-  );
+  return ApiError.rejectResponse(res);
 }
 
 export async function customFetch(url: string | URL | Request, init?: RequestInit): Promise<Response> {

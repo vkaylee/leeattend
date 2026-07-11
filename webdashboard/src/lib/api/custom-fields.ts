@@ -18,7 +18,6 @@ export async function fetchCustomFieldDefinitions(
       query: { entity_type: entityType },
     },
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -32,7 +31,6 @@ export async function createCustomFieldDefinition(
     },
     body,
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -45,7 +43,6 @@ export async function getCustomFieldDefinition(
       path: { ws_id: wsId, id },
     },
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -60,7 +57,6 @@ export async function updateCustomFieldDefinition(
     },
     body,
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -88,7 +84,6 @@ export async function fetchCustomFieldValues(
       },
     }
   );
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -107,6 +102,5 @@ export async function setCustomFieldValues(
       body: { values },
     }
   );
-  if (!data) throw new Error("No response data");
   return data;
 }

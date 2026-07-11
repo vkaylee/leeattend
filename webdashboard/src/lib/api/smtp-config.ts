@@ -1,3 +1,4 @@
+import { ApiError } from "./errors";
 import { apiFetch, TIMEOUT } from "./helpers";
 
 export interface SmtpConfigData {
@@ -18,7 +19,7 @@ export async function fetchSmtpConfig(): Promise<SmtpConfigData> {
   const res = await apiFetch("/v1/system/smtp/config", {
     timeout: TIMEOUT.DEFAULT,
   });
-  if (!res.ok) throw new Error("Failed to load SMTP config");
+  if (!res.ok) await ApiError.rejectResponse(res);
   return res.json() as Promise<SmtpConfigData>;
 }
 
@@ -28,7 +29,7 @@ export async function saveSmtpConfig(config: SmtpConfigData): Promise<void> {
     body: JSON.stringify(config),
     timeout: TIMEOUT.DEFAULT,
   });
-  if (!res.ok) throw new Error("Failed to save SMTP config");
+  if (!res.ok) await ApiError.rejectResponse(res);
 }
 
 export async function testSmtp(toEmail: string): Promise<SmtpTestResponse> {

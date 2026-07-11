@@ -340,7 +340,7 @@ describe("attendance API (extended)", () => {
       status: 500,
       blob: () => Promise.resolve(new Blob()),
     } as unknown as Response);
-    await expect(downloadExportReport("test-ws-id", "j-1")).rejects.toThrow("Failed to download report");
+    await expect(downloadExportReport("test-ws-id", "j-1")).rejects.toThrow("[500]");
   });
 
   it("fetchMonitorOverview: GET global", async () => {

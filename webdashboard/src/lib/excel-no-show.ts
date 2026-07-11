@@ -34,8 +34,8 @@ export interface NoShowRow {
 interface ExportOptions {
   /** i18n translator — used for the sheet title, date label and column headers. */
   t: TFunction;
-  /** Report date in yyyy-MM-dd (also embedded in the filename). */
-  date: string;
+  /** Human-readable reference instant `A` label (also embedded in the filename). */
+  referenceTimeLabel: string;
 }
 
 // Column order matches the table: code, name, department, shift type, shift in, shift out.
@@ -61,7 +61,7 @@ export async function exportNoShowToExcel(
 ): Promise<void> {
   const ExcelJS = await loadExcelJS();
   const saveAs = await loadFileSaver();
-  const { t, date } = options;
+  const { t, referenceTimeLabel } = options;
 
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "LeeAttend";
@@ -81,9 +81,9 @@ export async function exportNoShowToExcel(
   titleCell.font = { bold: true, size: 14, color: { argb: "FF1F4E79" } };
   worksheet.mergeCells(1, 1, 1, COLUMNS.length);
 
-  // ── Date row (row 2) ──────────────────────────────────────────────────
+  // ── Reference-time row (row 2) ────────────────────────────────────────
   const dateCell = worksheet.getCell("A2");
-  dateCell.value = `${t("unrecorded_shifts.export_date")}: ${date}`;
+  dateCell.value = `${t("unrecorded_shifts.export_reference_time")}: ${referenceTimeLabel}`;
   dateCell.font = { italic: true, color: { argb: "FF5B5B5B" } };
   worksheet.mergeCells(2, 1, 2, COLUMNS.length);
 
@@ -120,7 +120,8 @@ export async function exportNoShowToExcel(
   const blob = new Blob([buffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });
-  saveAs(blob, `vang-dau-ca-${date}.xlsx`);
+  const fileSlug = referenceTimeLabel.replace(/[:.]/g, "-");
+  saveAs(blob, `vang-dau-ca-${fileSlug}.xlsx`);
 }
 
 function writeHeader(worksheet: Worksheet, headerRowNumber: number) {

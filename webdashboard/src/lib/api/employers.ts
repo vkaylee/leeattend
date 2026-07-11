@@ -5,7 +5,6 @@ export async function fetchEmployers(wsId: string): Promise<Employer[]> {
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/employers", {
     params: { path: { ws_id: wsId } }
   });
-  if (!resData) throw new Error("No response data");
   return resData.data;
 }
 

@@ -11,7 +11,6 @@ export async function fetchHolidays(
             query: year ? { year } : undefined,
         },
     });
-    if (!resData) throw new Error("No response data");
     return resData.data;
 }
 

@@ -73,8 +73,8 @@ export default function TenantsPage() {
   const cleanStaleMutation = useMutation({
     mutationFn: (id: string) => deleteSystemTenant(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["system-tenants-stale"] }).catch(console.error);
-      queryClient.invalidateQueries({ queryKey: ["system-tenants"] }).catch(console.error);
+      void queryClient.invalidateQueries({ queryKey: ["system-tenants-stale"] });
+      void queryClient.invalidateQueries({ queryKey: ["system-tenants"] });
       toast.success(t("system_admin.tenants.messages.clean_success"));
     },
     onError: (error) => {
@@ -89,7 +89,7 @@ export default function TenantsPage() {
   const createMutation = useMutation({
     mutationFn: (data: CreateTenantRequestPayload) => createSystemTenant(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["system-tenants"] }).catch(console.error);
+      void queryClient.invalidateQueries({ queryKey: ["system-tenants"] });
       toast.success(t("system_admin.tenants.messages.create_success"));
       setIsModalOpen(false);
       setDbName("");
@@ -104,7 +104,7 @@ export default function TenantsPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteSystemTenant(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["system-tenants"] }).catch(console.error);
+      void queryClient.invalidateQueries({ queryKey: ["system-tenants"] });
       toast.success(t("system_admin.tenants.messages.delete_success"));
     },
     onError: (error) => {
@@ -115,7 +115,7 @@ export default function TenantsPage() {
   const updateDbMutation = useMutation({
     mutationFn: ({ id, url }: { id: string; url: string }) => updateTenantDatabase(id, url),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["system-tenants"] }).catch(console.error);
+      void queryClient.invalidateQueries({ queryKey: ["system-tenants"] });
       toast.success(t("system_admin.tenants.messages.update_db_success", { defaultValue: "Database URL updated successfully" }));
       setDbUpdateModalOpen(false);
       setUpdateDbUrl("");
@@ -219,7 +219,7 @@ export default function TenantsPage() {
           title={t("system_admin.tenants.title")}
         />
         <div className="flex items-center gap-3">
-          <Button onClick={() => { setStaleModalOpen(true); refetchStale().catch(console.error); }} variant="outline">
+          <Button onClick={() => { setStaleModalOpen(true); void refetchStale(); }} variant="outline">
             <SearchX className="w-4 h-4 mr-2" />
             {t("system_admin.tenants.check_stale_btn")}
           </Button>
@@ -290,7 +290,7 @@ export default function TenantsPage() {
                     </Button>
 
                     <Button
-                      onClick={() => { handleDelete(tenant.id).catch(console.error); }}
+                      onClick={() => { void handleDelete(tenant.id); }}
                       size="sm"
                       variant="ghost"
                     >
@@ -476,7 +476,7 @@ export default function TenantsPage() {
         subtitle="Update the custom BYOD database URL for this tenant."
         title={`Update Database: ${selectedTenant?.id ?? ""}`}
       >
-        <form onSubmit={(e) => { handleUpdateDbSubmit(e).catch(console.error); }}>
+        <form onSubmit={(e) => { void handleUpdateDbSubmit(e); }}>
           <div className="grid gap-6 py-4">
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex gap-3">
               <ShieldAlert className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0" />
@@ -588,7 +588,7 @@ export default function TenantsPage() {
                     </div>
                     <Button
                       disabled={cleanStaleMutation.isPending}
-                      onClick={() => { handleCleanStale(tenant.id).catch(console.error); }}
+                      onClick={() => { void handleCleanStale(tenant.id); }}
                       size="sm"
                       variant="destructive"
                     >
@@ -606,7 +606,7 @@ export default function TenantsPage() {
             {staleTenants.length > 1 && (
               <Button
                 disabled={cleanStaleMutation.isPending}
-                onClick={() => { handleCleanAllStale().catch(console.error); }}
+                onClick={() => { void handleCleanAllStale(); }}
                 variant="destructive"
               >
                 {t("system_admin.tenants.stale_modal.clean_all")}

@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Upload, FileText, Loader2, CheckCircle2, AlertCircle, RefreshCw, Download } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 
 import type {
   ValidTerminationRow,
@@ -55,6 +56,7 @@ export default function EmployeeTerminationImportDialog({
       await downloadTerminationTemplate(wsId, i18n.language);
     } catch (err) {
       console.error("Failed to download template:", err);
+      toast.error(t("employees.bulk_termination.download_error", { defaultValue: "Failed to download template" }));
     }
   };
 
@@ -68,6 +70,7 @@ export default function EmployeeTerminationImportDialog({
       setActiveTab(data.valid_rows.length > 0 ? "valid" : "invalid");
     } catch (err) {
       console.error("Failed to upload file for preview:", err);
+      toast.error(t("employees.bulk_termination.upload_error", { defaultValue: "Failed to upload file. Please check the file format and try again." }));
     } finally {
       setLoading(false);
     }
@@ -97,6 +100,7 @@ export default function EmployeeTerminationImportDialog({
         }
       } catch (err) {
         console.error("Error polling job status:", err);
+        /* polling continues — the loop will eventually time out */
       }
       await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL));
     }
@@ -129,6 +133,7 @@ export default function EmployeeTerminationImportDialog({
       }
     } catch (err) {
       console.error("Failed to confirm termination import:", err);
+      toast.error(t("employees.bulk_termination.confirm_error", { defaultValue: "Connection error or invalid request." }));
       setJobError("Lỗi kết nối hoặc yêu cầu không hợp lệ.");
       setConfirming(false);
     }
@@ -190,6 +195,7 @@ export default function EmployeeTerminationImportDialog({
       saveAs(blob, `loi_import_nghi_viec_${Date.now()}.xlsx`);
     } catch (err) {
       console.error("Failed to export errors to Excel:", err);
+      toast.error(t("employees.bulk_termination.export_error", { defaultValue: "Failed to export errors." }));
     }
   };
 

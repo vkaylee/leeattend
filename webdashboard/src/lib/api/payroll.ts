@@ -24,7 +24,6 @@ export async function fetchIncentivePolicies(wsId: string): Promise<PayrollIncen
   const { data: resData } = await client.GET("/workspaces/{ws_id}/payroll/incentive-policies", {
     params: { path: { ws_id: wsId } }
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -52,7 +51,6 @@ export async function createSalaryBaseGroup(wsId: string, data: { name: string; 
     params: { path: { ws_id: wsId } },
     body: data
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -60,7 +58,6 @@ export async function fetchSalaryBaseGroups(wsId: string): Promise<{ groups: Sal
   const { data: resData } = await client.GET("/workspaces/{ws_id}/salary-bases", {
     params: { path: { ws_id: wsId } }
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -81,7 +78,6 @@ export async function fetchPayrollSettings(wsId: string): Promise<PayrollSetting
   const { data: resData } = await client.GET("/workspaces/{ws_id}/payroll-settings", {
     params: { path: { ws_id: wsId } }
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -90,7 +86,6 @@ export async function updatePayrollSettings(wsId: string, data: UpdatePayrollSet
     params: { path: { ws_id: wsId } },
     body: data
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -98,7 +93,6 @@ export async function fetchPayrollSettingsHistory(wsId: string): Promise<Payroll
   const { data: resData } = await client.GET("/workspaces/{ws_id}/payroll-settings/history", {
     params: { path: { ws_id: wsId } }
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -106,7 +100,6 @@ export async function fetchSalaryComponents(wsId: string): Promise<SalaryCompone
   const { data: resData } = await client.GET("/workspaces/{ws_id}/salary-components", {
     params: { path: { ws_id: wsId } }
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -118,7 +111,6 @@ export async function createSalaryComponent(
     params: { path: { ws_id: wsId } },
     body: data
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -126,7 +118,6 @@ export async function fetchEmployeeSalaryComponents(wsId: string, employmentId: 
   const { data: resData } = await fetch<EmployeeSalaryComponentDetail[]>("GET", "/workspaces/{ws_id}/employments/{employment_id}/salary-components", {
     params: { path: { ws_id: wsId, employment_id: employmentId } },
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -139,7 +130,6 @@ export async function assignEmployeeSalaryComponent(
     params: { path: { ws_id: wsId, employment_id: employmentId } },
     body: data
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -155,7 +145,6 @@ export async function calculate_payroll(
       query: { year, month }
     }
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -166,7 +155,6 @@ export async function fetchEmployeePayslips(
   const { data: resData } = await client.GET("/workspaces/{ws_id}/employees/{employee_id}/payslips", {
     params: { path: { ws_id: wsId, employee_id: employeeId } }
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -174,7 +162,6 @@ export async function fetchEmployeePayrollConfigs(wsId: string, employeeId: stri
   const { data: resData } = await fetch<ConfigRecord[]>("GET", "/workspaces/{ws_id}/employees/{id}/payroll-config", {
     params: { path: { ws_id: wsId, id: employeeId } },
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -191,7 +178,6 @@ export async function fetchOvertimePolicy(wsId: string, policyId: string): Promi
   const { data: resData } = await fetch<[OvertimePolicy, OvertimeRule[]]>("GET", "/workspaces/{ws_id}/overtime/policies/{policy_id}", {
     params: { path: { ws_id: wsId, policy_id: policyId } },
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -200,7 +186,6 @@ export async function createOvertimePolicy(wsId: string, data: Record<string, un
     params: { path: { ws_id: wsId } },
     body: data,
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -209,7 +194,6 @@ export async function addOvertimeRule(wsId: string, policyId: string, data: { da
     params: { path: { ws_id: wsId, policy_id: policyId } },
     body: data
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -218,7 +202,6 @@ export async function setEmployeePayrollConfig(wsId: string, employeeId: string,
     params: { path: { ws_id: wsId, id: employeeId } },
     body: data
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -226,7 +209,6 @@ export async function fetchDepartmentPayrollConfigs(wsId: string, deptId: string
   const { data: resData } = await fetch<Record<string, unknown>>("GET", "/workspaces/{ws_id}/departments/{id}/payroll-config", {
     params: { path: { ws_id: wsId, id: deptId } },
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -235,7 +217,6 @@ export async function setDepartmentPayrollConfig(wsId: string, deptId: string, d
     params: { path: { ws_id: wsId, id: deptId } },
     body: data
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -244,7 +225,6 @@ export async function calculateBatchPayslips(wsId: string, data: { employment_id
     params: { path: { ws_id: wsId } },
     body: data
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -255,7 +235,6 @@ export async function fetchWorkspacePayslips(wsId: string, year: number, month: 
       query: { year, month }
     }
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -272,7 +251,6 @@ export async function fetchPayrollRules(wsId: string): Promise<PayrollRuleDefini
   const { data: resData } = await client.GET("/workspaces/{ws_id}/payroll-rules", {
     params: { path: { ws_id: wsId } }
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -281,7 +259,6 @@ export async function createPayrollRule(wsId: string, data: CreatePayrollRuleDef
     params: { path: { ws_id: wsId } },
     body: data
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -289,7 +266,6 @@ export async function fetchPayrollRuleTiers(wsId: string, ruleId: string): Promi
   const { data: resData } = await client.GET("/workspaces/{ws_id}/payroll-rules/{rule_id}/tiers", {
     params: { path: { ws_id: wsId, rule_id: ruleId } }
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -298,7 +274,6 @@ export async function createPayrollRuleTier(wsId: string, ruleId: string, data: 
     params: { path: { ws_id: wsId, rule_id: ruleId } },
     body: data
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -308,7 +283,6 @@ export async function fetchPayrollRuleAssignments(wsId: string, ruleId: string):
   const { data: resData } = await client.GET("/workspaces/{ws_id}/payroll-rules/{rule_id}/assignments", {
     params: { path: { ws_id: wsId, rule_id: ruleId } }
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -317,7 +291,6 @@ export async function createPayrollRuleAssignment(wsId: string, ruleId: string, 
     params: { path: { ws_id: wsId, rule_id: ruleId } },
     body: data,
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 

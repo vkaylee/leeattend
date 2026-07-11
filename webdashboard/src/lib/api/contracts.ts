@@ -9,7 +9,6 @@ export async function fetchEmployeeContracts(wsId: string, employeeId: string): 
       path: { ws_id: wsId, employee_id: employeeId },
     },
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -19,7 +18,6 @@ export async function fetchEmployeeContract(wsId: string, employeeId: string, co
       path: { ws_id: wsId, employee_id: employeeId, contract_id: contractId },
     },
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -74,7 +72,6 @@ export async function fetchWorkspaceContracts(wsId: string): Promise<EmployeeCon
       path: { ws_id: wsId },
     },
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 

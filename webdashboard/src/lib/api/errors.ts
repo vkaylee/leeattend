@@ -23,6 +23,32 @@ export class ApiError extends Error {
     Object.setPrototypeOf(this, ApiError.prototype);
   }
 
+  /**
+   * Parse a non-OK fetch Response and throw an ApiError with the
+   * server-provided error code and message (if any).
+   *
+   * Extracted so it can be shared between the openapi-fetch customFetch
+   * wrapper and hand-written apiFetch call sites.
+   */
+  static async rejectResponse(res: Response): Promise<never> {
+    let errorBody: AppErrorResponse | undefined;
+    let errorText = "";
+    try {
+      errorText = await res.clone().text();
+      if (errorText) {
+        errorBody = JSON.parse(errorText) as AppErrorResponse;
+      }
+    } catch {
+      // Ignore parse failures — fall through to the generic error below.
+    }
+    throw new ApiError(
+      res.status,
+      res.statusText,
+      errorBody?.error_code,
+      errorBody ?? (errorText ? { message: errorText } : undefined),
+    );
+  }
+
   get isNotFound() {
     return this.status === 404;
   }

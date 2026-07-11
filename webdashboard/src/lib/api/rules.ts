@@ -45,7 +45,6 @@ export async function fetchAssignmentRules(wsId: string): Promise<AssignmentRule
   const { data: resData } = await fetch<AssignmentRule[]>("GET", "/v1/workspaces/{ws_id}/assignment-rules", {
     params: { path: { ws_id: wsId } },
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -54,7 +53,6 @@ export async function createAssignmentRule(wsId: string, data: CreateAssignmentR
     params: { path: { ws_id: wsId } },
     body: data,
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -63,7 +61,6 @@ export async function updateAssignmentRule(wsId: string, ruleId: string, data: U
     params: { path: { ws_id: wsId, rule_id: ruleId } },
     body: data,
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 

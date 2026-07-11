@@ -48,7 +48,6 @@ export async function createWorkSegment(
     params: { path: { workspace_id: wsId } },
     body,
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -60,7 +59,6 @@ export async function getWorkSegment(
     "/workspaces/{workspace_id}/work-segments/{segment_id}",
     { params: { path: { workspace_id: wsId, segment_id: segmentId } } },
   );
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -76,7 +74,6 @@ export async function updateWorkSegment(
       body,
     },
   );
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -97,7 +94,6 @@ export async function bulkCreateWorkSegments(
     params: { path: { workspace_id: wsId } },
     body,
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -111,7 +107,6 @@ export async function scheduleWorkSegments(
       query: params,
     },
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -124,7 +119,6 @@ export async function fetchShiftIntervals(
   const { data: resData } = await fetch<ShiftDefaultInterval[]>("GET", "/workspaces/{workspace_id}/shifts/{shift_id}/intervals", {
     params: { path: { workspace_id: wsId, shift_id: shiftId } },
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -140,7 +134,6 @@ export async function createShiftInterval(
       body,
     },
   );
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -157,7 +150,6 @@ export async function updateShiftInterval(
       body,
     },
   );
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 

@@ -181,7 +181,7 @@ describe("resetPassword", () => {
     );
 
     await expect(resetPassword("token", "password123")).rejects.toThrow(
-      "Failed to reset password",
+      "[500]",
     );
   });
 });
@@ -308,7 +308,7 @@ describe("fetchUsers / fetchDevSuperUser / fetchMyPermissions", () => {
   it("fetchDevSuperUser throws on non-OK response", async () => {
     (apiFetch as Mock).mockClear();
     (apiFetch as Mock).mockResolvedValue(new Response("nope", { status: 500 }));
-    await expect(fetchDevSuperUser()).rejects.toThrow("Failed to fetch dev super user");
+    await expect(fetchDevSuperUser()).rejects.toThrow("[500]");
   });
   it("fetchMyPermissions GETs /me/permissions via fetch<T>()", async () => {
     const { fetch: fetchMock } = await import("../client");

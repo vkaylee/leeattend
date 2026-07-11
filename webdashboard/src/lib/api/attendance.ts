@@ -1,3 +1,4 @@
+import { ApiError } from "./errors";
 import { client, fetch } from "./client";
 import { apiFetch, getCurrentWorkspaceId, TIMEOUT } from "./helpers";
 import {
@@ -24,7 +25,6 @@ export async function punchIn(
     },
     body: data,
   });
-  if (!resData) throw new Error("Punch in failed");
   return resData;
 }
 
@@ -40,7 +40,6 @@ export async function punchOut(
       note: data.note,
     },
   });
-  if (!resData) throw new Error("Punch out failed");
   return resData;
 }
 
@@ -56,7 +55,6 @@ export async function fetchTimeHistory(
       query: { start, end },
     },
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -69,7 +67,6 @@ export async function updateTimeEntry(
     params: { path: { ws_id: wsId, id } },
     body: data
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -93,7 +90,6 @@ export async function submitAttendanceAdjustment(
     params: { path: { ws_id: wsId } },
     body: data
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -117,7 +113,6 @@ export async function fetchWorkspaceAttendanceAdjustments(
       },
     }
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -127,7 +122,6 @@ export async function fetchMyAttendanceAdjustments(
   const { data: resData } = await client.GET("/v1/employees/{id}/attendance/adjustments", {
     params: { path: { id: employeeId } }
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -160,7 +154,6 @@ export async function fetchAttendanceLogs(params: {
       },
     },
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -186,7 +179,6 @@ export async function fetchRawAttendanceLogs(params: {
       },
     },
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -245,7 +237,6 @@ export async function fetchAttendanceReport(
     },
   });
 
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -281,7 +272,6 @@ export async function fetchLatestImportJob(
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/import-jobs/latest", {
     params: { path: { ws_id: wsId }, query: { target_type: targetType } }
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -292,7 +282,6 @@ export async function fetchImportJobStatus(
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/import-jobs/{id}", {
     params: { path: { ws_id: wsId, id: jobId } }
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -317,6 +306,44 @@ export async function reprocessAllAttendance(
   });
   if (!resData) throw new Error("No response data");
   return resData as { message: string; job_id: string };
+}
+
+// ── No-show timeline report ──────────────────────────────────────────
+
+export interface FetchNoShowReportParams {
+  wsId: string;
+  /** The scrubber's pinned reference instant `A` as RFC3339 / ISO-8601. */
+  referenceTime: string;
+  page?: number;
+  limit?: number;
+  employeeIds?: string[];
+  shiftType?: string[];
+}
+
+/** No-show timeline report: employees on a shift *active* at `referenceTime`
+ *  who have not punched in yet (status `absent`). Backed by
+ *  `GET /v1/workspaces/{ws_id}/reports/no-show`.
+ *
+ *  NOTE: uses the untyped `apiFetch` because the generated OpenAPI routes are
+ *  synced from the backend via `leedevkit manage sync:api`. Until that runs
+ *  after the new endpoint compiles, `client.GET` has no typed path for this
+ *  route. Replace with a typed `client.GET("/v1/workspaces/{ws_id}/…")` once
+ *  the schema is regenerated. */
+export async function fetchNoShowReport(
+  params: FetchNoShowReportParams,
+): Promise<PaginatedResponse<DailyAttendanceReport>> {
+  const { wsId, referenceTime, page, limit, employeeIds, shiftType } = params;
+  const search = new URLSearchParams();
+  search.set("reference_time", referenceTime);
+  if (page != null) search.set("page", String(page));
+  if (limit != null) search.set("limit", String(limit));
+  if (employeeIds && employeeIds.length > 0) search.set("employee_ids", employeeIds.join(","));
+  if (shiftType && shiftType.length > 0) search.set("shift_type", shiftType.join(","));
+
+  const url = `/v1/workspaces/${wsId}/reports/no-show?${search.toString()}`;
+  const res = await apiFetch(url);
+  if (!res.ok) await ApiError.rejectResponse(res);
+  return (await res.json()) as PaginatedResponse<DailyAttendanceReport>;
 }
 
 export interface GenericJobProgress {
@@ -405,7 +432,6 @@ export async function fetchAttendanceSummariesPaginated(
       }
     }
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -423,7 +449,6 @@ export async function enterPaperOt(
     params: { path: { ws_id: wsId, employee_id: employeeId } },
     body: data
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -447,7 +472,6 @@ export async function bulkUploadPaperOt(
     params: { path: { ws_id: wsId } },
     body: formData as never
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -484,7 +508,6 @@ export async function fetchStagingLogs(
       query: { page, limit },
     },
   } as never);
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -518,7 +541,6 @@ export async function createReportExportJob(
     params: { path: { ws_id: wsId } },
     body: request
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -529,7 +551,6 @@ export async function fetchExportJobStatus(
   const { data: resData } = await client.GET("/workspaces/{ws_id}/reports/jobs/{job_id}", {
     params: { path: { ws_id: wsId, job_id: jobId } }
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -549,7 +570,7 @@ export async function downloadExportReport(
   const response = await apiFetch(`/v1/workspaces/${wsId}/reports/jobs/${jobId}/download`, {
     timeout: TIMEOUT.REPORT_OPERATION,
   });
-  if (!response.ok) throw new Error("Failed to download report");
+  if (!response.ok) await ApiError.rejectResponse(response);
   return response.blob();
 }
 
@@ -557,7 +578,6 @@ export async function downloadExportReport(
 
 export async function fetchMonitorOverview(): Promise<WorkerMonitorStats> {
   const { data: resData } = await client.GET("/monitor/overview", {});
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -615,7 +635,6 @@ export async function fetchDefaultAttendanceRules(wsId: string): Promise<Attenda
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/rules", {
     params: { path: { ws_id: wsId } }
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -623,7 +642,6 @@ export async function fetchAttendancePolicyVersions(wsId: string): Promise<Atten
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/rules/versions", {
     params: { path: { ws_id: wsId } }
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -650,7 +668,6 @@ export async function fetchPolicyAssignments(wsId: string): Promise<PolicyAssign
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/policies/assignments", {
     params: { path: { ws_id: wsId } }
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -662,7 +679,6 @@ export async function upsertPolicyAssignment(
     params: { path: { ws_id: wsId } },
     body: data
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -680,7 +696,6 @@ export async function updateDefaultAttendanceRules(
     params: { path: { ws_id: wsId } },
     body: data
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -701,7 +716,6 @@ export async function fetchBehalfAssignments(
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/claim-ot/behalf-assignments", {
     params: { path: { ws_id: wsId } }
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -717,7 +731,6 @@ export async function createBehalfAssignment(
     params: { path: { ws_id: wsId } },
     body: data
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -791,7 +804,6 @@ export async function fetchAdjustmentBehalfAssignments(
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/attendance/adjustments/behalf-assignments", {
     params: { path: { ws_id: wsId } }
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -807,7 +819,6 @@ export async function createAdjustmentBehalfAssignment(
     params: { path: { ws_id: wsId } },
     body: data
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 

@@ -17,11 +17,12 @@ import Button from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import InfiniteScrollSentinel from "@/components/common/infinite-scroll-sentinel";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import { useWorkspace } from "@/hooks/use-workspace";
 import {
   DailyAttendanceReport,
   PaginatedResponse,
   ScheduleTrace,
-  fetchAttendanceReport,
+  fetchNoShowReport,
   getCurrentWorkspaceId,
 } from "@/lib/api";
 import { exportNoShowToExcel, type NoShowRow } from "@/lib/excel-no-show";
@@ -33,9 +34,9 @@ import {
   type ZonedNoShowRow,
 } from "../hooks/use-no-show-rows";
 import { ShiftTypePicker } from "./shift-type-picker";
+import { ReferenceTimeScrubber } from "./reference-time-scrubber";
 
-// Number of employees fetched per backend page. For a single-day report this
-// is roughly one row per employee, so this is also ~rows per page.
+// Number of employees fetched per backend page.
 const EMPLOYEE_PAGE_SIZE = 30;
 
 const ZoneIcon = ({ zone }: { zone: ZonedNoShowRow["zone"] }) => {
@@ -120,27 +121,20 @@ export function UnrecordedShiftsTab() {
   const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId();
   const queryClient = useQueryClient();
+  const { workspace } = useWorkspace(wsId ?? undefined);
+  const workspaceTimezone = workspace?.timezone ?? "UTC";
 
   const today = format(new Date(), "yyyy-MM-dd");
 
   // ── Filter state ──────────────────────────────────────────────────────────
-  const [dateRange, setDateRange] = useState<{ start: string; end: string }>({
-    start: today,
-    end: today,
-  });
+  // The scrubber's pinned reference instant `A`. Defaults to "now"; the user
+  // scrolls the timeline around it. Every query recomputes against this.
+  const [referenceTime, setReferenceTime] = useState<Date>(() => new Date());
   const [selectedDept, setSelectedDept] = useState<string>("__all__");
   const [selectedShiftTypes, setSelectedShiftTypes] = useState<string[]>([]);
   const [employeeIds, setEmployeeIds] = useState<string[]>([]);
   const [onlyZoneB, setOnlyZoneB] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-
-  // Live clock: re-renders once a second so Zone A countdown / Zone B elapsed
-  // labels tick in real time, and rows flip A→B at `start + grace`.
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const id = setInterval(() => { setNow(new Date()); }, 1000);
-    return () => { clearInterval(id); };
-  }, []);
 
   // NOTE: `selectedDept` is intentionally excluded — department filtering is
   // client-side (instant, no refetch) matching the original behavior. Shift type
@@ -148,13 +142,13 @@ export function UnrecordedShiftsTab() {
   const queryKey = [
     "unrecorded-shifts",
     wsId,
-    dateRange.start,
-    dateRange.end,
+    referenceTime.toISOString(),
     selectedShiftTypes,
     employeeIds,
   ];
 
-  // Infinite-scroll fetch of the daily attendance report for the selected range.
+  // Infinite-scroll fetch of the no-show report at the pinned reference time.
+  const referenceTimeIso = referenceTime.toISOString();
   const {
     data: reportData,
     isLoading: isReportLoading,
@@ -164,11 +158,9 @@ export function UnrecordedShiftsTab() {
   } = useInfiniteQuery<PaginatedResponse<DailyAttendanceReport>>({
     queryKey,
     queryFn: async ({ pageParam }) =>
-      (await fetchAttendanceReport({
+      (await fetchNoShowReport({
         wsId: wsId!,
-        start: dateRange.start,
-        end: dateRange.end,
-        type: "daily",
+        referenceTime: referenceTimeIso,
         page: pageParam as number,
         limit: EMPLOYEE_PAGE_SIZE,
         employeeIds: employeeIds.length > 0 ? employeeIds : undefined,
@@ -219,12 +211,17 @@ export function UnrecordedShiftsTab() {
     [reportData],
   );
 
-  // ── Enrichment + zone computation (single source for table + export) ──────
+  // ── Enrichment + zone computation (single source for table + export) ───────
+  // `viewingDate` is the scrubber's pinned day; historical dates pin all rows
+  // to Zone C. `useNoShowRows` threads the workspace timezone into the
+  // TZ-aware `computeZone` so shift boundaries resolve correctly.
+  const viewingDate = format(referenceTime, "yyyy-MM-dd");
   const absentRows = useNoShowRows({
     rows: allRows,
     employeeMap,
-    now,
-    viewingDate: dateRange.start,
+    referenceTime,
+    viewingDate,
+    workspaceTimezone,
   });
 
   // Department options from the loaded absent rows (client-side convenience).
@@ -277,8 +274,9 @@ export function UnrecordedShiftsTab() {
       const rows = computeNoShowRows({
         rows: allReportRows,
         employeeMap,
-        now,
-        viewingDate: dateRange.start,
+        referenceTime,
+        viewingDate,
+        workspaceTimezone,
       }).filter((r) => (selectedDept === "__all__" ? true : r.department_name === selectedDept));
 
       const noShowRows: NoShowRow[] = rows.map((r) => ({
@@ -290,7 +288,10 @@ export function UnrecordedShiftsTab() {
         scheduled_end: r.scheduled_end ?? null,
         zone_label: zoneLabel(r, t).key,
       }));
-      void exportNoShowToExcel(noShowRows, { t, date: dateRange.start });
+      void exportNoShowToExcel(noShowRows, {
+        t,
+        referenceTimeLabel: `${viewingDate}_${format(referenceTime, "HH-mm")}`,
+      });
     } finally {
       setIsExporting(false);
     }
@@ -300,13 +301,12 @@ export function UnrecordedShiftsTab() {
     queryKey,
     fetchNextPage,
     employeeMap,
-    now,
-    dateRange.start,
+    referenceTime,
+    viewingDate,
+    workspaceTimezone,
     selectedDept,
     t,
   ]);
-
-  const isViewingPast = dateRange.start < today;
 
   const clearFilters = () => {
     setSelectedDept("__all__");
@@ -369,33 +369,14 @@ export function UnrecordedShiftsTab() {
         </div>
       </div>
 
+      {/* Timeline scrubber (replaces the old date-range filter) */}
+      <ReferenceTimeScrubber
+        referenceTime={referenceTime}
+        onChange={setReferenceTime}
+      />
+
       {/* Filters bar */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-3 flex flex-wrap items-center gap-3">
-        {/* Date range */}
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <Building2
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-              size={14}
-            />
-            <input
-              aria-label={t("common.from_date")}
-              className="pl-8 pr-3 py-2 rounded-xl text-[11px] font-bold bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-300 outline-none focus:ring-2 focus:ring-primary-500/30"
-              onChange={(e) => { setDateRange((p) => ({ ...p, start: e.target.value })); }}
-              type="date"
-              value={dateRange.start}
-            />
-          </div>
-          <span className="text-slate-300 dark:text-slate-600">–</span>
-          <input
-            aria-label={t("common.to_date")}
-            className="px-3 py-2 rounded-xl text-[11px] font-bold bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-300 outline-none focus:ring-2 focus:ring-primary-500/30"
-            onChange={(e) => { setDateRange((p) => ({ ...p, end: e.target.value })); }}
-            type="date"
-            value={dateRange.end}
-          />
-        </div>
-
         {/* Department */}
         <div className="relative">
           <Building2
@@ -443,7 +424,7 @@ export function UnrecordedShiftsTab() {
           {t("unrecorded_shifts.clear_filters")}
         </Button>
 
-        {isViewingPast && (
+        {viewingDate < today && (
           <span className="text-[10px] text-slate-400 italic">
             {t("unrecorded_shifts.viewing_past", {
               defaultValue: "Historical — fixed records",

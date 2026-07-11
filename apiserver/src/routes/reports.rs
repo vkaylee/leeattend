@@ -14,6 +14,10 @@ pub fn router(state: &Arc<AppState>) -> Router<Arc<AppState>> {
             "/workspaces/:ws_id/reports/attendance",
             get(handlers::get_attendance_report),
         )
+        .route(
+            "/workspaces/:ws_id/reports/no-show",
+            get(handlers::get_no_show_report),
+        )
         // Async report export endpoints
         .route(
             "/workspaces/:ws_id/reports/export",

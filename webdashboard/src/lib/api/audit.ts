@@ -18,7 +18,6 @@ export const fetchAuditLogs = async (
       },
     },
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 };
 

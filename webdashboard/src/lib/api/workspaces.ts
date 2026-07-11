@@ -1,10 +1,10 @@
+import { ApiError } from "./errors";
 import { client } from "./client";
 import { apiFetch } from "./helpers";
 import { Workspace, WorkspaceMember, MemberRolesResponse, MemberExtraRole, MemberExtraPermission, WorkspaceRole } from "./types";
 
 export async function fetchWorkspaces(): Promise<Workspace[]> {
   const { data: resData } = await client.GET("/workspaces");
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -12,7 +12,6 @@ export async function createWorkspace(data: { name: string; database_url?: strin
   const { data: resData } = await client.POST("/workspaces", {
     body: data,
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -22,7 +21,6 @@ export async function fetchWorkspace(wsId: string): Promise<Workspace> {
       path: { ws_id: wsId },
     },
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -36,7 +34,6 @@ export async function updateWorkspace(
     },
     body: data,
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -60,13 +57,11 @@ export async function updateWorkspaceMemberRole(wsId: string, userId: string, ro
 
 export async function fetchMemberRoles(wsId: string, userId: string): Promise<MemberRolesResponse> {
   const { data } = await client.GET("/v1/workspaces/{ws_id}/members/{user_id}/roles", { params: { path: { ws_id: wsId, user_id: userId } } });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
 export async function assignExtraRole(wsId: string, userId: string, roleId: string, expiresAt: string): Promise<MemberExtraRole> {
   const { data } = await client.POST("/v1/workspaces/{ws_id}/members/{user_id}/roles", { params: { path: { ws_id: wsId, user_id: userId } }, body: { role_id: roleId, expires_at: expiresAt } });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -82,26 +77,23 @@ export async function fetchWorkspaceRoles(wsId: string): Promise<WorkspaceRole[]
       }
     }
   });
-  if (!data) throw new Error("No response data");
   return data.data;
 }
 
 export async function clearWorkspaceData(wsId: string, group: string): Promise<void> {
   const response = await apiFetch(`/v1/dev/workspaces/${wsId}/clear?group=${group}`, { method: "DELETE" });
-  if (!response.ok) throw new Error("Failed to clear workspace data");
+  if (!response.ok) await ApiError.rejectResponse(response);
 }
 
 // --- Extra Permissions ---
 
 export async function fetchMemberPermissions(wsId: string, userId: string): Promise<MemberExtraPermission[]> {
   const { data } = await client.GET("/v1/workspaces/{ws_id}/members/{user_id}/permissions", { params: { path: { ws_id: wsId, user_id: userId } } });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
 export async function assignExtraPermission(wsId: string, userId: string, permission: string, expiresAt: string): Promise<MemberExtraPermission> {
   const { data } = await client.POST("/v1/workspaces/{ws_id}/members/{user_id}/permissions", { params: { path: { ws_id: wsId, user_id: userId } }, body: { permission, expires_at: expiresAt } });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -115,7 +107,6 @@ export async function fetchAvailablePermissions(
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/permissions/available", {
     params: { path: { ws_id: wsId } }
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -126,7 +117,6 @@ export async function createWorkspaceRole(wsId: string, data: { name: string; de
     params: { path: { ws_id: wsId } },
     body: data
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -135,7 +125,6 @@ export async function updateWorkspaceRole(wsId: string, roleId: string, data: { 
     params: { path: { ws_id: wsId, role_id: roleId } },
     body: data
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -149,7 +138,6 @@ export async function fetchRolePermissions(wsId: string, roleId: string): Promis
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/roles/{role_id}/permissions", {
     params: { path: { ws_id: wsId, role_id: roleId } }
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 

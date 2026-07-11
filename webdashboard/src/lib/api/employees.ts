@@ -29,7 +29,6 @@ export async function fetchEmployees(
       query: { page, limit, permission },
     },
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -78,7 +77,6 @@ export async function searchEmployees(
       },
     },
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -88,7 +86,6 @@ export async function fetchEmployee(wsId: string, id: string): Promise<Employee>
       path: { workspace_id: wsId, id },
     },
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -129,7 +126,6 @@ export async function createEmployee(
     },
     body: employee as never,
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -144,7 +140,6 @@ export async function updateEmployee(
     },
     body: employee as never,
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -177,7 +172,6 @@ export async function fetchEmployeeDepartmentHistory(wsId: string, employeeId: s
       path: { workspace_id: wsId, id: employeeId },
     },
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -191,7 +185,6 @@ export async function fetchEmployeeEmployments(
       path: { ws_id: wsId, employee_id: employeeId },
     },
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -207,7 +200,6 @@ export async function updateEmployeeEmployment(
     },
     body,
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -222,7 +214,6 @@ export async function fetchCompensationHistory(
       query: { employment_id: employmentId || undefined },
     },
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 
@@ -242,7 +233,6 @@ export async function uploadTerminationImportPreview(
     },
     body: formData as never,
   });
-  if (!data) throw new Error("No response data");
   return data;
 }
 

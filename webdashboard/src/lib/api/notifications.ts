@@ -30,13 +30,11 @@ export async function fetchNotifications(
   const { data: resData } = await fetch<NotificationResponse>("GET", "/v1/notifications", {
     params: { query: { limit, cursor } },
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
 export async function fetchUnreadCount(): Promise<UnreadCountResponse> {
   const { data: resData } = await client.GET(`/v1/notifications/unread-count`, {});
-  if (!resData) throw new Error("Failed to fetch unread count");
   return resData;
 }
 

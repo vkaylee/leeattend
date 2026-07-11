@@ -40,7 +40,6 @@ export const approvalWorkflowsApi = {
         path: { ws_id: workspaceId, id }
       }
     });
-    if (!resData) throw new Error("No response data");
     return resData;
   },
 
@@ -51,7 +50,6 @@ export const approvalWorkflowsApi = {
       },
       body: payload
     });
-    if (!resData) throw new Error("No response data");
     return resData;
   },
 
@@ -60,7 +58,6 @@ export const approvalWorkflowsApi = {
       params: { path: { ws_id: workspaceId, id } },
       body: payload,
     });
-    if (!resData) throw new Error("No response data");
     return resData;
   },
 
@@ -78,7 +75,6 @@ export const approvalWorkflowsApi = {
         path: { ws_id: workspaceId, type: entityType, id: entityId }
       }
     });
-    if (!resData) throw new Error("No response data");
     return resData;
   },
 

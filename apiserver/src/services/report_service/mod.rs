@@ -14,6 +14,7 @@ use crate::repositories::{
 
 pub mod absences;
 pub mod daily;
+pub mod no_show;
 pub mod summary;
 
 pub struct AttendanceReportArgs {

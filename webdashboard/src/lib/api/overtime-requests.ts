@@ -94,7 +94,6 @@ export const overtimeRequestsApi = {
         query: params,
       },
     });
-    if (!data) throw new Error("No response data");
     return data;
   },
 
@@ -102,7 +101,6 @@ export const overtimeRequestsApi = {
     const { data } = await fetch<OvertimeRequestDetail>("GET", "/v1/workspaces/{ws_id}/overtime/requests/{id}", {
       params: { path: { ws_id: workspaceId, id } },
     });
-    if (!data) throw new Error("No response data");
     return data;
   },
 
@@ -111,7 +109,6 @@ export const overtimeRequestsApi = {
       params: { path: { ws_id: workspaceId } },
       body: payload,
     });
-    if (!data) throw new Error("No response data");
     return data;
   },
 
@@ -159,7 +156,6 @@ export const overtimeRequestsApi = {
       { params: { path: { ws_id: employmentId } } },
     );
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (!data) throw new Error("No response data");
     return data;
   },
 
@@ -170,7 +166,6 @@ export const overtimeRequestsApi = {
       { params: { path: { ws_id: workspaceId }, query: { month } } },
     );
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (!data) throw new Error("No response data");
     return data;
   },
 
@@ -181,7 +176,6 @@ export const overtimeRequestsApi = {
       { params: { path: { ws_id: workspaceId, employee_id: employeeId }, query: { date } } },
     );
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (!data) throw new Error("No response data");
     return data;
   },
 
@@ -202,7 +196,6 @@ export const overtimeRequestsApi = {
       },
       body: payload,
     });
-    if (!data) throw new Error("No response data");
     return data;
   },
 

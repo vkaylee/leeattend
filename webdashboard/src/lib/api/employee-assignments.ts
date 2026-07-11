@@ -21,7 +21,6 @@ export const fetchEmployeeAssignments = async (
       path: { ws_id: workspaceId, employee_id: employeeId },
     },
   });
-  if (!data) throw new Error("Failed to fetch employee assignments");
   return data;
 };
 

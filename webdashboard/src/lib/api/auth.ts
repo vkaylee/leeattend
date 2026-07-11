@@ -1,3 +1,4 @@
+import { ApiError } from "./errors";
 import { client, fetch } from "./client";
 import { apiFetch, setAccessToken, setCurrentUserId, clearAuthSession, TIMEOUT } from "./helpers";
 import { AuthResponse, RegisterRequest, ChangePasswordRequest, User } from "./types";
@@ -56,7 +57,6 @@ export async function updateMe(data: Partial<User>): Promise<User> {
 
 export async function fetchUsers(): Promise<User[]> {
   const { data } = await client.GET("/users");
-  if (!data) throw new Error("Failed to fetch users");
   return data;
 }
 
@@ -67,7 +67,7 @@ export async function fetchDevSuperUser(): Promise<{
   refresh_token?: string;
 }> {
   const response = await apiFetch(`/v1/dev/super-user`);
-  if (!response.ok) throw new Error("Failed to fetch dev super user");
+  if (!response.ok) await ApiError.rejectResponse(response);
   return response.json() as Promise<{ user_id: string; workspace_id: string; access_token?: string; refresh_token?: string; }>;
 }
 
@@ -115,12 +115,7 @@ export async function resetPassword(
     body: JSON.stringify({ token, new_password: newPassword }),
     timeout: TIMEOUT.DEFAULT,
   });
-  if (!response.ok) {
-    const errorBody = (await response.json().catch(() => null)) as { message?: string } | null;
-    throw new Error(
-      errorBody?.message ?? "Failed to reset password",
-    );
-  }
+  if (!response.ok) await ApiError.rejectResponse(response);
   const data = (await response.json()) as { message?: string };
   return data.message ?? "Password reset successfully";
 }

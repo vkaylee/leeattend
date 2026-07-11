@@ -9,7 +9,6 @@ export async function fetchShifts(wsId: string): Promise<Shift[]> {
       path: { workspace_id: wsId },
     },
   });
-  if (!data) throw new Error("No response data");
   return data.data;
 }
 
@@ -68,7 +67,6 @@ export const fetchWorkspaceSchedules = async (
       },
     },
   });
-  if (!data) throw new Error("No response data");
   return data.data;
 };
 
@@ -78,7 +76,6 @@ export const fetchAssignmentHistory = async (wsId: string): Promise<AssignmentHi
       path: { workspace_id: wsId },
     },
   });
-  if (!data) throw new Error("No response data");
   return data.data;
 };
 
@@ -97,7 +94,6 @@ export const fetchEmployeeRosters = async (
       },
     },
   });
-  if (!data) throw new Error("No response data");
   return data.data;
 }
 

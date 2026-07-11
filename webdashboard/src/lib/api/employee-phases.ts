@@ -23,7 +23,6 @@ export async function createEmploymentPhase(
     params: { path: { ws_id: wsId } },
     body: data
   });
-  if (!result) throw new Error("No response data");
   return result as EmploymentPhaseDefinition;
 }
 

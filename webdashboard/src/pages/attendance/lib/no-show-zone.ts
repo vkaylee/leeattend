@@ -2,18 +2,32 @@
  * Pure A/B/C no-show zone model. No React, no i18n, no side effects — trivially
  * unit-testable and shared by the table UI and the Excel export.
  *
- * Zone timeline for an absent employee at reference time `now`:
+ * Zone timeline for an absent employee at reference time `A`:
  *   shift_start                shift_start + grace               shift_end
  *     │◄──── Zone A ──────────►│◄────── Zone B ────────────────►│◄── Zone C ──►│
  *     │ "Chờ · còn X phút"     │ "Grace hết – cần xác minh ngay" │ "Vắng (kết thúc ca)" │
  *
- * - Zone A: now ≤ start + grace  → still in grace, no action yet (countdown).
- * - Zone B: start + grace < now < shift_end → grace expired, shift in progress:
+ * - Zone A: A ≤ start + grace  → still in grace, no action yet (countdown).
+ * - Zone B: start + grace < A < shift_end → grace expired, shift in progress:
  *           this is the operational action queue (elapsed).
- * - Zone C: now ≥ shift_end, or a past date → fixed absent record.
+ * - Zone C: A ≥ shift_end → fixed absent record.
+ *
+ * TIME MODEL (redesign — TZ-aware, absolute time):
+ * The old implementation compared `now.getHours()` (a wall-clock reading that
+ * throws away the date and ignores timezone) against "HH:MM:SS" shift times.
+ * That breaks the moment the reference time `A` is any instant other than "the
+ * client's current local wall clock" — which is exactly what the timeline
+ * scrubber needs (A fixed in the past/future, ±12h, in the *workspace* TZ).
+ *
+ * So this version works entirely in absolute epoch-minutes. The caller resolves
+ * the shift's start/end to absolute instants from (shiftDate + "HH:MM:SS") in
+ * the workspace timezone, and passes the reference time `A` as a `Date`. The
+ * helper `epochMinutesInTz` does the wall-clock → UTC conversion with
+ * `Intl.DateTimeFormat` (no extra deps — date-fns-tz is not in the bundle).
  */
 
 const MINUTES_PER_DAY = 24 * 60;
+const MS_PER_MINUTE = 60_000;
 
 export type Zone = "a" | "b" | "c";
 
@@ -21,6 +35,24 @@ export interface ZoneInfo {
   zone: Zone;
   /** For Zone A: minutes of grace remaining. For Zone B: minutes past grace. */
   minutes: number | null;
+}
+
+/** Inputs to `computeZone`. All time math is derived from these; the function
+ *  never reads the system clock, so it stays pure and deterministic. */
+export interface ComputeZoneInput {
+  /** Shift start "HH:MM:SS" | null, interpreted on `shiftDate` in `tz`. */
+  scheduledStart: string | null | undefined;
+  /** Shift end "HH:MM:SS" | null, interpreted on `shiftDate` in `tz`. */
+  scheduledEnd: string | null | undefined;
+  /** Resolved grace in minutes; defaults to 15 when null. */
+  graceMinutes: number | null | undefined;
+  /** The absolute reference instant `A` (the scrubber's pinned center). */
+  referenceTime: Date;
+  /** The shift's assigned calendar day "yyyy-MM-dd" (overnight shifts are
+   *  anchored to their start date). */
+  shiftDate: string;
+  /** IANA workspace timezone, e.g. "Asia/Ho_Chi_Minh". */
+  tz: string;
 }
 
 /** "HH:MM" / "HH:MM:SS" → minutes since midnight, or null when unparseable. */
@@ -32,52 +64,103 @@ export function parseTimeToMinutes(time: string | null | undefined): number | nu
 }
 
 /**
- * Compute the A/B/C zone for one absent row.
+ * Absolute epoch-minutes of a wall-clock (date + time) read in `tz`.
  *
- * @param scheduledStart "HH:MM:SS" | null  (matches DailyAttendanceReport.scheduled_start)
- * @param scheduledEnd   "HH:MM:SS" | null
- * @param graceMinutes   resolved grace; defaults to 15 when null (matches backend)
- * @param now            injectable reference clock (real-time `now` for live view)
+ * `date` is "yyyy-MM-dd"; `time` is "HH:MM" or "HH:MM:SS". Uses
+ * `Intl.DateTimeFormat.formatToParts` to read the wall-clock back from a guess
+ * UTC instant and corrects in two passes (handles DST gaps/overlaps). Returns
+ * `NaN` only if `tz` is invalid — callers guard with a valid IANA string.
  */
-export function computeZone(
-  scheduledStart: string | null | undefined,
-  scheduledEnd: string | null | undefined,
-  graceMinutes: number | null | undefined,
-  now: Date,
-): ZoneInfo {
-  const grace = graceMinutes ?? 15;
-  const startMins = parseTimeToMinutes(scheduledStart);
-  const endMins = parseTimeToMinutes(scheduledEnd);
+export function epochMinutesInTz(
+  date: string,
+  time: string,
+  tz: string,
+): number {
+  const hm = time.split(":").slice(0, 2).join(":");
+  const localIso = `${date}T${hm}:00`;
 
-  // No shift times → neutral Zone C (never throws, never mislabels).
-  if (startMins == null || endMins == null) {
-    return { zone: "c", minutes: null };
-  }
+  const formatter = new Intl.DateTimeFormat("en-GB", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  });
 
-  // Overnight shifts (e.g. 22:00–06:00) cross midnight. Push the end time into the
-  // next day, and if `now` is before the start time, treat it as the post-midnight
-  // tail of the shift so the comparisons below stay correct.
-  const crossesMidnight = endMins <= startMins;
-  const effectiveEnd = crossesMidnight ? endMins + MINUTES_PER_DAY : endMins;
-  let nowMins = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
-  if (crossesMidnight && nowMins < startMins) {
-    nowMins += MINUTES_PER_DAY;
-  }
+  const readWall = (utc: Date): Date => {
+    const parts = formatter.formatToParts(utc);
+    const p: Record<string, string> = {};
+    for (const part of parts) p[part.type] = part.value;
+    return new Date(`${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}Z`);
+  };
 
-  const graceEndsAt = startMins + grace;
-
-  if (nowMins >= effectiveEnd) {
-    return { zone: "c", minutes: null };
+  // First approximation: treat the wall-clock as UTC, then correct by the
+  // offset between intended wall-clock and what the tz actually reads back.
+  let utc = new Date(`${localIso}Z`);
+  for (let i = 0; i < 2; i += 1) {
+    const wall = readWall(utc);
+    const diff = new Date(`${localIso}Z`).getTime() - wall.getTime();
+    utc = new Date(utc.getTime() + diff);
   }
-  if (nowMins <= graceEndsAt) {
-    return { zone: "a", minutes: Math.ceil(graceEndsAt - nowMins) };
-  }
-  return { zone: "b", minutes: Math.ceil(nowMins - graceEndsAt) };
+  return Math.round(utc.getTime() / MS_PER_MINUTE);
 }
 
-/** True when the user selected a historical date → all rows fixed to Zone C. */
-export function isViewingPastDate(selectedDate: string, today: string): boolean {
-  if (!selectedDate || !today) return false;
+/**
+ * Compute the A/B/C zone for one absent row at absolute reference time `A`.
+ *
+ * Pure: given the same inputs it always returns the same `ZoneInfo`, and it
+ * never touches React/i18n/the network. The table UI and the Excel export both
+ * call this, so they can never disagree.
+ */
+export function computeZone(input: ComputeZoneInput): ZoneInfo {
+  const {
+    scheduledStart,
+    scheduledEnd,
+    graceMinutes,
+    referenceTime,
+    shiftDate,
+    tz,
+  } = input;
+
+  const grace = graceMinutes ?? 15;
+
+  // Missing shift times or context → neutral Zone C (never throws, never mislabels).
+  if (
+    scheduledStart == null ||
+    scheduledEnd == null ||
+    !shiftDate ||
+    !tz
+  ) {
+    return { zone: "c", minutes: null };
+  }
+
+  // Absolute epoch-minutes of the shift boundaries, anchored to `shiftDate` in
+  // the workspace timezone. Overnight shifts (end ≤ start) push the end +24h.
+  const startMins = epochMinutesInTz(shiftDate, scheduledStart, tz);
+  let endMins = epochMinutesInTz(shiftDate, scheduledEnd, tz);
+  if (endMins <= startMins) {
+    endMins += MINUTES_PER_DAY;
+  }
+
+  const refMins = referenceTime.getTime() / MS_PER_MINUTE;
+  const graceEndsAt = startMins + grace;
+
+  if (refMins >= endMins) {
+    return { zone: "c", minutes: null };
+  }
+  if (refMins <= graceEndsAt) {
+    return { zone: "a", minutes: Math.ceil(graceEndsAt - refMins) };
+  }
+  return { zone: "b", minutes: Math.ceil(refMins - graceEndsAt) };
+}
+
+/** True when the user pinned `A` on a calendar day before today (in workspace
+ *  tz) → every row is a fixed historical record, no live countdown. */
+export function isViewingPastDate(shiftDate: string, today: string): boolean {
+  if (!shiftDate || !today) return false;
   // ISO "yyyy-MM-dd" compares lexicographically.
-  return selectedDate < today;
+  return shiftDate < today;
 }

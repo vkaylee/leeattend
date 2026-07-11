@@ -2,6 +2,7 @@ import type { paths } from "@/types/api-generated";
 
 import type { LeavePolicyAssignmentDetail, LeaveRequest, EmployeeLeaveBalance, WorkspaceLeaveBalance, LeaveHistoryItem, LeavePolicy, LeaveType, LeaveTypeConfig, LeaveDurationType, PaginatedResponse, BehalfAssignment, CreateBehalfAssignmentRequest } from './types';
 
+import { ApiError } from "./errors";
 import { client, fetch } from "./client";
 import { API_BASE_URL } from './config';
 import { apiFetch } from "./helpers";
@@ -26,7 +27,6 @@ export async function submitLeaveRequest(
     },
     body: data,
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -50,7 +50,6 @@ export async function fetchWorkspaceLeaveRequests(
       },
     },
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -62,7 +61,6 @@ export async function fetchMyLeaveRequests(
       path: { id: employeeId },
     },
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -88,7 +86,6 @@ export async function fetchEmployeeLeaveBalances(
       path: { ws_id: wsId, id: employeeId },
     },
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -107,7 +104,6 @@ export async function fetchWorkspaceLeaveBalances(
             },
     },
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -122,7 +118,6 @@ export async function fetchLeaveHistory(
       query: leaveTypeId ? { leave_type_id: leaveTypeId } : undefined,
     },
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -143,7 +138,6 @@ export async function fetchLeavePolicies(wsId: string): Promise<LeavePolicy[]> {
   const { data: resData } = await fetch<LeavePolicy[]>("GET", "/workspaces/{ws_id}/leave/policies", {
     params: { path: { ws_id: wsId } },
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -155,7 +149,6 @@ export async function createLeavePolicy(
     params: { path: { ws_id: wsId } },
     body: data,
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -168,7 +161,6 @@ export async function updateLeavePolicy(
     params: { path: { ws_id: wsId, policy_id: policyId } },
     body: data,
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -189,7 +181,6 @@ export async function fetchLeaveTypes(wsId: string): Promise<LeaveType[]> {
       path: { workspace_id: wsId },
     },
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -203,7 +194,6 @@ export async function createLeaveType(
     },
     body: data,
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -222,7 +212,6 @@ export async function fetchLeavePolicyAssignments(wsId: string): Promise<LeavePo
   const { data: resData } = await fetch<LeavePolicyAssignmentDetail[]>("GET", "/workspaces/{ws_id}/leave/policies/assignments", {
     params: { path: { ws_id: wsId } },
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -265,7 +254,6 @@ export async function triggerAccrualRun(
     },
     body: data,
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -283,7 +271,6 @@ export async function fetchJobStatus(
   const { data: resData } = await fetch<JobStatusResponse>("GET", "/workspaces/{ws_id}/jobs/{job_id}/status", {
     params: { path: { ws_id: wsId, job_id: jobId } },
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -298,7 +285,6 @@ export async function updateLeaveTypeConfig(
     },
     body: { policy_config: config },
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -327,7 +313,6 @@ export async function uploadLeaveExcel(
     params: { path: { ws_id: wsId } },
     body: formData,
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -384,7 +369,7 @@ export async function downloadLeaveImportTemplate(wsId: string, lang = "en"): Pr
 /** Download the error Excel file via authenticated fetch. */
 export async function downloadLeaveImportErrors(wsId: string, jobId: string): Promise<void> {
   const response = await apiFetch(`/v1/workspaces/${wsId}/leave/import/${jobId}/errors`);
-  if (!response.ok) throw new Error("Failed to download errors");
+  if (!response.ok) await ApiError.rejectResponse(response);
   const blob = await response.blob();
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -402,7 +387,6 @@ export async function fetchLeaveBehalfAssignments(
   const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/leave/behalf-assignments", {
     params: { path: { ws_id: wsId } }
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 
@@ -414,7 +398,6 @@ export async function createLeaveBehalfAssignment(
     params: { path: { ws_id: wsId } },
     body: data
   });
-  if (!resData) throw new Error("No response data");
   return resData;
 }
 

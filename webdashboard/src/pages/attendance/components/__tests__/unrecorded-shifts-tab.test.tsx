@@ -45,7 +45,7 @@ window.IntersectionObserver =
 // Module mocks
 // ---------------------------------------------------------------------------
 vi.mock("../../../../lib/api", () => ({
-  fetchAttendanceReport: vi.fn(),
+  fetchNoShowReport: vi.fn(),
   fetchEmployees: vi.fn(),
   fetchShifts: vi.fn(),
   getCurrentWorkspaceId: vi.fn(),
@@ -53,6 +53,10 @@ vi.mock("../../../../lib/api", () => ({
 
 vi.mock("@/hooks/use-employees", () => ({
   useAllEmployees: () => ({ employees: makeEmployees(60), isLoading: false }),
+}));
+
+vi.mock("@/hooks/use-workspace", () => ({
+  useWorkspace: () => ({ workspace: { timezone: "UTC" }, isLoading: false }),
 }));
 
 // The Excel module dynamically imports exceljs + file-saver; mock it so the
@@ -142,7 +146,7 @@ describe("UnrecordedShiftsTab", () => {
   // ── Core rendering ──────────────────────────────────────────────────────
 
   it("renders absent rows enriched with department and employee code", async () => {
-    vi.mocked(api.fetchAttendanceReport).mockResolvedValue({
+    vi.mocked(api.fetchNoShowReport).mockResolvedValue({
       data: [
         makeRow({ employment_id: "employment-1", employee_id: "emp-1", employee_name: "Alice" }),
         makeRow({ employment_id: "employment-2", employee_id: "emp-2", employee_name: "Bob" }),
@@ -165,7 +169,7 @@ describe("UnrecordedShiftsTab", () => {
   });
 
   it("renders the Shift Type column with the shift_name value", async () => {
-    vi.mocked(api.fetchAttendanceReport).mockResolvedValue({
+    vi.mocked(api.fetchNoShowReport).mockResolvedValue({
       data: [
         makeRow({ employment_id: "employment-1", employee_id: "emp-1", employee_name: "Alice", shift_name: "Morning Shift" }),
         makeRow({ employment_id: "employment-2", employee_id: "emp-2", employee_name: "Bob", shift_name: null }),
@@ -187,7 +191,7 @@ describe("UnrecordedShiftsTab", () => {
   });
 
   it("filters out rows whose status is not 'absent'", async () => {
-    vi.mocked(api.fetchAttendanceReport).mockResolvedValue({
+    vi.mocked(api.fetchNoShowReport).mockResolvedValue({
       data: [
         makeRow({ employment_id: "employment-1", employee_id: "emp-1", employee_name: "Absent Alice", status: "absent" }),
         makeRow({ employment_id: "employment-2", employee_id: "emp-2", employee_name: "Present Bob", status: "present" }),
@@ -211,7 +215,7 @@ describe("UnrecordedShiftsTab", () => {
 
   it("shows skeleton rows while the first page is loading", () => {
     // Never-resolving promise keeps the query in the loading state.
-    vi.mocked(api.fetchAttendanceReport).mockImplementation(
+    vi.mocked(api.fetchNoShowReport).mockImplementation(
       () => new Promise(() => { /* pending */ }),
     );
 
@@ -221,7 +225,7 @@ describe("UnrecordedShiftsTab", () => {
   });
 
   it("shows the empty state when no absent rows exist", async () => {
-    vi.mocked(api.fetchAttendanceReport).mockResolvedValue({
+    vi.mocked(api.fetchNoShowReport).mockResolvedValue({
       data: [
         makeRow({ employment_id: "employment-1", employee_id: "emp-1", status: "present" }),
       ],
@@ -236,7 +240,7 @@ describe("UnrecordedShiftsTab", () => {
   });
 
   it("shows the empty state when the report returns no rows at all", async () => {
-    vi.mocked(api.fetchAttendanceReport).mockResolvedValue({
+    vi.mocked(api.fetchNoShowReport).mockResolvedValue({
       data: [],
       total: 0,
       page: 1,
@@ -251,7 +255,7 @@ describe("UnrecordedShiftsTab", () => {
   // ── Pagination configuration ────────────────────────────────────────────
 
   it("requests the first page with EMPLOYEE_PAGE_SIZE (30) as the limit", async () => {
-    vi.mocked(api.fetchAttendanceReport).mockResolvedValue({
+    vi.mocked(api.fetchNoShowReport).mockResolvedValue({
       data: [makeRow()],
       total: 1,
       page: 1,
@@ -261,10 +265,10 @@ describe("UnrecordedShiftsTab", () => {
     renderTab();
 
     await waitFor(() => {
-      expect(api.fetchAttendanceReport).toHaveBeenCalledTimes(1);
+      expect(api.fetchNoShowReport).toHaveBeenCalledTimes(1);
     });
-    expect(api.fetchAttendanceReport).toHaveBeenCalledWith(
-      expect.objectContaining({ page: 1, limit: 30, type: "daily" }),
+    expect(api.fetchNoShowReport).toHaveBeenCalledWith(
+      expect.objectContaining({ page: 1, limit: 30, referenceTime: expect.any(String) }),
     );
   });
 
@@ -289,7 +293,7 @@ describe("UnrecordedShiftsTab", () => {
       }),
     );
 
-    vi.mocked(api.fetchAttendanceReport).mockImplementation(
+    vi.mocked(api.fetchNoShowReport).mockImplementation(
       (args) =>
         Promise.resolve({
           data: args.page === 1 ? page1Rows : page2Rows,
@@ -306,9 +310,9 @@ describe("UnrecordedShiftsTab", () => {
 
     // The eager-drain effect fetches the remaining page in the background.
     await waitFor(() => {
-      expect(api.fetchAttendanceReport).toHaveBeenCalledTimes(2);
+      expect(api.fetchNoShowReport).toHaveBeenCalledTimes(2);
     });
-    expect(api.fetchAttendanceReport).toHaveBeenLastCalledWith(
+    expect(api.fetchNoShowReport).toHaveBeenLastCalledWith(
       expect.objectContaining({ page: 2, limit: 30 }),
     );
 
@@ -317,7 +321,7 @@ describe("UnrecordedShiftsTab", () => {
   });
 
   it("does not fetch a second page when all rows fit in the first page", async () => {
-    vi.mocked(api.fetchAttendanceReport).mockResolvedValue({
+    vi.mocked(api.fetchNoShowReport).mockResolvedValue({
       data: [
         makeRow({ employment_id: "employment-1", employee_id: "emp-1", employee_name: "Only One" }),
       ],
@@ -332,9 +336,9 @@ describe("UnrecordedShiftsTab", () => {
 
     // Give the observer a chance to fire; it must NOT trigger another fetch.
     await waitFor(() => {
-      expect(api.fetchAttendanceReport).toHaveBeenCalledTimes(1);
+      expect(api.fetchNoShowReport).toHaveBeenCalledTimes(1);
     });
-    expect(api.fetchAttendanceReport).not.toHaveBeenCalledWith(
+    expect(api.fetchNoShowReport).not.toHaveBeenCalledWith(
       expect.objectContaining({ page: 2 }),
     );
   });
@@ -342,7 +346,7 @@ describe("UnrecordedShiftsTab", () => {
   // ── Department filter ───────────────────────────────────────────────────
 
   it("filters rendered rows by the selected department", async () => {
-    vi.mocked(api.fetchAttendanceReport).mockResolvedValue({
+    vi.mocked(api.fetchNoShowReport).mockResolvedValue({
       data: [
         // emp-1 → Engineering (even index), emp-2 → HR (odd index)
         makeRow({ employment_id: "employment-1", employee_id: "emp-1", employee_name: "Eng Worker" }),
@@ -373,7 +377,7 @@ describe("UnrecordedShiftsTab", () => {
   // ── Export ───────────────────────────────────────────────────────────────
 
   it("exports the filtered rows to Excel when the export button is clicked", async () => {
-    vi.mocked(api.fetchAttendanceReport).mockResolvedValue({
+    vi.mocked(api.fetchNoShowReport).mockResolvedValue({
       data: [
         makeRow({ employment_id: "employment-1", employee_id: "emp-1", employee_name: "Alice" }),
         makeRow({ employment_id: "employment-2", employee_id: "emp-2", employee_name: "Bob" }),
@@ -396,13 +400,13 @@ describe("UnrecordedShiftsTab", () => {
 
     const [rows, options] = mockExportNoShowToExcel.mock.calls[0] as [
       Array<{ employee_name: string }>,
-      { date: string },
+      { referenceTimeLabel: string },
     ];
     expect(rows).toHaveLength(2);
     expect(rows[0].employee_name).toBe("Alice");
     expect(rows[1].employee_name).toBe("Bob");
-    // The report date is forwarded so the filename is dated.
-    expect(options.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    // The pinned reference-time label is forwarded so the filename is unique.
+    expect(options.referenceTimeLabel).toMatch(/^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}$/);
   });
 
   it("drains every page before exporting so no rows are missed", async () => {
@@ -418,7 +422,7 @@ describe("UnrecordedShiftsTab", () => {
       makeRow({ employment_id: "employment-4", employee_id: "emp-4", employee_name: "Dave" }),
     ];
 
-    vi.mocked(api.fetchAttendanceReport).mockImplementation(
+    vi.mocked(api.fetchNoShowReport).mockImplementation(
       (args) =>
         Promise.resolve({
           data: (args.page as number) === 1 ? page1Rows : page2Rows,
@@ -439,7 +443,7 @@ describe("UnrecordedShiftsTab", () => {
       expect(mockExportNoShowToExcel).toHaveBeenCalledTimes(1);
     });
     // Both pages were fetched during the export drain.
-    expect(api.fetchAttendanceReport).toHaveBeenCalledWith(
+    expect(api.fetchNoShowReport).toHaveBeenCalledWith(
       expect.objectContaining({ page: 2 }),
     );
 
@@ -463,7 +467,7 @@ describe("UnrecordedShiftsTab", () => {
       makeRow({ employment_id: "employment-4", employee_id: "emp-4", employee_name: "HR Dave" }),
     ];
 
-    vi.mocked(api.fetchAttendanceReport).mockImplementation(
+    vi.mocked(api.fetchNoShowReport).mockImplementation(
       (args) =>
         Promise.resolve({
           data: (args.page as number) === 1 ? page1Rows : page2Rows,
@@ -518,7 +522,7 @@ describe("UnrecordedShiftsTab", () => {
       }),
     );
 
-    vi.mocked(api.fetchAttendanceReport).mockImplementation(
+    vi.mocked(api.fetchNoShowReport).mockImplementation(
       (args) =>
         Promise.resolve({
           data: args.page === 1 ? page1Rows : page2Rows,
@@ -539,7 +543,7 @@ describe("UnrecordedShiftsTab", () => {
   });
 
   it("includes the shift_name field in every exported row", async () => {
-    vi.mocked(api.fetchAttendanceReport).mockResolvedValue({
+    vi.mocked(api.fetchNoShowReport).mockResolvedValue({
       data: [
         makeRow({
           employment_id: "employment-1",
@@ -592,7 +596,7 @@ describe("UnrecordedShiftsTab", () => {
       makeRow({ employment_id: "employment-2", employee_id: "emp-2", employee_name: "Bob" }),
     ];
 
-    vi.mocked(api.fetchAttendanceReport).mockImplementation(
+    vi.mocked(api.fetchNoShowReport).mockImplementation(
       (args) => {
         if ((args.page as number) === 2) {
           // Block the drain until we explicitly release it.
@@ -638,7 +642,7 @@ describe("UnrecordedShiftsTab", () => {
 
   it("disables the export button while loading or when there are no rows", async () => {
     // No absent rows → button disabled even after data loads.
-    vi.mocked(api.fetchAttendanceReport).mockResolvedValue({
+    vi.mocked(api.fetchNoShowReport).mockResolvedValue({
       data: [makeRow({ status: "present" })],
       total: 1,
       page: 1,
