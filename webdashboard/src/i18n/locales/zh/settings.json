@@ -455,6 +455,8 @@
         "desc": "定义您组织中可用的休假类别（例如年假、病假）。",
         "add_btn": "添加请假类型",
         "code": "代码",
+        "create_success": "请假类型创建成功",
+        "create_error_duplicate_code": "该请假类型代码已存在",
         "paid": "有薪",
         "unpaid": "无薪",
         "empty_title": "未配置任何请假类型",

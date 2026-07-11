@@ -6,6 +6,7 @@ use crate::models::{
 };
 use crate::repositories::leave_policy_repository::LeavePolicyRepository;
 use crate::utils::i18n::I18nKey;
+use diesel::result::DatabaseErrorKind;
 
 use crate::schema::*;
 use async_trait::async_trait;
@@ -81,7 +82,24 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
             .values(&entity)
             .get_result::<LeaveTypeEntity>(&mut *conn)
             .await
-            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+            .map_err(|e| match e {
+                diesel::result::Error::DatabaseError(
+                    DatabaseErrorKind::UniqueViolation,
+                    ref info,
+                ) if info
+                    .constraint_name()
+                    .is_some_and(|c| {
+                        c == "leave_types_workspace_id_code_key"
+                            || c == "uq_leave_types_code"
+                    }) =>
+                {
+                    AppError::conflict_args(
+                        I18nKey::Conflict,
+                        vec![("details", "leave_type_code_exists")],
+                    )
+                }
+                _ => AppError::Internal(format!("db: {e}")),
+            })?;
 
         Ok(result.into())
     }

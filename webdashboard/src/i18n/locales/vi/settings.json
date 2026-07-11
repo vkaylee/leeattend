@@ -455,6 +455,8 @@
         "desc": "Định nghĩa các danh mục nghỉ phép sẵn có trong tổ chức của bạn (ví dụ: Nghỉ phép năm, Nghỉ ốm).",
         "add_btn": "Thêm loại nghỉ phép",
         "code": "Mã",
+        "create_success": "Đã tạo loại nghỉ phép thành công",
+        "create_error_duplicate_code": "Mã loại nghỉ phép này đã tồn tại",
         "paid": "Hưởng lương",
         "unpaid": "Không lương",
         "empty_title": "Chưa cấu hình loại nghỉ phép",

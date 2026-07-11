@@ -70,9 +70,10 @@ async fn test_leave_types_crud_lifecycle() {
         "Should have at least 4 seeded leave types"
     );
 
-    // 2. Create a new leave type
+    // 2. Create a new leave type (unique code per run — idempotent across repeated runs)
+    let lt_code = format!("study-{}", Uuid::new_v4());
     let create_payload = json!({
-        "code": "study",
+        "code": lt_code,
         "name": "Study Leave",
         "is_paid": true,
         "policy_config": {}
@@ -100,7 +101,7 @@ async fn test_leave_types_crud_lifecycle() {
         .unwrap();
     let created: serde_json::Value = serde_json::from_slice(&body).unwrap();
     let lt_id = created["id"].as_str().unwrap().to_string();
-    assert_eq!(created["code"], "study");
+    assert_eq!(created["code"], serde_json::json!(lt_code));
     assert_eq!(created["name"], "Study Leave");
     assert_eq!(created["is_paid"], true);
 
@@ -256,7 +257,7 @@ async fn test_leave_types_permission_enforcement() {
         .await;
 
     let create_payload = json!({
-        "code": "unauthorized",
+        "code": format!("unauthorized-{}", Uuid::new_v4()),
         "name": "Unauthorized Type",
         "is_paid": false
     });
@@ -278,5 +279,53 @@ async fn test_leave_types_permission_enforcement() {
         response.status(),
         StatusCode::FORBIDDEN,
         "Employee role must not create leave types"
+    );
+}
+
+#[tokio::test]
+async fn test_leave_type_duplicate_code_returns_conflict() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let owner_id = factory
+        .user()
+        .with_email("owner@leavedup.test")
+        .create()
+        .await;
+    let ws_id = factory.workspace().create_with_owner(owner_id).await;
+
+    let code = format!("dup-{}", Uuid::new_v4());
+
+    // First creation succeeds
+    let payload = json!({ "code": code, "name": "Dup Leave", "is_paid": true });
+    let response = app
+        .clone()
+        .oneshot(make_req(
+            "POST",
+            &format!("/api/v1/workspaces/{ws_id}/leave/types"),
+            ws_id,
+            owner_id,
+            Some(payload),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::CREATED, "first insert must succeed");
+
+    // Second creation with same code must return 409 Conflict — not 500
+    let dup_payload = json!({ "code": code, "name": "Dup Leave 2", "is_paid": false });
+    let response = app
+        .oneshot(make_req(
+            "POST",
+            &format!("/api/v1/workspaces/{ws_id}/leave/types"),
+            ws_id,
+            owner_id,
+            Some(dup_payload),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(
+        response.status(),
+        StatusCode::CONFLICT,
+        "duplicate leave-type code must return 409 Conflict, not 500"
     );
 }

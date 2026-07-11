@@ -166,6 +166,7 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
 
       {isAddingType ? (
         <AddLeaveTypeModal
+          existingCodes={leaveTypes.map((lt) => lt.code.toLowerCase())}
           isSaving={isCreating}
           onClose={() => {
             setIsAddingType(false);
@@ -228,15 +229,22 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
 }
 
 interface AddLeaveTypeModalProps {
+  existingCodes: string[];
   isSaving: boolean;
   onClose: () => void;
   onSave: (data: { code: string; name: string; is_paid: boolean }) => void;
 }
 
-function AddLeaveTypeModal({ onClose, onSave, isSaving }: AddLeaveTypeModalProps) {
+function AddLeaveTypeModal({ existingCodes, onClose, onSave, isSaving }: AddLeaveTypeModalProps) {
   const { t } = useTranslation();
   const [step, setStep] = useState<"template" | "form">("template");
   const [formData, setFormData] = useState({ code: "", name: "", is_paid: true });
+
+  // Proactive inline duplicate detection (matches the workspace-unique,
+  // case-insensitive code constraint enforced server-side).
+  const normalizedCode = formData.code.trim().toLowerCase();
+  const isDuplicateCode =
+    normalizedCode.length > 0 && existingCodes.includes(normalizedCode);
 
   const handleApplyTemplate = (template: LeaveTemplate) => {
     setFormData({
@@ -268,6 +276,7 @@ function AddLeaveTypeModal({ onClose, onSave, isSaving }: AddLeaveTypeModalProps
         />
       ) : (
         <LeaveTypeForm
+          existingCodes={existingCodes}
           initialData={formData}
           isSaving={isSaving}
           onBackToTemplates={() => {

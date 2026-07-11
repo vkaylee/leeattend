@@ -7,6 +7,10 @@ import { Typography } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 interface LeaveTypeFormProps {
+  // Lower-cased codes of leave types already defined in the workspace.
+  // Used for client-side duplicate detection (best-effort; the server
+  // enforces the case-insensitive unique constraint as source of truth).
+  existingCodes: string[];
   initialData: { code: string; name: string; is_paid: boolean };
   isSaving: boolean;
   onBackToTemplates: () => void;
@@ -14,8 +18,9 @@ interface LeaveTypeFormProps {
   onSave: (data: { code: string; name: string; is_paid: boolean }) => void;
 }
 
- 
+
 export function LeaveTypeForm({
+  existingCodes,
   initialData,
   isSaving,
   onSave,
@@ -25,9 +30,13 @@ export function LeaveTypeForm({
   const { t } = useTranslation();
   const [formData, setFormData] = useState(initialData);
 
-   
+  const normalizedCode = formData.code.trim().toLowerCase();
+  const isDuplicateCode =
+    normalizedCode.length > 0 && existingCodes.includes(normalizedCode);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isDuplicateCode) return;
     onSave(formData);
   };
 
@@ -49,6 +58,14 @@ export function LeaveTypeForm({
             type="text"
             value={formData.code}
           />
+          {isDuplicateCode ? (
+            <p className="mt-1.5 ml-1 text-[11px] font-semibold text-rose-500">
+              {t(
+                "settings.leave.type_manager.create_error_duplicate_code",
+                "A leave type with this code already exists",
+              )}
+            </p>
+          ) : null}
         </div>
 
         <div className="space-y-1.5">
@@ -130,7 +147,7 @@ export function LeaveTypeForm({
             </Button>
             <Button
               className="shadow-primary-500/20 text-[10px] tracking-[0.2em] py-3.5 px-8"
-              disabled={isSaving}
+              disabled={isSaving || isDuplicateCode}
               size="sm"
               type="submit"
               variant="primary"

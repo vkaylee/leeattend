@@ -1,8 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { useToast } from "@/components/ui/toast";
 import { fetchLeaveTypes, updateLeaveTypeConfig, createLeaveType, deleteLeaveType } from "@/lib/api/leaves";
+import { ApiError } from "@/lib/api/errors";
 import { LeaveType, LeaveTypeConfig } from "@/lib/api/types";
 
 interface UseLeaveTypeManagerProps {
@@ -10,6 +12,7 @@ interface UseLeaveTypeManagerProps {
 }
 
 export function useLeaveTypeManager({ wsId }: UseLeaveTypeManagerProps) {
+  const { t } = useTranslation();
   const toast = useToast();
   const queryClient = useQueryClient();
 
@@ -26,11 +29,23 @@ export function useLeaveTypeManager({ wsId }: UseLeaveTypeManagerProps) {
     mutationFn: (data: { code: string; name: string; is_paid: boolean }) => createLeaveType(wsId, data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["leave-types"] });
-      toast.success("Leave type created successfully");
+      toast.success(t("settings.leave.type_manager.create_success", "Leave type created successfully"));
       setIsAddingType(false);
     },
-    onError: (error: Error) => {
-      toast.error(error.message);
+    onError: (error: unknown) => {
+      // Backend returns 409 Conflict for a duplicate leave-type code (unique
+      // constraint on workspace_id + code). Surface the localized message
+      // rather than the raw ApiError text.
+      if (error instanceof ApiError && error.isConflict) {
+        toast.error(
+          t(
+            "settings.leave.type_manager.create_error_duplicate_code",
+            "A leave type with this code already exists",
+          ),
+        );
+        return;
+      }
+      toast.error(error instanceof Error ? error.message : "Failed to create leave type");
     },
   });
 
