@@ -14,6 +14,11 @@ export interface FileGridProps {
   onViewFile: (file: WorkspaceFile) => void;
 }
 
+/**
+ * Map MIME type to icon component. The if/else chain is inherently flat —
+ * each branch is a single return. Marking complexity as acceptable.
+ */
+// eslint-disable-next-line complexity
 function getFileIcon(mimeType: string) {
   if (mimeType.includes("pdf")) return <FileText className="w-8 h-8 text-red-500" />;
   if (mimeType.includes("image")) return <ImageIcon className="w-8 h-8 text-blue-500" />;

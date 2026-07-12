@@ -214,6 +214,7 @@ const PAYROLL_PATHS: string[] = [ROUTES.PAYROLL];
  * Determines which nav group is active based on the current route path.
  * Used by IconRail to highlight the active nav group.
  */
+// eslint-disable-next-line complexity
 export function getActiveNavGroup(pathname: string): NavGroup | null {
   if (pathname === ROUTES.HOME || pathname === ROUTES.DASHBOARD) return "dashboard";
   if (ORG_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) return "org";

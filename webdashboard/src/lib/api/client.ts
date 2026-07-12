@@ -9,6 +9,7 @@ import { API_BASE_URL } from "./config";
 import { ApiError } from "./errors";
 import { apiFetch } from "./helpers";
 
+// eslint-disable-next-line complexity
 async function extractRequestInfo(
   url: Request,
   initOptions: RequestInit

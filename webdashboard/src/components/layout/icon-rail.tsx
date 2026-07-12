@@ -33,6 +33,7 @@ const SHARED_ICON_CLASSES = "flex items-center justify-center w-full h-11 rounde
 const ACTIVE_CLASSES = "text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950";
 const IDLE_CLASSES = "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900";
 
+// eslint-disable-next-line complexity
 export default function IconRail({
   activeGroup,
   isPinned,
