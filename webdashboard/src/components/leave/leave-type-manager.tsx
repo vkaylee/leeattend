@@ -1,4 +1,4 @@
-import { Wallet, AlertTriangle, Pencil, Plus, Trash2, Sparkles } from "lucide-react";
+import { Wallet, AlertTriangle, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -6,10 +6,11 @@ import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
 import Modal from "@/components/ui/modal";
 import { Typography } from "@/components/ui/typography";
-import { LeaveType, LeaveTypeConfig } from "@/lib/api/types";
+import { LeaveType } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 import { useLeaveTypeManager } from "./hooks/use-leave-type-manager";
+import EditLeaveTypeModal from "./leave-policy-components/edit-leave-type-modal";
 import { LeaveTypeForm } from "./leave-policy-components/leave-type-form";
 import { TemplateGallery } from "./leave-policy-components/template-gallery";
 import { LeaveTemplate } from "./leave-templates";
@@ -290,196 +291,4 @@ function AddLeaveTypeModal({ existingCodes, onClose, onSave, isSaving }: AddLeav
   );
 }
 
-interface EditLeaveTypeModalProps {
-  isSaving: boolean;
-  leaveType: LeaveType;
-  onClose: () => void;
-  onSave: (config: LeaveTypeConfig) => void;
-}
-
- 
-function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: EditLeaveTypeModalProps) {
-  const { t } = useTranslation();
-  const [config, setConfig] = useState(() => ({
-    approval_required: true,
-    requires_document: false,
-    allow_negative_balance: false,
-    ...leaveType.policy_config,
-  }));
-
-  return (
-    <Modal
-      isOpen={true}
-      maxWidth="md"
-      onClose={onClose}
-      subtitle={t("settings.leave.type_manager.policy_config_subtitle", "Defining rules for " + leaveType.name, { name: leaveType.name })}
-      title={t("settings.leave.type_manager.policy_config_title", "Leave Policy Configuration")}
-    >
-      <form
-        className="space-y-6"
-        onSubmit={(e) => {
-          e.preventDefault();
-          onSave(config);
-        }}
-      >
-        <div className="rounded-[2rem] bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 overflow-hidden">
-          <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/10">
-            <div className="flex items-center gap-3">
-              <div
-                className={cn(
-                  "h-9 w-9 rounded-xl flex items-center justify-center shadow-inner shrink-0",
-                  leaveType.is_paid
-                    ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600"
-                    : "bg-amber-50 dark:bg-amber-950/50 text-amber-600"
-                )}
-              >
-                {leaveType.is_paid ? <Wallet size={16} /> : <AlertTriangle size={16} />}
-              </div>
-              <div>
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight block">
-                  {t("settings.leave.type_form.paid_status", "Paid Status")}
-                </span>
-                <Typography className="text-[10px] text-slate-400 dark:text-slate-500" variant="p">
-                  {leaveType.is_paid 
-                    ? t("settings.leave.type_form.paid_time_off", "Paid time off") 
-                    : t("settings.leave.type_form.unpaid_leave", "Unpaid leave")}
-                </Typography>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border",
-                  leaveType.is_paid
-                    ? "bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/50"
-                    : "bg-amber-50/50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-900/50"
-                )}
-              >
-                {leaveType.is_paid 
-                  ? t("settings.leave.type_manager.paid", "Paid") 
-                  : t("settings.leave.type_manager.unpaid", "Unpaid")}
-              </span>
-              <span className="text-[9px] text-slate-400 dark:text-slate-500 italic">
-                ({t("settings.leave.type_manager.immutable", "Non-editable")})
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-primary-50 dark:bg-primary-950/50 text-primary-600 flex items-center justify-center shadow-inner shrink-0">
-                <Plus size={16} />
-              </div>
-              <div>
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight block">
-                  {t("settings.leave.type_manager.approval_required", "Approval Required")}
-                </span>
-                <Typography className="text-[10px] text-slate-400 dark:text-slate-500" variant="p">{t("settings.leave.type_manager.approval_required_desc", "Managers must approve requests")}</Typography>
-              </div>
-            </div>
-            <div className="relative inline-flex items-center">
-              <input
-                checked={config.approval_required}
-                className="sr-only peer"
-                id="approval-req-input"
-                onChange={(e) => {
-                  setConfig({ ...config, approval_required: e.target.checked });
-                }}
-                type="checkbox"
-              />
-              <label
-                className="w-10 h-5.5 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-primary-600 cursor-pointer"
-                htmlFor="approval-req-input"
-              >
-                <span className="sr-only">{t("settings.leave.type_manager.approval_required", "Approval Required")}</span>
-              </label>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 flex items-center justify-center shadow-inner shrink-0">
-                <Sparkles size={16} />
-              </div>
-              <div>
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight block">
-                  {t("settings.leave.type_manager.requires_document", "Requires Document")}
-                </span>
-                <Typography className="text-[10px] text-slate-400 dark:text-slate-500" variant="p">{t("settings.leave.type_manager.requires_document_desc", "Proof/Medical cert is mandatory")}</Typography>
-              </div>
-            </div>
-            <div className="relative inline-flex items-center">
-              <input
-                checked={config.requires_document}
-                className="sr-only peer"
-                id="doc-req-input"
-                onChange={(e) => {
-                  setConfig({ ...config, requires_document: e.target.checked });
-                }}
-                type="checkbox"
-              />
-              <label
-                className="w-10 h-5.5 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-primary-600 cursor-pointer"
-                htmlFor="doc-req-input"
-              >
-                <span className="sr-only">{t("settings.leave.type_manager.requires_document", "Requires Document")}</span>
-              </label>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between p-4 flex-wrap sm:flex-nowrap">
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 flex items-center justify-center shadow-inner shrink-0">
-                <AlertTriangle size={16} />
-              </div>
-              <div>
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight block">
-                  {t("settings.leave.type_manager.negative_balance", "Negative Balance")}
-                </span>
-                <Typography className="text-[10px] text-slate-400 dark:text-slate-500" variant="p">{t("settings.leave.type_manager.negative_balance_desc", "Allow users to take leave beyond 0")}</Typography>
-              </div>
-            </div>
-            <div className="relative inline-flex items-center">
-              <input
-                checked={config.allow_negative_balance}
-                className="sr-only peer"
-                id="negative-bal-input"
-                onChange={(e) => {
-                  setConfig({ ...config, allow_negative_balance: e.target.checked });
-                }}
-                type="checkbox"
-              />
-              <label
-                className="w-10 h-5.5 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-primary-600 cursor-pointer"
-                htmlFor="negative-bal-input"
-              >
-                <span className="sr-only">{t("settings.leave.type_manager.negative_balance", "Negative Balance")}</span>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-3 pt-6 border-t border-slate-50 dark:border-slate-800">
-          <Button
-            className="px-6 py-3 text-[10px] text-slate-400 dark:text-slate-500 hover:text-slate-600"
-            onClick={onClose}
-            size="sm"
-            type="button"
-            variant="ghost"
-          >
-            {t("common.cancel", "Cancel")}
-          </Button>
-          <Button
-            className="shadow-primary-500/20 text-[10px] tracking-[0.2em] py-3.5 px-10"
-            disabled={isSaving}
-            size="sm"
-            type="submit"
-            variant="primary"
-          >
-            {isSaving ? t("settings.leave.type_manager.saving", "Saving...") : t("settings.leave.type_manager.save_policy", "Save Policy")}
-          </Button>
-        </div>
-      </form>
-    </Modal>
-  );
-}
+// EditLeaveTypeModal extracted to ./leave-policy-components/edit-leave-type-modal.tsx
