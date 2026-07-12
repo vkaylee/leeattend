@@ -8,6 +8,7 @@ import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useMemberPermissions } from "@/hooks/use-workspace";
+import { logError } from "@/lib/logger";
 
 
 interface PermissionManagementModalProps {
@@ -167,7 +168,7 @@ export default function PermissionManagementModal({
             setNewPermission("");
             setSearchTerm("");
         } catch (e) {
-            console.error(e);
+            logError(e, { component: "PermissionManagementModal" });
         }
     }
 
@@ -181,7 +182,7 @@ export default function PermissionManagementModal({
         try {
             await revokePermission(permId);
         } catch (e) {
-            console.error(e);
+            logError(e, { component: "PermissionManagementModal" });
         }
     }
 

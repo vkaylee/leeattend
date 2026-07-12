@@ -42,7 +42,7 @@ function useTimelineBounds(row: DailyAttendanceReport) {
   if (startMin !== null && endMin !== null) {
     if (endMin < startMin) endMin += 1440;
     if (bStart !== null && bStart < startMin) bStart += 1440;
-    if (bEnd !== null && bEnd! < bStart!) bEnd += 1440;
+    if (bEnd !== null && bEnd < bStart!) bEnd += 1440;
   }
 
   const metadata = row.generation_metadata as { time_entries?: TimeEntry[] } | undefined;
@@ -129,15 +129,15 @@ export function DailyReportTimeline({ row, formatTime, t }: { formatTime: (t: st
 
   return (
     <div className="w-full space-y-2 select-none py-2 px-1">
-      {hasSegmentData && (
+      {!!hasSegmentData && (
         <div className="flex items-center gap-2 mb-2">
           <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{row.interval_name ?? row.segment_type}</span>
-          {isMultiSegment && <span className="text-[9px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{(row.sort_order ?? 0) + 1} / {row.segment_count}</span>}
+          {!!isMultiSegment && <span className="text-[9px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{(row.sort_order ?? 0) + 1} / {row.segment_count}</span>}
         </div>
       )}
       <div className="relative h-6 w-full text-[9px] font-bold font-mono text-slate-400">
-        {startMin !== null && <ScheduleTick label={formatMinutesToTime(startMin)} pct={getPercent(startMin)} color="text-blue-500" />}
-        {endMin !== null && <ScheduleTick label={formatMinutesToTime(endMin)} pct={getPercent(endMin)} color="text-blue-500" />}
+        {startMin !== null && <ScheduleTick color="text-blue-500" label={formatMinutesToTime(startMin)} pct={getPercent(startMin)} />}
+        {endMin !== null && <ScheduleTick color="text-blue-500" label={formatMinutesToTime(endMin)} pct={getPercent(endMin)} />}
       </div>
 
       <div className="relative h-9 w-full bg-slate-100 rounded-xl border border-slate-200/50 shadow-inner flex items-center">
@@ -151,7 +151,7 @@ export function DailyReportTimeline({ row, formatTime, t }: { formatTime: (t: st
           </div>
         )}
         {timeEntries.map((entry) => (
-          <TimelineSession key={entry.id} entry={entry} formatTime={formatTime} t={t} getPercent={getPercent} />
+          <TimelineSession entry={entry} formatTime={formatTime} getPercent={getPercent} key={entry.id} t={t} />
         ))}
       </div>
 

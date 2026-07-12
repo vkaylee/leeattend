@@ -18,6 +18,7 @@ import { useApproveOt, useAttendanceSummariesInfinite } from "@/hooks/use-attend
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { fetchEmployees } from "@/lib/api";
+import { logError } from "@/lib/logger";
 
 import type { OtSummary } from "./components/ot-approvals-table";
 
@@ -188,7 +189,7 @@ export default function OtApprovalsPage() {
       void queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
       void queryClient.invalidateQueries({ queryKey: ["attendance-report-delegated"] });
     } catch (e) {
-      console.error(e);
+      logError(e, { component: "OtApprovalsPage" });
       toast.error("Action failed");
     }
   };

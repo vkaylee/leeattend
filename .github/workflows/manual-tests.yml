@@ -106,8 +106,8 @@ jobs:
           cache-from: type=gha,scope=agent
       - name: Run Lint
         run: |
-          chmod +x test.sh scripts/*.sh
-          ./test.sh api --lint-only
+          chmod +x leedevkit scripts/*.sh
+          ./leedevkit test api --lint-only
 
   unit-api:
     name: 🧪 Unit Test API & Agent
@@ -133,8 +133,8 @@ jobs:
           cache-from: type=gha,scope=agent
       - name: Run Unit Tests
         run: |
-          chmod +x test.sh scripts/*.sh
-          ./test.sh api --unit-only
+          chmod +x leedevkit scripts/*.sh
+          ./leedevkit test api --unit-only
 
   integration-api:
     name: 🔗 Integration Test API
@@ -160,8 +160,8 @@ jobs:
           cache-from: type=gha,scope=agent
       - name: Run Integration Tests
         run: |
-          chmod +x test.sh setup-test-env.sh scripts/*.sh
-          ./test.sh api --e2e-only
+          chmod +x leedevkit scripts/*.sh
+          ./leedevkit test api --e2e-only
 
   # ============================================================================
   # WEB PIPELINE (Lint -> Unit -> E2E)
@@ -182,8 +182,8 @@ jobs:
           cache-from: type=gha,scope=web
       - name: Run Lint
         run: |
-          chmod +x test.sh scripts/*.sh
-          ./test.sh web --lint-only
+          chmod +x leedevkit scripts/*.sh
+          ./leedevkit test web --lint-only
       - name: 🌐 Run i18n Reconcile Check
         run: node scripts/locales/reconcile_locales.js
 
@@ -203,8 +203,8 @@ jobs:
           cache-from: type=gha,scope=web
       - name: Run Unit Tests
         run: |
-          chmod +x test.sh scripts/*.sh
-          ./test.sh web --unit-only
+          chmod +x leedevkit scripts/*.sh
+          ./leedevkit test web --unit-only
 
   e2e-web:
     name: 🎭 Playwright E2E Web
@@ -222,8 +222,8 @@ jobs:
           cache-from: type=gha,scope=web
       - name: Run E2E Tests
         run: |
-          chmod +x test.sh scripts/*.sh
-          ./test.sh web --e2e-only
+          chmod +x leedevkit scripts/*.sh
+          ./leedevkit test web --e2e-only
       - name: Upload Logs on Failure
         if: failure()
         uses: actions/upload-artifact@v4

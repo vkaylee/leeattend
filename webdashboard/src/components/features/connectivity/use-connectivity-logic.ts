@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 
 import { AuthorizedAgent, Device, DeviceStatus, AgentStatus } from "@/lib/api";
+import { logError } from "@/lib/logger";
 
 export function useConnectivityState() {
   const [expandedAgents, setExpandedAgents] = useState<Set<string>>(new Set());
@@ -115,7 +116,7 @@ export function useConnectivityActions({
       setNewAgent({ id: "", name: "", token: "" });
       void refetchAgents();
     } catch (err: unknown) {
-      console.error(err);
+      logError(err, { component: "useConnectivityLogic" });
       toast.error(t("agents.messages.add_error"));
     }
   };
@@ -134,7 +135,7 @@ export function useConnectivityActions({
       setShowAddDeviceForm(false);
       void refetchStatus();
     } catch (err: unknown) {
-      console.error(err);
+      logError(err, { component: "useConnectivityLogic" });
       toast.error(editingDevice ? t("devices.toast.update_error") : t("devices.toast.add_error"));
     }
   };
@@ -145,7 +146,7 @@ export function useConnectivityActions({
       toast.success(t("devices.toast.refresh_sent"));
       setTimeout(() => { void refetchStatus(); }, 2000);
     } catch (err: unknown) {
-      console.error("Refresh failed:", err);
+      logError(err, { component: "useConnectivityLogic" });
       toast.error(t("devices.toast.refresh_error"));
     }
   };

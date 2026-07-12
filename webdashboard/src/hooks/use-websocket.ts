@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { WS_BASE_URL } from "@/lib/api";
+import { logError } from "@/lib/logger";
 
 export type ReportStreamMessage = 
   | { type: "CHUNK"; batch_index: number; total_batches: number; data: string }
@@ -48,7 +49,7 @@ export function useWebSocket() {
         const data = JSON.parse(event.data as string) as WsMessage;
         setLastMessage(data);
       } catch (e) {
-        console.error("Failed to parse WS message", e);
+        logError(e, { component: "WebSocket" });
       }
     };
 

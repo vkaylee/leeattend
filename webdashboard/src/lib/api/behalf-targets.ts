@@ -6,9 +6,9 @@
  * a concrete list of Employee records.
  */
 
-import { ApiError } from "./errors";
 import type { Employee } from "./types";
 
+import { ApiError } from "./errors";
 import { apiFetch } from "./helpers";
 
 export type BehalfDomain =

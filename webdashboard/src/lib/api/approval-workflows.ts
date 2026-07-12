@@ -57,7 +57,7 @@ export const approvalWorkflowsApi = {
       params: { path: { ws_id: workspaceId, id } },
       body: payload as never,
     });
-    return resData as ApprovalWorkflow;
+    return resData;
   },
 
   deleteWorkflow: async (workspaceId: string, id: string): Promise<void> => {

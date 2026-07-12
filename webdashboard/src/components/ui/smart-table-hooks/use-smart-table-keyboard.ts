@@ -84,7 +84,7 @@ export function useSmartTableKeyboard<TData>({
       if (onCellSave) {
         const result = onCellSave(row.id, column.id, editValue);
         if (result instanceof Promise) {
-          result.catch((err: unknown) => { console.error("Error saving cell:", err); });
+          result.catch((err: unknown) => {   console.error("Error saving cell:", err); });
         }
       }
     }

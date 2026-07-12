@@ -16,7 +16,7 @@ export async function createEmployer(
     params: { path: { ws_id: wsId } },
     body: data
   });
-  return resData as Employer;
+  return resData;
 }
 
 export async function updateEmployer(
@@ -28,7 +28,7 @@ export async function updateEmployer(
     params: { path: { ws_id: wsId, id } },
     body: data
   });
-  return resData as Employer;
+  return resData;
 }
 
 export async function deleteEmployer(wsId: string, id: string): Promise<void> {

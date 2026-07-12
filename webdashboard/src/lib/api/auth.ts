@@ -1,5 +1,5 @@
-import { ApiError } from "./errors";
 import { client, fetch } from "./client";
+import { ApiError } from "./errors";
 import { apiFetch, setAccessToken, setCurrentUserId, clearAuthSession, TIMEOUT } from "./helpers";
 import { AuthResponse, RegisterRequest, ChangePasswordRequest, User } from "./types";
 
@@ -32,7 +32,7 @@ export async function changePassword(
   const { error } = await client.POST("/auth/change-password", {
     body: data,
   });
-  if (error as unknown) throw new Error("Failed to change password");
+  if (error) throw new Error("Failed to change password");
   return "Password changed successfully";
 }
 

@@ -6,7 +6,6 @@ import Button from "@/components/ui/button";
 import EmptyState from "@/components/ui/empty-state";
 import Modal from "@/components/ui/modal";
 import { Typography } from "@/components/ui/typography";
-import { LeaveType } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 import { useLeaveTypeManager } from "./hooks/use-leave-type-manager";
@@ -183,7 +182,7 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
           onClose={() => {
             setEditingType(null);
           }}
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+           
           onSave={(config) => {
             updateLeaveType(editingType.id, config);
           }}

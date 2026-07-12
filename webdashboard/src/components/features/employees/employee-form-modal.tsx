@@ -62,7 +62,7 @@ function useFormDefaults(editingEmployee: Employee | null, activeLocationId: str
 
   const employeeId = editingEmployee?.id ?? null;
   const userId_ = editingEmployee?.user_id ?? "";
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+   
   useEffect(() => {
     setUserId(userId_);
     setLocId(editingEmployee ? activeLocationId : "");
@@ -120,9 +120,9 @@ export default function EmployeeFormModal({
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const data: Record<string, unknown> = {
-      full_name: fd.get("full_name") as string,
-      employee_id_number: fd.get("employee_id_number") as string,
-      hire_date: fd.get("hire_date") as string,
+      full_name: fd.get("full_name"),
+      employee_id_number: fd.get("employee_id_number"),
+      hire_date: fd.get("hire_date"),
       is_active: fd.get("is_active") === "on",
     };
     if (defaults.selectedUserId) data.user_id = defaults.selectedUserId;

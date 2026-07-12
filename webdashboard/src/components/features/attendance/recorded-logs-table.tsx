@@ -8,6 +8,7 @@ import SmartTable from '@/components/ui/smart-table';
 import StatusBadge from '@/components/ui/status-badge';
 import { useToast } from "@/components/ui/toast";
 import { RawAttendanceLog } from '@/lib/api/types';
+import { logError } from "@/lib/logger";
 
 interface RecordedLogsTableProps {
   formatDate: (date: string | null | undefined) => string;
@@ -132,7 +133,7 @@ export function RecordedLogsTable({
             await navigator.clipboard.writeText(empId);
             toast.success(t("common.copied", "Copied to clipboard"), empId);
           } catch (err) {
-            console.error("Failed to copy text:", err);
+            logError(err, { component: "RecordedLogsTable" });
           }
         }
       },
@@ -147,7 +148,7 @@ export function RecordedLogsTable({
           await navigator.clipboard.writeText(`${formatDate(log.punch_time)} ${pTime}`);
           toast.success(t("common.copied", "Copied to clipboard"), pTime);
         } catch (err) {
-          console.error("Failed to copy text:", err);
+          logError(err, { component: "RecordedLogsTable" });
         }
       }
     }

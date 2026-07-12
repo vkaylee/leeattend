@@ -1,3 +1,5 @@
+import { logError } from "./logger";
+
 /**
  * Converts a local date and time string to a UTC ISO string based on the provided timezone.
  * Uses Intl.DateTimeFormat for robust conversion without heavy libraries.
@@ -36,7 +38,7 @@ export function toUTCISO(dateString: string, timeString: string, timezone: strin
     
     return utcDate.toISOString();
   } catch (error) {
-    console.error("Timezone conversion failed:", error);
+    logError(error, { component: "TimezoneConversion" });
     return localString + 'Z';
   }
 }

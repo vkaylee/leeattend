@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+
 import { describe, expect, it, vi } from "vitest";
 
 import { ReferenceTimeScrubber } from "../reference-time-scrubber";
@@ -11,8 +12,8 @@ describe("ReferenceTimeScrubber", () => {
     const onChange = vi.fn();
     render(
       <ReferenceTimeScrubber
-        referenceTime={BASE}
         onChange={onChange}
+        referenceTime={BASE}
       />,
     );
     // The slider is the accessible control; it must carry a non-empty
@@ -29,8 +30,8 @@ describe("ReferenceTimeScrubber", () => {
     const onChange = vi.fn();
     render(
       <ReferenceTimeScrubber
-        referenceTime={BASE}
         onChange={onChange}
+        referenceTime={BASE}
       />,
     );
     fireEvent.click(screen.getByTestId("scrubber-step-back"));
@@ -43,8 +44,8 @@ describe("ReferenceTimeScrubber", () => {
     const onChange = vi.fn();
     render(
       <ReferenceTimeScrubber
-        referenceTime={BASE}
         onChange={onChange}
+        referenceTime={BASE}
       />,
     );
     fireEvent.click(screen.getByTestId("scrubber-step-forward"));
@@ -56,8 +57,8 @@ describe("ReferenceTimeScrubber", () => {
     const onChange = vi.fn();
     render(
       <ReferenceTimeScrubber
-        referenceTime={BASE}
         onChange={onChange}
+        referenceTime={BASE}
       />,
     );
     fireEvent.click(screen.getByTestId("scrubber-jump-now"));

@@ -1,12 +1,11 @@
-import { Check, ChevronDown } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { useTranslation } from "react-i18next";
 import * as Popover from "@radix-ui/react-popover";
+import { useQuery } from "@tanstack/react-query";
+import { Check, ChevronDown } from "lucide-react";
 import React, { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/button";
-import { fetchShifts } from "@/lib/api";
-import { getCurrentWorkspaceId } from "@/lib/api";
+import { fetchShifts, getCurrentWorkspaceId  } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 /**
@@ -40,7 +39,7 @@ export function ShiftTypePicker({
     const byName = new Map<string, { name: string; active: boolean }>();
     for (const s of shifts) {
       const existing = byName.get(s.name);
-      if (existing && existing.active) continue;
+      if (existing?.active) continue;
       byName.set(s.name, { name: s.name, active: s.is_active });
     }
     return Array.from(byName.values()).sort((a, b) => {
@@ -98,6 +97,7 @@ export function ShiftTypePicker({
               const checked = selected.includes(opt.name);
               return (
                 <Button
+                  aria-selected={checked}
                   className={cn(
                     "w-full justify-start gap-3 px-3 py-2 rounded-lg text-xs font-semibold normal-case",
                     checked && "bg-primary-50 dark:bg-primary-950/40 text-primary-700 dark:text-primary-300",
@@ -105,7 +105,6 @@ export function ShiftTypePicker({
                   key={opt.name}
                   onClick={() => { toggle(opt.name); }}
                   role="option"
-                  aria-selected={checked}
                   variant="ghost"
                 >
                   <span
@@ -116,7 +115,7 @@ export function ShiftTypePicker({
                         : "border-slate-300 dark:border-slate-600",
                     )}
                   >
-                    {checked && <Check className="size-3" />}
+                    {!!checked && <Check className="size-3" />}
                   </span>
                   {!opt.active && (
                     <span className="text-[9px] uppercase text-slate-400 tracking-wider">

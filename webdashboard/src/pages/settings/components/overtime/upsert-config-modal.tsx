@@ -11,6 +11,7 @@ import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useUpsertWorkspaceConfig } from "@/hooks/use-workspace-config";
 import { type WorkspaceConfigEntry, type CreateConfigEntryRequest } from "@/lib/api/types";
+import { logError } from "@/lib/logger";
 
 const configSchema = z.object({
   config_key: z.string().min(1, "settings.overtime.config.errors.key_required"),
@@ -126,7 +127,7 @@ function useUpsertConfigForm({
       toast.success(config ? t("settings.overtime.config.success_updated") : t("settings.overtime.config.success_created"));
       onClose();
     } catch (error) {
-      console.error(error);
+      logError(error, { component: "UpsertConfigModal" });
       toast.error(t("settings.overtime.config.failed_save"));
     }
   };

@@ -1,4 +1,4 @@
-import { format } from "date-fns";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   Building2,
@@ -11,11 +11,13 @@ import {
 } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 
-import Button from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+
 import InfiniteScrollSentinel from "@/components/common/infinite-scroll-sentinel";
+import { ScheduleTracePopover } from "@/components/shifts/schedule-trace-popover";
+import Button from "@/components/ui/button";
+import { useAllEmployees } from "@/hooks/use-employees";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { useWorkspace } from "@/hooks/use-workspace";
 import {
@@ -26,15 +28,15 @@ import {
   getCurrentWorkspaceId,
 } from "@/lib/api";
 import { exportNoShowToExcel, type NoShowRow } from "@/lib/excel-no-show";
-import { useAllEmployees } from "@/hooks/use-employees";
-import { ScheduleTracePopover } from "@/components/shifts/schedule-trace-popover";
+import { cn } from "@/lib/utils";
+
 import {
   computeNoShowRows,
   useNoShowRows,
   type ZonedNoShowRow,
 } from "../hooks/use-no-show-rows";
-import { ShiftTypePicker } from "./shift-type-picker";
 import { ReferenceTimeScrubber } from "./reference-time-scrubber";
+import { ShiftTypePicker } from "./shift-type-picker";
 
 // Number of employees fetched per backend page.
 const EMPLOYEE_PAGE_SIZE = 30;
@@ -165,7 +167,7 @@ export function UnrecordedShiftsTab() {
         limit: EMPLOYEE_PAGE_SIZE,
         employeeIds: employeeIds.length > 0 ? employeeIds : undefined,
         shiftType: selectedShiftTypes.length > 0 ? selectedShiftTypes : undefined,
-      })) as PaginatedResponse<DailyAttendanceReport>,
+      })),
     initialPageParam: 1,
     getNextPageParam: (lastPage, allPages) => {
       const loadedEmployees = new Set(
@@ -371,8 +373,8 @@ export function UnrecordedShiftsTab() {
 
       {/* Timeline scrubber (replaces the old date-range filter) */}
       <ReferenceTimeScrubber
-        referenceTime={referenceTime}
         onChange={setReferenceTime}
+        referenceTime={referenceTime}
       />
 
       {/* Filters bar */}
@@ -513,7 +515,7 @@ export function UnrecordedShiftsTab() {
                         >
                           <ZoneIcon zone={row.zone} />
                           <span>{key}</span>
-                          {hint && <span className="opacity-70 normal-case tracking-normal">· {hint}</span>}
+                          {!!hint && <span className="opacity-70 normal-case tracking-normal">· {hint}</span>}
                           <span className="sr-only">
                             {key}{hint ? `, ${hint}` : ""}
                           </span>
@@ -580,7 +582,7 @@ export function UnrecordedShiftsTab() {
                     </tr>
                   );
                 })}
-                {hasNextPage && (
+                {!!hasNextPage && (
                   <InfiniteScrollSentinel
                     colSpan={7}
                     isFetchingNextPage={!!isFetchingNextPage}

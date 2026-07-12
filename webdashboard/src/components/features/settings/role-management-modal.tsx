@@ -9,6 +9,7 @@ import { Typography } from "@/components/ui/typography";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useMemberRoles, useWorkspaceRoles } from "@/hooks/use-workspace";
+import { logError } from "@/lib/logger";
 
 interface RoleManagementModalProps {
   isOpen: boolean;
@@ -169,7 +170,7 @@ export default function RoleManagementModal({
       variant: "danger"
     });
     if (!ok) return;
-    try { await updatePrimaryRole(roleId); } catch (e: unknown) { console.error(e); }
+    try { await updatePrimaryRole(roleId); } catch (e: unknown) { logError(e, { component: "RoleManagementModal" }); }
  
   }
 
@@ -180,7 +181,7 @@ export default function RoleManagementModal({
       await assignRole({ role: newRoleId, expiresAt: isoExpiresAt });
       setExpiresAt("");
       setNewRoleId("");
-    } catch (e) { console.error(e); }
+    } catch (e) { logError(e, { component: "RoleManagementModal" }); }
   }
 
   async function handleRevoke(roleId: string) {
@@ -190,7 +191,7 @@ export default function RoleManagementModal({
       variant: "danger"
     });
     if (!ok) return;
-    try { await revokeRole(roleId); } catch (e) { console.error(e); }
+    try { await revokeRole(roleId); } catch (e) { logError(e, { component: "RoleManagementModal" }); }
   }
 
   if (!isOpen) return null;

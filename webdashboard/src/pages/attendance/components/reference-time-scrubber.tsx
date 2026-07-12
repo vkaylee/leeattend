@@ -1,6 +1,6 @@
+import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
 
 import Button from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -27,12 +27,12 @@ const CENTER_MINUTES = TOTAL_MINUTES / 2;
 const MS_PER_MINUTE = 60_000;
 
 export interface ReferenceTimeScrubberProps {
-  /** The pinned reference instant `A` (controlled). */
-  referenceTime: Date;
-  /** Fires when the user scrubs to a new `A`. */
-  onChange: (next: Date) => void;
   /** Optional className for the outer shell. */
   className?: string;
+  /** Fires when the user scrubs to a new `A`. */
+  onChange: (next: Date) => void;
+  /** The pinned reference instant `A` (controlled). */
+  referenceTime: Date;
 }
 
 function formatTime(d: Date): string {
@@ -60,8 +60,8 @@ export function ReferenceTimeScrubber({
 
   // Live 1s tick so the window tracks wall-clock while scrubbing the present.
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
+    const id = setInterval(() => { setNow(Date.now()); }, 1000);
+    return () => { clearInterval(id); };
   }, []);
 
   // Slider value = minutes offset of `A` relative to (now - 12h). Dragging from
@@ -135,10 +135,10 @@ export function ReferenceTimeScrubber({
       </div>
 
       {/* Track */}
-      <div ref={trackRef} className="relative select-none">
+      <div className="relative select-none" ref={trackRef}>
         {/* Centre pin marking the pinned `A` */}
         <div className="absolute inset-x-0 top-0 flex justify-center pointer-events-none">
-          <div className="w-0.5 h-10 bg-primary-500 rounded-full" aria-hidden="true" />
+          <div aria-hidden="true" className="w-0.5 h-10 bg-primary-500 rounded-full" />
         </div>
 
         {/* Hour tick labels */}
@@ -148,15 +148,15 @@ export function ReferenceTimeScrubber({
             const isNow = offset === 0;
             return (
               <span
-                key={offset}
+                aria-hidden="true"
                 className={cn(
                   "absolute -translate-x-1/2 text-[9px] font-bold tabular-nums",
                   isNow
                     ? "text-primary-600 dark:text-primary-400"
                     : "text-slate-400 dark:text-slate-500",
                 )}
+                key={offset}
                 style={{ left: `${leftPct}%` }}
-                aria-hidden="true"
               >
                 {isNow
                   ? t("unrecorded_shifts.now_badge", { defaultValue: "NOW" })
@@ -190,7 +190,7 @@ export function ReferenceTimeScrubber({
             aria-label={t("unrecorded_shifts.step_back", { defaultValue: "Step back one hour" })}
             className="px-2 py-1.5 normal-case"
             data-testid="scrubber-step-back"
-            onClick={() => nudge(-60)}
+            onClick={() => { nudge(-60); }}
             size="sm"
             variant="outline"
           >
@@ -200,7 +200,7 @@ export function ReferenceTimeScrubber({
             aria-label={t("unrecorded_shifts.step_forward", { defaultValue: "Step forward one hour" })}
             className="px-2 py-1.5 normal-case"
             data-testid="scrubber-step-forward"
-            onClick={() => nudge(60)}
+            onClick={() => { nudge(60); }}
             size="sm"
             variant="outline"
           >
@@ -230,7 +230,7 @@ export function ReferenceTimeScrubber({
         <Button
           className="px-2 py-1.5 normal-case"
           data-testid="scrubber-jump-now"
-          onClick={() => onChange(new Date(now))}
+          onClick={() => { onChange(new Date(now)); }}
           size="sm"
           variant="outline"
         >

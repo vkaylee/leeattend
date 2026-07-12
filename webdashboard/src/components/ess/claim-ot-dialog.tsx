@@ -7,6 +7,7 @@ import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useSubmitOtClaim } from "@/hooks/use-ess";
 import { AttendanceDailySummary } from "@/lib/api/types";
+import { logError } from "@/lib/logger";
 
 interface ClaimOtDialogProps {
   onOpenChange: (open: boolean) => void;
@@ -149,7 +150,7 @@ export function ClaimOtDialog({ open, onOpenChange, summary }: ClaimOtDialogProp
       });
       onOpenChange(false);
     } catch (error_) {
-      console.error(error_);
+      logError(error_, { component: "ClaimOtDialog" });
       setError(t("common.error_occurred") || "An error occurred");
     }
   };

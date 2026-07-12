@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { fetch } from "@/lib/api/client";
+import { logError } from "@/lib/logger";
 import { components } from "@/types/api-generated";
 
 type WorkspaceFile = components["schemas"]["WorkspaceFile"];
@@ -149,7 +150,7 @@ export function FilePreview({ file, workspaceId, className = "" }: FilePreviewPr
         window.open(data.url, "_blank");
       }
     } catch (err) {
-      console.error(err);
+      logError(err, { component: "FilePreview" });
     }
   };
 

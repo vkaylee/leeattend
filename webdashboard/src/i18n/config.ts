@@ -63,7 +63,7 @@ type GenericTFunction = (
   options?: Record<string, unknown>
 ) => string;
 
-// eslint-disable-next-line import-x/no-named-as-default-member
+ 
 // i18next's public TFunction type does not structurally overlap the simplified
 // GenericTFunction signature used here, so this sanctioned `as unknown as`
 // bridges the two (coding-standard §10.1). Not a drift mask — kept deliberate.

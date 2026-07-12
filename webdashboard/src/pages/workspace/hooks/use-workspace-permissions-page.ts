@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { useWorkspaceRoles, useWorkspacePermissionsMatrix } from "@/hooks/use-workspace";
 import { updateRolePermissions, getCurrentWorkspaceId } from "@/lib/api";
+import { logError } from "@/lib/logger";
 
 import type { WorkspaceRole } from "../../../lib/api/types";
 
@@ -88,7 +89,7 @@ export function useWorkspacePermissionsPage() {
       setHasChanges(false);
       void refetch();
     } catch (e) {
-      console.error("Failed to save permissions", e);
+      logError(e, { component: "useWorkspacePermissionsPage" });
     } finally {
       setIsSaving(false);
     }

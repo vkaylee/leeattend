@@ -56,15 +56,15 @@ The project uses a highly optimized testing infrastructure designed for speed an
 Always use the unified orchestrator:
 - **For Humans**:
   ```bash
-  ./test.sh --all             # Run full suite
-  ./test.sh --api [pattern]   # Run backend tests (cargo nextest)
-  ./test.sh --web [pattern]   # Run frontend & E2E tests (playwright)
+  ./leedevkit test --all             # Run full suite
+  ./leedevkit test --api [pattern]   # Run backend tests (cargo nextest)
+  ./leedevkit test --web [pattern]   # Run frontend & E2E tests (playwright)
   ```
 - **For AI Agents (IMPORTANT: prevents PTY hangs)**:
   ```bash
-  ./test.sh --all </dev/null             # Run full suite
-  ./test.sh --api [pattern] </dev/null   # Run backend tests
-  ./test.sh --web [pattern] </dev/null   # Run frontend tests
+  ./leedevkit test --all </dev/null             # Run full suite
+  ./leedevkit test --api [pattern] </dev/null   # Run backend tests
+  ./leedevkit test --web [pattern] </dev/null   # Run frontend tests
   ```
 
 ### Key Features
@@ -73,7 +73,7 @@ Always use the unified orchestrator:
 - **Cargo Nextest**: Modern test runner for faster, isolated Rust tests.
 - **Docker Isolation**: All tests run inside containers. Database is internal (`test_db:5432`) with no host port mapping.
 ### ⚠️ WSL Performance Note
-On WSL2, direct test execution (`cargo test`) will likely freeze your system due to Disk I/O issues. **Always use `./test.sh`** which runs tests inside Podman containers. AI Agents should append `</dev/null`.
+On WSL2, direct test execution (`cargo test`) will likely freeze your system due to Disk I/O issues. **Always use `./leedevkit test`** which runs tests inside Podman containers. AI Agents should append `</dev/null`.
 
 ## 📝 Changelog
 See [CHANGELOG.md](./CHANGELOG.md) for version history.

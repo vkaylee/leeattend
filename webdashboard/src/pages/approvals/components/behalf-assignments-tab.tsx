@@ -12,6 +12,7 @@ import { Typography } from "@/components/ui/typography";
 import { useBehalfAssignments } from "@/hooks/use-behalf-assignments";
 import { fetchDepartments } from "@/lib/api";
 import { BehalfAssignment, Employee } from "@/lib/api/types";
+import { logError } from "@/lib/logger";
 
 interface AddAssignmentFormProps {
   assigneeId: string;
@@ -505,7 +506,7 @@ export function BehalfAssignmentsTab({
       setTargetEmployeeId("");
       setTargetDepartmentId("");
     } catch (err: unknown) {
-      console.error(err);
+      logError(err, { component: "BehalfAssignmentsTab" });
       const msg = err instanceof Error ? err.message : "Failed to create assignment";
       toast.error(msg);
     }
@@ -516,7 +517,7 @@ export function BehalfAssignmentsTab({
       await deleteAssignment(id);
       toast.success(t("behalf_assignments.toasts.delete_success"));
     } catch (err: unknown) {
-      console.error(err);
+      logError(err, { component: "BehalfAssignmentsTab" });
       const msg = err instanceof Error ? err.message : "Failed to delete assignment";
       toast.error(msg);
     }

@@ -12,6 +12,7 @@ import {
   useApprovalWorkflow,
 } from "@/hooks/use-approval-workflows";
 import { useWorkspace, useWorkspaceRoles, useWorkspaceMembers } from "@/hooks/use-workspace";
+import { logError } from "@/lib/logger";
 import { permissionGroups } from "@/lib/permission-groups";
 import { ROUTES } from "@/lib/routes";
 
@@ -129,7 +130,7 @@ export function useWorkflowForm({ workflowId, defaultEntityType, onSuccess }: Us
       }
       onSuccess();
     } catch (error) {
-      console.error(error);
+      logError(error, { component: "useWorkflowEditor" });
       toast.error(t("settings.workflows.messages.save_failed", { defaultValue: "Failed to save workflow" }));
     }
   };

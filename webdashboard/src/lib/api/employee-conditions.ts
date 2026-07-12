@@ -11,7 +11,7 @@ export async function fetchWorkingConditions(wsId: string, employeeId: string): 
   return (data.data ?? []).map((item) => ({
     ...item,
     type: item.type_,
-  })) as unknown as WorkingCondition[];
+  }));
 }
 
 export async function createWorkingCondition(

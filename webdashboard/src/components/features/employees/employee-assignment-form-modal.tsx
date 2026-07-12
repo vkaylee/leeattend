@@ -1,7 +1,7 @@
 import { Briefcase } from "lucide-react";
 import React, { useEffect } from "react";
-import { useTranslation } from "react-i18next";
 import { useForm, Controller } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { z } from "zod";

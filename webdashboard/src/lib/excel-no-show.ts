@@ -6,8 +6,8 @@
  * tab does not pull in the heavier report-stream machinery.
  */
 
-import type { TFunction } from "i18next";
 import type { Worksheet, Cell } from "exceljs";
+import type { TFunction } from "i18next";
 
 // Dynamic imports keep exceljs + file-saver out of the initial bundle.
 async function loadExcelJS() {
@@ -22,24 +22,24 @@ async function loadFileSaver() {
 
 /** A single enriched row as rendered in the Unrecorded Shifts table. */
 export interface NoShowRow {
+  department_name: string;
   employee_id_number: string;
   employee_name: string;
-  department_name: string;
-  shift_name: string | null;
-  scheduled_start: string | null;
   scheduled_end: string | null;
+  scheduled_start: string | null;
+  shift_name: string | null;
   zone_label: string | null;
 }
 
 interface ExportOptions {
-  /** i18n translator — used for the sheet title, date label and column headers. */
-  t: TFunction;
   /** Human-readable reference instant `A` label (also embedded in the filename). */
   referenceTimeLabel: string;
+  /** i18n translator — used for the sheet title, date label and column headers. */
+  t: TFunction;
 }
 
 // Column order matches the table: code, name, department, shift type, shift in, shift out.
-const COLUMNS: Array<{ key: keyof NoShowRow; i18nKey: string; width: number }> = [
+const COLUMNS: { key: keyof NoShowRow; i18nKey: string; width: number }[] = [
   { key: "employee_id_number", i18nKey: "employee_code", width: 18 },
   { key: "employee_name", i18nKey: "employee_name", width: 30 },
   { key: "department_name", i18nKey: "department", width: 24 },

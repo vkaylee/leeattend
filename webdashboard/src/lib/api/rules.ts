@@ -1,11 +1,11 @@
-import { client, fetch } from "./client";
+import { client } from "./client";
 
 export interface AssignmentRuleConditions {
-  department_id?: string;
-  employee_id_numbers?: string[];
-  employer_id?: string;
-  location_id?: string;
-  tags?: string[];
+  department_id?: string | null;
+  employee_id_numbers?: string[] | null;
+  employer_id?: string | null;
+  location_id?: string | null;
+  tags?: string[] | null;
 }
 
 export interface AssignmentRule {
@@ -42,14 +42,14 @@ export interface UpdateAssignmentRuleRequest {
 }
 
 export async function fetchAssignmentRules(wsId: string): Promise<AssignmentRule[]> {
-  const { data: resData } = await fetch<AssignmentRule[]>("GET", "/v1/workspaces/{ws_id}/assignment-rules", {
+  const { data: resData } = await client.GET("/v1/workspaces/{ws_id}/assignment-rules", {
     params: { path: { ws_id: wsId } },
   });
   return resData;
 }
 
 export async function createAssignmentRule(wsId: string, data: CreateAssignmentRuleRequest): Promise<AssignmentRule> {
-  const { data: resData } = await fetch<AssignmentRule>("POST", "/v1/workspaces/{ws_id}/assignment-rules", {
+  const { data: resData } = await client.POST("/v1/workspaces/{ws_id}/assignment-rules", {
     params: { path: { ws_id: wsId } },
     body: data,
   });
@@ -57,7 +57,7 @@ export async function createAssignmentRule(wsId: string, data: CreateAssignmentR
 }
 
 export async function updateAssignmentRule(wsId: string, ruleId: string, data: UpdateAssignmentRuleRequest): Promise<AssignmentRule> {
-  const { data: resData } = await fetch<AssignmentRule>("PUT", "/v1/workspaces/{ws_id}/assignment-rules/{rule_id}", {
+  const { data: resData } = await client.PUT("/v1/workspaces/{ws_id}/assignment-rules/{rule_id}", {
     params: { path: { ws_id: wsId, rule_id: ruleId } },
     body: data,
   });

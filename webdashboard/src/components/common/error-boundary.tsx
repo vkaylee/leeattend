@@ -4,6 +4,7 @@ import i18n from "i18next";
 
 import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
+import { logError } from "@/lib/logger";
 
 interface ErrorBoundaryProps {
   children?: React.ReactNode;
@@ -31,7 +32,10 @@ export class ErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("[ErrorBoundary]", error, errorInfo);
+    logError(error, {
+      component: "ErrorBoundary",
+      extra: { componentStack: errorInfo.componentStack },
+    });
     this.props.onError?.(error, errorInfo);
   }
 

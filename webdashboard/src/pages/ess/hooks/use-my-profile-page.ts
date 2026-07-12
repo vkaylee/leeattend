@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useEmergencyContacts, useMyProfile } from "@/hooks/use-ess";
+import { logError } from "@/lib/logger";
 
 import { NewContactData } from "../components/add-contact-modal";
 import { BankDetailsFormData } from "../components/bank-details-section";
@@ -61,7 +62,7 @@ export function useMyProfilePage() {
       await updateProfile(formData);
       toast.success(t("ess.profile.update_success"));
     } catch (error) {
-      console.error(error);
+      logError(error, { component: "useMyProfilePage" });
     }
   }
 
@@ -73,7 +74,7 @@ export function useMyProfilePage() {
       setIsContactModalOpen(false);
       toast.success(t("ess.emergency_contact.add_success"));
     } catch (error) {
-      console.error(error);
+      logError(error, { component: "useMyProfilePage" });
     }
   }
 
@@ -88,7 +89,7 @@ export function useMyProfilePage() {
       await deleteContact(contactId);
       toast.success(t("ess.emergency_contact.delete_success"));
     } catch (error) {
-      console.error(error);
+      logError(error, { component: "useMyProfilePage" });
     }
   }
 

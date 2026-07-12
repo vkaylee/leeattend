@@ -4,10 +4,10 @@
 import { Coffee, Clock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { Typography } from "@/components/ui/typography";
 import type { Shift, WorkingPatternDetail } from "@/lib/api/types";
-
 import type { ShiftWithIntervals } from "@/pages/shifts/hooks/use-shifts-types";
+
+import { Typography } from "@/components/ui/typography";
 
 interface PatternPopoverDetailsProps {
   dayDetails: WorkingPatternDetail[];

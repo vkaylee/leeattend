@@ -106,13 +106,13 @@ jobs:
           cache-from: type=gha,scope=web
 
       - name: 🎨 Run Infrastructure Lint
-        run: ./test.sh infra --lint-only
+        run: ./leedevkit test infra --lint-only
 
       - name: 🎨 Run Backend Lint
-        run: ./test.sh api --lint-only
+        run: ./leedevkit test api --lint-only
 
       - name: 🎨 Run Frontend Lint
-        run: ./test.sh web --lint-only
+        run: ./leedevkit test web --lint-only
 
       - name: 🌐 Run i18n Reconcile Check
         run: node scripts/locales/reconcile_locales.js
@@ -159,7 +159,7 @@ jobs:
           cache-from: type=gha,scope=web
 
       - name: 🧪 Run Full-Stack Unit Tests
-        run: ./test.sh all --unit-only
+        run: ./leedevkit test all --unit-only
 
   # ============================================================================
   # BUILD & PUSH PHASE (Production Artifacts)

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { useToast } from "@/components/ui/toast";
 import { useProfile } from "@/hooks/use-profile";
+import { logError } from "@/lib/logger";
 
 export type TabType = "profile" | "personalization" | "security";
 
@@ -37,7 +38,7 @@ export function useProfileTabs() {
       await updateProfile(formData);
       toast.success(t("common.success"));
     } catch (error) {
-      console.error(error);
+      logError(error, { component: "useProfileTabs" });
     }
   }
 

@@ -226,13 +226,13 @@ export default function LifecycleTemplatesPage() {
                 const isSelected = selectedTemplateId === template.id;
                 return (
                   <div
+                    aria-pressed={isSelected}
                     className={cn(
                       "p-5 rounded-3xl border transition-all duration-300 cursor-pointer flex flex-col gap-3 group relative overflow-hidden",
                       isSelected
                         ? "bg-blue-50/40 dark:bg-slate-800/80 border-blue-200 dark:border-slate-700 shadow-sm"
                         : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-sm"
                     )}
-                    aria-pressed={isSelected}
                     key={template.id}
                     onClick={() => { setSelectedTemplateId(template.id); }}
                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setSelectedTemplateId(template.id); }}

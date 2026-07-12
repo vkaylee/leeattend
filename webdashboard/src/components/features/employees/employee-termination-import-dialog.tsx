@@ -1,13 +1,13 @@
 import { Upload } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import Modal from "@/components/ui/modal";
+
 import { useTerminationImport } from "./hooks/use-termination-import";
-import ImportUploadStep from "./import-upload-step";
+import ImportErrorState from "./import-error-state";
 import ImportPreviewStep from "./import-preview-step";
 import ImportSuccessState from "./import-success-state";
-import ImportErrorState from "./import-error-state";
-
-import Modal from "@/components/ui/modal";
+import ImportUploadStep from "./import-upload-step";
 
 interface EmployeeTerminationImportDialogProps {
   isOpen: boolean;
@@ -44,27 +44,27 @@ export default function EmployeeTerminationImportDialog({
       title={t("employees.bulk_termination.dialog_title")}
     >
       {importSuccess ? (
-        <ImportSuccessState successCount={successCount} onClose={handleClose} />
+        <ImportSuccessState onClose={handleClose} successCount={successCount} />
       ) : jobError || confirming ? (
-        <ImportErrorState jobError={jobError} jobId={jobId} onBack={() => setJobError?.(null as unknown as string)} />
+        <ImportErrorState jobError={jobError} jobId={jobId} onBack={() => { setJobError?.(null); }} />
       ) : step === 1 ? (
         <ImportUploadStep
           file={file}
           loading={loading}
-          onFileChange={setFile}
-          onDownloadTemplate={handleDownloadTemplate}
-          onUpload={handleUpload}
           onClose={handleClose}
+          onDownloadTemplate={handleDownloadTemplate}
+          onFileChange={setFile}
+          onUpload={handleUpload}
         />
       ) : (
         <ImportPreviewStep
-          previewData={previewData}
           activeTab={activeTab}
           confirming={confirming}
-          onTabChange={setActiveTab}
-          onExportErrors={exportErrorsToExcel}
-          onConfirm={handleConfirm}
           onClose={handleClose}
+          onConfirm={handleConfirm}
+          onExportErrors={exportErrorsToExcel}
+          onTabChange={setActiveTab}
+          previewData={previewData}
         />
       )}
     </Modal>

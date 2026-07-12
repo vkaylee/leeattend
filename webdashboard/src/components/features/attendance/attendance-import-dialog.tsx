@@ -9,6 +9,7 @@ import Modal from "@/components/ui/modal";
 import { Typography } from "@/components/ui/typography";
 import { uploadAttendance, fetchLatestImportJob, fetchImportJobStatus, getCurrentWorkspaceId } from "@/lib/api";
 import { AttendanceImportJob } from "@/lib/api/types";
+import { logError } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 
 export interface ExpectedColumn {
@@ -313,7 +314,7 @@ export default function AttendanceImportDialog({
       const result = await uploadAttendance(wsId, file, endpoint);
       setActiveJobId(result.job_id); setFile(null);
       void queryClient.invalidateQueries({ queryKey: ["latest-import-job"] });
-    } catch (error) { console.error(error); } finally { setUploading(false); }
+    } catch (error) { logError(error, { component: "AttendanceImport" }); } finally { setUploading(false); }
   };
 
   const isFinished = jobStatus?.status === "completed" || jobStatus?.status === "failed";

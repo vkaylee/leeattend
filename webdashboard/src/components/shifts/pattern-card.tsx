@@ -2,17 +2,16 @@
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import type { Shift, WorkingPattern, WorkingPatternDetail  } from "@/lib/api/types";
+import type { ShiftWithIntervals } from "@/pages/shifts/hooks/use-shifts-types";
+
 import StatusBadge from "@/components/ui/status-badge";
 import { Typography } from "@/components/ui/typography";
-import type { Shift, WorkingPattern } from "@/lib/api/types";
-import type { WorkingPatternDetail } from "@/lib/api/types";
-
-import type { ShiftWithIntervals } from "@/pages/shifts/hooks/use-shifts-types";
 
 interface PatternCardProps {
   details?: WorkingPatternDetail[];
-  isLoadingDetails?: boolean;
   isExpanded: boolean;
+  isLoadingDetails?: boolean;
   isSelected: boolean;
   onSelect: () => void;
   onToggleExpand: () => void;
@@ -97,7 +96,7 @@ export function PatternCard({
       role="button"
       tabIndex={0}
     >
-      {isSelected && (
+      {!!isSelected && (
         <div className="absolute top-4 right-4 w-2 h-2 bg-primary-600 dark:bg-primary-400 rounded-full flex items-center justify-center">
           <span className="absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75 animate-ping" />
           <span className="relative inline-flex rounded-full h-1 w-1 bg-primary-600" />
@@ -184,7 +183,7 @@ export function PatternCard({
         </div>
       )}
 
-      {isLongRotation && isExpanded && (
+      {!!isLongRotation && !!isExpanded && (
         <div
           className="pt-4 border-t border-slate-150 dark:border-slate-850/80 animate-in slide-in-from-top-2 duration-300 w-full"
           onClick={(e) => { e.stopPropagation(); }}

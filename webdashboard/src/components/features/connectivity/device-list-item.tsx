@@ -7,6 +7,7 @@ import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { useDeviceInfo, devicesKeys } from "@/hooks/use-devices";
 import { Device, DeviceInfo, DeviceStatus } from "@/lib/api";
+import { logError } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 
 import { DeviceModals } from "./device-modals";
@@ -105,7 +106,7 @@ export default function DeviceListItem({
       await onUpdate(device.id, { is_enabled: !device.is_enabled });
       toast.success(t(device.is_enabled ? "devices.toast.disabled" : "devices.toast.enabled", { name: device.name }));
     } catch (e) {
-      console.error(e);
+      logError(e, { component: "DeviceListItem" });
       toast.error(t("devices.toast.toggle_error"));
     } finally {
       setIsToggling(false);
@@ -118,7 +119,7 @@ export default function DeviceListItem({
       await onDelete(device.id);
       toast.success(t("devices.toast.delete_success"));
     } catch (e) {
-      console.error(e);
+      logError(e, { component: "DeviceListItem" });
     }
   }
 

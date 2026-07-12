@@ -323,7 +323,7 @@ function PunchTimeCell({
         <div className="shadow-inner bg-slate-50 dark:bg-slate-800/50 rounded-md py-1 px-2 inline-block">
           {formatTime(time)}
         </div>
-        {side === "in" && hasMultipleSessions && (
+        {side === "in" && !!hasMultipleSessions && (
           <span
             className="text-[8px] bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider scale-90 cursor-help"
             title={timeEntries.map((e, i) => `Session ${i + 1}: ${formatTime(e.punch_in_time)} - ${e.punch_out_time ? formatTime(e.punch_out_time) : "---"} (${e.entry_type})`).join("\n")}
@@ -353,7 +353,7 @@ function RowCells({
   return (
     <>
       <td className="w-10 px-2 py-2.5 text-center sticky left-0 z-10 bg-white group-hover:bg-slate-50 dark:bg-slate-900 dark:group-hover:bg-slate-800/50 transition-colors">
-        <Button className="p-1 h-auto text-slate-400 hover:text-slate-600" onClick={() => onToggleExpandRow(segmentKey)} variant="ghost">
+        <Button className="p-1 h-auto text-slate-400 hover:text-slate-600" onClick={() => { onToggleExpandRow(segmentKey); }} variant="ghost">
           <ChevronRight className={cn("transition-transform duration-200", isExpanded && "rotate-90")} size={14} />
         </Button>
       </td>
@@ -368,8 +368,8 @@ function RowCells({
       <td className="px-3 py-2.5 text-center"><SegmentTypeCell row={row} t={t} /></td>
       <td className="px-1 py-2.5 text-center"><SegmentCounterCell row={row} /></td>
       <td className="px-4 py-2.5"><ScheduledCell row={row} t={t} /></td>
-      <PunchTimeCell time={row.actual_punch_in} formatTime={formatTime} timeEntries={timeEntries} hasMultipleSessions={hasMultipleSessions} side="in" />
-      <PunchTimeCell time={row.actual_punch_out} formatTime={formatTime} timeEntries={timeEntries} hasMultipleSessions={false} side="out" />
+      <PunchTimeCell formatTime={formatTime} hasMultipleSessions={hasMultipleSessions} side="in" time={row.actual_punch_in} timeEntries={timeEntries} />
+      <PunchTimeCell formatTime={formatTime} hasMultipleSessions={false} side="out" time={row.actual_punch_out} timeEntries={timeEntries} />
       <td className="px-4 py-2.5 text-right">
         <div className="font-mono font-bold text-primary-600 text-base tracking-tighter leading-none cursor-help" title={buildWorkUnitsTooltip(row.std_work_units, t(getUnitTypeI18nKey(row.unit_type)), row.unit_coefficient_hours, row.computed_std_hours)}>
           {formatHours(row.computed_std_hours)}<span className="text-[10px] opacity-70 ml-0.5">h</span>
@@ -377,9 +377,9 @@ function RowCells({
       </td>
       <td className="px-4 py-2.5 text-right"><OtCell onApproveOt={onApproveOt} row={row} t={t} /></td>
       <td className="px-4 py-2.5 text-center"><ReportStatusBadge onResolveUnscheduled={onResolveUnscheduled} row={row} status={row.status} t={t} /></td>
-      {isDebugMode && (
+      {!!isDebugMode && (
         <td className="px-4 py-2.5 text-center">
-          <Button className={cn("p-1.5 rounded-lg transition-all shadow-sm border h-auto", isExpanded ? "bg-amber-100 text-amber-700 border-amber-200" : "bg-white text-amber-600 border-slate-100 hover:bg-amber-50")} onClick={() => onToggleExpandRow(segmentKey)} variant="ghost">
+          <Button className={cn("p-1.5 rounded-lg transition-all shadow-sm border h-auto", isExpanded ? "bg-amber-100 text-amber-700 border-amber-200" : "bg-white text-amber-600 border-slate-100 hover:bg-amber-50")} onClick={() => { onToggleExpandRow(segmentKey); }} variant="ghost">
             <Bug size={16} />
           </Button>
         </td>
@@ -421,11 +421,11 @@ export function DailyReportTableRow(props: DailyReportTableRowProps) {
         !isFirstInGroup && isMultiSegmentGroup && "border-t border-t-blue-100/50",
         isLastInGroup && isMultiSegmentGroup && "border-b border-b-slate-100",
       )}>
-        <RowCells row={row} t={t} formatTime={formatTime} formatDate={formatDate}
-          isFirstInGroup={isFirstInGroup} hideEmployeeName={hideEmployeeName}
-          timeEntries={meta.timeEntries} hasMultipleSessions={meta.hasMultipleSessions}
-          isExpanded={meta.isExpanded} onToggleExpandRow={onToggleExpandRow} segmentKey={meta.segmentKey}
-          isDebugMode={isDebugMode} onApproveOt={onApproveOt} onResolveUnscheduled={onResolveUnscheduled} />
+        <RowCells formatDate={formatDate} formatTime={formatTime} hasMultipleSessions={meta.hasMultipleSessions} hideEmployeeName={hideEmployeeName}
+          isDebugMode={isDebugMode} isExpanded={meta.isExpanded}
+          isFirstInGroup={isFirstInGroup} onApproveOt={onApproveOt}
+          onResolveUnscheduled={onResolveUnscheduled} onToggleExpandRow={onToggleExpandRow} row={row}
+          segmentKey={meta.segmentKey} t={t} timeEntries={meta.timeEntries} />
         <td className="px-4 py-2.5 text-right">
           <RowActions
             existingAdjustment={meta.existingAdjustment}

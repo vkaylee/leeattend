@@ -28,10 +28,10 @@ export interface ZonedNoShowRow extends DailyAttendanceReport {
 }
 
 export interface UseNoShowRowsParams {
-  rows: DailyAttendanceReport[];
   employeeMap: Map<string, { department_name: string; employee_id_number: string }>;
   /** The scrubber's pinned reference instant `A`. */
   referenceTime: Date;
+  rows: DailyAttendanceReport[];
   /** The shift's assigned calendar day ("yyyy-MM-dd") used to anchor the shift
    *  window when deciding if a historical row is a fixed record. Shift date
    *  comes from the row itself (`row.date`), so this is only the fallback used

@@ -4,8 +4,9 @@ import React from "react";
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import * as api from "../../../../lib/api";
 import type { DailyAttendanceReport } from "../../../../lib/api/types";
+
+import * as api from "../../../../lib/api";
 import { UnrecordedShiftsTab } from "../unrecorded-shifts-tab";
 
 // Hoisted mock fn so the vi.mock factory (hoisted above imports) can close
@@ -399,7 +400,7 @@ describe("UnrecordedShiftsTab", () => {
     });
 
     const [rows, options] = mockExportNoShowToExcel.mock.calls[0] as [
-      Array<{ employee_name: string }>,
+      { employee_name: string }[],
       { referenceTimeLabel: string },
     ];
     expect(rows).toHaveLength(2);
@@ -448,7 +449,7 @@ describe("UnrecordedShiftsTab", () => {
     );
 
     const [rows] = mockExportNoShowToExcel.mock.calls[0] as [
-      Array<{ employee_name: string }>,
+      { employee_name: string }[],
     ];
     const names = rows.map((r) => r.employee_name).sort();
     expect(names).toEqual(["Alice", "Bob", "Carol", "Dave"]);
@@ -497,7 +498,7 @@ describe("UnrecordedShiftsTab", () => {
     });
 
     const [rows] = mockExportNoShowToExcel.mock.calls[0] as [
-      Array<{ employee_name: string }>,
+      { employee_name: string }[],
     ];
     const names = rows.map((r) => r.employee_name).sort();
     // Only the HR employees from both pages make it through.
@@ -574,7 +575,7 @@ describe("UnrecordedShiftsTab", () => {
     });
 
     const [rows] = mockExportNoShowToExcel.mock.calls[0] as [
-      Array<{ employee_name: string; shift_name: string | null }>,
+      { employee_name: string; shift_name: string | null }[],
     ];
     expect(rows).toHaveLength(2);
     expect(rows[0].shift_name).toBe("Morning Shift");

@@ -9,6 +9,7 @@ import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { TimeEntry } from "@/lib/api";
+import { logError } from "@/lib/logger";
 
 interface AdjustmentRequestModalProps {
   isOpen: boolean;
@@ -100,7 +101,7 @@ export function AdjustmentRequestModal({
       await onSubmit(formData);
       onClose();
     } catch (error) {
-      console.error("Failed to submit adjustment:", error);
+      logError(error, { component: "AdjustmentRequestModal" });
     } finally {
       setIsSubmitting(false);
     }

@@ -2,6 +2,8 @@ import { useCallback } from "react";
 
 import type { StreamMessage, StreamStatus } from "@/types/report-stream";
 
+import { logError } from "@/lib/logger";
+
 export function useReportStreamHandlers({
   setStatus,
   setProgress,
@@ -53,7 +55,7 @@ export function useReportStreamHandlers({
         }
       }
     } catch (error_) {
-      console.error("[ReportStream] Failed to parse message:", error_);
+      logError(error_, { component: "ReportStream" });
     }
   }, [setChunks, setError, setProgress, setStatus, chunksRef, onErrorRef, onCompleteRef, shouldReconnectRef, totalBatchesRef]);
 

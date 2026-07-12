@@ -5,8 +5,8 @@ import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 
 interface Props {
-  successCount: number;
   onClose: () => void;
+  successCount: number;
 }
 
 export default function ImportSuccessState({ successCount, onClose }: Props) {

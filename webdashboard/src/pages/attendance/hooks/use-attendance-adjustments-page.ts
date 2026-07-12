@@ -13,6 +13,7 @@ import {
   PaginatedResponse,
   AttendanceAdjustmentRequest,
 } from "@/lib/api";
+import { logError } from "@/lib/logger";
 
 export type TabType = "adjustments" | "behalf_assignments";
 export type AttendanceStatusFilter = "all" | "pending" | "approved" | "rejected";
@@ -103,7 +104,7 @@ export function useAttendanceAdjustmentsPage() {
       });
       saveAs(blob, "attendance_template.xlsx");
     } catch (error) {
-      console.error("Failed to generate Excel template:", error);
+      logError(error, { component: "useAttendanceAdjustmentsPage" });
     }
   };
 

@@ -1,12 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+import * as api from "../api";
 import {
   getAccessToken,
-  getCurrentUserId,
   setCurrentUserId,
   setAccessToken,
 } from "../api/helpers";
-import * as api from "../api";
 
 describe("api.ts comprehensive tests", () => {
   beforeEach(() => {

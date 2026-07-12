@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { useWorkspaceRoles } from "@/hooks/use-workspace";
+import { logError } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 
 interface RoleFormModalProps {
@@ -50,7 +51,7 @@ export default function RoleFormModal({ isOpen, onClose, editingRole }: RoleForm
       }
       onClose();
     } catch (error) {
-      console.error("Failed to save role", error);
+      logError(error, { component: "RoleFormModal" });
     }
   };
 

@@ -9,8 +9,8 @@ import { StagingLogsTable } from "@/components/features/attendance/staging-logs-
 import { AttendanceLogsFilters } from "./attendance/components/attendance-logs-filters";
 import { AttendanceLogsHeader } from "./attendance/components/attendance-logs-header";
 import { AttendanceLogsTabs } from "./attendance/components/attendance-logs-tabs";
-import { useAttendanceLogsPage } from "./attendance/hooks/use-attendance-logs-page";
 import { UnrecordedShiftsTab } from "./attendance/components/unrecorded-shifts-tab";
+import { useAttendanceLogsPage } from "./attendance/hooks/use-attendance-logs-page";
 
 type AttendanceLogsState = ReturnType<typeof useAttendanceLogsPage>;
 

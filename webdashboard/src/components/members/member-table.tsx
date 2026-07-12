@@ -28,6 +28,7 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { useWorkspaceMembers, useWorkspaceRoles } from "@/hooks/use-workspace";
 import { WorkspaceRole, WorkspaceMember } from "@/lib/api";
+import { logError } from "@/lib/logger";
 import { cn, maskEmail } from "@/lib/utils";
 
 const roleColorMap: Record<string, string> = {
@@ -108,7 +109,7 @@ export default function MemberTable() {
     const isConfirmed = await confirm({ title: t('common.warning', { defaultValue: 'Warning' }), message: t("members.table.confirm_remove"), variant: 'danger' });
     if (!isConfirmed) return; 
  
-    try { await removeMember(userId); } catch (e: unknown) { console.error(e); } 
+    try { await removeMember(userId); } catch (e: unknown) { logError(e, { component: "MemberTable" }); } 
   };
 
   return (

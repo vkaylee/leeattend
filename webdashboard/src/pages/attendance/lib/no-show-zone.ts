@@ -32,22 +32,22 @@ const MS_PER_MINUTE = 60_000;
 export type Zone = "a" | "b" | "c";
 
 export interface ZoneInfo {
-  zone: Zone;
   /** For Zone A: minutes of grace remaining. For Zone B: minutes past grace. */
   minutes: number | null;
+  zone: Zone;
 }
 
 /** Inputs to `computeZone`. All time math is derived from these; the function
  *  never reads the system clock, so it stays pure and deterministic. */
 export interface ComputeZoneInput {
-  /** Shift start "HH:MM:SS" | null, interpreted on `shiftDate` in `tz`. */
-  scheduledStart: string | null | undefined;
-  /** Shift end "HH:MM:SS" | null, interpreted on `shiftDate` in `tz`. */
-  scheduledEnd: string | null | undefined;
   /** Resolved grace in minutes; defaults to 15 when null. */
   graceMinutes: number | null | undefined;
   /** The absolute reference instant `A` (the scrubber's pinned center). */
   referenceTime: Date;
+  /** Shift end "HH:MM:SS" | null, interpreted on `shiftDate` in `tz`. */
+  scheduledEnd: string | null | undefined;
+  /** Shift start "HH:MM:SS" | null, interpreted on `shiftDate` in `tz`. */
+  scheduledStart: string | null | undefined;
   /** The shift's assigned calendar day "yyyy-MM-dd" (overnight shifts are
    *  anchored to their start date). */
   shiftDate: string;

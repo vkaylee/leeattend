@@ -127,7 +127,7 @@ function ExpandedHeaderLogo({
   return (
     <div className="flex flex-col gap-1">
       <div aria-label={name || "Logo"} className="h-12 w-full bg-contain bg-no-repeat bg-left drop-shadow-sm" data-testid="sidebar-workspace-logo" role="img" style={{ backgroundImage: `url(${logo})` }} />
-      {workspace?.tagline && <Tagline text={workspace.tagline} />}
+      {!!workspace?.tagline && <Tagline text={workspace.tagline} />}
     </div>
   );
 }
@@ -147,7 +147,7 @@ function ExpandedHeaderText({
         <span className="text-xl font-black tracking-tighter text-slate-800 dark:text-slate-200 uppercase italic truncate pl-1 pr-4">
           {name ?? <React.Fragment>Lee<span className="text-primary-600 dark:text-primary-400">Attend</span></React.Fragment>}
         </span>
-        {workspace?.tagline && <Tagline text={workspace.tagline} />}
+        {!!workspace?.tagline && <Tagline text={workspace.tagline} />}
       </div>
     </div>
   );
@@ -167,7 +167,7 @@ function ExpandedHeader({
     return (
       <div className="flex flex-col gap-1">
         <div aria-label={name || "Logo"} className="h-12 w-full bg-contain bg-no-repeat bg-left drop-shadow-sm" data-testid="sidebar-workspace-logo" role="img" style={{ backgroundImage: `url(${logo})` }} />
-        {tagline && <Tagline text={tagline} />}
+        {!!tagline && <Tagline text={tagline} />}
       </div>
     );
   }
@@ -181,7 +181,7 @@ function ExpandedHeader({
         <span className="text-xl font-black tracking-tighter text-slate-800 dark:text-slate-200 uppercase italic truncate pl-1 pr-4">
           {name ?? <React.Fragment>Lee<span className="text-primary-600 dark:text-primary-400">Attend</span></React.Fragment>}
         </span>
-        {tagline && <Tagline text={tagline} />}
+        {!!tagline && <Tagline text={tagline} />}
       </div>
     </div>
   );
@@ -239,7 +239,7 @@ function SidebarHeader({
         logo && !isCollapsed ? "py-4 min-h-[6rem] items-start" : "h-24 items-center justify-between",
       )}
     >
-      {!isCollapsed ? <ExpandedHeader workspace={workspace} /> : <CollapsedHeader logo={logo ?? undefined} initial={initial} />}
+      {!isCollapsed ? <ExpandedHeader workspace={workspace} /> : <CollapsedHeader initial={initial} logo={logo ?? undefined} />}
       <Button className={cn("lg:hidden p-3 min-w-[44px]", logo && !isCollapsed ? "absolute right-4 top-4" : "")} onClick={onClose} variant="ghost">
         <X className="h-5 w-5" />
       </Button>
@@ -254,7 +254,7 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
 
   return (
     <div className={cn("fixed inset-y-0 left-0 z-50 flex flex-col bg-white dark:bg-slate-950 border-r border-slate-100 dark:border-slate-800 transition-all duration-300 shadow-xl shadow-slate-200/50 dark:shadow-black/30", isCollapsed ? "w-20" : "w-72", !isOpen && "-translate-x-full lg:translate-x-0")}>
-      <SidebarHeader workspace={workspace} isCollapsed={isCollapsed} onClose={onClose} />
+      <SidebarHeader isCollapsed={isCollapsed} onClose={onClose} workspace={workspace} />
       <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-6 space-y-8">
         {filteredMenuItems.map((item: MenuItem) => (
           <div key={item.label}>

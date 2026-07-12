@@ -35,9 +35,8 @@ import {
   fetchDevSuperUser,
   fetchMyPermissions,
 } from "../auth";
-import { apiFetch } from "../helpers";
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 import { client } from "../client";
+import { apiFetch } from "../helpers";
 
 describe("forgotPassword", () => {
   beforeEach(() => {

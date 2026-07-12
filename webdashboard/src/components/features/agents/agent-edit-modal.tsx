@@ -19,6 +19,7 @@ import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useAuthorizedAgents } from "@/hooks/use-agents";
 import { AuthorizedAgent } from "@/lib/api";
+import { logError } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 
 interface AgentEditModalProps {
@@ -226,7 +227,7 @@ function AgentEditModalForm({ agent, isUpdating, updateAgent, onSave, onClose, t
       onSave(updated);
       onClose();
     } catch (err: unknown) {
-      console.error(err);
+      logError(err, { component: "AgentEditModal" });
     }
   }
 

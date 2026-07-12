@@ -6,7 +6,6 @@ vi.mock("../helpers", () => ({
   apiFetch: vi.fn(),
 }));
 
-import { apiFetch } from "../helpers";
 import {
   fetchFolders,
   createFolder,
@@ -17,6 +16,7 @@ import {
   acknowledgeDocument,
   previewTemplate,
 } from "../documents";
+import { apiFetch } from "../helpers";
 
 // Bare-payload response (see payroll.test.ts for why).
 function okRes(payload: unknown) {

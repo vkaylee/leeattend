@@ -20,9 +20,9 @@ elif [ "$1" = "cargo" ] && { [ "$2" = "test" ] || [ "$2" = "nextest" ] || [ "$2"
 fi
 
 if [ "$IS_TEST_CMD" = true ]; then
-    SUGGESTED_CMD="./test.sh api"
+    SUGGESTED_CMD="./leedevkit test api"
     if [ "$TEST_CMD" = "llvm-cov" ] || [ "$TEST_CMD" = "tarpaulin" ] || [ "$TEST_CMD" = "grcov" ]; then
-        SUGGESTED_CMD="./test.sh api --coverage"
+        SUGGESTED_CMD="./leedevkit test api --coverage"
     fi
     
     # Append any extra arguments
@@ -32,8 +32,8 @@ if [ "$IS_TEST_CMD" = true ]; then
 
     echo "========================================================================="
     echo "❌ 🤖 [AI AGENT NOTICE] Do NOT use '_cargo.sh $TEST_CMD'!"
-    echo "❌ 🤖 [AI AGENT NOTICE] ALWAYS use './test.sh' for testing and coverage."
-    echo "❌ 🤖 [AI AGENT NOTICE] './test.sh' handles environment isolation, timeouts, and PTY state properly."
+    echo "❌ 🤖 [AI AGENT NOTICE] ALWAYS use './leedevkit test' for testing and coverage."
+    echo "❌ 🤖 [AI AGENT NOTICE] './leedevkit test' handles environment isolation, timeouts, and PTY state properly."
     echo ""
     echo "👉 Please run this equivalent command instead:"
     echo "   $SUGGESTED_CMD"

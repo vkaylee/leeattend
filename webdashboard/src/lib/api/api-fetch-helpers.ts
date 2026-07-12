@@ -1,6 +1,7 @@
 // Low-level API fetch helpers (token refresh, unauthorized handler, timeout).
 // Split out from helpers.ts to keep the helpers file under max-lines.
 
+import { logError } from "@/lib/logger";
 import { ROUTES } from "@/lib/routes";
 
 import { API_BASE_URL } from "./config";
@@ -52,7 +53,7 @@ export async function forceRefreshToken(): Promise<boolean> {
         return true;
       }
     } catch (e) {
-      console.error("Token refresh failed", e);
+      logError(e, { component: "TokenRefresh" });
     }
     return false;
   })().finally(() => {

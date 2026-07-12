@@ -8,10 +8,10 @@ import { cn } from "@/lib/utils";
 interface Props {
   file: File | null;
   loading: boolean;
-  onFileChange: (file: File | null) => void;
-  onDownloadTemplate: () => void;
-  onUpload: () => void;
   onClose: () => void;
+  onDownloadTemplate: () => void;
+  onFileChange: (file: File | null) => void;
+  onUpload: () => void;
 }
 
 export default function ImportUploadStep({
@@ -43,7 +43,7 @@ export default function ImportUploadStep({
               (key) => {
                 const isOptional = key === "termination_notes";
                 return (
-                  <li key={key} className="flex flex-col space-y-1">
+                  <li className="flex flex-col space-y-1" key={key}>
                     <div className="flex items-center gap-2">
                       <div className="w-1.5 h-1.5 bg-primary-500 dark:bg-primary-400 rounded-full shrink-0" />
                       <span className="font-mono text-[11px] font-bold bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-800 text-primary-700 dark:text-primary-400 shadow-sm">
@@ -96,7 +96,7 @@ export default function ImportUploadStep({
           aria-label={t("employees.bulk_termination.uploading_btn")}
           className="hidden"
           id="file-upload"
-          onChange={(e) => onFileChange(e.target.files?.[0] ?? null)}
+          onChange={(e) => { onFileChange(e.target.files?.[0] ?? null); }}
           type="file"
         />
         {file ? (

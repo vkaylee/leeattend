@@ -89,7 +89,7 @@ export function useSmartTableClipboard<TRow extends ClipboardRow = ClipboardRow>
       if (tsvText) {
         navigator.clipboard
           .writeText(tsvText)
-          .catch((err: unknown) => { console.error("Clipboard copy failed: ", err); });
+          .catch((err: unknown) => { /* clipboard failure — low signal for Sentry */   console.error("Clipboard copy failed: ", err); });
       }
     }
   };
@@ -166,13 +166,13 @@ export function useSmartTableClipboard<TRow extends ClipboardRow = ClipboardRow>
       if (onBulkCellSave) {
         const result = onBulkCellSave(changes);
         if (result instanceof Promise) {
-          result.catch((err: unknown) => { console.error("Error saving bulk cells:", err); });
+          result.catch((err: unknown) => {   console.error("Error saving bulk cells:", err); });
         }
       } else if (onCellSave) {
         for (const change of changes) {
           const result = onCellSave(change.rowId, change.columnId, change.value);
           if (result instanceof Promise) {
-            await result.catch((err: unknown) => { console.error("Error saving cell:", err); });
+            await result.catch((err: unknown) => {   console.error("Error saving cell:", err); });
           }
         }
       }

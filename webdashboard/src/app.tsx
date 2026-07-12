@@ -13,11 +13,13 @@ import { DebugProvider } from "./context/debug-context";
 import { useVersionCheck } from "./hooks/use-version-check";
 import i18n from "./i18n/config";
 import { parseApiError } from "./lib/api/error-handler";
+import { logError } from "./lib/logger";
 import { createAppRouter } from "./router";
 
 
 
 function showErrorToast(error: unknown) {
+  logError(error, { component: "QueryClient" });
   const parsed = parseApiError(error);
   const message = parsed.messageKey
     ? i18n.t(parsed.messageKey)

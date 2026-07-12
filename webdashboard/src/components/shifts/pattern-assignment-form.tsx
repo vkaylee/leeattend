@@ -68,8 +68,8 @@ function PatternSelector({
         {patterns?.map((pattern, index) => (
           <PatternCard
             details={patternDetailsQueries[index]?.data}
-            isLoadingDetails={patternDetailsQueries[index]?.isLoading}
             isExpanded={expandedPatternId === pattern.id}
+            isLoadingDetails={patternDetailsQueries[index]?.isLoading}
             isSelected={selectedPatternId === pattern.id}
             key={pattern.id}
             onSelect={() => { setSelectedPatternId(pattern.id); }}

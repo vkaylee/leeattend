@@ -1,3 +1,4 @@
+import { fetch, fire } from "./client";
 import {
   type BulkCreateWorkSegmentsRequest,
   type CreateShiftIntervalRequest,
@@ -7,7 +8,6 @@ import {
   type UpdateWorkSegmentRequest,
   type WorkSegment,
 } from "./types";
-import { fetch, fire } from "./client";
 
 // /workspaces/{workspace_id}/work-segments* and shifts/{shift_id}/intervals*
 // paths are not yet registered in the generated OpenAPI schema. They route

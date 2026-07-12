@@ -12,6 +12,7 @@ import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { Typography } from "@/components/ui/typography";
 import { useCreateOvertimeRequest } from "@/hooks/use-overtime-requests";
+import { logError } from "@/lib/logger";
 
 const otRequestSchema = z.object({
   planned_date: z.string().min(1, "Date is required"),
@@ -72,7 +73,7 @@ export function CreateOtRequestModal({
       toast.success(t("ess.ot.request_success", { defaultValue: "Overtime request created successfully" }));
       handleClose();
     } catch (error) {
-      console.error(error);
+      logError(error, { component: "CreateOtRequestModal" });
       toast.error(t("common.error"));
     }
   };

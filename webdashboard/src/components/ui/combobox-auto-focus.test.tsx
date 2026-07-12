@@ -13,7 +13,7 @@ vi.mock("@radix-ui/react-popover", () => ({
   Root: ({ children, open, onOpenChange }: { children: React.ReactNode, open?: boolean, onOpenChange?: (open: boolean) => void }) => (
  
     <>
-      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+      { }
       <div data-open={open} data-testid="popover-root" onClick={() => onOpenChange?.(!open)}>
         {children}
       </div>
@@ -58,7 +58,7 @@ describe("Combobox AutoFocus", () => {
  
 
   it("starts with popover open when autoFocus is true", () => {
-    // eslint-disable-next-line jsx-a11y/no-autofocus
+     
     render(<Combobox autoFocus={true} onChange={() => { /* empty */ }} options={options} />);
     const root = screen.getByTestId("popover-root");
     expect(root.getAttribute("data-open")).toBe("true");
@@ -175,7 +175,7 @@ describe("Combobox Keyboard Shortcut", () => {
     const onSearchChange = vi.fn();
     render(
       <Combobox
-        // eslint-disable-next-line jsx-a11y/no-autofocus
+         
         autoFocus={true} // Starts open
  
         keyboardShortcut="Enter"

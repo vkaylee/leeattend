@@ -35,7 +35,7 @@ export async function fetchNotifications(
 
 export async function fetchUnreadCount(): Promise<UnreadCountResponse> {
   const { data: resData } = await client.GET(`/v1/notifications/unread-count`, {});
-  return resData as unknown as UnreadCountResponse;
+  return resData;
 }
 
 export async function markNotificationAsRead(id: string): Promise<void> {

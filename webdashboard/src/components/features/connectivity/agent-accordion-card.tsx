@@ -14,6 +14,7 @@ import Button from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { AuthorizedAgent, Device, DeviceStatus } from "@/lib/api";
+import { logError } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 
 import { AgentDeviceList } from "./agent-device-list";
@@ -214,7 +215,7 @@ export default function AgentAccordionCard({
       await onToggleTrust(agent);
       toast.success(t(agent.is_trusted ? "agents.messages.revoke_success" : "agents.messages.approve_success", { name: agent.name }));
     } catch (e) {
-      console.error(e);
+      logError(e, { component: "AgentAccordionCard" });
     }
   }
 
@@ -229,7 +230,7 @@ export default function AgentAccordionCard({
       await onDelete(agent);
       toast.success(t("agents.messages.delete_success"));
     } catch (e) {
-      console.error(e);
+      logError(e, { component: "AgentAccordionCard" });
     }
   }
 

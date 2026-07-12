@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi, Mock } from 'vitest';
 
+import { getFullUrl } from '../api-fetch-helpers';
 import {
   getAccessToken,
   setAccessToken,
@@ -13,7 +14,6 @@ import {
   forceRefreshToken,
   fetchHealth,
 } from '../helpers';
-import { getFullUrl } from '../api-fetch-helpers';
 
 describe('Token helpers', () => {
   beforeEach(() => {

@@ -6,7 +6,7 @@ import { client, fetch } from '@/lib/api/client';
 import { components } from '@/types/api-generated';
 import { computeSHA256 } from '@/utils/hash';
 
-type PresignedUploadResponse = { file: WorkspaceFile; upload_url: string };
+interface PresignedUploadResponse { file: WorkspaceFile; upload_url: string }
 
 type WorkspaceFile = components['schemas']['WorkspaceFile'];
 export interface UseFileUploadOptions {

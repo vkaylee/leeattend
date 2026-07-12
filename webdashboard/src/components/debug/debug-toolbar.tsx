@@ -308,6 +308,7 @@ export const DebugToolbar: React.FC = () => {
           }
         })
         .catch((error: unknown) => {
+          // eslint-disable-next-line no-console
           console.error("Failed to fetch debug users:", error);
           setDebugUsers([]);
         });

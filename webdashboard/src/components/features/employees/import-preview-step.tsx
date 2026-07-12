@@ -8,13 +8,13 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 interface Props {
-  previewData: TerminationPreviewResponse | null;
   activeTab: "valid" | "invalid";
   confirming: boolean;
-  onTabChange: (tab: "valid" | "invalid") => void;
-  onExportErrors: () => void;
-  onConfirm: () => void;
   onClose: () => void;
+  onConfirm: () => void;
+  onExportErrors: () => void;
+  onTabChange: (tab: "valid" | "invalid") => void;
+  previewData: TerminationPreviewResponse | null;
 }
 
 export default function ImportPreviewStep({
@@ -36,13 +36,13 @@ export default function ImportPreviewStep({
     <div className="space-y-6 pt-2 animate-in fade-in duration-500">
       {/* Summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <SummaryCard label={t("employees.bulk_termination.total_rows")} value={total} className="bg-slate-50 dark:bg-slate-800/40 border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-200" />
-        <SummaryCard label={t("employees.bulk_termination.valid_rows_label")} value={validCount} className="bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-900/30 text-emerald-600 dark:text-emerald-400" />
-        <SummaryCard label={t("employees.bulk_termination.invalid_rows_label")} value={invalidCount} className="bg-rose-50/50 dark:bg-rose-950/20 border-rose-100 dark:border-rose-900/30 text-rose-600 dark:text-rose-400" />
+        <SummaryCard className="bg-slate-50 dark:bg-slate-800/40 border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-200" label={t("employees.bulk_termination.total_rows")} value={total} />
+        <SummaryCard className="bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-900/30 text-emerald-600 dark:text-emerald-400" label={t("employees.bulk_termination.valid_rows_label")} value={validCount} />
+        <SummaryCard className="bg-rose-50/50 dark:bg-rose-950/20 border-rose-100 dark:border-rose-900/30 text-rose-600 dark:text-rose-400" label={t("employees.bulk_termination.invalid_rows_label")} value={invalidCount} />
       </div>
 
       {/* Preview Tabs */}
-      <Tabs onValueChange={(val) => onTabChange(val as "valid" | "invalid")} value={activeTab}>
+      <Tabs onValueChange={(val) => { onTabChange(val as "valid" | "invalid"); }} value={activeTab}>
         <TabsList>
           <TabsTrigger value="valid">
             {t("employees.bulk_termination.tab_valid", { count: validCount })}
@@ -83,7 +83,7 @@ export default function ImportPreviewStep({
         </TabsContent>
         <TabsContent value="invalid">
           <div className="border border-rose-200 dark:border-rose-800/50 rounded-xl overflow-hidden shadow-sm">
-            {previewData && invalidCount > 0 && (
+            {!!previewData && invalidCount > 0 && (
               <div className="flex justify-end px-4 pt-3">
                 <Button
                   className="text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-widest hover:underline flex items-center gap-1.5 bg-transparent border-0 p-0 h-auto min-w-0 cursor-pointer"

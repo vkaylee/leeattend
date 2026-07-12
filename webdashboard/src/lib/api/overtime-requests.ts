@@ -155,7 +155,7 @@ export const overtimeRequestsApi = {
       "/v1/workspaces/{ws_id}/payroll/overtime/assignments",
       { params: { path: { ws_id: employmentId } } },
     );
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+     
     return data;
   },
 
@@ -165,7 +165,7 @@ export const overtimeRequestsApi = {
       "/v1/workspaces/{ws_id}/overtime/quota/summary",
       { params: { path: { ws_id: workspaceId }, query: { month } } },
     );
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+     
     return data;
   },
 
@@ -175,7 +175,7 @@ export const overtimeRequestsApi = {
       "/v1/workspaces/{ws_id}/overtime/quota/{employee_id}",
       { params: { path: { ws_id: workspaceId, employee_id: employeeId }, query: { date } } },
     );
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+     
     return data;
   },
 
