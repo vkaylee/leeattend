@@ -1,14 +1,17 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { TFunction } from "i18next";
 
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
 import type { NoShowRow } from "../excel-no-show";
+
 import { exportNoShowToExcel } from "../excel-no-show";
 
 // ── ExcelJS mock ────────────────────────────────────────────────────────
 // Cells are stored in a map keyed by "row:col" so tests can assert on the
 // values the production code wrote (a fresh-object-per-call mock would lose
 // them). resetMockState() clears everything between tests.
-const cellStore = new Map<string, { value: unknown; font: {}; fill: {}; alignment: {} }>();
+type MockCellStyle = Record<string, unknown>;
+const cellStore = new Map<string, { value: unknown; font: MockCellStyle; fill: MockCellStyle; alignment: MockCellStyle }>();
 
 function makeCell(row: number, col: number) {
   const key = `${row}:${col}`;
@@ -39,12 +42,12 @@ const mockGetRow = vi.fn((rowNumber: number) => ({
 }));
 
 const mockWorksheet = {
-  columns: [] as Array<{ header: unknown; key: string; width?: number }>,
+  columns: [] as { header: unknown; key: string; width?: number }[],
   getCell: mockGetCell,
   getRow: mockGetRow,
   mergeCells: vi.fn(),
   autoFilter: undefined as unknown,
-  views: [] as Array<{ state: string; ySplit: number }>,
+  views: [] as { state: string; ySplit: number }[],
 };
 
 const mockWorkbook = {

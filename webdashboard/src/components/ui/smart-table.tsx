@@ -37,7 +37,7 @@ export interface SmartTableColumnMeta {
 
 declare module "@tanstack/react-table" {
   // augments @tanstack/react-table ColumnMeta using locally-defined SmartTableColumnMeta
-   
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type -- module augmentation
   interface ColumnMeta<TData extends RowData, TValue> extends SmartTableColumnMeta {}
 }
 

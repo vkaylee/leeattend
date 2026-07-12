@@ -1,19 +1,16 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
 
-import type {
-  ValidTerminationRow,
-  InvalidTerminationRow,
-} from "@/lib/api/types";
-import type { ConfirmTerminationRow } from "@/lib/api/employees";
+import { toast } from "sonner";
+
+import type { ConfirmTerminationRow, TerminationPreviewResponse } from "@/lib/api/employees";
 import {
   uploadTerminationImportPreview,
   confirmTerminationImport,
   downloadTerminationTemplate,
-  type TerminationPreviewResponse,
 } from "@/lib/api/employees";
+
 import { fetchJobStatus } from "@/lib/api/leaves";
 import { logError } from "@/lib/logger";
 
@@ -153,7 +150,7 @@ export function useTerminationImport(wsId: string, onClose: () => void) {
       });
       worksheet.eachRow((row: unknown, rowNum: number) => {
         if (rowNum > 1) {
-          const cell1 = (row as unknown as { getCell: (n: number) => Record<string, unknown> }).getCell(1);
+          const cell1 = (row as { getCell: (n: number) => Record<string, unknown> }).getCell(1);
           cell1.alignment = { horizontal: "center" };
           cell1.font = { bold: true, color: { argb: "FFC00000" } };
         }

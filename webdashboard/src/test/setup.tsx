@@ -108,9 +108,9 @@ class MockEventSource implements EventSource {
   url: string;
   readyState = 0;
   withCredentials = false;
-  onopen: ((this: EventSource, ev: Event) => any) | null = null;
-  onmessage: ((this: EventSource, ev: MessageEvent) => any) | null = null;
-  onerror: ((this: EventSource, ev: Event) => any) | null = null;
+  onopen: ((this: EventSource, ev: Event) => void) | null = null;
+  onmessage: ((this: EventSource, ev: MessageEvent) => void) | null = null;
+  onerror: ((this: EventSource, ev: Event) => void) | null = null;
 
   constructor(url: string) {
     this.url = url;

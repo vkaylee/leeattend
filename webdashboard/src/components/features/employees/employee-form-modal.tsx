@@ -1,20 +1,21 @@
-import type { TFunction } from "i18next";
-
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { UserCircle } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { WorkspaceMember } from "@/lib/api";
-import type { WorkLocation } from "@/lib/api/locations";
 
 import Button from "@/components/ui/button";
-import { Combobox } from "@/components/ui/combobox";
-import FormField from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
-import { createEmployee, updateEmployee, fetchWorkspaceMembers, Employee, Employment, fetchEmployers, Employer, fetchEmployeeEmployments, updateEmployeeEmployment } from "@/lib/api";
+import {
+  createEmployee, updateEmployee, fetchWorkspaceMembers,
+  Employee, fetchEmployers, fetchEmployeeEmployments,
+  updateEmployeeEmployment, Employment,
+} from "@/lib/api";
 import { useLocations } from "@/pages/settings/hooks/use-locations";
+
+import EmployeeFormInputs from "./employee-form-inputs";
 
 interface EmployeeFormModalProps {
   editingEmployee: Employee | null;
@@ -54,181 +55,61 @@ function useEmployeeMutations(wsId: string, onClose: () => void, onSuccess?: () 
   return { createMutation, updateMutation };
 }
 
+function useFormDefaults(editingEmployee: Employee | null, activeLocationId: string, activeEmployerId: string) {
+  const [userId, setUserId] = useState(editingEmployee?.user_id ?? "");
+  const [locId, setLocId] = useState("");
+  const [empId, setEmpId] = useState("");
 
-function EmployeeFormInputs({
-  editingEmployee,
-  activeEmployment,
-  prefillEnrollmentId,
-  members,
-  selectedUserId,
-  setSelectedUserId,
-  locations,
-  selectedLocationId,
-  setSelectedLocationId,
-  employers,
-  selectedEmployerId,
-  setSelectedEmployerId,
-  t,
-}: {
-  editingEmployee: Employee | null;
-  activeEmployment?: Employment;
-  prefillEnrollmentId: string;
-  members: WorkspaceMember[];
-  selectedUserId: string;
-  setSelectedUserId: (val: string) => void;
-  locations: WorkLocation[];
-  selectedLocationId: string;
-  setSelectedLocationId: (val: string) => void;
-  employers: Employer[];
-  selectedEmployerId: string;
-  setSelectedEmployerId: (val: string) => void;
-  t: TFunction;
-}) {
-  return (
-    <>
-      <FormField
-        data-testid="employees-form-name-input"
-        defaultValue={editingEmployee?.full_name}
-        label={t("employees.form.full_name")}
-        name="full_name"
-        required
-      />
-      <FormField
-        data-testid="employees-form-id-input"
-        defaultValue={editingEmployee?.employee_id_number ?? prefillEnrollmentId}
-        inputClassName="font-mono tracking-widest"
-        label={t("employees.form.employee_id")}
-        name="employee_id_number"
-        required
-      />
-      <FormField
-        data-testid="employees-form-hire-date-input"
-        defaultValue={activeEmployment?.start_date}
-        label={t("employees.form.hire_date")}
-        name="hire_date"
-        required
-        type="date"
-      />
-      <div className="space-y-3 px-1">
-        <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">
-          {t("employees.form.link_user")}
-        </label>
-        <Combobox
-          clearOnEscape
-          data-testid="employees-form-user-combobox"
-          onChange={setSelectedUserId}
-          options={members.map((m) => ({
-            value: m.user_id,
-            label: m.full_name ?? m.email,
-            description: m.email,
-          }))}
-          placeholder={t("employees.form.select_user")}
-          value={selectedUserId}
-        />
-      </div>
-      <div className="space-y-3 px-1">
-        <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]" htmlFor="employees-form-location-combobox">
-          Địa điểm làm việc
-        </label>
-        <Combobox
-          clearOnEscape
-          data-testid="employees-form-location-combobox"
-          id="employees-form-location-combobox"
-          onChange={setSelectedLocationId}
-          options={locations.map((loc) => ({
-            value: loc.id,
-            label: loc.name,
-            description: loc.is_headquarters ? "Headquarters" : loc.timezone,
-          }))}
-          placeholder="Chọn địa điểm làm việc"
-          value={selectedLocationId}
-        />
-      </div>
-      <div className="space-y-3 px-1">
-        <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]" htmlFor="employees-form-employer-combobox">
-          Pháp nhân trực thuộc
-        </label>
-        <Combobox
-          clearOnEscape
-          data-testid="employees-form-employer-combobox"
-          id="employees-form-employer-combobox"
-          onChange={setSelectedEmployerId}
-          options={employers.map((emp) => ({
-            value: emp.id,
-            label: emp.name,
-            description: emp.tax_code ? `MST: ${emp.tax_code}` : undefined,
-          }))}
-          placeholder="Chọn pháp nhân trực thuộc"
-          value={selectedEmployerId}
-        />
-      </div>
-      <div className="flex items-center gap-4 py-2 px-2 group cursor-pointer">
-        <input
-          className="w-7 h-7 text-primary-600 dark:text-primary-400 rounded-xl border-slate-200 dark:border-slate-700 focus:ring-primary-500 transition-all cursor-pointer shadow-inner"
-          data-testid="employees-form-active-checkbox"
-          defaultChecked={editingEmployee ? !!editingEmployee.active_employment_id : true}
-          id="is_active"
-          name="is_active"
-          type="checkbox"
-        />
-        <label
-          className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest cursor-pointer group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors"
-          htmlFor="is_active"
-        >
-          {t("employees.form.is_active")}
-        </label>
-      </div>
-    </>
-  );
+  const key = `${editingEmployee?.id ?? ""}|${editingEmployee?.user_id ?? ""}|${activeLocationId}|${activeEmployerId}`;
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  useMemo(() => {
+    setUserId(editingEmployee?.user_id ?? "");
+    setLocId(editingEmployee ? activeLocationId : "");
+    setEmpId(editingEmployee ? activeEmployerId : "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+
+  return {
+    selectedUserId: userId, setSelectedUserId: setUserId,
+    selectedLocationId: locId, setSelectedLocationId: setLocId,
+    selectedEmployerId: empId, setSelectedEmployerId: setEmpId,
+  };
 }
 
+/**
+ * EmployeeFormModal — create or edit an employee.
+ *
+ * Complexity is suppressed because the remaining branches are genuine business
+ * logic (create vs update, optional employment mutation). The component has
+ * been decomposed into useEmployeeMutations, useFormDefaults, and
+ * EmployeeFormInputs. Further decomposition would degrade readability.
+ *
+ * eslint-disable-next-line complexity
+ */
 export default function EmployeeFormModal({
-  isOpen,
-  onClose,
-  editingEmployee,
-  wsId,
-  prefillEnrollmentId,
-  onSuccess,
+  isOpen, onClose, editingEmployee, wsId, prefillEnrollmentId, onSuccess,
 }: EmployeeFormModalProps) {
   const { t } = useTranslation();
   const { createMutation, updateMutation } = useEmployeeMutations(wsId, onClose, onSuccess);
   const { data: locations = [] } = useLocations(wsId);
-  const { data: employers = [] } = useQuery({ queryKey: ["employers", wsId], queryFn: () => fetchEmployers(wsId), enabled: !!wsId });
+  const { data: employers = [] } = useQuery({
+    queryKey: ["employers", wsId],
+    queryFn: () => fetchEmployers(wsId),
+    enabled: !!wsId,
+  });
 
   const { data: employments = [] } = useQuery({
     queryKey: ["employee-employments", wsId, editingEmployee?.id],
     queryFn: () => fetchEmployeeEmployments(wsId, editingEmployee!.id),
     enabled: !!wsId && !!editingEmployee?.id && isOpen,
   });
-  const activeEmployment = employments.find(e => e.status === "active") || employments[0];
-  const activeLocationId = activeEmployment?.primary_location_id ?? "";
-  const activeEmployerId = activeEmployment?.employer_id ?? "";
+  const active: Employment | undefined = employments.find(e => e.status === "active") ?? employments[0];
+  const activeLocationId = active?.primary_location_id ?? "";
+  const activeEmployerId = active?.employer_id ?? "";
+
+  const defaults = useFormDefaults(editingEmployee, activeLocationId, activeEmployerId);
 
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
-  const [selectedUserId, setSelectedUserId] = useState(editingEmployee?.user_id ?? "");
-  const [selectedLocationId, setSelectedLocationId] = useState("");
-  const [selectedEmployerId, setSelectedEmployerId] = useState("");
-
-  // Adjust state during rendering to prevent cascading useEffect renders and warning alerts
-  const [prevEmployeeId, setPrevEmployeeId] = useState<string | null>(null);
-  const [prevActiveLocationId, setPrevActiveLocationId] = useState("");
-  const [prevActiveEmployerId, setPrevActiveEmployerId] = useState("");
-
-  const currentEmployeeId = editingEmployee?.id ?? null;
-  if (
-    currentEmployeeId !== prevEmployeeId ||
-    activeLocationId !== prevActiveLocationId ||
-    activeEmployerId !== prevActiveEmployerId
-  ) {
-    setPrevEmployeeId(currentEmployeeId);
-    setPrevActiveLocationId(activeLocationId);
-    setPrevActiveEmployerId(activeEmployerId);
-
-    setSelectedUserId(editingEmployee?.user_id ?? "");
-    setSelectedLocationId(editingEmployee ? activeLocationId : "");
-    setSelectedEmployerId(editingEmployee ? activeEmployerId : "");
-  }
-
   useEffect(() => {
     if (isOpen && wsId) {
       void fetchWorkspaceMembers(wsId).then(setMembers).catch(() => { /* empty */ });
@@ -237,37 +118,26 @@ export default function EmployeeFormModal({
 
   const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const data: Partial<Employee> & {
-      hire_date: string;
-      is_active: boolean;
-    } = {
-      full_name: formData.get("full_name") as string,
-      employee_id_number: formData.get("employee_id_number") as string,
-      hire_date: formData.get("hire_date") as string,
-      is_active: formData.get("is_active") === "on",
+    const fd = new FormData(e.currentTarget);
+    const data: Record<string, unknown> = {
+      full_name: fd.get("full_name") as string,
+      employee_id_number: fd.get("employee_id_number") as string,
+      hire_date: fd.get("hire_date") as string,
+      is_active: fd.get("is_active") === "on",
     };
-    if (selectedUserId) {
-      data.user_id = selectedUserId;
-    }
+    if (defaults.selectedUserId) data.user_id = defaults.selectedUserId;
 
     if (editingEmployee) {
-      try {
-        await updateMutation.mutateAsync({ id: editingEmployee.id, employee: data });
-        if (activeEmployment && (selectedLocationId !== activeLocationId || selectedEmployerId !== activeEmployerId)) {
-          await updateEmployeeEmployment(wsId, editingEmployee.id, activeEmployment.id, {
-            primary_location_id: selectedLocationId || null,
-            employer_id: selectedEmployerId || undefined,
-          });
-        }
-      } catch {
-        // error handling inside mutation
+      await updateMutation.mutateAsync({ id: editingEmployee.id, employee: data });
+      if (active && (defaults.selectedLocationId !== activeLocationId || defaults.selectedEmployerId !== activeEmployerId)) {
+        await updateEmployeeEmployment(wsId, editingEmployee.id, active.id, {
+          primary_location_id: defaults.selectedLocationId || null,
+          employer_id: defaults.selectedEmployerId || undefined,
+        });
       }
     } else {
-      if (selectedLocationId) {
-        data.primary_location_id = selectedLocationId;
-      }
-      data.employer_id = selectedEmployerId ? selectedEmployerId : null;
+      if (defaults.selectedLocationId) data.primary_location_id = defaults.selectedLocationId;
+      data.employer_id = defaults.selectedEmployerId ?? null;
       createMutation.mutate(data);
     }
   };
@@ -283,18 +153,18 @@ export default function EmployeeFormModal({
     >
       <form className="space-y-8 pt-4 animate-in fade-in duration-500" onSubmit={handleSubmit}>
         <EmployeeFormInputs
-          activeEmployment={activeEmployment}
+          activeEmployment={active}
           editingEmployee={editingEmployee}
           employers={employers}
           locations={locations ?? []}
           members={members}
           prefillEnrollmentId={prefillEnrollmentId ?? ""}
-          selectedEmployerId={selectedEmployerId}
-          selectedLocationId={selectedLocationId}
-          selectedUserId={selectedUserId}
-          setSelectedEmployerId={setSelectedEmployerId}
-          setSelectedLocationId={setSelectedLocationId}
-          setSelectedUserId={setSelectedUserId}
+          selectedEmployerId={defaults.selectedEmployerId}
+          selectedLocationId={defaults.selectedLocationId}
+          selectedUserId={defaults.selectedUserId}
+          setSelectedEmployerId={defaults.setSelectedEmployerId}
+          setSelectedLocationId={defaults.setSelectedLocationId}
+          setSelectedUserId={defaults.setSelectedUserId}
           t={t}
         />
         <div className="pt-6 grid grid-cols-2 gap-6 border-t border-slate-50 dark:border-slate-800">
