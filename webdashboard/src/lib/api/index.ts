@@ -1,10 +1,12 @@
 export * from "./config";
+// eslint-disable-next-line import-x/export -- types.ts/employees.ts both export Employment via barrel
 export * from "./types";
 export * from "./helpers";
 export * from "./auth";
 export * from "./documents";
 export * from "./agents";
 export * from "./workspaces";
+// eslint-disable-next-line import-x/export -- re-exports Employment from types.ts via employees
 export * from "./employees";
 export * from "./attendance";
 export * from "./leaves";

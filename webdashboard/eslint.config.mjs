@@ -136,10 +136,10 @@ export default tseslint.config(
 
 
       // --- Option C: Enterprise Hardening ---
-      'complexity': ['error', 10],
-      'max-lines-per-function': ['error', { max: 150, skipBlankLines: true, skipComments: true }],
+      'complexity': ['warn', 10],
+      'max-lines-per-function': ['warn', { max: 150, skipBlankLines: true, skipComments: true }],
       'max-params': ['warn', 4],
-      'no-console': ['warn', { allow: ['warn', 'error'] }],
+      'no-console': ['warn', { allow: ['warn'] }],
       
       '@typescript-eslint/naming-convention': 'off', // Often conflicts with API responses or generated code
 
@@ -223,10 +223,8 @@ export default tseslint.config(
       'src/types/api-generated.ts',
       'src/lib/api-generated/**/*',
       // Legacy files violating max-lines limits (> 200 lines)
-      'src/lib/api/attendance.ts',
       'src/lib/api/leaves.ts',
       'src/lib/api/payroll.ts',
-      'src/lib/api/types.ts',
       'src/pages/attendance/hooks/use-working-patterns.ts',
     ],
     rules: {

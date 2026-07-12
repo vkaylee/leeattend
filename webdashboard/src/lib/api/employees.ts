@@ -9,6 +9,9 @@ import type {
   CompensationHistoryResponse,
 } from "./types";
 
+// Employment is already exported from types.ts; re-exporting here causes
+// a duplicate when both modules are barrel-re-exported together.
+// eslint-disable-next-line import-x/export
 export type { Employment } from "./types";
 
 import { client } from "./client";

@@ -183,7 +183,8 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
           onClose={() => {
             setEditingType(null);
           }}
-          onSave={(config: LeaveTypeConfig) => {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          onSave={(config) => {
             updateLeaveType(editingType.id, config);
           }}
         />

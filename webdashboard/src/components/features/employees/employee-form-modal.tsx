@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { UserCircle } from "lucide-react";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { WorkspaceMember } from "@/lib/api";
@@ -60,14 +60,14 @@ function useFormDefaults(editingEmployee: Employee | null, activeLocationId: str
   const [locId, setLocId] = useState("");
   const [empId, setEmpId] = useState("");
 
-  const key = `${editingEmployee?.id ?? ""}|${editingEmployee?.user_id ?? ""}|${activeLocationId}|${activeEmployerId}`;
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  useMemo(() => {
-    setUserId(editingEmployee?.user_id ?? "");
+  const employeeId = editingEmployee?.id ?? null;
+  const userId_ = editingEmployee?.user_id ?? "";
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => {
+    setUserId(userId_);
     setLocId(editingEmployee ? activeLocationId : "");
     setEmpId(editingEmployee ? activeEmployerId : "");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
+  }, [employeeId, userId_, activeLocationId, activeEmployerId, editingEmployee]);
 
   return {
     selectedUserId: userId, setSelectedUserId: setUserId,
