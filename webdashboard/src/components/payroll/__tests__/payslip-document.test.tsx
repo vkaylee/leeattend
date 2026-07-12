@@ -387,7 +387,7 @@ describe("PayslipDocument", () => {
     const payslip = createMockPayslip({
       salary_components: [
         {
-          // @ts-ignore - Simulating runtime data mismatch
+          // @ts-expect-error - deliberate runtime data mismatch simulation
           component: {
             amount: "10000000"
           }
