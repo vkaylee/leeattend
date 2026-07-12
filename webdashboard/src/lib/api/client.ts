@@ -1,8 +1,9 @@
+import type { Client, MaybeOptionalInit, MethodResponse } from "openapi-fetch";
+import type { PathsWithMethod, RequiredKeysOf } from "openapi-typescript-helpers";
+
 import createClient from "openapi-fetch";
 
 import type { paths } from "@/types/api-generated";
-import type { Client, FetchResponse, MaybeOptionalInit, MethodResponse } from "openapi-fetch";
-import type { MediaType, PathsWithMethod, RequiredKeysOf } from "openapi-typescript-helpers";
 
 import { API_BASE_URL } from "./config";
 import { ApiError } from "./errors";
@@ -119,13 +120,13 @@ type SafeMethod<M extends "GET" | "POST" | "PUT" | "PATCH" | "DELETE"> = <
   response: Response;
 }>;
 
-type SafeClient = {
+interface SafeClient {
+  DELETE: SafeMethod<"DELETE">;
   GET: SafeMethod<"GET">;
+  PATCH: SafeMethod<"PATCH">;
   POST: SafeMethod<"POST">;
   PUT: SafeMethod<"PUT">;
-  PATCH: SafeMethod<"PATCH">;
-  DELETE: SafeMethod<"DELETE">;
-};
+}
 
 export const client = createClient<paths>({
   baseUrl: API_BASE_URL,
