@@ -305,6 +305,7 @@ export default tseslint.config(
       'complexity': 'off',
       // jsx-a11y rules are for runtime DOM; test files use testing-library
       // which has its own a11y assertions via jest-dom.
+      'no-console': 'off',
       'jsx-a11y/click-events-have-key-events': 'off',
       'jsx-a11y/no-static-element-interactions': 'off',
       'jsx-a11y/label-has-associated-control': 'off',
