@@ -169,7 +169,7 @@ function RosterNavHeader({
       </div>
       <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
         <div className="flex items-center gap-1">
-          <Button className="p-2 rounded-xl hover:bg-slate-100 border border-slate-100" onClick={() => viewMode === "week" ? hook.handleNavigateWeek("prev") : hook.handleNavigateMonth("prev")} type="button" variant="ghost">
+          <Button className="p-2 rounded-xl hover:bg-slate-100 border border-slate-100" onClick={() => { if (viewMode === "week") hook.handleNavigateWeek("prev"); else hook.handleNavigateMonth("prev"); }} type="button" variant="ghost">
             <ChevronLeft size={16} />
           </Button>
           <span className="min-w-[140px] text-center font-bold text-xs uppercase tracking-widest text-slate-700">
@@ -177,7 +177,7 @@ function RosterNavHeader({
               ? `${formatDate(hook.weekDays[0])} - ${formatDate(hook.weekDays[6])}`
               : format(hook.currentMonth, "MMMM yyyy", { locale: currentLocale })}
           </span>
-          <Button className="p-2 rounded-xl hover:bg-slate-100 border border-slate-100" onClick={() => viewMode === "week" ? hook.handleNavigateWeek("next") : hook.handleNavigateMonth("next")} type="button" variant="ghost">
+          <Button className="p-2 rounded-xl hover:bg-slate-100 border border-slate-100" onClick={() => { if (viewMode === "week") hook.handleNavigateWeek("next"); else hook.handleNavigateMonth("next"); }} type="button" variant="ghost">
             <ChevronRight size={16} />
           </Button>
         </div>
@@ -230,7 +230,7 @@ function MonthViewControls({
         />
       </div>
       {!!selectedEmployeesMeta && selectedEmployeesMeta.length > 0 && (
-        <EmployeeChecklist hook={hook} employees={selectedEmployeesMeta} />
+        <EmployeeChecklist employees={selectedEmployeesMeta} hook={hook} />
       )}
     </>
   );
@@ -271,12 +271,12 @@ function WeekViewControls({ hook }: { hook: ReturnType<typeof useShifts> }) {
   const { t } = useTranslation();
 
   const onCopyPreviousWeek = () => void hook.handleCopyPreviousWeek();
-  const onClearWeek = () => hook.handleAssignAllWeek(null);
+  const onClearWeek = () => { hook.handleAssignAllWeek(null); };
   const onAssignAllWeek = () => {
     hook.setTargetDates(hook.weekDays.map((d) => format(d, "yyyy-MM-dd")));
     hook.setIsShiftPickerOpen(true);
   };
-  const onAssignPattern = () => hook.setIsPatternModalOpen(true);
+  const onAssignPattern = () => { hook.setIsPatternModalOpen(true); };
 
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -286,7 +286,7 @@ function WeekViewControls({ hook }: { hook: ReturnType<typeof useShifts> }) {
           data-testid="employee-select"
           keyboardShortcut={["/", "Enter"]}
           onChange={(id) => { if (!id) hook.setSelectedEmployee(null); }}
-          onSelectEmployee={(emp) => hook.setSelectedEmployee(emp)}
+          onSelectEmployee={(emp) => { hook.setSelectedEmployee(emp); }}
           placeholder={t("shifts.empty_state.title")}
           value={hook.selectedEmployee?.id ?? ""}
           workspaceId={hook.wsId}
@@ -379,15 +379,15 @@ export const RosterToolbar = memo(function RosterToolbar(props: RosterToolbarPro
   return (
     <div className="relative">
       <div className="flex flex-col gap-4 bg-white dark:bg-slate-900 p-5 rounded-[28px] border border-slate-100 dark:border-slate-800 shadow-sm">
-        <RosterNavHeader hook={hook} viewMode={viewMode} isCopying={props.isCopying} onCopyMonth={props.onCopyMonth} />
+        <RosterNavHeader hook={hook} isCopying={props.isCopying} onCopyMonth={props.onCopyMonth} viewMode={viewMode} />
         <div className="h-px bg-slate-100 dark:bg-slate-800 w-full" />
         <div className="flex flex-col gap-3.5 w-full animate-in fade-in duration-200">
           {viewMode === "month" ? <MonthViewControls hook={hook} selectedEmployeesMeta={props.selectedEmployeesMeta} /> : <WeekViewControls hook={hook} />}
         </div>
       </div>
 
-      {viewMode === "month" && <MonthOverlay hook={hook} selectedCells={selectedCells} isMutating={props.isMutating} onCancelSelection={props.onCancelSelection} onAssignSelected={props.onAssignSelected} onClearOverrides={props.onClearOverrides} onApplyShift={props.onApplyShift} />}
-      {viewMode === "week" && !!selectedDays && selectedDays.length > 0 && <WeekActionBar selectedDays={selectedDays} onOpenWeekShiftPicker={props.onOpenWeekShiftPicker} onClearWeekSelection={props.onClearWeekSelection} />}
+      {viewMode === "month" && <MonthOverlay hook={hook} isMutating={props.isMutating} onApplyShift={props.onApplyShift} onAssignSelected={props.onAssignSelected} onCancelSelection={props.onCancelSelection} onClearOverrides={props.onClearOverrides} selectedCells={selectedCells} />}
+      {viewMode === "week" && !!selectedDays && selectedDays.length > 0 && <WeekActionBar onClearWeekSelection={props.onClearWeekSelection} onOpenWeekShiftPicker={props.onOpenWeekShiftPicker} selectedDays={selectedDays} />}
     </div>
   );
 });

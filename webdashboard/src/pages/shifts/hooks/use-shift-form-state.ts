@@ -17,11 +17,13 @@ interface ShiftSearchParams {
   view?: string;
 }
 
+// eslint-disable-next-line complexity
 export function useShiftFormState(wsId?: string) {
-  // strict: false returns a permissive search type; the single-level cast to the
-  // local ShiftSearchParams shape documents the optional tab/view/employee fields
-  // the hook reads (codebase idiom — see shifts-rules-page.tsx).
-  const search = useSearch({ strict: false }) as ShiftSearchParams;
+  // useSearch({ strict: false }) returns a permissive type; we cast to
+  // ShiftSearchParams to document fields used by this hook (codebase idiom
+  // — see shifts-rules-page.tsx).
+  const rawSearch = useSearch({ strict: false });
+  const search = rawSearch as ShiftSearchParams;
   const navigate = useNavigate();
 
   const tab = typeof search.tab === "string" ? search.tab : "";
