@@ -37,8 +37,7 @@ export async function revokeSystemRole(userId: string, roleName: string): Promis
 
 export async function fetchSystemHealth(): Promise<Record<string, unknown>> {
   const { data: resData } = await client.GET("/system/health");
-  if (!resData) throw new Error("No response data");
-  return resData as Record<string, unknown>;
+  return resData;
 }
 
 export interface SystemTenant {

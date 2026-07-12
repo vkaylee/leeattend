@@ -135,21 +135,21 @@ export async function adjustLeaveBalance(
 }
 
 export async function fetchLeavePolicies(wsId: string): Promise<LeavePolicy[]> {
-  const { data: resData } = await fetch<LeavePolicy[]>("GET", "/workspaces/{ws_id}/leave/policies", {
+  const { data: resData } = await client.GET("/workspaces/{ws_id}/leave/policies", {
     params: { path: { ws_id: wsId } },
   });
-  return resData;
+  return resData as LeavePolicy[];
 }
 
 export async function createLeavePolicy(
   wsId: string,
   data: Partial<LeavePolicy>
 ): Promise<LeavePolicy> {
-  const { data: resData } = await fetch<LeavePolicy>("POST", "/workspaces/{ws_id}/leave/policies", {
+  const { data: resData } = await client.POST("/workspaces/{ws_id}/leave/policies", {
     params: { path: { ws_id: wsId } },
-    body: data,
+    body: data as never,
   });
-  return resData;
+  return resData as LeavePolicy;
 }
 
 export async function updateLeavePolicy(
@@ -157,11 +157,11 @@ export async function updateLeavePolicy(
   policyId: string,
   data: Partial<LeavePolicy>
 ): Promise<LeavePolicy> {
-  const { data: resData } = await fetch<LeavePolicy>("PATCH", "/workspaces/{ws_id}/leave/policies/{policy_id}", {
+  const { data: resData } = await client.PATCH("/workspaces/{ws_id}/leave/policies/{policy_id}", {
     params: { path: { ws_id: wsId, policy_id: policyId } },
-    body: data,
+    body: data as never,
   });
-  return resData;
+  return resData as LeavePolicy;
 }
 
 export async function deleteLeavePolicy(
@@ -209,10 +209,10 @@ export async function deleteLeaveType(
 }
 
 export async function fetchLeavePolicyAssignments(wsId: string): Promise<LeavePolicyAssignmentDetail[]> {
-  const { data: resData } = await fetch<LeavePolicyAssignmentDetail[]>("GET", "/workspaces/{ws_id}/leave/policies/assignments", {
+  const { data: resData } = await client.GET("/workspaces/{ws_id}/leave/policies/assignments", {
     params: { path: { ws_id: wsId } },
   });
-  return resData;
+  return resData as LeavePolicyAssignmentDetail[];
 }
 
 export async function assignLeavePolicy(

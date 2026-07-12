@@ -1,4 +1,4 @@
-import { client, fetch } from "./client";
+import { client } from "./client";
 
 export type NotificationType = "leave_approved" | "leave_rejected" | "attendance_missing" | "system" | "message" | "info" | "alert" | (string & {});
 
@@ -27,15 +27,15 @@ export async function fetchNotifications(
   limit = 20,
   cursor?: string
 ): Promise<NotificationResponse> {
-  const { data: resData } = await fetch<NotificationResponse>("GET", "/v1/notifications", {
+  const { data: resData } = await client.GET("/v1/notifications", {
     params: { query: { limit, cursor } },
   });
-  return resData;
+  return resData as unknown as NotificationResponse;
 }
 
 export async function fetchUnreadCount(): Promise<UnreadCountResponse> {
   const { data: resData } = await client.GET(`/v1/notifications/unread-count`, {});
-  return resData;
+  return resData as unknown as UnreadCountResponse;
 }
 
 export async function markNotificationAsRead(id: string): Promise<void> {

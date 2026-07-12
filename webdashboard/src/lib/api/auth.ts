@@ -7,10 +7,6 @@ export async function login(username: string, password: string): Promise<AuthRes
   const { data } = await client.POST("/auth/login", {
     body: { email: username, password },
   });
-  if (!data) throw new Error("Login failed");
-  // access_token is held in-memory (see token-store.ts). The corresponding
-  // refresh_token is persisted by the backend inside an HttpOnly cookie —
-  // the frontend never sees it.
   setAccessToken(data.access_token);
   setCurrentUserId(data.user.id);
   return data;
@@ -27,7 +23,6 @@ export async function register(data: RegisterRequest): Promise<AuthResponse> {
   const { data: resData } = await client.POST("/auth/register", {
     body: data,
   });
-  if (!resData) throw new Error("Registration failed");
   return resData;
 }
 
@@ -43,7 +38,6 @@ export async function changePassword(
 
 export async function fetchMe(): Promise<User> {
   const { data } = await client.GET("/me");
-  if (!data) throw new Error("Failed to fetch profile");
   return data;
 }
 
@@ -51,7 +45,6 @@ export async function updateMe(data: Partial<User>): Promise<User> {
   const { data: resData } = await client.PATCH("/me", {
     body: data,
   });
-  if (!resData) throw new Error("Failed to update profile");
   return resData;
 }
 

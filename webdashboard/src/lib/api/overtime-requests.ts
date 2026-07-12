@@ -185,7 +185,6 @@ export const overtimeRequestsApi = {
         path: { ws_id: workspaceId },
       },
     });
-    if (!data) throw new Error("No response data");
     return data.data;
   },
 

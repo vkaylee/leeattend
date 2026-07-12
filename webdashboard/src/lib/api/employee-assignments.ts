@@ -35,7 +35,6 @@ export const createEmployeeAssignment = async (
     },
     body: data,
   });
-  if (!result) throw new Error("Failed to create employee assignment");
   return result;
 };
 
@@ -51,7 +50,6 @@ export const updateEmployeeAssignment = async (
     },
     body: data,
   });
-  if (!result) throw new Error("Failed to update employee assignment");
   return result;
 };
 

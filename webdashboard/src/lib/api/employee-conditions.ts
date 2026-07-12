@@ -8,11 +8,10 @@ export async function fetchWorkingConditions(wsId: string, employeeId: string): 
       path: { workspace_id: wsId, id: employeeId },
     },
   });
-  if (!data) return [];
   return (data.data ?? []).map((item) => ({
     ...item,
     type: item.type_,
-  }));
+  })) as unknown as WorkingCondition[];
 }
 
 export async function createWorkingCondition(
@@ -26,7 +25,6 @@ export async function createWorkingCondition(
     },
     body: condition,
   });
-  if (!data) throw new Error("No response data");
   return {
     ...data,
     type: data.type_,

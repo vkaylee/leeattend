@@ -43,7 +43,6 @@ export async function assignEmployeePhase(
     params: { path: { ws_id: wsId, emp_id: employeeId } },
     body: data
   });
-  if (!result) throw new Error("No response data");
   return result;
 }
 
@@ -57,7 +56,6 @@ export async function updateEmployeePhaseStatus(
     params: { path: { ws_id: wsId, emp_id: employeeId, phase_id: phaseId } },
     body: data
   });
-  if (!result) throw new Error("No response data");
   return result;
 }
 
@@ -78,7 +76,6 @@ export async function assignEmploymentPhase(
     params: { path: { ws_id: wsId, employment_id: employmentId } },
     body: data
   });
-  if (!result) throw new Error("No response data");
   return result;
 }
 
@@ -92,6 +89,5 @@ export async function updateEmploymentPhaseStatus(
     params: { path: { ws_id: wsId, employment_id: employmentId, phase_id: phaseId } },
     body: data
   });
-  if (!result) throw new Error("No response data");
   return result;
 }

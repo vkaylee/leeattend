@@ -5,7 +5,7 @@ import type {
   ApprovalActionLog 
 } from './types';
 
-import { client, fetch } from './client';
+import { client } from './client';
 
 export interface WorkflowStepRequest {
   action_required: string;
@@ -30,7 +30,6 @@ export const approvalWorkflowsApi = {
         query: entityType ? { entity_type: entityType } : undefined
       }
     });
-    if (!resData) throw new Error("No response data");
     return resData.data;
   },
 
@@ -54,11 +53,11 @@ export const approvalWorkflowsApi = {
   },
 
   updateWorkflow: async (workspaceId: string, id: string, payload: UpdateWorkflowRequest): Promise<ApprovalWorkflow> => {
-    const { data: resData } = await fetch<ApprovalWorkflow>("PUT", "/workspaces/{ws_id}/approval-workflows/{id}", {
+    const { data: resData } = await client.PUT("/workspaces/{ws_id}/approval-workflows/{id}", {
       params: { path: { ws_id: workspaceId, id } },
-      body: payload,
+      body: payload as never,
     });
-    return resData;
+    return resData as ApprovalWorkflow;
   },
 
   deleteWorkflow: async (workspaceId: string, id: string): Promise<void> => {

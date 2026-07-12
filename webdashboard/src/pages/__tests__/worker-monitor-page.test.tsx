@@ -214,9 +214,9 @@ describe("WorkerMonitorPage", () => {
 
     it("renders recent jobs with truncated IDs", () => {
         renderPage();
-        expect(screen.getByText("job-1111...")).toBeInTheDocument();
-        expect(screen.getByText("job-aaaa...")).toBeInTheDocument();
-        expect(screen.getByText("job-ffff...")).toBeInTheDocument();
+        expect(screen.getByText("job-1111…")).toBeInTheDocument();
+        expect(screen.getByText("job-aaaa…")).toBeInTheDocument();
+        expect(screen.getByText("job-ffff…")).toBeInTheDocument();
     });
 
     it("shows color-coded status badges for jobs", () => {
@@ -264,7 +264,7 @@ describe("WorkerMonitorPage", () => {
         renderPage();
         
         // Find a job row and click it
-        const row = screen.getByText("job-1111...").closest("tr");
+        const row = screen.getByText("job-1111…").closest("tr");
         expect(row).toBeInTheDocument();
         
         if (row) {

@@ -238,7 +238,7 @@ describe('forceRefreshToken failure path', () => {
     const result = await forceRefreshToken();
     expect(result).toBe(false);
     expect(errorSpy).toHaveBeenCalledWith(
-      'Token refresh failed',
+      '[TokenRefresh]',
       expect.any(Error),
     );
     errorSpy.mockRestore();

@@ -36,7 +36,6 @@ export async function fetchWorkSegments(
       query: params,
     },
   });
-  if (!resData) throw new Error("No response data");
   return resData.data;
 }
 

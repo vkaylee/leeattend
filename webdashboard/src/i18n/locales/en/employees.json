@@ -466,7 +466,22 @@
       "no_invalid_rows": "No error rows found",
       "cancel_back_btn": "Cancel & Back",
       "processing_btn": "Processing...",
-      "confirm_import_btn": "Confirm Import ({{count}} Rows)"
+      "confirm_btn": "Confirm Import ({{count}} Rows)",
+      "confirm_import_btn": "Confirm Import ({{count}} Rows)",
+      "confirm_error": "Connection error or invalid request.",
+      "col_employee_code": "Employee Code",
+      "col_employee_name": "Employee Name",
+      "col_termination_date": "Termination Date",
+      "col_reason": "Reason",
+      "col_prorated_leave": "Prorated Leave",
+      "col_row": "Row",
+      "col_error": "Error",
+      "yes": "Yes",
+      "no": "No",
+      "import_failed": "Import failed",
+      "download_error": "Failed to download template",
+      "export_error": "Failed to export errors.",
+      "upload_error": "Failed to upload file."
     },
     "assignments": {
       "start_date": "Start Date",

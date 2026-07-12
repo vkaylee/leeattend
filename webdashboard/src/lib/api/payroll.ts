@@ -170,7 +170,6 @@ export async function fetchOvertimePolicies(wsId: string): Promise<OvertimePolic
   const { data: resData } = await client.GET("/workspaces/{ws_id}/overtime/policies", {
     params: { path: { ws_id: wsId } }
   });
-  if (!resData) throw new Error("No response data");
   return resData.data;
 }
 

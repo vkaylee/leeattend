@@ -1,6 +1,8 @@
 import createClient from "openapi-fetch";
 
 import type { paths } from "@/types/api-generated";
+import type { Client, FetchResponse, MaybeOptionalInit, MethodResponse } from "openapi-fetch";
+import type { MediaType, PathsWithMethod, RequiredKeysOf } from "openapi-typescript-helpers";
 
 import { API_BASE_URL } from "./config";
 import { ApiError } from "./errors";
@@ -90,20 +92,51 @@ export async function customFetch(url: string | URL | Request, init?: RequestIni
   return res;
 }
 
+type ClientInitParam<Init> =
+  RequiredKeysOf<Init> extends never
+    ? [(Init & Record<string, unknown>)?]
+    : [Init & Record<string, unknown>];
+
+/**
+ * SafeMethod re-uses upstream generic constraints so `url` and `init` are
+ * validated exactly as before, overrides the return so `data` is never `| undefined`.
+ *
+ * `MethodResponse` from openapi-fetch unwraps `NonNullable<FetchResponse["data"]>`,
+ * the success branch's data type without `| undefined`.
+ *
+ * customFetch converts non-2xx to thrown ApiError, so `data` is always present
+ * when the promise resolves.
+ */
+type SafeMethod<M extends "GET" | "POST" | "PUT" | "PATCH" | "DELETE"> = <
+  P extends PathsWithMethod<paths, Lowercase<M>>,
+  Init extends MaybeOptionalInit<paths[P], Lowercase<M>>,
+>(
+  url: P,
+  ...init: ClientInitParam<Init>
+) => Promise<{
+  data: MethodResponse<Client<paths>, Lowercase<M>, P, Init>;
+  error?: unknown;
+  response: Response;
+}>;
+
+type SafeClient = {
+  GET: SafeMethod<"GET">;
+  POST: SafeMethod<"POST">;
+  PUT: SafeMethod<"PUT">;
+  PATCH: SafeMethod<"PATCH">;
+  DELETE: SafeMethod<"DELETE">;
+};
+
 export const client = createClient<paths>({
   baseUrl: API_BASE_URL,
-  fetch: customFetch
-});
+  fetch: customFetch,
+}) as unknown as SafeClient;
 
-// Typed wrappers for paths whose response type is a hand-written override
-// (Group-B Omit/& or Group-C interface) rather than the raw generated schema.
-// The single cast below is the sanctioned generic-dispatch escape hatch
-// (coding-standard §10.1 `<T>` on helper = PREFERRED): `client[method]` with a
-// method union yields an un-callable union of function types, so we collapse it
-// to one callable signature here and let every call site stay cast-free.
-// When a path's hand-written type is deleted in favour of the generated schema,
-// migrate the call site to the typed `client.METHOD(...)` and drop the helper.
-// Deliberately NOT called `http` — that name previously masked an `any` client.
+// @deprecated — DO NOT use `fetch<T>()` or `fire()` for new code.
+// Use the typed `client.GET()`, `client.POST()`, etc. instead.
+// These helpers bypass openapi-fetch type checking and exist only for
+// legacy call sites whose paths are absent from the generated schema.
+// See: https://github.com/lee-lee/leeattend/issues/type-safety-migration
 // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 export async function fetch<T>(
   method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH",

@@ -131,6 +131,7 @@ function SegmentCounterCell({ row }: { row: DailyAttendanceReport }) {
   );
 }
 
+// eslint-disable-next-line complexity -- trace/source derivation = 12
 function ScheduledCell({ row, t }: { row: DailyAttendanceReport; t: (k: string) => string }) {
   if (!row.scheduled_start) {
     return (
@@ -303,143 +304,133 @@ export interface DailyReportTableRowProps {
   t: (key: string) => string;
 }
 
-export function DailyReportTableRow({
-  adjustmentMap,
-  confirmingRow,
-  expandedDebugRows,
-  formatDate,
+function PunchTimeCell({
+  time,
   formatTime,
-  hideEmployeeName,
-  isDebugMode,
-  isFirstInGroup,
-  isLastInGroup,
-  isMultiSegmentGroup,
-  onApproveOt,
-  onConfirmClick,
-  onReprocessClick,
-  onResolveUnscheduled,
-  onToggleExpandRow,
-  reprocessingRow,
-  row,
-  t,
-}: DailyReportTableRowProps) {
+  timeEntries,
+  hasMultipleSessions,
+  side,
+}: {
+  time: string | null;
+  formatTime: (t: string | null) => string;
+  timeEntries: TimeEntry[];
+  hasMultipleSessions: boolean;
+  side: "in" | "out";
+}) {
+  return (
+    <td className="px-4 py-2.5 text-center font-mono font-bold text-xs text-slate-700 dark:text-slate-200 tracking-tighter">
+      <div className="flex items-center justify-center gap-1.5">
+        <div className="shadow-inner bg-slate-50 dark:bg-slate-800/50 rounded-md py-1 px-2 inline-block">
+          {formatTime(time)}
+        </div>
+        {side === "in" && hasMultipleSessions && (
+          <span
+            className="text-[8px] bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider scale-90 cursor-help"
+            title={timeEntries.map((e, i) => `Session ${i + 1}: ${formatTime(e.punch_in_time)} - ${e.punch_out_time ? formatTime(e.punch_out_time) : "---"} (${e.entry_type})`).join("\n")}
+          >
+            Split
+          </span>
+        )}
+      </div>
+    </td>
+  );
+}
+
+function RowCells({
+  row, t, formatTime, formatDate, isFirstInGroup,
+  hideEmployeeName, timeEntries, hasMultipleSessions, isExpanded,
+  onToggleExpandRow, segmentKey, isDebugMode, onApproveOt, onResolveUnscheduled,
+}: {
+  row: DailyAttendanceReport; t: (k: string) => string;
+  formatTime: (t: string | null) => string; formatDate: (d: string) => string;
+  isFirstInGroup?: boolean; hideEmployeeName: boolean;
+  timeEntries: TimeEntry[]; hasMultipleSessions: boolean;
+  isExpanded: boolean; onToggleExpandRow: (k: string) => void; segmentKey: string;
+  isDebugMode: boolean;
+  onApproveOt?: (row: DailyAttendanceReport, action: "approved" | "rejected") => void;
+  onResolveUnscheduled?: (row: DailyAttendanceReport) => void;
+}) {
+  return (
+    <>
+      <td className="w-10 px-2 py-2.5 text-center sticky left-0 z-10 bg-white group-hover:bg-slate-50 dark:bg-slate-900 dark:group-hover:bg-slate-800/50 transition-colors">
+        <Button className="p-1 h-auto text-slate-400 hover:text-slate-600" onClick={() => onToggleExpandRow(segmentKey)} variant="ghost">
+          <ChevronRight className={cn("transition-transform duration-200", isExpanded && "rotate-90")} size={14} />
+        </Button>
+      </td>
+      <td className={cn("px-4 py-2.5 font-mono text-[11px] font-bold uppercase whitespace-nowrap sticky left-[40px] z-10 bg-white group-hover:bg-slate-50", !isFirstInGroup && "text-slate-300")}>
+        {formatDate(row.date)}
+      </td>
+      {!hideEmployeeName && (
+        <td className={cn("px-4 py-2.5 font-bold text-sm tracking-tight uppercase leading-none whitespace-nowrap sticky left-[120px] sm:left-[140px] z-10 bg-white group-hover:bg-slate-50", !isFirstInGroup ? "text-slate-300" : "text-slate-700")}>
+          {row.employee_name}
+        </td>
+      )}
+      <td className="px-3 py-2.5 text-center"><SegmentTypeCell row={row} t={t} /></td>
+      <td className="px-1 py-2.5 text-center"><SegmentCounterCell row={row} /></td>
+      <td className="px-4 py-2.5"><ScheduledCell row={row} t={t} /></td>
+      <PunchTimeCell time={row.actual_punch_in} formatTime={formatTime} timeEntries={timeEntries} hasMultipleSessions={hasMultipleSessions} side="in" />
+      <PunchTimeCell time={row.actual_punch_out} formatTime={formatTime} timeEntries={timeEntries} hasMultipleSessions={false} side="out" />
+      <td className="px-4 py-2.5 text-right">
+        <div className="font-mono font-bold text-primary-600 text-base tracking-tighter leading-none cursor-help" title={buildWorkUnitsTooltip(row.std_work_units, t(getUnitTypeI18nKey(row.unit_type)), row.unit_coefficient_hours, row.computed_std_hours)}>
+          {formatHours(row.computed_std_hours)}<span className="text-[10px] opacity-70 ml-0.5">h</span>
+        </div>
+      </td>
+      <td className="px-4 py-2.5 text-right"><OtCell onApproveOt={onApproveOt} row={row} t={t} /></td>
+      <td className="px-4 py-2.5 text-center"><ReportStatusBadge onResolveUnscheduled={onResolveUnscheduled} row={row} status={row.status} t={t} /></td>
+      {isDebugMode && (
+        <td className="px-4 py-2.5 text-center">
+          <Button className={cn("p-1.5 rounded-lg transition-all shadow-sm border h-auto", isExpanded ? "bg-amber-100 text-amber-700 border-amber-200" : "bg-white text-amber-600 border-slate-100 hover:bg-amber-50")} onClick={() => onToggleExpandRow(segmentKey)} variant="ghost">
+            <Bug size={16} />
+          </Button>
+        </td>
+      )}
+    </>
+  );
+}
+
+function useRowMeta(row: DailyAttendanceReport, props: {
+  adjustmentMap: Partial<Record<string, AttendanceAdjustmentRequest>>;
+  confirmingRow: string | null;
+  expandedDebugRows: Set<string>;
+  reprocessingRow: string | null;
+}) {
   const segmentKey = `${row.employee_id}-${row.date}-${row.segment_id ?? row.sort_order ?? '0'}`;
   const dayKey = `${row.employment_id}-${row.date}`;
   const dayKeyEmployee = `${row.employee_id}-${row.date}`;
-  const isReprocessing = reprocessingRow === dayKeyEmployee;
-  const isConfirming = confirmingRow === dayKeyEmployee;
-  const isExpanded = expandedDebugRows.has(segmentKey);
-  const existingAdjustment = adjustmentMap[dayKey];
+  const isReprocessing = props.reprocessingRow === dayKeyEmployee;
+  const isConfirming = props.confirmingRow === dayKeyEmployee;
+  const isExpanded = props.expandedDebugRows.has(segmentKey);
   const metadata = row.generation_metadata as { time_entries?: TimeEntry[] } | undefined;
   const timeEntries = metadata?.time_entries ?? [];
   const workEntries = timeEntries.filter((e) => e.entry_type === "work");
-  // Auto-deduct break: the single work period is split by a system-computed break.
-  // Don't show the "Split" badge — the employee only punched at shift start/end.
-  const isAutoDeduct = row.is_break_auto_deduct === true;
-  const hasMultipleSessions = isAutoDeduct
-    ? workEntries.length > 2   // 2 work blocks = 1 session with auto-deduct gap
-    : workEntries.length > 1;
+  const hasMultipleSessions = (row.is_break_auto_deduct === true) ? workEntries.length > 2 : workEntries.length > 1;
+  return { segmentKey, dayKey, isReprocessing, isConfirming, isExpanded, existingAdjustment: props.adjustmentMap[dayKey], timeEntries, hasMultipleSessions };
+}
+
+export function DailyReportTableRow(props: DailyReportTableRowProps) {
+  const { row, formatDate, formatTime, t, hideEmployeeName, isFirstInGroup, isLastInGroup, isMultiSegmentGroup, isDebugMode, onApproveOt, onConfirmClick, onReprocessClick, onResolveUnscheduled, onToggleExpandRow } = props;
+  const meta = useRowMeta(row, props);
 
   return (
     <React.Fragment>
       <tr className={cn(
         "transition-all group",
-        isExpanded ? "bg-amber-50 dark:bg-amber-950/20" : "hover:bg-slate-50 dark:hover:bg-slate-800/50",
-        // Group boundary styling
+        meta.isExpanded ? "bg-amber-50 dark:bg-amber-950/20" : "hover:bg-slate-50 dark:hover:bg-slate-800/50",
         isFirstInGroup && isMultiSegmentGroup && "border-t-2 border-t-blue-200 dark:border-t-blue-800",
         isMultiSegmentGroup && "border-l-2 border-l-blue-300 dark:border-l-blue-700",
-        !isFirstInGroup && isMultiSegmentGroup && "border-t border-t-blue-100/50 dark:border-t-blue-900/20",
-        isLastInGroup && isMultiSegmentGroup && "border-b border-b-slate-100 dark:border-b-slate-800",
+        !isFirstInGroup && isMultiSegmentGroup && "border-t border-t-blue-100/50",
+        isLastInGroup && isMultiSegmentGroup && "border-b border-b-slate-100",
       )}>
-        <td className="w-10 px-2 py-2.5 text-center sticky left-0 z-10 bg-white group-hover:bg-slate-50 dark:bg-slate-900 dark:group-hover:bg-slate-800/50 transition-colors">
-          <Button
-            className="p-1 h-auto text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-            onClick={() => { onToggleExpandRow(segmentKey); }}
-            variant="ghost"
-          >
-            <ChevronRight className={cn("transition-transform duration-200", isExpanded && "rotate-90")} size={14} />
-          </Button>
-        </td>
-        <td className={cn(
-          "px-4 py-2.5 font-mono text-[11px] font-bold uppercase whitespace-nowrap sticky left-[40px] z-10 bg-white group-hover:bg-slate-50 dark:bg-slate-900 dark:group-hover:bg-slate-800/50 transition-colors",
-          !isFirstInGroup && "text-slate-300 dark:text-slate-600"
-        )}>
-          {formatDate(row.date)}
-        </td>
-        {!hideEmployeeName ? (
-          <td className={cn(
-            "px-4 py-2.5 font-bold text-sm tracking-tight uppercase leading-none whitespace-nowrap sticky left-[120px] sm:left-[140px] z-10 bg-white group-hover:bg-slate-50 dark:bg-slate-900 dark:group-hover:bg-slate-800/50 transition-colors",
-            !isFirstInGroup ? "text-slate-300 dark:text-slate-600" : "text-slate-700 dark:text-slate-200"
-          )}>
-            {row.employee_name}
-          </td>
-        ) : null}
-        <td className="px-3 py-2.5 text-center"><SegmentTypeCell row={row} t={t} /></td>
-        <td className="px-1 py-2.5 text-center"><SegmentCounterCell row={row} /></td>
-        <td className="px-4 py-2.5"><ScheduledCell row={row} t={t} /></td>
-        <td className="px-4 py-2.5 text-center font-mono font-bold text-xs text-slate-700 dark:text-slate-200 tracking-tighter">
-          <div className="flex items-center justify-center gap-1.5">
-            <div className="shadow-inner bg-slate-50 dark:bg-slate-800/50 rounded-md py-1 px-2 inline-block">
-              {formatTime(row.actual_punch_in)}
-            </div>
-            {!!hasMultipleSessions && (
-              <span
-                className="text-[8px] bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider scale-90 cursor-help"
-                title={timeEntries
-                  .map((e: TimeEntry, i: number) => {
-                    const inT = formatTime(e.punch_in_time);
-                    const outT = e.punch_out_time ? formatTime(e.punch_out_time) : "---";
-                    return `Session ${i + 1}: ${inT} - ${outT} (${e.entry_type})`;
-                  })
-                  .join("\n")
-                }
-              >
-                Split
-              </span>
-            )}
-          </div>
-        </td>
-        <td className="px-4 py-2.5 text-center font-mono font-bold text-xs text-slate-700 dark:text-slate-200 tracking-tighter">
-          <div className="flex items-center justify-center gap-1.5">
-            <div className="shadow-inner bg-slate-50 dark:bg-slate-800/50 rounded-md py-1 px-2 inline-block">
-              {formatTime(row.actual_punch_out)}
-            </div>
-            {!!hasMultipleSessions && (
-              <span
-                className="text-[8px] bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider scale-90 cursor-help opacity-0"
-                title=""
-              >
-                Split
-              </span>
-            )}
-          </div>
-        </td>
-        <td className="px-4 py-2.5 text-right">
-          <div
-            className="font-mono font-bold text-primary-600 dark:text-primary-400 text-base tracking-tighter leading-none cursor-help"
-            title={buildWorkUnitsTooltip(row.std_work_units, t(getUnitTypeI18nKey(row.unit_type)), row.unit_coefficient_hours, row.computed_std_hours)}
-          >
-            {formatHours(row.computed_std_hours)}<span className="text-[10px] opacity-70 ml-0.5">h</span>
-          </div>
-        </td>
-        <td className="px-4 py-2.5 text-right"><OtCell onApproveOt={onApproveOt} row={row} t={t} /></td>
-        <td className="px-4 py-2.5 text-center"><ReportStatusBadge onResolveUnscheduled={onResolveUnscheduled} row={row} status={row.status} t={t} /></td>
-        {isDebugMode ? (
-          <td className="px-4 py-2.5 text-center">
-            <Button
-              className={cn("p-1.5 rounded-lg transition-all shadow-sm border h-auto", isExpanded ? "bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 border-amber-200" : "bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-300 border-slate-100 dark:border-slate-800 hover:bg-amber-50 dark:bg-amber-950")}
-              onClick={() => { onToggleExpandRow(segmentKey); }}
-              variant="ghost"
-            >
-              <Bug size={16} />
-            </Button>
-          </td>
-        ) : null}
+        <RowCells row={row} t={t} formatTime={formatTime} formatDate={formatDate}
+          isFirstInGroup={isFirstInGroup} hideEmployeeName={hideEmployeeName}
+          timeEntries={meta.timeEntries} hasMultipleSessions={meta.hasMultipleSessions}
+          isExpanded={meta.isExpanded} onToggleExpandRow={onToggleExpandRow} segmentKey={meta.segmentKey}
+          isDebugMode={isDebugMode} onApproveOt={onApproveOt} onResolveUnscheduled={onResolveUnscheduled} />
         <td className="px-4 py-2.5 text-right">
           <RowActions
-            existingAdjustment={existingAdjustment}
-            isConfirming={isConfirming}
-            isReprocessing={isReprocessing}
+            existingAdjustment={meta.existingAdjustment}
+            isConfirming={meta.isConfirming}
+            isReprocessing={meta.isReprocessing}
             onConfirmClick={onConfirmClick}
             onReprocessClick={onReprocessClick}
             row={row}
@@ -447,7 +438,7 @@ export function DailyReportTableRow({
           />
         </td>
       </tr>
-      {isExpanded ? (
+      {meta.isExpanded ? (
         <DailyReportTableRowExpanded
           formatTime={formatTime}
           isDebugMode={isDebugMode}

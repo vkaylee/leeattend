@@ -32,7 +32,6 @@ export async function createEmployeeContract(
     },
     body: data,
   });
-  if (!result) throw new Error("No response data");
   return result;
 }
 
@@ -48,7 +47,6 @@ export async function updateEmployeeContract(
     },
     body: data,
   });
-  if (!result) throw new Error("No response data");
   return result;
 }
 

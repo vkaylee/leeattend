@@ -466,7 +466,22 @@
       "no_invalid_rows": "未找到错误行",
       "cancel_back_btn": "取消并返回",
       "processing_btn": "正在处理...",
-      "confirm_import_btn": "确认导入 ({{count}} 行)"
+      "confirm_btn": "确认导入 ({{count}} 行)",
+      "confirm_import_btn": "确认导入 ({{count}} 行)",
+      "confirm_error": "连接错误或请求无效。",
+      "col_employee_code": "员工编号",
+      "col_employee_name": "员工姓名",
+      "col_termination_date": "离职日期",
+      "col_reason": "原因",
+      "col_prorated_leave": "按比例计算的假期",
+      "col_row": "行",
+      "col_error": "错误",
+      "yes": "是",
+      "no": "否",
+      "import_failed": "导入失败",
+      "download_error": "下载模板失败",
+      "export_error": "导出错误失败",
+      "upload_error": "上传文件失败"
     },
     "assignments": {
       "start_date": "开始日期",

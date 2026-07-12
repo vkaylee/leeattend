@@ -112,7 +112,6 @@ export async function rehireEmployee(
     },
     body: data,
   });
-  if (!result) throw new Error("No response data");
   return result;
 }
 
@@ -162,7 +161,6 @@ export async function transferEmployee(
     },
     body: data,
   });
-  if (!result) throw new Error("No response data");
   return result;
 }
 
@@ -249,7 +247,6 @@ export async function confirmTerminationImport(
       rows,
     },
   });
-  if (!data) throw new Error("No response data");
   return data as { success_count: number; job_id?: string };
 }
 

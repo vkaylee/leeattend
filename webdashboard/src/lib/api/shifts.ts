@@ -19,7 +19,6 @@ export async function createShift(wsId: string, data: CreateShiftRequest): Promi
     },
     body: data,
   });
-  if (!result) throw new Error("No response data");
   return result;
 }
 
@@ -34,7 +33,6 @@ export async function updateShift(
     },
     body: data,
   });
-  if (!result) throw new Error("No response data");
   return result;
 }
 
@@ -104,7 +102,6 @@ export async function upsertRoster(wsId: string, employeeId: string, data: Recor
     },
     body: data as never,
   });
-  if (!result) throw new Error("No response data");
   return result;
 }
 

@@ -24,7 +24,6 @@ export async function createHoliday(
         },
         body: data,
     });
-    if (!resData) throw new Error("No response data");
     return resData;
 }
 
@@ -39,7 +38,6 @@ export async function updateHoliday(
         },
         body: data,
     });
-    if (!resData) throw new Error("No response data");
     return resData;
 }
 

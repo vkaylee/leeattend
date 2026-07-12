@@ -213,10 +213,10 @@ describe("EmployeeTerminationImportDialog", () => {
       await userEvent.click(screen.getByText("employees.bulk_termination.continue_btn"));
 
       await waitFor(() => {
-        expect(screen.getByText("employees.bulk_termination.confirm_import_btn")).toBeTruthy();
+        expect(screen.getByText("employees.bulk_termination.confirm_btn")).toBeTruthy();
       });
 
-      await userEvent.click(screen.getByText("employees.bulk_termination.confirm_import_btn"));
+      await userEvent.click(screen.getByText("employees.bulk_termination.confirm_btn"));
 
       await waitFor(() => {
         expect(employeesApi.confirmTerminationImport).toHaveBeenCalled();
@@ -235,10 +235,10 @@ describe("EmployeeTerminationImportDialog", () => {
       await userEvent.click(screen.getByText("employees.bulk_termination.continue_btn"));
 
       await waitFor(() => {
-        expect(screen.getByText("employees.bulk_termination.confirm_import_btn")).toBeTruthy();
+        expect(screen.getByText("employees.bulk_termination.confirm_btn")).toBeTruthy();
       });
 
-      await userEvent.click(screen.getByText("employees.bulk_termination.confirm_import_btn"));
+      await userEvent.click(screen.getByText("employees.bulk_termination.confirm_btn"));
 
       await waitFor(() => {
         expect(screen.getByText("employees.bulk_termination.processing_error_title")).toBeTruthy();
@@ -262,9 +262,9 @@ describe("EmployeeTerminationImportDialog", () => {
       await userEvent.click(screen.getByText("employees.bulk_termination.continue_btn"));
 
       await waitFor(() => {
-        expect(screen.getByText("employees.bulk_termination.confirm_import_btn")).toBeTruthy();
+        expect(screen.getByText("employees.bulk_termination.confirm_btn")).toBeTruthy();
       });
-      await userEvent.click(screen.getByText("employees.bulk_termination.confirm_import_btn"));
+      await userEvent.click(screen.getByText("employees.bulk_termination.confirm_btn"));
 
       await waitFor(() => {
         expect(screen.getByText("employees.bulk_termination.processing_error_title")).toBeTruthy();
@@ -289,7 +289,7 @@ describe("EmployeeTerminationImportDialog", () => {
         expect(screen.getByText("employees.bulk_termination.total_rows")).toBeTruthy();
       });
 
-      await userEvent.click(screen.getByText("employees.bulk_termination.cancel_back_btn"));
+      await userEvent.click(screen.getByText("employees.bulk_termination.cancel_btn"));
 
       await waitFor(() => {
         expect(screen.getByText("employees.bulk_termination.download_template_btn")).toBeTruthy();

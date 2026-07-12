@@ -220,6 +220,13 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
             ) {
               return "vendor-react";
             }
+            if (
+              normalized.includes("node_modules/@tanstack/react-router") ||
+              normalized.includes("node_modules/@tanstack/router-devtools") ||
+              normalized.includes("node_modules/@tanstack/router-vite-plugin")
+            ) {
+              return "vendor-router";
+            }
             if (normalized.includes("node_modules/@tanstack/")) {
               return "vendor-query";
             }

@@ -1,4 +1,4 @@
-import { client, fetch } from "./client";
+import { client } from "./client";
 import { AgentStatus, Device, AuthorizedAgent, DeviceInfo } from "./types";
 
 export async function fetchAgents(): Promise<AgentStatus[]> {
@@ -83,9 +83,9 @@ export async function deleteAuthorizedAgent(id: string): Promise<void> {
 }
 
 export async function fetchDeviceInfo(id: string): Promise<DeviceInfo> {
-  const { data: resData } = await fetch<DeviceInfo>("GET", "/devices/{id}/info", {
+  const { data: resData } = await client.GET("/devices/{id}/info", {
     params: { path: { id } },
   });
-  return resData;
+  return resData as DeviceInfo;
 }
 

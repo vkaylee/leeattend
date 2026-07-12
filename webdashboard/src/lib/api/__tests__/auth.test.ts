@@ -206,11 +206,12 @@ describe("login", () => {
     });
     expect(result).toEqual(mock.data);
   });
-  it("throws when server returns no data", async () => {
+  it("throws when server returns no data (TypeError fallback)", async () => {
     (client.POST as Mock).mockResolvedValueOnce({ data: undefined });
-    await expect(login("a@b.c", "x")).rejects.toThrow("Login failed");
-  });
-});
+    // Guard removed in favour of SafeClient — data is never undefined at runtime.
+    // The call now throws a TypeError from `setAccessToken(data.access_token)`.
+    await expect(login("a@b.c", "x")).rejects.toThrow();
+  });});
 
 describe("logout", () => {
   beforeEach(() => vi.clearAllMocks());
@@ -234,9 +235,9 @@ describe("register", () => {
     expect(client.POST).toHaveBeenCalledWith("/auth/register", { body: payload });
     expect(result).toHaveProperty("access_token", "at");
   });
-  it("throws when registration returns no data", async () => {
+  it("returns undefined when server returns no data (guard removed — SafeClient guarantees presence)", async () => {
     (client.POST as Mock).mockResolvedValueOnce({ data: undefined });
-    await expect(register({} as never)).rejects.toThrow("Registration failed");
+    await expect(register({} as never)).resolves.toBeUndefined();
   });
 });
 
@@ -269,9 +270,9 @@ describe("fetchMe / updateMe", () => {
     expect(client.GET).toHaveBeenCalledWith("/me");
     expect(user).toEqual({ id: "u-1" });
   });
-  it("fetchMe throws on no data", async () => {
+  it("returns undefined when server returns no data (guard removed)", async () => {
     (client.GET as Mock).mockResolvedValueOnce({ data: undefined });
-    await expect(fetchMe()).rejects.toThrow("Failed to fetch profile");
+    await expect(fetchMe()).resolves.toBeUndefined();
   });
   it("updateMe PATCHes /me and returns updated User", async () => {
     (client.PATCH as Mock).mockResolvedValueOnce({ data: { id: "u-1", full_name: "X" } });
@@ -279,9 +280,9 @@ describe("fetchMe / updateMe", () => {
     expect(client.PATCH).toHaveBeenCalledWith("/me", { body: { full_name: "X" } });
     expect(updated).toEqual({ id: "u-1", full_name: "X" });
   });
-  it("updateMe throws on no data", async () => {
+  it("returns undefined when server returns no data (guard removed)", async () => {
     (client.PATCH as Mock).mockResolvedValueOnce({ data: undefined });
-    await expect(updateMe({ full_name: "X" })).rejects.toThrow("Failed to update profile");
+    await expect(updateMe({ full_name: "X" })).resolves.toBeUndefined();
   });
 });
 

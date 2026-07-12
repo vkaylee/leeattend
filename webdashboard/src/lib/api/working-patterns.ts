@@ -25,7 +25,6 @@ export async function createWorkingPattern(wsId: string, data: CreateWorkingPatt
     params: { path: { workspace_id: wsId } },
     body: data,
   });
-  if (!result) throw new Error("No response data");
   return result;
 }
 
@@ -38,7 +37,6 @@ export async function updateWorkingPattern(
     params: { path: { workspace_id: wsId, pattern_id: patternId } },
     body: data,
   });
-  if (!result) throw new Error("No response data");
   return result;
 }
 
@@ -62,7 +60,6 @@ export async function assignPattern(
     },
     body: data,
   });
-  if (!result) throw new Error("No response data");
   return result;
 }
 
@@ -76,7 +73,6 @@ export async function bulkAssignPattern(
     },
     body: data,
   });
-  if (!result) throw new Error("No response data");
   return result;
 }
 
