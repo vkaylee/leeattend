@@ -3,6 +3,10 @@
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
 
+/
+  Cache-Control: no-cache, must-revalidate
+  Cache-Control: private
+
 /index.html
   Cache-Control: no-cache, must-revalidate
   Cache-Control: private
