@@ -193,6 +193,7 @@ use utoipa::OpenApi;
         crate::handlers::leave_types::create_leave_type,
         crate::handlers::leave_types::update_leave_type_config,
         crate::handlers::leave_types::delete_leave_type,
+        crate::handlers::leave_types::restore_leave_type,
         crate::handlers::holidays::list_holidays,
         crate::handlers::holidays::get_holiday,
         crate::handlers::holidays::create_holiday,

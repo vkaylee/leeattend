@@ -521,6 +521,7 @@ impl ReportService {
                     generation_metadata: combined_metadata,
                     is_leave_paid,
                     employer_name,
+                    timezone: None,
                 });
             }
         }
@@ -1024,6 +1025,7 @@ impl ReportService {
                         generation_metadata: None,
                         is_leave_paid,
                         employer_name,
+                        timezone: None,
                         // Segment fields
                         segment_id: seg.interval_id,
                         shift_id: Some(seg.shift_id),

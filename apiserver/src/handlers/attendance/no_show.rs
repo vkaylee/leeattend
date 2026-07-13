@@ -13,10 +13,10 @@ use crate::AppState;
 
 #[derive(Debug, serde::Deserialize, utoipa::IntoParams)]
 pub struct NoShowQuery {
-    /// Reference instant `A` (the scrubber's pinned center) as RFC3339 / ISO-8601
-    /// in UTC, e.g. `2026-07-10T07:30:00Z`. The service widens this to the
-    /// `[date(A)-1, date(A)]` window so overnight shifts are reachable.
-    pub reference_time: String,
+    /// Calendar date to query (yyyy-MM-dd) in workspace-local time. Only shifts
+    /// that overlap this day AND have already started (start < now for today;
+    /// all shifts for past dates) are included.
+    pub date: String,
     pub page: Option<i64>,
     pub limit: Option<i64>,
     /// Comma-separated employee UUIDs to restrict the search to.
@@ -27,8 +27,11 @@ pub struct NoShowQuery {
     pub shift_type: Option<String>,
 }
 
-/// No-show report: employees on a shift *active* at `reference_time` who have
-/// not punched in yet (status `absent`). Reached from the timeline scrubber.
+/// No-show report: employees on a shift overlapping `date` who have not punched
+/// in yet (status `absent`), filtered to only shifts that have *already started*.
+/// For today, this means `shift_start < now`; for past dates, all shifts are
+/// included (they have all started). Per-employee timezones are used to determine
+/// "today" and shift boundaries.
 #[utoipa::path(
     get,
     path = "/v1/workspaces/{ws_id}/reports/no-show",
@@ -37,7 +40,7 @@ pub struct NoShowQuery {
         NoShowQuery
     ),
     responses(
-        (status = 200, description = "No-show employees active at the reference time")
+        (status = 200, description = "No-show employees with shifts overlapping the target date")
     ),
     security(
         ("bearer_auth" = [])
@@ -51,29 +54,12 @@ pub async fn get_no_show_report(
 ) -> AppResult<Json<serde_json::Value>> {
     let workspace_id = ctx.workspace_id;
 
-    // RBAC: requires at least read-level report access, mirroring the daily
-    // attendance report permission set.
+    // RBAC: requires at least read-level report access.
     ctx.require_permission(crate::domain::permissions::Permission::ReportsRead)?;
 
-    // Feature-flag gate: the timeline scrubber is released behind
-    // `no_show_timeline`. The DB flag is the source of truth (see change-
-    // management §6); an env override acts as an emergency kill-switch.
-    let flag_enabled = state
-        .payroll()
-        .feature_flag_repo()
-        .is_enabled_flag(&ctx.auth_token, "no_show_timeline")
-        .await
-        .unwrap_or(false);
-    let env_enabled = std::env::var("FF_NO_SHOW_TIMELINE")
-        .map(|v| v == "true")
-        .unwrap_or(false);
-    if !flag_enabled && !env_enabled {
-        return Err(AppError::not_found(I18nKey::NotFound));
-    }
-
-    let reference_time = params
-        .reference_time
-        .parse::<chrono::DateTime<chrono::Utc>>()
+    let target_date = params
+        .date
+        .parse::<chrono::NaiveDate>()
         .map_err(|_| AppError::validation(I18nKey::InvalidDateFormat))?;
 
     let employee_ids = params.employee_ids.as_ref().map(|s| {
@@ -87,7 +73,7 @@ pub async fn get_no_show_report(
         .service()
         .get_no_show_report(NoShowReportArgs {
             workspace_id,
-            reference_time,
+            date: target_date,
             page: params.page,
             limit: params.limit,
             employee_ids,

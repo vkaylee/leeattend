@@ -87,7 +87,7 @@
     }
   },
   "unrecorded_shifts": {
-    "title": "Danh sách vắng đầu ca hôm nay",
+    "title": "Danh sách vắng đầu ca",
     "subtitle": "Nhân sự có lịch làm việc nhưng chưa chấm công và không nghỉ phép.",
     "export_btn": "Xuất Excel",
     "filter_dept": "Lọc theo bộ phận",
@@ -101,7 +101,7 @@
       "shift_out": "Giờ ra ca",
       "zone": "Trạng thái"
     },
-    "empty": "Không có nhân sự nào vắng mặt đầu ca hôm nay.",
+    "empty": "Không có nhân sự nào chưa xác nhận chấm công vào ngày này.",
     "empty_hint": "Tất cả nhân sự đã chấm công hoặc đã đăng ký nghỉ phép.",
     "export_date": "Ngày",
     "zone_header": "Trạng thái",
@@ -110,6 +110,8 @@
     "zone_c": "Vắng (kết thúc ca)",
     "zone_a_hint": "Còn {{minutes}} phút",
     "zone_b_hint": "Quá hạn {{minutes}} phút",
+    "date_label": "Ngày",
+    "live_badge": "Trực tiếp",
     "filter_date_from": "Từ ngày",
     "filter_date_to": "Đến ngày",
     "filter_shift_type": "Loại ca",
@@ -120,16 +122,7 @@
     "clear_filters": "Xóa lọc",
     "empty_zone_b": "Không có nhân sự cần xác minh.",
     "empty_zone_b_hint": "Tất cả nhân sự trong ca đã chấm công hoặc vẫn trong thời gian grace.",
-    "viewing_past": "Lịch sử — bản ghi đã cố định",
-    "timeline": "Dòng thời gian",
-    "now_badge": "HIỆN TẠI",
-    "scrubber_label": "Thanh trượt thời gian tham chiếu, hiện tại {{time}} ngày {{date}}, dùng phím trái và phải để di chuyển",
-    "export_reference_time": "Thời gian tham chiếu",
-    "step_back": "Lùi lại một giờ",
-    "step_forward": "Tiến lên một giờ",
-    "step_forward": "Tiến lên một giờ",
-    "jump_to_now": "Hiện tại",
-    "export_reference_time": "Thời gian tham chiếu"
+    "viewing_past": "Lịch sử — bản ghi đã cố định"
   },
   "attendance_import": {
     "subtitle": "Nhập dữ liệu hàng loạt",

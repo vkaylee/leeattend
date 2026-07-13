@@ -269,7 +269,7 @@ describe("UnrecordedShiftsTab", () => {
       expect(api.fetchNoShowReport).toHaveBeenCalledTimes(1);
     });
     expect(api.fetchNoShowReport).toHaveBeenCalledWith(
-      expect.objectContaining({ page: 1, limit: 30, referenceTime: expect.any(String) }),
+      expect.objectContaining({ page: 1, limit: 30, date: expect.any(String) }),
     );
   });
 
@@ -401,13 +401,13 @@ describe("UnrecordedShiftsTab", () => {
 
     const [rows, options] = mockExportNoShowToExcel.mock.calls[0] as [
       { employee_name: string }[],
-      { referenceTimeLabel: string },
+      { dateLabel: string },
     ];
     expect(rows).toHaveLength(2);
     expect(rows[0].employee_name).toBe("Alice");
     expect(rows[1].employee_name).toBe("Bob");
-    // The pinned reference-time label is forwarded so the filename is unique.
-    expect(options.referenceTimeLabel).toMatch(/^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}$/);
+    // The date label is forwarded for the filename.
+    expect(options.dateLabel).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
   it("drains every page before exporting so no rows are missed", async () => {

@@ -76,6 +76,9 @@ export interface DailyAttendanceReport {
   employment_id: string;
   generation_metadata?: unknown;
   grace_period_minutes?: number | null;
+  /** IANA timezone for this employee at this date (e.g. "Asia/Ho_Chi_Minh"),
+   *  resolved from the employee's work location. Used for no-show zone computation. */
+  timezone?: string | null;
   holiday_name?: string | null;
   interval_id?: string | null;
   interval_name?: string | null;

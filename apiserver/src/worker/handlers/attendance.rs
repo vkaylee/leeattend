@@ -711,6 +711,7 @@ impl AttendanceHandler {
                     generation_metadata: combined_metadata,
                     is_leave_paid,
                     employer_name: employer_name.clone(),
+                    timezone: None,
                     // Segment fields (legacy path — none)
                     segment_id: None,
                     shift_id: None,
@@ -901,6 +902,7 @@ mod tests {
             generation_metadata: None,
             is_leave_paid: None,
             employer_name: None,
+            timezone: None,
             segment_id: None,
             shift_id: None,
             interval_id: None,

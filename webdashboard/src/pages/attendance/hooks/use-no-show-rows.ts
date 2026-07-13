@@ -17,7 +17,7 @@ export interface EnrichedNoShowRow extends DailyAttendanceReport {
 }
 
 /** An absent report row enriched with employee data and its A/B/C zone at the
- *  pinned reference time `A`. The table render uses this; the export handler
+ *  current wall-clock time. The table render uses this; the export handler
  *  maps it down to `NoShowRow`. */
 export interface ZonedNoShowRow extends DailyAttendanceReport {
   department_name: string;
@@ -29,16 +29,11 @@ export interface ZonedNoShowRow extends DailyAttendanceReport {
 
 export interface UseNoShowRowsParams {
   employeeMap: Map<string, { department_name: string; employee_id_number: string }>;
-  /** The scrubber's pinned reference instant `A`. */
-  referenceTime: Date;
   rows: DailyAttendanceReport[];
-  /** The shift's assigned calendar day ("yyyy-MM-dd") used to anchor the shift
-   *  window when deciding if a historical row is a fixed record. Shift date
-   *  comes from the row itself (`row.date`), so this is only the fallback used
-   *  by `isViewingPastDate` when comparing against "today". */
+  /** The target calendar day ("yyyy-MM-dd") being viewed. */
   viewingDate: string;
-  /** IANA workspace timezone, e.g. "Asia/Ho_Chi_Minh", so `computeZone` can
-   *  resolve shift boundaries in the workspace's wall-clock frame. */
+  /** IANA workspace timezone, used as fallback when a row has no per-employee
+   *  timezone resolved. */
   workspaceTimezone: string;
 }
 
@@ -46,7 +41,7 @@ export interface UseNoShowRowsParams {
  *  (table render) and the imperative export handler so both never disagree —
  *  the hook simply memoises this. */
 export function computeNoShowRows(params: UseNoShowRowsParams): ZonedNoShowRow[] {
-  const { rows, employeeMap, referenceTime, viewingDate, workspaceTimezone } = params;
+  const { rows, employeeMap, viewingDate, workspaceTimezone } = params;
   const today = getTodayIso();
   const pastDate = isViewingPastDate(viewingDate, today);
 
@@ -59,9 +54,13 @@ export function computeNoShowRows(params: UseNoShowRowsParams): ZonedNoShowRow[]
       employee_id_number: "—",
     };
 
-    // The shift's assigned calendar day anchors the shift window. The backend
-    // returns it as a Date/ISO string; normalise to "yyyy-MM-dd".
+    // The shift's assigned calendar day anchors the shift window.
     const shiftDate = toIsoDate(row.date);
+
+    // Use per-employee timezone from the backend, falling back to workspace
+    // timezone. This ensures zone computation uses the correct TZ for
+    // employees in different locations.
+    const empTz = row.timezone ?? workspaceTimezone;
 
     // Historical date → fixed record, no live clock.
     const zone = pastDate
@@ -70,9 +69,9 @@ export function computeNoShowRows(params: UseNoShowRowsParams): ZonedNoShowRow[]
           scheduledStart: row.scheduled_start,
           scheduledEnd: row.scheduled_end,
           graceMinutes: row.grace_period_minutes,
-          referenceTime,
+          referenceTime: new Date(), // Always "now" — the date picker filters what we see
           shiftDate,
-          tz: workspaceTimezone,
+          tz: empTz,
         } satisfies ComputeZoneInput);
 
     out.push({
@@ -92,7 +91,6 @@ export function useNoShowRows(params: UseNoShowRowsParams): ZonedNoShowRow[] {
     [
       params.rows,
       params.employeeMap,
-      params.referenceTime,
       params.viewingDate,
       params.workspaceTimezone,
     ],

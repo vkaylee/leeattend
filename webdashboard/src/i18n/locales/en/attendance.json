@@ -87,7 +87,7 @@
     }
   },
   "unrecorded_shifts": {
-    "title": "Today's No-Show Shifts",
+    "title": "No-Show Shifts",
     "subtitle": "Employees with a scheduled shift who have not checked in and are not on approved leave.",
     "export_btn": "Export Excel",
     "filter_dept": "Filter by Department",
@@ -101,7 +101,7 @@
       "shift_out": "Shift End",
       "zone": "Zone"
     },
-    "empty": "No employees are absent at shift start today.",
+    "empty": "No employees with unconfirmed shifts on this date.",
     "empty_hint": "All employees have checked in or are on approved leave.",
     "export_date": "Date",
     "zone_header": "Zone",
@@ -110,6 +110,8 @@
     "zone_c": "Absent (shift ended)",
     "zone_a_hint": "{{minutes}} min left",
     "zone_b_hint": "Overdue {{minutes}} min",
+    "date_label": "Date",
+    "live_badge": "Live",
     "filter_date_from": "From",
     "filter_date_to": "To",
     "filter_shift_type": "Shift type",
@@ -120,14 +122,7 @@
     "clear_filters": "Clear filters",
     "empty_zone_b": "No employees need verification.",
     "empty_zone_b_hint": "All in-shift employees have checked in or are still within grace.",
-    "viewing_past": "Historical — fixed records",
-    "timeline": "Timeline",
-    "now_badge": "NOW",
-    "scrubber_label": "Reference time scrubber, currently {{time}} on {{date}}, use left and right arrows to move",
-    "step_back": "Step back one hour",
-    "step_forward": "Step forward one hour",
-    "jump_to_now": "Now",
-    "export_reference_time": "Reference time"
+    "viewing_past": "Historical — fixed records"
   },
   "attendance_import": {
     "subtitle": "Bulk Data Import",

@@ -3,21 +3,21 @@ use crate::errors::AppError;
 use crate::models::{DailyAttendanceReport, PaginatedResponse};
 use crate::utils::i18n::I18nKey;
 use crate::utils::tz::parse_workspace_tz;
-use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
+use chrono::{DateTime, Duration, NaiveDate, NaiveDateTime, TimeZone, Utc};
 use chrono_tz::Tz;
+use std::collections::HashMap;
 use uuid::Uuid;
 
-/// Arguments for the no-show report: "which employees are on a shift that is
-/// *active* at the reference instant `A`, but have not punched in yet?"
+/// Arguments for the no-show report: "which employees have a scheduled shift
+/// overlapping `date` that has *already started*, and have not punched in yet?"
 ///
-/// Unlike `AttendanceReportArgs` (a date *range*), this is a single point in
-/// time — the timeline scrubber's pinned center. The service widens it to the
-/// `[date(A)-1, date(A)]` window so overnight shifts anchored to their start
-/// date are still reachable.
+/// The report covers all shifts that overlap the target calendar day. For today,
+/// only shifts whose `start < now` are included (future shifts are skipped).
+/// Per-employee timezone determines "today" and shift boundaries.
 pub struct NoShowReportArgs {
     pub workspace_id: Uuid,
-    /// The scrubber's pinned reference instant `A`, in UTC.
-    pub reference_time: DateTime<Utc>,
+    /// The target calendar date to query (in the workspace's local frame).
+    pub date: NaiveDate,
     pub page: Option<i64>,
     pub limit: Option<i64>,
     pub employee_ids: Option<Vec<Uuid>>,
@@ -27,15 +27,15 @@ pub struct NoShowReportArgs {
 }
 
 impl ReportService {
-    /// No-show report: employees on a shift active at `reference_time` that have
-    /// not punched in (status `absent`).
+    /// No-show report: employees on a shift overlapping `date` who have not
+    /// punched in (status `absent`) AND whose shift has already started.
     ///
-    /// Implementation strategy: reuse the daily-report pipeline over the 2-day
-    /// window `[date(A)-1, date(A)]` (which already resolves grace, status, and
-    /// employee/department/shift data) and then apply a pure, in-memory filter
-    /// that keeps only rows whose *shift window* contains `A`. This avoids
-    /// duplicating the heavyweight policy/time-entry resolution and keeps the
-    /// time-domain logic in one testable place (`shift_contains_time`).
+    /// Implementation strategy:
+    /// 1. Call `get_daily_attendance_report` over `[date-1, date]` to capture
+    ///    overnight shifts anchored to the previous calendar day.
+    /// 2. Resolve per-employee timezone via `employee_repo.get_employee_timezone_at_date`.
+    /// 3. Apply `should_include_in_no_show` — a pure, testable post-filter that
+    ///    checks shift-overlap-day, shift-already-started, and absent status.
     #[tracing::instrument(skip(self, args), err)]
     #[allow(clippy::too_many_lines)]
     pub async fn get_no_show_report(
@@ -54,12 +54,10 @@ impl ReportService {
 
         let tz: Tz = parse_workspace_tz(workspace.timezone());
 
-        // `date(A)` and the day before, in the workspace timezone — overnight
-        // shifts are anchored to their start date, so a shift active at A may be
-        // recorded against either calendar day.
-        let ref_local = args.reference_time.with_timezone(&tz);
-        let date_a = ref_local.date_naive();
-        let date_pre = date_a
+        // Fetch over [date-1, date] so overnight shifts (anchored to their
+        // start date) are reachable.
+        let date_pre = args
+            .date
             .pred_opt()
             .ok_or_else(|| AppError::validation(I18nKey::Validation))?;
 
@@ -67,10 +65,10 @@ impl ReportService {
             .get_daily_attendance_report(AttendanceReportArgs {
                 workspace_id: args.workspace_id,
                 start_date: date_pre,
-                end_date: date_a,
+                end_date: args.date,
                 page: args.page,
                 limit: args.limit,
-                employee_ids: args.employee_ids,
+                employee_ids: args.employee_ids.clone(),
                 department_id: args.department_id,
                 sort: None,
                 employee_status: None,
@@ -80,16 +78,43 @@ impl ReportService {
             })
             .await?;
 
-        // Pure time-domain filter — see `shift_contains_time` / `is_no_show_row`.
-        let filtered: Vec<DailyAttendanceReport> = daily
-            .data
-            .into_iter()
-            .filter(|row| is_no_show_row(row, args.reference_time, tz))
-            .collect();
+        let now = Utc::now();
+
+        // Resolve per-employee timezone for each unique employee in the result
+        // set. We batch this to avoid N+1 queries.
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(args.workspace_id);
+        let mut tz_cache: HashMap<Uuid, Tz> = HashMap::new();
+
+        let filtered: Vec<DailyAttendanceReport> = {
+            let mut out = Vec::with_capacity(daily.data.len());
+            for mut row in daily.data {
+                let emp_tz = match tz_cache.get(&row.employee_id) {
+                    Some(&cached_tz) => cached_tz,
+                    None => {
+                        let emp_tz = self
+                            .employee_repo
+                            .get_employee_timezone_at_date(
+                                &auth_token,
+                                row.employee_id,
+                                args.date,
+                            )
+                            .await
+                            .unwrap_or(tz);
+                        tz_cache.insert(row.employee_id, emp_tz);
+                        emp_tz
+                    }
+                };
+
+                if should_include_in_no_show(&row, args.date, emp_tz, now) {
+                    row.timezone = Some(emp_tz.name().to_string());
+                    out.push(row);
+                }
+            }
+            out
+        };
 
         // `total` reflects the post-filter count so the FE pager stops once
-        // all matching rows have been served; the pre-filter daily total is
-        // only an upper bound and would over-report.
+        // all matching rows have been served.
         let total = filtered.len();
 
         Ok(PaginatedResponse {
@@ -101,63 +126,129 @@ impl ReportService {
     }
 }
 
-/// Pure predicate: does this report row describe a shift that is *active* at
-/// `reference_time` (its window contains A) AND represent an employee who has
-/// not punched in yet? No DB, no I/O — trivially unit-testable.
-fn is_no_show_row(row: &DailyAttendanceReport, reference_time: DateTime<Utc>, tz: Tz) -> bool {
-    // Must be absent (no punch-in recorded). Anything else (present, on leave,
-    // holiday, unscheduled, day-off) is not a no-show.
-    if row.status != crate::services::attendance_utils::AttendanceStatus::Absent {
+// ── Pure predicates (no I/O, trivially unit-testable) ──────────────────────
+
+/// Convert a shift's wall-clock start/end (date + time in the employee's TZ)
+/// to an absolute UTC `DateTime`.
+fn shift_boundary_to_utc(
+    date: NaiveDate,
+    time: chrono::NaiveTime,
+    tz: Tz,
+) -> Option<DateTime<Utc>> {
+    let naive = NaiveDateTime::new(date, time);
+    tz.from_local_datetime(&naive)
+        .single()
+        .map(|dt| dt.with_timezone(&Utc))
+}
+
+/// Compute the absolute UTC start of the shift, anchored to the shift's
+/// calendar date in the employee's timezone.
+fn shift_start_utc(date: NaiveDate, start: chrono::NaiveTime, tz: Tz) -> Option<DateTime<Utc>> {
+    shift_boundary_to_utc(date, start, tz)
+}
+
+/// Compute the absolute UTC end of the shift, handling overnight shifts
+/// (end ≤ start → end +24h).
+fn shift_end_utc(
+    date: NaiveDate,
+    start: chrono::NaiveTime,
+    end: chrono::NaiveTime,
+    tz: Tz,
+) -> Option<DateTime<Utc>> {
+    let mut end_date = date;
+    if end <= start {
+        end_date = end_date
+            .succ_opt()
+            .unwrap_or_else(|| date + Duration::days(1));
+    }
+    shift_boundary_to_utc(end_date, end, tz)
+}
+
+/// The UTC instant corresponding to 00:00:00 on `target_date` in the given
+/// timezone. Used as the left boundary of the calendar day.
+fn day_start_utc(target_date: NaiveDate, tz: Tz) -> Option<DateTime<Utc>> {
+    let midnight = NaiveDateTime::new(target_date, chrono::NaiveTime::from_hms_opt(0, 0, 0)?);
+    tz.from_local_datetime(&midnight)
+        .single()
+        .map(|dt| dt.with_timezone(&Utc))
+}
+
+/// Pure predicate: should this report row be included in the no-show list?
+///
+/// Conditions:
+/// 1. `status == Absent`
+/// 2. The shift window overlaps the calendar day `target_date` in `emp_tz`
+/// 3. The shift has already started (start < now) — for today this filters
+///    out future shifts; for past dates this is always true
+/// 4. `target_date` is not in the future (relative to the employee's TZ)
+pub(crate) fn should_include_in_no_show(
+    row: &DailyAttendanceReport,
+    target_date: NaiveDate,
+    emp_tz: Tz,
+    now: DateTime<Utc>,
+) -> bool {
+    // Must be absent (no punch-in recorded).
+    use crate::services::attendance_utils::AttendanceStatus;
+    if row.status != AttendanceStatus::Absent {
         return false;
     }
-    // A shift with no resolved times has no window to be active in.
+
+    // Must have shift times.
     let (Some(start), Some(end)) = (row.scheduled_start, row.scheduled_end) else {
         return false;
     };
-    shift_contains_time(row.date, start, end, reference_time, tz)
-}
 
-/// Pure predicate: does the shift window `[start, end)` of the shift scheduled
-/// on `date` (in `tz`) contain `reference_time`? Overnight shifts (end ≤ start)
-/// push the end +24h. A shift is "active at A" iff `start_abs ≤ A < end_abs`.
-///
-/// Unit-tested against ordinary, overnight, and out-of-window cases.
-pub(crate) fn shift_contains_time(
-    date: chrono::NaiveDate,
-    start: chrono::NaiveTime,
-    end: chrono::NaiveTime,
-    reference_time: DateTime<Utc>,
-    tz: Tz,
-) -> bool {
-    let start_abs = NaiveDateTime::new(date, start);
-    let start_abs = match tz.from_local_datetime(&start_abs).single() {
-        Some(dt) => dt.with_timezone(&Utc),
-        None => return false,
-    };
-    let mut end_abs = NaiveDateTime::new(date, end);
-    if end <= start {
-        // Overnight: the end is on the next calendar day.
-        end_abs += chrono::Duration::days(1);
+    // Don't include shifts that haven't happened yet — "today" is in the
+    // employee's timezone.
+    let today_in_emp_tz = now.with_timezone(&emp_tz).date_naive();
+    if target_date > today_in_emp_tz {
+        return false;
     }
-    let end_abs = match tz.from_local_datetime(&end_abs).single() {
-        Some(dt) => dt.with_timezone(&Utc),
-        None => return false,
+
+    let Some(start_abs) = shift_start_utc(row.date, start, emp_tz) else {
+        return false;
     };
-    reference_time >= start_abs && reference_time < end_abs
+    let Some(end_abs) = shift_end_utc(row.date, start, end, emp_tz) else {
+        return false;
+    };
+
+    // Shift must overlap the target_date calendar day.
+    // The day spans [day_start, day_start + 24h).
+    let Some(day_start) = day_start_utc(target_date, emp_tz) else {
+        return false;
+    };
+    let day_end = day_start + Duration::hours(24);
+    let overlaps_day = end_abs > day_start && start_abs < day_end;
+    if !overlaps_day {
+        return false;
+    }
+
+    // For today: only include shifts that have already started.
+    // For past dates: all shifts have started (always true).
+    if target_date == today_in_emp_tz && start_abs >= now {
+        return false;
+    }
+
+    true
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::services::attendance_utils::AttendanceStatus;
-    use chrono::{NaiveDate, NaiveTime};
+    use chrono::NaiveTime;
     use uuid::Uuid;
 
     fn hcm() -> Tz {
         "Asia/Ho_Chi_Minh".parse().unwrap()
     }
 
-    fn row_with(date: &str, start: &str, end: &str, status: AttendanceStatus) -> DailyAttendanceReport {
+    fn row_with(
+        date: &str,
+        start: &str,
+        end: &str,
+        status: AttendanceStatus,
+    ) -> DailyAttendanceReport {
         DailyAttendanceReport {
             date: NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap(),
             employment_id: Uuid::new_v4(),
@@ -189,6 +280,7 @@ mod tests {
             generation_metadata: None,
             is_leave_paid: None,
             employer_name: None,
+            timezone: None,
             segment_id: None,
             shift_id: None,
             interval_id: None,
@@ -203,168 +295,165 @@ mod tests {
         Utc.with_ymd_and_hms(y, m, d, h, min, 0).unwrap()
     }
 
+    // ── should_include_in_no_show ──────────────────────────────────────────
+
     #[test]
-    fn shift_contains_time_ordinary_inside() {
-        // Shift 08:00-17:00 HCM on 2026-07-10; A = 12:00 HCM (= 05:00 UTC).
-        let tz = hcm();
-        assert!(shift_contains_time(
-            NaiveDate::from_ymd_opt(2026, 7, 10).unwrap(),
-            NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
-            NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
-            at_utc(2026, 7, 10, 5, 0),
-            tz,
+    fn includes_absent_shift_overlapping_today_and_started() {
+        // Shift 08:00-17:00 HCM on 2026-07-13, now = 14:00 HCM (07:00 UTC).
+        // target_date = 2026-07-13 = today in HCM → shift has started → include.
+        let row = row_with("2026-07-13", "08:00:00", "17:00:00", AttendanceStatus::Absent);
+        let now = at_utc(2026, 7, 13, 7, 0); // 14:00 HCM
+        assert!(should_include_in_no_show(
+            &row,
+            NaiveDate::from_ymd_opt(2026, 7, 13).unwrap(),
+            hcm(),
+            now,
         ));
     }
 
     #[test]
-    fn shift_contains_time_ordinary_before() {
-        let tz = hcm();
-        assert!(!shift_contains_time(
-            NaiveDate::from_ymd_opt(2026, 7, 10).unwrap(),
-            NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
-            NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
-            at_utc(2026, 7, 9, 23, 30), // 06:30 HCM, before shift
-            tz,
+    fn excludes_future_shift_on_today() {
+        // Shift 18:00-22:00 HCM, now = 14:00 HCM → shift hasn't started yet.
+        let row = row_with("2026-07-13", "18:00:00", "22:00:00", AttendanceStatus::Absent);
+        let now = at_utc(2026, 7, 13, 7, 0); // 14:00 HCM
+        assert!(!should_include_in_no_show(
+            &row,
+            NaiveDate::from_ymd_opt(2026, 7, 13).unwrap(),
+            hcm(),
+            now,
         ));
     }
 
     #[test]
-    fn shift_contains_time_ordinary_after_end() {
-        let tz = hcm();
-        // A = 17:00 HCM exactly → window is [start, end), so NOT contained.
-        assert!(!shift_contains_time(
+    fn includes_all_shifts_for_past_date() {
+        // Past date: 2026-07-10. Even a "future" (relative to now's time-of-day)
+        // shift is included because on a past date ALL shifts have started.
+        let row = row_with("2026-07-10", "18:00:00", "22:00:00", AttendanceStatus::Absent);
+        let now = at_utc(2026, 7, 13, 5, 0); // Now = 12:00 HCM on 07-13
+        assert!(should_include_in_no_show(
+            &row,
             NaiveDate::from_ymd_opt(2026, 7, 10).unwrap(),
-            NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
-            NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
-            at_utc(2026, 7, 10, 10, 0),
-            tz,
+            hcm(),
+            now,
         ));
     }
 
     #[test]
-    fn shift_contains_time_overnight() {
-        let tz = hcm();
-        // Night shift 22:00 → 06:00 next day. A = 23:00 same day → inside.
-        assert!(shift_contains_time(
-            NaiveDate::from_ymd_opt(2026, 7, 10).unwrap(),
-            NaiveTime::from_hms_opt(22, 0, 0).unwrap(),
-            NaiveTime::from_hms_opt(6, 0, 0).unwrap(),
-            at_utc(2026, 7, 10, 16, 0), // 23:00 HCM
-            tz,
-        ));
-        // A = 03:00 next day (still before 06:00) → inside.
-        assert!(shift_contains_time(
-            NaiveDate::from_ymd_opt(2026, 7, 10).unwrap(),
-            NaiveTime::from_hms_opt(22, 0, 0).unwrap(),
-            NaiveTime::from_hms_opt(6, 0, 0).unwrap(),
-            at_utc(2026, 7, 10, 20, 0), // 03:00 HCM next day
-            tz,
+    fn excludes_present_employee() {
+        let row = row_with("2026-07-13", "08:00:00", "17:00:00", AttendanceStatus::Present);
+        let now = at_utc(2026, 7, 13, 7, 0);
+        assert!(!should_include_in_no_show(
+            &row,
+            NaiveDate::from_ymd_opt(2026, 7, 13).unwrap(),
+            hcm(),
+            now,
         ));
     }
 
     #[test]
-    fn is_no_show_row_only_matches_absent_active_shift() {
-        let tz = hcm();
-        let a = at_utc(2026, 7, 10, 5, 0); // 12:00 HCM
-
-        let absent = row_with("2026-07-10", "08:00:00", "17:00:00", AttendanceStatus::Absent);
-        assert!(is_no_show_row(&absent, a, tz));
-
-        // Present employee is not a no-show even though the shift is active.
-        let present = row_with("2026-07-10", "08:00:00", "17:00:00", AttendanceStatus::Present);
-        assert!(!is_no_show_row(&present, a, tz));
-
-        // Absent but the shift is not active at A (A is before start).
-        let a_night = at_utc(2026, 7, 10, 20, 0); // 03:00 HCM next day
-        assert!(!is_no_show_row(&absent, a_night, tz));
+    fn excludes_shift_not_overlapping_target_day() {
+        // Shift on 2026-07-13 08:00-17:00 HCM. target_date = 2026-07-12.
+        // The shift is entirely outside the target day → exclude.
+        let row = row_with("2026-07-13", "08:00:00", "17:00:00", AttendanceStatus::Absent);
+        let now = at_utc(2026, 7, 12, 7, 0);
+        assert!(!should_include_in_no_show(
+            &row,
+            NaiveDate::from_ymd_opt(2026, 7, 12).unwrap(),
+            hcm(),
+            now,
+        ));
     }
 
     #[test]
-    fn is_no_show_row_ignores_rows_without_times() {
-        let mut row = row_with("2026-07-10", "08:00:00", "17:00:00", AttendanceStatus::Absent);
+    fn includes_overnight_shift_overlapping_target_day() {
+        // Night shift 22:00-06:00 on 2026-07-12 (anchored to 07-12).
+        // target_date = 2026-07-13 (next day). The shift overlaps 07-13
+        // (00:00-06:00) → include.
+        let row = row_with("2026-07-12", "22:00:00", "06:00:00", AttendanceStatus::Absent);
+        let now = at_utc(2026, 7, 13, 7, 0); // 14:00 HCM on 07-13
+        assert!(should_include_in_no_show(
+            &row,
+            NaiveDate::from_ymd_opt(2026, 7, 13).unwrap(),
+            hcm(),
+            now,
+        ));
+    }
+
+    #[test]
+    fn excludes_future_date() {
+        // target_date = 2026-07-15, but today = 2026-07-13 → future → exclude.
+        let row = row_with("2026-07-13", "08:00:00", "17:00:00", AttendanceStatus::Absent);
+        let now = at_utc(2026, 7, 13, 7, 0);
+        assert!(!should_include_in_no_show(
+            &row,
+            NaiveDate::from_ymd_opt(2026, 7, 15).unwrap(),
+            hcm(),
+            now,
+        ));
+    }
+
+    #[test]
+    fn per_employee_timezone_past_date() {
+        // Employee in Tokyo (+09), target_date = 2026-07-13 at now = 23:00 UTC.
+        // In Tokyo: today is already 2026-07-14 08:00, so target_date 07-13 is a
+        // past date for this employee → all shifts included (they all happened).
+        let row = row_with("2026-07-13", "08:00:00", "17:00:00", AttendanceStatus::Absent);
+        let now = at_utc(2026, 7, 13, 23, 0); // 2026-07-14 08:00 Tokyo
+        assert!(should_include_in_no_show(
+            &row,
+            NaiveDate::from_ymd_opt(2026, 7, 13).unwrap(),
+            "Asia/Tokyo".parse().unwrap(),
+            now,
+        ));
+    }
+
+    #[test]
+    fn excludes_rows_without_shift_times() {
+        let mut row = row_with("2026-07-13", "08:00:00", "17:00:00", AttendanceStatus::Absent);
         row.scheduled_start = None;
-        assert!(!is_no_show_row(&row, at_utc(2026, 7, 10, 5, 0), hcm()));
+        let now = at_utc(2026, 7, 13, 7, 0);
+        assert!(!should_include_in_no_show(
+            &row,
+            NaiveDate::from_ymd_opt(2026, 7, 13).unwrap(),
+            hcm(),
+            now,
+        ));
     }
 
-    // ── Boundary edge cases ─────────────────────────────────────────────────
+    // ── Shift boundary helpers ─────────────────────────────────────────────
 
     #[test]
-    fn shift_contains_time_inclusive_at_start() {
-        let tz = hcm();
-        // A = 08:00 HCM exactly (= start). Window is [start, end) → contained.
-        assert!(shift_contains_time(
+    fn shift_end_utc_overnight() {
+        // 22:00 → 06:00 next day, anchored to 2026-07-10 HCM.
+        let end = shift_end_utc(
+            NaiveDate::from_ymd_opt(2026, 7, 10).unwrap(),
+            NaiveTime::from_hms_opt(22, 0, 0).unwrap(),
+            NaiveTime::from_hms_opt(6, 0, 0).unwrap(),
+            hcm(),
+        );
+        // 06:00 HCM on 07-11 = 2026-07-10 23:00 UTC
+        assert_eq!(end, Some(at_utc(2026, 7, 10, 23, 0)));
+    }
+
+    #[test]
+    fn shift_end_utc_ordinary() {
+        let end = shift_end_utc(
             NaiveDate::from_ymd_opt(2026, 7, 10).unwrap(),
             NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
             NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
-            at_utc(2026, 7, 10, 1, 0),
-            tz,
-        ));
+            hcm(),
+        );
+        // 17:00 HCM = 10:00 UTC
+        assert_eq!(end, Some(at_utc(2026, 7, 10, 10, 0)));
     }
 
     #[test]
-    fn shift_contains_time_exclusive_at_end() {
-        let tz = hcm();
-        // A = 17:00 HCM exactly (= end). [start, end) → NOT contained.
-        assert!(!shift_contains_time(
-            NaiveDate::from_ymd_opt(2026, 7, 10).unwrap(),
-            NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
-            NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
-            at_utc(2026, 7, 10, 10, 0),
-            tz,
-        ));
-    }
-
-    #[test]
-    fn shift_contains_time_overnight_next_morning() {
-        // Night shift 22:00 → 06:00 next day, anchored to 2026-07-10. A = 02:00
-        // HCM on 2026-07-11 (the post-midnight tail) — still inside.
-        let tz = hcm();
-        assert!(shift_contains_time(
-            NaiveDate::from_ymd_opt(2026, 7, 10).unwrap(),
-            NaiveTime::from_hms_opt(22, 0, 0).unwrap(),
-            NaiveTime::from_hms_opt(6, 0, 0).unwrap(),
-            at_utc(2026, 7, 10, 19, 0), // 02:00 HCM on 07-11
-            tz,
-        ));
-    }
-
-    #[test]
-    fn shift_contains_time_overnight_before_start_next_day() {
-        // Same night shift; A = 21:00 HCM on 07-10 (before 22:00 start) → outside.
-        let tz = hcm();
-        assert!(!shift_contains_time(
-            NaiveDate::from_ymd_opt(2026, 7, 10).unwrap(),
-            NaiveTime::from_hms_opt(22, 0, 0).unwrap(),
-            NaiveTime::from_hms_opt(6, 0, 0).unwrap(),
-            at_utc(2026, 7, 10, 14, 0), // 21:00 HCM on 07-10
-            tz,
-        ));
-    }
-
-    #[test]
-    fn shift_contains_time_overnight_after_end_next_day() {
-        // Night shift 22:00→06:00; A = 07:00 HCM on 07-11 (after 06:00 end) → out.
-        let tz = hcm();
-        assert!(!shift_contains_time(
-            NaiveDate::from_ymd_opt(2026, 7, 10).unwrap(),
-            NaiveTime::from_hms_opt(22, 0, 0).unwrap(),
-            NaiveTime::from_hms_opt(6, 0, 0).unwrap(),
-            at_utc(2026, 7, 11, 0, 0), // 07:00 HCM on 07-11
-            tz,
-        ));
-    }
-
-    #[test]
-    fn shift_contains_time_exact_length_overnight() {
-        // A shift where end == start + exactly pushes equality: 08:00→08:00 would
-        // be a degenerate 24h shift (end <= start → +24h). A = 08:00 → contained.
-        let tz = hcm();
-        assert!(shift_contains_time(
-            NaiveDate::from_ymd_opt(2026, 7, 10).unwrap(),
-            NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
-            NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
-            at_utc(2026, 7, 10, 1, 0), // 08:00 HCM
-            tz,
-        ));
+    fn day_start_utc_returns_midnight() {
+        let start = day_start_utc(
+            NaiveDate::from_ymd_opt(2026, 7, 13).unwrap(),
+            hcm(),
+        );
+        // 00:00 HCM on 07-13 = 2026-07-12 17:00 UTC
+        assert_eq!(start, Some(at_utc(2026, 7, 12, 17, 0)));
     }
 }

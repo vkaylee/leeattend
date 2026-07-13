@@ -135,18 +135,19 @@ export async function reprocessAllAttendance(
 // ── No-show timeline report ──────────────────────────────────────────
 
 export interface FetchNoShowReportParams {
+  /** Calendar date to query (yyyy-MM-dd). Only shifts overlapping this day
+   *  that have already started are included. */
+  date: string;
   employeeIds?: string[];
   limit?: number;
   page?: number;
-  /** The scrubber's pinned reference instant `A` as RFC3339 / ISO-8601. */
-  referenceTime: string;
   shiftType?: string[];
   wsId: string;
 }
 
-/** No-show timeline report: employees on a shift *active* at `referenceTime`
- *  who have not punched in yet (status `absent`). Backed by
- *  `GET /v1/workspaces/{ws_id}/reports/no-show`.
+/** No-show report: employees on a shift overlapping `date` who have not
+ *  punched in yet (status `absent`), filtered to only shifts that have
+ *  *already started*. Backed by `GET /v1/workspaces/{ws_id}/reports/no-show`.
  *
  *  NOTE: uses the untyped `apiFetch` because the generated OpenAPI routes are
  *  synced from the backend via `leedevkit manage sync:api`. Until that runs
@@ -156,9 +157,9 @@ export interface FetchNoShowReportParams {
 export async function fetchNoShowReport(
   params: FetchNoShowReportParams,
 ): Promise<PaginatedResponse<DailyAttendanceReport>> {
-  const { wsId, referenceTime, page, limit, employeeIds, shiftType } = params;
+  const { wsId, date, page, limit, employeeIds, shiftType } = params;
   const search = new URLSearchParams();
-  search.set("reference_time", referenceTime);
+  search.set("date", date);
   if (page != null) search.set("page", String(page));
   if (limit != null) search.set("limit", String(limit));
   if (employeeIds && employeeIds.length > 0) search.set("employee_ids", employeeIds.join(","));

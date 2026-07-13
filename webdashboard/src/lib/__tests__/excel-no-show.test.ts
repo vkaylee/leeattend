@@ -110,7 +110,7 @@ describe("exportNoShowToExcel", () => {
   });
 
   it("creates a worksheet named after the translated title", async () => {
-    await exportNoShowToExcel(ROWS, { t, referenceTimeLabel: "2026-07-10_08-00" });
+    await exportNoShowToExcel(ROWS, { t, dateLabel: "2026-07-10_08-00" });
 
     expect(mockWorkbook.addWorksheet).toHaveBeenCalledWith(
       "unrecorded_shifts.title",
@@ -118,7 +118,7 @@ describe("exportNoShowToExcel", () => {
   });
 
   it("sets 7 columns matching the table order (incl. zone)", async () => {
-    await exportNoShowToExcel(ROWS, { t, referenceTimeLabel: "2026-07-10_08-00" });
+    await exportNoShowToExcel(ROWS, { t, dateLabel: "2026-07-10_08-00" });
 
     expect(mockWorksheet.columns).toHaveLength(7);
     expect(mockWorksheet.columns[0].header).toBe(
@@ -145,7 +145,7 @@ describe("exportNoShowToExcel", () => {
   });
 
   it("writes a merged title row and a merged date row", async () => {
-    await exportNoShowToExcel(ROWS, { t, referenceTimeLabel: "2026-07-10_08-00" });
+    await exportNoShowToExcel(ROWS, { t, dateLabel: "2026-07-10_08-00" });
 
     expect(mockGetCell).toHaveBeenCalledWith("A1");
     expect(mockGetCell).toHaveBeenCalledWith("A2");
@@ -155,7 +155,7 @@ describe("exportNoShowToExcel", () => {
   });
 
   it("writes the header row at row 4 and data starting at row 5", async () => {
-    await exportNoShowToExcel(ROWS, { t, referenceTimeLabel: "2026-07-10_08-00" });
+    await exportNoShowToExcel(ROWS, { t, dateLabel: "2026-07-10_08-00" });
 
     expect(mockGetRow).toHaveBeenCalledWith(4); // header
     expect(mockGetRow).toHaveBeenCalledWith(5); // first data row
@@ -163,7 +163,7 @@ describe("exportNoShowToExcel", () => {
   });
 
   it("renders null shift times as an em-dash", async () => {
-    await exportNoShowToExcel(ROWS, { t, referenceTimeLabel: "2026-07-10_08-00" });
+    await exportNoShowToExcel(ROWS, { t, dateLabel: "2026-07-10_08-00" });
 
     // Bob is the second row → data row 6. shift_name is null → "—", and his
     // start/end are also null → "—". With the new shift_type column inserted
@@ -178,7 +178,7 @@ describe("exportNoShowToExcel", () => {
   });
 
   it("sets auto-filter and freezes panes when rows exist", async () => {
-    await exportNoShowToExcel(ROWS, { t, referenceTimeLabel: "2026-07-10_08-00" });
+    await exportNoShowToExcel(ROWS, { t, dateLabel: "2026-07-10_08-00" });
 
     expect(mockWorksheet.autoFilter).toEqual({
       from: { row: 4, column: 1 },
@@ -190,7 +190,7 @@ describe("exportNoShowToExcel", () => {
   });
 
   it("does not set auto-filter when there are no rows", async () => {
-    await exportNoShowToExcel([], { t, referenceTimeLabel: "2026-07-10_08-00" });
+    await exportNoShowToExcel([], { t, dateLabel: "2026-07-10_08-00" });
 
     expect(mockWorksheet.autoFilter).toBeUndefined();
     // Header row is still written at row 4, but no data rows follow.
@@ -199,7 +199,7 @@ describe("exportNoShowToExcel", () => {
   });
 
   it("writes an .xlsx blob with a dated filename", async () => {
-    await exportNoShowToExcel(ROWS, { t, referenceTimeLabel: "2026-07-10_08-00" });
+    await exportNoShowToExcel(ROWS, { t, dateLabel: "2026-07-10_08-00" });
 
     expect(mockWriteBuffer).toHaveBeenCalled();
     expect(mockSaveAs).toHaveBeenCalled();

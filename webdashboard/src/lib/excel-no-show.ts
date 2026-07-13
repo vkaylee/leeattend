@@ -32,8 +32,8 @@ export interface NoShowRow {
 }
 
 interface ExportOptions {
-  /** Human-readable reference instant `A` label (also embedded in the filename). */
-  referenceTimeLabel: string;
+  /** The target calendar date label (yyyy-MM-dd), also embedded in the filename. */
+  dateLabel: string;
   /** i18n translator — used for the sheet title, date label and column headers. */
   t: TFunction;
 }
@@ -61,7 +61,7 @@ export async function exportNoShowToExcel(
 ): Promise<void> {
   const ExcelJS = await loadExcelJS();
   const saveAs = await loadFileSaver();
-  const { t, referenceTimeLabel } = options;
+  const { t, dateLabel } = options;
 
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "LeeAttend";
@@ -81,9 +81,9 @@ export async function exportNoShowToExcel(
   titleCell.font = { bold: true, size: 14, color: { argb: "FF1F4E79" } };
   worksheet.mergeCells(1, 1, 1, COLUMNS.length);
 
-  // ── Reference-time row (row 2) ────────────────────────────────────────
+  // ── Date row (row 2) ───────────────────────────────────────────────────
   const dateCell = worksheet.getCell("A2");
-  dateCell.value = `${t("unrecorded_shifts.export_reference_time")}: ${referenceTimeLabel}`;
+  dateCell.value = `${t("unrecorded_shifts.export_date")}: ${dateLabel}`;
   dateCell.font = { italic: true, color: { argb: "FF5B5B5B" } };
   worksheet.mergeCells(2, 1, 2, COLUMNS.length);
 
@@ -120,7 +120,7 @@ export async function exportNoShowToExcel(
   const blob = new Blob([buffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });
-  const fileSlug = referenceTimeLabel.replace(/[:.]/g, "-");
+  const fileSlug = dateLabel.replace(/[:.]/g, "-");
   saveAs(blob, `vang-dau-ca-${fileSlug}.xlsx`);
 }
 

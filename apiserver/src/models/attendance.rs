@@ -187,6 +187,11 @@ pub struct DailyAttendanceReport {
     pub is_leave_paid: Option<bool>,
     #[serde(default)]
     pub employer_name: Option<String>,
+    /// IANA timezone for this employee at this date (e.g. "Asia/Ho_Chi_Minh"),
+    /// resolved from the employee's work location. Used by the no-show frontend
+    /// to compute A/B/C zones in the correct per-employee timezone.
+    #[serde(default)]
+    pub timezone: Option<String>,
     // ── Segment fields (segment-centric report path) ──
     #[serde(default)]
     pub segment_id: Option<Uuid>,
