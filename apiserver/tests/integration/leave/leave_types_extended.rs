@@ -309,11 +309,17 @@ async fn test_leave_type_duplicate_code_returns_conflict() {
         ))
         .await
         .unwrap();
-    assert_eq!(response.status(), StatusCode::CREATED, "first insert must succeed");
+    assert_eq!(
+        response.status(),
+        StatusCode::CREATED,
+        "first insert must succeed"
+    );
 
-    // Second creation with same code must return 409 Conflict — not 500
+    // Second creation with same code (still active) must return 409 Conflict
+    // without a structured retry hint.
     let dup_payload = json!({ "code": code, "name": "Dup Leave 2", "is_paid": false });
     let response = app
+        .clone()
         .oneshot(make_req(
             "POST",
             &format!("/api/v1/workspaces/{ws_id}/leave/types"),
@@ -327,5 +333,191 @@ async fn test_leave_type_duplicate_code_returns_conflict() {
         response.status(),
         StatusCode::CONFLICT,
         "duplicate leave-type code must return 409 Conflict, not 500"
+    );
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let err: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    assert!(
+        err["error"]["retry"].is_null(),
+        "active-duplicate conflict must NOT carry a retry hint"
+    );
+}
+
+#[tokio::test]
+async fn test_retired_code_returns_structured_conflict() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let owner_id = factory
+        .user()
+        .with_email("owner@leaveretire.test")
+        .create()
+        .await;
+    let ws_id = factory.workspace().create_with_owner(owner_id).await;
+
+    let code = format!("retire-{}", Uuid::new_v4());
+
+    // Create, capture id, then soft-delete.
+    let payload = json!({ "code": code, "name": "Retire Leave", "is_paid": true });
+    let response = app
+        .clone()
+        .oneshot(make_req(
+            "POST",
+            &format!("/api/v1/workspaces/{ws_id}/leave/types"),
+            ws_id,
+            owner_id,
+            Some(payload),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let created: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    let retired_id = created["id"].as_str().unwrap().to_string();
+
+    let response = app
+        .clone()
+        .oneshot(make_req(
+            "DELETE",
+            &format!("/api/v1/workspaces/{ws_id}/leave/types/{retired_id}"),
+            ws_id,
+            owner_id,
+            None,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::NO_CONTENT);
+
+    // Re-creating the same code (now soft-deleted) must return 409 with a
+    // structured retry hint pointing at the retired row.
+    let repayload = json!({ "code": code, "name": "Retire Leave Again", "is_paid": true });
+    let response = app
+        .clone()
+        .oneshot(make_req(
+            "POST",
+            &format!("/api/v1/workspaces/{ws_id}/leave/types"),
+            ws_id,
+            owner_id,
+            Some(repayload),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(
+        response.status(),
+        StatusCode::CONFLICT,
+        "reusing a retired code must return structured 409 conflict"
+    );
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let err: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    let retry = &err["error"]["retry"];
+    assert_eq!(retry["reason"], "retired_leave_type");
+    assert_eq!(retry["leave_type_id"], retired_id);
+    assert_eq!(retry["name"], "Retire Leave");
+}
+
+#[tokio::test]
+async fn test_restore_un_deletes_and_preserves_id() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let owner_id = factory
+        .user()
+        .with_email("owner@leaverestore.test")
+        .create()
+        .await;
+    let ws_id = factory.workspace().create_with_owner(owner_id).await;
+
+    let code = format!("restore-{}", Uuid::new_v4());
+
+    // Create + soft-delete.
+    let payload = json!({ "code": code, "name": "Restore Leave", "is_paid": false });
+    let response = app
+        .clone()
+        .oneshot(make_req(
+            "POST",
+            &format!("/api/v1/workspaces/{ws_id}/leave/types"),
+            ws_id,
+            owner_id,
+            Some(payload),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let created: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    let retired_id = created["id"].as_str().unwrap().to_string();
+
+    let response = app
+        .clone()
+        .oneshot(make_req(
+            "DELETE",
+            &format!("/api/v1/workspaces/{ws_id}/leave/types/{retired_id}"),
+            ws_id,
+            owner_id,
+            None,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::NO_CONTENT);
+
+    // Restore must un-delete the original row, preserving its id/name.
+    let response = app
+        .clone()
+        .oneshot(make_req(
+            "POST",
+            &format!("/api/v1/workspaces/{ws_id}/leave/types/{retired_id}/restore"),
+            ws_id,
+            owner_id,
+            None,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(
+        response.status(),
+        StatusCode::OK,
+        "restore must return 200"
+    );
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let restored: serde_json::Value =
+        serde_json::from_slice(&body).unwrap();
+    assert_eq!(
+        restored["id"],
+        retired_id,
+        "restore must preserve the original id"
+    );
+    assert_eq!(restored["name"], "Restore Leave");
+    assert_eq!(restored["code"], code);
+
+    // The restored type must now appear in the active list.
+    let response = app
+        .clone()
+        .oneshot(make_req(
+            "GET",
+            &format!("/api/v1/workspaces/{ws_id}/leave/types"),
+            ws_id,
+            owner_id,
+            None,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let types: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
+    assert!(
+        types.iter().any(|t| t["id"] == retired_id),
+        "restored leave type must be present in the active list"
     );
 }

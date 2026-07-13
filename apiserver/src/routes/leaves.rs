@@ -52,6 +52,10 @@ pub fn router() -> Router<Arc<AppState>> {
             put(handlers::leave_types::update_leave_type_config),
         )
         .route(
+            "/workspaces/:ws_id/leave/types/:id/restore",
+            post(handlers::leave_types::restore_leave_type),
+        )
+        .route(
             "/workspaces/:ws_id/leave/policies",
             get(handlers::leaves::get_leave_policies).post(handlers::leaves::create_leave_policy),
         )

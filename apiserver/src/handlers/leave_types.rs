@@ -2,7 +2,7 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::Json,
-    routing::{delete, get, put},
+    routing::{delete, get, post, put},
     Router,
 };
 use serde::Deserialize;
@@ -143,9 +143,38 @@ pub async fn delete_leave_type(
     }
 }
 
+#[utoipa::path(
+    post,
+    path = "/workspaces/{workspace_id}/leave/types/{id}/restore",
+    responses(
+        (status = 200, description = "Leave type restored", body = LeaveType)
+    ),
+    params(
+        ("workspace_id" = Uuid, Path, description = "Workspace ID"),
+        ("id" = Uuid, Path, description = "Leave Type ID")
+    )
+)]
+pub async fn restore_leave_type(
+    State(state): State<Arc<AppState>>,
+    Path(params): Path<(Uuid, Uuid)>,
+    ctx: MemberContext,
+) -> AppResult<Json<LeaveType>> {
+    let (_ws_id, id) = params;
+    ctx.require_permission(Permission::LeaveTypesManage)?;
+
+    let lt = state
+        .leaves()
+        .policy_repo()
+        .restore_leave_type(id, ctx.workspace_id)
+        .await?;
+
+    Ok(Json(lt))
+}
+
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/", get(list_leave_types).post(create_leave_type))
         .route("/:id", delete(delete_leave_type))
         .route("/:id/config", put(update_leave_type_config))
+        .route("/:id/restore", post(restore_leave_type))
 }

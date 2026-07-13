@@ -25,17 +25,21 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
     editingType,
     isAddingType,
     deletingType,
+    restoringType,
     leaveTypes,
     isTypesLoading,
     setEditingType,
     setIsAddingType,
     setDeletingType,
+    setRestoringType,
     createLeaveType,
     updateLeaveType,
     deleteLeaveType: triggerDelete,
+    restoreLeaveType: triggerRestore,
     isCreating,
     isUpdating,
     isDeleting,
+    isRestoring,
   } = useLeaveTypeManager({ wsId });
 
   if (isTypesLoading) {
@@ -220,6 +224,47 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
                 variant="destructive"
               >
                 {t("settings.leave.type_manager.delete_btn", "Delete")}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      ) : null}
+
+      {restoringType ? (
+        <Modal
+          isOpen={true}
+          onClose={() => {
+            setRestoringType(null);
+          }}
+          title={t("settings.leave.type_manager.restore_dialog_title", "Restore Leave Type")}
+        >
+          <div className="p-8">
+            <Typography className="text-sm" variant="p">
+              {t(
+                "settings.leave.type_manager.restore_dialog_msg",
+                "A leave type with this code was retired. Restore \"{{name}}\" instead of creating a new one?",
+                { name: restoringType.name },
+              )}
+            </Typography>
+            <div className="mt-8 flex justify-end gap-3">
+              <Button
+                className="px-6 py-2 text-xs text-slate-400 dark:text-slate-500 hover:bg-transparent"
+                onClick={() => {
+                  setRestoringType(null);
+                }}
+                variant="ghost"
+              >
+                {t("common.cancel", "Cancel")}
+              </Button>
+              <Button
+                className="text-[10px] px-6 py-2.5 h-auto rounded-xl"
+                disabled={isRestoring}
+                onClick={() => {
+                  triggerRestore(restoringType.leave_type_id);
+                }}
+                variant="primary"
+              >
+                {t("settings.leave.type_manager.restore_btn", "Restore")}
               </Button>
             </div>
           </div>

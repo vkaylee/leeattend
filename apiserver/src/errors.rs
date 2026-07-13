@@ -68,7 +68,7 @@ pub enum AppError {
     Internal(String),
 
     #[error("Conflict: {0}")]
-    Conflict(LocalizedMessage),
+    Conflict(LocalizedMessage, Option<serde_json::Value>),
 
     #[error("Service Unavailable: {0}")]
     ServiceUnavailable(LocalizedMessage),
@@ -120,7 +120,7 @@ impl From<(StatusCode, String)> for AppError {
             401 => Self::Auth(msg),
             403 => Self::Forbidden(msg),
             404 => Self::NotFound(msg),
-            409 => Self::Conflict(msg),
+            409 => Self::Conflict(msg, None),
             400 | 422 => Self::Validation(msg),
             _ => Self::Internal(msg.to_string()),
         }
@@ -145,7 +145,7 @@ impl AppError {
     }
 
     pub fn conflict(key: I18nKey) -> Self {
-        Self::Conflict(LocalizedMessage::Key(key))
+        Self::Conflict(LocalizedMessage::Key(key), None)
     }
 
     pub fn service_unavailable(key: I18nKey) -> Self {
@@ -214,12 +214,38 @@ impl AppError {
         K: Into<String>,
         V: Into<String>,
     {
-        Self::Conflict(LocalizedMessage::KeyWithArgs(
-            key,
-            args.into_iter()
-                .map(|(k, v)| (k.into(), v.into()))
-                .collect(),
-        ))
+        Self::Conflict(
+            LocalizedMessage::KeyWithArgs(
+                key,
+                args.into_iter()
+                    .map(|(k, v)| (k.into(), v.into()))
+                    .collect(),
+            ),
+            None,
+        )
+    }
+
+    /// Conflict that carries a structured `retry` hint for the frontend
+    /// (e.g. a retired master/reference row the client can re-activate).
+    pub fn conflict_with_retry<I, K, V>(
+        key: I18nKey,
+        args: I,
+        retry: serde_json::Value,
+    ) -> Self
+    where
+        I: IntoIterator<Item = (K, V)>,
+        K: Into<String>,
+        V: Into<String>,
+    {
+        Self::Conflict(
+            LocalizedMessage::KeyWithArgs(
+                key,
+                args.into_iter()
+                    .map(|(k, v)| (k.into(), v.into()))
+                    .collect(),
+            ),
+            Some(retry),
+        )
     }
 
     pub fn service_unavailable_args<I, K, V>(key: I18nKey, args: I) -> Self
@@ -247,7 +273,7 @@ impl AppError {
             Self::Forbidden(_) => StatusCode::FORBIDDEN,
             Self::NotFound(_) => StatusCode::NOT_FOUND,
             Self::Validation(_) => StatusCode::BAD_REQUEST,
-            Self::Conflict(_) => StatusCode::CONFLICT,
+            Self::Conflict(_, _) => StatusCode::CONFLICT,
             Self::ServiceUnavailable(_) => StatusCode::SERVICE_UNAVAILABLE,
         }
     }
@@ -261,7 +287,7 @@ impl AppError {
             Self::NotFound(_) => "NOT_FOUND",
             Self::Validation(_) => "VALIDATION_ERROR",
             Self::Internal(_) => "INTERNAL_ERROR",
-            Self::Conflict(_) => "CONFLICT",
+            Self::Conflict(_, _) => "CONFLICT",
             Self::ServiceUnavailable(_) => "SERVICE_UNAVAILABLE",
             Self::BackgroundJobError(_) => "BACKGROUND_JOB_ERROR",
             Self::TemplateError(_) => "TEMPLATE_ERROR",
@@ -278,7 +304,7 @@ impl AppError {
             Self::Auth(msg)
             | Self::Forbidden(msg)
             | Self::NotFound(msg)
-            | Self::Conflict(msg)
+            | Self::Conflict(msg, _)
             | Self::ServiceUnavailable(msg) => match msg {
                 LocalizedMessage::KeyWithArgs(k, args) => {
                     let prefix = crate::utils::i18n::translate(lang, k.as_str());
@@ -333,12 +359,27 @@ impl IntoResponse for AppError {
         let lang = crate::utils::i18n::get_locale();
         let message = self.translate(&lang);
 
-        let body = Json(json!({
-            "error": {
-                "code": code,
-                "message": message
-            }
-        }));
+        let retry = match &self {
+            Self::Conflict(_, retry) => retry.as_ref(),
+            _ => None,
+        };
+
+        let body = if let Some(retry) = retry {
+            Json(json!({
+                "error": {
+                    "code": code,
+                    "message": message,
+                    "retry": retry
+                }
+            }))
+        } else {
+            Json(json!({
+                "error": {
+                    "code": code,
+                    "message": message
+                }
+            }))
+        };
 
         (status, body).into_response()
     }

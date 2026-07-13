@@ -4,8 +4,13 @@ import { useTranslation } from "react-i18next";
 
 import { useToast } from "@/components/ui/toast";
 import { ApiError } from "@/lib/api/errors";
-import { fetchLeaveTypes, updateLeaveTypeConfig, createLeaveType, deleteLeaveType } from "@/lib/api/leaves";
+import { fetchLeaveTypes, updateLeaveTypeConfig, createLeaveType, deleteLeaveType, restoreLeaveType } from "@/lib/api/leaves";
 import { LeaveType, LeaveTypeConfig } from "@/lib/api/types";
+
+interface RetiredLeaveTypeHint {
+  leave_type_id: string;
+  name: string;
+}
 
 interface UseLeaveTypeManagerProps {
   wsId: string;
@@ -19,6 +24,7 @@ export function useLeaveTypeManager({ wsId }: UseLeaveTypeManagerProps) {
   const [editingType, setEditingType] = useState<LeaveType | null>(null);
   const [isAddingType, setIsAddingType] = useState(false);
   const [deletingType, setDeletingType] = useState<LeaveType | null>(null);
+  const [restoringType, setRestoringType] = useState<RetiredLeaveTypeHint | null>(null);
 
   const { data: leaveTypes = [], isLoading: isTypesLoading } = useQuery({
     queryKey: ["leave-types", wsId],
@@ -34,9 +40,17 @@ export function useLeaveTypeManager({ wsId }: UseLeaveTypeManagerProps) {
     },
     onError: (error: unknown) => {
       // Backend returns 409 Conflict for a duplicate leave-type code (unique
-      // constraint on workspace_id + code). Surface the localized message
-      // rather than the raw ApiError text.
+      // constraint on workspace_id + code). When the conflicting code belongs to
+      // a RETIRED (soft-deleted) leave type, the error carries a structured
+      // `retry` hint so the UI can offer to restore it instead of creating new.
       if (error instanceof ApiError && error.isConflict) {
+        const retry = error.errorBody?.error?.retry as
+          | { reason: string; leave_type_id: string; name: string }
+          | undefined;
+        if (retry?.reason === "retired_leave_type" && retry.leave_type_id) {
+          setRestoringType({ leave_type_id: retry.leave_type_id, name: retry.name });
+          return;
+        }
         toast.error(
           t(
             "settings.leave.type_manager.create_error_duplicate_code",
@@ -75,20 +89,42 @@ export function useLeaveTypeManager({ wsId }: UseLeaveTypeManagerProps) {
     },
   });
 
+  const restoreTypeMutation = useMutation({
+    mutationFn: (typeId: string) => restoreLeaveType(wsId, typeId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["leave-types"] });
+      toast.success(
+        t("settings.leave.type_manager.restore_success", "Leave type restored successfully"),
+      );
+      // Restore replaces the "create new" intent, so close both dialogs and
+      // return the user to the clean list view.
+      setRestoringType(null);
+      setIsAddingType(false);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+      setRestoringType(null);
+    },
+  });
+
   return {
     editingType,
     isAddingType,
     deletingType,
+    restoringType,
     leaveTypes,
     isTypesLoading,
     setEditingType,
     setIsAddingType,
     setDeletingType,
+    setRestoringType,
     createLeaveType: (data: { code: string; name: string; is_paid: boolean }) => { createTypeMutation.mutate(data); },
     updateLeaveType: (typeId: string, config: LeaveTypeConfig) => { updateTypeMutation.mutate({ typeId, config }); },
     deleteLeaveType: (typeId: string) => { deleteTypeMutation.mutate(typeId); },
+    restoreLeaveType: (typeId: string) => { restoreTypeMutation.mutate(typeId); },
     isCreating: createTypeMutation.isPending,
     isUpdating: updateTypeMutation.isPending,
     isDeleting: deleteTypeMutation.isPending,
+    isRestoring: restoreTypeMutation.isPending,
   };
 }

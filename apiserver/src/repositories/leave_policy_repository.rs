@@ -29,6 +29,17 @@ pub trait LeavePolicyRepository: Send + Sync {
         policy_config: crate::models::LeaveTypeConfig,
     ) -> Result<crate::models::LeaveType, AppError>;
     async fn delete_leave_type(&self, id: Uuid, workspace_id: Uuid) -> Result<u64, AppError>;
+    /// Reactivate a soft-deleted leave type, preserving its original id/audit trail.
+    /// Returns NotFound if the row does not exist or is not currently soft-deleted.
+    async fn restore_leave_type(&self, id: Uuid, workspace_id: Uuid)
+        -> Result<crate::models::LeaveType, AppError>;
+    /// Find a soft-deleted leave type by (case-insensitive) code. Used to distinguish
+    /// a restorable retired row from a still-active duplicate on unique violation.
+    async fn find_retired_leave_type_by_code(
+        &self,
+        workspace_id: Uuid,
+        code: &str,
+    ) -> Result<Option<crate::models::diesel::leave::LeaveTypeEntity>, AppError>;
     async fn find_default_paid_leave_type(
         &self,
         workspace_id: Uuid,

@@ -78,6 +78,22 @@ impl LeavePolicyRepository for DummyLeavePolicyRepository {
         unimplemented!()
     }
 
+    async fn restore_leave_type(
+        &self,
+        _id: uuid::Uuid,
+        _workspace_id: uuid::Uuid,
+    ) -> Result<crate::models::LeaveType, crate::errors::AppError> {
+        unimplemented!()
+    }
+
+    async fn find_retired_leave_type_by_code(
+        &self,
+        _workspace_id: uuid::Uuid,
+        _code: &str,
+    ) -> Result<Option<crate::models::diesel::leave::LeaveTypeEntity>, crate::errors::AppError> {
+        unimplemented!()
+    }
+
     async fn create_policy_definition(
         &self,
         _workspace_id: uuid::Uuid,

@@ -10,7 +10,7 @@ use diesel::result::DatabaseErrorKind;
 
 use crate::schema::*;
 use async_trait::async_trait;
-use chrono::{NaiveDate, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use diesel::prelude::*;
 use diesel_async::{AsyncConnection, RunQueryDsl};
 use uuid::Uuid;
@@ -67,10 +67,12 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
                 .map_err(|e| AppError::Internal(format!("db: {e}")))?,
         );
 
+        // Clone `code` so the original String survives the move into `entity`
+        // (and the subsequent insert) for use in the retired-row lookup below.
         let entity = LeaveTypeEntity {
             id: Uuid::new_v4(),
             workspace_id,
-            code,
+            code: code.clone(),
             name,
             is_paid,
             policy_config: serde_json::to_value(policy_config).unwrap_or_default(),
@@ -78,28 +80,40 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
             deleted_at: None,
         };
 
-        let result = diesel::insert_into(leave_types::table)
+        let insert_result = diesel::insert_into(leave_types::table)
             .values(&entity)
             .get_result::<LeaveTypeEntity>(&mut *conn)
-            .await
-            .map_err(|e| match e {
-                diesel::result::Error::DatabaseError(
-                    DatabaseErrorKind::UniqueViolation,
-                    ref info,
-                ) if info
-                    .constraint_name()
-                    .is_some_and(|c| {
-                        c == "leave_types_workspace_id_code_key"
-                            || c == "uq_leave_types_code"
-                    }) =>
-                {
-                    AppError::conflict_args(
+            .await;
+
+        let result = match insert_result {
+            Ok(entity) => entity,
+            Err(diesel::result::Error::DatabaseError(
+                DatabaseErrorKind::UniqueViolation,
+                ref info,
+            )) if info.constraint_name() == Some("leave_types_workspace_id_code_key") => {
+                // A row with this code already exists. Distinguish a RETIRED row
+                // (restorable) from a still-active duplicate (hard conflict).
+                let retired = self
+                    .find_retired_leave_type_by_code(workspace_id, &code)
+                    .await?;
+                return match retired {
+                    Some(entity) => Err(AppError::conflict_with_retry(
                         I18nKey::Conflict,
-                        vec![("details", "leave_type_code_exists")],
-                    )
-                }
-                _ => AppError::Internal(format!("db: {e}")),
-            })?;
+                        vec![("details", "leave_type_code_retired".to_string())],
+                        serde_json::json!({
+                            "reason": "retired_leave_type",
+                            "leave_type_id": entity.id.to_string(),
+                            "name": entity.name,
+                        }),
+                    )),
+                    None => Err(AppError::conflict_args(
+                        I18nKey::Conflict,
+                        vec![("details", "leave_type_code_exists".to_string())],
+                    )),
+                };
+            }
+            Err(e) => return Err(AppError::Internal(format!("db: {e}"))),
+        };
 
         Ok(result.into())
     }
@@ -173,6 +187,64 @@ impl LeavePolicyRepository for DieselLeavePolicyRepository {
         .map_err(|e| AppError::Internal(format!("db: {e}")))?;
 
         Ok(affected as u64)
+    }
+
+    async fn find_retired_leave_type_by_code(
+        &self,
+        workspace_id: Uuid,
+        code: &str,
+    ) -> Result<Option<LeaveTypeEntity>, AppError> {
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        leave_types::table
+            .filter(leave_types::workspace_id.eq(workspace_id))
+            .filter(
+                diesel::dsl::sql::<diesel::sql_types::Text>("lower(code)")
+                    .eq(code.to_ascii_lowercase()),
+            )
+            .filter(leave_types::deleted_at.is_not_null())
+            .first::<LeaveTypeEntity>(&mut *conn)
+            .await
+            .optional()
+            .map_err(|e| AppError::Internal(format!("db: {e}")))
+    }
+
+    async fn restore_leave_type(
+        &self,
+        id: Uuid,
+        workspace_id: Uuid,
+    ) -> Result<crate::models::LeaveType, AppError> {
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&workspace_id)
+                .await
+                .map_err(|e| AppError::Internal(format!("db: {e}")))?,
+        );
+
+        // Only a soft-deleted row can be restored; an already-active or missing
+        // row yields 0 rows -> NotFound.
+        let result = diesel::update(
+            leave_types::table
+                .filter(leave_types::id.eq(id))
+                .filter(leave_types::workspace_id.eq(workspace_id))
+                .filter(leave_types::deleted_at.is_not_null()),
+        )
+        .set(leave_types::deleted_at.eq(Option::<DateTime<Utc>>::None))
+        .get_result::<LeaveTypeEntity>(&mut *conn)
+        .await
+        .map_err(|e| match e {
+            diesel::result::Error::NotFound => AppError::not_found(I18nKey::LeaveTypeNotFound),
+            _ => AppError::Internal(format!("db: {e}")),
+        })?;
+
+        Ok(result.into())
     }
 
     async fn create_policy_definition(

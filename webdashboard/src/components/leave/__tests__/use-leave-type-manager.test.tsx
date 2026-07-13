@@ -14,6 +14,7 @@ vi.mock("@/lib/api/leaves", () => ({
   updateLeaveTypeConfig: vi.fn(),
   createLeaveType: vi.fn(),
   deleteLeaveType: vi.fn(),
+  restoreLeaveType: vi.fn(),
 }));
 
 // Mock Toast
@@ -85,5 +86,32 @@ describe("useLeaveTypeManager Hook", () => {
       result.current.setDeletingType(mockType);
     });
     expect(result.current.deletingType).toEqual(mockType);
+  });
+
+  it("should close both modals on successful restore (replaces the create intent)", async () => {
+    const { result } = renderHook(() => useLeaveTypeManager({ wsId }), { wrapper });
+
+    // Simulate the state right before restoring: user is on the Add modal
+    // and the structured 409 has surfaced the Restore dialog.
+    act(() => {
+      result.current.setIsAddingType(true);
+    });
+    act(() => {
+      result.current.setRestoringType({ leave_type_id: "retired-1", name: "Annual Leave" });
+    });
+    expect(result.current.isAddingType).toBe(true);
+    expect(result.current.restoringType).not.toBeNull();
+
+    vi.mocked(api.restoreLeaveType).mockResolvedValue({} as never);
+
+    await act(async () => {
+      result.current.restoreLeaveType("retired-1");
+      await Promise.resolve();
+    });
+
+    // Both modals must close so the user returns to a clean list view.
+    expect(result.current.isAddingType).toBe(false);
+    expect(result.current.restoringType).toBeNull();
+    expect(api.restoreLeaveType).toHaveBeenCalledWith(wsId, "retired-1");
   });
 });

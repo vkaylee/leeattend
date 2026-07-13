@@ -208,6 +208,21 @@ export async function deleteLeaveType(
   });
 }
 
+export async function restoreLeaveType(
+  wsId: string,
+  id: string
+): Promise<LeaveType> {
+  const { data: resData } = await client.POST(
+    "/workspaces/{workspace_id}/leave/types/{id}/restore",
+    {
+      params: {
+        path: { workspace_id: wsId, id },
+      },
+    }
+  );
+  return resData;
+}
+
 export async function fetchLeavePolicyAssignments(wsId: string): Promise<LeavePolicyAssignmentDetail[]> {
   const { data: resData } = await client.GET("/workspaces/{ws_id}/leave/policies/assignments", {
     params: { path: { ws_id: wsId } },

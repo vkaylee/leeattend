@@ -312,7 +312,7 @@ async fn test_payroll_rule_repository_direct() {
     let overlap_err = overlap_res.unwrap_err();
     assert!(matches!(
         overlap_err,
-        apiserver::errors::AppError::Conflict(_)
+        apiserver::errors::AppError::Conflict(_, _)
     ));
 
     // 5c. Attempt to create a definition with duplicate code to trigger UniqueViolation on definitions table
