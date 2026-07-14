@@ -130,6 +130,18 @@ fn process_single_day_in_range(
     let context = crate::services::pairing::types::PairingContext::new(curr_date, tz);
     let shift_config = context.build_shift_config_from_schedule(sched);
 
+    tracing::info!(
+        employment_id = %employment_id,
+        date = %curr_date,
+        has_shift_config = shift_config.is_some(),
+        shift_start = ?sched.start_time(),
+        shift_end = ?sched.end_time(),
+        break_start = ?sched.break_start(),
+        break_end = ?sched.break_end(),
+        is_break_auto_deduct = ?sched.is_break_auto_deduct(),
+        "process_single_day_in_range: shift_config built"
+    );
+
     // Calculate fetch window for this specific day
     let (window_start_utc, window_end_utc) =
         context.calculate_fetch_window(shift_config.as_ref())?;

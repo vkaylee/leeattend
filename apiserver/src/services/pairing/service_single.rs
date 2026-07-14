@@ -124,7 +124,7 @@ pub(crate) async fn fetch_effective_shift_config(
             .roster_repo
             .get_raw_roster_data(auth_token.workspace_id())
             .await?;
-        roster_data
+        let from_intervals = roster_data
             .shift_intervals
             .get(&shift_id)
             .and_then(|intervals| intervals.first())
@@ -136,7 +136,32 @@ pub(crate) async fn fetch_effective_shift_config(
                     interval.break_end,
                     interval.early_punch_in_grace_period_minutes,
                 )
-            })
+            });
+
+        // When intervals are available, use them directly.
+        // When they are missing (e.g. legacy shifts created before the interval
+        // migration), fall back to fetching the resolved EffectiveSchedule so
+        // pairing retains break awareness instead of degrading to anchor_first.
+        if from_intervals.is_some() {
+            from_intervals
+        } else {
+            let (schedules, _) = service
+                .roster_repo
+                .get_workspace_schedules(
+                    None,
+                    auth_token,
+                    date,
+                    date,
+                    Some(&vec![employment_id]),
+                    None,
+                    None,
+                )
+                .await?;
+            schedules
+                .first()
+                .and_then(|es| es.schedules().first())
+                .and_then(|sched| context.build_shift_config_from_schedule(sched))
+        }
     } else {
         None
     };

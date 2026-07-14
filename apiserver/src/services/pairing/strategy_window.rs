@@ -9,15 +9,27 @@ pub(crate) fn pair_by_shift_window(
     logs: &[LogEvent],
     shift: &PairingShiftConfig,
 ) -> Vec<PairedSession> {
-    let buffer = shift
-        .check_in_buffer_minutes()
-        .unwrap_or(SHIFT_WINDOW_BUFFER);
+    // Buffer is always at least SHIFT_WINDOW_BUFFER (120 min).
+    // check_in_buffer_minutes (aka early_punch_in_grace_period) is a policy
+    // threshold for "late" status, NOT a search range — using it as the sole
+    // buffer contracts the window too aggressively and misses early punches.
+    let buffer = std::cmp::max(
+        SHIFT_WINDOW_BUFFER,
+        shift.check_in_buffer_minutes().unwrap_or(0),
+    );
 
     // Find earliest log in check-in window
     let first_in = find_earliest_in_window(logs, shift.start_minutes(), buffer);
 
     // If we can't find logs in shift windows, fall back to anchor-first
     let Some(first_in_log) = first_in else {
+        tracing::info!(
+            log_minutes = ?logs.iter().map(|l| l.minutes()).collect::<Vec<_>>(),
+            shift_start = shift.start_minutes(),
+            buffer = buffer,
+            check_in_window = format!("[{}, {}]", shift.start_minutes().saturating_sub(buffer), shift.start_minutes().saturating_add(buffer)),
+            "pair_by_shift_window: no log in check-in window, falling back to anchor_first"
+        );
         return ShiftAwareStrategy::pair_anchor_first(logs, shift.max_session_gap_minutes());
     };
 

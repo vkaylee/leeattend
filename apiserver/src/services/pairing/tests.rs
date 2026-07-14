@@ -1,10 +1,11 @@
 use super::*;
+use crate::cache::{RosterData, RosterShift};
 use crate::diesel_pool::TenantAuthToken;
 use crate::errors::AppError;
 use crate::models::enums::LogSource;
 use crate::models::{RawAttendanceLog, TimeEntry};
 use crate::services::pairing::service_helpers::retry_with_log;
-use chrono::{NaiveDate, NaiveTime, TimeZone, Utc};
+use chrono::{NaiveDate, NaiveTime, TimeZone, Timelike, Utc};
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -1747,6 +1748,160 @@ fn test_split_by_breaks_break_outside_session() {
     }
 }
 
+/// Regression test for the "missing check-out" bug.
+///
+/// Scenario: scheduled shift 07:30–16:30 with a single break 11:30–12:30.
+/// Employee records 4 punches: 07:13 (check-in), 11:46 (lunch out),
+/// 11:46 (duplicate), 19:32 (late check-out).
+///
+/// The pairing algorithm MUST produce exactly 2 work sessions split on
+/// the configured break. Session 2 MUST have an end_time so the report
+/// correctly shows check-out at 19:32.
+///
+/// Bug: the report only shows check-in 07:13 with no check-out.
+#[test]
+fn test_missing_checkout_with_break_and_late_out() {
+    let strategy = get_strategy();
+    // 07:30-16:30, break 11:30-12:30
+    let shift = PairingShiftConfig::new_with_breaks(
+        450,                                // 07:30
+        990,                                // 16:30
+        vec![BreakInterval::new(690, 750)], // 11:30-12:30
+        None,
+        None,
+    );
+
+    // Punches: 07:13 (433 min), 11:46 (706 min), 11:46 (706 min), 19:32 (1172 min)
+    let logs = vec![
+        make_log(433),  // 07:13 check-in
+        make_log(706),  // 11:46 lunch out
+        make_log(706),  // 11:46 duplicate
+        make_log(1172), // 19:32 late check-out
+    ];
+
+    let sessions = strategy.pair(&logs, Some(&shift));
+
+    // Must produce exactly 2 sessions split on break
+    assert_eq!(
+        sessions.len(),
+        2,
+        "expected exactly 2 sessions, got {}: {:?}",
+        sessions.len(),
+        sessions.iter().map(|s| (s.start_minutes(), s.end_minutes())).collect::<Vec<_>>()
+    );
+
+    // Session 1: 07:13 → 11:30 (first half, break start)
+    assert_eq!(sessions[0].start_minutes(), 433);
+    assert_eq!(sessions[0].end_minutes(), Some(690));
+    assert_eq!(sessions[0].metadata().unwrap()["break_split"], "first_half");
+
+    // Session 2: 12:30 → 19:32 (second half, break end to late checkout)
+    // THIS IS THE KEY ASSERTION: session 2 MUST have an end_time
+    assert_eq!(sessions[1].start_minutes(), 750);
+    assert_eq!(
+        sessions[1].end_minutes(),
+        Some(1172),
+        "BUG: second session should end at 19:32 (1172 min), but end_minutes is {:?}",
+        sessions[1].end_minutes()
+    );
+    assert_eq!(sessions[1].metadata().unwrap()["break_split"], "second_half");
+
+    // Verify session 2 has a non-None end_time (actual_punch_out in report)
+    assert!(
+        sessions[1].end_time().is_some(),
+        "BUG: session 2 end_time() is None — report will show no check-out"
+    );
+}
+
+/// Full pipeline test: raw logs → build_log_events → pairing → build_time_entries.
+/// Verifies that the exact scenario (07:13, 11:46, 11:46, 19:32) produces
+/// TimeEntries where the LAST entry has a punch_out_time (so the report shows check-out).
+#[test]
+fn test_full_pipeline_4_punches_with_late_out() {
+    let date = NaiveDate::from_ymd_opt(2026, 6, 20).unwrap();
+    let tz = chrono_tz::Tz::Asia__Ho_Chi_Minh;
+    let context = PairingContext::new(date, tz);
+    let workspace_id = Uuid::new_v4();
+    let employment_id = Uuid::new_v4();
+
+    // Create raw logs simulating 4 punches:
+    // 07:13, 11:46 (two close together), 19:32 ICT
+    let log7_13 = RawAttendanceLog::new(
+        Uuid::new_v4(), workspace_id, employment_id,
+        tz.with_ymd_and_hms(2026, 6, 20, 7, 13, 0).unwrap().with_timezone(&Utc),
+        LogSource::Manual, None, None, 1, 1, Utc::now(),
+    );
+    let log11_46_a = RawAttendanceLog::new(
+        Uuid::new_v4(), workspace_id, employment_id,
+        tz.with_ymd_and_hms(2026, 6, 20, 11, 46, 0).unwrap().with_timezone(&Utc),
+        LogSource::Manual, None, None, 1, 1, Utc::now(),
+    );
+    let log11_46_b = RawAttendanceLog::new(
+        Uuid::new_v4(), workspace_id, employment_id,
+        tz.with_ymd_and_hms(2026, 6, 20, 11, 46, 2).unwrap().with_timezone(&Utc),
+        LogSource::Manual, None, None, 1, 1, Utc::now(),
+    );
+    let log19_32 = RawAttendanceLog::new(
+        Uuid::new_v4(), workspace_id, employment_id,
+        tz.with_ymd_and_hms(2026, 6, 20, 19, 32, 0).unwrap().with_timezone(&Utc),
+        LogSource::Manual, None, None, 1, 1, Utc::now(),
+    );
+
+    let raw_logs = vec![log7_13, log11_46_a, log11_46_b, log19_32];
+
+    // Step 1: build_log_events (dedup by 5-second window)
+    let log_events = context.build_log_events(&raw_logs).unwrap();
+    assert!(log_events.len() >= 3,
+        "expected at least 3 log events (07:13, merged 11:46, 19:32), got {}",
+        log_events.len()
+    );
+
+    // Step 2: pair
+    let shift = PairingShiftConfig::new_with_breaks(
+        450,                                // 07:30
+        990,                                // 16:30
+        vec![BreakInterval::new(690, 750)], // 11:30-12:30
+        None,
+        None,
+    );
+    let strategy = get_strategy();
+    let sessions = strategy.pair(&log_events, Some(&shift));
+    assert_eq!(sessions.len(), 2,
+        "pairing must produce 2 sessions, got {}: {:?}",
+        sessions.len(),
+        sessions.iter().map(|s| (s.start_minutes(), s.end_minutes())).collect::<Vec<_>>()
+    );
+
+    // Step 3: build_time_entries (the full pipeline)
+    let traces = serde_json::json!(["test_trace"]);
+    let entries = context
+        .build_time_entries(workspace_id, employment_id, None, sessions, &traces)
+        .unwrap();
+
+    assert_eq!(entries.len(), 2,
+        "build_time_entries must produce 2 entries, got {}",
+        entries.len()
+    );
+
+    // KEY CHECK: the LAST time entry must have a punch_out_time
+    let first_entry = &entries[0];
+    let last_entry = &entries[1];
+    assert!(last_entry.punch_out_time().is_some(),
+        "BUG: last entry punch_out_time is None — report will show no check-out!\n\
+         First entry: {:?}→{:?}\n\
+         Last entry: {:?}→{:?}",
+        first_entry.punch_in_time().with_timezone(&tz).time(),
+        first_entry.punch_out_time().map(|t| t.with_timezone(&tz).time()),
+        last_entry.punch_in_time().with_timezone(&tz).time(),
+        last_entry.punch_out_time().map(|t| t.with_timezone(&tz).time()),
+    );
+
+    // Verify the actual times match expectations
+    let last_out_local = last_entry.punch_out_time().unwrap().with_timezone(&tz);
+    assert_eq!(last_out_local.hour(), 19);
+    assert_eq!(last_out_local.minute(), 32);
+}
+
 fn make_log_with_seconds(minutes: i32, seconds: i32) -> LogEvent {
     let id = Uuid::new_v4();
     let punch_time = Utc.with_ymd_and_hms(2026, 6, 20, 0, 0, 0).unwrap()
@@ -1794,4 +1949,461 @@ fn test_split_by_breaks_seconds_alignment() {
     assert_eq!(sessions[1].start_time().second(), 0);
     // The end time of Segment 2 (checkout) should be the actual checkout (10 seconds)
     assert_eq!(sessions[1].end_time().unwrap().second(), 10);
+}
+
+// =============================================================================
+// fetch_effective_shift_config — interval fallback tests
+// =============================================================================
+
+/// Builds an `EffectiveSchedule` with all fields set for pairing.
+fn make_effective_schedule(
+    date: NaiveDate,
+    shift_id: Option<Uuid>,
+    start_h: u32,
+    start_m: u32,
+    end_h: u32,
+    end_m: u32,
+    break_start_h: u32,
+    break_start_m: u32,
+    break_end_h: u32,
+    break_end_m: u32,
+) -> crate::models::EffectiveSchedule {
+    crate::models::EffectiveSchedule::new(
+        date,
+        shift_id,
+        "roster".to_string(),
+        Some("Test Shift".to_string()),
+        None,
+        Some(NaiveTime::from_hms_opt(start_h, start_m, 0).unwrap()),
+        Some(NaiveTime::from_hms_opt(end_h, end_m, 0).unwrap()),
+        Some(0),
+        Some(NaiveTime::from_hms_opt(break_start_h, break_start_m, 0).unwrap()),
+        Some(NaiveTime::from_hms_opt(break_end_h, break_end_m, 0).unwrap()),
+        Some(true),
+        None, None, None, None,
+        vec![],
+        false, false, None,
+    )
+}
+
+/// Regression: shift with NO intervals falls back to schedule to retain break awareness.
+///
+/// Before the fix, `fetch_effective_shift_config` only built `PairingShiftConfig`
+/// from `shift_intervals`.  If a shift had no interval entry (legacy/migrated
+/// shifts), `shift_config` was `None` and pairing degraded to `anchor_first`,
+/// which doesn't know about breaks — producing `missing_punch_out` on both
+/// sessions of a break-split day.
+///
+/// This test verifies that when the shift exists in `roster_data.shifts` but has
+/// no entry in `roster_data.shift_intervals`, the fallback reads the resolved
+/// `EffectiveSchedule` and produces a config WITH break data so pairing uses the
+/// shift-window tier.
+#[tokio::test]
+async fn test_fetch_shift_config_falls_back_when_no_intervals() {
+    let ws_id = Uuid::new_v4();
+    let emp_id = Uuid::new_v4();
+    let shift_id = Uuid::new_v4();
+    let date = NaiveDate::from_ymd_opt(2026, 6, 20).unwrap();
+    let tz = chrono_tz::Tz::Asia__Ho_Chi_Minh;
+    let ctx = PairingContext::new(date, tz);
+
+    // --- Mocks ---
+    let mut mock_roster = MockRosterRepository::new();
+
+    // get_effective_shift → returns a valid shift_id
+    mock_roster
+        .expect_get_effective_shift()
+        .times(1)
+        .returning(move |_, _, _| {
+            let sid = shift_id;
+            Box::pin(async move { Ok((Some(sid), vec![])) })
+        });
+
+    // get_raw_roster_data → shift exists but NO intervals
+    let roster_data = Arc::new({
+        let mut d = RosterData::default();
+        d.shifts.insert(
+            shift_id,
+            RosterShift::new("Test Shift".to_string(), Some("TS".to_string())),
+        );
+        // Intentionally leave shift_intervals EMPTY — this is the bug scenario
+        d
+    });
+    mock_roster
+        .expect_get_raw_roster_data()
+        .times(1)
+        .returning(move |_| {
+            let rd = Arc::clone(&roster_data);
+            Box::pin(async move { Ok(rd) })
+        });
+
+    // get_workspace_schedules → fallback path — returns schedule WITH break
+    let sched = make_effective_schedule(
+        date, Some(shift_id),
+        7, 30,   // start 07:30
+        16, 30,  // end   16:30
+        11, 30,  // break_start 11:30
+        12, 30,  // break_end   12:30
+    );
+    let emp_sched = crate::models::EmployeeSchedule::new(
+        emp_id, emp_id,
+        "EMP001".to_string(), "Test Employee".to_string(),
+        vec![sched],
+    );
+    mock_roster
+        .expect_get_workspace_schedules()
+        .times(1)
+        .returning(move |_, _, _, _, _, _, _| {
+            let s = emp_sched.clone();
+            Box::pin(async move { Ok((vec![s], 1)) })
+        });
+
+    let service = PairingService::new(PairingServiceArgs::new(
+        Arc::new(MockTimeEntryRepository::new()),
+        Arc::new(mock_roster),
+        Arc::new(MockEmployeeRepository::new()),
+        Arc::new(MockRawAttendanceLogRepository::new()),
+        Arc::new(MockSummaryRecalculator::new()),
+    ));
+
+    let auth_token = TenantAuthToken::system_override(ws_id);
+
+    let result = crate::services::pairing::service_single::fetch_effective_shift_config(
+        &service, &auth_token, emp_id, date, &ctx,
+    )
+    .await
+    .unwrap();
+
+    let (got_shift_id, got_config, _traces) = result;
+
+    // Shift ID must be preserved
+    assert_eq!(got_shift_id, Some(shift_id));
+
+    // Config MUST be Some — before the fix it was None
+    assert!(
+        got_config.is_some(),
+        "BUG: shift_config is None — fallback to EffectiveSchedule failed"
+    );
+
+    let config = got_config.unwrap();
+    // Verify break awareness — 07:30 = 450 min, 16:30 = 990 min, break 11:30-12:30
+    assert_eq!(config.start_minutes(), 450,  "expected shift start 07:30");
+    assert_eq!(config.end_minutes(), 990,    "expected shift end 16:30");
+    assert_eq!(
+        config.break_start_minutes(), Some(690),
+        "expected break_start 11:30 — pairing will split correctly"
+    );
+    assert_eq!(
+        config.break_end_minutes(), Some(750),
+        "expected break_end 12:30 — pairing will split correctly"
+    );
+    assert_eq!(config.breaks().len(), 1, "should have exactly 1 break interval");
+}
+
+/// Similar to above but also runs the pairing algorithm to verify the full pipeline
+/// produces 2 sessions with a valid check-out when the fallback is exercised.
+#[tokio::test]
+async fn test_pairing_uses_fallback_config_to_split_on_break() {
+    let ws_id = Uuid::new_v4();
+    let emp_id = Uuid::new_v4();
+    let shift_id = Uuid::new_v4();
+    let date = NaiveDate::from_ymd_opt(2026, 6, 20).unwrap();
+    let tz = chrono_tz::Tz::Asia__Ho_Chi_Minh;
+
+    // --- Mocks ---
+    let mut mock_roster = MockRosterRepository::new();
+    let mut mock_raw = MockRawAttendanceLogRepository::new();
+    let mut mock_time_entry = MockTimeEntryRepository::new();
+    let mut mock_summary = MockSummaryRecalculator::new();
+
+    // get_effective_shift → valid shift_id
+    mock_roster
+        .expect_get_effective_shift()
+        .times(1)
+        .returning(move |_, _, _| {
+            let sid = shift_id;
+            Box::pin(async move { Ok((Some(sid), vec![])) })
+        });
+
+    // get_raw_roster_data → shift exists but NO intervals
+    let roster_data2 = Arc::new({
+        let mut d = RosterData::default();
+        d.shifts.insert(
+            shift_id,
+            RosterShift::new("Test Shift".to_string(), Some("TS".to_string())),
+        );
+        d
+    });
+    mock_roster
+        .expect_get_raw_roster_data()
+        .times(1)
+        .returning(move |_| {
+            let rd = Arc::clone(&roster_data2);
+            Box::pin(async move { Ok(rd) })
+        });
+
+    // get_workspace_schedules → fallback path with break
+    let sched = make_effective_schedule(
+        date, Some(shift_id), 7, 30, 16, 30, 11, 30, 12, 30,
+    );
+    let emp_sched = crate::models::EmployeeSchedule::new(
+        emp_id, emp_id,
+        "EMP001".to_string(), "Test Employee".to_string(),
+        vec![sched],
+    );
+    mock_roster
+        .expect_get_workspace_schedules()
+        .times(1)
+        .returning(move |_, _, _, _, _, _, _| {
+            let s = emp_sched.clone();
+            Box::pin(async move { Ok((vec![s], 1)) })
+        });
+
+    // get_employment_time_entries → empty (no consumed logs from adjacent days)
+    mock_time_entry
+        .expect_get_employment_time_entries()
+        .times(1)
+        .returning(|_, _, _, _| Ok(vec![]));
+
+    // replace_time_entries → capture entries for assertion
+    let emp_id_captured = emp_id;
+    mock_time_entry
+        .expect_replace_time_entries()
+        .times(1)
+        .returning(move |_, eid, _, _, entries| {
+            assert_eq!(eid, emp_id_captured);
+            // KEY: must produce exactly 2 sessions with break split
+            assert_eq!(
+                entries.len(), 2,
+                "expected 2 time entries (split on break), got {}",
+                entries.len()
+            );
+
+            // Session 2 must have punch_out_time (the check-out)
+            let last = &entries[1];
+            assert!(
+                last.punch_out_time().is_some(),
+                "BUG: second session has no punch_out_time — check-out missing!\n\
+                 entries: {:?}",
+                entries.iter().map(|e| (
+                    e.punch_in_time().with_timezone(&tz).time(),
+                    e.punch_out_time().map(|t| t.with_timezone(&tz).time())
+                )).collect::<Vec<_>>()
+            );
+
+            // Verify tier is shift_window (NOT anchor_first)
+            let meta = last.generation_metadata().unwrap();
+            assert_eq!(
+                meta["tier"], "shift_window",
+                "BUG: pairing degraded to {} — break splitting never ran",
+                meta["tier"].as_str().unwrap_or("unknown")
+            );
+
+            Ok(())
+        });
+
+    // get_employment_logs_in_time_range → 4 punches as in the bug report
+    mock_raw
+        .expect_get_employment_logs_in_time_range()
+        .times(1)
+        .returning(move |_, _, _, _| {
+            use crate::models::RawAttendanceLog;
+            let logs = vec![
+                RawAttendanceLog::new(
+                    Uuid::new_v4(), ws_id, emp_id,
+                    tz.with_ymd_and_hms(2026, 6, 20, 7, 13, 0).unwrap().with_timezone(&Utc),
+                    LogSource::Manual, None, None, 1, 1, Utc::now(),
+                ),
+                RawAttendanceLog::new(
+                    Uuid::new_v4(), ws_id, emp_id,
+                    tz.with_ymd_and_hms(2026, 6, 20, 11, 46, 0).unwrap().with_timezone(&Utc),
+                    LogSource::Manual, None, None, 1, 1, Utc::now(),
+                ),
+                RawAttendanceLog::new(
+                    Uuid::new_v4(), ws_id, emp_id,
+                    tz.with_ymd_and_hms(2026, 6, 20, 11, 46, 2).unwrap().with_timezone(&Utc),
+                    LogSource::Manual, None, None, 1, 1, Utc::now(),
+                ),
+                RawAttendanceLog::new(
+                    Uuid::new_v4(), ws_id, emp_id,
+                    tz.with_ymd_and_hms(2026, 6, 20, 19, 32, 0).unwrap().with_timezone(&Utc),
+                    LogSource::Manual, None, None, 1, 1, Utc::now(),
+                ),
+            ];
+            Box::pin(async move { Ok(logs) })
+        });
+
+    // recalculate_daily_summary
+    mock_summary
+        .expect_recalculate_daily_summary()
+        .times(1)
+        .returning(|_, _, _| Ok(()));
+
+    let service = PairingService::new(PairingServiceArgs::new(
+        Arc::new(mock_time_entry),
+        Arc::new(mock_roster),
+        Arc::new(MockEmployeeRepository::new()),
+        Arc::new(mock_raw),
+        Arc::new(mock_summary),
+    ));
+
+    let result = service
+        .reprocess_daily_attendance(ws_id, emp_id, date, tz)
+        .await;
+
+    assert!(result.is_ok(), "reprocess_daily_attendance failed: {:?}", result.err());
+}
+
+// =============================================================================
+// check_in_buffer_minutes — regression test for the 15-min window bug
+// =============================================================================
+
+/// Regression: `check_in_buffer_minutes` (set from `early_punch_in_grace_period`)
+/// was used as the sole check-in search buffer.  A 15‑min grace period produced
+/// a [435, 465] window that MISSED a 07:13 (433‑min) punch, causing the entire
+/// pairing to fall back to anchor_first (no break awareness → missing check-out).
+///
+/// After the fix, the buffer is `max(120, check_in_buffer)` so the search
+/// window is always at least ±120 minutes from the shift start.
+#[test]
+fn test_buffer_is_never_smaller_than_shift_window_default() {
+    let strategy = get_strategy();
+
+    // Shift 07:30-16:30, break 11:30-12:30, tiny grace period of 15 min
+    let shift = PairingShiftConfig::new_with_breaks(
+        450,                                // 07:30
+        990,                                // 16:30
+        vec![BreakInterval::new(690, 750)], // 11:30-12:30
+        Some(15),                           // check_in_buffer = 15 (the bug trigger)
+        None,
+    );
+
+    // Punch 07:13 (433 min) — outside the narrow 15-min window but well
+    // within the correct 120-min window.  With the old code this punch
+    // was missed entirely.
+    let logs = vec![
+        make_log(433),  // 07:13 — early punch
+        make_log(1172), // 19:32 — late check-out
+    ];
+
+    let sessions = strategy.pair(&logs, Some(&shift));
+
+    assert_eq!(
+        sessions.len(),
+        2,
+        "expected 2 sessions (split on break), got {} — buffer may still be too small",
+        sessions.len()
+    );
+
+    // Verify tier is shift_window, NOT anchor_first
+    let meta = sessions[0].metadata().unwrap();
+    assert_eq!(
+        meta["tier"], "shift_window",
+        "BUG: degraded to anchor_first — buffer={} didn't cover the early punch",
+        shift.check_in_buffer_minutes().unwrap_or(0)
+    );
+
+    assert_eq!(sessions[0].start_minutes(), 433);
+    assert_eq!(sessions[0].end_minutes(), Some(690));
+    assert_eq!(sessions[1].start_minutes(), 750);
+    assert_eq!(sessions[1].end_minutes(), Some(1172));
+}
+
+/// The exact production scenario from the bug report.
+///
+/// Shift 07:30-16:30, break 11:30-12:30, grace=15 (from "Quy tắc mặc định"),
+/// punches 07:13 / 11:46 / 11:46 / 19:32.  Before the fix the 15‑min buffer
+/// made `find_earliest_in_window` return `None`, forcing anchor_first.
+#[test]
+fn test_buffer_exact_production_scenario() {
+    let strategy = get_strategy();
+
+    let shift = PairingShiftConfig::new_with_breaks(
+        450,                                // 07:30
+        990,                                // 16:30
+        vec![BreakInterval::new(690, 750)], // 11:30-12:30
+        Some(15),                           // ← the bug trigger: tiny grace period
+        None,
+    );
+
+    // Exact punches from production
+    let logs = vec![
+        make_log(433),  // 07:13
+        make_log(706),  // 11:46
+        make_log(706),  // 11:46 duplicate
+        make_log(1172), // 19:32
+    ];
+
+    let sessions = strategy.pair(&logs, Some(&shift));
+
+    // Must produce 2 sessions, NOT anchor_first
+    assert_eq!(sessions.len(), 2);
+
+    let meta0 = sessions[0].metadata().unwrap();
+    assert_eq!(meta0["tier"], "shift_window", "session 0 should be shift_window");
+    assert_eq!(meta0["break_split"], "first_half");
+    assert_eq!(sessions[0].start_minutes(), 433);
+    assert_eq!(sessions[0].end_minutes(), Some(690));
+
+    let meta1 = sessions[1].metadata().unwrap();
+    assert_eq!(meta1["tier"], "shift_window", "session 1 should be shift_window");
+    assert_eq!(meta1["break_split"], "second_half");
+    assert_eq!(sessions[1].start_minutes(), 750);
+    assert_eq!(sessions[1].end_minutes(), Some(1172));
+
+    // The critical check: session 2 MUST have an end time
+    assert!(
+        sessions[1].end_time().is_some(),
+        "BUG: second session has no check-out — buffer=15 missed the early punch"
+    );
+}
+
+/// When check_in_buffer is larger than 120, it should be used directly
+/// (e.g. a very generous grace period should widen the window).
+#[test]
+fn test_buffer_respects_larger_grace_period() {
+    let strategy = get_strategy();
+
+    let shift = PairingShiftConfig::new_with_breaks(
+        450,                                // 07:30
+        990,                                // 16:30
+        vec![BreakInterval::new(690, 750)],
+        Some(180),                          // larger than default
+        None,
+    );
+
+    let logs = vec![
+        make_log(290),  // 04:50 — within 180-min window [270, 630] but NOT within 120-min [330, 570]
+        make_log(1172), // 19:32
+    ];
+
+    let sessions = strategy.pair(&logs, Some(&shift));
+
+    assert_eq!(sessions.len(), 2, "larger buffer should still find the early punch");
+    assert_eq!(sessions[0].start_minutes(), 290);
+}
+
+/// When check_in_buffer is None, the default 120 should be used.
+#[test]
+fn test_buffer_defaults_to_120_when_none() {
+    let strategy = get_strategy();
+
+    let shift = PairingShiftConfig::new_with_breaks(
+        450, 990,
+        vec![BreakInterval::new(690, 750)],
+        None,   // no explicit buffer → 120 default
+        None,
+    );
+
+    // 07:13 (433) is within 120-min window but outside a 15-min window
+    let logs = vec![
+        make_log(433),
+        make_log(1172),
+    ];
+
+    let sessions = strategy.pair(&logs, Some(&shift));
+    assert_eq!(sessions.len(), 2);
+    assert_eq!(sessions[0].start_minutes(), 433);
+    let meta = sessions[0].metadata().unwrap();
+    assert_eq!(meta["tier"], "shift_window");
 }
