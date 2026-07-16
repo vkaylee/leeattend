@@ -29,7 +29,7 @@ interface IconRailProps {
   workspaceName?: string;
 }
 
-const SHARED_ICON_CLASSES = "flex items-center justify-center w-full h-11 rounded-xl transition-all duration-200 group relative";
+const SHARED_ICON_CLASSES = "flex items-center justify-center w-full h-11 rounded-xl transition-all duration-200 group relative border-0";
 const ACTIVE_CLASSES = "text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950";
 const IDLE_CLASSES = "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900";
 
@@ -165,7 +165,7 @@ function MenuLink({ group, icon: Icon, isActive, label, onClick, onHover, testId
 
   return (
     <button {...handlers} aria-label={label} className={cls} data-testid={testId} onClick={onClick} ref={refCb} type="button">
-      <div className="relative">{inner}</div>
+      <div className="relative border-0">{inner}</div>
       <TooltipPortal el={el} hovered={hovered} label={label} />
     </button>
   );
@@ -262,7 +262,7 @@ function IconLogoutButton({ onLogout }: { onLogout: () => void }) {
     <>
       <button
         aria-label={t("common.logout")}
-        className="flex items-center justify-center w-full h-11 rounded-xl transition-all duration-200 group relative text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+        className="flex items-center justify-center w-full h-11 rounded-xl transition-all duration-200 group relative border-0 text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30"
         data-testid="nav-rail-logout"
         onBlur={() => { setHovered(false); }}
         onClick={onLogout}

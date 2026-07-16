@@ -363,4 +363,46 @@ describe("IconRail", () => {
     const orgBtn = screen.getByTestId("nav-rail-group-org");
     expect(orgBtn.tagName).toBe("BUTTON");
   });
+
+  // ── No border on hover (regression guard) ───────────────────────
+  //
+  // The global stylesheet applies `border: 1px solid` to *every* element
+  // via `* { @apply border-border; }` (Tailwind v4). Group icons wrap their
+  // lucide icon in an extra <div>, which inherited that border and surfaced
+  // as a visible outline on hover (when the background lightens). Every rail
+  // control's root element must carry `border-0` to suppress it.
+
+  const RAIL_CONTROL_TEST_IDS = [
+    "nav-rail-group-dashboard",
+    "nav-rail-group-settings",
+    "nav-rail-group-org",
+    "nav-rail-group-time",
+    "nav-rail-group-shifts",
+    "nav-rail-group-payroll",
+    "nav-rail-group-system",
+    "nav-rail-group-ess",
+    "nav-rail-pin-toggle",
+    "nav-rail-theme-toggle",
+    "nav-rail-lang-toggle",
+    "nav-rail-notifications",
+    "nav-rail-user-avatar",
+    "nav-rail-logout",
+  ] as const;
+
+  it.each(RAIL_CONTROL_TEST_IDS)(
+    "rail control '%s' has no inherited border (border-0)",
+    (testId) => {
+      render(<IconRail {...defaultProps} />, { wrapper: Wrapper });
+      const control = screen.getByTestId(testId);
+      expect(control.className).toContain("border-0");
+    },
+  );
+
+  it("group icon wrapper <div> also suppresses the inherited border", () => {
+    render(<IconRail {...defaultProps} />, { wrapper: Wrapper });
+    const orgBtn = screen.getByTestId("nav-rail-group-org");
+    const wrapperDiv = orgBtn.querySelector("div.relative");
+    expect(wrapperDiv).not.toBeNull();
+    expect(wrapperDiv?.className).toContain("border-0");
+  });
 });
