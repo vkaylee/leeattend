@@ -108,7 +108,7 @@ export default function IconRail({
         <IconTooltipButton data-testid="nav-rail-theme-toggle" icon={ThemeIcon} label={t(`common.theme.${mode}`, mode)} onClick={cycleTheme} />
         <IconLanguageButton langLabel={langLabel} onClick={cycleLanguage} tooltip={langTooltip} />
         <IconTooltipLink aria-label={t("common.notifications")} data-testid="nav-rail-notifications" to={ROUTES.NOTIFICATIONS}>
-          <div className="relative">
+          <div className="relative border-0">
             <Bell className="h-4 w-4" />
             {unreadCount > 0 && (
               <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center leading-none">
@@ -118,7 +118,7 @@ export default function IconRail({
           </div>
         </IconTooltipLink>
         <IconTooltipLink aria-label={t("common.profile")} data-testid="nav-rail-user-avatar" to={ROUTES.ESS_PROFILE}>
-          <div className="w-7 h-7 rounded-lg bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-800 flex items-center justify-center font-bold text-[10px] shadow-sm group-hover:bg-primary-600 dark:group-hover:bg-primary-500 group-hover:text-white transition-all duration-300">
+          <div className="w-7 h-7 rounded-lg border-0 bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-800 flex items-center justify-center font-bold text-[10px] shadow-sm group-hover:bg-primary-600 dark:group-hover:bg-primary-500 group-hover:text-white transition-all duration-300">
             {user?.full_name ? user.full_name.charAt(0).toUpperCase() : <UserCircle className="h-4 w-4" />}
           </div>
         </IconTooltipLink>
@@ -165,7 +165,7 @@ function MenuLink({ group, icon: Icon, isActive, label, onClick, onHover, testId
 
   return (
     <button {...handlers} aria-label={label} className={cls} data-testid={testId} onClick={onClick} ref={refCb} type="button">
-      <div className="relative border-0">{inner}</div>
+      {inner}
       <TooltipPortal el={el} hovered={hovered} label={label} />
     </button>
   );

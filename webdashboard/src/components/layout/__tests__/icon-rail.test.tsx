@@ -367,10 +367,12 @@ describe("IconRail", () => {
   // ── No border on hover (regression guard) ───────────────────────
   //
   // The global stylesheet applies `border: 1px solid` to *every* element
-  // via `* { @apply border-border; }` (Tailwind v4). Group icons wrap their
-  // lucide icon in an extra <div>, which inherited that border and surfaced
-  // as a visible outline on hover (when the background lightens). Every rail
-  // control's root element must carry `border-0` to suppress it.
+  // via `* { @apply border-border; }` (Tailwind v4). Any element that wraps
+  // a lucide icon (button root, the group-icon wrapper <div>, and the
+  // notifications/profile <div>s inside IconTooltipLink) inherits that
+  // border. Because border does NOT inherit from the parent, each wrapper
+  // must carry `border-0` itself, otherwise a 1px outline appears *around
+  // the icon* (not the rail edge) when the hover background lightens.
 
   const RAIL_CONTROL_TEST_IDS = [
     "nav-rail-group-dashboard",
@@ -398,11 +400,29 @@ describe("IconRail", () => {
     },
   );
 
-  it("group icon wrapper <div> also suppresses the inherited border", () => {
+  it("group icon <button> matches the <Link> structure (no extra wrapper <div>)", () => {
     render(<IconRail {...defaultProps} />, { wrapper: Wrapper });
     const orgBtn = screen.getByTestId("nav-rail-group-org");
-    const wrapperDiv = orgBtn.querySelector("div.relative");
+    // The Link branch (dashboard/settings) renders the icon directly without a
+    // wrapping <div>; the button branch must do the same so they look identical.
+    expect(orgBtn.querySelector("div.relative")).toBeNull();
+    const svg = orgBtn.querySelector("svg");
+    expect(svg).not.toBeNull();
+  });
+
+  it("notifications icon wrapper <div> suppresses the inherited border", () => {
+    render(<IconRail {...defaultProps} />, { wrapper: Wrapper });
+    const notif = screen.getByTestId("nav-rail-notifications");
+    const wrapperDiv = notif.querySelector("div.relative");
     expect(wrapperDiv).not.toBeNull();
     expect(wrapperDiv?.className).toContain("border-0");
+  });
+
+  it("profile avatar <div> suppresses the inherited border", () => {
+    render(<IconRail {...defaultProps} />, { wrapper: Wrapper });
+    const avatar = screen.getByTestId("nav-rail-user-avatar");
+    const avatarDiv = avatar.querySelector("div.w-7");
+    expect(avatarDiv).not.toBeNull();
+    expect(avatarDiv?.className).toContain("border-0");
   });
 });

@@ -93,6 +93,21 @@
     @apply border-border;
   }
 
+  /* Icons are <svg> elements and inherit the global 1px border above, which
+   * surfaces as a theme-colored outline hugging the glyph on hover (when the
+   * background lightens). SVGs never need a border, so suppress it globally. */
+  svg {
+    @apply border-0;
+  }
+
+  /* The <button> user-agent stylesheet applies its own border (and sometimes a
+   * background) which shows up as a theme-colored outline around rail icons.
+   * <a>/Link icons don't have this, hence the inconsistency. Neutralize the UA
+   * defaults for rail buttons; keep the focus-visible outline for a11y. */
+  nav button {
+    @apply border-0 bg-transparent;
+  }
+
   body {
     @apply bg-[var(--background)] text-[var(--foreground)] font-sans antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
