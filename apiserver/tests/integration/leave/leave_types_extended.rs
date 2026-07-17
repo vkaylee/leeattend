@@ -481,19 +481,13 @@ async fn test_restore_un_deletes_and_preserves_id() {
         ))
         .await
         .unwrap();
-    assert_eq!(
-        response.status(),
-        StatusCode::OK,
-        "restore must return 200"
-    );
+    assert_eq!(response.status(), StatusCode::OK, "restore must return 200");
     let body = axum::body::to_bytes(response.into_body(), usize::MAX)
         .await
         .unwrap();
-    let restored: serde_json::Value =
-        serde_json::from_slice(&body).unwrap();
+    let restored: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(
-        restored["id"],
-        retired_id,
+        restored["id"], retired_id,
         "restore must preserve the original id"
     );
     assert_eq!(restored["name"], "Restore Leave");

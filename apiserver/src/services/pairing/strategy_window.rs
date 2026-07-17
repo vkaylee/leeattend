@@ -29,7 +29,7 @@ pub(crate) fn pair_by_shift_window(
     // If we can't find logs in shift windows, fall back to anchor-first
     let Some(first_in_log) = first_in else {
         tracing::info!(
-            log_minutes = ?logs.iter().map(|l| l.minutes()).collect::<Vec<_>>(),
+            log_minutes = ?logs.iter().map(LogEvent::minutes).collect::<Vec<_>>(),
             shift_start = shift.start_minutes(),
             buffer = buffer,
             check_in_window = format!("[{}, {}]", shift.start_minutes().saturating_sub(buffer), shift.start_minutes().saturating_add(buffer)),

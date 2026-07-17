@@ -475,36 +475,49 @@ async fn test_concurrent_reprocess_does_not_double_insert_sessions() {
              is_break_auto_deduct, break_is_overtime, \
              early_punch_in_grace_period_minutes, allow_early_ot) \
          VALUES ($1, 0, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
-        diesel::sql_types::Uuid,                      shift_id,
-        diesel::sql_types::Time,                      NaiveTime::from_hms_opt(7, 30, 0).unwrap(),
-        diesel::sql_types::Time,                      NaiveTime::from_hms_opt(16, 30, 0).unwrap(),
-        diesel::sql_types::Integer,                   60,
-        diesel::sql_types::Time,                      NaiveTime::from_hms_opt(11, 30, 0).unwrap(),
-        diesel::sql_types::Time,                      NaiveTime::from_hms_opt(12, 30, 0).unwrap(),
-        diesel::sql_types::Bool,                      false,
-        diesel::sql_types::Bool,                      false,
-        diesel::sql_types::Integer,                   0,
-        diesel::sql_types::Bool,                      false
+        diesel::sql_types::Uuid,
+        shift_id,
+        diesel::sql_types::Time,
+        NaiveTime::from_hms_opt(7, 30, 0).unwrap(),
+        diesel::sql_types::Time,
+        NaiveTime::from_hms_opt(16, 30, 0).unwrap(),
+        diesel::sql_types::Integer,
+        60,
+        diesel::sql_types::Time,
+        NaiveTime::from_hms_opt(11, 30, 0).unwrap(),
+        diesel::sql_types::Time,
+        NaiveTime::from_hms_opt(12, 30, 0).unwrap(),
+        diesel::sql_types::Bool,
+        false,
+        diesel::sql_types::Bool,
+        false,
+        diesel::sql_types::Integer,
+        0,
+        diesel::sql_types::Bool,
+        false
     );
 
     let employment_id_for_assign = emp_employment_id;
     crate::test_execute!(
         &diesel_pools.api,
         "INSERT INTO employee_shifts (employment_id, shift_id, start_date) VALUES ($1, $2, $3)",
-        diesel::sql_types::Uuid,  employment_id_for_assign,
-        diesel::sql_types::Uuid,  shift_id,
-        diesel::sql_types::Date,  base_date
+        diesel::sql_types::Uuid,
+        employment_id_for_assign,
+        diesel::sql_types::Uuid,
+        shift_id,
+        diesel::sql_types::Date,
+        base_date
     );
 
     // 2. Create 5 raw logs WITHOUT processing through the service:
     //    check-in 07:22, 3x duplicate 15:06, check-out 16:45 (all LOCAL).
     //    Asia/Ho_Chi_Minh is UTC+7, so LOCAL time = UTC+7 -> UTC = LOCAL - 7h.
     let local_punches = [
-        (7, 22),    // 07:22 local
-        (15, 6),    // 15:06 duplicate #1
-        (15, 6),    // 15:06 duplicate #2
-        (15, 6),    // 15:06 duplicate #3
-        (16, 45),   // 16:45 local
+        (7, 22),  // 07:22 local
+        (15, 6),  // 15:06 duplicate #1
+        (15, 6),  // 15:06 duplicate #2
+        (15, 6),  // 15:06 duplicate #3
+        (16, 45), // 16:45 local
     ];
     for (h, m) in local_punches {
         let local_dt = base_date.and_hms_opt(h, m, 0).unwrap();
@@ -611,7 +624,9 @@ async fn test_concurrent_reprocess_does_not_double_insert_sessions() {
     let mut sorted = entries;
     sorted.sort_by_key(|e| e.punch_in_time());
 
-    let morning_in_local = sorted[0].punch_in_time().with_timezone(&chrono_tz::Asia::Ho_Chi_Minh);
+    let morning_in_local = sorted[0]
+        .punch_in_time()
+        .with_timezone(&chrono_tz::Asia::Ho_Chi_Minh);
     let afternoon_out_local = sorted[1]
         .punch_out_time()
         .unwrap()
@@ -649,4 +664,3 @@ async fn test_concurrent_reprocess_does_not_double_insert_sessions() {
 
     drop(test_db);
 }
-

@@ -18,7 +18,7 @@ pub(crate) fn filter_by_shift_type(
     if let Some(names) = shift_names {
         reports
             .into_iter()
-            .filter(|r| r.shift_name.as_ref().map_or(false, |n| names.contains(n)))
+            .filter(|r| r.shift_name.as_ref().is_some_and(|n| names.contains(n)))
             .collect()
     } else {
         reports
