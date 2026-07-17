@@ -8,7 +8,7 @@ import { ROUTES } from "@/lib/routes";
 type Section = "roster" | "patterns" | "rules";
 
 const baseClass =
-  "flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all";
+  "flex items-center gap-2 px-6 py-1.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all";
 const activeClass =
   "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800";
 const inactiveClass =
