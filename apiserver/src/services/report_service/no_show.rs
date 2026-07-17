@@ -88,21 +88,16 @@ impl ReportService {
         let filtered: Vec<DailyAttendanceReport> = {
             let mut out = Vec::with_capacity(daily.data.len());
             for mut row in daily.data {
-                let emp_tz = match tz_cache.get(&row.employee_id) {
-                    Some(&cached_tz) => cached_tz,
-                    None => {
-                        let emp_tz = self
-                            .employee_repo
-                            .get_employee_timezone_at_date(
-                                &auth_token,
-                                row.employee_id,
-                                args.date,
-                            )
-                            .await
-                            .unwrap_or(tz);
-                        tz_cache.insert(row.employee_id, emp_tz);
-                        emp_tz
-                    }
+                let emp_tz = if let Some(&cached_tz) = tz_cache.get(&row.employee_id) {
+                    cached_tz
+                } else {
+                    let emp_tz = self
+                        .employee_repo
+                        .get_employee_timezone_at_date(&auth_token, row.employee_id, args.date)
+                        .await
+                        .unwrap_or(tz);
+                    tz_cache.insert(row.employee_id, emp_tz);
+                    emp_tz
                 };
 
                 if should_include_in_no_show(&row, args.date, emp_tz, now) {

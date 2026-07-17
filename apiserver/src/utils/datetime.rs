@@ -110,7 +110,10 @@ pub fn parse_date(s: &str) -> Option<chrono::NaiveDate> {
         // values < 1.0 are invalid dates (they are time only), and negative is invalid.
         // Excel leap year bug: 1900 is treated as a leap year, so day 60 is Feb 29, 1900.
         // We start Excel epoch at 1899-12-31 (day 1 is 1900-01-01).
-        if val >= 1.0 && val < 2958466.0 { // limit to year 9999
+        if (1.0..2_958_466.0).contains(&val) {
+            // upper bound limits to year 9999; val is bounded so the truncation
+            // toward the integer day count is intentional (Excel serial dates).
+            #[allow(clippy::cast_possible_truncation)]
             let days = val as i64;
             // Adjust for Excel leap year bug (Feb 29, 1900 is day 60)
             let adjusted_days = if days < 60 { days } else { days - 1 };

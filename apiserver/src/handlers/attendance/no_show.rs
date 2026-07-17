@@ -27,11 +27,13 @@ pub struct NoShowQuery {
     pub shift_type: Option<String>,
 }
 
-/// No-show report: employees on a shift overlapping `date` who have not punched
-/// in yet (status `absent`), filtered to only shifts that have *already started*.
-/// For today, this means `shift_start < now`; for past dates, all shifts are
-/// included (they have all started). Per-employee timezones are used to determine
-/// "today" and shift boundaries.
+/// No-show report handler.
+///
+/// Employees on a shift overlapping `date` who have not punched in yet (status
+/// `absent`), filtered to only shifts that have *already started*. For today,
+/// this means `shift_start < now`; for past dates, all shifts are included (they
+/// have all started). Per-employee timezones are used to determine "today" and
+/// shift boundaries.
 #[utoipa::path(
     get,
     path = "/v1/workspaces/{ws_id}/reports/no-show",
@@ -60,7 +62,7 @@ pub async fn get_no_show_report(
     let target_date = params
         .date
         .parse::<chrono::NaiveDate>()
-        .map_err(|_| AppError::validation(I18nKey::InvalidDateFormat))?;
+        .map_err(|_e| AppError::validation(I18nKey::InvalidDateFormat))?;
 
     let employee_ids = params.employee_ids.as_ref().map(|s| {
         s.split(',')
