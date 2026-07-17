@@ -11,6 +11,7 @@ import type { MenuGroupType, MenuLinkType } from "@/hooks/use-nav-menu-items";
 import Button from "@/components/ui/button";
 import { useFilteredMenuItems } from "@/hooks/use-nav-menu-items";
 import { useWorkspace } from "@/hooks/use-workspace";
+import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 
@@ -269,7 +270,16 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
             ) : (
               <SidebarLink
                 icon={item.icon}
-                isActive={item.exact ? location.pathname === item.to : location.pathname.startsWith(item.to)}
+                isActive={
+                  item.exact
+                    ? location.pathname === item.to
+                    // /shifts prefix overlaps /shifts/rules — don't match rules sub-tree.
+                    : item.to === ROUTES.SHIFTS
+                      ? location.pathname === item.to ||
+                        (location.pathname.startsWith(item.to + "/") &&
+                         !location.pathname.startsWith(ROUTES.SHIFTS_RULES))
+                      : location.pathname.startsWith(item.to)
+                }
                 isCollapsed={isCollapsed}
                 label={item.label}
                 testId={item.testId}

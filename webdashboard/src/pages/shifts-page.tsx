@@ -1,12 +1,15 @@
+import { Link } from "@tanstack/react-router";
+import { Plus } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
 import { useMonthlyRoster } from "@/components/shifts/hooks/use-monthly-roster";
 import { RosterToolbar } from "@/components/shifts/roster-toolbar";
+import { Typography } from "@/components/ui/typography";
+import { ROUTES } from "@/lib/routes";
 
 import { ShiftsContent } from "./shifts/content";
 import { EmptyEmployeeState } from "./shifts/employee-selector";
-import { ShiftsHeader } from "./shifts/header";
 import { useShifts } from "./shifts/hooks/use-shifts";
 import { ShiftsModals } from "./shifts/modals";
 import { ShiftsTabs } from "./shifts/tabs";
@@ -35,14 +38,34 @@ export default function ShiftsPage() {
 
   return (
     <div className="space-y-6">
-      <ShiftsHeader />
+      <div>
+        <Typography className="font-bold mb-0.5 normal-case"
+          data-testid="shifts-title"
+          variant="h3"
+        >
+          {t("shifts.title")}
+        </Typography>
+        <Typography className="text-xs text-slate-500 dark:text-slate-400 font-medium opacity-80" variant="small">
+          {t("shifts.subtitle")}
+        </Typography>
+      </div>
 
-      <ShiftsTabs 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
-        setViewMode={setViewMode}
-        viewMode={viewMode}
-      />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <ShiftsTabs
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          setViewMode={setViewMode}
+          viewMode={viewMode}
+        />
+        <Link className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-5 py-2 rounded-xl flex items-center gap-2 shadow-md transition-all text-center"
+          to={ROUTES.SHIFTS_NEW}
+        >
+          <Plus className="w-5 h-5" />
+          <span className="text-xs uppercase tracking-widest">
+            {t("shifts.create_btn")}
+          </span>
+        </Link>
+      </div>
 
       {activeTab === "weekly-roster" && (
         <RosterToolbar 

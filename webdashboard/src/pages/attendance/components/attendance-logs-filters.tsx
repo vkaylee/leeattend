@@ -24,10 +24,15 @@ interface AttendanceLogsFiltersProps {
 
 function DateFilterButtons({ filterMode, handleFilterModeChange, specificMonth, handleSpecificMonthChange }: { filterMode: FilterMode, handleFilterModeChange: (mode: FilterMode) => void, specificMonth: { month: number, year: number }, handleSpecificMonthChange: (m: number, y: number) => void }) {
   const { t } = useTranslation();
+  const now = new Date();
+  const curMonth = now.getMonth() + 1; const curYear = now.getFullYear();
+  const prev = new Date(now); prev.setMonth(prev.getMonth() - 1);
+  const prevMonth = prev.getMonth() + 1; const prevYear = prev.getFullYear();
+  const modeLabel = (mode: string) => mode === "this_month" ? `Tháng ${curMonth}/${curYear}` : `Tháng ${prevMonth}/${prevYear}`;
   return (
     <div className="flex items-center bg-slate-100 dark:bg-slate-700/50 rounded-2xl p-1 shadow-inner border border-slate-200 dark:border-slate-700/50">
       {(["this_month", "last_month"] as const).map((mode) => (
-        <Button className={cn("px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", filterMode === mode ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200")} key={mode} onClick={() => { handleFilterModeChange(mode); }} type="button" variant="ghost">{t(`common.filters.${mode}`)}</Button>
+        <Button className={cn("px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", filterMode === mode ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200")} key={mode} onClick={() => { handleFilterModeChange(mode); }} type="button" variant="ghost">{modeLabel(mode)}</Button>
       ))}
       <div className="h-6 w-px bg-slate-200 dark:bg-slate-600 mx-1" />
       <div className="relative group">

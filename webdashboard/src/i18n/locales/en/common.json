@@ -288,7 +288,7 @@
     "from_start": "From Start",
     "day_short": "day",
     "days_short": "days",
-    "month_short": "Month",
+    "month_short": "Month {{month}}",
     "expired": "Expired",
     "upcoming": "Upcoming",
     "segment": "Segment",
@@ -866,8 +866,6 @@
     },
     "filters": {
       "title": "Filters",
-      "this_month": "This Month",
-      "last_month": "Last Month",
       "custom": "Custom",
       "specific_month": "Select month..."
     },

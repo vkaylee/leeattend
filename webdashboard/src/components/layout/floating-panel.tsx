@@ -9,6 +9,7 @@ import Button from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { useFilteredMenuItems } from "@/hooks/use-nav-menu-items";
+import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 // ── Types ──────────────────────────────────────────────────────────
@@ -154,7 +155,11 @@ export default function FloatingPanel({
             isActive={
               item.exact
                 ? location.pathname === item.to
-                : location.pathname === item.to || location.pathname.startsWith(item.to + "/")
+                : item.to === ROUTES.SHIFTS
+                  ? location.pathname === item.to ||
+                    (location.pathname.startsWith(item.to + "/") &&
+                     !location.pathname.startsWith(ROUTES.SHIFTS_RULES))
+                  : location.pathname === item.to || location.pathname.startsWith(item.to + "/")
             }
             item={item}
             key={item.to}

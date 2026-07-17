@@ -7,11 +7,8 @@ import { MonthYearPicker } from "../month-year-picker";
 // Mock i18next
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
- 
     t: (key: string, options?: { month: number }) => {
         if (key === "common.month_short" && options) return `Tháng ${options.month}`;
-        if (key === "common.filters.last_month") return "Tháng trước";
-        if (key === "common.filters.this_month") return "Tháng này";
         return key;
     },
   }),
@@ -55,19 +52,23 @@ describe("MonthYearPicker", () => {
   it("sets last month when shortcut is clicked", () => {
     render(<MonthYearPicker month={5} onChange={onChange} year={2026} />);
 
-    fireEvent.click(screen.getByText("Tháng trước"));
-    
     const d = new Date();
     d.setMonth(d.getMonth() - 1);
-    expect(onChange).toHaveBeenCalledWith(d.getMonth() + 1, d.getFullYear());
+    const prevMonth = d.getMonth() + 1;
+    const prevYear = d.getFullYear();
+
+    fireEvent.click(screen.getByText(`Tháng ${prevMonth}/${prevYear}`));
+    expect(onChange).toHaveBeenCalledWith(prevMonth, prevYear);
   });
 
   it("sets current month when shortcut is clicked", () => {
     render(<MonthYearPicker month={1} onChange={onChange} year={2020} />);
 
-    fireEvent.click(screen.getByText("Tháng này"));
-    
     const d = new Date();
-    expect(onChange).toHaveBeenCalledWith(d.getMonth() + 1, d.getFullYear());
+    const curMonth = d.getMonth() + 1;
+    const curYear = d.getFullYear();
+
+    fireEvent.click(screen.getByText(`Tháng ${curMonth}/${curYear}`));
+    expect(onChange).toHaveBeenCalledWith(curMonth, curYear);
   });
 });

@@ -28,10 +28,19 @@ export function MonthYearPicker({
 }: MonthYearPickerProps) {
   const { t } = useTranslation();
 
+  const now = new Date();
+  const curMonth = now.getMonth() + 1;
+  const curYear = now.getFullYear();
+
+  const prev = new Date(now);
+  prev.setMonth(prev.getMonth() - 1);
+  const prevMonth = prev.getMonth() + 1;
+  const prevYear = prev.getFullYear();
+
   const handleYearChange = (delta: number) => { onChange(month, year + delta); };
   const handleMonthClick = (m: number) => { onChange(m, year); };
-  const setLastMonth = () => { const d = new Date(); d.setMonth(d.getMonth() - 1); onChange(d.getMonth() + 1, d.getFullYear()); };
-  const setCurrentMonth = () => { const d = new Date(); onChange(d.getMonth() + 1, d.getFullYear()); };
+  const setLastMonth = () => { onChange(prevMonth, prevYear); };
+  const setCurrentMonth = () => { onChange(curMonth, curYear); };
 
   return (
     <div className={cn("flex flex-col gap-6 p-2 bg-white dark:bg-slate-900 rounded-[2rem]", className)}>
@@ -65,8 +74,8 @@ export function MonthYearPicker({
       {/* Shortcuts */}
       {showShortcuts ? (
         <div className="flex gap-3 pt-2 border-t border-slate-50 dark:border-slate-800">
-          <Button className="flex-1 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:bg-primary-950 hover:border-primary-100 dark:border-primary-800 transition-all active:scale-95" onClick={setLastMonth} type="button" variant="ghost">{t("common.filters.last_month")}</Button>
-          <Button className="flex-1 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:bg-primary-950 hover:border-primary-100 dark:border-primary-800 transition-all active:scale-95" onClick={setCurrentMonth} type="button" variant="ghost">{t("common.filters.this_month")}</Button>
+          <Button className="flex-1 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:bg-primary-950 hover:border-primary-100 dark:border-primary-800 transition-all active:scale-95" onClick={setLastMonth} type="button" variant="ghost">{t("common.month_short", { month: prevMonth })}/{prevYear}</Button>
+          <Button className="flex-1 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:bg-primary-950 hover:border-primary-100 dark:border-primary-800 transition-all active:scale-95" onClick={setCurrentMonth} type="button" variant="ghost">{t("common.month_short", { month: curMonth })}/{curYear}</Button>
         </div>
       ) : null}
     </div>

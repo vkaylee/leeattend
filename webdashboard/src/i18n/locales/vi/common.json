@@ -288,7 +288,7 @@
     "from_start": "Từ đầu",
     "day_short": "ngày",
     "days_short": "ngày",
-    "month_short": "Tháng",
+    "month_short": "Tháng {{month}}",
     "expired": "Đã hết hạn",
     "upcoming": "Sắp tới",
     "segment": "Dòng lương",
@@ -834,8 +834,6 @@
     },
     "filters": {
       "title": "Bộ lọc",
-      "this_month": "Tháng này",
-      "last_month": "Tháng trước",
       "custom": "Tùy chỉnh",
       "specific_month": "Chọn tháng..."
     },

@@ -47,6 +47,12 @@ function FilterModeSelector({
   specificMonth: ReportFiltersProps["specificMonth"];
   t: ReportFiltersProps["t"];
 }) {
+  const now = new Date();
+  const curMonth = now.getMonth() + 1; const curYear = now.getFullYear();
+  const prev = new Date(now); prev.setMonth(prev.getMonth() - 1);
+  const prevMonth = prev.getMonth() + 1; const prevYear = prev.getFullYear();
+  const modeLabel = (mode: string) => mode === "this_month" ? `THÁNG ${curMonth}/${curYear}` : `THÁNG ${prevMonth}/${prevYear}`;
+
   return (
     <div className="flex items-center bg-slate-100 dark:bg-slate-700/50 rounded-[1.5rem] p-1.5 shadow-inner border border-slate-200 dark:border-slate-700/50">
       {(["this_month", "last_month"] as const).map(mode => (
@@ -61,7 +67,7 @@ function FilterModeSelector({
           onClick={() => { onFilterModeChange(mode); }}
           variant="ghost"
         >
-          {t(`common.filters.${mode}`).toUpperCase()}
+          {modeLabel(mode)}
         </Button>
       ))}
       <div className="h-6 w-px bg-slate-200 dark:bg-slate-600 mx-2 opacity-50" />
