@@ -279,6 +279,108 @@ fn test_overnight_shift_with_overtime() {
     assert_eq!(meta["tier"], "shift_window");
 }
 
+/// Regression test for the "night-shift dropped check-out" bug (SX Đêm KNGC).
+///
+/// Shift 19:30–04:30 (next day) with a break 23:30–00:30 that CROSSES midnight
+/// (break_end = 00:30 → 1470 min, i.e. >= 1440). The employee records a 2-punch
+/// day: 19:21 check-in (+ device duplicate) and 07:31 next-day check-out.
+///
+/// Bug: splitting on the midnight-crossing break produced a `second_half`
+/// segment starting at 00:30 on day D+1. `build_time_entries` then discarded
+/// that segment (its `date_naive() != self.date` guard), so the report showed
+/// check-out 23:30 instead of the real 07:31.
+///
+/// Fix: a break whose end crosses midnight is NOT a valid split point. The
+/// session must stay continuous (19:21 → 07:31) as a single shift-window
+/// session with NO `break_split` tag. The attendance calculator still deducts
+/// the break / accrues break-OT from the shift config, so hours are unchanged.
+#[test]
+fn test_overnight_break_crossing_midnight_not_split() {
+    let strategy = get_strategy();
+    // 19:30–04:30, break 23:30–00:30 (crosses midnight → break_end 1470 >= 1440)
+    let shift = PairingShiftConfig::new(
+        1170,       // 19:30
+        1710,       // 04:30 next day
+        Some(1410), // 23:30
+        Some(1470), // 00:30 next day
+        None,
+        None,
+    );
+
+    // 19:21 = 1161 min (+ device duplicate), 07:31 next day = 1891 min
+    let logs = vec![
+        make_log(1161), // 19:21 check-in
+        make_log(1161), // 19:21 device duplicate
+        make_log(1891), // 07:31 next-day check-out
+    ];
+
+    let sessions = strategy.pair(&logs, Some(&shift));
+
+    // Exactly ONE continuous session — the break must not split it.
+    assert_eq!(
+        sessions.len(),
+        1,
+        "midnight-crossing break must not split the session (got {:?})",
+        sessions
+            .iter()
+            .map(|s| (s.start_minutes(), s.end_minutes()))
+            .collect::<Vec<_>>()
+    );
+
+    // Session spans the real check-in → real check-out.
+    assert_eq!(sessions[0].start_minutes(), 1161);
+    assert_eq!(
+        sessions[0].end_minutes(),
+        Some(1891),
+        "BUG: session must end at the real 07:31 check-out (1891 min), not the break start"
+    );
+    assert!(
+        sessions[0].end_time().is_some(),
+        "BUG: session end_time() is None — report would show no check-out"
+    );
+
+    let meta = sessions[0].metadata().unwrap();
+    assert_eq!(meta["tier"], "shift_window");
+    assert!(
+        meta.get("break_split").is_none(),
+        "continuous session must not carry a break_split tag"
+    );
+}
+
+/// Guard precision: a night shift whose break is BEFORE midnight still splits.
+///
+/// Shift 19:30–04:30 with a break 20:00–21:00 (both boundaries < 1440). Both
+/// resulting segments start on the shift's calendar day D, so the split is
+/// valid and must still happen. This proves the fix only suppresses
+/// midnight-crossing breaks, not all night-shift breaks.
+#[test]
+fn test_overnight_break_before_midnight_still_splits() {
+    let strategy = get_strategy();
+    // 19:30–04:30, break 20:00–21:00 (pre-midnight → 1200/1260, both < 1440)
+    let shift = PairingShiftConfig::new_with_breaks(
+        1170, // 19:30
+        1710, // 04:30 next day
+        vec![BreakInterval::new(1200, 1260)],
+        None,
+        None,
+    );
+
+    let logs = vec![
+        make_log(1161), // 19:21 check-in
+        make_log(1891), // 07:31 next-day check-out
+    ];
+
+    let sessions = strategy.pair(&logs, Some(&shift));
+
+    assert_eq!(sessions.len(), 2, "pre-midnight break must still split");
+    assert_eq!(sessions[0].start_minutes(), 1161);
+    assert_eq!(sessions[0].end_minutes(), Some(1200));
+    assert_eq!(sessions[0].metadata().unwrap()["break_split"], "first_half");
+    assert_eq!(sessions[1].start_minutes(), 1260);
+    assert_eq!(sessions[1].end_minutes(), Some(1891));
+    assert_eq!(sessions[1].metadata().unwrap()["break_split"], "second_half");
+}
+
 #[test]
 fn test_single_log_in_checkin_window_missing_checkout() {
     let strategy = get_strategy();

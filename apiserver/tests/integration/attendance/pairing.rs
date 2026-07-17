@@ -188,13 +188,22 @@ fn tier2_overnight_shift() {
         log(1805), // 06:05 — near shift end 06:00 next day
     ];
 
+    // The configured break (02:00–02:30 = 1560/1590) lies entirely PAST
+    // midnight. With only a check-in / check-out (no real punch at the break),
+    // splitting there would emit a `second_half` starting on the next calendar
+    // day, which `build_time_entries` discards — silently dropping the real
+    // check-out (the reported night-shift bug). A midnight-crossing break must
+    // therefore NOT split: the session stays continuous 21:55 → 06:05 and the
+    // attendance calculator still deducts the break from the shift config.
     let sessions = strategy().pair(&logs, Some(&shift));
-    assert_eq!(sessions.len(), 2);
+    assert_eq!(sessions.len(), 1);
     assert_eq!(sessions[0].start_minutes(), 1315);
-    assert_eq!(sessions[0].end_minutes(), Some(1560));
-    assert_eq!(sessions[1].start_minutes(), 1590);
-    assert_eq!(sessions[1].end_minutes(), Some(1805));
+    assert_eq!(sessions[0].end_minutes(), Some(1805));
     assert_eq!(tier(&sessions[0]), "shift_window");
+    assert!(
+        sessions[0].metadata().unwrap().get("break_split").is_none(),
+        "continuous overnight session must not carry a break_split tag"
+    );
 }
 
 #[test]

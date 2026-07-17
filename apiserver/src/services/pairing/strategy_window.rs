@@ -5,6 +5,11 @@ use crate::services::pairing::types::{
 
 const SHIFT_WINDOW_BUFFER: i32 = 120;
 
+/// Minutes in one calendar day. A break whose `end_minutes()` reaches or
+/// exceeds this value would place the post-break segment on the *next*
+/// calendar day (D+1) relative to the shift date.
+const MINUTES_PER_DAY: i32 = 1440;
+
 pub(crate) fn pair_by_shift_window(
     logs: &[LogEvent],
     shift: &PairingShiftConfig,
@@ -49,7 +54,23 @@ pub(crate) fn pair_by_shift_window(
         let end_val = last_out_log.minutes();
         let mut active_breaks = Vec::new();
         for b in shift.breaks() {
-            if start < b.start_minutes() && end_val > b.end_minutes() {
+            // A break is a valid split point only when the segment that starts
+            // *after* it still lands on the shift's calendar day (D). A break
+            // whose end crosses midnight (end >= MINUTES_PER_DAY) would place the
+            // post-break segment on day D+1, where `build_time_entries` discards
+            // it via its `date_naive() != self.date` guard — silently dropping the
+            // employee's real check-out (the reported night-shift bug).
+            //
+            // In that case we intentionally do NOT split: the session stays
+            // continuous (check-in → check-out) and the attendance calculator
+            // still deducts the break / accrues break-OT from the shift config
+            // (see `calculate_buckets`), so the computed hours are unchanged.
+            // Splitting is only meaningful when a real punch materializes the
+            // break; a synthetic config boundary crossing midnight must not.
+            if start < b.start_minutes()
+                && end_val > b.end_minutes()
+                && b.end_minutes() < MINUTES_PER_DAY
+            {
                 active_breaks.push(b.clone());
             }
         }
