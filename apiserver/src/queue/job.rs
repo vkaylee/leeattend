@@ -57,7 +57,7 @@ pub enum ReportType {
 }
 
 /// Date range for report generation.
-#[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct DateRange {
     pub start: NaiveDate,
     pub end: NaiveDate,
@@ -114,6 +114,10 @@ pub struct LogIngestionPayload {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReprocessPayload {
     pub employee_id: Uuid,
+    /// When set, reprocess this exact employment instead of the employee's
+    /// active one — required when a specific employment's shift was reassigned.
+    #[serde(default)]
+    pub employment_id: Option<Uuid>,
     pub date_range: DateRange,
 }
 

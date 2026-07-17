@@ -14,6 +14,70 @@ use crate::handlers::common::MemberContext;
 
 use crate::AppState;
 
+/// Enqueue attendance-reprocess jobs (one per target) sharing a single parent job.
+///
+/// `targets` is `(employee_id, employment_id?)`: pass `Some(employment_id)` when a
+/// specific employment must be reprocessed (e.g. shift reassignment), `None` to let
+/// the worker resolve the employee's active employment.
+///
+/// Returns the parent job id. Assumes `targets` is non-empty.
+pub async fn enqueue_reprocess_jobs(
+    queue: &crate::queue::JobQueue,
+    workspace_id: Uuid,
+    user_id: Uuid,
+    targets: &[(Uuid, Option<Uuid>)],
+    range: crate::queue::DateRange,
+) -> Result<Uuid, String> {
+    let parent_job_id = crate::utils::id::new_id();
+    let total_batches = u32::try_from(targets.len()).unwrap_or(0);
+
+    let meta = crate::queue::JobMetadata::with_date_range(
+        parent_job_id,
+        total_batches,
+        workspace_id,
+        user_id,
+        Some(crate::queue::TaskType::ReprocessAttendance),
+        None,
+        range,
+        Some(serde_json::json!({
+            "start_date": range.start.to_string(),
+            "end_date": range.end.to_string(),
+            "employee_count": total_batches
+        })),
+    );
+
+    queue
+        .create_job_metadata(&meta)
+        .await
+        .map_err(|e| format!("Failed to create job metadata: {e}"))?;
+
+    let jobs: Vec<crate::queue::Job> = targets
+        .iter()
+        .enumerate()
+        .map(|(idx, (employee_id, employment_id))| {
+            crate::queue::Job::with_priority(
+                parent_job_id,
+                u32::try_from(idx).unwrap_or(0),
+                crate::queue::TaskType::ReprocessAttendance,
+                workspace_id,
+                crate::queue::JobPayload::ReprocessAttendance(crate::queue::ReprocessPayload {
+                    employee_id: *employee_id,
+                    employment_id: *employment_id,
+                    date_range: range,
+                }),
+                crate::queue::JobPriority::Normal,
+            )
+        })
+        .collect();
+
+    queue
+        .enqueue_jobs(jobs)
+        .await
+        .map_err(|e| format!("Failed to enqueue jobs: {e}"))?;
+
+    Ok(parent_job_id)
+}
+
 #[derive(Deserialize, utoipa::IntoParams)]
 pub struct AttendanceLogQuery {
     pub employee_id: Option<Uuid>,
@@ -348,66 +412,26 @@ pub async fn force_reprocess_all_attendance(
         ));
     }
 
-    let parent_job_id = crate::utils::id::new_id();
-    let total_batches = u32::try_from(employees.len()).unwrap_or(0);
+    let targets: Vec<(Uuid, Option<Uuid>)> = employees.iter().map(|emp| (emp.id(), None)).collect();
 
     tracing::info!(
         workspace_id = %ctx.workspace_id,
-        employee_count = total_batches,
-        job_id = %parent_job_id,
+        employee_count = targets.len(),
         "Enqueuing bulk reprocess jobs"
     );
 
-    let meta = crate::queue::JobMetadata::with_date_range(
-        parent_job_id,
-        total_batches,
+    let parent_job_id = enqueue_reprocess_jobs(
+        &queue,
         ctx.workspace_id,
         ctx.user_id,
-        Some(crate::queue::TaskType::ReprocessAttendance),
-        None, // No report type
+        &targets,
         crate::queue::DateRange {
             start: query.start_date,
             end: query.end_date,
         },
-        Some(serde_json::json!({
-            "start_date": query.start_date.to_string(),
-            "end_date": query.end_date.to_string(),
-            "employee_count": total_batches
-        })),
-    );
-
-    queue
-        .create_job_metadata(&meta)
-        .await
-        .map_err(|e| AppError::Internal(format!("Failed to create job metadata: {e}")))?;
-
-    let jobs: Vec<crate::queue::Job> = employees
-        .into_iter()
-        .enumerate()
-        .map(|(idx, emp)| {
-            crate::queue::Job::with_priority(
-                parent_job_id,
-                u32::try_from(idx).unwrap_or(0),
-                crate::queue::TaskType::ReprocessAttendance,
-                ctx.workspace_id,
-                crate::queue::JobPayload::ReprocessAttendance(crate::queue::ReprocessPayload {
-                    employee_id: emp.id(),
-                    date_range: crate::queue::DateRange {
-                        start: query.start_date,
-                        end: query.end_date,
-                    },
-                }),
-                crate::queue::JobPriority::Normal,
-            )
-        })
-        .collect();
-
-    tracing::debug!(job_count = jobs.len(), "Enqueuing jobs to Redis");
-
-    queue
-        .enqueue_jobs(jobs)
-        .await
-        .map_err(|e| AppError::Internal(format!("Failed to enqueue jobs: {e}")))?;
+    )
+    .await
+    .map_err(AppError::Internal)?;
 
     tracing::info!(job_id = %parent_job_id, "Bulk reprocess jobs enqueued successfully");
 

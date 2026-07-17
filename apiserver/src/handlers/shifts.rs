@@ -59,6 +59,30 @@ pub struct PaginatedShiftRosters {
     pub limit: i64,
 }
 
+/// Upper bound on how far back a shift reassignment triggers recalculation.
+const MAX_ASSIGN_REPROCESS_DAYS: i64 = 90;
+
+/// Clamp a shift-assignment window to the range that actually needs attendance
+/// recalculation: nothing in the future (no punches yet) and no further back than
+/// [`MAX_ASSIGN_REPROCESS_DAYS`]. `end` is `None` for open-ended assignments.
+///
+/// Returns `None` when the window is entirely in the future — the common case for
+/// HR pre-assigning next month's shifts — so no job is enqueued.
+fn compute_assign_reprocess_range(
+    start: NaiveDate,
+    end: Option<NaiveDate>,
+    today: NaiveDate,
+) -> Option<(NaiveDate, NaiveDate)> {
+    let recalc_end = end.unwrap_or(today).min(today);
+    let recalc_start = start.max(today - chrono::Duration::days(MAX_ASSIGN_REPROCESS_DAYS));
+    // Empty window: either entirely in the future (start beyond end) or entirely
+    // older than the reprocess floor (floor pushed start past end).
+    if recalc_start > recalc_end {
+        return None;
+    }
+    Some((recalc_start, recalc_end))
+}
+
 /// Reprocess attendance for a single (employee, date) after a roster change.
 async fn reprocess_after_roster_change(
     state: &AppState,
@@ -287,7 +311,82 @@ pub async fn assign_shift(
         cache.invalidate(ctx.workspace_id).await;
     }
 
+    // Recalculate attendance for days already worked under the reassigned shift.
+    // Best-effort: the assignment is already persisted, so a queue failure must
+    // not fail the request — it is logged and can be re-driven via bulk reprocess.
+    let today = chrono::Utc::now()
+        .with_timezone(&workspace_tz(&state, ctx.workspace_id).await)
+        .date_naive();
+    if let Some((recalc_start, recalc_end)) =
+        compute_assign_reprocess_range(req.start_date, req.end_date, today)
+    {
+        match resolve_and_enqueue_reprocess(
+            &state,
+            &ctx,
+            req.employment_id,
+            recalc_start,
+            recalc_end,
+        )
+        .await
+        {
+            Ok(job_id) => tracing::info!(
+                job_id = %job_id,
+                employment_id = %req.employment_id,
+                start = %recalc_start,
+                end = %recalc_end,
+                "Enqueued attendance reprocess after shift assignment"
+            ),
+            Err(e) => tracing::error!(
+                employment_id = %req.employment_id,
+                "Failed to enqueue reprocess after shift assignment: {e}"
+            ),
+        }
+    }
+
     Ok(StatusCode::OK)
+}
+
+/// Resolve the timezone for a workspace, defaulting to UTC on any lookup failure.
+async fn workspace_tz(state: &AppState, workspace_id: Uuid) -> chrono_tz::Tz {
+    let tz_str = match state
+        .core()
+        .workspace_repo()
+        .get_workspace_by_id(workspace_id)
+        .await
+    {
+        Ok(Some(ws)) => ws.timezone().to_string(),
+        _ => "UTC".to_string(),
+    };
+    crate::utils::tz::parse_workspace_tz(&tz_str)
+}
+
+/// Resolve the owning employee for an employment and enqueue a reprocess job
+/// pinned to that exact employment.
+async fn resolve_and_enqueue_reprocess(
+    state: &AppState,
+    ctx: &MemberContext,
+    employment_id: Uuid,
+    start: NaiveDate,
+    end: NaiveDate,
+) -> Result<Uuid, String> {
+    let employment = state
+        .employees()
+        .employment_repo()
+        .get_employment_by_id(&ctx.auth_token, employment_id)
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("Employment not found: {employment_id}"))?;
+
+    let queue = state.infra().job_queue().map_err(|e| e.to_string())?;
+
+    crate::handlers::attendance::logs::enqueue_reprocess_jobs(
+        &queue,
+        ctx.workspace_id,
+        ctx.user_id,
+        &[(employment.employee_id(), Some(employment_id))],
+        crate::queue::DateRange { start, end },
+    )
+    .await
 }
 
 // --- Roster Handlers ---
@@ -603,4 +702,91 @@ pub async fn delete_roster(
     reprocess_after_roster_change(&state, ctx.workspace_id, active_employment_id, date).await;
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::compute_assign_reprocess_range;
+    use chrono::NaiveDate;
+
+    fn d(y: i32, m: u32, day: u32) -> NaiveDate {
+        NaiveDate::from_ymd_opt(y, m, day).unwrap()
+    }
+
+    #[test]
+    fn all_future_assignment_is_skipped() {
+        let today = d(2026, 7, 17);
+        // HR assigns next month's shifts.
+        assert_eq!(
+            compute_assign_reprocess_range(d(2026, 8, 1), Some(d(2026, 8, 31)), today),
+            None
+        );
+    }
+
+    #[test]
+    fn open_ended_future_assignment_is_skipped() {
+        let today = d(2026, 7, 17);
+        assert_eq!(
+            compute_assign_reprocess_range(d(2026, 7, 18), None, today),
+            None
+        );
+    }
+
+    #[test]
+    fn bridging_assignment_clamps_end_to_today() {
+        let today = d(2026, 7, 17);
+        // Spans past into future; only the worked part [10, today] is recalculated.
+        assert_eq!(
+            compute_assign_reprocess_range(d(2026, 7, 10), Some(d(2026, 8, 10)), today),
+            Some((d(2026, 7, 10), today))
+        );
+    }
+
+    #[test]
+    fn open_ended_from_past_clamps_end_to_today() {
+        let today = d(2026, 7, 17);
+        assert_eq!(
+            compute_assign_reprocess_range(d(2026, 7, 1), None, today),
+            Some((d(2026, 7, 1), today))
+        );
+    }
+
+    #[test]
+    fn fully_past_assignment_is_reprocessed_in_full() {
+        let today = d(2026, 7, 17);
+        assert_eq!(
+            compute_assign_reprocess_range(d(2026, 6, 1), Some(d(2026, 6, 30)), today),
+            Some((d(2026, 6, 1), d(2026, 6, 30)))
+        );
+    }
+
+    #[test]
+    fn far_past_start_is_clamped_to_90_days() {
+        let today = d(2026, 7, 17);
+        // Start one year ago -> clamped to today - 90d.
+        let (start, end) =
+            compute_assign_reprocess_range(d(2025, 7, 17), Some(today), today).unwrap();
+        assert_eq!(start, today - chrono::Duration::days(90));
+        assert_eq!(end, today);
+    }
+
+    #[test]
+    fn fully_past_window_older_than_floor_is_skipped() {
+        let today = d(2026, 7, 17);
+        // Whole window sits before today - 90d (2026-04-18): nothing recent to
+        // recalculate, so no job — must not produce an inverted range.
+        assert_eq!(
+            compute_assign_reprocess_range(d(2026, 3, 1), Some(d(2026, 3, 31)), today),
+            None
+        );
+    }
+
+    #[test]
+    fn single_day_today_is_included() {
+        let today = d(2026, 7, 17);
+        assert_eq!(
+            compute_assign_reprocess_range(today, Some(today), today),
+            Some((today, today))
+        );
+    }
 }

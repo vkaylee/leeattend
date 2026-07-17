@@ -180,6 +180,7 @@ async fn test_worker_uses_only_one_connection_per_job() {
             max_retries: 3,
             trace_context: None,
             payload: JobPayload::ReprocessAttendance(apiserver::queue::ReprocessPayload {
+                employment_id: None,
                 employee_id: user_id,
                 date_range: DateRange {
                     start: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),

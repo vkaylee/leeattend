@@ -39,19 +39,27 @@ impl ReprocessAttendanceHandler {
         );
 
         let auth_token = crate::diesel_pool::TenantAuthToken::system_override(job.workspace_id);
-        let employee = deps
-            .employee_repo
-            .get_employee_by_id(payload.employee_id, &auth_token)
-            .await
-            .map_err(|e| e.to_string())?
-            .ok_or_else(|| format!("Employee not found: {}", payload.employee_id))?;
 
-        let active_employment_id = employee.active_employment_id().ok_or_else(|| {
-            format!(
-                "No active employment found for employee: {}",
-                payload.employee_id
-            )
-        })?;
+        // Prefer the exact employment when the caller pinned one (e.g. shift
+        // reassignment), otherwise fall back to the employee's active employment.
+        let active_employment_id = match payload.employment_id {
+            Some(id) => id,
+            None => {
+                let employee = deps
+                    .employee_repo
+                    .get_employee_by_id(payload.employee_id, &auth_token)
+                    .await
+                    .map_err(|e| e.to_string())?
+                    .ok_or_else(|| format!("Employee not found: {}", payload.employee_id))?;
+
+                employee.active_employment_id().ok_or_else(|| {
+                    format!(
+                        "No active employment found for employee: {}",
+                        payload.employee_id
+                    )
+                })?
+            }
+        };
 
         // Initialize pairing service from shared deps
         let pairing_service = deps.pairing_service();
@@ -116,16 +124,27 @@ mod tests {
     use chrono::{NaiveDate, Utc};
     use uuid::Uuid;
 
-    #[tokio::test]
-    async fn test_reprocess_attendance_handler_success() {
-        let ws_id = Uuid::new_v4();
-        let parent_job_id = Uuid::new_v4();
-        let emp_id = Uuid::new_v4();
-        let employment_id = Uuid::new_v4();
+    /// How the handler is expected to resolve the employment to reprocess.
+    enum EmploymentResolution {
+        /// `employment_id` is `None`: handler must look up the employee and use
+        /// its active employment. `get_employee_by_id` is expected to be called.
+        ViaActiveEmployee,
+        /// `employment_id` is `Some`: handler must use it directly and never call
+        /// `get_employee_by_id`.
+        Pinned,
+    }
 
-        let mut queue = MockQueueRepository::new();
-        queue.expect_get_job_metadata().returning(|_| Ok(None));
-
+    /// Build a fully-mocked [`WorkerDeps`] whose pairing pipeline succeeds with no
+    /// logs (so `reprocess_attendance_range` runs but produces empty results).
+    ///
+    /// `resolution` controls the employee-repo expectation so a test can assert the
+    /// handler took the pinned-employment path without touching the employee lookup.
+    fn build_deps(
+        emp_id: Uuid,
+        employment_id: Uuid,
+        ws_id: Uuid,
+        resolution: EmploymentResolution,
+    ) -> crate::worker::WorkerDeps {
         let mut time_entry_repo = MockTimeEntryRepository::new();
         time_entry_repo
             .expect_replace_time_entries()
@@ -154,9 +173,9 @@ mod tests {
         let sched_employment_id = employment_id;
         roster_repo.expect_get_workspace_schedules().returning(
             move |_, _, start_date, end_date, _, _, _| {
-                let schedules = vec![
+                let empty_schedule = |date| {
                     crate::models::EffectiveSchedule::new(
-                        start_date,
+                        date,
                         None,
                         "none".to_string(),
                         None,
@@ -175,29 +194,9 @@ mod tests {
                         false,
                         false,
                         None,
-                    ),
-                    crate::models::EffectiveSchedule::new(
-                        end_date,
-                        None,
-                        "none".to_string(),
-                        None,
-                        None,
-                        None,
-                        None,
-                        None,
-                        None,
-                        None,
-                        None,
-                        None,
-                        None,
-                        None,
-                        None,
-                        vec![],
-                        false,
-                        false,
-                        None,
-                    ),
-                ];
+                    )
+                };
+                let schedules = vec![empty_schedule(start_date), empty_schedule(end_date)];
                 Box::pin(async move {
                     Ok((
                         vec![crate::models::EmployeeSchedule::new(
@@ -241,22 +240,34 @@ mod tests {
         builder.daily_summary_repo = daily_summary_repo;
 
         let mut emp_repo = crate::repositories::employee::MockEmployeeRepository::new();
-        emp_repo.expect_get_employee_by_id().returning(move |_, _| {
-            Ok(Some(
-                crate::models::Employee::new(
-                    emp_id,
-                    ws_id,
-                    None,
-                    "Test Employee".to_string(),
-                    "EMP001".to_string(),
-                    vec![],
-                    Utc::now(),
-                    Utc::now(),
-                    None,
-                )
-                .with_employment_info(Some(employment_id), None, None),
-            ))
-        });
+        match resolution {
+            EmploymentResolution::ViaActiveEmployee => {
+                emp_repo.expect_get_employee_by_id().returning(move |_, _| {
+                    Ok(Some(
+                        crate::models::Employee::new(
+                            emp_id,
+                            ws_id,
+                            None,
+                            "Test Employee".to_string(),
+                            "EMP001".to_string(),
+                            vec![],
+                            Utc::now(),
+                            Utc::now(),
+                            None,
+                        )
+                        .with_employment_info(
+                            Some(employment_id),
+                            None,
+                            None,
+                        ),
+                    ))
+                });
+            }
+            EmploymentResolution::Pinned => {
+                // Pinned path must not consult the employee lookup at all.
+                emp_repo.expect_get_employee_by_id().never();
+            }
+        }
         emp_repo
             .expect_get_employee_timezone_fallback()
             .returning(|_, _| Ok(chrono_tz::UTC));
@@ -323,16 +334,19 @@ mod tests {
             .returning(|_, _, _| Box::pin(async { Ok(std::collections::HashMap::new()) }));
         builder.holiday_repo = holiday_repo;
 
-        let deps = builder.build();
+        builder.build()
+    }
 
-        let job = Job {
+    fn reprocess_job(ws_id: Uuid, employee_id: Uuid, employment_id: Option<Uuid>) -> Job {
+        Job {
             job_id: Uuid::new_v4(),
-            parent_job_id,
+            parent_job_id: Uuid::new_v4(),
             batch_index: 0,
             task_type: TaskType::ReprocessAttendance,
             workspace_id: ws_id,
             payload: JobPayload::ReprocessAttendance(ReprocessPayload {
-                employee_id: emp_id,
+                employee_id,
+                employment_id,
                 date_range: crate::queue::DateRange {
                     start: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
                     end: NaiveDate::from_ymd_opt(2026, 1, 2).unwrap(),
@@ -343,7 +357,46 @@ mod tests {
             retry_count: 0,
             max_retries: 3,
             trace_context: None,
-        };
+        }
+    }
+
+    #[tokio::test]
+    async fn test_reprocess_attendance_handler_success() {
+        let ws_id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+        let employment_id = Uuid::new_v4();
+
+        let mut queue = MockQueueRepository::new();
+        queue.expect_get_job_metadata().returning(|_| Ok(None));
+
+        let deps = build_deps(
+            emp_id,
+            employment_id,
+            ws_id,
+            EmploymentResolution::ViaActiveEmployee,
+        );
+        let job = reprocess_job(ws_id, emp_id, None);
+
+        let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);
+        let result = ReprocessAttendanceHandler::handle(&queue_arc, &job, &deps).await;
+
+        assert!(result.is_ok(), "Handler failed: {:?}", result.err());
+    }
+
+    /// When `employment_id` is set (shift reassignment), the handler reprocesses
+    /// that exact employment and never resolves the employee's active one — the
+    /// `.never()` expectation on `get_employee_by_id` enforces this.
+    #[tokio::test]
+    async fn test_reprocess_attendance_handler_uses_pinned_employment() {
+        let ws_id = Uuid::new_v4();
+        let emp_id = Uuid::new_v4();
+        let employment_id = Uuid::new_v4();
+
+        let mut queue = MockQueueRepository::new();
+        queue.expect_get_job_metadata().returning(|_| Ok(None));
+
+        let deps = build_deps(emp_id, employment_id, ws_id, EmploymentResolution::Pinned);
+        let job = reprocess_job(ws_id, emp_id, Some(employment_id));
 
         let queue_arc: Arc<dyn crate::repositories::QueueRepository> = Arc::new(queue);
         let result = ReprocessAttendanceHandler::handle(&queue_arc, &job, &deps).await;

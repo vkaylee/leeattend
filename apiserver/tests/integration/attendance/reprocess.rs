@@ -255,6 +255,7 @@ async fn test_force_reprocess_all_attendance_api() {
             apiserver::queue::TaskType::ReprocessAttendance,
             ws_id,
             apiserver::queue::JobPayload::ReprocessAttendance(apiserver::queue::ReprocessPayload {
+                employment_id: None,
                 employee_id: *emp_id,
                 date_range: apiserver::queue::DateRange {
                     start: base_date,
