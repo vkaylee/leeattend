@@ -357,11 +357,11 @@ function RowCells({
           <ChevronRight className={cn("transition-transform duration-200", isExpanded && "rotate-90")} size={14} />
         </Button>
       </td>
-      <td className={cn("px-4 py-2.5 font-mono text-[11px] font-bold uppercase whitespace-nowrap sticky left-[40px] z-10 bg-white group-hover:bg-slate-50", !isFirstInGroup && "text-slate-300")}>
+      <td className={cn("px-4 py-2.5 font-mono text-[11px] font-bold uppercase whitespace-nowrap sticky left-[40px] z-10 bg-white group-hover:bg-slate-50 dark:bg-slate-900 dark:group-hover:bg-slate-800/50 transition-colors", !isFirstInGroup && "text-slate-300")}>
         {formatDate(row.date)}
       </td>
       {!hideEmployeeName && (
-        <td className={cn("px-4 py-2.5 font-bold text-sm tracking-tight uppercase leading-none whitespace-nowrap sticky left-[120px] sm:left-[140px] z-10 bg-white group-hover:bg-slate-50", !isFirstInGroup ? "text-slate-300" : "text-slate-700")}>
+        <td className={cn("px-4 py-2.5 font-bold text-sm tracking-tight uppercase leading-none whitespace-nowrap sticky left-[120px] sm:left-[140px] z-10 bg-white group-hover:bg-slate-50 dark:bg-slate-900 dark:group-hover:bg-slate-800/50 transition-colors", !isFirstInGroup ? "text-slate-300" : "text-slate-700")}>
           {row.employee_name}
         </td>
       )}
