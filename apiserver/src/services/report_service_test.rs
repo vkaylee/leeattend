@@ -17,6 +17,14 @@ mod tests {
     use uuid::Uuid;
 
     // Create manual mocks for the repositories
+    fn empty_condition_type_repo(
+    ) -> Arc<dyn crate::repositories::ConditionTypeRepository> {
+        let mut repo = crate::repositories::condition_type_repository::MockConditionTypeRepository::new();
+        repo.expect_list_condition_types()
+            .returning(|_, _| Box::pin(async move { Ok(vec![]) }));
+        Arc::new(repo)
+    }
+
     struct MockEmployerRepo;
     #[async_trait]
     impl crate::repositories::EmployerRepository for MockEmployerRepo {
@@ -1482,6 +1490,7 @@ mod tests {
         let report_service = ReportService::new(ReportServiceArgs {
             workspace_repo: Arc::new(MockWorkspaceRepo),
             employee_repo: Arc::new(MockEmployeeRepo),
+            condition_type_repo: empty_condition_type_repo(),
             employment_repo: Arc::new(DummyEmploymentRepo),
             time_entry_repo: Arc::new(DummyTimeEntryRepo),
             roster_repo: Arc::new(DummyRosterRepo),
@@ -2618,6 +2627,7 @@ mod tests {
         let report_service = ReportService::new(ReportServiceArgs {
             workspace_repo: Arc::new(MockWorkspaceRepo), // Returns valid workspace
             employee_repo: Arc::new(AbsentEmployeeRepo),
+            condition_type_repo: empty_condition_type_repo(),
             employment_repo: Arc::new(DummyEmploymentRepo),
             time_entry_repo: Arc::new(EmptyTimeEntryRepo),
             roster_repo: Arc::new(ScheduleRosterRepo),
@@ -2797,6 +2807,7 @@ mod tests {
         let report_service = ReportService::new(ReportServiceArgs {
             workspace_repo: Arc::new(MockWorkspaceRepo),
             employee_repo: Arc::new(AbsentEmployeeRepo),
+            condition_type_repo: empty_condition_type_repo(),
             employment_repo: Arc::new(DummyEmploymentRepo),
             time_entry_repo: Arc::new(PresentTimeEntryRepo),
             roster_repo: Arc::new(ScheduleRosterRepo),
@@ -2846,6 +2857,7 @@ mod tests {
         let report_service = ReportService::new(ReportServiceArgs {
             workspace_repo: Arc::new(MockWorkspaceRepo),
             employee_repo: Arc::new(AbsentEmployeeRepo),
+            condition_type_repo: empty_condition_type_repo(),
             employment_repo: Arc::new(DummyEmploymentRepo),
             time_entry_repo: Arc::new(PresentTimeEntryRepo),
             roster_repo: Arc::new(ScheduleRosterRepo),

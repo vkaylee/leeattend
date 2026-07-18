@@ -59,20 +59,8 @@ async fn test_condition_type_crud_lifecycle() {
         .await
         .unwrap();
     let types: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
-    assert!(
-        types.len() >= 5,
-        "Should have at least 5 seeded system types, got {}",
-        types.len()
-    );
-
-    // Verify seeded system types exist
-    let codes: Vec<&str> = types.iter().map(|t| t["code"].as_str().unwrap()).collect();
-    for expected in &["EARLY_LEAVE", "BREASTFEEDING", "MATERNITY", "SICK", "UNPAID"] {
-        assert!(
-            codes.contains(expected),
-            "Expected system type '{expected}' not found in {codes:?}"
-        );
-    }
+    assert!(types.is_empty(), "Catalog should start empty — no system types are pre-seeded");
+    // No pre-seeded types — workspace starts with an empty catalog.
 
     // 2. Create a custom type
     let create_payload = json!({
@@ -200,29 +188,15 @@ async fn test_cannot_delete_system_type() {
     let user_id = factory.user().with_email("sys-type-test@test.local").create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
 
-    // First, list to get a system type ID
-    let response = app
-        .clone()
-        .oneshot(make_req(
-            "GET",
-            &format!("/api/v1/workspaces/{ws_id}/condition-types"),
-            ws_id,
-            user_id,
-            None,
-        ))
-        .await
-        .unwrap();
-
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
-        .await
-        .unwrap();
-    let types: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
-
-    let early_leave = types
-        .iter()
-        .find(|t| t["code"].as_str() == Some("EARLY_LEAVE"))
-        .expect("EARLY_LEAVE system type must exist");
-    let system_type_id = early_leave["id"].as_str().unwrap();
+    // Insert a system type directly (the API always creates non-system types)
+    let system_type_id = Uuid::new_v4();
+    crate::test_execute!(
+        &_test_db.diesel_pools.api,
+        "INSERT INTO condition_type_definitions (id, workspace_id, code, name_i18n, category, is_system, sort_order) \
+         VALUES ($1, $2, 'SYSTEM_TEST', '{\"en\":\"Test\"}', 'general', true, 0)",
+        diesel::sql_types::Uuid, system_type_id,
+        diesel::sql_types::Uuid, ws_id
+    );
 
     // Try to delete a system type
     let response = app

@@ -48,6 +48,7 @@ pub struct PayrollContext {
     pub(crate) emp_tags: Option<Vec<String>>,
     pub(crate) payroll_roster_map: HashMap<(Uuid, NaiveDate), Option<Uuid>>,
     pub(crate) working_conditions: Vec<crate::models::WorkingCondition>,
+    pub(crate) condition_type_catalog: HashMap<String, crate::models::ConditionTypeDefinition>,
     pub(crate) attendance_policy: crate::models::AttendanceRules,
     pub(crate) emp_payroll_configs: Vec<crate::models::EmployeePayrollConfig>,
     pub(crate) ws_payroll_settings_history: Vec<crate::models::PayrollSettings>,
@@ -119,6 +120,7 @@ pub struct PayrollServiceArgs {
     pub roster_repo: Arc<dyn RosterRepository>,
     pub leave_repo: Arc<dyn LeaveRequestRepository>,
     pub policy_repo: Arc<dyn crate::repositories::AttendancePolicyRepository>,
+    pub condition_type_repo: Arc<dyn crate::repositories::ConditionTypeRepository>,
     pub employee_repo: Arc<dyn crate::repositories::EmployeeRepository>,
     pub overtime_policy_repo: Arc<dyn OvertimePolicyRepositoryTrait>,
     pub salary_base_repo:
@@ -137,6 +139,7 @@ pub struct PayrollService {
     roster_repo: Arc<dyn RosterRepository>,
     leave_repo: Arc<dyn LeaveRequestRepository>,
     policy_repo: Arc<dyn crate::repositories::AttendancePolicyRepository>,
+    condition_type_repo: Arc<dyn crate::repositories::ConditionTypeRepository>,
     employee_repo: Arc<dyn crate::repositories::EmployeeRepository>,
     overtime_policy_repo: Arc<dyn OvertimePolicyRepositoryTrait>,
     salary_base_repo: Arc<dyn crate::repositories::salary_base_repository::SalaryBaseRepository>,
@@ -155,6 +158,7 @@ impl PayrollService {
             roster_repo: args.roster_repo,
             leave_repo: args.leave_repo,
             policy_repo: args.policy_repo,
+            condition_type_repo: args.condition_type_repo,
             employee_repo: args.employee_repo,
             overtime_policy_repo: args.overtime_policy_repo,
             salary_base_repo: args.salary_base_repo,
@@ -283,6 +287,11 @@ impl PayrollService {
                 3000,
             )
             .await?;
+        let condition_type_catalog = PolicyResolverService::load_condition_type_catalog(
+            self.condition_type_repo.as_ref(),
+            workspace_id,
+        )
+        .await?;
 
         let effective_time = start_date
             .and_hms_opt(0, 0, 0)
@@ -510,6 +519,7 @@ impl PayrollService {
             emp_tags,
             payroll_roster_map,
             working_conditions,
+            condition_type_catalog,
             attendance_policy,
             emp_payroll_configs,
             ws_payroll_settings_history,
@@ -637,6 +647,7 @@ impl PayrollService {
                 Some(ctx.attendance_policy.clone()),
                 ctx.working_conditions.clone(),
                 seg_start,
+                Some(&ctx.condition_type_catalog),
                 &crate::domain::policy::resolver::ShiftPolicyOverrides::default(),
             );
 
@@ -903,6 +914,22 @@ impl PayrollService {
         let end_dt = local_to_utc(&tz, end_date, 23, 59, 59).unwrap_or_default();
 
         let token = &crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
+        let condition_type_catalog = match PolicyResolverService::load_condition_type_catalog(
+            self.condition_type_repo.as_ref(),
+            workspace_id,
+        )
+        .await
+        {
+            Ok(catalog) => catalog,
+            Err(e) => {
+                tracing::error!(
+                    workspace_id = %workspace_id,
+                    error = %e,
+                    "Failed to fetch condition type catalog for batch payroll"
+                );
+                return crate::models::BatchCalculatePayrollResponse { results: vec![] };
+            }
+        };
 
         let overtime_data = match self
             .overtime_policy_repo
@@ -1381,6 +1408,7 @@ impl PayrollService {
                             emp_tags: Some(employee.tags().to_vec()),
                             payroll_roster_map,
                             working_conditions,
+                            condition_type_catalog: condition_type_catalog.clone(),
                             attendance_policy,
                             emp_payroll_configs,
                             ws_payroll_settings_history: ws_payroll_settings_history.clone(),
@@ -1419,6 +1447,7 @@ impl PayrollService {
                         roster_repo: Arc::clone(&self.roster_repo),
                         leave_repo: Arc::clone(&self.leave_repo),
                         policy_repo: Arc::clone(&self.policy_repo),
+                        condition_type_repo: Arc::clone(&self.condition_type_repo),
                         employee_repo: Arc::clone(&self.employee_repo),
                         overtime_policy_repo: Arc::clone(&self.overtime_policy_repo),
                         salary_base_repo: Arc::clone(&self.salary_base_repo),
@@ -1558,6 +1587,7 @@ mod tests {
             emp_tags: None,
             payroll_roster_map: HashMap::new(),
             working_conditions: Vec::new(),
+            condition_type_catalog: HashMap::new(),
             attendance_policy: crate::models::AttendanceRules {
                 work_unit_minutes: 30,
                 rounding_policy: "floor".to_string(),

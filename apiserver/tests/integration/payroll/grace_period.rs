@@ -146,6 +146,9 @@ async fn test_grace_period_zero_shift_uses_policy_default() {
                     diesel_pools.clone(),
                 ),
             ),
+            condition_type_repo: Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
+            ),
             employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
                 diesel_pools.clone(),
             )),
@@ -315,6 +318,9 @@ async fn test_grace_period_nonzero_shift_overrides() {
                 apiserver::repositories::DieselAttendancePolicyRepository::new(
                     diesel_pools.clone(),
                 ),
+            ),
+            condition_type_repo: Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
             ),
             employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
                 diesel_pools.clone(),

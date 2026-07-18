@@ -145,6 +145,9 @@ async fn test_overnight_ot_payroll_calculation() {
                     diesel_pools.clone(),
                 ),
             ),
+            condition_type_repo: Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
+            ),
             employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
                 diesel_pools.clone(),
             )),

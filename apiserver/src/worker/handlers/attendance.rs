@@ -153,6 +153,13 @@ impl AttendanceHandler {
         let entries_map =
             entries_result.map_err(|e| format!("Failed to fetch time entries: {e}"))?;
 
+        let condition_type_catalog = PolicyResolverService::load_condition_type_catalog(
+            deps.condition_type_repo.as_ref(),
+            workspace_id,
+        )
+        .await
+        .map_err(|e| format!("Failed to fetch condition type catalog: {e}"))?;
+
         // 5. Calculate based on report type
         let policy_repo = deps.policy_repo.as_ref();
 
@@ -167,6 +174,7 @@ impl AttendanceHandler {
                     _workspace_config: &workspace_config,
                     tz,
                     policy_repo,
+                    condition_type_catalog: &condition_type_catalog,
                     employee_repo: deps.employee_repo.as_ref(),
                     leave_repo: deps.leave_request_repo.as_ref(),
                     employee_ids,
@@ -185,6 +193,7 @@ impl AttendanceHandler {
                     _workspace_config: &workspace_config,
                     tz,
                     policy_repo,
+                    condition_type_catalog: &condition_type_catalog,
                     employee_repo: deps.employee_repo.as_ref(),
                     leave_repo: deps.leave_request_repo.as_ref(),
                     employee_ids,
@@ -252,6 +261,7 @@ struct CalculateBatchArgs<'a> {
     _workspace_config: &'a CachedWorkspaceConfig,
     tz: Tz,
     policy_repo: &'a dyn crate::repositories::AttendancePolicyRepository,
+    condition_type_catalog: &'a HashMap<String, crate::models::ConditionTypeDefinition>,
     employee_repo: &'a dyn crate::repositories::EmployeeRepository,
     leave_repo: &'a dyn crate::repositories::leave_request_repository::LeaveRequestRepository,
     employee_ids: &'a [Uuid],
@@ -360,6 +370,7 @@ impl AttendanceHandler {
                         emp_attendance_rules.grace_period_minutes.unwrap_or(
                             crate::domain::policy::defaults::DEFAULT_GRACE_PERIOD_MINUTES,
                         ),
+                        Some(args.condition_type_catalog),
                     );
 
                     // Override with shift-specific settings
@@ -567,6 +578,7 @@ impl AttendanceHandler {
                         emp_attendance_rules.grace_period_minutes.unwrap_or(
                             crate::domain::policy::defaults::DEFAULT_GRACE_PERIOD_MINUTES,
                         ),
+                        Some(args.condition_type_catalog),
                     );
 
                     if let Some(bad) = daily.is_break_auto_deduct() {

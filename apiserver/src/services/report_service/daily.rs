@@ -340,6 +340,11 @@ impl ReportService {
             args.end_date,
         )
         .await?;
+        let condition_type_catalog = PolicyResolverService::load_condition_type_catalog(
+            self.condition_type_repo.as_ref(),
+            args.workspace_id,
+        )
+        .await?;
 
         // Fetch all employers to get names
         let (employers, _) = self
@@ -399,6 +404,7 @@ impl ReportService {
                     emp_attendance_rules
                         .grace_period_minutes
                         .unwrap_or(crate::domain::policy::defaults::DEFAULT_GRACE_PERIOD_MINUTES),
+                    Some(&condition_type_catalog),
                 );
 
                 let overrides = ShiftPolicyOverrides::new(
@@ -759,6 +765,11 @@ impl ReportService {
             args.end_date,
         )
         .await?;
+        let condition_type_catalog = PolicyResolverService::load_condition_type_catalog(
+            self.condition_type_repo.as_ref(),
+            args.workspace_id,
+        )
+        .await?;
 
         let (employers, _) = self
             .employer_repo
@@ -863,6 +874,7 @@ impl ReportService {
                         emp_attendance_rules.grace_period_minutes.unwrap_or(
                             crate::domain::policy::defaults::DEFAULT_GRACE_PERIOD_MINUTES,
                         ),
+                        Some(&condition_type_catalog),
                     );
 
                     let overrides = ShiftPolicyOverrides::new(

@@ -42,6 +42,9 @@ async fn test_process_log_success_with_timezone() {
                     diesel_pools.clone(),
                 ),
             ),
+            condition_type_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
+            ),
             workspace_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselWorkspaceRepository::new(diesel_pools.clone()),
             ),
@@ -178,6 +181,9 @@ async fn test_same_second_punch_with_different_status_allowed() {
                 apiserver::repositories::DieselAttendancePolicyRepository::new(
                     diesel_pools.clone(),
                 ),
+            ),
+            condition_type_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
             ),
             workspace_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselWorkspaceRepository::new(diesel_pools.clone()),

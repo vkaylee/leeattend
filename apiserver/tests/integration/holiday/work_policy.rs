@@ -162,6 +162,11 @@ async fn test_payroll_holiday_work_with_multiplier() {
                         diesel_pools.clone(),
                     ),
                 ),
+                condition_type_repo: std::sync::Arc::new(
+                    apiserver::repositories::DieselConditionTypeRepository::new(
+                        diesel_pools.clone(),
+                    ),
+                ),
                 employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
                     diesel_pools.clone(),
                 )),
@@ -356,6 +361,11 @@ async fn test_payroll_holiday_work_no_credit() {
                         diesel_pools.clone(),
                     ),
                 ),
+                condition_type_repo: std::sync::Arc::new(
+                    apiserver::repositories::DieselConditionTypeRepository::new(
+                        diesel_pools.clone(),
+                    ),
+                ),
                 employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
                     diesel_pools.clone(),
                 )),
@@ -534,6 +544,11 @@ async fn test_payroll_holiday_work_unpaid_no_premium() {
                 )),
                 policy_repo: std::sync::Arc::new(
                     apiserver::repositories::DieselAttendancePolicyRepository::new(
+                        diesel_pools.clone(),
+                    ),
+                ),
+                condition_type_repo: std::sync::Arc::new(
+                    apiserver::repositories::DieselConditionTypeRepository::new(
                         diesel_pools.clone(),
                     ),
                 ),
@@ -775,6 +790,9 @@ async fn test_leave_kept_partial_work() {
                 apiserver::repositories::DieselAttendancePolicyRepository::new(
                     diesel_pools.clone(),
                 ),
+            ),
+            condition_type_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
             ),
             workspace_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselWorkspaceRepository::new(diesel_pools.clone()),
@@ -1028,6 +1046,9 @@ async fn test_leave_reversal_only_system() {
                 apiserver::repositories::DieselAttendancePolicyRepository::new(
                     diesel_pools.clone(),
                 ),
+            ),
+            condition_type_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
             ),
             workspace_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselWorkspaceRepository::new(diesel_pools.clone()),

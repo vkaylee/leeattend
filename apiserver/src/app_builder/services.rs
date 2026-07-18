@@ -80,6 +80,7 @@ pub async fn build_services(
             roster_repo: repos.roster.clone(),
             leave_repo: repos.leave_request.clone(),
             policy_repo: repos.attendance_policy.clone(),
+            condition_type_repo: Arc::clone(&repos.condition_type),
             employee_repo: Arc::clone(&repos.employee),
             overtime_policy_repo: Arc::clone(&repos.overtime_policy),
             salary_base_repo: Arc::clone(&repos.salary_base),

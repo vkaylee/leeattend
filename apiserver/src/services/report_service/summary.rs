@@ -241,6 +241,11 @@ impl ReportService {
             args.end_date,
         )
         .await?;
+        let condition_type_catalog = PolicyResolverService::load_condition_type_catalog(
+            self.condition_type_repo.as_ref(),
+            workspace.id(),
+        )
+        .await?;
 
         let mut employee_totals: HashMap<Uuid, (i32, i32, i32)> = HashMap::new();
 
@@ -287,6 +292,7 @@ impl ReportService {
                     emp_attendance_rules
                         .grace_period_minutes
                         .unwrap_or(crate::domain::policy::defaults::DEFAULT_GRACE_PERIOD_MINUTES),
+                    Some(&condition_type_catalog),
                 );
 
                 let overrides = ShiftPolicyOverrides::new(

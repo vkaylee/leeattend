@@ -78,66 +78,45 @@ impl PolicyResolver {
         )
     }
 
-    /// Apply a working condition's effects to PolicyRules using either the
-    /// data-driven catalog (preferred) or hardcoded string matching (fallback).
+    /// Apply a working condition's effects from the workspace catalog.
+    ///
+    /// The catalog is authoritative: a condition without a matching definition
+    /// intentionally has no effect on policy rules.
     fn apply_condition_effects(
         rules: &mut PolicyRules,
         cond: &WorkingCondition,
         catalog: Option<&HashMap<String, ConditionTypeDefinition>>,
     ) {
-        // Try data-driven resolution first
-        if let Some(catalog_map) = catalog {
-            // Lookup by condition_type_id first, then by type_ code as fallback
-            let type_def = cond
-                .condition_type_id()
-                .and_then(|ct_id| catalog_map.values().find(|d| d.id() == ct_id))
-                .or_else(|| catalog_map.get(cond.type_()));
+        let Some(catalog) = catalog else {
+            return;
+        };
 
-            if let Some(def) = type_def {
-                let affects: HashMap<String, bool> =
-                    serde_json::from_value(def.affects_rules().clone()).unwrap_or_default();
+        // Lookup by immutable definition id first, then by legacy code for rows
+        // created before condition_type_id was introduced.
+        let type_def = cond
+            .condition_type_id()
+            .and_then(|ct_id| catalog.values().find(|d| d.id() == ct_id))
+            .or_else(|| catalog.get(cond.type_()));
 
-                if affects.get("authorized_early_leave_minutes") == Some(&true) {
-                    if cond.minute_allowance() > rules.authorized_early_leave_minutes() {
-                        rules.set_authorized_early_leave_minutes(cond.minute_allowance());
-                        rules.set_is_early_leave_paid(cond.is_paid());
-                    }
-                }
-                if affects.get("is_early_leave_paid") == Some(&true) {
-                    rules.set_is_early_leave_paid(cond.is_paid());
-                }
-                return;
-            }
+        let Some(def) = type_def else {
+            return;
+        };
+
+        let affects: HashMap<String, bool> =
+            serde_json::from_value(def.affects_rules().clone()).unwrap_or_default();
+
+        if affects.get("authorized_early_leave_minutes") == Some(&true)
+            && cond.minute_allowance() > rules.authorized_early_leave_minutes()
+        {
+            rules.set_authorized_early_leave_minutes(cond.minute_allowance());
+            rules.set_is_early_leave_paid(cond.is_paid());
         }
-
-        // Fallback: hardcoded string matching (backward compat)
-        match cond.type_() {
-            "EARLY_LEAVE" => {
-                if cond.minute_allowance() > rules.authorized_early_leave_minutes() {
-                    rules.set_authorized_early_leave_minutes(cond.minute_allowance());
-                    rules.set_is_early_leave_paid(cond.is_paid());
-                }
-            }
-            "BREASTFEEDING" => {
-                if cond.minute_allowance() > rules.authorized_early_leave_minutes() {
-                    rules.set_authorized_early_leave_minutes(cond.minute_allowance());
-                    rules.set_is_early_leave_paid(true);
-                }
-            }
-            _ => {}
+        if affects.get("is_early_leave_paid") == Some(&true) {
+            rules.set_is_early_leave_paid(cond.is_paid());
         }
     }
 
     pub fn resolve_attendance_rules_pure(
-        attendance_rules: &AttendanceRules,
-        conditions: Vec<WorkingCondition>,
-        _date: NaiveDate,
-    ) -> PolicyRules {
-        Self::resolve_attendance_rules_pure_with_catalog(attendance_rules, conditions, _date, None)
-    }
-
-    /// Data-driven variant: accepts optional catalog for field-level effect resolution.
-    pub fn resolve_attendance_rules_pure_with_catalog(
         attendance_rules: &AttendanceRules,
         conditions: Vec<WorkingCondition>,
         _date: NaiveDate,
@@ -165,18 +144,6 @@ impl PolicyResolver {
     /// Build PolicyRules from workspace defaults and working conditions.
     /// Used after batch fetching conditions to construct rules per employee/date.
     pub fn build_rules_from_conditions(
-        conditions: &[WorkingCondition],
-        date: NaiveDate,
-        early_arrival_strategy: EarlyArrivalStrategy,
-        grace_period_minutes: i32,
-    ) -> PolicyRules {
-        Self::build_rules_from_conditions_with_catalog(
-            conditions, date, early_arrival_strategy, grace_period_minutes, None,
-        )
-    }
-
-    /// Data-driven variant: accepts optional catalog for field-level effect resolution.
-    pub fn build_rules_from_conditions_with_catalog(
         conditions: &[WorkingCondition],
         date: NaiveDate,
         early_arrival_strategy: EarlyArrivalStrategy,
@@ -223,10 +190,11 @@ impl PolicyResolver {
         attendance_rules: Option<AttendanceRules>,
         conditions: Vec<WorkingCondition>,
         date: NaiveDate,
+        catalog: Option<&HashMap<String, ConditionTypeDefinition>>,
         overrides: &ShiftPolicyOverrides,
     ) -> PolicyRules {
         let base_rules = if let Some(ar) = attendance_rules {
-            Self::resolve_attendance_rules_pure(&ar, conditions, date)
+            Self::resolve_attendance_rules_pure(&ar, conditions, date, catalog)
         } else {
             PolicyRules::new(
                 DEFAULT_GRACE_PERIOD_MINUTES,
@@ -331,6 +299,7 @@ mod tests {
             d(2026, 3, 1),
             EarlyArrivalStrategy::Allow,
             DEFAULT_GRACE_PERIOD_MINUTES,
+            Some(&system_catalog()),
         );
         assert_eq!(rules.grace_period_minutes(), 15);
         assert_eq!(rules.authorized_early_leave_minutes(), 0);
@@ -346,6 +315,7 @@ mod tests {
             d(2026, 3, 1),
             EarlyArrivalStrategy::Allow,
             DEFAULT_GRACE_PERIOD_MINUTES,
+            Some(&system_catalog()),
         );
         assert_eq!(rules.authorized_early_leave_minutes(), 60);
         assert!(rules.is_early_leave_paid());
@@ -358,6 +328,7 @@ mod tests {
             d(2026, 3, 1),
             EarlyArrivalStrategy::Clamp,
             DEFAULT_GRACE_PERIOD_MINUTES,
+            Some(&system_catalog()),
         );
         assert_eq!(rules.early_arrival_strategy(), EarlyArrivalStrategy::Clamp);
 
@@ -366,6 +337,7 @@ mod tests {
             d(2026, 3, 1),
             EarlyArrivalStrategy::Block,
             DEFAULT_GRACE_PERIOD_MINUTES,
+            Some(&system_catalog()),
         );
         assert_eq!(
             rules_block.early_arrival_strategy(),
@@ -387,9 +359,10 @@ mod tests {
             d(2026, 3, 1),
             EarlyArrivalStrategy::Allow,
             DEFAULT_GRACE_PERIOD_MINUTES,
+            Some(&system_catalog()),
         );
         assert_eq!(rules.authorized_early_leave_minutes(), 45);
-        assert!(rules.is_early_leave_paid()); // always true for BREASTFEEDING
+        assert!(!rules.is_early_leave_paid()); // catalog respects the assigned payment flag
     }
 
     #[test]
@@ -403,6 +376,7 @@ mod tests {
             d(2026, 3, 1),
             EarlyArrivalStrategy::Allow,
             DEFAULT_GRACE_PERIOD_MINUTES,
+            Some(&system_catalog()),
         );
         assert_eq!(rules.authorized_early_leave_minutes(), 60);
     }
@@ -422,6 +396,7 @@ mod tests {
             d(2026, 3, 1),
             EarlyArrivalStrategy::Allow,
             DEFAULT_GRACE_PERIOD_MINUTES,
+            Some(&system_catalog()),
         );
         assert_eq!(rules.authorized_early_leave_minutes(), 0); // expired, not applied
     }
@@ -434,6 +409,7 @@ mod tests {
             d(2026, 3, 1),
             EarlyArrivalStrategy::Allow,
             DEFAULT_GRACE_PERIOD_MINUTES,
+            Some(&system_catalog()),
         );
         assert_eq!(rules.authorized_early_leave_minutes(), 0); // not yet active
     }
@@ -534,6 +510,19 @@ mod tests {
         entries.into_iter().map(|d| (d.code().to_string(), d)).collect()
     }
 
+    fn system_catalog() -> HashMap<String, ConditionTypeDefinition> {
+        make_catalog(vec![
+            catalog_def(
+                "EARLY_LEAVE",
+                serde_json::json!({"authorized_early_leave_minutes": true, "is_early_leave_paid": true}),
+            ),
+            catalog_def(
+                "BREASTFEEDING",
+                serde_json::json!({"authorized_early_leave_minutes": true, "is_early_leave_paid": true}),
+            ),
+        ])
+    }
+
     #[test]
     fn catalog_early_leave_affects_rules() {
         let catalog = make_catalog(vec![catalog_def(
@@ -542,7 +531,7 @@ mod tests {
         )]);
 
         let cond = mock_condition("EARLY_LEAVE", 45, true, d(2026, 1, 1), None);
-        let rules = PolicyResolver::build_rules_from_conditions_with_catalog(
+        let rules = PolicyResolver::build_rules_from_conditions(
             &[cond],
             d(2026, 3, 1),
             EarlyArrivalStrategy::Allow,
@@ -557,7 +546,7 @@ mod tests {
     fn catalog_unknown_type_is_skipped() {
         let catalog = make_catalog(vec![]);
         let cond = mock_condition("UNKNOWN_TYPE", 99, true, d(2026, 1, 1), None);
-        let rules = PolicyResolver::build_rules_from_conditions_with_catalog(
+        let rules = PolicyResolver::build_rules_from_conditions(
             &[cond],
             d(2026, 3, 1),
             EarlyArrivalStrategy::Allow,
@@ -574,7 +563,7 @@ mod tests {
             serde_json::json!({}),
         )]);
         let cond = mock_condition("CUSTOM", 60, true, d(2026, 1, 1), None);
-        let rules = PolicyResolver::build_rules_from_conditions_with_catalog(
+        let rules = PolicyResolver::build_rules_from_conditions(
             &[cond],
             d(2026, 3, 1),
             EarlyArrivalStrategy::Allow,
@@ -586,16 +575,16 @@ mod tests {
     }
 
     #[test]
-    fn catalog_falls_back_to_hardcoded_when_none() {
-        // Without catalog, the hardcoded EARLY_LEAVE match should work
-        let cond = mock_condition("EARLY_LEAVE", 30, false, d(2026, 1, 1), None);
+    fn catalog_is_authoritative_when_definition_is_missing() {
+        let cond = mock_condition("EARLY_LEAVE", 30, true, d(2026, 1, 1), None);
         let rules = PolicyResolver::build_rules_from_conditions(
             &[cond],
             d(2026, 3, 1),
             EarlyArrivalStrategy::Allow,
             DEFAULT_GRACE_PERIOD_MINUTES,
+            Some(&HashMap::new()),
         );
-        assert_eq!(rules.authorized_early_leave_minutes(), 30);
+        assert_eq!(rules.authorized_early_leave_minutes(), 0);
         assert!(!rules.is_early_leave_paid());
     }
 
@@ -633,7 +622,7 @@ mod tests {
             None,
         );
 
-        let rules = PolicyResolver::build_rules_from_conditions_with_catalog(
+        let rules = PolicyResolver::build_rules_from_conditions(
             &[cond],
             d(2026, 3, 1),
             EarlyArrivalStrategy::Allow,
@@ -655,7 +644,7 @@ mod tests {
             mock_condition("EARLY_LEAVE", 30, false, d(2026, 1, 1), None),
             mock_condition("BREASTFEEDING", 60, true, d(2026, 1, 1), None),
         ];
-        let rules = PolicyResolver::build_rules_from_conditions_with_catalog(
+        let rules = PolicyResolver::build_rules_from_conditions(
             &conds,
             d(2026, 3, 1),
             EarlyArrivalStrategy::Allow,
@@ -669,7 +658,7 @@ mod tests {
     }
 
     #[test]
-    fn catalog_resolve_attendance_rules_pure_with_catalog() {
+    fn catalog_resolve_attendance_rules_pure() {
         let catalog = make_catalog(vec![catalog_def(
             "EARLY_LEAVE",
             serde_json::json!({"authorized_early_leave_minutes": true, "is_early_leave_paid": true}),
@@ -683,7 +672,7 @@ mod tests {
         };
 
         let cond = mock_condition("EARLY_LEAVE", 45, true, d(2026, 1, 1), None);
-        let rules = PolicyResolver::resolve_attendance_rules_pure_with_catalog(
+        let rules = PolicyResolver::resolve_attendance_rules_pure(
             &attendance_rules,
             vec![cond],
             d(2026, 3, 1),

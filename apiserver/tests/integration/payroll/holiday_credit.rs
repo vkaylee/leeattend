@@ -120,6 +120,9 @@ async fn test_payroll_credits_paid_holiday() {
                     diesel_pools.clone(),
                 ),
             ),
+            condition_type_repo: Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
+            ),
             employee_repo: Arc::new(apiserver::repositories::DieselEmployeeRepository::new(
                 diesel_pools.clone(),
             )),

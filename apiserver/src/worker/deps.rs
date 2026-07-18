@@ -20,6 +20,7 @@ pub struct WorkerDeps {
     pub time_entry_repo: Arc<dyn TimeEntryRepository>,
     pub roster_repo: Arc<dyn RosterRepository>,
     pub policy_repo: Arc<dyn AttendancePolicyRepository>,
+    pub condition_type_repo: Arc<dyn crate::repositories::ConditionTypeRepository>,
     pub employee_repo: Arc<dyn crate::repositories::EmployeeRepository>,
     pub raw_log_repo: Arc<dyn crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository>,
     pub staging_repo: Arc<dyn crate::repositories::staging_log_repository::StagingLogRepository>,
@@ -71,6 +72,9 @@ impl WorkerDeps {
             policy_repo: Arc::new(crate::repositories::DieselAttendancePolicyRepository::new(
                 diesel.clone(),
             )),
+            condition_type_repo: Arc::new(
+                crate::repositories::DieselConditionTypeRepository::new(diesel.clone()),
+            ),
             employee_repo: Arc::new(
                 crate::repositories::DieselEmployeeRepository::new_with_crypto(
                     diesel.clone(),
@@ -158,6 +162,7 @@ impl WorkerDeps {
                 time_entry_repo: Arc::clone(&self.time_entry_repo),
                 roster_repo: Arc::clone(&self.roster_repo),
                 policy_repo: Arc::clone(&self.policy_repo),
+                condition_type_repo: Arc::clone(&self.condition_type_repo),
                 workspace_repo: Arc::clone(&self.workspace_repo),
                 employee_repo: Arc::clone(&self.employee_repo),
                 employment_repo: Arc::clone(&self.employment_repo),

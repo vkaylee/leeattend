@@ -82,6 +82,7 @@ pub struct AttendanceSummaryServiceArgs {
     pub time_entry_repo: Arc<dyn TimeEntryRepository>,
     pub roster_repo: Arc<dyn RosterRepository>,
     pub policy_repo: Arc<dyn AttendancePolicyRepository>,
+    pub condition_type_repo: Arc<dyn crate::repositories::ConditionTypeRepository>,
     pub workspace_repo: Arc<dyn WorkspaceRepository>,
     pub employee_repo: Arc<dyn EmployeeRepository>,
     pub employment_repo: Arc<dyn crate::repositories::EmploymentRepository>,
@@ -94,6 +95,7 @@ pub struct AttendanceSummaryService {
     time_entry_repo: Arc<dyn TimeEntryRepository>,
     roster_repo: Arc<dyn RosterRepository>,
     policy_repo: Arc<dyn AttendancePolicyRepository>,
+    condition_type_repo: Arc<dyn crate::repositories::ConditionTypeRepository>,
     workspace_repo: Arc<dyn WorkspaceRepository>,
     employee_repo: Arc<dyn EmployeeRepository>,
     employment_repo: Arc<dyn crate::repositories::EmploymentRepository>,
@@ -119,6 +121,7 @@ impl AttendanceSummaryService {
             time_entry_repo: args.time_entry_repo,
             roster_repo: args.roster_repo,
             policy_repo: args.policy_repo,
+            condition_type_repo: args.condition_type_repo,
             workspace_repo: args.workspace_repo,
             employee_repo: args.employee_repo,
             employment_repo: args.employment_repo,
@@ -566,6 +569,7 @@ impl AttendanceSummaryService {
         let rules = PolicyResolverService::resolve_attendance_rules(
             &*self.policy_repo,
             &*self.employee_repo,
+            &*self.condition_type_repo,
             employee_id,
             workspace_id,
             date,
@@ -575,6 +579,7 @@ impl AttendanceSummaryService {
         let policy_rules = PolicyResolverService::resolve_with_shift_overrides(
             &*self.policy_repo,
             &*self.employee_repo,
+            &*self.condition_type_repo,
             employee_id,
             workspace_id,
             date,
@@ -586,7 +591,7 @@ impl AttendanceSummaryService {
                 daily_schedule.break_is_overtime().unwrap_or(false),
             ),
         )
-        .await;
+        .await?;
 
         let break_start_dt = daily_schedule
             .break_start()
@@ -951,6 +956,15 @@ mod tests {
         NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()
     }
 
+    fn empty_condition_type_repo() -> Arc<dyn crate::repositories::ConditionTypeRepository> {
+        use crate::repositories::condition_type_repository::MockConditionTypeRepository;
+
+        let mut repo = MockConditionTypeRepository::new();
+        repo.expect_list_condition_types()
+            .returning(|_, _| Box::pin(async move { Ok(vec![]) }));
+        Arc::new(repo)
+    }
+
     fn mock_employment_repo() -> MockEmploymentRepository {
         let mut repo = MockEmploymentRepository::new();
         repo.expect_get_active_employment_on_date()
@@ -1010,6 +1024,7 @@ mod tests {
             time_entry_repo: Arc::new(MockTimeEntryRepository::new()),
             roster_repo: Arc::new(MockRosterRepository::new()),
             policy_repo: Arc::new(MockAttendancePolicyRepository::new()),
+            condition_type_repo: empty_condition_type_repo(),
             workspace_repo: Arc::new(MockWorkspaceRepository::new()),
             employee_repo: Arc::new(MockEmployeeRepository::new()),
             employment_repo: Arc::new(mock_employment_repo()),
@@ -1459,6 +1474,7 @@ mod tests {
                 time_entry_repo: Arc::new(time_entry_repo),
                 roster_repo: Arc::new(roster_repo),
                 policy_repo: Arc::new(policy_repo),
+                condition_type_repo: empty_condition_type_repo(),
                 workspace_repo: Arc::new(workspace_repo),
                 employee_repo: Arc::new(employee_repo),
                 employment_repo: Arc::new(mock_employment_repo()),
@@ -1622,6 +1638,7 @@ mod tests {
                 time_entry_repo: Arc::new(time_entry_repo),
                 roster_repo: Arc::new(roster_repo),
                 policy_repo: Arc::new(policy_repo),
+                condition_type_repo: empty_condition_type_repo(),
                 workspace_repo: Arc::new(workspace_repo),
                 employee_repo: Arc::new(employee_repo),
                 employment_repo: Arc::new(mock_employment_repo()),
@@ -1785,6 +1802,7 @@ mod tests {
                 time_entry_repo: Arc::new(time_entry_repo),
                 roster_repo: Arc::new(roster_repo),
                 policy_repo: Arc::new(policy_repo),
+                condition_type_repo: empty_condition_type_repo(),
                 workspace_repo: Arc::new(workspace_repo),
                 employee_repo: Arc::new(employee_repo),
                 employment_repo: Arc::new(mock_employment_repo()),
@@ -1902,6 +1920,7 @@ mod tests {
                 time_entry_repo: Arc::new(time_entry_repo),
                 roster_repo: Arc::new(roster_repo),
                 policy_repo: Arc::new(policy_repo),
+                condition_type_repo: empty_condition_type_repo(),
                 workspace_repo: Arc::new(workspace_repo),
                 employee_repo: Arc::new(employee_repo),
                 employment_repo: Arc::new(mock_employment_repo()),
@@ -2044,6 +2063,7 @@ mod tests {
                 time_entry_repo: Arc::new(time_entry_repo),
                 roster_repo: Arc::new(roster_repo),
                 policy_repo: Arc::new(policy_repo),
+                condition_type_repo: empty_condition_type_repo(),
                 workspace_repo: Arc::new(workspace_repo),
                 employee_repo: Arc::new(employee_repo),
                 employment_repo: Arc::new(mock_employment_repo()),
@@ -2166,6 +2186,7 @@ mod tests {
                 time_entry_repo: Arc::new(time_entry_repo),
                 roster_repo: Arc::new(roster_repo),
                 policy_repo: Arc::new(policy_repo),
+                condition_type_repo: empty_condition_type_repo(),
                 workspace_repo: Arc::new(workspace_repo),
                 employee_repo: Arc::new(employee_repo),
                 employment_repo: Arc::new(mock_employment_repo()),

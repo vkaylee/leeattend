@@ -1,7 +1,7 @@
 use crate::domain::policy::resolver::{PolicyResolver, ShiftPolicyOverrides, StandardMonthConfig};
 use crate::errors::AppError;
-use crate::models::{AttendanceRules, PolicyRules, WorkingCondition};
-use crate::repositories::AttendancePolicyRepository;
+use crate::models::{AttendanceRules, ConditionTypeDefinition, PolicyRules, WorkingCondition};
+use crate::repositories::{AttendancePolicyRepository, ConditionTypeRepository};
 use chrono::NaiveDate;
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -9,6 +9,21 @@ use uuid::Uuid;
 pub struct PolicyResolverService;
 
 impl PolicyResolverService {
+    pub async fn load_condition_type_catalog(
+        condition_type_repo: &dyn ConditionTypeRepository,
+        workspace_id: Uuid,
+    ) -> Result<HashMap<String, ConditionTypeDefinition>, AppError> {
+        let auth_token = crate::diesel_pool::TenantAuthToken::system_override(workspace_id);
+        let definitions = condition_type_repo
+            .list_condition_types(&auth_token, false)
+            .await?;
+
+        Ok(definitions
+            .into_iter()
+            .map(|definition| (definition.code().to_string(), definition))
+            .collect())
+    }
+
     pub async fn resolve_standard_month(
         employee_repo: &dyn crate::repositories::employee::EmployeeRepository,
         payroll_repo: &dyn crate::repositories::payroll_repository::PayrollRepository,
@@ -185,6 +200,7 @@ impl PolicyResolverService {
     pub async fn resolve_attendance_rules(
         policy_repo: &dyn AttendancePolicyRepository,
         employee_repo: &dyn crate::repositories::employee::EmployeeRepository,
+        condition_type_repo: &dyn ConditionTypeRepository,
         employee_id: Uuid,
         workspace_id: Uuid,
         date: NaiveDate,
@@ -201,17 +217,20 @@ impl PolicyResolverService {
                 date,
             )
             .await?;
+        let catalog = Self::load_condition_type_catalog(condition_type_repo, workspace_id).await?;
 
         Ok(PolicyResolver::resolve_attendance_rules_pure(
             &attendance_rules,
             conditions,
             date,
+            Some(&catalog),
         ))
     }
 
     pub async fn resolve_attendance_rules_by_employment(
         policy_repo: &dyn AttendancePolicyRepository,
         employee_repo: &dyn crate::repositories::employee::EmployeeRepository,
+        condition_type_repo: &dyn ConditionTypeRepository,
         employment_id: Uuid,
         workspace_id: Uuid,
         date: NaiveDate,
@@ -233,11 +252,13 @@ impl PolicyResolverService {
                 date,
             )
             .await?;
+        let catalog = Self::load_condition_type_catalog(condition_type_repo, workspace_id).await?;
 
         Ok(PolicyResolver::resolve_attendance_rules_pure(
             &attendance_rules,
             conditions,
             date,
+            Some(&catalog),
         ))
     }
 
@@ -302,65 +323,45 @@ impl PolicyResolverService {
     pub async fn resolve_with_shift_overrides(
         policy_repo: &dyn AttendancePolicyRepository,
         employee_repo: &dyn crate::repositories::employee::EmployeeRepository,
+        condition_type_repo: &dyn ConditionTypeRepository,
         employee_id: Uuid,
         workspace_id: Uuid,
         date: NaiveDate,
         overrides: &ShiftPolicyOverrides,
-    ) -> PolicyRules {
-        let rules_res = Self::resolve_attendance_rules(
+    ) -> Result<PolicyRules, AppError> {
+        let rules = Self::resolve_attendance_rules(
             policy_repo,
             employee_repo,
+            condition_type_repo,
             employee_id,
             workspace_id,
             date,
         )
-        .await;
+        .await?;
 
-        let rules = rules_res.unwrap_or_else(|_| {
-            PolicyRules::new(
-                overrides.grace_period_minutes().unwrap_or(0),
-                0,
-                false,
-                overrides.early_arrival_strategy(),
-                overrides.is_break_auto_deduct().unwrap_or(false),
-                overrides.is_break_overtime(),
-                overrides.allow_early_ot().unwrap_or(false),
-            )
-        });
-
-        PolicyResolver::apply_shift_overrides(rules, overrides)
+        Ok(PolicyResolver::apply_shift_overrides(rules, overrides))
     }
 
     pub async fn resolve_with_shift_overrides_by_employment(
         policy_repo: &dyn AttendancePolicyRepository,
         employee_repo: &dyn crate::repositories::employee::EmployeeRepository,
+        condition_type_repo: &dyn ConditionTypeRepository,
         employment_id: Uuid,
         workspace_id: Uuid,
         date: NaiveDate,
         overrides: &ShiftPolicyOverrides,
-    ) -> PolicyRules {
-        let rules_res = Self::resolve_attendance_rules_by_employment(
+    ) -> Result<PolicyRules, AppError> {
+        let rules = Self::resolve_attendance_rules_by_employment(
             policy_repo,
             employee_repo,
+            condition_type_repo,
             employment_id,
             workspace_id,
             date,
         )
-        .await;
+        .await?;
 
-        let rules = rules_res.unwrap_or_else(|_| {
-            PolicyRules::new(
-                overrides.grace_period_minutes().unwrap_or(0),
-                0,
-                false,
-                overrides.early_arrival_strategy(),
-                overrides.is_break_auto_deduct().unwrap_or(false),
-                overrides.is_break_overtime(),
-                overrides.allow_early_ot().unwrap_or(false),
-            )
-        });
-
-        PolicyResolver::apply_shift_overrides(rules, overrides)
+        Ok(PolicyResolver::apply_shift_overrides(rules, overrides))
     }
 }
 
@@ -369,6 +370,7 @@ mod tests {
     use super::*;
     use crate::models::EarlyArrivalStrategy;
     use crate::repositories::attendance_policy_repository::MockAttendancePolicyRepository;
+    use crate::repositories::condition_type_repository::MockConditionTypeRepository;
     use crate::repositories::employee::MockEmployeeRepository;
     use crate::repositories::payroll_repository::MockPayrollRepository;
     use chrono::NaiveDate;
@@ -525,6 +527,13 @@ mod tests {
         assert_eq!(res.len(), 1);
     }
 
+    fn empty_condition_type_repo() -> MockConditionTypeRepository {
+        let mut repo = MockConditionTypeRepository::new();
+        repo.expect_list_condition_types()
+            .returning(|_, _| Box::pin(async move { Ok(vec![]) }));
+        repo
+    }
+
     #[tokio::test]
     async fn test_resolve_attendance_rules() {
         let ws_id = Uuid::new_v4();
@@ -541,9 +550,11 @@ mod tests {
             .expect_get_working_conditions_at()
             .returning(|_, _, _| Ok(vec![]));
 
+        let condition_type_repo = empty_condition_type_repo();
         let rules = PolicyResolverService::resolve_attendance_rules(
             &policy_repo,
             &employee_repo,
+            &condition_type_repo,
             emp_id,
             ws_id,
             date,
@@ -552,6 +563,78 @@ mod tests {
         .unwrap();
 
         assert_eq!(rules.grace_period_minutes(), 15);
+    }
+
+    #[tokio::test]
+    async fn custom_condition_type_affects_direct_policy_resolution() {
+        let ws_id = Uuid::new_v4();
+        let employee_id = Uuid::new_v4();
+        let condition_type_id = Uuid::new_v4();
+        let date = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
+
+        let mut policy_repo = MockAttendancePolicyRepository::new();
+        policy_repo
+            .expect_get_employee_effective_policy()
+            .returning(|_, _, _| Ok(None));
+
+        let condition = WorkingCondition::new(
+            Uuid::new_v4(),
+            employee_id,
+            "CUSTOM_PAID_EARLY_EXIT".to_string(),
+            Some(condition_type_id),
+            45,
+            true,
+            date,
+            None,
+        );
+        let mut employee_repo = MockEmployeeRepository::new();
+        employee_repo
+            .expect_get_working_conditions_at()
+            .returning(move |_, _, _| Ok(vec![condition.clone()]));
+
+        let definition = ConditionTypeDefinition::new(
+            condition_type_id,
+            ws_id,
+            "CUSTOM_PAID_EARLY_EXIT".to_string(),
+            serde_json::json!({"en": "Custom paid early exit"}),
+            "working_hours".to_string(),
+            45,
+            true,
+            serde_json::json!({
+                "authorized_early_leave_minutes": true,
+                "is_early_leave_paid": true
+            }),
+            None,
+            None,
+            false,
+            0,
+            false,
+            chrono::Utc::now(),
+            chrono::Utc::now(),
+        );
+        let mut condition_type_repo = MockConditionTypeRepository::new();
+        condition_type_repo
+            .expect_list_condition_types()
+            .withf(|_, active_only| !active_only)
+            .times(1)
+            .returning(move |_, _| {
+                let definition = definition.clone();
+                Box::pin(async move { Ok(vec![definition]) })
+            });
+
+        let rules = PolicyResolverService::resolve_attendance_rules(
+            &policy_repo,
+            &employee_repo,
+            &condition_type_repo,
+            employee_id,
+            ws_id,
+            date,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(rules.authorized_early_leave_minutes(), 45);
+        assert!(rules.is_early_leave_paid());
     }
 
     #[tokio::test]
@@ -570,9 +653,11 @@ mod tests {
             .expect_get_working_conditions_at()
             .returning(|_, _, _| Ok(vec![]));
 
+        let condition_type_repo = empty_condition_type_repo();
         let rules = PolicyResolverService::resolve_attendance_rules_by_employment(
             &policy_repo,
             &employee_repo,
+            &condition_type_repo,
             employment_id,
             ws_id,
             date,
@@ -652,15 +737,18 @@ mod tests {
 
         let overrides =
             ShiftPolicyOverrides::new(Some(10), None, None, EarlyArrivalStrategy::Allow, false);
+        let condition_type_repo = empty_condition_type_repo();
         let rules = PolicyResolverService::resolve_with_shift_overrides(
             &policy_repo,
             &employee_repo,
+            &condition_type_repo,
             emp_id,
             ws_id,
             date,
             &overrides,
         )
-        .await;
+        .await
+        .unwrap();
 
         assert_eq!(rules.grace_period_minutes(), 15);
 
@@ -670,15 +758,18 @@ mod tests {
             .expect_get_employment_effective_policy()
             .returning(|_, _, _| Ok(None));
 
+        let condition_type_repo_emp = empty_condition_type_repo();
         let rules_emp = PolicyResolverService::resolve_with_shift_overrides_by_employment(
             &policy_repo_emp,
             &employee_repo,
+            &condition_type_repo_emp,
             Uuid::new_v4(),
             ws_id,
             date,
             &overrides,
         )
-        .await;
+        .await
+        .unwrap();
         assert_eq!(rules_emp.grace_period_minutes(), 15);
     }
 }

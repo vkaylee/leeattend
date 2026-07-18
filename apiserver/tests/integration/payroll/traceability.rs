@@ -117,6 +117,9 @@ async fn test_payroll_std_days_source_traceability() {
             leave_repo: lr,
             employee_repo: er,
             policy_repo: atr,
+            condition_type_repo: Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
+            ),
             overtime_policy_repo: Arc::new(
                 apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
             ),
@@ -208,6 +211,9 @@ async fn test_payroll_std_days_source_traceability() {
             leave_repo: lr,
             employee_repo: er,
             policy_repo: atr,
+            condition_type_repo: Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
+            ),
             overtime_policy_repo: Arc::new(
                 apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
             ),
@@ -294,6 +300,9 @@ async fn test_payroll_std_days_source_traceability() {
             leave_repo: lr,
             employee_repo: er,
             policy_repo: atr,
+            condition_type_repo: Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
+            ),
             overtime_policy_repo: Arc::new(
                 apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
             ),
@@ -381,6 +390,9 @@ async fn test_payroll_std_days_source_traceability() {
             leave_repo: lr,
             employee_repo: er,
             policy_repo: atr,
+            condition_type_repo: Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
+            ),
             overtime_policy_repo: Arc::new(
                 apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
             ),

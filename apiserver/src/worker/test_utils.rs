@@ -5,6 +5,7 @@ use crate::repositories::attendance_adjustment_repository::MockAttendanceAdjustm
 use crate::repositories::attendance_daily_summary_repository::MockAttendanceDailySummaryRepository;
 use crate::repositories::attendance_log_error_repository::MockAttendanceLogErrorRepository;
 use crate::repositories::attendance_policy_repository::MockAttendancePolicyRepository;
+use crate::repositories::condition_type_repository::MockConditionTypeRepository;
 use crate::repositories::custom_field_repository::MockCustomFieldRepository;
 use crate::repositories::department_repository::MockDepartmentRepository;
 use crate::repositories::employee::MockEmployeeRepository;
@@ -189,6 +190,7 @@ pub struct MockWorkerDepsBuilder {
     pub time_entry_repo: MockTimeEntryRepository,
     pub roster_repo: MockRosterRepository,
     pub policy_repo: MockAttendancePolicyRepository,
+    pub condition_type_repo: MockConditionTypeRepository,
     pub employee_repo: MockEmployeeRepository,
     pub raw_log_repo: MockRawAttendanceLogRepository,
     pub staging_repo: MockStagingLogRepository,
@@ -312,6 +314,11 @@ impl MockWorkerDepsBuilder {
             .expect_get_employment_time_entries()
             .returning(|_, _, _, _| Ok(vec![]));
 
+        let mut condition_type_repo = MockConditionTypeRepository::new();
+        condition_type_repo
+            .expect_list_condition_types()
+            .returning(|_, _| Box::pin(async move { Ok(vec![]) }));
+
         let mut custom_field_repo = MockCustomFieldRepository::new();
         custom_field_repo
             .expect_list_definitions()
@@ -321,6 +328,7 @@ impl MockWorkerDepsBuilder {
             time_entry_repo,
             roster_repo: MockRosterRepository::new(),
             policy_repo: MockAttendancePolicyRepository::new(),
+            condition_type_repo,
             employee_repo,
             raw_log_repo: MockRawAttendanceLogRepository::new(),
             staging_repo: MockStagingLogRepository::new(),
@@ -355,6 +363,7 @@ impl MockWorkerDepsBuilder {
             time_entry_repo: Arc::new(self.time_entry_repo),
             roster_repo: Arc::new(self.roster_repo),
             policy_repo: Arc::new(self.policy_repo),
+            condition_type_repo: Arc::new(self.condition_type_repo),
             employee_repo: Arc::new(self.employee_repo),
             raw_log_repo: Arc::new(self.raw_log_repo),
             staging_repo: Arc::new(self.staging_repo),

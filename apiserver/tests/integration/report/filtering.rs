@@ -45,6 +45,9 @@ async fn test_daily_report_employee_filtering() {
                     diesel_pools.clone(),
                 ),
             ),
+            condition_type_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
+            ),
             employee_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
             ),
@@ -162,6 +165,9 @@ async fn test_attendance_report_resigned_employee_filtering() {
                 apiserver::repositories::DieselAttendancePolicyRepository::new(
                     diesel_pools.clone(),
                 ),
+            ),
+            condition_type_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
             ),
             employee_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),
@@ -341,6 +347,9 @@ async fn test_report_multi_employment_and_employer() {
                 apiserver::repositories::DieselAttendancePolicyRepository::new(
                     diesel_pools.clone(),
                 ),
+            ),
+            condition_type_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
             ),
             employee_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselEmployeeRepository::new(diesel_pools.clone()),

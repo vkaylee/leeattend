@@ -91,6 +91,9 @@ async fn test_summary_records_holiday_flag_after_recalculate() {
                     diesel_pools.clone(),
                 ),
             ),
+            condition_type_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
+            ),
             workspace_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselWorkspaceRepository::new(diesel_pools.clone()),
             ),

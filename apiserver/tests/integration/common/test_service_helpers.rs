@@ -23,6 +23,9 @@ pub fn build_pairing_service(
                     diesel_pools.clone(),
                 ),
             ),
+            condition_type_repo: Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
+            ),
             workspace_repo: Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
                 diesel_pools.clone(),
             )),

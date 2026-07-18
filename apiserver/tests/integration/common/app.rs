@@ -274,6 +274,9 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         time_entry_repo.clone(),
         roster_repo.clone(),
         policy_repo.clone(),
+        Arc::new(apiserver::repositories::DieselConditionTypeRepository::new(
+            diesel_pools.clone(),
+        )),
         employee_repo.clone(),
         employment_repo.clone(),
         workspace_repo.clone(),
@@ -287,6 +290,9 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             time_entry_repo: time_entry_repo.clone(),
             roster_repo: roster_repo.clone(),
             policy_repo: policy_repo.clone(),
+            condition_type_repo: Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
+            ),
             employee_repo: employee_repo.clone(),
             employment_repo: employment_repo.clone(),
             attendance_daily_summary_repo: attendance_summary_repo.clone(),
@@ -310,6 +316,9 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             time_entry_repo: time_entry_repo.clone(),
             roster_repo: roster_repo.clone(),
             policy_repo: policy_repo.clone(),
+            condition_type_repo: Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
+            ),
             workspace_repo: Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
                 diesel_pools.clone(),
             )),
@@ -428,6 +437,9 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             employee_repo: employee_repo.clone(),
             employment_repo: employment_repo.clone(),
             policy_repo: policy_repo.clone(),
+            condition_type_repo: Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
+            ),
             overtime_policy_repo: Arc::new(
                 apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
             ),
@@ -959,6 +971,9 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
         time_entry_repo.clone(),
         roster_repo.clone(),
         policy_repo.clone(),
+        Arc::new(apiserver::repositories::DieselConditionTypeRepository::new(
+            diesel_pools.clone(),
+        )),
         employee_repo.clone(),
         employment_repo.clone(),
         workspace_repo.clone(),
@@ -971,6 +986,9 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
             time_entry_repo: time_entry_repo.clone(),
             roster_repo: roster_repo.clone(),
             policy_repo: policy_repo.clone(),
+            condition_type_repo: Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
+            ),
             workspace_repo: Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
                 diesel_pools.clone(),
             )),
@@ -996,6 +1014,9 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
             time_entry_repo: time_entry_repo.clone(),
             roster_repo: roster_repo.clone(),
             policy_repo: policy_repo.clone(),
+            condition_type_repo: Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
+            ),
             employee_repo: employee_repo.clone(),
             employment_repo: employment_repo.clone(),
             attendance_daily_summary_repo: attendance_summary_repo.clone(),
@@ -1019,6 +1040,9 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
             time_entry_repo: time_entry_repo.clone(),
             roster_repo: roster_repo.clone(),
             policy_repo: policy_repo.clone(),
+            condition_type_repo: Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
+            ),
             workspace_repo: Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
                 diesel_pools.clone(),
             )),
@@ -1137,6 +1161,9 @@ pub async fn spawn_app_with_factory_extended() -> (String, Uuid, Uuid, TestFacto
             employee_repo: employee_repo.clone(),
             employment_repo: employment_repo.clone(),
             policy_repo: policy_repo.clone(),
+            condition_type_repo: Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
+            ),
             overtime_policy_repo: Arc::new(
                 apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
             ),
@@ -1706,6 +1733,9 @@ pub async fn setup_app_tower_internal_extended(
         time_entry_repo.clone(),
         roster_repo.clone(),
         policy_repo.clone(),
+        Arc::new(apiserver::repositories::DieselConditionTypeRepository::new(
+            diesel_pools.clone(),
+        )),
         employee_repo.clone(),
         employment_repo.clone(),
         workspace_repo.clone(),
@@ -1718,6 +1748,9 @@ pub async fn setup_app_tower_internal_extended(
             time_entry_repo: time_entry_repo.clone(),
             roster_repo: roster_repo.clone(),
             policy_repo: policy_repo.clone(),
+            condition_type_repo: Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
+            ),
             workspace_repo: Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
                 diesel_pools.clone(),
             )),
@@ -1743,6 +1776,9 @@ pub async fn setup_app_tower_internal_extended(
             time_entry_repo: time_entry_repo.clone(),
             roster_repo: roster_repo.clone(),
             policy_repo: policy_repo.clone(),
+            condition_type_repo: Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
+            ),
             employee_repo: employee_repo.clone(),
             employment_repo: employment_repo.clone(),
             attendance_daily_summary_repo: Arc::new(
@@ -1772,6 +1808,9 @@ pub async fn setup_app_tower_internal_extended(
             time_entry_repo: time_entry_repo.clone(),
             roster_repo: roster_repo.clone(),
             policy_repo: policy_repo.clone(),
+            condition_type_repo: Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
+            ),
             workspace_repo: Arc::new(apiserver::repositories::DieselWorkspaceRepository::new(
                 diesel_pools.clone(),
             )),
@@ -1895,6 +1934,9 @@ pub async fn setup_app_tower_internal_extended(
             employee_repo: employee_repo.clone(),
             employment_repo: employment_repo.clone(),
             policy_repo: policy_repo.clone(),
+            condition_type_repo: Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
+            ),
             overtime_policy_repo: Arc::new(
                 apiserver::repositories::DieselOvertimePolicyRepository::new(diesel_pools.clone()),
             ),

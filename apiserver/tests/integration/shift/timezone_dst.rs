@@ -126,6 +126,9 @@ async fn test_dst_spring_forward() {
                     diesel_pools.clone(),
                 ),
             ),
+            condition_type_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
+            ),
             workspace_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselWorkspaceRepository::new(diesel_pools.clone()),
             ),
@@ -313,6 +316,9 @@ async fn test_dst_fall_back() {
                     diesel_pools.clone(),
                 ),
             ),
+            condition_type_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
+            ),
             workspace_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselWorkspaceRepository::new(diesel_pools.clone()),
             ),
@@ -499,6 +505,9 @@ async fn test_dst_fall_back_repeated_hour() {
                     diesel_pools.clone(),
                 ),
             ),
+            condition_type_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
+            ),
             workspace_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselWorkspaceRepository::new(diesel_pools.clone()),
             ),
@@ -680,6 +689,9 @@ async fn test_dst_spring_forward_day_shift() {
                 apiserver::repositories::DieselAttendancePolicyRepository::new(
                     diesel_pools.clone(),
                 ),
+            ),
+            condition_type_repo: std::sync::Arc::new(
+                apiserver::repositories::DieselConditionTypeRepository::new(diesel_pools.clone()),
             ),
             workspace_repo: std::sync::Arc::new(
                 apiserver::repositories::DieselWorkspaceRepository::new(diesel_pools.clone()),
