@@ -1,7 +1,4 @@
-import { Typography } from "@/components/ui/typography";
-/* eslint-disable complexity */
-/* eslint-disable perfectionist/sort-imports */
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { FileText } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -9,7 +6,6 @@ import { useForm, useWatch } from "react-hook-form";
 import { addMonths, addYears, format, subDays } from "date-fns";
 
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
-import { z } from "zod";
 
 import type { CreateContractRequest, EmployeeContract } from "@/lib/api";
 
@@ -17,60 +13,13 @@ import Button from "@/components/ui/button";
 import FormField from "@/components/ui/form-field";
 import { cn } from "@/lib/utils";
 import Modal from "@/components/ui/modal";
+import { Typography } from "@/components/ui/typography";
 import { useToast } from "@/components/ui/toast";
-import { fetchEmploymentPhases, fetchEmployee, fetchEmployeeEmployments } from "@/lib/api/employees";
+import { fetchEmploymentPhases, fetchEmployeeEmployments } from "@/lib/api/employees";
 import { useEmployeeContracts } from "@/pages/employees/hooks/use-employee-contracts";
 
-export const contractSchema = z.object({
-  contract_number: z.string().optional(),
-  contract_type: z.enum(["probation", "training", "fixed_term", "indefinite"]),
-  assign_phase_id: z.string().optional(),
-  status: z.enum(["draft", "active", "expired", "terminated"]).optional(),
-  start_date: z.string().min(1, { message: "Ngày hiệu lực là bắt buộc" }),
-  end_date: z.string().optional(),
-  notes: z.string().optional(),
-  enable_esign: z.boolean().optional(),
-  esign_auth_type: z.enum(["sms", "email", "smartca", "hsm"]).optional(),
-  national_id: z.string().optional(),
-  consent_privacy: z.boolean().optional(),
-}).superRefine((data, ctx) => {
-  if (data.contract_type !== "indefinite") {
-    if (!data.end_date || data.end_date.trim() === "") {
-      ctx.addIssue({
-        code: "custom",
-        message: "Ngày hết hạn là bắt buộc đối với loại hợp đồng này",
-        path: ["end_date"],
-      });
-    }
-  }
-  if (data.start_date && data.end_date) {
-    if (new Date(data.start_date) > new Date(data.end_date)) {
-      ctx.addIssue({
-        code: "custom",
-        message: "Ngày hết hạn phải sau ngày hiệu lực",
-        path: ["end_date"],
-      });
-    }
-  }
-  if (data.enable_esign) {
-    if (!data.consent_privacy) {
-      ctx.addIssue({
-        code: "custom",
-        message: "Bạn phải đồng ý chia sẻ thông tin cá nhân để thực hiện ký số",
-        path: ["consent_privacy"],
-      });
-    }
-    if (data.esign_auth_type === "smartca" && (!data.national_id || data.national_id.trim() === "")) {
-      ctx.addIssue({
-        code: "custom",
-        message: "Số CCCD/National ID là bắt buộc khi sử dụng SmartCA",
-        path: ["national_id"],
-      });
-    }
-  }
-});
-
-type ContractFormValues = z.infer<typeof contractSchema>;
+import { contractSchema, type ContractFormValues } from "./contract-form-schema";
+import { EsignSection } from "./esign-section";
 
 interface ContractFormModalProps {
   editingContract: EmployeeContract | null;
@@ -80,7 +29,17 @@ interface ContractFormModalProps {
   wsId: string;
 }
 
-// eslint-disable-next-line max-lines-per-function
+/** Duration presets for quick date calculation. */
+const DURATION_PRESETS: Array<{ label: string; months?: number; years?: number }> = [
+  { label: "1 Tháng", months: 1 },
+  { label: "2 Tháng", months: 2 },
+  { label: "3 Tháng", months: 3 },
+  { label: "6 Tháng", months: 6 },
+  { label: "1 Năm", years: 1 },
+  { label: "2 Năm", years: 2 },
+  { label: "3 Năm", years: 3 },
+];
+
 export default function ContractFormModal({
   isOpen,
   onClose,
@@ -90,17 +49,30 @@ export default function ContractFormModal({
 }: ContractFormModalProps) {
   const toast = useToast();
   const { createContract, updateContract } = useEmployeeContracts(wsId, employeeId);
-  const { data: phases } = useQuery({ queryKey: ["employment-phases", wsId], queryFn: () => fetchEmploymentPhases(wsId), enabled: !!wsId });
-  useQuery({ queryKey: ["employee", wsId, employeeId], queryFn: () => fetchEmployee(wsId, employeeId), enabled: !!wsId && !!employeeId && isOpen });
-  const { data: employments = [] } = useQuery({
-    queryKey: ["employee-employments", wsId, employeeId],
-    queryFn: () => fetchEmployeeEmployments(wsId, employeeId),
-    enabled: !!wsId && !!employeeId && isOpen,
+
+  // ── Queries (parallelised — phases and employments are independent) ──────
+  const [{ data: phases }, { data: employments = [] }] = useQueries({
+    queries: [
+      {
+        queryKey: ["employment-phases", wsId],
+        queryFn: () => fetchEmploymentPhases(wsId),
+        enabled: !!wsId,
+      },
+      {
+        queryKey: ["employee-employments", wsId, employeeId],
+        queryFn: () => fetchEmployeeEmployments(wsId, employeeId),
+        enabled: !!wsId && !!employeeId && isOpen,
+      },
+    ],
   });
-  const activeEmployment = employments.find(e => e.status === "active") || employments[0];
+
+  const activeEmployment = employments.find((e) => e.status === "active") || employments[0];
+
+  // ── Overlap state ─────────────────────────────────────────────────────────
   const [overlapData, setOverlapData] = useState<CreateContractRequest | null>(null);
   const [isConfirmingOverlap, setIsConfirmingOverlap] = useState(false);
 
+  // ── Form ──────────────────────────────────────────────────────────────────
   const {
     register,
     handleSubmit,
@@ -125,23 +97,13 @@ export default function ContractFormModal({
     },
   });
 
-  const contractType = useWatch({
-    control,
-    name: "contract_type",
-  });
+  const contractType = useWatch({ control, name: "contract_type" });
+  const startDateValue = useWatch({ control, name: "start_date" });
+  const watchEnableEsign = useWatch({ control, name: "enable_esign" });
+  const watchAuthType = useWatch({ control, name: "esign_auth_type" });
   const isIndefinite = contractType === "indefinite";
 
-  const startDateValue = useWatch({ control, name: "start_date" });
-
-  const watchEnableEsign = useWatch({
-    control,
-    name: "enable_esign",
-  });
-  const watchAuthType = useWatch({
-    control,
-    name: "esign_auth_type",
-  });
-
+  // ── Duration helper ────────────────────────────────────────────────────────
   const applyDuration = (months?: number, years?: number) => {
     if (!startDateValue) return;
     const start = new Date(startDateValue);
@@ -150,16 +112,16 @@ export default function ContractFormModal({
     let end = start;
     if (months) end = addMonths(end, months);
     if (years) end = addYears(end, years);
-    
     end = subDays(end, 1);
-    
+
     setValue("end_date", format(end, "yyyy-MM-dd"), { shouldValidate: true });
-    
+
     if (contractType === "indefinite") {
       setValue("contract_type", "fixed_term", { shouldValidate: true });
     }
   };
 
+  // ── Reset form on open / edit change ──────────────────────────────────────
   useEffect(() => {
     if (isOpen) {
       if (editingContract) {
@@ -185,24 +147,22 @@ export default function ContractFormModal({
     }
   }, [isOpen, editingContract, reset, activeEmployment?.start_date]);
 
+  // ── Submit ────────────────────────────────────────────────────────────────
   const onSubmit = async (data: ContractFormValues) => {
     try {
-      // Clear end_date if indefinite
       const payloadDate = isIndefinite ? null : (data.end_date ?? null);
-      
+
       if (editingContract) {
         await updateContract.mutateAsync({
           contractId: editingContract.id,
-          data: {
-            ...data,
-            end_date: payloadDate,
-          },
+          data: { ...data, end_date: payloadDate },
         });
         toast.success("Đã cập nhật hợp đồng thành công");
         onClose();
       } else {
         if (!data.assign_phase_id) {
-          toast.error("Vui lòng chọn Cột mốc khởi đầu"); return;
+          toast.error("Vui lòng chọn Cột mốc khởi đầu");
+          return;
         }
 
         const payload: CreateContractRequest = {
@@ -248,235 +208,209 @@ export default function ContractFormModal({
     }
   };
 
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
+      {/* Main form modal */}
       <Modal
         icon={<FileText size={24} />}
         isOpen={isOpen ? !isConfirmingOverlap : false}
         maxWidth="md"
         onClose={onClose}
-        subtitle={editingContract ? "Cập nhật thông tin hợp đồng nhân sự" : "Tạo hợp đồng mới cho nhân viên"}
+        subtitle={
+          editingContract
+            ? "Cập nhật thông tin hợp đồng nhân sự"
+            : "Tạo hợp đồng mới cho nhân viên"
+        }
         title={editingContract ? "Chỉnh sửa Hợp đồng" : "Tạo Hợp đồng Mới"}
       >
-      <form className="space-y-6 pt-4" noValidate onSubmit={handleSubmit(onSubmit)}>
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              label="Số hợp đồng"
-              {...register("contract_number")}
-              error={errors.contract_number?.message}
-              placeholder="VD: HD-001"
-            />
-            
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest" htmlFor="contract_type">
-                Loại hợp đồng
-                <select
-                  className="w-full h-10 px-3 mt-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-primary-500 focus:border-primary-500 dark:bg-slate-900/50 dark:border-slate-800 text-sm"
-                  id="contract_type"
-                  {...register("contract_type")}
-                >
-                  <option value="probation">Thử việc</option>
-                  <option value="training">Đào tạo</option>
-                  <option value="fixed_term">Xác định thời hạn</option>
-                  <option value="indefinite">Không xác định thời hạn</option>
-                </select>
-              </label>
-              {!!errors.contract_type && <Typography className="text-xs text-rose-500 font-medium" variant="p">{errors.contract_type.message}</Typography>}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
+        <form className="space-y-6 pt-4" noValidate onSubmit={handleSubmit(onSubmit)}>
+          <div className="space-y-4">
+            {/* Row 1: Contract number + Type */}
+            <div className="grid grid-cols-2 gap-4">
               <FormField
-                label="Ngày hiệu lực"
-                type="date"
-                {...register("start_date")}
-                error={errors.start_date?.message}
-                required
+                label="Số hợp đồng"
+                {...register("contract_number")}
+                error={errors.contract_number?.message}
+                placeholder="VD: HD-001"
               />
-              <Typography className="text-[10px] text-slate-500 italic px-1" variant="p">
-                Lưu ý: Ngày bắt đầu hợp đồng cũ nhất sẽ tự động cập nhật lại thành Ngày vào làm của nhân viên.
-              </Typography>
-            </div>
-            
-            <FormField
-              disabled={isIndefinite}
-              label="Ngày hết hạn"
-              type="date"
-              {...register("end_date")}
-              error={errors.end_date?.message}
-              required={!isIndefinite}
-            />
-          </div>
 
-          <div className="flex flex-wrap items-center gap-2 pt-1">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mr-1">Tính nhanh:</span>
-            {[
-              { label: "1 Tháng", months: 1 },
-              { label: "2 Tháng", months: 2 },
-              { label: "3 Tháng", months: 3 },
-              { label: "6 Tháng", months: 6 },
-              { label: "1 Năm", years: 1 },
-              { label: "2 Năm", years: 2 },
-              { label: "3 Năm", years: 3 },
-            ].map((option) => (
+              <div className="space-y-2">
+                <label
+                  className="text-[11px] font-bold text-slate-500 uppercase tracking-widest"
+                  htmlFor="contract_type"
+                >
+                  Loại hợp đồng
+                  <select
+                    className="w-full h-10 px-3 mt-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-primary-500 focus:border-primary-500 dark:bg-slate-900/50 dark:border-slate-800 text-sm"
+                    id="contract_type"
+                    {...register("contract_type")}
+                  >
+                    <option value="probation">Thử việc</option>
+                    <option value="training">Đào tạo</option>
+                    <option value="fixed_term">Xác định thời hạn</option>
+                    <option value="indefinite">Không xác định thời hạn</option>
+                  </select>
+                </label>
+                {!!errors.contract_type && (
+                  <Typography className="text-xs text-rose-500 font-medium" variant="p">
+                    {errors.contract_type.message}
+                  </Typography>
+                )}
+              </div>
+            </div>
+
+            {/* Row 2: Start + End date */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <FormField
+                  label="Ngày hiệu lực"
+                  type="date"
+                  {...register("start_date")}
+                  error={errors.start_date?.message}
+                  required
+                />
+                <Typography className="text-[10px] text-slate-500 italic px-1" variant="p">
+                  Lưu ý: Ngày bắt đầu hợp đồng cũ nhất sẽ tự động cập nhật lại thành Ngày vào làm của nhân viên.
+                </Typography>
+              </div>
+
+              <FormField
+                disabled={isIndefinite}
+                label="Ngày hết hạn"
+                type="date"
+                {...register("end_date")}
+                error={errors.end_date?.message}
+                required={!isIndefinite}
+              />
+            </div>
+
+            {/* Duration quick-pick */}
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mr-1">
+                Tính nhanh:
+              </span>
+              {DURATION_PRESETS.map((option) => (
+                <Button
+                  className="px-2.5 py-1.5 text-[11px] font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 h-auto shadow-none border-none normal-case tracking-normal hover:text-slate-800"
+                  key={option.label}
+                  onClick={() => {
+                    applyDuration(option.months, option.years);
+                  }}
+                  type="button"
+                  variant="ghost"
+                >
+                  {option.label}
+                </Button>
+              ))}
               <Button
-                className="px-2.5 py-1.5 text-[11px] font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 h-auto shadow-none border-none normal-case tracking-normal hover:text-slate-800"
-                key={option.label}
-                onClick={() => { applyDuration(option.months, option.years); }}
+                className={cn(
+                  "px-2.5 py-1.5 text-[11px] font-medium rounded-lg transition-colors h-auto shadow-none border-none normal-case tracking-normal hover:text-slate-800",
+                  isIndefinite
+                    ? "bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-400 ring-1 ring-primary-500/50 hover:bg-primary-100 hover:text-primary-700"
+                    : "bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300",
+                )}
+                onClick={() => {
+                  setValue("contract_type", "indefinite", { shouldValidate: true });
+                  setValue("end_date", "", { shouldValidate: true });
+                }}
                 type="button"
                 variant="ghost"
               >
-                {option.label}
+                Lâu dài
               </Button>
-            ))}
-            <Button
-              className={cn(
-                "px-2.5 py-1.5 text-[11px] font-medium rounded-lg transition-colors h-auto shadow-none border-none normal-case tracking-normal hover:text-slate-800",
-                isIndefinite 
-                  ? "bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-400 ring-1 ring-primary-500/50 hover:bg-primary-100 hover:text-primary-700" 
-                  : "bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300"
-              )}
-              onClick={() => {
-                setValue("contract_type", "indefinite", { shouldValidate: true });
-                setValue("end_date", "", { shouldValidate: true });
-              }}
-              type="button"
-              variant="ghost"
-            >
-              Lâu dài
-            </Button>
+            </div>
+
+            {/* Phase selector (new contract only) */}
+            {!editingContract && (
+              <div className="space-y-2">
+                <label
+                  className="text-[11px] font-bold text-slate-500 uppercase tracking-widest"
+                  htmlFor="assign_phase_id"
+                >
+                  Chọn Cột Mốc Khởi Đầu
+                  <select
+                    className="w-full h-10 px-3 mt-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-primary-500 focus:border-primary-500 dark:bg-slate-900/50 dark:border-slate-800 text-sm"
+                    id="assign_phase_id"
+                    {...register("assign_phase_id")}
+                    required
+                  >
+                    <option value="">-- Bắt buộc chọn Cột mốc --</option>
+                    {phases
+                      ?.filter((p) => p.is_active)
+                      .map((phase) => (
+                        <option key={phase.id} value={phase.id}>
+                          {phase.name} ({phase.phase_type})
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                {!!errors.assign_phase_id && (
+                  <Typography className="text-xs text-rose-500 font-medium" variant="p">
+                    {errors.assign_phase_id.message}
+                  </Typography>
+                )}
+              </div>
+            )}
+
+            {/* Status (edit only) */}
+            {!!editingContract && (
+              <div className="space-y-2">
+                <label
+                  className="text-[11px] font-bold text-slate-500 uppercase tracking-widest"
+                  htmlFor="status"
+                >
+                  Trạng thái
+                  <select
+                    className="w-full h-10 px-3 mt-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-primary-500 focus:border-primary-500 dark:bg-slate-900/50 dark:border-slate-800 text-sm"
+                    id="status"
+                    {...register("status")}
+                  >
+                    <option value="draft">Bản nháp</option>
+                    <option value="active">Đang hiệu lực</option>
+                    <option value="expired">Đã hết hạn</option>
+                    <option value="terminated">Đã chấm dứt</option>
+                  </select>
+                </label>
+              </div>
+            )}
+
+            {/* E-Signature (new contract only) */}
+            {!editingContract && (
+              <EsignSection
+                errors={errors}
+                register={register}
+                watchAuthType={watchAuthType}
+                watchEnableEsign={watchEnableEsign}
+              />
+            )}
+
+            <FormField
+              label="Ghi chú"
+              {...register("notes")}
+              error={errors.notes?.message}
+              placeholder="Ghi chú thêm về hợp đồng..."
+            />
           </div>
 
-          {!editingContract && (
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest" htmlFor="assign_phase_id">
-                Chọn Cột Mốc Khởi Đầu
-                <select
-                  className="w-full h-10 px-3 mt-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-primary-500 focus:border-primary-500 dark:bg-slate-900/50 dark:border-slate-800 text-sm"
-                  id="assign_phase_id"
-                  {...register("assign_phase_id")}
-                  required
-                >
-                  <option value="">-- Bắt buộc chọn Cột mốc --</option>
-                  {phases?.filter(p => p.is_active).map(phase => (
-                    <option key={phase.id} value={phase.id}>{phase.name} ({phase.phase_type})</option>
-                  ))}
-                </select>
-              </label>
-              {!!errors.assign_phase_id && <Typography className="text-xs text-rose-500 font-medium" variant="p">{errors.assign_phase_id.message}</Typography>}
-            </div>
-          )}
+          <div className="flex items-center justify-end gap-3 pt-6 border-t border-slate-100 dark:border-slate-800">
+            <Button disabled={isSubmitting} onClick={onClose} type="button" variant="outline">
+              HỦY BỎ
+            </Button>
+            <Button loading={isSubmitting} type="submit" variant="secondary">
+              {editingContract ? "CẬP NHẬT" : "TẠO MỚI"}
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
-          {!!editingContract && (
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest" htmlFor="status">
-                Trạng thái
-                <select
-                  className="w-full h-10 px-3 mt-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-primary-500 focus:border-primary-500 dark:bg-slate-900/50 dark:border-slate-800 text-sm"
-                  id="status"
-                  {...register("status")}
-                >
-                  <option value="draft">Bản nháp</option>
-                  <option value="active">Đang hiệu lực</option>
-                  <option value="expired">Đã hết hạn</option>
-                  <option value="terminated">Đã chấm dứt</option>
-                </select>
-              </label>
-            </div>
-          )}
-
-          {!editingContract && (
-            <div className="space-y-4 p-5 border border-slate-100 dark:border-slate-800 rounded-3xl bg-slate-50/50 dark:bg-slate-900/30">
-              <label className="flex items-center justify-between cursor-pointer" htmlFor="enable_esign">
-                <div>
-                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider block">Kích hoạt ký số điện tử (Enable e-Signature)</span>
-                  <span className="text-[9px] text-slate-400 font-semibold uppercase tracking-wider mt-0.5 block">Tự động khởi tạo giao dịch ký số trên FPT/SmartCA</span>
-                </div>
-                <input
-                  className="h-4 w-4 rounded border-slate-350 text-primary-600 focus:ring-primary-500 cursor-pointer"
-                  id="enable_esign"
-                  type="checkbox"
-                  {...register("enable_esign")}
-                />
-              </label>
-
-              {!!watchEnableEsign && (
-                <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-850 animate-in fade-in duration-300">
-                  <div className="space-y-2">
-                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest" htmlFor="esign_auth_type">
-                      Phương thức xác thực (Auth Type)
-                      <select
-                        className="w-full h-10 px-3 mt-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-primary-500 focus:border-primary-500 dark:bg-slate-900/50 dark:border-slate-800 text-sm font-semibold"
-                        id="esign_auth_type"
-                        {...register("esign_auth_type")}
-                      >
-                        <option value="sms">SMS OTP Code</option>
-                        <option value="email">Email OTP Code</option>
-                        <option value="smartca">SmartCA Remote CA (VNPT)</option>
-                        <option value="hsm">Corporate HSM Signature</option>
-                      </select>
-                    </label>
-                  </div>
-
-                  {watchAuthType === "smartca" && (
-                    <FormField
-                      id="national_id"
-                      label="Số CCCD / National ID (Bắt buộc đối với SmartCA)"
-                      {...register("national_id")}
-                      error={errors.national_id?.message}
-                      placeholder="VD: 037123456789"
-                      required
-                    />
-                  )}
-
-                  <div className="space-y-2">
-                    <div className="flex items-start gap-2.5">
-                      <input
-                        className="mt-0.5 h-4 w-4 rounded border-slate-350 text-primary-600 focus:ring-primary-500 cursor-pointer"
-                        id="consent_privacy"
-                        type="checkbox"
-                        {...register("consent_privacy")}
-                      />
-                      <label className="text-[9px] text-slate-500 font-bold leading-normal uppercase tracking-wider cursor-pointer select-none" htmlFor="consent_privacy">
-                        Tôi đồng ý chia sẻ thông tin cá nhân (Họ tên, Email, SĐT, CCCD) cho bên nhà cung cấp dịch vụ ký số CeCA để thực hiện giao dịch này. (Nghị định 13/2023/NĐ-CP)
-                      </label>
-                    </div>
-                    {!!errors.consent_privacy && (
-                      <Typography className="text-xs text-rose-500 font-medium" variant="p">
-                        {errors.consent_privacy.message}
-                      </Typography>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          <FormField
-            label="Ghi chú"
-            {...register("notes")}
-            error={errors.notes?.message}
-            placeholder="Ghi chú thêm về hợp đồng..."
-          />
-        </div>
-
-        <div className="flex items-center justify-end gap-3 pt-6 border-t border-slate-100 dark:border-slate-800">
-          <Button disabled={isSubmitting} onClick={onClose} type="button" variant="outline">
-            HỦY BỎ
-          </Button>
-          <Button loading={isSubmitting} type="submit" variant="secondary">
-            {editingContract ? "CẬP NHẬT" : "TẠO MỚI"}
-          </Button>
-        </div>
-      </form>
-    </Modal>
-
+      {/* Overlap confirmation modal */}
       <Modal
         icon={<FileText size={24} />}
         isOpen={isConfirmingOverlap}
-        onClose={() => { setIsConfirmingOverlap(false); }}
+        onClose={() => {
+          setIsConfirmingOverlap(false);
+        }}
         subtitle="Hệ thống phát hiện có sự trùng lặp thời gian"
         title="Trùng Lặp Hợp Đồng"
       >
@@ -488,10 +422,23 @@ export default function ContractFormModal({
             Bạn có muốn hệ thống tự động kết thúc hợp đồng cũ vào ngày trước đó để nhường chỗ cho hợp đồng mới này không?
           </Typography>
           <div className="flex items-center justify-end gap-3 pt-6 border-t border-slate-100 dark:border-slate-800">
-            <Button onClick={() => { setIsConfirmingOverlap(false); }} type="button" variant="outline">
+            <Button
+              onClick={() => {
+                setIsConfirmingOverlap(false);
+              }}
+              type="button"
+              variant="outline"
+            >
               QUAY LẠI SỬA NGÀY
             </Button>
-            <Button loading={createContract.isPending} onClick={() => { void handleConfirmOverlap(); }} type="button" variant="secondary">
+            <Button
+              loading={createContract.isPending}
+              onClick={() => {
+                void handleConfirmOverlap();
+              }}
+              type="button"
+              variant="secondary"
+            >
               TỰ ĐỘNG ĐÓNG & TẠO MỚI
             </Button>
           </div>

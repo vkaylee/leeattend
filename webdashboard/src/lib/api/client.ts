@@ -134,36 +134,48 @@ export const client = createClient<paths>({
   fetch: customFetch,
 }) as unknown as SafeClient;
 
-// @deprecated — DO NOT use `fetch<T>()` or `fire()` for new code.
-// Use the typed `client.GET()`, `client.POST()`, etc. instead.
-// These helpers bypass openapi-fetch type checking and exist only for
-// legacy call sites whose paths are absent from the generated schema.
+// ── Legacy escape hatch for paths not yet in the generated schema ──────────
+// Migrate callers to typed `client.GET()` / `client.POST()` whenever the
+// path becomes available in the OpenAPI-generated types.
 // See: https://github.com/lee-lee/leeattend/issues/type-safety-migration
-// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
-export async function fetch<T>(
-  method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH",
-  path: string,
-  init?: {
-    params?: { path?: Record<string, unknown>; query?: Record<string, unknown> };
-    body?: unknown;
-  },
-): Promise<{ data: T }> {
-  const fn = client[method] as (
-    p: string,
-    i?: unknown,
-  ) => Promise<{ data: T }>;
-  return fn(path, init);
+
+type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+
+interface LegacyFetchInit {
+  params?: { path?: Record<string, unknown>; query?: Record<string, unknown> };
+  body?: unknown;
 }
 
-// Fire-and-forget variant for mutations whose response body is discarded.
-// Avoids passing `void` as a generic type argument (banned by lint).
-export async function fire(
-  method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH",
+/**
+ * Typed escape hatch for API paths absent from the generated schema.
+ *
+ * Prefer {@link client}.GET / POST / etc. for any path covered by the
+ * OpenAPI spec.  This helper is intentionally generic over `T` because the
+ * response shape is unknown to the type-checker — **callers must ensure `T`
+ * matches the actual backend response**.
+ */
+export async function fetch<T>(
+  method: HttpMethod,
   path: string,
-  init?: {
-    params?: { path?: Record<string, unknown>; query?: Record<string, unknown> };
-    body?: unknown;
-  },
+  init?: LegacyFetchInit,
+): Promise<{ data: T }> {
+  // The cast through SafeClient's method overloads is necessary because
+  // `path` is a raw string (not validated against the schema).  We keep
+  // the escape hatch narrow by only allowing valid HTTP methods and a
+  // controlled init shape.
+  const typedClient = client as Record<HttpMethod, (p: string, i?: LegacyFetchInit) => Promise<{ data: T }>>;
+  return typedClient[method](path, init);
+}
+
+/**
+ * Fire-and-forget variant for mutations whose response body is discarded.
+ *
+ * Prefer `client.POST(...)` / `client.PUT(...)` for schema-covered paths.
+ */
+export async function fire(
+  method: HttpMethod,
+  path: string,
+  init?: LegacyFetchInit,
 ): Promise<void> {
   await fetch<undefined>(method, path, init);
 }
