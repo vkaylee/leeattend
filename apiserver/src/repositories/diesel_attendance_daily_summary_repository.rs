@@ -419,6 +419,47 @@ impl AttendanceDailySummaryRepository for DieselAttendanceDailySummaryRepository
         Ok((results, total_usize))
     }
 
+    async fn get_summaries_by_employments_batch(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employment_ids: &[Uuid],
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<std::collections::HashMap<(Uuid, NaiveDate), AttendanceDailySummary>, AppError> {
+        if employment_ids.is_empty() {
+            return Ok(std::collections::HashMap::new());
+        }
+
+        let workspace_id = auth_token.workspace_id();
+        use crate::schema::attendance_daily_summaries::dsl as ads;
+
+        let mut conn = crate::diesel_pool::TransactionConn(
+            self.diesel_pools
+                .tenants_tx
+                .get_connection(&auth_token.workspace_id())
+                .await?,
+        );
+
+        use crate::models::diesel::attendance_daily_summary::AttendanceDailySummaryEntity;
+
+        let rows = ads::attendance_daily_summaries
+            .filter(ads::workspace_id.eq(workspace_id))
+            .filter(ads::employment_id.eq_any(employment_ids))
+            .filter(ads::date.ge(start_date))
+            .filter(ads::date.le(end_date))
+            .load::<AttendanceDailySummaryEntity>(&mut *conn)
+            .await
+            .map_err(|e| AppError::Internal(format!("db: {e}")))?;
+
+        Ok(rows
+            .into_iter()
+            .map(|entity| {
+                let summary: AttendanceDailySummary = entity.into();
+                ((summary.employment_id, summary.date), summary)
+            })
+            .collect())
+    }
+
     async fn get_distinct_work_days_from_summary(
         &self,
         auth_token: &crate::diesel_pool::TenantAuthToken,

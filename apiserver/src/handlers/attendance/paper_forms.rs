@@ -4,12 +4,14 @@ use axum::{
 };
 use chrono::NaiveDate;
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
+use crate::models::employee::Employee;
 use crate::models::{AttendanceDailySummary, BulkOtEntryError, BulkOtUploadResult};
 use crate::utils::i18n::I18nKey;
 use crate::AppState;
@@ -91,6 +93,15 @@ pub async fn enter_paper_ot(
     Ok(Json(result))
 }
 
+/// Parsed row after basic in-memory validation (no DB lookups yet).
+struct ParsedBulkOtRow {
+    line_number: usize,
+    employee_id_str: String,
+    date: NaiveDate,
+    minutes: i32,
+    reason: String,
+}
+
 #[allow(clippy::too_many_lines)]
 #[utoipa::path(
     post,
@@ -116,7 +127,181 @@ pub async fn bulk_upload_paper_ot(
     ctx.require_permission(Permission::OvertimePaperUpload)?;
 
     // 2. Extract CSV file from multipart
-    let mut csv_data: Option<Vec<u8>> = None;
+    let csv_bytes = extract_csv_from_multipart(&mut multipart).await?;
+
+    // 3. Parse CSV and perform basic in-memory validation (no DB calls)
+    let (parsed_rows, mut errors) = parse_and_validate_csv_rows(&csv_bytes)?;
+    if parsed_rows.is_empty() {
+        return Ok(Json(BulkOtUploadResult {
+            total_rows: errors.len(),
+            success_count: 0,
+            failed_count: errors.len(),
+            errors,
+        }));
+    }
+
+    let total_rows = parsed_rows.len() + errors.len();
+
+    // 4. Phase 1: Batch-fetch all employees in ONE query
+    let unique_codes: Vec<String> = {
+        let mut codes: Vec<String> = parsed_rows
+            .iter()
+            .map(|r| r.employee_id_str.clone())
+            .collect();
+        codes.sort();
+        codes.dedup();
+        codes
+    };
+
+    let employees_list = state
+        .employees()
+        .repo()
+        .get_employees_by_id_numbers(&unique_codes, &ctx.auth_token)
+        .await?;
+
+    let employees_by_code: HashMap<String, Employee> = employees_list
+        .into_iter()
+        .map(|emp| (emp.employee_id_number().to_string(), emp))
+        .collect();
+
+    // 5. Phase 2: Resolve employment IDs and collect (employment_id, date) pairs for batch summary fetch
+    let mut row_to_employment: HashMap<usize, Uuid> = HashMap::new();
+    let mut summary_pairs: Vec<(Uuid, NaiveDate)> = Vec::new();
+    let mut valid_parsed: Vec<&ParsedBulkOtRow> = Vec::new();
+
+    let today = chrono::Utc::now().date_naive();
+
+    for row in &parsed_rows {
+        let Some(employee) = employees_by_code.get(&row.employee_id_str) else {
+            errors.push(BulkOtEntryError {
+                line_number: row.line_number,
+                employment_id: row.employee_id_str.clone(),
+                error_message: "Employee not found in workspace".to_string(),
+            });
+            continue;
+        };
+
+        let Some(active_employment_id) = employee.active_employment_id() else {
+            errors.push(BulkOtEntryError {
+                line_number: row.line_number,
+                employment_id: row.employee_id_str.clone(),
+                error_message: "No active employment found for employee".to_string(),
+            });
+            continue;
+        };
+
+        // Check future date
+        if row.date > today {
+            errors.push(BulkOtEntryError {
+                line_number: row.line_number,
+                employment_id: row.employee_id_str.clone(),
+                error_message: "Date cannot be in the future".to_string(),
+            });
+            continue;
+        }
+
+        row_to_employment.insert(row.line_number, active_employment_id);
+        summary_pairs.push((active_employment_id, row.date));
+        valid_parsed.push(row);
+    }
+
+    if valid_parsed.is_empty() {
+        return Ok(Json(BulkOtUploadResult {
+            total_rows,
+            success_count: 0,
+            failed_count: errors.len(),
+            errors,
+        }));
+    }
+
+    // 6. Phase 3: Batch-fetch ALL summaries in ONE query
+    let (min_date, max_date) = summary_pairs
+        .iter()
+        .fold((summary_pairs[0].1, summary_pairs[0].1), |(min, max), (_, d)| {
+            (std::cmp::min(min, *d), std::cmp::max(max, *d))
+        });
+    let all_employment_ids: Vec<Uuid> = {
+        let mut ids: Vec<Uuid> = valid_parsed
+            .iter()
+            .filter_map(|r| row_to_employment.get(&r.line_number).copied())
+            .collect();
+        ids.sort();
+        ids.dedup();
+        ids
+    };
+
+    let summaries_map = state
+        .attendance()
+        .attendance_daily_summary_repo()
+        .get_summaries_by_employments_batch(&ctx.auth_token, &all_employment_ids, min_date, max_date)
+        .await?;
+
+    // 7. Phase 4: Process each row with in-memory data, persist via enter_paper_ot
+    let mut success_count = 0;
+
+    for row in valid_parsed {
+        let active_employment_id = match row_to_employment.get(&row.line_number) {
+            Some(id) => *id,
+            None => continue, // Should not happen — already filtered above
+        };
+
+        // Validate against system_detected_ot_minutes (in-memory)
+        if let Some(summary) = summaries_map.get(&(active_employment_id, row.date)) {
+            if row.minutes > summary.system_detected_ot_minutes {
+                errors.push(BulkOtEntryError {
+                    line_number: row.line_number,
+                    employment_id: row.employee_id_str.clone(),
+                    error_message: format!(
+                        "Claimed {} minutes exceeds system detected {} minutes",
+                        row.minutes, summary.system_detected_ot_minutes
+                    ),
+                });
+                continue;
+            }
+        }
+
+        // Persist
+        match state
+            .attendance()
+            .summary_service()
+            .enter_paper_ot(
+                crate::services::attendance_summary_service::EnterPaperOtArgs {
+                    workspace_id: ctx.workspace_id,
+                    employment_id: active_employment_id,
+                    date: row.date,
+                    claimed_minutes: row.minutes,
+                    reason: row.reason.clone(),
+                    entered_by_user_id: ctx.user_id,
+                    photo_url: None,
+                    allow_exceed: false,
+                },
+            )
+            .await
+        {
+            Ok(_) => {
+                success_count += 1;
+            }
+            Err(e) => {
+                errors.push(BulkOtEntryError {
+                    line_number: row.line_number,
+                    employment_id: row.employee_id_str.clone(),
+                    error_message: e.to_string(),
+                });
+            }
+        }
+    }
+
+    // 8. Return result
+    Ok(Json(BulkOtUploadResult {
+        total_rows,
+        success_count,
+        failed_count: errors.len(),
+        errors,
+    }))
+}
+
+/// Extract CSV bytes from multipart form data.
+async fn extract_csv_from_multipart(multipart: &mut Multipart) -> AppResult<Vec<u8>> {
     while let Some(field) = multipart
         .next_field()
         .await
@@ -129,52 +314,46 @@ pub async fn bulk_upload_paper_ot(
                 .await
                 .map_err(|_e| AppError::validation(I18nKey::FailedToReadFileBytes))?;
 
-            // File size limit check
             if data.len() > MAX_BULK_UPLOAD_FILE_SIZE {
                 return Err(AppError::validation(I18nKey::FileTooLarge));
             }
 
-            csv_data = Some(data.to_vec());
-            break;
+            return Ok(data.to_vec());
         }
     }
+    Err(AppError::validation(I18nKey::NoFileUploaded))
+}
 
-    let csv_bytes = csv_data.ok_or_else(|| AppError::validation(I18nKey::NoFileUploaded))?;
-
-    // 3. Parse CSV
-    let csv_str =
-        String::from_utf8(csv_bytes).map_err(|_e| AppError::validation(I18nKey::InvalidUtf8Csv))?;
+/// Parse CSV and perform basic in-memory validation (no DB calls).
+/// Returns parsed rows and any validation errors.
+fn parse_and_validate_csv_rows(
+    csv_bytes: &[u8],
+) -> AppResult<(Vec<ParsedBulkOtRow>, Vec<BulkOtEntryError>)> {
+    let csv_str = String::from_utf8(csv_bytes.to_vec())
+        .map_err(|_e| AppError::validation(I18nKey::InvalidUtf8Csv))?;
 
     let mut rdr = csv::Reader::from_reader(csv_str.as_bytes());
-
-    // Collect all rows first to validate count
-    let mut rows: Vec<(usize, csv::StringRecord)> = Vec::new();
-    for (idx, result) in rdr.records().enumerate() {
-        let record = result.map_err(|_e| AppError::validation(I18nKey::CsvParsingError))?;
-        rows.push((idx + 2, record)); // +2 because CSV line 1 is header, records start at line 2
-
-        if rows.len() > MAX_BULK_UPLOAD_ROWS {
-            return Err(AppError::validation(I18nKey::MaxRowsExceeded));
-        }
-    }
-
-    let total_rows = rows.len();
-    let mut errors: Vec<BulkOtEntryError> = Vec::new();
-    let mut success_count = 0;
-
-    // Track duplicates within this upload
+    let mut parsed_rows = Vec::new();
+    let mut errors = Vec::new();
     let mut seen_keys: std::collections::HashSet<(String, NaiveDate)> =
         std::collections::HashSet::new();
 
-    // 4. Process each row
-    for (line_number, record) in rows {
-        // Parse fields
+    for (idx, result) in rdr.records().enumerate() {
+        let line_number = idx + 2; // +2: CSV header is line 1, records start at line 2
+
+        if parsed_rows.len() + errors.len() >= MAX_BULK_UPLOAD_ROWS {
+            return Err(AppError::validation(I18nKey::MaxRowsExceeded));
+        }
+
+        let record =
+            result.map_err(|_e| AppError::validation(I18nKey::CsvParsingError))?;
+
         let employee_id_str = record.get(0).unwrap_or("").trim().to_string();
         let date_str = record.get(1).unwrap_or("").trim();
         let minutes_str = record.get(2).unwrap_or("").trim();
         let reason = record.get(3).unwrap_or("").trim().to_string();
 
-        // Validation: Check for empty fields
+        // Validate required fields
         if employee_id_str.is_empty() {
             errors.push(BulkOtEntryError {
                 line_number,
@@ -184,7 +363,6 @@ pub async fn bulk_upload_paper_ot(
             continue;
         }
 
-        // Parse date
         let Ok(date) = NaiveDate::parse_from_str(date_str, "%Y-%m-%d") else {
             errors.push(BulkOtEntryError {
                 line_number,
@@ -194,18 +372,6 @@ pub async fn bulk_upload_paper_ot(
             continue;
         };
 
-        // Check future date
-        let today = chrono::Utc::now().date_naive();
-        if date > today {
-            errors.push(BulkOtEntryError {
-                line_number,
-                employment_id: employee_id_str.clone(),
-                error_message: "Date cannot be in the future".to_string(),
-            });
-            continue;
-        }
-
-        // Parse minutes
         let Ok(minutes) = minutes_str.parse::<i32>() else {
             errors.push(BulkOtEntryError {
                 line_number,
@@ -215,7 +381,6 @@ pub async fn bulk_upload_paper_ot(
             continue;
         };
 
-        // Validate minutes
         if minutes <= 0 {
             errors.push(BulkOtEntryError {
                 line_number,
@@ -225,7 +390,6 @@ pub async fn bulk_upload_paper_ot(
             continue;
         }
 
-        // Validate reason
         if reason.is_empty() {
             errors.push(BulkOtEntryError {
                 line_number,
@@ -235,7 +399,7 @@ pub async fn bulk_upload_paper_ot(
             continue;
         }
 
-        // Check for duplicate in this upload
+        // Check for duplicate within upload
         let key = (employee_id_str.clone(), date);
         if seen_keys.contains(&key) {
             errors.push(BulkOtEntryError {
@@ -247,103 +411,14 @@ pub async fn bulk_upload_paper_ot(
         }
         seen_keys.insert(key);
 
-        // Find employee by employee_id_number
-        let Some(employee) = (match state
-            .employees()
-            .repo()
-            .get_employee_by_id_number(&employee_id_str, &ctx.auth_token)
-            .await
-        {
-            Ok(Some(emp)) => Some(emp),
-            Ok(None) => {
-                errors.push(BulkOtEntryError {
-                    line_number,
-                    employment_id: employee_id_str.clone(),
-                    error_message: "Employee not found in workspace".to_string(),
-                });
-                None
-            }
-            Err(e) => {
-                errors.push(BulkOtEntryError {
-                    line_number,
-                    employment_id: employee_id_str.clone(),
-                    error_message: format!("Database error: {e}"),
-                });
-                None
-            }
-        }) else {
-            continue;
-        };
-
-        // Get active employment ID
-        let Some(active_employment_id) = employee.active_employment_id() else {
-            errors.push(BulkOtEntryError {
-                line_number,
-                employment_id: employee_id_str,
-                error_message: "No active employment found for employee".to_string(),
-            });
-            continue;
-        };
-
-        // Validate against system_detected_ot_minutes
-        let existing_summary = state
-            .attendance()
-            .attendance_daily_summary_repo()
-            .get_summary(&ctx.auth_token, active_employment_id, date)
-            .await;
-
-        if let Ok(Some(summary)) = existing_summary {
-            let system_detected = summary.system_detected_ot_minutes;
-            if minutes > system_detected {
-                errors.push(BulkOtEntryError {
-                    line_number,
-                    employment_id: employee_id_str,
-                    error_message: format!(
-                        "Claimed {minutes} minutes exceeds system detected {system_detected} minutes"
-                    ),
-                });
-                continue;
-            }
-        }
-
-        // Call enter_paper_ot service
-        match state
-            .attendance()
-            .summary_service()
-            .enter_paper_ot(
-                crate::services::attendance_summary_service::EnterPaperOtArgs {
-                    workspace_id: ctx.workspace_id,
-                    employment_id: active_employment_id,
-                    date,
-                    claimed_minutes: minutes,
-                    reason,
-                    entered_by_user_id: ctx.user_id,
-                    photo_url: None,     // No photo URL for bulk upload
-                    allow_exceed: false, // Don't allow exceed for bulk upload
-                },
-            )
-            .await
-        {
-            Ok(_) => {
-                success_count += 1;
-            }
-            Err(e) => {
-                errors.push(BulkOtEntryError {
-                    line_number,
-                    employment_id: employee_id_str,
-                    error_message: e.to_string(),
-                });
-            }
-        }
+        parsed_rows.push(ParsedBulkOtRow {
+            line_number,
+            employee_id_str,
+            date,
+            minutes,
+            reason,
+        });
     }
 
-    // 5. Return result
-    let result = BulkOtUploadResult {
-        total_rows,
-        success_count,
-        failed_count: errors.len(),
-        errors,
-    };
-
-    Ok(Json(result))
+    Ok((parsed_rows, errors))
 }

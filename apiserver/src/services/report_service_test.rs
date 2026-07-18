@@ -1250,6 +1250,15 @@ mod tests {
         ) -> Result<Vec<AttendanceDailySummary>, AppError> {
             unimplemented!()
         }
+        async fn get_summaries_by_employments_batch(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employment_ids: &[Uuid],
+            _start_date: NaiveDate,
+            _end_date: NaiveDate,
+        ) -> Result<std::collections::HashMap<(Uuid, NaiveDate), AttendanceDailySummary>, AppError> {
+            unimplemented!()
+        }
         async fn get_summaries_paginated(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
@@ -2346,6 +2355,15 @@ mod tests {
             _s: NaiveDate,
             _en: NaiveDate,
         ) -> Result<Vec<AttendanceDailySummary>, AppError> {
+            unimplemented!()
+        }
+        async fn get_summaries_by_employments_batch(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employment_ids: &[Uuid],
+            _start_date: NaiveDate,
+            _end_date: NaiveDate,
+        ) -> Result<std::collections::HashMap<(Uuid, NaiveDate), AttendanceDailySummary>, AppError> {
             unimplemented!()
         }
         async fn get_summaries_paginated(

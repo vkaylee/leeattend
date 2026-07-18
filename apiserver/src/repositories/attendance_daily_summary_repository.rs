@@ -80,6 +80,16 @@ pub trait AttendanceDailySummaryRepository: Send + Sync {
         end_date: NaiveDate,
     ) -> Result<Vec<AttendanceDailySummary>, AppError>;
 
+    /// Batch fetch summaries for multiple employment_ids in a date range.
+    /// Returns a map keyed by (employment_id, date).
+    async fn get_summaries_by_employments_batch(
+        &self,
+        auth_token: &crate::diesel_pool::TenantAuthToken,
+        employment_ids: &[Uuid],
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<std::collections::HashMap<(Uuid, NaiveDate), AttendanceDailySummary>, AppError>;
+
     /// Paginated variant with optional ot_status filter.
     /// Returns (data, total_count).
     #[allow(clippy::too_many_arguments)]

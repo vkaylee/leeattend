@@ -1588,6 +1588,16 @@ mod tests {
             Ok(vec![])
         }
 
+        async fn get_summaries_by_employments_batch(
+            &self,
+            _auth_token: &crate::diesel_pool::TenantAuthToken,
+            _employment_ids: &[Uuid],
+            _start_date: NaiveDate,
+            _end_date: NaiveDate,
+        ) -> Result<std::collections::HashMap<(Uuid, NaiveDate), crate::models::AttendanceDailySummary>, AppError> {
+            Ok(std::collections::HashMap::new())
+        }
+
         async fn get_summaries_paginated(
             &self,
             _auth_token: &crate::diesel_pool::TenantAuthToken,
